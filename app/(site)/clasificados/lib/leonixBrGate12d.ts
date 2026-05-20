@@ -4,7 +4,15 @@
  */
 
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
-import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import type {
+  BienesRaicesPrivadoFormState,
+  BrPrivadoHoaFrequency,
+  BrPrivadoTriBool,
+} from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import {
+  brGate12dHoaFormSliceHasContent,
+  type BrGate12dHoaFormSlice,
+} from "@/app/clasificados/lib/leonixBrGate12dHoaPreview";
 import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 import {
@@ -209,6 +217,67 @@ function coerceFreq(raw: string): BrGate12dHoaFrequency | undefined {
   return undefined;
 }
 
+function coercePrivadoTriToGate12d(v: BrPrivadoTriBool): BrGate12dTriBool | undefined {
+  if (v === "yes" || v === "no" || v === "unknown") return v;
+  return undefined;
+}
+
+function coercePrivadoFreqToGate12d(v: BrPrivadoHoaFrequency): BrGate12dHoaFrequency | undefined {
+  if (v === "monthly" || v === "quarterly" || v === "yearly" || v === "unknown") return v;
+  return undefined;
+}
+
+function applyGate12dHoaSliceToPayload(p: BrGate12dV1Payload, g: BrGate12dHoaFormSlice): void {
+  const pushS = (k: keyof BrGate12dV1Payload, v: string) => {
+    const t = v.trim();
+    if (t) (p as Record<string, unknown>)[k] = t;
+  };
+  const ho = coercePrivadoTriToGate12d(g.hasHoa);
+  if (ho) p.hasHoa = ho;
+  pushS("hoaFee", g.hoaFee);
+  const fq = coercePrivadoFreqToGate12d(g.hoaFrequency);
+  if (fq) p.hoaFrequency = fq;
+  pushS("hoaIncludes", g.hoaIncludes);
+  pushS("communityRules", g.communityRules);
+  pushS("petRules", g.petRules);
+  pushS("rentalRestrictions", g.rentalRestrictions);
+  const st = coercePrivadoTriToGate12d(g.shortTermRentalAllowed);
+  if (st) p.shortTermRentalAllowed = st;
+  pushS("parkingRules", g.parkingRules);
+}
+
+/** Prefer `gate12d` HOA fields; fill from legacy negocio rows when slice is empty. */
+export function resolveNegocioGate12dHoaSlice(s: BienesRaicesNegocioFormState): BrGate12dHoaFormSlice {
+  const g = s.gate12d;
+  if (brGate12dHoaFormSliceHasContent(g)) {
+    return {
+      hasHoa: g.hasHoa,
+      hoaFee: g.hoaFee,
+      hoaFrequency: g.hoaFrequency,
+      hoaIncludes: g.hoaIncludes,
+      communityRules: g.communityRules,
+      petRules: g.petRules,
+      rentalRestrictions: g.rentalRestrictions,
+      shortTermRentalAllowed: g.shortTermRentalAllowed,
+      parkingRules: g.parkingRules,
+    };
+  }
+  const ch = s.deepDetails?.comunidadHoa ?? {};
+  const legacyRules = [ch.seguridad, ch.gated].map(trim).filter(Boolean).join("\n");
+  const ho = coerceHoaTri(s.hoaSiNo);
+  return {
+    hasHoa: ho ?? "",
+    hoaFee: trim(s.cuotaHoa),
+    hoaFrequency: (coerceFreq(ch.frecuencia ?? "") ?? "") as BrPrivadoHoaFrequency,
+    hoaIncludes: trim(ch.amenidades),
+    communityRules: legacyRules,
+    petRules: "",
+    rentalRestrictions: trim(s.deepDetails?.observacionesAgente?.restricciones),
+    shortTermRentalAllowed: "",
+    parkingRules: "",
+  };
+}
+
 export function buildBrGate12dV1FromNegocioState(s: BienesRaicesNegocioFormState): BrGate12dV1Payload {
   const p: BrGate12dV1Payload = { v: 1 };
   const pushS = (k: keyof BrGate12dV1Payload, v: string) => {
@@ -219,16 +288,7 @@ export function buildBrGate12dV1FromNegocioState(s: BienesRaicesNegocioFormState
   pushS("state", s.estado);
   pushS("zip", s.codigoPostal.replace(/\D/g, "").slice(0, 12));
   pushS("neighborhood", s.colonia);
-  const ho = coerceHoaTri(s.hoaSiNo);
-  if (ho) p.hasHoa = ho;
-  pushS("hoaFee", s.cuotaHoa);
-  const ch = s.deepDetails?.comunidadHoa ?? {};
-  const fq = coerceFreq(ch.frecuencia ?? "");
-  if (fq) p.hoaFrequency = fq;
-  pushS("hoaIncludes", ch.amenidades);
-  const rules = [ch.seguridad, ch.gated].map(trim).filter(Boolean).join("\n");
-  pushS("communityRules", rules);
-  pushS("rentalRestrictions", trim(s.deepDetails?.observacionesAgente?.restricciones));
+  applyGate12dHoaSliceToPayload(p, resolveNegocioGate12dHoaSlice(s));
   if (s.cta.openHouseActivo) {
     p.openHouseEnabled = true;
     pushS("openHouseDate", s.cta.openHouseFecha);

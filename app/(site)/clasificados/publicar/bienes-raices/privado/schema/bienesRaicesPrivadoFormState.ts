@@ -51,7 +51,7 @@ export type BrPrivadoGate12dSlice = {
   virtualTourUrl: string;
 };
 
-function createEmptyBrPrivadoGate12dSlice(): BrPrivadoGate12dSlice {
+export function createEmptyBrPrivadoGate12dSlice(): BrPrivadoGate12dSlice {
   return {
     calleNumero: "",
     unidad: "",
@@ -87,7 +87,7 @@ function coerceBrPrivadoHoaFrequency(raw: unknown): BrPrivadoHoaFrequency {
   return "";
 }
 
-function mergeBrPrivadoGate12dSlice(partial: unknown): BrPrivadoGate12dSlice {
+export function mergeBrPrivadoGate12dSlice(partial: unknown): BrPrivadoGate12dSlice {
   const base = createEmptyBrPrivadoGate12dSlice();
   if (!partial || typeof partial !== "object") return base;
   const g = partial as Record<string, unknown>;

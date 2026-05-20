@@ -816,6 +816,27 @@ export function BienesRaicesNegocioPreviewView({
           </section>
         ) : null}
 
+        {vm.hoaCommunityCard && vm.hoaCommunityCard.rows.length > 0 ? (
+          <section className="mt-3 min-w-0 sm:mt-4">
+            <div
+              className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
+                {vm.hoaCommunityCard.title}
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm" style={{ color: CHARCOAL }}>
+                {vm.hoaCommunityCard.rows.map((r) => (
+                  <li key={`${r.label}-${r.value}`} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+                    <span className="font-semibold">{r.label}:</span>
+                    <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{r.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
+
         <section
           className={
             rentasPolishedDuplexLayout

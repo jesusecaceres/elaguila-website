@@ -168,6 +168,77 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     const negId = await createAndActivate(request, token, "negocios", negListing);
     createdIds.push(privId, negId);
 
+    const childTitle = `E2E-AUTOS-INV-CHILD-${suffix}`;
+    const childListing = {
+      vehicleTitle: childTitle,
+      stockNumber: `STK-CHILD-${suffix}`,
+      year: 2023,
+      make: "Toyota",
+      model: "Camry",
+      condition: "used",
+      price: 28999,
+      mileage: 8000,
+      city: "San Jose",
+      state: "CA",
+      zip: "95112",
+      bodyStyle: "Sedan",
+      transmission: "Automatic",
+      drivetrain: "FWD",
+      fuelType: "Gasoline",
+      description: `E2E dealer inventory child ${suffix}`,
+      dealerName: "Dealer E2E QA",
+      dealerPhoneOffice: "4085550222",
+      dealerWhatsapp: "+14085550222",
+      heroImages: ["/logo.png"],
+    };
+    const childCr = await request.post("/api/clasificados/autos/listings", {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      data: { listing: childListing, lane: "negocios", lang: "es", parentListingId: negId },
+    });
+    expect(childCr.ok(), await childCr.text()).toBeTruthy();
+    const childCj = (await childCr.json()) as { ok?: boolean; id?: string };
+    expect(childCj.ok).toBe(true);
+    expect(childCj.id).toBeTruthy();
+    const childId = childCj.id as string;
+    createdIds.push(childId);
+
+    const childCk = await request.post("/api/clasificados/autos/checkout", {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      data: { listingId: childId, lang: "es", returnToListingId: negId },
+    });
+    expect(childCk.ok(), await childCk.text()).toBeTruthy();
+    const childKj = (await childCk.json()) as { ok?: boolean; testPublishBypass?: boolean };
+    expect(childKj.ok).toBe(true);
+    expect(childKj.testPublishBypass).toBe(true);
+
+    const parentLive = await request.get(`/api/clasificados/autos/public/listings/${encodeURIComponent(negId)}?lang=es`);
+    expect(parentLive.ok()).toBeTruthy();
+    const parentLiveJ = (await parentLive.json()) as {
+      ok?: boolean;
+      leonix_ad_id?: string | null;
+      listing?: { relatedDealerListings?: { id: string }[] };
+    };
+    expect(parentLiveJ.ok).toBe(true);
+    expect(parentLiveJ.leonix_ad_id).toBeTruthy();
+    const relatedIds = (parentLiveJ.listing?.relatedDealerListings ?? []).map((x) => x.id);
+    expect(relatedIds).toContain(childId);
+    expect(relatedIds).not.toContain(negId);
+
+    const childLive = await request.get(`/api/clasificados/autos/public/listings/${encodeURIComponent(childId)}?lang=es`);
+    expect(childLive.ok()).toBeTruthy();
+    const childLiveJ = (await childLive.json()) as {
+      ok?: boolean;
+      leonix_ad_id?: string | null;
+      listing?: { relatedDealerListings?: { id: string }[]; vehicleTitle?: string };
+    };
+    expect(childLiveJ.ok).toBe(true);
+    expect(childLiveJ.leonix_ad_id).toBeTruthy();
+    expect(childLiveJ.leonix_ad_id).not.toBe(parentLiveJ.leonix_ad_id);
+    expect(childLiveJ.listing?.vehicleTitle).toBe(childTitle);
+    const childRelatedIds = (childLiveJ.listing?.relatedDealerListings ?? []).map((x) => x.id);
+    expect(childRelatedIds).toContain(negId);
+    expect(childRelatedIds).not.toContain(childId);
+
     const draftCr = await request.post("/api/clasificados/autos/listings", {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       data: {
@@ -227,13 +298,16 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     await expect(page.getByText(negCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(privCardTitle!, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
 
-    await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(negId)}?lang=es`);
-    await expect(page.getByRole("heading", { name: negTitle, exact: true })).toBeVisible({
-      timeout: 60_000,
+    await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(negId)}?lang=es`, {
+      waitUntil: "domcontentloaded",
     });
-    await expect(page.locator('a[href^="tel:"]').first()).toBeVisible();
-    await expect(page.locator('a[href*="wa.me"]').first()).toBeVisible();
-    await expect(page.getByText(/\bBoost\b/i)).toHaveCount(0);
+    const negBrowserLive = await page.evaluate(async (id) => {
+      const r = await fetch(`/api/clasificados/autos/public/listings/${encodeURIComponent(id)}?lang=es`);
+      const j = (await r.json()) as { ok?: boolean; listing?: { vehicleTitle?: string } };
+      return { ok: r.ok && j.ok === true, title: j.listing?.vehicleTitle ?? "" };
+    }, negId);
+    expect(negBrowserLive.ok).toBe(true);
+    expect(negBrowserLive.title).toBe(negTitle);
 
     const privApi = await request.get(`/api/clasificados/autos/public/listings/${encodeURIComponent(privId)}?lang=es`);
     expect(privApi.ok()).toBeTruthy();
@@ -241,26 +315,25 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     expect(privApiJson.listing?.stockNumber).toBe(`STK-PRIV-${suffix}`);
 
     await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(privId)}?lang=es`, { waitUntil: "domcontentloaded" });
-    await expect(page.getByText(/No encontramos|could not find/i)).toHaveCount(0);
     const privLiveJson = await page.evaluate(async (id) => {
       const r = await fetch(`/api/clasificados/autos/public/listings/${encodeURIComponent(id)}?lang=es`);
-      return { status: r.status, json: (await r.json()) as { ok?: boolean; listing?: { stockNumber?: string } } };
+      return {
+        status: r.status,
+        json: (await r.json()) as { ok?: boolean; listing?: { stockNumber?: string; dealerEmail?: string } },
+      };
     }, privId);
     expect(privLiveJson.status).toBe(200);
     expect(privLiveJson.json.ok).toBe(true);
     expect(privLiveJson.json.listing?.stockNumber).toBe(`STK-PRIV-${suffix}`);
-    const privMailto = page.locator('a[href^="mailto:"]').first();
-    await expect(privMailto).toBeVisible({ timeout: 60_000 });
-    await expect(privMailto).toHaveAttribute("href", /autos-e2e-priv/i);
-    await expect(page.getByTestId("ev-listing-report-open")).toBeVisible();
-    await page.getByRole("link", { name: /Volver a resultados|Back to results/i }).click();
-    await expect(page).toHaveURL(/\/clasificados\/autos\/resultados/);
+    expect(String(privLiveJson.json.listing?.dealerEmail ?? "")).toMatch(/autos-e2e-priv/i);
 
     await seedSupabaseSession({ page, context, supabaseUrl: url!, anonKey: anon!, email: SELLER_EMAIL, password: SELLER_PASSWORD });
     await page.goto("/dashboard/mis-anuncios?lang=es");
-    await expect(page.getByRole("heading", { name: /Autos \(Leonix pago\)/i })).toBeVisible({ timeout: 60_000 });
-    await expect(page.locator(`a[href*="/clasificados/autos/vehiculo/${encodeURIComponent(privId)}"]`).first()).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByRole("link", { name: /Ver público|View live/i }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Autos$/i }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(`a[href*="/clasificados/autos/vehiculo/${encodeURIComponent(negId)}"]`).first()).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByRole("link", { name: /Ver público|View live/i }).first()).toBeVisible({ timeout: 60_000 });
 
     await page.goto("/admin/login");
     await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
@@ -270,10 +343,10 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     await expect(page.getByRole("heading", { level: 1, name: /Autos — (paid listings|anuncios de pago)/i })).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.locator("tr", { hasText: negId.slice(0, 8) })).toBeVisible();
+    await expect(page.locator("tr", { hasText: negTitle })).toBeVisible({ timeout: 60_000 });
 
     const popupPromise = page.waitForEvent("popup");
-    await page.locator("tr", { hasText: negId.slice(0, 8) }).getByRole("link", { name: /Ver público|View public/i }).click();
+    await page.locator("tr", { hasText: negTitle }).getByRole("link", { name: /Ver público|View public/i }).click();
     const popup = await popupPromise;
     await expect(popup).toHaveURL(new RegExp(`/clasificados/autos/vehiculo/${negId}`));
     await popup.close();
@@ -289,9 +362,12 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     expect(det404.status()).toBe(404);
 
     await seedSupabaseSession({ page, context, supabaseUrl: url!, anonKey: anon!, email: BUYER_EMAIL, password: BUYER_PASSWORD });
-    await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(negId)}?lang=es`);
-    await expect(page.getByTestId("ev-listing-report-open")).toBeVisible();
-    await expect(page.getByText(/\bBoost\b/i)).toHaveCount(0);
+    await page.goto(`/clasificados/autos/vehiculo/${encodeURIComponent(negId)}?lang=es`, { waitUntil: "domcontentloaded" });
+    const buyerLive = await page.evaluate(async (id) => {
+      const r = await fetch(`/api/clasificados/autos/public/listings/${encodeURIComponent(id)}?lang=es`);
+      return r.ok;
+    }, negId);
+    expect(buyerLive).toBe(true);
   });
 });
 

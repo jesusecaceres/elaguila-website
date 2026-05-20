@@ -294,7 +294,7 @@ export default function BienesRaicesNegocioApplication() {
             {step === 8 ? <IdentidadNegocioSection state={state} setState={setState} /> : null}
             {step === 9 ? <SegundoAgenteNegocioSection state={state} setState={setState} /> : null}
             {step === 10 ? <AsesorFinancieroNegocioSection state={state} setState={setState} /> : null}
-            {step === 11 ? <ContactoCtasNegocioSection state={state} setState={setState} /> : null}
+            {step === 11 ? <ContactoCtasNegocioSection state={state} setState={setState} lang={lang} /> : null}
             {step === 12 ? <ConfianzaNegocioSection state={state} setState={setState} /> : null}
             {step === 13 ? <VistaPreviaNegocioSection /> : null}
             {step === 14 ? <ResumenPublicarNegocioSection state={state} setState={setState} /> : null}

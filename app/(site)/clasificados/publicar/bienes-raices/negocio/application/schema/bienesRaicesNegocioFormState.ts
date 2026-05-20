@@ -3,7 +3,11 @@
  * Single source of truth for the publish flow; mapped to preview VM (see application/mapping).
  */
 
-import type { BrPetsAllowedChoice } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import type { BrPetsAllowedChoice, BrPrivadoGate12dSlice } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import {
+  createEmptyBrPrivadoGate12dSlice,
+  mergeBrPrivadoGate12dSlice,
+} from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import {
   createEmptyLeonixContactChannelsFormSlice,
@@ -158,6 +162,9 @@ export type BienesRaicesNegocioFormState = {
   asesorFinancieroActivo: boolean;
 
   deepDetails: DeepDetailsState;
+
+  /** Gate 12D — HOA/community (+ optional address fields); serialized via `Leonix:br_gate12d_v1`. */
+  gate12d: BrPrivadoGate12dSlice;
 
   identityAgente: {
     nombre: string;
@@ -501,6 +508,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     descripcionLarga: "",
     asesorFinancieroActivo: false,
     deepDetails: emptyDeepDetails(),
+    gate12d: createEmptyBrPrivadoGate12dSlice(),
     identityAgente: {
       nombre: "",
       fotoUrl: "",
@@ -734,6 +742,7 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
           return acc;
         }, { ...base.deepDetails })
       : base.deepDetails,
+    gate12d: mergeBrPrivadoGate12dSlice((partial as Partial<BienesRaicesNegocioFormState>).gate12d),
     identityAgente: partial.identityAgente
       ? (() => {
           const { asesorFinancieroActivo: _legacyAsesorFlag, ...ia } = partial.identityAgente as typeof partial.identityAgente & {

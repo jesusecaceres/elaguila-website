@@ -10,14 +10,31 @@ type Value = { lang: AutosNegociosLang; t: AutosNegociosCopy };
 
 const Ctx = createContext<Value | null>(null);
 
-export function AutosPrivadoPreviewLocaleProvider({ children }: { children: ReactNode }) {
-  const sp = useSearchParams();
-  const lang = useMemo(() => normalizeAutosNegociosLang(sp?.get("lang")), [sp]);
+function AutosPrivadoPreviewLocaleInner({ lang, children }: { lang: AutosNegociosLang; children: ReactNode }) {
   const t = useMemo(() => getAutosPrivadoCopy(lang), [lang]);
   useEffect(() => {
     document.title = t.meta.previewTitle;
   }, [t.meta.previewTitle]);
   return <Ctx.Provider value={{ lang, t }}>{children}</Ctx.Provider>;
+}
+
+function AutosPrivadoPreviewLocaleFromSearchParams({ children }: { children: ReactNode }) {
+  const sp = useSearchParams();
+  const lang = useMemo(() => normalizeAutosNegociosLang(sp?.get("lang")), [sp]);
+  return <AutosPrivadoPreviewLocaleInner lang={lang}>{children}</AutosPrivadoPreviewLocaleInner>;
+}
+
+export function AutosPrivadoPreviewLocaleProvider({
+  children,
+  lang: langProp,
+}: {
+  children: ReactNode;
+  lang?: AutosNegociosLang;
+}) {
+  if (langProp) {
+    return <AutosPrivadoPreviewLocaleInner lang={langProp}>{children}</AutosPrivadoPreviewLocaleInner>;
+  }
+  return <AutosPrivadoPreviewLocaleFromSearchParams>{children}</AutosPrivadoPreviewLocaleFromSearchParams>;
 }
 
 export function useAutosPrivadoPreviewCopy(): Value {

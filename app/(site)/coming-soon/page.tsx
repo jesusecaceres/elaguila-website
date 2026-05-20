@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 
 type Lang = "es" | "en";
+type DrawerId = "anunciate" | "launch" | "ediciones" | "beneficios" | "nosotros" | "contacto" | "mediakit";
 
 const DEEP_RED = "#A30F18";
 const DARK_RED = "#7E0D13";
+const CREAM = "#FDFBF7";
 
 function normalizeLang(v: string | undefined): Lang {
   return v === "en" ? "en" : "es";
+}
+
+function drawerInputId(id: DrawerId) {
+  return `cs-drawer-${id}`;
 }
 
 const COPY = {
@@ -21,12 +28,15 @@ const COPY = {
     langSwitch: "English",
     headerCta: "Únete al lanzamiento",
     badge: "PRÓXIMAMENTE",
-    heroTitle: "Leonix Media",
-    heroTagline: "Publicidad impresa en español.\nExposición digital bilingüe.",
+    tagline1: "Publicidad impresa en",
+    tagline1Em: "español",
+    tagline2: "Exposición digital",
+    tagline2Em: "bilingüe",
     heroBody:
       "Conectando negocios locales con la comunidad latina a través de una revista premium, visibilidad digital y herramientas que generan acción.",
     cta1: "Anúnciate con nosotros",
     cta2: "Únete al lanzamiento",
+    mediaKit: "Ver Media Kit",
     trust: ["Hecho para nuestra comunidad", "Confianza local", "Resultados reales"],
     slogan: "Que Ruja El León — Let The Lion Roar",
     navLabels: ["Inicio", "Anúnciate", "Ediciones", "Beneficios", "Sobre Nosotros", "Contacto"],
@@ -39,7 +49,7 @@ const COPY = {
     },
     cats: {
       items: [
-        { name: "Clasificados", sub: "Rentas, empleos y barrios" },
+        { name: "Clasificados", sub: "Rentas, empleos, a la venta, mascotas y busco" },
         {
           name: "Nuestros Negocios",
           sub: "Restaurantes, servicios, bienes raíces, autos y viajes",
@@ -58,31 +68,84 @@ const COPY = {
         },
       ],
     },
-    more: {
-      title: "Más que un anuncio. Una presencia completa.",
-      items: [
-        "Revista impresa premium",
-        "Exposición digital bilingüe",
-        "QR codes que llevan a llamadas, mensajes, mapas y enlaces",
-        "Página de negocio con contacto, redes, ofertas y reseñas",
-        "Clasificados, cupones y descubrimiento local",
-      ],
-    },
     signup: {
       title: "Sé parte del lanzamiento",
       sub: "Recibe noticias, oportunidades y el lanzamiento oficial de Leonix Media.",
       placeholder: "Tu correo electrónico",
       cta: "Notifícame",
     },
-    contact: {
-      title: "¿Quieres anunciar tu negocio?",
-      body: "Estamos conectando con negocios fundadores, restaurantes, servicios, tiendas, profesionales, patrocinadores y aliados comunitarios.",
-      cta: "Contactar a Leonix",
-    },
     footer: {
-      locations: "San José · Silicon Valley · Bay Area · Comunidad Latina",
+      left: "San José · Silicon Valley · Bay Area · Comunidad Latina",
       rights: "Todos los derechos reservados",
     },
+    drawers: {
+      anunciate: {
+        title: "Anúnciate con Leonix",
+        body: "Leonix Media ayuda a negocios locales a verse profesionales en impreso y digital. Combinamos revista premium, exposición bilingüe, QR codes, CTAs, enlaces de negocio, cupones y visibilidad local para conectar con la comunidad.",
+        bullets: [
+          "Revista impresa en español",
+          "Exposición digital bilingüe",
+          "QR + llamadas, mensajes, mapas y enlaces",
+          "Página de negocio con redes, contacto, ofertas y reseñas",
+          "Ideal para restaurantes, servicios, autos, bienes raíces, viajes, empleos y tiendas",
+        ],
+        cta: "Contactar a Leonix",
+      },
+      launch: {
+        title: "Únete al lanzamiento",
+        body: "Estamos preparando el lanzamiento oficial de Leonix Media en San José, Silicon Valley y el Bay Area. Regístrate para recibir noticias, oportunidades de lanzamiento, ediciones, promociones y actualizaciones.",
+        bullets: [
+          "Sé de los primeros en conocer el lanzamiento",
+          "Recibe oportunidades para negocios fundadores",
+          "Conoce nuevas ediciones y beneficios",
+          "Mantente conectado con la comunidad",
+        ],
+        cta: "Notifícame",
+      },
+      ediciones: {
+        title: "Ediciones Leonix",
+        body: "Leonix combina una revista mensual premium con exposición digital semanal para que los negocios tengan presencia constante, no solo un anuncio aislado.",
+        bullets: [
+          "Revista mensual premium",
+          "Edición digital semanal",
+          "Contenido local y empresarial",
+          "Anuncios con QR y CTAs",
+        ],
+        cta: "Contactar a Leonix",
+      },
+      beneficios: {
+        title: "Beneficios para negocios",
+        body: "Leonix está diseñado para que tu negocio sea más fácil de encontrar, contactar y recordar.",
+        bullets: [
+          "Más confianza local",
+          "Un solo enlace para tu negocio",
+          "Visibilidad impresa y digital",
+          "Llamadas, mensajes, mapas y enlaces",
+          "Presencia profesional para compartir",
+        ],
+        cta: "Contactar a Leonix",
+      },
+      nosotros: {
+        title: "Sobre Leonix Media",
+        body: "Leonix Media es una plataforma de publicidad impresa en español y exposición digital bilingüe. Nacimos para conectar negocios locales con la comunidad latina, empezando en San José y expandiéndonos por Silicon Valley, el Bay Area y Northern California.",
+        who: "Negocios locales, anunciantes, familias y comunidad.",
+        what: "Revista premium, clasificados, negocios, comunidad, cupones, QR codes y páginas de negocio.",
+        where: "San José, Silicon Valley, Bay Area y Northern California.",
+        why: "Porque los negocios locales merecen ser vistos y la comunidad merece encontrar opciones confiables.",
+        cta: "Contactar a Leonix",
+      },
+      contacto: {
+        title: "Contacto",
+        body: "¿Quieres anunciar tu negocio, participar como socio fundador o conocer el media kit?",
+        cta: "Contactar a Leonix",
+      },
+      mediakit: {
+        title: "Media Kit",
+        body: "El media kit incluirá opciones de anuncios, beneficios, paquetes de lanzamiento, presencia impresa, exposición digital y oportunidades para negocios fundadores.",
+        cta: "Solicitar Media Kit",
+      },
+    },
+    close: "Cerrar",
   },
   en: {
     meta: {
@@ -93,12 +156,15 @@ const COPY = {
     langSwitch: "Español",
     headerCta: "Join the launch",
     badge: "COMING SOON",
-    heroTitle: "Leonix Media",
-    heroTagline: "Print advertising in Spanish.\nBilingual digital exposure.",
+    tagline1: "Print advertising in",
+    tagline1Em: "Spanish",
+    tagline2: "Bilingual digital",
+    tagline2Em: "exposure",
     heroBody:
       "Connecting local businesses with the Latino community through a premium magazine, digital visibility and tools that drive action.",
     cta1: "Advertise with us",
     cta2: "Join the launch",
+    mediaKit: "View Media Kit",
     trust: ["Made for our community", "Local trust", "Real results"],
     slogan: "Que Ruja El León — Let The Lion Roar",
     navLabels: ["Home", "Advertise", "Editions", "Benefits", "About Us", "Contact"],
@@ -111,7 +177,7 @@ const COPY = {
     },
     cats: {
       items: [
-        { name: "Classifieds", sub: "Rentals, jobs and neighborhoods" },
+        { name: "Classifieds", sub: "Rentals, jobs, for sale, pets and wanted" },
         {
           name: "Our Businesses",
           sub: "Restaurants, services, real estate, autos and travel",
@@ -130,131 +196,453 @@ const COPY = {
         },
       ],
     },
-    more: {
-      title: "More than an ad. A complete presence.",
-      items: [
-        "Premium print magazine",
-        "Bilingual digital exposure",
-        "QR codes that drive calls, messages, maps and links",
-        "Business page with contact, social, deals and reviews",
-        "Classifieds, coupons and local discovery",
-      ],
-    },
     signup: {
       title: "Be part of the launch",
       sub: "Get news, opportunities and the official Leonix Media launch.",
       placeholder: "Your email address",
       cta: "Notify Me",
     },
-    contact: {
-      title: "Want to advertise your business?",
-      body: "We are connecting with founding businesses, restaurants, services, stores, professionals, sponsors and community allies.",
-      cta: "Contact Leonix",
-    },
     footer: {
-      locations: "San José · Silicon Valley · Bay Area · Latino Community",
+      left: "San José · Silicon Valley · Bay Area · Latino Community",
       rights: "All rights reserved",
     },
+    drawers: {
+      anunciate: {
+        title: "Advertise with Leonix",
+        body: "Leonix Media helps local businesses look professional in print and digital. We combine a premium magazine, bilingual exposure, QR codes, CTAs, business links, coupons and local visibility to connect with the community.",
+        bullets: [
+          "Print magazine in Spanish",
+          "Bilingual digital exposure",
+          "QR + calls, messages, maps and links",
+          "Business page with social, contact, deals and reviews",
+          "Ideal for restaurants, services, autos, real estate, travel, jobs and stores",
+        ],
+        cta: "Contact Leonix",
+      },
+      launch: {
+        title: "Join the launch",
+        body: "We are preparing the official Leonix Media launch in San José, Silicon Valley and the Bay Area. Sign up for news, launch opportunities, editions, promotions and updates.",
+        bullets: [
+          "Be among the first to know about the launch",
+          "Get founding business opportunities",
+          "Learn about new editions and benefits",
+          "Stay connected with the community",
+        ],
+        cta: "Notify Me",
+      },
+      ediciones: {
+        title: "Leonix Editions",
+        body: "Leonix combines a monthly premium magazine with weekly digital exposure so businesses have constant presence, not just a one-off ad.",
+        bullets: [
+          "Monthly premium magazine",
+          "Weekly digital edition",
+          "Local and business content",
+          "Ads with QR and CTAs",
+        ],
+        cta: "Contact Leonix",
+      },
+      beneficios: {
+        title: "Benefits for businesses",
+        body: "Leonix is designed so your business is easier to find, contact and remember.",
+        bullets: [
+          "More local trust",
+          "One link for your business",
+          "Print and digital visibility",
+          "Calls, messages, maps and links",
+          "Professional presence to share",
+        ],
+        cta: "Contact Leonix",
+      },
+      nosotros: {
+        title: "About Leonix Media",
+        body: "Leonix Media is a Spanish print advertising and bilingual digital exposure platform. We were born to connect local businesses with the Latino community, starting in San José and expanding across Silicon Valley, the Bay Area and Northern California.",
+        who: "Local businesses, advertisers, families and community.",
+        what: "Premium magazine, classifieds, businesses, community, coupons, QR codes and business pages.",
+        where: "San José, Silicon Valley, Bay Area and Northern California.",
+        why: "Because local businesses deserve to be seen and the community deserves reliable options.",
+        cta: "Contact Leonix",
+      },
+      contacto: {
+        title: "Contact",
+        body: "Want to advertise your business, join as a founding partner or request the media kit?",
+        cta: "Contact Leonix",
+      },
+      mediakit: {
+        title: "Media Kit",
+        body: "The media kit will include ad options, benefits, launch packages, print presence, digital exposure and founding business opportunities.",
+        cta: "Request Media Kit",
+      },
+    },
+    close: "Close",
   },
 } as const;
 
-const NAV_ANCHORS = ["inicio", "anunciate", "ediciones", "beneficios", "nosotros", "contacto"];
+const NAV_DRAWERS: (DrawerId | null)[] = [
+  null,
+  "anunciate",
+  "ediciones",
+  "beneficios",
+  "nosotros",
+  "contacto",
+];
+
+function ArrowIcon() {
+  return (
+    <svg className="ml-2 h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+      <path
+        fillRule="evenodd"
+        d="M3 10a1 1 0 011-1h10.586l-3.293-3.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 11-1.414-1.414L14.586 11H4a1 1 0 01-1-1z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function DrawerTrigger({
+  id,
+  className,
+  style,
+  children,
+}: {
+  id: DrawerId;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  return (
+    <label htmlFor={drawerInputId(id)} className={`cursor-pointer ${className ?? ""}`} style={style}>
+      {children}
+    </label>
+  );
+}
+
+function DrawerShell({
+  id,
+  title,
+  closeLabel,
+  children,
+}: {
+  id: DrawerId;
+  title: string;
+  closeLabel: string;
+  children: ReactNode;
+}) {
+  const inputId = drawerInputId(id);
+  return (
+    <>
+      <input type="checkbox" id={inputId} className="peer hidden" />
+      <div className="fixed inset-0 z-[200] hidden justify-end peer-checked:flex">
+        <label htmlFor={inputId} className="absolute inset-0 bg-black/50" aria-label={closeLabel} />
+        <div
+          className="relative z-10 flex h-full w-full max-w-lg flex-col overflow-hidden shadow-2xl"
+          style={{ background: "var(--lx-card)" }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`${inputId}-title`}
+        >
+          <div
+            className="flex shrink-0 items-center justify-between gap-4 border-b px-5 py-4"
+            style={{ borderColor: "var(--lx-border)" }}
+          >
+            <h2 id={`${inputId}-title`} className="text-lg font-bold sm:text-xl" style={{ color: "var(--lx-text)" }}>
+              {title}
+            </h2>
+            <label
+              htmlFor={inputId}
+              className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-2xl leading-none transition hover:opacity-70"
+              style={{ background: "var(--lx-section)", color: "var(--lx-text)" }}
+              aria-label={closeLabel}
+            >
+              ×
+            </label>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6">{children}</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DrawerPanels({ lang, c }: { lang: Lang; c: (typeof COPY)[Lang] }) {
+  const d = c.drawers;
+  const contactHref = `/contacto?lang=${lang}`;
+
+  return (
+    <>
+      <DrawerShell id="anunciate" title={d.anunciate.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.anunciate.body}
+        </p>
+        <ul className="mt-5 flex flex-col gap-2.5">
+          {d.anunciate.bullets.map((b) => (
+            <li key={b} className="flex gap-2 text-sm sm:text-base">
+              <span style={{ color: "var(--lx-olive)" }} aria-hidden>
+                ✓
+              </span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href={contactHref}
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.anunciate.cta}
+        </Link>
+      </DrawerShell>
+
+      <DrawerShell id="launch" title={d.launch.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.launch.body}
+        </p>
+        <ul className="mt-5 flex flex-col gap-2.5">
+          {d.launch.bullets.map((b) => (
+            <li key={b} className="flex gap-2 text-sm sm:text-base">
+              <span style={{ color: "var(--lx-olive)" }} aria-hidden>
+                ✓
+              </span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+        <a
+          href="#signup"
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.launch.cta}
+        </a>
+      </DrawerShell>
+
+      <DrawerShell id="ediciones" title={d.ediciones.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.ediciones.body}
+        </p>
+        <ul className="mt-5 flex flex-col gap-2.5">
+          {d.ediciones.bullets.map((b) => (
+            <li key={b} className="flex gap-2 text-sm sm:text-base">
+              <span style={{ color: "var(--lx-lion)" }} aria-hidden>
+                ✓
+              </span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href={contactHref}
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.ediciones.cta}
+        </Link>
+      </DrawerShell>
+
+      <DrawerShell id="beneficios" title={d.beneficios.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.beneficios.body}
+        </p>
+        <ul className="mt-5 flex flex-col gap-2.5">
+          {d.beneficios.bullets.map((b) => (
+            <li key={b} className="flex gap-2 text-sm sm:text-base">
+              <span style={{ color: "var(--lx-olive)" }} aria-hidden>
+                ✓
+              </span>
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href={contactHref}
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.beneficios.cta}
+        </Link>
+      </DrawerShell>
+
+      <DrawerShell id="nosotros" title={d.nosotros.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.nosotros.body}
+        </p>
+        <dl className="mt-6 flex flex-col gap-4 text-sm sm:text-base">
+          <div>
+            <dt className="font-bold" style={{ color: DEEP_RED }}>
+              {lang === "es" ? "Quién" : "Who"}
+            </dt>
+            <dd className="mt-1" style={{ color: "var(--lx-muted)" }}>
+              {d.nosotros.who}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-bold" style={{ color: DEEP_RED }}>
+              {lang === "es" ? "Qué" : "What"}
+            </dt>
+            <dd className="mt-1" style={{ color: "var(--lx-muted)" }}>
+              {d.nosotros.what}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-bold" style={{ color: DEEP_RED }}>
+              {lang === "es" ? "Dónde" : "Where"}
+            </dt>
+            <dd className="mt-1" style={{ color: "var(--lx-muted)" }}>
+              {d.nosotros.where}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-bold" style={{ color: DEEP_RED }}>
+              {lang === "es" ? "Por qué" : "Why"}
+            </dt>
+            <dd className="mt-1" style={{ color: "var(--lx-muted)" }}>
+              {d.nosotros.why}
+            </dd>
+          </div>
+        </dl>
+        <Link
+          href={contactHref}
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.nosotros.cta}
+        </Link>
+      </DrawerShell>
+
+      <DrawerShell id="contacto" title={d.contacto.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.contacto.body}
+        </p>
+        <Link
+          href={contactHref}
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.contacto.cta}
+        </Link>
+      </DrawerShell>
+
+      <DrawerShell id="mediakit" title={d.mediakit.title} closeLabel={c.close}>
+        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+          {d.mediakit.body}
+        </p>
+        <Link
+          href={contactHref}
+          className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
+          style={{ background: DEEP_RED }}
+        >
+          {d.mediakit.cta}
+        </Link>
+      </DrawerShell>
+    </>
+  );
+}
 
 function MagazineCover({ lang }: { lang: Lang }) {
   const m = COPY[lang].magazine;
   return (
     <div
-      className="relative w-full max-w-[min(100%,28rem)] lg:max-w-none"
+      className="relative mx-auto w-full max-w-[min(100%,32rem)] lg:max-w-none"
       aria-label="Leonix Media — Vista previa de la revista"
       role="img"
     >
       <div
-        className="relative overflow-hidden rounded-sm shadow-[0_32px_80px_-24px_rgba(42,36,22,0.45),0_8px_24px_-8px_rgba(126,13,19,0.35)]"
+        className="absolute -inset-6 -z-10 rounded-3xl opacity-70 blur-2xl sm:-inset-10"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(80,90,110,0.35) 0%, rgba(163,15,24,0.15) 50%, rgba(85,107,62,0.2) 100%)",
+        }}
+        aria-hidden
+      />
+      <div
+        className="relative overflow-hidden rounded-sm shadow-[0_40px_100px_-30px_rgba(42,36,22,0.55)]"
         style={{
           border: "4px solid var(--lx-lion)",
-          background: "var(--lx-card)",
-          transform: "perspective(1200px) rotateY(-6deg) rotateX(2deg)",
+          background: CREAM,
+          transform: "perspective(1400px) rotateY(-8deg) rotateX(3deg)",
         }}
       >
         <div
-          className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-4"
+          className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5"
           style={{ background: DARK_RED, borderBottom: "3px solid var(--lx-lion)" }}
         >
-          <Image
-            src="/logo.png"
-            alt="Leonix Media"
-            width={140}
-            height={48}
-            className="h-10 w-auto object-contain sm:h-12"
-          />
-          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-white/90 sm:text-xs">
-            VOL. 1 · 2026
-          </span>
+          <Image src="/logo.png" alt="Leonix Media" width={150} height={52} className="h-11 w-auto object-contain sm:h-12" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/85 sm:text-xs">VOL. 1 · 2026</span>
         </div>
 
-        <div className="px-4 py-4 sm:px-5 sm:py-5" style={{ background: "var(--lx-page)" }}>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] sm:text-[11px]" style={{ color: DEEP_RED }}>
+        <div className="px-4 pt-3 sm:px-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] sm:text-[11px]" style={{ color: DEEP_RED }}>
             {m.guide}
           </p>
-          <p className="mt-2 text-lg font-black leading-tight sm:text-xl" style={{ color: "var(--lx-text)" }}>
+        </div>
+
+        <div className="relative mx-4 mt-2 aspect-[4/3] overflow-hidden sm:mx-5">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(135deg, #d4cfc4 0%, #9a958c 35%, #6b6560 70%, #4a4540 100%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.04) 40px, rgba(255,255,255,0.04) 41px)",
+            }}
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+            <p className="text-sm font-bold text-white sm:text-base">{m.connect}</p>
+          </div>
+          <div
+            className="absolute right-3 top-3 max-w-[42%] rounded border-2 px-2 py-2 text-center sm:right-4 sm:px-3"
+            style={{ borderColor: "var(--lx-lion)", background: DEEP_RED }}
+          >
+            <p className="text-[9px] font-black uppercase leading-tight text-white sm:text-[10px]">{m.advertise}</p>
+          </div>
+        </div>
+
+        <div className="px-4 py-3 sm:px-5" style={{ background: "var(--lx-page)" }}>
+          <p className="text-base font-black sm:text-lg" style={{ color: "var(--lx-text)" }}>
             Que Ruja El León
           </p>
-          <p className="text-sm font-semibold sm:text-base" style={{ color: "var(--lx-olive)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--lx-olive)" }}>
             Let The Lion Roar
           </p>
-          <p className="mt-3 text-xs leading-snug sm:text-sm" style={{ color: "var(--lx-muted)" }}>
-            {m.connect}
-          </p>
         </div>
 
-        <div
-          className="border-y px-4 py-3 sm:px-5"
-          style={{ background: "var(--lx-olive)", borderColor: "var(--lx-lion)" }}
-        >
-          <p className="text-center text-xs font-black uppercase tracking-[0.18em] text-white sm:text-sm">
-            {m.advertise}
-          </p>
-        </div>
-
-        <div
-          className="grid grid-cols-2 gap-px"
-          style={{ background: "var(--lx-border)" }}
-        >
-          <div className="flex min-h-[5.5rem] flex-col justify-between p-3 sm:min-h-[6.25rem] sm:p-3.5" style={{ background: DARK_RED }}>
+        <div className="grid grid-cols-2 gap-px" style={{ background: "var(--lx-border)" }}>
+          <div className="flex min-h-[5.75rem] flex-col justify-between p-3 sm:min-h-[6.5rem]" style={{ background: DARK_RED }}>
             <div>
-              <p className="text-sm font-black leading-tight text-white sm:text-base">War Fitness</p>
-              <p className="mt-1 text-[10px] text-white/75 sm:text-xs">Gym &amp; Entrenamiento</p>
+              <p className="text-sm font-black text-white sm:text-base">War Fitness</p>
+              <p className="mt-0.5 text-[10px] text-white/75 sm:text-xs">Gym &amp; Entrenamiento</p>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-wide sm:text-[11px]" style={{ color: "var(--lx-lion)" }}>
+            <p className="text-[10px] font-bold uppercase sm:text-[11px]" style={{ color: "var(--lx-lion)" }}>
               {m.partner}
             </p>
           </div>
-          <div className="flex min-h-[5.5rem] flex-col justify-between p-3 sm:min-h-[6.25rem] sm:p-3.5" style={{ background: "var(--lx-blue)" }}>
+          <div className="flex min-h-[5.75rem] flex-col justify-between p-3 sm:min-h-[6.5rem]" style={{ background: "var(--lx-blue)" }}>
             <div>
-              <p className="text-sm font-bold leading-tight text-white sm:text-base">Sample Law Office</p>
-              <p className="mt-1 text-[10px] text-white/80 sm:text-xs">Inmigración · Familia</p>
+              <p className="text-sm font-bold text-white sm:text-base">Sample Law Office</p>
+              <p className="mt-0.5 text-[10px] text-white/80 sm:text-xs">Inmigración · Familia</p>
             </div>
             <p className="text-[10px] italic text-white/55 sm:text-[11px]">{m.sample}</p>
           </div>
-          <div className="flex min-h-[5.5rem] flex-col justify-between p-3 sm:min-h-[6.25rem] sm:p-3.5" style={{ background: DEEP_RED }}>
+          <div className="flex min-h-[5.75rem] flex-col justify-between p-3 sm:min-h-[6.5rem]" style={{ background: DEEP_RED }}>
             <div>
-              <p className="text-sm font-bold leading-tight text-white sm:text-base">Sample Restaurant</p>
-              <p className="mt-1 text-[10px] text-white/80 sm:text-xs">Cocina auténtica</p>
+              <p className="text-sm font-bold text-white sm:text-base">Sample Restaurant</p>
+              <p className="mt-0.5 text-[10px] text-white/80 sm:text-xs">Cocina auténtica</p>
+            </div>
+            <p className="text-[10px] italic text-white/55 sm:text-[11px]">{m.sample}</p>
+          </div>
+          <div className="flex min-h-[5.75rem] flex-col justify-between p-3 sm:min-h-[6.5rem]" style={{ background: "var(--lx-text)" }}>
+            <div>
+              <p className="text-sm font-bold text-white sm:text-base">Sample Plumbing</p>
+              <p className="mt-0.5 text-[10px] text-white/80 sm:text-xs">24/7 · Residencial</p>
             </div>
             <p className="text-[10px] italic text-white/55 sm:text-[11px]">{m.sample}</p>
           </div>
           <div
-            className="flex min-h-[5.5rem] flex-col justify-between p-3 sm:min-h-[6.25rem] sm:p-3.5"
-            style={{ background: "var(--lx-text)" }}
-          >
-            <div>
-              <p className="text-sm font-bold leading-tight text-white sm:text-base">Sample Plumbing</p>
-              <p className="mt-1 text-[10px] text-white/80 sm:text-xs">24/7 · Residencial</p>
-            </div>
-            <p className="text-[10px] italic text-white/55 sm:text-[11px]">{m.sample}</p>
-          </div>
-          <div
-            className="col-span-2 flex min-h-[4.5rem] items-center justify-between gap-3 p-3 sm:min-h-[5rem] sm:p-3.5"
+            className="col-span-2 flex min-h-[4.25rem] items-center justify-between gap-3 p-3 sm:min-h-[4.75rem]"
             style={{ background: "var(--lx-section)", borderTop: "2px solid var(--lx-lion)" }}
           >
             <div>
@@ -265,26 +653,18 @@ function MagazineCover({ lang }: { lang: Lang }) {
                 Autos · Financiamiento
               </p>
             </div>
-            <span className="text-[10px] font-semibold italic sm:text-[11px]" style={{ color: "var(--lx-muted)" }}>
+            <span className="text-[10px] italic sm:text-[11px]" style={{ color: "var(--lx-muted)" }}>
               {m.sample}
             </span>
           </div>
         </div>
 
-        <div
-          className="px-4 py-2.5 text-center sm:px-5 sm:py-3"
-          style={{ background: DARK_RED, borderTop: "3px solid var(--lx-lion)" }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-xs">
+        <div className="px-4 py-2.5 text-center sm:py-3" style={{ background: DARK_RED, borderTop: "3px solid var(--lx-lion)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/90 sm:text-xs">
             Leonix Media · Gratis · Mensual
           </p>
         </div>
       </div>
-      <div
-        className="pointer-events-none absolute -inset-4 -z-10 rounded-lg opacity-40 blur-2xl"
-        style={{ background: `linear-gradient(135deg, ${DEEP_RED}33, var(--lx-lion)44)` }}
-        aria-hidden
-      />
     </div>
   );
 }
@@ -292,64 +672,84 @@ function MagazineCover({ lang }: { lang: Lang }) {
 function PageHeader({ c, otherLang }: { c: (typeof COPY)[Lang]; otherLang: Lang }) {
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b backdrop-blur-md"
+      className="sticky top-0 z-50 w-full border-b"
       style={{
-        background: "color-mix(in srgb, var(--lx-page) 92%, transparent)",
+        background: "color-mix(in srgb, var(--lx-page) 94%, transparent)",
         borderColor: "var(--lx-border)",
+        backdropFilter: "blur(10px)",
       }}
     >
-      <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 lg:py-4">
+      <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:gap-6 lg:py-3.5">
         <Link href="#inicio" className="shrink-0">
           <Image
             src="/logo.png"
             alt="Leonix Media"
-            width={180}
-            height={64}
-            className="h-11 w-auto object-contain sm:h-12 md:h-14"
+            width={200}
+            height={72}
+            className="h-12 w-auto object-contain sm:h-[3.25rem]"
             priority
           />
         </Link>
 
         <nav
-          className="order-3 flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-1 sm:order-2 sm:flex-1 sm:gap-x-0 lg:justify-end lg:gap-x-1"
+          className="order-3 flex w-full flex-wrap items-center justify-center gap-x-0.5 gap-y-1 lg:order-2 lg:flex-1 lg:justify-center"
           aria-label="Navegación principal"
         >
-          {c.navLabels.map((label, i) => (
-            <a
-              key={label}
-              href={`#${NAV_ANCHORS[i]}`}
-              className="rounded-lg px-2.5 py-2 text-xs font-semibold transition hover:underline sm:px-3 sm:text-sm"
-              style={{ color: "var(--lx-text)" }}
-            >
-              {label}
-            </a>
-          ))}
+          {c.navLabels.map((label, i) => {
+            const drawerId = NAV_DRAWERS[i];
+            const isActive = i === 0;
+            const linkClass = `rounded-lg px-2.5 py-2 text-xs font-semibold transition sm:px-3 sm:text-sm ${
+              isActive ? "border-b-2" : "hover:opacity-80"
+            }`;
+            const linkStyle = {
+              color: "var(--lx-text)",
+              borderColor: isActive ? DEEP_RED : "transparent",
+            };
+            if (drawerId) {
+              return (
+                <DrawerTrigger key={label} id={drawerId} className={linkClass} style={linkStyle}>
+                  {label}
+                </DrawerTrigger>
+              );
+            }
+            return (
+              <a key={label} href="#inicio" className={linkClass} style={linkStyle}>
+                {label}
+              </a>
+            );
+          })}
         </nav>
 
-        <div className="order-2 ml-auto flex shrink-0 items-center gap-2 sm:order-3 sm:gap-3">
+        <div className="order-2 ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:order-3">
           <Link
             href={`?lang=${otherLang}`}
-            className="rounded-full border px-3 py-2 text-xs font-semibold transition sm:text-sm"
-            style={{
-              borderColor: "var(--lx-border)",
-              color: "var(--lx-text)",
-              background: "var(--lx-card)",
-            }}
+            className="rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"
+            style={{ borderColor: "var(--lx-border)", color: "var(--lx-text)", background: "var(--lx-card)" }}
           >
             {c.langSwitch}
           </Link>
-          <Link
-            href="#anunciate"
-            className="hidden rounded-xl px-4 py-2.5 text-xs font-bold text-white transition sm:inline-block sm:text-sm"
+          <DrawerTrigger
+            id="launch"
+            className="hidden min-h-[42px] items-center rounded-lg px-4 text-xs font-bold text-white sm:inline-flex sm:text-sm"
             style={{ background: DEEP_RED }}
           >
             {c.headerCta}
-          </Link>
+          </DrawerTrigger>
         </div>
       </div>
     </header>
   );
 }
+
+const TRUST_ICONS = ["📍", "♥", "📈"];
+
+const CAT_ICON_STYLES = [
+  { bg: DEEP_RED, icon: "📋" },
+  { bg: "var(--lx-olive)", icon: "🏪" },
+  { bg: "var(--lx-lion)", icon: "🤝" },
+];
+
+const BENEFIT_ICONS = ["📖", "📱", "🔗", "🏠"];
 
 export async function generateMetadata(props: {
   searchParams?: Promise<{ lang?: string }>;
@@ -371,132 +771,140 @@ export default async function ComingSoonPage(props: {
 
   return (
     <main className="w-full overflow-x-hidden" style={{ background: "var(--lx-page)", color: "var(--lx-text)" }}>
+      <DrawerPanels lang={lang} c={c} />
       <PageHeader c={c} otherLang={otherLang} />
 
       {/* Hero */}
       <section
         id="inicio"
-        className="relative w-full"
+        className="relative w-full overflow-hidden"
         style={{
-          background: "linear-gradient(165deg, var(--lx-section) 0%, var(--lx-page) 55%, var(--lx-canvas) 100%)",
+          background: `linear-gradient(180deg, var(--lx-section) 0%, ${CREAM} 45%, var(--lx-page) 100%)`,
           borderBottom: "1px solid var(--lx-border)",
         }}
       >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-          <div
-            className="absolute -right-24 top-0 h-96 w-96 rounded-full opacity-20 blur-3xl"
-            style={{ background: "var(--lx-lion)" }}
-          />
-          <div
-            className="absolute -left-16 bottom-0 h-72 w-72 rounded-full opacity-15 blur-3xl"
-            style={{ background: "var(--lx-olive)" }}
-          />
-        </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,253,247,0.7), rgba(255,253,247,0.85)), radial-gradient(ellipse 80% 50% at 70% 40%, rgba(120,130,150,0.25), transparent)",
+          }}
+          aria-hidden
+        />
 
-        <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[52%_48%] lg:gap-12 lg:py-20 xl:py-24">
-          <div className="flex min-w-0 flex-col gap-6 lg:gap-7">
+        <div className="relative mx-auto grid max-w-[90rem] grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[52%_48%] lg:gap-8 lg:py-16 xl:py-20">
+          <div className="flex min-w-0 flex-col gap-5 lg:gap-6">
             <span
-              className="inline-flex w-fit items-center rounded-full border px-4 py-1.5 text-xs font-black uppercase tracking-[0.22em] sm:text-sm"
-              style={{
-                borderColor: "var(--lx-lion)",
-                background: "var(--lx-card)",
-                color: DEEP_RED,
-              }}
+              className="inline-flex w-fit items-center rounded-full border-2 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.24em] sm:text-xs"
+              style={{ borderColor: "var(--lx-lion)", color: "var(--lx-lion)", background: "var(--lx-card)" }}
             >
               {c.badge}
             </span>
 
-            <h1 className="text-5xl font-black leading-[0.95] tracking-tight sm:text-6xl md:text-7xl lg:text-[4.25rem] xl:text-[4.75rem]">
-              {c.heroTitle}
-            </h1>
+            <Image
+              src="/logo.png"
+              alt="Leonix Media"
+              width={420}
+              height={140}
+              className="h-auto w-full max-w-[min(100%,22rem)] object-contain object-left sm:max-w-md lg:max-w-lg"
+              priority
+            />
 
-            <p
-              className="text-2xl font-bold leading-snug whitespace-pre-line sm:text-3xl md:text-[2rem] md:leading-tight"
-              style={{ color: "var(--lx-lion)" }}
-            >
-              {c.heroTagline}
-            </p>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold leading-snug sm:text-3xl lg:text-[2rem] lg:leading-tight" style={{ color: "var(--lx-text)" }}>
+                {c.tagline1}{" "}
+                <span style={{ color: DEEP_RED }}>{c.tagline1Em}</span>.
+              </p>
+              <p className="text-2xl font-bold leading-snug sm:text-3xl lg:text-[2rem] lg:leading-tight" style={{ color: "var(--lx-text)" }}>
+                {c.tagline2}{" "}
+                <span style={{ color: DEEP_RED }}>{c.tagline2Em}</span>.
+              </p>
+            </div>
 
             <p className="max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: "var(--lx-muted)" }}>
               {c.heroBody}
             </p>
 
-            <div className="flex flex-wrap gap-2.5 sm:gap-3">
-              <Link
-                href={`/contacto?lang=${lang}`}
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl px-7 py-3.5 text-sm font-bold text-white transition sm:text-base"
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <DrawerTrigger
+                id="anunciate"
+                className="inline-flex min-h-[50px] items-center justify-center rounded-lg px-6 text-sm font-bold text-white sm:text-base"
                 style={{ background: DEEP_RED }}
               >
                 {c.cta1}
-              </Link>
-              <Link
-                href="#anunciate"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl border-2 px-7 py-3.5 text-sm font-bold transition sm:text-base"
-                style={{
-                  borderColor: "var(--lx-olive)",
-                  color: "var(--lx-olive)",
-                  background: "var(--lx-card)",
-                }}
+                <ArrowIcon />
+              </DrawerTrigger>
+              <DrawerTrigger
+                id="launch"
+                className="inline-flex min-h-[50px] items-center justify-center rounded-lg border-2 bg-white px-6 text-sm font-bold sm:text-base"
+                style={{ borderColor: "var(--lx-lion)", color: "var(--lx-lion)" }}
               >
                 {c.cta2}
-              </Link>
+                <ArrowIcon />
+              </DrawerTrigger>
+              <DrawerTrigger
+                id="mediakit"
+                className="inline-flex min-h-[50px] items-center justify-center rounded-lg border px-6 text-sm font-semibold sm:text-base"
+                style={{ borderColor: "var(--lx-border)", color: "var(--lx-text)", background: "var(--lx-card)" }}
+              >
+                {c.mediaKit}
+              </DrawerTrigger>
             </div>
 
-            <ul className="flex flex-wrap gap-2 sm:gap-3">
-              {c.trust.map((t) => (
-                <li
-                  key={t}
-                  className="flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold sm:text-sm"
-                  style={{
-                    borderColor: "var(--lx-border)",
-                    background: "var(--lx-card)",
-                    color: "var(--lx-text)",
-                  }}
-                >
-                  <span className="font-bold" style={{ color: "var(--lx-olive)" }} aria-hidden>
-                    ✓
+            <ul className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+              {c.trust.map((t, i) => (
+                <li key={t} className="flex items-center gap-2 text-sm font-medium sm:text-base" style={{ color: "var(--lx-text)" }}>
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-sm"
+                    style={{ background: "var(--lx-section)", border: "1px solid var(--lx-lion)" }}
+                    aria-hidden
+                  >
+                    {TRUST_ICONS[i]}
                   </span>
                   {t}
                 </li>
               ))}
             </ul>
 
-            <p className="text-sm font-medium italic sm:text-base" style={{ color: "var(--lx-muted)" }}>
+            <p className="text-sm italic sm:text-base" style={{ color: "var(--lx-muted)" }}>
               {c.slogan}
             </p>
 
-            <Link
-              href="#anunciate"
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 py-3.5 text-sm font-bold text-white sm:hidden"
+            <DrawerTrigger
+              id="launch"
+              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-lg px-6 text-sm font-bold text-white sm:hidden"
               style={{ background: DEEP_RED }}
             >
               {c.headerCta}
-            </Link>
+            </DrawerTrigger>
           </div>
 
-          <div className="flex justify-center lg:justify-end lg:pr-2">
+          <div className="flex justify-center lg:justify-end lg:pl-4">
             <MagazineCover lang={lang} />
           </div>
         </div>
       </section>
 
       {/* Category strip */}
-      <section id="ediciones" className="w-full px-4 py-14 sm:px-6 sm:py-16 lg:py-20">
-        <div className="mx-auto grid max-w-[90rem] grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5 lg:gap-6">
+      <section
+        id="ediciones"
+        className="w-full border-y px-4 py-10 sm:px-6 sm:py-12"
+        style={{ background: "var(--lx-card)", borderColor: "var(--lx-border)" }}
+      >
+        <div className="mx-auto grid max-w-[90rem] grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0" style={{ borderColor: "var(--lx-border)" }}>
           {c.cats.items.map((cat, i) => (
-            <article
-              key={cat.name}
-              className="group flex min-h-[9rem] flex-col justify-end rounded-2xl border-2 p-6 transition sm:min-h-[10.5rem] sm:p-7 lg:min-h-[11.5rem]"
-              style={{
-                background: "var(--lx-card)",
-                borderColor: i === 1 ? "var(--lx-lion)" : "var(--lx-border)",
-                boxShadow: "0 12px 40px -20px rgba(42,36,22,0.18)",
-              }}
-            >
-              <h2 className="text-xl font-black sm:text-2xl" style={{ color: DEEP_RED }}>
+            <article key={cat.name} className="flex flex-col items-center px-4 py-8 text-center sm:px-6 sm:py-6">
+              <span
+                className="mb-4 flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white shadow-md"
+                style={{ background: CAT_ICON_STYLES[i].bg }}
+                aria-hidden
+              >
+                {CAT_ICON_STYLES[i].icon}
+              </span>
+              <h2 className="text-lg font-black sm:text-xl" style={{ color: "var(--lx-text)" }}>
                 {cat.name}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+              <p className="mt-2 max-w-xs text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
                 {cat.sub}
               </p>
             </article>
@@ -507,28 +915,21 @@ export default async function ComingSoonPage(props: {
       {/* Benefits strip */}
       <section
         id="beneficios"
-        className="w-full border-y px-4 py-14 sm:px-6 sm:py-16 lg:py-20"
-        style={{ background: "var(--lx-canvas)", borderColor: "var(--lx-border)" }}
+        className="w-full px-4 py-12 sm:px-6 sm:py-14"
+        style={{ background: "var(--lx-page)" }}
       >
-        <div className="mx-auto grid max-w-[90rem] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        <div className="mx-auto grid max-w-[90rem] grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {c.benefits.items.map((b, i) => (
-            <article
-              key={b.title}
-              className="flex flex-col gap-3 rounded-2xl border p-6 sm:p-7"
-              style={{
-                background: "var(--lx-card)",
-                borderColor: i === 0 ? "var(--lx-lion)" : "var(--lx-border)",
-              }}
-            >
+            <article key={b.title} className="flex flex-col items-center text-center lg:items-start lg:text-left">
               <span
-                className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black text-white"
-                style={{ background: i % 2 === 0 ? DEEP_RED : "var(--lx-olive)" }}
+                className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 text-xl"
+                style={{ borderColor: "var(--lx-lion)", background: "var(--lx-card)" }}
                 aria-hidden
               >
-                {i + 1}
+                {BENEFIT_ICONS[i]}
               </span>
-              <h3 className="text-lg font-bold leading-snug sm:text-xl">{b.title}</h3>
-              <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+              <h3 className="text-base font-bold sm:text-lg">{b.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
                 {b.body}
               </p>
             </article>
@@ -536,96 +937,60 @@ export default async function ComingSoonPage(props: {
         </div>
       </section>
 
-      {/* More than an ad */}
-      <section
-        id="nosotros"
-        className="w-full px-4 py-14 sm:px-6 sm:py-16 lg:py-20"
-        style={{ background: "var(--lx-section)" }}
-      >
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-center text-2xl font-black sm:text-3xl md:text-4xl">{c.more.title}</h2>
-          <ul className="mt-10 flex flex-col gap-4 sm:gap-5">
-            {c.more.items.map((item) => (
-              <li key={item} className="flex items-start gap-4">
-                <span
-                  className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ background: DEEP_RED }}
-                  aria-hidden
-                >
-                  ✦
-                </span>
-                <span className="text-base leading-relaxed sm:text-lg" style={{ color: "var(--lx-text)" }}>
-                  {item}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
       {/* Signup strip */}
-      <section id="anunciate" className="w-full px-4 py-14 sm:px-6 sm:py-16 lg:py-20" style={{ background: DEEP_RED }}>
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">{c.signup.title}</h2>
-          <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">{c.signup.sub}</p>
+      <section id="signup" className="w-full px-4 py-10 sm:px-6 sm:py-12" style={{ background: DEEP_RED }}>
+        <div className="mx-auto flex max-w-[90rem] flex-col items-center gap-6 lg:flex-row lg:justify-between lg:gap-10">
+          <div className="flex items-start gap-4 text-white lg:max-w-[50%]">
+            <span
+              className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+              aria-hidden
+            >
+              ✉
+            </span>
+            <div>
+              <h2 className="text-xl font-black sm:text-2xl lg:text-3xl">{c.signup.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/88 sm:text-base">{c.signup.sub}</p>
+            </div>
+          </div>
           <form
             action="/contacto"
             method="get"
-            className="mx-auto mt-8 flex max-w-xl flex-col gap-3 sm:flex-row sm:items-stretch"
+            className="flex w-full max-w-xl flex-col gap-3 sm:flex-row lg:w-auto lg:min-w-[28rem] lg:flex-1 lg:justify-end"
           >
             <input type="hidden" name="lang" value={lang} />
             <input
               type="email"
               name="prefillMessage"
               placeholder={c.signup.placeholder}
-              className="min-h-[48px] flex-1 rounded-xl border px-4 py-3 text-base outline-none"
-              style={{
-                background: "rgba(255,253,247,0.12)",
-                color: "#FFFDF7",
-                borderColor: "rgba(255,253,247,0.28)",
-              }}
+              className="min-h-[50px] flex-1 rounded-lg border-0 px-4 text-base text-[#1F241C] outline-none"
+              style={{ background: "#FFFDF7" }}
               autoComplete="email"
             />
-            <button
-              type="submit"
-              className="min-h-[48px] rounded-xl px-8 py-3 text-base font-bold transition"
+            <DrawerTrigger
+              id="launch"
+              className="inline-flex min-h-[50px] items-center justify-center rounded-lg px-8 text-base font-bold"
               style={{ background: "var(--lx-lion)", color: DARK_RED }}
             >
               {c.signup.cta}
-            </button>
+              <ArrowIcon />
+            </DrawerTrigger>
           </form>
-        </div>
-      </section>
-
-      {/* Contact strip */}
-      <section
-        id="contacto"
-        className="w-full px-4 py-14 sm:px-6 sm:py-16 lg:py-20"
-        style={{ background: "var(--lx-olive)" }}
-      >
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">{c.contact.title}</h2>
-          <p className="mt-4 text-sm leading-relaxed text-white/90 sm:text-base">{c.contact.body}</p>
-          <Link
-            href={`/contacto?lang=${lang}`}
-            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl px-8 py-3.5 text-base font-bold transition"
-            style={{ background: "var(--lx-page)", color: "var(--lx-olive)" }}
-          >
-            {c.contact.cta}
-          </Link>
         </div>
       </section>
 
       {/* Footer */}
       <footer
-        className="w-full px-4 py-10 text-center sm:px-6 sm:py-12"
+        className="w-full px-4 py-8 sm:px-6 sm:py-10"
         style={{ background: "var(--lx-text)", color: "var(--lx-page)" }}
       >
-        <p className="text-sm font-semibold sm:text-base">{c.footer.locations}</p>
-        <p className="mt-3 text-sm italic opacity-80 sm:text-base">{c.slogan}</p>
-        <p className="mt-6 text-xs opacity-55 sm:text-sm">
-          © {year} Leonix Media / Leonix Global LLC · {c.footer.rights}
-        </p>
+        <div className="mx-auto flex max-w-[90rem] flex-col items-center gap-6 text-center sm:gap-4 lg:flex-row lg:justify-between lg:text-left">
+          <p className="text-sm font-medium sm:text-base">{c.footer.left}</p>
+          <p className="text-sm italic opacity-90 sm:text-base">{c.slogan}</p>
+          <p className="text-xs opacity-70 sm:text-sm">
+            © {year} Leonix Media / Leonix Global LLC · {c.footer.rights}
+          </p>
+        </div>
       </footer>
     </main>
   );

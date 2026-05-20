@@ -290,13 +290,13 @@ export const EN_VENTA_SUBCATEGORY_ROWS: EnVentaSubcategoryDef[] = [
   {
     dept: "otros",
     key: "mascotas-accesorios",
-    label: { es: "Accesorios para mascotas", en: "Pet supplies" },
+    label: { es: "Mascotas — accesorios solamente", en: "Pets — supplies only" },
     itemTypeValues: ["pet-crate", "pet-bed", "aquarium", "pet-accessory", "pet-toy", "pet-other"],
   },
   {
     dept: "otros",
     key: "venta-garage-mudanza",
-    label: { es: "Venta de garage / mudanza", en: "Garage / moving sale" },
+    label: { es: "Garage, mudanza y lotes", en: "Garage, moving & lots" },
     itemTypeValues: ["garage-sale", "moving-sale", "estate-sale", "bundle-lot", "misc"],
   },
   {
@@ -305,7 +305,7 @@ export const EN_VENTA_SUBCATEGORY_ROWS: EnVentaSubcategoryDef[] = [
     label: { es: "Oficina y escuela", en: "Office & school" },
     itemTypeValues: ["office-equipment", "school-supplies", "printer", "desk-accessories", "office-other", "misc"],
   },
-  { dept: "otros", key: "general", label: { es: "General", en: "General" } },
+  { dept: "otros", key: "general", label: { es: "Otro artículo", en: "Other item" } },
 ];
 
 export function getSubcategoriesForDept(dept: string): EnVentaSubcategoryDef[] {

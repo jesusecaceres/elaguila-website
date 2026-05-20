@@ -164,6 +164,8 @@ export type BienesRaicesNegocioPreviewVm = {
   /** When true, street `direccion` is persisted in public `Dirección` / map query. */
   mostrarDireccionExacta: boolean;
   footerNote: string;
+  /** Gate 12D — HOA/community card (hidden when empty). */
+  hoaCommunityCard?: { title: string; rows: BienesRaicesPreviewFact[] } | null;
   /** Owner/admin preview chrome (not shown on public live pages). */
   ownerPreviewShell?: {
     inventoryMode: boolean;

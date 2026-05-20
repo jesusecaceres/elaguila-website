@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../../negocios/types/autoDealerListing";
 import { normalizeLoadedListing } from "../../negocios/lib/autoDealerDraftDefaults";
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
@@ -26,10 +25,13 @@ type PublicListingApiOk = {
   leonix_ad_id?: string | null;
 };
 
-export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
-  const sp = useSearchParams();
-  const qs = sp ?? new URLSearchParams();
-  const lang: AutosPublicLang = qs.get("lang") === "en" ? "en" : "es";
+export function AutosLiveVehicleClient({
+  listingId,
+  lang,
+}: {
+  listingId: string;
+  lang: AutosPublicLang;
+}) {
   const [data, setData] = useState<AutoDealerListing | null>(null);
   const [lane, setLane] = useState<AutosClassifiedsLane | null>(null);
   const [leonixAdId, setLeonixAdId] = useState<string | null>(null);
@@ -119,7 +121,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
 
   if (lane === "privado") {
     return (
-      <AutosPrivadoPreviewLocaleProvider>
+      <AutosPrivadoPreviewLocaleProvider lang={lang}>
         <AutoPrivadoPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
         {leonixAdId ? (
           <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
@@ -139,7 +141,7 @@ export function AutosLiveVehicleClient({ listingId }: { listingId: string }) {
   }
 
   return (
-    <AutosNegociosPreviewLocaleProvider>
+    <AutosNegociosPreviewLocaleProvider lang={lang}>
       <AutoDealerPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
       {leonixAdId ? (
         <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">

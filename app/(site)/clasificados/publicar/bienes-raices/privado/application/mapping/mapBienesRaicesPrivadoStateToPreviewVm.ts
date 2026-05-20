@@ -22,6 +22,7 @@ import {
   composeBrExactMapQuery,
   sanitizeBrUserMapUrl,
 } from "@/app/clasificados/lib/leonixBrGate12d";
+import { buildBrGate12dHoaPreviewCard } from "@/app/clasificados/lib/leonixBrGate12dHoaPreview";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
@@ -320,53 +321,13 @@ function buildTerrenoHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPr
 
 type BrPreviewLang = "es" | "en";
 
-function triBoolLabel(lang: BrPreviewLang, v: string): string | null {
-  if (v === "yes") return lang === "es" ? "Sí" : "Yes";
-  if (v === "no") return lang === "es" ? "No" : "No";
-  if (v === "unknown") return lang === "es" ? "No indicado" : "Unknown";
-  return null;
-}
-
-function hoaFreqLabel(lang: BrPreviewLang, f: string): string | null {
-  if (f === "monthly") return lang === "es" ? "Mensual" : "Monthly";
-  if (f === "quarterly") return lang === "es" ? "Trimestral" : "Quarterly";
-  if (f === "yearly") return lang === "es" ? "Anual" : "Yearly";
-  if (f === "unknown") return lang === "es" ? "No indicada" : "Unknown";
-  return null;
-}
-
 function buildGate12dHoaCard(
   s: BienesRaicesPrivadoFormState,
   lang: BrPreviewLang,
 ): { title: string; rows: BienesRaicesPreviewFact[] } | null {
-  const g = s.gate12d;
-  const rows: BienesRaicesPreviewFact[] = [];
-  const L = (es: string, en: string) => (lang === "es" ? es : en);
-  const pushRow = (label: string, value: string) => {
-    const r = row(label, value);
-    if (r) rows.push(r);
-  };
-  const hb = triBoolLabel(lang, g.hasHoa);
-  if (hb) pushRow(L("¿Hay HOA?", "HOA?"), hb);
-  if (trim(g.hoaFee)) pushRow(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
-  const fq = hoaFreqLabel(lang, g.hoaFrequency);
-  if (fq) pushRow(L("Frecuencia", "Frequency"), fq);
-  if (trim(g.hoaIncludes)) pushRow(L("La cuota incluye", "HOA includes"), trim(g.hoaIncludes));
-  if (trim(g.communityRules)) pushRow(L("Reglas de la comunidad", "Community rules"), trim(g.communityRules));
-  const petText =
-    trim(g.petRules) ||
-    (s.petsAllowed === "yes"
-      ? L("Se permiten mascotas (política publicada).", "Pets allowed (published policy).")
-      : s.petsAllowed === "no"
-        ? L("No se permiten mascotas (política publicada).", "Pets not allowed (published policy).")
-        : "");
-  if (petText) pushRow(L("Reglas sobre mascotas", "Pet rules"), petText);
-  if (trim(g.rentalRestrictions)) pushRow(L("Restricciones de renta", "Rental restrictions"), trim(g.rentalRestrictions));
-  const st = triBoolLabel(lang, g.shortTermRentalAllowed);
-  if (st) pushRow(L("Rentas vacacionales / corto plazo", "Short-term rentals"), st);
-  if (trim(g.parkingRules)) pushRow(L("Reglas de estacionamiento", "Parking rules"), trim(g.parkingRules));
-  if (!rows.length) return null;
-  return { title: L("HOA y comunidad", "HOA and community"), rows };
+  const card = buildBrGate12dHoaPreviewCard(s.gate12d, { lang, petsAllowed: s.petsAllowed });
+  if (!card) return null;
+  return { title: card.title, rows: card.rows };
 }
 
 function buildGate12dOpenHouseCard(

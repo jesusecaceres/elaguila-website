@@ -349,6 +349,14 @@ function buildSearchQuery(category: string, subcategory: string, lang: Lang): st
 
   if (category === "internacional") {
     const intl: Record<string, { es: string; en: string }> = {
+      "el salvador": {
+        es: "noticias El Salvador actualidad centroamérica",
+        en: "El Salvador news latest Central America",
+      },
+      honduras: {
+        es: "noticias Honduras actualidad centroamérica",
+        en: "Honduras news latest Central America",
+      },
       mexico: {
         es: "México noticias internacionales latinoamérica",
         en: "Mexico international news Latin America",

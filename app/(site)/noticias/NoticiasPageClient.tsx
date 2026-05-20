@@ -48,8 +48,26 @@ const SUBCATEGORIES: Record<CategoryKey, Record<Lang, readonly string[]>> = {
     en: ["Entrepreneurs", "Economy", "Markets", "Small business", "Finance"],
   },
   internacional: {
-    es: ["México", "Latinoamérica", "Europa", "Asia", "Migración", "Mundo"],
-    en: ["Mexico", "Latin America", "Europe", "Asia", "Migration", "World"],
+    es: [
+      "El Salvador",
+      "Honduras",
+      "México",
+      "Latinoamérica",
+      "Europa",
+      "Asia",
+      "Migración",
+      "Mundo",
+    ],
+    en: [
+      "El Salvador",
+      "Honduras",
+      "Mexico",
+      "Latin America",
+      "Europe",
+      "Asia",
+      "Migration",
+      "World",
+    ],
   },
   cultura: {
     es: ["Música", "Comida", "Tradiciones", "Arte", "Eventos", "Familia"],

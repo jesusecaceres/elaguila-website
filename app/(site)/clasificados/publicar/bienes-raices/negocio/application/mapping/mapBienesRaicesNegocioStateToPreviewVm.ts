@@ -28,6 +28,11 @@ import {
   socialLinksFromChannelsPayload,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import { syncNegocioListingFieldsFromPublication } from "../schema/bienesRaicesNegocioFormState";
+import { resolveNegocioGate12dHoaSlice } from "@/app/clasificados/lib/leonixBrGate12d";
+import {
+  brGate12dHoaFormSliceHasContent,
+  buildBrGate12dHoaPreviewCard,
+} from "@/app/clasificados/lib/leonixBrGate12dHoaPreview";
 import { deepDetailGroupsForPublication } from "../schema/brNegocioBranching";
 import { BR_DEEP_FIELD_LABELS, BR_DEEP_HEADINGS } from "../schema/brDeepDetailMeta";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "../schema/brHighlightMeta";
@@ -300,9 +305,8 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
   return rows;
 }
 
-function negocioPetsQuickFact(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQuickFactVm | null {
-  if (s.petsAllowed === "yes") return { label: "Mascotas", value: "Permitidas", icon: "sparkle" };
-  if (s.petsAllowed === "no") return { label: "Mascotas", value: "No permitidas", icon: "sparkle" };
+function negocioPetsQuickFact(_s: BienesRaicesNegocioFormState): BienesRaicesPreviewQuickFactVm | null {
+  /** BR sale: pet policy belongs under HOA/community, not a generic quick-fact chip. */
   return null;
 }
 
@@ -462,22 +466,23 @@ function buildCommunityRows(s: BienesRaicesNegocioFormState): BienesRaicesPrevie
 }
 
 function buildHoaDevelopmentRows(s: BienesRaicesNegocioFormState): BienesRaicesPreviewFact[] {
-  const rows: BienesRaicesPreviewFact[] = factsFromPartialGroup(
-    "comunidadHoa",
-    s.deepDetails.comunidadHoa,
-    BR_DEEP_FIELD_LABELS.comunidadHoa
-  );
+  const gate12dHoa = resolveNegocioGate12dHoaSlice(s);
+  const rows: BienesRaicesPreviewFact[] = brGate12dHoaFormSliceHasContent(gate12dHoa)
+    ? []
+    : factsFromPartialGroup("comunidadHoa", s.deepDetails.comunidadHoa, BR_DEEP_FIELD_LABELS.comunidadHoa);
   const pub = s.publicationType;
-  const hoaLine =
-    trim(s.hoaSiNo) || trim(s.cuotaHoa)
-      ? [
-          trim(s.hoaSiNo) === "si" ? "HOA: sí" : trim(s.hoaSiNo) === "no" ? "HOA: no" : trim(s.hoaSiNo) || "",
-          trim(s.cuotaHoa) ? `Cuota: ${trim(s.cuotaHoa)}` : "",
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : "";
-  if (hoaLine) rows.unshift({ label: "Resumen HOA (listado)", value: hoaLine });
+  if (!brGate12dHoaFormSliceHasContent(gate12dHoa)) {
+    const hoaLine =
+      trim(s.hoaSiNo) || trim(s.cuotaHoa)
+        ? [
+            trim(s.hoaSiNo) === "si" ? "HOA: sí" : trim(s.hoaSiNo) === "no" ? "HOA: no" : trim(s.hoaSiNo) || "",
+            trim(s.cuotaHoa) ? `Cuota: ${trim(s.cuotaHoa)}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : "";
+    if (hoaLine) rows.unshift({ label: "Resumen HOA (listado)", value: hoaLine });
+  }
   if (pub === "proyecto_nuevo") {
     if (trim(s.proyectoModelo)) rows.push({ label: "Modelo (desarrollo)", value: trim(s.proyectoModelo) });
     if (trim(s.proyectoEtapa)) rows.push({ label: "Etapa", value: trim(s.proyectoEtapa) });
@@ -996,6 +1001,10 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const hoaDevRows = buildHoaDevelopmentRows(s);
   const sitePlanCallout = Boolean(sitePlanUrl && s.advertiserType === "constructor_desarrollador");
   const showHoaDev = hoaDevRows.length > 0 || sitePlanCallout;
+  const hoaCommunityCard = buildBrGate12dHoaPreviewCard(resolveNegocioGate12dHoaSlice(s), {
+    lang: "es",
+    petsAllowed: s.petsAllowed,
+  });
 
   return {
     publicationType: s.publicationType,
@@ -1053,6 +1062,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       sitePlanCallout,
     },
     mostrarDireccionExacta: s.mostrarDireccionExacta,
+    hoaCommunityCard,
     footerNote: "",
   };
 }

@@ -24,11 +24,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   };
 }
 
-export default async function ClasificadosAutosLiveVehiclePage({ params }: Pick<Props, "params">) {
+export default async function ClasificadosAutosLiveVehiclePage({ params, searchParams }: Props) {
   const { id } = await params;
+  const sp = (await searchParams) ?? {};
+  const lang: AutosClassifiedsLang = sp.lang === "en" ? "en" : "es";
   return (
     <Suspense fallback={<div className="min-h-screen bg-[color:var(--lx-page)]" aria-busy="true" />}>
-      <AutosLiveVehicleClient listingId={id} />
+      <AutosLiveVehicleClient listingId={id} lang={lang} />
     </Suspense>
   );
 }

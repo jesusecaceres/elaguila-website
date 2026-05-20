@@ -1,6 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
+import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
 import {
   BrField,
   BrPreviewHint,
@@ -65,9 +66,11 @@ function siNoChecked(v: "" | "si" | "no"): boolean {
 export function ContactoCtasNegocioSection({
   state,
   setState,
+  lang = "es",
 }: {
   state: BienesRaicesNegocioFormState;
   setState: React.Dispatch<React.SetStateAction<BienesRaicesNegocioFormState>>;
+  lang?: "es" | "en";
 }) {
   const c = state.cta;
   const ch = state.contactChannels;
@@ -233,6 +236,18 @@ export function ContactoCtasNegocioSection({
           />
         </BrField>
       </div>
+
+      <BrGate12dHoaCommunitySection
+        variant="negocio"
+        lang={lang}
+        gate12d={state.gate12d}
+        onChange={(patch) =>
+          setState((s) => ({
+            ...s,
+            gate12d: { ...s.gate12d, ...patch },
+          }))
+        }
+      />
 
       <div className="mt-6 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
         <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-[#1E1810]">
