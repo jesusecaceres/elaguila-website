@@ -25,7 +25,7 @@ import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosLicense } from "./ServiciosLicense";
 import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
-import { ServiciosActionPanel } from "./ServiciosActionPanel";
+import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { SV } from "./serviciosDesignTokens";
@@ -145,7 +145,7 @@ export function ServiciosProfileView({
             </div>
 
             <div className="order-3 lg:hidden">
-              <ServiciosActionPanel
+              <ServiciosBusinessHubContactCard
                 profile={profile}
                 lang={lang}
                 listingSlug={analyticsListingSlug}
@@ -227,7 +227,7 @@ export function ServiciosProfileView({
           <aside
             className={`order-2 hidden min-w-0 lg:sticky lg:block lg:self-start ${stickyAsideTop} lg:z-10 lg:order-2`}
           >
-            <ServiciosActionPanel
+            <ServiciosBusinessHubContactCard
               profile={profile}
               lang={lang}
               listingSlug={analyticsListingSlug}
