@@ -11,17 +11,7 @@ import {
   FiPhone,
   FiZap,
 } from "react-icons/fi";
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaStar,
-  FaTiktok,
-  FaWhatsapp,
-  FaYoutube,
-} from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
-import { SiPinterest, SiSnapchat } from "react-icons/si";
+import { FaStar, FaWhatsapp } from "react-icons/fa";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
@@ -45,7 +35,12 @@ import type {
   ServiciosBusinessHubReviewLink,
   ServiciosBusinessHubSocialLink,
 } from "../lib/serviciosBusinessHubContactTypes";
+import {
+  BusinessHubSocialBrandIcon,
+  businessHubSocialBrandStyle,
+} from "../lib/serviciosBusinessHubSocialBrand";
 import { ServiciosStarRating } from "./ServiciosStarRating";
+import { ServiciosBusinessHubFauxMap } from "./ServiciosBusinessHubFauxMap";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
@@ -86,30 +81,6 @@ function socialHeadline(platform: ServiciosBusinessHubSocialLink["platform"]): s
     pinterest: "Pinterest",
   };
   return map[platform];
-}
-
-function SocialPlatformIcon({ platform }: { platform: ServiciosBusinessHubSocialLink["platform"] }) {
-  const cls = "h-5 w-5 shrink-0";
-  switch (platform) {
-    case "facebook":
-      return <FaFacebook className={cls} aria-hidden />;
-    case "instagram":
-      return <FaInstagram className={cls} aria-hidden />;
-    case "tiktok":
-      return <FaTiktok className={cls} aria-hidden />;
-    case "x":
-      return <FaXTwitter className={cls} aria-hidden />;
-    case "youtube":
-      return <FaYoutube className={cls} aria-hidden />;
-    case "linkedin":
-      return <FaLinkedin className={cls} aria-hidden />;
-    case "snapchat":
-      return <SiSnapchat className={cls} aria-hidden />;
-    case "pinterest":
-      return <SiPinterest className={cls} aria-hidden />;
-    default:
-      return <FiGlobe className={cls} aria-hidden />;
-  }
 }
 
 function HubSectionTitle({ children }: { children: ReactNode }) {
@@ -319,7 +290,7 @@ export function ServiciosBusinessHubContactCard({
     "flex min-h-[44px] flex-col items-center justify-center gap-1.5 rounded-2xl px-3 py-3 text-center text-xs font-semibold text-white shadow-md transition hover:opacity-[0.97] active:scale-[0.99] sm:text-sm";
 
   const socialChipClass =
-    "flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0";
+    "flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full shadow-md transition hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] sm:h-11 sm:w-11";
 
   const showPrimaryQuote =
     quote &&
@@ -470,23 +441,28 @@ export function ServiciosBusinessHubContactCard({
                   ? "Find us here, don't forget to follow and like."
                   : "Encuéntranos aquí, no olvides seguir y dar like."}
               </p>
-              <div className="mt-4 flex flex-wrap gap-2.5">
-                {vm.social.map((link) => (
-                  <button
-                    key={link.platform}
-                    type="button"
-                    onClick={() => openSocialOutbound(link.url, socialHeadline(link.platform))}
-                    className={socialChipClass}
-                    style={{
-                      backgroundColor: "#fff",
-                      borderColor: SV.border,
-                      color: SV.text,
-                    }}
-                    aria-label={socialHeadline(link.platform)}
-                  >
-                    <SocialPlatformIcon platform={link.platform} />
-                  </button>
-                ))}
+              <div className="mt-4 flex max-w-full flex-wrap gap-3">
+                {vm.social.map((link) => {
+                  const brand = businessHubSocialBrandStyle(link.platform);
+                  return (
+                    <button
+                      key={link.platform}
+                      type="button"
+                      onClick={() => openSocialOutbound(link.url, socialHeadline(link.platform))}
+                      className={socialChipClass}
+                      style={{
+                        background: brand.background,
+                        color: brand.color,
+                        border: brand.border ?? "2px solid transparent",
+                      }}
+                      aria-label={socialHeadline(link.platform)}
+                    >
+                      <span className="inline-flex" style={{ color: brand.color }}>
+                        <BusinessHubSocialBrandIcon platform={link.platform} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           </>
@@ -563,13 +539,7 @@ export function ServiciosBusinessHubContactCard({
                   {vm.location.addressDisplay}
                 </p>
               ) : null}
-              <div
-                className="mt-3 flex aspect-[16/9] w-full items-center justify-center rounded-xl border"
-                style={{ backgroundColor: SV.accentSoft, borderColor: SV.border }}
-                aria-hidden
-              >
-                <FiMapPin className="h-8 w-8 opacity-40" style={{ color: HUB_CTA_BG }} />
-              </div>
+              <ServiciosBusinessHubFauxMap />
               {vm.location?.mapsHref ? (
                 <button
                   type="button"

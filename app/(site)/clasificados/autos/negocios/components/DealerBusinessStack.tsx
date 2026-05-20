@@ -150,10 +150,10 @@ export function DealerBusinessStack({
     contactTiles.push({
       key: "email",
       node: (
-        <a href={emailHref} className={CTA_TILE}>
+        <AutosSheetCtaLink href={emailHref} lang={lang} className={CTA_TILE}>
           <FiMail className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
           {sb.emailSeller}
-        </a>
+        </AutosSheetCtaLink>
       ),
     });
   }
