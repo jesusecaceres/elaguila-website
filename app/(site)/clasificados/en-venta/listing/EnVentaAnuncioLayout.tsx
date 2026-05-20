@@ -19,6 +19,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
 import {
   buildCallIntent,
+  buildDirectionsIntent,
   buildSendEmailIntent,
   buildSendMessageIntent,
   buildWhatsAppMessageIntent,
@@ -399,6 +400,17 @@ export function EnVentaAnuncioLayout({
   const openWhatsAppSheet = () =>
     openSheet(buildWhatsAppMessageIntent({ message: contactMessage, phone: phoneTel, whatsappDigits: waDigits, contactShareExtras }));
   const openEmailSheet = () => openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
+  const openDirectionsSheet = () => {
+    const href = brLocationBlock?.mapsHref;
+    if (!href) return;
+    openSheet(
+      buildDirectionsIntent({
+        addressOrUrl: href,
+        isMapsUrl: /^https?:\/\//i.test(href),
+        contactShareExtras,
+      }),
+    );
+  };
 
   /** En Venta detail: one clear primary CTA (WhatsApp when offered, else message, else call). */
   const evPrimaryContactKind: "wa" | "email" | "tel" | null =
@@ -683,31 +695,22 @@ export function EnVentaAnuncioLayout({
                   premiumBr ? (
                     <div className="flex flex-wrap gap-2">
                       {phoneTel && gateAllowCall ? (
-                        <a href={`tel:${phoneTel}`} className={`${BtnBase} ${primary}`}>
+                        <button type="button" onClick={openCallSheet} className={`${BtnBase} ${primary}`}>
                           {lang === "es" ? "Llamar" : "Call"}
-                        </a>
+                        </button>
                       ) : null}
                       {phoneTel && gateAllowSms ? (
-                        <a href={`sms:${phoneTel}`} className={`${BtnBase} ${secondary}`}>
+                        <button type="button" onClick={openSmsSheet} className={`${BtnBase} ${secondary}`}>
                           {lang === "es" ? "Texto" : "Text"}
-                        </a>
+                        </button>
                       ) : null}
                       {showWhatsAppCta && waDigits ? (
-                        <a
-                          href={`https://wa.me/${waDigits}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${BtnBase} ${secondary}`}
-                        >
+                        <button type="button" onClick={openWhatsAppSheet} className={`${BtnBase} ${secondary}`}>
                           WhatsApp
-                        </a>
+                        </button>
                       ) : null}
                       {email ? (
-                        <button
-                          type="button"
-                          className={`${BtnBase} ${secondary}`}
-                          onClick={() => setCorreoOpen(true)}
-                        >
+                        <button type="button" className={`${BtnBase} ${secondary}`} onClick={openEmailSheet}>
                           {lang === "es" ? "Enviar mensaje" : "Send message"}
                         </button>
                       ) : null}
@@ -790,8 +793,8 @@ export function EnVentaAnuncioLayout({
                   <p className="mt-2 text-[11px] text-[#111111]/55">
                     {premiumBr
                       ? lang === "es"
-                        ? "«Enviar mensaje» guarda la consulta en tu cuenta. Desde el mismo modal puedes abrir Gmail, Yahoo o tu correo."
-                        : "“Send message” saves the inquiry to your account. From the same modal you can open Gmail, Yahoo, or your default mail app."
+                        ? "«Enviar mensaje» abre opciones para compartir, copiar o abrir tu correo sin forzar una app de inmediato."
+                        : "“Send message” opens share, copy, and email options without forcing an app immediately."
                       : lang === "es"
                         ? "«Enviar mensaje» abre opciones para compartir, copiar o abrir tu correo sin forzar una app de inmediato."
                         : "“Send message” opens share, copy, and email options without forcing an app immediately."}
@@ -814,14 +817,13 @@ export function EnVentaAnuncioLayout({
                 <h2 className={brLuxuryOverlineClass}>{lang === "es" ? "Ubicación" : "Location"}</h2>
                 <p className={`mt-3 whitespace-pre-wrap ${brLuxuryBodyMutedClass} sm:text-[15px]`}>{brLocationBlock.display}</p>
                 {brLocationBlock.mapsHref ? (
-                  <a
-                    href={brLocationBlock.mapsHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={openDirectionsSheet}
                     className={`mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl ${brLuxuryBtnSecondaryClass} px-4 text-sm font-semibold`}
                   >
                     {lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
-                  </a>
+                  </button>
                 ) : null}
               </section>
             ) : null}
@@ -910,16 +912,16 @@ export function EnVentaAnuncioLayout({
 
       {premiumBr && phoneTel && gateAllowCall ? (
         <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-18px_52px_-20px_rgba(42,36,22,0.22)] backdrop-blur-md lg:hidden">
-          <a href={`tel:${phoneTel}`} className={`${brLuxuryBtnPrimaryClass} flex-1 text-center text-[13px]`}>
+          <button type="button" onClick={openCallSheet} className={`${brLuxuryBtnPrimaryClass} flex-1 text-center text-[13px]`}>
             {lang === "es" ? "Llamar" : "Call"}
-          </a>
+          </button>
           <button type="button" onClick={() => scrollToContact()} className={`${brLuxuryBtnSecondaryClass} flex-1 text-[13px]`}>
             {lang === "es" ? "Contacto" : "Contact"}
           </button>
         </div>
       ) : null}
 
-      {email ? (
+      {email && !premiumBr ? (
         <EnVentaCorreoModal
           open={correoOpen}
           onClose={() => setCorreoOpen(false)}

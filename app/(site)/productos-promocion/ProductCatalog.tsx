@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { CATALOG_CATEGORIES, type CategoryId, type Product, type CatalogCategory } from "./catalogData";
 
@@ -17,6 +18,29 @@ const CATEGORY_ICONS: Record<CategoryId, string> = {
 const OLIVE_BG = "var(--lx-cta-secondary-bg)";
 const OLIVE_FG = "var(--lx-cta-secondary-fg)";
 const OLIVE_HOVER = "#4d5e30";
+
+function ProductCardImage({ product, lang }: { product: Product; lang: Lang }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  const title = product[lang].title;
+  const alt = lang === "es" ? (product.imageAltEs ?? title) : (product.imageAltEn ?? title);
+
+  if (!product.imageSrc || loadFailed) {
+    return <ProductImagePlaceholder product={product} lang={lang} />;
+  }
+
+  return (
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl" style={{ background: "var(--lx-canvas)" }}>
+      <Image
+        src={product.imageSrc}
+        alt={alt}
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="object-cover object-center"
+        onError={() => setLoadFailed(true)}
+      />
+    </div>
+  );
+}
 
 function ProductImagePlaceholder({ product, lang }: { product: Product; lang: Lang }) {
   const title = product[lang].title;
@@ -74,7 +98,7 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
       className="flex flex-col overflow-hidden rounded-2xl border"
       style={{ background: "var(--lx-card)", borderColor: "var(--lx-border)", boxShadow: "0 2px 8px rgba(42,36,22,0.07)" }}
     >
-      <ProductImagePlaceholder product={product} lang={lang} />
+      <ProductCardImage product={product} lang={lang} />
       <div className="flex flex-1 flex-col gap-3 p-4">
         {product.subcategory ? (
           <span

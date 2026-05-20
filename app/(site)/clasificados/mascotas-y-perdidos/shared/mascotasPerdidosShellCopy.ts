@@ -6,8 +6,8 @@ export const MASCOTAS_PERDIDOS_PRODUCT = {
     en: "Pets & Lost & Found",
   },
   description: {
-    es: "Avisos gratuitos y sencillos para mascotas perdidas o encontradas, adopciones y objetos perdidos o encontrados en tu comunidad.",
-    en: "Free, simple notices for lost or found pets, adoptions, and lost or found items in your community.",
+    es: "Avisos gratuitos para mascotas perdidas o encontradas, adopciones y objetos perdidos o encontrados.",
+    en: "Free notices for lost or found pets, adoptions, and lost or found items.",
   },
   helper: {
     es: "Publicación gratuita · Sin redes sociales · Sin sitio web · Sin volantes",

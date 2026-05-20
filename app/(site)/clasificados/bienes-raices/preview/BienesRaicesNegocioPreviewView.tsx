@@ -26,6 +26,7 @@ import {
   resolveBrPreviewLang,
   type NegocioPreviewUi,
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
+import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 const IVORY = "#F9F6F1";
@@ -393,12 +394,10 @@ function highlightChipText(label: string): string {
 
 function NegocioGate12cSocialIcon({
   kind,
-  href,
-  onClick,
+  onPress,
 }: {
   kind: "instagram" | "facebook" | "youtube" | "tiktok";
-  href: string;
-  onClick?: () => void;
+  onPress: () => void;
 }) {
   const base =
     "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border text-[#F5F0E8] shadow-sm transition hover:bg-white/10 sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0";
@@ -415,9 +414,9 @@ function NegocioGate12cSocialIcon({
     );
   const label = kind === "instagram" ? "Instagram" : kind === "facebook" ? "Facebook" : kind === "youtube" ? "YouTube" : "TikTok";
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={base} style={{ borderColor: border }} aria-label={label}>
+    <button type="button" onClick={onPress} className={base} style={{ borderColor: border }} aria-label={label}>
       {icon}
-    </a>
+    </button>
   );
 }
 
@@ -426,12 +425,27 @@ function BienesRaicesNegocioDarkContactAside({
   vm,
   onContactLinkClick,
   ui,
+  lang,
 }: {
   vm: BienesRaicesNegocioPreviewVm;
   onContactLinkClick?: () => void;
   ui: NegocioPreviewUi;
+  lang: "es" | "en";
 }) {
   const track = () => onContactLinkClick?.();
+  const brCta = useBrContactCtaSheet({
+    lang,
+    hrefs: {
+      solicitarInfoHref: vm.contact.solicitarInfoHref,
+      programarVisitaHref: vm.contact.programarVisitaHref,
+      llamarHref: vm.contact.llamarHref,
+      whatsappHref: vm.contact.whatsappHref,
+      smsHref: vm.contact.smsHref,
+      websiteHref: vm.contact.websiteHref,
+      mapsUrl: vm.location.mapsUrl,
+    },
+    publicUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  });
   return (
     <aside className="flex min-h-full flex-col lg:sticky lg:top-8 lg:min-h-0 lg:self-start">
       <div
@@ -472,76 +486,97 @@ function BienesRaicesNegocioDarkContactAside({
           <p className="text-sm font-bold text-[#F5F0E8]">{vm.identity.name}</p>
           {vm.identity.bioLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.identity.bioLine}</p> : null}
           {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
-            <a
-              href={vm.contact.solicitarInfoHref}
-              onClick={track}
+            <button
+              type="button"
+              onClick={() => {
+                track();
+                brCta.openEmail();
+              }}
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
               style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
             >
               {ui.solicitarInfo}
-            </a>
+            </button>
           ) : null}
           {vm.contact.showProgramarVisita && vm.contact.programarVisitaHref ? (
-            <a
-              href={vm.contact.programarVisitaHref}
-              onClick={track}
+            <button
+              type="button"
+              onClick={() => {
+                track();
+                brCta.openProgramarVisita();
+              }}
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
               style={{ borderColor: "rgba(245,240,232,0.25)" }}
             >
               {ui.programarVisita}
-            </a>
+            </button>
           ) : null}
           {vm.contact.showLlamar && vm.contact.llamarHref ? (
-            <a
-              href={vm.contact.llamarHref}
-              onClick={track}
+            <button
+              type="button"
+              onClick={() => {
+                track();
+                brCta.openCall();
+              }}
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
               style={{ borderColor: "rgba(245,240,232,0.25)" }}
             >
               {ui.llamarAhora}
-            </a>
+            </button>
           ) : null}
           {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
-            <a
-              href={vm.contact.whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={track}
+            <button
+              type="button"
+              onClick={() => {
+                track();
+                brCta.openWhatsApp();
+              }}
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
               style={{ borderColor: "rgba(37,211,102,0.35)" }}
             >
               {ui.enviarWhatsapp}
-            </a>
+            </button>
           ) : null}
           {vm.contact.showSms && vm.contact.smsHref ? (
-            <a
-              href={vm.contact.smsHref}
-              onClick={track}
+            <button
+              type="button"
+              onClick={() => {
+                track();
+                brCta.openSms();
+              }}
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
               style={{ borderColor: "rgba(100,181,246,0.45)" }}
             >
               {ui.enviarTexto}
-            </a>
+            </button>
           ) : null}
           {vm.contact.preferredContactLine ? (
             <p className="text-center text-[11px] leading-relaxed text-[#d8cfc3]">{vm.contact.preferredContactLine}</p>
           ) : null}
           {vm.contact.websiteHref ? (
-            <a
-              href={vm.contact.websiteHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={track}
+            <button
+              type="button"
+              onClick={() => {
+                track();
+                brCta.openWebsite();
+              }}
               className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
               style={{ borderColor: "rgba(197,160,89,0.45)" }}
             >
               {ui.masInformacion}
-            </a>
+            </button>
           ) : null}
           {(vm.contact.socialIconLinks?.length ?? 0) > 0 ? (
             <div className="flex flex-wrap justify-center gap-2">
               {(vm.contact.socialIconLinks ?? []).map((sl) => (
-                <NegocioGate12cSocialIcon key={`${sl.kind}-${sl.href}`} kind={sl.kind} href={sl.href} onClick={track} />
+                <NegocioGate12cSocialIcon
+                  key={`${sl.kind}-${sl.href}`}
+                  kind={sl.kind}
+                  onPress={() => {
+                    track();
+                    brCta.openSocial(sl.href);
+                  }}
+                />
               ))}
             </div>
           ) : null}
@@ -552,16 +587,17 @@ function BienesRaicesNegocioDarkContactAside({
               {vm.location.colonia ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.colonia}</p> : null}
               {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
               {vm.location.mapsUrl ? (
-                <a
-                  href={vm.location.mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={track}
+                <button
+                  type="button"
+                  onClick={() => {
+                    track();
+                    brCta.openMaps();
+                  }}
                   className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
                   style={{ borderColor: "rgba(255,255,255,0.35)" }}
                 >
                   {ui.verEnMapa}
-                </a>
+                </button>
               ) : null}
             </div>
           ) : null}
@@ -619,6 +655,7 @@ function BienesRaicesNegocioDarkContactAside({
           ) : null}
         </div>
       </div>
+      {brCta.sheet}
     </aside>
   );
 }
@@ -639,6 +676,14 @@ export function BienesRaicesNegocioPreviewView({
 }) {
   const locale = resolveBrPreviewLang(lang);
   const ui = negocioPreviewUi(locale);
+  const identityCta = useBrContactCtaSheet({
+    lang: locale,
+    hrefs: {
+      websiteHref: vm.identity.profileHref,
+      mapsUrl: vm.location.mapsUrl,
+    },
+    publicUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  });
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -924,7 +969,7 @@ export function BienesRaicesNegocioPreviewView({
           </div>
 
           {rentasPolishedDuplexLayout ? (
-            <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} ui={ui} />
+            <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} ui={ui} lang={locale} />
           ) : (
             <aside
               className="rounded-2xl border p-5 shadow-[0_16px_44px_-12px_rgba(42,36,22,0.15)] lg:sticky lg:top-6 lg:self-start"
@@ -1006,29 +1051,27 @@ export function BienesRaicesNegocioPreviewView({
               {(vm.identity?.socialLinks ?? []).length > 0 ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {(vm.identity?.socialLinks ?? []).map((sl) => (
-                    <a
+                    <button
                       key={sl.href}
-                      href={sl.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      type="button"
+                      onClick={() => identityCta.openSocial(sl.href)}
                       className="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-full border px-3 text-[10px] font-bold transition hover:bg-[rgba(197,160,89,0.1)]"
                       style={{ borderColor: BORDER, color: CHARCOAL }}
                     >
                       {sl.label}
-                    </a>
+                    </button>
                   ))}
                 </div>
               ) : null}
               {vm.identity.profileCtaEnabled && vm.identity.profileHref ? (
-                <a
-                  href={vm.identity.profileHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={identityCta.openWebsite}
                   className="mt-5 flex w-full items-center justify-center rounded-xl border-2 py-3 text-xs font-bold uppercase tracking-wide transition hover:bg-[rgba(197,160,89,0.08)]"
                   style={{ borderColor: BRONZE, color: BRONZE_SOFT }}
                 >
                   {vm.identity.profileCtaLabel}
-                </a>
+                </button>
               ) : (
                 <p className="mt-5 text-center text-[11px] leading-snug" style={{ color: MUTED }}>
                   {ui.profileCtaHint}
@@ -1059,7 +1102,7 @@ export function BienesRaicesNegocioPreviewView({
               </p>
             </div>
           )}
-          <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} ui={ui} />
+          <BienesRaicesNegocioDarkContactAside vm={vm} onContactLinkClick={onContactLinkClick} ui={ui} lang={locale} />
         </section>
         ) : null}
 
@@ -1119,6 +1162,7 @@ export function BienesRaicesNegocioPreviewView({
         onClose={() => setGalleryOpen(false)}
         lang={locale}
       />
+      {identityCta.sheet}
     </div>
   );
 }

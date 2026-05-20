@@ -23,6 +23,7 @@ import {
   resolveBrPreviewLang,
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
+import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 const IVORY = "#F9F6F1";
@@ -307,6 +308,18 @@ export function BienesRaicesPrivadoPreviewView({
   const locale = resolveBrPreviewLang(lang);
   const ui = privadoPreviewUi(locale);
   const trackContact = () => onContactLinkClick?.();
+  const brCta = useBrContactCtaSheet({
+    lang: locale,
+    hrefs: {
+      solicitarInfoHref: vm.contact.solicitarInfoHref,
+      llamarHref: vm.contact.llamarHref,
+      whatsappHref: vm.contact.whatsappHref,
+      smsHref: vm.contact.smsHref,
+      websiteHref: vm.contact.websiteHref,
+      mapsUrl: vm.location.mapsUrl,
+    },
+    publicUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  });
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
@@ -807,61 +820,72 @@ export function BienesRaicesPrivadoPreviewView({
                 {sellerNameShown ? <p className="text-sm font-bold text-[#F5F0E8]">{sellerNameShown}</p> : null}
                 {vm.seller.noteLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.seller.noteLine}</p> : null}
                 {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
-                  <a
-                    href={vm.contact.solicitarInfoHref}
-                    onClick={trackContact}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openEmail();
+                    }}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
                     style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
                   >
                     {ui.escribirCorreo}
-                  </a>
+                  </button>
                 ) : null}
                 {vm.contact.showLlamar && vm.contact.llamarHref ? (
-                  <a
-                    href={vm.contact.llamarHref}
-                    onClick={trackContact}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openCall();
+                    }}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(245,240,232,0.25)" }}
                   >
                     {ui.llamar}
-                  </a>
+                  </button>
                 ) : null}
                 {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
-                  <a
-                    href={vm.contact.whatsappHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={trackContact}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openWhatsApp();
+                    }}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(37,211,102,0.35)" }}
                   >
                     {ui.whatsapp}
-                  </a>
+                  </button>
                 ) : null}
                 {vm.contact.showSms && vm.contact.smsHref ? (
-                  <a
-                    href={vm.contact.smsHref}
-                    onClick={trackContact}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openSms();
+                    }}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(100,181,246,0.45)" }}
                   >
                     {ui.enviarTexto}
-                  </a>
+                  </button>
                 ) : null}
                 {vm.contact.preferredContactLine ? (
                   <p className="text-center text-[11px] leading-relaxed text-[#d8cfc3]">{vm.contact.preferredContactLine}</p>
                 ) : null}
                 {vm.contact.websiteHref ? (
-                  <a
-                    href={vm.contact.websiteHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={trackContact}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openWebsite();
+                    }}
                     className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
                     style={{ borderColor: "rgba(197,160,89,0.45)" }}
                   >
                     {ui.masInformacion}
-                  </a>
+                  </button>
                 ) : null}
                 {(vm.contact.socialLinks?.length ?? 0) > 0 ? (
                   <div className="flex flex-wrap justify-center gap-2">
@@ -889,18 +913,19 @@ export function BienesRaicesPrivadoPreviewView({
                               ? "YouTube"
                               : "TikTok";
                       return (
-                        <a
+                        <button
                           key={`${sl.kind}-${href}`}
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={trackContact}
+                          type="button"
+                          onClick={() => {
+                            trackContact();
+                            brCta.openSocial(href);
+                          }}
                           className={ring}
                           style={{ borderColor: b }}
                           aria-label={label}
                         >
                           {icon}
-                        </a>
+                        </button>
                       );
                     })}
                   </div>
@@ -911,16 +936,17 @@ export function BienesRaicesPrivadoPreviewView({
                     {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
                     {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
                     {vm.location.mapsUrl ? (
-                      <a
-                        href={vm.location.mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={trackContact}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          trackContact();
+                          brCta.openMaps();
+                        }}
                         className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
                         style={{ borderColor: "rgba(255,255,255,0.35)" }}
                       >
                         {ui.verEnMapa}
-                      </a>
+                      </button>
                     ) : null}
                   </div>
                 ) : null}
@@ -943,6 +969,7 @@ export function BienesRaicesPrivadoPreviewView({
         onClose={() => setGalleryOpen(false)}
         lang={locale}
       />
+      {brCta.sheet}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { LeonixSaveButton } from "@/app/components/clasificados/analytics/Leonix
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
 
 const PREVIEW_CARD =
   "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden";
@@ -96,11 +97,25 @@ export function BienesRaicesPreviewCard({
   const hasFacts = data.quickFacts.length > 0;
   const hasCtas = data.contact.showLlamar || data.contact.showSolicitarInfo || data.contact.showProgramarVisita || data.contact.showWhatsapp;
 
+  const brCta = useBrContactCtaSheet({
+    lang: lang === "en" ? "en" : "es",
+    hrefs: {
+      solicitarInfoHref: data.contact.solicitarInfoHref,
+      llamarHref: data.contact.llamarHref,
+      whatsappHref: data.contact.whatsappHref,
+      programarVisitaHref: data.contact.programarVisitaHref,
+      websiteHref: data.contact.websiteHref,
+      mapsUrl: data.location.mapsUrl,
+    },
+    publicUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  });
+
   // Determine primary media
   const primaryMedia = data.media.heroUrl;
 
   return (
     <div className={`${PREVIEW_CARD} ${className}`}>
+      {brCta.sheet}
       {/* Media Block */}
       <div className={MEDIA_CONTAINER}>
         {hasHeroImage ? (
@@ -195,42 +210,28 @@ export function BienesRaicesPreviewCard({
         {hasCtas && (
           <div className={CTA_SECTION}>
             {data.contact.showLlamar && data.contact.llamarHref && (
-              <a
-                href={data.contact.llamarHref}
-                className={`${CTA_BUTTON} ${CTA_PRIMARY}`}
-              >
+              <button type="button" onClick={brCta.openCall} className={`${CTA_BUTTON} ${CTA_PRIMARY}`}>
                 <FiPhone className="w-4 h-4" />
-                Llamar
-              </a>
+                {lang === "en" ? "Call" : "Llamar"}
+              </button>
             )}
             {data.contact.showSolicitarInfo && data.contact.solicitarInfoHref && (
-              <a
-                href={data.contact.solicitarInfoHref}
-                className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-              >
+              <button type="button" onClick={brCta.openEmail} className={`${CTA_BUTTON} ${CTA_SECONDARY}`}>
                 <FiMessageCircle className="w-4 h-4" />
-                Solicitar información
-              </a>
+                {lang === "en" ? "Request info" : "Solicitar información"}
+              </button>
             )}
             {data.contact.showProgramarVisita && data.contact.programarVisitaHref && (
-              <a
-                href={data.contact.programarVisitaHref}
-                className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-              >
+              <button type="button" onClick={brCta.openProgramarVisita} className={`${CTA_BUTTON} ${CTA_SECONDARY}`}>
                 <FiCalendar className="w-4 h-4" />
-                Programar visita
-              </a>
+                {lang === "en" ? "Schedule tour" : "Programar visita"}
+              </button>
             )}
             {data.contact.showWhatsapp && data.contact.whatsappHref && (
-              <a
-                href={data.contact.whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-              >
+              <button type="button" onClick={brCta.openWhatsApp} className={`${CTA_BUTTON} ${CTA_SECONDARY}`}>
                 <FaWhatsapp className="w-4 h-4" />
                 WhatsApp
-              </a>
+              </button>
             )}
           </div>
         )}

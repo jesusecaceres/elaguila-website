@@ -1,3 +1,5 @@
+import { applyImageMappings, type ImageMatchStatus } from "./imageMap";
+
 export type CategoryId = "business-cards" | "marketing" | "signs" | "promo" | "essentials";
 
 export type VisualType = "placeholder-visual" | "needs-v1-svg" | "needs-photo-upgrade-later";
@@ -8,6 +10,10 @@ export type Product = {
   es: { title: string; subtitle: string };
   en: { title: string; subtitle: string };
   visualType: VisualType;
+  imageSrc?: string;
+  imageAltEn?: string;
+  imageAltEs?: string;
+  imageMatchStatus?: ImageMatchStatus;
 };
 
 export type CatalogCategory = {
@@ -29,7 +35,7 @@ function p(
   return { slug, es: { title: esTitle, subtitle: esSub }, en: { title: enTitle, subtitle: enSub }, visualType, subcategory };
 }
 
-export const CATALOG_CATEGORIES: CatalogCategory[] = [
+export const CATALOG_CATEGORIES_RAW: CatalogCategory[] = [
   {
     id: "business-cards",
     es: { label: "Tarjetas de presentación", description: "Impresión de alta calidad para representar tu marca." },
@@ -179,3 +185,5 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
     ],
   },
 ];
+
+export const CATALOG_CATEGORIES: CatalogCategory[] = applyImageMappings(CATALOG_CATEGORIES_RAW);
