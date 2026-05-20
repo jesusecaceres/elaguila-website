@@ -12,9 +12,11 @@ import {
   adminCategoryWorkspaceQueueHref,
 } from "../_lib/adminCategoryWorkspaceQueueHref";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
-import { AdminTiendaOrderStatusBadge } from "../_components/tienda/AdminTiendaOrderStatusBadge";
-import { tiendaOrderFlowLabel } from "../_lib/tiendaOrderFlowLabel";
-import { getAdminTiendaDashboardCounts, getRecentTiendaOrdersPreview } from "../_lib/tiendaOrdersData";
+import {
+  benefitLabels,
+  effectiveEntitlementStatus,
+  getPackageEntitlementDashboardSnapshot,
+} from "../_lib/packageEntitlementData";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
@@ -32,10 +34,9 @@ export default async function AdminHomePage() {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const locale: string = lang === "es" ? "es-MX" : "en-US";
-  const [snap, tiendaDash, tiendaRecent, registry] = await Promise.all([
+  const [snap, entSnap, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
-    getAdminTiendaDashboardCounts(),
-    getRecentTiendaOrdersPreview(6),
+    getPackageEntitlementDashboardSnapshot(),
     getClasificadosCategoryRegistryMerged(),
   ]);
   const regSum = summarizeRegistryForDashboard(registry);
@@ -61,101 +62,98 @@ export default async function AdminHomePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <AdminStatCard
-            title={m("dashboard.tiendaNewTitle")}
-            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.newOrders}
-            hint={tiendaDash.dataUnavailable ? (tiendaDash.dataUnavailableNote ?? m("dashboard.tiendaMigrateHint")) : m("dashboard.tiendaNewHint")}
-            icon="🛒"
-            actionLabel={m("dashboard.tiendaInbox")}
-            actionHref="/admin/tienda/orders"
-            actionTitle={m("dashboard.tiendaInboxTitle")}
+            title={m("dashboard.entitlementsHubTitle")}
+            value={entSnap.dataUnavailable ? "—" : entSnap.activeCount}
+            hint={
+              entSnap.dataUnavailable
+                ? (entSnap.dataUnavailableNote ?? m("dashboard.entitlementsMigrateHint"))
+                : m("dashboard.entitlementsHubHint")
+            }
+            icon="📦"
+            actionLabel={m("dashboard.entitlementsCreate")}
+            actionHref="/admin/workspace/package-entitlements"
+            actionTitle={m("dashboard.entitlementsCreateTitle")}
             accent="amber"
           />
           <AdminStatCard
-            title={m("dashboard.tiendaUnreadTitle")}
-            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.unreadCount}
-            hint={m("dashboard.tiendaUnreadHint")}
-            icon="✉️"
-            actionLabel={m("dashboard.tiendaUnreadInbox")}
-            actionHref="/admin/tienda/orders?unread=1"
-            actionTitle={m("dashboard.tiendaUnreadTitleAttr")}
+            title={m("dashboard.entitlementsActiveTitle")}
+            value={entSnap.dataUnavailable ? "—" : entSnap.activeCount}
+            hint={m("dashboard.entitlementsActiveHint")}
+            icon="✓"
+            actionLabel={m("dashboard.entitlementsViewAll")}
+            actionHref="/admin/workspace/package-entitlements"
+            actionTitle={m("dashboard.entitlementsViewAllTitle")}
           />
           <AdminStatCard
-            title={m("dashboard.tiendaReadyTitle")}
-            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.readyToFulfill}
-            hint={m("dashboard.tiendaReadyHint")}
-            icon="📦"
-            actionLabel={m("dashboard.tiendaViewInbox")}
-            actionHref="/admin/tienda/orders?status=ready_to_fulfill"
-            actionTitle={m("dashboard.tiendaReadyTitleAttr")}
+            title={m("dashboard.entitlementsExpiringTitle")}
+            value={entSnap.dataUnavailable ? "—" : entSnap.expiringSoonCount}
+            hint={m("dashboard.entitlementsExpiringHint")}
+            icon="⏳"
+            actionLabel={m("dashboard.entitlementsViewAll")}
+            actionHref="/admin/workspace/package-entitlements"
+            actionTitle={m("dashboard.entitlementsViewAllTitle")}
           />
           <AdminStatCard
-            title={m("dashboard.tiendaReviewTitle")}
-            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.inReview}
-            hint={m("dashboard.tiendaReviewHint")}
-            icon="🔍"
-            actionLabel={m("dashboard.tiendaFilterReview")}
-            actionHref="/admin/tienda/orders?status=reviewing"
-            actionTitle={m("dashboard.tiendaReviewTitleAttr")}
-          />
-          <AdminStatCard
-            title={m("dashboard.tiendaTotalTitle")}
-            value={tiendaDash.dataUnavailable ? "—" : tiendaDash.totalOrders}
-            hint={m("dashboard.tiendaTotalHint", { n: tiendaDash.dataUnavailable ? "—" : String(tiendaDash.unreadCount) })}
-            icon="∑"
-            actionLabel={m("dashboard.tiendaAllOrders")}
-            actionHref="/admin/tienda/orders"
-            actionTitle={m("dashboard.tiendaAllTitleAttr")}
+            title={m("dashboard.entitlementsRevokedTitle")}
+            value={entSnap.dataUnavailable ? "—" : entSnap.revokedOrExpiredCount}
+            hint={m("dashboard.entitlementsRevokedHint")}
+            icon="⊘"
+            actionLabel={m("dashboard.entitlementsViewAll")}
+            actionHref="/admin/workspace/package-entitlements"
+            actionTitle={m("dashboard.entitlementsViewAllTitle")}
           />
         </div>
 
         <div className="mt-8">
-          <AdminSectionCard title={m("dashboard.recentTiendaTitle")} subtitle={m("dashboard.recentTiendaSub")}>
+          <AdminSectionCard title={m("dashboard.recentEntitlementsTitle")} subtitle={m("dashboard.recentEntitlementsSub")}>
             <ul className="space-y-3">
-              {tiendaRecent.length === 0 ? (
+              {entSnap.recent.length === 0 ? (
                 <li className="text-sm text-[#5C5346]/90">
-                  {tiendaDash.dataUnavailable ? m("dashboard.tiendaEmptyUnavailable") : m("dashboard.tiendaEmpty")}
+                  {entSnap.dataUnavailable ? m("dashboard.entitlementsEmptyUnavailable") : m("dashboard.entitlementsEmpty")}
                 </li>
               ) : (
-                tiendaRecent.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap items-center gap-2 truncate font-semibold font-mono text-[#1E1810]">
-                        {row.order_ref}
-                        {row.unread_admin ? (
-                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-900">
-                            Unread
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="text-xs text-[#7A7164]">
-                        {row.customer_name} · {row.product_slug}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <AdminTiendaOrderStatusBadge status={row.status} />
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-[#9A9084]">
-                          {tiendaOrderFlowLabel(row.order_payload)}
-                        </span>
-                      </div>
-                    </div>
-                    <Link
-                      href={`/admin/tienda/orders/${row.id}`}
-                      className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
-                      title={m("dashboard.viewOrderTitle")}
+                entSnap.recent.map((row) => {
+                  const effective = effectiveEntitlementStatus(row);
+                  const labels = benefitLabels(row.benefits);
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
                     >
-                      {m("dashboard.viewOrder")}
-                    </Link>
-                  </li>
-                ))
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs font-bold text-[#1E1810]">{row.entitlement_code ?? "—"}</p>
+                        <p className="truncate font-semibold text-[#1E1810]">
+                          {row.business_name || row.customer_name || row.listing_id}
+                        </p>
+                        <p className="text-xs text-[#7A7164]">
+                          {row.package_tier} · {row.category} · {effective}
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-[#5C5346]">
+                          {labels.length ? labels.join(" · ") : "—"}
+                        </p>
+                      </div>
+                      <Link
+                        href="/admin/workspace/package-entitlements"
+                        className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                        title={m("dashboard.viewEntitlementTitle")}
+                      >
+                        {m("dashboard.viewEntitlement")}
+                      </Link>
+                    </li>
+                  );
+                })
               )}
             </ul>
-            <Link href="/admin/tienda/orders" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
-              {m("dashboard.fullInbox")}
-            </Link>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/admin/workspace/package-entitlements" className={adminCtaChipSecondary}>
+                {m("dashboard.entitlementsViewAll")} →
+              </Link>
+              <Link href="/admin/workspace/package-entitlements" className={adminCtaChip}>
+                {m("dashboard.entitlementsCreate")} →
+              </Link>
+            </div>
           </AdminSectionCard>
         </div>
 

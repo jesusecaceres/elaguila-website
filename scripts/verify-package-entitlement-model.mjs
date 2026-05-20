@@ -151,9 +151,9 @@ assert(
   "package-entitlement-model.md must distinguish promo code vs entitlement.",
 );
 assert(
-  "model doc mentions Admin generator later",
-  /Admin generator|G1\.6B/i.test(modelDoc),
-  "Docs must state Admin generator is a later gate.",
+  "model doc documents Admin generator G1.6B",
+  /package-entitlements|G1\.6B/i.test(modelDoc),
+  "Docs must document Admin generator at /admin/workspace/package-entitlements.",
 );
 assert(
   "model doc says no schema in Gate G1.6A",

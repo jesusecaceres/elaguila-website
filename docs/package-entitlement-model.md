@@ -1,12 +1,12 @@
 # Package Entitlement Model
 
-**Gate G1.6A — code + docs foundation only**
+**Gate G1.6A — code + docs foundation · Gate G1.6B — Admin generator + DB**
 
 This document defines Leonix / El Águila **package entitlements**: what a print or digital package grants to a **listing** in a **category** for a **contract duration**. It is the shared source of truth for future Admin UI, Supabase tables, ranking (G1), and promo-code workflows.
 
 **Code:** `app/lib/listingPlans/packageEntitlements.ts`
 
-**Related:** [`print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md) (G0), [`printDigitalVisibilityRank.ts`](../app/lib/listingPlans/printDigitalVisibilityRank.ts) (G1), Gate G1.5 audit (no Admin generator today).
+**Related:** [`print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md) (G0), [`printDigitalVisibilityRank.ts`](../app/lib/listingPlans/printDigitalVisibilityRank.ts) (G1), Gate G1.5 audit, **Admin generator** [`/admin/workspace/package-entitlements`](../app/admin/(dashboard)/workspace/package-entitlements/page.tsx) (G1.6B).
 
 ---
 
@@ -111,28 +111,33 @@ Missing fields → `tier: none` or `unknown` + **warnings**, not crashes.
 
 ---
 
-## 8. Gate G1.6A scope
+## 8. Gate G1.6B — Admin Package Entitlement Generator
 
-**Included:**
+**URL:** `/admin/workspace/package-entitlements` (Workspace nav: **Package entitlements** / **Paquetes**).
 
-- `resolvePackageEntitlement`, `getPackageEntitlementBenefits`, `isPackageEntitlementActive`, `normalizePackageEntitlementTier`
-- This document and cross-links from G0 / read-model docs
+**What it does:**
 
-**Not included:**
+- Creates rows in `public.listing_package_entitlements` with tier, category, `listing_source`, `listing_id`, contract `starts_at` / `ends_at`, optional `contract_code`, and `entitlement_code` (auto `LX-ENT-…` when blank).
+- Snapshots `benefits` from `getPackageEntitlementBenefits` at grant time.
+- Sets `metadata.source = admin_manual` and nullable Stripe Checkout placeholders (`stripe_checkout_session_id`, `stripe_payment_intent_id`, `stripe_customer_id`, `stripe_subscription_id`, `payment_status`) for a future **Stripe Checkout** path (preferred over Payment Links).
+- Lists recent entitlements and supports **revoke** (status `revoked`, `revoked_at` set — no hard delete).
+- Soft warning when active Premium count nears policy cap (~10).
 
-- Supabase migrations or tables
-- Admin Package Entitlement Generator UI
-- Promo-code creation or checkout
-- Public sorting / Destacados implementation
-- Wiring Admin `promote_on` to entitlements
+**What it does not do:**
+
+- Charge customers or call Stripe.
+- Change public Servicios/homepage/results sorting (category gates G2+).
+- Replace `/admin/workspace/cupones` (marketing CMS only).
+
+**Promo vs entitlement:** Staff may call this a “code generator,” but the **entitlement row** is what grants visibility. A discount promo alone is insufficient.
 
 ---
 
-## 9. Admin generator (later gate)
+## 9. Gate G1.6A scope (foundation)
 
-**Gate G1.6B+** (planned): Supabase entitlement tables, Admin generator, listing attachment UI, optional code linkage, inventory caps for Premium (~8–10), audit log, and adapters that write `print_package_tier` / dates to listing rows (e.g. Servicios `isFeatured` sync per G1.5 audit).
+**Included:** resolver helpers + this document.
 
-Until then, ops must not assume `/admin/workspace/cupones` or staff `promoted` toggles equal print package entitlements.
+**Not included in G1.6A alone:** DB, Admin UI, public ranking (delivered in G1.6B for Admin only).
 
 ---
 

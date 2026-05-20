@@ -51,6 +51,12 @@ const WORKSPACE_CARDS = [
     teach: "Daily ad operations — don't confuse with Tienda.",
   },
   {
+    href: "/admin/workspace/package-entitlements",
+    title: "Package entitlements",
+    body: "Grant Print-to-Digital package access by listing, tier, and contract dates. Not the public coupon CMS.",
+    teach: "Monetization ops — distinct from /admin/workspace/cupones marketing content.",
+  },
+  {
     href: "/admin/workspace/tienda",
     title: "Tienda",
     body: "Map to orders, real catalog, images, prices and featured items in storefront.",

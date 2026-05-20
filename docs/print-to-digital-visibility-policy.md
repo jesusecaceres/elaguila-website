@@ -234,5 +234,5 @@ Later gates (e.g. **Gate G2-SERVICIOS**) may call the helper behind existing fil
 - **Promo code** = discount/payment; **package entitlement** = visibility/access for a listing + category + duration.
 - Tiers: premium, full_page, half_page, quarter_page, classified_print, digital_only.
 - Half-page includes classified listing + Republish + Boost; Premium → Destacados modules; Full-page → results priority.
-- **No Supabase schema, Admin generator, or public sorting** in G1.6A. Ranking should read entitlements in later gates, not guess from legacy fields alone.
-- **Admin Package Entitlement Generator** is planned for Gate G1.6B+ after G1.5 audit confirmed no reliable generator exists today.
+- **Gate G1.6B** adds Supabase `listing_package_entitlements` and Admin UI at `/admin/workspace/package-entitlements` (create/list/revoke; `metadata.source = admin_manual`; Stripe Checkout fields reserved in `metadata`). Still **no public sorting** until category gates.
+- Ranking should read entitlements in later gates, not guess from legacy fields alone. `/admin/workspace/cupones` remains marketing CMS, not entitlement truth.

@@ -28,6 +28,7 @@
     "verify:print-to-digital-visibility-policy": "node scripts/verify-print-to-digital-visibility-policy.mjs",
     "verify:print-digital-visibility-rank-helper": "node scripts/verify-print-digital-visibility-rank-helper.mjs",
     "verify:package-entitlement-model": "node scripts/verify-package-entitlement-model.mjs",
+    "verify:admin-package-entitlement-generator": "node scripts/verify-admin-package-entitlement-generator.mjs",
     "build:admin-gate": "npm run build && npm run audit:admin-language",
     "dup:guard": "node scripts/dup-guard.js",
     "autos:phase4-audit": "npx tsx scripts/autos-phase-4-durable-video-audit.ts",

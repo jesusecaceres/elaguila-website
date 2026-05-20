@@ -9,6 +9,11 @@ export type WorkspaceNavItem = { href: string; labelKey: string; hintKey: string
 const SECTIONS: WorkspaceNavItem[] = [
   { href: "/admin/workspace/home", labelKey: "workspaceNav.link.home", hintKey: "workspaceNav.home.hint" },
   { href: "/admin/workspace/clasificados", labelKey: "workspaceNav.link.clasificados", hintKey: "workspaceNav.clasificados.hint" },
+  {
+    href: "/admin/workspace/package-entitlements",
+    labelKey: "workspaceNav.link.packageEntitlements",
+    hintKey: "workspaceNav.packageEntitlements.hint",
+  },
   { href: "/admin/workspace/tienda", labelKey: "workspaceNav.link.tienda", hintKey: "workspaceNav.tienda.hint" },
   { href: "/admin/workspace/nosotros", labelKey: "workspaceNav.link.nosotros", hintKey: "workspaceNav.nosotros.hint" },
   { href: "/admin/workspace/revista", labelKey: "workspaceNav.link.revista", hintKey: "workspaceNav.revista.hint" },
