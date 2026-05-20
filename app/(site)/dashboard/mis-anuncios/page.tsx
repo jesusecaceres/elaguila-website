@@ -1537,6 +1537,7 @@ export default function MyListingsPage() {
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
+                      brNegocioInventoryRows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]}
                     />
                   );
                 }

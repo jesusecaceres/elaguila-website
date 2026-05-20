@@ -36,6 +36,7 @@ function main(): void {
   const dashboardActions = read(
     "app/(site)/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions.tsx",
   );
+  const valueDrawer = read("app/(site)/clasificados/bienes-raices/dashboard/BrPropertyInventoryValueDrawer.tsx");
   const adminSelect = read("app/admin/_lib/listingsAdminSelect.ts");
   const auditDoc = read("app/(site)/clasificados/bienes-raices/BR13C_INVENTORY_QA_POLISH_AUDIT.md");
 
@@ -44,7 +45,10 @@ function main(): void {
   mustInclude(dashboardActions, "brPropertyInventoryAddPropertyCtaLabel", "dashboard add CTA");
   mustInclude(copy, "Agregar propiedad", "add property label ES");
   mustInclude(policy, "399", "$399 base");
-  mustInclude(policy, "89.99", "$89.99 upgrade");
+  mustInclude(policy, "99.99", "$99.99 upgrade");
+  mustInclude(policy, "498.99", "$498.99 total with upgrade");
+  mustInclude(valueDrawer, "BrPropertyInventoryValueDrawer", "value drawer component");
+  mustInclude(dashboardActions, "BrPropertyInventoryValueDrawerTrigger", "drawer trigger on listing card");
   mustInclude(policy, "BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = 3", "base 3");
   mustInclude(policy, "BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = 5", "upgrade +5");
   mustInclude(policy, "BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = 8", "max 8");

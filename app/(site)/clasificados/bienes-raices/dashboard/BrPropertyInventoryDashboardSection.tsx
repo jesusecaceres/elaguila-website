@@ -16,18 +16,15 @@ import {
   brPropertyInventoryAddPropertyCtaLabel,
   brPropertyInventoryContactLeonixLine,
   brPropertyInventoryTotalWithUpgradeLine,
-  brPropertyInventoryUpgradeContactHref,
   brPropertyInventoryUpgradeCtaLabel,
   brPropertyInventoryUpgradeDetail,
   brPropertyInventoryUpgradePitch,
   brPropertyInventoryBaseLimitMessage,
   brPropertyInventoryMaxTotalLimitMessage,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
-import {
-  buildBrInventoryAddPublishHref,
-  type BrInventoryAddContext,
-} from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
+import type { BrInventoryAddContext } from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { BrPropertyInventoryValueDrawerTrigger } from "./BrPropertyInventoryValueDrawerTrigger";
 
 type Lang = "es" | "en";
 
@@ -119,12 +116,13 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {addCtx ? (
-                <Link
-                  href={buildBrInventoryAddPublishHref(addCtx, lang)}
-                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2] sm:flex-none"
-                >
-                  {brPropertyInventoryAddPropertyCtaLabel(lang)}
-                </Link>
+                <BrPropertyInventoryValueDrawerTrigger
+                  lang={lang}
+                  addCtx={addCtx}
+                  counts={counts}
+                  label={brPropertyInventoryAddPropertyCtaLabel(lang)}
+                  className="flex-1 sm:flex-none"
+                />
               ) : null}
               {mainId ? (
                 <Link
@@ -141,12 +139,16 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
                 <p className="mt-2 text-sm text-[#5C5346]">{brPropertyInventoryUpgradeDetail(lang)}</p>
                 <p className="mt-2 text-xs font-semibold text-[#6E5418]">{brPropertyInventoryTotalWithUpgradeLine(lang)}</p>
                 <p className="mt-1 text-xs text-[#7A7164]">{brPropertyInventoryContactLeonixLine(lang)}</p>
-                <a
-                  href={brPropertyInventoryUpgradeContactHref(lang)}
-                  className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 text-sm font-bold text-[#6E5418] sm:w-auto"
-                >
-                  {brPropertyInventoryUpgradeCtaLabel(lang)}
-                </a>
+                {addCtx ? (
+                  <BrPropertyInventoryValueDrawerTrigger
+                    lang={lang}
+                    addCtx={addCtx}
+                    counts={counts}
+                    label={brPropertyInventoryUpgradeCtaLabel(lang)}
+                    variant="secondary"
+                    className="mt-4 w-full sm:w-auto"
+                  />
+                ) : null}
               </div>
             ) : null}
 

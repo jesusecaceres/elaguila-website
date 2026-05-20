@@ -40,7 +40,8 @@ function run() {
 
   assert.ok(policy.includes("BASE_BR_NEGOCIO_MONTHLY_PRICE = 399"), "Base $399 constant required");
   assert.ok(policy.includes("BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = 3"), "Base 3 properties required");
-  assert.ok(policy.includes("BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 89.99"), "Upgrade $89.99 required");
+  assert.ok(policy.includes("BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.99"), "Upgrade $99.99 required");
+  assert.ok(policy.includes("BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE = 498.99"), "Total $498.99 required");
   assert.ok(policy.includes("BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = 5"), "5 extra properties required");
   assert.ok(policy.includes("BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = 8"), "8 total max required");
   assert.ok(policy.includes("inventory_property"), "inventory_property role required");

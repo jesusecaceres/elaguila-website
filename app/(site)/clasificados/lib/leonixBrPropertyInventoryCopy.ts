@@ -1,25 +1,50 @@
 import type { BrPropertyInventoryLang } from "./leonixBrPropertyInventoryPolicy";
+import {
+  BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES,
+  BASE_BR_NEGOCIO_MONTHLY_PRICE,
+  BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT,
+  BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE,
+  BR_PROPERTY_INVENTORY_UPGRADE_AVG_PER_PROPERTY,
+  BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT,
+  BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE,
+  BR_PROPERTY_INVENTORY_BASE_AVG_PER_PROPERTY,
+} from "./leonixBrPropertyInventoryPolicy";
+
+function formatUsd(amount: number): string {
+  const hasCents = Math.abs(amount % 1) > 0.001;
+  return hasCents
+    ? `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : `$${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
 
 export function brNegocioBasePlanPitch(lang: BrPropertyInventoryLang): string {
   return lang === "es"
-    ? "Tu plan de Bienes Raíces incluye hasta 3 propiedades activas dentro de tu perfil profesional."
-    : "Your Real Estate plan includes up to 3 active properties inside your professional profile.";
+    ? `Tu plan de Bienes Raíces cuesta ${formatUsd(BASE_BR_NEGOCIO_MONTHLY_PRICE)}/mes e incluye hasta ${BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES} propiedades activas dentro de tu perfil profesional.`
+    : `Your Real Estate plan is ${formatUsd(BASE_BR_NEGOCIO_MONTHLY_PRICE)}/month and includes up to ${BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES} active properties inside your professional profile.`;
 }
 
 export function brPropertyInventoryUpgradePitch(lang: BrPropertyInventoryLang): string {
   return lang === "es"
-    ? "¿Tienes más propiedades? Activa el Inventario de Propiedades por $89.99/mes y agrega hasta 5 propiedades adicionales."
-    : "Have more properties? Unlock Property Inventory for $89.99/month and add up to 5 additional properties.";
+    ? `Con el Inventario de Propiedades por ${formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE)}/mes puedes agregar hasta ${BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT} propiedades adicionales y mostrar hasta ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} propiedades activas en total por ${formatUsd(BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE)}/mes.`
+    : `With Property Inventory for ${formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE)}/month you can add up to ${BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT} additional properties and show up to ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} active properties total for ${formatUsd(BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE)}/month.`;
 }
 
 export function brPropertyInventoryUpgradeDetail(lang: BrPropertyInventoryLang): string {
   return lang === "es"
-    ? "Cada propiedad tendrá su propia página pública, fotos, detalles, ID Leonix y aparecerá conectada a tu perfil principal."
-    : "Each property gets its own public page, photos, details, Leonix Ad ID, and stays connected to your main profile.";
+    ? "Eso mejora el costo promedio por propiedad activa y convierte tu perfil en un catálogo profesional conectado: cada propiedad tiene su propia página pública, fotos, detalles, ID Leonix y permanece vinculada a tu perfil principal."
+    : "That improves the average cost per active property and turns your profile into a connected professional catalog: every property gets its own public page, photos, details, Leonix Ad ID, and stays linked to your main profile.";
+}
+
+export function brPropertyInventoryValueMathLine(lang: BrPropertyInventoryLang): string {
+  return lang === "es"
+    ? `Referencia: plan base ≈ ${formatUsd(BR_PROPERTY_INVENTORY_BASE_AVG_PER_PROPERTY)} por propiedad activa · con upgrade ≈ ${formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_AVG_PER_PROPERTY)} por propiedad activa (hasta ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} en total).`
+    : `Reference: base plan ≈ ${formatUsd(BR_PROPERTY_INVENTORY_BASE_AVG_PER_PROPERTY)} per active property · with upgrade ≈ ${formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_AVG_PER_PROPERTY)} per active property (up to ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} total).`;
 }
 
 export function brPropertyInventoryTotalWithUpgradeLine(lang: BrPropertyInventoryLang): string {
-  return lang === "es" ? "Total con el upgrade: hasta 8 propiedades activas." : "Total with the upgrade: up to 8 active properties.";
+  return lang === "es"
+    ? `Total con el upgrade: hasta ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} propiedades activas por ${formatUsd(BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE)}/mes.`
+    : `Total with upgrade: up to ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} active properties for ${formatUsd(BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE)}/month.`;
 }
 
 export function brPropertyInventoryContactLeonixLine(lang: BrPropertyInventoryLang): string {
@@ -30,6 +55,10 @@ export function brPropertyInventoryUpgradeCtaLabel(lang: BrPropertyInventoryLang
   return lang === "es" ? "Activar inventario de propiedades" : "Unlock Property Inventory";
 }
 
+export function brPropertyInventoryDrawerContinueCtaLabel(lang: BrPropertyInventoryLang): string {
+  return lang === "es" ? "Continuar y agregar propiedad" : "Continue and add property";
+}
+
 export function brPropertyInventoryAddPropertyCtaLabel(lang: BrPropertyInventoryLang): string {
   return lang === "es" ? "Agregar propiedad" : "Add property";
 }
@@ -38,27 +67,79 @@ export function brPropertyInventoryAddToInventoryCtaLabel(lang: BrPropertyInvent
   return lang === "es" ? "Agregar al inventario" : "Add to inventory";
 }
 
+/** Drawer CTA when inventory upgrade is active (BR13D). */
+export function brPropertyInventoryAddPropertyToInventoryCtaLabel(lang: BrPropertyInventoryLang): string {
+  return lang === "es" ? "Agregar propiedad al inventario" : "Add property to inventory";
+}
+
+export function brPropertyInventoryAddMorePropertiesLabel(lang: BrPropertyInventoryLang): string {
+  return lang === "es" ? "Añadir más propiedades" : "Add more properties";
+}
+
 export function brPropertyInventoryBaseLimitMessage(lang: BrPropertyInventoryLang): string {
   return lang === "es"
-    ? "Tu plan de Bienes Raíces incluye hasta 3 propiedades activas. Activa el Inventario de Propiedades por $89.99/mes para agregar hasta 5 propiedades adicionales."
-    : "Your Real Estate plan includes up to 3 active properties. Unlock Property Inventory for $89.99/month to add up to 5 additional properties.";
+    ? `Tu plan de Bienes Raíces incluye hasta ${BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES} propiedades activas. Activa el Inventario de Propiedades por ${formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE)}/mes para agregar hasta ${BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT} propiedades adicionales.`
+    : `Your Real Estate plan includes up to ${BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES} active properties. Unlock Property Inventory for ${formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE)}/month to add up to ${BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT} additional properties.`;
 }
 
 export function brPropertyInventoryMaxTotalLimitMessage(lang: BrPropertyInventoryLang): string {
   return lang === "es"
-    ? "Has llegado al límite de 8 propiedades activas en total. Si necesitas más, contacta a Leonix."
-    : "You have reached the 8 total active property limit. If you need more, contact Leonix.";
+    ? `Has llegado al límite de ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} propiedades activas en total. Si necesitas más, contacta a Leonix.`
+    : `You have reached the ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} total active property limit. If you need more, contact Leonix.`;
 }
 
-/** Placeholder — Stripe entitlement wiring deferred (BR13B). */
+/** Placeholder — Stripe entitlement wiring deferred (BR13B/BR13D). */
 export function brPropertyInventoryUpgradeContactHref(lang: BrPropertyInventoryLang): string {
   const subject = encodeURIComponent(
     lang === "es" ? "Bienes Raíces — Inventario de propiedades" : "Real Estate — Property Inventory",
   );
   const body = encodeURIComponent(
-    `${brPropertyInventoryUpgradePitch(lang)}\n\n${brPropertyInventoryTotalWithUpgradeLine(lang)}`,
+    `${brPropertyInventoryUpgradePitch(lang)}\n\n${brPropertyInventoryTotalWithUpgradeLine(lang)}\n\n${brPropertyInventoryContactLeonixLine(lang)}`,
   );
   return `mailto:soporte@elaguila.com?subject=${subject}&body=${body}`;
+}
+
+export function brPropertyInventoryValueDrawerCopy(lang: BrPropertyInventoryLang): {
+  title: string;
+  close: string;
+  baseBullet: string;
+  upgradeBullet: string;
+  valueParagraph: string;
+  catalogBullet: string;
+  leonixBullet: string;
+  contactLine: string;
+  paymentNote: string;
+} {
+  const base = formatUsd(BASE_BR_NEGOCIO_MONTHLY_PRICE);
+  const upgrade = formatUsd(BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE);
+  const total = formatUsd(BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE);
+  if (lang === "es") {
+    return {
+      title: "Inventario de Propiedades",
+      close: "Cerrar",
+      baseBullet: `Plan base: ${base}/mes · hasta ${BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES} propiedades activas en tu perfil profesional.`,
+      upgradeBullet: `Upgrade: ${upgrade}/mes · suma hasta ${BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT} propiedades adicionales.`,
+      valueParagraph: `Total con upgrade: ${total}/mes · hasta ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} propiedades activas. ${brPropertyInventoryValueMathLine("es")}`,
+      catalogBullet:
+        "Convierte tu perfil en un catálogo profesional conectado: más visibilidad para tu portafolio y cada propiedad con página pública propia.",
+      leonixBullet: "Cada propiedad conserva su propio ID Leonix, fotos, detalles y enlace al perfil principal del agente o negocio.",
+      contactLine: brPropertyInventoryContactLeonixLine("es"),
+      paymentNote:
+        "La activación del inventario se gestiona con Leonix. No se procesa el pago en esta pantalla.",
+    };
+  }
+  return {
+    title: "Property Inventory",
+    close: "Close",
+    baseBullet: `Base plan: ${base}/mo · up to ${BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES} active properties in your professional profile.`,
+    upgradeBullet: `Upgrade: ${upgrade}/mo · adds up to ${BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT} additional properties.`,
+    valueParagraph: `Total with upgrade: ${total}/mo · up to ${BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT} active properties. ${brPropertyInventoryValueMathLine("en")}`,
+    catalogBullet:
+      "Turn your profile into a connected professional catalog: more visibility for your portfolio, with each property on its own public page.",
+    leonixBullet: "Every property keeps its own Leonix Ad ID, photos, details, and link to your main agent or business profile.",
+    contactLine: brPropertyInventoryContactLeonixLine("en"),
+    paymentNote: "Inventory activation is handled with Leonix. Payment is not processed on this screen.",
+  };
 }
 
 export function brInventoryAddModeTitle(lang: BrPropertyInventoryLang): string {

@@ -92,6 +92,7 @@ export function LeonixRealEstateListingManageCard({
   onRepublish,
   republishBusy = false,
   parentLeonixAdIdByListingId = new Map<string, string>(),
+  brNegocioInventoryRows,
 }: {
   row: Row;
   lang: Lang;
@@ -108,6 +109,7 @@ export function LeonixRealEstateListingManageCard({
   onRepublish?: () => void;
   republishBusy?: boolean;
   parentLeonixAdIdByListingId?: ReadonlyMap<string, string>;
+  brNegocioInventoryRows?: readonly BrPropertyInventoryRowLike[];
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   const inferredRentasBranch: LeonixClasificadosBranch | null =
@@ -315,6 +317,7 @@ export function LeonixRealEstateListingManageCard({
           lang={lang}
           row={row as BrPropertyInventoryRowLike}
           parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
+          inventoryRows={brNegocioInventoryRows}
         />
       ) : null}
     </div>

@@ -50,6 +50,7 @@
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",
     "br:13c-inventory-qa-polish-audit": "tsx scripts/br13c-inventory-qa-polish-audit.ts",
+    "br:13d-property-inventory-value-drawer-audit": "tsx scripts/br13d-property-inventory-value-drawer-audit.ts",
     "br:12d-2-hoa-application-surfacing-audit": "tsx scripts/br12d-2-hoa-application-surfacing-audit.ts",
     "verify:autos:e2e": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-go-live-smoke.spec.ts",
     "seed:autos:manual-qa": "npx playwright test -c playwright.autos-runtime.config.mjs e2e/autos/autos-manual-qa-seed.spec.ts",
