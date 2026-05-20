@@ -6,6 +6,8 @@ Gate E adds a read-only category/listing monetization model for Leonix / El Águ
 
 **Gate G1:** Shared read-only ranking helper at `app/lib/listingPlans/printDigitalVisibilityRank.ts` exports `resolveListingVisibilityRank` and `compareVisibilityRank`. It encodes Gate G0 buckets and weights but **does not apply sorting** on public pages yet. Callers must run search/filter first, then compare rank weights; ties preserve existing order. Optional `monetization` input may pass a Gate E `CategoryListingMonetizationSummary` for republish metadata. Categories opt in per vertical in later gates (e.g. G2-SERVICIOS).
 
+**Gate G1.6A:** Package entitlement foundation at `app/lib/listingPlans/packageEntitlements.ts` and [`docs/package-entitlement-model.md`](./package-entitlement-model.md). `resolvePackageEntitlement` defines print/digital **tier → benefits → visibility bucket** with contract dates read defensively. Promo codes are not entitlements; account `membership_tier` is not used. No DB or Admin UI in this gate—future ranking should prefer entitlements over legacy `promoted` / ambiguous `package_tier` alone (see Gate G1.5 audit).
+
 ## Account Metadata Is Not Listing Monetization
 
 User account fields such as `profiles.membership_tier` and `profiles.account_type` describe who the person is. They must not decide what a specific listing can do.

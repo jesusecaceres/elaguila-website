@@ -224,3 +224,15 @@ Before merging sorting, public Destacados, or payment flows:
 **Gate G1 encodes:** Premium → Destacados modules (`eligibleForDestacadosModule`, not default results priority); full-page → results priority (`eligibleForResultsPriority`); half/quarter/classified → `print_advertiser_pool`; digital featured below print; Republish/Boost below full-page print; organic fallback. **Full-page priority outranks Republish/Boost** unless a future policy revision says otherwise.
 
 Later gates (e.g. **Gate G2-SERVICIOS**) may call the helper behind existing filters; until then, public sort behavior is unchanged.
+
+---
+
+## 16. Package entitlements (Gate G1.6A)
+
+**Gate G1.6A** adds the shared package entitlement foundation in [`docs/package-entitlement-model.md`](./package-entitlement-model.md) and `app/lib/listingPlans/packageEntitlements.ts`.
+
+- **Promo code** = discount/payment; **package entitlement** = visibility/access for a listing + category + duration.
+- Tiers: premium, full_page, half_page, quarter_page, classified_print, digital_only.
+- Half-page includes classified listing + Republish + Boost; Premium → Destacados modules; Full-page → results priority.
+- **No Supabase schema, Admin generator, or public sorting** in G1.6A. Ranking should read entitlements in later gates, not guess from legacy fields alone.
+- **Admin Package Entitlement Generator** is planned for Gate G1.6B+ after G1.5 audit confirmed no reliable generator exists today.
