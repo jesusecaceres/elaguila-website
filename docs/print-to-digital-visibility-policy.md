@@ -203,7 +203,7 @@ Until columns exist, Gate E/F read models continue defensive reads and warnings.
 Before merging sorting, public Destacados, or payment flows:
 
 1. Confirm category is in **V1 scope** or explicitly excluded.
-2. Run `npm run verify:print-to-digital-visibility-policy`.
+2. Run `npm run verify:print-to-digital-visibility-policy` and `npm run verify:print-package-entitlement-model`.
 3. Run `npm run verify:category-listing-monetization` and `npm run verify:category-plan-boundaries`.
 4. Manual QA: filtered search → only matching listings reorder; Premium appears in Destacados modules, not random categories; full-page ranks above Republish in same category; En Venta unaffected.
 5. No `membership_tier` / `business_lite` / `business_premium` used as listing sort truth.
@@ -227,12 +227,27 @@ Later gates (e.g. **Gate G2-SERVICIOS**) may call the helper behind existing fil
 
 ---
 
-## 16. Package entitlements (Gate G1.6A)
+## 16. Package entitlements (Gate G1.6 — official spec)
 
-**Gate G1.6A** adds the shared package entitlement foundation in [`docs/package-entitlement-model.md`](./package-entitlement-model.md) and `app/lib/listingPlans/packageEntitlements.ts`.
+**Gate G1.5** audited existing signals and found **no reliable Admin package entitlement source** for public ranking. **Gate G2 is paused** until entitlements are operable.
 
-- **Promo code** = discount/payment; **package entitlement** = visibility/access for a listing + category + duration.
-- Tiers: premium, full_page, half_page, quarter_page, classified_print, digital_only.
-- Half-page includes classified listing + Republish + Boost; Premium → Destacados modules; Full-page → results priority.
-- **Gate G1.6B** adds Supabase `listing_package_entitlements` and Admin UI at `/admin/workspace/package-entitlements` (create/list/revoke; `metadata.source = admin_manual`; Stripe Checkout fields reserved in `metadata`). Still **no public sorting** until category gates.
-- Ranking should read entitlements in later gates, not guess from legacy fields alone. `/admin/workspace/cupones` remains marketing CMS, not entitlement truth.
+**Gate G1.6** locks the official Admin Package Entitlement model in [`docs/print-package-entitlement-model.md`](./print-package-entitlement-model.md) (docs/spec only — **no schema migration, no public sorting** in this gate).
+
+| Doctrine | Rule |
+|----------|------|
+| Promo code / coupon | Discount or payment benefit — **not** visibility truth |
+| Package entitlement | Visibility/access on listing + category + contract period — **future ranking source of truth** |
+| Stripe / payment | **Not** ranking truth |
+| `promoted` / `admin_promoted` | **Not** long-term entitlement truth |
+| `cupones` CMS | Marketing — **not** entitlement truth |
+| Global Pro / `membership_tier` | **Not** listing visibility truth |
+
+**Package ladder (entitlement SKUs):** `premium_print`, `full_page_print`, `half_page_print`, `quarter_page_print`, `classified_print`, `digital_republish`, `digital_boost_future`, `digital_auto_refresh_future`.
+
+**Bucket mapping:** `premium_print` → `premium_destacado_module`; `full_page_print` → `full_page_print_priority`; half/quarter/classified → `print_advertiser_pool`; digital boost → `digital_featured`; republish → `republished`.
+
+**Related implementation docs (other gates):** [`docs/package-entitlement-model.md`](./package-entitlement-model.md) (G1.6A/B resolver + Admin generator notes), `app/lib/listingPlans/packageEntitlements.ts`, `app/lib/listingPlans/printDigitalVisibilityRank.ts` (G1).
+
+**Next gates:** G1.7 schema proposal · G1.8 Admin generator UI plan · **G2-SERVICIOS** only after entitlement source exists.
+
+Verify: `npm run verify:print-package-entitlement-model`

@@ -6,7 +6,9 @@ Gate E adds a read-only category/listing monetization model for Leonix / El Águ
 
 **Gate G1:** Shared read-only ranking helper at `app/lib/listingPlans/printDigitalVisibilityRank.ts` exports `resolveListingVisibilityRank` and `compareVisibilityRank`. It encodes Gate G0 buckets and weights but **does not apply sorting** on public pages yet. Callers must run search/filter first, then compare rank weights; ties preserve existing order. Optional `monetization` input may pass a Gate E `CategoryListingMonetizationSummary` for republish metadata. Categories opt in per vertical in later gates (e.g. G2-SERVICIOS).
 
-**Gate G1.6A:** Package entitlement foundation at `app/lib/listingPlans/packageEntitlements.ts` and [`docs/package-entitlement-model.md`](./package-entitlement-model.md). `resolvePackageEntitlement` defines print/digital **tier → benefits → visibility bucket** with contract dates read defensively. Promo codes are not entitlements; account `membership_tier` is not used. No DB or Admin UI in this gate—future ranking should prefer entitlements over legacy `promoted` / ambiguous `package_tier` alone (see Gate G1.5 audit).
+**Gate G1.6:** Official Print Package Entitlement spec in [`docs/print-package-entitlement-model.md`](./print-package-entitlement-model.md). Gate G1.5 paused Gate G2 because cupones, `promoted`, `package_tier`, Stripe metadata, and republish alone are partial/inconsistent. **Package entitlement** (future `ListingPackageEntitlement` rows) is the **future source of truth** for print-to-digital ranking; promo codes and payments are not. This gate is docs/spec only—no schema migration, no public sorting.
+
+**Gate G1.6A / G1.6B (implementation notes):** Resolver at `app/lib/listingPlans/packageEntitlements.ts` and [`docs/package-entitlement-model.md`](./package-entitlement-model.md). `resolvePackageEntitlement` maps tier → benefits → visibility bucket with defensive date reads. Admin generator may live at `/admin/workspace/package-entitlements`. Future ranking must read entitlements after search/filter on matching results only.
 
 ## Account Metadata Is Not Listing Monetization
 
