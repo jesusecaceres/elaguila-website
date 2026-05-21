@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AutosNegociosInventoryValueDrawerTrigger } from "./AutosNegociosInventoryValueDrawerTrigger";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
@@ -11,10 +12,9 @@ import {
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
-import {
-  buildAutosInventoryAddPublishHref,
-  dealerInventoryGroupPublicPath,
-} from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import { dealerInventoryGroupPublicPath } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import { autosDealerInventoryAddVehicleCta } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
+import { summarizeDealerInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
   autosDealerInventoryLimitMessage,
   autosDealerInventoryUpgradeContactHref,
@@ -226,14 +226,12 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             group.rows[0]?.id;
           if (!parentId) return null;
           const groupId = group.groupKey.startsWith("owner:") ? null : group.groupKey;
-          const addHref = buildAutosInventoryAddPublishHref(
-            {
-              parentListingId: parentId,
-              returnToListingId: parentId,
-              dealerInventoryGroupId: groupId,
-            },
-            lang,
-          );
+          const addCtx = {
+            parentListingId: parentId,
+            returnToListingId: parentId,
+            dealerInventoryGroupId: groupId,
+          };
+          const groupCounts = summarizeDealerInventory(group.activeCount, limit);
           const manageHref = groupId
             ? dealerInventoryGroupPublicPath(groupId, lang)
             : `/dashboard/mis-anuncios?lang=${lang}&cat=autos`;
@@ -248,12 +246,13 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!atLimit ? (
-                    <Link
-                      href={addHref}
-                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg bg-[#2A2620] px-3 text-xs font-bold text-[#FAF7F2]"
-                    >
-                      {t.addVehicle}
-                    </Link>
+                    <AutosNegociosInventoryValueDrawerTrigger
+                      lang={lang}
+                      addCtx={addCtx}
+                      counts={groupCounts}
+                      label={autosDealerInventoryAddVehicleCta(lang)}
+                      className="!min-h-[40px] !rounded-lg !px-3 !text-xs"
+                    />
                   ) : null}
                   <Link
                     href={manageHref}

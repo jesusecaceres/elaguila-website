@@ -6,7 +6,11 @@ import { TbWorldWww } from "react-icons/tb";
 import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-icons/si";
 import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
-import { filterDealerHoursForDisplay, formatDealerHoursTimeRange } from "../lib/dealerHoursDisplay";
+import {
+  filterDealerHoursForDisplay,
+  formatDealerHoursTimeRange,
+  formatTodaysDealerHoursLine,
+} from "../lib/dealerHoursDisplay";
 import { safeExternalHref } from "../lib/dealerDraftSanitize";
 import { resolveDealerBookingHref, resolveDealerOfficePhone } from "../lib/dealerContactResolve";
 import { whatsAppHrefFromDisplay } from "../lib/dealerWhatsappHref";
@@ -146,6 +150,17 @@ export function DealerBusinessStack({
       ),
     });
   }
+  if (showWebsiteCta && websiteClickHref) {
+    contactTiles.push({
+      key: "web",
+      node: (
+        <a href={websiteClickHref} target="_blank" rel="noopener noreferrer" className={CTA_TILE}>
+          <TbWorldWww className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          {sb.viewWebsite}
+        </a>
+      ),
+    });
+  }
   if (showEmail && emailHref) {
     contactTiles.push({
       key: "email",
@@ -157,6 +172,8 @@ export function DealerBusinessStack({
       ),
     });
   }
+
+  const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
 
   return (
     <div
@@ -202,17 +219,6 @@ export function DealerBusinessStack({
               <div key={tile.key}>{tile.node}</div>
             ))}
           </div>
-          {showWebsiteCta && websiteClickHref ? (
-            <a
-              href={websiteClickHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${BTN_SECONDARY} mt-3 gap-2`}
-            >
-              <TbWorldWww className="h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-              {sb.viewWebsite}
-            </a>
-          ) : null}
         </div>
       ) : null}
 
@@ -268,6 +274,11 @@ export function DealerBusinessStack({
       {hours.length > 0 ? (
         <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
           <p className={SECTION_HEAD}>{d.hoursHeading}</p>
+          {todaysHoursLine ? (
+            <p className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-nav-hover)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)]">
+              {todaysHoursLine}
+            </p>
+          ) : null}
           <div className="mt-4 flex gap-3">
             <FiClock className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
             <div className="min-w-0 flex-1 space-y-2.5">

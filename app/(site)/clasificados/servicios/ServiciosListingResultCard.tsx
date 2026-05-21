@@ -23,11 +23,39 @@ import {
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
+import {
+  isServiciosProfessionalTemplate,
+  resolveServiciosListingTemplate,
+} from "./lib/serviciosTemplateRouting";
+import { ServiciosProfessionalResultCard } from "./ServiciosProfessionalResultCard";
+import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
+
+function readProfileBusinessTypeId(profileJson: ServiciosBusinessProfile): string | null {
+  const ext = profileJson as ServiciosBusinessProfile & {
+    businessTypeId?: unknown;
+    opsMeta?: { businessTypeId?: unknown };
+  };
+  for (const c of [ext.businessTypeId, ext.opsMeta?.businessTypeId]) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return null;
+}
 
 /**
  * Discovery card — only fields that exist on the resolved profile; empty data hides cleanly.
  */
 export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublicListingRow; lang: ServiciosLang }) {
+  const routeWire = { ...row.profile_json };
+  const routeProfile = resolveServiciosProfile(routeWire, lang);
+  const template = resolveServiciosListingTemplate({
+    businessTypeId: readProfileBusinessTypeId(row.profile_json),
+    internalGroup: row.internal_group,
+    categoryLabel: routeProfile.hero.categoryLine,
+  });
+  if (isServiciosProfessionalTemplate(template)) {
+    return <ServiciosProfessionalResultCard row={row} lang={lang} />;
+  }
+
   const L = getServiciosProfileLabels(lang);
   const wire = { ...row.profile_json };
   wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };

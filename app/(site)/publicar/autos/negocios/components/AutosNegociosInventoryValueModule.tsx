@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import {
   autosDealerInventoryAddTenSlotsCta,
@@ -15,7 +16,9 @@ import {
   autosDealerInventoryUpgradeContactHref,
   autosDealerInventoryUpgradeCtaLabel,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
-import { buildAutosInventoryAddPublishHref } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { summarizeDealerInventory, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
 
 export function AutosNegociosInventoryValueModule({
   lang,
@@ -23,25 +26,56 @@ export function AutosNegociosInventoryValueModule({
   dealerInventoryGroupId,
   atLimit = false,
   showAddCta = true,
+  dealerInventoryCounts = null,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
   dealerInventoryGroupId?: string | null;
   atLimit?: boolean;
   showAddCta?: boolean;
+  dealerInventoryCounts?: AutosDealerInventoryCount | null;
 }) {
   const bullets = autosDealerInventoryValueBullets(lang);
-  const addHref =
-    parentListingId && showAddCta && !atLimit
-      ? buildAutosInventoryAddPublishHref(
-          {
-            parentListingId,
-            returnToListingId: parentListingId,
-            dealerInventoryGroupId: dealerInventoryGroupId ?? null,
-          },
-          lang,
-        )
-      : null;
+  const [fetchedCounts, setFetchedCounts] = useState<AutosDealerInventoryCount | null>(dealerInventoryCounts);
+
+  const loadCounts = useCallback(async () => {
+    if (dealerInventoryCounts) {
+      setFetchedCounts(dealerInventoryCounts);
+      return;
+    }
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setFetchedCounts(summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT));
+      return;
+    }
+    const r = await fetch("/api/clasificados/autos/listings", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const j = (await r.json()) as { ok?: boolean; dealerInventory?: AutosDealerInventoryCount };
+    if (r.ok && j.ok && j.dealerInventory) {
+      setFetchedCounts(j.dealerInventory);
+    } else {
+      setFetchedCounts(summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT));
+    }
+  }, [dealerInventoryCounts]);
+
+  useEffect(() => {
+    void loadCounts();
+  }, [loadCounts]);
+
+  const counts = fetchedCounts ?? summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
+  const limitReached = atLimit || !counts.canAddActiveVehicle;
+
+  const addCtx = useMemo(() => {
+    if (!parentListingId?.trim()) return null;
+    return {
+      parentListingId: parentListingId.trim(),
+      returnToListingId: parentListingId.trim(),
+      dealerInventoryGroupId: dealerInventoryGroupId ?? null,
+    };
+  }, [parentListingId, dealerInventoryGroupId]);
 
   return (
     <section className="mt-6 rounded-2xl border border-[color:var(--lx-gold-border)]/50 bg-gradient-to-br from-[color:var(--lx-section)] to-[#FFFCF7] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.12)]">
@@ -64,15 +98,15 @@ export function AutosNegociosInventoryValueModule({
         ))}
       </ul>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {addHref ? (
-          <Link
-            href={addHref}
-            className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)]"
-          >
-            {autosDealerInventoryAddVehicleCta(lang)}
-          </Link>
+        {addCtx && showAddCta ? (
+          <AutosNegociosInventoryValueDrawerTrigger
+            lang={lang}
+            addCtx={addCtx}
+            counts={counts}
+            label={autosDealerInventoryAddVehicleCta(lang)}
+          />
         ) : null}
-        {atLimit ? (
+        {limitReached ? (
           <>
             <a
               href={autosDealerInventoryUpgradeContactHref(lang)}

@@ -44,3 +44,54 @@ export function formatDealerHoursTimeRange(h: DealerHoursEntry): string {
   if (!o || !c) return "—";
   return `${to12hLabel(o.h, o.m)} – ${to12hLabel(c.h, c.m)}`;
 }
+
+const DAY_ALIASES: Record<number, string[]> = {
+  0: ["sunday", "domingo", "sun", "dom"],
+  1: ["monday", "lunes", "mon", "lun"],
+  2: ["tuesday", "martes", "tue", "mar"],
+  3: ["wednesday", "miércoles", "miercoles", "wed", "mié", "mie"],
+  4: ["thursday", "jueves", "thu", "jue"],
+  5: ["friday", "viernes", "fri", "vie"],
+  6: ["saturday", "sábado", "sabado", "sat", "sáb", "sab"],
+};
+
+function normalizeDayToken(day: string): string {
+  return day
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+}
+
+function dayIndexFromLabel(day: string): number | null {
+  const token = normalizeDayToken(day);
+  for (const [idx, aliases] of Object.entries(DAY_ALIASES)) {
+    if (aliases.some((a) => token.includes(normalizeDayToken(a)) || normalizeDayToken(a).includes(token))) {
+      return Number(idx);
+    }
+  }
+  return null;
+}
+
+/** Returns today's hours row when day label matches current weekday. */
+export function findTodaysDealerHoursEntry(hours: DealerHoursEntry[] | undefined): DealerHoursEntry | null {
+  const list = filterDealerHoursForDisplay(hours);
+  if (list.length === 0) return null;
+  const todayIdx = new Date().getDay();
+  return (
+    list.find((row) => {
+      const idx = dayIndexFromLabel(row.day ?? "");
+      return idx === todayIdx;
+    }) ?? null
+  );
+}
+
+export function formatTodaysDealerHoursLine(
+  hours: DealerHoursEntry[] | undefined,
+  lang: "es" | "en",
+): string | null {
+  const row = findTodaysDealerHoursEntry(hours);
+  if (!row) return null;
+  const label = lang === "es" ? "Hoy" : "Today";
+  return `${label}: ${row.day.trim()} · ${formatDealerHoursTimeRange(row)}`;
+}

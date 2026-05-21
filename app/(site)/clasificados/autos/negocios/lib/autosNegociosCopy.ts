@@ -481,7 +481,7 @@ const ES: AutosNegociosCopy = {
     },
     related: {
       title: "Más vehículos de este dealer",
-      subtitle: "Solo inventario del mismo concesionario",
+      subtitle: "Explora otros vehículos activos de este inventario.",
       details: "Ver vehículo",
     },
     gallery: {
@@ -831,7 +831,7 @@ const EN: AutosNegociosCopy = {
     },
     related: {
       title: "More vehicles from this dealer",
-      subtitle: "Same dealership inventory only",
+      subtitle: "Browse other active vehicles from this inventory.",
       details: "View vehicle",
     },
     gallery: {

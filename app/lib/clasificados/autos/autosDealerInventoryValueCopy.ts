@@ -2,6 +2,7 @@ import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import {
   INVENTORY_BOOST_ADDITIONAL_VEHICLES,
   INVENTORY_BOOST_MONTHLY_USD,
+  autosDealerInventoryTotalWithBoostLine,
 } from "./autosDealerInventoryCopy";
 
 export function autosDealerInventoryValueTitle(lang: AutosClassifiedsLang): string {
@@ -21,9 +22,11 @@ export function autosDealerInventoryValueDetail(lang: AutosClassifiedsLang): str
 }
 
 export function autosDealerInventoryValueBoost(lang: AutosClassifiedsLang): string {
-  return lang === "es"
-    ? `¿Necesitas más espacio? Agrega ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} vehículos adicionales por $${INVENTORY_BOOST_MONTHLY_USD} al mes.`
-    : `Need more space? Add ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} additional vehicles for $${INVENTORY_BOOST_MONTHLY_USD}/month.`;
+  const upgrade =
+    lang === "es"
+      ? `¿Necesitas más espacio? Agrega ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} vehículos adicionales por $${INVENTORY_BOOST_MONTHLY_USD} al mes.`
+      : `Need more space? Add ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} additional vehicles for $${INVENTORY_BOOST_MONTHLY_USD}/month.`;
+  return `${upgrade} ${autosDealerInventoryTotalWithBoostLine(lang)}`;
 }
 
 export function autosDealerInventoryValueBullets(lang: AutosClassifiedsLang): string[] {

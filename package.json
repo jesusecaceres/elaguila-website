@@ -46,6 +46,7 @@
     "autos:a5-1-negocios-draft-preview-audit": "tsx scripts/autos-a5-1-negocios-draft-preview-persistence-audit.ts",
     "autos:a5-2-negocios-launch-polish-audit": "tsx scripts/autos-a5-2-negocios-launch-polish-audit.ts",
     "autos:a5-3-negocios-live-qa-audit": "tsx scripts/autos-a5-3-negocios-live-qa-audit.ts",
+    "autos:a5-4-negocios-inventory-drawer-polish-audit": "tsx scripts/autos-a5-4-negocios-inventory-drawer-polish-audit.ts",
     "autos:a4-0-inventory-sql-audit": "tsx scripts/autos-a4-0-dealer-inventory-sql-contract-audit.ts",
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",

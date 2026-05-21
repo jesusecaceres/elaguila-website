@@ -94,9 +94,10 @@ export function AutoDealerPreviewPage({
   const orderGallery = showGallery ? ord++ : undefined;
   const orderAnalytics = showAnalyticsStrip ? ord++ : undefined;
   const orderAside = ord++;
+  const orderDesc = showDesc ? ord++ : undefined;
   const orderSpecs = showSpecs ? ord++ : undefined;
   const orderHi = showHighlights ? ord++ : undefined;
-  const orderDesc = showDesc ? ord++ : undefined;
+  const orderRelated = (data.relatedDealerListings ?? []).length > 0 ? ord++ : undefined;
 
   return (
     <AutoDealerPreviewChrome editBackHref={editBackHref}>
@@ -219,13 +220,9 @@ export function AutoDealerPreviewPage({
             </div>
           </aside>
 
-          {(data.relatedDealerListings ?? []).length > 0 ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ order: orderAside + 1 }}>
-              <RelatedDealerCars
-                listings={data.relatedDealerListings ?? []}
-                fullInventoryHref={data.relatedDealerInventoryHref}
-                hasMore={data.relatedDealerInventoryHasMore}
-              />
+          {showDesc ? (
+            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: descRow, order: orderDesc }}>
+              <VehicleDescription data={data} />
             </div>
           ) : null}
 
@@ -241,9 +238,13 @@ export function AutoDealerPreviewPage({
             </div>
           ) : null}
 
-          {showDesc ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: descRow, order: orderDesc }}>
-              <VehicleDescription data={data} />
+          {(data.relatedDealerListings ?? []).length > 0 ? (
+            <div className="lg:col-span-7 lg:col-start-1" style={{ order: orderRelated }}>
+              <RelatedDealerCars
+                listings={data.relatedDealerListings ?? []}
+                fullInventoryHref={data.relatedDealerInventoryHref}
+                hasMore={data.relatedDealerInventoryHasMore}
+              />
             </div>
           ) : null}
         </div>
