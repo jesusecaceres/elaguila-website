@@ -37,7 +37,78 @@ export type ImageAssignment = {
 
 export const SOURCE_IMAGE_BASE = "/productos-promocion/source-images";
 
-/** Filenames in public/productos-promocion/source-images/ (sync via scripts/productos-promocion-sync-images.mjs). */
+export const BUSINESS_CARDS_IMAGE_BASE = `${SOURCE_IMAGE_BASE}/business-cards`;
+
+/** Filenames on disk under source-images/business-cards/ (Gate 1C-B1). */
+export const BUSINESS_CARD_SOURCE_FILES: readonly string[] = [
+  "business-cards-foil.jpg",
+  "business-cards-foil.png",
+  "business-cards-gloss.png",
+  "business-cards-loyalty.png",
+  "business-cards-matte.jpg.png",
+  "business-cards-painted-edge.jpg.png",
+  "business-cards-painted-edge.png",
+  "business-cards-plastic.jpg",
+  "business-cards-plastic.png",
+  "business-cards-premium.jpg.png",
+  "business-cards-spot-uv.png",
+  "business-cards-standard.jpg.png",
+] as const;
+
+const BUSINESS_CARD_FILE_SET = new Set<string>(BUSINESS_CARD_SOURCE_FILES);
+
+type BusinessCardImageRule = {
+  file: string;
+  status: "exact-match" | "close-match";
+  notes?: string;
+};
+
+/** Gate 1C-B1 — explicit slug → filename under business-cards/ */
+const BUSINESS_CARD_IMAGE_BY_SLUG: Record<string, BusinessCardImageRule> = {
+  "standard-business-cards": { file: "business-cards-standard.jpg.png", status: "exact-match" },
+  "premium-business-cards": { file: "business-cards-premium.jpg.png", status: "exact-match" },
+  "matte-business-cards": { file: "business-cards-matte.jpg.png", status: "exact-match" },
+  "gloss-business-cards": { file: "business-cards-gloss.png", status: "exact-match" },
+  "foil-business-cards": { file: "business-cards-foil.png", status: "exact-match" },
+  "spot-uv-business-cards": { file: "business-cards-spot-uv.png", status: "exact-match" },
+  "painted-edge-business-cards": { file: "business-cards-painted-edge.png", status: "exact-match" },
+  "plastic-business-cards": { file: "business-cards-plastic.png", status: "exact-match" },
+  "loyalty-cards": { file: "business-cards-loyalty.png", status: "exact-match" },
+  "suede-business-cards": {
+    file: "business-cards-premium.jpg.png",
+    status: "close-match",
+    notes: "Shares premium business card image",
+  },
+  "silk-business-cards": {
+    file: "business-cards-premium.jpg.png",
+    status: "close-match",
+    notes: "Shares premium business card image",
+  },
+  "fold-over-business-cards": {
+    file: "business-cards-standard.jpg.png",
+    status: "close-match",
+    notes: "Shares standard business card image",
+  },
+  "square-business-cards": {
+    file: "business-cards-standard.jpg.png",
+    status: "close-match",
+    notes: "Shares standard business card image",
+  },
+  "rounded-corner-business-cards": {
+    file: "business-cards-standard.jpg.png",
+    status: "close-match",
+    notes: "Shares standard business card image",
+  },
+  "appointment-cards": {
+    file: "business-cards-loyalty.png",
+    status: "close-match",
+    notes: "Shares loyalty card image",
+  },
+};
+
+const BUSINESS_CARD_SLUGS = new Set(Object.keys(BUSINESS_CARD_IMAGE_BY_SLUG));
+
+/** Filenames in public/productos-promocion/source-images/ root (other categories — future gates). */
 export const SOURCE_IMAGE_FILES: readonly string[] = [];
 
 const IMAGE_EXTENSIONS = [".webp", ".jpg", ".jpeg", ".png", ".svg"] as const;
@@ -207,11 +278,32 @@ function resolveSourceFilename(basename: string, slug: string): string | undefin
   return undefined;
 }
 
+function getBusinessCardImageAssignment(product: CatalogProductBase): ImageAssignment | null {
+  if (!BUSINESS_CARD_SLUGS.has(product.slug)) return null;
+
+  const altEn = product.en.title;
+  const altEs = product.es.title;
+  const rule = BUSINESS_CARD_IMAGE_BY_SLUG[product.slug];
+  if (!rule || !BUSINESS_CARD_FILE_SET.has(rule.file)) {
+    return { imageAltEn: altEn, imageAltEs: altEs, imageMatchStatus: "missing-source-image" };
+  }
+
+  return {
+    imageSrc: `${BUSINESS_CARDS_IMAGE_BASE}/${rule.file}`,
+    imageAltEn: altEn,
+    imageAltEs: altEs,
+    imageMatchStatus: rule.status,
+  };
+}
+
 export function getImageAssignment(product: CatalogProductBase): ImageAssignment {
-  const rule = SLUG_RULE_MAP.get(product.slug);
   const altEn = product.en.title;
   const altEs = product.es.title;
 
+  const businessCard = getBusinessCardImageAssignment(product);
+  if (businessCard) return businessCard;
+
+  const rule = SLUG_RULE_MAP.get(product.slug);
   if (!rule) {
     return { imageAltEn: altEn, imageAltEs: altEs, imageMatchStatus: "missing-source-image" };
   }
@@ -262,15 +354,20 @@ export function buildImageManifest(categories: CatalogCategoryBase[]): ImageMani
   return categories.flatMap((cat) =>
     cat.products.map((product) => {
       const assignment = getImageAssignment(product);
+      const bcRule = BUSINESS_CARD_IMAGE_BY_SLUG[product.slug];
       const rule = SLUG_RULE_MAP.get(product.slug);
       const notes =
         assignment.imageMatchStatus === "missing-source-image"
-          ? rule
-            ? `Expected source basename: ${rule.basename}`
-            : "No mapping rule"
-          : rule && assignment.imageMatchStatus === "close-match"
-            ? `Shares ${rule.basename} family image`
-            : "";
+          ? bcRule
+            ? `Expected business-cards file: ${bcRule.file}`
+            : rule
+              ? `Expected source basename: ${rule.basename}`
+              : "No mapping rule"
+          : bcRule?.notes
+            ? bcRule.notes
+            : rule && assignment.imageMatchStatus === "close-match"
+              ? `Shares ${rule.basename} family image`
+              : "";
 
       return {
         slug: product.slug,

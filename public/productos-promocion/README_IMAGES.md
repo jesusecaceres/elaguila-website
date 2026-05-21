@@ -1,11 +1,11 @@
-# Leonix Media — Promotional Products Image Manifest (Gate 1C-B)
+# Leonix Media — Promotional Products Image Manifest (Gate 1C-B1)
 
 **Total products:** 113 across 5 categories
-**Source images:** `/productos-promocion/source-images/`
-**Files on disk:** 0
-**Mapped:** exact-match 0, close-match 0, missing-source-image 113
+**Business card images:** `/productos-promocion/source-images/business-cards/` (12 files on disk)
+**Business cards mapped:** exact-match 9, close-match 6, missing 0
+**Other categories:** pending future gates (still missing-source-image)
 
-After adding files to `public/productos-promocion/source-images/`, update `SOURCE_IMAGE_FILES` in `app/(site)/productos-promocion/imageMap.ts` (list filenames) and rebuild. Expected basenames include: `business-cards`, `flyers`, `brochures`, `menus`, `banners`, `yard-signs`, `apparel`, `tote-bags`, `mugs`, `drinkware`, `pens`, etc.
+Business card mappings are defined in `app/(site)/productos-promocion/imageMap.ts` (`BUSINESS_CARD_IMAGE_BY_SLUG`).
 
 Image specs: 800×600 px (4:3), `.webp` preferred, warm Leonix palette, no text overlays.
 
@@ -15,21 +15,21 @@ Image specs: 800×600 px (4:3), `.webp` preferred, warm Leonix palette, no text 
 
 | slug | titleEs | titleEn | category | imagePath | imageMatchStatus | notes |
 |------|---------|---------|----------|-----------|------------------|-------|
-| standard-business-cards | Tarjetas estándar | Standard Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| premium-business-cards | Tarjetas premium | Premium Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| matte-business-cards | Tarjetas mate | Matte Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| gloss-business-cards | Tarjetas brillantes | Gloss Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| suede-business-cards | Tarjetas suede | Suede Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| silk-business-cards | Tarjetas silk | Silk Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| spot-uv-business-cards | Tarjetas con Spot UV | Raised Spot UV Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| foil-business-cards | Tarjetas con foil | Foil Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| painted-edge-business-cards | Tarjetas canto de color | Painted Edge Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| fold-over-business-cards | Tarjetas dobladas | Fold-over Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| plastic-business-cards | Tarjetas plásticas | Plastic Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| square-business-cards | Tarjetas cuadradas | Square Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| rounded-corner-business-cards | Tarjetas esquinas redondeadas | Rounded Corner Business Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| loyalty-cards | Tarjetas de lealtad | Loyalty Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
-| appointment-cards | Tarjetas de citas | Appointment Cards | business-cards | MISSING | missing-source-image | Expected source basename: business-cards |
+| standard-business-cards | Tarjetas estándar | Standard Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-standard.jpg.png | exact-match | |
+| premium-business-cards | Tarjetas premium | Premium Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-premium.jpg.png | exact-match | |
+| matte-business-cards | Tarjetas mate | Matte Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-matte.jpg.png | exact-match | |
+| gloss-business-cards | Tarjetas brillantes | Gloss Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-gloss.png | exact-match | |
+| suede-business-cards | Tarjetas suede | Suede Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-premium.jpg.png | close-match | Shares premium business card image |
+| silk-business-cards | Tarjetas silk | Silk Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-premium.jpg.png | close-match | Shares premium business card image |
+| spot-uv-business-cards | Tarjetas con Spot UV | Raised Spot UV Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-spot-uv.png | exact-match | |
+| foil-business-cards | Tarjetas con foil | Foil Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-foil.png | exact-match | |
+| painted-edge-business-cards | Tarjetas canto de color | Painted Edge Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-painted-edge.png | exact-match | |
+| fold-over-business-cards | Tarjetas dobladas | Fold-over Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-standard.jpg.png | close-match | Shares standard business card image |
+| plastic-business-cards | Tarjetas plásticas | Plastic Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-plastic.png | exact-match | |
+| square-business-cards | Tarjetas cuadradas | Square Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-standard.jpg.png | close-match | Shares standard business card image |
+| rounded-corner-business-cards | Tarjetas esquinas redondeadas | Rounded Corner Business Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-standard.jpg.png | close-match | Shares standard business card image |
+| loyalty-cards | Tarjetas de lealtad | Loyalty Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-loyalty.png | exact-match | |
+| appointment-cards | Tarjetas de citas | Appointment Cards | business-cards | /productos-promocion/source-images/business-cards/business-cards-loyalty.png | close-match | Shares loyalty card image |
 | flyers | Volantes | Flyers | marketing | MISSING | missing-source-image | Expected source basename: flyers |
 | brochures | Brochures | Brochures | marketing | MISSING | missing-source-image | Expected source basename: brochures |
 | tri-fold-brochures | Trípticos | Tri-fold Brochures | marketing | MISSING | missing-source-image | Expected source basename: brochures |
@@ -135,7 +135,9 @@ Image specs: 800×600 px (4:3), `.webp` preferred, warm Leonix palette, no text 
 
 | Match status | Count |
 |--------------|-------|
-| exact-match | 0 |
-| close-match | 0 |
-| missing-source-image | 113 |
+| exact-match | 9 |
+| close-match | 6 |
+| missing-source-image | 98 |
 | **TOTAL** | **113** |
+
+*Business cards (15): all mapped. Remaining 98 products await category image gates.*
