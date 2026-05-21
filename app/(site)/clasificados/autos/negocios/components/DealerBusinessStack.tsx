@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { FiCalendar, FiClock, FiGlobe, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-icons/si";
@@ -30,9 +29,6 @@ const BTN_PRIMARY =
 
 const BTN_SECONDARY =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 text-center text-[13px] font-semibold leading-tight text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] active:scale-[0.99] max-lg:min-h-[50px]";
-
-const CTA_TILE =
-  "flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-2xl bg-[color:var(--lx-cta-dark)] px-3 py-3 text-center text-[11px] font-bold leading-snug text-[#FFFCF7] shadow-[0_10px_28px_-10px_rgba(26,22,18,0.55)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.98] max-lg:min-h-[88px] max-lg:text-xs";
 
 const SECTION_HEAD =
   "text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-text)]";
@@ -117,63 +113,6 @@ export function DealerBusinessStack({
 
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
 
-  const contactTiles: { key: string; node: ReactNode }[] = [];
-  if (showWhatsapp && waHref) {
-    contactTiles.push({
-      key: "wa",
-      node: (
-        <AutosSheetCtaLink href={waHref} className={CTA_TILE}>
-          <SiWhatsapp className="h-6 w-6 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-          {sb.whatsappCta}
-        </AutosSheetCtaLink>
-      ),
-    });
-  }
-  if (showCallCta) {
-    contactTiles.push({
-      key: "call",
-      node: (
-        <AutosSheetCtaLink href={`tel:${phoneForTel}`} className={CTA_TILE}>
-          <FiPhone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-          {sb.call}
-        </AutosSheetCtaLink>
-      ),
-    });
-  }
-  if (showSchedule && bookingHref) {
-    contactTiles.push({
-      key: "schedule",
-      node: (
-        <a href={bookingHref} target="_blank" rel="noopener noreferrer" className={CTA_TILE}>
-          <FiCalendar className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-          <span className="max-w-[9rem]">{sb.scheduleAppointment}</span>
-        </a>
-      ),
-    });
-  }
-  if (showWebsiteCta && websiteClickHref) {
-    contactTiles.push({
-      key: "web",
-      node: (
-        <a href={websiteClickHref} target="_blank" rel="noopener noreferrer" className={CTA_TILE}>
-          <TbWorldWww className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-          {sb.viewWebsite}
-        </a>
-      ),
-    });
-  }
-  if (showEmail && emailHref) {
-    contactTiles.push({
-      key: "email",
-      node: (
-        <AutosSheetCtaLink href={emailHref} lang={lang} className={CTA_TILE}>
-          <FiMail className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-          {sb.emailSeller}
-        </AutosSheetCtaLink>
-      ),
-    });
-  }
-
   const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
 
   return (
@@ -211,14 +150,43 @@ export function DealerBusinessStack({
           className={`${showIdentity ? "mt-6 border-t border-[color:var(--lx-nav-border)] pt-6" : ""}`}
         >
           <p className={SECTION_HEAD}>{sb.contactHeading}</p>
-          <div
-            className={`mt-4 grid gap-3 ${
-              contactTiles.length >= 3 ? "grid-cols-2" : contactTiles.length === 2 ? "grid-cols-2" : "grid-cols-1"
-            }`}
-          >
-            {contactTiles.map((tile) => (
-              <div key={tile.key}>{tile.node}</div>
-            ))}
+          <div className="mt-4 flex flex-col gap-3">
+            {showWhatsapp && waHref ? (
+              <AutosSheetCtaLink href={waHref} className={BTN_PRIMARY}>
+                <SiWhatsapp className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                {sb.whatsappCta}
+              </AutosSheetCtaLink>
+            ) : null}
+            {showCallCta || (showSchedule && bookingHref) ? (
+              <div
+                className={`grid gap-3 ${showCallCta && showSchedule && bookingHref ? "grid-cols-2" : "grid-cols-1"}`}
+              >
+                {showCallCta ? (
+                  <AutosSheetCtaLink href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
+                    <FiPhone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                    {sb.call}
+                  </AutosSheetCtaLink>
+                ) : null}
+                {showSchedule && bookingHref ? (
+                  <a href={bookingHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
+                    <FiCalendar className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                    <span className="text-center leading-tight">{sb.scheduleAppointment}</span>
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            {showEmail && emailHref ? (
+              <AutosSheetCtaLink href={emailHref} lang={lang} className={BTN_SECONDARY}>
+                <FiMail className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                {sb.emailSeller}
+              </AutosSheetCtaLink>
+            ) : null}
+            {showWebsiteCta && websiteClickHref ? (
+              <a href={websiteClickHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
+                <TbWorldWww className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                {sb.viewWebsite}
+              </a>
+            ) : null}
           </div>
         </div>
       ) : null}

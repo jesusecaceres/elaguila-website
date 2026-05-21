@@ -12,6 +12,9 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import { rentasShowExactAddressFromDetailPairs } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
+import { buildRentasPublishedFlowExtensionRows } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 import { parseBusinessMeta } from "@/app/clasificados/config/businessListingContract";
 import {
   enrichContactChannelsFromBusinessMeta,
@@ -278,17 +281,6 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const city = trim(row.city) || undefined;
   const zipRaw = trim(row.zip);
   const postalCode = zipRaw.replace(/\D/g, "").slice(0, 10) || mf.postalCode?.replace(/\D/g, "").slice(0, 10) || undefined;
-  const publicLocationLine =
-    pairValue(detailPairs, "Ubicación") ??
-    pairValue(detailPairs, "Dirección") ??
-    null;
-  const addressLine =
-    trim(publicLocationLine) ||
-    [city, postalCode].filter(Boolean).join(city && postalCode ? ", " : "") ||
-    city ||
-    postalCode ||
-    "—";
-
   const estadoPair = trim(pairValue(detailPairs, "Estado") ?? trim(row.state));
   const zonaVecindario = trim(
     pairValue(detailPairs, "Zona o vecindario") ??
@@ -296,6 +288,23 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
       pairValue(detailPairs, "Colonia") ??
       "",
   );
+  const showExactAddress = rentasShowExactAddressFromDetailPairs(detailPairs);
+  const publicLocationLine =
+    pairValue(detailPairs, "Ubicación") ??
+    pairValue(detailPairs, "Dirección") ??
+    null;
+  const approxParts = [city, estadoPair].filter(Boolean);
+  const approxLine =
+    (approxParts.length ? approxParts.join(", ") : "") +
+    (approxParts.length && zonaVecindario ? ` · ${zonaVecindario}` : zonaVecindario ? zonaVecindario : "") ||
+    (postalCode && city ? `${city} ${postalCode}` : city || postalCode || "");
+  const addressLine = showExactAddress
+    ? trim(publicLocationLine) ||
+      [city, postalCode].filter(Boolean).join(city && postalCode ? ", " : "") ||
+      city ||
+      postalCode ||
+      "—"
+    : approxLine || trim(publicLocationLine) || "—";
   const cityStateZip = [city, estadoPair].filter(Boolean).join(", ");
   const resultBrowseLocation = (() => {
     if (cityStateZip && zonaVecindario) return `${cityStateZip} · ${zonaVecindario}`;
@@ -421,6 +430,20 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const bmParsed = parseBusinessMeta(row.business_meta);
   const contactChannels = enrichContactChannelsFromBusinessMeta(ch0, bmParsed);
 
+  const flowExtensionRows = buildRentasPublishedFlowExtensionRows(
+    {
+      rentalTypeCode,
+      categoriaPropiedad: categoria,
+      rentasRoomBathLabel,
+      rentasRoomKitchenLabel,
+      rentasRoomMaxOccupants,
+      beds,
+      baths,
+      sqft: sqftStr,
+    },
+    (label) => pairValue(detailPairs, label),
+  );
+
   return {
     id,
     slug: id,
@@ -480,6 +503,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     businessMarca,
     businessAgentName,
     businessDescription,
+    showExactAddress,
+    flowExtensionRows: flowExtensionRows.length ? flowExtensionRows : undefined,
+    showingByAppointment: rx.showingByAppointment,
+    showingAvailability: rx.showingAvailability ?? undefined,
+    showingInstructions: rx.showingInstructions ?? undefined,
+    virtualTourUrl: normalizeLeonixHttpsUrl(rx.virtualTourUrl) ?? undefined,
     mapUrl,
     videoUrl,
     videoPosterUrl,

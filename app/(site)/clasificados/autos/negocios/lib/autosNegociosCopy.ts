@@ -484,7 +484,7 @@ const ES: AutosNegociosCopy = {
     },
     specs: {
       title: "Especificaciones",
-      subtitle: "Datos verificados por el concesionario",
+      subtitle: "Datos proporcionados por el concesionario",
       rows: {
         year: "Año",
         make: "Marca",

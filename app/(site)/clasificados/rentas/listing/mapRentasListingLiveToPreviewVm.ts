@@ -24,6 +24,8 @@ import {
 } from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
 import { rentasLeadSmsBody } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import { filterRentasLivePropertyRowsForFlow } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { buildRentasShowingPreviewCard } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
+import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 import { formatRentasTipoDeRentaDisplay, rentasRentalFlowGroupForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import {
   formatLeonixPreferredContactLine,
@@ -276,35 +278,44 @@ function buildNonResidencialRows(listing: RentasPublicListing, lang: "es" | "en"
   return rows;
 }
 
-function buildLiveFlowExtensionRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
-  const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
-  const rows: BienesRaicesPreviewFact[] = [];
-  if (g === "room_shared") {
-    if (listing.rentasRoomBathLabel) pushRow(rows, lang === "es" ? "Tipo de baño" : "Bath type", listing.rentasRoomBathLabel);
-    if (listing.rentasRoomKitchenLabel) pushRow(rows, lang === "es" ? "Cocina" : "Kitchen", listing.rentasRoomKitchenLabel);
-    if (listing.rentasRoomMaxOccupants) {
-      pushRow(rows, lang === "es" ? "Máximo de ocupantes" : "Max occupants", listing.rentasRoomMaxOccupants);
-    }
-  }
-  if (g === "storage_parking") {
-    if (listing.rentasStorageAccess24h === true) {
-      rows.push({ label: lang === "es" ? "Acceso 24/7" : "24/7 access", value: "Sí" });
-    }
-    if (listing.rentasStorageSecurity === true) {
-      rows.push({
-        label: lang === "es" ? "Seguridad / acceso controlado" : "Security / controlled access",
-        value: "Sí",
-      });
-    }
-  }
-  return rows;
-}
-
 function buildPropertyRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
   const base =
     listing.categoriaPropiedad === "residencial" ? buildResidencialPropertyRows(listing, lang) : buildNonResidencialRows(listing, lang);
   const filtered = filterRentasLivePropertyRowsForFlow(listing, base);
-  return [...filtered, ...buildLiveFlowExtensionRows(listing, lang)];
+  const ext = listing.flowExtensionRows ?? [];
+  return [...filtered, ...ext];
+}
+
+function buildRentasLiveShowingCard(
+  listing: RentasPublicListing,
+  lang: "es" | "en",
+): { title: string; rows: BienesRaicesPreviewFact[]; virtualTourUrl: string | null } | null {
+  return buildRentasShowingPreviewCard(
+    {
+      showingByAppointment: listing.showingByAppointment === true,
+      showingAvailability: listing.showingAvailability ?? "",
+      showingInstructions: listing.showingInstructions ?? "",
+      virtualTourUrl: listing.virtualTourUrl ?? "",
+    },
+    lang,
+  );
+}
+
+function rentasLiveLocationLines(listing: RentasPublicListing): {
+  line1: string;
+  cityStateZip: string;
+  addressLine: string;
+  exact: boolean;
+} {
+  const exact = listing.showExactAddress === true;
+  const cityZip = cityStateZipLine(listing);
+  const zona = zonaFromListing(listing);
+  const crossOrPublic = trim(listing.addressLine);
+  const line1 = exact ? crossOrPublic : zona || trim(listing.city) || crossOrPublic;
+  const addressLine = exact
+    ? crossOrPublic
+    : [zona, trim(listing.city), trim(listing.postalCode)].filter(Boolean).join(", ") || crossOrPublic;
+  return { line1, cityStateZip: cityZip, addressLine, exact };
 }
 
 function highlightsRowsFromListing(listing: RentasPublicListing): BienesRaicesPreviewFact[] {
@@ -418,15 +429,16 @@ export function mapRentasListingToPrivadoPreviewVm(
 
   const sellerName = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const desc = lang === "en" ? extra.descriptionEn : extra.descriptionEs;
-  const line1 = trim(listing.addressLine);
-  const cityZip = cityStateZipLine(listing);
-  const mapsUrl = trim(listing.mapUrl ?? "");
+  const loc = rentasLiveLocationLines(listing);
+  const mapsUrl = safeRentasMapUrl(listing.mapUrl);
+  const showingCard = buildRentasLiveShowingCard(listing, lang);
+  const tourUrl = normalizeLeonixHttpsUrl(listing.virtualTourUrl);
 
   return {
     categoria: listing.categoriaPropiedad,
     platformLogoUrl: resolvePlatformLogoUrl(),
     heroTitle: trim(listing.title),
-    addressLine: line1,
+    addressLine: loc.addressLine,
     priceDisplay: trim(listing.rentDisplay),
     listingStatusLabel: rentasAvailabilityLabel(listing.rentasListingAvailability, lang) || "—",
     operationSummary: operationSummary(listing.categoriaPropiedad),
@@ -442,7 +454,11 @@ export function mapRentasListingToPrivadoPreviewVm(
       smsDisplay: smsDigits ? phoneDisplay(smsDigits) : phoneRaw ? phoneDisplay(phoneRaw) : "",
       noteLine: trim(listing.contactNote ?? ""),
     },
-    media,
+    media: {
+      ...media,
+      virtualTourUrl: tourUrl ?? media.virtualTourUrl,
+      hasVirtualTour: Boolean(tourUrl ?? media.hasVirtualTour),
+    },
     propertyDetailsRows: [...contract, ...property],
     highlightsRows,
     hasHighlights: highlightsRows.length > 0,
@@ -465,14 +481,27 @@ export function mapRentasListingToPrivadoPreviewVm(
       preferredContactLine: preferredContactLine || undefined,
     },
     location: {
-      mapsUrl: mapsUrl || null,
-      line1,
-      cityStateZip: cityZip,
-      hasMeaningfulAddress: Boolean(line1 || cityZip || mapsUrl),
+      mapsUrl,
+      line1: loc.line1,
+      cityStateZip: loc.cityStateZip,
+      hasMeaningfulAddress: Boolean(loc.line1 || loc.cityStateZip || mapsUrl),
     },
-    mostrarDireccionExacta: false,
+    mostrarDireccionExacta: loc.exact,
+    openHouseCard: showingCard ? { title: showingCard.title, rows: showingCard.rows } : null,
     footerNote: "",
   };
+}
+
+function safeRentasMapUrl(raw: string | null | undefined): string | null {
+  const u = trim(raw ?? "");
+  if (!u || !/^https?:\/\//i.test(u)) return null;
+  try {
+    const parsed = new URL(u);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return u;
+  } catch {
+    return null;
+  }
 }
 
 /** Quick facts from property for strip (beds/baths/sqft) when present */
@@ -525,10 +554,11 @@ export function mapRentasListingToNegocioPreviewVm(
   const marca = trim(listing.businessMarca ?? "");
   const displayName = agent || sellerLine;
   const desc = lang === "en" ? extra.descriptionEn : extra.descriptionEs;
-  const line1 = trim(listing.addressLine);
-  const cityZip = cityStateZipLine(listing);
+  const loc = rentasLiveLocationLines(listing);
   const colonia = zonaFromListing(listing);
-  const mapsUrl = trim(listing.mapUrl ?? "");
+  const mapsUrl = safeRentasMapUrl(listing.mapUrl);
+  const showingCard = buildRentasLiveShowingCard(listing, lang);
+  const tourUrl = normalizeLeonixHttpsUrl(listing.virtualTourUrl);
   const ch = listing.contactChannels ?? null;
   const gateSocialIcons = socialLinksFromChannelsPayload(ch);
   const channelRowsForIdentity = gateSocialIcons.map((sl) => ({
@@ -552,7 +582,7 @@ export function mapRentasListingToNegocioPreviewVm(
     publicationType: "",
     platformLogoUrl: resolvePlatformLogoUrl(),
     heroTitle: trim(listing.title),
-    addressLine: line1,
+    addressLine: loc.addressLine,
     priceDisplay: trim(listing.rentDisplay),
     listingStatusLabel: rentasAvailabilityLabel(listing.rentasListingAvailability, lang) || "—",
     operationSummary: operationSummary(listing.categoriaPropiedad),
@@ -577,13 +607,18 @@ export function mapRentasListingToNegocioPreviewVm(
       hasPhoto: false,
       hasSocialLinks: socialLinks.length > 0,
     },
-    media,
+    media: {
+      ...media,
+      virtualTourUrl: tourUrl ?? media.virtualTourUrl,
+      hasVirtualTour: Boolean(tourUrl ?? media.hasVirtualTour),
+    },
     propertyDetailsRows: [...contract, ...property],
     highlightsRows,
     description: desc,
     hasDescription: Boolean(trim(desc)),
     hasHighlights: highlightsRows.length > 0,
     highlightsSectionTitle: lang === "es" ? "Destacados" : "Highlights",
+    openHouseCard: showingCard ? { title: showingCard.title, rows: showingCard.rows } : null,
     contact: {
       showSolicitarInfo: Boolean(mailto),
       showProgramarVisita: false,
@@ -607,17 +642,17 @@ export function mapRentasListingToNegocioPreviewVm(
     deepBlocks: [],
     detailClusters: [],
     location: {
-      line1,
+      line1: loc.line1,
       colonia,
-      cityStateZip: cityZip,
-      fullAddress: line1,
-      mapsUrl: mapsUrl || null,
-      hasMeaningfulAddress: Boolean(line1 || colonia || cityZip || mapsUrl),
+      cityStateZip: loc.cityStateZip,
+      fullAddress: loc.exact ? loc.addressLine : loc.line1,
+      mapsUrl,
+      hasMeaningfulAddress: Boolean(loc.line1 || colonia || loc.cityStateZip || mapsUrl),
     },
     schools: { rows: [], showModule: false },
     community: { rows: [], showModule: false },
     hoaDevelopment: { rows: [], showModule: false, sitePlanCallout: false },
-    mostrarDireccionExacta: false,
+    mostrarDireccionExacta: loc.exact,
     footerNote: "",
   };
 }

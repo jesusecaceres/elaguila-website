@@ -4,6 +4,8 @@ import {
   BASE_AUTOS_NEGOCIO_MONTHLY_USD,
   INVENTORY_BOOST_ADDITIONAL_VEHICLES,
   INVENTORY_BOOST_MONTHLY_USD,
+  autosDealerInventoryBasePackageLine,
+  autosDealerInventoryLimitMessage,
   autosDealerInventoryTotalWithBoostLine,
 } from "./autosDealerInventoryCopy";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPolicy";
@@ -53,9 +55,7 @@ export function autosDealerInventoryDrawerValueBullets(lang: AutosClassifiedsLan
 }
 
 export function autosDealerInventoryDrawerBasePackageLine(lang: AutosClassifiedsLang): string {
-  return lang === "es"
-    ? `Tu paquete Autos Negocio incluye hasta ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehículos activos.`
-    : `Your Autos Negocio package includes up to ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} active vehicles.`;
+  return autosDealerInventoryBasePackageLine(lang);
 }
 
 export function autosDealerInventoryDrawerUpgradeLine(lang: AutosClassifiedsLang): string {
@@ -69,9 +69,7 @@ export function autosDealerInventoryDrawerAtLimitTitle(lang: AutosClassifiedsLan
 }
 
 export function autosDealerInventoryDrawerAtLimitBody(lang: AutosClassifiedsLang): string {
-  return lang === "es"
-    ? `Has llegado al límite de ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehículos activos. Desactiva un vehículo o solicita Inventory Boost.`
-    : `You have reached the ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} active vehicle limit. Deactivate a vehicle or request Inventory Boost.`;
+  return autosDealerInventoryLimitMessage(lang);
 }
 
 export function autosDealerInventoryDrawerPlanFootnote(lang: AutosClassifiedsLang): string {

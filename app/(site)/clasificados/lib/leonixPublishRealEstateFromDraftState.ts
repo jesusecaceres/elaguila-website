@@ -95,7 +95,7 @@ function rentasPublishCity(state: {
 }): string {
   const c = trim(state.ciudad);
   if (c) return c;
-  const exactOk = state.mostrarDireccionExacta !== false;
+  const exactOk = state.mostrarDireccionExacta === true;
   if (!exactOk) {
     const cross = trim(state.direccionCruceCercano);
     return cross || trim(state.ubicacionLinea);

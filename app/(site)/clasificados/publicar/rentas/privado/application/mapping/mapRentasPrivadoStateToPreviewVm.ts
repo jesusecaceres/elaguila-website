@@ -31,6 +31,8 @@ import {
   socialLinksFromChannelsPayload,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import { buildRentasShowingPreviewCard } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
+import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 
 function trim(s: string): string {
   return String(s ?? "").trim();
@@ -206,6 +208,9 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
     value: trim(r.value) === "✓" ? "Sí" : r.value,
   }));
 
+  const showingCard = buildRentasShowingPreviewCard(s, "es");
+  const tourUrl = normalizeLeonixHttpsUrl(s.virtualTourUrl);
+
   return {
     ...base,
     addressLine,
@@ -247,5 +252,10 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
       hasMeaningfulAddress,
     },
     mostrarDireccionExacta: exact,
+    openHouseCard: showingCard ? { title: showingCard.title, rows: showingCard.rows } : null,
+    media: {
+      ...base.media,
+      virtualTourUrl: tourUrl ?? base.media?.virtualTourUrl ?? null,
+    },
   };
 }

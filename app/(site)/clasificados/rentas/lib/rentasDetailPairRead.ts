@@ -30,8 +30,17 @@ import {
   RENTAS_DP_STORAGE_ACCESS_24H,
   RENTAS_DP_STORAGE_SECURITY,
 } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
+import {
+  RENTAS_DP_SHOWING_AVAILABILITY,
+  RENTAS_DP_SHOWING_BY_APPOINTMENT,
+  RENTAS_DP_SHOWING_INSTRUCTIONS,
+  RENTAS_DP_VIRTUAL_TOUR_URL,
+  type RentasShowingMachineRead,
+} from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 
-export type RentasDetailMachineRead = {
+export type { RentasShowingMachineRead };
+
+export type RentasDetailMachineRead = RentasShowingMachineRead & {
   depositUsdDigits: string | null;
   leaseTermCode: string | null;
   leaseTermCustom: string | null;
@@ -60,6 +69,11 @@ export type RentasDetailMachineRead = {
   storageSecurity: string | null;
 };
 
+function triBool(raw: string | null): boolean {
+  const v = (raw ?? "").trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes" || v === "si" || v === "sí";
+}
+
 export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetailMachineRead {
   return {
     depositUsdDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_DEPOSIT_USD),
@@ -87,5 +101,9 @@ export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetail
     roomMaxOccupants: readLeonixDetailPairValue(detailPairs, RENTAS_DP_ROOM_MAX_OCC),
     storageAccess24h: readLeonixDetailPairValue(detailPairs, RENTAS_DP_STORAGE_ACCESS_24H),
     storageSecurity: readLeonixDetailPairValue(detailPairs, RENTAS_DP_STORAGE_SECURITY),
+    showingByAppointment: triBool(readLeonixDetailPairValue(detailPairs, RENTAS_DP_SHOWING_BY_APPOINTMENT)),
+    showingAvailability: readLeonixDetailPairValue(detailPairs, RENTAS_DP_SHOWING_AVAILABILITY),
+    showingInstructions: readLeonixDetailPairValue(detailPairs, RENTAS_DP_SHOWING_INSTRUCTIONS),
+    virtualTourUrl: readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIRTUAL_TOUR_URL),
   };
 }

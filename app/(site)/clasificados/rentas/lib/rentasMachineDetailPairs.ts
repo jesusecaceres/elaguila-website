@@ -16,6 +16,7 @@ import {
   formatRentasServiciosIncluidosOutput,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { mergeRentasShowingMachinePairs } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 
 function digitsOnly15(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
@@ -147,7 +148,7 @@ export function mergeRentasPrivadoMachinePairs(
     instructionsNote: state.seller.notaContacto,
   });
   if (ch) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(ch));
-  return out;
+  return mergeRentasShowingMachinePairs(state, out);
 }
 
 export function mergeRentasNegocioMachinePairs(
@@ -174,5 +175,5 @@ export function mergeRentasNegocioMachinePairs(
     instructionsNote: state.negocioBio,
   });
   if (chN) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chN));
-  return out;
+  return mergeRentasShowingMachinePairs(state, out);
 }

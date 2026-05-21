@@ -122,6 +122,15 @@ export type RentasPublicListing = {
   businessAgentName?: string | null;
   /** From `listings.business_meta` (`negocioDescripcion` / BR meta) when present. */
   businessDescription?: string | null;
+  /** When true, public detail may show street-level address from publish. */
+  showExactAddress?: boolean;
+  /** Tipo-specific rows parsed from published `detail_pairs` (live detail). */
+  flowExtensionRows?: Array<{ label: string; value: string }>;
+  /** Gate 12E — showings / tours (machine pairs). */
+  showingByAppointment?: boolean;
+  showingAvailability?: string | null;
+  showingInstructions?: string | null;
+  virtualTourUrl?: string | null;
   /** Public map link when publisher provided one (`Leonix:rent:map_url`). */
   mapUrl?: string | null;
   /** External video URL (`Leonix:rent:video_url`) or Mux HLS `.m3u8` when served from Mux. */

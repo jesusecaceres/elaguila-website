@@ -15,10 +15,18 @@ export const AUTOS_NEGOCIO_TOTAL_WITH_BOOST_MONTHLY_USD =
 export const AUTOS_NEGOCIO_TOTAL_WITH_BOOST_ACTIVE_LIMIT =
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT + INVENTORY_BOOST_ADDITIONAL_VEHICLES;
 
-export function autosDealerInventoryUpgradePitch(lang: AutosClassifiedsLang): string {
+export function autosDealerInventoryBasePackageLine(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? `Tu paquete Autos Negocio incluye hasta 10 vehículos activos. ¿Necesitas más espacio? Agrega 10 vehículos adicionales por $${INVENTORY_BOOST_MONTHLY_USD} al mes.`
-    : `Your Autos Negocio package includes up to 10 active vehicles. Need more space? Add ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} additional vehicles for $${INVENTORY_BOOST_MONTHLY_USD}/month.`;
+    ? `Tu paquete Autos Negocio incluye hasta ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehículos activos.`
+    : `Your Autos Negocio package includes up to ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} active vehicles.`;
+}
+
+export function autosDealerInventoryUpgradePitch(lang: AutosClassifiedsLang): string {
+  const boost =
+    lang === "es"
+      ? `¿Necesitas más espacio? Agrega ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} vehículos adicionales por $${INVENTORY_BOOST_MONTHLY_USD} al mes.`
+      : `Need more space? Add ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} additional vehicles for $${INVENTORY_BOOST_MONTHLY_USD}/month.`;
+  return `${autosDealerInventoryBasePackageLine(lang)} ${boost}`;
 }
 
 export function autosDealerInventoryLimitMessage(lang: AutosClassifiedsLang): string {

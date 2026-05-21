@@ -16,12 +16,84 @@ export type Product = {
   imageMatchStatus?: ImageMatchStatus;
 };
 
-export type CatalogCategory = {
+export type CatalogCategoryRaw = {
   id: CategoryId;
   es: { label: string; description: string };
   en: { label: string; description: string };
   products: Product[];
 };
+
+export type CatalogCategory = CatalogCategoryRaw & {
+  /** Full image cards — unique visuals only (Gate 1C-H). */
+  featuredProducts: Product[];
+  /** Compact quote list — broad coverage without repeated images. */
+  additionalProducts: Product[];
+};
+
+/** Gate 1C-H — slugs shown as full image cards per tab. */
+export const FEATURED_SLUGS_BY_CATEGORY: Record<CategoryId, readonly string[]> = {
+  "business-cards": [
+    "standard-business-cards",
+    "premium-business-cards",
+    "matte-business-cards",
+    "gloss-business-cards",
+    "foil-business-cards",
+    "spot-uv-business-cards",
+    "painted-edge-business-cards",
+    "plastic-business-cards",
+    "loyalty-cards",
+  ],
+  marketing: ["flyers", "brochures", "postcards", "menus", "presentation-folders", "stickers"],
+  signs: ["vinyl-banners", "retractable-banners", "yard-signs", "sidewalk-signs"],
+  promo: [
+    "tote-bags",
+    "mugs",
+    "pens",
+    "t-shirts",
+    "hats",
+    "tumblers",
+    "water-bottles",
+    "keychains",
+    "notebooks",
+    "event-giveaways",
+    "buttons",
+    "lanyards",
+    "coasters",
+    "umbrellas",
+  ],
+  essentials: [
+    "branded-starter-kit",
+    "grand-opening-kit",
+    "restaurant-starter-kit",
+    "real-estate-marketing-kit",
+    "event-booth-kit",
+    "new-business-launch-bundle",
+  ],
+};
+
+export const CUSTOM_QUOTE_SERVICE_SLUG = "productos-promocion-personalizado";
+
+const FEATURED_SLUG_SET: Record<CategoryId, Set<string>> = {
+  "business-cards": new Set(FEATURED_SLUGS_BY_CATEGORY["business-cards"]),
+  marketing: new Set(FEATURED_SLUGS_BY_CATEGORY.marketing),
+  signs: new Set(FEATURED_SLUGS_BY_CATEGORY.signs),
+  promo: new Set(FEATURED_SLUGS_BY_CATEGORY.promo),
+  essentials: new Set(FEATURED_SLUGS_BY_CATEGORY.essentials),
+};
+
+function splitCategoryProducts(
+  categoryId: CategoryId,
+  products: Product[],
+): { featured: Product[]; additional: Product[] } {
+  const featuredSet = FEATURED_SLUG_SET[categoryId];
+  const featured: Product[] = [];
+  const additional: Product[] = [];
+  for (const product of products) {
+    if (featuredSet.has(product.slug)) featured.push(product);
+    else additional.push(product);
+  }
+  return { featured, additional };
+}
 
 function p(
   slug: string,
@@ -35,7 +107,7 @@ function p(
   return { slug, es: { title: esTitle, subtitle: esSub }, en: { title: enTitle, subtitle: enSub }, visualType, subcategory };
 }
 
-export const CATALOG_CATEGORIES_RAW: CatalogCategory[] = [
+export const CATALOG_CATEGORIES_RAW: CatalogCategoryRaw[] = [
   {
     id: "business-cards",
     es: { label: "Tarjetas de presentación", description: "Impresión de alta calidad para representar tu marca." },
@@ -186,4 +258,20 @@ export const CATALOG_CATEGORIES_RAW: CatalogCategory[] = [
   },
 ];
 
-export const CATALOG_CATEGORIES: CatalogCategory[] = applyImageMappings(CATALOG_CATEGORIES_RAW);
+export const CATALOG_CATEGORIES: CatalogCategory[] = applyImageMappings(
+  CATALOG_CATEGORIES_RAW.map((cat) => {
+    const { featured, additional } = splitCategoryProducts(cat.id, cat.products);
+    return { ...cat, products: featured };
+  }),
+).map((catWithImages, index) => {
+  const raw = CATALOG_CATEGORIES_RAW[index];
+  const { additional } = splitCategoryProducts(raw.id, raw.products);
+  return {
+    id: raw.id,
+    es: raw.es,
+    en: raw.en,
+    featuredProducts: catWithImages.products,
+    additionalProducts: additional,
+    products: [...catWithImages.products, ...additional],
+  };
+});

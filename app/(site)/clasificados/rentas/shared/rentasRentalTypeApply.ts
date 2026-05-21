@@ -261,6 +261,18 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
   return out;
 }
 
+/** Bedroom/bath rows that must not appear on lot/land rental displays. */
+const LAND_PARCEL_LABELS_DROP = new Set([
+  "Recámaras",
+  "Baños completos",
+  "Medios baños",
+  "Interior (ft²)",
+  "Año de construcción",
+  "Condición",
+  "Tipo",
+  "Subtipo",
+]);
+
 const RES_LABELS_DROP: Record<RentasRentalFlowGroup, Set<string> | null> = {
   unset: null,
   full_housing: null,
@@ -396,6 +408,10 @@ export type RentasPublicListingFlowSlice = {
   propertySubtype?: string | null;
 };
 
+function filterRowsByLabelDrop(rows: BienesRaicesPreviewFact[], drop: Set<string>): BienesRaicesPreviewFact[] {
+  return rows.filter((r) => !drop.has(r.label));
+}
+
 /** Adapt live listing property rows using persisted rental type code when present. */
 export function filterRentasLivePropertyRowsForFlow(
   listing: RentasPublicListingFlowSlice,
@@ -403,10 +419,61 @@ export function filterRentasLivePropertyRowsForFlow(
 ): BienesRaicesPreviewFact[] {
   const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
   if (g === "unset") return rows;
+  if (g === "land_parcel") return filterRowsByLabelDrop(rows, LAND_PARCEL_LABELS_DROP);
   if (listing.categoriaPropiedad === "residencial") {
     return filterResidencialCaracteristicas(g, rows);
   }
+  if (g === "commercial_space") {
+    const drop = RES_LABELS_DROP.commercial_space;
+    return drop ? filterRowsByLabelDrop(rows, drop) : rows;
+  }
+  if (g === "room_shared" || g === "storage_parking") {
+    const drop = RES_LABELS_DROP[g];
+    return drop ? filterRowsByLabelDrop(rows, drop) : rows;
+  }
   return rows;
+}
+
+/** Extension facts from published human `detail_pairs` (live detail parity with preview). */
+export function buildRentasPublishedFlowExtensionRows(
+  listing: RentasPublicListingFlowSlice,
+  pairValue: (label: string) => string | null,
+): BienesRaicesPreviewFact[] {
+  const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
+  const out: BienesRaicesPreviewFact[] = [];
+  const push = (label: string, value: string | null | undefined) => {
+    const r = row(label, value ?? "");
+    if (r) out.push(r);
+  };
+  if (g === "room_shared") {
+    push("Tipo de baño", listing.rentasRoomBathLabel ?? pairValue("Tipo de baño"));
+    push("Cocina", listing.rentasRoomKitchenLabel ?? pairValue("Cocina"));
+    push("Entrada privada", pairValue("Entrada privada"));
+    push("Lavandería disponible", pairValue("Lavandería disponible"));
+    push("Máximo de ocupantes", listing.rentasRoomMaxOccupants ?? pairValue("Máximo de ocupantes"));
+  }
+  if (g === "storage_parking") {
+    push("Tamaño aproximado", pairValue("Tamaño aproximado"));
+    push("Acceso 24/7", pairValue("Acceso 24/7"));
+    push("Electricidad disponible", pairValue("Electricidad disponible"));
+    push("Seguridad / acceso controlado", pairValue("Seguridad / acceso controlado"));
+    push("Uso permitido", pairValue("Uso permitido"));
+    push("Altura / dimensiones", pairValue("Altura / dimensiones"));
+  }
+  if (g === "commercial_space") {
+    push("Uso permitido", pairValue("Uso permitido"));
+    push("Tamaño (ft²)", pairValue("Tamaño (ft²)"));
+    push("Baño disponible", pairValue("Baño disponible"));
+    push("Horario / acceso", pairValue("Horario / acceso"));
+    push("Contrato mínimo", pairValue("Contrato mínimo"));
+  }
+  if (g === "land_parcel") {
+    push("Uso permitido", pairValue("Uso permitido"));
+    push("Servicios disponibles", pairValue("Servicios disponibles"));
+    push("Acceso", pairValue("Acceso"));
+    push("Zonificación", pairValue("Zonificación"));
+  }
+  return out;
 }
 
 function leaseTermCardLabel(code: string | null | undefined): string {

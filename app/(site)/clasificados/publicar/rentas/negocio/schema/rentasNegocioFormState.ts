@@ -121,6 +121,10 @@ export type RentasNegocioFormState = {
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
   contactChannels: LeonixContactChannelsFormSlice;
+  showingByAppointment: RentasPrivadoFormState["showingByAppointment"];
+  showingAvailability: RentasPrivadoFormState["showingAvailability"];
+  showingInstructions: RentasPrivadoFormState["showingInstructions"];
+  virtualTourUrl: RentasPrivadoFormState["virtualTourUrl"];
 };
 
 export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
@@ -198,6 +202,10 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     confirmPhotosRepresentItem: p.confirmPhotosRepresentItem,
     confirmCommunityRules: p.confirmCommunityRules,
     contactChannels: createEmptyLeonixContactChannelsFormSlice(),
+    showingByAppointment: p.showingByAppointment,
+    showingAvailability: p.showingAvailability,
+    showingInstructions: p.showingInstructions,
+    virtualTourUrl: p.virtualTourUrl,
   };
 }
 
@@ -323,5 +331,9 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
       asPrivado.contactChannels,
       partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
     ),
+    showingByAppointment: asPrivado.showingByAppointment,
+    showingAvailability: asPrivado.showingAvailability,
+    showingInstructions: asPrivado.showingInstructions,
+    virtualTourUrl: asPrivado.virtualTourUrl,
   };
 }

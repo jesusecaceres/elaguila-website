@@ -26,6 +26,8 @@ import {
   rentasFlowGroupActive,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
+import { buildRentasShowingPreviewCard } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
+import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
 import { buildLeonixContactChannelsV1PayloadFromFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
@@ -167,6 +169,8 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   const quickFacts = dedupeQuickFactsByLabel([...quickStripMerged, ...vm.quickFacts]);
 
   const highlightsRows = normalizeRentasNegocioHighlights(vm.highlightsRows ?? []);
+  const showingCard = buildRentasShowingPreviewCard(s, "es");
+  const tourUrl = normalizeLeonixHttpsUrl(s.virtualTourUrl);
 
   return {
     ...vm,
@@ -202,5 +206,11 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
       hasMeaningfulAddress,
     },
     mostrarDireccionExacta: exact,
+    openHouseCard: showingCard ? { title: showingCard.title, rows: showingCard.rows } : null,
+    media: {
+      ...vm.media,
+      virtualTourUrl: tourUrl ?? vm.media.virtualTourUrl,
+      hasVirtualTour: Boolean(tourUrl ?? vm.media.hasVirtualTour),
+    },
   };
 }

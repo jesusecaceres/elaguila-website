@@ -48,6 +48,7 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasDraftVideoStore";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
+import { RentasShowingTourSection } from "@/app/clasificados/publicar/rentas/shared/RentasShowingTourSection";
 import {
   rentasFlowGroupActive,
   rentasResidencialFormRowsMode,
@@ -475,6 +476,13 @@ export function RentasPrivadoForm() {
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
           estadoOptions={ESTADOS}
+        />
+
+        <RentasShowingTourSection
+          state={state}
+          setState={setState}
+          fieldClass={fieldClass}
+          textareaFieldClass={textareaFieldClass}
         />
 
         <section className={`${aiCardClass} min-w-0`}>

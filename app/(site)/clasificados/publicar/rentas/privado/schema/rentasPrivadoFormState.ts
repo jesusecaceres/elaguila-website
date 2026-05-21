@@ -12,6 +12,7 @@ import {
   mergePartialBienesRaicesPrivadoState,
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { emptyRentasShowingSlice } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { coerceRentasPostalDigits5 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { coerceRentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
@@ -143,6 +144,11 @@ export type RentasPrivadoFormState = {
   confirmCommunityRules: boolean;
   /** Gate 12C — optional website, socials, channel toggles, preferred contact (not persisted separately from publish payload). */
   contactChannels: LeonixContactChannelsFormSlice;
+  /** Gate 12E — optional showings / virtual tour (machine pairs at publish). */
+  showingByAppointment: boolean;
+  showingAvailability: string;
+  showingInstructions: string;
+  virtualTourUrl: string;
 };
 
 const MAX_PHOTOS = 8;
@@ -301,6 +307,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     confirmPhotosRepresentItem: br.confirmPhotosRepresentItem,
     confirmCommunityRules: br.confirmCommunityRules,
     contactChannels: createEmptyLeonixContactChannelsFormSlice(),
+    ...emptyRentasShowingSlice(),
   };
 }
 
@@ -504,6 +511,13 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       createEmptyRentasPrivadoFormState().contactChannels,
       partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
     ),
+    showingByAppointment:
+      typeof partial.showingByAppointment === "boolean" ? partial.showingByAppointment : base.showingByAppointment,
+    showingAvailability:
+      typeof partial.showingAvailability === "string" ? partial.showingAvailability : base.showingAvailability,
+    showingInstructions:
+      typeof partial.showingInstructions === "string" ? partial.showingInstructions : base.showingInstructions,
+    virtualTourUrl: typeof partial.virtualTourUrl === "string" ? partial.virtualTourUrl : base.virtualTourUrl,
   };
 }
 

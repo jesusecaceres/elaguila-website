@@ -3,7 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CATALOG_CATEGORIES, type CategoryId, type Product, type CatalogCategory } from "./catalogData";
+import {
+  CATALOG_CATEGORIES,
+  CUSTOM_QUOTE_SERVICE_SLUG,
+  type CategoryId,
+  type Product,
+  type CatalogCategory,
+} from "./catalogData";
 
 type Lang = "es" | "en";
 
@@ -12,7 +18,7 @@ const CATEGORY_ICONS: Record<CategoryId, string> = {
   marketing: "📄",
   signs: "📋",
   promo: "🎁",
-  essentials: "�",
+  essentials: "📦",
 };
 
 const OLIVE_BG = "var(--lx-cta-secondary-bg)";
@@ -91,7 +97,7 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
   const title = product[lang].title;
   const subtitle = product[lang].subtitle;
   const ctaLabel = lang === "es" ? "Solicitar cotización" : "Request Quote";
-  const href = `/tienda/contacto?lang=${lang}&service=${encodeURIComponent(product.slug)}`;
+  const href = quoteHref(lang, product.slug);
 
   return (
     <article
@@ -125,6 +131,79 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function quoteHref(lang: Lang, slug: string): string {
+  return `/tienda/contacto?lang=${lang}&service=${encodeURIComponent(slug)}`;
+}
+
+function AdditionalProductsSection({ products, lang }: { products: Product[]; lang: Lang }) {
+  if (products.length === 0) return null;
+
+  const heading = lang === "es" ? "También podemos cotizar" : "We can also quote";
+  const helper =
+    lang === "es"
+      ? "Si no ves exactamente lo que necesitas, también podemos ayudarte a conseguirlo."
+      : "If you do not see exactly what you need, we can still help you quote it.";
+
+  return (
+    <div
+      className="mt-10 rounded-2xl border p-5 sm:p-6"
+      style={{ background: "var(--lx-section)", borderColor: "var(--lx-border)" }}
+    >
+      <h3 className="text-base font-bold sm:text-lg" style={{ color: "var(--lx-text)" }}>
+        {heading}
+      </h3>
+      <p className="mt-1.5 text-xs leading-relaxed sm:text-sm" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
+        {helper}
+      </p>
+      <ul className="mt-4 flex flex-wrap gap-2" role="list">
+        {products.map((product) => (
+          <li key={product.slug}>
+            <Link
+              href={quoteHref(lang, product.slug)}
+              className="inline-flex max-w-full items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:brightness-[0.97]"
+              style={{
+                background: "var(--lx-card)",
+                borderColor: "var(--lx-border)",
+                color: "var(--lx-text)",
+              }}
+            >
+              <span className="truncate">{product[lang].title}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function TabCustomQuoteCta({ lang }: { lang: Lang }) {
+  const callout =
+    lang === "es"
+      ? "¿No ves lo que necesitas? Te ayudamos a cotizarlo."
+      : "Do not see what you need? We can help quote it.";
+  const btnLabel = lang === "es" ? "Solicitar cotización personalizada" : "Request custom quote";
+
+  return (
+    <div
+      className="mt-8 rounded-2xl border px-5 py-6 text-center sm:px-8"
+      style={{ background: "var(--lx-card)", borderColor: "var(--lx-border)" }}
+    >
+      <p className="text-sm font-semibold leading-relaxed sm:text-base" style={{ color: "var(--lx-text)" }}>
+        {callout}
+      </p>
+      <Link
+        href={quoteHref(lang, CUSTOM_QUOTE_SERVICE_SLUG)}
+        className="mt-4 inline-block rounded-xl px-6 py-3 text-sm font-semibold transition"
+        style={{ background: OLIVE_BG, color: OLIVE_FG, boxShadow: "0 2px 12px rgba(85,107,62,0.22)" }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
+      >
+        {btnLabel}
+      </Link>
+    </div>
   );
 }
 
@@ -241,14 +320,17 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
           </p>
         </div>
 
-        <div
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          role="tabpanel"
-          aria-label={activeCategory[lang].label}
-        >
-          {activeCategory.products.map((product) => (
-            <ProductCard key={product.slug} product={product} lang={lang} />
-          ))}
+        <div role="tabpanel" aria-label={activeCategory[lang].label}>
+          {activeCategory.featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeCategory.featuredProducts.map((product) => (
+                <ProductCard key={product.slug} product={product} lang={lang} />
+              ))}
+            </div>
+          ) : null}
+
+          <AdditionalProductsSection products={activeCategory.additionalProducts} lang={lang} />
+          <TabCustomQuoteCta lang={lang} />
         </div>
       </section>
 

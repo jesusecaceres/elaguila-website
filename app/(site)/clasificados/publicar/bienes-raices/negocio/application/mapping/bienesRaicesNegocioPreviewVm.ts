@@ -166,6 +166,8 @@ export type BienesRaicesNegocioPreviewVm = {
   footerNote: string;
   /** Gate 12D — HOA/community card (hidden when empty). */
   hoaCommunityCard?: { title: string; rows: BienesRaicesPreviewFact[] } | null;
+  /** Gate 12E / Rentas — showings card (hidden when empty). */
+  openHouseCard?: { title: string; rows: BienesRaicesPreviewFact[] } | null;
   /** Owner/admin preview chrome (not shown on public live pages). */
   ownerPreviewShell?: {
     inventoryMode: boolean;

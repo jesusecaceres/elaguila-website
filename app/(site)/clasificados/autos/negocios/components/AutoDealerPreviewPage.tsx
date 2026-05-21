@@ -112,7 +112,7 @@ export function AutoDealerPreviewPage({
                 {showLeft ? (
                   <div className="min-w-0 max-w-full flex-1">
                     {h1 ? (
-                      <h1 className="text-pretty text-2xl font-bold leading-[1.15] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[1.85rem]">
+                      <h1 className="text-pretty text-[1.65rem] font-extrabold leading-[1.12] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[2rem]">
                         {h1}
                       </h1>
                     ) : null}
@@ -160,12 +160,12 @@ export function AutoDealerPreviewPage({
                 ) : null}
                 {showPriceCol ? (
                   <div
-                    className={`min-w-0 shrink-0 text-left lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0" : ""}`}
+                    className={`min-w-0 shrink-0 text-left max-lg:rounded-[14px] max-lg:border max-lg:border-[color:var(--lx-gold-border)]/50 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-4 max-lg:py-3 lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0 max-lg:border-t-0" : ""}`}
                   >
                     {priceOk ? (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-pretty text-3xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-4xl">
+                        <p className="mt-1 text-pretty text-3xl font-extrabold tabular-nums leading-none tracking-tight text-[#2A7F3E] sm:text-4xl lg:text-[color:var(--lx-text)]">
                           {formatUsd(data.price)}
                         </p>
                       </>

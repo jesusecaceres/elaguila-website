@@ -1,19 +1,18 @@
 import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import {
-  BASE_AUTOS_NEGOCIO_MONTHLY_USD,
   INVENTORY_BOOST_ADDITIONAL_VEHICLES,
   INVENTORY_BOOST_MONTHLY_USD,
+  autosDealerInventoryBasePackageLine,
   autosDealerInventoryTotalWithBoostLine,
 } from "./autosDealerInventoryCopy";
+import { autosDealerInventoryDrawerUpgradeLine } from "./autosDealerInventoryDrawerCopy";
 
 export function autosDealerInventoryValueTitle(lang: AutosClassifiedsLang): string {
   return lang === "es" ? "Inventario Autos Negocio" : "Autos Negocio inventory";
 }
 
 export function autosDealerInventoryValueLead(lang: AutosClassifiedsLang): string {
-  return lang === "es"
-    ? `Tu plan Autos Negocio ($${BASE_AUTOS_NEGOCIO_MONTHLY_USD}/mes) incluye hasta 10 vehículos activos.`
-    : `Your Autos Negocio plan ($${BASE_AUTOS_NEGOCIO_MONTHLY_USD}/mo) includes up to 10 active vehicles.`;
+  return autosDealerInventoryBasePackageLine(lang);
 }
 
 export function autosDealerInventoryValueDetail(lang: AutosClassifiedsLang): string {
@@ -23,11 +22,7 @@ export function autosDealerInventoryValueDetail(lang: AutosClassifiedsLang): str
 }
 
 export function autosDealerInventoryValueBoost(lang: AutosClassifiedsLang): string {
-  const upgrade =
-    lang === "es"
-      ? `¿Necesitas más espacio? Agrega ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} vehículos adicionales por $${INVENTORY_BOOST_MONTHLY_USD} al mes.`
-      : `Need more space? Add ${INVENTORY_BOOST_ADDITIONAL_VEHICLES} additional vehicles for $${INVENTORY_BOOST_MONTHLY_USD}/month.`;
-  return `${upgrade} ${autosDealerInventoryTotalWithBoostLine(lang)}`;
+  return `${autosDealerInventoryDrawerUpgradeLine(lang)} ${autosDealerInventoryTotalWithBoostLine(lang)}`;
 }
 
 export function autosDealerInventoryValueBullets(lang: AutosClassifiedsLang): string[] {
