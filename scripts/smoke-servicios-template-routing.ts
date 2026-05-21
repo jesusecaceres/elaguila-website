@@ -2,6 +2,7 @@
  * Gate 1 — Servicios template routing smoke (no network).
  * Run: npx tsx scripts/smoke-servicios-template-routing.ts
  */
+import { BUSINESS_TYPE_PRESETS } from "../app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES } from "../app/(site)/clasificados/servicios/landing/serviciosLandingSampleData";
 import { SERVICIOS_INTERNAL_GROUP_IDS } from "../app/(site)/clasificados/servicios/lib/serviciosInternalGroupDisplay";
 import {
@@ -67,6 +68,32 @@ assertTemplate(
   { businessTypeId: "contador_impuestos", internalGroup: "legal_professional" },
   "financial_provider",
 );
+
+assertTemplate("dentista_odontologia clinic", { businessTypeId: "dentista_odontologia" }, "clinic_provider");
+assertTemplate("clinica_medica clinic", { businessTypeId: "clinica_medica" }, "clinic_provider");
+assertTemplate("quiropractico clinic", { businessTypeId: "quiropractico" }, "clinic_provider");
+assertTemplate("seguros_cotizaciones advisor", { businessTypeId: "seguros_cotizaciones" }, "advisor_provider");
+
+const abogado = BUSINESS_TYPE_PRESETS.find((p) => p.id === "abogado_asesoria_legal");
+if (!abogado) fail("missing abogado_asesoria_legal preset");
+const piChipIds = new Set([
+  "abog_pi_auto",
+  "abog_pi_camion",
+  "abog_pi_moto",
+  "abog_pi_rideshare",
+  "abog_pi_resbalon",
+  "abog_pi_perro",
+  "abog_pi_muerte",
+  "abog_pi_seguro",
+]);
+for (const id of piChipIds) {
+  if (!abogado.suggestedServices.some((c) => c.id === id)) {
+    fail(`abogado preset missing PI chip ${id}`);
+  }
+}
+if (BUSINESS_TYPE_PRESETS.some((p) => p.id.startsWith("abogado_") && p.id !== "abogado_asesoria_legal")) {
+  fail("unexpected separate abogado_* business type — PI must stay chips on abogado_asesoria_legal");
+}
 
 const allowedGroups = new Set<string>(SERVICIOS_INTERNAL_GROUP_IDS);
 for (const cat of SERVICIOS_LANDING_EXPLORE_CATEGORIES) {

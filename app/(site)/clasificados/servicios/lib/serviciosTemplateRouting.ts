@@ -33,11 +33,15 @@ export type ResolveServiciosListingTemplateInput = {
 
 const EXACT_TEMPLATE_BY_BUSINESS_TYPE_ID: Readonly<Record<string, ServiciosListingTemplate>> = {
   abogado_asesoria_legal: "legal_provider",
+  dentista_odontologia: "clinic_provider",
+  clinica_medica: "clinic_provider",
+  quiropractico: "clinic_provider",
   terapia_fisica: "clinic_provider",
   salud_mental_psicologia: "clinic_provider",
   nutricion_dietas: "clinic_provider",
   acupuntura: "clinic_provider",
   contador_impuestos: "financial_provider",
+  seguros_cotizaciones: "advisor_provider",
   consultoria_negocios: "advisor_provider",
   arquitectura: "advisor_provider",
   recursos_humanos: "advisor_provider",
@@ -48,33 +52,45 @@ const LEGAL_KEYWORDS = [
   "abogado",
   "legal",
   "inmigracion",
+  "immigration",
   "accidente",
   "lesiones",
+  "injury",
   "criminal",
   "familia",
   "bancarrota",
+  "bankruptcy",
   "compensacion",
   "workers_comp",
   "notaria",
   "notario",
+  "estate",
+  "patrimonial",
 ] as const;
 
 const CLINIC_KEYWORDS = [
   "dentista",
   "dental",
+  "odontologia",
   "doctor",
   "clinica",
   "medico",
   "medical",
+  "pediatria",
+  "pediatrics",
   "terapia",
   "psicologia",
   "chiropractor",
   "quiropractico",
   "ortodoncista",
+  "orthodont",
   "braces",
+  "invisalign",
   "implants",
   "nutricion",
   "acupuntura",
+  "urgent_care",
+  "telehealth",
 ] as const;
 
 const FINANCIAL_KEYWORDS = [
@@ -86,6 +102,9 @@ const FINANCIAL_KEYWORDS = [
   "bookkeeping",
   "payroll",
   "itin",
+  "irs",
+  "audit",
+  "nominas",
 ] as const;
 
 const ADVISOR_KEYWORDS = [
