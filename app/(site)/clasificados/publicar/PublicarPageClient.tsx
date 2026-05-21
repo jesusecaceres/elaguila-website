@@ -29,6 +29,14 @@ type Lang = "es" | "en";
 
 type ChooserDeepLinkTarget = Exclude<CategoryKey, "all"> | "bienes-raices" | "";
 
+function MascotasChooserIcon({ className }: { className?: string }) {
+  return (
+    <span className={cx("inline-flex h-5 w-5 shrink-0 items-center justify-center text-base leading-none", className)} aria-hidden>
+      🐾
+    </span>
+  );
+}
+
 const CHOOSER_CATEGORIES: Array<{
   key: Exclude<CategoryKey, "all">;
   Icon: ComponentType<{ className?: string }>;
@@ -42,6 +50,7 @@ const CHOOSER_CATEGORIES: Array<{
   { key: "clases", Icon: FiBook },
   { key: "comunidad", Icon: FiUsers },
   { key: "busco", Icon: FiSearch },
+  { key: "mascotas-y-perdidos", Icon: MascotasChooserIcon },
   { key: "travel", Icon: FiMapPin },
 ];
 
@@ -108,7 +117,9 @@ export default function PublicarPageClient({
                       ? `/publicar/comunidad/quick?${p.toString()}`
                       : deepLinkCat === "busco"
                         ? `/publicar/busco/quick?${p.toString()}`
-                        : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
+                        : deepLinkCat === "mascotas-y-perdidos"
+                          ? `/publicar/mascotas-y-perdidos/quick?${p.toString()}`
+                          : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
   }, [deepLinkCat, lang, router, searchParams]);
 
@@ -224,7 +235,9 @@ export default function PublicarPageClient({
                                 ? `/publicar/comunidad/quick?lang=${lang}`
                                 : key === "busco"
                                   ? `/publicar/busco/quick?lang=${lang}`
-                                  : `/clasificados/publicar/${key}?lang=${lang}`;
+                                  : key === "mascotas-y-perdidos"
+                                    ? `/publicar/mascotas-y-perdidos/quick?lang=${lang}`
+                                    : `/clasificados/publicar/${key}?lang=${lang}`;
               return (
                 <Link
                   key={key}

@@ -26,6 +26,9 @@ const COPY = {
     ctaView: "Ver avisos",
     heroImageAlt: "Mascota y comunidad local",
     typesTitle: "Tipos de aviso",
+    search: "Buscar avisos",
+    searchPlaceholder: "Título, descripción, tipo…",
+    searchCta: "Buscar",
     recentTitle: "Avisos recientes",
     recentEmpty: "Aún no hay avisos publicados. Sé el primero en publicar un aviso gratuito.",
     recentError: "No se pudieron cargar los avisos recientes.",
@@ -37,6 +40,9 @@ const COPY = {
     ctaView: "View notices",
     heroImageAlt: "Pet and local community",
     typesTitle: "Notice types",
+    search: "Search notices",
+    searchPlaceholder: "Title, description, type…",
+    searchCta: "Search",
     recentTitle: "Recent notices",
     recentEmpty: "No published notices yet. Be the first to post a free notice.",
     recentError: "Could not load recent notices.",
@@ -109,6 +115,29 @@ export default function MascotasPerdidosLandingPage() {
         <section className="rounded-2xl border border-[#C9B46A]/25 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/12 sm:px-5 sm:py-5">
           <p className="text-sm leading-relaxed text-[#2a241c]/90">{product.helper[lang]}</p>
         </section>
+
+        <form
+          className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 p-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:p-5"
+          action="/clasificados/mascotas-y-perdidos/resultados"
+          method="get"
+          data-testid="mascotas-landing-search"
+        >
+          <input type="hidden" name="lang" value={lang} />
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            {t.search}
+            <input
+              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2 text-sm"
+              name="q"
+              placeholder={t.searchPlaceholder}
+            />
+          </label>
+          <button
+            type="submit"
+            className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5]"
+          >
+            {t.searchCta}
+          </button>
+        </form>
 
         <section className="rounded-2xl border border-[#C9B46A]/25 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/12 sm:px-5">
           <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B5A32]/85">{t.typesTitle}</h2>

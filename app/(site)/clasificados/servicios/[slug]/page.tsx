@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
+import { ServiciosProfessionalProfileShell } from "@/app/servicios/components/ServiciosProfessionalProfileShell";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { mergeServiciosProfileWithApprovedDbReviews } from "../lib/serviciosDbReviewsMerge";
@@ -19,6 +20,11 @@ import {
 } from "../lib/serviciosPublicListingSort";
 import type { ServiciosBusinessProfile } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import { shouldShowServiciosPublicLeadInquiryForm } from "../lib/serviciosLeadNotifyRecipientServer";
+import {
+  isServiciosProfessionalTemplate,
+  readServiciosProfileBusinessTypeId,
+  resolveServiciosListingTemplate,
+} from "../lib/serviciosTemplateRouting";
 
 export const dynamic = "force-dynamic";
 
@@ -142,6 +148,31 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     (await shouldShowServiciosPublicLeadInquiryForm(row.profile_json as ServiciosBusinessProfile, row.owner_user_id ?? null));
   const directContactFasterResponseHint = isPublishedLive && !showPublicLeadInquiryForm;
 
+  const listingTemplate = resolveServiciosListingTemplate({
+    businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
+    internalGroup: row.internal_group,
+    categoryLabel: profile.hero.categoryLine,
+  });
+
+  const profileShellProps = {
+    profile,
+    lang,
+    editBackHref: justPublished ? `/clasificados/publicar/servicios?lang=${lang}` : undefined,
+    noticeBanner,
+    analyticsListingSlug: slug,
+    engagementListingId: engagementKey,
+    engagementOwnerUserId: row.owner_user_id ?? null,
+    persistListingEngagement,
+    publicLikeCount,
+    listingShareUrl,
+    leonixAdIdFooter,
+    showPublicLeadInquiryForm,
+    directContactFasterResponseHint,
+    serviciosDiscoveryResultsHref: isPublishedLive
+      ? `/clasificados/servicios/resultados?lang=${lang}`
+      : undefined,
+  } as const;
+
   return (
     <>
       {/*
@@ -151,24 +182,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       <div className="hidden" aria-hidden data-servicios-ssr-anchor="1">
         {slug} · {profile.identity.businessName}
       </div>
-      <ServiciosProfileView
-        profile={profile}
-        lang={lang}
-        editBackHref={justPublished ? `/clasificados/publicar/servicios?lang=${lang}` : undefined}
-        noticeBanner={noticeBanner}
-        analyticsListingSlug={slug}
-        engagementListingId={engagementKey}
-        engagementOwnerUserId={row.owner_user_id ?? null}
-        persistListingEngagement={persistListingEngagement}
-        publicLikeCount={publicLikeCount}
-        listingShareUrl={listingShareUrl}
-        leonixAdIdFooter={leonixAdIdFooter}
-        showPublicLeadInquiryForm={showPublicLeadInquiryForm}
-        directContactFasterResponseHint={directContactFasterResponseHint}
-        serviciosDiscoveryResultsHref={
-          isPublishedLive ? `/clasificados/servicios/resultados?lang=${lang}` : undefined
-        }
-      />
+      {isServiciosProfessionalTemplate(listingTemplate) ? (
+        <ServiciosProfessionalProfileShell {...profileShellProps} template={listingTemplate} />
+      ) : (
+        <ServiciosProfileView {...profileShellProps} />
+      )}
     </>
   );
 }

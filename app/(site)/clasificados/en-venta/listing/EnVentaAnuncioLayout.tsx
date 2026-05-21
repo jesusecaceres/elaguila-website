@@ -22,10 +22,13 @@ import {
   buildDirectionsIntent,
   buildSendEmailIntent,
   buildSendMessageIntent,
+  buildSocialLinkIntent,
+  buildWebsiteIntent,
   buildWhatsAppMessageIntent,
   CtaActionSheet,
   type CtaSheetIntent,
 } from "@/app/components/cta";
+import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa6";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
@@ -382,6 +385,8 @@ export function EnVentaAnuncioLayout({
   const showWhatsAppCta =
     Boolean(waDigits) && (ch12?.whatsappEnabled !== false) && (ch12 ? true : legacyWa);
   const email = String(resolvedContact.emailForMailto || "").trim();
+  const websiteHref = String(resolvedContact.website ?? ch12?.website ?? "").trim() || null;
+  const socialIconLinks = resolvedContact.socialLinks;
   const contactShareExtras = useMemo(
     () => ({
       email: email || undefined,
@@ -691,30 +696,78 @@ export function EnVentaAnuncioLayout({
                 </div>
               ) : null}
               <div className="mt-3">
-                {listing.contact_phone || listing.contact_email ? (
+                {listing.contact_phone ||
+                listing.contact_email ||
+                (premiumBr && (websiteHref || socialIconLinks.length > 0)) ? (
                   premiumBr ? (
-                    <div className="flex flex-wrap gap-2">
-                      {phoneTel && gateAllowCall ? (
-                        <button type="button" onClick={openCallSheet} className={`${BtnBase} ${primary}`}>
-                          {lang === "es" ? "Llamar" : "Call"}
-                        </button>
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {phoneTel && gateAllowCall ? (
+                          <button type="button" onClick={openCallSheet} className={`${BtnBase} ${primary}`}>
+                            {lang === "es" ? "Llamar" : "Call"}
+                          </button>
+                        ) : null}
+                        {phoneTel && gateAllowSms ? (
+                          <button type="button" onClick={openSmsSheet} className={`${BtnBase} ${secondary}`}>
+                            {lang === "es" ? "Texto" : "Text"}
+                          </button>
+                        ) : null}
+                        {showWhatsAppCta && waDigits ? (
+                          <button type="button" onClick={openWhatsAppSheet} className={`${BtnBase} ${secondary}`}>
+                            WhatsApp
+                          </button>
+                        ) : null}
+                        {email ? (
+                          <button type="button" className={`${BtnBase} ${secondary}`} onClick={openEmailSheet}>
+                            {lang === "es" ? "Enviar mensaje" : "Send message"}
+                          </button>
+                        ) : null}
+                      </div>
+                      {websiteHref || socialIconLinks.length > 0 ? (
+                        <div className="mt-4 space-y-3 border-t border-[#E8DFD0]/70 pt-4">
+                          {websiteHref ? (
+                            <button
+                              type="button"
+                              onClick={() => openSheet(buildWebsiteIntent({ url: websiteHref, kind: "website" }))}
+                              className={`${BtnBase} ${secondary} w-full min-h-[44px] sm:w-auto`}
+                            >
+                              {lang === "es" ? "Más información" : "Website / more information"}
+                            </button>
+                          ) : null}
+                          {socialIconLinks.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {socialIconLinks.map((sl) => (
+                                <button
+                                  key={`${sl.kind}-${sl.href}`}
+                                  type="button"
+                                  onClick={() => openSheet(buildSocialLinkIntent({ url: sl.href }))}
+                                  className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#E8DFD0] bg-[#FFFCF7] text-[#1E1810] shadow-sm transition hover:bg-[#FAF7F2]"
+                                  aria-label={
+                                    sl.kind === "instagram"
+                                      ? "Instagram"
+                                      : sl.kind === "facebook"
+                                        ? "Facebook"
+                                        : sl.kind === "youtube"
+                                          ? "YouTube"
+                                          : "TikTok"
+                                  }
+                                >
+                                  {sl.kind === "instagram" ? (
+                                    <FaInstagram className="h-4 w-4" aria-hidden />
+                                  ) : sl.kind === "facebook" ? (
+                                    <FaFacebook className="h-4 w-4" aria-hidden />
+                                  ) : sl.kind === "youtube" ? (
+                                    <FaYoutube className="h-4 w-4" aria-hidden />
+                                  ) : (
+                                    <FaTiktok className="h-4 w-4" aria-hidden />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
                       ) : null}
-                      {phoneTel && gateAllowSms ? (
-                        <button type="button" onClick={openSmsSheet} className={`${BtnBase} ${secondary}`}>
-                          {lang === "es" ? "Texto" : "Text"}
-                        </button>
-                      ) : null}
-                      {showWhatsAppCta && waDigits ? (
-                        <button type="button" onClick={openWhatsAppSheet} className={`${BtnBase} ${secondary}`}>
-                          WhatsApp
-                        </button>
-                      ) : null}
-                      {email ? (
-                        <button type="button" className={`${BtnBase} ${secondary}`} onClick={openEmailSheet}>
-                          {lang === "es" ? "Enviar mensaje" : "Send message"}
-                        </button>
-                      ) : null}
-                    </div>
+                    </>
                   ) : (
                     <div className="space-y-3">
                       {evPrimaryContactKind === "wa" && waDigits ? (

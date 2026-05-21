@@ -14,6 +14,7 @@ export type HubCategoryKey =
   | "clases"
   | "comunidad"
   | "busco"
+  | "mascotas-y-perdidos"
   | "restaurantes"
   | "travel";
 
@@ -44,6 +45,7 @@ export const HUB_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas-y-perdidos",
 ];
 
 /** Valid `category` values when mapping DB rows for the hub. */
@@ -57,6 +59,7 @@ export const HUB_CATEGORY_KEYS: readonly HubCategoryKey[] = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas-y-perdidos",
   "travel",
   "restaurantes",
 ];

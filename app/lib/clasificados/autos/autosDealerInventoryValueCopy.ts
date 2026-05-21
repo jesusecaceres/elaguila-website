@@ -1,5 +1,6 @@
 import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import {
+  BASE_AUTOS_NEGOCIO_MONTHLY_USD,
   INVENTORY_BOOST_ADDITIONAL_VEHICLES,
   INVENTORY_BOOST_MONTHLY_USD,
   autosDealerInventoryTotalWithBoostLine,
@@ -11,8 +12,8 @@ export function autosDealerInventoryValueTitle(lang: AutosClassifiedsLang): stri
 
 export function autosDealerInventoryValueLead(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? "Tu paquete Autos Negocio incluye hasta 10 vehículos activos."
-    : "Your Autos Negocio package includes up to 10 active vehicles.";
+    ? `Tu plan Autos Negocio ($${BASE_AUTOS_NEGOCIO_MONTHLY_USD}/mes) incluye hasta 10 vehículos activos.`
+    : `Your Autos Negocio plan ($${BASE_AUTOS_NEGOCIO_MONTHLY_USD}/mo) includes up to 10 active vehicles.`;
 }
 
 export function autosDealerInventoryValueDetail(lang: AutosClassifiedsLang): string {

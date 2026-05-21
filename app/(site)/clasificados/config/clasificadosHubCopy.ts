@@ -38,6 +38,10 @@ const CLASIFICADOS_HUB_UI = {
         label: "Busco / Se busca",
         hint: "Publica solicitudes para encontrar artículos, ayuda, personas para actividades, grupos, transporte, recursos o algo específico que necesitas.",
       },
+      "mascotas-y-perdidos": {
+        label: "Mascotas y Perdidos",
+        hint: "Avisos gratuitos para mascotas perdidas o encontradas, adopciones y objetos perdidos o encontrados.",
+      },
       restaurantes: {
         label: "Restaurantes",
         hint: "Opciones locales, menús y reseñas.",
@@ -80,6 +84,10 @@ const CLASIFICADOS_HUB_UI = {
       busco: {
         label: "Looking for / Wanted",
         hint: "Post requests to find items, help, people for activities, groups, rides, resources, or something specific you need.",
+      },
+      "mascotas-y-perdidos": {
+        label: "Pets & Lost & Found",
+        hint: "Free notices for lost or found pets, adoptions, and lost or found items.",
       },
       restaurantes: {
         label: "Restaurants",

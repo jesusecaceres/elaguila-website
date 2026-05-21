@@ -16,7 +16,9 @@ import {
   fetchPublishedMascotasPerdidosListings,
   type MascotasPerdidosListingBrowseRow,
 } from "./shared/loadMascotasPerdidosListings";
+import { mascotasPerdidosCityMatches } from "./shared/mascotasPerdidosCityMatch";
 import { buildMascotasPerdidosSearchBlob } from "./shared/mascotasPerdidosSearchText";
+import { MascotasResultsCityFilter } from "./MascotasResultsCityFilter";
 
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
@@ -29,7 +31,7 @@ const COPY = {
     subtitle: "Busca y filtra avisos de mascotas y perdidos en Leonix Clasificados.",
     search: "Buscar",
     type: "Tipo de aviso",
-    city: "Ciudad (contiene)",
+    city: "Ciudad",
     allTypes: "Todos los tipos",
     apply: "Aplicar filtros",
     clear: "Limpiar",
@@ -45,7 +47,7 @@ const COPY = {
     subtitle: "Search and filter pets & lost & found notices on Leonix Classifieds.",
     search: "Search",
     type: "Notice type",
-    city: "City (contains)",
+    city: "City",
     allTypes: "All types",
     apply: "Apply filters",
     clear: "Clear",
@@ -94,7 +96,7 @@ export function MascotasPerdidosResultsClient() {
       const pairs = detailPairsToMap(row.detail_pairs);
       const blob = buildMascotasPerdidosSearchBlob(row, pairs, lang);
       if (!textMatch(blob, q)) return false;
-      if (city && !textMatch(String(row.city ?? ""), city)) return false;
+      if (city && !mascotasPerdidosCityMatches(row.city, city)) return false;
       if (tipo !== "all") {
         const slug = (pairs["Leonix:noticeType"] ?? "").trim().toLowerCase();
         if (slug !== tipo) return false;
@@ -143,15 +145,7 @@ export function MascotasPerdidosResultsClient() {
                 ))}
               </select>
             </label>
-            <label className="block text-xs font-semibold text-[#5C5346]">
-              {t.city}
-              <input
-                className="mt-1 min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2 text-sm"
-                name="city"
-                defaultValue={city}
-                placeholder={lang === "es" ? "Ej. Fresno" : "E.g. Fresno"}
-              />
-            </label>
+            <MascotasResultsCityFilter lang={lang} label={t.city} defaultValue={city} />
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
             <button

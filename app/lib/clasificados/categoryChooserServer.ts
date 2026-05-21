@@ -13,6 +13,7 @@ const DEFAULT_PUBLISH_KEYS: Array<Exclude<CategoryKey, "all">> = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas-y-perdidos",
   "travel",
 ];
 
