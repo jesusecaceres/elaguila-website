@@ -140,12 +140,12 @@ function haystackMatchesAny(haystack: string, keywords: readonly string[]): bool
 }
 
 function buildRoutingHaystack(input: ResolveServiciosListingTemplateInput): string {
-  const parts = [
-    normalizeHaystack(input.businessTypeId),
-    normalizeHaystack(input.internalGroup),
-    normalizeHaystack(input.categoryLabel),
-  ].filter(Boolean);
-  return parts.join(" ");
+  const businessTypeId = normalizeHaystack(input.businessTypeId);
+  const categoryLabel = normalizeHaystack(input.categoryLabel);
+  const parts = [businessTypeId, categoryLabel].filter(Boolean);
+  if (parts.length > 0) return parts.join(" ");
+  const internalGroup = normalizeHaystack(input.internalGroup);
+  return internalGroup || "";
 }
 
 function resolveFromKeywords(haystack: string): ServiciosListingTemplate | null {

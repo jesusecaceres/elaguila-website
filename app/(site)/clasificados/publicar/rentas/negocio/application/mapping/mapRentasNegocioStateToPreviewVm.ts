@@ -151,7 +151,7 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
     instructionsNote: trim(s.negocioBio),
   });
 
-  const exact = s.mostrarDireccionExacta !== false;
+  const exact = s.mostrarDireccionExacta === true;
   const cross = trim(s.direccionCruceCercano);
   const line1 = exact ? buildRentasStreetLine(s) : cross;
   const cityStateZip = buildRentasCityStateZipLine(s);

@@ -50,4 +50,20 @@ assertTemplate("consultoria_negocios advisor", { businessTypeId: "consultoria_ne
 assertTemplate("consultoria_variada stays standard", { businessTypeId: "consultoria_variada" }, "standard_service");
 assertTemplate("marketing stays standard", { businessTypeId: "marketing_publicidad" }, "standard_service");
 
+assertTemplate(
+  "contador category wins over legal_professional internal_group",
+  { internalGroup: "legal_professional", categoryLabel: "Contador / Impuestos" },
+  "financial_provider",
+);
+assertTemplate(
+  "marketing under legal_professional group stays standard",
+  { internalGroup: "legal_professional", categoryLabel: "Marketing / Publicidad" },
+  "standard_service",
+);
+assertTemplate(
+  "published opsMeta businessTypeId exact map",
+  { businessTypeId: "contador_impuestos", internalGroup: "legal_professional" },
+  "financial_provider",
+);
+
 console.log("smoke-servicios-template-routing: OK");

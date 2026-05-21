@@ -444,7 +444,10 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="off"
               />
             </AiField>
-            <AiField label="Mostrar direcciÃ³n exacta cuando aplique">
+            <AiField
+              label="Mostrar dirección exacta cuando aplique"
+              hint="Si no activas esta opción, mostraremos una ubicación aproximada. / If you do not enable this, we will show an approximate location."
+            >
               <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
                 <input
                   type="checkbox"
@@ -453,14 +456,11 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
                 />
                 <span className="min-w-0">
-                  Mostrar calle y unidad en vista previa, resultados y mapa cuando la informaciÃ³n estructurada estÃ©
+                  Mostrar calle y unidad en vista previa, resultados y mapa cuando la información estructurada esté
                   completa.
                 </span>
               </label>
             </AiField>
-            <p className="sm:col-span-2 text-xs leading-relaxed text-[#5C5346]">
-              Si no activas esta opciÃ³n, mostraremos una ubicaciÃ³n aproximada.
-            </p>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
               Para vista previa: ciudad o lÃ­nea de ubicaciÃ³n (al menos uno)
               <span className="text-[#B8954A]" aria-hidden>

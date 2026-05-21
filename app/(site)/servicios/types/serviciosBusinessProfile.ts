@@ -248,6 +248,8 @@ export type ServiciosBusinessProfile = {
   opsMeta?: {
     leonixVerifiedInterest?: boolean;
     discovery?: ServiciosDiscoveryFacet;
+    /** Preserved at publish for template routing (not shown on public shell). */
+    businessTypeId?: string;
     /** Admin/dev: optional gallery video publish diagnostics (never shown on public shell). */
     serviciosVideoPublishNotes?: { videoId: string; reason: string }[];
   };

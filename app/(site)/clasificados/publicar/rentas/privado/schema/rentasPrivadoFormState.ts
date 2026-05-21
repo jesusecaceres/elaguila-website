@@ -268,7 +268,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     direccionLinea1: "",
     direccionLinea2: "",
     direccionCruceCercano: "",
-    mostrarDireccionExacta: true,
+    mostrarDireccionExacta: false,
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: "CA",

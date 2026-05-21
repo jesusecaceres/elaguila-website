@@ -159,7 +159,7 @@ export function buildRentasGoogleMapsSearchQuery(parts: {
   direccionEstado: string;
   direccionCodigoPostal: string;
 }): string | null {
-  const exactOk = parts.mostrarDireccionExacta !== false;
+  const exactOk = parts.mostrarDireccionExacta === true;
   const cross = trim(parts.direccionCruceCercano);
   const line1 = exactOk ? buildRentasStreetLine(parts) : "";
   const city = trim(parts.ciudad);

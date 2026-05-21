@@ -97,7 +97,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     estado: trim(s.direccionEstado) || "CA",
     codigoPostal: coerceRentasPostalDigits5(s.direccionCodigoPostal),
     colonia: s.zonaVecindario,
-    mostrarDireccionExacta: s.mostrarDireccionExacta !== false,
+    mostrarDireccionExacta: s.mostrarDireccionExacta === true,
     descripcionLarga: s.descripcion,
     descripcionCorta: "",
     listingStatus: listingStatusFromRentas(s.estadoAnuncio),

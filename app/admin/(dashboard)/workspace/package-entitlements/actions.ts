@@ -48,7 +48,7 @@ function initialStatus(startsAt: string, endsAt: string, now: Date): "active" | 
   return "active";
 }
 
-function redirectWith(query: Record<string, string>) {
+function redirectWith(query: Record<string, string>): never {
   const p = new URLSearchParams(query);
   redirect(`/admin/workspace/package-entitlements?${p.toString()}`);
 }
@@ -79,11 +79,8 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const endsAt = parseDateTimeLocal(String(formData.get("ends_at") ?? ""));
   if (!startsAt || !endsAt) {
     redirectWith({ error: "invalid_dates" });
-    return;
   }
-  const startsIso: string = startsAt;
-  const endsIso: string = endsAt;
-  if (new Date(endsIso).getTime() <= new Date(startsIso).getTime()) {
+  if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
     redirectWith({ error: "end_before_start" });
   }
 
@@ -109,7 +106,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   }
 
   const def = getPackageEntitlementBenefits(tier as PackageEntitlementTier);
-  const status = initialStatus(startsIso, endsIso, now);
+  const status = initialStatus(startsAt, endsAt, now);
   const metadata = {
     source: "admin_manual",
     visibility_bucket: def.visibilityBucket,
@@ -136,8 +133,8 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
       customer_name: customerName,
       business_name: businessName,
       notes,
-      starts_at: startsIso,
-      ends_at: endsIso,
+      starts_at: startsAt,
+      ends_at: endsAt,
       placement_scope: scopes,
       benefits: def.benefits,
       metadata,

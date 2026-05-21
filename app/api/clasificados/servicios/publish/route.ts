@@ -189,6 +189,10 @@ export async function POST(req: NextRequest) {
     opsMeta.leonixVerifiedInterest = true;
   }
   opsMeta.discovery = buildServiciosDiscoveryFacet(state, wire);
+  const publishedBusinessTypeId = state.businessTypeId.trim();
+  if (publishedBusinessTypeId) {
+    opsMeta.businessTypeId = publishedBusinessTypeId;
+  }
   const diagRaw = b.videoPublishDiagnostics;
   if (Array.isArray(diagRaw) && diagRaw.length) {
     const notes: { videoId: string; reason: string }[] = [];

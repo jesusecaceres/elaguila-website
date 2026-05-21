@@ -376,7 +376,10 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
               placeholder="Departamento, unidad, suite…"
             />
           </AiField>
-          <AiField label="Mostrar dirección exacta cuando aplique">
+          <AiField
+            label="Mostrar dirección exacta cuando aplique"
+            hint="Si no activas esta opción, mostraremos una ubicación aproximada. / If you do not enable this, we will show an approximate location."
+          >
             <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
               <input
                 type="checkbox"

@@ -116,7 +116,7 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
     comercial: s.comercial,
     terreno: s.terreno,
     petsAllowed: s.mascotas === "permitidas" ? "yes" : s.mascotas === "no_permitidas" ? "no" : "",
-    mostrarDireccionExacta: s.mostrarDireccionExacta !== false,
+    mostrarDireccionExacta: s.mostrarDireccionExacta === true,
   });
 }
 
@@ -164,7 +164,7 @@ function rentOperationSummary(cat: RentasPrivadoFormState["categoriaPropiedad"])
 
 export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): BienesRaicesPrivadoPreviewVm {
   const base = mapBienesRaicesPrivadoStateToPreviewVm(toBienesRaicesPrivadoShape(s));
-  const exact = s.mostrarDireccionExacta !== false;
+  const exact = s.mostrarDireccionExacta === true;
   const cross = trim(s.direccionCruceCercano);
   const line1 = exact ? buildRentasStreetLine(s) : cross;
   const cityStateZip = buildRentasCityStateZipLine(s);
