@@ -57,6 +57,7 @@ export async function POST(req: Request) {
   const lang = o.lang === "en" ? "en" : "es";
   const rawType = String(o.inquiryType ?? "general_tienda");
   const inquiryType = (INQUIRY_TYPES as readonly string[]).includes(rawType) ? (rawType as InquiryType) : "general_tienda";
+  const service = o.service != null ? String(o.service).trim().slice(0, 120) : "";
 
   if (!name || name.length > 200) {
     return NextResponse.json(
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
     `Submitted (UTC): ${submittedAt}`,
     `Language: ${lang}`,
     `Inquiry type: ${inquiryType} (${typeLabel})`,
+    service ? `Service / product slug: ${service}` : "Service / product slug: (not provided)",
     "",
     `Name: ${name}`,
     `Email: ${email}`,
@@ -106,6 +108,7 @@ export async function POST(req: Request) {
   <p style="margin:0 0 8px;"><strong>Submitted (UTC):</strong> ${escapeHtml(submittedAt)}</p>
   <p style="margin:0 0 8px;"><strong>Language:</strong> ${escapeHtml(lang)}</p>
   <p style="margin:0 0 8px;"><strong>Inquiry:</strong> ${escapeHtml(inquiryType)} — ${escapeHtml(typeLabel)}</p>
+  <p style="margin:0 0 8px;"><strong>Service / product:</strong> ${service ? escapeHtml(service) : "<em>not provided</em>"}</p>
   <hr style="border:none;border-top:1px solid #ddd;margin:16px 0;" />
   <p><strong>Name:</strong> ${escapeHtml(name)}</p>
   <p><strong>Email:</strong> ${escapeHtml(email)}</p>

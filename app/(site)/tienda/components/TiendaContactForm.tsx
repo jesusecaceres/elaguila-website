@@ -38,6 +38,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
           inquiryType,
           message,
           lang,
+          service: service?.trim() || undefined,
         }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };

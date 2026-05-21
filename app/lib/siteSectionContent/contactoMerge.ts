@@ -1,5 +1,10 @@
 import type { ContactoPayload } from "./payloadTypes";
-import { LEONIX_GLOBAL_EMAIL, LEONIX_GLOBAL_MAILTO, LEONIX_MEDIA_BRAND } from "@/app/data/leonixGlobalContact";
+import { LEONIX_GLOBAL_EMAIL, LEONIX_GLOBAL_MAILTO } from "@/app/data/leonixGlobalContact";
+import {
+  LEONIX_MAP_URL,
+  LEONIX_OFFICE_ADDRESS,
+  LEONIX_PHONE_DISPLAY,
+} from "@/app/(site)/tienda/data/leonixContact";
 
 export type ContactoResolvedCopy = {
   h1: string;
@@ -22,43 +27,45 @@ export type ContactoResolvedCopy = {
 };
 
 const BASE_EN: Omit<ContactoResolvedCopy, "langSwitch"> = {
-  h1: "Contact",
+  h1: "Contact us",
   subhead: null,
-  intro: `Reach ${LEONIX_MEDIA_BRAND} for general questions, partnerships, and editorial or media-related requests.`,
-  business: "Contact details",
+  intro:
+    "Reach out about ads, your business, promotional products, the magazine, or any general Leonix Media question.",
+  business: "Leonix Media — contact details",
   emailLabel: "Email",
   hoursLabel: "Hours",
   hours: "Monday–Friday, 9:00 AM – 5:00 PM Pacific",
   email: LEONIX_GLOBAL_EMAIL,
   mailto: LEONIX_GLOBAL_MAILTO,
-  phoneLine: null,
-  addressLine: null,
+  phoneLine: LEONIX_PHONE_DISPLAY,
+  addressLine: LEONIX_OFFICE_ADDRESS,
   noticeTop: null,
-  tiendaTitle: "Print store (Tienda)",
+  tiendaTitle: "Looking for print or promotional products?",
   tiendaBody:
-    "For business printing, orders, file uploads, and Tienda quotes, use the dedicated Tienda contact page so we route you correctly.",
-  tiendaCta: "Tienda help & contact",
-  mapUrl: null,
+    "For business cards, flyers, banners, promotional products, or print files, use the Tienda contact page.",
+  tiendaCta: "Tienda help and contact",
+  mapUrl: LEONIX_MAP_URL,
 };
 
 const BASE_ES: Omit<ContactoResolvedCopy, "langSwitch"> = {
-  h1: "Contacto",
+  h1: "Contáctanos",
   subhead: null,
-  intro: `Comunícate con ${LEONIX_MEDIA_BRAND} para consultas generales, alianzas y temas editoriales o de medios.`,
-  business: "Datos de contacto",
+  intro:
+    "Escríbenos sobre anuncios, tu negocio, productos promocionales, la revista o cualquier pregunta general de Leonix Media.",
+  business: "Leonix Media — datos de contacto",
   emailLabel: "Correo",
   hoursLabel: "Horario",
   hours: "Lunes a viernes, 9:00 – 17:00 (Pacífico)",
   email: LEONIX_GLOBAL_EMAIL,
   mailto: LEONIX_GLOBAL_MAILTO,
-  phoneLine: null,
-  addressLine: null,
+  phoneLine: LEONIX_PHONE_DISPLAY,
+  addressLine: LEONIX_OFFICE_ADDRESS,
   noticeTop: null,
-  tiendaTitle: "Tienda de impresión",
+  tiendaTitle: "¿Buscas productos de impresión o promoción?",
   tiendaBody:
-    "Para impresión comercial, pedidos, subida de archivos y cotizaciones de Tienda, usa la página de contacto dedicada para enrutarte bien.",
+    "Para cotizaciones de tarjetas, volantes, banners, artículos promocionales o archivos de impresión, usa la página de contacto de Tienda.",
   tiendaCta: "Ayuda y contacto Tienda",
-  mapUrl: null,
+  mapUrl: LEONIX_MAP_URL,
 };
 
 function s(v: string | undefined, fb: string): string {
@@ -93,13 +100,13 @@ export function mergeContactoCopy(lang: "es" | "en", patch: ContactoPayload | nu
     hours: s(lang === "en" ? patch.hours?.en : patch.hours?.es, base.hours),
     email,
     mailto,
-    phoneLine: patch.phone?.trim() ? patch.phone.trim() : null,
-    addressLine: s(lang === "en" ? patch.address?.en : patch.address?.es, "") || null,
+    phoneLine: patch.phone?.trim() ? patch.phone.trim() : base.phoneLine,
+    addressLine: s(lang === "en" ? patch.address?.en : patch.address?.es, base.addressLine ?? "") || base.addressLine,
     noticeTop: s(lang === "en" ? patch.noticeBanner?.en : patch.noticeBanner?.es, "") || null,
     tiendaTitle,
     tiendaBody,
     tiendaCta,
-    mapUrl: patch.mapUrl?.trim() || null,
+    mapUrl: patch.mapUrl?.trim() || base.mapUrl,
     langSwitch: lang === "en" ? "Español" : "English",
   };
 }

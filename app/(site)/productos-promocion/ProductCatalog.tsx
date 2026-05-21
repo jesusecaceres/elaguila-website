@@ -271,6 +271,13 @@ function BottomContactBlock({ lang }: { lang: Lang }) {
         </address>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href={generalQuoteHref(lang)}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
+            style={{ background: OLIVE_BG, color: OLIVE_FG }}
+          >
+            {lang === "es" ? "Solicitar cotización" : "Request quote"}
+          </Link>
           <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
           <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
           <ContactActionLink href={MAILTO_QUOTE} label={emailLabel} />

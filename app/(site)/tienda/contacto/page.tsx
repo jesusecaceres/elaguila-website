@@ -3,15 +3,17 @@ import Link from "next/link";
 import { LEONIX_GLOBAL_CONTACT_PATH } from "@/app/data/leonixGlobalContact";
 import {
   LEONIX_MAILTO_TIENDA,
+  LEONIX_MAP_URL,
   LEONIX_OFFICE_ADDRESS,
   LEONIX_PHONE_DISPLAY,
   LEONIX_PHONE_TEL,
   LEONIX_TIENDA_EMAIL,
 } from "../data/leonixContact";
 import {
-  tiendaContactBackToStore,
+  tiendaContactBackToProducts,
   tiendaContactGeneralSiteCta,
   tiendaContactGeneralSiteNote,
+  tiendaContactGoHome,
   tiendaContactPageSubtitle,
   tiendaContactPageTitle,
   tiendaContactPreferenceIntro,
@@ -48,14 +50,20 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
   return (
     <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="mx-auto max-w-3xl px-6 pt-28 pb-20">
-        <p className="text-sm">
+        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label={lang === "en" ? "Contact navigation" : "Navegación de contacto"}>
           <Link
-            href={withLang("/tienda", lang)}
+            href={withLang("/productos-promocion", lang)}
             className="font-medium text-[color:var(--lx-lion)] hover:text-[color:var(--lx-text)]"
           >
-            {tiendaContactBackToStore(lang)}
+            {tiendaContactBackToProducts(lang)}
           </Link>
-        </p>
+          <Link
+            href={withLang("/", lang)}
+            className="font-medium text-[color:var(--lx-lion)] hover:text-[color:var(--lx-text)]"
+          >
+            {tiendaContactGoHome(lang)}
+          </Link>
+        </nav>
 
         <header className="mt-8 space-y-4">
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[color:var(--lx-text)]">
@@ -76,7 +84,22 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
           <ul className="mt-6 space-y-4 text-sm text-[color:var(--lx-text)]/85">
             <li className="flex flex-col gap-1 border-b border-[color:var(--lx-border)] pb-4">
               <span className="font-semibold text-[color:var(--lx-text)]">{tiendaContactRankOffice(lang)}</span>
-              <span className="text-[color:var(--lx-muted)]">{LEONIX_OFFICE_ADDRESS}</span>
+              <a
+                href={LEONIX_MAP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-words text-[color:var(--lx-muted)] underline-offset-2 hover:text-[color:var(--lx-text)] hover:underline"
+              >
+                {LEONIX_OFFICE_ADDRESS}
+              </a>
+              <a
+                href={LEONIX_MAP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 w-fit text-sm font-semibold text-[color:var(--lx-blue)] hover:text-[color:var(--lx-text)]"
+              >
+                {lang === "en" ? "Open map" : "Abrir mapa"}
+              </a>
             </li>
             <li className="flex flex-col gap-1 border-b border-[color:var(--lx-border)] pb-4">
               <span className="font-semibold text-[color:var(--lx-text)]">{tiendaContactRankPhone(lang)}</span>

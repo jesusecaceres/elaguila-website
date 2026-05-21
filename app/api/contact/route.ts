@@ -7,6 +7,29 @@ export const runtime = "nodejs";
 
 const MAX_MESSAGE = 12_000;
 
+const TOPIC_VALUES = [
+  "advertise_business",
+  "classifieds",
+  "promo_print",
+  "magazine",
+  "account_support",
+  "general_question",
+] as const;
+
+type TopicValue = (typeof TOPIC_VALUES)[number];
+
+function topicLabel(topic: TopicValue, lang: "es" | "en"): string {
+  const m: Record<TopicValue, { es: string; en: string }> = {
+    advertise_business: { es: "Anunciar mi negocio", en: "Advertise my business" },
+    classifieds: { es: "Clasificados", en: "Classifieds" },
+    promo_print: { es: "Productos promocionales / impresión", en: "Promotional products / printing" },
+    magazine: { es: "Revista", en: "Magazine" },
+    account_support: { es: "Soporte de cuenta", en: "Account support" },
+    general_question: { es: "Pregunta general", en: "General question" },
+  };
+  return lang === "en" ? m[topic].en : m[topic].es;
+}
+
 function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
@@ -28,6 +51,11 @@ export async function POST(req: Request) {
   const phone = o.phone != null ? String(o.phone).trim() : "";
   const message = String(o.message ?? "").trim();
   const lang = o.lang === "en" ? "en" : "es";
+  const rawTopic = String(o.topic ?? "general_question");
+  const topic = (TOPIC_VALUES as readonly string[]).includes(rawTopic)
+    ? (rawTopic as TopicValue)
+    : "general_question";
+  const topicText = topicLabel(topic, lang);
 
   if (!name || name.length > 200) {
     return NextResponse.json(
@@ -59,6 +87,7 @@ export async function POST(req: Request) {
     "Source: Global website contact form (/contacto)",
     `Submitted (UTC): ${submittedAt}`,
     `Language: ${lang}`,
+    `Topic: ${topic} (${topicText})`,
     "",
     `Name: ${name}`,
     `Email: ${email}`,
@@ -74,6 +103,7 @@ export async function POST(req: Request) {
   <p style="margin:0 0 8px;color:#555;"><strong>Source:</strong> Website contact form (<code>/contacto</code>)</p>
   <p style="margin:0 0 8px;"><strong>Submitted (UTC):</strong> ${escapeHtml(submittedAt)}</p>
   <p style="margin:0 0 8px;"><strong>Language:</strong> ${escapeHtml(lang)}</p>
+  <p style="margin:0 0 8px;"><strong>Topic:</strong> ${escapeHtml(topic)} — ${escapeHtml(topicText)}</p>
   <hr style="border:none;border-top:1px solid #ddd;margin:16px 0;" />
   <p><strong>Name:</strong> ${escapeHtml(name)}</p>
   <p><strong>Email:</strong> ${escapeHtml(email)}</p>

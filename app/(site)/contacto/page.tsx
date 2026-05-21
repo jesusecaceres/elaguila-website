@@ -3,7 +3,11 @@ import Link from "next/link";
 import { GlobalContactForm } from "@/app/components/contact/GlobalContactForm";
 import { LEONIX_GLOBAL_CONTACT_PATH } from "@/app/data/leonixGlobalContact";
 import { LEONIX_MEDIA_DESCRIPTOR_EN, LEONIX_MEDIA_DESCRIPTOR_ES, LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
-import { LEONIX_TIENDA_CONTACT_PATH } from "@/app/tienda/data/leonixContact";
+import {
+  LEONIX_MAP_URL,
+  LEONIX_PHONE_TEL,
+  LEONIX_TIENDA_CONTACT_PATH,
+} from "@/app/(site)/tienda/data/leonixContact";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { mergeContactoCopy } from "@/app/lib/siteSectionContent/contactoMerge";
@@ -80,8 +84,8 @@ export default async function ContactoPage(props: {
           <h2 className="mb-3 text-xl font-semibold text-[color:var(--lx-text)]">{copy.tiendaTitle}</h2>
           <p className="mb-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">{copy.tiendaBody}</p>
           <Link
-            href={withLang(LEONIX_TIENDA_CONTACT_PATH, lang)}
-            className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] transition hover:opacity-90"
+            href={withLang(`${LEONIX_TIENDA_CONTACT_PATH}?service=cotizacion-general`, lang)}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] transition hover:opacity-90"
           >
             {copy.tiendaCta}
           </Link>
@@ -103,7 +107,9 @@ export default async function ContactoPage(props: {
                 <span className="font-semibold text-[color:var(--lx-text)]">
                   {lang === "en" ? "Phone" : "Teléfono"}:
                 </span>{" "}
-                {copy.phoneLine}
+                <a href={LEONIX_PHONE_TEL} className="underline hover:opacity-80">
+                  {copy.phoneLine}
+                </a>
               </p>
             ) : null}
 
@@ -112,7 +118,14 @@ export default async function ContactoPage(props: {
                 <span className="font-semibold text-[color:var(--lx-text)]">
                   {lang === "en" ? "Address" : "Dirección"}:
                 </span>{" "}
-                {copy.addressLine}
+                <a
+                  href={copy.mapUrl ?? LEONIX_MAP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-words underline hover:opacity-80"
+                >
+                  {copy.addressLine}
+                </a>
               </p>
             ) : null}
 

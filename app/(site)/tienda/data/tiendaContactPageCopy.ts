@@ -44,6 +44,14 @@ export function tiendaContactBackToStore(lang: Lang): string {
   return t("← Volver a la Tienda", "← Back to Tienda store", lang);
 }
 
+export function tiendaContactBackToProducts(lang: Lang): string {
+  return t("Volver a productos", "Back to products", lang);
+}
+
+export function tiendaContactGoHome(lang: Lang): string {
+  return t("Ir al inicio", "Go home", lang);
+}
+
 export function tiendaContactGeneralSiteNote(lang: Lang): string {
   return t(
     "¿Consulta general sobre Leonix Media (no pedido de Tienda)?",
