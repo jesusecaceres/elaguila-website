@@ -185,9 +185,23 @@ export function filterBrListings(
 
   const q = state.q.trim().toLowerCase();
   if (q) {
-    rows = rows.filter(
-      (l) => l.title.toLowerCase().includes(q) || l.addressLine.toLowerCase().includes(q)
-    );
+    rows = rows.filter((l) => {
+      const blob = [
+        l.title,
+        l.addressLine,
+        l.beds,
+        l.baths,
+        l.sqft,
+        l.searchBlob ?? "",
+        l.operationLabel ?? "",
+        l.advertiser.name,
+        l.advertiser.subtitle ?? "",
+        ...(l.metaLines ?? []),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return blob.includes(q);
+    });
   }
 
   if (state.city.trim()) {

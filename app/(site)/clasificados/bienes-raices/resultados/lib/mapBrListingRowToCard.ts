@@ -8,6 +8,7 @@ import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
 import { buildBrPublicLocationForLiveDetail } from "@/app/clasificados/lib/leonixBrGate12d";
 import { augmentLeonixDetailPairsFromStructuredColumns } from "@/app/clasificados/lib/leonixListingStructuredPayload";
+import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 
 function imageUrlsFromJsonb(images: unknown): string[] {
   if (images == null) return [];
@@ -139,6 +140,9 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
   const metaLines = facets.metaHints.length ? facets.metaHints : undefined;
   const m = facets.machine;
   const zipNorm = m?.postalCode ? normalizeZipInput(m.postalCode) : "";
+  const searchBlob =
+    stripLeonixPublishedDescriptionBody(String(row.description ?? "")) ||
+    String(row.description ?? "").trim();
 
   return {
     id: String(row.id),
@@ -148,7 +152,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     addressLine,
     beds: facets.beds,
     baths: facets.baths,
-    sqft: "—",
+    sqft: facets.sqft,
     year: undefined,
     categoriaPropiedad: cat,
     badges,
@@ -168,5 +172,6 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     facetPool: m?.pool ?? null,
     facetPets: m?.petsAllowed ?? null,
     facetFurnished: m?.furnished ?? null,
+    searchBlob: searchBlob || undefined,
   };
 }

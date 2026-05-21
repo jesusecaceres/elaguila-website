@@ -17,6 +17,8 @@ export type BrFacetSlice = {
   categoriaPropiedad: BrNegocioCategoriaPropiedad | null;
   beds: string;
   baths: string;
+  /** Interior sqft from human detail_pairs (`Pies cuadrados`, `Tamaño interior`, etc.). */
+  sqft: string;
   metaHints: string[];
   /** From `Leonix:*` machine rows when present. */
   machine?: ReturnType<typeof parseLeonixMachineFacetRead>;
@@ -80,6 +82,10 @@ export function extractBrFacetsFromDetailPairs(detailPairs: unknown): BrFacetSli
     baths = b ? digitsOrDash(b) : "—";
   }
 
+  let sqft = firstMatchingValue(rows, /pies\s*cuadrados|tamaño\s*interior|^interior$/i);
+  if (!sqft) sqft = firstMatchingValue(rows, /\bsqft\b|superficie\s*interior/i);
+  const sqftCard = sqft ? digitsOrDash(sqft) : "—";
+
   const metaHints: string[] = [];
   const hideSalePets = isBrBienesRaicesSaleListing(detailPairs);
   if (!hideSalePets && machine.petsAllowed === true) metaHints.push("Mascotas");
@@ -98,6 +104,7 @@ export function extractBrFacetsFromDetailPairs(detailPairs: unknown): BrFacetSli
     categoriaPropiedad: lx.categoriaPropiedad,
     beds,
     baths,
+    sqft: sqftCard,
     metaHints: [...new Set(metaHints)].slice(0, 6),
     machine,
   };

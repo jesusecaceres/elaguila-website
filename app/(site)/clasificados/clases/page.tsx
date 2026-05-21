@@ -119,7 +119,12 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 p-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:p-5">
+        <form
+          className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 p-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:p-5"
+          action="/clasificados/clases/resultados"
+          method="get"
+        >
+          <input type="hidden" name="lang" value={lang} />
           <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch sm:gap-3">
             <div className="relative min-w-0">
               <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>
@@ -127,20 +132,28 @@ export default function Page() {
               </span>
               <input
                 type="text"
+                name="q"
                 placeholder={t.searchPlaceholder}
                 className="min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white py-2.5 pl-8 pr-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-2 focus:ring-[#A98C2A]/18"
                 aria-label={t.searchPlaceholder}
-                readOnly
-                onFocus={(e) => e.target.blur()}
               />
             </div>
-            <Link
-              href={listaHref}
-              className="flex min-h-[44px] min-w-0 items-center justify-center rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm text-[#111111]/85 transition hover:bg-[#EFEFEF] sm:w-40 sm:justify-start"
-            >
-              <span className="truncate">{t.locationPlaceholder}</span>
-            </Link>
+            <label className="flex min-h-[44px] min-w-0 flex-col justify-center sm:w-40">
+              <span className="sr-only">{t.locationPlaceholder}</span>
+              <input
+                type="text"
+                name="city"
+                placeholder={t.locationPlaceholder}
+                className="min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-2 focus:ring-[#A98C2A]/18"
+              />
+            </label>
           </div>
+          <button
+            type="submit"
+            className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] sm:w-auto"
+          >
+            {t.buttonView}
+          </button>
           <div className="mt-3">
             <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>
               {chips.map((label) => (
@@ -155,7 +168,7 @@ export default function Page() {
             </CategoryLandingChipsRail>
           </div>
           <p className="mt-2 text-[11px] leading-snug text-[#111111]/68">{t.hint}</p>
-        </section>
+        </form>
 
         <CategoryRecentListings
           category="clases"

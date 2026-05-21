@@ -55,4 +55,6 @@ export type BrNegocioListing = {
    * max(`created_at`,`updated_at`,`published_at`) from `mapBrListingRowToNegocioCard`.
    */
   demoPublishedAtMs?: number;
+  /** Stripped listing description for `q` search (not shown on cards). */
+  searchBlob?: string;
 };
