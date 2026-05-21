@@ -365,14 +365,14 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
   }, [activeCategory, lang]);
 
   const THUMBS: Record<CategoryKey, string> = {
-    ultimas: "/thumbs/thumb_ultimas.png",
-    tendencias: "/thumbs/thumb_tendencias.png",
-    deportes: "/thumbs/thumb_deportes.png",
-    tecnologia: "/thumbs/thumb_tecnologia.png",
-    negocios: "/thumbs/thumb_negocios.png",
-    internacional: "/thumbs/thumb_internacional.png",
-    cultura: "/thumbs/thumb_cultura.png",
-    local: "/thumbs/thumb_local.png",
+    ultimas: "/el-aguila/public/images/news/ultimas.jpg",
+    tendencias: "/el-aguila/public/images/news/tendencias.jpg",
+    deportes: "/el-aguila/public/images/news/deportes.jpg",
+    tecnologia: "/el-aguila/public/images/news/tecnologia.jpg",
+    negocios: "/el-aguila/public/images/news/negocios.jpg",
+    internacional: "/el-aguila/public/images/news/internacional.jpg",
+    cultura: "/el-aguila/public/images/news/cultura-latina.jpg",
+    local: "/el-aguila/public/images/news/noticias-locales.jpg",
   };
 
   const getThumbForArticle = (title: string, category: CategoryKey) => {
