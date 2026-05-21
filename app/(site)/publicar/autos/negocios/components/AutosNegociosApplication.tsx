@@ -32,6 +32,8 @@ import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/componen
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
 import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/components/AutosDealerStructuredAddressFields";
 import { AutosDealerLogoUpload } from "@/app/publicar/autos/shared/components/AutosDealerLogoUpload";
+import { AutosCustomEquipmentField } from "@/app/publicar/autos/shared/components/AutosCustomEquipmentField";
+import { AutosDealerFinanceFields } from "@/app/publicar/autos/shared/components/AutosDealerFinanceFields";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
   formatMileageInputDisplay,
@@ -531,6 +533,26 @@ export function AutosNegociosApplication() {
                 </label>
               ))}
             </div>
+            <AutosCustomEquipmentField
+              lang={lang}
+              items={(listing.customEquipment ?? []).filter(Boolean)}
+              onChange={(customEquipment) => setListingPatch({ customEquipment })}
+            />
+            <div className="mt-6">
+              <label className={LABEL}>
+                {lang === "es" ? "Otros equipos, mejoras o detalles" : "Other equipment, upgrades, or details"}
+              </label>
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Notas adicionales: mantenimiento, historial o detalles que no caben en la lista."
+                  : "Additional notes: maintenance, history, or details not covered above."}
+              </p>
+              <textarea
+                className={`${INPUT} mt-2 min-h-[100px]`}
+                value={listing.otherEquipmentDetails ?? ""}
+                onChange={(e) => setListingPatch({ otherEquipmentDetails: e.target.value || undefined })}
+              />
+            </div>
           </section>
 
           {/* D — Multimedia */}
@@ -647,6 +669,8 @@ export function AutosNegociosApplication() {
                 onPatch={(p) => setListingPatch(syncDealerAddressFromStructured({ ...listing, ...p }))}
               />
             </div>
+
+            <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} />
 
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.dealer.socialHeading}</p>
             <div className={`${GRID2} mt-3`}>

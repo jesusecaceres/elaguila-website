@@ -105,7 +105,7 @@ export function AutoDealerPreviewPage({
         <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
             <section
-              className={`${MAIN_CARD} lg:col-span-7 lg:col-start-1`}
+              className={`${MAIN_CARD} border-l-[3px] border-l-[color:var(--lx-gold)]/70 lg:col-span-7 lg:col-start-1`}
               style={{ gridRowStart: titleRow, order: orderTitle }}
             >
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">

@@ -98,5 +98,7 @@ export function hasDescriptionSection(data: AutoDealerListing): boolean {
 }
 
 export function hasHighlightsSection(data: AutoDealerListing): boolean {
-  return (data.features ?? []).some((f) => nonEmpty(f));
+  return (
+    (data.features ?? []).some((f) => nonEmpty(f)) || (data.customEquipment ?? []).some((f) => nonEmpty(f))
+  );
 }

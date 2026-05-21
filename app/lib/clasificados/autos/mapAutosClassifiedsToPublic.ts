@@ -52,6 +52,9 @@ function buildSearchableBlurb(L: AutoDealerListing): string {
   if (L.vin?.trim()) parts.push(L.vin.trim());
   if (L.stockNumber?.trim()) parts.push(L.stockNumber.trim());
   if (Array.isArray(L.features) && L.features.length) parts.push(L.features.join(" "));
+  if (Array.isArray(L.customEquipment) && L.customEquipment.length) parts.push(L.customEquipment.join(" "));
+  if (L.financeContactName?.trim()) parts.push(L.financeContactName.trim());
+  if (L.financeNotes?.trim()) parts.push(L.financeNotes.trim().slice(0, 500));
   const engineDisplay = resolveEngineForDisplay(L);
   if (engineDisplay) parts.push(engineDisplay);
   if (L.engine?.trim() && L.engine.trim() !== engineDisplay) parts.push(L.engine.trim());

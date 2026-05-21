@@ -64,6 +64,18 @@ export type AutosNegociosCopy = {
     };
     titleBlock: { title: string; customize: string; hint: string; generatedNote: string };
     equipmentHeading: string;
+    finance: {
+      heading: string;
+      intro: string;
+      name: string;
+      title: string;
+      phone: string;
+      whatsapp: string;
+      email: string;
+      preApprovalUrl: string;
+      notes: string;
+      disclaimer: string;
+    };
   };
   media: {
     sectionTitle: string;
@@ -163,6 +175,16 @@ export type AutosNegociosCopy = {
     };
     specs: { title: string; subtitle: string; rows: Record<string, string> };
     highlights: { title: string; subtitle: string };
+    finance: {
+      heading: string;
+      intro: string;
+      whatsapp: string;
+      call: string;
+      email: string;
+      preApproval: string;
+      notesLabel: string;
+      disclaimer: string;
+    };
     description: { title: string; byline: (dealer: string) => string };
     related: { title: string; subtitle: string; details: string };
     gallery: {
@@ -348,6 +370,20 @@ const ES: AutosNegociosCopy = {
       generatedNote: "Título generado a partir de la identidad del vehículo.",
     },
     equipmentHeading: "Equipamiento",
+    finance: {
+      heading: "Contacto de financiamiento",
+      intro:
+        "Ayuda a tus compradores a iniciar una pre-aprobación antes de visitar el dealer. Opcional — solo se muestra si completas al menos un campo.",
+      name: "Nombre del asesor",
+      title: "Cargo / rol",
+      phone: "Teléfono",
+      whatsapp: "WhatsApp",
+      email: "Correo",
+      preApprovalUrl: "Enlace para pre-aprobación",
+      notes: "Notas de financiamiento",
+      disclaimer:
+        "Leonix no aprueba ni garantiza financiamiento. Los datos son proporcionados por el concesionario.",
+    },
   },
   media: {
     sectionTitle: "Fotos y medios",
@@ -474,6 +510,16 @@ const ES: AutosNegociosCopy = {
     highlights: {
       title: "Equipo y mejoras",
       subtitle: "Equipamiento seleccionado por el concesionario",
+    },
+    finance: {
+      heading: "Contacto de financiamiento",
+      intro: "Ayuda a tus compradores a iniciar una pre-aprobación antes de visitar el dealer.",
+      whatsapp: "WhatsApp financiamiento",
+      call: "Llamar",
+      email: "Correo",
+      preApproval: "Iniciar pre-aprobación",
+      notesLabel: "Notas",
+      disclaimer: "Leonix no aprueba ni garantiza financiamiento. Contacto proporcionado por el concesionario.",
     },
     description: {
       title: "Descripción del concesionario",
@@ -699,6 +745,19 @@ const EN: AutosNegociosCopy = {
       generatedNote: "Title generated from vehicle identity.",
     },
     equipmentHeading: "Equipment",
+    finance: {
+      heading: "Financing contact",
+      intro:
+        "Help buyers start pre-approval before visiting the dealership. Optional — shown only when at least one field is filled.",
+      name: "Advisor name",
+      title: "Title / role",
+      phone: "Phone",
+      whatsapp: "WhatsApp",
+      email: "Email",
+      preApprovalUrl: "Pre-approval link",
+      notes: "Financing notes",
+      disclaimer: "Leonix does not approve or guarantee financing. Information is provided by the dealership.",
+    },
   },
   media: {
     sectionTitle: "Photos & media",
@@ -824,6 +883,16 @@ const EN: AutosNegociosCopy = {
     highlights: {
       title: "Equipment & upgrades",
       subtitle: "Equipment selected by the dealership",
+    },
+    finance: {
+      heading: "Financing contact",
+      intro: "Help buyers start pre-approval before visiting the dealership.",
+      whatsapp: "Financing WhatsApp",
+      call: "Call",
+      email: "Email",
+      preApproval: "Start pre-approval",
+      notesLabel: "Notes",
+      disclaimer: "Leonix does not approve or guarantee financing. Contact is provided by the dealership.",
     },
     description: {
       title: "Dealership description",

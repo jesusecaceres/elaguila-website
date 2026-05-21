@@ -112,6 +112,8 @@ export type AutoDealerListing = {
   titleStatusCustom?: string;
   badges?: VehicleBadge[];
   features?: string[];
+  /** Seller-added equipment/upgrades not in the checklist (e.g. Apple CarPlay). */
+  customEquipment?: string[];
   description?: string;
   /** Free-text upgrades / unlisted equipment / maintenance notes (Privado + shared payload). */
   otherEquipmentDetails?: string | null;
@@ -171,6 +173,14 @@ export type AutoDealerListing = {
   /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
   dealerBookingUrl?: string | null;
   dealerSocials?: DealerSocials;
+  /** Optional financing / pre-approval contact (Negocios only). */
+  financeContactName?: string;
+  financeContactTitle?: string;
+  financeContactPhone?: string;
+  financeContactWhatsapp?: string;
+  financeContactEmail?: string;
+  financeApplicationUrl?: string;
+  financeNotes?: string;
   /** Engagement snapshot for preview / live analytics strip. */
   listingAnalytics?: AutosListingAnalyticsSnapshot;
   relatedDealerListings?: RelatedDealerListing[];

@@ -7,6 +7,15 @@ import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
 import { ServiciosHorizontalResultCard } from "@/app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard";
+import { ServiciosProfessionalResultCard } from "@/app/(site)/clasificados/servicios/ServiciosProfessionalResultCard";
+import type { ServiciosPublicListingRow } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/(site)/clasificados/servicios/lib/serviciosListingLifecycle";
+import {
+  isServiciosProfessionalTemplate,
+  resolveServiciosListingTemplate,
+} from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
+import { resolveServiciosPublicCategoryLabel } from "../lib/resolveServiciosPublicCategoryLabel";
+import { ServiciosProfessionalPreviewShell } from "./ServiciosProfessionalPreviewShell";
 import { getServiciosWireProfileFromSample } from "@/app/servicios/data/demoServiciosBusinessProfile";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
@@ -216,7 +225,38 @@ export function ClasificadosServiciosPreviewClient() {
     return resolveServiciosProfile(wire, lang);
   }, [source, appDraft, lang]);
 
+  const listingTemplate = useMemo(() => {
+    if (source !== "application" || !appState) return "standard_service" as const;
+    const preset = getBusinessTypePreset(appState.businessTypeId);
+    return resolveServiciosListingTemplate({
+      businessTypeId: appState.businessTypeId,
+      internalGroup: preset?.internalGroup ?? null,
+      categoryLabel: resolveServiciosPublicCategoryLabel(appState, lang),
+    });
+  }, [source, appState, lang]);
+
+  const useProfessionalPreview =
+    source === "application" && isServiciosProfessionalTemplate(listingTemplate);
+
+  const previewListingRow = useMemo((): ServiciosPublicListingRow | null => {
+    if (!useProfessionalPreview || !appState || !appDraft || !profile) return null;
+    const wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
+    const slug = profile.identity.slug;
+    return {
+      slug,
+      business_name: appState.businessName.trim() || profile.identity.businessName,
+      city: appState.city.trim(),
+      published_at: new Date().toISOString(),
+      profile_json: wire,
+      leonix_verified: appState.leonixVerifiedInterest === true,
+      internal_group: getBusinessTypePreset(appState.businessTypeId)?.internalGroup ?? null,
+      listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
+    };
+  }, [useProfessionalPreview, appState, appDraft, profile]);
+
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
+  const cardPreviewTitle = lang === "en" ? "Result card preview" : "Vista previa de la tarjeta";
+  const fullPreviewTitle = lang === "en" ? "Full profile preview" : "Vista previa completa";
 
   if (source === "loading" || !profile) {
     return <div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />;
@@ -298,14 +338,29 @@ export function ClasificadosServiciosPreviewClient() {
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
           {/* Premium Preview Card */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa de la tarjeta</h2>
-            <ServiciosHorizontalResultCard previewProfile={profile} lang={lang} className="mx-auto max-w-4xl" />
+            <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{cardPreviewTitle}</h2>
+            {previewListingRow ? (
+              <ul className="mx-auto max-w-4xl list-none">
+                <ServiciosProfessionalResultCard row={previewListingRow} lang={lang} />
+              </ul>
+            ) : (
+              <ServiciosHorizontalResultCard previewProfile={profile} lang={lang} className="mx-auto max-w-4xl" />
+            )}
           </div>
-          
-          {/* Full Profile View */}
+
           <div>
-            <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">Vista previa completa</h2>
-            <ServiciosProfileView profile={profile} lang={lang} showTopBar={false} />
+            <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{fullPreviewTitle}</h2>
+            {useProfessionalPreview ? (
+              <ServiciosProfessionalPreviewShell
+                profile={profile}
+                lang={lang}
+                template={listingTemplate}
+                cityFallback={appState?.city}
+                draftSlug={profile.identity.slug}
+              />
+            ) : (
+              <ServiciosProfileView profile={profile} lang={lang} showTopBar={false} />
+            )}
           </div>
         </ClasificadosPreviewAdCanvas>
       </div>

@@ -23,6 +23,7 @@ import { buildDealerDisplayAddress, buildDealerMapsHref } from "@/app/lib/clasif
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
+import { DealerFinanceContact } from "./DealerFinanceContact";
 
 const BTN_PRIMARY =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99] max-lg:min-h-[54px]";
@@ -270,6 +271,8 @@ export function DealerBusinessStack({
           </div>
         </div>
       ) : null}
+
+      <DealerFinanceContact data={data} />
 
       {hours.length > 0 ? (
         <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">

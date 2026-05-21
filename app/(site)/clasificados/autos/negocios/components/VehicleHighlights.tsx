@@ -38,7 +38,9 @@ function BiCheckDecor() {
 
 export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
   const { t } = useAutosNegociosPreviewCopy();
-  const feats = (data.features ?? []).map((f) => f.trim()).filter(Boolean);
+  const checklist = (data.features ?? []).map((f) => f.trim()).filter(Boolean);
+  const custom = (data.customEquipment ?? []).map((f) => f.trim()).filter(Boolean);
+  const feats = [...checklist, ...custom];
   if (feats.length === 0) return null;
 
   const { title, subtitle } = t.preview.highlights;
