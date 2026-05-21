@@ -9,9 +9,9 @@ import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosPro
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
-import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import {
+  readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
   type ServiciosListingTemplate,
 } from "./lib/serviciosTemplateRouting";
@@ -38,17 +38,6 @@ const CTA_SECONDARY =
 
 const CTA_TERTIARY =
   "inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-[#E0D0B8] bg-[#FFFCF7] px-3 text-xs font-bold text-[#2A2620] transition hover:border-[#C9A84A]";
-
-function readProfileBusinessTypeId(profileJson: ServiciosBusinessProfile): string | null {
-  const ext = profileJson as ServiciosBusinessProfile & {
-    businessTypeId?: unknown;
-    opsMeta?: { businessTypeId?: unknown };
-  };
-  for (const c of [ext.businessTypeId, ext.opsMeta?.businessTypeId]) {
-    if (typeof c === "string" && c.trim()) return c.trim();
-  }
-  return null;
-}
 
 function cleanChipLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -127,9 +116,12 @@ function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
 export function ServiciosProfessionalResultCard({
   row,
   lang,
+  /** When true, omit outer `<li>` (parent list item already wraps this card). */
+  embedded = false,
 }: {
   row: ServiciosPublicListingRow;
   lang: ServiciosLang;
+  embedded?: boolean;
 }) {
   const wire = { ...row.profile_json };
   wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
@@ -147,7 +139,7 @@ export function ServiciosProfessionalResultCard({
   const profile = resolveServiciosProfile(wire, lang);
 
   const template = resolveServiciosListingTemplate({
-    businessTypeId: readProfileBusinessTypeId(row.profile_json),
+    businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
     internalGroup: row.internal_group,
     categoryLabel: profile.hero.categoryLine,
   });
@@ -163,7 +155,6 @@ export function ServiciosProfessionalResultCard({
   const location = profile.hero.locationSummary?.trim() || row.city?.trim();
   const snippet = profile.about?.text?.trim().slice(0, 120);
   const trustFact = profile.quickFacts[0]?.label?.trim();
-  const phone = profile.contact.phoneDisplay;
   const tel = profile.contact.phoneTelHref;
   const wa = profile.contact.socialLinks?.whatsapp;
   const promoted = isServiciosListingPromoted(row);
@@ -264,9 +255,13 @@ export function ServiciosProfessionalResultCard({
 
   const primaryIsCall = Boolean(tel);
 
-  return (
-    <li>
-      <article className={CARD}>
+  const cardSurface = promoted
+    ? `${CARD} ring-2 ring-[#D4AF37]/25 border-[#D4AF37]/50`
+    : CARD;
+
+  const body = (
+    <>
+      <article className={cardSurface}>
         <div className="flex gap-3 p-4 pb-3 sm:gap-4 sm:p-5">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#F6F0E8] sm:h-[4.5rem] sm:w-[4.5rem]">
             {thumb ? (
@@ -386,6 +381,9 @@ export function ServiciosProfessionalResultCard({
         </div>
       </article>
       <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
-    </li>
+    </>
   );
+
+  if (embedded) return body;
+  return <li>{body}</li>;
 }

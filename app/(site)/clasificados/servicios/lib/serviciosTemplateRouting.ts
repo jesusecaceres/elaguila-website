@@ -4,6 +4,7 @@
  */
 
 import type { ServiciosLang } from "@/app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 
 export type ServiciosListingTemplate =
   | "standard_service"
@@ -11,6 +12,18 @@ export type ServiciosListingTemplate =
   | "clinic_provider"
   | "financial_provider"
   | "advisor_provider";
+
+/** Reads business type id from profile wire JSON (publish + legacy shapes). */
+export function readServiciosProfileBusinessTypeId(profileJson: ServiciosBusinessProfile): string | null {
+  const ext = profileJson as ServiciosBusinessProfile & {
+    businessTypeId?: unknown;
+    opsMeta?: { businessTypeId?: unknown };
+  };
+  for (const c of [ext.businessTypeId, ext.opsMeta?.businessTypeId]) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return null;
+}
 
 export type ResolveServiciosListingTemplateInput = {
   businessTypeId?: string | null;

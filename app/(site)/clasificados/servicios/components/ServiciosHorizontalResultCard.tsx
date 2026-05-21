@@ -20,6 +20,12 @@ import {
   serviciosContactShareExtras,
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import {
+  isServiciosProfessionalTemplate,
+  readServiciosProfileBusinessTypeId,
+  resolveServiciosListingTemplate,
+} from "../lib/serviciosTemplateRouting";
+import { ServiciosProfessionalResultCard } from "../ServiciosProfessionalResultCard";
 
 /** Marketplace result row — low profile, warm Phase 9D palette (not tall preview canvas). */
 const CARD =
@@ -258,6 +264,17 @@ export function ServiciosHorizontalResultCard({
 
   if (!profile) {
     return null;
+  }
+
+  if (row && !previewProfile) {
+    const template = resolveServiciosListingTemplate({
+      businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
+      internalGroup: row.internal_group,
+      categoryLabel: profile.hero.categoryLine,
+    });
+    if (isServiciosProfessionalTemplate(template)) {
+      return <ServiciosProfessionalResultCard row={row} lang={lang} embedded />;
+    }
   }
 
   const cityFallback = (row?.city || "").trim();

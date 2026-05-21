@@ -25,21 +25,10 @@ import {
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import {
   isServiciosProfessionalTemplate,
+  readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
 } from "./lib/serviciosTemplateRouting";
 import { ServiciosProfessionalResultCard } from "./ServiciosProfessionalResultCard";
-import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
-
-function readProfileBusinessTypeId(profileJson: ServiciosBusinessProfile): string | null {
-  const ext = profileJson as ServiciosBusinessProfile & {
-    businessTypeId?: unknown;
-    opsMeta?: { businessTypeId?: unknown };
-  };
-  for (const c of [ext.businessTypeId, ext.opsMeta?.businessTypeId]) {
-    if (typeof c === "string" && c.trim()) return c.trim();
-  }
-  return null;
-}
 
 /**
  * Discovery card — only fields that exist on the resolved profile; empty data hides cleanly.
@@ -48,7 +37,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const routeWire = { ...row.profile_json };
   const routeProfile = resolveServiciosProfile(routeWire, lang);
   const template = resolveServiciosListingTemplate({
-    businessTypeId: readProfileBusinessTypeId(row.profile_json),
+    businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
     internalGroup: row.internal_group,
     categoryLabel: routeProfile.hero.categoryLine,
   });
