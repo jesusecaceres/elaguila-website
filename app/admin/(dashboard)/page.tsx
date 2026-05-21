@@ -15,6 +15,7 @@ import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } 
 import {
   benefitLabels,
   effectiveEntitlementStatus,
+  formatEntitlementListingHeadline,
   getPackageEntitlementDashboardSnapshot,
 } from "../_lib/packageEntitlementData";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
@@ -124,9 +125,7 @@ export default async function AdminHomePage() {
                     >
                       <div className="min-w-0">
                         <p className="font-mono text-xs font-bold text-[#1E1810]">{row.entitlement_code ?? "—"}</p>
-                        <p className="truncate font-semibold text-[#1E1810]">
-                          {row.business_name || row.customer_name || row.listing_id}
-                        </p>
+                        <p className="truncate font-semibold text-[#1E1810]">{formatEntitlementListingHeadline(row)}</p>
                         <p className="text-xs text-[#7A7164]">
                           {row.package_tier} · {row.category} · {effective}
                         </p>

@@ -69,9 +69,10 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   }
 
   const listingSource = String(formData.get("listing_source") ?? "").trim();
-  const listingId = String(formData.get("listing_id") ?? "").trim();
-  if (!listingSource || !listingId) {
-    redirectWith({ error: "missing_listing" });
+  const listingIdRaw = String(formData.get("listing_id") ?? "").trim();
+  const listingId = listingIdRaw || null;
+  if (!listingSource) {
+    redirectWith({ error: "missing_listing_source" });
   }
 
   const startsAt = parseDateTimeLocal(String(formData.get("starts_at") ?? ""));
@@ -113,6 +114,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     source: "admin_manual",
     visibility_bucket: def.visibilityBucket,
     created_via: "gate_g1_6b_admin",
+    listing_attachment: listingId ? "attached" : "pending",
     stripe_checkout_session_id: null,
     stripe_payment_intent_id: null,
     stripe_customer_id: null,

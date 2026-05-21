@@ -10,7 +10,7 @@ export type ListingPackageEntitlementRow = {
   status: string;
   category: string;
   listing_source: string;
-  listing_id: string;
+  listing_id: string | null;
   package_tier: string;
   entitlement_code: string | null;
   contract_code: string | null;
@@ -66,7 +66,10 @@ function rowFromDb(raw: Record<string, unknown>): ListingPackageEntitlementRow {
     status: String(raw.status),
     category: String(raw.category),
     listing_source: String(raw.listing_source),
-    listing_id: String(raw.listing_id),
+    listing_id:
+      raw.listing_id != null && String(raw.listing_id).trim() !== ""
+        ? String(raw.listing_id).trim()
+        : null,
     package_tier: String(raw.package_tier),
     entitlement_code: raw.entitlement_code != null ? String(raw.entitlement_code) : null,
     contract_code: raw.contract_code != null ? String(raw.contract_code) : null,
@@ -80,6 +83,20 @@ function rowFromDb(raw: Record<string, unknown>): ListingPackageEntitlementRow {
     metadata,
     revoked_at: raw.revoked_at != null ? String(raw.revoked_at) : null,
   };
+}
+
+export function formatEntitlementListingHeadline(
+  row: Pick<ListingPackageEntitlementRow, "listing_id" | "business_name" | "customer_name">,
+): string {
+  if (row.business_name?.trim()) return row.business_name.trim();
+  if (row.customer_name?.trim()) return row.customer_name.trim();
+  if (row.listing_id) return row.listing_id;
+  return "Pending listing";
+}
+
+export function formatEntitlementListingIdLine(listingId: string | null): string {
+  if (!listingId) return "Unassigned listing — attach when ad exists";
+  return `listing_id: ${listingId}`;
 }
 
 export function effectiveEntitlementStatus(

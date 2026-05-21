@@ -95,7 +95,7 @@ Excluded / deferred:
 - **clases**, **comunidad** → not client-ready (`deferred`)
 - **empleos**, **viajes** → separate / staged model (`separate_model`)
 
-Each entitlement is attached to a **listing row** (and its category). `requiresMatchingCategoryFirst: true` — search/filter must match before visibility benefits apply in public sort.
+Each entitlement is tied to a **category** and optional **listing row**. Pre-ad grants may have `listing_id` null until attach. `requiresMatchingCategoryFirst: true` — search/filter must match before visibility benefits apply in public sort (after listing is attached).
 
 ---
 
@@ -117,7 +117,9 @@ Missing fields → `tier: none` or `unknown` + **warnings**, not crashes.
 
 **What it does:**
 
-- Creates rows in `public.listing_package_entitlements` with tier, category, `listing_source`, `listing_id`, contract `starts_at` / `ends_at`, optional `contract_code`, and `entitlement_code` (auto `LX-ENT-…` when blank).
+- Creates rows in `public.listing_package_entitlements` with tier, category, `listing_source`, contract `starts_at` / `ends_at`, optional `contract_code`, and `entitlement_code` (auto `LX-ENT-…` when blank).
+- **`listing_id` is optional at creation** (Gate G1.6B-FIX1): sales can issue a code **before** the customer publishes an ad. Admin shows **Pending listing** / **Unassigned listing** until attached.
+- A **future redemption/attach gate** will connect the entitlement code to the customer listing. Until then the row is trackable in Admin but must not drive public sorting.
 - Snapshots `benefits` from `getPackageEntitlementBenefits` at grant time.
 - Sets `metadata.source = admin_manual` and nullable Stripe Checkout placeholders (`stripe_checkout_session_id`, `stripe_payment_intent_id`, `stripe_customer_id`, `stripe_subscription_id`, `payment_status`) for a future **Stripe Checkout** path (preferred over Payment Links).
 - Lists recent entitlements and supports **revoke** (status `revoked`, `revoked_at` set — no hard delete).

@@ -168,12 +168,15 @@ For each area, verify:
 
 1. Admin dashboard (`/admin`) — Tienda stat cards and “Recent Tienda orders” block are **not** the primary homepage focus; Package Entitlement cards and recent entitlements appear with links to the generator.
 2. Open `/admin/workspace/package-entitlements` — desktop and mobile width; helper copy states this is **not** the public coupon CMS and does **not** charge customers.
-3. Create **Premium** test: `servicios`, `servicios_public_listings`, test `listing_id`, start today, end +3 months, blank code → confirm `LX-ENT-…` and Destacados benefit labels; no results priority by default.
-4. Create **Full-page** — confirm results priority + republish + boost in benefits snapshot.
-5. Create **Half-page** — classified + republish + boost; no results priority by default.
-6. **Revoke** one row — status `revoked`, row remains in list.
-7. Confirm `/admin/workspace/cupones` unchanged.
-8. Confirm no Stripe/checkout UI and no change to public Servicios results order.
+3. Create **pre-ad** test: `servicios`, `servicios_public_listings`, **leave Listing ID blank**, start today, end +3 months → confirm `LX-ENT-…`, row shows **Pending listing** / unassigned copy.
+4. Create **Premium** test (with listing): optional `listing_id`, same dates → Destacados benefit labels; no results priority by default.
+5. Create **Full-page** — confirm results priority + republish + boost in benefits snapshot.
+6. Create **Half-page** — classified + republish + boost; no results priority by default.
+7. **Revoke** one row — status `revoked`, row remains in list.
+8. Confirm `/admin/workspace/cupones` unchanged.
+9. Confirm no Stripe/checkout UI and no change to public Servicios results order.
+
+**Supabase:** apply `20260521130000_listing_package_entitlements_optional_listing_id.sql` if Listing ID blank submit fails (column still NOT NULL).
 
 **Future payment:** Stripe Checkout (not Payment Links) with webhook-created entitlements; placeholders live in `metadata` json.
 

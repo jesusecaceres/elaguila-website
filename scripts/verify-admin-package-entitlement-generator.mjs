@@ -19,13 +19,21 @@ function assert(name, condition, detail) {
   checks.push({ name, ok: Boolean(condition), detail });
 }
 
-const migrationGlob = fs
+const entitlementMigrations = fs
   .readdirSync(path.join(root, "supabase/migrations"))
-  .find((f) => f.includes("listing_package_entitlements") && f.endsWith(".sql"));
+  .filter((f) => f.includes("listing_package_entitlements") && f.endsWith(".sql"));
 
-assert("migration file exists", Boolean(migrationGlob), "Expected supabase migration for listing_package_entitlements.");
+const migrationGlob = entitlementMigrations.find((f) => f.includes("20260521120000")) ?? entitlementMigrations[0];
+const optionalListingMigration = entitlementMigrations.find((f) =>
+  /optional_listing_id|listing_id.*drop not null/i.test(f),
+);
+
+assert("base migration file exists", Boolean(migrationGlob), "Expected listing_package_entitlements base migration.");
 
 const migration = migrationGlob ? read(`supabase/migrations/${migrationGlob}`) : "";
+const optionalMigration = optionalListingMigration
+  ? read(`supabase/migrations/${optionalListingMigration}`)
+  : "";
 
 for (const col of [
   "listing_package_entitlements",
@@ -43,6 +51,12 @@ for (const col of [
 }
 
 assert("migration includes status", /status/.test(migration), "status column missing.");
+
+assert(
+  "FIX1 migration drops listing_id NOT NULL",
+  /alter\s+column\s+listing_id\s+drop\s+not\s+null/i.test(optionalMigration),
+  "Expected 20260521130000_listing_package_entitlements_optional_listing_id.sql.",
+);
 
 const adminPage = "app/admin/(dashboard)/workspace/package-entitlements/page.tsx";
 const adminActions = "app/admin/(dashboard)/workspace/package-entitlements/actions.ts";
@@ -69,6 +83,21 @@ assert(
   /listing_source/.test(pageSrc) && /listing_id/.test(pageSrc) && /category/.test(pageSrc),
   "Missing listing attachment fields.",
 );
+assert(
+  "admin page labels Listing ID optional",
+  /Listing ID.*opcional|optional/i.test(pageSrc) && /attach after ad is created|antes de que exista/i.test(pageSrc),
+  "Listing ID must be labeled optional with pre-ad helper text.",
+);
+assert(
+  "admin page does not require Listing ID",
+  !/name="listing_id"[^>]*required/i.test(pageSrc),
+  "Remove HTML required on listing_id input.",
+);
+assert(
+  "UI displays Pending or Unassigned listing",
+  /Pending listing|Unassigned listing|formatEntitlementListingIdLine|formatEntitlementListingHeadline/.test(pageSrc),
+  "Recent list must show pending/unassigned copy for null listing_id.",
+);
 assert("admin page create form", /createPackageEntitlementAction/.test(pageSrc), "Create form must call server action.");
 assert("admin page revoke", /revokePackageEntitlementAction/.test(pageSrc), "Revoke action required.");
 assert(
@@ -85,6 +114,17 @@ assert(
   "auto-generate entitlement code",
   /generateEntitlementCode|LX-ENT/.test(actionsSrc),
   "Must generate code when blank.",
+);
+assert(
+  "server action accepts blank listing_id",
+  /listingIdRaw|listingId\s*=\s*listingIdRaw\s*\|\|\s*null/.test(actionsSrc) &&
+    !/!\s*listingId\)/.test(actionsSrc.replace(/\s+/g, " ")),
+  "Blank listing_id should map to null; do not require listingId.",
+);
+assert(
+  "dashboard handles unassigned listing display",
+  /formatEntitlementListingHeadline/.test(dashSrc),
+  "Dashboard recent entitlements must use headline helper for null listing_id.",
 );
 
 assert(
@@ -139,6 +179,7 @@ const gateFiles = [
   "app/admin/_lib/packageEntitlementData.ts",
   "app/admin/_lib/packageEntitlementConstants.ts",
   migrationGlob ? `supabase/migrations/${migrationGlob}` : "",
+  optionalListingMigration ? `supabase/migrations/${optionalListingMigration}` : "",
 ].filter(Boolean);
 
 for (const rel of scanDir("app/(site)")) {
@@ -166,6 +207,11 @@ assert(
   "docs mention admin generator URL",
   /package-entitlements|G1\.6B/i.test(modelDoc),
   "Update package-entitlement-model.md for G1.6B.",
+);
+assert(
+  "docs mention pre-ad entitlement flow",
+  /listing_id.*optional|before.*(ad|listing)|Pending listing|attach/i.test(modelDoc),
+  "Docs must explain pre-ad code flow and later attach.",
 );
 
 const failures = checks.filter((c) => !c.ok);

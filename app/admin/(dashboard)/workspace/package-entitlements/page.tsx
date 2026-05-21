@@ -18,6 +18,8 @@ import {
   benefitLabels,
   effectiveEntitlementStatus,
   fetchRecentPackageEntitlements,
+  formatEntitlementListingHeadline,
+  formatEntitlementListingIdLine,
 } from "@/app/admin/_lib/packageEntitlementData";
 import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
 import { createPackageEntitlementAction, revokePackageEntitlementAction } from "./actions";
@@ -116,6 +118,9 @@ export default async function AdminPackageEntitlementsPage(props: {
           <li>No publica ordenamiento en resultados hasta gates de categoría (p. ej. G2-Servicios).</li>
           <li>Premium (~8–10 inventario) usa módulos Destacados, no prioridad orgánica por defecto.</li>
           <li>Full-page otorga prioridad en resultados coincidentes después de filtros.</li>
+          <li>
+            Listing ID es opcional: genera el código antes de que exista el anuncio; un gate futuro conectará el código al listing.
+          </li>
         </ul>
       </div>
 
@@ -178,8 +183,15 @@ export default async function AdminPackageEntitlementsPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Listing ID
-            <input name="listing_id" required className={`${adminInputClass} mt-1 font-mono text-xs`} placeholder="UUID del anuncio" />
+            Listing ID (opcional)
+            <input
+              name="listing_id"
+              className={`${adminInputClass} mt-1 font-mono text-xs`}
+              placeholder="Optional — attach after ad is created"
+            />
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Leave blank when generating a code before the ad exists.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Negocio (opcional)
@@ -268,11 +280,16 @@ export default async function AdminPackageEntitlementsPage(props: {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-mono text-xs font-bold text-[#1E1810]">{row.entitlement_code ?? "—"}</p>
-                      <p className="mt-0.5 font-semibold text-[#1E1810]">{row.business_name || row.customer_name || "Sin nombre"}</p>
+                      <p className="mt-0.5 font-semibold text-[#1E1810]">{formatEntitlementListingHeadline(row)}</p>
                       <p className="text-xs text-[#7A7164]">
                         {row.package_tier} · {row.category} · {row.listing_source}
+                        {!row.listing_id ? (
+                          <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-950">
+                            Pending listing
+                          </span>
+                        ) : null}
                       </p>
-                      <p className="mt-1 font-mono text-[10px] text-[#5C5346]">listing_id: {row.listing_id}</p>
+                      <p className="mt-1 font-mono text-[10px] text-[#5C5346]">{formatEntitlementListingIdLine(row.listing_id)}</p>
                       <p className="mt-1 text-xs text-[#5C5346]">
                         {fmt(row.starts_at)} → {fmt(row.ends_at)}
                       </p>
