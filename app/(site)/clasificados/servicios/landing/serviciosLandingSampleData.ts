@@ -47,7 +47,11 @@ export type ServiciosLandingExploreCategory = {
   labelEs: string;
   labelEn: string;
   icon: string;
+  /** Trade-family filter — must match `ServiciosInternalGroup` / `SERVICIOS_INTERNAL_GROUP_IDS`. */
   resultsGroup?: string;
+  /** Keyword for results `q=` when group filter is not the best fit. */
+  resultsQueryEs?: string;
+  resultsQueryEn?: string;
 };
 
 export type ServiciosLandingRecentListing = {
@@ -147,10 +151,10 @@ export const SERVICIOS_LANDING_EXPLORE_CATEGORIES: ServiciosLandingExploreCatego
   { id: "plomeria", labelEs: "Plomería", labelEn: "Plumbing", icon: "🔧", resultsGroup: "home_trade" },
   { id: "electricista", labelEs: "Electricista", labelEn: "Electrical", icon: "⚡", resultsGroup: "home_trade" },
   { id: "roof", labelEs: "Techado / techo", labelEn: "Roofing", icon: "🏠", resultsGroup: "home_trade" },
-  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", icon: "✨", resultsGroup: "cleaning" },
+  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", icon: "✨", resultsGroup: "home_trade" },
   { id: "reparacion-auto", labelEs: "Reparación Auto", labelEn: "Auto repair", icon: "🚗", resultsGroup: "automotive" },
-  { id: "tutoria", labelEs: "Tutoría", labelEn: "Tutoring", icon: "📚", resultsGroup: "education" },
+  { id: "tutoria", labelEs: "Tutoría", labelEn: "Tutoring", icon: "📚", resultsGroup: "education_tutoring" },
   { id: "jardineria", labelEs: "Jardinería", labelEn: "Landscaping", icon: "🌿", resultsGroup: "home_trade" },
-  { id: "mascotas", labelEs: "Mascotas", labelEn: "Pets", icon: "🐾", resultsGroup: "pets" },
+  { id: "mascotas", labelEs: "Mascotas", labelEn: "Pets", icon: "🐾", resultsQueryEs: "mascotas", resultsQueryEn: "pets" },
 ];
 

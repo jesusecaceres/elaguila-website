@@ -10,7 +10,10 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
 
 import { MascotasPerdidosLandingRecentListings } from "./MascotasPerdidosLandingRecentListings";
-import { mascotasPerdidosTipoChipHref } from "./shared/mascotasPerdidosBrowseUrls";
+import {
+  mascotasPerdidosPublishEntryUrl,
+  mascotasPerdidosTipoChipHref,
+} from "./shared/mascotasPerdidosBrowseUrls";
 import {
   MASCOTAS_PERDIDOS_PRODUCT,
   mascotasPerdidosLangFromSearchParams,
@@ -56,10 +59,7 @@ export default function MascotasPerdidosLandingPage() {
   const t = COPY[lang];
   const product = MASCOTAS_PERDIDOS_PRODUCT;
 
-  const postHref = useMemo(
-    () => appendLangToPath("/clasificados/publicar/mascotas-y-perdidos", lang),
-    [lang],
-  );
+  const postHref = useMemo(() => mascotasPerdidosPublishEntryUrl(lang), [lang]);
   const resultsHref = useMemo(
     () => mascotasPerdidosPathWithLang("/clasificados/mascotas-y-perdidos/resultados", lang),
     [lang],

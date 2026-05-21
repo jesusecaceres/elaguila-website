@@ -116,10 +116,16 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
 
 function adminDisplayLeonixAdId(row: Row): string {
   const cat = (row.category ?? "").toLowerCase();
-  if (cat === "clases" || cat === "comunidad") return formatLeonixAdId(row.id) ?? "—";
+  if (cat === "clases" || cat === "comunidad" || cat === "busco") return formatLeonixAdId(row.id) ?? "—";
   const stored = row.leonix_ad_id?.trim();
   if (stored) return stored;
   return "—";
+}
+
+function adminListingsCategoryLabel(category: string | null, lang: "es" | "en"): string {
+  const c = (category ?? "").trim().toLowerCase();
+  if (c === "busco") return lang === "es" ? "Busco / Se busca" : "Looking for / Wanted";
+  return (category ?? "").trim() || "—";
 }
 
 function enVentaVisibilityAdminLine(
@@ -330,7 +336,7 @@ export default function AdminListingsTable({
                 </td>
                 <td className="p-3">
                   <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-xs font-semibold text-[#5C4E2E]">
-                    {row.category ?? "—"}
+                    {adminListingsCategoryLabel(row.category, lang)}
                   </span>
                 </td>
                 <td className="p-3 text-[#3D3428]">{row.city ?? "—"}</td>

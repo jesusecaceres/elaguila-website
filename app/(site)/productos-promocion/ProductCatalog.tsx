@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -24,6 +24,27 @@ const CATEGORY_ICONS: Record<CategoryId, string> = {
 const OLIVE_BG = "var(--lx-cta-secondary-bg)";
 const OLIVE_FG = "var(--lx-cta-secondary-fg)";
 const OLIVE_HOVER = "#4d5e30";
+
+const CONTACT = {
+  businessName: "Leonix Media",
+  email: "tienda@leonixmedia.com",
+  phoneDisplay: "(669) 366-4300",
+  phoneTel: "tel:+16693664300",
+  address: "871 Coleman Ave, Suite 202, San Jose, CA 95110",
+  mapUrl:
+    "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20202%20San%20Jose%20CA%2095110",
+} as const;
+
+const MAILTO_QUOTE =
+  "mailto:tienda@leonixmedia.com?subject=Solicitud%20de%20cotizaci%C3%B3n%20-%20Productos%20para%20Promoci%C3%B3n";
+
+function generalQuoteHref(lang: Lang): string {
+  return `/tienda/contacto?service=cotizacion-general&lang=${lang}`;
+}
+
+function outlineBtnProps(): CSSProperties {
+  return { background: "var(--lx-card)", color: "var(--lx-text)", borderColor: "var(--lx-border)" };
+}
 
 function ProductCardImage({ product, lang }: { product: Product; lang: Lang }) {
   const [loadFailed, setLoadFailed] = useState(false);
@@ -136,6 +157,127 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
 
 function quoteHref(lang: Lang, slug: string): string {
   return `/tienda/contacto?lang=${lang}&service=${encodeURIComponent(slug)}`;
+}
+
+function ContactActionLink({
+  href,
+  label,
+  external,
+  className = "",
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+  className?: string;
+}) {
+  const base =
+    "inline-flex min-h-[44px] items-center justify-center rounded-xl border px-5 py-3 text-sm font-semibold transition";
+  const style = outlineBtnProps();
+
+  if (external) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={label}
+        className={`${base} ${className}`}
+        style={style}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lx-section)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lx-card)"; }}
+      >
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      className={`${base} ${className}`}
+      style={style}
+      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--lx-section)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "var(--lx-card)"; }}
+    >
+      {label}
+    </a>
+  );
+}
+
+function HeroContactActions({ lang }: { lang: Lang }) {
+  const quoteLabel = lang === "es" ? "Solicitar cotización" : "Request quote";
+  const callLabel = lang === "es" ? "Llamar" : "Call";
+  const emailLabel = lang === "es" ? "Enviar email" : "Email";
+  const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
+
+  return (
+    <div className="flex flex-wrap justify-center gap-3">
+      <Link
+        href={generalQuoteHref(lang)}
+        className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
+        style={{ background: OLIVE_BG, color: OLIVE_FG }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
+      >
+        {quoteLabel}
+      </Link>
+      <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
+      <ContactActionLink href={MAILTO_QUOTE} label={emailLabel} />
+      <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
+    </div>
+  );
+}
+
+function BottomContactBlock({ lang }: { lang: Lang }) {
+  const heading = lang === "es" ? "¿Prefieres hablarlo en persona?" : "Prefer to talk in person?";
+  const body =
+    lang === "es"
+      ? "Visítanos, llámanos o envíanos un correo. Te ayudamos a elegir los productos correctos para tu negocio."
+      : "Visit us, call us, or send us an email. We can help you choose the right products for your business.";
+  const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
+  const callLabel = lang === "es" ? "Llamar" : "Call";
+  const emailLabel = lang === "es" ? "Enviar email" : "Email";
+
+  return (
+    <section
+      className="px-4 py-10 sm:px-8 sm:py-14"
+      style={{ background: "var(--lx-section)", borderTop: "1px solid var(--lx-border)" }}
+    >
+      <div className="mx-auto max-w-2xl text-center">
+        <h2 className="text-lg font-bold sm:text-xl" style={{ color: "var(--lx-text)" }}>
+          {heading}
+        </h2>
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
+          {body}
+        </p>
+
+        <address
+          className="mx-auto mt-6 max-w-md not-italic text-sm leading-relaxed"
+          style={{ color: "var(--lx-text)" }}
+        >
+          <p className="font-semibold">{CONTACT.businessName}</p>
+          <p className="mt-2 break-words">{CONTACT.address}</p>
+          <p className="mt-2">
+            <a href={CONTACT.phoneTel} className="font-medium underline-offset-2 hover:underline">
+              {CONTACT.phoneDisplay}
+            </a>
+          </p>
+          <p className="mt-1 break-all">
+            <a href={MAILTO_QUOTE} className="font-medium underline-offset-2 hover:underline">
+              {CONTACT.email}
+            </a>
+          </p>
+        </address>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
+          <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
+          <ContactActionLink href={MAILTO_QUOTE} label={emailLabel} />
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function AdditionalProductsSection({ products, lang }: { products: Product[]; lang: Lang }) {
@@ -251,8 +393,6 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
 
   const activeCategory = CATALOG_CATEGORIES.find((c) => c.id === activeId) ?? CATALOG_CATEGORIES[0];
 
-  const heroPrimary = lang === "es" ? "Solicitar cotización" : "Request a Quote";
-  const heroSecondary = lang === "es" ? "Hablar con Leonix" : "Talk to Leonix";
   const heroTitle = lang === "es" ? "Productos para Promoción" : "Promotional Products";
   const heroSubtitle =
     lang === "es"
@@ -262,12 +402,6 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
     lang === "es"
       ? "Explora algunos de los productos que podemos ayudarte a conseguir. Si no lo ves aquí, también podemos cotizarlo."
       : "Explore some of the products we can help you source. If you do not see it here, we can still quote it.";
-  const bottomCallout =
-    lang === "es"
-      ? "¿No ves lo que necesitas? Te ayudamos a cotizarlo."
-      : "Don't see what you need? We can still quote it.";
-  const bottomCTA = lang === "es" ? "Contactar a Leonix" : "Contact Leonix";
-
   return (
     <div style={{ background: "var(--lx-page)" }}>
       {/* ── HERO ─────────────────────────────────────────────────────── */}
@@ -285,26 +419,7 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
           <p className="mx-auto mb-8 max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
             {heroSubtitle}
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href={`/tienda/contacto?service=cotizacion-general&lang=${lang}`}
-              className="rounded-xl px-6 py-3 text-sm font-semibold transition"
-              style={{ background: OLIVE_BG, color: OLIVE_FG }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
-            >
-              {heroPrimary}
-            </Link>
-            <Link
-              href={`/tienda/contacto?lang=${lang}`}
-              className="rounded-xl border px-6 py-3 text-sm font-semibold transition"
-              style={{ background: "var(--lx-card)", color: "var(--lx-text)", borderColor: "var(--lx-border)" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-section)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--lx-card)"; }}
-            >
-              {heroSecondary}
-            </Link>
-          </div>
+          <HeroContactActions lang={lang} />
         </div>
       </section>
 
@@ -334,26 +449,7 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
         </div>
       </section>
 
-      {/* ── BOTTOM CTA ───────────────────────────────────────────────── */}
-      <section
-        className="px-4 py-10 sm:px-8 sm:py-14"
-        style={{ background: "var(--lx-section)", borderTop: "1px solid var(--lx-border)" }}
-      >
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="mb-5 text-base font-semibold leading-relaxed sm:text-lg" style={{ color: "var(--lx-text)" }}>
-            {bottomCallout}
-          </p>
-          <Link
-            href={`/tienda/contacto?lang=${lang}`}
-            className="inline-block rounded-xl px-8 py-3.5 text-sm font-semibold transition"
-            style={{ background: OLIVE_BG, color: OLIVE_FG, boxShadow: "0 2px 12px rgba(85,107,62,0.22)" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
-          >
-            {bottomCTA}
-          </Link>
-        </div>
-      </section>
+      <BottomContactBlock lang={lang} />
     </div>
   );
 }

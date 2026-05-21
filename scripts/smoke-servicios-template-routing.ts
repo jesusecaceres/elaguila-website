@@ -2,6 +2,8 @@
  * Gate 1 — Servicios template routing smoke (no network).
  * Run: npx tsx scripts/smoke-servicios-template-routing.ts
  */
+import { SERVICIOS_LANDING_EXPLORE_CATEGORIES } from "../app/(site)/clasificados/servicios/landing/serviciosLandingSampleData";
+import { SERVICIOS_INTERNAL_GROUP_IDS } from "../app/(site)/clasificados/servicios/lib/serviciosInternalGroupDisplay";
 import {
   isServiciosProfessionalTemplate,
   resolveServiciosListingTemplate,
@@ -65,5 +67,12 @@ assertTemplate(
   { businessTypeId: "contador_impuestos", internalGroup: "legal_professional" },
   "financial_provider",
 );
+
+const allowedGroups = new Set<string>(SERVICIOS_INTERNAL_GROUP_IDS);
+for (const cat of SERVICIOS_LANDING_EXPLORE_CATEGORIES) {
+  if (cat.resultsGroup && !allowedGroups.has(cat.resultsGroup)) {
+    fail(`landing explore category ${cat.id}: invalid resultsGroup "${cat.resultsGroup}"`);
+  }
+}
 
 console.log("smoke-servicios-template-routing: OK");

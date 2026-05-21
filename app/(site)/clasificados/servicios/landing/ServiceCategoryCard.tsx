@@ -8,9 +8,12 @@ export function ServiceCategoryCard({
   lang: "es" | "en";
   cat: ServiciosLandingExploreCategory;
 }) {
+  const qRaw = (lang === "en" ? cat.resultsQueryEn : cat.resultsQueryEs)?.trim() ?? "";
   const href = cat.resultsGroup
     ? `/clasificados/servicios/resultados?lang=${lang}&group=${encodeURIComponent(cat.resultsGroup)}`
-    : `/clasificados/servicios/resultados?lang=${lang}`;
+    : qRaw
+      ? `/clasificados/servicios/resultados?lang=${lang}&q=${encodeURIComponent(qRaw)}`
+      : `/clasificados/servicios/resultados?lang=${lang}`;
 
   return (
     <Link

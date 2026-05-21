@@ -224,7 +224,8 @@ type MisAnunciosCategoryFilter =
   | "viajes"
   | "servicios"
   | "clases"
-  | "comunidad";
+  | "comunidad"
+  | "busco";
 
 const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "all",
@@ -238,6 +239,7 @@ const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "servicios",
   "clases",
   "comunidad",
+  "busco",
 ];
 
 function isMisAnunciosCategoryFilter(raw: string | null | undefined): raw is MisAnunciosCategoryFilter {
@@ -251,6 +253,7 @@ function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryFilter | "ot
   if (cat === "rentas") return "rentas";
   if (cat === "clases") return "clases";
   if (cat === "comunidad") return "comunidad";
+  if (cat === "busco") return "busco";
   const lx = parseLeonixListingContract(row.detail_pairs);
   const br = lx.branch;
   if (br === "bienes_raices_privado" || br === "bienes_raices_negocio") return "bienes-raices";
@@ -808,6 +811,7 @@ export default function MyListingsPage() {
     let rentas = 0;
     let clases = 0;
     let comunidad = 0;
+    let busco = 0;
     for (const row of listings) {
       const k = listingRowCategoryKey(row);
       if (k === "en-venta") enVenta += 1;
@@ -816,6 +820,7 @@ export default function MyListingsPage() {
       if (k === "rentas") rentas += 1;
       if (k === "clases") clases += 1;
       if (k === "comunidad") comunidad += 1;
+      if (k === "busco") busco += 1;
     }
     return {
       "en-venta": enVenta,
@@ -824,6 +829,7 @@ export default function MyListingsPage() {
       rentas,
       clases,
       comunidad,
+      busco,
       restaurantes: restaurantInventory.length,
       empleos: empleosInventory.length,
       viajes: viajesInventory.length,
@@ -894,7 +900,8 @@ export default function MyListingsPage() {
       categoryFilter === "bienes-raices" ||
       categoryFilter === "rentas" ||
       categoryFilter === "clases" ||
-      categoryFilter === "comunidad");
+      categoryFilter === "comunidad" ||
+      categoryFilter === "busco");
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
@@ -1133,7 +1140,11 @@ export default function MyListingsPage() {
                                       ? lang === "es"
                                         ? "Comunidad"
                                         : "Community"
-                                      : fk;
+                                      : fk === "busco"
+                                        ? lang === "es"
+                                          ? "Busco / Se busca"
+                                          : "Looking for / Wanted"
+                                        : fk;
                 return (
                   <button
                     key={fk}
@@ -1633,8 +1644,8 @@ export default function MyListingsPage() {
                 );
 
                 const catLower = (x.category ?? "").toLowerCase();
-                const isCommunityQuickCategory = catLower === "clases" || catLower === "comunidad";
-                const leonixQuickAdId = isCommunityQuickCategory ? formatLeonixAdId(x.id) : null;
+                const usesLnxPublicAdId = catLower === "clases" || catLower === "comunidad" || catLower === "busco";
+                const leonixQuickAdId = usesLnxPublicAdId ? formatLeonixAdId(x.id) : null;
                 const categoryChip =
                   catLower === "clases"
                     ? lang === "es"
@@ -1644,7 +1655,11 @@ export default function MyListingsPage() {
                       ? lang === "es"
                         ? "Comunidad"
                         : "Community"
-                      : null;
+                      : catLower === "busco"
+                        ? lang === "es"
+                          ? "Busco / Se busca"
+                          : "Looking for / Wanted"
+                        : null;
                 const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
                 return (
                   <div
@@ -1681,7 +1696,7 @@ export default function MyListingsPage() {
                             </span>{" "}
                             <span className="font-mono font-semibold text-[#1E1810]">{leonixQuickAdId}</span>
                           </p>
-                        ) : !isCommunityQuickCategory && x.leonix_ad_id?.trim() ? (
+                        ) : !usesLnxPublicAdId && x.leonix_ad_id?.trim() ? (
                           <p className="mt-1 text-[11px] leading-snug text-[#7A7164]" data-testid="dashboard-listing-leonix-ad-id">
                             <span className="font-semibold text-[#5C5346]">
                               {lang === "es" ? "ID Leonix" : "Leonix ID"}:
@@ -1721,6 +1736,14 @@ export default function MyListingsPage() {
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {lang === "es" ? "Lista pÃºblica" : "Public list"}
+                          </Link>
+                        ) : null}
+                        {catLower === "busco" ? (
+                          <Link
+                            href={appendLangToPath("/clasificados/busco/resultados", lang)}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {lang === "es" ? "Ver solicitudes" : "View requests"}
                           </Link>
                         ) : null}
                         <button

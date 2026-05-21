@@ -28,6 +28,7 @@ import {
   shortListingRef,
   type Lang,
 } from "../../lib/listingDisplayStatus";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 
 type Plan = "free" | "pro";
 type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "status";
@@ -462,6 +463,12 @@ export default function ListingWorkspacePage() {
         ? `/clasificados/anuncio/${row.id}?${q}`
         : "#";
 
+  const displayLeonixAdId = useMemo(() => {
+    if (!row) return "";
+    if ((row.category ?? "").toLowerCase() === "busco") return formatLeonixAdId(row.id) ?? "";
+    return (row.leonix_ad_id ?? "").trim();
+  }, [row]);
+
   return (
     <LeonixDashboardShell
       lang={lang}
@@ -511,9 +518,9 @@ export default function ListingWorkspacePage() {
               <p className="mt-2 font-mono text-[11px] text-[#7A7164]">
                 {t.listingRef}: {shortListingRef(row.id)}
               </p>
-              {(row.leonix_ad_id ?? "").trim() ? (
+              {displayLeonixAdId ? (
                 <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
-                  {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
+                  {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {displayLeonixAdId}
                 </p>
               ) : null}
             </div>

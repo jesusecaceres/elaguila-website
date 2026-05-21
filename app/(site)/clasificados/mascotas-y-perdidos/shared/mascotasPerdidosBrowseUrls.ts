@@ -1,6 +1,13 @@
 import type { MascotasPerdidosShellLang } from "./mascotasPerdidosShellCopy";
 import { mascotasPerdidosPathWithLang } from "./mascotasPerdidosShellCopy";
 
+/** Category publish entry (server redirect → `/publicar/mascotas-y-perdidos/quick`). */
+export const MASCOTAS_PERDIDOS_PUBLISH_ENTRY_PATH = "/clasificados/publicar/mascotas-y-perdidos";
+
+export function mascotasPerdidosPublishEntryUrl(lang: MascotasPerdidosShellLang): string {
+  return mascotasPerdidosPathWithLang(MASCOTAS_PERDIDOS_PUBLISH_ENTRY_PATH, lang);
+}
+
 export function mascotasPerdidosResultsUrl(
   lang: MascotasPerdidosShellLang,
   filters?: { q?: string; city?: string; tipo?: string },

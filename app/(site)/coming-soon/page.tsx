@@ -9,6 +9,7 @@ type DrawerId = "anunciate" | "launch" | "ediciones" | "beneficios" | "nosotros"
 const DEEP_RED = "#A30F18";
 const DARK_RED = "#7E0D13";
 const CREAM = "#FDFBF7";
+const LOGO_SRC = "/logo-clean.png";
 
 function normalizeLang(v: string | undefined): Lang {
   return v === "en" ? "en" : "es";
@@ -23,7 +24,7 @@ const COPY = {
     meta: {
       title: "Próximamente — Leonix Media",
       description:
-        "Publicidad impresa en español. Exposición digital bilingüe. San José · Silicon Valley · Bay Area.",
+        "Publicidad impresa en español. Exposición digital multilingüe. San José · Silicon Valley · Bay Area.",
     },
     langSwitch: "English",
     headerCta: "Únete al lanzamiento",
@@ -31,9 +32,11 @@ const COPY = {
     tagline1: "Publicidad impresa en",
     tagline1Em: "español",
     tagline2: "Exposición digital",
-    tagline2Em: "bilingüe",
+    tagline2Em: "multilingüe",
     heroBody:
-      "Conectando negocios locales con la comunidad latina a través de una revista premium, visibilidad digital y herramientas que generan acción.",
+      "Leonix está pensado para la comunidad latina y la publicidad impresa en español, mientras que la experiencia digital amplía el alcance con QR codes, herramientas de traducción y acceso multilingüe.",
+    multilingualReach:
+      "La revista nace en español para servir a nuestra comunidad latina, pero la experiencia digital está diseñada para llegar más lejos: lectores pueden usar QR codes, herramientas de traducción y páginas digitales para explorar contenido, anuncios y negocios en su idioma.",
     cta1: "Anúnciate con nosotros",
     cta2: "Únete al lanzamiento",
     mediaKit: "Ver Media Kit",
@@ -61,7 +64,10 @@ const COPY = {
       items: [
         { title: "Revista mensual premium", body: "Contenido local que informa, inspira y conecta." },
         { title: "Edición digital semanal", body: "Accede desde cualquier dispositivo, donde estés." },
-        { title: "QR + CTAs", body: "Conecta tu anuncio con llamadas, mensajes, mapas y más." },
+        {
+          title: "QR + CTAs",
+          body: "Conecta tu anuncio con llamadas, mensajes, mapas, enlaces y opciones multilingües.",
+        },
         {
           title: "Un solo enlace para tu negocio",
           body: "Toda tu información, ofertas y redes en un solo lugar.",
@@ -81,57 +87,62 @@ const COPY = {
     drawers: {
       anunciate: {
         title: "Anúnciate con Leonix",
-        body: "Leonix Media ayuda a negocios locales a verse profesionales en impreso y digital. Combinamos revista premium, exposición bilingüe, QR codes, CTAs, enlaces de negocio, cupones y visibilidad local para conectar con la comunidad.",
+        who: "Negocios locales, profesionales, restaurantes, servicios, tiendas, anunciantes y socios comunitarios.",
+        what: "Revista impresa en español + exposición digital multilingüe.",
+        where: "San José, Silicon Valley, Bay Area y Northern California.",
+        when: "Lanzamiento próximamente; oportunidades para negocios fundadores abiertas ahora.",
+        why: "Para que los negocios locales se vean profesionales, sean fáciles de contactar y lleguen a más clientes.",
         bullets: [
-          "Revista impresa en español",
-          "Exposición digital bilingüe",
-          "QR + llamadas, mensajes, mapas y enlaces",
+          "Revista impresa premium",
+          "Exposición digital multilingüe",
+          "QR codes para llamadas, mensajes, mapas, enlaces y traducción",
           "Página de negocio con redes, contacto, ofertas y reseñas",
-          "Ideal para restaurantes, servicios, autos, bienes raíces, viajes, empleos y tiendas",
+          "Cupones, clasificados y descubrimiento local",
         ],
         cta: "Contactar a Leonix",
       },
       launch: {
         title: "Únete al lanzamiento",
-        body: "Estamos preparando el lanzamiento oficial de Leonix Media en San José, Silicon Valley y el Bay Area. Regístrate para recibir noticias, oportunidades de lanzamiento, ediciones, promociones y actualizaciones.",
+        body: "Estamos preparando el lanzamiento oficial de Leonix Media en San José, Silicon Valley y el Bay Area. Únete para recibir noticias del lanzamiento y conocer oportunidades para negocios fundadores antes del estreno.",
         bullets: [
           "Sé de los primeros en conocer el lanzamiento",
-          "Recibe oportunidades para negocios fundadores",
-          "Conoce nuevas ediciones y beneficios",
-          "Mantente conectado con la comunidad",
+          "Accede a oportunidades para negocios fundadores",
+          "Recibe avisos de ediciones, beneficios y promociones",
+          "Mantente conectado con la comunidad latina",
         ],
         cta: "Notifícame",
       },
       ediciones: {
         title: "Ediciones Leonix",
-        body: "Leonix combina una revista mensual premium con exposición digital semanal para que los negocios tengan presencia constante, no solo un anuncio aislado.",
+        body: "Leonix combina una revista mensual premium impresa en español con una edición digital semanal para presencia constante — no solo un anuncio aislado.",
         bullets: [
-          "Revista mensual premium",
-          "Edición digital semanal",
-          "Contenido local y empresarial",
-          "Anuncios con QR y CTAs",
+          "Revista mensual premium en español",
+          "Edición digital semanal con QR y CTAs",
+          "Contenido local, empresarial y comunitario",
+          "Exposición digital multilingüe para ampliar alcance",
         ],
         cta: "Contactar a Leonix",
       },
       beneficios: {
         title: "Beneficios para negocios",
-        body: "Leonix está diseñado para que tu negocio sea más fácil de encontrar, contactar y recordar.",
+        body: "Leonix está diseñado para que tu negocio sea más fácil de encontrar, contactar y recordar — en impreso y digital.",
         bullets: [
-          "Más confianza local",
-          "Un solo enlace para tu negocio",
-          "Visibilidad impresa y digital",
-          "Llamadas, mensajes, mapas y enlaces",
-          "Presencia profesional para compartir",
+          "La revista impresa está enfocada en español",
+          "La experiencia digital ayuda a llegar a más idiomas mediante QR codes, traducción del sitio y herramientas como Google Lens o Apple Translate",
+          "QR codes para acceder a contenido digital, llamadas, mensajes y mapas",
+          "Un solo enlace para tu negocio con redes, contacto y ofertas",
+          "Más confianza local y presencia profesional para compartir",
         ],
+        note: "Las traducciones automáticas pueden variar; recomendamos revisar contenido importante.",
         cta: "Contactar a Leonix",
       },
       nosotros: {
         title: "Sobre Leonix Media",
-        body: "Leonix Media es una plataforma de publicidad impresa en español y exposición digital bilingüe. Nacimos para conectar negocios locales con la comunidad latina, empezando en San José y expandiéndonos por Silicon Valley, el Bay Area y Northern California.",
-        who: "Negocios locales, anunciantes, familias y comunidad.",
+        body: "Leonix Media conecta negocios locales con la comunidad latina mediante publicidad impresa en español y exposición digital multilingüe. Nuestra misión es servir a la comunidad latina con contenido confiable, mientras la experiencia digital abre puertas a un alcance más inclusivo.",
+        who: "Negocios locales, familias, anunciantes y comunidad latina.",
         what: "Revista premium, clasificados, negocios, comunidad, cupones, QR codes y páginas de negocio.",
         where: "San José, Silicon Valley, Bay Area y Northern California.",
-        why: "Porque los negocios locales merecen ser vistos y la comunidad merece encontrar opciones confiables.",
+        why: "Porque la comunidad latina merece opciones confiables y los negocios locales merecen ser vistos con profesionalismo.",
         cta: "Contactar a Leonix",
       },
       contacto: {
@@ -141,7 +152,7 @@ const COPY = {
       },
       mediakit: {
         title: "Media Kit",
-        body: "El media kit incluirá opciones de anuncios, beneficios, paquetes de lanzamiento, presencia impresa, exposición digital y oportunidades para negocios fundadores.",
+        body: "El media kit incluirá opciones de anuncios, paquetes de lanzamiento, presencia impresa, exposición digital multilingüe, QR codes, CTAs, productos para promoción y oportunidades para negocios fundadores.",
         cta: "Solicitar Media Kit",
       },
     },
@@ -151,17 +162,19 @@ const COPY = {
     meta: {
       title: "Coming Soon — Leonix Media",
       description:
-        "Spanish print advertising. Bilingual digital exposure. San José · Silicon Valley · Bay Area.",
+        "Spanish print advertising. Multilingual digital exposure. San José · Silicon Valley · Bay Area.",
     },
     langSwitch: "Español",
     headerCta: "Join the launch",
     badge: "COMING SOON",
     tagline1: "Print advertising in",
     tagline1Em: "Spanish",
-    tagline2: "Bilingual digital",
+    tagline2: "Multilingual digital",
     tagline2Em: "exposure",
     heroBody:
-      "Connecting local businesses with the Latino community through a premium magazine, digital visibility and tools that drive action.",
+      "Leonix is tailored to the Latino community and Spanish print, while the digital experience expands reach with QR codes, translation tools and multilingual access.",
+    multilingualReach:
+      "The magazine is born in Spanish to serve our Latino community, but the digital experience is designed to go further: readers can use QR codes, translation tools and digital pages to explore content, ads and businesses in their language.",
     cta1: "Advertise with us",
     cta2: "Join the launch",
     mediaKit: "View Media Kit",
@@ -189,7 +202,10 @@ const COPY = {
       items: [
         { title: "Monthly premium magazine", body: "Local content that informs, inspires and connects." },
         { title: "Weekly digital edition", body: "Access from any device, wherever you are." },
-        { title: "QR + CTAs", body: "Link your ad to calls, messages, maps and more." },
+        {
+          title: "QR + CTAs",
+          body: "Link your ad to calls, messages, maps, links and multilingual options.",
+        },
         {
           title: "One link for your business",
           body: "All your info, deals and networks in one place.",
@@ -209,57 +225,62 @@ const COPY = {
     drawers: {
       anunciate: {
         title: "Advertise with Leonix",
-        body: "Leonix Media helps local businesses look professional in print and digital. We combine a premium magazine, bilingual exposure, QR codes, CTAs, business links, coupons and local visibility to connect with the community.",
+        who: "Local businesses, professionals, restaurants, services, stores, advertisers and community partners.",
+        what: "Spanish print magazine + multilingual digital exposure.",
+        where: "San José, Silicon Valley, Bay Area and Northern California.",
+        when: "Launch coming soon; founding business opportunities open now.",
+        why: "So local businesses look professional, are easy to contact and reach more customers.",
         bullets: [
-          "Print magazine in Spanish",
-          "Bilingual digital exposure",
-          "QR + calls, messages, maps and links",
+          "Premium print magazine",
+          "Multilingual digital exposure",
+          "QR codes for calls, messages, maps, links and translation",
           "Business page with social, contact, deals and reviews",
-          "Ideal for restaurants, services, autos, real estate, travel, jobs and stores",
+          "Coupons, classifieds and local discovery",
         ],
         cta: "Contact Leonix",
       },
       launch: {
         title: "Join the launch",
-        body: "We are preparing the official Leonix Media launch in San José, Silicon Valley and the Bay Area. Sign up for news, launch opportunities, editions, promotions and updates.",
+        body: "We are preparing the official Leonix Media launch in San José, Silicon Valley and the Bay Area. Join to get launch news and learn about founding business opportunities before we go live.",
         bullets: [
           "Be among the first to know about the launch",
-          "Get founding business opportunities",
-          "Learn about new editions and benefits",
-          "Stay connected with the community",
+          "Access founding business opportunities",
+          "Get edition, benefit and promotion updates",
+          "Stay connected with the Latino community",
         ],
         cta: "Notify Me",
       },
       ediciones: {
         title: "Leonix Editions",
-        body: "Leonix combines a monthly premium magazine with weekly digital exposure so businesses have constant presence, not just a one-off ad.",
+        body: "Leonix combines a monthly premium Spanish print magazine with a weekly digital edition for constant presence — not just a one-off ad.",
         bullets: [
-          "Monthly premium magazine",
-          "Weekly digital edition",
-          "Local and business content",
-          "Ads with QR and CTAs",
+          "Monthly premium magazine in Spanish",
+          "Weekly digital edition with QR and CTAs",
+          "Local, business and community content",
+          "Multilingual digital exposure to expand reach",
         ],
         cta: "Contact Leonix",
       },
       beneficios: {
         title: "Benefits for businesses",
-        body: "Leonix is designed so your business is easier to find, contact and remember.",
+        body: "Leonix is designed so your business is easier to find, contact and remember — in print and digital.",
         bullets: [
-          "More local trust",
-          "One link for your business",
-          "Print and digital visibility",
-          "Calls, messages, maps and links",
-          "Professional presence to share",
+          "The print magazine is focused on Spanish",
+          "The digital experience helps reach more languages via QR codes, site translation and tools like Google Lens or Apple Translate",
+          "QR codes to access digital content, calls, messages and maps",
+          "One link for your business with social, contact and deals",
+          "More local trust and a professional presence to share",
         ],
+        note: "Automatic translations may vary; we recommend reviewing important content.",
         cta: "Contact Leonix",
       },
       nosotros: {
         title: "About Leonix Media",
-        body: "Leonix Media is a Spanish print advertising and bilingual digital exposure platform. We were born to connect local businesses with the Latino community, starting in San José and expanding across Silicon Valley, the Bay Area and Northern California.",
-        who: "Local businesses, advertisers, families and community.",
+        body: "Leonix Media connects local businesses with the Latino community through Spanish print advertising and multilingual digital exposure. Our mission is to serve the Latino community with reliable content while the digital experience opens doors to more inclusive reach.",
+        who: "Local businesses, families, advertisers and the Latino community.",
         what: "Premium magazine, classifieds, businesses, community, coupons, QR codes and business pages.",
         where: "San José, Silicon Valley, Bay Area and Northern California.",
-        why: "Because local businesses deserve to be seen and the community deserves reliable options.",
+        why: "Because the Latino community deserves reliable options and local businesses deserve to be seen professionally.",
         cta: "Contact Leonix",
       },
       contacto: {
@@ -269,7 +290,7 @@ const COPY = {
       },
       mediakit: {
         title: "Media Kit",
-        body: "The media kit will include ad options, benefits, launch packages, print presence, digital exposure and founding business opportunities.",
+        body: "The media kit will include ad options, launch packages, print presence, multilingual digital exposure, QR codes, CTAs, promotional products and founding business opportunities.",
         cta: "Request Media Kit",
       },
     },
@@ -370,10 +391,30 @@ function DrawerPanels({ lang, c }: { lang: Lang; c: (typeof COPY)[Lang] }) {
   return (
     <>
       <DrawerShell id="anunciate" title={d.anunciate.title} closeLabel={c.close}>
-        <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
-          {d.anunciate.body}
+        <dl className="flex flex-col gap-4 text-sm sm:text-base">
+          {(
+            [
+              [lang === "es" ? "Quién" : "Who", d.anunciate.who],
+              [lang === "es" ? "Qué" : "What", d.anunciate.what],
+              [lang === "es" ? "Dónde" : "Where", d.anunciate.where],
+              [lang === "es" ? "Cuándo" : "When", d.anunciate.when],
+              [lang === "es" ? "Por qué" : "Why", d.anunciate.why],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label}>
+              <dt className="font-bold" style={{ color: DEEP_RED }}>
+                {label}
+              </dt>
+              <dd className="mt-1" style={{ color: "var(--lx-muted)" }}>
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-6 text-sm font-bold sm:text-base" style={{ color: "var(--lx-text)" }}>
+          {lang === "es" ? "Beneficios" : "Benefits"}
         </p>
-        <ul className="mt-5 flex flex-col gap-2.5">
+        <ul className="mt-3 flex flex-col gap-2.5">
           {d.anunciate.bullets.map((b) => (
             <li key={b} className="flex gap-2 text-sm sm:text-base">
               <span style={{ color: "var(--lx-olive)" }} aria-hidden>
@@ -452,6 +493,11 @@ function DrawerPanels({ lang, c }: { lang: Lang; c: (typeof COPY)[Lang] }) {
             </li>
           ))}
         </ul>
+        {"note" in d.beneficios && d.beneficios.note ? (
+          <p className="mt-4 text-xs leading-relaxed italic sm:text-sm" style={{ color: "var(--lx-muted)" }}>
+            {d.beneficios.note}
+          </p>
+        ) : null}
         <Link
           href={contactHref}
           className="mt-8 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl px-6 text-sm font-bold text-white sm:text-base"
@@ -565,7 +611,7 @@ function MagazineCover({ lang }: { lang: Lang }) {
           className="flex items-center justify-between gap-2 px-4 py-3 sm:px-5"
           style={{ background: DARK_RED, borderBottom: "3px solid var(--lx-lion)" }}
         >
-          <Image src="/logo.png" alt="Leonix Media" width={150} height={52} className="h-11 w-auto object-contain sm:h-12" />
+          <Image src={LOGO_SRC} alt="Leonix Media" width={150} height={52} className="h-11 w-auto object-contain sm:h-12" />
           <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/85 sm:text-xs">VOL. 1 · 2026</span>
         </div>
 
@@ -682,7 +728,7 @@ function PageHeader({ c, otherLang }: { c: (typeof COPY)[Lang]; otherLang: Lang 
       <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:gap-6 lg:py-3.5">
         <Link href="#inicio" className="shrink-0">
           <Image
-            src="/logo.png"
+            src={LOGO_SRC}
             alt="Leonix Media"
             width={200}
             height={72}
@@ -802,7 +848,7 @@ export default async function ComingSoonPage(props: {
             </span>
 
             <Image
-              src="/logo.png"
+              src={LOGO_SRC}
               alt="Leonix Media"
               width={420}
               height={140}
@@ -918,22 +964,32 @@ export default async function ComingSoonPage(props: {
         className="w-full px-4 py-12 sm:px-6 sm:py-14"
         style={{ background: "var(--lx-page)" }}
       >
-        <div className="mx-auto grid max-w-[90rem] grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          {c.benefits.items.map((b, i) => (
-            <article key={b.title} className="flex flex-col items-center text-center lg:items-start lg:text-left">
-              <span
-                className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 text-xl"
-                style={{ borderColor: "var(--lx-lion)", background: "var(--lx-card)" }}
-                aria-hidden
-              >
-                {BENEFIT_ICONS[i]}
-              </span>
-              <h3 className="text-base font-bold sm:text-lg">{b.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
-                {b.body}
-              </p>
-            </article>
-          ))}
+        <div className="mx-auto max-w-[90rem]">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            {c.benefits.items.map((b, i) => (
+              <article key={b.title} className="flex flex-col items-center text-center lg:items-start lg:text-left">
+                <span
+                  className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 text-xl"
+                  style={{ borderColor: "var(--lx-lion)", background: "var(--lx-card)" }}
+                  aria-hidden
+                >
+                  {BENEFIT_ICONS[i]}
+                </span>
+                <h3 className="text-base font-bold sm:text-lg">{b.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-muted)" }}>
+                  {b.body}
+                </p>
+              </article>
+            ))}
+          </div>
+          <div
+            className="mt-10 rounded-2xl border-2 p-6 sm:p-8"
+            style={{ borderColor: "var(--lx-lion)", background: "var(--lx-card)" }}
+          >
+            <p className="text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-text)" }}>
+              {c.multilingualReach}
+            </p>
+          </div>
         </div>
       </section>
 

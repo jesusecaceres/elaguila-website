@@ -48,10 +48,11 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
     case "clases":
     case "mascotas-y-perdidos":
     case "bienes-raices":
+    case "busco":
       return {
         sourceTable: "public.listings",
         publicHref: `/clasificados/${encodeURIComponent(s)}`,
-        publishHref: `/clasificados/publicar/${encodeURIComponent(s)}`,
+        publishHref: s === "busco" ? "/publicar/busco/quick" : `/clasificados/publicar/${encodeURIComponent(s)}`,
       };
     default:
       return {
