@@ -4,7 +4,10 @@
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import type { RentasBrowseParamsParsed } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
-import { normalizeCityForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
+import {
+  canonicalRentasCityForPublish,
+  normalizeCityForBrowse,
+} from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 function rentDemoMonthlyNumber(rentDisplay: string): number {
   const n = Number(String(rentDisplay).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
@@ -72,10 +75,13 @@ function textMatchesListing(l: RentasPublicListing, q: string): boolean {
 }
 
 function cityMatches(l: RentasPublicListing, city: string): boolean {
-  const needle = normalizeCityForBrowse(city).toLowerCase();
+  const needleCanon = canonicalRentasCityForPublish(city).toLowerCase();
+  const needle = needleCanon || normalizeCityForBrowse(city).toLowerCase();
   if (!needle) return true;
-  const lc = normalizeCityForBrowse(l.city ?? "").toLowerCase();
+  const listingCanon = canonicalRentasCityForPublish(l.city ?? "").toLowerCase();
+  const lc = listingCanon || normalizeCityForBrowse(l.city ?? "").toLowerCase();
   const addr = l.addressLine.toLowerCase();
+  if (listingCanon && needleCanon && listingCanon === needleCanon) return true;
   return lc.includes(needle) || addr.includes(needle);
 }
 
@@ -190,6 +196,11 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
   if (p.kind) {
     const k = p.kind;
     out = out.filter((l) => l.resultsPropertyKind === k);
+  }
+
+  if (p.estado) {
+    const want = p.estado.trim().toLowerCase();
+    out = out.filter((l) => (l.rentasListingAvailability ?? "").toLowerCase() === want);
   }
 
   return out;

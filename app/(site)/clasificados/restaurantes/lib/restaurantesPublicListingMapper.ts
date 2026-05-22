@@ -63,6 +63,8 @@ function parsePriceLevel(raw: string | null | undefined): "$" | "$$" | "$$$" | "
 export function dbRowToPublicResultsRow(row: RestaurantesPublicListingDbRow): RestaurantePublicResultsRow {
   const primary = (row.primary_cuisine ?? "").trim();
   const secondary = (row.secondary_cuisine ?? "").trim();
+  const draft = listingJsonToDraft(row.listing_json ?? {});
+  const currentLocationUrl = draft.movingVendorStack?.currentLocationUrl?.trim() || undefined;
   return {
     id: row.id,
     slug: (row.slug ?? "").trim(),
@@ -86,7 +88,7 @@ export function dbRowToPublicResultsRow(row: RestaurantesPublicListingDbRow): Re
     leonixVerified: row.leonix_verified === true,
     externalRatingValue: row.external_rating_value ?? undefined,
     externalReviewCount: row.external_review_count ?? undefined,
-    currentLocationUrl: undefined, // TODO: implement currentLocationUrl mapping from listing_json
+    currentLocationUrl,
     /** Recency for discovery sort: republish/renew bumps `updated_at` so listings resurface fairly. */
     listedAt: row.updated_at || row.published_at,
   };

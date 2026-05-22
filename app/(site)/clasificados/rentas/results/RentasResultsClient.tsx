@@ -23,6 +23,7 @@ import {
   RENTAS_QUERY_DEPOSIT_MIN,
   RENTAS_QUERY_HIGHLIGHTS,
   RENTAS_QUERY_LAT,
+  RENTAS_QUERY_ESTADO,
   RENTAS_QUERY_LEASE,
   RENTAS_QUERY_LNG,
   RENTAS_QUERY_PARKING_MIN,
@@ -101,6 +102,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [depositMinDraft, setDepositMinDraft] = useState("");
   const [depositMaxDraft, setDepositMaxDraft] = useState("");
   const [leaseDraft, setLeaseDraft] = useState("");
+  const [estadoDraft, setEstadoDraft] = useState("");
   const [parkingMinDraft, setParkingMinDraft] = useState("");
   const [sqftMinDraft, setSqftMinDraft] = useState("");
   const [sqftMaxDraft, setSqftMaxDraft] = useState("");
@@ -131,6 +133,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setDepositMinDraft(p.depositMin != null ? String(Math.round(p.depositMin)) : "");
     setDepositMaxDraft(p.depositMax != null ? String(Math.round(p.depositMax)) : "");
     setLeaseDraft(p.lease);
+    setEstadoDraft(p.estado);
     setParkingMinDraft(p.parkingMin != null ? String(p.parkingMin) : "");
     setSqftMinDraft(p.sqftMin != null ? String(Math.round(p.sqftMin)) : "");
     setSqftMaxDraft(p.sqftMax != null ? String(Math.round(p.sqftMax)) : "");
@@ -235,6 +238,8 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       else sp.set(RENTAS_QUERY_DEPOSIT_MAX, dMax);
       if (!leaseDraft.trim()) sp.delete(RENTAS_QUERY_LEASE);
       else sp.set(RENTAS_QUERY_LEASE, leaseDraft.trim());
+      if (!estadoDraft.trim()) sp.delete(RENTAS_QUERY_ESTADO);
+      else sp.set(RENTAS_QUERY_ESTADO, estadoDraft.trim());
 
       const pk = parkingMinDraft.replace(/\D/g, "");
       if (!pk) sp.delete(RENTAS_QUERY_PARKING_MIN);
@@ -273,6 +278,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     highlightKeysDraft,
     kindDraft,
     leaseDraft,
+    estadoDraft,
     mascotasDraft,
     parkingMinDraft,
     poolDraft,
@@ -533,6 +539,22 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                   <option value="12-meses">12-meses</option>
                   <option value="1-ano">1-ano</option>
                   <option value="2-anos">2-anos</option>
+                </select>
+              </label>
+              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
+                  {lang === "es" ? "Estado del anuncio" : "Listing status"}
+                </span>
+                <select
+                  value={estadoDraft}
+                  onChange={(e) => setEstadoDraft(e.target.value)}
+                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
+                >
+                  <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                  <option value="disponible">{lang === "es" ? "Disponible" : "Available"}</option>
+                  <option value="pendiente">{lang === "es" ? "Pendiente" : "Pending"}</option>
+                  <option value="bajo_contrato">{lang === "es" ? "Bajo contrato" : "Under contract"}</option>
+                  <option value="rentado">{lang === "es" ? "Rentado" : "Rented"}</option>
                 </select>
               </label>
               <label className="min-w-0 sm:col-span-2 xl:col-span-1">

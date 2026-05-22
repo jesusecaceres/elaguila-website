@@ -13,8 +13,7 @@ import { RestauranteAmenitiesShellSection } from "./RestauranteAmenitiesShellSec
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
-import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
-import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
+import { RestaurantContactHub } from "./RestaurantContactHub";
 
 // Leonix premium visual tokens
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -65,7 +64,6 @@ export function RestauranteAdStoryPreview({
   const [shareAbs, setShareAbs] = useState("");
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [hoursFull, setHoursFull] = useState(false);
-  const [contactMore, setContactMore] = useState(false);
   const [chipsExpanded, setChipsExpanded] = useState(false);
 
   useEffect(() => {
@@ -103,7 +101,7 @@ export function RestauranteAdStoryPreview({
       return `${displayHour}:${minutes} ${ampm}`;
     });
   };
-  const hasContactInfo = data.contact;
+  const hasContactInfo = Boolean(data.contactHub?.hasAny);
   const hasMenuHighlights = data.menuHighlights && data.menuHighlights.length > 0;
   const hasGallery = data.venueGallery || data.gallery;
   const hasHoursSection = Boolean(data.hoursPreview);
@@ -209,9 +207,9 @@ export function RestauranteAdStoryPreview({
                   {data.businessName}
                 </h1>
 
-                {data.contact?.addressLine1 ? (
-                  <p className="mx-auto mt-1.5 max-w-full truncate text-center text-[13px] font-semibold leading-snug text-[#3D3630]">
-                    {data.contact.addressLine1}
+                {data.contactHub?.location?.addressLine1 ? (
+                  <p className="mx-auto mt-1.5 max-w-full truncate text-center text-[13px] font-semibold leading-snug text-[color:var(--lx-text-2)]">
+                    {data.contactHub.location.addressLine1}
                   </p>
                 ) : null}
 
@@ -654,228 +652,16 @@ export function RestauranteAdStoryPreview({
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
-
-            {/* Mobile: lighter contact section - primary CTAs moved to hero */}
-            <div className="md:hidden">
-              {/* Only show "Más contacto" if there are lower-priority details to reveal */}
-              {(data.contact?.email || data.contact?.menuFileHref || data.fullMenuCta || data.contact?.addressLine2) && (
-                <>
-                  <p className="mb-2 text-xs text-[#5A5148]">Contacto principal disponible en la parte superior</p>
-                  <button
-                    type="button"
-                    onClick={() => setContactMore((v) => !v)}
-                    className="w-full rounded-xl border border-[#D8C2A0]/80 bg-white py-2 text-center text-xs font-semibold text-[#5A5148]"
-                  >
-                    {contactMore ? "Ocultar detalles" : "Más contacto"}
-                  </button>
-                  {contactMore ? (
-                    <div className="mt-3 space-y-3 border-t border-[#D8C2A0]/40 pt-3 text-left text-sm">
-                      {data.contact?.addressLine1 ? (
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Dirección completa</p>
-                          <p className="mt-0.5 break-words font-medium text-[#1F1A17]">{data.contact.addressLine1}</p>
-                          {data.contact.addressLine2 ? (
-                            <p className="mt-0.5 break-words text-[#5A5148]">{data.contact.addressLine2}</p>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {data.contact?.email ? (
-                        <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Correo</p>
-                          <ContactEmailMenu
-                            email={data.contact.email}
-                            {...buildRestauranteInquiryMailto(data.contact.email, "es")}
-                            lang="es"
-                            rootClassName="relative mt-1 w-full min-w-0"
-                            triggerClassName="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-lg border border-[#D8C2A0] bg-[#FFFAF3] px-3 py-2 text-left text-sm font-medium text-[#1F1A17]"
-                          >
-                            <FiMail className="h-4 w-4 shrink-0" aria-hidden />
-                            <span className="min-w-0 truncate">{data.contact.email}</span>
-                          </ContactEmailMenu>
-                        </div>
-                      ) : null}
-                      {(data.contact?.menuFileHref || data.fullMenuCta) && (
-                        <div className="flex flex-wrap gap-2">
-                          {data.contact?.menuFileHref ? (
-                            <a
-                              href={data.contact.menuFileHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
-                            >
-                              Menú (archivo)
-                            </a>
-                          ) : null}
-                          {data.fullMenuCta ? (
-                            <a
-                              href={data.fullMenuCta.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex min-h-[40px] items-center rounded-lg border border-[#D8C2A0] bg-[#F6EBDD] px-3 text-xs font-semibold"
-                            >
-                              {data.fullMenuCta.label}
-                            </a>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-
-            {/* Desktop: original two-column layout */}
-            <div className="hidden gap-8 md:grid md:grid-cols-2">
-              <div>
-                <h3 className={SUBSECTION_TITLE}>Información de Contacto</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  {data.contact?.phoneDisplay && data.contact.phoneTelHref ? (
-                    <a
-                      href={data.contact.phoneTelHref}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E]"
-                    >
-                      <FiPhone className="h-4 w-4" aria-hidden />
-                      <span>Llamar</span>
-                      <span className="ml-1 text-xs opacity-70">{data.contact.phoneDisplay}</span>
-                    </a>
-                  ) : null}
-
-                  {data.contact?.email ? (
-                    <ContactEmailMenu
-                      email={data.contact.email}
-                      {...buildRestauranteInquiryMailto(data.contact.email, "es")}
-                      lang="es"
-                      rootClassName="relative w-auto min-w-0 max-w-full"
-                      triggerClassName="inline-flex min-h-[44px] w-full max-w-full items-center justify-between gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E] sm:w-auto sm:max-w-none"
-                    >
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <FiMail className="h-4 w-4 shrink-0" aria-hidden />
-                        <span>Correo</span>
-                        <span className="truncate text-xs opacity-70">{data.contact.email}</span>
-                      </span>
-                    </ContactEmailMenu>
-                  ) : null}
-
-                  {data.contact?.websiteDisplay && data.contact?.websiteHref ? (
-                    <a
-                      href={data.contact.websiteHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E]"
-                    >
-                      <FiExternalLink className="h-4 w-4" aria-hidden />
-                      <span>Sitio web</span>
-                      <span className="ml-1 text-xs opacity-70">{data.contact.websiteDisplay}</span>
-                    </a>
-                  ) : null}
-
-                  {data.contact?.whatsappHref ? (
-                    <a
-                      href={data.contact.whatsappHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C2A0] bg-[#F6EBDD] px-3 py-1.5 text-sm font-medium text-[#1F1A17] hover:bg-[#BEA98E]"
-                    >
-                      <FaWhatsapp className="h-4 w-4" aria-hidden />
-                      <span>WhatsApp</span>
-                    </a>
-                  ) : null}
-
-                  {(data.contact?.menuFileHref || data.fullMenuCta) && (
-                    <div className="w-full border-t border-[#D8C2A0]/30 pt-4">
-                      <h4 className="mb-3 font-semibold text-[#1F1A17]">Menú</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {data.contact?.menuFileHref ? (
-                          <a
-                            href={data.contact.menuFileHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 rounded-full bg-[#F6EBDD] px-4 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
-                          >
-                            Ver menú
-                          </a>
-                        ) : null}
-                        {data.fullMenuCta ? (
-                          <a
-                            href={data.fullMenuCta.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 rounded-full bg-[#F6EBDD] px-4 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
-                          >
-                            {data.fullMenuCta.label}
-                          </a>
-                        ) : null}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h3 className={SUBSECTION_TITLE}>Ubicación</h3>
-                <div className="space-y-4">
-                  {data.contact?.addressLine1 ? (
-                    <div className="flex items-start gap-3">
-                      <FiMapPin className="mt-1 h-5 w-5 shrink-0 text-[#BEA98E]" aria-hidden />
-                      <div>
-                        <p className="font-medium text-[#1F1A17]">{data.contact.addressLine1}</p>
-                        {data.contact.addressLine2 ? <p className="text-sm text-[#5A5148]">{data.contact.addressLine2}</p> : null}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="border-t border-[#D8C2A0]/30 pt-4">
-                    <h4 className="mb-3 font-semibold text-[#1F1A17]">Redes Sociales</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {data.contact?.instagramHref ? (
-                        <a
-                          href={data.contact.instagramHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
-                        >
-                          <FiInstagram className="h-4 w-4" />
-                          Instagram
-                        </a>
-                      ) : null}
-                      {data.contact?.facebookHref ? (
-                        <a
-                          href={data.contact.facebookHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
-                        >
-                          <FiFacebook className="h-4 w-4" />
-                          Facebook
-                        </a>
-                      ) : null}
-                      {data.contact?.tiktokHref ? (
-                        <a
-                          href={data.contact.tiktokHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
-                        >
-                          <FaTiktok className="h-4 w-4" />
-                          TikTok
-                        </a>
-                      ) : null}
-                      {data.contact?.youtubeHref ? (
-                        <a
-                          href={data.contact.youtubeHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 rounded-full bg-[#F6EBDD] px-3 py-2 text-sm font-semibold text-[#1F1A17] hover:bg-[#BEA98E]"
-                        >
-                          <FiYoutube className="h-4 w-4" />
-                          YouTube
-                        </a>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {data.contactHub ? (
+              <RestaurantContactHub
+                hub={data.contactHub}
+                lang={lang}
+                contactShareExtras={{
+                  email: data.contact?.email,
+                  websiteUrl: data.contact?.websiteHref,
+                }}
+              />
+            ) : null}
           </div>
         </section>
       )}

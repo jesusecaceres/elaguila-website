@@ -33,7 +33,6 @@ export type ParsedEmpleosResultsQuery = {
   industry: string;
   bilingualOnly: boolean;
   /** Parsed but not used for filtering until geo pipeline exists. */
-  radiusKm: string;
   sort: EmpleosSortKey;
 };
 
@@ -62,7 +61,6 @@ export function parseEmpleosResultsQuery(sp: URLSearchParams): ParsedEmpleosResu
     lane: (sp.get("lane") ?? "").trim(),
     industry: (sp.get("industry") ?? "").trim(),
     bilingualOnly: sp.get("bilingual") === "1",
-    radiusKm: (sp.get("radiusKm") ?? "").trim(),
     sort,
   };
 }
@@ -127,8 +125,6 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
       if (!loc.includes(cityLower)) return false;
     }
 
-    // radiusKm: staged — requires lat/lng + geo index; do not fake proximity in sample phase.
-    // if (p.radiusKm && Number(p.radiusKm) > 0) { /* future */ }
 
     return true;
   });

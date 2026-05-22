@@ -26,8 +26,15 @@ import {
   serializeBrGate12dV1Payload,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import {
+  composeBrApproximateMapQuery,
+  composeBrExactMapQuery,
+  sanitizeBrUserMapUrl,
+} from "@/app/clasificados/lib/leonixBrGate12d";
+import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
+  LEONIX_DP_BR_LISTING_STATUS,
+  LEONIX_DP_BR_MAP_URL,
   LEONIX_DP_FURNISHED,
   LEONIX_DP_HIGHLIGHT_SLUGS,
   LEONIX_DP_PARKING_SPOTS,
@@ -195,6 +202,32 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
   if (chPr) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chPr));
   const g12 = serializeBrGate12dV1Payload(buildBrGate12dV1FromPrivadoState(state));
   if (g12) push(out, LEONIX_DP_BR_GATE12D_V1, g12);
+  if (state.estadoAnuncio) push(out, LEONIX_DP_BR_LISTING_STATUS, state.estadoAnuncio);
+  const userMap = sanitizeBrUserMapUrl(state.enlaceMapa);
+  if (userMap) {
+    push(out, LEONIX_DP_BR_MAP_URL, userMap);
+  } else {
+    const zip = normalizeZipForBrowse(String(state.gate12d?.codigoPostal ?? "").trim());
+    const mapsQuery = state.mostrarDireccionExacta
+      ? composeBrExactMapQuery({
+          streetAddress: state.ubicacionLinea,
+          unit: "",
+          neighborhood: "",
+          city: state.ciudad,
+          state: "",
+          zip,
+        })
+      : composeBrApproximateMapQuery({
+          neighborhood: state.ubicacionLinea,
+          city: state.ciudad,
+          state: "",
+          zip,
+        });
+    if (mapsQuery) {
+      const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+      push(out, LEONIX_DP_BR_MAP_URL, href);
+    }
+  }
   return out;
 }
 
@@ -265,5 +298,25 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
   if (chN) push(out, LEONIX_DP_CONTACT_CHANNELS_V1, serializeLeonixContactChannelsV1Payload(chN));
   const g12n = serializeBrGate12dV1Payload(buildBrGate12dV1FromNegocioState(state));
   if (g12n) push(out, LEONIX_DP_BR_GATE12D_V1, g12n);
+  if (state.listingStatus) push(out, LEONIX_DP_BR_LISTING_STATUS, state.listingStatus);
+  const zipNeg = String(state.codigoPostal ?? "").replace(/\D/g, "").slice(0, 10);
+  const mapsQueryNeg = state.mostrarDireccionExacta
+    ? composeBrExactMapQuery({
+        streetAddress: state.direccion,
+        unit: "",
+        neighborhood: state.colonia,
+        city: state.ciudad,
+        state: state.estado,
+        zip: zipNeg,
+      })
+    : composeBrApproximateMapQuery({
+        neighborhood: state.colonia,
+        city: state.ciudad,
+        state: state.estado,
+        zip: zipNeg,
+      });
+  if (mapsQueryNeg) {
+    push(out, LEONIX_DP_BR_MAP_URL, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQueryNeg)}`);
+  }
   return out;
 }

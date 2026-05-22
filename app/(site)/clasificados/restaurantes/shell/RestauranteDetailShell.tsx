@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
-import { FaTiktok, FaWhatsapp } from "react-icons/fa";
+import { FiExternalLink, FiMapPin, FiInstagram, FiFacebook, FiYoutube } from "react-icons/fi";
+import { FaTiktok } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 import { RestauranteShellInlineDataAssetButton } from "./RestauranteShellInlineDataAssetButton";
 import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
@@ -13,17 +12,7 @@ import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGaller
 import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosSection";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
-import {
-  buildCallIntent,
-  buildDirectionsIntent,
-  buildSendEmailIntent,
-  buildSocialLinkIntent,
-  buildWebsiteIntent,
-  buildWhatsAppMessageIntent,
-  CtaActionSheet,
-  type CtaSheetIntent,
-} from "@/app/components/cta";
-import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
+import { RestaurantContactHub } from "./RestaurantContactHub";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -83,10 +72,6 @@ function HeroTaxonomyLine({
   );
 }
 
-function mapsHref(query: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
-
 function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
   if (!c) return false;
   return Boolean(
@@ -106,29 +91,7 @@ function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
 }
 
 function ContactSection({ data }: { data: RestaurantDetailShellData }) {
-  const c = data.contact!;
-  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-  const contactShareExtras = {
-    email: c.email,
-    websiteUrl: c.websiteHref,
-  };
-  const openSheet = (intent: CtaSheetIntent | null) => {
-    if (intent) setCtaIntent(intent);
-  };
-  const openEmailSheet = () => {
-    if (!c.email) return;
-    const parsed = buildRestauranteInquiryMailto(c.email, "es");
-    openSheet(buildSendEmailIntent({ email: c.email, subject: "Consulta para restaurante Leonix", body: parsed.messagePlain, contactShareExtras }));
-  };
-  const openWhatsAppSheet = () => {
-    if (!c.whatsappHref) return;
-    const { digits, message } = parseWhatsAppHref(c.whatsappHref);
-    openSheet(buildWhatsAppMessageIntent({ whatsappDigits: digits, message, contactShareExtras }));
-  };
-  const openSocialSheet = (url: string | undefined, label: string) => {
-    if (!url) return;
-    openSheet(buildSocialLinkIntent({ url, headline: label }));
-  };
+  if (!data.contactHub?.hasAny) return null;
   return (
     <section aria-labelledby="contact-access-heading" className="scroll-mt-24">
       <div className="mb-4 max-w-2xl">
@@ -136,155 +99,19 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
         <h2 id="contact-access-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
           Contacto y ubicación
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-          Reserva mesa, ruta y canales directos — en un solo lugar.
-        </p>
       </div>
-      <div className={`${CARD} space-y-5 p-5 sm:p-6`}>
-        <div className="space-y-3 text-sm">
-          {c.addressLine1 || c.mapsSearchQuery ? (
-            <div className="flex gap-3 text-[color:var(--lx-text-2)]">
-              <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
-              <div>
-                {c.addressLine1 ? <p className="text-[color:var(--lx-text)]">{c.addressLine1}</p> : null}
-                {c.addressLine2 ? <p>{c.addressLine2}</p> : null}
-                {c.mapsSearchQuery ? (
-                  <button
-                    type="button"
-                    onClick={() => openSheet(buildDirectionsIntent({ addressOrUrl: mapsHref(c.mapsSearchQuery ?? ""), isMapsUrl: true, contactShareExtras }))}
-                    className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-blue)]/40 underline-offset-4 hover:text-[color:var(--lx-blue)]"
-                  >
-                    Cómo llegar
-                    <FiExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          {c.phoneDisplay && c.phoneTelHref ? (
-            <button
-              type="button"
-              onClick={() => openSheet(buildCallIntent({ phone: c.phoneTelHref?.replace(/^tel:/i, "") ?? "", contactShareExtras }))}
-              className="flex items-center gap-2 font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
-            >
-              <FiPhone className="h-4 w-4 text-[color:var(--lx-blue)]" aria-hidden />
-              {c.phoneDisplay}
-            </button>
-          ) : null}
-          {c.email ? (
-            <button
-              type="button"
-              onClick={openEmailSheet}
-              className="flex w-full min-w-0 items-center gap-2 text-left font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
-            >
-              <FiMail className="h-4 w-4 shrink-0 text-[color:var(--lx-blue)]" aria-hidden />
-              <span className="min-w-0 break-all">{c.email}</span>
-            </button>
-          ) : null}
-          {c.websiteHref && c.websiteDisplay ? (
-            <button
-              type="button"
-              onClick={() => openSheet(buildWebsiteIntent({ url: c.websiteHref ?? "", headline: c.websiteDisplay ?? "Sitio web", kind: "website" }))}
-              className="flex items-center gap-2 break-all font-medium text-[color:var(--lx-text)] hover:text-[color:var(--lx-blue)]"
-            >
-              <span className="text-[color:var(--lx-blue)]" aria-hidden>
-                ◆
-              </span>
-              {c.websiteDisplay}
-            </button>
-          ) : null}
-        </div>
-
-        {c.instagramHref || c.facebookHref || c.tiktokHref || c.youtubeHref || c.whatsappHref ? (
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Redes</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {c.instagramHref ? (
-                <button
-                  type="button"
-                  onClick={() => openSocialSheet(c.instagramHref, "Instagram")}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="Instagram"
-                >
-                  <FiInstagram className="h-[1.15rem] w-[1.15rem]" />
-                </button>
-              ) : null}
-              {c.facebookHref ? (
-                <button
-                  type="button"
-                  onClick={() => openSocialSheet(c.facebookHref, "Facebook")}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="Facebook"
-                >
-                  <FiFacebook className="h-[1.15rem] w-[1.15rem]" />
-                </button>
-              ) : null}
-              {c.tiktokHref ? (
-                <button
-                  type="button"
-                  onClick={() => openSocialSheet(c.tiktokHref, "TikTok")}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="TikTok"
-                >
-                  <FaTiktok className="h-[1.05rem] w-[1.05rem]" />
-                </button>
-              ) : null}
-              {c.youtubeHref ? (
-                <button
-                  type="button"
-                  onClick={() => openSocialSheet(c.youtubeHref, "YouTube")}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label="YouTube"
-                >
-                  <FiYoutube className="h-[1.15rem] w-[1.15rem]" />
-                </button>
-              ) : null}
-              {c.whatsappHref ? (
-                <button
-                  type="button"
-                  onClick={openWhatsAppSheet}
-                  className="inline-flex h-10 min-w-[2.5rem] items-center justify-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-                >
-                  <FaWhatsapp className="h-[1.15rem] w-[1.15rem] text-emerald-700" aria-hidden />
-                  WA
-                </button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex flex-col gap-3 border-t border-[color:var(--lx-nav-border)]/80 pt-4 sm:flex-row sm:items-stretch sm:gap-3">
-          {c.menuFileHref && c.menuFileLabel ? (
-            <RestauranteShellInlineDataAssetButton
-              href={c.menuFileHref}
-              label={c.menuFileLabel}
-              className="flex flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
-            />
-          ) : null}
-          {c.brochureFileHref && c.brochureFileLabel ? (
-            <RestauranteShellInlineDataAssetButton
-              href={c.brochureFileHref}
-              label={c.brochureFileLabel}
-              className="flex flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-            />
-          ) : null}
-        </div>
+      <div className={`${CARD} p-5 sm:p-6`}>
+        <RestaurantContactHub
+          hub={data.contactHub}
+          lang="es"
+          contactShareExtras={{
+            email: data.contact?.email,
+            websiteUrl: data.contact?.websiteHref,
+          }}
+        />
       </div>
-      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
     </section>
   );
-}
-
-function parseWhatsAppHref(href: string): { digits: string; message: string } {
-  try {
-    const url = new URL(href);
-    return {
-      digits: url.pathname.replace(/\D/g, ""),
-      message: url.searchParams.get("text") ?? "",
-    };
-  } catch {
-    return { digits: href.replace(/\D/g, ""), message: "" };
-  }
 }
 
 export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {
@@ -299,7 +126,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
   );
   const legacyGallery = (data.gallery?.length ?? 0) > 0;
   const showAbout = Boolean(data.aboutBody?.trim());
-  const showContact = hasContactContent(data.contact);
+  const showContact = Boolean(data.contactHub?.hasAny) || hasContactContent(data.contact);
   const showStacks = (data.stackSections?.length ?? 0) > 0;
   const showCtas = (data.primaryCtas?.length ?? 0) > 0;
   const hasHeroImg = Boolean(data.heroImageUrl?.trim());

@@ -76,7 +76,6 @@ const COPY = {
     conditionsGroup: "Condiciones",
     featuredIntro: "Mayor visibilidad dentro de tu búsqueda — el listado completo sigue debajo.",
     listIntro: "Coincidencias con tus filtros; cambia el orden sin perder criterios.",
-    radiusStaged: "Búsqueda por distancia (km): preparada para cuando el backend exponga coordenadas; no filtra aún en esta demo.",
     emptyRecoveryTitle: "Recupera resultados rápido",
     recoverDropQ: "Quitar palabra clave",
     recoverDropZip: "Quitar código postal",
@@ -117,7 +116,6 @@ const COPY = {
     conditionsGroup: "Conditions",
     featuredIntro: "Higher visibility within your search — the full list still follows.",
     listIntro: "Matches for your filters; change sort without losing criteria.",
-    radiusStaged: "Distance search (km): wired for future geo indexing; not applied in this demo.",
     emptyRecoveryTitle: "Get results back quickly",
     recoverDropQ: "Remove keyword",
     recoverDropZip: "Remove ZIP",
@@ -156,7 +154,6 @@ const CHIP_KEYS: (keyof EmpleosResultadosParams)[] = [
   "lane",
   "industry",
   "bilingual",
-  "radiusKm",
 ];
 
 type EmpleosFormFields = {
@@ -207,11 +204,6 @@ function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): Empleos
   };
 }
 
-function withStagedRadius(parsed: ParsedEmpleosResultsQuery, p: EmpleosResultadosParams): EmpleosResultadosParams {
-  if (!parsed.radiusKm) return p;
-  return { ...p, radiusKm: parsed.radiusKm };
-}
-
 function sortChipLabel(lang: Lang, sort: EmpleosSortKey): string {
   if (sort === "date_desc") return lang === "es" ? "Orden: más recientes" : "Sort: newest first";
   if (sort === "salary_desc") return lang === "es" ? "Orden: salario mayor" : "Sort: highest salary";
@@ -259,8 +251,6 @@ function chipLabel(lang: Lang, key: string, val: string): string {
     return lang === "es" ? `Flujo: ${val}` : `Lane: ${val}`;
   if (key === "industry" && val) return lang === "es" ? `Industria: ${val}` : `Industry: ${val}`;
   if (key === "bilingual" && val === "1") return lang === "es" ? "Bilingüe" : "Bilingual";
-  if (key === "radiusKm")
-    return lang === "es" ? `Radio: ${val} km (sin filtrar aún)` : `Radius: ${val} km (not filtering yet)`;
   return `${key}: ${val}`;
 }
 
@@ -472,16 +462,15 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     bilingual: bilingualBox,
   });
 
-  /** Updates URL immediately — keeps filter contract and staged `radiusKm` when present. */
   const pushFromFields = (patch: Partial<EmpleosFormFields>) => {
     const next = { ...fieldSnapshot(), ...patch };
-    router.push(buildEmpleosResultadosUrl(lang, withStagedRadius(parsed, toEmpleosParams(parsed.sort, next))));
+    router.push(buildEmpleosResultadosUrl(lang, toEmpleosParams(parsed.sort, next)));
   };
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const next = fieldSnapshot();
-    const params = withStagedRadius(parsed, toEmpleosParams(parsed.sort, next));
+    const params = toEmpleosParams(parsed.sort, next);
     if (rememberPrefs && (next.city.trim() || next.stateCode.trim())) {
       saveEmpleosFilterPrefs({ city: next.city.trim() || undefined, state: next.stateCode.trim() || undefined });
     }
@@ -972,7 +961,6 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
               <span>{t.rememberPrefs}</span>
             </label>
 
-            {parsed.radiusKm ? <p className="text-[11px] leading-relaxed text-[#7A756E]">{t.radiusStaged}</p> : null}
           </div>
 
           <div className="mt-10 flex flex-col gap-5 border-t border-[#F0E8DC] pt-8 lg:flex-row lg:items-end lg:justify-between">

@@ -367,6 +367,28 @@ Same stack as Clases with `category=comunidad` and event-specific filters (event
 
 ---
 
+## Gate C2 blocker resolution
+
+| Category | Blocker | File(s) changed | Resolution | Status |
+|---|---|---|---|---|
+| Bienes Raíces | `estadoAnuncio` / `listingStatus` not persisted | `leonixRealEstateListingContract.ts`, `leonixBrMachineFacetPairsFromFormState.ts`, `BrLiveFactsStrip.tsx` | Persist `Leonix:br:listing_status` on publish; show on live detail facts strip | TRUE |
+| Bienes Raíces | `enlaceMapa` weak | `leonixBrMachineFacetPairsFromFormState.ts`, `leonixBrGate12d.ts` | Persist `Leonix:br:map_url` (user https maps link or composed Google query); detail reads BR then Rentas key | TRUE |
+| Bienes Raíces | `BR_URL_QUERY_CIUDAD` vs `city` | `shared/brNorCalCity.ts` | `BR_URL_QUERY_CIUDAD` aligned to `"city"` (matches `parseBrResultsUrl`) | TRUE |
+| Bienes Raíces | Publish city NorCal | `leonixPublishRealEstateFromDraftState.ts` | BR privado/negocio publish uses `brCanonicalNorCalCity` | TRUE |
+| En Venta | `listings.zip` legacy gap | `mapping/mapDbRowToEnVentaListingData.ts` | ZIP filter reads `listings.zip` or falls back to `Leonix:postal_code` / human postal pair | TRUE |
+| En Venta | brand/model/itemType facet filters | — | Search + detail already wired; no dedicated facet URL (avoid fake filters) | DEFERRED_INTENTIONAL |
+| Empleos | `radiusKm` no-op | `empleosFilterContract.ts`, `empleosResultsQuery.ts`, `EmpleosResultsView.tsx` | Removed from URL contract and results UI (no placeholder distance filter) | TRUE |
+| Empleos | Thin detail when `listing_snapshot` null | `empleosPublicListingsDbServer.ts` | Fallback `rowToJobRecord` builds summary from indexed columns + bridges `leonix_verified` | TRUE |
+| Empleos | `verifiedEmployer` not bridged | `empleosPublicListingsDbServer.ts`, `api/admin/empleos/listings/[id]/route.ts` | Browse uses `verified_employer \|\| leonix_verified`; admin verify syncs both columns | TRUE |
+| Rentas | City not NorCal-canonicalized | `rentasLocationNormalize.ts`, `leonixPublishRealEstateFromDraftState.ts`, `rentasBrowseFilters.ts` | `canonicalRentasCityForPublish` at publish + canonical city match on filter | TRUE |
+| Rentas | `radius_km` no-op | `rentasBrowseContract.ts`, `RentasResultsClient.tsx` (existing strip) | Geo radius not shown; URL keys stripped (no fake proximity UI) | TRUE |
+| Rentas | Availability not filterable | `rentasBrowseContract.ts`, `rentasBrowseFilters.ts`, `RentasResultsClient.tsx`, `RentasResultsActiveFilters.tsx` | URL `estado` + select filter on `rentasListingAvailability` | TRUE |
+| Restaurantes | Landing blueprint as inventory | `lib/restaurantesLandingInventoryServer.ts` (verified) | Landing already live-only; chips are taxonomy handoffs only | TRUE |
+| Restaurantes | `/shell` fake data public | `restaurantes/shell/page.tsx` | Production redirects to `/clasificados/restaurantes` | TRUE |
+| Viajes | Curated seed in production | `viajes/lib/viajesPublicInventory.ts` | Production never merges samples (`NODE_ENV === "production"` → false always) | TRUE |
+
+---
+
 ## Verification
 
 ### Build
@@ -375,7 +397,7 @@ Same stack as Clases with `category=comunidad` and event-specific filters (event
 npm run build
 ```
 
-Result: **PASS** — `npm run build` exit 0 (2026-05-21). First attempt failed on stale `.next` prerender cache for `/coming-soon`; clean rebuild succeeded.
+Result: **PASS (C2)** — run after Gate C2 changes; clean `.next` rebuild if prerender cache errors appear.
 
 ### Tests / scripts
 

@@ -21,6 +21,7 @@ import {
   parseLeonixMachineFacetRead,
   readLeonixDetailPairValue,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { LEONIX_DP_BR_MAP_URL } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { RENTAS_DP_MAP_URL } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { privacySafeLocation } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 
@@ -346,7 +347,11 @@ export function buildBrPublicLocationForLiveDetail(opts: {
     firstRow(humanRows, /^zona$/i) ||
     firstRow(humanRows, /vecindario/i);
 
-  const mapPair = (readLeonixDetailPairValue(detailPairs, RENTAS_DP_MAP_URL) ?? "").trim();
+  const mapPair =
+    (readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_MAP_URL) ??
+      readLeonixDetailPairValue(detailPairs, RENTAS_DP_MAP_URL) ??
+      "")
+      .trim();
   const safeUserMap = sanitizeBrUserMapUrl(mapPair);
 
   let mapsQuery = "";

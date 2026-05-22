@@ -69,8 +69,10 @@ export const RENTAS_RESULTS_PAGE_SIZE = 6;
 /** Scaffold: browser geolocation (only set after explicit user action; not auto-read). */
 export const RENTAS_QUERY_LAT = "lat";
 export const RENTAS_QUERY_LNG = "lng";
-/** Scaffold: radius in km — filtering not live until geo index exists. */
+/** Scaffold: radius in km — not exposed in UI; stripped from URL when present. */
 export const RENTAS_QUERY_RADIUS_KM = "radius_km";
+/** `disponible` | `pendiente` | `bajo_contrato` | `rentado` — matches `Leonix:rent:listing_status`. */
+export const RENTAS_QUERY_ESTADO = "estado";
 
 /** Comma-separated highlight / amenity slugs (`Leonix:highlight_slugs` tokens). AND semantics in filters. */
 export const RENTAS_QUERY_HIGHLIGHTS = "highlights";
@@ -126,6 +128,8 @@ export type RentasBrowseParamsParsed = {
   /** Normalized lowercase `property_subtype` match. */
   subtype: string;
   kind: BrResultsPropertyKind | null;
+  /** Availability lifecycle filter (`rentasListingAvailability`). */
+  estado: string;
 };
 
 const LEGACY_TIPO_ALIASES: Record<string, BrNegocioCategoriaPropiedad> = {
@@ -209,6 +213,7 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     wantsPool,
     subtype: subtypeNorm,
     kind,
+    estado: g(RENTAS_QUERY_ESTADO).trim().toLowerCase(),
   };
 }
 

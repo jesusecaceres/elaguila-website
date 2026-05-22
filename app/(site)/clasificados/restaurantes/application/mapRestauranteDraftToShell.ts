@@ -35,6 +35,7 @@ import {
   TAXONOMY_KEY_OTHER_LANG,
 } from "./restauranteTaxonomy";
 import { formatPlatilloPriceBadge } from "./restauranteShellDisplayFormat";
+import { buildRestaurantContactHub } from "./buildRestaurantContactHub";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -357,13 +358,22 @@ function buildVenueGalleryFromDraft(d: RestauranteListingDraft): ShellVenueGalle
   };
 }
 
+function shouldShowStreetAddress(d: RestauranteListingDraft): boolean {
+  if (!nonEmpty(d.addressLine1)) return false;
+  if (d.homeBasedBusiness && d.showExactAddress === false) return false;
+  if (d.locationPrivacyMode === "city_only" || d.locationPrivacyMode === "hidden_address_text_only") return false;
+  return true;
+}
+
 function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined {
   const c: ShellContactBlock = {};
-  if (nonEmpty(d.addressLine1)) c.addressLine1 = d.addressLine1!.trim();
+  if (shouldShowStreetAddress(d)) c.addressLine1 = d.addressLine1!.trim();
   const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
   if (nonEmpty(d.addressLine2)) c.addressLine2 = d.addressLine2!.trim();
   else if (cityLine) c.addressLine2 = cityLine;
-  const mapsQ = [d.addressLine1, cityLine].filter(nonEmpty).join(", ");
+  const mapsQ = shouldShowStreetAddress(d)
+    ? [d.addressLine1, cityLine].filter(nonEmpty).join(", ")
+    : cityLine || (nonEmpty(d.serviceAreaText) ? d.serviceAreaText!.trim() : "");
   if (nonEmpty(mapsQ)) c.mapsSearchQuery = mapsQ;
   if (nonEmpty(d.phoneNumber)) {
     c.phoneDisplay = d.phoneNumber!.trim();
@@ -550,6 +560,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
   const menuHref = hasMenuUrl ? normalizeUrl(d.menuUrl!) : hasMenuFile ? d.menuFile! : "";
   const venueGallery = buildVenueGalleryFromDraft(d);
   const contact = buildContact(d);
+  const contactHub = buildRestaurantContactHub(d, "es");
   const stacks = buildStacks(d);
   const trustRating =
     d.externalRatingValue != null && d.externalReviewCount != null
@@ -587,6 +598,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
       ? { label: "Explorar fotos y videos", href: "#galeria-lugar" }
       : undefined,
     contact,
+    contactHub,
     aboutTitle: nonEmpty(d.longDescription) ? "Sobre el negocio" : undefined,
     aboutBody: nonEmpty(d.longDescription) ? d.longDescription!.trim() : undefined,
     trustLight: buildTrustLight(d),

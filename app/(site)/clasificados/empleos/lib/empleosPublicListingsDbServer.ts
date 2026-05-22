@@ -260,8 +260,24 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
   const snap = row.listing_snapshot as EmpleosListingSnapshotJson | null;
   const applyCount = typeof (row as { apply_count?: number }).apply_count === "number" ? (row as { apply_count: number }).apply_count : undefined;
   if (snap?.jobRecord) {
-    return applyCount != null ? { ...snap.jobRecord, applicationCount: applyCount } : { ...snap.jobRecord };
+    const jr = snap.jobRecord;
+    const verified = Boolean(jr.verifiedEmployer) || Boolean(row.verified_employer) || Boolean(row.leonix_verified);
+    return applyCount != null
+      ? { ...jr, verifiedEmployer: verified, applicationCount: applyCount }
+      : { ...jr, verifiedEmployer: verified };
   }
+  const salaryLabel =
+    row.salary_label?.trim() ||
+    (Number.isFinite(Number(row.salary_min)) && Number.isFinite(Number(row.salary_max))
+      ? `$${Number(row.salary_min).toLocaleString()} – $${Number(row.salary_max).toLocaleString()}`
+      : "");
+  const summaryParts = [
+    row.category_slug ? `Categoría: ${row.category_slug}` : "",
+    row.modality ? `Modalidad: ${row.modality}` : "",
+    row.job_type ? `Tipo: ${row.job_type}` : "",
+    row.city && row.state ? `${row.city}, ${row.state}` : row.city || row.state || "",
+  ].filter(Boolean);
+  const summary = summaryParts.join(" · ") || row.title;
   return {
     id: row.id,
     slug: row.slug,
@@ -275,21 +291,21 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
     jobType: row.job_type as EmpleosJobRecord["jobType"],
     salaryMin: Number(row.salary_min),
     salaryMax: Number(row.salary_max),
-    salaryLabel: row.salary_label,
+    salaryLabel: salaryLabel || row.title,
     experience: row.experience as EmpleosJobRecord["experience"],
     companyType: row.company_type as EmpleosJobRecord["companyType"],
     quickApply: row.quick_apply,
     publishedAt: row.published_at ?? row.created_at,
     listingTier: row.listing_tier as EmpleosJobRecord["listingTier"],
-    verifiedEmployer: row.verified_employer,
+    verifiedEmployer: Boolean(row.verified_employer) || Boolean(row.leonix_verified),
     premiumEmployer: row.premium_employer,
     companyInitials: row.company_name.slice(0, 2).toUpperCase(),
     imageSrc:
       "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80",
     imageAlt: row.title,
-    summary: row.title,
-    description: row.title,
-    requirements: [],
+    summary,
+    description: summary,
+    requirements: row.experience ? [row.experience] : [],
     benefits: [],
     benefitChips: [],
     showOnLandingFeatured: false,

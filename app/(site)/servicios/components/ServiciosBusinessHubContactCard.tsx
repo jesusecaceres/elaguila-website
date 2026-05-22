@@ -40,6 +40,7 @@ import {
   businessHubSocialBrandStyle,
 } from "../lib/serviciosBusinessHubSocialBrand";
 import { ServiciosStarRating } from "./ServiciosStarRating";
+import { ServiciosBusinessHubEngagementRow } from "./ServiciosBusinessHubEngagementRow";
 import { ServiciosBusinessHubFauxMap } from "./ServiciosBusinessHubFauxMap";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
@@ -104,6 +105,10 @@ export function ServiciosBusinessHubContactCard({
   lang,
   listingSlug,
   listingShareUrl,
+  engagementListingId = null,
+  engagementOwnerUserId = null,
+  persistListingEngagement = false,
+  publicLikeCount,
   directContactFasterResponseHint = false,
   showOfferSidebarTeaser = true,
 }: {
@@ -111,6 +116,10 @@ export function ServiciosBusinessHubContactCard({
   lang: ServiciosLang;
   listingSlug?: string;
   listingShareUrl?: string;
+  engagementListingId?: string | null;
+  engagementOwnerUserId?: string | null;
+  persistListingEngagement?: boolean;
+  publicLikeCount?: number;
   directContactFasterResponseHint?: boolean;
   showOfferSidebarTeaser?: boolean;
 }) {
@@ -278,6 +287,11 @@ export function ServiciosBusinessHubContactCard({
   }
 
   const hasContactGrid = contactActions.length > 0;
+  const lxListingIdForEngagement = (engagementListingId ?? "").trim() || profile.identity.slug;
+  const showEngagementRow =
+    (persistListingEngagement && Boolean(lxListingIdForEngagement)) ||
+    Boolean(lxListingIdForEngagement) ||
+    Boolean((listingShareUrl ?? "").trim());
   const showSocial = vm.social.length > 0;
   const showReviews = vm.reviews.length > 0;
   const showMore = vm.moreLinks.length > 0;
@@ -399,9 +413,19 @@ export function ServiciosBusinessHubContactCard({
           </section>
         ) : null}
 
+        <ServiciosBusinessHubEngagementRow
+          profile={profile}
+          lang={lang}
+          engagementListingId={engagementListingId}
+          engagementOwnerUserId={engagementOwnerUserId}
+          listingShareUrl={listingShareUrl}
+          persistListingEngagement={persistListingEngagement}
+          publicLikeCount={publicLikeCount}
+        />
+
         {hours?.openNowLabel && nonEmpty(hours.todayHoursLine) ? (
           <>
-            {hasContactGrid || showPrimaryQuote ? <HubDivider /> : null}
+            {hasContactGrid || showPrimaryQuote || showEngagementRow ? <HubDivider /> : null}
             <p className="flex items-start gap-2 text-xs text-[color:var(--lx-text-2)]">
               <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: HUB_CTA_BG }} aria-hidden />
               <span>

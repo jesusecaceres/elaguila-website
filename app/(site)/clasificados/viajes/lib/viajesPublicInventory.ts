@@ -16,10 +16,9 @@ import { VIAJES_RESULTS_SAMPLE, type ViajesResultRow } from "../data/viajesResul
  */
 export function viajesAllowCuratedDemoCatalog(): boolean {
   if (process.env.NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED === "1") return false;
-  if (process.env.NODE_ENV === "production") {
-    return process.env.NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED === "1";
-  }
-  return true;
+  /** Production never merges curated sample rows — even if `NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1` is set by mistake. */
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED !== "0";
 }
 
 /** Merge approved staged cards with optional curated seed (never in production unless explicitly opted in). */

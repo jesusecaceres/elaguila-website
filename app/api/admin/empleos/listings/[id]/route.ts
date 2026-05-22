@@ -121,9 +121,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       break;
     case "verify_on":
       patch.leonix_verified = true;
+      patch.verified_employer = true;
       break;
     case "verify_off":
       patch.leonix_verified = false;
+      patch.verified_employer = false;
       break;
     case "archive":
       patch.lifecycle_status = "archived";

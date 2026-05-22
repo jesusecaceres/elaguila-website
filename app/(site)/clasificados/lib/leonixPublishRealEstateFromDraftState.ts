@@ -39,7 +39,11 @@ import {
   type PublishLeonixRealEstateListingCoreResult,
 } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
 import { mergeRentasNegocioMachinePairs, mergeRentasPrivadoMachinePairs } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
-import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
+import { brCanonicalNorCalCity } from "@/app/clasificados/bienes-raices/shared/brNorCalCity";
+import {
+  canonicalRentasCityForPublish,
+  normalizeZipForBrowse,
+} from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
@@ -93,7 +97,7 @@ function rentasPublishCity(state: {
   direccionCalle: string;
   ubicacionLinea: string;
 }): string {
-  const c = trim(state.ciudad);
+  const c = canonicalRentasCityForPublish(trim(state.ciudad));
   if (c) return c;
   const exactOk = state.mostrarDireccionExacta === true;
   if (!exactOk) {
@@ -201,7 +205,7 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
     params: {
       title: state.titulo,
       description: state.descripcion,
-      city: trim(state.ciudad) || trim(state.ubicacionLinea),
+      city: brCanonicalNorCalCity(trim(state.ciudad)) || trim(state.ciudad) || trim(state.ubicacionLinea),
       state: trim(state.gate12d.estado) || null,
       zip: zipPriv ?? undefined,
       price: priceNumberFromDigitsString(state.precio),
@@ -314,7 +318,7 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
     params: {
       title: state.titulo,
       description: state.descripcionLarga || state.descripcionCorta,
-      city: trim(state.ciudad) || trim(state.direccion),
+      city: brCanonicalNorCalCity(trim(state.ciudad)) || trim(state.ciudad) || trim(state.direccion),
       state: trim(state.estado) || null,
       zip: zipNeg.length >= 5 ? zipNeg : undefined,
       price: priceNumberFromDigitsString(state.precio),

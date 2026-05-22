@@ -2,9 +2,6 @@ import Image from "next/image";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { SV } from "./serviciosDesignTokens";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import { buildServiciosHeroHoursPill } from "./serviciosHeroHoursStatus";
 
@@ -48,12 +45,6 @@ export function ServiciosHero({
   const hoursPill = buildServiciosHeroHoursPill(profile.contact.hours, lang);
   const featuredServices = profile.services.slice(0, 3);
 
-  const lxListingId = (engagementListingId ?? "").trim() || identity.slug;
-  const persistEngagement = persistListingEngagement;
-  const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
-  const likeCueN =
-    typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
-
   return (
     <section className="relative w-full rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
       {/*
@@ -83,77 +74,7 @@ export function ServiciosHero({
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/25" />
         </div>
 
-        <div className="pointer-events-none absolute right-2 top-2 z-20 sm:right-4 sm:top-4">
-          <div className="pointer-events-auto flex flex-col gap-1.5 sm:gap-2">
-            {persistEngagement ? (
-              <>
-                <div className="rounded-xl bg-white/92 p-1.5 shadow-lg backdrop-blur-sm">
-                  <LeonixLikeButton
-                    listingId={lxListingId}
-                    ownerUserId={lxOwner}
-                    variant="small"
-                    lang={lang}
-                    category="servicios"
-                    persistEngagement
-                  />
-                </div>
-                <div className="rounded-xl bg-white/92 p-1.5 shadow-lg backdrop-blur-sm">
-                  <LeonixSaveButton
-                    listingId={lxListingId}
-                    ownerUserId={lxOwner}
-                    variant="small"
-                    lang={lang}
-                    category="servicios"
-                    persistEngagement
-                  />
-                </div>
-                <div
-                  className="rounded-xl bg-white/92 px-2 py-1.5 text-center shadow-lg backdrop-blur-sm"
-                  data-servicios-hero-like-cue="1"
-                >
-                  <p className="text-[10px] font-semibold leading-tight text-rose-900/95 sm:text-[11px]">
-                    {likeCueN > 0 ? (
-                      lang === "en" ? (
-                        <>
-                          <span aria-hidden>❤️</span>{" "}
-                          <span className="tabular-nums">{likeCueN}</span> {likeCueN === 1 ? "like" : "likes"}
-                        </>
-                      ) : (
-                        <>
-                          <span aria-hidden>❤️</span>{" "}
-                          <span className="tabular-nums">{likeCueN}</span> me gusta
-                        </>
-                      )
-                    ) : lang === "en" ? (
-                      "♡ Like"
-                    ) : (
-                      "♡ Me gusta"
-                    )}
-                  </p>
-                </div>
-              </>
-            ) : null}
-            <div className="rounded-full bg-white/92 p-1 shadow-lg backdrop-blur-sm">
-              <LeonixShareButton
-                listingId={lxListingId}
-                listingUrl={listingShareUrl}
-                ownerUserId={lxOwner}
-                listingTitle={identity.businessName}
-                variant="small"
-                lang={lang}
-                category="servicios"
-                className="border-0"
-                persistEngagement={persistEngagement}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={`relative z-10 flex w-full flex-col items-center px-3 pb-7 pl-3 pt-8 text-center text-white sm:px-8 sm:pb-9 sm:pl-8 sm:pt-10 md:px-10 md:pb-10 md:pt-11 ${
-            persistEngagement ? "pr-14 sm:pr-[4.75rem] md:pr-[5.25rem]" : "pr-12 sm:pr-14 md:pr-16"
-          }`}
-        >
+        <div className="relative z-10 flex w-full flex-col items-center px-3 pb-7 pt-8 text-center text-white sm:px-8 sm:pb-9 sm:pt-10 md:px-10 md:pb-10 md:pt-11">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-2.5 sm:gap-3 md:gap-4">
             {hero.logoUrl ? (
               <div className="flex w-full justify-center">

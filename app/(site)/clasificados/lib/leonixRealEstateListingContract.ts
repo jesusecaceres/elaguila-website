@@ -35,6 +35,10 @@ export const LEONIX_DP_RESULTS_PROPERTY_KIND = "Leonix:results_property_kind";
  * Omitted or any other value: treat as false (city / zona / CP only for browse + map fallbacks).
  */
 export const LEONIX_DP_BR_SHOW_EXACT_ADDRESS = "Leonix:br:show_exact_address";
+/** Seller-facing availability (Privado `estadoAnuncio` / Negocio `listingStatus`). */
+export const LEONIX_DP_BR_LISTING_STATUS = "Leonix:br:listing_status";
+/** Safe https Google Maps link from publish `enlaceMapa` when provided. */
+export const LEONIX_DP_BR_MAP_URL = "Leonix:br:map_url";
 
 export const LEONIX_MACHINE_FACET_LABELS: readonly string[] = [
   LEONIX_DP_BEDROOMS_COUNT,

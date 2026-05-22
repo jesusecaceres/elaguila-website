@@ -8,5 +8,5 @@
 
 export { getCanonicalCityName as brCanonicalNorCalCity } from "@/app/data/locations/californiaLocationHelpers";
 
-/** URL query key for canonical city on BR results (aligned with listing field `ciudad`). */
-export const BR_URL_QUERY_CIUDAD = "ciudad" as const;
+/** URL query key for canonical city on BR results — must match `parseBrResultsUrl` (`city`). */
+export const BR_URL_QUERY_CIUDAD = "city" as const;

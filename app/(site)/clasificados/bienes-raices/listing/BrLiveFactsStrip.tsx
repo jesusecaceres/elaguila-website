@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  LEONIX_DP_BR_LISTING_STATUS,
   parseLeonixListingContract,
   parseLeonixMachineFacetRead,
+  readLeonixDetailPairValue,
   type BrResultsPropertyKind,
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -48,6 +50,32 @@ function opLabel(op: "sale" | "rent" | null, lang: "es" | "en"): string {
   return "";
 }
 
+function listingStatusLabel(raw: string | null, lang: "es" | "en"): string {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (!v) return "";
+  const es: Record<string, string> = {
+    disponible: "Disponible",
+    pendiente: "Pendiente",
+    bajo_contrato: "Bajo contrato",
+    vendido: "Vendido",
+    en_venta: "En venta",
+    en_renta: "En renta",
+    disponible_pronto: "Disponible pronto",
+    preconstruccion: "Preconstrucción",
+  };
+  const en: Record<string, string> = {
+    disponible: "Available",
+    pendiente: "Pending",
+    bajo_contrato: "Under contract",
+    vendido: "Sold",
+    en_venta: "For sale",
+    en_renta: "For rent",
+    disponible_pronto: "Available soon",
+    preconstruccion: "Pre-construction",
+  };
+  return lang === "es" ? es[v] ?? raw ?? "" : en[v] ?? raw ?? "";
+}
+
 /** Compact BR facts from persisted `detail_pairs` (machine + Leonix branch/operation). */
 export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; lang: "es" | "en" }) {
   const lx = parseLeonixListingContract(detailPairs);
@@ -65,6 +93,8 @@ export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; 
   if (!lx.operation && !lx.branch && !hasMachine) return null;
 
   const chips: string[] = [];
+  const statusLbl = listingStatusLabel(readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_LISTING_STATUS), lang);
+  if (statusLbl) chips.push(statusLbl);
   const op = opLabel(lx.operation, lang);
   if (op) chips.push(op);
   const rk = kindLabel(m.resultsPropertyKind, lang);

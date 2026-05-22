@@ -110,15 +110,7 @@ export function ServiciosProfileView({
           </div>
         ) : null}
         {hasHeroIdentityResolved(profile) ? (
-          <ServiciosHero
-            profile={profile}
-            lang={lang}
-            engagementListingId={engagementListingId}
-            engagementOwnerUserId={engagementOwnerUserId}
-            listingShareUrl={listingShareUrl}
-            persistListingEngagement={persistListingEngagement}
-            publicLikeCount={publicLikeCount}
-          />
+          <ServiciosHero profile={profile} lang={lang} />
         ) : null}
 
         {hasQuickFactsResolved(profile) ? (
@@ -150,6 +142,10 @@ export function ServiciosProfileView({
                 lang={lang}
                 listingSlug={analyticsListingSlug}
                 listingShareUrl={listingShareUrl}
+                engagementListingId={engagementListingId}
+                engagementOwnerUserId={engagementOwnerUserId}
+                persistListingEngagement={persistListingEngagement}
+                publicLikeCount={publicLikeCount}
                 directContactFasterResponseHint={directContactFasterResponseHint}
                 showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
               />
@@ -232,6 +228,10 @@ export function ServiciosProfileView({
               lang={lang}
               listingSlug={analyticsListingSlug}
               listingShareUrl={listingShareUrl}
+              engagementListingId={engagementListingId}
+              engagementOwnerUserId={engagementOwnerUserId}
+              persistListingEngagement={persistListingEngagement}
+              publicLikeCount={publicLikeCount}
               directContactFasterResponseHint={directContactFasterResponseHint}
               showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
             />

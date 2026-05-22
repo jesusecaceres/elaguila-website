@@ -19,7 +19,7 @@
  * - lane → quick | premium | feria (matches `publicationLane` on live rows; seed rows omit lane and are excluded when set)
  * - industry → substring match on `industryFocus`
  * - bilingual=1 → only rows with `bilingual === true` (Feria / explicit flags)
- * - radiusKm → parsed but not applied until lat/lng + backend/geo index exist (no fake proximity)
+ * - radiusKm → removed from public URL contract until geo index exists (no fake proximity filter)
  *
  * ## Policy hooks (see `empleosVisibilityRules.ts`)
  * - Landing “featured strip”: editorial/paid subset via `showOnLandingFeatured`
@@ -49,7 +49,6 @@ export const EMPLEOS_URL_PARAM_KEYS = [
   "industry",
   "bilingual",
   "sort",
-  "radiusKm",
 ] as const;
 
 export type EmpleosUrlParamKey = (typeof EMPLEOS_URL_PARAM_KEYS)[number];

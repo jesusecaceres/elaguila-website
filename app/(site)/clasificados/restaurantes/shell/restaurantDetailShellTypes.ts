@@ -1,3 +1,5 @@
+import type { RestaurantContactHubData } from "../application/buildRestaurantContactHub";
+
 /**
  * Leonix Clasificados — Restaurantes desktop detail shell.
  * Types mirror the fields the live application will eventually bind.
@@ -172,6 +174,8 @@ export type RestaurantDetailShellData = {
   gallery?: ShellGalleryItem[];
   galleryCta?: { label: string; href: string };
   contact?: ShellContactBlock;
+  /** CTA-R2: data-driven public contact hub (preview + live ad). */
+  contactHub?: RestaurantContactHubData;
   aboutTitle?: string;
   aboutBody?: string;
   trustLight?: ShellTrustLight;

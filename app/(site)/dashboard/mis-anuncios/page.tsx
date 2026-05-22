@@ -68,6 +68,10 @@ import { listingAnalyticsReadIsDegraded } from "../lib/listingAnalyticsReadError
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import {
+  buscoOwnerDashboardLocationLine,
+  buscoOwnerDashboardTypeLabel,
+} from "@/app/(site)/clasificados/busco/shared/buscoDashboardDisplay";
+import {
   dashboardCanRepublishListingsRow,
   dashboardRepublishPrimaryKind,
   dashboardRepublishPrimaryLabel,
@@ -1660,6 +1664,12 @@ export default function MyListingsPage() {
                           ? "Busco / Se busca"
                           : "Looking for / Wanted"
                         : null;
+                const buscoTypeChip =
+                  catLower === "busco" ? buscoOwnerDashboardTypeLabel(x.detail_pairs, lang) : null;
+                const locationLine =
+                  catLower === "busco"
+                    ? buscoOwnerDashboardLocationLine(x.city, x.detail_pairs)
+                    : (x.city || "").trim();
                 const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
                 return (
                   <div
@@ -1675,6 +1685,11 @@ export default function MyListingsPage() {
                               {categoryChip}
                             </span>
                           ) : null}
+                          {buscoTypeChip ? (
+                            <span className="inline-flex max-w-full truncate rounded-full bg-[#D7E3F7] px-2.5 py-0.5 text-[11px] font-semibold text-[#1E3A5F]">
+                              {buscoTypeChip}
+                            </span>
+                          ) : null}
                           <span
                             className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(uiStGeneric)}`}
                           >
@@ -1683,8 +1698,8 @@ export default function MyListingsPage() {
                           <span className="text-sm font-semibold text-[#1E1810]">{priceText}</span>
                         </div>
                         <p className="mt-1 text-sm text-[#5C5346]/90">
-                          {(x.city || "").trim()}
-                          {dateText ? ` Â· ${dateText}` : ""}
+                          {locationLine}
+                          {dateText ? ` · ${dateText}` : ""}
                         </p>
                         <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}

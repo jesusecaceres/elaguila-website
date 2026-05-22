@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { DEMO_RESTAURANT_DETAIL_SHELL } from "./demoRestaurantDetailShell";
 import { RestauranteAdStoryPreview } from "./RestauranteAdStoryPreview";
 import { RestaurantesShellChrome } from "./RestaurantesShellChrome";
@@ -21,7 +22,12 @@ export const metadata: Metadata = {
   },
 };
 
+/** Design shell only — not public production inventory. */
 export default function RestaurantesDetailShellPage() {
+  if (process.env.NODE_ENV === "production") {
+    redirect("/clasificados/restaurantes");
+  }
+
   return (
     <RestaurantesShellChrome lang="es">
       <div className="mx-auto max-w-[1280px] px-4 pb-2 pt-3 md:px-5">
