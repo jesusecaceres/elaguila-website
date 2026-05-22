@@ -3,6 +3,7 @@
 /**
  * Gate 2A/2B QA audit (customer login / security):
  * - GOOGLE_LOGIN_PRESERVED: TRUE
+ * - FACEBOOK_LOGIN_ADDED: TRUE
  * - MAGIC_LINK_PRESERVED: TRUE
  * - PASSWORD_LOGIN_ADDED: TRUE
  * - PASSWORD_SIGNUP_ADDED: TRUE
@@ -23,7 +24,14 @@ import { createSupabaseBrowserClient, withAuthTimeout } from "@/app/lib/supabase
 
 type Lang = "es" | "en";
 type LoginMode = "login" | "signup" | "post" | "reset";
-type LoadingKind = "google" | "magic" | "password-login" | "password-signup" | "reset" | null;
+type LoadingKind =
+  | "google"
+  | "facebook"
+  | "magic"
+  | "password-login"
+  | "password-signup"
+  | "reset"
+  | null;
 
 function safeInternalRedirect(raw: string | null | undefined) {
   const v = (raw ?? "").trim();
@@ -41,6 +49,17 @@ function detectLangFromRedirect(redirect: string, fallback: Lang): Lang {
     // ignore
   }
   return fallback;
+}
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
+      />
+    </svg>
+  );
 }
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -180,14 +199,14 @@ export default function LoginPage() {
   const OAUTH_INIT_TIMEOUT_MS = 15000;
   const isLoading = loading !== null;
 
-  async function continueWithGoogle() {
+  async function continueWithOAuth(provider: "google" | "facebook") {
     setMsg(null);
-    setLoading("google");
+    setLoading(provider);
     try {
       const supabase = createSupabaseBrowserClient();
       const result = await withAuthTimeout(
         supabase.auth.signInWithOAuth({
-          provider: "google",
+          provider,
           options: { redirectTo: callbackUrl },
         }),
         OAUTH_INIT_TIMEOUT_MS
@@ -443,6 +462,7 @@ export default function LoginPage() {
       common: {
         es: {
           google: "Continuar con Google",
+          facebook: "Continuar con Facebook",
           emailTitle: "Link por email",
           passwordTitle: "Contraseña",
           emailPlaceholder: "tu@email.com",
@@ -470,6 +490,7 @@ export default function LoginPage() {
         },
         en: {
           google: "Continue with Google",
+          facebook: "Continue with Facebook",
           emailTitle: "Email link",
           passwordTitle: "Password",
           emailPlaceholder: "you@email.com",
@@ -606,10 +627,10 @@ export default function LoginPage() {
             </form>
           ) : (
             <>
-              <div className="mt-6">
+              <div className="mt-6 space-y-3">
                 <button
                   type="button"
-                  onClick={() => void continueWithGoogle()}
+                  onClick={() => void continueWithOAuth("google")}
                   disabled={isLoading}
                   className={btnPrimary}
                 >
@@ -619,6 +640,21 @@ export default function LoginPage() {
                     <span className="flex items-center justify-center gap-3">
                       <GoogleIcon className="h-5 w-5 shrink-0" />
                       <span>{common.google}</span>
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void continueWithOAuth("facebook")}
+                  disabled={isLoading}
+                  className={btnSecondary}
+                >
+                  {loading === "facebook" ? (
+                    <span>{common.connecting}</span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-3">
+                      <FacebookIcon className="h-5 w-5 shrink-0 text-[#1877F2]" />
+                      <span>{common.facebook}</span>
                     </span>
                   )}
                 </button>
