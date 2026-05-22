@@ -90,7 +90,8 @@ export default function ProfilePage() {
         langLabel: "Idioma del panel",
         langVal: "Español / English vía ?lang=en",
         securityTitle: "Seguridad",
-        securityBody: "Cambio de contraseña y sesiones: próximamente en esta vista.",
+        securityBody: "Cambia tu contraseña y revisa opciones de acceso.",
+        securityCta: "Ir a Seguridad",
         billingTitle: "Facturación",
         billingBody:
           "Portal de cliente (Stripe): configura `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` o un endpoint interno que cree la sesión del portal.",
@@ -130,7 +131,8 @@ export default function ProfilePage() {
         langLabel: "Dashboard language",
         langVal: "Spanish / English via ?lang=en",
         securityTitle: "Security",
-        securityBody: "Password changes and sessions will appear here soon.",
+        securityBody: "Change your password and review sign-in options.",
+        securityCta: "Go to Security",
         billingTitle: "Billing",
         billingBody:
           "Stripe Customer Portal: set `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` or add an API route that creates a portal session.",
@@ -573,6 +575,12 @@ export default function ProfilePage() {
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-6">
                 <h2 className="text-sm font-bold text-[#1E1810]">{L.securityTitle}</h2>
                 <p className="mt-2 text-sm text-[#5C5346]/95">{L.securityBody}</p>
+                <Link
+                  href={`/dashboard/seguridad?${q}`}
+                  className="mt-4 inline-flex min-h-[44px] items-center rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#1E1810] shadow-sm transition hover:bg-[#FAF7F2]"
+                >
+                  {L.securityCta} →
+                </Link>
               </div>
 
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-6">

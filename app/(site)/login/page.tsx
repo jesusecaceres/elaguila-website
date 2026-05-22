@@ -1,12 +1,29 @@
 "use client";
 
+/**
+ * Gate 2A/2B QA audit (customer login / security):
+ * - GOOGLE_LOGIN_PRESERVED: TRUE
+ * - MAGIC_LINK_PRESERVED: TRUE
+ * - PASSWORD_LOGIN_ADDED: TRUE
+ * - PASSWORD_SIGNUP_ADDED: TRUE
+ * - PASSWORD_STRENGTH_METER_ADDED: TRUE
+ * - PASSWORD_RESET_ADDED: TRUE
+ * - USER_DASHBOARD_CHANGE_PASSWORD_ADDED: TRUE (see /dashboard/seguridad)
+ * - ADMIN_EMERGENCY_RESET_NOT_ADDED_THIS_GATE: TRUE
+ * - NO_PASSWORD_STORAGE_OUTSIDE_SUPABASE: TRUE
+ * - NO_IMPERSONATION: TRUE
+ */
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createSupabaseBrowserClient, withAuthTimeout } from "../../lib/supabase/browser";
+import { PasswordStrengthMeter } from "../components/auth/PasswordStrengthMeter";
+import { evaluatePassword, mapAuthErrorMessage } from "@/app/lib/auth/customerPassword";
+import { createSupabaseBrowserClient, withAuthTimeout } from "@/app/lib/supabase/browser";
 
 type Lang = "es" | "en";
-type LoginMode = "login" | "signup" | "post";
+type LoginMode = "login" | "signup" | "post" | "reset";
+type LoadingKind = "google" | "magic" | "password-login" | "password-signup" | "reset" | null;
 
 function safeInternalRedirect(raw: string | null | undefined) {
   const v = (raw ?? "").trim();
@@ -61,7 +78,7 @@ export default function LoginPage() {
 
   const mode: LoginMode = useMemo(() => {
     const m = (modeParam ?? "login").toLowerCase();
-    if (m === "signup" || m === "post") return m;
+    if (m === "signup" || m === "post" || m === "reset") return m;
     return "login";
   }, [modeParam]);
 
@@ -81,20 +98,28 @@ export default function LoginPage() {
   );
 
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState<"google" | "email" | null>(null);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState<LoadingKind>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [authCheckDone, setAuthCheckDone] = useState(false);
-
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+
+  const passwordEval = useMemo(
+    () => evaluatePassword(password, email),
+    [password, email]
+  );
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!mounted) return;
-        if (session?.user) {
+        if (session?.user && mode !== "reset") {
           router.replace(redirectTo);
           return;
         }
@@ -104,8 +129,10 @@ export default function LoginPage() {
         setAuthCheckDone(true);
       }
     })();
-    return () => { mounted = false; };
-  }, [router, redirectTo]);
+    return () => {
+      mounted = false;
+    };
+  }, [router, redirectTo, mode]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -116,11 +143,21 @@ export default function LoginPage() {
   }, [cooldownSeconds]);
 
   const callbackUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
     const base = `${window.location.origin}/auth/callback`;
     const q = new URLSearchParams();
     q.set("redirect", redirectTo);
     return `${base}?${q.toString()}`;
   }, [redirectTo]);
+
+  const resetCallbackUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const base = `${window.location.origin}/auth/callback`;
+    const q = new URLSearchParams();
+    const recoveryRedirect = safeInternalRedirect(redirectParam) || `/dashboard/seguridad?recovery=1&lang=${lang}`;
+    q.set("redirect", recoveryRedirect);
+    return `${base}?${q.toString()}`;
+  }, [redirectParam, lang]);
 
   function buildLoginUrl(nextMode: LoginMode) {
     const params = new URLSearchParams();
@@ -141,6 +178,7 @@ export default function LoginPage() {
   }
 
   const OAUTH_INIT_TIMEOUT_MS = 15000;
+  const isLoading = loading !== null;
 
   async function continueWithGoogle() {
     setMsg(null);
@@ -158,7 +196,6 @@ export default function LoginPage() {
         setMsg(result.error.message);
         return;
       }
-      // Success: Supabase redirects; loading stays until navigation. If redirect fails (e.g. 522), user returns to login and loading was cleared on next mount.
     } catch (e: unknown) {
       const isTimeout = (e as { message?: string })?.message === "auth_timeout";
       const isNetwork =
@@ -171,7 +208,10 @@ export default function LoginPage() {
             : "Sign-in service is temporarily unavailable. Please try again in a few minutes."
         );
       } else {
-        setMsg((e as { message?: string })?.message ?? (lang === "es" ? "Error al conectar." : "Connection error."));
+        setMsg(
+          (e as { message?: string })?.message ??
+            (lang === "es" ? "Error al conectar." : "Connection error.")
+        );
       }
     } finally {
       setLoading(null);
@@ -190,7 +230,7 @@ export default function LoginPage() {
 
     if (cooldownSeconds > 0) return;
 
-    setLoading("email");
+    setLoading("magic");
     try {
       const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.signInWithOtp({
@@ -201,17 +241,8 @@ export default function LoginPage() {
       });
 
       if (error) {
-        const m = (error.message || "").toLowerCase();
-        if (m.includes("rate") && m.includes("limit")) {
-          setMsg(
-            lang === "es"
-              ? "Demasiados intentos. Espera un momento y vuelve a intentar."
-              : "Too many attempts. Please wait a moment and try again."
-          );
-          setCooldownSeconds(60);
-          return;
-        }
-        setMsg(error.message);
+        setMsg(mapAuthErrorMessage(error.message, lang));
+        if (error.message?.toLowerCase().includes("rate")) setCooldownSeconds(60);
         return;
       }
 
@@ -234,33 +265,203 @@ export default function LoginPage() {
     }
   }
 
+  async function signInWithPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setMsg(lang === "es" ? "Escribe tu correo." : "Enter your email.");
+      return;
+    }
+    if (!password) {
+      setMsg(lang === "es" ? "Escribe tu contraseña." : "Enter your password.");
+      return;
+    }
+
+    setLoading("password-login");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+      if (error) {
+        setMsg(mapAuthErrorMessage(error.message, lang));
+        return;
+      }
+      if (data.session) {
+        router.replace(redirectTo);
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function signUpWithPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setMsg(lang === "es" ? "Escribe tu correo." : "Enter your email.");
+      return;
+    }
+    if (!passwordEval.signupReady) {
+      setMsg(
+        lang === "es"
+          ? "Tu contraseña aún no cumple todos los requisitos."
+          : "Your password does not meet all requirements yet."
+      );
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMsg(
+        lang === "es"
+          ? "Las contraseñas no coinciden."
+          : "Passwords do not match."
+      );
+      return;
+    }
+
+    setLoading("password-signup");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          emailRedirectTo: callbackUrl,
+        },
+      });
+      if (error) {
+        setMsg(mapAuthErrorMessage(error.message, lang));
+        return;
+      }
+      if (data.session) {
+        router.replace(redirectTo);
+        return;
+      }
+      setMsg(
+        `✅ ${
+          lang === "es"
+            ? "Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión."
+            : "Account created. Check your email to confirm, then sign in."
+        }`
+      );
+      setPassword("");
+      setConfirmPassword("");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function sendPasswordReset(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg(null);
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setMsg(lang === "es" ? "Escribe tu correo." : "Enter your email.");
+      return;
+    }
+    if (cooldownSeconds > 0) return;
+
+    setLoading("reset");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+        redirectTo: resetCallbackUrl,
+      });
+      if (error) {
+        setMsg(mapAuthErrorMessage(error.message, lang));
+        if (error.message?.toLowerCase().includes("rate")) setCooldownSeconds(60);
+        return;
+      }
+      setMsg(
+        `✅ ${
+          lang === "es"
+            ? "Te enviamos un correo para restablecer tu contraseña."
+            : "We sent you an email to reset your password."
+        }`
+      );
+      setCooldownSeconds(60);
+    } finally {
+      setLoading(null);
+    }
+  }
+
   const copy = useMemo(
     () => ({
       login: {
-        es: { title: "Iniciar sesión", subtitle: "Entrá con Google o recibe un link por email para volver a tu cuenta.", badge: "Acceso" },
-        en: { title: "Sign in", subtitle: "Continue with Google or get a link by email to access your account.", badge: "Sign in" },
+        es: {
+          title: "Iniciar sesión",
+          subtitle:
+            "Entrá con Google, contraseña o un link por email para volver a tu cuenta.",
+          badge: "Acceso",
+        },
+        en: {
+          title: "Sign in",
+          subtitle: "Continue with Google, password, or an email link to access your account.",
+          badge: "Sign in",
+        },
       },
       signup: {
-        es: { title: "Crear cuenta", subtitle: "Usa Google o tu email para crear tu cuenta en LEONIX y empezar a explorar.", badge: "Nuevo" },
-        en: { title: "Create account", subtitle: "Use Google or your email to create your LEONIX account and start exploring.", badge: "New" },
+        es: {
+          title: "Crear cuenta",
+          subtitle:
+            "Usa Google, contraseña o tu email para crear tu cuenta en LEONIX.",
+          badge: "Nuevo",
+        },
+        en: {
+          title: "Create account",
+          subtitle: "Use Google, a password, or your email to create your LEONIX account.",
+          badge: "New",
+        },
       },
       post: {
-        es: { title: "Accede para publicar", subtitle: "Inicia sesión o crea tu cuenta para continuar con tu anuncio.", badge: "Publicar" },
-        en: { title: "Sign in to post", subtitle: "Sign in or create an account to continue with your listing.", badge: "Post" },
+        es: {
+          title: "Accede para publicar",
+          subtitle: "Inicia sesión o crea tu cuenta para continuar con tu anuncio.",
+          badge: "Publicar",
+        },
+        en: {
+          title: "Sign in to post",
+          subtitle: "Sign in or create an account to continue with your listing.",
+          badge: "Post",
+        },
+      },
+      reset: {
+        es: {
+          title: "Recuperar contraseña",
+          subtitle: "Te enviaremos un correo seguro para crear una nueva contraseña.",
+          badge: "Recuperar",
+        },
+        en: {
+          title: "Reset password",
+          subtitle: "We will email you a secure link to set a new password.",
+          badge: "Reset",
+        },
       },
       common: {
         es: {
           google: "Continuar con Google",
           emailTitle: "Link por email",
+          passwordTitle: "Contraseña",
           emailPlaceholder: "tu@email.com",
+          passwordPlaceholder: "Contraseña",
+          confirmPlaceholder: "Confirmar contraseña",
           emailButton: "Enviar link",
+          signInPassword: "Iniciar sesión con contraseña",
+          signUpPassword: "Crear cuenta con contraseña",
+          sendReset: "Enviar enlace de recuperación",
+          forgotPassword: "¿Olvidaste tu contraseña?",
           emailCooldown: (s: number) => `Reintentar en ${s}s`,
           connecting: "Conectando…",
           sending: "Enviando…",
-          tip: "Si no ves el link, revisa Spam o Promociones.",
-          sameAccount: "Si ya tienes cuenta, usa el mismo correo o la misma cuenta de Google de siempre.",
-          noPassword: "Este acceso funciona con link por email o Google; no necesitas contraseña.",
-          supportHint: "Si tu cuenta ya existe, entra con el mismo método que usaste al crearla.",
+          tip: "Si no ves el correo, revisa Spam o Promociones.",
+          sameAccount:
+            "Si ya tienes cuenta, usa el mismo correo o la misma cuenta de Google de siempre.",
+          magicHint: "También puedes entrar con link por email o Google.",
+          supportHint:
+            "Si tu cuenta ya existe, entra con el mismo método que usaste al crearla.",
           noAccount: "¿No tienes cuenta?",
           createAccount: "Crear cuenta",
           haveAccount: "¿Ya tienes cuenta?",
@@ -270,15 +471,24 @@ export default function LoginPage() {
         en: {
           google: "Continue with Google",
           emailTitle: "Email link",
+          passwordTitle: "Password",
           emailPlaceholder: "you@email.com",
+          passwordPlaceholder: "Password",
+          confirmPlaceholder: "Confirm password",
           emailButton: "Send link",
+          signInPassword: "Sign in with password",
+          signUpPassword: "Create account with password",
+          sendReset: "Send recovery email",
+          forgotPassword: "Forgot your password?",
           emailCooldown: (s: number) => `Try again in ${s}s`,
           connecting: "Connecting…",
           sending: "Sending…",
-          tip: "If you don't see the link, check Spam or Promotions.",
-          sameAccount: "If you already have an account, use the same email or the same Google account as before.",
-          noPassword: "This access uses email links or Google; no password is required.",
-          supportHint: "If your account already exists, sign in with the same method you used when you created it.",
+          tip: "If you don't see the email, check Spam or Promotions.",
+          sameAccount:
+            "If you already have an account, use the same email or Google account as before.",
+          magicHint: "You can also sign in with an email link or Google.",
+          supportHint:
+            "If your account already exists, sign in with the same method you used when you created it.",
           noAccount: "Don't have an account?",
           createAccount: "Create account",
           haveAccount: "Already have an account?",
@@ -293,7 +503,14 @@ export default function LoginPage() {
   const modeCopy = copy[mode][lang];
   const common = copy.common[lang];
 
-  const isLoading = loading !== null;
+  const inputClass =
+    "w-full min-w-0 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/30 transition";
+
+  const btnPrimary =
+    "w-full min-w-0 flex min-h-[48px] items-center justify-center rounded-xl bg-[#e6b800] hover:bg-[#f0c800] text-black font-semibold py-4 px-4 disabled:opacity-60 disabled:pointer-events-none transition";
+
+  const btnSecondary =
+    "w-full min-w-0 flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold py-4 px-4 disabled:opacity-60 disabled:pointer-events-none transition";
 
   if (!authCheckDone) {
     return (
@@ -355,40 +572,13 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={continueWithGoogle}
-              disabled={isLoading}
-              className="w-full min-w-0 flex items-center justify-center gap-3 rounded-xl bg-[#e6b800] hover:bg-[#f0c800] text-black font-semibold py-4 px-4 disabled:opacity-60 disabled:pointer-events-none transition"
-            >
-              {loading === "google" ? (
-                <span>{common.connecting}</span>
-              ) : (
-                <>
-                  <GoogleIcon className="h-5 w-5 shrink-0" />
-                  <span>{common.google}</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="mt-8 border-t border-white/10 pt-6">
-            <h2 className="text-sm font-semibold text-white">
-              {common.emailTitle}
-            </h2>
-            <p className="mt-2 text-xs text-white/60">
-              {common.sameAccount}
-            </p>
-            <p className="mt-1 text-xs text-white/50">
-              {common.noPassword}
-            </p>
-            <form onSubmit={sendMagicLink} className="mt-4 space-y-4">
+          {mode === "reset" ? (
+            <form onSubmit={sendPasswordReset} className="mt-8 space-y-4">
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={common.emailPlaceholder}
-                className="w-full min-w-0 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-white placeholder:text-white/40 outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/30 transition"
+                className={inputClass}
                 type="email"
                 autoComplete="email"
                 disabled={isLoading}
@@ -396,44 +586,180 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading || cooldownSeconds > 0}
-                className="w-full min-w-0 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold py-4 px-4 disabled:opacity-60 disabled:pointer-events-none transition"
+                className={btnPrimary}
               >
                 {cooldownSeconds > 0
                   ? common.emailCooldown(cooldownSeconds)
-                  : loading === "email"
+                  : loading === "reset"
                     ? common.sending
-                    : common.emailButton}
+                    : common.sendReset}
               </button>
+              <p className="text-sm text-white/70">
+                {common.haveAccount}{" "}
+                <Link
+                  href={buildLoginUrl("login")}
+                  className="text-yellow-400 hover:text-yellow-300 font-medium underline"
+                >
+                  {common.signIn}
+                </Link>
+              </p>
             </form>
-          </div>
+          ) : (
+            <>
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => void continueWithGoogle()}
+                  disabled={isLoading}
+                  className={btnPrimary}
+                >
+                  {loading === "google" ? (
+                    <span>{common.connecting}</span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-3">
+                      <GoogleIcon className="h-5 w-5 shrink-0" />
+                      <span>{common.google}</span>
+                    </span>
+                  )}
+                </button>
+              </div>
 
-          {mode === "login" && (
-            <p className="mt-6 text-sm text-white/70">
-              {common.noAccount}{" "}
-              <Link
-                href={buildLoginUrl("signup")}
-                className="text-yellow-400 hover:text-yellow-300 font-medium underline"
-              >
-                {common.createAccount}
-              </Link>
-            </p>
-          )}
-          {mode === "signup" && (
-            <p className="mt-6 text-sm text-white/70">
-              {common.haveAccount}{" "}
-              <Link
-                href={buildLoginUrl("login")}
-                className="text-yellow-400 hover:text-yellow-300 font-medium underline"
-              >
-                {common.signIn}
-              </Link>
-            </p>
+              <div className="mt-8 border-t border-white/10 pt-6">
+                <h2 className="text-sm font-semibold text-white">{common.passwordTitle}</h2>
+                <p className="mt-2 text-xs text-white/60">{common.magicHint}</p>
+                <form
+                  onSubmit={
+                    mode === "signup"
+                      ? signUpWithPassword
+                      : signInWithPassword
+                  }
+                  className="mt-4 space-y-4"
+                >
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={common.emailPlaceholder}
+                    className={inputClass}
+                    type="email"
+                    autoComplete="email"
+                    disabled={isLoading}
+                  />
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={common.passwordPlaceholder}
+                    className={inputClass}
+                    type="password"
+                    autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    disabled={isLoading}
+                  />
+                  {mode === "signup" && password.length > 0 ? (
+                    <PasswordStrengthMeter
+                      strength={passwordEval.strength}
+                      checks={passwordEval.checks}
+                      lang={lang}
+                      variant="dark"
+                    />
+                  ) : null}
+                  {mode === "signup" ? (
+                    <input
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder={common.confirmPlaceholder}
+                      className={inputClass}
+                      type="password"
+                      autoComplete="new-password"
+                      disabled={isLoading}
+                    />
+                  ) : null}
+                  <button
+                    type="submit"
+                    disabled={
+                      isLoading ||
+                      (mode === "signup" &&
+                        (!passwordEval.signupReady ||
+                          password !== confirmPassword ||
+                          !confirmPassword))
+                    }
+                    className={btnSecondary}
+                  >
+                    {loading === "password-login" || loading === "password-signup"
+                      ? common.sending
+                      : mode === "signup"
+                        ? common.signUpPassword
+                        : common.signInPassword}
+                  </button>
+                  {mode === "login" || mode === "post" ? (
+                    <p className="text-xs text-white/55">
+                      <Link
+                        href={buildLoginUrl("reset")}
+                        className="text-yellow-400/90 hover:text-yellow-300 underline"
+                      >
+                        {common.forgotPassword}
+                      </Link>
+                    </p>
+                  ) : null}
+                </form>
+              </div>
+
+              <div className="mt-8 border-t border-white/10 pt-6">
+                <h2 className="text-sm font-semibold text-white">{common.emailTitle}</h2>
+                <p className="mt-2 text-xs text-white/60">{common.sameAccount}</p>
+                <form onSubmit={sendMagicLink} className="mt-4 space-y-4">
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={common.emailPlaceholder}
+                    className={inputClass}
+                    type="email"
+                    autoComplete="email"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoading || cooldownSeconds > 0}
+                    className={btnSecondary}
+                  >
+                    {cooldownSeconds > 0
+                      ? common.emailCooldown(cooldownSeconds)
+                      : loading === "magic"
+                        ? common.sending
+                        : common.emailButton}
+                  </button>
+                </form>
+              </div>
+
+              {mode === "login" && (
+                <p className="mt-6 text-sm text-white/70">
+                  {common.noAccount}{" "}
+                  <Link
+                    href={buildLoginUrl("signup")}
+                    className="text-yellow-400 hover:text-yellow-300 font-medium underline"
+                  >
+                    {common.createAccount}
+                  </Link>
+                </p>
+              )}
+              {mode === "signup" && (
+                <p className="mt-6 text-sm text-white/70">
+                  {common.haveAccount}{" "}
+                  <Link
+                    href={buildLoginUrl("login")}
+                    className="text-yellow-400 hover:text-yellow-300 font-medium underline"
+                  >
+                    {common.signIn}
+                  </Link>
+                </p>
+              )}
+            </>
           )}
 
-          <p className="mt-4 text-xs text-white/50">
-            {common.supportHint}
-          </p>
-          <p className="mt-2 text-xs text-white/50">{common.tip}</p>
+          {mode !== "reset" ? (
+            <>
+              <p className="mt-4 text-xs text-white/50">{common.supportHint}</p>
+              <p className="mt-2 text-xs text-white/50">{common.tip}</p>
+            </>
+          ) : null}
         </div>
       </div>
     </main>

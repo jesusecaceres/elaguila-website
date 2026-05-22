@@ -23,6 +23,7 @@ export type LeonixDashboardActiveNav =
   | "saved"
   | "analytics"
   | "profile"
+  | "security"
   | "notifications"
   | "business"
   | "recent";
@@ -108,6 +109,7 @@ export function LeonixDashboardShell({
           accountMetadata: "Cuenta",
           home: "Resumen",
           profile: "Perfil y cuenta",
+          security: "Seguridad",
           listings: "Mis anuncios",
           restaurants: "Mis restaurantes",
           messages: "Mensajes",
@@ -131,6 +133,7 @@ export function LeonixDashboardShell({
           accountMetadata: "Account",
           home: "Overview",
           profile: "Profile & account",
+          security: "Security",
           listings: "My listings",
           restaurants: "My restaurants",
           messages: "Messages",
@@ -260,6 +263,7 @@ export function LeonixDashboardShell({
               {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}
               {navItem("analytics", `/dashboard/analytics?${q}`, L.analytics)}
               {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
+              {navItem("security", `/dashboard/seguridad?${q}`, L.security)}
               {navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications)}
               {navItem("business", `/dashboard/business-tools?${q}`, L.businessTools)}
               <div className="pt-3">
