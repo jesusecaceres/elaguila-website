@@ -36,18 +36,28 @@ export function AutosDealerInventoryVehicleCard({
   const title = `${new Intl.NumberFormat("en-US").format(car.year)} ${car.make} ${car.model}${car.trim ? ` ${car.trim}` : ""}`;
   const loc = formatCityStateLabel(car.city, car.state);
   const href = car.href.startsWith("/") ? withLangParam(car.href, lang) : car.href;
+  const heroSrc = car.imageUrl?.trim() ?? "";
 
   return (
-    <article className={RESULT_CARD}>
+    <article className={`${RESULT_CARD} h-full`}>
       <Link href={href} className="flex min-h-0 flex-1 flex-col">
         <div className="relative aspect-[16/11] w-full overflow-hidden bg-[#F5F0E8] sm:aspect-[5/3]">
-          <Image
-            src={car.imageUrl}
-            alt={title}
-            fill
-            className="object-cover transition duration-300 group-hover:scale-[1.03]"
-            sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
-          />
+          {heroSrc ? (
+            <Image
+              src={heroSrc}
+              alt={title}
+              fill
+              className="object-cover transition duration-300 group-hover:scale-[1.03]"
+              sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
+            />
+          ) : (
+            <div
+              className="flex h-full w-full items-center justify-center bg-[#F5F0E8] text-sm font-semibold tracking-wide text-[#8A8074]"
+              aria-hidden
+            >
+              Autos
+            </div>
+          )}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-5">
           <h3 className="line-clamp-2 min-h-[2.75rem] font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1A1A1A] sm:text-base">

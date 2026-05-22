@@ -16,6 +16,7 @@ import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClass
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
+import { AutosLiveVehicleOwnerInventoryBar } from "./AutosLiveVehicleOwnerInventoryBar";
 
 type PublicListingApiOk = {
   ok: true;
@@ -142,6 +143,7 @@ export function AutosLiveVehicleClient({
 
   return (
     <AutosNegociosPreviewLocaleProvider lang={lang}>
+      <AutosLiveVehicleOwnerInventoryBar listingId={listingId} lang={lang} />
       <AutoDealerPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
       {leonixAdId ? (
         <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">

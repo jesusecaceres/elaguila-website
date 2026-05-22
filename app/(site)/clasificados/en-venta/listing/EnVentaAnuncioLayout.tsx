@@ -40,7 +40,9 @@ import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
 import { BrRelatedAgentPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrRelatedAgentPropertiesSection";
-import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
+import { EnVentaListingReportDrawer } from "./EnVentaListingReportDrawer";
+import { EN_VENTA_PLATFORM_RESPONSIBILITY } from "../moderation/enVentaPolicyCopy";
+import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
 import {
@@ -180,6 +182,14 @@ export function EnVentaAnuncioLayout({
   /** Inline moderation report (Leonix `submitListingReportAction`). */
   showListingReport?: boolean;
 }) {
+  const variosLabel = enVentaPublicLabel(lang);
+  const moreInCategory =
+    surface === "en-venta"
+      ? lang === "es"
+        ? `Más en ${variosLabel}`
+        : `More in ${variosLabel}`
+      : (moreInCategoryLabel ?? (lang === "es" ? "Más en Varios" : "More in For Sale"));
+
   const images = listing.images ?? [];
   const rows = useMemo(() => pairsFromListing(listing), [listing]);
   const specRows = useMemo(
@@ -455,8 +465,7 @@ export function EnVentaAnuncioLayout({
   const shareLabel = lang === "es" ? "Compartir" : "Share";
 
   const browseMoreHref = moreInCategoryHref ?? `/clasificados/en-venta/results?lang=${lang}`;
-  const browseMoreLabel =
-    moreInCategoryLabel ?? (lang === "es" ? "Más en Varios" : "More in For Sale");
+  const browseMoreLabel = moreInCategory;
 
   return (
     <div
@@ -682,8 +691,8 @@ export function EnVentaAnuncioLayout({
                     ? "Leonix conecta comprador y vendedor; no procesamos el pago del artículo. Prefiere lugares públicos para entregas o encuentros. Si ves algo ilegal o peligroso, usa «Reportar anuncio» abajo — el equipo revisa en /admin/reportes."
                     : "Leonix connects buyers and sellers; we do not process item payment. Prefer public meetups for exchanges. If you see something illegal or unsafe, use “Report listing” below—staff reviews the queue at /admin/reportes."
                   : lang === "es"
-                    ? "Leonix no procesa el pago entre comprador y vendedor. Si algo se ve ilegal o inseguro, puedes usar «Reportar anuncio» abajo."
-                    : "Leonix does not process payment between buyer and seller. If something looks illegal or unsafe, you can use “Report listing” below."}
+                    ? `${EN_VENTA_PLATFORM_RESPONSIBILITY.es} Si algo se ve ilegal o inseguro, usa «Reportar anuncio» abajo.`
+                    : `${EN_VENTA_PLATFORM_RESPONSIBILITY.en} If something looks illegal or unsafe, use “Report listing” below.`}
               </p>
               {premiumBr ? (
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -853,7 +862,7 @@ export function EnVentaAnuncioLayout({
                         : "“Send message” opens share, copy, and email options without forcing an app immediately."}
                   </p>
                 ) : null}
-                {showListingReport ? <LeonixInlineListingReport listingId={listing.id} lang={lang} /> : null}
+                {showListingReport ? <EnVentaListingReportDrawer listingId={listing.id} lang={lang} /> : null}
               </div>
             </div>
           </div>

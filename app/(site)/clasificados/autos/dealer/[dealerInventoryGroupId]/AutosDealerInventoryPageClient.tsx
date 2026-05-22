@@ -5,6 +5,7 @@ import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPubl
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { AutosDealerInventoryVehicleCard } from "@/app/clasificados/autos/negocios/components/AutosDealerInventoryVehicleCard";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { sortDealerInventoryPublicListings } from "@/app/lib/clasificados/autos/autosDealerInventoryDisplay";
 
 type Lang = AutosNegociosLang;
 
@@ -92,10 +93,10 @@ export function AutosDealerInventoryPageClient({
       ) : listings.length === 0 ? (
         <p className="mt-8 text-sm text-[color:var(--lx-muted)]">{t.empty}</p>
       ) : (
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {listings.map((car) => {
+        <div className="mt-8 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+          {sortDealerInventoryPublicListings(listings).map((car) => {
             const href = `${autosLiveVehiclePath(car.id)}?lang=${lang}`;
-            const img = car.primaryImageUrl || "/images/placeholder-car.jpg";
+            const img = car.primaryImageUrl ?? "";
             const titleLine = car.vehicleTitle?.trim() || `${car.year} ${car.make} ${car.model}`;
             const parts = titleLine.split(/\s+/);
             const year = car.year ?? Number(parts[0]);

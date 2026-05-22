@@ -39,7 +39,7 @@ export function RelatedDealerCars({
           </Link>
         ) : null}
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:gap-5">
         {listings.map((car) => (
           <AutosDealerInventoryVehicleCard
             key={car.id}

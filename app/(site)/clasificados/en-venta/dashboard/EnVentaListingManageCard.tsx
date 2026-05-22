@@ -7,6 +7,7 @@ import {
   listingUiStatusLabel,
   type ListingUiStatus,
 } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
+import { EN_VENTA_REFRESH_HELPER } from "../moderation/enVentaPolicyCopy";
 
 type Lang = "es" | "en";
 type ListingPlan = "free" | "pro";
@@ -79,6 +80,8 @@ export function EnVentaListingManageCard({
   showDraftBadge,
   visibilityRenewal,
   republishButtonLabel = null,
+  republishCount = null,
+  republishedAtIso = null,
   leonixAdId = null,
   leonixPromoted = false,
   uiStatus,
@@ -115,6 +118,8 @@ export function EnVentaListingManageCard({
   visibilityRenewal?: EnVentaVisibilityRenewalUi | null;
   /** When republish is allowed, primary CTA: Move to top (live) or Republish (unpublished/suspended). */
   republishButtonLabel?: string | null;
+  republishCount?: number | null;
+  republishedAtIso?: string | null;
   /** Directory / permanent ad id when present on the row — display only; never generated here. */
   leonixAdId?: string | null;
   /** Leonix Promoted / Featured in `detail_pairs` — separate from post-republish visibility window. */
@@ -155,8 +160,8 @@ export function EnVentaListingManageCard({
           active: "Reactivar",
           pauseAd: "Pausar anuncio",
           resumeAd: "Restaurar",
-          upgradeTitle: "Mejorar este anuncio a Pro",
-          upgradeBullets: ["Más fotos y video", "Mayor visibilidad", "Analíticas e insights"],
+          upgradeTitle: "Editar anuncio",
+          upgradeBullets: ["Más fotos y video", "Varios Pro incluido", "Analíticas básicas"],
           pro: "PRO",
           feat: "RECIENTE",
           activeSt: "Activo",
@@ -175,7 +180,10 @@ export function EnVentaListingManageCard({
           updated: "Actualizado",
           msgs: "Mensajes",
           analytics: "Analíticas",
-          proUpgradeCta: "Pro / republicar",
+          proUpgradeCta: "Varios Pro",
+          refreshHelper: EN_VENTA_REFRESH_HELPER.es,
+          lastRefresh: "Último refresco",
+          refreshCount: "Veces refrescado",
           archive: "Archivar",
           dup: "Duplicar",
           perf: "Rendimiento",
@@ -198,8 +206,8 @@ export function EnVentaListingManageCard({
           active: "Reactivate",
           pauseAd: "Pause ad",
           resumeAd: "Restore",
-          upgradeTitle: "Upgrade this listing to Pro",
-          upgradeBullets: ["More photos & video", "More visibility", "Analytics & insights"],
+          upgradeTitle: "Edit listing",
+          upgradeBullets: ["More photos & video", "For Sale Pro included", "Basic analytics"],
           pro: "PRO",
           feat: "REFRESHED",
           activeSt: "Active",
@@ -219,6 +227,9 @@ export function EnVentaListingManageCard({
           msgs: "Messages",
           analytics: "Analytics",
           proUpgradeCta: "For Sale Pro",
+          refreshHelper: EN_VENTA_REFRESH_HELPER.en,
+          lastRefresh: "Last refreshed",
+          refreshCount: "Times refreshed",
           archive: "Archive",
           dup: "Duplicate",
           perf: "Performance",
@@ -356,6 +367,21 @@ export function EnVentaListingManageCard({
                     {visibilityRenewal.canRenew ? null : visibilityRenewal.nextEligibleLabel ? (
                       <p className="mt-1 text-[11px] text-[#5C5346]/95">
                         {L.visNext} <span className="font-semibold text-[#3D3428]">{visibilityRenewal.nextEligibleLabel}</span>
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-[11px] leading-relaxed text-[#5C5346]/95">{L.refreshHelper}</p>
+                    {republishedAtIso ? (
+                      <p className="mt-1 text-[11px] text-[#3D3428]">
+                        {L.lastRefresh}:{" "}
+                        <span className="font-semibold">
+                          {new Date(republishedAtIso).toLocaleString(lang === "es" ? "es-MX" : "en-US")}
+                        </span>
+                        {republishCount != null && republishCount > 0 ? (
+                          <span className="text-[#5C5346]">
+                            {" "}
+                            · {L.refreshCount}: {republishCount}
+                          </span>
+                        ) : null}
                       </p>
                     ) : null}
                     {visibilityRenewal.canRenew ? (

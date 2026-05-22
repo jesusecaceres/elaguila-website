@@ -4,6 +4,7 @@ import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoD
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { buildRelatedPublicListings } from "@/app/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
+import { sortDealerInventoryPublicListings } from "@/app/lib/clasificados/autos/autosDealerInventoryDisplay";
 import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPublicSampleTypes";
 import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
@@ -473,7 +474,9 @@ export async function getActiveLiveAutosBundle(
       resolveDealerInventoryGroupingKey(candidate) === groupingKey &&
       candidate.id !== row.id,
   );
-  const publicPool: AutosPublicListing[] = dealerRows.map(autosClassifiedsRowToPublicListing);
+  const publicPool: AutosPublicListing[] = sortDealerInventoryPublicListings(
+    dealerRows.map(autosClassifiedsRowToPublicListing),
+  );
   const currentPublic = autosClassifiedsRowToPublicListing(row);
   const normalized = normalizeLoadedListing({
     ...row.listing_payload,

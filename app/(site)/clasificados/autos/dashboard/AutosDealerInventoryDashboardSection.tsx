@@ -22,6 +22,10 @@ import {
   autosDealerInventoryUpgradePitch,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
 import { autosDealerInventoryValueBullets } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
+import {
+  autosDealerInventoryActiveCountLine,
+  autosDealerInventoryRemainingSlotsLine,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryDisplay";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 type Lang = "es" | "en";
@@ -200,9 +204,10 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
         ))}
       </ul>
       <p className="mt-3 text-sm font-semibold text-[#1E1810]">
-        {activeCount} / {limit} {t.activeCount}
-        <span className="mx-2 text-[#7A7164]">·</span>
-        {remaining} {t.remaining}
+        {autosDealerInventoryActiveCountLine(lang, activeCount, limit)}
+      </p>
+      <p className="mt-1 text-xs font-medium text-[#5C5346]">
+        {autosDealerInventoryRemainingSlotsLine(lang, remaining)}
       </p>
       {atLimit ? (
         <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">

@@ -1,6 +1,7 @@
 import type { AutosPublicListing } from "../data/autosPublicSampleTypes";
 import type { AutoDealerListing, RelatedDealerListing, VehicleBadge } from "../negocios/types/autoDealerListing";
 import { autosLiveVehiclePath } from "../filters/autosBrowseFilterContract";
+import { sortDealerInventoryPublicListings } from "@/app/lib/clasificados/autos/autosDealerInventoryDisplay";
 
 const BADGE_SET = new Set<string>([
   "certified",
@@ -26,8 +27,9 @@ export function buildRelatedPublicListings(
 ): RelatedDealerListing[] {
   const q = lang === "en" ? "lang=en" : "lang=es";
   const limit = opts?.limit ?? 4;
-  return pool
-    .filter((row) => row.id !== current.id && row.sellerType === "dealer")
+  return sortDealerInventoryPublicListings(
+    pool.filter((row) => row.id !== current.id && row.sellerType === "dealer"),
+  )
     .slice(0, limit)
     .map((row) => ({
       id: row.id,

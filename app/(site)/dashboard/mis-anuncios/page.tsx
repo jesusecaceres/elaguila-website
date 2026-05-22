@@ -1616,6 +1616,12 @@ export default function MyListingsPage() {
                       showDraftBadge={x.is_published === false}
                       visibilityRenewal={visibilityRenewal}
                       republishButtonLabel={republishButtonLabel}
+                      republishCount={x.republish_count ?? null}
+                      republishedAtIso={
+                        x.republished_at != null && String(x.republished_at).trim()
+                          ? String(x.republished_at)
+                          : null
+                      }
                       leonixAdId={x.leonix_ad_id ?? null}
                       leonixPromoted={leonixPromotedFromDetailPairs(x.detail_pairs)}
                       uiStatus={uiSt}

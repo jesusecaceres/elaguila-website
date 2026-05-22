@@ -10,7 +10,7 @@ const COPY_ITEM = {
     desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
     a: "Confirmo que la información del artículo es veraz y actualizada.",
     b: "Confirmo que las fotos muestran el artículo real que estoy vendiendo.",
-    c: "Confirmo que mi anuncio respeta las reglas de la comunidad y del marketplace.",
+    c: "Confirmo que mi anuncio cumple con las reglas de Varios y que soy responsable por la información publicada.",
     rulesLink: "Ver reglas de Leonix",
   },
   en: {
@@ -18,7 +18,7 @@ const COPY_ITEM = {
     desc: "These checks help keep Leonix clear and trustworthy for everyone.",
     a: "I confirm the item information is accurate and up to date.",
     b: "I confirm the photos show the actual item I’m selling.",
-    c: "I confirm this listing follows community and marketplace rules.",
+    c: "I confirm my listing follows Varios rules and that I am responsible for the information posted.",
     rulesLink: "View Leonix rules",
   },
 } as const;
