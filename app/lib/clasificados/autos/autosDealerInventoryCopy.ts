@@ -4,9 +4,9 @@ import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPoli
 /** Autos Negocio base plan (copy only — no payment in this gate). */
 export const BASE_AUTOS_NEGOCIO_MONTHLY_USD = 399;
 
-/** Inventory Boost: +10 active vehicles for $129/month (copy only — no payment in A4.1). */
+/** Inventory Boost: +10 active vehicles for $129.99/month (copy only — no Stripe in this gate). */
 export const INVENTORY_BOOST_ADDITIONAL_VEHICLES = 10;
-export const INVENTORY_BOOST_MONTHLY_USD = 129;
+export const INVENTORY_BOOST_MONTHLY_USD = 129.99;
 
 /** Base + Inventory Boost monthly total with up to 20 active vehicles. */
 export const AUTOS_NEGOCIO_TOTAL_WITH_BOOST_MONTHLY_USD =
