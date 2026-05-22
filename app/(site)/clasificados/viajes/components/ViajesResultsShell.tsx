@@ -62,6 +62,7 @@ function filterRailPatchToBrowse(patch: Partial<ViajesResultsFiltersState>, prev
   if (patch.duration !== undefined) next.duration = patch.duration;
   if (patch.audience !== undefined) next.audience = patch.audience;
   if (patch.season !== undefined) next.season = patch.season;
+  if (patch.serviceLanguage !== undefined) next.svcLang = patch.serviceLanguage;
   return next;
 }
 

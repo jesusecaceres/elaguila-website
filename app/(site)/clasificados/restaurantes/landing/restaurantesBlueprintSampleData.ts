@@ -29,12 +29,6 @@ export const RESTAURANTES_BLUEPRINT_QUICK_FILTERS: RestaurantesQuickFilter[] = [
     resultParams: { open: "1" },
   },
   {
-    id: "near_me",
-    labelEs: "Cerca de mí",
-    labelEn: "Near me",
-    resultParams: { near: "1" },
-  },
-  {
     id: "delivery",
     labelEs: "Entrega",
     labelEn: "Delivery",

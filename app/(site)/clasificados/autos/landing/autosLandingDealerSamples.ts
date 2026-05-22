@@ -1,6 +1,6 @@
 /**
- * Blueprint dealer band — structured like future promoted dealer rows (name, city, rating, logo).
- * `resultsHandoff` seeds `/clasificados/autos/resultados` until dealer slugs exist.
+ * Legacy blueprint dealer samples — **not used on the public landing** (see `buildAutosLandingDealersFromInventory.ts`).
+ * Kept for type export and local fixtures only.
  */
 export type AutosLandingDealerSample = {
   id: string;

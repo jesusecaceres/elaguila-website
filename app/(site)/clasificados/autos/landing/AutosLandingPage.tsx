@@ -17,7 +17,7 @@ import {
 } from "../data/autosLandingArrangement";
 import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
 import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
-import { AUTOS_LANDING_DEALER_SAMPLES } from "./autosLandingDealerSamples";
+import { buildAutosLandingDealersFromInventory } from "./buildAutosLandingDealersFromInventory";
 import { AutosLandingShell } from "./AutosLandingShell";
 import { AutosHeroSearch } from "./AutosHeroSearch";
 import { AutosLandingLangSwitch } from "./AutosLandingLangSwitch";
@@ -60,6 +60,8 @@ export function AutosLandingPage() {
     for (const l of privateFresh) exclude.add(l.id);
     return getLandingMixedLatestListings(inventory, exclude, 8);
   }, [inventory, dealerSpotlight, privateFresh]);
+
+  const landingDealers = useMemo(() => buildAutosLandingDealersFromInventory(inventory, 4), [inventory]);
 
   const resultsHref = useCallback(
     (bundle: Parameters<typeof serializeAutosBrowseUrl>[0]) => `${RESULTADOS_PATH}?${serializeAutosBrowseUrl(bundle)}`,
@@ -226,7 +228,9 @@ export function AutosLandingPage() {
 
         <NeedBasedBrowseSection copy={copy} cards={needCards} />
 
-        <FeaturedDealersSection copy={copy} dealers={AUTOS_LANDING_DEALER_SAMPLES} buildInventoryHref={buildDealerInventoryHref} />
+        {landingDealers.length > 0 ? (
+          <FeaturedDealersSection copy={copy} dealers={landingDealers} buildInventoryHref={buildDealerInventoryHref} />
+        ) : null}
 
         <RecentAutosSection
           copy={copy}
