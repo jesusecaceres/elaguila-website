@@ -40,7 +40,7 @@ export function EnVentaSellerPublicStats({ ownerId, lang }: { ownerId: string | 
 
   const line =
     lang === "es"
-      ? `Este vendedor tiene ${activeCount} anuncio(s) activo(s) en En Venta en Leonix (contador público).`
+      ? `Este vendedor tiene ${activeCount} anuncio(s) activo(s) en Varios en Leonix (contador público).`
       : `This seller has ${activeCount} active For Sale listing(s) on Leonix (public count).`;
 
   return (

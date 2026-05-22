@@ -194,7 +194,9 @@ export function AutosPublicResultsActiveFilters({
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2.5">
+    <div className="rounded-2xl border border-[#D4A574]/35 bg-[#FFFAF0] px-4 py-4 sm:px-5">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7A7A7A]">{copy.resultsActiveFiltersLabel}</p>
+      <div className="mt-3 flex flex-wrap gap-2.5">
       {chips.map((c) => (
         <button
           key={c.key}
@@ -222,6 +224,7 @@ export function AutosPublicResultsActiveFilters({
       >
         {copy.resultsClearAll}
       </button>
+      </div>
     </div>
   );
 }

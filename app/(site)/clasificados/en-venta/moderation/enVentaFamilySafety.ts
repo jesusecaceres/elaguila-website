@@ -273,7 +273,7 @@ const DESTINATION_COPY: Record<
     en: "Pet adoption or lost/found posts belong under Comunidad.",
   },
   "mascotas-future": {
-    es: "Este tipo de anuncio no va en En Venta.",
+    es: "Este tipo de anuncio no va en Varios.",
     en: "This type of listing does not belong in For Sale.",
   },
   other: {
@@ -289,8 +289,8 @@ function buildUserMessage(
 ): string {
   const base =
     lang === "es"
-      ? "No podemos continuar con este anuncio en En Venta porque no cumple con nuestras reglas de contenido familiar."
-      : "We can't continue this listing in En Venta because it does not meet our family-safe content rules.";
+      ? "No podemos continuar con este anuncio en Varios porque no cumple con nuestras reglas de contenido familiar."
+      : "We can't continue this listing in For Sale because it does not meet our family-safe content rules.";
   const reviewNote =
     lang === "es"
       ? " Nuestro equipo debe revisarlo antes de publicarse."

@@ -1,26 +1,13 @@
-import { Suspense } from "react";
-import { getMergedEnVentaDetailFieldsUi } from "@/app/lib/clasificados/enVentaCategoryContentServer";
-import { EnVentaDetailFieldCopyProvider } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
-import LeonixEnVentaFreeApplication from "./application/LeonixEnVentaFreeApplication";
+import { redirect } from "next/navigation";
+import { EN_VENTA_PUBLICAR_PRO } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 
 export const dynamic = "force-dynamic";
 
+/** Free lane files preserved; public URL redirects to Pro included-free flow. */
 export default async function EnVentaFreePublishPage(props: { searchParams?: Promise<{ lang?: string }> }) {
   const sp = (await props.searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
-  const detailFieldsUi = await getMergedEnVentaDetailFieldsUi(lang);
-
-  return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center bg-[#D9D9D9] pt-24 text-sm font-medium text-[#111111]/70">
-          Cargando…
-        </main>
-      }
-    >
-      <EnVentaDetailFieldCopyProvider value={detailFieldsUi}>
-        <LeonixEnVentaFreeApplication />
-      </EnVentaDetailFieldCopyProvider>
-    </Suspense>
-  );
+  const qs = new URLSearchParams();
+  qs.set("lang", lang);
+  redirect(`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`);
 }

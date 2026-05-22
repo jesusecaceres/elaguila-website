@@ -456,7 +456,7 @@ export function EnVentaAnuncioLayout({
 
   const browseMoreHref = moreInCategoryHref ?? `/clasificados/en-venta/results?lang=${lang}`;
   const browseMoreLabel =
-    moreInCategoryLabel ?? (lang === "es" ? "Más en En Venta" : "More in For Sale");
+    moreInCategoryLabel ?? (lang === "es" ? "Más en Varios" : "More in For Sale");
 
   return (
     <div

@@ -194,14 +194,11 @@ function MapPinIcon({ className }: { className?: string }) {
 export function EnVentaPreviewPage() {
   const sp = useSearchParams();
   const lang = sp?.get("lang") === "en" ? "en" : "es";
-  const plan = sp?.get("plan") === "pro" ? "pro" : "free";
+  const plan = "pro";
   const tEmpty = EMPTY[lang];
   const tBuyer = BUYER[lang];
 
-  const editBackHref =
-    plan === "pro"
-      ? `/clasificados/publicar/en-venta/pro?lang=${lang}`
-      : `/clasificados/publicar/en-venta/free?lang=${lang}`;
+  const editBackHref = `/clasificados/publicar/en-venta/pro?lang=${lang}`;
   const previewHrefFree = `/clasificados/en-venta/preview?lang=${lang}&plan=free`;
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);

@@ -7,10 +7,11 @@ import {
   saveEnVentaPreviewReturnDraft,
   takeEnVentaPreviewReturnInitialState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+const EN_VENTA_LANDING = "/clasificados/en-venta";
 import {
-  EN_VENTA_PUBLICAR_FREE,
-  EN_VENTA_PUBLICAR_HUB,
-} from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+  enVentaPublicLabel,
+  enVentaPublicProLabel,
+} from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import {
   abandonLeonixPublishFlowClient,
   clearLeonixReturningToEditSessionFlag,
@@ -55,16 +56,16 @@ export default function LeonixEnVentaProApplication() {
     () =>
       lang === "es"
         ? {
-            title: "Publicar — En Venta (Pro)",
-            subtitle: "Anuncio premium: más fotos, video y mejor presentación por listado.",
-            back: "Elegir plan",
-            switchFree: "Cambiar a Gratis",
+            title: `Publicar — ${enVentaPublicProLabel("es")}`,
+            subtitle:
+              "Anuncio Pro incluido sin costo. Más fotos, video y opciones de contacto. Sin pago. Sin comisión.",
+            back: `Volver a ${enVentaPublicLabel("es")}`,
           }
         : {
-            title: "Post — For Sale (Pro)",
-            subtitle: "Premium listing: more photos, video, and stronger presentation per ad.",
-            back: "Choose plan",
-            switchFree: "Switch to Free",
+            title: `Post — ${enVentaPublicProLabel("en")}`,
+            subtitle:
+              "Pro listing included at no charge. More photos, video, and contact options. No payment. No commission.",
+            back: `Back to ${enVentaPublicLabel("en")}`,
           },
     [lang]
   );
@@ -118,16 +119,9 @@ export default function LeonixEnVentaProApplication() {
               <button
                 type="button"
                 className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
-                onClick={() => leaveAndGo(`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`)}
+                onClick={() => leaveAndGo(`${EN_VENTA_LANDING}?${qs.toString()}`)}
               >
                 {copy.back}
-              </button>
-              <button
-                type="button"
-                className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
-                onClick={() => leaveAndGo(`${EN_VENTA_PUBLICAR_FREE}?${qs.toString()}`)}
-              >
-                {copy.switchFree}
               </button>
             </div>
           </div>

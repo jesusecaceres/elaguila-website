@@ -43,7 +43,7 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
     futureFilters: ["price", "location", "type"],
   },
   "en-venta": {
-    label: { es: "En Venta", en: "For Sale" },
+    label: { es: "Varios", en: "For Sale" },
     futureFilters: ["condition", "price"],
   },
   autos: {

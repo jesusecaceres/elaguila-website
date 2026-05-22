@@ -1,22 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
 const COPY = {
   es: {
     back: "Volver a editar",
-    switchPro: "Ver versión Pro",
-    switchFree: "Ver versión gratis",
-    publishFree: "Publicar gratis",
     publishPro: "Publicar anuncio Pro",
   },
   en: {
     back: "Back to edit",
-    switchPro: "See Pro version",
-    switchFree: "See Free version",
-    publishFree: "Publish free",
     publishPro: "Publish Pro listing",
   },
 } as const;
@@ -37,7 +30,7 @@ const pillPublishNav =
 export type EnVentaPreviewShellProps = {
   lang: "es" | "en";
   plan: "free" | "pro";
-  /** Centered header title (e.g. Vista previa Pro / Free preview). */
+  /** Centered header title (e.g. Vista previa Pro). */
   previewTitle: string;
   /** Full URL for back-to-edit (full page load via native anchor). */
   editBackHref: string;
@@ -48,24 +41,15 @@ export type EnVentaPreviewShellProps = {
 
 export function EnVentaPreviewShell({
   lang,
-  plan,
   previewTitle,
   editBackHref,
-  previewHrefFree,
-  previewHrefPro,
   children,
 }: EnVentaPreviewShellProps) {
   const t = COPY[lang];
-
-  const publishLabel = plan === "free" ? t.publishFree : t.publishPro;
   const editPublishFocusHref = hrefWithListingPublishFocus(editBackHref);
-
-  const switchHref = plan === "free" ? previewHrefPro : previewHrefFree;
-  const switchLabel = plan === "free" ? t.switchPro : t.switchFree;
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sticky top — seller-only */}
       <div className="sticky top-0 z-40 border-b border-[#E8DFD0]/90 bg-[#FFFCF7]/95 shadow-[0_8px_24px_-12px_rgba(42,36,22,0.12)] backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-2 py-1.5 sm:px-4">
           <div className="relative flex items-center gap-1.5">
@@ -88,9 +72,6 @@ export function EnVentaPreviewShell({
               >
                 {t.back}
               </a>
-              <Link href={switchHref} className={pillOutline}>
-                {switchLabel}
-              </Link>
               <a
                 href={editPublishFocusHref}
                 className={pillPublishNav}
@@ -98,7 +79,7 @@ export function EnVentaPreviewShell({
                   markPublishFlowReturningToEdit();
                 }}
               >
-                {publishLabel}
+                {t.publishPro}
               </a>
             </nav>
           </div>
@@ -107,7 +88,6 @@ export function EnVentaPreviewShell({
 
       <div className="flex-1">{children}</div>
 
-      {/* Mobile sticky bottom — repeat key seller actions */}
       <div className="sticky bottom-0 z-40 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-2.5 backdrop-blur-md lg:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2">
           <a
@@ -117,14 +97,8 @@ export function EnVentaPreviewShell({
               markPublishFlowReturningToEdit();
             }}
           >
-            {publishLabel}
+            {t.publishPro}
           </a>
-          <Link
-            href={plan === "free" ? previewHrefPro : previewHrefFree}
-            className="rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#3D3428]"
-          >
-            {plan === "free" ? t.switchPro : t.switchFree}
-          </Link>
         </div>
       </div>
     </div>

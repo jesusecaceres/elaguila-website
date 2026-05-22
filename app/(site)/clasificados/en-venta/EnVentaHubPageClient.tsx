@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes";
 import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
+import { enVentaPublicLabel } from "./shared/constants/enVentaPublicLabels";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
 import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
 import { DEFAULT_CITY } from "@/app/data/locations/norcal";
@@ -285,7 +286,10 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         </section>
 
         {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
-        <section className="mt-8 sm:mt-10" aria-label={lang === "es" ? "Cómo explorar En Venta" : "How to explore For Sale"}>
+        <section
+          className="mt-8 sm:mt-10"
+          aria-label={lang === "es" ? `Cómo explorar ${enVentaPublicLabel("es")}` : `How to explore ${enVentaPublicLabel("en")}`}
+        >
           <div className="rounded-[22px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-4 shadow-[0_8px_32px_-14px_rgba(47,74,101,0.12)] sm:px-6 sm:py-5">
             <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">

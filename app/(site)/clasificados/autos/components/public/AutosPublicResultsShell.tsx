@@ -248,19 +248,24 @@ export function AutosPublicResultsShell() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-11">
-        <div className="mb-8 flex flex-col gap-4 lg:mb-10 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="font-serif text-3xl font-semibold tracking-tight text-[#1A1A1A] sm:text-[2rem] lg:text-[2.15rem]">{copy.resultsTitle}</h1>
-            <p className="mt-2 text-base text-[#7A7A7A]">{nearLine}</p>
-            <p className="mt-3 text-sm font-semibold text-[#4A4A4A]">
-              {copy.resultCount.replace("{n}", String(resultCount))}
+      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-7 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-10">
+        <div className="mb-6 rounded-[22px] border border-[#D4A574]/35 bg-[linear-gradient(165deg,rgba(255,250,240,0.96),rgba(255,252,247,0.98))] px-5 py-6 shadow-[0_18px_52px_-26px_rgba(212,165,116,0.28)] sm:px-7 sm:py-7">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#D4A574]">{copy.heroEyebrow}</p>
+          <h1 className="mt-2 font-serif text-[1.75rem] font-bold tracking-tight text-[#1A1A1A] sm:text-[2rem] lg:text-[2.2rem]">
+            {copy.resultsTitle}
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-[#5C5346]">{nearLine}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsIntroGuidance}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#E5E5E5]/80 pt-4">
+            <p className="text-sm font-bold text-[#1A1A1A]">
+              {!loaded ? copy.resultsStatusLoading : copy.resultsStatusShowing.replace("{n}", String(resultCount))}
             </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-[#7A7A7A]">{copy.resultsControlHint}</p>
+            <span className="hidden h-4 w-px bg-[#E5E5E5] sm:block" aria-hidden />
+            <p className="text-xs text-[#7A7A7A]">{copy.resultsControlHint}</p>
           </div>
         </div>
 
-        <div className="mb-6 rounded-[22px] border border-[#D4A574]/30 bg-[#FFFAF0]/95 p-5 shadow-[0_18px_48px_-28px_rgba(212,165,116,0.25)] backdrop-blur-[2px] sm:p-6 lg:p-7">
+        <div className="mb-5 rounded-[20px] border border-[#D4A574]/30 bg-[#FFFAF0]/95 p-4 shadow-[0_14px_40px_-24px_rgba(212,165,116,0.22)] backdrop-blur-[2px] sm:p-5 lg:p-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-4">
             <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="min-w-0 sm:col-span-2 lg:col-span-1">
@@ -333,12 +338,13 @@ export function AutosPublicResultsShell() {
               >
                 {copy.searchCta}
               </button>
-              <label className="flex w-full min-w-0 shrink-0 items-center gap-2 text-sm text-[#4A4A4A] sm:w-auto">
-                <span className="whitespace-nowrap font-medium">{copy.sortLabel}</span>
+              <label className="flex w-full min-w-0 shrink-0 flex-col gap-1 text-sm text-[#4A4A4A] sm:w-auto sm:min-w-[11rem]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]">{copy.sortLabel}</span>
                 <select
-                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[#D4A574]"
+                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#D4A574]"
                   value={applied.sort}
                   onChange={(e) => setSortUrl(e.target.value as AutosPublicSortKey)}
+                  aria-describedby="autos-res-sort-hint"
                 >
                   <option value="newest">{copy.sortNewest}</option>
                   <option value="priceAsc">{copy.sortPriceLow}</option>
@@ -347,6 +353,9 @@ export function AutosPublicResultsShell() {
                   <option value="yearDesc">{copy.sortYearNewest}</option>
                   <option value="yearAsc">{copy.sortYearOldest}</option>
                 </select>
+                <span id="autos-res-sort-hint" className="text-[10px] text-[#7A7A7A]">
+                  {copy.sortHint}
+                </span>
               </label>
               <button
                 type="button"
@@ -359,7 +368,7 @@ export function AutosPublicResultsShell() {
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-5">
           <AutosPublicInventoryNotice
             copy={copy}
             loaded={loaded}
@@ -368,33 +377,45 @@ export function AutosPublicResultsShell() {
           />
         </div>
 
-        <div className="mb-6 rounded-2xl border border-[#E5E5E5]/80 bg-[#FFFAF0]/40 px-4 py-4 sm:px-5">
+        <div className="mb-5 rounded-2xl border border-[#E5E5E5]/80 bg-[#FFFAF0]/60 px-4 py-4 sm:px-5">
           <AutosPublicResultsQuickChips bundle={applied} copy={copy} />
         </div>
 
-        <div className="mb-7">
+        <div className="mb-5">
           <AutosPublicResultsActiveFilters bundle={applied} pushBundle={pushBundle} copy={copy} />
         </div>
 
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-12 xl:gap-14">
-          <aside className="hidden w-[300px] shrink-0 lg:block xl:w-[336px]">
-            <div className="sticky top-28 rounded-[22px] border border-[#D4A574]/30 bg-[#FFFAF0] p-5 shadow-[0_12px_36px_-20px_rgba(212,165,116,0.18)]">
-              <p className="mb-4 font-serif text-lg font-semibold text-[#1A1A1A]">{copy.filtersTitle}</p>
-              <AutosPublicFilterRail
-                value={draftFilters}
-                onChange={patchDraft}
-                onReset={resetFiltersUrl}
-                onApply={applyDraftToUrl}
-                copy={copy}
-                options={filterOptions}
-                idPrefix="desk"
-              />
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
+          <aside className="hidden w-[280px] shrink-0 lg:block xl:w-[320px]">
+            <div className="sticky top-24 rounded-[20px] border border-[#D4A574]/30 bg-[#FFFAF0] p-4 shadow-[0_12px_36px_-20px_rgba(212,165,116,0.18)] sm:p-5">
+              <p className="font-serif text-lg font-semibold text-[#1A1A1A]">{copy.filtersTitle}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-[#7A7A7A]">{copy.resultsFilterRailCaption}</p>
+              <div className="mt-4">
+                <AutosPublicFilterRail
+                  value={draftFilters}
+                  onChange={patchDraft}
+                  onReset={resetFiltersUrl}
+                  onApply={applyDraftToUrl}
+                  copy={copy}
+                  options={filterOptions}
+                  idPrefix="desk"
+                />
+              </div>
             </div>
           </aside>
 
           <div className="min-w-0 flex-1 lg:min-w-0">
-            {featuredDealerBand.length > 0 ? (
-              <section className="mb-12 lg:mb-16">
+            {!loaded ? (
+              <div
+                className="rounded-2xl border border-dashed border-[#D4A574]/40 bg-[#FFFAF0] px-6 py-14 text-center"
+                aria-busy="true"
+              >
+                <p className="text-sm font-semibold text-[#4A4A4A]">{copy.resultsStatusLoading}</p>
+              </div>
+            ) : null}
+
+            {loaded && featuredDealerBand.length > 0 ? (
+              <section className="mb-10 lg:mb-12">
                 <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{featuredTitle}</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneFeaturedSubtitle}</p>
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
@@ -419,20 +440,22 @@ export function AutosPublicResultsShell() {
               </section>
             ) : null}
 
+            {loaded ? (
             <section>
               <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsMainSection}</h2>
-              <p className="mt-2 max-w-3xl text-sm text-[#7A7A7A]">{copy.resultsLaneMainSubtitle}</p>
-              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-2 2xl:grid-cols-3">
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneMainSubtitle}</p>
+              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-2 2xl:grid-cols-3">
                 {pagedGrid.map((l) => (
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
                 ))}
               </div>
               {gridListings.length === 0 && !emptyCatalog ? (
-                <div className="mt-8 rounded-2xl border border-dashed border-[#E5E5E5] bg-[#FFFAF0] px-4 py-10 text-center text-sm text-[#7A7A7A]">
-                  <p>{copy.resultsNoFilterMatches}</p>
+                <div className="mt-8 rounded-2xl border border-dashed border-[#D4A574]/40 bg-[#FFFAF0] px-5 py-12 text-center">
+                  <p className="text-sm font-semibold text-[#4A4A4A]">{copy.resultsNoFilterMatches}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-[#7A7A7A]">{copy.resultsNextStepHint}</p>
                   <button
                     type="button"
-                    className="mt-4 rounded-xl border border-[#D4A574]/45 bg-[#FFFEF7] px-4 py-2 text-xs font-bold text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
+                    className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#D4A574]/45 bg-[#FFFEF7] px-5 text-sm font-bold text-[#1A1A1A] transition hover:bg-[#F5F0E8]"
                     onClick={resetFiltersUrl}
                   >
                     {copy.resultsResetShort}
@@ -440,6 +463,7 @@ export function AutosPublicResultsShell() {
                 </div>
               ) : null}
             </section>
+            ) : null}
 
             {gridListings.length > 0 && totalPages > 1 ? (
               <nav

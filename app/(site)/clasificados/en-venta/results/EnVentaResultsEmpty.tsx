@@ -23,8 +23,8 @@ export function EnVentaResultsEmpty({
       <h2 className="mt-4 text-lg font-semibold text-[#1E1810]">
         {featuredOnly
           ? lang === "es"
-            ? "No hay destacados Pro activos"
-            : "No active Pro featured listings"
+            ? "No hay anuncios recién refrescados"
+            : "No recently refreshed listings"
           : lang === "es"
             ? "No hay resultados que coincidan"
             : "No matching results"}
@@ -32,8 +32,8 @@ export function EnVentaResultsEmpty({
       <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">
         {featuredOnly
           ? lang === "es"
-            ? "Ningún anuncio con visibilidad destacada coincide con estos filtros. Quita el modo solo destacados Pro, amplía la zona o vuelve al listado general."
-            : "No featured listings match these filters. Turn off “Pro featured only”, widen location, or browse all listings."
+            ? "Ningún anuncio recién refrescado coincide con estos filtros. Quita el filtro de refrescados, amplía la zona o vuelve al listado general."
+            : "No recently refreshed listings match these filters. Turn off the refreshed-only filter, widen location, or browse all listings."
           : lang === "es"
             ? "Prueba otra búsqueda, ajusta filtros o amplía la ciudad. Si acabas de publicar, confirma que no queden filtros activos (chips arriba) y recarga."
             : "Try another search, adjust filters, or widen your city. If you just published, clear active filter chips above and refresh."}
@@ -49,7 +49,7 @@ export function EnVentaResultsEmpty({
           href={home}
           className="rounded-full border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
         >
-          {lang === "es" ? "Ver todo En Venta" : "Browse all For Sale"}
+          {lang === "es" ? "Ver todo Varios" : "Browse all For Sale"}
         </Link>
         {onReset ? (
           <button

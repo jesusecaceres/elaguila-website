@@ -1569,7 +1569,11 @@ export default function MyListingsPage() {
                       ? dashboardRepublishPrimaryKind(rowRecEv, "en-venta")
                       : null;
                   const republishButtonLabel =
-                    repKindEv && renewalVm?.canRenewNow ? dashboardRepublishPrimaryLabel(lang, repKindEv) : null;
+                    repKindEv && renewalVm?.canRenewNow
+                      ? lang === "es"
+                        ? "Refrescar anuncio"
+                        : "Refresh listing"
+                      : null;
                   return (
                     <EnVentaListingManageCard
                       key={x.id}

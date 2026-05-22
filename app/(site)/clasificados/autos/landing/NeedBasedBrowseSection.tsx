@@ -14,15 +14,18 @@ export function NeedBasedBrowseSection({
 }) {
   return (
     <section className={autosLandingSectionClass}>
-      <h2 className="border-l-[3px] border-[color:var(--lx-gold)] pl-3 font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
-        {copy.browseNeedTitle}
-      </h2>
+      <div className="max-w-3xl">
+        <h2 className="border-l-[3px] border-[color:var(--lx-gold)] pl-3 font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
+          {copy.browseNeedTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">{copy.browseNeedCaption}</p>
+      </div>
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-5 lg:grid-cols-3">
         {cards.map((c) => (
           <Link
             key={c.key}
             href={c.href}
-            className="group flex min-h-[108px] flex-col justify-between rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-14px_rgba(42,36,22,0.16)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-section)] sm:min-h-[116px] sm:p-5"
+            className="group flex min-h-[112px] flex-col justify-between rounded-[16px] border border-[color:var(--lx-nav-border)] bg-[linear-gradient(160deg,rgba(255,252,247,0.98),rgba(255,250,240,0.92))] p-4 shadow-[0_10px_32px_-14px_rgba(42,36,22,0.18)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_14px_40px_-12px_rgba(42,36,22,0.22)] sm:min-h-[120px] sm:p-5"
           >
             <div className="min-w-0">
               <p className="font-serif text-lg font-semibold leading-snug text-[color:var(--lx-text)]">{c.title}</p>

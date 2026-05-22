@@ -1,32 +1,35 @@
+import {
+  EN_VENTA_PUBLIC_LABEL,
+  EN_VENTA_PUBLIC_PRO_LABEL,
+  enVentaPublishInLabel,
+  enVentaSearchPlaceholder,
+} from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
+
 /** Defaults for `/clasificados/en-venta` hub — must match previous inline copy in `en-venta/page.tsx`. */
-export const EN_VENTA_HUB_LANDING_DEFAULTS: {
-  es: Record<string, string>;
+export const EN_VENTA_HUB_LANDING_DEFAULTS: {  es: Record<string, string>;
   en: Record<string, string>;
 } = {
   es: {
-    hero: "En Venta",
+    hero: EN_VENTA_PUBLIC_LABEL.es,
     sub: "Compra y vende con claridad, en un espacio pensado para presentar bien cada artículo.",
     premiumTagline: "Anuncios reales. Mejor presentación. Mayor confianza.",
-    searchPh: "Buscar en En Venta…",
+    searchPh: enVentaSearchPlaceholder("es"),
     search: "Buscar",
-    publish: "Publicar artículo",
-    lista: "Ver todos los anuncios →",
+    publish: enVentaPublishInLabel("es"),    lista: "Ver todos los anuncios →",
     trust: "Comunidad Leonix · anuncios moderados · contacto directo",
     badge: "CLASIFICADOS",
     socialProof:
       "Anuncios moderados por el equipo Leonix; compradores y vendedores reales (sin inventar inventario ni volumen).",
     cityPh: "Ciudad",
     categoriesTitle: "Explora por categoría",
-    trust1Title: "Publica gratis",
-    trust1Sub: "Llega a compradores y gana visibilidad cuando eliges Pro.",
-    trust2Title: "Transacciones seguras",
+    trust1Title: "Publica sin costo",
+    trust1Sub: "Varios Pro incluido: más fotos, video y mejor presentación.",    trust2Title: "Transacciones seguras",
     trust2Sub: "Tu seguridad es nuestra prioridad",
     trust3Title: "Comunidad confiable",
     trust3Sub: "Personas reales, anuncios reales",
     bottomSellTitle: "¿Listo para vender algo?",
     bottomSellSub:
-      "Fotos claras, categorías ordenadas y opciones Pro para que tu artículo se vea y se encuentre.",
-    bottomSellCta: "Publicar ahora →",
+      "Fotos claras, categorías ordenadas y Varios Pro incluido para que tu artículo se vea y se encuentre.",    bottomSellCta: "Publicar ahora →",
     sellerTrust:
       "Particulares y negocios en el mismo marketplace: compra con criterio y vende con buena presentación.",
     sellerLinkInd: "Particular",
@@ -37,11 +40,9 @@ export const EN_VENTA_HUB_LANDING_DEFAULTS: {
     browseChipNewest: "Últimas publicaciones",
     browseChipNear: "En tu zona",
     browseChipShip: "Con envío",
-    browseChipFeatured: "Visibilidad renovada (Pro)",
-    browseChipPickup: "Recogida local",
+    browseChipFeatured: "Recién refrescados",    browseChipPickup: "Recogida local",
     exposureHint:
-      "Los anuncios Pro con visibilidad renovada vigente pueden aparecer arriba; el catálogo principal sigue por más recientes y no penaliza a particulares por defecto.",
-    mobileStickyPublish: "Publicar",
+      "Los anuncios refrescados recientemente pueden aparecer arriba; el catálogo principal sigue por más recientes y no penaliza a particulares por defecto.",    mobileStickyPublish: "Publicar",
     mobileStickyBrowse: "Explorar",
   },
   en: {
@@ -78,8 +79,7 @@ export const EN_VENTA_HUB_LANDING_DEFAULTS: {
     browseChipNewest: "Latest listings",
     browseChipNear: "Near you",
     browseChipShip: "Shipping",
-    browseChipFeatured: "Renewed visibility (Pro)",
-    browseChipPickup: "Local pickup",
+    browseChipFeatured: "Recently refreshed",    browseChipPickup: "Local pickup",
     exposureHint:
       "Pro listings with active renewed visibility may appear above the fold; the main catalog stays newest-first and does not bury private sellers by default.",
     mobileStickyPublish: "Post",
@@ -93,30 +93,32 @@ export const EN_VENTA_PUBLISH_HUB_DEFAULTS: {
   en: Record<string, string>;
 } = {
   es: {
-    title: "En Venta — elige tu plan",
+    title: `${EN_VENTA_PUBLIC_PRO_LABEL.es} — incluido sin costo`,
     subtitle:
-      "Gratis para publicar rápido. Pro mejora un anuncio concreto. Storefront (próximamente) será para tiendas y presencia de vendedor.",
+      "Publica con más detalles, fotos y opciones de contacto. Sin pago. Sin comisión. Refresca tu anuncio para volver a subirlo entre los listados recientes.",
     freeTitle: "Gratis",
-    freeDesc: "Listado básico y flujo corto. Ideal para ventas ocasionales.",
-    proTitle: "Pro",
-    proDesc: "Anuncio premium: más fotos, video y mejor presentación por listado.",
-    sfTitle: "Storefront",
+    freeDesc: "Ruta interna — no disponible en publicación pública.",
+    proTitle: EN_VENTA_PUBLIC_PRO_LABEL.es,
+    proDesc: "Anuncio Pro incluido sin costo: más fotos, video y mejor presentación.",    sfTitle: "Storefront",
     sfDesc: "Próximamente — perfil de tienda y capa de negocio para vendedores frecuentes.",
     back: "Todas las categorías",
     langToggle: "English",
+    laneProBadge: "Incluido sin costo",
+    laneSfEmoji: "🏪",
   },
   en: {
-    title: "For sale — pick your lane",
+    title: `${EN_VENTA_PUBLIC_PRO_LABEL.en} — included at no charge`,
     subtitle:
-      "Free for quick posts. Pro upgrades a single listing. Storefront (coming soon) is for shop-style seller presence.",
+      "Post with more details, photos, and contact options. No payment. No commission. Refresh your listing to move it back among recent listings.",
     freeTitle: "Free",
-    freeDesc: "Basic listing and a short flow. Best for occasional sellers.",
-    proTitle: "Pro",
-    proDesc: "Premium listing: more photos, video, and stronger presentation per ad.",
-    sfTitle: "Storefront",
+    freeDesc: "Internal route — not offered on the public publish path.",
+    proTitle: EN_VENTA_PUBLIC_PRO_LABEL.en,
+    proDesc: "Pro listing included at no charge: more photos, video, and stronger presentation.",    sfTitle: "Storefront",
     sfDesc: "Coming soon — store profile and business layer for frequent sellers.",
     back: "All categories",
     langToggle: "Español",
+    laneProBadge: "Included at no charge",
+    laneSfEmoji: "🏪",
   },
 };
 

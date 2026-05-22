@@ -10,6 +10,7 @@ import { buildEnVentaListingDetailHrefFromResults } from "@/app/clasificados/en-
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
 import { getEnVentaSupabaseBrowserEnvIssues } from "@/app/lib/supabase/enVentaClientEnvCheck";
 import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
+import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
 import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enVentaPublishFromDraft";
 
 const COPY = {
@@ -19,7 +20,7 @@ const COPY = {
     publishing: "Publicando…",
     successTitle: "¡Tu anuncio ya está publicado!",
     successScoped: "Ver en resultados de esta categoría",
-    successAll: "Ver todos los anuncios de En Venta",
+    successAll: `Ver todos los anuncios de ${enVentaPublicLabel("es")}`,
     successDetail: "Ver mi anuncio publicado",
     successDashboard: "Ir a Mis anuncios",
     errPrefix: "No se pudo publicar:",
@@ -35,7 +36,7 @@ const COPY = {
     publishing: "Publishing…",
     successTitle: "Your listing is live!",
     successScoped: "View results in this category",
-    successAll: "Browse all For Sale listings",
+    successAll: `Browse all ${enVentaPublicLabel("en")} listings`,
     successDetail: "View my published listing",
     successDashboard: "Go to My listings",
     errPrefix: "Could not publish:",

@@ -22,7 +22,7 @@ const CLASIFICADOS_HUB_UI = {
         label: "Bienes Raíces",
         hint: "Casas, departamentos, terrenos y espacios comerciales.",
       },
-      "en-venta": { label: "En venta", hint: "Artículos nuevos y usados cerca de ti." },
+      "en-venta": { label: "Varios", hint: "Artículos nuevos y usados cerca de ti." },
       empleos: { label: "Empleos", hint: "Oportunidades cerca de ti." },
       servicios: {
         label: "Servicios",

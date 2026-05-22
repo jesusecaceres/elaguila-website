@@ -219,6 +219,7 @@ export function AutosLandingPage() {
           listings={dealerSpotlight}
           heading={copy.landingDealerSpotlightTitle}
           subheading={copy.landingDealerSpotlightSubtitle}
+          browseAllHref={browseAllHref}
         />
 
         <BodyStyleBrowseSection copy={copy} tiles={bodyStyleTiles} />
@@ -233,6 +234,7 @@ export function AutosLandingPage() {
           listings={privateFresh}
           heading={copy.landingPrivateFreshTitle}
           subheading={copy.landingPrivateFreshSubtitle}
+          browseAllHref={browseAllHref}
         />
 
         <RecentAutosSection
@@ -241,6 +243,7 @@ export function AutosLandingPage() {
           listings={mixedLatest}
           heading={copy.landingMixedLatestTitle}
           subheading={copy.landingMixedLatestSubtitle}
+          browseAllHref={browseAllHref}
         />
 
         <AutosLandingPublishCTA copy={copy} publishAutosHref={publishAutosHref} browseAllHref={browseAllHref} />

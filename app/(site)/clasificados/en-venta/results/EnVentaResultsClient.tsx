@@ -16,6 +16,10 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { leonixPromotedFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app/clasificados/components/savedListings";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
+import {
+  enVentaPublicLabel,
+  enVentaSearchPlaceholder,
+} from "../shared/constants/enVentaPublicLabels";
 import { EN_VENTA_SUBCATEGORY_ROWS } from "../taxonomy/subcategories";
 import { mapDbRowToEnVentaAnuncioDTO } from "../mapping/mapDbRowToEnVentaListingData";
 import { inferEnVentaDeptFromSubKey } from "../mapping/enVentaInferDeptFromSub";
@@ -303,16 +307,16 @@ export function EnVentaResultsClient() {
 
   const t = {
     es: {
-      title: "En Venta",
+      title: enVentaPublicLabel("es"),
       count: (a: number, b: number, tot: number) => `Mostrando ${a} – ${b} de ${tot} resultados`,
-      searchPh: "Buscar en En Venta…",
+      searchPh: enVentaSearchPlaceholder("es"),
       cityPh: "Ciudad",
       sort: "Ordenar",
       go: "Buscar",
       grid: "Cuadrícula",
       list: "Lista",
       latest: "Más recientes",
-      promoted: "Visibilidad renovada (Pro)",
+      promoted: "Recién refrescados",
       loading: "Cargando…",
       err: "No se pudieron cargar los anuncios.",
       page: (p: number, pc: number) => `Página ${p} de ${pc}`,
@@ -329,7 +333,7 @@ export function EnVentaResultsClient() {
       biz: "Negocio",
       trust: "Comunidad Leonix · anuncios moderados · contacto directo",
       zip: "CP / ZIP",
-      featuredMode: "Solo visibilidad Pro renovada",
+      featuredMode: "Solo recién refrescados",
       clearAll: "Limpiar filtros",
       useLocation: "Usar mi ubicación",
       geoDenied: "Permiso denegado — elige ciudad o CP manualmente.",
@@ -345,7 +349,7 @@ export function EnVentaResultsClient() {
       mapRadiusBody:
         "El refinamiento por distancia real vendrá con mapa; esta sección es informativa. Ciudad y CP sí filtran cuando el anuncio tiene esos datos.",
       groupSearchLoc: "Buscar y ubicación",
-      groupSortView: "Orden, vista y destacados",
+      groupSortView: "Orden, vista y refresco",
       groupRefine: "Refinar listado",
       cityZipHelp: "Ciudad canónica NorCal; CP de 5 dígitos acota cuando hay datos.",
       refineIntro: "Categoría, precio y entrega",
@@ -354,19 +358,19 @@ export function EnVentaResultsClient() {
       meetupOnly: "Solo con encuentro",
       viewLabel: "Vista",
       standardEngineLine:
-        "Listado principal: respeta tus filtros y la página; no repite los Destacados de arriba.",
+        "Listado principal: respeta tus filtros y la página; no repite los recién refrescados de arriba.",
     },
     en: {
-      title: "For Sale",
+      title: enVentaPublicLabel("en"),
       count: (a: number, b: number, tot: number) => `Showing ${a} – ${b} of ${tot} results`,
-      searchPh: "Search For Sale…",
+      searchPh: enVentaSearchPlaceholder("en"),
       cityPh: "City",
       sort: "Sort",
       go: "Search",
       grid: "Grid",
       list: "List",
       latest: "Latest",
-      promoted: "Renewed visibility (Pro)",
+      promoted: "Recently refreshed",
       loading: "Loading…",
       err: "Could not load listings.",
       page: (p: number, pc: number) => `Page ${p} of ${pc}`,
@@ -383,7 +387,7 @@ export function EnVentaResultsClient() {
       biz: "Business",
       trust: "Leonix community · moderated listings · direct contact",
       zip: "ZIP",
-      featuredMode: "Renewed Pro visibility only",
+      featuredMode: "Recently refreshed only",
       clearAll: "Clear filters",
       useLocation: "Use my location",
       geoDenied: "Permission denied — choose city or ZIP manually.",
@@ -398,7 +402,7 @@ export function EnVentaResultsClient() {
       mapRadiusBody:
         "True distance search will ship with a map; this panel is informational only. City and ZIP filter when listings store them.",
       groupSearchLoc: "Search & location",
-      groupSortView: "Sort, view & featured",
+      groupSortView: "Sort, view & refresh",
       groupRefine: "Refine listings",
       cityZipHelp: "Canonical NorCal city; 5-digit ZIP narrows when listings include ZIP.",
       refineIntro: "Category, price & fulfillment",
@@ -407,7 +411,7 @@ export function EnVentaResultsClient() {
       meetupOnly: "Meetup offered",
       viewLabel: "View",
       standardEngineLine:
-        "Main feed: honors your filters and page; listings shown in Destacados above are not duplicated here.",
+        "Main feed: honors your filters and page; recently refreshed listings above are not duplicated here.",
     },
   }[lang];
 
@@ -636,10 +640,14 @@ export function EnVentaResultsClient() {
         : "No results"
       : featuredOnly
         ? lang === "es"
-          ? `${total} destacado(s) Pro (visibilidad activa)`
-          : `${total} Pro featured (active visibility)`
+          ? `${total} anuncio(s) recién refrescado(s)`
+          : `${total} recently refreshed listing(s)`
         : t.count(startIdx + 1, Math.min(startIdx + standardSlice.length, totalRest), totalRest) +
-          (promotedPool.length ? (lang === "es" ? ` · ${promotedPool.length} destacado(s)` : ` · ${promotedPool.length} featured`) : "");
+          (promotedPool.length
+            ? lang === "es"
+              ? ` · ${promotedPool.length} refrescado(s)`
+              : ` · ${promotedPool.length} refreshed`
+            : "");
 
   const isFav = (id: string) => isListingSaved(id);
   const onFav = (id: string) => {
@@ -692,7 +700,7 @@ export function EnVentaResultsClient() {
                   href={`/clasificados/en-venta?lang=${lang}`}
                   className="inline-flex text-[13px] font-semibold text-[#2F4A65] underline-offset-4 hover:underline"
                 >
-                  {lang === "es" ? "← Inicio En Venta" : "← For Sale home"}
+                  {lang === "es" ? `← Inicio ${enVentaPublicLabel("es")}` : `← ${enVentaPublicLabel("en")} home`}
                 </Link>
                 <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl lg:text-4xl">{t.title}</h1>
                 <p className="mt-2 text-sm font-semibold text-[#3D3428]">{loading ? t.loading : countLine}</p>
@@ -1053,7 +1061,9 @@ export function EnVentaResultsClient() {
 
         <div className="mt-8 text-center">
           <Link href={`/clasificados/en-venta?lang=${lang}`} className="text-sm font-semibold text-[#2A2620] underline">
-            {lang === "es" ? "← Volver al inicio En Venta" : "← Back to For Sale home"}
+            {lang === "es"
+              ? `← Volver al inicio ${enVentaPublicLabel("es")}`
+              : `← Back to ${enVentaPublicLabel("en")} home`}
           </Link>
         </div>
       </main>

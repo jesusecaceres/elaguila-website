@@ -15,9 +15,12 @@ export function BodyStyleBrowseSection({
 }) {
   return (
     <section className={autosLandingSectionClass}>
-      <h2 className="border-l-[3px] border-[color:var(--lx-gold)] pl-3 font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
-        {copy.browseBodyStyleTitle}
-      </h2>
+      <div className="max-w-3xl">
+        <h2 className="border-l-[3px] border-[color:var(--lx-gold)] pl-3 font-serif text-xl font-semibold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
+          {copy.browseBodyStyleTitle}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">{copy.browseBodyStyleCaption}</p>
+      </div>
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:gap-5 lg:grid-cols-3 lg:gap-5 xl:grid-cols-6">
         {tiles.map((t) => (
           <Link

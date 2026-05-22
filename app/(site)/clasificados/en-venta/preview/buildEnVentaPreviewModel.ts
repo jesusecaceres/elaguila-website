@@ -70,8 +70,8 @@ export type EnVentaPreviewViewModel = {
 
 const COPY = {
   es: {
-    shellFree: "Vista previa Gratis",
-    shellPro: "Vista previa Pro",
+    shellFree: "Vista previa del anuncio Pro",
+    shellPro: "Vista previa del anuncio Pro",
     posted: "Borrador · no publicado aún",
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
@@ -103,8 +103,8 @@ const COPY = {
     photoCount: (n: number, max: number) => `${n} / ${max} fotos`,
   },
   en: {
-    shellFree: "Free preview",
-    shellPro: "Pro preview",
+    shellFree: "Preview Pro listing",
+    shellPro: "Preview Pro listing",
     posted: "Draft · not published yet",
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
