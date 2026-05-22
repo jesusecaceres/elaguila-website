@@ -53,6 +53,28 @@ function redirectWith(query: Record<string, string>): never {
   redirect(`/admin/workspace/package-entitlements?${p.toString()}`);
 }
 
+function creatorSnapshot(): Record<string, string | null> {
+  return {
+    creator_name: "Admin",
+    creator_role: "admin",
+    creator_email: null,
+  };
+}
+
+function mergeMetadata(
+  existing: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  return { ...existing, ...patch };
+}
+
+async function loadEntitlementRow(id: string) {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase.from("listing_package_entitlements").select("*").eq("id", id).maybeSingle();
+  if (error || !data) return null;
+  return data as Record<string, unknown>;
+}
+
 export async function createPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
@@ -96,6 +118,8 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const customerName = String(formData.get("customer_name") ?? "").trim() || null;
   const businessName = String(formData.get("business_name") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 4000) || null;
+  const salesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
+  const salesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
 
   const now = new Date();
   if (tier === "premium") {
@@ -110,8 +134,11 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const metadata = {
     source: "admin_manual",
     visibility_bucket: def.visibilityBucket,
-    created_via: "gate_g1_6b_admin",
+    created_via: "gate_g1_6c_admin",
     listing_attachment: listingId ? "attached" : "pending",
+    sales_rep_id: salesRepId,
+    sales_rep_name: salesRepName,
+    ...creatorSnapshot(),
     stripe_checkout_session_id: null,
     stripe_payment_intent_id: null,
     stripe_customer_id: null,
@@ -154,7 +181,14 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     action: "package_entitlement_created",
     targetType: "listing_package_entitlement",
     targetId: data?.id ? String((data as { id: string }).id) : entitlementCode,
-    meta: { category, listing_source: listingSource, listing_id: listingId, package_tier: tier, entitlement_code: entitlementCode },
+    meta: {
+      category,
+      listing_source: listingSource,
+      listing_id: listingId,
+      package_tier: tier,
+      entitlement_code: entitlementCode,
+      sales_rep_id: salesRepId,
+    },
   });
 
   revalidatePath("/admin");
@@ -169,6 +203,12 @@ export async function revokePackageEntitlementAction(formData: FormData): Promis
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirectWith({ error: "missing_id" });
 
+  const existing = await loadEntitlementRow(id);
+  const meta =
+    existing?.metadata && typeof existing.metadata === "object" && !Array.isArray(existing.metadata)
+      ? (existing.metadata as Record<string, unknown>)
+      : {};
+
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
   const { error } = await supabase
@@ -177,6 +217,10 @@ export async function revokePackageEntitlementAction(formData: FormData): Promis
       status: "revoked",
       revoked_at: now,
       updated_at: now,
+      metadata: mergeMetadata(meta, {
+        revoked_by_name: "Admin",
+        revoked_by_role: "admin",
+      }),
     })
     .eq("id", id);
 
@@ -193,4 +237,104 @@ export async function revokePackageEntitlementAction(formData: FormData): Promis
   revalidatePath("/admin");
   revalidatePath("/admin/workspace/package-entitlements");
   redirectWith({ revoked: "1" });
+}
+
+export async function extendPackageEntitlementAction(formData: FormData): Promise<void> {
+  const c = await cookies();
+  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+
+  const id = String(formData.get("id") ?? "").trim();
+  const endsAt = parseDateTimeLocal(String(formData.get("ends_at") ?? ""));
+  if (!id || !endsAt) redirectWith({ error: "extend_invalid" });
+
+  const existing = await loadEntitlementRow(id);
+  if (!existing) redirectWith({ error: "not_found" });
+
+  const startsAt = String(existing.starts_at);
+  if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) {
+    redirectWith({ error: "end_before_start" });
+  }
+
+  const now = new Date();
+  const status = initialStatus(startsAt, endsAt, now);
+  const meta =
+    existing.metadata && typeof existing.metadata === "object" && !Array.isArray(existing.metadata)
+      ? (existing.metadata as Record<string, unknown>)
+      : {};
+
+  const supabase = getAdminSupabase();
+  const { error } = await supabase
+    .from("listing_package_entitlements")
+    .update({
+      ends_at: endsAt,
+      status,
+      updated_at: now.toISOString(),
+      metadata: mergeMetadata(meta, {
+        extended_at: now.toISOString(),
+        extended_by_name: "Admin",
+      }),
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirectWith({ error: "extend_failed", detail: error.message.slice(0, 120) });
+  }
+
+  void appendAdminAuditLog({
+    action: "package_entitlement_extended",
+    targetType: "listing_package_entitlement",
+    targetId: id,
+    meta: { ends_at: endsAt },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/workspace/package-entitlements");
+  redirectWith({ extended: "1" });
+}
+
+export async function attachListingToPackageEntitlementAction(formData: FormData): Promise<void> {
+  const c = await cookies();
+  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+
+  const id = String(formData.get("id") ?? "").trim();
+  const listingId = String(formData.get("listing_id") ?? "").trim();
+  if (!id || !listingId) redirectWith({ error: "attach_invalid" });
+
+  const existing = await loadEntitlementRow(id);
+  if (!existing) redirectWith({ error: "not_found" });
+
+  const meta =
+    existing.metadata && typeof existing.metadata === "object" && !Array.isArray(existing.metadata)
+      ? (existing.metadata as Record<string, unknown>)
+      : {};
+
+  const now = new Date().toISOString();
+  const supabase = getAdminSupabase();
+  const { error } = await supabase
+    .from("listing_package_entitlements")
+    .update({
+      listing_id: listingId,
+      updated_at: now,
+      metadata: mergeMetadata(meta, {
+        listing_attachment: "attached",
+        attached_at: now,
+        attached_by_name: "Admin",
+      }),
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirectWith({ error: "attach_failed", detail: error.message.slice(0, 120) });
+  }
+
+  void appendAdminAuditLog({
+    action: "package_entitlement_listing_attached",
+    targetType: "listing_package_entitlement",
+    targetId: id,
+    meta: { listing_id: listingId },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/workspace/package-entitlements");
+  redirectWith({ attached: "1" });
 }

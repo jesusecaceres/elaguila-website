@@ -111,6 +111,117 @@ export function effectiveEntitlementStatus(
   return row.status === "scheduled" ? "scheduled" : "active";
 }
 
+export type PackageEntitlementTrackerFilters = {
+  q?: string;
+  category?: string;
+  package_tier?: string;
+  status?: string;
+  limit?: number;
+};
+
+function metadataStr(metadata: Record<string, unknown>, key: string): string {
+  const v = metadata[key];
+  return v != null ? String(v).trim() : "";
+}
+
+export function formatSalesRepAttribution(metadata: Record<string, unknown>): string | null {
+  const id = metadataStr(metadata, "sales_rep_id");
+  const name = metadataStr(metadata, "sales_rep_name");
+  if (!id && !name) return null;
+  if (id && name) return `${name} (${id})`;
+  return id || name;
+}
+
+export function formatCreatorAttribution(metadata: Record<string, unknown>): string {
+  const name = metadataStr(metadata, "creator_name") || "Admin";
+  const role = metadataStr(metadata, "creator_role");
+  const email = metadataStr(metadata, "creator_email");
+  if (email) return `${name} · ${email}`;
+  if (role) return `${name} (${role})`;
+  return name;
+}
+
+export function matchesEntitlementSearch(row: ListingPackageEntitlementRow, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  const meta = row.metadata;
+  const hay = [
+    row.entitlement_code,
+    row.contract_code,
+    row.business_name,
+    row.customer_name,
+    row.listing_id,
+    metadataStr(meta, "sales_rep_id"),
+    metadataStr(meta, "sales_rep_name"),
+    metadataStr(meta, "leonix_ad_id"),
+    metadataStr(meta, "creator_name"),
+    metadataStr(meta, "creator_email"),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(needle);
+}
+
+export async function fetchPackageEntitlementsForTracker(
+  filters: PackageEntitlementTrackerFilters = {},
+): Promise<{
+  rows: ListingPackageEntitlementRow[];
+  unavailable: boolean;
+  note: string | null;
+  totalFetched: number;
+}> {
+  const limit = filters.limit ?? 150;
+  try {
+    const supabase = getAdminSupabase();
+    let query = supabase
+      .from("listing_package_entitlements")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (filters.category) {
+      query = query.eq("category", filters.category);
+    }
+    if (filters.package_tier) {
+      query = query.eq("package_tier", filters.package_tier);
+    }
+    if (filters.status === "revoked") {
+      query = query.eq("status", "revoked");
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return { rows: [], unavailable: true, note: mapTableError(error.message), totalFetched: 0 };
+    }
+
+    let rows = (data ?? []).map((r) => rowFromDb(r as Record<string, unknown>));
+    const totalFetched = rows.length;
+
+    if (filters.q) {
+      rows = rows.filter((r) => matchesEntitlementSearch(r, filters.q!));
+    }
+
+    const statusFilter = filters.status?.trim();
+    if (statusFilter && statusFilter !== "revoked") {
+      if (statusFilter === "pending_listing") {
+        rows = rows.filter((r) => !r.listing_id);
+      } else {
+        rows = rows.filter((r) => effectiveEntitlementStatus(r) === statusFilter);
+      }
+    }
+
+    return { rows, unavailable: false, note: null, totalFetched };
+  } catch (e) {
+    return {
+      rows: [],
+      unavailable: true,
+      note: e instanceof Error ? e.message : "unknown",
+      totalFetched: 0,
+    };
+  }
+}
+
 export function benefitLabels(benefits: Record<string, boolean>): string[] {
   const labels: Record<PackageEntitlementBenefit, string> = {
     destacados_module: "Destacados",
@@ -133,25 +244,8 @@ export async function fetchRecentPackageEntitlements(limit: number): Promise<{
   unavailable: boolean;
   note: string | null;
 }> {
-  try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("listing_package_entitlements")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      return { rows: [], unavailable: true, note: mapTableError(error.message) };
-    }
-    return { rows: (data ?? []).map((r) => rowFromDb(r as Record<string, unknown>)), unavailable: false, note: null };
-  } catch (e) {
-    return {
-      rows: [],
-      unavailable: true,
-      note: e instanceof Error ? e.message : "unknown",
-    };
-  }
+  const res = await fetchPackageEntitlementsForTracker({ limit });
+  return { rows: res.rows, unavailable: res.unavailable, note: res.note };
 }
 
 export async function countActivePremiumEntitlements(now = new Date()): Promise<number | null> {

@@ -89,9 +89,10 @@ assert(
   "Listing ID must be labeled optional with pre-ad helper text.",
 );
 assert(
-  "admin page does not require Listing ID",
-  !/name="listing_id"[^>]*required/i.test(pageSrc),
-  "Remove HTML required on listing_id input.",
+  "admin page does not require Listing ID on create",
+  /Listing ID \(opcional\)[\s\S]{0,600}?name="listing_id"/.test(pageSrc) &&
+    !/Listing ID \(opcional\)[\s\S]{0,400}name="listing_id"[^>]*\brequired\b/i.test(pageSrc),
+  "Create form listing_id must be optional; attach form may require ID.",
 );
 assert(
   "UI displays Pending or Unassigned listing",
@@ -117,9 +118,9 @@ assert(
 );
 assert(
   "server action accepts blank listing_id",
-  /listingIdRaw|listingId\s*=\s*listingIdRaw\s*\|\|\s*null/.test(actionsSrc) &&
-    !/!\s*listingId\)/.test(actionsSrc.replace(/\s+/g, " ")),
-  "Blank listing_id should map to null; do not require listingId.",
+  /listingIdRaw[\s\S]*?listingId\s*=\s*listingIdRaw\s*\|\|\s*null/.test(actionsSrc) &&
+    !/missing_listing[^_]|!\s*listingSource\s*\|\|\s*!listingId/.test(actionsSrc),
+  "Blank listing_id should map to null on create; attach may require listingId.",
 );
 assert(
   "dashboard handles unassigned listing display",
@@ -212,6 +213,66 @@ assert(
   "docs mention pre-ad entitlement flow",
   /listing_id.*optional|before.*(ad|listing)|Pending listing|attach/i.test(modelDoc),
   "Docs must explain pre-ad code flow and later attach.",
+);
+
+assert(
+  "search/filter UI exists",
+  /Buscar y filtrar|fetchPackageEntitlementsForTracker|method="get"/i.test(pageSrc),
+  "Tracker search/filter section required.",
+);
+assert(
+  "search supports code business customer category tier status",
+  /name="q"/.test(pageSrc) &&
+    /name="category"/.test(pageSrc) &&
+    /name="tier"/.test(pageSrc) &&
+    /name="status"/.test(pageSrc) &&
+    /matchesEntitlementSearch|entitlement_code/i.test(read("app/admin/_lib/packageEntitlementData.ts")),
+  "Search must cover key dimensions.",
+);
+assert(
+  "sales rep id field exists",
+  /name="sales_rep_id"/.test(pageSrc) && /metadata\.sales_rep_id|sales_rep_id:/.test(actionsSrc),
+  "Sales rep ID in form and metadata.",
+);
+assert(
+  "sales rep name field exists",
+  /name="sales_rep_name"/.test(pageSrc) && /sales_rep_name/.test(actionsSrc),
+  "Sales rep name in form and metadata.",
+);
+assert(
+  "creator metadata or fallback",
+  /creator_name|creator_role|creatorSnapshot/.test(actionsSrc) && /formatCreatorAttribution|Admin/.test(pageSrc),
+  "Creator snapshot in actions and display.",
+);
+assert(
+  "extend action exists",
+  /extendPackageEntitlementAction/.test(actionsSrc) && /extendPackageEntitlementAction/.test(pageSrc),
+  "Extend expiration server action and UI.",
+);
+assert(
+  "attach listing action exists",
+  /attachListingToPackageEntitlementAction/.test(actionsSrc) && /attachListingToPackageEntitlementAction/.test(pageSrc),
+  "Attach listing ID action required.",
+);
+assert(
+  "revoke remains soft delete",
+  /status:\s*"revoked"/.test(actionsSrc) && !/\.delete\(/.test(actionsSrc),
+  "Revoke sets status only.",
+);
+assert(
+  "docs explain sales tracker direction",
+  /tracker|search|sales rep|G1\.6C/i.test(modelDoc),
+  "Docs must describe owner tracker.",
+);
+assert(
+  "docs mention future sales rep dashboard",
+  /sales rep dashboard|future.*sales/i.test(modelDoc),
+  "Docs mention future sales rep dashboard.",
+);
+assert(
+  "docs mention future commission after payment",
+  /commission|payment clears|after payment/i.test(modelDoc),
+  "Docs mention future commission tracking.",
 );
 
 const failures = checks.filter((c) => !c.ok);

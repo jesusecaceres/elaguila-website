@@ -11,18 +11,27 @@ import {
   PACKAGE_ENTITLEMENT_CATEGORIES,
   PACKAGE_ENTITLEMENT_LISTING_SOURCES,
   PACKAGE_ENTITLEMENT_PLACEMENT_SCOPES,
+  PACKAGE_ENTITLEMENT_STATUS_FILTERS,
   PACKAGE_ENTITLEMENT_TIERS,
+  PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT,
   PREMIUM_INVENTORY_SOFT_CAP,
 } from "@/app/admin/_lib/packageEntitlementConstants";
 import {
   benefitLabels,
   effectiveEntitlementStatus,
-  fetchRecentPackageEntitlements,
+  fetchPackageEntitlementsForTracker,
+  formatCreatorAttribution,
   formatEntitlementListingHeadline,
   formatEntitlementListingIdLine,
+  formatSalesRepAttribution,
 } from "@/app/admin/_lib/packageEntitlementData";
 import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
-import { createPackageEntitlementAction, revokePackageEntitlementAction } from "./actions";
+import {
+  attachListingToPackageEntitlementAction,
+  createPackageEntitlementAction,
+  extendPackageEntitlementAction,
+  revokePackageEntitlementAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +46,17 @@ function defaultEndLocal(): string {
   d.setMonth(d.getMonth() + 3);
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 16);
+}
+
+function toLocalDatetimeValue(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return defaultEndLocal();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  } catch {
+    return defaultEndLocal();
+  }
 }
 
 function fmt(iso: string) {
@@ -70,6 +90,8 @@ function alertFromSearch(sp: Record<string, string | undefined>) {
     return { kind: "ok" as const, text: `Paquete creado. Código: ${sp.code ?? "—"}` };
   }
   if (sp.revoked === "1") return { kind: "ok" as const, text: "Paquete revocado (sin eliminar el registro)." };
+  if (sp.extended === "1") return { kind: "ok" as const, text: "Fecha de fin actualizada." };
+  if (sp.attached === "1") return { kind: "ok" as const, text: "Listing ID adjuntado. No activa ordenamiento público aún." };
   if (sp.error === "premium_cap") {
     return {
       kind: "warn" as const,
@@ -85,6 +107,13 @@ function alertFromSearch(sp: Record<string, string | undefined>) {
   return null;
 }
 
+function preserveFilterHiddenFields(sp: Record<string, string | undefined>, exclude?: string[]) {
+  const skip = new Set(exclude ?? []);
+  return Object.entries(sp)
+    .filter(([k, v]) => v && !skip.has(k) && !k.startsWith("error") && !["created", "revoked", "extended", "attached", "code", "warn", "detail"].includes(k))
+    .map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />);
+}
+
 export default async function AdminPackageEntitlementsPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
@@ -95,15 +124,26 @@ export default async function AdminPackageEntitlementsPage(props: {
   }
   const alert = alertFromSearch(sp);
 
-  const { rows, unavailable, note } = await fetchRecentPackageEntitlements(40);
+  const filterQ = sp.q?.trim() ?? "";
+  const filterCategory = sp.category?.trim() ?? "";
+  const filterTier = sp.tier?.trim() ?? "";
+  const filterStatus = sp.status?.trim() ?? "";
+
+  const { rows, unavailable, note, totalFetched } = await fetchPackageEntitlementsForTracker({
+    q: filterQ || undefined,
+    category: filterCategory || undefined,
+    package_tier: filterTier || undefined,
+    status: filterStatus || undefined,
+    limit: PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT,
+  });
 
   return (
     <div className="max-w-5xl space-y-6">
       <AdminPageHeader
-        eyebrow="Workspace · Monetización"
+        eyebrow="Workspace · Monetización · Tracker"
         title="Package Entitlements / Paquetes de Visibilidad"
-        subtitle="Crea acceso Print-to-Digital con duración para un anuncio y categoría. Esto no es el CMS de cupones públicos (/cupones)."
-        helperText="El código es un identificador interno de ops. Un cupón de descuento no otorga visibilidad sin un entitlement."
+        subtitle="Crea, busca y administra códigos de paquete Print-to-Digital. No es el CMS de cupones públicos (/cupones)."
+        helperText="Tracker interno para ops/ventas. Comisión y dashboard de reps son gates futuros."
         rightSlot={
           <Link href="/admin/workspace/cupones" className={adminBtnSecondary}>
             CMS cupones →
@@ -114,13 +154,11 @@ export default async function AdminPackageEntitlementsPage(props: {
       <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
         <p className="font-bold">Importante</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed">
-          <li>No cobra a clientes ni activa Stripe Checkout (conexión futura vía metadata).</li>
-          <li>No publica ordenamiento en resultados hasta gates de categoría (p. ej. G2-Servicios).</li>
-          <li>Premium (~8–10 inventario) usa módulos Destacados, no prioridad orgánica por defecto.</li>
-          <li>Full-page otorga prioridad en resultados coincidentes después de filtros.</li>
-          <li>
-            Listing ID es opcional: genera el código antes de que exista el anuncio; un gate futuro conectará el código al listing.
-          </li>
+          <li>No cobra a clientes ni activa Stripe Checkout (metadata reservada para gate futuro).</li>
+          <li>No publica ordenamiento en resultados hasta gates de categoría.</li>
+          <li>Listing ID opcional al crear: entrega el código al cliente antes del anuncio.</li>
+          <li>Adjuntar listing ID aquí solo registra la fila — no activa visibilidad pública aún.</li>
+          <li>Atribución de sales rep se guarda en metadata para comisión futura (después de pago).</li>
         </ul>
       </div>
 
@@ -144,6 +182,69 @@ export default async function AdminPackageEntitlementsPage(props: {
           <p className="mt-1 text-xs">{note ?? "Aplica la migración listing_package_entitlements en Supabase."}</p>
         </div>
       ) : null}
+
+      <section className={`${adminCardBase} p-4 sm:p-6`}>
+        <h2 className="text-sm font-bold text-[#1E1810]">Buscar y filtrar</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Busca por código, contrato, negocio, cliente, listing ID, sales rep o Leonix ad ID (metadata). Hasta{" "}
+          {PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT} filas recientes.
+        </p>
+        <form method="get" className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
+            Buscar
+            <input
+              name="q"
+              defaultValue={filterQ}
+              className={`${adminInputClass} mt-1`}
+              placeholder="LX-ENT-…, negocio, cliente, sales rep…"
+            />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Categoría
+            <select name="category" className={`${adminInputClass} mt-1`} defaultValue={filterCategory}>
+              <option value="">Todas</option>
+              {PACKAGE_ENTITLEMENT_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Paquete / tier
+            <select name="tier" className={`${adminInputClass} mt-1`} defaultValue={filterTier}>
+              <option value="">Todos</option>
+              {PACKAGE_ENTITLEMENT_TIERS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
+            Estado
+            <select name="status" className={`${adminInputClass} mt-1`} defaultValue={filterStatus}>
+              {PACKAGE_ENTITLEMENT_STATUS_FILTERS.map((s) => (
+                <option key={s.value || "all"} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <button type="submit" className={adminBtnPrimary}>
+              Aplicar filtros
+            </button>
+            <Link href="/admin/workspace/package-entitlements" className={adminBtnSecondary}>
+              Limpiar
+            </Link>
+          </div>
+        </form>
+        <p className="mt-3 text-[10px] text-[#7A7164]">
+          Mostrando {rows.length} resultado(s)
+          {totalFetched > rows.length ? ` (filtrado desde ${totalFetched} cargados)` : ""}.
+        </p>
+      </section>
 
       <form action={createPackageEntitlementAction} className={`${adminCardBase} space-y-4 p-4 sm:p-6`}>
         <div className="flex flex-wrap items-center gap-2">
@@ -202,6 +303,14 @@ export default async function AdminPackageEntitlementsPage(props: {
             <input name="customer_name" className={`${adminInputClass} mt-1`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
+            Sales rep / employee ID (opcional)
+            <input name="sales_rep_id" className={`${adminInputClass} mt-1 font-mono text-xs`} placeholder="ID interno de ventas" />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Sales rep name (opcional)
+            <input name="sales_rep_name" className={`${adminInputClass} mt-1`} placeholder="Nombre del representante" />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
             Inicio
             <input type="datetime-local" name="starts_at" required className={`${adminInputClass} mt-1`} defaultValue={defaultStartLocal()} />
           </label>
@@ -240,6 +349,10 @@ export default async function AdminPackageEntitlementsPage(props: {
           <textarea name="notes" rows={2} className={`${adminInputClass} mt-1`} />
         </label>
 
+        <p className="text-[10px] text-[#7A7164]">
+          Creador: se registra como Admin (cookie leonix_admin no expone email de staff aún).
+        </p>
+
         <details className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3 text-xs text-[#5C5346]">
           <summary className="cursor-pointer font-bold text-[#1E1810]">Vista previa de beneficios por tier</summary>
           <ul className="mt-2 space-y-1">
@@ -262,23 +375,27 @@ export default async function AdminPackageEntitlementsPage(props: {
       </form>
 
       <section className={`${adminCardBase} p-4 sm:p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Entitlements recientes</h2>
-        <p className="mt-1 text-xs text-[#7A7164]">Revocar deja el registro; no elimina la fila.</p>
+        <h2 className="text-sm font-bold text-[#1E1810]">Tracker — entitlements</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">Revocar, extender fin o adjuntar listing. Revocar no elimina la fila.</p>
 
         {rows.length === 0 ? (
-          <p className="mt-4 text-sm text-[#5C5346]/90">Sin entitlements todavía. Crea el primero arriba.</p>
+          <p className="mt-4 text-sm text-[#5C5346]/90">Sin resultados. Ajusta filtros o crea un entitlement.</p>
         ) : (
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 space-y-4">
             {rows.map((row) => {
               const effective = effectiveEntitlementStatus(row);
               const labels = benefitLabels(row.benefits);
+              const salesRep = formatSalesRepAttribution(row.metadata);
+              const creator = formatCreatorAttribution(row.metadata);
+              const canManage = effective !== "revoked";
+
               return (
                 <li
                   key={row.id}
                   className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3 text-sm"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="font-mono text-xs font-bold text-[#1E1810]">{row.entitlement_code ?? "—"}</p>
                       <p className="mt-0.5 font-semibold text-[#1E1810]">{formatEntitlementListingHeadline(row)}</p>
                       <p className="text-xs text-[#7A7164]">
@@ -290,6 +407,11 @@ export default async function AdminPackageEntitlementsPage(props: {
                         ) : null}
                       </p>
                       <p className="mt-1 font-mono text-[10px] text-[#5C5346]">{formatEntitlementListingIdLine(row.listing_id)}</p>
+                      {salesRep ? <p className="mt-1 text-xs text-[#5C5346]">Sales rep: {salesRep}</p> : null}
+                      <p className="mt-0.5 text-[10px] text-[#7A7164]">Creado por: {creator}</p>
+                      {row.contract_code ? (
+                        <p className="mt-0.5 font-mono text-[10px] text-[#5C5346]">Contrato: {row.contract_code}</p>
+                      ) : null}
                       <p className="mt-1 text-xs text-[#5C5346]">
                         {fmt(row.starts_at)} → {fmt(row.ends_at)}
                       </p>
@@ -301,14 +423,57 @@ export default async function AdminPackageEntitlementsPage(props: {
                       {effective}
                     </span>
                   </div>
-                  {effective !== "revoked" ? (
-                    <form action={revokePackageEntitlementAction} className="mt-3">
-                      <input type="hidden" name="id" value={row.id} />
-                      <button type="submit" className={`${adminBtnSecondary} text-xs`}>
-                        Revocar
-                      </button>
-                    </form>
-                  ) : null}
+
+                  {canManage ? (
+                    <div className="mt-3 space-y-2 border-t border-[#E8DFD0]/60 pt-3">
+                      {!row.listing_id ? (
+                        <form action={attachListingToPackageEntitlementAction} className="flex flex-wrap items-end gap-2">
+                          {preserveFilterHiddenFields(sp)}
+                          <input type="hidden" name="id" value={row.id} />
+                          <label className="min-w-0 flex-1 text-xs font-semibold text-[#5C5346]">
+                            Adjuntar listing ID
+                            <input
+                              name="listing_id"
+                              required
+                              className={`${adminInputClass} mt-1 font-mono text-xs`}
+                              placeholder="UUID del anuncio publicado"
+                            />
+                          </label>
+                          <button type="submit" className={`${adminBtnSecondary} shrink-0 text-xs`}>
+                            Adjuntar
+                          </button>
+                        </form>
+                      ) : null}
+
+                      <form action={extendPackageEntitlementAction} className="flex flex-wrap items-end gap-2">
+                        {preserveFilterHiddenFields(sp)}
+                        <input type="hidden" name="id" value={row.id} />
+                        <label className="min-w-0 flex-1 text-xs font-semibold text-[#5C5346]">
+                          Extender fin
+                          <input
+                            type="datetime-local"
+                            name="ends_at"
+                            required
+                            className={`${adminInputClass} mt-1`}
+                            defaultValue={toLocalDatetimeValue(row.ends_at)}
+                          />
+                        </label>
+                        <button type="submit" className={`${adminBtnSecondary} shrink-0 text-xs`}>
+                          Extender
+                        </button>
+                      </form>
+
+                      <form action={revokePackageEntitlementAction} className="inline">
+                        {preserveFilterHiddenFields(sp)}
+                        <input type="hidden" name="id" value={row.id} />
+                        <button type="submit" className={`${adminBtnSecondary} text-xs text-rose-900`}>
+                          Revocar / cancelar
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-rose-800">Revocado — solo lectura.</p>
+                  )}
                 </li>
               );
             })}

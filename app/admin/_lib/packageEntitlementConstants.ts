@@ -32,3 +32,14 @@ export const PACKAGE_ENTITLEMENT_PLACEMENT_SCOPES = [
 ] as const;
 
 export const PREMIUM_INVENTORY_SOFT_CAP = 10;
+
+export const PACKAGE_ENTITLEMENT_STATUS_FILTERS = [
+  { value: "", label: "All statuses" },
+  { value: "active", label: "Active" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "expired", label: "Expired" },
+  { value: "revoked", label: "Revoked" },
+  { value: "pending_listing", label: "Pending listing (no listing ID)" },
+] as const;
+
+export const PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT = 150;

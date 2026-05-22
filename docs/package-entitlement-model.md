@@ -135,7 +135,46 @@ Missing fields → `tier: none` or `unknown` + **warnings**, not crashes.
 
 ---
 
-## 9. Gate G1.6A scope (foundation)
+## 9. Gate G1.6C — Owner tracker (search, manage, attribution)
+
+**URL:** same `/admin/workspace/package-entitlements` with **Buscar y filtrar** above the tracker list.
+
+**Pre-ad flow (unchanged):**
+
+1. Sales/Admin creates entitlement with optional `listing_id` → customer receives `LX-ENT-…` code.
+2. Customer publishes ad later.
+3. Staff **attach listing ID** on the tracker row (Admin only — does **not** activate public sorting yet).
+4. Future **redemption/attach gate** may automate customer self-service.
+
+**Tracker capabilities:**
+
+| Action | Behavior |
+|--------|----------|
+| Search/filter | Code, contract, business, customer, listing ID, sales rep fields, category, tier, effective status |
+| Extend | Updates `ends_at` + recalculated `status` only (tier/benefits unchanged) |
+| Attach listing | Sets `listing_id`, `metadata.listing_attachment = attached` |
+| Revoke | Soft: `status = revoked`, `revoked_at` set, row retained |
+
+**Sales rep / employee attribution (metadata):**
+
+- `metadata.sales_rep_id`
+- `metadata.sales_rep_name`
+
+Used for a future **sales rep dashboard** and **commission** accrual **after payment clears** (not in G1.6C).
+
+**Creator snapshot (metadata):**
+
+- `metadata.creator_name` (default `"Admin"`)
+- `metadata.creator_role` (`"admin"`)
+- `metadata.creator_email` (`null` until staff auth exposes email)
+
+**Stripe Checkout (future):** `metadata` already reserves session/intent/customer/subscription/`payment_status`. Webhook-created entitlements should set `source = stripe_checkout` in a later gate.
+
+**Not in G1.6C:** public redemption, public sorting, pricing table, commission ledger, sales rep portal.
+
+---
+
+## 10. Gate G1.6A scope (foundation)
 
 **Included:** resolver helpers + this document.
 
@@ -143,6 +182,6 @@ Missing fields → `tier: none` or `unknown` + **warnings**, not crashes.
 
 ---
 
-## 10. Ranking integration (later)
+## 11. Ranking integration (later)
 
 **Gate G2+** should call `resolvePackageEntitlement` (then `resolveListingVisibilityRank` or a thin bridge) **after** category/search filters. Do not apply G1 ranking to public Servicios until entitlements can be created and read consistently.

@@ -156,6 +156,22 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6C — Package Entitlement Tracker
+
+**Route:** `/admin/workspace/package-entitlements`
+
+### Manual smoke
+
+1. Create pre-ad code (blank Listing ID) + sales rep ID/name → row shows **Pending listing**, sales rep, creator **Admin**.
+2. **Buscar** by generated code (`q=LX-ENT-…`) → row appears.
+3. Filter by category, tier, status **Pending listing**.
+4. **Extender** fin → status/end updates; row remains.
+5. **Adjuntar** listing ID on pending row → shows attached ID (no public sort change).
+6. **Revocar** another row → soft revoke, still visible when filtering Revoked.
+7. Dashboard `/admin` recent block still loads with unassigned rows.
+
+---
+
 ## Gate G1.6B — Package Entitlement Generator (Print-to-Digital)
 
 **Route:** `/admin/workspace/package-entitlements` (Workspace nav: Package entitlements / Paquetes). **Not** `/admin/workspace/cupones` (marketing coupon CMS).
