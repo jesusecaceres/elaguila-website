@@ -246,8 +246,10 @@ Later gates (e.g. **Gate G2-SERVICIOS**) may call the helper behind existing fil
 
 **Bucket mapping:** `premium_print` → `premium_destacado_module`; `full_page_print` → `full_page_print_priority`; half/quarter/classified → `print_advertiser_pool`; digital boost → `digital_featured`; republish → `republished`.
 
-**Related implementation docs (other gates):** [`docs/package-entitlement-model.md`](./package-entitlement-model.md) (G1.6A/B resolver + Admin generator notes), `app/lib/listingPlans/packageEntitlements.ts`, `app/lib/listingPlans/printDigitalVisibilityRank.ts` (G1).
+**Related implementation docs (other gates):** [`docs/package-entitlement-model.md`](./package-entitlement-model.md) (G1.6A/B resolver + Admin generator notes), [`docs/pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md) (G1.6D pricing/promo/sales/commission — no Stripe in this gate), `app/lib/listingPlans/packageEntitlements.ts`, `app/lib/listingPlans/packagePricingRules.ts`, `app/lib/listingPlans/printDigitalVisibilityRank.ts` (G1).
 
-**Next gates:** G1.7 schema proposal · G1.8 Admin generator UI plan · **G2-SERVICIOS** only after entitlement source exists.
+**Stripe Checkout (future):** Session metadata should snapshot `resolvePackagePricing` and sales attribution; payment clearing triggers commission eligibility — see G1.6D doc. No checkout in G1.6D.
+
+**Next gates:** G1.6E Admin pricing/promo generator UI · G1.7 schema proposal · **G2-SERVICIOS** only after entitlement source exists.
 
 Verify: `npm run verify:print-package-entitlement-model`

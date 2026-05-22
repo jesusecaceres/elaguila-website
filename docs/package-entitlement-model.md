@@ -6,7 +6,7 @@ This document defines Leonix / El Águila **package entitlements**: what a print
 
 **Code:** `app/lib/listingPlans/packageEntitlements.ts`
 
-**Related:** [`print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md) (G0), [`printDigitalVisibilityRank.ts`](../app/lib/listingPlans/printDigitalVisibilityRank.ts) (G1), Gate G1.5 audit, **Admin generator** [`/admin/workspace/package-entitlements`](../app/admin/(dashboard)/workspace/package-entitlements/page.tsx) (G1.6B).
+**Related:** [`print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md) (G0), [`printDigitalVisibilityRank.ts`](../app/lib/listingPlans/printDigitalVisibilityRank.ts) (G1), Gate G1.5 audit, **Admin generator** [`/admin/workspace/package-entitlements`](../app/admin/(dashboard)/workspace/package-entitlements/page.tsx) (G1.6B), **pricing / promo / sales / commission model** [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md) (G1.6D — `packagePricingRules.ts`).
 
 ---
 
@@ -185,3 +185,21 @@ Used for a future **sales rep dashboard** and **commission** accrual **after pay
 ## 11. Ranking integration (later)
 
 **Gate G2+** should call `resolvePackageEntitlement` (then `resolveListingVisibilityRank` or a thin bridge) **after** category/search filters. Do not apply G1 ranking to public Servicios until entitlements can be created and read consistently.
+
+---
+
+## 12. Gate G1.6D — pricing, promo rules, sales attribution, commission estimate
+
+**Code:** `app/lib/listingPlans/packagePricingRules.ts` · **Docs:** [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md)
+
+| Helper | Purpose |
+|--------|---------|
+| `getPackageBasePriceCents` / `getContractTermDiscount` | V1 monthly ladder + term discounts |
+| `resolvePackagePricing` | Quoted monthly + contract total for Admin calculator (G1.6E) |
+| `resolvePromoCodeRule` | Non-stackable promo capabilities by code type |
+| `resolveSalesAttribution` | `sales_rep_id`, source, commission rule key |
+| `estimateCommission` | Informational estimate **after payment clears** only |
+
+Entitlement **creation** (G1.6B/C) remains separate from **price** and **discount** codes. Stripe Checkout metadata and commission ledger are future gates — not G1.6D.
+
+Verify: `npm run verify:pricing-promo-code-sales-model`

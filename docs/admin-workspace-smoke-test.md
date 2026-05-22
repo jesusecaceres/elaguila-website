@@ -156,6 +156,22 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6D — Pricing / Promo / Sales / Commission Model (foundation)
+
+**No Admin route in this gate** — model and docs only.
+
+### Automated
+
+- `npm run verify:pricing-promo-code-sales-model`
+- `npm run verify:package-entitlement-model`
+- `npm run verify:print-to-digital-visibility-policy`
+
+**Code:** `app/lib/listingPlans/packagePricingRules.ts` · **Docs:** `docs/pricing-promo-code-sales-model.md`
+
+Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, classified/digital $399), contract discounts (3/6/12 mo, founding partner 25%), non-stackable promos, commission only after payment clears. **Not in G1.6D:** Stripe, public redemption, pricing calculator UI (G1.6E).
+
+---
+
 ## Gate G1.6C — Package Entitlement Tracker
 
 **Route:** `/admin/workspace/package-entitlements`
