@@ -2,7 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import type { Lang } from "../types/tienda";
-import { LEONIX_TIENDA_EMAIL } from "../data/leonixContact";
+import {
+  LEONIX_MAILTO_TIENDA,
+  LEONIX_PHONE_DISPLAY,
+  LEONIX_PHONE_TEL,
+  LEONIX_TIENDA_EMAIL,
+} from "../data/leonixContact";
 
 const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "specialty_product", es: "Producto especial / acabado distinto", en: "Specialty product / different finish" },
@@ -11,6 +16,39 @@ const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "tienda_help", es: "Ayuda con la Tienda (configurador, archivos)", en: "Tienda help (configurator, files)" },
   { value: "general_tienda", es: "Pregunta general sobre Tienda", en: "General Tienda question" },
 ];
+
+function TiendaContactSubmitError({ lang }: { lang: Lang }) {
+  const en = lang === "en";
+  return (
+    <div role="alert" className="rounded-xl border border-rose-400/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-100 leading-relaxed">
+      {en ? (
+        <p>
+          We could not send your message right now. Please call us at{" "}
+          <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
+            {LEONIX_PHONE_DISPLAY}
+          </a>{" "}
+          or email{" "}
+          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
+            {LEONIX_TIENDA_EMAIL}
+          </a>
+          .
+        </p>
+      ) : (
+        <p>
+          No pudimos enviar tu mensaje ahora. Llámanos al{" "}
+          <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
+            {LEONIX_PHONE_DISPLAY}
+          </a>{" "}
+          o envíanos un correo a{" "}
+          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
+            {LEONIX_TIENDA_EMAIL}
+          </a>
+          .
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function TiendaContactForm(props: { lang: Lang; service?: string }) {
   const { lang, service } = props;
@@ -21,12 +59,10 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
   const [inquiryType, setInquiryType] = useState(service ? "rep_catalog" : "general_tienda");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setStatus("loading");
-    setErrorMsg(null);
     try {
       const res = await fetch("/api/tienda/contact", {
         method: "POST",
@@ -41,21 +77,19 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
           service: service?.trim() || undefined,
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as { ok?: boolean };
       if (!res.ok || !data.ok) {
         setStatus("error");
-        setErrorMsg(data.error ?? (en ? "Could not send. Try calling the office." : "No se pudo enviar. Intenta llamar a la oficina."));
         return;
       }
       setStatus("success");
       setName("");
       setEmail("");
       setPhone("");
-      setInquiryType("general_tienda");
+      setInquiryType(service ? "rep_catalog" : "general_tienda");
       setMessage("");
     } catch {
       setStatus("error");
-      setErrorMsg(en ? "Network error. Please try again or call us." : "Error de red. Intenta de nuevo o llámanos.");
     }
   };
 
@@ -85,8 +119,8 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         >
           <p>
             {en
-              ? "Received — we’ll follow up. If it’s urgent, call the office."
-              : "Recibido — te contactaremos. Si es urgente, llama a la oficina."}
+              ? "Message sent. We will reply as soon as possible."
+              : "Mensaje enviado. Te responderemos lo antes posible."}
           </p>
           <button
             type="button"
@@ -166,17 +200,13 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
             />
           </div>
 
-          {status === "error" && errorMsg ? (
-            <div role="alert" className="rounded-xl border border-rose-400/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-100">
-              {errorMsg}
-            </div>
-          ) : null}
+          {status === "error" ? <TiendaContactSubmitError lang={lang} /> : null}
 
           <button
             type="submit"
             disabled={status === "loading"}
             className={[
-              "w-full rounded-full py-3.5 text-sm font-semibold transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]",
+              "w-full min-h-[44px] rounded-full py-3.5 text-sm font-semibold transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]",
               status === "loading"
                 ? "bg-[color:var(--lx-gold)]/50 text-[color:var(--lx-text)] cursor-wait"
                 : "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",

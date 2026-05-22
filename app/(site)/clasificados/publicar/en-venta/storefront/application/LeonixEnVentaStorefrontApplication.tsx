@@ -9,10 +9,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import {
-  EN_VENTA_PUBLICAR_FREE,
-  EN_VENTA_PUBLICAR_HUB,
-} from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import { EN_VENTA_PUBLICAR_PRO } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
@@ -41,17 +39,15 @@ export default function LeonixEnVentaStorefrontApplication() {
     () =>
       lang === "es"
         ? {
-            title: "Storefront — En Venta (borrador)",
+            title: `Storefront — ${enVentaPublicLabel("es")} (borrador)`,
             subtitle: "Perfil de tienda y capa de negocio (producto futuro).",
-            back: "Elegir plan",
-            switchFree: "Cambiar a Gratis",
+            back: `Volver a ${enVentaPublicLabel("es")}`,
             draft: "Borrador local; no expuesto públicamente hasta el lanzamiento de Storefront.",
           }
         : {
-            title: "Storefront — For Sale (draft)",
+            title: `Storefront — ${enVentaPublicLabel("en")} (draft)`,
             subtitle: "Store profile and business layer (future product).",
-            back: "Choose plan",
-            switchFree: "Switch to Free",
+            back: `Back to ${enVentaPublicLabel("en")}`,
             draft: "Local draft; not public until Storefront launches.",
           },
     [lang]
@@ -70,16 +66,10 @@ export default function LeonixEnVentaStorefrontApplication() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`}
+              href={`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`}
               className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
             >
               {copy.back}
-            </Link>
-            <Link
-              href={`${EN_VENTA_PUBLICAR_FREE}?${qs.toString()}`}
-              className="rounded-xl border border-[#C9B46A]/40 bg-[#C9B46A]/15 px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#C9B46A]/25"
-            >
-              {copy.switchFree}
             </Link>
           </div>
         </div>

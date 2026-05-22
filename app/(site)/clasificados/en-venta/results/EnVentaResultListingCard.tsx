@@ -79,8 +79,8 @@ export function EnVentaResultListingCard({
   const isPro = model.plan === "pro";
   const L =
     lang === "es"
-      ? { pro: "PRO", dest: "DESTACADO", video: "Video", neg: "Negociable", save: "Guardar", unsave: "Quitar" }
-      : { pro: "PRO", dest: "FEATURED", video: "Video", neg: "Negotiable", save: "Save", unsave: "Remove" };
+      ? { pro: "PRO", dest: "RECIENTE", video: "Video", neg: "Negociable", save: "Guardar", unsave: "Quitar" }
+      : { pro: "PRO", dest: "RECENT", video: "Video", neg: "Negotiable", save: "Save", unsave: "Remove" };
 
   const frame = cx(
     "group relative flex w-full overflow-hidden transition duration-200",

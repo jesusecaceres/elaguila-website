@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { LEONIX_TIENDA_EMAIL } from "@/app/tienda/data/leonixContact";
 import { escapeHtml } from "@/app/lib/email/escapeHtml";
-import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
+import { sendTiendaContactEmail } from "@/app/lib/tienda/sendTiendaContactEmail";
 
 export const runtime = "nodejs";
 
@@ -117,8 +116,7 @@ export async function POST(req: Request) {
   <pre style="white-space:pre-wrap;font-family:inherit;background:#f7f7f7;padding:12px;border-radius:8px;">${escapeHtml(message)}</pre>
 </body></html>`;
 
-  const sent = await sendLeonixResendEmail({
-    to: LEONIX_TIENDA_EMAIL,
+  const sent = await sendTiendaContactEmail({
     subject,
     text,
     html,
@@ -126,14 +124,16 @@ export async function POST(req: Request) {
   });
 
   if (!sent.ok) {
+    console.error("[tienda-contact] email send failed", {
+      code: sent.code,
+      lang,
+      inquiryType,
+      hasService: Boolean(service),
+    });
     return NextResponse.json(
       {
         ok: false,
-        error:
-          lang === "en"
-            ? "We could not send your message right now. Please call the office or try again later."
-            : "No pudimos enviar tu mensaje ahora. Llama a la oficina o intenta más tarde.",
-        code: "EMAIL_UNAVAILABLE",
+        code: sent.code === "NOT_CONFIGURED" ? "EMAIL_NOT_CONFIGURED" : "EMAIL_UNAVAILABLE",
         detail: process.env.NODE_ENV === "development" ? sent.message : undefined,
       },
       { status: 503 }

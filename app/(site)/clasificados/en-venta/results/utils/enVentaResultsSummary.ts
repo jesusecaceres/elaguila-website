@@ -31,14 +31,14 @@ export function sortSectionCaption(sort: SortId, lang: "es" | "en"): string {
 /** Featured-only mode banner (when `featured=1`). */
 export function featuredOnlyBanner(lang: "es" | "en"): string {
   return lang === "es"
-    ? "Solo anuncios con visibilidad Pro renovada vigente (ventana de 48h tras renovar)."
-    : "Only listings with active renewed Pro visibility (48h window after each renewal).";
+    ? "Solo anuncios recién refrescados (misma publicación, ordenados por fecha de refresco)."
+    : "Only recently refreshed listings (same listing, sorted by refresh date).";
 }
 
 export function promotedSectionHelp(lang: "es" | "en"): string {
   return lang === "es"
-    ? "Hasta dos anuncios con visibilidad renovada activa pueden aparecer aquí; son anuncios reales de la misma base de datos y no se repiten abajo."
-    : "Up to two listings with active renewed visibility may appear here; they are real rows from the same dataset and are not repeated below.";
+    ? "Hasta dos anuncios recién refrescados pueden aparecer aquí; son publicaciones reales de la misma base y no se repiten abajo."
+    : "Up to two recently refreshed listings may appear here; they are real rows from the same dataset and are not repeated below.";
 }
 
 export function catalogSectionTitle(lang: "es" | "en"): string {

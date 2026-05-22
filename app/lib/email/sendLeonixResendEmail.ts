@@ -1,3 +1,5 @@
+import { logLeonixEmailFailure } from "./logLeonixEmailFailure";
+
 /**
  * Shared Resend HTTP sender (same pattern as `sendTiendaOrderEmailResend`).
  * Requires RESEND_API_KEY and a verified From address.
@@ -23,13 +25,14 @@ export async function sendLeonixResendEmail(input: {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = resolveFrom();
   if (!apiKey) {
-    return { ok: false, message: "RESEND_API_KEY is not configured" };
+    const message = "RESEND_API_KEY is not configured";
+    logLeonixEmailFailure("leonix-resend", message);
+    return { ok: false, message };
   }
   if (!from) {
-    return {
-      ok: false,
-      message: "LEONIX_RESEND_FROM or TIENDA_ORDER_EMAIL_FROM is not configured",
-    };
+    const message = "LEONIX_RESEND_FROM or TIENDA_ORDER_EMAIL_FROM is not configured";
+    logLeonixEmailFailure("leonix-resend", message);
+    return { ok: false, message };
   }
 
   const to = Array.isArray(input.to) ? input.to : [input.to];
@@ -63,6 +66,7 @@ export async function sendLeonixResendEmail(input: {
     } catch {
       /* ignore */
     }
+    logLeonixEmailFailure("leonix-resend", msg);
     return { ok: false, message: msg };
   }
 
