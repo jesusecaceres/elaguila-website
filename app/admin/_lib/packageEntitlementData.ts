@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formatMoneyCents } from "@/app/lib/listingPlans/packagePricingRules";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import type { PackageEntitlementBenefit } from "@/app/lib/listingPlans/packageEntitlements";
 
@@ -139,6 +140,56 @@ export function formatCreatorAttribution(metadata: Record<string, unknown>): str
   if (email) return `${name} · ${email}`;
   if (role) return `${name} (${role})`;
   return name;
+}
+
+function metadataRecord(metadata: Record<string, unknown>, key: string): Record<string, unknown> | null {
+  const v = metadata[key];
+  if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
+  return null;
+}
+
+export function formatEntitlementPricingPromoLine(metadata: Record<string, unknown>): string | null {
+  const pricing = metadataRecord(metadata, "pricing");
+  const promo = metadataRecord(metadata, "promo_rule");
+  if (!pricing && !promo) return null;
+
+  const parts: string[] = [];
+  const term = pricing ? metadataStr(pricing, "contract_term") : "";
+  if (term) parts.push(term.replace(/_/g, " "));
+  const monthly = pricing?.discounted_monthly_price_cents;
+  if (typeof monthly === "number" && Number.isFinite(monthly)) {
+    parts.push(`${formatMoneyCents(monthly)}/mo`);
+  }
+  const total = pricing?.estimated_contract_total_cents;
+  if (typeof total === "number" && Number.isFinite(total)) {
+    parts.push(`≈ ${formatMoneyCents(total)} total`);
+  }
+  const promoType = promo ? metadataStr(promo, "promo_code_type") : "";
+  if (promoType) parts.push(`promo: ${promoType}`);
+
+  return parts.length ? parts.join(" · ") : null;
+}
+
+export function entitlementPricingBadges(metadata: Record<string, unknown>): string[] {
+  const promo = metadataRecord(metadata, "promo_rule");
+  if (!promo) return [];
+  const badges: string[] = [];
+  if (promo.non_stackable === true) badges.push("Non-stackable");
+  if (promo.requires_owner_approval === true) badges.push("Owner approval");
+  if (promo.one_time_use === true) badges.push("One-time");
+  return badges;
+}
+
+export function formatEntitlementCommissionPreviewLine(metadata: Record<string, unknown>): string | null {
+  const preview = metadataRecord(metadata, "commission_preview");
+  if (!preview) return null;
+  if (preview.commission_eligible === true) {
+    const cents = preview.estimated_commission_cents;
+    if (typeof cents === "number" && Number.isFinite(cents)) {
+      return `Commission preview (estimate): ${formatMoneyCents(cents)}`;
+    }
+  }
+  return "Commission preview: pending until payment clears";
 }
 
 export function matchesEntitlementSearch(row: ListingPackageEntitlementRow, q: string): boolean {

@@ -156,6 +156,26 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6E — Admin Pricing / Promo Generator Preview
+
+**Route:** `/admin/workspace/package-entitlements`
+
+### Automated
+
+- `npm run verify:admin-pricing-promo-generator-ui`
+- `npm run verify:pricing-promo-code-sales-model`
+
+### Manual smoke
+
+1. Select **Premium** + **12 month** + **sales_rep** promo → pricing preview shows ~20% discount and estimated contract total; promo shows sales rep required; commission preview says pending until payment clears.
+2. Select **founding_partner** term → owner approval warning in preview.
+3. Create with blank Listing ID → code created; tracker row shows pricing line (`12 month · $…/mo · ≈ $… total · promo: sales_rep`) and badges if applicable.
+4. Confirm extend/revoke/attach still work on an existing row.
+5. Dashboard `/admin` recent entitlements show pricing line when metadata exists (not crowded).
+6. No Stripe UI, no public checkout, no Servicios sort change.
+
+---
+
 ## Gate G1.6D — Pricing / Promo / Sales / Commission Model (foundation)
 
 **No Admin route in this gate** — model and docs only.

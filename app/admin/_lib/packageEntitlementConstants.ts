@@ -43,3 +43,22 @@ export const PACKAGE_ENTITLEMENT_STATUS_FILTERS = [
 ] as const;
 
 export const PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT = 150;
+
+export const PACKAGE_ENTITLEMENT_CONTRACT_TERMS = [
+  { value: "month_to_month", label: "Month-to-month (0% off)" },
+  { value: "3_month", label: "3 months (10% off)" },
+  { value: "6_month", label: "6 months (15% off)" },
+  { value: "12_month", label: "12 months (20% off)" },
+  { value: "founding_partner", label: "Founding partner (25% off, owner approval)" },
+] as const;
+
+export const PACKAGE_ENTITLEMENT_PROMO_CODE_TYPES = [
+  { value: "entitlement", label: "Entitlement (package access)" },
+  { value: "discount", label: "Discount only" },
+  { value: "newsletter", label: "Newsletter (future unique code)" },
+  { value: "sms", label: "SMS (future unique code)" },
+  { value: "sales_rep", label: "Sales rep" },
+  { value: "contract", label: "Contract term" },
+  { value: "founding_partner", label: "Founding partner" },
+  { value: "owner_override", label: "Owner override" },
+] as const;

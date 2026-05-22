@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import { buildEntitlementPricingMetadata } from "@/app/admin/_lib/buildEntitlementPricingMetadata";
 import { PREMIUM_INVENTORY_SOFT_CAP } from "@/app/admin/_lib/packageEntitlementConstants";
 import { countActivePremiumEntitlements } from "@/app/admin/_lib/packageEntitlementData";
 import {
@@ -120,6 +121,17 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 4000) || null;
   const salesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
   const salesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
+  const contractTerm = String(formData.get("contract_term") ?? "month_to_month").trim() || "month_to_month";
+  const promoCodeType = String(formData.get("promo_code_type") ?? "entitlement").trim() || "entitlement";
+
+  const pricingSnapshot = buildEntitlementPricingMetadata({
+    packageTier: tier,
+    contractTerm,
+    promoCodeType,
+    salesRepId,
+    salesRepName,
+    createdByAdmin: "Admin",
+  });
 
   const now = new Date();
   if (tier === "premium") {
@@ -131,20 +143,28 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
 
   const def = getPackageEntitlementBenefits(tier as PackageEntitlementTier);
   const status = initialStatus(startsAt, endsAt, now);
-  const metadata = {
-    source: "admin_manual",
-    visibility_bucket: def.visibilityBucket,
-    created_via: "gate_g1_6c_admin",
-    listing_attachment: listingId ? "attached" : "pending",
-    sales_rep_id: salesRepId,
-    sales_rep_name: salesRepName,
-    ...creatorSnapshot(),
-    stripe_checkout_session_id: null,
-    stripe_payment_intent_id: null,
-    stripe_customer_id: null,
-    stripe_subscription_id: null,
-    payment_status: null,
-  };
+  const metadata = mergeMetadata(
+    {
+      source: pricingSnapshot.sales_attribution.source || "admin_manual",
+      visibility_bucket: def.visibilityBucket,
+      created_via: "gate_g1_6e_admin",
+      listing_attachment: listingId ? "attached" : "pending",
+      sales_rep_id: salesRepId,
+      sales_rep_name: salesRepName,
+      ...creatorSnapshot(),
+      stripe_checkout_session_id: null,
+      stripe_payment_intent_id: null,
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      payment_status: null,
+    },
+    {
+      pricing: pricingSnapshot.pricing,
+      promo_rule: pricingSnapshot.promo_rule,
+      sales_attribution: pricingSnapshot.sales_attribution,
+      commission_preview: pricingSnapshot.commission_preview,
+    },
+  );
 
   const supabase = getAdminSupabase();
   const { data, error } = await supabase

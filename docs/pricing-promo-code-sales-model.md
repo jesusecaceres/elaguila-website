@@ -122,9 +122,22 @@ Stripe Checkout and Payment Links are **not** implemented in G1.6D. When added, 
 
 ---
 
-## 10. Admin pricing calculator (later)
+## 10. Admin pricing / promo preview (Gate G1.6E — live)
 
-Gate **G1.6E** will add Admin UI that calls `resolvePackagePricing`, `resolvePromoCodeRule`, and `resolveSalesAttribution` — no duplicate price tables in forms.
+**Route:** `/admin/workspace/package-entitlements`
+
+The create form now includes **contract term** and **promo/code type** selectors. Live previews call `packagePricingRules.ts` via `buildEntitlementPricingMetadata` and `PackageEntitlementSalesPreview`:
+
+- **Pricing:** base monthly, discount %, final monthly, term months, estimated contract total
+- **Promo:** non-stackable, one-time use, owner approval, subscriber identity, sales rep required, entitlement vs discount capabilities
+- **Sales attribution:** rep ID/name, source, commission rule key
+- **Commission preview:** labeled *Future commission preview* — not earned until payment clears; no payout ledger
+
+On create, metadata stores `pricing`, `promo_rule`, `sales_attribution`, and `commission_preview` snapshots (merged with existing `sales_rep_id` / `sales_rep_name`).
+
+**Still not in G1.6E:** Stripe Checkout, Payment Links, public redemption, commission payout, sales rep dashboard.
+
+Verify: `npm run verify:admin-pricing-promo-generator-ui`
 
 ---
 
@@ -132,17 +145,14 @@ Gate **G1.6E** will add Admin UI that calls `resolvePackagePricing`, `resolvePro
 
 ```bash
 npm run verify:pricing-promo-code-sales-model
+npm run verify:admin-pricing-promo-generator-ui
 ```
 
 ---
 
-## 12. Gate boundaries (G1.6D)
+## 12. Gate boundaries
 
-| In scope | Out of scope |
-|----------|----------------|
-| Pure TS helpers | DB migrations / Supabase pricing tables |
-| Docs + verify script | Stripe SDK / live payments |
-| Commission **estimate** | Commission payout / ledger |
-| Promo/attribution **rules** | Public redemption, checkout UI |
-| Central price ladder | Public sorting / Servicios ranking |
-| | Admin UI wiring (G1.6E) |
+| Gate | In scope | Out of scope |
+|------|----------|----------------|
+| **G1.6D** | Pure TS helpers, docs | Admin UI, Stripe, DB |
+| **G1.6E** | Admin create previews + metadata snapshots | Stripe, payout ledger, public redemption, public sorting |

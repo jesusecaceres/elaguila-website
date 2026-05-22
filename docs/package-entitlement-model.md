@@ -203,3 +203,17 @@ Used for a future **sales rep dashboard** and **commission** accrual **after pay
 Entitlement **creation** (G1.6B/C) remains separate from **price** and **discount** codes. Stripe Checkout metadata and commission ledger are future gates — not G1.6D.
 
 Verify: `npm run verify:pricing-promo-code-sales-model`
+
+---
+
+## 13. Gate G1.6E — Admin pricing / promo generator preview
+
+**Route:** `/admin/workspace/package-entitlements` · **Preview:** `PackageEntitlementSalesPreview.tsx` · **Metadata builder:** `app/admin/_lib/buildEntitlementPricingMetadata.ts`
+
+On create, Admin selects package tier, **contract term**, and **promo/code type**, sees model-driven pricing and promo previews, then saves snapshots under `metadata.pricing`, `metadata.promo_rule`, `metadata.sales_attribution`, `metadata.commission_preview`.
+
+Tracker rows and dashboard recent cards show contract term, final monthly, estimated total, promo type, and commission preview line when metadata exists.
+
+**Not in G1.6E:** Stripe, public redemption, sales rep dashboard, commission payout table.
+
+Verify: `npm run verify:admin-pricing-promo-generator-ui`

@@ -9,8 +9,10 @@ import {
 } from "@/app/admin/_components/adminTheme";
 import {
   PACKAGE_ENTITLEMENT_CATEGORIES,
+  PACKAGE_ENTITLEMENT_CONTRACT_TERMS,
   PACKAGE_ENTITLEMENT_LISTING_SOURCES,
   PACKAGE_ENTITLEMENT_PLACEMENT_SCOPES,
+  PACKAGE_ENTITLEMENT_PROMO_CODE_TYPES,
   PACKAGE_ENTITLEMENT_STATUS_FILTERS,
   PACKAGE_ENTITLEMENT_TIERS,
   PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT,
@@ -19,12 +21,16 @@ import {
 import {
   benefitLabels,
   effectiveEntitlementStatus,
+  entitlementPricingBadges,
   fetchPackageEntitlementsForTracker,
   formatCreatorAttribution,
+  formatEntitlementCommissionPreviewLine,
   formatEntitlementListingHeadline,
   formatEntitlementListingIdLine,
+  formatEntitlementPricingPromoLine,
   formatSalesRepAttribution,
 } from "@/app/admin/_lib/packageEntitlementData";
+import { PackageEntitlementSalesPreview } from "./PackageEntitlementSalesPreview";
 import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
 import {
   attachListingToPackageEntitlementAction,
@@ -142,8 +148,8 @@ export default async function AdminPackageEntitlementsPage(props: {
       <AdminPageHeader
         eyebrow="Workspace · Monetización · Tracker"
         title="Package Entitlements / Paquetes de Visibilidad"
-        subtitle="Crea, busca y administra códigos de paquete Print-to-Digital. No es el CMS de cupones públicos (/cupones)."
-        helperText="Tracker interno para ops/ventas. Comisión y dashboard de reps son gates futuros."
+        subtitle="Crea, busca y administra códigos de paquete Print-to-Digital con vista previa de precio y promo (G1.6E)."
+        helperText="Modelo de precios desde packagePricingRules.ts. Sin cobro Stripe ni redención pública."
         rightSlot={
           <Link href="/admin/workspace/cupones" className={adminBtnSecondary}>
             CMS cupones →
@@ -246,7 +252,11 @@ export default async function AdminPackageEntitlementsPage(props: {
         </p>
       </section>
 
-      <form action={createPackageEntitlementAction} className={`${adminCardBase} space-y-4 p-4 sm:p-6`}>
+      <form
+        id="package-entitlement-create-form"
+        action={createPackageEntitlementAction}
+        className={`${adminCardBase} space-y-4 p-4 sm:p-6`}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-bold text-[#1E1810]">Crear entitlement</h2>
           <span className={adminPartialBadgeClass}>Admin manual</span>
@@ -257,6 +267,26 @@ export default async function AdminPackageEntitlementsPage(props: {
             Paquete / tier
             <select name="package_tier" required className={`${adminInputClass} mt-1`} defaultValue="half_page">
               {PACKAGE_ENTITLEMENT_TIERS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Contract term / plazo
+            <select name="contract_term" required className={`${adminInputClass} mt-1`} defaultValue="month_to_month">
+              {PACKAGE_ENTITLEMENT_CONTRACT_TERMS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Promo / code type
+            <select name="promo_code_type" required className={`${adminInputClass} mt-1`} defaultValue="entitlement">
+              {PACKAGE_ENTITLEMENT_PROMO_CODE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
@@ -353,6 +383,8 @@ export default async function AdminPackageEntitlementsPage(props: {
           Creador: se registra como Admin (cookie leonix_admin no expone email de staff aún).
         </p>
 
+        <PackageEntitlementSalesPreview />
+
         <details className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-3 text-xs text-[#5C5346]">
           <summary className="cursor-pointer font-bold text-[#1E1810]">Vista previa de beneficios por tier</summary>
           <ul className="mt-2 space-y-1">
@@ -387,6 +419,9 @@ export default async function AdminPackageEntitlementsPage(props: {
               const labels = benefitLabels(row.benefits);
               const salesRep = formatSalesRepAttribution(row.metadata);
               const creator = formatCreatorAttribution(row.metadata);
+              const pricingLine = formatEntitlementPricingPromoLine(row.metadata);
+              const commissionLine = formatEntitlementCommissionPreviewLine(row.metadata);
+              const pricingBadges = entitlementPricingBadges(row.metadata);
               const canManage = effective !== "revoked";
 
               return (
@@ -407,7 +442,23 @@ export default async function AdminPackageEntitlementsPage(props: {
                         ) : null}
                       </p>
                       <p className="mt-1 font-mono text-[10px] text-[#5C5346]">{formatEntitlementListingIdLine(row.listing_id)}</p>
+                      {pricingLine ? <p className="mt-1 text-xs font-medium text-[#3D3428]">{pricingLine}</p> : null}
+                      {pricingBadges.length > 0 ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {pricingBadges.map((b) => (
+                            <span
+                              key={b}
+                              className="rounded-full bg-[#E8DFD0]/80 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#5C5346]"
+                            >
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                       {salesRep ? <p className="mt-1 text-xs text-[#5C5346]">Sales rep: {salesRep}</p> : null}
+                      {commissionLine ? (
+                        <p className="mt-0.5 text-[10px] text-amber-900">{commissionLine}</p>
+                      ) : null}
                       <p className="mt-0.5 text-[10px] text-[#7A7164]">Creado por: {creator}</p>
                       {row.contract_code ? (
                         <p className="mt-0.5 font-mono text-[10px] text-[#5C5346]">Contrato: {row.contract_code}</p>

@@ -16,6 +16,8 @@ import {
   benefitLabels,
   effectiveEntitlementStatus,
   formatEntitlementListingHeadline,
+  formatEntitlementPricingPromoLine,
+  formatSalesRepAttribution,
   getPackageEntitlementDashboardSnapshot,
 } from "../_lib/packageEntitlementData";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
@@ -118,6 +120,8 @@ export default async function AdminHomePage() {
                 entSnap.recent.map((row) => {
                   const effective = effectiveEntitlementStatus(row);
                   const labels = benefitLabels(row.benefits);
+                  const pricingLine = formatEntitlementPricingPromoLine(row.metadata);
+                  const salesRep = formatSalesRepAttribution(row.metadata);
                   return (
                     <li
                       key={row.id}
@@ -129,6 +133,10 @@ export default async function AdminHomePage() {
                         <p className="text-xs text-[#7A7164]">
                           {row.package_tier} · {row.category} · {effective}
                         </p>
+                        {pricingLine ? (
+                          <p className="mt-0.5 text-[10px] text-[#5C5346]">{pricingLine}</p>
+                        ) : null}
+                        {salesRep ? <p className="text-[10px] text-[#7A7164]">Sales rep: {salesRep}</p> : null}
                         <p className="mt-0.5 text-[10px] text-[#5C5346]">
                           {labels.length ? labels.join(" · ") : "—"}
                         </p>
