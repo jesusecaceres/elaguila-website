@@ -98,6 +98,15 @@ export type ClasificadosServiciosCopy = {
     youtube: string;
     tiktok: string;
     linkedin: string;
+    xTwitter: string;
+    snapchat: string;
+    contactReviewsHeading: string;
+    googleReviews: string;
+    yelpReviews: string;
+    contactExtraLinksHeading: string;
+    extraLinkUrl: string;
+    extraLinkLabel: string;
+    extraLinkLabelHelp: string;
     closed: string;
     open: string;
     close: string;
@@ -366,6 +375,15 @@ const es: ClasificadosServiciosCopy = {
     youtube: "YouTube",
     tiktok: "TikTok",
     linkedin: "LinkedIn",
+    xTwitter: "X (Twitter)",
+    snapchat: "Snapchat",
+    contactReviewsHeading: "Opiniones externas (opcional)",
+    googleReviews: "Opiniones en Google (URL)",
+    yelpReviews: "Opiniones en Yelp (URL)",
+    contactExtraLinksHeading: "Enlaces adicionales (opcional)",
+    extraLinkUrl: "URL",
+    extraLinkLabel: "Etiqueta corta (opcional)",
+    extraLinkLabelHelp: "Si la dejas vacía, mostraremos “Enlace adicional”.",
     closed: "Cerrado",
     open: "Abre",
     close: "Cierra",
@@ -629,6 +647,15 @@ const en: ClasificadosServiciosCopy = {
     youtube: "YouTube",
     tiktok: "TikTok",
     linkedin: "LinkedIn",
+    xTwitter: "X (Twitter)",
+    snapchat: "Snapchat",
+    contactReviewsHeading: "External reviews (optional)",
+    googleReviews: "Google Reviews (URL)",
+    yelpReviews: "Yelp Reviews (URL)",
+    contactExtraLinksHeading: "Additional links (optional)",
+    extraLinkUrl: "URL",
+    extraLinkLabel: "Short label (optional)",
+    extraLinkLabelHelp: "If empty, we show “Additional link”.",
     closed: "Closed",
     open: "Opens",
     close: "Closes",

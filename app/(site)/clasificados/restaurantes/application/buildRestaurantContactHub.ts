@@ -4,9 +4,10 @@ import { normalizeActionableUrl } from "../lib/urlNormalization";
 import {
   buildCateringInquiryPrefill,
   isValidExternalHttpUrl,
-  mapsSearchHref,
   nonEmpty,
   normalizeRestaurantUrl,
+  resolveRestaurantMapsHref,
+  shouldShowRestaurantStreetAddress,
   smsHref,
   telHref,
   waHref,
@@ -57,30 +58,6 @@ export type RestaurantContactHubData = {
     mapsLabel: string;
   };
 };
-
-function shouldShowStreetAddress(d: RestauranteListingDraft): boolean {
-  if (!nonEmpty(d.addressLine1)) return false;
-  if (d.homeBasedBusiness && d.showExactAddress === false) return false;
-  if (d.locationPrivacyMode === "city_only" || d.locationPrivacyMode === "hidden_address_text_only") return false;
-  return true;
-}
-
-function resolveMapsHref(d: RestauranteListingDraft, allowAddress: boolean): string | undefined {
-  if (nonEmpty(d.verUbicacionUrl)) {
-    const normalized = normalizeActionableUrl(d.verUbicacionUrl!.trim()) ?? normalizeRestaurantUrl(d.verUbicacionUrl!);
-    if (isValidExternalHttpUrl(normalized)) return normalized;
-  }
-  if (allowAddress) {
-    const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
-    const mapsQ = [d.addressLine1, cityLine].filter(nonEmpty).join(", ");
-    if (nonEmpty(mapsQ)) return mapsSearchHref(mapsQ);
-  }
-  if (nonEmpty(d.serviceAreaText) && !allowAddress) {
-    const area = normalizeActionableUrl(d.serviceAreaText!.trim());
-    if (area) return area;
-  }
-  return undefined;
-}
 
 function pushUniqueButton(list: RestaurantHubButton[], btn: RestaurantHubButton | null | undefined) {
   if (!btn?.href?.trim()) return;
@@ -287,13 +264,17 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     }
   }
 
-  const showStreet = shouldShowStreetAddress(d);
+  const showStreet = shouldShowRestaurantStreetAddress(d);
   const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
-  const mapsHref = resolveMapsHref(d, showStreet);
+  const mapsHref = resolveRestaurantMapsHref(d, showStreet);
   const home = d.homeBasedStack;
   const pickupNote = d.homeBasedBusiness && nonEmpty(home?.pickupInstructions) ? home!.pickupInstructions!.trim() : undefined;
   const serviceArea =
-    !showStreet && nonEmpty(d.serviceAreaText) ? d.serviceAreaText!.trim() : !showStreet && cityLine ? cityLine : undefined;
+    !showStreet && nonEmpty(d.serviceAreaText)
+      ? d.serviceAreaText!.trim()
+      : !showStreet && nonEmpty(d.cityCanonical) && cityLine
+        ? cityLine
+        : undefined;
 
   let location: RestaurantContactHubData["location"];
   if (showStreet || mapsHref || pickupNote || serviceArea) {
@@ -310,13 +291,17 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     };
   }
 
+  const hasLocation =
+    Boolean(location?.addressLine1 || location?.mapsHref || location?.supportingText) ||
+    Boolean(location?.addressLine2 && (showStreet || nonEmpty(d.cityCanonical) || nonEmpty(d.serviceAreaText)));
+
   const hasAny =
     contactUs.length > 0 ||
     social.length > 0 ||
     reviews.length > 0 ||
     findUs.length > 0 ||
     catering.length > 0 ||
-    Boolean(location?.addressLine1 || location?.addressLine2 || location?.mapsHref || location?.supportingText);
+    hasLocation;
 
   if (!hasAny) return undefined;
 

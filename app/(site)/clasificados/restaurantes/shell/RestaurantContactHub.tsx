@@ -293,7 +293,7 @@ export function RestaurantContactHub({
                 </p>
               ) : null}
             </div>
-            <RestaurantContactHubFauxMap />
+            {hub.location.mapsHref || hub.location.addressLine1 ? <RestaurantContactHubFauxMap /> : null}
             {hub.location.mapsHref ? (
               <button type="button" className={BTN_PRIMARY} onClick={(e) => openMaps(hub.location!.mapsHref!, e)}>
                 <FiMapPin className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />

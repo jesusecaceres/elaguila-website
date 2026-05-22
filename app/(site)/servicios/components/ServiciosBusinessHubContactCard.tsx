@@ -465,7 +465,7 @@ export function ServiciosBusinessHubContactCard({
                   ? "Find us here, don't forget to follow and like."
                   : "Encuéntranos aquí, no olvides seguir y dar like."}
               </p>
-              <div className="mt-4 flex max-w-full flex-wrap gap-3">
+              <div className="mt-4 flex max-w-full flex-wrap gap-3 break-words">
                 {vm.social.map((link) => {
                   const brand = businessHubSocialBrandStyle(link.platform);
                   return (
@@ -508,13 +508,13 @@ export function ServiciosBusinessHubContactCard({
                     className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl border bg-white px-3 py-3 text-left text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:shadow-md"
                     style={{ borderColor: SV.border }}
                   >
-                    <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
                       {link.rating != null ? (
                         <ServiciosStarRating value={link.rating} size="sm" />
                       ) : (
                         <FiExternalLink className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
                       )}
-                      <span className="truncate">{link.label}</span>
+                      <span className="min-w-0 break-words">{link.label}</span>
                     </span>
                     {link.reviewCount != null ? (
                       <span className="shrink-0 text-xs text-[color:var(--lx-text-2)]">({link.reviewCount})</span>
@@ -543,7 +543,7 @@ export function ServiciosBusinessHubContactCard({
                     style={{ borderColor: SV.border }}
                   >
                     <FiGlobe className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-                    <span className="truncate">{link.label}</span>
+                    <span className="min-w-0 flex-1 break-words">{link.label}</span>
                   </button>
                 ))}
               </div>

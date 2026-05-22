@@ -53,7 +53,26 @@ export function mapServiciosProfileToBusinessHubContact(
   pushSocial(socialLinks, "tiktok", social?.tiktok);
   pushSocial(socialLinks, "youtube", social?.youtube);
   pushSocial(socialLinks, "linkedin", social?.linkedin);
-  // X, Snapchat, Pinterest — future profile fields; omitted when absent.
+  pushSocial(socialLinks, "x", social?.x);
+  pushSocial(socialLinks, "snapchat", social?.snapchat);
+
+  const reviews: ServiciosBusinessHubContactViewModel["reviews"] = [];
+  const googleRev = profile.contact.externalReviewLinks?.google?.trim();
+  if (googleRev) {
+    reviews.push({
+      id: "google_review",
+      label: lang === "en" ? "Google Reviews" : "Opiniones en Google",
+      url: googleRev,
+    });
+  }
+  const yelpRev = profile.contact.externalReviewLinks?.yelp?.trim();
+  if (yelpRev) {
+    reviews.push({
+      id: "yelp",
+      label: lang === "en" ? "Yelp Reviews" : "Opiniones en Yelp",
+      url: yelpRev,
+    });
+  }
 
   const moreLinks: ServiciosBusinessHubCustomLink[] = [];
   if (c.websiteHref) {
@@ -61,6 +80,12 @@ export function mapServiciosProfileToBusinessHubContact(
       c.websiteLabel?.trim() ||
       (lang === "en" ? "Website" : "Sitio web");
     moreLinks.push({ label, url: c.websiteHref });
+  }
+  for (const row of profile.contact.extraLinks ?? []) {
+    const url = row.url?.trim();
+    if (!url) continue;
+    moreLinks.push({ label: row.label?.trim() || (lang === "en" ? "Additional link" : "Enlace adicional"), url });
+    if (moreLinks.length >= 3) break;
   }
 
   const location =
@@ -78,8 +103,8 @@ export function mapServiciosProfileToBusinessHubContact(
     showLeonixVerifiedCue,
     contact: contactActions,
     social: socialLinks,
-    reviews: [],
-    moreLinks: moreLinks.slice(0, 3), // website + up to 2 custom (future)
+    reviews,
+    moreLinks: moreLinks.slice(0, 3),
     location: location?.addressDisplay || location?.mapsHref ? location : undefined,
   };
 }

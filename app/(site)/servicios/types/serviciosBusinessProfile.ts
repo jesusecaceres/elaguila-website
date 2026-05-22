@@ -164,6 +164,20 @@ export type ServiciosContactSocialLinks = {
   tiktokUrl?: string;
   linkedinUrl?: string;
   whatsappUrl?: string;
+  xUrl?: string;
+  snapchatUrl?: string;
+};
+
+/** External review profile URLs — link-out only; never used to invent ratings. */
+export type ServiciosContactExternalReviewLinks = {
+  googleReviewsUrl?: string;
+  yelpReviewsUrl?: string;
+};
+
+/** Optional labeled extra links (max two on publish). */
+export type ServiciosContactExtraLink = {
+  label?: string;
+  url: string;
 };
 
 /** Contact & primary actions (sticky panel) */
@@ -185,6 +199,8 @@ export type ServiciosContactBlock = {
   isFeatured?: boolean;
   featuredLabel?: string;
   socialLinks?: ServiciosContactSocialLinks;
+  externalReviewLinks?: ServiciosContactExternalReviewLinks;
+  extraLinks?: ServiciosContactExtraLink[];
   /** Optional mailing / storefront address (distinct from hero location summary line). */
   physicalStreet?: string;
   physicalSuite?: string;
@@ -327,7 +343,14 @@ export type ServiciosProfileResolved = {
       tiktok?: string;
       linkedin?: string;
       whatsapp?: string;
+      x?: string;
+      snapchat?: string;
     };
+    externalReviewLinks?: {
+      google?: string;
+      yelp?: string;
+    };
+    extraLinks?: { label: string; url: string }[];
     /** Formatted for display; omitted when no physical address provided */
     physicalAddressDisplay?: string;
     /** https://www.google.com/maps/search/... built in resolver */

@@ -375,6 +375,12 @@ export function ClasificadosServiciosApplication() {
     yt: state.socialYoutube.trim() && !isProbablyValidWebUrl(state.socialYoutube),
     tt: state.socialTiktok.trim() && !isProbablyValidWebUrl(state.socialTiktok),
     li: state.socialLinkedin.trim() && !isProbablyValidWebUrl(state.socialLinkedin),
+    x: state.socialX.trim() && !isProbablyValidWebUrl(state.socialX),
+    sc: state.socialSnapchat.trim() && !isProbablyValidWebUrl(state.socialSnapchat),
+    google: state.googleReviewsUrl.trim() && !isProbablyValidWebUrl(state.googleReviewsUrl),
+    yelp: state.yelpReviewsUrl.trim() && !isProbablyValidWebUrl(state.yelpReviewsUrl),
+    extra1: state.extraLink1Url.trim() && !isProbablyValidWebUrl(state.extraLink1Url),
+    extra2: state.extraLink2Url.trim() && !isProbablyValidWebUrl(state.extraLink2Url),
   };
 
   const toggleLangChip = (id: string) => {
@@ -993,9 +999,11 @@ export function ClasificadosServiciosApplication() {
                     ["socialYoutube", copy.labels.youtube, state.socialYoutube, socialInvalid.yt, "https://www.youtube.com/@canal"] as const,
                     ["socialTiktok", copy.labels.tiktok, state.socialTiktok, socialInvalid.tt, "https://www.tiktok.com/@cuenta"] as const,
                     ["socialLinkedin", copy.labels.linkedin, state.socialLinkedin, socialInvalid.li, "https://www.linkedin.com/company/…"] as const,
+                    ["socialX", copy.labels.xTwitter, state.socialX, socialInvalid.x, "https://x.com/tunegocio"] as const,
+                    ["socialSnapchat", copy.labels.snapchat, state.socialSnapchat, socialInvalid.sc, "https://www.snapchat.com/add/cuenta"] as const,
                   ] as const
                 ).map(([key, lab, val, inv, ph]) => (
-                  <div key={key}>
+                  <div key={key} className="min-w-0">
                     <label className={labelClass}>{lab}</label>
                     <input
                       className={`${inputClass} ${inv ? inputWarn : ""}`}
@@ -1006,6 +1014,92 @@ export function ClasificadosServiciosApplication() {
                       onChange={(e) => setState((s) => ({ ...s, [key]: e.target.value }))}
                     />
                     {inv ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
+              <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.contactReviewsHeading}</h3>
+              <p className="mt-1 text-xs text-[#6b5c42]">
+                {lang === "es"
+                  ? "Solo enlaces a tus perfiles de opiniones — no inventamos calificaciones."
+                  : "Links to your review profiles only — we never invent ratings."}
+              </p>
+              <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                {(
+                  [
+                    ["googleReviewsUrl", copy.labels.googleReviews, state.googleReviewsUrl, socialInvalid.google, "https://g.page/r/…/review"] as const,
+                    ["yelpReviewsUrl", copy.labels.yelpReviews, state.yelpReviewsUrl, socialInvalid.yelp, "https://www.yelp.com/biz/…"] as const,
+                  ] as const
+                ).map(([key, lab, val, inv, ph]) => (
+                  <div key={key} className="min-w-0">
+                    <label className={labelClass}>{lab}</label>
+                    <input
+                      className={`${inputClass} ${inv ? inputWarn : ""}`}
+                      type="url"
+                      inputMode="url"
+                      placeholder={ph}
+                      value={val}
+                      onChange={(e) => setState((s) => ({ ...s, [key]: e.target.value }))}
+                    />
+                    {inv ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
+              <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.contactExtraLinksHeading}</h3>
+              <div className="mt-4 grid min-w-0 gap-4">
+                {(
+                  [
+                    {
+                      urlKey: "extraLink1Url" as const,
+                      labelKey: "extraLink1Label" as const,
+                      urlVal: state.extraLink1Url,
+                      labelVal: state.extraLink1Label,
+                      urlInv: socialInvalid.extra1,
+                    },
+                    {
+                      urlKey: "extraLink2Url" as const,
+                      labelKey: "extraLink2Label" as const,
+                      urlVal: state.extraLink2Url,
+                      labelVal: state.extraLink2Label,
+                      urlInv: socialInvalid.extra2,
+                    },
+                  ] as const
+                ).map((row, idx) => (
+                  <div key={row.urlKey} className="grid min-w-0 gap-3 rounded-2xl border border-[#D8C79A]/40 bg-[#FFFCF7]/80 p-4 sm:grid-cols-2">
+                    <div className="min-w-0 sm:col-span-2">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#6b5c42]">
+                        {lang === "en" ? `Link ${idx + 1}` : `Enlace ${idx + 1}`}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <label className={labelClass}>{copy.labels.extraLinkUrl}</label>
+                      <input
+                        className={`${inputClass} ${row.urlInv ? inputWarn : ""}`}
+                        type="url"
+                        inputMode="url"
+                        placeholder="https://"
+                        value={row.urlVal}
+                        onChange={(e) => setState((s) => ({ ...s, [row.urlKey]: e.target.value }))}
+                      />
+                      {row.urlInv ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
+                    </div>
+                    <div className="min-w-0">
+                      <label className={labelClass}>{copy.labels.extraLinkLabel}</label>
+                      <p className="mb-1 text-[11px] text-[#6b5c42]">{copy.labels.extraLinkLabelHelp}</p>
+                      <input
+                        className={inputClass}
+                        type="text"
+                        maxLength={48}
+                        placeholder={lang === "es" ? "Menú en línea" : "Online menu"}
+                        value={row.labelVal}
+                        onChange={(e) => setState((s) => ({ ...s, [row.labelKey]: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -443,15 +443,15 @@ export function RestauranteAdStoryPreview({
                   )}
                 </div>
                 
-                {/* Full address */}
-                {data.contact?.addressLine1 && (
+                {/* Public address only (hub privacy rules) */}
+                {data.contactHub?.location?.addressLine1 ? (
                   <div className="text-base sm:text-lg drop-shadow">
                     <span className="px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm inline-block">
-                      {data.contact.addressLine1}
-                      {data.contact?.addressLine2 && `, ${data.contact.addressLine2}`}
+                      {data.contactHub.location.addressLine1}
+                      {data.contactHub.location.addressLine2 ? `, ${data.contactHub.location.addressLine2}` : ""}
                     </span>
                   </div>
-                )}
+                ) : null}
                 
                 {desktopHeroPrimaryCtas.length > 0 ? (
                 <div className="flex flex-wrap justify-center gap-3 pt-4">
@@ -580,15 +580,14 @@ export function RestauranteAdStoryPreview({
                 )}
               </div>
               
-              {/* Full address */}
-              {data.contact?.addressLine1 && (
+              {data.contactHub?.location?.addressLine1 ? (
                 <div className="text-base sm:text-lg">
                   <span className="px-4 py-2 bg-[#F6EBDD] rounded-lg text-[#1F1A17] inline-block">
-                    {data.contact.addressLine1}
-                    {data.contact?.addressLine2 && `, ${data.contact.addressLine2}`}
+                    {data.contactHub.location.addressLine1}
+                    {data.contactHub.location.addressLine2 ? `, ${data.contactHub.location.addressLine2}` : ""}
                   </span>
                 </div>
-              )}
+              ) : null}
               
               {desktopHeroPrimaryCtas.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-3 pt-4">

@@ -56,6 +56,7 @@ function trimDraftStrings(d: RestauranteListingDraft): RestauranteListingDraft {
     serviceAreaText: t(d.serviceAreaText),
     googleReviewUrl: t(d.googleReviewUrl),
     yelpReviewUrl: t(d.yelpReviewUrl),
+    verUbicacionUrl: t(d.verUbicacionUrl),
     testimonialSnippet: t(d.testimonialSnippet),
   };
 }

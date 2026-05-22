@@ -174,6 +174,14 @@ export type ClasificadosServiciosApplicationState = {
   socialYoutube: string;
   socialTiktok: string;
   socialLinkedin: string;
+  socialX: string;
+  socialSnapchat: string;
+  googleReviewsUrl: string;
+  yelpReviewsUrl: string;
+  extraLink1Url: string;
+  extraLink1Label: string;
+  extraLink2Url: string;
+  extraLink2Label: string;
   hours: DayHoursRow[];
   testimonials: TestimonialRow[];
   /** Featured promotions — 1–4 rows; legacy single-promo fields migrate in normalize */

@@ -144,8 +144,34 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (sLi) socialLinks.linkedinUrl = sLi;
   const sWa = trim(c?.socialWhatsappUrl);
   if (sWa) socialLinks.whatsappUrl = sWa;
+  const sX = trim(c?.socialXUrl);
+  if (sX) socialLinks.xUrl = sX;
+  const sSc = trim(c?.socialSnapchatUrl);
+  if (sSc) socialLinks.snapchatUrl = sSc;
   if (Object.keys(socialLinks).length > 0) {
     contact.socialLinks = socialLinks;
+  }
+
+  const reviewLinks: NonNullable<ServiciosContactBlock["externalReviewLinks"]> = {};
+  const gRev = trim(c?.googleReviewsUrl);
+  if (gRev) reviewLinks.googleReviewsUrl = gRev;
+  const yRev = trim(c?.yelpReviewsUrl);
+  if (yRev) reviewLinks.yelpReviewsUrl = yRev;
+  if (Object.keys(reviewLinks).length > 0) {
+    contact.externalReviewLinks = reviewLinks;
+  }
+
+  const extraWire = (c?.extraLinks ?? [])
+    .map((row) => {
+      const url = trim(typeof row?.url === "string" ? row.url : "");
+      if (!url) return null;
+      const label = trim(typeof row?.label === "string" ? row.label : "").slice(0, 48);
+      return { url, ...(label ? { label } : {}) };
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null)
+    .slice(0, 2);
+  if (extraWire.length > 0) {
+    contact.extraLinks = extraWire;
   }
 
   const physStreet = trim(c?.physicalStreet);

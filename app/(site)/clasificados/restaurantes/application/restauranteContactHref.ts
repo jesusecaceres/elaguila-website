@@ -1,5 +1,8 @@
 /** Shared href builders for restaurant contact CTAs (draft → shell / hub). */
 
+import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import { normalizeActionableUrl } from "../lib/urlNormalization";
+
 export function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
@@ -67,4 +70,30 @@ export function isValidExternalHttpUrl(raw: string | undefined): boolean {
 
 export function mapsSearchHref(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query.trim())}`;
+}
+
+/** Whether the public shell may show street address lines (home-based privacy respected). */
+export function shouldShowRestaurantStreetAddress(d: RestauranteListingDraft): boolean {
+  if (!nonEmpty(d.addressLine1)) return false;
+  if (d.homeBasedBusiness && d.showExactAddress === false) return false;
+  if (d.locationPrivacyMode === "city_only" || d.locationPrivacyMode === "hidden_address_text_only") return false;
+  return true;
+}
+
+/** Maps handoff: explicit override URL, else search from public address, else service area link. */
+export function resolveRestaurantMapsHref(d: RestauranteListingDraft, allowStreetAddress: boolean): string | undefined {
+  if (nonEmpty(d.verUbicacionUrl)) {
+    const normalized = normalizeActionableUrl(d.verUbicacionUrl!.trim()) ?? normalizeRestaurantUrl(d.verUbicacionUrl!);
+    if (isValidExternalHttpUrl(normalized)) return normalized;
+  }
+  if (allowStreetAddress) {
+    const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
+    const mapsQ = [d.addressLine1, cityLine].filter(nonEmpty).join(", ");
+    if (nonEmpty(mapsQ)) return mapsSearchHref(mapsQ);
+  }
+  if (nonEmpty(d.serviceAreaText) && !allowStreetAddress) {
+    const area = normalizeActionableUrl(d.serviceAreaText!.trim());
+    if (area && isValidExternalHttpUrl(area)) return area;
+  }
+  return undefined;
 }

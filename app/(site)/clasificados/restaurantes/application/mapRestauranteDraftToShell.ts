@@ -36,7 +36,11 @@ import {
 } from "./restauranteTaxonomy";
 import { formatPlatilloPriceBadge } from "./restauranteShellDisplayFormat";
 import { buildRestaurantContactHub, type RestaurantContactHubData } from "./buildRestaurantContactHub";
-import { isValidExternalHttpUrl } from "./restauranteContactHref";
+import {
+  isValidExternalHttpUrl,
+  resolveRestaurantMapsHref,
+  shouldShowRestaurantStreetAddress,
+} from "./restauranteContactHref";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
 
 function nonEmpty(s: string | undefined | null): boolean {
@@ -234,12 +238,14 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
   if (nonEmpty(d.phoneNumber)) ctas.push({ key: "call", label: "Llamar", href: telHref(d.phoneNumber!) });
   
   // 2. Website
-  if (nonEmpty(d.websiteUrl)) ctas.push({ key: "website", label: "Sitio web", href: normalizeUrl(d.websiteUrl!) });
+  if (nonEmpty(d.websiteUrl)) {
+    const url = normalizeUrl(d.websiteUrl!);
+    if (isValidExternalHttpUrl(url)) ctas.push({ key: "website", label: "Sitio web", href: url });
+  }
   
-  // 3. Directions
-  const addressQuery = [d.addressLine1, d.cityCanonical, d.state].filter(nonEmpty).join(", ");
-  if (nonEmpty(addressQuery)) {
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}`;
+  // 3. Directions (respect home-based / privacy — same rules as contact hub)
+  const mapsUrl = resolveRestaurantMapsHref(d, shouldShowRestaurantStreetAddress(d));
+  if (mapsUrl) {
     ctas.push({ key: "directions", label: "Direcciones", href: mapsUrl });
   }
   
@@ -250,19 +256,27 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
   }
   
   // 5. Order
-  if (nonEmpty(d.orderUrl)) ctas.push({ key: "order", label: "Ordenar", href: normalizeUrl(d.orderUrl!) });
-  
+  if (nonEmpty(d.orderUrl)) {
+    const url = normalizeUrl(d.orderUrl!);
+    if (isValidExternalHttpUrl(url)) ctas.push({ key: "order", label: "Ordenar", href: url });
+  }
+
   // 6. Reserve
-  if (nonEmpty(d.reservationUrl)) ctas.push({ key: "reserve", label: "Reservar", href: normalizeUrl(d.reservationUrl!) });
+  if (nonEmpty(d.reservationUrl)) {
+    const url = normalizeUrl(d.reservationUrl!);
+    if (isValidExternalHttpUrl(url)) ctas.push({ key: "reserve", label: "Reservar", href: url });
+  }
   
   // Menu CTAs (not in hero order, but included for other sections)
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
   if (hasMenuUrl && hasMenuFile) {
-    ctas.push({ key: "menu", label: "Menú en línea", href: normalizeUrl(d.menuUrl!) });
+    const menuUrl = normalizeUrl(d.menuUrl!);
+    if (isValidExternalHttpUrl(menuUrl)) ctas.push({ key: "menu", label: "Menú en línea", href: menuUrl });
     ctas.push({ key: "menuAsset", label: "Carta (archivo)", href: d.menuFile! });
   } else if (hasMenuUrl) {
-    ctas.push({ key: "menu", label: "Ver menú", href: normalizeUrl(d.menuUrl!) });
+    const menuUrl = normalizeUrl(d.menuUrl!);
+    if (isValidExternalHttpUrl(menuUrl)) ctas.push({ key: "menu", label: "Ver menú", href: menuUrl });
   } else if (hasMenuFile) {
     ctas.push({ key: "menu", label: "Ver menú", href: d.menuFile! });
   }
@@ -289,6 +303,7 @@ export function filterHeroPrimaryCtas(
     if (!href || href.startsWith("#")) return false;
     if (c.key === "save" || c.key === "share") return false;
     if (c.enabled === false) return false;
+    if (/^https?:\/\//i.test(href) && !isValidExternalHttpUrl(href)) return false;
     return true;
   });
   if (!hub?.hasAny) return valid;
@@ -399,20 +414,13 @@ function buildVenueGalleryFromDraft(d: RestauranteListingDraft): ShellVenueGalle
   };
 }
 
-function shouldShowStreetAddress(d: RestauranteListingDraft): boolean {
-  if (!nonEmpty(d.addressLine1)) return false;
-  if (d.homeBasedBusiness && d.showExactAddress === false) return false;
-  if (d.locationPrivacyMode === "city_only" || d.locationPrivacyMode === "hidden_address_text_only") return false;
-  return true;
-}
-
 function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined {
   const c: ShellContactBlock = {};
-  if (shouldShowStreetAddress(d)) c.addressLine1 = d.addressLine1!.trim();
+  if (shouldShowRestaurantStreetAddress(d)) c.addressLine1 = d.addressLine1!.trim();
   const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
   if (nonEmpty(d.addressLine2)) c.addressLine2 = d.addressLine2!.trim();
   else if (cityLine) c.addressLine2 = cityLine;
-  const mapsQ = shouldShowStreetAddress(d)
+  const mapsQ = shouldShowRestaurantStreetAddress(d)
     ? [d.addressLine1, cityLine].filter(nonEmpty).join(", ")
     : cityLine || (nonEmpty(d.serviceAreaText) ? d.serviceAreaText!.trim() : "");
   if (nonEmpty(mapsQ)) c.mapsSearchQuery = mapsQ;

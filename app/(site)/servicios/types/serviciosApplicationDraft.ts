@@ -71,6 +71,11 @@ export type ServiciosApplicationContactDraft = {
   socialTiktokUrl?: string;
   socialLinkedinUrl?: string;
   socialWhatsappUrl?: string;
+  socialXUrl?: string;
+  socialSnapchatUrl?: string;
+  googleReviewsUrl?: string;
+  yelpReviewsUrl?: string;
+  extraLinks?: { label?: string; url: string }[];
   /** Optional public storefront / mailing address — shown in contact panel + maps when present */
   physicalStreet?: string;
   physicalSuite?: string;

@@ -1220,6 +1220,32 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ menuUrl: e.target.value || undefined })}
               />
             </div>
+            <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Opiniones</p>
+              <HelperText className="!mt-0">
+                Enlaces opcionales a reseñas públicas; solo aparecen en la ficha cuando los completes.
+              </HelperText>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <FieldLabel optional>Google (reseñas o perfil)</FieldLabel>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.googleReviewUrl}
+                    value={draft.googleReviewUrl ?? ""}
+                    onChange={(e) => setDraftPatch({ googleReviewUrl: e.target.value || undefined })}
+                  />
+                </div>
+                <div>
+                  <FieldLabel optional>Yelp</FieldLabel>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.yelpReviewUrl}
+                    value={draft.yelpReviewUrl ?? ""}
+                    onChange={(e) => setDraftPatch({ yelpReviewUrl: e.target.value || undefined })}
+                  />
+                </div>
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
               <HelperText>
@@ -1331,6 +1357,18 @@ export default function RestauranteApplicationClient() {
                 inputMode="numeric"
                 value={draft.zipCode ?? ""}
                 onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <FieldLabel optional>Ver en el mapa (URL)</FieldLabel>
+              <HelperText>
+                Enlace directo a Google Maps u otro mapa. Si lo dejas vacío, generamos búsqueda desde la dirección pública o el área de servicio.
+              </HelperText>
+              <input
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.verUbicacionUrl}
+                value={draft.verUbicacionUrl ?? ""}
+                onChange={(e) => setDraftPatch({ verUbicacionUrl: e.target.value || undefined })}
               />
             </div>
             <div>

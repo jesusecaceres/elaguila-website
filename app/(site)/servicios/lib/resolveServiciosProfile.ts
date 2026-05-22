@@ -95,7 +95,34 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     if (li) out.linkedin = li;
     const wa = safeExternalWebsiteHref(rawSocial.whatsappUrl);
     if (wa) out.whatsapp = wa;
+    const xUrl = safeExternalWebsiteHref(rawSocial.xUrl);
+    if (xUrl) out.x = xUrl;
+    const snap = safeExternalWebsiteHref(rawSocial.snapchatUrl);
+    if (snap) out.snapchat = snap;
     if (Object.keys(out).length > 0) socialLinks = out;
+  }
+
+  const rawReviews = contactIn.externalReviewLinks;
+  let externalReviewLinks: ServiciosProfileResolved["contact"]["externalReviewLinks"];
+  if (rawReviews && typeof rawReviews === "object") {
+    const rev: NonNullable<typeof externalReviewLinks> = {};
+    const google = safeExternalWebsiteHref(rawReviews.googleReviewsUrl);
+    if (google) rev.google = google;
+    const yelp = safeExternalWebsiteHref(rawReviews.yelpReviewsUrl);
+    if (yelp) rev.yelp = yelp;
+    if (Object.keys(rev).length > 0) externalReviewLinks = rev;
+  }
+
+  const extraLinks: ServiciosProfileResolved["contact"]["extraLinks"] = [];
+  for (const row of contactIn.extraLinks ?? []) {
+    if (!row || typeof row !== "object") continue;
+    const href = safeExternalWebsiteHref(typeof row.url === "string" ? row.url : "");
+    if (!href) continue;
+    const label =
+      trimText(typeof row.label === "string" ? row.label : "") ||
+      (lang === "en" ? "Additional link" : "Enlace adicional");
+    extraLinks.push({ label: label.slice(0, 48), url: href });
+    if (extraLinks.length >= 2) break;
   }
 
   const areasBlock = input.serviceAreas;
@@ -160,6 +187,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       isFeatured: contactIn.isFeatured === true,
       featuredLabel: trimText(contactIn.featuredLabel) || undefined,
       socialLinks,
+      externalReviewLinks,
+      extraLinks: extraLinks.length > 0 ? extraLinks : undefined,
       physicalAddressDisplay: physicalAddressDisplay || undefined,
       mapsSearchHref: mapsSearchHref || undefined,
     },

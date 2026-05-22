@@ -302,6 +302,33 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (tk) contact.socialTiktokUrl = normalizeHttpUrl(tk);
   const li = trimUrl(state.socialLinkedin);
   if (li) contact.socialLinkedinUrl = normalizeHttpUrl(li);
+  const sx = trimUrl(state.socialX);
+  if (sx) contact.socialXUrl = normalizeHttpUrl(sx);
+  const sc = trimUrl(state.socialSnapchat);
+  if (sc) contact.socialSnapchatUrl = normalizeHttpUrl(sc);
+  const googleRev = trimUrl(state.googleReviewsUrl);
+  if (googleRev && isProbablyValidWebUrl(googleRev)) {
+    contact.googleReviewsUrl = normalizeHttpUrl(googleRev);
+  }
+  const yelpRev = trimUrl(state.yelpReviewsUrl);
+  if (yelpRev && isProbablyValidWebUrl(yelpRev)) {
+    contact.yelpReviewsUrl = normalizeHttpUrl(yelpRev);
+  }
+  const extraLinks: NonNullable<ServiciosApplicationDraft["contact"]["extraLinks"]> = [];
+  for (const row of [
+    { url: state.extraLink1Url, label: state.extraLink1Label },
+    { url: state.extraLink2Url, label: state.extraLink2Label },
+  ]) {
+    const rawUrl = trimUrl(row.url);
+    if (!rawUrl || !isProbablyValidWebUrl(rawUrl)) continue;
+    const label = row.label.trim().slice(0, 48);
+    extraLinks.push({
+      url: normalizeHttpUrl(rawUrl),
+      ...(label ? { label } : {}),
+    });
+    if (extraLinks.length >= 2) break;
+  }
+  if (extraLinks.length > 0) contact.extraLinks = extraLinks;
   if (state.enableWhatsapp) {
     const wa = waMeUrl(state.whatsapp);
     const biz = trimUrl(state.whatsappBusinessUrl);
