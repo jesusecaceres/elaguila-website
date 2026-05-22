@@ -14,7 +14,7 @@ export const COMUNIDAD_LANDING_CATEGORY_PILLS: ComunidadLandingCategoryPill[] = 
   { key: "travel", labelEs: "Viajes", labelEn: "Travel" },
   { key: "autos", labelEs: "Autos", labelEn: "Autos" },
   { key: "clases", labelEs: "Clases", labelEn: "Classes" },
-  { key: "comunidad", labelEs: "Comunidad", labelEn: "Community" },
+  { key: "comunidad", labelEs: "Comunidad y Eventos", labelEn: "Community & Events" },
 ];
 
 /** Quick search chips (passed as `q` for lista). */

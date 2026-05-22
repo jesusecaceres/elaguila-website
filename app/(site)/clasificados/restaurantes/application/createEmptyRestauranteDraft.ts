@@ -194,5 +194,16 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   const rawAmenities = (draft as Record<string, unknown>).restaurantAmenities;
   merged.restaurantAmenities = sanitizeRestauranteAmenities(rawAmenities);
   if (!hasAnyRestauranteAmenities(merged.restaurantAmenities)) merged.restaurantAmenities = undefined;
+
+  if (draft.movingVendorStack && typeof draft.movingVendorStack === "object") {
+    merged.movingVendorStack = { ...(base.movingVendorStack ?? {}), ...(draft.movingVendorStack as object) };
+  }
+  if (draft.homeBasedStack && typeof draft.homeBasedStack === "object") {
+    merged.homeBasedStack = { ...(base.homeBasedStack ?? {}), ...(draft.homeBasedStack as object) };
+  }
+  if (draft.cateringEventsStack && typeof draft.cateringEventsStack === "object") {
+    merged.cateringEventsStack = { ...(base.cateringEventsStack ?? {}), ...(draft.cateringEventsStack as object) };
+  }
+
   return merged;
 }

@@ -7,6 +7,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { detailPairsToMap, isCommunityQuickListing } from "../app/(site)/clasificados/community/shared/communityListingDetailPairs";
+import {
+  communityEventDiscoveryExpiryDateKey,
+  isCommunityEventActiveForDiscovery,
+} from "../app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
 import { normalizeSocialUrlForOpen } from "../app/(site)/publicar/community/shared/lib/communityWebsiteAndSocial";
 import { communityGalleryContainsPdf } from "../app/(site)/publicar/community/shared/publish/publishCommunityQuickToListings";
 import {
@@ -186,10 +190,52 @@ function main() {
   const recentListings = readSourceRel("app/(site)/clasificados/components/categoryLanding/CategoryRecentListings.tsx");
   assert.ok(recentListings.includes("CommunityDiscoveryListingCard"));
   assert.ok(recentListings.includes('data-testid="community-discovery-landing-recent"'));
+  assert.ok(recentListings.includes("prepareComunidadDiscoveryRows"));
 
   const resultsClient = readSourceRel("app/(site)/clasificados/community/CommunityListingsResultsClient.tsx");
   assert.ok(resultsClient.includes("CommunityDiscoveryListingCard"));
   assert.ok(resultsClient.includes('data-testid="community-discovery-results-grid"'));
+
+  const expirationHelper = readSourceRel(
+    "app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration.ts",
+  );
+  assert.ok(expirationHelper.includes("Leonix:eventEndDate"));
+  assert.ok(expirationHelper.includes("Leonix:eventDate"));
+  assert.ok(!expirationHelper.includes('pairs["Leonix:weeklyScheduleJson"]'));
+  assert.ok(resultsClient.includes("isCommunityEventActiveForDiscovery"));
+  assert.ok(!resultsClient.includes("weeklyScheduleJson"));
+
+  const hubCopy = readSourceRel("app/(site)/clasificados/config/clasificadosHubCopy.ts");
+  assert.ok(hubCopy.includes("Comunidad y Eventos"));
+  const comunidadLanding = readSourceRel("app/(site)/clasificados/comunidad/page.tsx");
+  assert.ok(comunidadLanding.includes("Comunidad y Eventos"));
+  assert.ok(comunidadLanding.includes('action="/clasificados/comunidad/resultados"'));
+
+  const today = "2026-05-21";
+  const futureEnd = { "Leonix:eventEndDate": "2030-12-01", "Leonix:eventDate": "2020-01-01" };
+  assert.equal(isCommunityEventActiveForDiscovery(futureEnd, today), true);
+  assert.equal(communityEventDiscoveryExpiryDateKey(futureEnd), "2030-12-01");
+
+  const pastEnd = { "Leonix:eventEndDate": "2020-01-01", "Leonix:eventDate": "2030-06-15" };
+  assert.equal(isCommunityEventActiveForDiscovery(pastEnd, today), false);
+
+  const pastStartOnly = { "Leonix:eventDate": "2020-06-01" };
+  assert.equal(isCommunityEventActiveForDiscovery(pastStartOnly, today), false);
+
+  const futureStartOnly = { "Leonix:eventDate": "2030-06-15" };
+  assert.equal(isCommunityEventActiveForDiscovery(futureStartOnly, today), true);
+
+  const endsToday = { "Leonix:eventEndDate": today };
+  assert.equal(isCommunityEventActiveForDiscovery(endsToday, today), true);
+
+  const weeklyOnlyPast = {
+    "Leonix:eventDate": "2020-01-01",
+    "Leonix:weeklyScheduleJson": '[{"day":"mon","closed":false,"open":"10:00","close":"11:00"}]',
+  };
+  assert.equal(isCommunityEventActiveForDiscovery(weeklyOnlyPast, today), false);
+
+  const clasesPairs = { "Leonix:communityKind": "clases", "Leonix:eventDate": "2020-01-01" };
+  assert.equal(isCommunityEventActiveForDiscovery(clasesPairs, today), false);
 
   console.log("community-quick-publish-contract-smoke: PASS");
 }

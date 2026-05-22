@@ -32,7 +32,7 @@ function StarRow({ rating }: { rating: number }) {
             <span className="absolute text-white/35" aria-hidden>
               ★
             </span>
-            <span className="absolute overflow-hidden text-[#f0d78c]" style={{ width: `${pct}%` }} aria-hidden>
+            <span className="absolute overflow-hidden text-[color:var(--lx-gold)]" style={{ width: `${pct}%` }} aria-hidden>
               ★
             </span>
           </span>
@@ -126,9 +126,9 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
   );
   const legacyGallery = (data.gallery?.length ?? 0) > 0;
   const showAbout = Boolean(data.aboutBody?.trim());
-  const showContact = Boolean(data.contactHub?.hasAny) || hasContactContent(data.contact);
+  const showContact = Boolean(data.contactHub?.hasAny);
   const showStacks = (data.stackSections?.length ?? 0) > 0;
-  const showCtas = (data.primaryCtas?.length ?? 0) > 0;
+  const showCtas = !data.contactHub?.hasAny && (data.primaryCtas?.length ?? 0) > 0;
   const hasHeroImg = Boolean(data.heroImageUrl?.trim());
   const showHoursDetail = Boolean(
     data.hoursDetail &&

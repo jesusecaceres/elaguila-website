@@ -55,8 +55,9 @@ export default function RestaurantePreviewClient() {
   const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
   const confirmationsOk = confirmBusinessInfo && confirmPhotosRepresent && confirmCommunityRules;
 
+  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
-  const shellData = useMemo(() => mapRestauranteDraftToShellData(draft), [draft]);
+  const shellData = useMemo(() => mapRestauranteDraftToShellData(draft, { lang }), [draft, lang]);
 
   const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : undefined;
   /** Same normalized shape as storage/API merge — matches what the preview shell maps from (not the POST sanitizer). */
@@ -415,7 +416,7 @@ export default function RestaurantePreviewClient() {
                 borderColor: LEONIX_BORDER 
               }}
             >
-              <RestauranteAdStoryPreview data={shellData} />
+              <RestauranteAdStoryPreview data={shellData} lang={lang} />
             </div>
           </div>
         </ClasificadosPreviewAdCanvas>

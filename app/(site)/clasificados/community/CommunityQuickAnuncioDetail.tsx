@@ -222,7 +222,7 @@ export function CommunityQuickAnuncioDetail({
         </div>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        {chip(category === "clases" ? (L ? "Clases" : "Classes") : L ? "Comunidad" : "Community")}
+        {chip(category === "clases" ? (L ? "Clases" : "Classes") : L ? "Comunidad y Eventos" : "Community & Events")}
         {!isFree && priceLabel ? chip(priceLabel) : isFree ? chip(L ? "Gratis" : "Free") : null}
       </div>
 

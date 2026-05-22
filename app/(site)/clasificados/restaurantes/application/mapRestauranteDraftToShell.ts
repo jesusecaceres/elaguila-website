@@ -35,7 +35,9 @@ import {
   TAXONOMY_KEY_OTHER_LANG,
 } from "./restauranteTaxonomy";
 import { formatPlatilloPriceBadge } from "./restauranteShellDisplayFormat";
-import { buildRestaurantContactHub } from "./buildRestaurantContactHub";
+import { buildRestaurantContactHub, type RestaurantContactHubData } from "./buildRestaurantContactHub";
+import { isValidExternalHttpUrl } from "./restauranteContactHref";
+import { normalizeActionableUrl } from "../lib/urlNormalization";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -274,10 +276,49 @@ function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
     ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
   }
   
-  // Engagement CTAs (not in hero order)
-  ctas.push({ key: "save", label: "Guardar", href: "#guardar" });
-  ctas.push({ key: "share", label: "Compartir", href: "#compartir" });
   return ctas;
+}
+
+/** Public hero: omit contact actions already in `RestaurantContactHub` and placeholder hrefs. */
+export function filterHeroPrimaryCtas(
+  ctas: ShellPrimaryCta[],
+  hub?: RestaurantContactHubData,
+): ShellPrimaryCta[] {
+  const valid = ctas.filter((c) => {
+    const href = c.href?.trim();
+    if (!href || href.startsWith("#")) return false;
+    if (c.key === "save" || c.key === "share") return false;
+    if (c.enabled === false) return false;
+    return true;
+  });
+  if (!hub?.hasAny) return valid;
+
+  const hubHasCall =
+    hub.contactUs.some((b) => b.id === "call") || hub.catering.some((b) => b.id === "catering-call");
+  const hubHasWa =
+    hub.contactUs.some((b) => b.id === "whatsapp") || hub.catering.some((b) => b.id === "catering-wa");
+  const hubHasWebsite = hub.findUs.some((b) => b.id === "website");
+  const hubHasOrder = hub.findUs.some((b) => b.id === "order");
+  const hubHasReserve = hub.findUs.some((b) => b.id === "reserve");
+  const hubHasMenu = hub.findUs.some((b) => b.id === "menu-url" || b.id === "menu-file");
+  const hubHasDirections = Boolean(hub.location?.mapsHref);
+  const hubHasSms = hub.contactUs.some((b) => b.id === "sms");
+  const hubHasEmail = hub.contactUs.some((b) => b.id === "email");
+
+  return valid.filter((c) => {
+    if (c.key === "call" && hubHasCall) return false;
+    if (c.key === "whatsapp" && hubHasWa) return false;
+    if (c.key === "website" && hubHasWebsite) return false;
+    if (c.key === "order" && hubHasOrder) return false;
+    if (c.key === "reserve" && hubHasReserve) return false;
+    if ((c.key === "menu" || c.key === "menuAsset") && hubHasMenu) return false;
+    if (c.key === "directions" && hubHasDirections) return false;
+    if (c.key === "message") {
+      if (/^mailto:/i.test(c.href) && hubHasEmail) return false;
+      if (/^sms:/i.test(c.href) && hubHasSms) return false;
+    }
+    return true;
+  });
 }
 
 /** Video único en vista previa: archivo local tiene precedencia sobre URL externa. */
@@ -420,7 +461,13 @@ function buildStacks(d: RestauranteListingDraft): ShellStackSection[] {
       if (nonEmpty(v)) rows.push({ label, value: v!.trim() });
     };
     add("Ubicación actual", m.currentLocationText);
-    if (nonEmpty(m.currentLocationUrl)) rows.push({ label: "Enlace", value: m.currentLocationUrl!.trim() });
+    const locUrl = m.currentLocationUrl?.trim();
+    const locUrlNormalized = locUrl ? normalizeActionableUrl(locUrl) ?? normalizeUrl(locUrl) : "";
+    const hubShowsCurrentLocation =
+      d.movingVendor && locUrlNormalized && isValidExternalHttpUrl(locUrlNormalized);
+    if (nonEmpty(locUrl) && !hubShowsCurrentLocation) {
+      rows.push({ label: "Enlace", value: locUrl! });
+    }
     if (m.activeNow != null) rows.push({ label: "Activo ahora", value: m.activeNow ? "Sí" : "No" });
     add("Horario de hoy", m.todayHoursText);
     add("Próxima parada", m.nextStopText);
@@ -516,7 +563,11 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
   return true;
 }
 
-export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): RestaurantDetailShellData {
+export function mapRestauranteDraftToShellData(
+  d: RestauranteListingDraft,
+  options?: { lang?: "es" | "en" },
+): RestaurantDetailShellData {
+  const lang = options?.lang ?? "es";
   // Create weekly hours structure from individual day fields
   const weeklyHours = {
     monday: d.monday,
@@ -560,8 +611,9 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
   const menuHref = hasMenuUrl ? normalizeUrl(d.menuUrl!) : hasMenuFile ? d.menuFile! : "";
   const venueGallery = buildVenueGalleryFromDraft(d);
   const contact = buildContact(d);
-  const contactHub = buildRestaurantContactHub(d, "es");
+  const contactHub = buildRestaurantContactHub(d, lang);
   const stacks = buildStacks(d);
+  const primaryCtas = filterHeroPrimaryCtas(buildPrimaryCtas(d), contactHub);
   const trustRating =
     d.externalRatingValue != null && d.externalReviewCount != null
       ? { average: Math.min(5, Math.max(0, d.externalRatingValue)), count: Math.max(0, Math.floor(d.externalReviewCount)) }
@@ -586,7 +638,7 @@ export function mapRestauranteDraftToShellData(d: RestauranteListingDraft): Rest
     seeHoursLabel: "Ver horarios",
     seeHoursHref: "#horarios-detalle",
     hoursDetail: buildHoursDetail(d),
-    primaryCtas: buildPrimaryCtas(d),
+    primaryCtas,
     quickInfo: quick.length ? quick : undefined,
     menuHighlights: dishes.length ? dishes : undefined,
     fullMenuCta: menuHref

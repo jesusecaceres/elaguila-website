@@ -167,8 +167,8 @@ export const CLASSIFIEDS_OPS_CONTRACTS: ClassifiedsCategoryOpsContract[] = [
   },
   {
     slug: "comunidad",
-    displayLabelEs: "Comunidad",
-    displayLabelEn: "Community",
+    displayLabelEs: "Comunidad y Eventos",
+    displayLabelEn: "Community & Events",
     opsKind: "listings",
     writableTable: "listings",
     leonixPrefix: "COM",

@@ -2,7 +2,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 export const BUSCO_FORM_COPY = {
   es: {
-    pageSubtitle: "Completa los datos de tu solicitud. Revisa la vista previa antes de publicar (próximamente).",
+    pageSubtitle: "Completa los datos de tu solicitud y revisa la vista previa antes de publicar.",
     sections: {
       main: "Tu solicitud",
       location: "Ubicación",
@@ -28,7 +28,7 @@ export const BUSCO_FORM_COPY = {
     contactHint: "Indica al menos teléfono/WhatsApp o correo para que te puedan contactar.",
   },
   en: {
-    pageSubtitle: "Fill in your request details. Review the preview before publishing (coming soon).",
+    pageSubtitle: "Fill in your request details and review the preview before publishing.",
     sections: {
       main: "Your request",
       location: "Location",

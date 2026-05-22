@@ -389,7 +389,7 @@ export default function AnuncioDetallePage() {
       servicios: { es: "Servicios", en: "Services" },
       empleos: { es: "Empleos", en: "Jobs" },
       clases: { es: "Clases", en: "Classes" },
-      comunidad: { es: "Comunidad", en: "Community" },
+      comunidad: { es: "Comunidad y Eventos", en: "Community & Events" },
       busco: { es: "Busco / Se busca", en: "Wanted / Looking for" },
       travel: { es: "Viajes", en: "Travel" },
     };

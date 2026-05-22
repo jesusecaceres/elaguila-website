@@ -86,15 +86,17 @@ export default function BuscoQuickPreviewClient() {
 
   if (!draft) {
     return (
-      <div className="min-h-screen bg-[#F4EFE6] px-4 py-16 text-center">
-        <p className="text-sm text-[#5C5346]">{t.noDraft}</p>
-        <Link
-          href={editHref}
-          className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5]"
-        >
-          {t.backToForm}
-        </Link>
-      </div>
+      <BuscoShellLayout lang={lang}>
+        <section className="rounded-2xl border border-dashed border-[#B8C8EA]/45 bg-[#F8FAFF]/90 px-4 py-10 text-center">
+          <p className="text-sm font-semibold text-[#1E1810]">{t.noDraft}</p>
+          <Link
+            href={editHref}
+            className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95"
+          >
+            {t.backToForm}
+          </Link>
+        </section>
+      </BuscoShellLayout>
     );
   }
 

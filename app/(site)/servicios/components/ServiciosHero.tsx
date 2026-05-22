@@ -22,22 +22,9 @@ function buildHeroMetadataLine(profile: ServiciosProfileResolved): string | null
 export function ServiciosHero({
   profile,
   lang,
-  engagementListingId = null,
-  engagementOwnerUserId = null,
-  listingShareUrl,
-  persistListingEngagement = false,
-  publicLikeCount,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
-  engagementListingId?: string | null;
-  engagementOwnerUserId?: string | null;
-  /** Absolute listing URL for share copy / native share (SSR when available). */
-  listingShareUrl?: string;
-  /** When true, Like/Save/Share write to engagement + analytics (stable listing key from vitrina). */
-  persistListingEngagement?: boolean;
-  /** SSR count from `user_liked_listings` (same key as Like); optional so previews omit. */
-  publicLikeCount?: number;
 }) {
   const { identity, hero } = profile;
   const about = profile.about;

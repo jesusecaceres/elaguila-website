@@ -20,9 +20,9 @@ const COMUNIDAD_HERO_IMAGE = "/logo.png";
 
 const COPY = {
   es: {
-    eyebrow: "Comunidad · Leonix",
-    title: "Comunidad",
-    subtitle: "Eventos, avisos y conexión local.",
+    eyebrow: "Comunidad y Eventos · Leonix",
+    title: "Comunidad y Eventos",
+    subtitle: "Eventos, avisos, recursos y conexión local.",
     searchPlaceholder: "Buscar: eventos, ayuda, avisos…",
     locationPlaceholder: "Ciudad o ZIP",
     buttonView: "Ver anuncios",
@@ -34,9 +34,9 @@ const COPY = {
     heroImageAlt: "Personas reunidas en la comunidad",
   },
   en: {
-    eyebrow: "Community · Leonix",
-    title: "Community",
-    subtitle: "Events, notices and local connection.",
+    eyebrow: "Community & Events · Leonix",
+    title: "Community & Events",
+    subtitle: "Events, notices, resources and local connection.",
     searchPlaceholder: "Search: events, help, notices…",
     locationPlaceholder: "City or ZIP",
     buttonView: "View listings",
@@ -176,8 +176,8 @@ export default function Page() {
           title={lang === "es" ? "Anuncios recientes" : "Recent listings"}
           emptyNote={
             lang === "es"
-              ? "Aún no hay eventos de comunidad publicados en Leonix Clasificados."
-              : "No community events published on Leonix Clasificados yet."
+              ? "Aún no hay eventos de Comunidad y Eventos publicados en Leonix Clasificados."
+              : "No Community & Events listings published on Leonix Clasificados yet."
           }
           errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
         />

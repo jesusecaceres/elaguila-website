@@ -90,10 +90,6 @@ function pushUniqueButton(list: RestaurantHubButton[], btn: RestaurantHubButton 
 
 export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es" | "en" = "es"): RestaurantContactHubData | undefined {
   const businessName = nonEmpty(d.businessName) ? d.businessName!.trim() : "";
-  const contactShareExtras = {
-    email: d.email?.trim() || undefined,
-    websiteUrl: nonEmpty(d.websiteUrl) ? normalizeRestaurantUrl(d.websiteUrl!) : undefined,
-  };
 
   const contactUs: RestaurantHubButton[] = [];
   if (nonEmpty(d.phoneNumber)) {

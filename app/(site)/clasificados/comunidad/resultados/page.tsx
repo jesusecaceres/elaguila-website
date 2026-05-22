@@ -11,11 +11,11 @@ export default function ComunidadResultadosPage() {
     >
       <CommunityListingsResultsClient
         category="comunidad"
-        pageTitleEs="Eventos de comunidad"
-        pageTitleEn="Community events"
+        pageTitleEs="Comunidad y Eventos"
+        pageTitleEn="Community & Events"
         backLandingHref="/clasificados/comunidad"
-        backLandingLabelEs="Volver a Comunidad"
-        backLandingLabelEn="Back to Community"
+        backLandingLabelEs="Volver a Comunidad y Eventos"
+        backLandingLabelEn="Back to Community & Events"
       />
     </Suspense>
   );

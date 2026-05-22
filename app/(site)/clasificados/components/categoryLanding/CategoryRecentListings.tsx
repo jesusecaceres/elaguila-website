@@ -7,6 +7,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
 import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import { prepareComunidadDiscoveryRows } from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
 import {
   fetchPublishedCommunityCategoryListings,
   type CommunityListingBrowseRow,
@@ -27,13 +28,17 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { rows: data, error } = await fetchPublishedCommunityCategoryListings(category, 8);
+    const fetchLimit = category === "comunidad" ? 120 : 8;
+    const { rows: data, error } = await fetchPublishedCommunityCategoryListings(category, fetchLimit);
     if (error) {
       setErr(error);
       setRows([]);
     } else {
       setErr(null);
-      setRows(data.filter((r) => r.id));
+      const withIds = data.filter((r) => r.id);
+      const visible =
+        category === "comunidad" ? prepareComunidadDiscoveryRows(withIds, { limit: 8 }) : withIds.slice(0, 8);
+      setRows(visible);
     }
     setLoading(false);
   }, [category]);

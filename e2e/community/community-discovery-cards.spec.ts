@@ -60,8 +60,10 @@ test.describe("Clases y Comunidad discovery cards", () => {
     }
   });
 
-  test("comunidad landing shows discovery recent section", async ({ page }) => {
+  test("comunidad landing shows Comunidad y Eventos copy and discovery recent section", async ({ page }) => {
     await page.goto("/clasificados/comunidad?lang=es");
+    await expect(page.getByRole("heading", { name: "Comunidad y Eventos" })).toBeVisible({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/clasificados\/comunidad/);
     await expect(page.getByTestId("community-discovery-landing-recent")).toBeVisible({ timeout: 30_000 });
     await assertNoNorCalOrRawSocial(page);
     const cards = page.getByTestId("community-discovery-listing-card");
@@ -72,8 +74,10 @@ test.describe("Clases y Comunidad discovery cards", () => {
     }
   });
 
-  test("comunidad results shows discovery grid or empty state", async ({ page }) => {
+  test("comunidad results shows Comunidad y Eventos copy and discovery grid or empty state", async ({ page }) => {
     await page.goto("/clasificados/comunidad/resultados?lang=es");
+    await expect(page.getByRole("heading", { name: "Comunidad y Eventos" })).toBeVisible({ timeout: 30_000 });
+    await expect(page).toHaveURL(/\/clasificados\/comunidad\/resultados/);
     await assertNoNorCalOrRawSocial(page);
     const grid = page.getByTestId("community-discovery-results-grid");
     const empty = page.getByText(/No hay anuncios con estos filtros|No listings match these filters/i);
@@ -85,6 +89,12 @@ test.describe("Clases y Comunidad discovery cards", () => {
         await assertDiscoveryCardPhotoLoads(cards.first());
       }
     }
+  });
+
+  test("clases landing title unchanged (Clases, not Comunidad y Eventos)", async ({ page }) => {
+    await page.goto("/clasificados/clases?lang=es");
+    await expect(page.getByRole("heading", { name: /^Clases$/ })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Comunidad y Eventos" })).toHaveCount(0);
   });
 
   test("clases results search finds organizer text", async ({ page }) => {

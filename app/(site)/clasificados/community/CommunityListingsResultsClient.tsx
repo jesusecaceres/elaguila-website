@@ -16,6 +16,10 @@ import {
   buildCommunityDiscoverySearchBlob,
 } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
 import {
+  isCommunityEventActiveForDiscovery,
+  sortComunidadDiscoveryRows,
+} from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
+import {
   fetchPublishedCommunityCategoryListings,
   type CommunityListingBrowseRow,
 } from "@/app/(site)/clasificados/community/shared/communityListingsBrowseClient";
@@ -89,8 +93,9 @@ export function CommunityListingsResultsClient({
   }, [reload]);
 
   const filtered = useMemo(() => {
-    return rows.filter((row) => {
+    const list = rows.filter((row) => {
       const pairs = detailPairsToMap(row.detail_pairs);
+      if (category === "comunidad" && !isCommunityEventActiveForDiscovery(pairs)) return false;
       const quick = isCommunityQuickListing(pairs);
       const blob = buildCommunityDiscoverySearchBlob(row, category, pairs, lang);
       if (!textMatch(blob, q)) return false;
@@ -175,6 +180,7 @@ export function CommunityListingsResultsClient({
       }
       return true;
     });
+    return category === "comunidad" ? sortComunidadDiscoveryRows(list) : list;
   }, [
     rows,
     q,

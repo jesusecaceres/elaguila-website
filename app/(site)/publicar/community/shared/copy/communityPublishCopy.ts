@@ -197,7 +197,7 @@ export const COMUNIDAD_QUICK_COPY = {
   es: {
     pageTitle: "Evento comunitario rápido",
     pageSubtitle:
-      "Completa cada sección. Publicar en Comunidad es gratis. La vista previa y la publicación están al final.",
+      "Completa cada sección. Publicar en Comunidad y Eventos es gratis. La vista previa y la publicación están al final.",
     sections: {
       main: "1. Información principal",
       cost: "2. Costo del evento",
@@ -244,12 +244,12 @@ export const COMUNIDAD_QUICK_COPY = {
     primaryCtaHint:
       "La acción principal es la que destacamos primero; el resto de datos seguirá visible.",
     freePostingNotice:
-      "Publicar en Comunidad es siempre gratis. El evento puede ser gratis, pagado o con donación.",
+      "Publicar en Comunidad y Eventos es siempre gratis. El evento puede ser gratis, pagado o con donación.",
   },
   en: {
     pageTitle: "Quick community event",
     pageSubtitle:
-      "Complete each section. Posting in Community is free. Preview and publish are at the bottom.",
+      "Complete each section. Posting in Community & Events is free. Preview and publish are at the bottom.",
     sections: {
       main: "1. Main details",
       cost: "2. Event cost",
@@ -296,7 +296,7 @@ export const COMUNIDAD_QUICK_COPY = {
     primaryCtaHint:
       "We highlight one primary action first; any other contact details you add stay visible.",
     freePostingNotice:
-      "Posting in Community is always free. The event itself may be free, paid, or by donation.",
+      "Posting in Community & Events is always free. The event itself may be free, paid, or by donation.",
   },
 } as const;
 

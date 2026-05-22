@@ -61,7 +61,7 @@ export const categoryConfig: Record<CategoryKey, CategoryConfig> = {
     futureFilters: ["level", "schedule"],
   },
   comunidad: {
-    label: { es: "Comunidad", en: "Community" },
+    label: { es: "Comunidad y Eventos", en: "Community & Events" },
     futureFilters: ["location"],
   },
   busco: {

@@ -108,17 +108,12 @@ export function RestauranteAdStoryPreview({
   const hasTrustInfo = data.trustRating || data.trustLight;
   const hasStackSections = data.stackSections && data.stackSections.length > 0;
 
-  // CTA data extraction
   const primaryCtas = data.primaryCtas || [];
-  const contactCtas = primaryCtas.filter(cta => 
-    ['call', 'whatsapp', 'message', 'website'].includes(cta.key)
-  );
-  const actionCtas = primaryCtas.filter(cta => 
-    ['menu', 'menuAsset', 'reserve', 'order'].includes(cta.key)
-  );
+  const hubHandlesContact = Boolean(data.contactHub?.hasAny);
 
-  /** Mobile hero: Llamar → Sitio web → Direcciones → WhatsApp; omit WhatsApp when no href. */
+  /** Mobile hero quick actions — omitted when contact hub owns contact CTAs. */
   const mobileHeroPrimaryCtas = useMemo(() => {
+    if (hubHandlesContact) return [];
     const want = new Set(["call", "website", "directions", "whatsapp"]);
     const filtered = primaryCtas.filter(
       (c) => want.has(c.key) && c.href?.trim() && c.enabled !== false,
@@ -129,7 +124,19 @@ export function RestauranteAdStoryPreview({
     }
     const order = ["call", "website", "directions", "whatsapp"] as const;
     return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
-  }, [primaryCtas]);
+  }, [primaryCtas, hubHandlesContact]);
+
+  const desktopHeroPrimaryCtas = useMemo(() => {
+    if (hubHandlesContact) return [];
+    return primaryCtas
+      .filter(
+        (cta) =>
+          ["call", "website", "directions", "whatsapp", "order", "reserve"].includes(cta.key) &&
+          cta.href?.trim() &&
+          cta.enabled !== false,
+      )
+      .slice(0, 6);
+  }, [primaryCtas, hubHandlesContact]);
 
   const neighborhoodDisplay = data.quickInfo?.find((item) => item.key === "neighborhood")?.value || "";
 
@@ -142,9 +149,14 @@ export function RestauranteAdStoryPreview({
   }, [data.hoursDetail]);
 
   const renderStackValue = (row: { label: string; value: string }) => {
+    if (row.label === "Enlace" && data.contactHub?.findUs.some((b) => b.id === "current-location")) {
+      return (
+        <span className="break-words text-[color:var(--lx-text-2)]">
+          {lang === "en" ? "Use “See where we are today” in contact." : "Usa «Ver dónde está hoy» en contacto."}
+        </span>
+      );
+    }
     const isClickableField =
-      row.label.includes("Ubicación actual") ||
-      row.label.includes("Enlace") ||
       row.label.includes("Ruta semanal") ||
       row.label.includes("Solicitud") ||
       row.label.includes("cotización");
@@ -267,7 +279,7 @@ export function RestauranteAdStoryPreview({
                 </div>
 
                 <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
-                  {data.contact?.instagramHref ? (
+                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.instagramHref ? (
                     <a
                       href={data.contact.instagramHref}
                       target="_blank"
@@ -278,7 +290,7 @@ export function RestauranteAdStoryPreview({
                       <FiInstagram className="h-3 w-3" />
                     </a>
                   ) : null}
-                  {data.contact?.facebookHref ? (
+                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.facebookHref ? (
                     <a
                       href={data.contact.facebookHref}
                       target="_blank"
@@ -289,7 +301,7 @@ export function RestauranteAdStoryPreview({
                       <FiFacebook className="h-3 w-3" />
                     </a>
                   ) : null}
-                  {data.contact?.tiktokHref ? (
+                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.tiktokHref ? (
                     <a
                       href={data.contact.tiktokHref}
                       target="_blank"
@@ -300,7 +312,7 @@ export function RestauranteAdStoryPreview({
                       <FaTiktok className="h-3 w-3" />
                     </a>
                   ) : null}
-                  {data.contact?.youtubeHref ? (
+                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.youtubeHref ? (
                     <a
                       href={data.contact.youtubeHref}
                       target="_blank"
@@ -441,12 +453,9 @@ export function RestauranteAdStoryPreview({
                   </div>
                 )}
                 
-                {/* Hero CTA row */}
+                {desktopHeroPrimaryCtas.length > 0 ? (
                 <div className="flex flex-wrap justify-center gap-3 pt-4">
-                  {primaryCtas
-                    .filter(cta => ['call', 'website', 'directions', 'whatsapp', 'order', 'reserve'].includes(cta.key))
-                    .slice(0, 6)
-                    .map((cta, index) => {
+                  {desktopHeroPrimaryCtas.map((cta, index) => {
                       const isPrimary = index === 0;
                       const buttonClass = isPrimary 
                         ? "bg-white text-[#1F1A17] border-white hover:bg-gray-100 shadow-lg" 
@@ -470,6 +479,7 @@ export function RestauranteAdStoryPreview({
                       );
                     })}
                 </div>
+                ) : null}
               </div>
             </div>
             <div className="absolute top-4 right-4 z-20 hidden md:block">
@@ -580,12 +590,9 @@ export function RestauranteAdStoryPreview({
                 </div>
               )}
               
-              {/* Hero CTA row */}
+              {desktopHeroPrimaryCtas.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-3 pt-4">
-                {primaryCtas
-                  .filter(cta => ['call', 'website', 'directions', 'whatsapp', 'order', 'reserve'].includes(cta.key))
-                  .slice(0, 6)
-                  .map((cta, index) => {
+                {desktopHeroPrimaryCtas.map((cta, index) => {
                     const isPrimary = index === 0;
                     const buttonClass = isPrimary 
                       ? "bg-[#2C1810] text-white border-[#2C1810] hover:bg-[#1A1412] shadow-md" 
@@ -609,6 +616,7 @@ export function RestauranteAdStoryPreview({
                     );
                   })}
               </div>
+              ) : null}
             </div>
           </div>
         )}
@@ -649,9 +657,11 @@ export function RestauranteAdStoryPreview({
 
       {/* C. Contact and Location Zone */}
       {hasContactInfo && (
-        <section className={SECTION_CARD}>
+        <section className="overflow-hidden rounded-3xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-sm">
           <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Contacto y Ubicación</h2>
+            <h2 className="mb-4 text-xl font-bold tracking-tight text-[color:var(--lx-text)] md:mb-6 md:text-2xl">
+              Contacto y Ubicación
+            </h2>
             {data.contactHub ? (
               <RestaurantContactHub
                 hub={data.contactHub}

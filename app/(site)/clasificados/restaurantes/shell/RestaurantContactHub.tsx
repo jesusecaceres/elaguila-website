@@ -29,6 +29,7 @@ import {
 } from "@/app/components/cta";
 import type { RestaurantContactHubData, RestaurantHubButton } from "../application/buildRestaurantContactHub";
 import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
+import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 
 const SECTION_HEAD =
   "text-[11px] font-extrabold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]";
@@ -37,7 +38,7 @@ const BTN =
   "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] active:scale-[0.99]";
 
 const BTN_PRIMARY =
-  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[color:var(--lx-card)] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.35)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
+  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[color:var(--lx-card)] shadow-md transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
 
 const SOCIAL_BTN =
   "inline-flex h-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]";
@@ -292,6 +293,7 @@ export function RestaurantContactHub({
                 </p>
               ) : null}
             </div>
+            <RestaurantContactHubFauxMap />
             {hub.location.mapsHref ? (
               <button type="button" className={BTN_PRIMARY} onClick={(e) => openMaps(hub.location!.mapsHref!, e)}>
                 <FiMapPin className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
