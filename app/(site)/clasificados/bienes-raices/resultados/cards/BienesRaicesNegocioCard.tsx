@@ -30,32 +30,43 @@ function operationKind(listing: BrNegocioListing): "venta" | "renta" | null {
   return null;
 }
 
+function isMissingBrCardFact(value: string | undefined): boolean {
+  const t = (value ?? "").trim();
+  return !t || t === "—" || t === "-";
+}
+
 function FactsRow({ listing }: { listing: BrNegocioListing }) {
+  const facts: { key: string; icon: typeof IconBed; label: string }[] = [];
+  if (!isMissingBrCardFact(listing.beds)) {
+    facts.push({ key: "beds", icon: IconBed, label: listing.beds });
+  }
+  if (!isMissingBrCardFact(listing.baths)) {
+    facts.push({ key: "baths", icon: IconBath, label: listing.baths });
+  }
+  if (!isMissingBrCardFact(listing.sqft)) {
+    facts.push({ key: "sqft", icon: IconRuler, label: listing.sqft });
+  }
+  if (listing.year) {
+    facts.push({ key: "year", icon: IconCalendar, label: String(listing.year) });
+  }
+  if (facts.length === 0) return null;
+
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] font-medium text-[#3D3630]/88">
-      <span className="inline-flex items-center gap-1.5">
-        <IconBed className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#B8954A]" />
-        <span>{listing.beds}</span>
-      </span>
-      <span className="hidden h-3.5 w-px bg-[#E8DFD0] sm:inline" aria-hidden />
-      <span className="inline-flex items-center gap-1.5">
-        <IconBath className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#B8954A]" />
-        <span>{listing.baths}</span>
-      </span>
-      <span className="hidden h-3.5 w-px bg-[#E8DFD0] sm:inline" aria-hidden />
-      <span className="inline-flex items-center gap-1.5">
-        <IconRuler className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#B8954A]" />
-        <span>{listing.sqft}</span>
-      </span>
-      {listing.year ? (
-        <>
-          <span className="hidden h-3.5 w-px bg-[#E8DFD0] sm:inline" aria-hidden />
-          <span className="inline-flex items-center gap-1.5">
-            <IconCalendar className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#B8954A]" />
-            <span>{listing.year}</span>
+      {facts.map((fact, i) => {
+        const Icon = fact.icon;
+        return (
+          <span key={fact.key} className="inline-flex items-center gap-1.5">
+            {i > 0 ? (
+              <>
+                <span className="hidden h-3.5 w-px bg-[#E8DFD0] sm:inline" aria-hidden />
+              </>
+            ) : null}
+            <Icon className="h-[1.05rem] w-[1.05rem] shrink-0 text-[#B8954A]" />
+            <span>{fact.label}</span>
           </span>
-        </>
-      ) : null}
+        );
+      })}
     </div>
   );
 }

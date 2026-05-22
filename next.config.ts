@@ -75,6 +75,11 @@ const nextConfig: NextConfig = {
         destination: "/clasificados/bienes-raices/resultados",
         permanent: true,
       },
+      {
+        source: "/clasificados/en-venta/resultados",
+        destination: "/clasificados/en-venta/results",
+        permanent: true,
+      },
     ];
   },
 

@@ -29,6 +29,11 @@ function operationKind(listing: BrNegocioListing): "venta" | "renta" | null {
   return null;
 }
 
+function isMissingBrCardFact(value: string | undefined): boolean {
+  const t = (value ?? "").trim();
+  return !t || t === "—" || t === "-";
+}
+
 export function BienesRaicesNegocioFeaturedCard({
   listing,
   titleAsLink = true,
@@ -80,18 +85,24 @@ export function BienesRaicesNegocioFeaturedCard({
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#E8DFD0]/70 bg-[#FFFCF7]/95 px-5 py-4">
             <p className="text-2xl font-bold tracking-tight text-[#B8954A] sm:text-3xl">{listing.price}</p>
             <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-[#3D3630]/88">
-              <span className="inline-flex items-center gap-1.5">
-                <IconBed className="text-[#B8954A]" />
-                {listing.beds}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <IconBath className="text-[#B8954A]" />
-                {listing.baths}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <IconRuler className="text-[#B8954A]" />
-                {listing.sqft}
-              </span>
+              {!isMissingBrCardFact(listing.beds) ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <IconBed className="text-[#B8954A]" />
+                  {listing.beds}
+                </span>
+              ) : null}
+              {!isMissingBrCardFact(listing.baths) ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <IconBath className="text-[#B8954A]" />
+                  {listing.baths}
+                </span>
+              ) : null}
+              {!isMissingBrCardFact(listing.sqft) ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <IconRuler className="text-[#B8954A]" />
+                  {listing.sqft}
+                </span>
+              ) : null}
               {listing.year ? (
                 <span className="inline-flex items-center gap-1.5">
                   <IconCalendar className="text-[#B8954A]" />
