@@ -20,6 +20,7 @@ import {
   formatSalesRepAttribution,
   getPackageEntitlementDashboardSnapshot,
 } from "../_lib/packageEntitlementData";
+import { getPromoCodeDashboardSnapshot } from "../_lib/promoCodeData";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
@@ -37,9 +38,10 @@ export default async function AdminHomePage() {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const locale: string = lang === "es" ? "es-MX" : "en-US";
-  const [snap, entSnap, registry] = await Promise.all([
+  const [snap, entSnap, promoSnap, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
     getPackageEntitlementDashboardSnapshot(),
+    getPromoCodeDashboardSnapshot(),
     getClasificadosCategoryRegistryMerged(),
   ]);
   const regSum = summarizeRegistryForDashboard(registry);
@@ -106,6 +108,40 @@ export default async function AdminHomePage() {
             actionLabel={m("dashboard.entitlementsViewAll")}
             actionHref="/admin/workspace/package-entitlements"
             actionTitle={m("dashboard.entitlementsViewAllTitle")}
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <AdminStatCard
+            title={m("dashboard.promoCodesActiveTitle")}
+            value={promoSnap.dataUnavailable ? "—" : promoSnap.activeCount}
+            hint={
+              promoSnap.dataUnavailable
+                ? (promoSnap.dataUnavailableNote ?? m("dashboard.promoCodesMigrateHint"))
+                : m("dashboard.promoCodesActiveHint")
+            }
+            icon="🏷️"
+            actionLabel={m("dashboard.promoCodesViewAll")}
+            actionHref="/admin/workspace/promo-codes"
+            actionTitle={m("dashboard.promoCodesViewAllTitle")}
+          />
+          <AdminStatCard
+            title={m("dashboard.promoCodesExpiringTitle")}
+            value={promoSnap.dataUnavailable ? "—" : promoSnap.expiringSoonCount}
+            hint={m("dashboard.promoCodesExpiringHint")}
+            icon="⏳"
+            actionLabel={m("dashboard.promoCodesViewAll")}
+            actionHref="/admin/workspace/promo-codes"
+            actionTitle={m("dashboard.promoCodesViewAllTitle")}
+          />
+          <AdminStatCard
+            title={m("dashboard.promoCodesInactiveTitle")}
+            value={promoSnap.dataUnavailable ? "—" : promoSnap.revokedOrExpiredCount}
+            hint={m("dashboard.promoCodesInactiveHint")}
+            icon="⊘"
+            actionLabel={m("dashboard.promoCodesViewAll")}
+            actionHref="/admin/workspace/promo-codes"
+            actionTitle={m("dashboard.promoCodesViewAllTitle")}
           />
         </div>
 

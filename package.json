@@ -32,6 +32,7 @@
     "verify:admin-package-entitlement-generator": "node scripts/verify-admin-package-entitlement-generator.mjs",
     "verify:pricing-promo-code-sales-model": "node scripts/verify-pricing-promo-code-sales-model.mjs",
     "verify:admin-pricing-promo-generator-ui": "node scripts/verify-admin-pricing-promo-generator-ui.mjs",
+    "verify:admin-promo-code-lifecycle": "node scripts/verify-admin-promo-code-lifecycle.mjs",
     "build:admin-gate": "npm run build && npm run audit:admin-language",
     "dup:guard": "node scripts/dup-guard.js",
     "autos:phase4-audit": "npx tsx scripts/autos-phase-4-durable-video-audit.ts",

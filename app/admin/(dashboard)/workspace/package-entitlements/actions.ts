@@ -9,6 +9,7 @@ import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { buildEntitlementPricingMetadata } from "@/app/admin/_lib/buildEntitlementPricingMetadata";
 import { PREMIUM_INVENTORY_SOFT_CAP } from "@/app/admin/_lib/packageEntitlementConstants";
 import { countActivePremiumEntitlements } from "@/app/admin/_lib/packageEntitlementData";
+import { upsertPromoCodeFromPackageEntitlement } from "@/app/admin/_lib/promoCodeData";
 import {
   getPackageEntitlementBenefits,
   normalizePackageEntitlementTier,
@@ -197,6 +198,40 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     redirectWith({ error: "insert_failed", detail: error.message.slice(0, 120) });
   }
 
+  const entitlementId = data?.id ? String((data as { id: string }).id) : null;
+  if (entitlementId) {
+    const promoLink = await upsertPromoCodeFromPackageEntitlement({
+      entitlementId,
+      code: entitlementCode,
+      codeType: promoCodeType,
+      packageTier: tier,
+      contractTerm,
+      category,
+      listingSource,
+      listingId,
+      customerName,
+      businessName,
+      salesRepId,
+      salesRepName,
+      startsAt,
+      endsAt,
+      promoRule: pricingSnapshot.promo_rule as Record<string, unknown>,
+      pricingMetadata: pricingSnapshot.pricing as Record<string, unknown>,
+    });
+    if (!promoLink.ok) {
+      const supabasePatch = getAdminSupabase();
+      await supabasePatch
+        .from("listing_package_entitlements")
+        .update({
+          metadata: mergeMetadata(metadata, {
+            promo_code_link_gap: promoLink.error ?? "leonix_promo_codes unavailable",
+          }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", entitlementId);
+    }
+  }
+
   void appendAdminAuditLog({
     action: "package_entitlement_created",
     targetType: "listing_package_entitlement",
@@ -213,6 +248,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
 
   revalidatePath("/admin");
   revalidatePath("/admin/workspace/package-entitlements");
+  revalidatePath("/admin/workspace/promo-codes");
   redirectWith({ created: "1", code: entitlementCode });
 }
 

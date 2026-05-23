@@ -156,6 +156,30 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6F-STACK — Promo Code Lifecycle Manager
+
+**Route:** `/admin/workspace/promo-codes`
+
+### Automated
+
+- `npm run verify:admin-promo-code-lifecycle`
+- `npm run verify:admin-package-entitlement-generator` (linkage on entitlement create)
+
+### Manual smoke
+
+1. Page shows **not the public Cupones CMS** helper copy.
+2. Create code with blank field → generated `LX-PROMO-…` row appears in list.
+3. Search by code / business / sales rep; filter by category, type, status.
+4. Preview shows non-stackable, one-time, owner approval, discount/entitlement capabilities.
+5. **Revocar** sets revoked status (row remains).
+6. Create package entitlement → matching promo row linked (or `promo_code_link_gap` in metadata if table missing).
+7. Cupones CMS `/admin/workspace/cupones` unchanged.
+8. No public redemption URL, no Stripe checkout UI.
+
+**Docs:** `docs/promo-code-lifecycle-model.md`
+
+---
+
 ## Gate G1.6E — Admin Pricing / Promo Generator Preview
 
 **Route:** `/admin/workspace/package-entitlements`

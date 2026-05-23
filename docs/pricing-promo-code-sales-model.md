@@ -141,11 +141,25 @@ Verify: `npm run verify:admin-pricing-promo-generator-ui`
 
 ---
 
+## 10b. Gate G1.6F — Promo code lifecycle table + Admin manager
+
+- **Table:** `public.leonix_promo_codes` — operational promo rows (status, type, dates, redemption counts, sales rep, customer email/phone, optional `package_entitlement_id`).
+- **Admin:** `/admin/workspace/promo-codes` — create, list, search/filter, revoke (no hard delete). States clearly this is **not** the public Cupones CMS.
+- **Linkage:** Package entitlement create best-effort upserts a matching promo row (`metadata.source = package_entitlement_generator`).
+- **Still later:** public redemption, Stripe Checkout, commission payout ledger, Servicios public ranking.
+
+See [`promo-code-lifecycle-model.md`](./promo-code-lifecycle-model.md).
+
+Verify: `npm run verify:admin-promo-code-lifecycle`
+
+---
+
 ## 11. Verification
 
 ```bash
 npm run verify:pricing-promo-code-sales-model
 npm run verify:admin-pricing-promo-generator-ui
+npm run verify:admin-promo-code-lifecycle
 ```
 
 ---
