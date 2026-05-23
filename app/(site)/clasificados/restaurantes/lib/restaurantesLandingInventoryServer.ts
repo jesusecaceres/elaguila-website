@@ -11,6 +11,11 @@ import {
   isSupabaseAdminConfigured,
   tryListRestaurantesPublicListingsFromDb,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { hydratePublicRowsWithActivePackageEntitlements } from "@/app/lib/listingPlans/listingPackageEntitlementsServer";
+import {
+  packageEntitlementGrantsDestacado,
+  resolveListingPlacementEntitlement,
+} from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import {
   selectLandingDestacadosCandidates,
   selectLandingRecientesCandidates,
@@ -65,8 +70,19 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
     };
   }
 
-  const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows);
-  const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(listed.rows);
+  const hydrated = await hydratePublicRowsWithActivePackageEntitlements(listed.rows, {
+    category: "restaurantes",
+    listingSource: "restaurantes_public_listings",
+  });
+  const rowsForMap = hydrated.map((row) => {
+    const summary = resolveListingPlacementEntitlement({
+      category: "restaurantes",
+      listing: row as Record<string, unknown>,
+    });
+    return { ...row, promoted: packageEntitlementGrantsDestacado(summary) };
+  });
+  const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
+  const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);
   const shellRows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
   const featured = selectLandingDestacadosCandidates(shellRows).map(blueprintRowToLandingCard);
   const recent = selectLandingRecientesCandidates(shellRows).map(blueprintRowToLandingCard);

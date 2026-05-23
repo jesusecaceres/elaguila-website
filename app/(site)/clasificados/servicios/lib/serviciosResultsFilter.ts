@@ -2,6 +2,12 @@ import { serviciosHoursSummaryIsOpenNow } from "@/app/servicios/components/servi
 import { isAllowedServiciosImageUrl } from "@/app/servicios/lib/serviciosMediaUrl";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosBusinessProfile, ServiciosLang, ServiciosProfileResolved } from "@/app/servicios/types/serviciosBusinessProfile";
+import {
+  compareListingPlacementVisibility,
+  listingPlacementVisibilityRank,
+  packageEntitlementGrantsDestacado,
+  resolveListingPlacementEntitlement,
+} from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
 import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNewestFirst } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
@@ -386,9 +392,25 @@ function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
   return out;
 }
 
-/** Leonix “destacado” / partner emphasis from published profile wire. */
+export function serviciosPublicRowToEntitlementListing(row: ServiciosPublicListingRow): Record<string, unknown> {
+  return {
+    id: row.id ?? null,
+    slug: row.slug,
+    leonix_ad_id: row.leonix_ad_id ?? null,
+    package_entitlement_tier: row.package_entitlement_tier ?? null,
+    starts_at: row.entitlement_starts_at ?? null,
+    ends_at: row.entitlement_ends_at ?? null,
+    category: "servicios",
+  };
+}
+
+/** Destacado band: active Premium entitlement only (not legacy `isFeatured` alone). */
 export function isServiciosListingPromoted(row: ServiciosPublicListingRow): boolean {
-  return row.profile_json.contact?.isFeatured === true;
+  const summary = resolveListingPlacementEntitlement({
+    category: "servicios",
+    listing: serviciosPublicRowToEntitlementListing(row),
+  });
+  return packageEntitlementGrantsDestacado(summary);
 }
 
 /**
@@ -688,17 +710,41 @@ export function sortServiciosListingRows(
 }
 
 /**
- * Destacado listings first (rewarded visibility), then the rest — each block sorted by `sort`.
+ * Print-to-Digital placement order: Premium Destacado → Full-page priority → print pool → organic.
+ * Within each bucket, apply the user-selected `sort`.
  */
 export function sortServiciosResultsForDisplay(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
   sort: ServiciosResultsFilterQuery["sort"],
 ): ServiciosPublicListingRow[] {
-  const promoted = rows.filter(isServiciosListingPromoted);
-  const rest = rows.filter((r) => !isServiciosListingPromoted(r));
-  return [
-    ...sortServiciosListingRows(promoted, lang, sort, { resultsNewest: true }),
-    ...sortServiciosListingRows(rest, lang, sort, { resultsNewest: true }),
-  ];
+  const weightOrder = [600, 500, 400, 300, 200, 100, 50, 25, 0] as const;
+  const buckets = new Map<number, ServiciosPublicListingRow[]>();
+  const rankBySlug = new Map<string, ReturnType<typeof listingPlacementVisibilityRank>>();
+
+  for (const row of rows) {
+    const rank = listingPlacementVisibilityRank({
+      category: "servicios",
+      listing: serviciosPublicRowToEntitlementListing(row),
+    });
+    rankBySlug.set(row.slug, rank);
+    const list = buckets.get(rank.rankWeight) ?? [];
+    list.push(row);
+    buckets.set(rank.rankWeight, list);
+  }
+
+  const sorted: ServiciosPublicListingRow[] = [];
+  for (const w of weightOrder) {
+    const block = buckets.get(w);
+    if (!block?.length) continue;
+    block.sort((a, b) => {
+      const ra = rankBySlug.get(a.slug)!;
+      const rb = rankBySlug.get(b.slug)!;
+      const placementCmp = compareListingPlacementVisibility(ra, rb);
+      if (placementCmp !== 0) return placementCmp;
+      return 0;
+    });
+    sorted.push(...sortServiciosListingRows(block, lang, sort, { resultsNewest: true }));
+  }
+  return sorted;
 }

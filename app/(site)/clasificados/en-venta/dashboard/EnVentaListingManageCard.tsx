@@ -348,7 +348,7 @@ export function EnVentaListingManageCard({
                   href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
                   className="mt-2 inline-flex rounded-xl bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
                 >
-                  {lang === "es" ? "Mejorar a Pro →" : "Upgrade to Pro →"}
+                  {lang === "es" ? "Publicar con Varios Pro →" : "Post with For Sale Pro →"}
                 </Link>
               </div>
             ) : (

@@ -8,6 +8,10 @@ import {
   takeEnVentaPreviewReturnInitialState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
+  enVentaPublicLabel,
+  enVentaPublicProLabel,
+} from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
+import {
   EN_VENTA_PUBLICAR_HUB,
   EN_VENTA_PUBLICAR_PRO,
 } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
@@ -55,16 +59,16 @@ export default function LeonixEnVentaFreeApplication() {
     () =>
       lang === "es"
         ? {
-            title: "Publicar — En Venta (Gratis)",
-            subtitle: "Flujo rápido para vendedores particulares.",
-            back: "Elegir plan",
-            switchPro: "Cambiar a Pro",
+            title: `Publicar — ${enVentaPublicLabel("es")} (acceso directo)`,
+            subtitle: "Flujo rápido preservado para uso interno; la vía pública es Varios Pro incluido.",
+            back: `Volver a ${enVentaPublicLabel("es")}`,
+            switchPro: `${enVentaPublicProLabel("es")} (incluido)`,
           }
         : {
-            title: "Post — For Sale (Free)",
-            subtitle: "Fast path for casual sellers.",
-            back: "Choose plan",
-            switchPro: "Switch to Pro",
+            title: `Post — ${enVentaPublicLabel("en")} (direct access)`,
+            subtitle: "Fast path preserved for internal use; the public path is For Sale Pro included.",
+            back: `Back to ${enVentaPublicLabel("en")}`,
+            switchPro: `${enVentaPublicProLabel("en")} (included)`,
           },
     [lang]
   );

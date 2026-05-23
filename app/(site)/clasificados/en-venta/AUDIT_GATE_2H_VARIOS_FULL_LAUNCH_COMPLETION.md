@@ -1,100 +1,97 @@
-# Gate 2H — Varios Full Launch Completion
+# Gate 2H — Varios Full Launch Completion (Before Final QA)
 
 ## 1. Files inspected
-- Taxonomy: `categories.ts`, `subcategories.ts`, `synonyms.ts`, `enVentaTaxonomy.ts`, `enVentaTaxonomySmoke.ts`
-- Publish: hub redirect, Pro/Free apps, `CategorySelectionSection`, `EnVentaPlanIntakeCallout`, preview/publish bars
-- Results: `EnVentaResultsClient`, cards, filters (`evDept`/`evSub`), sort (`republish_sort_at`)
-- Detail: `EnVentaAnuncioLayout`, `EnVentaListingReportDrawer`
-- Dashboard: `EnVentaListingManageCard`, `mis-anuncios` republish
-- Moderation: `enVentaFamilySafety.ts`, `enVentaPolicyCopy.ts`
-- Reports: `submitEnVentaListingReport.ts`, `/api/clasificados/en-venta/report`
-- Prior audits: Gate 2M, Gate 2N
+Landing (`EnVentaHubPageClient`), results, detail (`EnVentaAnuncioLayout`, report drawer), publish hub/Pro/Free/storefront, preview + draft roundtrip, success bar, dashboard card, admin queue, taxonomy/synonyms, moderation, reports API, prior Gates 2B–2G/2M/2N artifacts.
 
-## 2. Files changed (Gate 2H)
-- `results/EnVentaResultListingCard.tsx` — badge `RECIENTE`/`RECENT` (not DESTACADO/FEATURED)
-- `results/utils/enVentaResultsSummary.ts` — refreshed-only copy (no boost/visibility-renewal marketing)
-- `publicar/en-venta/storefront/application/LeonixEnVentaStorefrontApplication.tsx` — Varios labels; removed Free switch link
-- `tests/enVentaTaxonomySmoke.ts` — Gate 2G subcategory keys assertion
-- `AUDIT_GATE_2H_VARIOS_FULL_LAUNCH_COMPLETION.md` (this file)
-- `scripts/en-venta-gate-2h-varios-full-launch-audit.ts`
-- `package.json` — `enventa:gate2h-full-launch-audit`
+## 2. Files changed (this gate pass)
+- `results/EnVentaResultListingCard.tsx` — RECIENTE/RECENT badge (not DESTACADO)
+- `results/utils/enVentaResultsSummary.ts` — refreshed-only public copy
+- `dashboard/EnVentaListingManageCard.tsx` — “Publicar con Varios Pro” (not Upgrade to Pro)
+- `publicar/en-venta/free/application/LeonixEnVentaFreeApplication.tsx` — Varios labels, parked-lane copy
+- `publicar/en-venta/storefront/page.tsx` + sections — Varios labels
+- `taxonomy/synonyms.ts` — car stereo / estéreo terms
+- `launch-checklist/page.tsx` — internal Varios title
+- `tests/enVentaTaxonomySmoke.ts` — Gate 2G key assertions
+- `AUDIT_GATE_2H_VARIOS_FULL_LAUNCH_COMPLETION.md`, `scripts/en-venta-gate-2h-varios-full-launch-audit.ts`
 
-## 3. Taxonomy wiring result
-- **TRUE** — Gate 2G subcategories present: `electrodomesticos`, `mascotas-accesorios`, `libros-medios`, `materiales-construccion`, `venta-garage-mudanza`, `joyeria-relojes`, `oficina-escuela`, `accesorios-auto` under `vehiculos-partes`
-- Pro + Free publish share `CategorySelectionSection` → same dept/sub/item-type rails
-- Results filters use `EN_VENTA_SUBCATEGORY_ROWS` + `evDept`/`evSub` URL params
-- Synonyms in `taxonomy/synonyms.ts` cover new buckets
-- **Blocked (out of scope):** `app/(site)/clasificados/anuncio/[id]/page.tsx` category chip still says "En Venta" (not in allowed edit list)
+## 3. Varios branding result
+**TRUE** on En Venta-owned surfaces (hub, publish Pro, results, layout browse CTA, dashboard, storefront).  
+**PARTIAL:** `app/(site)/clasificados/anuncio/[id]/page.tsx` category chip still “En Venta” — **RELATED_BLOCKING** (outside allowed edits).
 
-## 4. Pro included flow result
-- **TRUE** — Public hub + `/free` redirect to Pro; Pro app copy: included sin costo / no payment
+## 4. Pro included / free lane result
+**TRUE** — Public hub + `/free` redirect to Pro; included-free copy; Free files preserved; no public chooser; no $9.99/Stripe.
 
-## 5. Free lane behavior
-- **TRUE** — Free application preserved; public choice hidden (redirect)
+## 5. Taxonomy / search result
+**TRUE** — Gate 2G subcategories in publish + filters; synonyms cover appliances, pet supplies, books/media, building materials, garage/moving, jewelry, office/school, auto parts; cross-category exclusions in moderation.
 
-## 6. Refrescar result
-- **TRUE** — `renewEnVentaRepublish` updates same row; `republish_sort_at` drives newest sort; labels + helper on dashboard
+## 6. Preview / published / results parity result
+**TRUE** within En Venta mapping/preview/build paths; shared detail chip is the remaining gap (see §3).
 
-## 7. Boost/Impulsar removal result
-- **TRUE** — Public results/cards use recién refrescados; card badge RECIENTE; summary banners updated
-- Internal `boosts/` module unchanged (comments only)
+## 7. Draft / preview roundtrip result
+**TRUE** — `saveEnVentaPreviewReturnDraft` + `takeEnVentaPreviewReturnInitialState` wired in Free and Pro apps; Strict Mode memory cache in `enVentaPreviewDraft.ts`.
 
-## 8. Report drawer result
-- **TRUE** — Drawer + API + `listing_reports` persistence; disclaimer; high-severity admin email via Resend when configured
+## 8. Refrescar result
+**TRUE** — `renewEnVentaRepublish` updates same row; `republish_sort_at` sort; ES/EN labels + helper on dashboard card.
 
-## 9. Moderation/AI result
-- **TRUE** — Deterministic `enVentaFamilySafety` on publish/preview
-- **FALSE (deferred)** — AI second layer not wired; auto-hide on report not wired
+## 9. Boost / Impulsar removal result
+**TRUE** — Public copy uses recién refrescados / Refrescar; no DESTACADO/FEATURED badges; internal `boosts/` module unchanged.
 
-## 10. Seller/admin/legal copy result
-- **TRUE** — `enVentaSellerHiddenNotice`, platform responsibility, Varios publish checkbox (`COPY_ITEM`)
-- Admin queue uses generic `ListingsCategoryOpsQueuePage` with slug `en-venta` (no redesign)
+## 10. Report drawer / pipeline result
+**TRUE** — Drawer + POST `/api/clasificados/en-venta/report` → `listing_reports`; 8 reasons; disclaimer; high-severity Resend admin alert when env configured.
 
-## 11. Presentation parity result
-- **Mostly TRUE** within En Venta surfaces; **partial blocker** on shared detail page category chip label
+## 11. Moderation / AI result
+**TRUE** deterministic guardrails on publish/preview. **FALSE** AI second layer (blocker: next gate). No auto-hide on report.
 
-## 12. Build/check result
-Run `npm run enventa:gate2h-full-launch-audit`, `npm run enventa:gate2n-launch-audit`, `npm run enventa:gate2m-varios-audit`, `npm run build`.
+## 12. Seller / admin / legal copy result
+**TRUE** — `enVentaSellerHiddenNotice`, platform responsibility, Varios publish checkbox; admin uses `ListingsCategoryOpsQueuePage` slug `en-venta`.
 
-## 13. Remaining risks
-- Detail page chip "En Venta" in `anuncio/[id]/page.tsx`
-- Seller email on hide not implemented
+## 13. Dashboard / admin result
+**TRUE** — Varios listings in Mis anuncios via `EnVentaListingManageCard`; refresh metadata; admin queue by slug.
+
+## 14. Build / check result
+`enventa:gate2h-full-launch-audit`, `enventa:gate2n-launch-audit`, `enventa:gate2m-varios-audit`, `npm run build` — run at validation.
+
+## 15. Remaining risks
+- Detail category chip on shared `anuncio/[id]` route
+- Seller email on policy hide not wired
 - AI moderation deferred
-- Leonix Promoted (`admin_promoted` / detail_pairs) still shows RECIENTE badge — not paid boost, but ops-driven
+- Dirty unrelated parallel work in tree (Servicios/Tienda/email) — not touched
 
 ## TRUE/FALSE audit table
 
 | Requirement | TRUE/FALSE | Evidence |
 |---|---|---|
-| Varios Spanish label is preserved | TRUE | enVentaPublicLabels |
-| English For Sale label is preserved | TRUE | enVentaPublicLabels |
+| Spanish public label is Varios | TRUE | enVentaPublicLabels + surfaces |
+| English public label remains For Sale | TRUE | enVentaPublicLabels |
 | Internal en-venta route/folder was not renamed | TRUE | No route changes |
-| Gate 2G taxonomy flows to Free publish | TRUE | Shared CategorySelectionSection |
-| Gate 2G taxonomy flows to Pro publish | TRUE | Pro uses same section |
-| Gate 2G taxonomy flows to results filters | TRUE | evDept/evSub + EN_VENTA_SUBCATEGORY_ROWS |
-| Gate 2G taxonomy flows to preview/results/detail labels | TRUE | mapDbRow + buildEnVentaSpecsRows |
-| Search synonyms cover new taxonomy buckets | TRUE | synonyms.ts |
-| No live animals/pet adoption/missing/found pets were added | TRUE | moderation blocks; no taxonomy buckets |
-| Full vehicles remain excluded from Varios | TRUE | enVentaFamilySafety vehicle rules |
-| Public publish path uses Pro included-free flow | TRUE | redirect pages |
+| Public publish path uses Pro included-free flow | TRUE | Redirect + Pro app |
 | Free files were preserved | TRUE | LeonixEnVentaFreeApplication |
-| Free lane is hidden/parked from public choice | TRUE | redirect |
-| No public $9.99 remains | TRUE | defaults + audit grep |
-| No Stripe/payment logic was added | TRUE | No payment changes |
-| Public Boost/Impulsar wording was removed/hidden | TRUE | results + card + summary |
+| Free lane is hidden/parked from public choice | TRUE | Redirect |
+| No public $9.99 remains | TRUE | Audit grep |
+| No Stripe/payment logic was added | TRUE | No payment edits |
+| Gate 2G taxonomy buckets flow to publish dropdowns | TRUE | CategorySelectionSection |
+| Gate 2G taxonomy buckets flow to results filters | TRUE | evDept/evSub |
+| Gate 2G taxonomy buckets flow to preview/results/detail labels | TRUE | DTO + specs |
+| Search synonyms cover new taxonomy buckets | TRUE | synonyms.ts |
+| No live animals/pet adoption/missing/found pets were added | TRUE | Moderation + no buckets |
+| Full vehicles remain excluded from Varios | TRUE | enVentaFamilySafety |
+| Preview/result/detail labels are materially aligned | PARTIAL | anuncio chip blocker |
+| Free preview roundtrip works or blocker documented | TRUE | enVentaPreviewDraft + Free app |
+| Pro preview roundtrip works or blocker documented | TRUE | enVentaPreviewDraft + Pro app |
+| Public Boost/Impulsar wording was removed/hidden | TRUE | Results + card + summary |
 | Refrescar anuncio is real or blocker documented | TRUE | renewEnVentaRepublish |
-| Refrescar preserves same id/leonix_ad_id or blocker documented | TRUE | update by id only |
+| Refrescar preserves same id/leonix_ad_id or blocker documented | TRUE | Update by id |
 | Results ordering uses refreshed timestamp or blocker documented | TRUE | republish_sort_at |
 | Reportar anuncio CTA exists or blocker documented | TRUE | EnVentaListingReportDrawer |
-| Report drawer has all required reasons or blocker documented | TRUE | enVentaPolicyCopy |
+| Report drawer has required reasons or blocker documented | TRUE | enVentaPolicyCopy |
 | Report submission persists or blocker documented | TRUE | listing_reports |
 | Report disclaimer exists | TRUE | EN_VENTA_REPORT_DISCLAIMER |
 | Family-safe deterministic moderation remains active | TRUE | enVentaFamilySafety |
-| AI moderation is wired only if safe or blocker documented | FALSE | Blocker: next gate |
+| AI moderation is wired only if safe or blocker documented | FALSE | Blocker |
 | Seller policy copy is professional and non-accusatory | TRUE | enVentaSellerHiddenNotice |
 | Admin alert/email path exists or blocker documented | TRUE | Resend conditional |
-| Buyer/seller responsibility copy exists | TRUE | EN_VENTA_PLATFORM_RESPONSIBILITY |
-| Preview/results/detail presentation parity is acceptable | PARTIAL | Blocker: anuncio chip label |
-| No fake boost/featured/report/AI behavior was added | TRUE | Real refresh + real reports |
+| Buyer/seller responsibility copy exists | TRUE | Platform responsibility |
+| Dashboard/admin coverage exists or blocker documented | TRUE | Manage card + admin queue |
+| No fake boost/report/AI/admin behavior was added | TRUE | Real implementations |
 | No unrelated categories were touched | TRUE | Scope-only edits |
-| npm run build passed | TRUE | npm run build (exit 0) |
+| npm run build passed | TRUE | npm run build exit 0 |

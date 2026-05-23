@@ -2,10 +2,17 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
-import { LEONIX_TIENDA_CONTACT_PATH } from "@/app/(site)/tienda/data/leonixContact";
+import { LEONIX_GLOBAL_EMAIL, LEONIX_GLOBAL_MAILTO } from "@/app/data/leonixGlobalContact";
+import {
+  LEONIX_PHONE_DISPLAY,
+  LEONIX_PHONE_TEL,
+  LEONIX_TIENDA_CONTACT_PATH,
+} from "@/app/(site)/tienda/data/leonixContact";
 
 type Lang = "es" | "en";
+
+const SUBMIT_BTN =
+  "w-full min-h-[44px] whitespace-nowrap text-center text-sm sm:text-base px-4 py-3 rounded-xl font-semibold shadow-[0_10px_28px_rgba(42,36,22,0.18)] transition";
 
 const TOPIC_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "advertise_business", es: "Anunciar mi negocio", en: "Advertise my business" },
@@ -21,6 +28,39 @@ function tiendaQuoteHref(lang: Lang): string {
   return `${LEONIX_TIENDA_CONTACT_PATH}?${params.toString()}`;
 }
 
+function ContactSubmitError({ lang }: { lang: Lang }) {
+  const en = lang === "en";
+  return (
+    <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-900">
+      {en ? (
+        <p>
+          We could not send your message right now. Please call us at{" "}
+          <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
+            {LEONIX_PHONE_DISPLAY}
+          </a>{" "}
+          or{" "}
+          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
+            email us directly
+          </a>
+          .
+        </p>
+      ) : (
+        <p>
+          No pudimos enviar tu mensaje ahora. Llámanos al{" "}
+          <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
+            {LEONIX_PHONE_DISPLAY}
+          </a>{" "}
+          o{" "}
+          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
+            escríbenos directamente
+          </a>
+          .
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }) {
   const { lang, initialMessage } = props;
   const en = lang === "en";
@@ -30,22 +70,19 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
   const [topic, setTopic] = useState("general_question");
   const [message, setMessage] = useState(() => (initialMessage ?? "").slice(0, 12000));
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setStatus("loading");
-    setErrorMsg(null);
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, phone: phone.trim() || undefined, message, lang, topic }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as { ok?: boolean };
       if (!res.ok || !data.ok) {
         setStatus("error");
-        setErrorMsg(data.error ?? (en ? "Something went wrong." : "Algo salió mal."));
         return;
       }
       setStatus("success");
@@ -56,12 +93,11 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
       setMessage("");
     } catch {
       setStatus("error");
-      setErrorMsg(en ? "Network error. Please try again." : "Error de red. Intenta de nuevo.");
     }
   };
 
   return (
-    <div className="bg-[color:var(--lx-card)] p-8 rounded-2xl shadow-[0_18px_48px_rgba(42,36,22,0.10)] border border-[color:var(--lx-nav-border)]">
+    <div className="bg-[color:var(--lx-card)] p-6 sm:p-8 rounded-2xl shadow-[0_18px_48px_rgba(42,36,22,0.10)] border border-[color:var(--lx-nav-border)]">
       <h2 className="text-2xl font-semibold text-[color:var(--lx-text)] mb-4">
         {en ? "Send a message" : "Envíanos un mensaje"}
       </h2>
@@ -171,17 +207,13 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
             />
           </div>
 
-          {status === "error" && errorMsg ? (
-            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-              {errorMsg}
-            </div>
-          ) : null}
+          {status === "error" ? <ContactSubmitError lang={lang} /> : null}
 
           <button
             type="submit"
             disabled={status === "loading"}
             className={[
-              "w-full min-h-[44px] py-3 rounded-xl text-lg font-semibold shadow-[0_10px_28px_rgba(42,36,22,0.18)] transition",
+              SUBMIT_BTN,
               status === "loading"
                 ? "bg-[color:var(--lx-cta-dark)]/60 text-[color:var(--lx-cta-light)] cursor-wait"
                 : "bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)]",

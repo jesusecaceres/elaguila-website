@@ -28,7 +28,7 @@ A future Admin tool may **generate** a code, but that code must **create or conn
 | **premium** | Cover / back cover / outside premium (~$2k/mo class, ~8–10 inventory) | Destacados / Patrocinado **modules** |
 | **full_page** | Full-page advertiser | **Priority** in matching category results after search/filter |
 | **half_page** | Half-page advertiser | Print pool + **classified listing** + **Republish** + **Boost** |
-| **quarter_page** | Quarter-page advertiser | Print pool + classified listing; **limited Republish** per policy |
+| **quarter_page** | Quarter-page advertiser | Print pool; **no** Nuestros Negocios / classified hub by default; **limited Republish** per policy |
 | **classified_print** | Smaller print unit | Basic digital listing + print pool |
 | **digital_only** | No print package | Digital tools only (Republish, Boost, Auto Refresh) — below print priority |
 | **none** | No entitlement on row | Organic / basic |
@@ -44,7 +44,7 @@ Benefit keys (see `PackageEntitlementBenefit` in code):
 |---------|---------|-----------|-----------|--------------|------------------|--------------|
 | `destacados_module` | yes | no | no | no | no | no |
 | `results_priority` | no | yes | no | no | no | no |
-| `classified_listing` | yes | yes | yes | yes | yes | no |
+| `classified_listing` | yes | yes | yes | no | yes | no |
 | `republish_access` | no | yes | yes | yes (policy) | no | yes |
 | `boost_access` | no | yes | yes | no (default) | no | yes |
 | `auto_refresh_access` | no | no | no | no | no | yes |

@@ -52,10 +52,12 @@ function trim(v: unknown): string {
 }
 
 /**
- * Entitlement placeholder — no Stripe wiring in BR13B.
- * Dev/QA: `NEXT_PUBLIC_LEONIX_BR_INVENTORY_UPGRADE=1` or `localStorage.LEONIX_BR_INVENTORY_UPGRADE=1`.
+ * BR property inventory add-on (+5 @ $99.99/mo → 8 total).
+ * Production truth: active entitlement only (C6 Stripe). Until then, dev/QA flags are non-production.
  */
-export function isBrInventoryUpgradeActive(): boolean {
+export function isBrInventoryUpgradeActive(opts?: { entitlementActive?: boolean }): boolean {
+  if (opts?.entitlementActive === true) return true;
+  if (process.env.NODE_ENV === "production") return false;
   if (typeof window !== "undefined") {
     try {
       if (localStorage.getItem("LEONIX_BR_INVENTORY_UPGRADE") === "1") return true;

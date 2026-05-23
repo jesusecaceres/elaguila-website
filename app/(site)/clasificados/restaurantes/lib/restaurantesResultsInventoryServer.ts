@@ -8,7 +8,13 @@ import { fetchRestaurantesNetLikeCountsForDbRows } from "@/app/clasificados/rest
 import {
   isSupabaseAdminConfigured,
   tryListRestaurantesPublicListingsFromDb,
+  type RestaurantesPublicListingDbRow,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { hydratePublicRowsWithActivePackageEntitlements } from "@/app/lib/listingPlans/listingPackageEntitlementsServer";
+import {
+  packageEntitlementGrantsDestacado,
+  resolveListingPlacementEntitlement,
+} from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 
 /**
@@ -17,6 +23,19 @@ import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaura
  * `inventory_query_failed` — Supabase returned an error (distinct from “no published rows”).
  */
 export type RestaurantesResultsInventorySource = "published" | "inventory_unavailable" | "inventory_query_failed";
+
+function applyRestaurantesPromotedFromEntitlement(
+  row: RestaurantesPublicListingDbRow & Record<string, unknown>,
+): RestaurantesPublicListingDbRow {
+  const summary = resolveListingPlacementEntitlement({
+    category: "restaurantes",
+    listing: row as Record<string, unknown>,
+  });
+  return {
+    ...row,
+    promoted: packageEntitlementGrantsDestacado(summary),
+  };
+}
 
 export type RestaurantesResultsInventoryPayload = {
   rows: RestaurantesPublicBlueprintRow[];
@@ -55,8 +74,13 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
     };
   }
 
-  const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(listed.rows);
-  const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(listed.rows);
+  const hydrated = await hydratePublicRowsWithActivePackageEntitlements(listed.rows, {
+    category: "restaurantes",
+    listingSource: "restaurantes_public_listings",
+  });
+  const rowsForMap = hydrated.map(applyRestaurantesPromotedFromEntitlement);
+  const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
+  const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);
   const rows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
 
   return {

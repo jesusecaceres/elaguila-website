@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { EN_VENTA_PUBLICAR_HUB } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
+import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 
 /**
  * Storefront lane — public surface is Coming Soon.
@@ -19,18 +20,19 @@ export default function EnVentaStorefrontComingSoonPage() {
   qs.set("lang", other);
   const toggleHref = `/clasificados/publicar/en-venta/storefront?${qs.toString()}`;
 
+  const varios = enVentaPublicLabel(lang);
   const copy =
     lang === "es"
       ? {
           title: "Storefront — próximamente",
           body: "Un producto futuro para tiendas, vendedores frecuentes y presencia de negocio en Leonix (perfil de vendedor, logo, enlaces y más). No sustituye al anuncio Pro: es una capa aparte.",
-          hub: "Volver a planes En Venta",
+          hub: `Volver a ${varios}`,
           langToggle: "English",
         }
       : {
           title: "Storefront — coming soon",
           body: "A future product for shops, frequent sellers, and business presence on Leonix (seller profile, logo, links, and depth). It is not the Pro listing upgrade — it is a separate layer.",
-          hub: "Back to En Venta plans",
+          hub: `Back to ${varios}`,
           langToggle: "Español",
         };
 
@@ -43,7 +45,7 @@ export default function EnVentaStorefrontComingSoonPage() {
         <div className="rounded-2xl border border-black/10 bg-[#F5F5F5] p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-[#A98C2A]">Leonix · En Venta</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#A98C2A]">Leonix · {varios}</p>
               <h1 className="mt-1 text-2xl font-extrabold">{copy.title}</h1>
               <p className="mt-3 text-[#111111]/80">{copy.body}</p>
             </div>

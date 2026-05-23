@@ -8,7 +8,7 @@ function allowLaunchChecklist(): boolean {
 }
 
 export const metadata = {
-  title: "En Venta — checklist de lanzamiento (interno)",
+  title: "Varios — checklist de lanzamiento (interno)",
   robots: { index: false, follow: false },
 };
 
@@ -25,7 +25,7 @@ export default function EnVentaLaunchChecklistPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 text-[#2C2416]">
       <p className="text-xs font-semibold uppercase tracking-wide text-[#7A7164]">Leonix · interno</p>
-      <h1 className="mt-2 text-2xl font-bold">En Venta — verificación previa a producción</h1>
+      <h1 className="mt-2 text-2xl font-bold">Varios — verificación previa a producción</h1>
       <p className="mt-3 text-sm text-[#5C5346]">
         Esta ruta no sustituye pruebas en Supabase (RLS, Storage, auth). Comprueba el flujo real con una cuenta de
         vendedor y un admin.

@@ -1,14 +1,23 @@
 /**
- * Gate 1 — Servicios template routing smoke (no network).
+ * Servicios template routing + publish wire smoke (no network).
  * Run: npx tsx scripts/smoke-servicios-template-routing.ts
  */
-import { BUSINESS_TYPE_PRESETS } from "../app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
+import { getBusinessTypePreset, BUSINESS_TYPE_PRESETS } from "../app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
+import { normalizeClasificadosServiciosApplicationState } from "../app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize";
+import { createDefaultClasificadosServiciosState } from "../app/(site)/clasificados/publicar/servicios/lib/defaultClasificadosServiciosState";
+import { mapClasificadosServiciosApplicationToServiciosDraft } from "../app/(site)/clasificados/publicar/servicios/lib/mapClasificadosServiciosApplicationToServiciosDraft";
+import { evaluateServiciosPublishReadiness } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
+import { evaluateServiciosPreviewReadiness } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPreviewReadiness";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES } from "../app/(site)/clasificados/servicios/landing/serviciosLandingSampleData";
 import { SERVICIOS_INTERNAL_GROUP_IDS } from "../app/(site)/clasificados/servicios/lib/serviciosInternalGroupDisplay";
 import {
   isServiciosProfessionalTemplate,
+  readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
 } from "../app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
+import type { ClasificadosServiciosApplicationState } from "../app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import { mapServiciosApplicationDraftToBusinessProfile } from "../app/(site)/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
+import type { ServiciosBusinessProfile, ServiciosLang } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 
 function fail(msg: string): never {
   console.error(`FAIL: ${msg}`);
@@ -101,5 +110,94 @@ for (const cat of SERVICIOS_LANDING_EXPLORE_CATEGORIES) {
     fail(`landing explore category ${cat.id}: invalid resultsGroup "${cat.resultsGroup}"`);
   }
 }
+
+function buildPublishWire(state: ClasificadosServiciosApplicationState, lang: ServiciosLang): ServiciosBusinessProfile {
+  const draft = mapClasificadosServiciosApplicationToServiciosDraft(state, lang);
+  draft.identity.slug = "smoke-publish-slug";
+  const wire = mapServiciosApplicationDraftToBusinessProfile(draft);
+  const opsMeta = { ...wire.opsMeta };
+  const publishedBusinessTypeId = state.businessTypeId.trim();
+  if (publishedBusinessTypeId) opsMeta.businessTypeId = publishedBusinessTypeId;
+  return { ...wire, opsMeta };
+}
+
+function readyPublishableState(businessTypeId: string): ClasificadosServiciosApplicationState {
+  const preset = getBusinessTypePreset(businessTypeId);
+  const chipIds = (preset?.suggestedServices ?? []).slice(0, 2).map((c) => c.id);
+  return normalizeClasificadosServiciosApplicationState({
+    ...createDefaultClasificadosServiciosState(),
+    businessTypeId,
+    businessName: "Smoke Test Business",
+    city: "León",
+    aboutText: "Descripción suficiente para publicar sin problema.",
+    enableCall: true,
+    phone: "4771234567",
+    coverUrl: "https://images.example.com/cover.jpg",
+    selectedServiceIds: chipIds,
+    customServicesOffered: ["Servicio personalizado"],
+    confirmListingAccurate: true,
+    confirmPhotosRepresentBusiness: true,
+    confirmCommunityRules: true,
+    socialX: "https://x.com/smokebiz",
+    socialSnapchat: "https://www.snapchat.com/add/smokebiz",
+    googleReviewsUrl: "https://www.google.com/maps/place/example/reviews",
+    yelpReviewsUrl: "https://www.yelp.com/biz/example",
+    extraLink1Url: "https://example.com/menu",
+    extraLink1Label: "Menú",
+  });
+}
+
+const PUBLISH_TYPES: { id: string; template: ReturnType<typeof resolveServiciosListingTemplate> }[] = [
+  { id: "plomeria", template: "standard_service" },
+  { id: "abogado_asesoria_legal", template: "legal_provider" },
+  { id: "dentista_odontologia", template: "clinic_provider" },
+  { id: "contador_impuestos", template: "financial_provider" },
+  { id: "seguros_cotizaciones", template: "advisor_provider" },
+];
+
+for (const { id, template } of PUBLISH_TYPES) {
+  const state = readyPublishableState(id);
+  const publishReady = evaluateServiciosPublishReadiness(state, "es");
+  if (!publishReady.ok) fail(`publish readiness failed for ${id}: ${JSON.stringify(publishReady.missing)}`);
+
+  const withoutTerms = normalizeClasificadosServiciosApplicationState({
+    ...state,
+    confirmListingAccurate: false,
+    confirmPhotosRepresentBusiness: false,
+    confirmCommunityRules: false,
+  });
+  const previewReady = evaluateServiciosPreviewReadiness(withoutTerms, "es");
+  if (!previewReady.ok) fail(`preview readiness failed for ${id}: ${JSON.stringify(previewReady.missing)}`);
+  const publishBlocked = evaluateServiciosPublishReadiness(withoutTerms, "es");
+  if (publishBlocked.ok) fail(`publish readiness should require terms for ${id}`);
+
+  const wire = buildPublishWire(state, "es");
+  const storedTypeId = readServiciosProfileBusinessTypeId(wire);
+  if (storedTypeId !== id) fail(`wire opsMeta.businessTypeId expected ${id}, got ${storedTypeId}`);
+  if ((wire.services?.length ?? 0) < 2) fail(`wire services missing chips/custom for ${id}`);
+  if (!wire.contact?.socialLinks?.xUrl) fail(`wire social xUrl missing for ${id}`);
+  if (!wire.contact?.externalReviewLinks?.googleReviewsUrl) fail(`wire googleReviewsUrl missing for ${id}`);
+  if (!wire.contact?.extraLinks?.length) fail(`wire extraLinks missing for ${id}`);
+
+  const resolvedTemplate = resolveServiciosListingTemplate({
+    businessTypeId: storedTypeId,
+    internalGroup: getBusinessTypePreset(id)?.internalGroup ?? null,
+    categoryLabel: wire.hero?.categoryLine,
+  });
+  if (resolvedTemplate !== template) {
+    fail(`published template for ${id}: expected ${template}, got ${resolvedTemplate}`);
+  }
+}
+
+const invalidOptional = readyPublishableState("plomeria");
+invalidOptional.googleReviewsUrl = "javascript:alert(1)";
+invalidOptional.socialX = "ftp://not-allowed.example";
+const invalidWire = buildPublishWire(invalidOptional, "es");
+if (invalidWire.contact?.externalReviewLinks?.googleReviewsUrl) {
+  fail("invalid googleReviewsUrl must not persist on wire");
+}
+if (invalidWire.contact?.socialLinks?.xUrl) fail("invalid socialX must not persist on wire");
+const invalidPublish = evaluateServiciosPublishReadiness(invalidOptional, "es");
+if (!invalidPublish.ok) fail("invalid optional URLs should not block publish readiness");
 
 console.log("smoke-servicios-template-routing: OK");

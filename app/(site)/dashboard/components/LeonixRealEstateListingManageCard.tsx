@@ -18,7 +18,6 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import {
   isListingRepublishWindowActive,
-  leonixPromotedFromDetailPairs,
 } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { BrNegocioListingInventoryActions } from "@/app/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions";
 import {
@@ -136,7 +135,6 @@ export function LeonixRealEstateListingManageCard({
   const planField = listingPlanFieldLabel(lang);
   const planFoot = listingPlanFootnote(lang);
   const republishWindowActive = isListingRepublishWindowActive(row.republished_at);
-  const promoted = leonixPromotedFromDetailPairs(row.detail_pairs);
   const st = String(row.status ?? "active").toLowerCase();
   const canPause = st === "active" && row.is_published !== false;
   const canResume = st === "paused" || st === "unpublished";
@@ -208,11 +206,11 @@ export function LeonixRealEstateListingManageCard({
                 {lang === "es"
                   ? "Bienes raíces: la parrilla principal ordena por frescura (publicación o republicación). El carril “spotlight” de negocios es limitado y editorial — no es subasta por pago en el grid."
                   : "Real estate: the main grid sorts by freshness (publish or republish). The business spotlight band is limited and editorial — not pay-to-win grid ranking."}
-                {republishWindowActive || promoted ? (
+                {republishWindowActive ? (
                   <span className="mt-1 block text-[11px] text-[#7A7164]/85">
                     {lang === "es"
-                      ? "Nota: marcas de promoción o ventana de visibilidad en datos no sustituyen el ranking por frescura en Leonix."
-                      : "Note: promo marks or visibility-window data do not override freshness-based ranking on Leonix."}
+                      ? "Nota: la ventana de visibilidad por republicación no sustituye el ranking por frescura en Leonix."
+                      : "Note: republish visibility windows do not override freshness-based ranking on Leonix."}
                   </span>
                 ) : null}
               </p>
@@ -223,9 +221,8 @@ export function LeonixRealEstateListingManageCard({
           ) : (
             <p className="mt-2 text-xs text-[#7A7164]">
               <span className="font-semibold text-[#3D3428]">{planField}:</span> {planLine}
-              {republishWindowActive || promoted ? ` · ${lang === "es" ? "Visibilidad / promo" : "Visibility / promo"}` : ""}
+              {republishWindowActive ? ` · ${lang === "es" ? "Visibilidad (republicación)" : "Visibility (republish)"}` : ""}
               {republishWindowActive ? (lang === "es" ? " (ventana activa)" : " (active window)") : ""}
-              {promoted ? " (Leonix:promoted)" : ""}
             </p>
           )}
           <p className="mt-1 text-[10px] leading-snug text-[#7A7164]/90">{planFoot}</p>

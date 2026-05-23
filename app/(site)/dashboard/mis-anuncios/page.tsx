@@ -52,6 +52,11 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import { listingPlanFromDetailPairs, leonixPromotedFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
+  dashboardEntitlementBadgeForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+  type DashboardEntitlementBadgePayload,
+} from "../lib/dashboardPackageEntitlementBadges";
+import {
   listingUiStatusChipClass,
   listingUiStatusLabel,
   resolveListingUiStatus,
@@ -369,6 +374,9 @@ export default function MyListingsPage() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [restaurantInventory, setRestaurantInventory] = useState<DashboardInventoryItem[]>([]);
+  const [entitlementBadges, setEntitlementBadges] = useState<
+    Record<string, DashboardEntitlementBadgePayload>
+  >({});
   const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
   const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
   const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
@@ -486,6 +494,44 @@ export default function MyListingsPage() {
       setViajesInventory(viajesItems);
       setAutosPaidInventory(autosPaidItems);
       setServiciosInventory(serviciosItems);
+
+      const entitlementLookup = [
+        ...restaurantItems.map((item) => ({
+          key: item.id,
+          category: "restaurantes",
+          listingSource: "restaurantes_public_listings",
+          listingId: item.id,
+          slug: item.slug ?? null,
+          leonixAdId: item.leonixAdId ?? null,
+        })),
+        ...serviciosItems.map((item) => ({
+          key: item.id,
+          category: "servicios",
+          listingSource: "servicios_public_listings",
+          listingId: item.id,
+          slug: item.slug ?? null,
+          leonixAdId: item.leonixAdId ?? null,
+        })),
+        ...list
+          .filter((row) => {
+            const c = String(row.category ?? "").toLowerCase();
+            return c === "bienes-raices" || c === "rentas";
+          })
+          .map((row) => ({
+            key: row.id,
+            category: String(row.category ?? "").toLowerCase(),
+            listingSource: "listings",
+            listingId: row.id,
+            slug: null,
+            leonixAdId: row.leonix_ad_id ?? null,
+          })),
+      ];
+      const badges = await fetchDashboardListingPackageEntitlementBadges(
+        entitlementLookup,
+        accessToken,
+      );
+      if (mounted) setEntitlementBadges(badges);
+
       setListingsLoading(false);
 
       if (list.length > 0) {
@@ -1239,7 +1285,17 @@ export default function MyListingsPage() {
                     status={item.status}
                     subtitle={item.slug ?? undefined}
                     badges={[
-                      item.promoted ? (lang === "es" ? "Destacado" : "Promoted") : "",
+                      (() => {
+                        const b = dashboardEntitlementBadgeForKey(entitlementBadges, [
+                          item.id,
+                          item.slug ?? "",
+                          item.leonixAdId ?? "",
+                        ]);
+                        if (b?.grantsDestacado) return lang === "es" ? "Destacado" : "Promoted";
+                        if (b?.grantsResultsPriority)
+                          return lang === "es" ? "Prioridad" : "Priority";
+                        return "";
+                      })(),
                       item.verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
                     metaItems={[
@@ -1403,7 +1459,20 @@ export default function MyListingsPage() {
                     title={item.title}
                     status={item.status}
                     subtitle={item.slug ?? undefined}
-                    badges={item.verified ? [lang === "es" ? "Verificado" : "Verified"] : []}
+                    badges={[
+                      (() => {
+                        const b = dashboardEntitlementBadgeForKey(entitlementBadges, [
+                          item.id,
+                          item.slug ?? "",
+                          item.leonixAdId ?? "",
+                        ]);
+                        if (b?.grantsDestacado) return lang === "es" ? "Destacado" : "Promoted";
+                        if (b?.grantsResultsPriority)
+                          return lang === "es" ? "Prioridad" : "Priority";
+                        return "";
+                      })(),
+                      ...(item.verified ? [lang === "es" ? "Verificado" : "Verified"] : []),
+                    ].filter(Boolean)}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
                       { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "â€”" },
@@ -1623,7 +1692,14 @@ export default function MyListingsPage() {
                           : null
                       }
                       leonixAdId={x.leonix_ad_id ?? null}
-                      leonixPromoted={leonixPromotedFromDetailPairs(x.detail_pairs)}
+                      leonixPromoted={
+                        String(x.category ?? "").toLowerCase() === "en-venta"
+                          ? leonixPromotedFromDetailPairs(x.detail_pairs)
+                          : (dashboardEntitlementBadgeForKey(entitlementBadges, [
+                              x.id,
+                              x.leonix_ad_id ?? "",
+                            ])?.grantsDestacado ?? false)
+                      }
                       uiStatus={uiSt}
                       listingRefShort={shortListingRef(x.id)}
                       expiresIso={

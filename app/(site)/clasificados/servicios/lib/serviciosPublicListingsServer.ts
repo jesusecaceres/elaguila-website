@@ -14,6 +14,7 @@ import {
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
+import { hydratePublicRowsWithActivePackageEntitlements } from "@/app/lib/listingPlans/listingPackageEntitlementsServer";
 import {
   compareServiciosPublicDiscoveryNewestFirst,
   serviciosLikeCountAliasKeys,
@@ -82,6 +83,10 @@ export type ServiciosPublicListingRow = {
   public_like_net_count?: number;
   /** Row counts in `saved_listings` (same `listing_id` alias rollup as likes). */
   public_save_count?: number;
+  /** Merged from active `listing_package_entitlements` on server reads (C5B). */
+  package_entitlement_tier?: string | null;
+  entitlement_starts_at?: string | null;
+  entitlement_ends_at?: string | null;
 };
 
 /** DB reads for publish/admin — any lifecycle row by slug. */
@@ -231,16 +236,20 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
   }
   merged.sort(compareServiciosPublicDiscoveryNewestFirst);
   const slice = merged.slice(0, limit);
+  const hydrated = await hydratePublicRowsWithActivePackageEntitlements(slice, {
+    category: "servicios",
+    listingSource: "servicios_public_listings",
+  });
   const likeQueryKeys = new Set<string>();
-  for (const r of slice) {
+  for (const r of hydrated) {
     for (const k of serviciosLikeCountAliasKeys(r)) likeQueryKeys.add(k);
   }
   const [agg, likeMap, saveMap] = await Promise.all([
-    getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug)),
+    getServiciosReviewAggregatesForSlugs(hydrated.map((r) => r.slug)),
     fetchServiciosNetLikeCountsByEngagementKeys([...likeQueryKeys]),
     fetchServiciosUserSavedCountsByKeys([...likeQueryKeys]),
   ]);
-  return slice.map((r) => {
+  return hydrated.map((r) => {
     const a = agg.get(r.slug);
     const likes = serviciosNetLikeCountForPublicRow(r, likeMap);
     const saves = serviciosSavedCountForPublicRow(r, saveMap);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { escapeHtml } from "@/app/lib/email/escapeHtml";
-import { sendTiendaContactEmail } from "@/app/lib/tienda/sendTiendaContactEmail";
+import { sendTiendaContactEmail } from "@/app/lib/tienda/sendTiendaOrderEmailResend";
 
 export const runtime = "nodejs";
 

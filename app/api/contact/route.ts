@@ -121,14 +121,15 @@ export async function POST(req: Request) {
   });
 
   if (!sent.ok) {
+    console.error("[contact] email send failed", {
+      code: sent.code,
+      lang,
+      topic,
+    });
     return NextResponse.json(
       {
         ok: false,
-        error:
-          lang === "en"
-            ? "We could not send your message right now. Please try again later or email us directly."
-            : "No pudimos enviar tu mensaje ahora. Intenta más tarde o escríbenos directamente.",
-        code: "EMAIL_UNAVAILABLE",
+        code: sent.code === "NOT_CONFIGURED" ? "EMAIL_NOT_CONFIGURED" : "EMAIL_UNAVAILABLE",
         detail: process.env.NODE_ENV === "development" ? sent.message : undefined,
       },
       { status: 503 }

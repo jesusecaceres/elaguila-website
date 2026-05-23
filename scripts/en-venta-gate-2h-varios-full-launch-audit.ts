@@ -105,6 +105,25 @@ for (const rel of [
 }
 add("No public Boost/Impulsar in key surfaces", boostOk, "grep key TSX");
 
+const manageCard = read("app/(site)/clasificados/en-venta/dashboard/EnVentaListingManageCard.tsx");
+add("No Upgrade to Pro CTA", !manageCard.includes("Upgrade to Pro") && !manageCard.includes("Mejorar a Pro"), "EnVentaListingManageCard");
+
+const previewDraft = read("app/(site)/clasificados/en-venta/preview/enVentaPreviewDraft.ts");
+add("Preview return draft wired", previewDraft.includes("takeEnVentaPreviewReturnInitialState") && previewDraft.includes("EN_VENTA_PREVIEW_RETURN_DRAFT"), "enVentaPreviewDraft.ts");
+add("Free preview roundtrip hook", read("app/(site)/clasificados/publicar/en-venta/free/application/LeonixEnVentaFreeApplication.tsx").includes("saveEnVentaPreviewReturnDraft"), "Free app");
+add("Pro preview roundtrip hook", proApp.includes("saveEnVentaPreviewReturnDraft"), "Pro app");
+
+const synonymChecks = ["nevera", "lavadora", "pet bed", "garage sale", "joyeria", "impresora", "llantas", "car stereo"];
+add(
+  "Search synonyms cover Gate 2G terms",
+  synonymChecks.every((t) => synonyms.toLowerCase().includes(t.toLowerCase())),
+  "synonyms.ts"
+);
+
+const freeApp = read("app/(site)/clasificados/publicar/en-venta/free/application/LeonixEnVentaFreeApplication.tsx");
+add("Free app preserved", freeApp.includes("ev-free-publish-root"), "Free app");
+add("Free app no public En Venta title", !freeApp.includes("En Venta (Gratis)"), "Free app");
+
 const publishPath = [
   read("app/(site)/clasificados/publicar/en-venta/page.tsx"),
   proApp,

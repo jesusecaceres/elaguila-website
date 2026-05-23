@@ -87,7 +87,7 @@ const SYNONYM_GROUPS: string[][] = [
   ],
   ["joyeria", "joyería", "jewelry", "relojes", "watches", "lentes de sol", "sunglasses"],
   ["oficina", "office", "utiles escolares", "útiles escolares", "school supplies", "printer", "impresora", "desk accessories"],
-  ["autopartes", "partes de auto", "car parts", "tires", "llantas", "rims", "rines", "car audio", "accesorios de auto"],
+  ["autopartes", "partes de auto", "car parts", "tires", "llantas", "rims", "rines", "car audio", "car stereo", "estereo", "estéreo", "accesorios de auto"],
   ["sofa", "sillón", "sillon", "couch"],
   ["mesa cocina", "mesa de cocina", "kitchen table", "dining table", "dining chair", "silla comedor", "mesa comedor"],
   ["cama", "mattress", "colchon", "colchón", "bed"],

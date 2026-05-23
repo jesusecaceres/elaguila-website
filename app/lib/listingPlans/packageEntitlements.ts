@@ -209,7 +209,6 @@ export function getPackageEntitlementBenefits(tier: PackageEntitlementTier): Pac
         tier,
         label: "Quarter-page print package",
         benefits: withBenefits({
-          classified_listing: true,
           print_advertiser_badge: true,
           republish_access: true,
         }),

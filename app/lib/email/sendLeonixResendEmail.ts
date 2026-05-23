@@ -1,4 +1,9 @@
 import { logLeonixEmailFailure } from "./logLeonixEmailFailure";
+import {
+  logLeonixResendConfigMissing,
+  resolveLeonixResendConfig,
+  type LeonixResendConfig,
+} from "./leonixResendConfig";
 
 /**
  * Shared Resend HTTP sender (same pattern as `sendTiendaOrderEmailResend`).
@@ -6,53 +11,37 @@ import { logLeonixEmailFailure } from "./logLeonixEmailFailure";
  */
 type ResendErrorBody = { message?: string };
 
-function resolveFrom(): string | null {
-  return (
-    process.env.LEONIX_RESEND_FROM?.trim() ||
-    process.env.TIENDA_ORDER_EMAIL_FROM?.trim() ||
-    null
-  );
-}
+export type LeonixResendSendResult =
+  | { ok: true }
+  | { ok: false; message: string; code: "NOT_CONFIGURED" | "RESEND_ERROR" };
 
-export async function sendLeonixResendEmail(input: {
-  to: string | string[];
-  subject: string;
-  text: string;
-  html: string;
-  /** When set, staff can hit “Reply” in the inbox to reach the submitter. */
-  replyTo?: string;
-}): Promise<{ ok: true } | { ok: false; message: string }> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = resolveFrom();
-  if (!apiKey) {
-    const message = "RESEND_API_KEY is not configured";
-    logLeonixEmailFailure("leonix-resend", message);
-    return { ok: false, message };
-  }
-  if (!from) {
-    const message = "LEONIX_RESEND_FROM or TIENDA_ORDER_EMAIL_FROM is not configured";
-    logLeonixEmailFailure("leonix-resend", message);
-    return { ok: false, message };
-  }
-
-  const to = Array.isArray(input.to) ? input.to : [input.to];
-
+async function postResendEmail(
+  scope: string,
+  config: Extract<LeonixResendConfig, { ok: true }>,
+  input: {
+    to: string[];
+    subject: string;
+    text: string;
+    html: string;
+    replyTo?: string;
+  },
+): Promise<LeonixResendSendResult> {
   const payload: Record<string, unknown> = {
-    from,
-    to,
+    from: config.from,
+    to: input.to,
     subject: input.subject,
     text: input.text,
     html: input.html,
   };
-  const rt = input.replyTo?.trim();
-  if (rt) {
-    payload.reply_to = rt;
+  const replyTo = input.replyTo?.trim();
+  if (replyTo) {
+    payload.reply_to = replyTo;
   }
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -66,9 +55,46 @@ export async function sendLeonixResendEmail(input: {
     } catch {
       /* ignore */
     }
-    logLeonixEmailFailure("leonix-resend", msg);
-    return { ok: false, message: msg };
+    logLeonixEmailFailure(scope, msg);
+    return { ok: false, message: msg, code: "RESEND_ERROR" };
   }
 
   return { ok: true };
+}
+
+export async function sendLeonixResendEmail(input: {
+  to: string | string[];
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string;
+}): Promise<LeonixResendSendResult> {
+  const config = resolveLeonixResendConfig();
+  if (!config.ok) {
+    logLeonixResendConfigMissing("leonix-resend", config);
+    return { ok: false, message: config.message, code: "NOT_CONFIGURED" };
+  }
+
+  const to = Array.isArray(input.to) ? input.to : [input.to];
+  return postResendEmail("leonix-resend", config, { ...input, to });
+}
+
+export async function sendLeonixResendEmailWithConfig(
+  scope: string,
+  input: {
+    to: string | string[];
+    subject: string;
+    text: string;
+    html: string;
+    replyTo?: string;
+  },
+): Promise<LeonixResendSendResult> {
+  const config = resolveLeonixResendConfig();
+  if (!config.ok) {
+    logLeonixResendConfigMissing(scope, config);
+    return { ok: false, message: config.message, code: "NOT_CONFIGURED" };
+  }
+
+  const to = Array.isArray(input.to) ? input.to : [input.to];
+  return postResendEmail(scope, config, { ...input, to });
 }

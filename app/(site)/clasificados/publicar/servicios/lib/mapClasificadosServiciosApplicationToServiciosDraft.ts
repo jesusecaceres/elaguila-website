@@ -293,19 +293,19 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   }
 
   const ig = trimUrl(state.socialInstagram);
-  if (ig) contact.socialInstagramUrl = normalizeHttpUrl(ig);
+  if (ig && isProbablyValidWebUrl(ig)) contact.socialInstagramUrl = normalizeHttpUrl(ig);
   const fb = trimUrl(state.socialFacebook);
-  if (fb) contact.socialFacebookUrl = normalizeHttpUrl(fb);
+  if (fb && isProbablyValidWebUrl(fb)) contact.socialFacebookUrl = normalizeHttpUrl(fb);
   const yt = trimUrl(state.socialYoutube);
-  if (yt) contact.socialYoutubeUrl = normalizeHttpUrl(yt);
+  if (yt && isProbablyValidWebUrl(yt)) contact.socialYoutubeUrl = normalizeHttpUrl(yt);
   const tk = trimUrl(state.socialTiktok);
-  if (tk) contact.socialTiktokUrl = normalizeHttpUrl(tk);
+  if (tk && isProbablyValidWebUrl(tk)) contact.socialTiktokUrl = normalizeHttpUrl(tk);
   const li = trimUrl(state.socialLinkedin);
-  if (li) contact.socialLinkedinUrl = normalizeHttpUrl(li);
+  if (li && isProbablyValidWebUrl(li)) contact.socialLinkedinUrl = normalizeHttpUrl(li);
   const sx = trimUrl(state.socialX);
-  if (sx) contact.socialXUrl = normalizeHttpUrl(sx);
+  if (sx && isProbablyValidWebUrl(sx)) contact.socialXUrl = normalizeHttpUrl(sx);
   const sc = trimUrl(state.socialSnapchat);
-  if (sc) contact.socialSnapchatUrl = normalizeHttpUrl(sc);
+  if (sc && isProbablyValidWebUrl(sc)) contact.socialSnapchatUrl = normalizeHttpUrl(sc);
   const googleRev = trimUrl(state.googleReviewsUrl);
   if (googleRev && isProbablyValidWebUrl(googleRev)) {
     contact.googleReviewsUrl = normalizeHttpUrl(googleRev);

@@ -27,9 +27,9 @@ function TiendaContactSubmitError({ lang }: { lang: Lang }) {
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
           </a>{" "}
-          or email{" "}
+          or{" "}
           <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
-            {LEONIX_TIENDA_EMAIL}
+            email us directly
           </a>
           .
         </p>
@@ -39,9 +39,9 @@ function TiendaContactSubmitError({ lang }: { lang: Lang }) {
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
           </a>{" "}
-          o envíanos un correo a{" "}
+          o{" "}
           <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
-            {LEONIX_TIENDA_EMAIL}
+            escríbenos directamente
           </a>
           .
         </p>
@@ -206,7 +206,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
             type="submit"
             disabled={status === "loading"}
             className={[
-              "w-full min-h-[44px] rounded-full py-3.5 text-sm font-semibold transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]",
+              "w-full min-h-[44px] whitespace-nowrap text-center text-sm sm:text-base px-4 py-3.5 rounded-full font-semibold transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]",
               status === "loading"
                 ? "bg-[color:var(--lx-gold)]/50 text-[color:var(--lx-text)] cursor-wait"
                 : "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",

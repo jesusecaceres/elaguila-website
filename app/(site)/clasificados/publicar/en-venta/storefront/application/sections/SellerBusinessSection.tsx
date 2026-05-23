@@ -24,7 +24,7 @@ const COPY = {
   },
   en: {
     title: "Seller & business identity",
-    desc: "Clear display name, logo, and tagline build trust — still En Venta, not a corporate portal.",
+    desc: "Clear display name, logo, and tagline build trust — still Varios, not a corporate portal.",
     bizName: "Business display name",
     bizNameH: "How you show up on the listing; keep it recognizable.",
     legal: "Legal name (optional)",

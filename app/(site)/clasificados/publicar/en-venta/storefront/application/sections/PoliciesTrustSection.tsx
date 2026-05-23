@@ -24,7 +24,7 @@ const COPY = {
   },
   en: {
     title: "Policies & trust",
-    desc: "Returns, warranty, and credibility signals — still marketplace En Venta.",
+    desc: "Returns, warranty, and credibility signals — still marketplace Varios.",
     ret: "Return / exchange notes",
     war: "Warranty (if any)",
     appt: "Appointments / visits",

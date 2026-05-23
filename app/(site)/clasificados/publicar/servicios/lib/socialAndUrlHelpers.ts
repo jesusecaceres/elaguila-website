@@ -10,6 +10,7 @@ export function normalizeHttpUrl(raw: string): string {
 export function isProbablyValidWebUrl(raw: string): boolean {
   const t = raw.trim();
   if (!t) return true;
+  if (/^(javascript|data|file|ftp):/i.test(t)) return false;
   try {
     const n = normalizeHttpUrl(t);
     if (n.startsWith("/")) return true;
