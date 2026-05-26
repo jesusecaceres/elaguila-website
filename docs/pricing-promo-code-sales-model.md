@@ -6,7 +6,7 @@ This document defines the shared **pricing ladder**, **contract term discounts**
 
 **Code:** `app/lib/listingPlans/packagePricingRules.ts`
 
-**Related:** [`package-entitlement-model.md`](./package-entitlement-model.md) (G1.6A–C entitlements), [`print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md) (G0 visibility).
+**Related:** [`package-entitlement-model.md`](./package-entitlement-model.md) (G1.6A–C entitlements), [`print-to-digital-visibility-policy.md`](./print-to-digital-visibility-policy.md) (G0 visibility), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md) (G1.6G — attach-to-listing + user dashboard read model).
 
 **Not in Gate G1.6D:** Stripe Checkout, payment processing, public redemption, public pricing page redesign, Servicios ranking, sales rep dashboard UI, commission payout ledger, Supabase pricing tables, public coupon marketplace, Admin UI wiring.
 

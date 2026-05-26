@@ -265,6 +265,49 @@ export async function getPromoCodeDashboardSnapshot(): Promise<PromoCodeDashboar
   }
 }
 
+/**
+ * Best-effort sync of listing_id on linked promo code when entitlement attach occurs.
+ */
+export async function syncPromoCodeListingIdFromEntitlement(
+  entitlementId: string,
+  listingId: string,
+): Promise<{ ok: boolean; error: string | null }> {
+  try {
+    const supabase = getAdminSupabase();
+    const { data: promoRow } = await supabase
+      .from("leonix_promo_codes")
+      .select("id, metadata")
+      .eq("package_entitlement_id", entitlementId)
+      .maybeSingle();
+
+    if (!promoRow) return { ok: true, error: null };
+
+    const existingMeta =
+      promoRow.metadata && typeof promoRow.metadata === "object" && !Array.isArray(promoRow.metadata)
+        ? (promoRow.metadata as Record<string, unknown>)
+        : {};
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("leonix_promo_codes")
+      .update({
+        listing_id: listingId,
+        updated_at: now,
+        metadata: {
+          ...existingMeta,
+          listing_attached_at: now,
+          listing_attached_by: "admin_attach_sync",
+        },
+      })
+      .eq("id", String((promoRow as { id: string }).id));
+
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, error: null };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
 export type LinkPromoFromEntitlementInput = {
   entitlementId: string;
   code: string;

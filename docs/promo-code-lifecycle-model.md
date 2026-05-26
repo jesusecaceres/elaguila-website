@@ -10,7 +10,7 @@ This document defines how **promo codes** are tracked separately from **package 
 
 **Table:** `public.leonix_promo_codes` (migration `20260522120000_leonix_promo_codes.sql`)
 
-**Related:** [`package-entitlement-model.md`](./package-entitlement-model.md), [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md)
+**Related:** [`package-entitlement-model.md`](./package-entitlement-model.md), [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md) (G1.6G — attach-to-listing + user dashboard read model)
 
 ---
 

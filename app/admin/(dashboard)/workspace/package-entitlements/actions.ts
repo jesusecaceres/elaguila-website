@@ -9,7 +9,7 @@ import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { buildEntitlementPricingMetadata } from "@/app/admin/_lib/buildEntitlementPricingMetadata";
 import { PREMIUM_INVENTORY_SOFT_CAP } from "@/app/admin/_lib/packageEntitlementConstants";
 import { countActivePremiumEntitlements } from "@/app/admin/_lib/packageEntitlementData";
-import { upsertPromoCodeFromPackageEntitlement } from "@/app/admin/_lib/promoCodeData";
+import { syncPromoCodeListingIdFromEntitlement, upsertPromoCodeFromPackageEntitlement } from "@/app/admin/_lib/promoCodeData";
 import {
   getPackageEntitlementBenefits,
   normalizePackageEntitlementTier,
@@ -383,6 +383,8 @@ export async function attachListingToPackageEntitlementAction(formData: FormData
     redirectWith({ error: "attach_failed", detail: error.message.slice(0, 120) });
   }
 
+  void syncPromoCodeListingIdFromEntitlement(id, listingId);
+
   void appendAdminAuditLog({
     action: "package_entitlement_listing_attached",
     targetType: "listing_package_entitlement",
@@ -392,5 +394,6 @@ export async function attachListingToPackageEntitlementAction(formData: FormData
 
   revalidatePath("/admin");
   revalidatePath("/admin/workspace/package-entitlements");
+  revalidatePath("/admin/workspace/promo-codes");
   redirectWith({ attached: "1" });
 }

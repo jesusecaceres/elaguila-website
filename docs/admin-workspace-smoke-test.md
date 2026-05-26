@@ -156,6 +156,27 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6G-STACK — Entitlement Redemption / Attachment Model
+
+**Helper:** `app/lib/listingPlans/entitlementRedemption.ts`
+
+### Automated
+
+- `npm run verify:entitlement-redemption-attachment`
+- `npm run verify:admin-package-entitlement-generator`
+
+### Manual smoke
+
+1. Helper exports `normalizeRedemptionCode`, `resolvePromoCodeRedemptionState`, `resolveListingEntitlementAttachment`, `buildUserDashboardEntitlementSummary`, `canAttachCodeToListing`.
+2. Admin attach listing on `/admin/workspace/package-entitlements` syncs `leonix_promo_codes.listing_id` when linked promo row exists.
+3. User dashboard badges still load via `/api/dashboard/listing-package-entitlements`.
+4. Full dashboard summary helper available for next gate wiring.
+5. No public sorting, Stripe Checkout, or commission payout added.
+
+**Docs:** `docs/entitlement-redemption-attachment-model.md`
+
+---
+
 ## Gate G1.6F-STACK — Promo Code Lifecycle Manager
 
 **Route:** `/admin/workspace/promo-codes`
