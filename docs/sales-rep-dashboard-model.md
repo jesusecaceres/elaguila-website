@@ -8,7 +8,7 @@ This document defines the **Sales Tracker** for owner/admin use and the future *
 
 **Admin UI:** `/admin/workspace/sales-tracker`
 
-**Related:** [`promo-code-lifecycle-model.md`](./promo-code-lifecycle-model.md), [`package-entitlement-model.md`](./package-entitlement-model.md), [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md)
+**Related:** [`promo-code-lifecycle-model.md`](./promo-code-lifecycle-model.md), [`package-entitlement-model.md`](./package-entitlement-model.md), [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md), [`stripe-payment-tracker-model.md`](./stripe-payment-tracker-model.md) (G1.6I — global payment tracker)
 
 ---
 

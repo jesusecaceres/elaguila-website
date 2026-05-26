@@ -21,6 +21,7 @@ import {
   getPackageEntitlementDashboardSnapshot,
 } from "../_lib/packageEntitlementData";
 import { getPromoCodeDashboardSnapshot } from "../_lib/promoCodeData";
+import { getPaymentTrackerDashboardSnapshot } from "../_lib/paymentTrackerData";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
@@ -38,10 +39,11 @@ export default async function AdminHomePage() {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const locale: string = lang === "es" ? "es-MX" : "en-US";
-  const [snap, entSnap, promoSnap, registry] = await Promise.all([
+  const [snap, entSnap, promoSnap, paySnap, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
     getPackageEntitlementDashboardSnapshot(),
     getPromoCodeDashboardSnapshot(),
+    getPaymentTrackerDashboardSnapshot(),
     getClasificadosCategoryRegistryMerged(),
   ]);
   const regSum = summarizeRegistryForDashboard(registry);
@@ -142,6 +144,40 @@ export default async function AdminHomePage() {
             actionLabel={m("dashboard.promoCodesViewAll")}
             actionHref="/admin/workspace/promo-codes"
             actionTitle={m("dashboard.promoCodesViewAllTitle")}
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <AdminStatCard
+            title={m("dashboard.paymentTrackerPendingTitle")}
+            value={paySnap.unavailable ? "—" : paySnap.pendingCount}
+            hint={
+              paySnap.unavailable
+                ? (paySnap.note ?? m("dashboard.paymentTrackerMigrateHint"))
+                : m("dashboard.paymentTrackerPendingHint")
+            }
+            icon="💳"
+            actionLabel={m("dashboard.paymentTrackerViewAll")}
+            actionHref="/admin/workspace/payment-tracker"
+            actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
+          />
+          <AdminStatCard
+            title={m("dashboard.paymentTrackerPaidTitle")}
+            value={paySnap.unavailable ? "—" : paySnap.paidCount}
+            hint={m("dashboard.paymentTrackerPaidHint")}
+            icon="✓"
+            actionLabel={m("dashboard.paymentTrackerViewAll")}
+            actionHref="/admin/workspace/payment-tracker"
+            actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
+          />
+          <AdminStatCard
+            title={m("dashboard.paymentTrackerCommissionTitle")}
+            value={paySnap.unavailable ? "—" : paySnap.commissionEligibleCount}
+            hint={m("dashboard.paymentTrackerCommissionHint")}
+            icon="📊"
+            actionLabel={m("dashboard.paymentTrackerViewAll")}
+            actionHref="/admin/workspace/payment-tracker"
+            actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
           />
         </div>
 

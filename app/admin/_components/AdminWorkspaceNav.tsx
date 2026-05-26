@@ -24,6 +24,11 @@ const SECTIONS: WorkspaceNavItem[] = [
     labelKey: "workspaceNav.link.salesTracker",
     hintKey: "workspaceNav.salesTracker.hint",
   },
+  {
+    href: "/admin/workspace/payment-tracker",
+    labelKey: "workspaceNav.link.paymentTracker",
+    hintKey: "workspaceNav.paymentTracker.hint",
+  },
   { href: "/admin/workspace/tienda", labelKey: "workspaceNav.link.tienda", hintKey: "workspaceNav.tienda.hint" },
   { href: "/admin/workspace/nosotros", labelKey: "workspaceNav.link.nosotros", hintKey: "workspaceNav.nosotros.hint" },
   { href: "/admin/workspace/revista", labelKey: "workspaceNav.link.revista", hintKey: "workspaceNav.revista.hint" },

@@ -156,6 +156,33 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6I-STACK — Global Stripe Payment Tracker Foundation
+
+**Route:** `/admin/workspace/payment-tracker`
+
+### Automated
+
+- `npm run verify:stripe-payment-tracker-foundation`
+
+### Manual smoke
+
+1. Page shows **Payment Tracker / Seguimiento de Pagos** title and global payment tracker helper copy.
+2. Page shows **does not collect payments yet / Stripe Checkout will create records later** warning.
+3. Summary cards: pending, paid/succeeded, failed/canceled/refunded, commission eligible, est. paid total.
+4. Payment records table: customer, package, promo, sales rep, status, amount, commission, source, Stripe IDs, paid date.
+5. Filters: search text, status, sales rep, category, promo code.
+6. Cross-links to Promo Codes, Package Entitlements, Sales Tracker.
+7. Nav link added under workspace nav: "Payment tracker" / "Seguimiento pagos".
+8. Dashboard cards: pending, paid, commission eligible with links to payment tracker.
+9. Graceful handling when migration not applied (table unavailable state).
+10. No Stripe Checkout session creation, no payment collection, no public route, no Servicios ranking.
+
+**Migration:** `supabase/migrations/20260526120000_leonix_payment_records.sql`
+
+**Docs:** `docs/stripe-payment-tracker-model.md`
+
+---
+
 ## Gate G1.6H-STACK — Sales Rep Dashboard Foundation
 
 **Route:** `/admin/workspace/sales-tracker`
