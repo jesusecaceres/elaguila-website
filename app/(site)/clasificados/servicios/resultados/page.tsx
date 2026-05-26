@@ -13,7 +13,8 @@ import {
   sortServiciosResultsForDisplay,
   type ServiciosResultsFilterQuery,
 } from "../lib/serviciosResultsFilter";
-import { listServiciosPublicListingsForDiscovery } from "../lib/serviciosPublicListingsServer";
+import { listServiciosPublicListingsRaw } from "../lib/serviciosPublicListingsServer";
+import { overlayActiveEntitlementsForServiciosResults } from "../lib/serviciosEntitlementOverlay";
 import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
 
 export const dynamic = "force-dynamic";
@@ -127,14 +128,17 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     hasOffers: parseTruthyResultsFlag(sp.has_offers),
   };
 
-  // Prefetch window for in-memory filters. Raised from 120→500 so keyword/filters are less likely to
-  // drop valid rows before pagination / load-more exists (see marketplace audit Phase A).
-  const allRows = await listServiciosPublicListingsForDiscovery(500);
+  // Pipeline: raw fetch → filter → entitlement overlay → visibility ranking
+  const allRows = await listServiciosPublicListingsRaw(500);
 
   let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery);
   rows = filterServiciosRowsByKeyword(rows, lang, filterQuery.q);
   rows = filterServiciosRowsBySeller(rows, lang, filterQuery.seller);
-  const displayRows = sortServiciosResultsForDisplay(rows, lang, filterQuery.sort);
+
+  // Gate G2A: overlay active entitlements onto filtered results only (public-safe fields)
+  const overlaid = await overlayActiveEntitlementsForServiciosResults(rows);
+
+  const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort);
   const promotedRows = displayRows.filter(isServiciosListingPromoted);
   const standardRows = displayRows.filter((r) => !isServiciosListingPromoted(r));
 

@@ -228,6 +228,11 @@ Before merging sorting, public Destacados, or payment flows:
 Adapter: `app/(site)/clasificados/servicios/lib/serviciosVisibilityRanking.ts`
 Verify: `npm run verify:servicios-print-digital-ranking`
 
+**Gate G2A-SERVICIOS** adds a public-safe active entitlement overlay so ranking can actually detect Premium/Full-page/Half-page/etc. tiers from `listing_package_entitlements`. The overlay queries active entitlements server-side and decorates filtered rows with `package_entitlement_tier`, `entitlement_starts_at`, `entitlement_ends_at` only — no sales rep, commission, payment, or admin metadata is exposed. Pipeline: raw fetch → filter/search/seller → **entitlement overlay** → visibility ranking → render. Stripe remains later. No Destacados module built. No other category changed.
+
+Overlay: `app/(site)/clasificados/servicios/lib/serviciosEntitlementOverlay.ts`
+Verify: `npm run verify:servicios-entitlement-overlay`
+
 ---
 
 ## 16. Package entitlements (Gate G1.6 — official spec)

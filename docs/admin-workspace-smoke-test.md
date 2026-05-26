@@ -351,6 +351,24 @@ Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, clas
 
 ---
 
+## Gate G2A-SERVICIOS — Active Entitlement Overlay for Ranking
+
+### Automated
+
+- `npm run verify:servicios-entitlement-overlay`
+
+### Manual smoke
+
+1. Create a package entitlement in `/admin/workspace/package-entitlements` for category `servicios`, listing source `servicios_public_listings`, tier `full_page`, with a valid listing ID matching a published Servicios listing. Set dates to cover today.
+2. Open `/clasificados/servicios/resultados` — the listing with the active full-page entitlement should sort above organic listings.
+3. Create a `premium` entitlement for another listing — it should appear in the Destacados band, not forced into normal results.
+4. Listings without active entitlements remain organic.
+5. No sales rep, commission, payment, or admin metadata is visible in the public page source.
+6. Apply filters (city, keyword, group) — ranking still runs after filtering and does not inject unrelated rows.
+7. If the `listing_package_entitlements` table is unavailable, results still render (organic fallback).
+
+---
+
 ## Next Steps
 
 1. **Immediate**: Use existing TRUE editors for content updates

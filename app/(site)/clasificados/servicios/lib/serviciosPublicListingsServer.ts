@@ -14,7 +14,7 @@ import {
   listServiciosDevPublishRows,
 } from "./serviciosDevPublishPersistence";
 import { getServiciosReviewAggregatesForSlugs } from "./serviciosOpsTablesServer";
-import { hydratePublicRowsWithActivePackageEntitlements } from "@/app/lib/listingPlans/listingPackageEntitlementsServer";
+import { overlayActiveEntitlementsForServiciosResults } from "./serviciosEntitlementOverlay";
 import {
   compareServiciosPublicDiscoveryNewestFirst,
   serviciosLikeCountAliasKeys,
@@ -215,15 +215,12 @@ export async function listServiciosPublicListingsForOwner(ownerUserId: string, l
 }
 
 /**
- * Supabase published rows + optional dev-workspace file (`serviciosDevPublishPersistence`) for local testing.
- * DB row wins when the same slug exists in both.
+ * Raw Supabase published rows + dev workspace file — WITHOUT entitlement overlay.
+ * Use when the caller will apply entitlement overlay at a later pipeline stage
+ * (e.g. results page applies overlay after filtering for efficiency).
  */
-export async function listServiciosPublicListingsForDiscovery(limit = 48): Promise<ServiciosPublicListingRow[]> {
+export async function listServiciosPublicListingsRaw(limit = 48): Promise<ServiciosPublicListingRow[]> {
   const dev = listServiciosDevPublishRows();
-  /**
-   * When dev rows exist, fetch extra DB rows before merge so a freshly published dev listing
-   * is not pushed out of the merged `limit` window by a full DB page (same ordering as results).
-   */
   const dbFetchLimit =
     dev.length > 0 && isServiciosDevPublishPersistenceEnabled()
       ? Math.min(800, limit + Math.min(dev.length * 4, 200))
@@ -236,20 +233,16 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
   }
   merged.sort(compareServiciosPublicDiscoveryNewestFirst);
   const slice = merged.slice(0, limit);
-  const hydrated = await hydratePublicRowsWithActivePackageEntitlements(slice, {
-    category: "servicios",
-    listingSource: "servicios_public_listings",
-  });
   const likeQueryKeys = new Set<string>();
-  for (const r of hydrated) {
+  for (const r of slice) {
     for (const k of serviciosLikeCountAliasKeys(r)) likeQueryKeys.add(k);
   }
   const [agg, likeMap, saveMap] = await Promise.all([
-    getServiciosReviewAggregatesForSlugs(hydrated.map((r) => r.slug)),
+    getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug)),
     fetchServiciosNetLikeCountsByEngagementKeys([...likeQueryKeys]),
     fetchServiciosUserSavedCountsByKeys([...likeQueryKeys]),
   ]);
-  return hydrated.map((r) => {
+  return slice.map((r) => {
     const a = agg.get(r.slug);
     const likes = serviciosNetLikeCountForPublicRow(r, likeMap);
     const saves = serviciosSavedCountForPublicRow(r, saveMap);
@@ -261,6 +254,18 @@ export async function listServiciosPublicListingsForDiscovery(limit = 48): Promi
     out = saves > 0 ? { ...out, public_save_count: saves } : out;
     return out;
   });
+}
+
+/**
+ * Supabase published rows + optional dev-workspace file + active entitlement overlay.
+ * Used by landing page and callers that don't apply their own overlay step.
+ *
+ * Gate G2A: Results page uses `listServiciosPublicListingsRaw` + explicit overlay
+ * after filtering for correct pipeline order and efficiency.
+ */
+export async function listServiciosPublicListingsForDiscovery(limit = 48): Promise<ServiciosPublicListingRow[]> {
+  const rows = await listServiciosPublicListingsRaw(limit);
+  return overlayActiveEntitlementsForServiciosResults(rows);
 }
 
 export async function getServiciosPublicListingBySlugForDiscovery(slug: string): Promise<ServiciosPublicListingRow | null> {
