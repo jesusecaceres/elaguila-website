@@ -35,6 +35,7 @@
     "verify:admin-promo-code-lifecycle": "node scripts/verify-admin-promo-code-lifecycle.mjs",
     "verify:entitlement-redemption-attachment": "node scripts/verify-entitlement-redemption-attachment.mjs",
     "verify:sales-rep-dashboard-foundation": "node scripts/verify-sales-rep-dashboard-foundation.mjs",
+    "verify:servicios-print-digital-ranking": "node scripts/verify-servicios-print-digital-ranking.mjs",
     "verify:stripe-payment-tracker-foundation": "node scripts/verify-stripe-payment-tracker-foundation.mjs",
     "build:admin-gate": "npm run build && npm run audit:admin-language",
     "dup:guard": "node scripts/dup-guard.js",

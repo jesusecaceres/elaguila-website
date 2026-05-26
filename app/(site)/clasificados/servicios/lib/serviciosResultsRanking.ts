@@ -15,10 +15,26 @@
  * - **Recientes strip**: up to 3 newest published listings **excluding** slugs already shown in
  *   Destacados (see `serviciosLandingBuild.ts`).
  *
- * Implementation lives in `serviciosResultsFilter.ts` (results) and `serviciosLandingBuild.ts` (landing).
+ * Implementation lives in `serviciosResultsFilter.ts` (results), `serviciosLandingBuild.ts` (landing),
+ * and `serviciosVisibilityRanking.ts` (Gate G2-SERVICIOS Print-to-Digital adapter).
+ *
+ * ## Gate G2-SERVICIOS: Print-to-Digital visibility ranking
+ * The shared `resolveListingVisibilityRank` / `compareVisibilityRank` from
+ * `printDigitalVisibilityRank.ts` is applied via a Servicios-specific adapter.
+ * Ranking runs **after** search/filter/keyword/seller filters are applied.
+ * Equal-rank rows preserve their prior sort order.
+ * Premium → Destacados module eligibility only (not forced into normal results).
+ * Full-page → priority above print pool/digital/republish/organic.
+ * Organic → fallback when no entitlement fields present.
  */
 export {
   isServiciosListingPromoted,
   sortServiciosListingRows,
   sortServiciosResultsForDisplay,
 } from "./serviciosResultsFilter";
+export {
+  applyServiciosVisibilityRanking,
+  resolveServiciosListingRank,
+  isServiciosRowDestacadoEligible,
+  isServiciosRowResultsPriority,
+} from "./serviciosVisibilityRanking";

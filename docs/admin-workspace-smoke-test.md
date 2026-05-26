@@ -332,6 +332,25 @@ Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, clas
 
 ---
 
+## Gate G2-SERVICIOS — Print-to-Digital Ranking Behind Existing Filters
+
+### Automated
+
+- `npm run verify:servicios-print-digital-ranking`
+
+### Manual smoke
+
+1. Open `/clasificados/servicios/resultados` — listings should render without errors.
+2. Apply city, group, keyword, seller, and trust-signal filters — only matching listings appear (ranking does not inject unrelated rows).
+3. If a listing has an active full-page package entitlement, it should sort above print-pool/digital/republish/organic within the same filter set.
+4. Premium entitlement listings appear in the Destacados band — not forced into normal results.
+5. Organic listings remain in fallback order (newest, verified bias, slug tie-break).
+6. No Stripe/checkout/payment CTAs appear on the public results page.
+7. No commission/payout/sales-rep metadata is exposed to the public page.
+8. Other categories (Restaurantes, Autos, Bienes Raíces, Rentas, En Venta) remain unchanged.
+
+---
+
 ## Next Steps
 
 1. **Immediate**: Use existing TRUE editors for content updates

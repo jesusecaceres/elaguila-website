@@ -223,7 +223,10 @@ Before merging sorting, public Destacados, or payment flows:
 
 **Gate G1 encodes:** Premium → Destacados modules (`eligibleForDestacadosModule`, not default results priority); full-page → results priority (`eligibleForResultsPriority`); half/quarter/classified → `print_advertiser_pool`; digital featured below print; Republish/Boost below full-page print; organic fallback. **Full-page priority outranks Republish/Boost** unless a future policy revision says otherwise.
 
-Later gates (e.g. **Gate G2-SERVICIOS**) may call the helper behind existing filters; until then, public sort behavior is unchanged.
+**Gate G2-SERVICIOS** applies the shared ranking helper to Servicios public results (`/clasificados/servicios/resultados`). Ranking runs **after** search/filter/keyword/seller filters. Equal-rank rows preserve prior sort order. Premium → Destacados module eligibility only (not forced into normal results). Full-page → priority above print pool/digital/republish/organic. Organic → fallback. No other category is changed in this gate. Stripe remains global and later. Public redemption remains later.
+
+Adapter: `app/(site)/clasificados/servicios/lib/serviciosVisibilityRanking.ts`
+Verify: `npm run verify:servicios-print-digital-ranking`
 
 ---
 

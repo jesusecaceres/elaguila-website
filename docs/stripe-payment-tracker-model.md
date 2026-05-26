@@ -132,8 +132,8 @@ The admin payment tracker page at `/admin/workspace/payment-tracker` is read-onl
 
 Payment tracker is admin-only. No changes to:
 
-- Public Servicios ranking
-- Public search results sorting
+- Public Servicios ranking — **applied in Gate G2-SERVICIOS** via `serviciosVisibilityRanking.ts`; Stripe/payment is NOT required for ranking to work; ranking uses entitlement fields only
+- Public search results sorting (Stripe activation remains later)
 - Homepage Destacados
 - Category landing Destacados
 - Results-page Destacados

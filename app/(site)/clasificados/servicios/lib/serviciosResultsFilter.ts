@@ -3,11 +3,13 @@ import { isAllowedServiciosImageUrl } from "@/app/servicios/lib/serviciosMediaUr
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosBusinessProfile, ServiciosLang, ServiciosProfileResolved } from "@/app/servicios/types/serviciosBusinessProfile";
 import {
-  compareListingPlacementVisibility,
-  listingPlacementVisibilityRank,
   packageEntitlementGrantsDestacado,
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import {
+  resolveServiciosListingRank,
+  applyServiciosVisibilityRanking,
+} from "./serviciosVisibilityRanking";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
 import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNewestFirst } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
@@ -711,7 +713,10 @@ export function sortServiciosListingRows(
 
 /**
  * Print-to-Digital placement order: Premium Destacado → Full-page priority → print pool → organic.
- * Within each bucket, apply the user-selected `sort`.
+ * Within each visibility bucket, apply the user-selected `sort`.
+ *
+ * Gate G2-SERVICIOS: uses resolveListingVisibilityRank via the serviciosVisibilityRanking adapter.
+ * Search/filter must run before this function — it only re-orders matching results.
  */
 export function sortServiciosResultsForDisplay(
   rows: ServiciosPublicListingRow[],
@@ -720,13 +725,10 @@ export function sortServiciosResultsForDisplay(
 ): ServiciosPublicListingRow[] {
   const weightOrder = [600, 500, 400, 300, 200, 100, 50, 25, 0] as const;
   const buckets = new Map<number, ServiciosPublicListingRow[]>();
-  const rankBySlug = new Map<string, ReturnType<typeof listingPlacementVisibilityRank>>();
+  const rankBySlug = new Map<string, ReturnType<typeof resolveServiciosListingRank>>();
 
   for (const row of rows) {
-    const rank = listingPlacementVisibilityRank({
-      category: "servicios",
-      listing: serviciosPublicRowToEntitlementListing(row),
-    });
+    const rank = resolveServiciosListingRank(row);
     rankBySlug.set(row.slug, rank);
     const list = buckets.get(rank.rankWeight) ?? [];
     list.push(row);
@@ -737,14 +739,8 @@ export function sortServiciosResultsForDisplay(
   for (const w of weightOrder) {
     const block = buckets.get(w);
     if (!block?.length) continue;
-    block.sort((a, b) => {
-      const ra = rankBySlug.get(a.slug)!;
-      const rb = rankBySlug.get(b.slug)!;
-      const placementCmp = compareListingPlacementVisibility(ra, rb);
-      if (placementCmp !== 0) return placementCmp;
-      return 0;
-    });
-    sorted.push(...sortServiciosListingRows(block, lang, sort, { resultsNewest: true }));
+    const rankedBlock = applyServiciosVisibilityRanking(block);
+    sorted.push(...sortServiciosListingRows(rankedBlock, lang, sort, { resultsNewest: true }));
   }
   return sorted;
 }
