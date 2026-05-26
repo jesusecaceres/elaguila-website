@@ -156,6 +156,32 @@ For each area, verify:
 - [ ] Mobile responsiveness works
 - [ ] Accessibility features are functional
 
+## Gate G1.6H-STACK — Sales Rep Dashboard Foundation
+
+**Route:** `/admin/workspace/sales-tracker`
+
+### Automated
+
+- `npm run verify:sales-rep-dashboard-foundation`
+
+### Manual smoke
+
+1. Page shows **Sales Tracker / Seguimiento de Ventas** title and commission preview-only helper copy.
+2. Page shows **no payments are collected here / Stripe Checkout comes later** warning.
+3. Summary cards: active codes, active entitlements, expiring soon, revoked/expired.
+4. Estimated contract total card if metadata exists.
+5. Commission eligible count / estimated commission (preview) if metadata exists.
+6. Sales rep table grouped by `sales_rep_id` — click rep name to filter by that rep.
+7. Filters: search text, sales rep ID, status, category, package tier, code type.
+8. Recent activity table: code, source (promo/entitlement), customer, sales rep, package/category, status, end date, est. total.
+9. Cross-links to Promo Codes and Package Entitlements.
+10. Nav link added under workspace nav: "Sales tracker" / "Seguimiento ventas".
+11. No Stripe Checkout, no payment processing, no public route, no Servicios ranking.
+
+**Docs:** `docs/sales-rep-dashboard-model.md`
+
+---
+
 ## Gate G1.6G-STACK — Entitlement Redemption / Attachment Model
 
 **Helper:** `app/lib/listingPlans/entitlementRedemption.ts`
