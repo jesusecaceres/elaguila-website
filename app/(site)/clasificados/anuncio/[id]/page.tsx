@@ -382,7 +382,7 @@ export default function AnuncioDetallePage() {
 
   const categoryLabel = useMemo(() => {
     const map: Record<CategoryKey, { es: string; en: string }> = {
-      "en-venta": { es: "En Venta", en: "For Sale" },
+      "en-venta": { es: "Varios", en: "For Sale" },
       "bienes-raices": { es: "Bienes Raíces", en: "Real estate" },
       rentas: { es: "Rentas", en: "Rentals" },
       autos: { es: "Autos", en: "Autos" },
@@ -1200,7 +1200,7 @@ export default function AnuncioDetallePage() {
                 ? "Más en Bienes Raíces"
                 : "More in Real estate"
               : lang === "es"
-                ? "Más en En Venta"
+                ? "Más en Varios"
                 : "More in For Sale"
           }
           showListingReport

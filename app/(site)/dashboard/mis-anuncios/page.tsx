@@ -512,6 +512,14 @@ export default function MyListingsPage() {
           slug: item.slug ?? null,
           leonixAdId: item.leonixAdId ?? null,
         })),
+        ...autosPaidItems.map((item) => ({
+          key: item.id,
+          category: "autos",
+          listingSource: "autos_classifieds_listings",
+          listingId: item.id,
+          slug: null,
+          leonixAdId: item.leonixAdId ?? null,
+        })),
         ...list
           .filter((row) => {
             const c = String(row.category ?? "").toLowerCase();
