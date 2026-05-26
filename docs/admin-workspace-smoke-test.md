@@ -369,6 +369,24 @@ Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, clas
 
 ---
 
+## Gate G2A.5 — Magazine Page Placement Metadata
+
+### Automated
+
+- `npm run verify:magazine-placement-priority-model`
+
+### Manual smoke
+
+1. Open `/admin/workspace/package-entitlements` — the create form shows "Magazine placement (G2A.5)" fieldset.
+2. Create an entitlement with magazine issue "June 2026", page number 5, placement type "regular_full_page" — after creation, the tracker row shows "Magazine: June 2026 · regular full page · p.5 · priority: 105".
+3. Create another with placement type "back_cover" — tracker row shows priority: 1.
+4. Create one with no magazine fields — no magazine line shown in tracker row.
+5. Create with "internal_reserved" placement — tracker row shows "reserved/internal" and priority: 9000.
+6. No cover square-number field is present in the form.
+7. No public sorting or Destacados module changes are visible.
+
+---
+
 ## Next Steps
 
 1. **Immediate**: Use existing TRUE editors for content updates

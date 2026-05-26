@@ -217,3 +217,31 @@ Tracker rows and dashboard recent cards show contract term, final monthly, estim
 **Not in G1.6E:** Stripe, public redemption, sales rep dashboard, commission payout table.
 
 Verify: `npm run verify:admin-pricing-promo-generator-ui`
+
+---
+
+## 14. Gate G2A.5 — Magazine page placement metadata
+
+**Helper:** `app/lib/listingPlans/magazinePlacementPriority.ts` (pure functions, no DB/Stripe)
+
+On entitlement create, Admin can optionally set magazine placement: **issue/cycle**, **page number**, **print placement type**, **placement notes**, and **reserved/internal** toggle. These fields are stored under `metadata.print_placement` with a calculated `digital_placement_priority`.
+
+| Field | Purpose |
+|-------|---------|
+| `magazine_issue` | e.g. "June 2026" — issue/cycle identifier |
+| `magazine_page_number` | Page number in magazine |
+| `print_placement_type` | back_cover / inside_page / regular_full_page / half_page / quarter_page / classified_print / internal_reserved |
+| `placement_notes` | Free-text notes |
+| `reserved_internal` | Leonix/event/partner reserved flag |
+| `digital_placement_priority` | Calculated: back_cover=1, page+offset for others, 9999 fallback |
+| `digital_priority_basis` | Always `back_cover_then_page_number` |
+
+**Priority order:** Back cover (1) → inside/full-page by page# (+100) → half-page (+200) → quarter-page (+300) → classified (+400) → internal (9000) → missing page (9999).
+
+**Cover square-number logic** is intentionally NOT included. Special banner/front-cover placements are deferred.
+
+**Source of truth:** The package entitlement generator is the only place these fields are set.
+
+**Not in G2A.5:** Public Destacados module, public sorting changes, Stripe, public redemption, commission payout.
+
+Verify: `npm run verify:magazine-placement-priority-model`

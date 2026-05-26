@@ -12,6 +12,7 @@ import {
   PACKAGE_ENTITLEMENT_CONTRACT_TERMS,
   PACKAGE_ENTITLEMENT_LISTING_SOURCES,
   PACKAGE_ENTITLEMENT_PLACEMENT_SCOPES,
+  PACKAGE_ENTITLEMENT_PRINT_PLACEMENT_TYPES,
   PACKAGE_ENTITLEMENT_PROMO_CODE_TYPES,
   PACKAGE_ENTITLEMENT_STATUS_FILTERS,
   PACKAGE_ENTITLEMENT_TIERS,
@@ -374,6 +375,56 @@ export default async function AdminPackageEntitlementsPage(props: {
           </div>
         </fieldset>
 
+        <fieldset>
+          <legend className="text-xs font-semibold text-[#5C5346]">Magazine placement (G2A.5)</legend>
+          <p className="mt-1 text-[10px] text-[#7A7164]">
+            Controls Destacados order and print-priority tie-breakers. Back cover = highest priority, then by page number.
+          </p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-semibold text-[#5C5346]">
+              Magazine issue / cycle
+              <input
+                name="magazine_issue"
+                className={`${adminInputClass} mt-1`}
+                placeholder="e.g. June 2026"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#5C5346]">
+              Magazine page number
+              <input
+                name="magazine_page_number"
+                type="number"
+                min="1"
+                className={`${adminInputClass} mt-1`}
+                placeholder="Optional"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#5C5346]">
+              Print placement type
+              <select name="print_placement_type" className={`${adminInputClass} mt-1`} defaultValue="">
+                <option value="">— None —</option>
+                {PACKAGE_ENTITLEMENT_PRINT_PLACEMENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 self-end text-xs text-[#3D3428]">
+              <input type="checkbox" name="reserved_internal" value="1" />
+              Reserved / internal (Leonix, event, partner)
+            </label>
+          </div>
+          <label className="mt-2 block text-xs font-semibold text-[#5C5346]">
+            Placement notes (optional)
+            <input
+              name="placement_notes"
+              className={`${adminInputClass} mt-1`}
+              placeholder="e.g. Next to restaurant section"
+            />
+          </label>
+        </fieldset>
+
         <label className="block text-xs font-semibold text-[#5C5346]">
           Notas (opcional)
           <textarea name="notes" rows={2} className={`${adminInputClass} mt-1`} />
@@ -455,6 +506,21 @@ export default async function AdminPackageEntitlementsPage(props: {
                           ))}
                         </div>
                       ) : null}
+                      {(() => {
+                        const pp = row.metadata?.print_placement as Record<string, unknown> | undefined;
+                        if (!pp) return null;
+                        const parts: string[] = [];
+                        if (pp.magazine_issue) parts.push(String(pp.magazine_issue));
+                        if (pp.print_placement_type) parts.push(String(pp.print_placement_type).replace(/_/g, " "));
+                        if (pp.magazine_page_number != null) parts.push(`p.${pp.magazine_page_number}`);
+                        if (pp.digital_placement_priority != null) parts.push(`priority: ${pp.digital_placement_priority}`);
+                        if (pp.reserved_internal === true) parts.push("reserved/internal");
+                        return parts.length ? (
+                          <p className="mt-1 text-xs font-medium text-indigo-900">
+                            Magazine: {parts.join(" · ")}
+                          </p>
+                        ) : null;
+                      })()}
                       {salesRep ? <p className="mt-1 text-xs text-[#5C5346]">Sales rep: {salesRep}</p> : null}
                       {commissionLine ? (
                         <p className="mt-0.5 text-[10px] text-amber-900">{commissionLine}</p>

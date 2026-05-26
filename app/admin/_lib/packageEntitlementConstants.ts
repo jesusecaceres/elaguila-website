@@ -52,6 +52,16 @@ export const PACKAGE_ENTITLEMENT_CONTRACT_TERMS = [
   { value: "founding_partner", label: "Founding partner (25% off, owner approval)" },
 ] as const;
 
+export const PACKAGE_ENTITLEMENT_PRINT_PLACEMENT_TYPES = [
+  { value: "back_cover", label: "Back cover (highest priority)" },
+  { value: "inside_page", label: "Inside page" },
+  { value: "regular_full_page", label: "Regular full-page" },
+  { value: "half_page", label: "Half-page" },
+  { value: "quarter_page", label: "Quarter-page" },
+  { value: "classified_print", label: "Classified print" },
+  { value: "internal_reserved", label: "Internal / reserved (Leonix/event/partner)" },
+] as const;
+
 export const PACKAGE_ENTITLEMENT_PROMO_CODE_TYPES = [
   { value: "entitlement", label: "Entitlement (package access)" },
   { value: "discount", label: "Discount only" },

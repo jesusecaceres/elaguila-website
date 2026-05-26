@@ -15,6 +15,7 @@ import {
   normalizePackageEntitlementTier,
   type PackageEntitlementTier,
 } from "@/app/lib/listingPlans/packageEntitlements";
+import { resolveMagazinePlacementPriority } from "@/app/lib/listingPlans/magazinePlacementPriority";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
 const ALLOWED_TIERS = new Set([
@@ -125,6 +126,34 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const contractTerm = String(formData.get("contract_term") ?? "month_to_month").trim() || "month_to_month";
   const promoCodeType = String(formData.get("promo_code_type") ?? "entitlement").trim() || "entitlement";
 
+  const magazineIssue = String(formData.get("magazine_issue") ?? "").trim() || null;
+  const magazinePageNumberRaw = String(formData.get("magazine_page_number") ?? "").trim();
+  const magazinePageNumber = magazinePageNumberRaw ? Number(magazinePageNumberRaw) : null;
+  const printPlacementType = String(formData.get("print_placement_type") ?? "").trim() || null;
+  const placementNotes = String(formData.get("placement_notes") ?? "").trim() || null;
+  const reservedInternal = formData.get("reserved_internal") === "1";
+
+  const hasMagazinePlacement = !!(magazineIssue || magazinePageNumber || printPlacementType || reservedInternal);
+  const printPlacement = hasMagazinePlacement
+    ? (() => {
+        const resolved = resolveMagazinePlacementPriority({
+          print_placement_type: printPlacementType,
+          magazine_page_number: magazinePageNumber,
+          magazine_issue: magazineIssue,
+          reserved_internal: reservedInternal,
+        });
+        return {
+          magazine_issue: resolved.magazine_issue,
+          magazine_page_number: resolved.magazine_page_number,
+          print_placement_type: resolved.print_placement_type,
+          placement_notes: placementNotes,
+          reserved_internal: resolved.reserved_internal,
+          digital_placement_priority: resolved.digital_placement_priority,
+          digital_priority_basis: resolved.digital_priority_basis,
+        };
+      })()
+    : null;
+
   const pricingSnapshot = buildEntitlementPricingMetadata({
     packageTier: tier,
     contractTerm,
@@ -164,6 +193,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
       promo_rule: pricingSnapshot.promo_rule,
       sales_attribution: pricingSnapshot.sales_attribution,
       commission_preview: pricingSnapshot.commission_preview,
+      ...(printPlacement ? { print_placement: printPlacement } : {}),
     },
   );
 

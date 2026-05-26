@@ -233,6 +233,11 @@ Verify: `npm run verify:servicios-print-digital-ranking`
 Overlay: `app/(site)/clasificados/servicios/lib/serviciosEntitlementOverlay.ts`
 Verify: `npm run verify:servicios-entitlement-overlay`
 
+**Gate G2A.5** adds magazine page placement metadata to the Admin Package Entitlement generator. Magazine page number controls Destacados order and print-priority tie-breakers: back cover is highest priority (when category/context matches), then by page number, then by package tier/active date. Cover square-number logic is intentionally **not** used. Special banner placements are later. No public Destacados module is built. No public sorting change.
+
+Helper: `app/lib/listingPlans/magazinePlacementPriority.ts`
+Verify: `npm run verify:magazine-placement-priority-model`
+
 ---
 
 ## 16. Package entitlements (Gate G1.6 — official spec)
