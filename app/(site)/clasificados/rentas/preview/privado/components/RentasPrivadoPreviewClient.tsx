@@ -181,7 +181,7 @@ export default function RentasPrivadoPreviewClient() {
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
     if (draft.categoriaPropiedad !== urlCategoria) {
-      router.replace(`${RENTAS_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`);
+      router.replace(`${RENTAS_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}&lang=${lang}`);
     }
   }, [phase, draft, urlCategoria, router]);
 

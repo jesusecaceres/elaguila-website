@@ -116,6 +116,7 @@ function TaxonomyChipLeading({ chipEmoji }: { chipEmoji?: string }) {
 
 export default function RestauranteApplicationClient() {
   const searchParams = useSearchParams();
+  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
   /** Display names for last picked files (draft stores data URLs only). */
@@ -350,7 +351,7 @@ export default function RestauranteApplicationClient() {
   if (!hydrated) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center text-[color:var(--lx-muted)]">
-        Cargando borrador…
+        {lang === "en" ? "Loading draft…" : "Cargando borrador…"}
       </div>
     );
   }
@@ -358,15 +359,18 @@ export default function RestauranteApplicationClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 pb-24 sm:py-10">
       <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Leonix Clasificados</p>
-        <h1 className="mt-2 text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">Publicar restaurante</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{lang === "en" ? "Leonix Classifieds" : "Leonix Clasificados"}</p>
+        <h1 className="mt-2 text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">{lang === "en" ? "Publish restaurant" : "Publicar restaurante"}</h1>
         <p className="mt-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-          Los campos completados aparecerán en la vista previa. Los campos vacíos no se mostrarán al comprador.
+          {lang === "en"
+            ? "Completed fields will appear in the preview. Empty fields will not be shown to the buyer."
+            : "Los campos completados aparecerán en la vista previa. Los campos vacíos no se mostrarán al comprador."}
         </p>
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
-          Borrador en esta sesión del navegador: se mantiene al ir a vista previa, volver y actualizar la página en la
-          misma pestaña; al cerrar la pestaña o el navegador se descarta. Clave{" "}
-          <code className="rounded bg-[color:var(--lx-section)] px-1">restaurantes-draft</code> (almacenamiento de sesión).
+          {lang === "en"
+            ? "Draft in this browser session: persists when navigating to preview, returning, and refreshing in the same tab; discarded when closing the tab or browser. Key "
+            : "Borrador en esta sesión del navegador: se mantiene al ir a vista previa, volver y actualizar la página en la misma pestaña; al cerrar la pestaña o el navegador se descarta. Clave "}
+          <code className="rounded bg-[color:var(--lx-section)] px-1">restaurantes-draft</code>{lang === "en" ? " (session storage)." : " (almacenamiento de sesión)."}
         </p>
       </div>
 

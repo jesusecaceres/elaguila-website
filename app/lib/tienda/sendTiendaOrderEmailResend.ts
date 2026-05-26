@@ -11,7 +11,7 @@ export async function sendTiendaOrderEmailResend(input: {
   subject: string;
   text: string;
   html: string;
-  /** Defaults to Tienda order inbox (tienda@leonixmedia.com). */
+  /** Defaults to Tienda order inbox (info@leonixmedia.com). */
   to?: string | string[];
   replyTo?: string;
 }) {
@@ -25,7 +25,7 @@ export async function sendTiendaOrderEmailResend(input: {
   });
 }
 
-/** Tienda / print contact form — delivers to tienda@leonixmedia.com via Resend. */
+/** Tienda / print contact form — delivers to info@leonixmedia.com via Resend. */
 export async function sendTiendaContactEmail(input: {
   subject: string;
   text: string;

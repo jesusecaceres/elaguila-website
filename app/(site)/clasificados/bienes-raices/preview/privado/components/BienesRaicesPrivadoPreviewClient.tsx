@@ -94,14 +94,14 @@ export default function BienesRaicesPrivadoPreviewClient() {
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
     if (draft.categoriaPropiedad !== urlCategoria) {
-      router.replace(`${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`);
+      router.replace(`${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}&lang=${lang}`);
     }
   }, [phase, draft, urlCategoria, router]);
 
   if (phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center overflow-x-hidden bg-[#F9F6F1] px-4 text-sm text-[#5C5346]">
-        Cargando vista previa…
+        {lang === "en" ? "Loading preview…" : "Cargando vista previa…"}
       </div>
     );
   }

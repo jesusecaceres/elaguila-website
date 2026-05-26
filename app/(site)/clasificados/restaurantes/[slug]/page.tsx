@@ -8,8 +8,11 @@ import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/Clas
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 
+type Lang = "es" | "en";
+
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ lang?: string }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -38,6 +41,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
  */
 export default async function RestaurantePublicDetailPage(props: PageProps) {
   const { slug } = await props.params;
+  const sp = props.searchParams ? await props.searchParams : {};
+  const lang: Lang = sp.lang === "en" ? "en" : "es";
   const row = await getRestaurantePublicListingBySlugFromDb(slug);
   if (!row) notFound();
 
@@ -46,22 +51,22 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
   const shellForPublic = { ...shellData, id: row.id };
 
   return (
-    <RestaurantesShellChrome lang="es">
+    <RestaurantesShellChrome lang={lang}>
       <div className="mx-auto max-w-[1280px] space-y-3 px-4 pt-4 md:px-5 lg:px-6">
         <p className="text-xs text-[color:var(--lx-muted)]">
-          Listado publicado en Leonix Clasificados ·{" "}
+          {lang === "en" ? "Listed on Leonix Classifieds" : "Listado publicado en Leonix Clasificados"} ·{" "}
           <Link
-            href="/clasificados/restaurantes/resultados"
+            href={`/clasificados/restaurantes/resultados?lang=${lang}`}
             className="font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
           >
-            Ver más restaurantes
+            {lang === "en" ? "See more restaurants" : "Ver más restaurantes"}
           </Link>
         </p>
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
           <RestauranteAdStoryPreview
             data={shellForPublic}
             listingId={(row.leonix_ad_id ?? "").trim() || row.id}
-            lang="es"
+            lang={lang}
             analyticsOwnerUserId={row.owner_user_id}
             persistListingEngagement
           />

@@ -423,7 +423,7 @@ function NavbarContent() {
         <button
           className="sm:hidden ml-auto text-[color:var(--lx-nav-fg)] text-xl"
           onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
+          aria-label={lang === "en" ? "Open menu" : "Abrir menú"}
         >
           ☰
         </button>
@@ -435,7 +435,7 @@ function NavbarContent() {
           <button
             className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
             onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
+            aria-label={lang === "en" ? "Close menu" : "Cerrar menú"}
           />
 
           <div
@@ -446,11 +446,11 @@ function NavbarContent() {
           >
             {/* ZONE 1: Top — title + close, always visible */}
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-black/10">
-              <span className="text-[color:var(--lx-text-2)]/80 text-sm font-semibold">Menú</span>
+              <span className="text-[color:var(--lx-text-2)]/80 text-sm font-semibold">{lang === "en" ? "Menu" : "Menú"}</span>
               <button
                 onClick={() => setMobileOpen(false)}
                 className="text-[color:var(--lx-text)] text-2xl leading-none p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Close menu"
+                aria-label={lang === "en" ? "Close menu" : "Cerrar menú"}
               >
                 ×
               </button>
@@ -458,7 +458,7 @@ function NavbarContent() {
 
             {/* ZONE 2: Middle — nav links only, primary scroll area */}
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3">
-              <nav className="flex flex-col gap-1" aria-label="Navegación">
+              <nav className="flex flex-col gap-1" aria-label={lang === "en" ? "Navigation" : "Navegación"}>
                 {navLinks.map((item, i) => (
                   <Link
                     key={i}

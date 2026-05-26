@@ -19,8 +19,19 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   const L = content[lang];
   const magazineLink = `/magazine?lang=${lang}`;
 
-  const primaryHref = content.ctaPrimaryHref || magazineLink;
-  const secondaryHref = content.ctaSecondaryHref || null;
+  const injectLang = (href: string | null | undefined): string | null => {
+    if (!href) return null;
+    const trimmed = href.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("//")) return trimmed;
+    const [base, hash] = trimmed.split("#");
+    const joiner = base.includes("?") ? "&" : "?";
+    const withParam = `${base}${joiner}lang=${lang}`;
+    return hash ? `${withParam}#${hash}` : withParam;
+  };
+
+  const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
+  const secondaryHref = injectLang(content.ctaSecondaryHref);
 
   const announcementText = L.announcement.trim();
   const showAnnouncement = content.modules.showAnnouncement && announcementText.length > 0;
@@ -38,10 +49,11 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
         {content.callouts.map((c) => {
           const label = lang === "en" ? (c.labelEn || c.labelEs) : (c.labelEs || c.labelEn);
           if (!label) return null;
+          const chipHref = injectLang(c.href) || c.href;
           return (
             <a
               key={`${c.href}-${label}`}
-              href={c.href}
+              href={chipHref}
               className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:opacity-95"
             >
               {label}

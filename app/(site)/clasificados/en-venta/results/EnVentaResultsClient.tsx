@@ -706,7 +706,7 @@ export function EnVentaResultsClient() {
                 <p className="mt-2 text-sm font-semibold text-[#3D3428]">{loading ? t.loading : countLine}</p>
                 {searchSummaryLine ? <p className="mt-1 text-sm text-[#5C5346]">{searchSummaryLine}</p> : null}
                 {locationSummaryLine ? <p className="mt-0.5 text-sm text-[#5C5346]">{locationSummaryLine}</p> : null}
-                <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-[#5C5346]/90">{t.privacyNote}</p>
+                <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-[#5C5346]/90">{t.trust}</p>
               </div>
             </div>
           </div>

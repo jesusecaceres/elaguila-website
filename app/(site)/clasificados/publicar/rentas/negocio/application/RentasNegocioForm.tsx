@@ -408,39 +408,46 @@ export function RentasNegocioForm() {
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <header className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Leonix · Rentas · Negocio</p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">Publicar renta — Negocio</h1>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{lang === "en" ? "Leonix · Rentals · Business" : "Leonix · Rentas · Negocio"}</p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">{lang === "en" ? "Post rental — Business" : "Publicar renta — Negocio"}</h1>
           <p className={aiSubClass}>
-            Vista previa con el mismo shell premium que Bienes Raíces Negocio. El borrador vive en esta sesión del navegador.
+            {lang === "en"
+              ? "Preview with the same premium shell as Real Estate Business. The draft lives in this browser session."
+              : "Vista previa con el mismo shell premium que Bienes Raíces Negocio. El borrador vive en esta sesión del navegador."}
           </p>
         </header>
 
         <ClasificadosApplicationTopActions {...previewActionsProps} />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          <strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
-          requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
-          <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
-          (útil mientras terminas campos opcionales).
+          {lang === "en" ? (
+            <><strong className="text-[#1E1810]">Validate and preview</strong> requires the final confirmations and minimum requirements; if they pass, opens your test listing.{" "}
+            <strong className="text-[#1E1810]">View preview (without validation)</strong> saves the draft and opens instantly (useful while you finish optional fields).</>
+          ) : (
+            <><strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
+            requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
+            <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
+            (útil mientras terminas campos opcionales).</>
+          )}
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href="/clasificados/rentas"
+            href={`/clasificados/rentas?lang=${lang}`}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
-            Volver a Rentas
+            {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
           </Link>
           <Link
             href={RENTAS_PUBLICAR_PRIVADO}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#E8DFD0] px-6 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FFFCF7] sm:w-auto"
           >
-            Rama Privado
+            {lang === "en" ? "Private branch" : "Rama Privado"}
           </Link>
         </div>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Categoría</h2>
-          <p className={aiSubClass}>Elige una; los demás campos se adaptan en el formulario y en la vista previa.</p>
+          <h2 className={aiTitleClass}>{lang === "en" ? "Category" : "Categoría"}</h2>
+          <p className={aiSubClass}>{lang === "en" ? "Choose one; the other fields adapt in the form and preview." : "Elige una; los demás campos se adaptan en el formulario y en la vista previa."}</p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button

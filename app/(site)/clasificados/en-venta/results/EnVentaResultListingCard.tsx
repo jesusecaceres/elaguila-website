@@ -211,27 +211,13 @@ export function EnVentaResultListingCard({
             {model.conditionLabel}
           </span>
         ) : null}
-        {isPro ? (
-          <span className="text-[11px] font-medium tabular-nums text-[#5C5346]/90">{model.postedAgo}</span>
-        ) : null}
+        <span className="text-[11px] font-medium tabular-nums text-[#5C5346]/90">{model.postedAgo}</span>
         {model.featuredHighlight && !isPro ? (
           <span className="rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6B5B2E]">
             {L.dest}
           </span>
         ) : null}
       </div>
-
-      <div
-        className="mt-1.5 rounded-md border border-[#E8DFD0]/90 bg-[#FAF7F2]/85 px-2 py-1"
-        role="status"
-        aria-label={lang === "es" ? "Confianza Leonix" : "Leonix trust"}
-      >
-        <p className="text-[10px] font-semibold leading-snug text-[#5C5346]">
-          {lang === "es" ? "Anuncio moderado por Leonix" : "Leonix moderated listing"}
-        </p>
-      </div>
-
-      {!isPro ? <p className="mt-1.5 text-xs font-medium tabular-nums text-[#7A7164]">{model.postedAgo}</p> : null}
 
       {isPro && (model.showViews || model.fulfillmentChip) ? (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#3D3428]">

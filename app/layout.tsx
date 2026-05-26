@@ -63,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
         <LeonixRootJsonLd />
-        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center" aria-busy="true" aria-label="Loading" />}>{children}</Suspense>
       </body>
     </html>
   );

@@ -278,7 +278,7 @@ export function RentasPreviewCard({
                 className={`${CTA_BUTTON} ${CTA_PRIMARY}`}
               >
                 <FiPhone className="w-4 h-4" />
-                Llamar
+                {lang === "en" ? "Call" : "Llamar"}
               </a>
             )}
             {data.contact.showSolicitarInfo && data.contact.solicitarInfoHref && (
@@ -287,7 +287,7 @@ export function RentasPreviewCard({
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
               >
                 <FiMessageCircle className="w-4 h-4" />
-                Contactar por correo
+                {lang === "en" ? "Contact by email" : "Contactar por correo"}
               </a>
             )}
             {data.contact.showProgramarVisita && data.contact.programarVisitaHref && (
@@ -296,7 +296,7 @@ export function RentasPreviewCard({
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
               >
                 <FiCalendar className="w-4 h-4" />
-                Agendar visita
+                {lang === "en" ? "Schedule visit" : "Agendar visita"}
               </a>
             )}
             {data.contact.showWhatsapp && data.contact.whatsappHref && (
@@ -313,7 +313,7 @@ export function RentasPreviewCard({
             {data.contact.showSms && data.contact.smsHref && (
               <a href={data.contact.smsHref} className={`${CTA_BUTTON} ${CTA_SECONDARY}`}>
                 <FiMessageCircle className="w-4 h-4" />
-                Enviar texto
+                {lang === "en" ? "Send text" : "Enviar texto"}
               </a>
             )}
           </div>

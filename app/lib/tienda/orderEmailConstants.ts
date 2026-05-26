@@ -1,2 +1,2 @@
-/** Inbound Leonix mailbox for Tienda MVP orders. */
-export const TIENDA_ORDER_INBOX = "tienda@leonixmedia.com";
+/** Inbound Leonix mailbox for Tienda MVP orders and contact. */
+export const TIENDA_ORDER_INBOX = "info@leonixmedia.com";
