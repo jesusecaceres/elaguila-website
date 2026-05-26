@@ -37,7 +37,7 @@ function ContactContent() {
 
             <p>
               <span className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Teléfono" : "Phone"}:</span>{" "}
-              (408) 937-1063
+              <a href="tel:+14083606500" className="underline">(408) 360-6500</a>
             </p>
 
             <p>
