@@ -5,13 +5,13 @@ function t<T>(es: T, en: T, lang: Lang): T {
 }
 
 export function tiendaContactPageTitle(lang: Lang): string {
-  return t("Ayuda y pedidos · Tienda Leonix", "Help & orders · Leonix Tienda", lang);
+  return t("Contacto de productos promocionales", "Promotional products contact", lang);
 }
 
 export function tiendaContactPageSubtitle(lang: Lang): string {
   return t(
-    "Para cotizaciones, productos especiales, merch promo y seguimiento de pedidos de impresión — este es el contacto correcto.",
-    "For quotes, specialty items, promo merch, and print order follow-up — this is the right contact channel.",
+    "Para cotizaciones, productos especiales, artículos promocionales y seguimiento de pedidos de impresión — este es el contacto correcto.",
+    "For quotes, specialty items, promotional products, and print order follow-up — this is the right contact channel.",
     lang
   );
 }
@@ -41,7 +41,7 @@ export function tiendaContactRankEmail(lang: Lang): string {
 }
 
 export function tiendaContactBackToStore(lang: Lang): string {
-  return t("← Volver a la Tienda", "← Back to Tienda store", lang);
+  return t("← Volver a productos", "← Back to products", lang);
 }
 
 export function tiendaContactBackToProducts(lang: Lang): string {
@@ -54,8 +54,8 @@ export function tiendaContactGoHome(lang: Lang): string {
 
 export function tiendaContactGeneralSiteNote(lang: Lang): string {
   return t(
-    "¿Consulta general sobre Leonix Media (no pedido de Tienda)?",
-    "General inquiry about Leonix Media (not a Tienda order)?",
+    "¿Consulta general sobre Leonix Media (no productos promocionales)?",
+    "General inquiry about Leonix Media (not promotional products)?",
     lang
   );
 }

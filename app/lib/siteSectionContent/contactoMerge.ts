@@ -40,10 +40,10 @@ const BASE_EN: Omit<ContactoResolvedCopy, "langSwitch"> = {
   phoneLine: LEONIX_PHONE_DISPLAY,
   addressLine: LEONIX_OFFICE_ADDRESS,
   noticeTop: null,
-  tiendaTitle: "Looking for print or promotional products?",
+  tiendaTitle: "Looking for promotional products or printing?",
   tiendaBody:
-    "For business cards, flyers, banners, promotional products, or print files, use the Tienda contact page.",
-  tiendaCta: "Tienda help and contact",
+    "For business cards, flyers, banners, promotional products, or print files, use our promotional products contact.",
+  tiendaCta: "Quote promotional products",
   mapUrl: LEONIX_MAP_URL,
 };
 
@@ -61,10 +61,10 @@ const BASE_ES: Omit<ContactoResolvedCopy, "langSwitch"> = {
   phoneLine: LEONIX_PHONE_DISPLAY,
   addressLine: LEONIX_OFFICE_ADDRESS,
   noticeTop: null,
-  tiendaTitle: "¿Buscas productos de impresión o promoción?",
+  tiendaTitle: "¿Buscas productos promocionales o impresión?",
   tiendaBody:
-    "Para cotizaciones de tarjetas, volantes, banners, artículos promocionales o archivos de impresión, usa la página de contacto de Tienda.",
-  tiendaCta: "Ayuda y contacto Tienda",
+    "Para cotizaciones de tarjetas, volantes, banners, artículos promocionales o archivos de impresión, usa nuestro contacto de productos promocionales.",
+  tiendaCta: "Cotizar productos promocionales",
   mapUrl: LEONIX_MAP_URL,
 };
 

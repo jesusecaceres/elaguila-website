@@ -13,8 +13,8 @@ const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "specialty_product", es: "Producto especial / acabado distinto", en: "Specialty product / different finish" },
   { value: "custom_order", es: "Pedido personalizado", en: "Custom order" },
   { value: "rep_catalog", es: "Catálogo con asistencia / cotización", en: "Rep-assisted catalog / quote" },
-  { value: "tienda_help", es: "Ayuda con la Tienda (configurador, archivos)", en: "Tienda help (configurator, files)" },
-  { value: "general_tienda", es: "Pregunta general sobre Tienda", en: "General Tienda question" },
+  { value: "tienda_help", es: "Ayuda con pedidos (configurador, archivos)", en: "Order help (configurator, files)" },
+  { value: "general_tienda", es: "Pregunta general sobre productos promocionales", en: "General promotional products question" },
 ];
 
 function buildTiendaMailto(fields: {
@@ -35,7 +35,7 @@ function buildTiendaMailto(fields: {
     : "Cotización Productos para Promoción - Leonix Media";
 
   const bodyLines = [
-    en ? "Source: Tienda / Productos para Promoción" : "Origen: Tienda / Productos para Promoción",
+    en ? "Source: Promotional products / Productos para Promoción" : "Origen: Productos para Promoción",
     "",
     `${en ? "Topic" : "Tema"}: ${topicLabel}`,
     fields.service ? `${en ? "Product / service" : "Producto / servicio"}: ${fields.service.replace(/-/g, " ")}` : "",
@@ -222,7 +222,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
               "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",
             ].join(" ")}
           >
-            {en ? "Send to Tienda" : "Enviar a Tienda"}
+            {en ? "Send quote request" : "Enviar cotización"}
           </button>
         </form>
       )}

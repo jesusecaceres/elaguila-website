@@ -120,8 +120,8 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
       </h2>
       <p className="text-sm text-[color:var(--lx-muted)] mb-6 leading-relaxed">
         {en
-          ? `Messages go to ${LEONIX_GLOBAL_EMAIL}. For print orders and Tienda quotes, use the Tienda contact page linked above.`
-          : `Los mensajes llegan a ${LEONIX_GLOBAL_EMAIL}. Para pedidos de impresión y cotizaciones de Tienda, usa la página de contacto Tienda arriba.`}
+          ? `Messages go to ${LEONIX_GLOBAL_EMAIL}. For promotional product quotes, use the promotional products contact linked above.`
+          : `Los mensajes llegan a ${LEONIX_GLOBAL_EMAIL}. Para cotizaciones de productos promocionales, usa el contacto de productos promocionales arriba.`}
       </p>
 
       {status === "opened" ? (
@@ -163,7 +163,7 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
                   ? "For faster print and promotional quotes, you can also use our "
                   : "Para cotizaciones de impresión y promoción más rápidas, también puedes usar la "}
                 <Link href={tiendaQuoteHref(lang)} className="font-semibold text-[color:var(--lx-lion)] underline">
-                  {en ? "Tienda contact page" : "página de contacto de Tienda"}
+                  {en ? "promotional products contact" : "contacto de productos promocionales"}
                 </Link>
                 .
               </p>

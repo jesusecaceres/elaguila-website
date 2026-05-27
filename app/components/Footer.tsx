@@ -20,7 +20,6 @@ const COPY = {
     followUs: "Síguenos",
     contact: "Contacto",
     advertise: "Anúnciate",
-    store: "Tienda",
     promoProducts: "Productos para Promoción",
     cookiePrefs: "Preferencias de cookies",
     learnMore: "Más información",
@@ -35,7 +34,6 @@ const COPY = {
     followUs: "Follow us",
     contact: "Contact",
     advertise: "Advertise",
-    store: "Store",
     promoProducts: "Promotional Products",
     cookiePrefs: "Cookie preferences",
     learnMore: "Learn more",
@@ -100,10 +98,10 @@ function FooterInner() {
           </Link>
         </div>
 
-        {/* Column 3: Store / Products + Follow */}
+        {/* Column 3: Promotional products + Follow */}
         <div className="space-y-5">
           <div>
-            <h3 className="mb-3 text-xl font-bold text-[color:var(--lx-lion)]">{t.store}</h3>
+            <h3 className="mb-3 text-xl font-bold text-[color:var(--lx-lion)]">{t.promoProducts}</h3>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -111,14 +109,6 @@ function FooterInner() {
                   className="inline-flex min-h-[44px] items-center text-sm font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 transition hover:text-[color:var(--lx-lion)]"
                 >
                   {t.promoProducts}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={`/tienda/contacto${langQuery}`}
-                  className="inline-flex min-h-[44px] items-center text-sm font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 transition hover:text-[color:var(--lx-lion)]"
-                >
-                  {t.contact} {t.store}
                 </Link>
               </li>
             </ul>

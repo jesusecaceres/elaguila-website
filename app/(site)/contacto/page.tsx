@@ -15,6 +15,19 @@ import { mergeContactoCopy } from "@/app/lib/siteSectionContent/contactoMerge";
 
 type Lang = "es" | "en";
 
+const PROMO_HELP_CARD = {
+  es: {
+    title: "¿Buscas productos promocionales o impresión?",
+    body: "Para cotizaciones de tarjetas, volantes, banners, artículos promocionales o archivos de impresión, usa nuestro contacto de productos promocionales.",
+    cta: "Cotizar productos promocionales",
+  },
+  en: {
+    title: "Looking for promotional products or printing?",
+    body: "For business cards, flyers, banners, promotional products, or print files, use our promotional products contact.",
+    cta: "Quote promotional products",
+  },
+} as const;
+
 function normalizeLang(v: string | undefined): Lang {
   return v === "en" ? "en" : "es";
 }
@@ -52,6 +65,7 @@ export default async function ContactoPage(props: {
 
   const { payload } = await getSiteSectionPayload("contacto");
   const copy = mergeContactoCopy(lang, payload as unknown as ContactoPayload);
+  const promoHelp = PROMO_HELP_CARD[lang];
 
   return (
     <main className="min-h-screen w-full bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
@@ -82,13 +96,13 @@ export default async function ContactoPage(props: {
         </p>
 
         <div className="mb-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
-          <h2 className="mb-3 text-xl font-semibold text-[color:var(--lx-text)]">{copy.tiendaTitle}</h2>
-          <p className="mb-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">{copy.tiendaBody}</p>
+          <h2 className="mb-3 text-xl font-semibold text-[color:var(--lx-text)]">{promoHelp.title}</h2>
+          <p className="mb-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">{promoHelp.body}</p>
           <Link
             href={withLang(`${LEONIX_TIENDA_CONTACT_PATH}?service=cotizacion-general`, lang)}
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] transition hover:opacity-90"
           >
-            {copy.tiendaCta}
+            {promoHelp.cta}
           </Link>
         </div>
 

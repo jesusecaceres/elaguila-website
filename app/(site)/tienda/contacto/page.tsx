@@ -32,11 +32,11 @@ export async function generateMetadata(props: {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
   const title =
-    lang === "en" ? "Tienda help & contact · Leonix" : "Ayuda y contacto Tienda · Leonix";
+    lang === "en" ? "Promotional products contact · Leonix" : "Contacto de productos promocionales · Leonix";
   const description =
     lang === "en"
-      ? "Office, phone, and Tienda email for print orders and quotes. Prefer visit or call."
-      : "Oficina, teléfono y correo Tienda para pedidos y cotizaciones. Preferimos visita o llamada.";
+      ? "Office, phone, and email for print orders and promotional product quotes. Prefer visit or call."
+      : "Oficina, teléfono y correo para pedidos de impresión y cotizaciones de productos promocionales. Preferimos visita o llamada.";
   return { title, description, openGraph: { title, description } };
 }
 
@@ -46,7 +46,9 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
   const service = typeof sp.service === "string" && sp.service.trim() ? sp.service.trim().slice(0, 120) : undefined;
 
   const mailSubject =
-    lang === "en" ? "Tienda — question / quote" : "Tienda — pregunta / cotización";
+    lang === "en"
+      ? "Promotional products — quote request"
+      : "Productos promocionales — solicitud de cotización";
 
   return (
     <main className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
@@ -118,11 +120,7 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
                 mailtoHref={`${LEONIX_MAILTO_TIENDA}?subject=${encodeURIComponent(mailSubject)}`}
                 lang={lang}
                 shareTitle={tiendaContactPageTitle(lang)}
-                shareText={
-                  lang === "en"
-                    ? "Tienda — question / quote"
-                    : "Tienda — pregunta / cotización"
-                }
+                shareText={mailSubject}
               />
             </li>
           </ul>
