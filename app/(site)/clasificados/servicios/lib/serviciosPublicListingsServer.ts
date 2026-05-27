@@ -87,6 +87,9 @@ export type ServiciosPublicListingRow = {
   package_entitlement_tier?: string | null;
   entitlement_starts_at?: string | null;
   entitlement_ends_at?: string | null;
+  /** Public-safe magazine placement sort key (G2A.5 / G2B). */
+  entitlement_digital_placement_priority?: number | null;
+  entitlement_print_placement_type?: string | null;
 };
 
 /** DB reads for publish/admin — any lifecycle row by slug. */

@@ -7,6 +7,7 @@ import {
   pickStrongestActiveEntitlement,
   type ActiveListingPackageEntitlement,
 } from "./listingPackageEntitlementPlacement";
+import { resolveMagazinePlacementPriority } from "./magazinePlacementPriority";
 import { normalizePackageEntitlementTier, type PackageEntitlementTier } from "./packageEntitlements";
 
 export type ListingPackageEntitlementLookup = {
@@ -25,17 +26,51 @@ function listingKeysFromRow(row: {
   return keys;
 }
 
+function publicPlacementFromEntitlementMetadata(
+  metadata: unknown,
+): Pick<ActiveListingPackageEntitlement, "digitalPlacementPriority" | "printPlacementType"> {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return { digitalPlacementPriority: null, printPlacementType: null };
+  }
+  const pp = (metadata as Record<string, unknown>).print_placement;
+  if (!pp || typeof pp !== "object" || Array.isArray(pp)) {
+    return { digitalPlacementPriority: null, printPlacementType: null };
+  }
+  const placement = pp as Record<string, unknown>;
+  const stored = placement.digital_placement_priority;
+  if (typeof stored === "number" && Number.isFinite(stored)) {
+    return {
+      digitalPlacementPriority: stored,
+      printPlacementType:
+        typeof placement.print_placement_type === "string" ? placement.print_placement_type : null,
+    };
+  }
+  const resolved = resolveMagazinePlacementPriority({
+    print_placement_type:
+      typeof placement.print_placement_type === "string" ? placement.print_placement_type : null,
+    magazine_page_number: placement.magazine_page_number as number | string | null | undefined,
+    magazine_issue: typeof placement.magazine_issue === "string" ? placement.magazine_issue : null,
+    reserved_internal: placement.reserved_internal === true,
+  });
+  return {
+    digitalPlacementPriority: resolved.digital_placement_priority,
+    printPlacementType: resolved.print_placement_type,
+  };
+}
+
 function rowToActiveEntitlement(raw: Record<string, unknown>, now: Date): ActiveListingPackageEntitlement | null {
   if (!isListingPackageEntitlementRowActive({ ...raw, now })) return null;
   const listingId = raw.listing_id != null ? String(raw.listing_id).trim() : "";
   if (!listingId) return null;
   const tier = normalizePackageEntitlementTier(raw.package_tier);
   if (tier === "none" || tier === "unknown") return null;
+  const placement = publicPlacementFromEntitlementMetadata(raw.metadata);
   return {
     tier,
     startsAt: String(raw.starts_at),
     endsAt: String(raw.ends_at),
     listingId,
+    ...placement,
   };
 }
 
@@ -68,7 +103,7 @@ export async function fetchActiveListingPackageEntitlementsForRows(
     const chunk = keys.slice(i, i + chunkSize);
     const { data, error } = await supabase
       .from("listing_package_entitlements")
-      .select("listing_id, package_tier, starts_at, ends_at, status, revoked_at")
+      .select("listing_id, package_tier, starts_at, ends_at, status, revoked_at, metadata")
       .eq("category", opts.category)
       .eq("listing_source", opts.listingSource)
       .in("listing_id", chunk)

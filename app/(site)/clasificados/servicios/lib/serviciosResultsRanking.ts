@@ -38,3 +38,9 @@ export {
   isServiciosRowDestacadoEligible,
   isServiciosRowResultsPriority,
 } from "./serviciosVisibilityRanking";
+export {
+  getServiciosDestacadosRows,
+  compareServiciosDestacadosRows,
+  getServiciosDestacadoDisplayMode,
+  getServiciosPublicMonetizationBadges,
+} from "./serviciosDestacados";

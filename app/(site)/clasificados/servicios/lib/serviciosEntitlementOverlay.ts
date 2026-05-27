@@ -10,6 +10,8 @@
  *   - package_entitlement_tier
  *   - entitlement_starts_at
  *   - entitlement_ends_at
+ *   - entitlement_digital_placement_priority
+ *   - entitlement_print_placement_type
  *
  * Fields NOT exposed:
  *   - sales_rep_id / sales_rep_name

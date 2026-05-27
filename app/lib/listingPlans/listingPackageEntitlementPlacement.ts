@@ -23,6 +23,9 @@ export type ActiveListingPackageEntitlement = {
   startsAt: string;
   endsAt: string;
   listingId: string;
+  /** Public-safe magazine placement sort key (Gate G2A.5 / G2B). */
+  digitalPlacementPriority?: number | null;
+  printPlacementType?: string | null;
 };
 
 const TIER_RANK: Record<PackageEntitlementTier, number> = {
@@ -78,6 +81,8 @@ export function mergeActiveEntitlementFieldsIntoListingRow<T extends Record<stri
     package_entitlement_tier: entitlement.tier,
     entitlement_starts_at: entitlement.startsAt,
     entitlement_ends_at: entitlement.endsAt,
+    entitlement_digital_placement_priority: entitlement.digitalPlacementPriority ?? null,
+    entitlement_print_placement_type: entitlement.printPlacementType ?? null,
     starts_at: entitlement.startsAt,
     ends_at: entitlement.endsAt,
   };

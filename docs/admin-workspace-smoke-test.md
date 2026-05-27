@@ -387,6 +387,25 @@ Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, clas
 
 ---
 
+## Gate G2B-SERVICIOS-STACK — Servicios Destacados Module
+
+### Automated
+
+- `npm run verify:servicios-destacados-module`
+
+### Manual smoke
+
+1. Create a **premium** package entitlement for `servicios` with a published listing ID and active dates covering today. Optionally set magazine issue, page number, and `back_cover` placement.
+2. Open `/clasificados/servicios` — **Destacados / Patrocinados** section appears when premium entitlement is active (below hero/search).
+3. Open `/clasificados/servicios/resultados` — Destacados section appears above matching listings; filters still apply first.
+4. Premium listing shows in Destacados and also in the main list (duplicate with badges — expected in G2B).
+5. Full-page entitlement listing sorts higher in normal results but does not appear in Destacados unless premium.
+6. No sales rep, payment, commission, or admin metadata in page source.
+7. No Stripe checkout or public redemption on Servicios pages.
+8. Other categories unchanged.
+
+---
+
 ## Next Steps
 
 1. **Immediate**: Use existing TRUE editors for content updates

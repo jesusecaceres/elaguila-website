@@ -10,7 +10,7 @@ import { serviciosEngagementListingKey } from "../lib/serviciosPublicListingSort
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
-import { isServiciosListingPromoted } from "../lib/serviciosResultsFilter";
+import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
@@ -397,7 +397,7 @@ export function ServiciosHorizontalResultCard({
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
   const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View showcase" : "Ver vitrina");
 
-  const promoted = row ? isServiciosListingPromoted(row) : false;
+  const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, lang).slice(0, 3) : [];
   const verifiedListing = row ? row.leonix_verified === true : profile.hero.badges.some((b) => b.kind === "verified");
 
   const ratingValue =
@@ -480,11 +480,20 @@ export function ServiciosHorizontalResultCard({
             )}
 
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[4] flex flex-wrap gap-1 p-1.5 md:p-2">
-              {promoted ? (
-                <span className="rounded-full border border-white/70 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm md:px-2 md:text-[10px]">
-                  {L.featured}
+              {monetizationBadges.map((b) => (
+                <span
+                  key={b.key}
+                  className={`rounded-full border border-white/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm md:px-2 md:text-[10px] ${
+                    b.key === "destacado" || b.key === "patrocinado"
+                      ? "bg-gradient-to-r from-[#D4AF37] to-[#9A7329] text-white"
+                      : b.key === "leonix_advertiser"
+                        ? "bg-[#1a3352]/90 text-white"
+                        : "bg-white/95 text-[#5a4630]"
+                  }`}
+                >
+                  {b.label}
                 </span>
-              ) : null}
+              ))}
               {verifiedListing ? (
                 <span className="rounded-full border border-white/80 bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#2A7F3E] shadow-sm md:px-2 md:text-[10px]">
                   {lang === "en" ? "Verified" : "Verificado"}

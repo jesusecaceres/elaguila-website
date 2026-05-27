@@ -4,11 +4,12 @@ import Link from "next/link";
 import { ServiciosHorizontalResultCard } from "../components/ServiciosHorizontalResultCard";
 import { ServiciosResultsActiveSummary } from "../ServiciosResultsActiveSummary";
 import { ServiciosResultsFilters } from "../ServiciosResultsFilters";
+import { ServiciosDestacadosSection } from "../components/ServiciosDestacadosSection";
+import { getServiciosDestacadosRows } from "../lib/serviciosDestacados";
 import {
   filterServiciosPublicListingRows,
   filterServiciosRowsByKeyword,
   filterServiciosRowsBySeller,
-  isServiciosListingPromoted,
   serviciosResultsHasActiveFilters,
   sortServiciosResultsForDisplay,
   type ServiciosResultsFilterQuery,
@@ -138,9 +139,8 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   // Gate G2A: overlay active entitlements onto filtered results only (public-safe fields)
   const overlaid = await overlayActiveEntitlementsForServiciosResults(rows);
 
+  const destacadosRows = getServiciosDestacadosRows(overlaid);
   const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort);
-  const promotedRows = displayRows.filter(isServiciosListingPromoted);
-  const standardRows = displayRows.filter((r) => !isServiciosListingPromoted(r));
 
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
   const landingHref = `/clasificados/servicios?lang=${lang}`;
@@ -288,35 +288,27 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
               </div>
             ) : null}
 
-            {promotedRows.length > 0 ? (
-              <section aria-labelledby="servicios-res-destacados">
-                <h2
+            {destacadosRows.length > 0 ? (
+              <div className="mb-8">
+                <ServiciosDestacadosSection
+                  rows={destacadosRows}
+                  lang={lang}
                   id="servicios-res-destacados"
-                  className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#7a6220]"
-                >
-                  {lang === "en" ? "Featured on Leonix" : "Destacados en Leonix"}
-                </h2>
-                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
-                  {promotedRows.map((r) => (
-                    <li key={r.slug} className="min-w-0">
-                      <ServiciosHorizontalResultCard row={r} lang={lang} />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                />
+              </div>
             ) : null}
-            {standardRows.length > 0 ? (
-              <section aria-labelledby="servicios-res-mas">
-                {promotedRows.length > 0 ? (
+            {displayRows.length > 0 ? (
+              <section aria-labelledby="servicios-res-listings">
+                {destacadosRows.length > 0 ? (
                   <h2
-                    id="servicios-res-mas"
+                    id="servicios-res-listings"
                     className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
                   >
-                    {lang === "en" ? "More showcases" : "Más vitrinas"}
+                    {lang === "en" ? "All matching showcases" : "Todas las vitrinas coincidentes"}
                   </h2>
                 ) : null}
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
-                  {standardRows.map((r) => (
+                  {displayRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
                       <ServiciosHorizontalResultCard row={r} lang={lang} />
                     </li>

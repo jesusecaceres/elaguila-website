@@ -1,6 +1,6 @@
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { compareServiciosPublicDiscoveryNewestFirst } from "./serviciosPublicListingSort";
-import { isServiciosListingPromoted, sortServiciosListingRows } from "./serviciosResultsFilter";
+import { getServiciosDestacadosRows } from "./serviciosDestacados";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
 
 const MAX_LANDING_DESTACADOS = 3;
@@ -24,8 +24,8 @@ export function selectLandingDestacadosRecientes(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
 ): { destacadosRows: ServiciosPublicListingRow[]; recientesRows: ServiciosPublicListingRow[] } {
-  const promotedSorted = sortServiciosListingRows(rows.filter(isServiciosListingPromoted), lang, "newest");
-  const destacadosRows = takePromotedWithBusinessCap(promotedSorted, MAX_LANDING_DESTACADOS);
+  const destacadosSorted = getServiciosDestacadosRows(rows);
+  const destacadosRows = takePromotedWithBusinessCap(destacadosSorted, MAX_LANDING_DESTACADOS);
   const destacadoSlugs = new Set(destacadosRows.map((r) => r.slug));
 
   const chrono = sortLandingRowsByPublishedAtDesc(rows);

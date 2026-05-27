@@ -238,6 +238,11 @@ Verify: `npm run verify:servicios-entitlement-overlay`
 Helper: `app/lib/listingPlans/magazinePlacementPriority.ts`
 Verify: `npm run verify:magazine-placement-priority-model`
 
+**Gate G2B-SERVICIOS-STACK** activates the first public **Destacados / Patrocinados** module for Servicios only. Premium package entitlements map to the Destacados module; full-page still maps to results priority (not module-only). Search/filter runs before ranking on the results page. Destacados rows come from the active entitlement overlay on **filtered** results. Module order uses magazine placement priority (back cover, then page number) with package tier fallback. Homepage / Clasificados hub / Nuestros Negocios shared Destacados come later. No Stripe, payment collection, public redemption, or other-category ranking in this gate.
+
+Helper: `app/(site)/clasificados/servicios/lib/serviciosDestacados.ts` · Component: `ServiciosDestacadosSection.tsx`
+Verify: `npm run verify:servicios-destacados-module`
+
 ---
 
 ## 16. Package entitlements (Gate G1.6 — official spec)

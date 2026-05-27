@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { selectLandingDestacadosRecientes } from "../lib/serviciosLandingBuild";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
-import { FeaturedBusinessSection } from "./FeaturedBusinessSection";
+import { ServiciosDestacadosSection } from "../components/ServiciosDestacadosSection";
 import { PublishServiceCTA } from "./PublishServiceCTA";
 import { RecentServicesSection } from "./RecentServicesSection";
 import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
@@ -89,7 +89,7 @@ export function ServiciosLandingPage({
                 hasDestacados ? "order-1" : "order-3 lg:order-1"
               }`}
             >
-              <FeaturedBusinessSection lang={lang} rows={destacadosRows} />
+              <ServiciosDestacadosSection lang={lang} rows={destacadosRows} id="servicios-landing-destacados" />
             </div>
 
             <div
