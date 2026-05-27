@@ -11,11 +11,15 @@ export function AdminShell({
   children,
   tiendaInboxUnread = 0,
   adminLang = "en",
+  allowedGlobalNavHrefs,
+  salesRepLimited = false,
 }: {
   children: ReactNode;
   /** Unread Tienda orders for sidebar + topbar badge */
   tiendaInboxUnread?: number;
   adminLang?: AdminLang;
+  allowedGlobalNavHrefs?: string[];
+  salesRepLimited?: boolean;
 }) {
   return (
     <AdminI18nProvider lang={adminLang}>
@@ -30,11 +34,20 @@ export function AdminShell({
       <div className="relative flex min-h-screen">
         <div className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-0 h-screen overflow-y-auto">
-            <AdminSidebar tiendaInboxUnread={tiendaInboxUnread} />
+            <AdminSidebar
+              tiendaInboxUnread={tiendaInboxUnread}
+              allowedGlobalNavHrefs={allowedGlobalNavHrefs}
+              salesRepLimited={salesRepLimited}
+            />
           </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <AdminTopbar alertCount={tiendaInboxUnread} adminLang={adminLang} />
+          <AdminTopbar
+            alertCount={tiendaInboxUnread}
+            adminLang={adminLang}
+            allowedGlobalNavHrefs={allowedGlobalNavHrefs}
+            salesRepLimited={salesRepLimited}
+          />
           <Suspense fallback={null}>
             <AdminQueryFlash />
           </Suspense>

@@ -6,7 +6,7 @@ import { useAdminT } from "./AdminI18nProvider";
 
 export type WorkspaceNavItem = { href: string; labelKey: string; hintKey: string };
 
-const SECTIONS: WorkspaceNavItem[] = [
+export const ADMIN_WORKSPACE_NAV_SECTIONS: WorkspaceNavItem[] = [
   { href: "/admin/workspace/home", labelKey: "workspaceNav.link.home", hintKey: "workspaceNav.home.hint" },
   { href: "/admin/workspace/clasificados", labelKey: "workspaceNav.link.clasificados", hintKey: "workspaceNav.clasificados.hint" },
   {
@@ -52,9 +52,13 @@ function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
 }
 
-export function AdminWorkspaceNav() {
+export function AdminWorkspaceNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname() ?? "";
   const t = useAdminT();
+  const sections =
+    allowedHrefs && allowedHrefs.length > 0
+      ? ADMIN_WORKSPACE_NAV_SECTIONS.filter((item) => allowedHrefs.includes(item.href))
+      : ADMIN_WORKSPACE_NAV_SECTIONS;
 
   return (
     <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-r from-[#FFF8F0]/95 to-[#FFFCF7]/90 px-2 py-3 shadow-sm sm:mb-8 sm:px-4">
@@ -79,7 +83,7 @@ export function AdminWorkspaceNav() {
         className="-mx-1 flex max-w-full gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0"
         aria-label={t("workspaceNav.aria")}
       >
-        {SECTIONS.map((item) => {
+        {sections.map((item) => {
           const active = isSectionActive(pathname, item);
           return (
             <Link

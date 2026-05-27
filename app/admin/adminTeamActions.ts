@@ -11,6 +11,8 @@ const PERM_SET = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
 
 const ROLES = new Set([
   "super_admin",
+  "sales_manager",
+  "sales_rep",
   "content_manager",
   "ads_moderator",
   "support_agent",

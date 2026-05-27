@@ -20,6 +20,12 @@ import {
   PREMIUM_INVENTORY_SOFT_CAP,
 } from "@/app/admin/_lib/packageEntitlementConstants";
 import {
+  filterEntitlementsForAccess,
+  getCurrentAdminAccessContext,
+  getSalesRepScopeForAdmin,
+  isSalesRepRole,
+} from "@/app/admin/_lib/adminAccessControl";
+import {
   benefitLabels,
   effectiveEntitlementStatus,
   entitlementPricingBadges,
@@ -130,26 +136,34 @@ export default async function AdminPackageEntitlementsPage(props: {
     sp[k] = Array.isArray(v) ? v[0] : v;
   }
   const alert = alertFromSearch(sp);
+  const access = await getCurrentAdminAccessContext();
+  const salesScope = getSalesRepScopeForAdmin(access);
+  const salesRepLocked = isSalesRepRole(access.normalizedRole);
 
   const filterQ = sp.q?.trim() ?? "";
   const filterCategory = sp.category?.trim() ?? "";
   const filterTier = sp.tier?.trim() ?? "";
   const filterStatus = sp.status?.trim() ?? "";
 
-  const { rows, unavailable, note, totalFetched } = await fetchPackageEntitlementsForTracker({
+  const { rows: rawRows, unavailable, note, totalFetched } = await fetchPackageEntitlementsForTracker({
     q: filterQ || undefined,
     category: filterCategory || undefined,
     package_tier: filterTier || undefined,
     status: filterStatus || undefined,
     limit: PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT,
   });
+  const rows = filterEntitlementsForAccess(rawRows, access);
 
   return (
     <div className="max-w-5xl space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Monetización · Tracker"
         title="Package Entitlements / Paquetes de Visibilidad"
-        subtitle="Crea, busca y administra códigos de paquete Print-to-Digital con vista previa de precio y promo (G1.6E)."
+        subtitle={
+          salesRepLocked
+            ? "Vista limitada: solo tus paquetes atribuidos a tu ID de representante."
+            : "Crea, busca y administra códigos de paquete Print-to-Digital con vista previa de precio y promo (G1.6E)."
+        }
         helperText="Modelo de precios desde packagePricingRules.ts. Sin cobro Stripe ni redención pública."
         rightSlot={
           <Link href="/admin/workspace/cupones" className={adminBtnSecondary}>
@@ -333,14 +347,27 @@ export default async function AdminPackageEntitlementsPage(props: {
             Cliente (opcional)
             <input name="customer_name" className={`${adminInputClass} mt-1`} />
           </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            Sales rep / employee ID (opcional)
-            <input name="sales_rep_id" className={`${adminInputClass} mt-1 font-mono text-xs`} placeholder="ID interno de ventas" />
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            Sales rep name (opcional)
-            <input name="sales_rep_name" className={`${adminInputClass} mt-1`} placeholder="Nombre del representante" />
-          </label>
+          {salesRepLocked && salesScope ? (
+            <div className="sm:col-span-2 rounded-xl border border-sky-200/80 bg-sky-50/80 p-3 text-sm text-sky-950">
+              <p className="font-semibold">Tu atribución de ventas (automática)</p>
+              <p className="mt-1 text-xs">
+                {salesScope.salesRepName} · <span className="font-mono">{salesScope.salesRepId}</span>
+              </p>
+              <input type="hidden" name="sales_rep_id" value={salesScope.salesRepId} />
+              <input type="hidden" name="sales_rep_name" value={salesScope.salesRepName} />
+            </div>
+          ) : (
+            <>
+              <label className="block text-xs font-semibold text-[#5C5346]">
+                Sales rep / employee ID (opcional)
+                <input name="sales_rep_id" className={`${adminInputClass} mt-1 font-mono text-xs`} placeholder="ID interno de ventas" />
+              </label>
+              <label className="block text-xs font-semibold text-[#5C5346]">
+                Sales rep name (opcional)
+                <input name="sales_rep_name" className={`${adminInputClass} mt-1`} placeholder="Nombre del representante" />
+              </label>
+            </>
+          )}
           <label className="block text-xs font-semibold text-[#5C5346]">
             Inicio
             <input type="datetime-local" name="starts_at" required className={`${adminInputClass} mt-1`} defaultValue={defaultStartLocal()} />

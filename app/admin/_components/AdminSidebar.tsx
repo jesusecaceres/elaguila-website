@@ -11,9 +11,22 @@ function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
 }
 
-export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: number }) {
+export function AdminSidebar({
+  tiendaInboxUnread = 0,
+  allowedGlobalNavHrefs,
+  salesRepLimited = false,
+}: {
+  tiendaInboxUnread?: number;
+  /** When set, only these global nav hrefs are shown. */
+  allowedGlobalNavHrefs?: string[];
+  salesRepLimited?: boolean;
+}) {
   const pathname = usePathname() ?? "";
   const t = useAdminT();
+  const navItems =
+    allowedGlobalNavHrefs && allowedGlobalNavHrefs.length > 0
+      ? ADMIN_GLOBAL_NAV.filter((item) => allowedGlobalNavHrefs.includes(item.href))
+      : ADMIN_GLOBAL_NAV;
 
   return (
     <aside className="flex h-full w-full flex-col border-r border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]">
@@ -27,7 +40,7 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
         </div>
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-4">
-        {ADMIN_GLOBAL_NAV.map((item) => {
+        {navItems.map((item) => {
           const active = isAdminGlobalNavItemActive(pathname, item);
           return (
             <Link
@@ -57,14 +70,28 @@ export function AdminSidebar({ tiendaInboxUnread = 0 }: { tiendaInboxUnread?: nu
         <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-3">
           <p className="text-xs font-semibold text-[color:var(--lx-text)]">{t("shell.leonixBrand")} Admin</p>
           <p className="text-[11px] text-[color:var(--lx-muted)]">{t("shell.signedInCookie")}</p>
-          <div className="mt-2 space-y-1.5 text-[11px] font-semibold text-[color:var(--lx-muted)]">
-            <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/workspace">
-              {t("shell.websiteSectionsLink")}
-            </Link>
-            <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/site-settings">
-              {t("shell.globalSiteSettingsLink")}
-            </Link>
-          </div>
+          {!salesRepLimited ? (
+            <div className="mt-2 space-y-1.5 text-[11px] font-semibold text-[color:var(--lx-muted)]">
+              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/workspace">
+                {t("shell.websiteSectionsLink")}
+              </Link>
+              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/site-settings">
+                {t("shell.globalSiteSettingsLink")}
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-2 space-y-1.5 text-[11px] font-semibold text-[color:var(--lx-muted)]">
+              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/workspace/promo-codes">
+                Promo codes
+              </Link>
+              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/workspace/package-entitlements">
+                Package entitlements
+              </Link>
+              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/workspace/sales-tracker">
+                Sales tracker
+              </Link>
+            </div>
+          )}
           <Link className="mt-2 block text-center text-xs font-bold text-[color:var(--lx-lion)] underline" href="/">
             {t("shell.viewSite")}
           </Link>

@@ -13,6 +13,7 @@ import {
   type AdminTeamRole,
   type AdminPermissionKey,
 } from "../../_lib/teamTypes";
+import { getCurrentAdminAccessContext, requireAdminTeamAccess } from "@/app/admin/_lib/adminAccessControl";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   createTeamInviteIntentAction,
@@ -103,6 +104,9 @@ function parsePermissions(raw: unknown): AdminPermissionKey[] {
 export default async function AdminTeamPage(props: {
   searchParams?: Promise<{ invite_saved?: string; invite_error?: string; member_saved?: string; member_error?: string }>;
 }) {
+  const access = await getCurrentAdminAccessContext();
+  requireAdminTeamAccess(access);
+
   const sp = props.searchParams ? await props.searchParams : {};
   const { rows: invites, unavailable: invitesUnavailable } = await fetchTeamInvites();
   const { rows: members, unavailable: membersUnavailable } = await fetchTeamMembers();

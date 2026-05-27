@@ -16,10 +16,14 @@ export function AdminTopbar({
   showCreate = true,
   alertCount = 0,
   adminLang,
+  allowedGlobalNavHrefs,
+  salesRepLimited = false,
 }: {
   showCreate?: boolean;
   alertCount?: number;
   adminLang: AdminLang;
+  allowedGlobalNavHrefs?: string[];
+  salesRepLimited?: boolean;
 }) {
   const router = useRouter();
   const t = useAdminT();
@@ -33,7 +37,12 @@ export function AdminTopbar({
     <header className="sticky top-0 z-30 border-b border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 backdrop-blur-md">
       <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
         <div className="flex w-full min-w-0 items-center gap-2 lg:hidden">
-          <AdminMobileNavDrawer tiendaInboxUnread={alertCount} adminLang={adminLang} />
+          <AdminMobileNavDrawer
+            tiendaInboxUnread={alertCount}
+            adminLang={adminLang}
+            allowedGlobalNavHrefs={allowedGlobalNavHrefs}
+            salesRepLimited={salesRepLimited}
+          />
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-[color:var(--lx-border)]">
             <Image src={newLogo} alt="" className="object-cover" fill sizes="36px" />
           </div>

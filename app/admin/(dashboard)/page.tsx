@@ -22,6 +22,11 @@ import {
 } from "../_lib/packageEntitlementData";
 import { getPromoCodeDashboardSnapshot } from "../_lib/promoCodeData";
 import { getPaymentTrackerDashboardSnapshot } from "../_lib/paymentTrackerData";
+import {
+  canViewPaymentTracker,
+  getCurrentAdminAccessContext,
+  isSalesRepRole,
+} from "../_lib/adminAccessControl";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +44,68 @@ export default async function AdminHomePage() {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const locale: string = lang === "es" ? "es-MX" : "en-US";
+  const access = await getCurrentAdminAccessContext();
+  const salesRepLocked = isSalesRepRole(access.normalizedRole);
+
+  if (salesRepLocked) {
+    return (
+      <div className="max-w-3xl space-y-6">
+        <AdminPageHeader
+          title={lang === "es" ? "Panel de ventas" : "Sales workspace"}
+          subtitle={
+            lang === "es"
+              ? "Acceso limitado: solo tus códigos promo, paquetes y seguimiento de ventas."
+              : "Limited access: your promo codes, package entitlements, and sales tracker only."
+          }
+          helperText={
+            lang === "es"
+              ? "Sin acceso a pagos globales, equipo, CMS ni configuración del sitio."
+              : "No global payments, team, CMS, or site settings."
+          }
+        />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <AdminStatCard
+            title={lang === "es" ? "Códigos promo" : "Promo codes"}
+            value="→"
+            hint={lang === "es" ? "Crear y administrar tus códigos" : "Create and manage your codes"}
+            icon="🏷️"
+            actionLabel={lang === "es" ? "Abrir" : "Open"}
+            actionHref="/admin/workspace/promo-codes"
+          />
+          <AdminStatCard
+            title={lang === "es" ? "Paquetes" : "Package entitlements"}
+            value="→"
+            hint={lang === "es" ? "Tus paquetes Print-to-Digital" : "Your Print-to-Digital packages"}
+            icon="📦"
+            actionLabel={lang === "es" ? "Abrir" : "Open"}
+            actionHref="/admin/workspace/package-entitlements"
+          />
+          <AdminStatCard
+            title={lang === "es" ? "Seguimiento" : "Sales tracker"}
+            value="→"
+            hint={lang === "es" ? "Resumen y comisión (preview)" : "Summary and commission preview"}
+            icon="📊"
+            actionLabel={lang === "es" ? "Abrir" : "Open"}
+            actionHref="/admin/workspace/sales-tracker"
+          />
+        </div>
+      </div>
+    );
+  }
+
   const [snap, entSnap, promoSnap, paySnap, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
     getPackageEntitlementDashboardSnapshot(),
     getPromoCodeDashboardSnapshot(),
-    getPaymentTrackerDashboardSnapshot(),
+    canViewPaymentTracker(access.normalizedRole)
+      ? getPaymentTrackerDashboardSnapshot()
+      : Promise.resolve({
+          unavailable: true,
+          note: null,
+          pendingCount: 0,
+          paidCount: 0,
+          commissionEligibleCount: 0,
+        }),
     getClasificadosCategoryRegistryMerged(),
   ]);
   const regSum = summarizeRegistryForDashboard(registry);
@@ -147,6 +209,7 @@ export default async function AdminHomePage() {
           />
         </div>
 
+        {canViewPaymentTracker(access.normalizedRole) ? (
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <AdminStatCard
             title={m("dashboard.paymentTrackerPendingTitle")}
@@ -180,6 +243,7 @@ export default async function AdminHomePage() {
             actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
           />
         </div>
+        ) : null}
 
         <div className="mt-8">
           <AdminSectionCard title={m("dashboard.recentEntitlementsTitle")} subtitle={m("dashboard.recentEntitlementsSub")}>

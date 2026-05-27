@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import {
+  assertCanManagePromoCode,
+  getCurrentAdminAccessContext,
+  resolveSalesRepFieldsForCreate,
+} from "@/app/admin/_lib/adminAccessControl";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { buildPromoCodeRulePreview, generateLeonixPromoCode, normalizePromoCodeForStorage } from "@/app/lib/listingPlans/promoCodeLifecycle";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
@@ -37,6 +42,7 @@ function redirectWith(query: Record<string, string>): never {
 export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
 
   let code = normalizePromoCodeForStorage(String(formData.get("code") ?? ""));
   if (!code) code = generateLeonixPromoCode();
@@ -64,8 +70,9 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const businessName = String(formData.get("business_name") ?? "").trim() || null;
   const customerEmail = String(formData.get("customer_email") ?? "").trim() || null;
   const customerPhone = String(formData.get("customer_phone") ?? "").trim() || null;
-  const salesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
-  const salesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
+  const formSalesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
+  const formSalesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
+  const { salesRepId, salesRepName } = resolveSalesRepFieldsForCreate(access, formSalesRepId, formSalesRepName);
   const packageEntitlementId = String(formData.get("package_entitlement_id") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 4000) || null;
 
@@ -138,9 +145,16 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
 export async function revokePromoCodeAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirectWith({ error: "missing_id" });
+
+  try {
+    await assertCanManagePromoCode(id, access);
+  } catch {
+    redirectWith({ error: "forbidden" });
+  }
 
   const supabase = getAdminSupabase();
   const { data: existing } = await supabase.from("leonix_promo_codes").select("metadata").eq("id", id).maybeSingle();

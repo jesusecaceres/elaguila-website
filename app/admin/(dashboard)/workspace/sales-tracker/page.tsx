@@ -4,10 +4,14 @@ import { redirect } from "next/navigation";
 
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { formatMoneyCents } from "@/app/lib/listingPlans/packagePricingRules";
-import { AdminWorkspaceNav } from "@/app/admin/_components/AdminWorkspaceNav";
 import { AdminI18nProvider } from "@/app/admin/_components/AdminI18nProvider";
 import { resolveAdminLangFromCookieJar } from "@/app/admin/_lib/adminI18nCookie";
 import { adminTr } from "@/app/admin/_lib/adminStrings";
+import {
+  getCurrentAdminAccessContext,
+  getSalesRepScopeForAdmin,
+  isSalesRepRole,
+} from "@/app/admin/_lib/adminAccessControl";
 import { fetchSalesTrackerSnapshot, type SalesRepSummary, type SalesTrackerActivity } from "@/app/admin/_lib/salesTrackerData";
 
 function statusChip(status: string) {
@@ -38,9 +42,17 @@ export default async function AdminSalesTrackerPage({
   const lang = resolveAdminLangFromCookieJar(c);
   const t = (key: string, vars?: Record<string, string | number>) => adminTr(lang, key, vars);
 
+  const access = await getCurrentAdminAccessContext();
+  const salesScope = getSalesRepScopeForAdmin(access);
+  const salesRepLocked = isSalesRepRole(access.normalizedRole);
+
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : "";
-  const salesRepId = typeof params.sales_rep_id === "string" ? params.sales_rep_id : "";
+  const salesRepId = salesRepLocked && salesScope
+    ? salesScope.salesRepId
+    : typeof params.sales_rep_id === "string"
+      ? params.sales_rep_id
+      : "";
   const statusFilter = typeof params.status === "string" ? params.status : "";
   const categoryFilter = typeof params.category === "string" ? params.category : "";
   const packageTierFilter = typeof params.package_tier === "string" ? params.package_tier : "";
@@ -59,17 +71,25 @@ export default async function AdminSalesTrackerPage({
 
   return (
     <AdminI18nProvider lang={lang}>
-      <AdminWorkspaceNav />
-
       <div className="space-y-8">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
-            {isEn ? "Sales Tracker" : "Seguimiento de Ventas"}
+            {salesRepLocked
+              ? isEn
+                ? "Your sales tracker"
+                : "Tu seguimiento de ventas"
+              : isEn
+                ? "Sales Tracker"
+                : "Seguimiento de Ventas"}
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-[#5C5346]/95">
-            {isEn
-              ? "Track promo codes and package entitlements by sales rep. Commission is preview-only until payment clears."
-              : "Seguimiento de códigos promo y paquetes por representante de ventas. Comisión es solo vista previa hasta que el pago se liquide."}
+            {salesRepLocked
+              ? isEn
+                ? "Your promo codes and package entitlements only. Commission is preview-only until payment clears."
+                : "Solo tus códigos promo y paquetes. La comisión es vista previa hasta que el pago se liquide."
+              : isEn
+                ? "Track promo codes and package entitlements by sales rep. Commission is preview-only until payment clears."
+                : "Seguimiento de códigos promo y paquetes por representante de ventas. Comisión es solo vista previa hasta que el pago se liquide."}
           </p>
           <div className="mt-3 rounded-xl border border-amber-200/90 bg-amber-50/80 p-3 text-sm text-amber-950">
             <strong>{isEn ? "Important:" : "Importante:"}</strong>{" "}
@@ -93,17 +113,21 @@ export default async function AdminSalesTrackerPage({
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               />
             </div>
-            <div className="min-w-[140px]">
-              <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Sales rep ID" : "ID representante"}
-              </label>
-              <input
-                name="sales_rep_id"
-                defaultValue={salesRepId}
-                placeholder="REP001"
-                className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
-              />
-            </div>
+            {salesRepLocked && salesScope ? (
+              <input type="hidden" name="sales_rep_id" value={salesScope.salesRepId} />
+            ) : (
+              <div className="min-w-[140px]">
+                <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
+                  {isEn ? "Sales rep ID" : "ID representante"}
+                </label>
+                <input
+                  name="sales_rep_id"
+                  defaultValue={salesRepId}
+                  placeholder="REP001"
+                  className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            )}
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
                 {isEn ? "Status" : "Estado"}
@@ -221,8 +245,8 @@ export default async function AdminSalesTrackerPage({
               </div>
             ) : null}
 
-            {/* Sales reps table */}
-            {snapshot.reps.length > 0 ? (
+            {/* Sales reps table — owner/admin and sales_manager only */}
+            {!salesRepLocked && snapshot.reps.length > 0 ? (
               <section>
                 <h2 className="text-lg font-bold text-[#1E1810]">
                   {isEn ? "Sales reps" : "Representantes de ventas"} ({snapshot.reps.length})
@@ -248,13 +272,13 @@ export default async function AdminSalesTrackerPage({
                   </table>
                 </div>
               </section>
-            ) : (
+            ) : !salesRepLocked ? (
               <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center text-sm text-[#5C5346]">
                 {isEn
                   ? "No sales reps found with codes or entitlements matching filters."
                   : "No se encontraron representantes con códigos o paquetes que coincidan."}
               </div>
-            )}
+            ) : null}
 
             {/* Recent activity */}
             {snapshot.recentActivity.length > 0 ? (

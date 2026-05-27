@@ -431,6 +431,39 @@ Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, clas
 
 ---
 
+## ADMIN-ROLES-SALES — Sales rep limited admin access
+
+### Automated
+
+- `npm run verify:admin-sales-rep-access`
+
+### Setup
+
+1. Add `admin_team_members` row: email = value of `ADMIN_OPERATOR_EMAIL`, `role = sales_rep`, `is_active = true`.
+2. Deploy env: `ADMIN_OPERATOR_EMAIL` matches that row (optional: `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` for mutation ACL on team/CMS — separate from sales scoping).
+
+### Manual smoke
+
+**Owner/admin (no sales_rep roster or super_admin role)**
+
+1. `/admin/workspace/promo-codes` — all reps visible; can set sales rep ID/name on create.
+2. `/admin/workspace/package-entitlements` — all rows; can override rep fields.
+3. `/admin/workspace/sales-tracker` — all reps table + filter by rep ID.
+4. `/admin/workspace/payment-tracker` — accessible.
+
+**Sales rep (`sales_rep` roster + matching `ADMIN_OPERATOR_EMAIL`)**
+
+1. `/admin` — limited dashboard (promo / entitlements / sales tracker cards only).
+2. Sidebar — no team, settings, payment tracker, clasificados hub, tienda.
+3. `/admin/workspace/promo-codes` — only rows with your `sales_rep_id`; create auto-assigns rep; cannot edit rep fields.
+4. `/admin/workspace/package-entitlements` — same scoping; revoke/extend/attach only on own rows.
+5. `/admin/workspace/sales-tracker` — “Your sales tracker”; no rep picker; no all-reps table.
+6. `/admin/workspace/payment-tracker` — redirects away (owner-only).
+7. `/admin/team` — redirects away.
+8. Direct URL `/admin/workspace/home` — redirects to sales tracker or promo codes with access denied.
+
+---
+
 ## Next Steps
 
 1. **Immediate**: Use existing TRUE editors for content updates

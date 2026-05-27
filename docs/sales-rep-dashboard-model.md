@@ -27,15 +27,18 @@ Filters: search text, sales rep ID, status, category, package tier, code type.
 
 ---
 
-## 2. Future limited sales rep dashboard
+## 2. Limited sales rep admin access (ADMIN-ROLES-SALES)
 
-A dedicated sales rep dashboard will allow individual reps to see only their own codes/clients. This requires:
+Sales reps with roster role `sales_rep` and `ADMIN_OPERATOR_EMAIL` matching their `admin_team_members` row get:
 
-- Sales rep authentication/role system (not in this gate)
-- Row-level filtering by `sales_rep_id` (helper already supports this via `?sales_rep_id=REP001`)
-- RLS policies or API-level filter for sales rep identity
+- Scoped promo codes and package entitlements (own `sales_rep_id` only)
+- Self-scoped sales tracker (`/admin/workspace/sales-tracker`)
+- Auto-assigned `sales_rep_id` / `sales_rep_name` on create (no impersonation)
+- No payment tracker, team, CMS, or global totals
 
-**This gate provides the data helper and admin-side UI. Sales rep self-service access is next.**
+See [`admin-sales-rep-access-model.md`](./admin-sales-rep-access-model.md).
+
+**Remaining gap:** Shared-password login without per-operator email still grants full owner access until env + roster (or Supabase Auth) binds each session.
 
 ---
 

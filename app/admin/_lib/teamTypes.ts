@@ -5,6 +5,8 @@
 
 export type AdminTeamRole =
   | "super_admin"
+  | "sales_manager"
+  | "sales_rep"
   | "content_manager"
   | "ads_moderator"
   | "support_agent"
@@ -53,6 +55,8 @@ export type AdminTeamMember = {
 
 export const ROLE_LABELS: Record<AdminTeamRole, string> = {
   super_admin: "Super admin",
+  sales_manager: "Sales manager (all reps)",
+  sales_rep: "Sales rep (own records only)",
   content_manager: "Content manager",
   ads_moderator: "Ads moderator",
   support_agent: "Support agent",

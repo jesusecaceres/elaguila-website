@@ -10,7 +10,9 @@ This document defines how **promo codes** are tracked separately from **package 
 
 **Table:** `public.leonix_promo_codes` (migration `20260522120000_leonix_promo_codes.sql`)
 
-**Related:** [`package-entitlement-model.md`](./package-entitlement-model.md), [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md) (G1.6G — attach-to-listing + user dashboard read model), [`sales-rep-dashboard-model.md`](./sales-rep-dashboard-model.md) (G1.6H — sales rep tracker + owner dashboard), [`stripe-payment-tracker-model.md`](./stripe-payment-tracker-model.md) (G1.6I — global payment tracker)
+**Related:** [`package-entitlement-model.md`](./package-entitlement-model.md), [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md) (G1.6G — attach-to-listing + user dashboard read model), [`sales-rep-dashboard-model.md`](./sales-rep-dashboard-model.md) (G1.6H — sales rep tracker + owner dashboard), [`stripe-payment-tracker-model.md`](./stripe-payment-tracker-model.md) (G1.6I — global payment tracker), [`admin-sales-rep-access-model.md`](./admin-sales-rep-access-model.md) (ADMIN-ROLES-SALES — sales rep scoped promo admin)
+
+**Sales rep access (ADMIN-ROLES-SALES):** Roster role `sales_rep` + `ADMIN_OPERATOR_EMAIL` scopes the promo codes UI and mutations to own `sales_rep_id`. Owner/admin retains full list and manual rep override. No public redemption or Stripe Checkout in this gate.
 
 ---
 

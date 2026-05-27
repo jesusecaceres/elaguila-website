@@ -15,6 +15,12 @@ import {
   PROMO_CODE_TYPES,
 } from "@/app/admin/_lib/promoCodeConstants";
 import {
+  filterPromoCodesForAccess,
+  getCurrentAdminAccessContext,
+  getSalesRepScopeForAdmin,
+  isSalesRepRole,
+} from "@/app/admin/_lib/adminAccessControl";
+import {
   effectivePromoCodeStatus,
   fetchPromoCodesForTracker,
   formatPromoCustomerLine,
@@ -91,26 +97,34 @@ export default async function AdminPromoCodesPage(props: {
     sp[k] = Array.isArray(v) ? v[0] : v;
   }
   const alert = alertFromSearch(sp);
+  const access = await getCurrentAdminAccessContext();
+  const salesScope = getSalesRepScopeForAdmin(access);
+  const salesRepLocked = isSalesRepRole(access.normalizedRole);
 
   const filterQ = sp.q?.trim() ?? "";
   const filterCategory = sp.category?.trim() ?? "";
   const filterType = sp.code_type?.trim() ?? "";
   const filterStatus = sp.status?.trim() ?? "";
 
-  const { rows, unavailable, note, totalFetched } = await fetchPromoCodesForTracker({
+  const { rows: rawRows, unavailable, note, totalFetched } = await fetchPromoCodesForTracker({
     q: filterQ || undefined,
     category: filterCategory || undefined,
     code_type: filterType || undefined,
     status: filterStatus || undefined,
     limit: PROMO_CODE_TRACKER_FETCH_LIMIT,
   });
+  const rows = filterPromoCodesForAccess(rawRows, access);
 
   return (
     <div className="max-w-5xl space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Monetización · Promo lifecycle"
         title="Promo Codes / Códigos Promocionales"
-        subtitle="Admin-only promo-code lifecycle manager. This is not the public Cupones CMS."
+        subtitle={
+          salesRepLocked
+            ? "Vista limitada: solo tus códigos promo atribuidos a tu ID de representante."
+            : "Admin-only promo-code lifecycle manager. This is not the public Cupones CMS."
+        }
         helperText="Reglas desde packagePricingRules y promoCodeLifecycle. Sin redención pública ni Stripe Checkout."
         rightSlot={
           <div className="flex flex-wrap gap-2">
@@ -291,14 +305,27 @@ export default async function AdminPromoCodesPage(props: {
             Teléfono
             <input name="customer_phone" className={`${adminInputClass} mt-1`} />
           </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            Sales rep ID
-            <input name="sales_rep_id" className={`${adminInputClass} mt-1`} />
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            Sales rep name
-            <input name="sales_rep_name" className={`${adminInputClass} mt-1`} />
-          </label>
+          {salesRepLocked && salesScope ? (
+            <div className="sm:col-span-2 rounded-xl border border-sky-200/80 bg-sky-50/80 p-3 text-sm text-sky-950">
+              <p className="font-semibold">Tu atribución de ventas (automática)</p>
+              <p className="mt-1 text-xs">
+                {salesScope.salesRepName} · <span className="font-mono">{salesScope.salesRepId}</span>
+              </p>
+              <input type="hidden" name="sales_rep_id" value={salesScope.salesRepId} />
+              <input type="hidden" name="sales_rep_name" value={salesScope.salesRepName} />
+            </div>
+          ) : (
+            <>
+              <label className="block text-xs font-semibold text-[#5C5346]">
+                Sales rep ID
+                <input name="sales_rep_id" className={`${adminInputClass} mt-1`} />
+              </label>
+              <label className="block text-xs font-semibold text-[#5C5346]">
+                Sales rep name
+                <input name="sales_rep_name" className={`${adminInputClass} mt-1`} />
+              </label>
+            </>
+          )}
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
             Package entitlement ID (opcional)
             <input

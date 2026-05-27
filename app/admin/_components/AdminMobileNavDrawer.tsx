@@ -16,13 +16,21 @@ function cx(...p: Array<string | false | undefined>) {
 export function AdminMobileNavDrawer({
   tiendaInboxUnread = 0,
   adminLang,
+  allowedGlobalNavHrefs,
+  salesRepLimited = false,
 }: {
   tiendaInboxUnread?: number;
   adminLang: "en" | "es";
+  allowedGlobalNavHrefs?: string[];
+  salesRepLimited?: boolean;
 }) {
   const pathname = usePathname() ?? "";
   const t = useAdminT();
   const [open, setOpen] = useState(false);
+  const navItems =
+    allowedGlobalNavHrefs && allowedGlobalNavHrefs.length > 0
+      ? ADMIN_GLOBAL_NAV.filter((item) => allowedGlobalNavHrefs.includes(item.href))
+      : ADMIN_GLOBAL_NAV;
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -84,7 +92,7 @@ export function AdminMobileNavDrawer({
             </div>
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3" aria-label={t("mobile.globalNav")}>
-              {ADMIN_GLOBAL_NAV.map((item) => {
+              {navItems.map((item) => {
                 const active = isAdminGlobalNavItemActive(pathname, item);
                 return (
                   <Link
@@ -114,12 +122,25 @@ export function AdminMobileNavDrawer({
 
             <div className="border-t border-[color:var(--lx-border)]/70 p-3">
               <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-3 text-[11px] font-semibold text-[color:var(--lx-muted)]">
-                <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
-                  {t("shell.websiteSectionsLink")}
-                </Link>
-                <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
-                  {t("shell.globalSiteSettingsLink")}
-                </Link>
+                {!salesRepLimited ? (
+                  <>
+                    <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                      {t("shell.websiteSectionsLink")}
+                    </Link>
+                    <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                      {t("shell.globalSiteSettingsLink")}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/admin/workspace/promo-codes" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                      Promo codes
+                    </Link>
+                    <Link href="/admin/workspace/package-entitlements" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                      Package entitlements
+                    </Link>
+                  </>
+                )}
                 <Link
                   href="/"
                   onClick={close}

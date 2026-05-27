@@ -12,7 +12,9 @@ This document defines the **global Stripe payment tracker** for Leonix monetizat
 
 **Table:** `public.leonix_payment_records`
 
-**Related:** [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`promo-code-lifecycle-model.md`](./promo-code-lifecycle-model.md), [`package-entitlement-model.md`](./package-entitlement-model.md), [`sales-rep-dashboard-model.md`](./sales-rep-dashboard-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md)
+**Related:** [`pricing-promo-code-sales-model.md`](./pricing-promo-code-sales-model.md), [`promo-code-lifecycle-model.md`](./promo-code-lifecycle-model.md), [`package-entitlement-model.md`](./package-entitlement-model.md), [`sales-rep-dashboard-model.md`](./sales-rep-dashboard-model.md), [`entitlement-redemption-attachment-model.md`](./entitlement-redemption-attachment-model.md), [`admin-sales-rep-access-model.md`](./admin-sales-rep-access-model.md) (ADMIN-ROLES-SALES)
+
+**Access (ADMIN-ROLES-SALES):** Payment tracker is **owner_admin only** (`requirePaymentTrackerAccess`). Sales reps use the sales tracker for commission **preview** on their own promo/entitlement rows — not global payment totals. No Stripe Checkout or payment collection in this gate.
 
 ---
 

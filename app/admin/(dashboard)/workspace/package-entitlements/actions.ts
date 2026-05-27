@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import {
+  assertCanManageEntitlement,
+  getCurrentAdminAccessContext,
+  resolveSalesRepFieldsForCreate,
+} from "@/app/admin/_lib/adminAccessControl";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { buildEntitlementPricingMetadata } from "@/app/admin/_lib/buildEntitlementPricingMetadata";
 import { PREMIUM_INVENTORY_SOFT_CAP } from "@/app/admin/_lib/packageEntitlementConstants";
@@ -81,6 +86,7 @@ async function loadEntitlementRow(id: string) {
 export async function createPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
 
   const packageTierRaw = String(formData.get("package_tier") ?? "").trim();
   const tier = normalizePackageEntitlementTier(packageTierRaw);
@@ -121,8 +127,9 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const customerName = String(formData.get("customer_name") ?? "").trim() || null;
   const businessName = String(formData.get("business_name") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 4000) || null;
-  const salesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
-  const salesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
+  const formSalesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
+  const formSalesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
+  const { salesRepId, salesRepName } = resolveSalesRepFieldsForCreate(access, formSalesRepId, formSalesRepName);
   const contractTerm = String(formData.get("contract_term") ?? "month_to_month").trim() || "month_to_month";
   const promoCodeType = String(formData.get("promo_code_type") ?? "entitlement").trim() || "entitlement";
 
@@ -285,9 +292,16 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
 export async function revokePackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirectWith({ error: "missing_id" });
+
+  try {
+    await assertCanManageEntitlement(id, access);
+  } catch {
+    redirectWith({ error: "forbidden" });
+  }
 
   const existing = await loadEntitlementRow(id);
   const meta =
@@ -328,10 +342,17 @@ export async function revokePackageEntitlementAction(formData: FormData): Promis
 export async function extendPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
   const endsAt = parseDateTimeLocal(String(formData.get("ends_at") ?? ""));
   if (!id || !endsAt) redirectWith({ error: "extend_invalid" });
+
+  try {
+    await assertCanManageEntitlement(id, access);
+  } catch {
+    redirectWith({ error: "forbidden" });
+  }
 
   const existing = await loadEntitlementRow(id);
   if (!existing) redirectWith({ error: "not_found" });
@@ -381,10 +402,17 @@ export async function extendPackageEntitlementAction(formData: FormData): Promis
 export async function attachListingToPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
   const listingId = String(formData.get("listing_id") ?? "").trim();
   if (!id || !listingId) redirectWith({ error: "attach_invalid" });
+
+  try {
+    await assertCanManageEntitlement(id, access);
+  } catch {
+    redirectWith({ error: "forbidden" });
+  }
 
   const existing = await loadEntitlementRow(id);
   if (!existing) redirectWith({ error: "not_found" });

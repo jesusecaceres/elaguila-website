@@ -7,6 +7,10 @@ export function middleware(req: NextRequest) {
 
   if (pathname.startsWith("/admin")) {
     const lang = searchParams.get("lang");
+    const withPathHeader = (res: NextResponse) => {
+      res.headers.set("x-admin-pathname", pathname);
+      return res;
+    };
     if (lang === "es" || lang === "en") {
       const res = NextResponse.next();
       res.cookies.set(ADMIN_UI_LANG_COOKIE, lang, {
@@ -14,9 +18,9 @@ export function middleware(req: NextRequest) {
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 365,
       });
-      return res;
+      return withPathHeader(res);
     }
-    return NextResponse.next();
+    return withPathHeader(NextResponse.next());
   }
 
   const isMagazinePdf = pathname.startsWith("/magazine/") && pathname.endsWith("/magazine.pdf");

@@ -37,6 +37,7 @@
     "verify:sales-rep-dashboard-foundation": "node scripts/verify-sales-rep-dashboard-foundation.mjs",
     "verify:servicios-entitlement-overlay": "node scripts/verify-servicios-entitlement-overlay.mjs",
     "verify:magazine-placement-priority-model": "node scripts/verify-magazine-placement-priority-model.mjs",
+    "verify:admin-sales-rep-access": "node scripts/verify-admin-sales-rep-access.mjs",
     "verify:final-monetization-visibility-stack": "node scripts/verify-final-monetization-visibility-stack.mjs",
     "verify:servicios-destacados-module": "node scripts/verify-servicios-destacados-module.mjs",
     "verify:servicios-print-digital-ranking": "node scripts/verify-servicios-print-digital-ranking.mjs",

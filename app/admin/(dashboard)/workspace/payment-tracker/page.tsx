@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { getCurrentAdminAccessContext, requirePaymentTrackerAccess } from "@/app/admin/_lib/adminAccessControl";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { formatMoneyCents } from "@/app/lib/listingPlans/packagePricingRules";
 import { formatPaymentStatusLabel } from "@/app/lib/listingPlans/paymentTracking";
@@ -36,6 +37,8 @@ export default async function AdminPaymentTrackerPage({
 }) {
   const c = await cookies();
   if (!requireAdminCookie(c)) redirect("/admin/login");
+  const access = await getCurrentAdminAccessContext();
+  requirePaymentTrackerAccess(access);
 
   const lang = resolveAdminLangFromCookieJar(c);
   const t = (key: string, vars?: Record<string, string | number>) => adminTr(lang, key, vars);
@@ -58,8 +61,6 @@ export default async function AdminPaymentTrackerPage({
 
   return (
     <AdminI18nProvider lang={lang}>
-      <AdminWorkspaceNav />
-
       <div className="space-y-8">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
