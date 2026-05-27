@@ -9,6 +9,10 @@ import AdminUserActions from "../AdminUserActions";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { adminBtnDark, adminBtnSecondary, adminCardBase } from "../../../_components/adminTheme";
 import { fetchAdminUserAdsForUser } from "../../../_lib/adminUserAds";
+import {
+  fetchAdminUserAnalyticsRollup,
+  fetchAdminUserEntitlementRollup,
+} from "../../../_lib/adminUserRollups";
 import { adminEditSupportStatusLabelEs, resolveAdminAdActions } from "../../../_lib/adminAdEditSupportMap";
 import { categoryAdPlanDisplayLabel, resolveCategoryAdPlanFromAdminAd } from "@/app/lib/listingPlans/categoryAdPlans";
 
@@ -235,6 +239,24 @@ const labels = {
     viewReport: "View report",
     clasificadosQueue: "Clasificados Queue",
     report: "Report",
+    entitlementsTitle: "Package entitlements",
+    entitlementsNote: "Counts from listing_package_entitlements for this user's listing IDs (active = time-valid, not revoked). payment_status stays null until Stripe.",
+    entitlementsUnavailable: "Entitlement data unavailable.",
+    entActive: "Active",
+    entScheduled: "Scheduled",
+    entExpired: "Expired",
+    entRevoked: "Revoked",
+    entUnattached: "Unattached",
+    entOpenTracker: "Open package tracker →",
+    analyticsTitle: "Analytics rollup",
+    analyticsNote: "Aggregated from listing_analytics for all listing keys owned by this user (real events only).",
+    analyticsUnavailable: "Analytics table unavailable or degraded — zeros shown, not fabricated.",
+    analyticsListingCount: "Listings in inventory",
+    analyticsViews: "Views",
+    analyticsSaves: "Saves",
+    analyticsMessages: "Messages",
+    analyticsCta: "CTA clicks",
+    analyticsLeads: "Leads",
   },
   es: {
     pageTitle: "Detalle de Usuario Admin",
@@ -309,6 +331,26 @@ const labels = {
     viewReport: "Ver reporte",
     clasificadosQueue: "Cola Clasificados",
     report: "Reporte",
+    entitlementsTitle: "Paquetes / entitlements",
+    entitlementsNote:
+      "Conteos desde listing_package_entitlements para los IDs de anuncios de este usuario (activo = vigente, no revocado). payment_status sigue null hasta Stripe.",
+    entitlementsUnavailable: "Datos de entitlements no disponibles.",
+    entActive: "Activos",
+    entScheduled: "Programados",
+    entExpired: "Expirados",
+    entRevoked: "Revocados",
+    entUnattached: "Sin listing",
+    entOpenTracker: "Abrir rastreador de paquetes →",
+    analyticsTitle: "Resumen de analíticas",
+    analyticsNote:
+      "Agregado desde listing_analytics para todas las claves de anuncios de este usuario (solo eventos reales).",
+    analyticsUnavailable: "Tabla de analíticas no disponible — se muestran ceros, sin inventar datos.",
+    analyticsListingCount: "Anuncios en inventario",
+    analyticsViews: "Vistas",
+    analyticsSaves: "Guardados",
+    analyticsMessages: "Mensajes",
+    analyticsCta: "Clics CTA",
+    analyticsLeads: "Leads",
   },
 };
 
@@ -393,6 +435,11 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     ownerPhone: row.phone,
   };
   const adsBundle = await fetchAdminUserAdsForUser(clientId, ownerHints);
+  const allListingIds = adsBundle.groups.flatMap((g) => g.ads.map((a) => a.internalId)).filter(Boolean);
+  const [entitlementRollup, analyticsRollup] = await Promise.all([
+    fetchAdminUserEntitlementRollup(allListingIds),
+    fetchAdminUserAnalyticsRollup(clientId),
+  ]);
   const ownedIds =
     adsBundle.groups.find((g) => g.source === "generic")?.ads.map((a) => a.internalId).filter(Boolean) ?? [];
 
@@ -704,6 +751,56 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             </Link>
           </p>
         ) : null}
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.entitlementsTitle}</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">{t.entitlementsNote}</p>
+        {entitlementRollup.unavailable ? (
+          <p className="mt-3 text-sm text-amber-900">{entitlementRollup.unavailableNote ?? t.entitlementsUnavailable}</p>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-3 text-sm">
+            {[
+              { label: t.entActive, value: entitlementRollup.active },
+              { label: t.entScheduled, value: entitlementRollup.scheduled },
+              { label: t.entExpired, value: entitlementRollup.expired },
+              { label: t.entRevoked, value: entitlementRollup.revoked },
+              { label: t.entUnattached, value: entitlementRollup.unattached },
+            ].map((x) => (
+              <span key={x.label} className="rounded-full bg-[#FBF7EF] px-3 py-1 text-xs font-semibold text-[#5C4E2E]">
+                {x.label}: {x.value}
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-xs">
+          <Link href="/admin/workspace/package-entitlements" className="font-bold text-[#6B5B2E] underline">
+            {t.entOpenTracker}
+          </Link>
+        </p>
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.analyticsTitle}</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">{t.analyticsNote}</p>
+        {analyticsRollup.unavailable ? (
+          <p className="mt-3 text-sm text-amber-900">{t.analyticsUnavailable}</p>
+        ) : null}
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { label: t.analyticsListingCount, value: analyticsRollup.listingCount },
+            { label: t.analyticsViews, value: analyticsRollup.totals.listingViews },
+            { label: t.analyticsSaves, value: analyticsRollup.totals.saves },
+            { label: t.analyticsMessages, value: analyticsRollup.totals.messages },
+            { label: t.analyticsCta, value: analyticsRollup.totals.ctaClicks },
+            { label: t.analyticsLeads, value: analyticsRollup.totals.leads },
+          ].map((x) => (
+            <div key={x.label} className="rounded-xl border border-[#E8DFD0]/90 bg-white/80 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase text-[#7A7164]">{x.label}</p>
+              <p className="mt-1 text-xl font-bold tabular-nums text-[#1E1810]">{x.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5 border-2 border-[#C9B46A] bg-[#FFFCF7]`}>

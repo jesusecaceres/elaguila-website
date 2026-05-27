@@ -52,6 +52,8 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
   const offer = bundle?.offer ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
   if (!offer) notFound();
   const stagedListingId = bundle?.stagedListingId ?? null;
+  const listingLang = bundle?.listingLang ?? null;
+  const listingKey = (bundle?.leonix_ad_id ?? "").trim() || offer.slug;
   const ui = getViajesUi(lang);
   const fallback = appendLangToPath("/clasificados/viajes", lang);
   const { href: backHref, label: backLabel } = resolveViajesOfferBack(sp.back, fallback, lang);
@@ -67,6 +69,9 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
       </div>
       <ViajesOfferDetailLayout
         offer={offer}
+        lang={lang}
+        listingLang={listingLang}
+        listingKey={listingKey}
         backHref={backHref}
         backLabel={backLabel}
         ui={ui}

@@ -153,11 +153,34 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 |---|---|
 | Seller description, other equipment notes, custom equipment lines; custom `vehicleTitle` only when not YMM-only | Make/model/trim/year, VIN, mileage, price, dealer/seller name, contact, specs/features checklist values, financing numbers |
 
+## Gate T6 (Viajes) ✅
+
+### Wired surfaces
+
+| Surface | Path |
+|---|---|
+| Public offer detail | `app/(site)/clasificados/viajes/oferta/[slug]/page.tsx` |
+| Layout + translation | `ViajesOfferDetailLayout.tsx`, `ViajesOfferTranslationLayer.tsx` |
+| Helpers | `app/(site)/clasificados/viajes/lib/viajesTranslateAd.ts` |
+| Staged lang | `resolveViajesOfferDetailFromStagedServer.ts` → `listingLang` from `viajes_staged_listings.lang` |
+
+- `lang` is passed explicitly from `pickLang(searchParams)` (not inferred from UI copy inside the layout).
+- `TranslateAdControl` with `category="viajes"`, `requestAdTranslation` → `POST /api/translate-ad`.
+- **Session cache only**; no Supabase migration; no `listing_translations`.
+- Publish preview routes omit `listingKey` — translation layer skipped on previews.
+
+### Translated vs excluded
+
+| Translated | Excluded |
+|---|---|
+| Title, description, includes[], whoItsFor[], notes, trustNote | Destination, priceFrom, duration, departureCity, dateRange, partner name/CTAs/hrefs, contact channels, main booking CTA, image URLs, slugs/IDs |
+
 ### Next rollout candidates
 
-1. **Viajes** — offer prose
-2. **Generic `anuncio/[id]` shell**
-3. **Restaurantes** — after `lang` hardcode fix / verification
+1. **Generic `anuncio/[id]` shell**
+2. **Rentas**
+3. **En Venta**
+4. **Restaurantes** — after `lang` hardcode fix / verification
 
 ## Later gates
 

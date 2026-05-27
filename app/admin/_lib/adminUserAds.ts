@@ -11,6 +11,7 @@ import {
   normalizeGenericListingForAdmin,
   normalizeRestaurantePublicListingForAdmin,
   normalizeServiciosPublicListingForAdmin,
+  normalizeViajesStagedListingForAdmin,
 } from "./adminAdIdentity";
 
 const PER_SOURCE_LIMIT = 200;
@@ -51,7 +52,7 @@ export type AdminUserAdsBundle = {
   totalAds: number;
 };
 
-const SOURCE_ORDER: AdminAdSource[] = ["generic", "restaurantes", "servicios", "empleos", "autos"];
+const SOURCE_ORDER: AdminAdSource[] = ["generic", "restaurantes", "servicios", "empleos", "autos", "viajes"];
 
 const LABELS: Record<AdminAdSource, string> = {
   generic: "Listings (generic catalog)",
@@ -59,6 +60,7 @@ const LABELS: Record<AdminAdSource, string> = {
   servicios: "Servicios",
   empleos: "Empleos",
   autos: "Autos",
+  viajes: "Viajes (staged)",
 };
 
 function emptyGroup(source: AdminAdSource, status: "ok" | "error", errorMessage?: string): AdminUserAdsGroup {
@@ -235,6 +237,42 @@ async function loadAutos(ownerUserId: string, hints: AdminAdOwnerHints | null): 
   }
 }
 
+async function loadViajes(ownerUserId: string, hints: AdminAdOwnerHints | null): Promise<AdminUserAdsGroup> {
+  const source: AdminAdSource = "viajes";
+  if (!isSupabaseAdminConfigured()) {
+    return emptyGroup(source, "error", "Supabase no configurado.");
+  }
+  try {
+    const supabase = getAdminSupabase();
+    const hasLeonixAdId = await safeCheckColumnExists("viajes_staged_listings", "leonix_ad_id");
+    const selectFields = hasLeonixAdId
+      ? "id, slug, leonix_ad_id, title, lane, lifecycle_status, is_public, owner_user_id, submitted_at, updated_at"
+      : "id, slug, title, lane, lifecycle_status, is_public, owner_user_id, submitted_at, updated_at";
+    const { data, error } = await supabase
+      .from("viajes_staged_listings")
+      .select(selectFields)
+      .eq("owner_user_id", ownerUserId)
+      .order("updated_at", { ascending: false })
+      .limit(PER_SOURCE_LIMIT);
+    if (error) {
+      return { source, labelEs: LABELS[source], ads: [], loadStatus: "error", errorMessage: error.message };
+    }
+    const rows = Array.isArray(data) ? data : [];
+    const ads = rows
+      .map((r) => {
+        if (r && typeof r === "object" && "id" in r && "slug" in r) {
+          return normalizeViajesStagedListingForAdmin(r as Parameters<typeof normalizeViajesStagedListingForAdmin>[0], hints);
+        }
+        return null;
+      })
+      .filter((x): x is AdminNormalizedAd => x != null);
+    return { source, labelEs: LABELS[source], ads, loadStatus: "ok" };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error al cargar viajes.";
+    return { source, labelEs: LABELS[source], ads: [], loadStatus: "error", errorMessage: msg };
+  }
+}
+
 /**
  * All supported Clasificados ad sources for a single `profiles.id` (admin command center).
  */
@@ -245,12 +283,13 @@ export async function fetchAdminUserAdsForUser(
   const id = ownerUserId.trim();
   const h: AdminAdOwnerHints | null = hints ?? { ownerUserId: id };
 
-  const [generic, restaurantes, servicios, empleos, autos] = await Promise.all([
+  const [generic, restaurantes, servicios, empleos, autos, viajes] = await Promise.all([
     loadGenericListings(id, h),
     loadRestaurantes(id, h),
     loadServicios(id, h),
     loadEmpleos(id, h),
     loadAutos(id, h),
+    loadViajes(id, h),
   ]);
 
   const bySource = new Map<AdminAdSource, AdminUserAdsGroup>([
@@ -259,6 +298,7 @@ export async function fetchAdminUserAdsForUser(
     ["servicios", servicios],
     ["empleos", empleos],
     ["autos", autos],
+    ["viajes", viajes],
   ]);
 
   const groups = SOURCE_ORDER.map((s) => bySource.get(s)!).filter(Boolean);

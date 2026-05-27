@@ -64,14 +64,19 @@ export async function collectOwnerListingKeysForAnalytics(sb: SupabaseClient, ow
 
 /** Row counts across tables for dashboard “how many listings” copy (not analytics key cardinality). */
 export async function countOwnerInventoryListings(sb: SupabaseClient, ownerId: string): Promise<number> {
-  const [{ count: nList }, { count: nServ }, { count: nEmp }, { count: nAuto }, { count: nRest }] = await Promise.all([
-    sb.from("listings").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
-    sb.from("servicios_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
-    sb.from("empleos_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
-    sb.from("autos_classifieds_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
-    sb.from("restaurantes_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
-  ]);
-  return (nList ?? 0) + (nServ ?? 0) + (nEmp ?? 0) + (nAuto ?? 0) + (nRest ?? 0);
+  const [{ count: nList }, { count: nServ }, { count: nEmp }, { count: nAuto }, { count: nRest }, { count: nVia }] =
+    await Promise.all([
+      sb.from("listings").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
+      sb.from("servicios_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
+      sb.from("empleos_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
+      sb.from("autos_classifieds_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
+      sb.from("restaurantes_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
+      sb
+        .from("viajes_staged_listings")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_user_id", ownerId),
+    ]);
+  return (nList ?? 0) + (nServ ?? 0) + (nEmp ?? 0) + (nAuto ?? 0) + (nRest ?? 0) + (nVia ?? 0);
 }
 
 /**

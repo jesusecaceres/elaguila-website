@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import type { ViajesOfferDetailModel } from "../data/viajesOfferDetailSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
+import { ViajesOfferTranslationLayer } from "./ViajesOfferTranslationLayer";
 import { getViajesOpenCardLane } from "../lib/viajesOpenCardStrategy";
 import { isPlaceholderViajesCtaHref } from "../lib/viajesCtaHref";
 import { setLangOnHref } from "../lib/viajesLangHref";
@@ -50,6 +54,9 @@ function isExternalHref(href: string) {
 
 export function ViajesOfferDetailLayout({
   offer,
+  lang: langProp,
+  listingLang = null,
+  listingKey,
   backHref,
   backLabel = "Volver",
   preview = false,
@@ -61,6 +68,12 @@ export function ViajesOfferDetailLayout({
   leonixAdId = null,
 }: {
   offer: ViajesOfferDetailModel;
+  /** Site locale from `?lang=` — pass explicitly on public offer pages. */
+  lang?: Lang;
+  /** Stored listing language when live (`viajes_staged_listings.lang`). */
+  listingLang?: string | null;
+  /** Slug or Leonix ad id for translate cache key; omit on publish previews. */
+  listingKey?: string;
   backHref: string;
   backLabel?: string;
   preview?: boolean;
@@ -71,6 +84,78 @@ export function ViajesOfferDetailLayout({
   /** DB id for approved staged listing — enables Leonix-tracked inquiry. */
   stagedListingId?: string | null;
   /** Permanent Leonix ad code from `viajes_staged_listings.leonix_ad_id` when assigned. */
+  leonixAdId?: string | null;
+}) {
+  const lang = langProp ?? ui.lang;
+  const body = (
+    <ViajesOfferDetailLayoutBody
+      offer={offer}
+      translateControl={null}
+      backHref={backHref}
+      backLabel={backLabel}
+      preview={preview}
+      sparseSections={sparseSections}
+      previewTone={previewTone}
+      ui={ui}
+      exploreViajesHref={exploreViajesHref}
+      stagedListingId={stagedListingId}
+      leonixAdId={leonixAdId}
+    />
+  );
+
+  if (preview || !listingKey?.trim()) {
+    return body;
+  }
+
+  return (
+    <ViajesOfferTranslationLayer
+      offer={offer}
+      siteLocale={lang}
+      listingLang={listingLang}
+      listingKey={listingKey.trim()}
+    >
+      {(displayOffer, translateControl) => (
+        <ViajesOfferDetailLayoutBody
+          offer={displayOffer}
+          translateControl={translateControl}
+          backHref={backHref}
+          backLabel={backLabel}
+          preview={preview}
+          sparseSections={sparseSections}
+          previewTone={previewTone}
+          ui={ui}
+          exploreViajesHref={exploreViajesHref}
+          stagedListingId={stagedListingId}
+          leonixAdId={leonixAdId}
+        />
+      )}
+    </ViajesOfferTranslationLayer>
+  );
+}
+
+function ViajesOfferDetailLayoutBody({
+  offer,
+  translateControl,
+  backHref,
+  backLabel = "Volver",
+  preview = false,
+  sparseSections = false,
+  previewTone = "default",
+  ui,
+  exploreViajesHref,
+  stagedListingId = null,
+  leonixAdId = null,
+}: {
+  offer: ViajesOfferDetailModel;
+  translateControl: React.ReactNode;
+  backHref: string;
+  backLabel?: string;
+  preview?: boolean;
+  sparseSections?: boolean;
+  previewTone?: "default" | "minimal";
+  ui: ViajesUi;
+  exploreViajesHref: string;
+  stagedListingId?: string | null;
   leonixAdId?: string | null;
 }) {
   const { partner } = offer;
@@ -257,6 +342,8 @@ export function ViajesOfferDetailLayout({
       </ViajesOfferHeroBackdrop>
 
       <div className="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:space-y-9 sm:px-5 sm:py-10 lg:space-y-11 lg:px-6 lg:py-12">
+        {translateControl && !preview ? <div>{translateControl}</div> : null}
+
         {(!sparseSections || offer.includes.length > 0) && (
           <section className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_10px_44px_-18px_rgba(0,0,0,0.1)]">
             <div className="border-b border-[color:var(--lx-gold)]/30 bg-gradient-to-r from-[color:var(--lx-section)]/90 to-transparent px-5 py-4 sm:px-8 sm:py-5">

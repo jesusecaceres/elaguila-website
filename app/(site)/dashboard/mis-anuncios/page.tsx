@@ -51,7 +51,7 @@ import {
   resolveCategoryAdPlan,
   resolveCategoryAdPlanFromDashboardInventoryItem,
 } from "@/app/lib/listingPlans/categoryAdPlans";
-import { listingPlanFromDetailPairs, leonixPromotedFromDetailPairs } from "../lib/dashboardListingMeta";
+import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   dashboardEntitlementBadgeForKey,
   fetchDashboardListingPackageEntitlementBadges,
@@ -524,7 +524,7 @@ export default function MyListingsPage() {
         ...list
           .filter((row) => {
             const c = String(row.category ?? "").toLowerCase();
-            return c === "bienes-raices" || c === "rentas";
+            return c === "bienes-raices" || c === "rentas" || c === "en-venta";
           })
           .map((row) => ({
             key: row.id,
@@ -1700,12 +1700,10 @@ export default function MyListingsPage() {
                       }
                       leonixAdId={x.leonix_ad_id ?? null}
                       leonixPromoted={
-                        String(x.category ?? "").toLowerCase() === "en-venta"
-                          ? leonixPromotedFromDetailPairs(x.detail_pairs)
-                          : (dashboardEntitlementBadgeForKey(entitlementBadges, [
-                              x.id,
-                              x.leonix_ad_id ?? "",
-                            ])?.grantsDestacado ?? false)
+                        dashboardEntitlementBadgeForKey(entitlementBadges, [
+                          x.id,
+                          x.leonix_ad_id ?? "",
+                        ])?.grantsDestacado ?? false
                       }
                       uiStatus={uiSt}
                       listingRefShort={shortListingRef(x.id)}

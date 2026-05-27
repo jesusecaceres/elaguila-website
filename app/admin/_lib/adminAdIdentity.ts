@@ -6,7 +6,7 @@
 import type { AutosClassifiedsListingRow } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { autosClassifiedsRowToDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 
-export type AdminAdSource = "generic" | "restaurantes" | "servicios" | "empleos" | "autos";
+export type AdminAdSource = "generic" | "restaurantes" | "servicios" | "empleos" | "autos" | "viajes";
 
 /** Optional owner hints (e.g. from `profiles`) — never required for normalization. */
 export type AdminAdOwnerHints = {
@@ -450,6 +450,77 @@ export function normalizeAutosClassifiedsListingForAdmin(
       table: "autos_classifieds_listings",
       hasPublishedIdColumn: publishedFromRow != null,
       lane: nonEmptyString(row.lane),
+    },
+  };
+}
+
+export type ViajesStagedListingAdminInput = {
+  id: string;
+  slug: string;
+  leonix_ad_id?: string | null;
+  title: string;
+  lane?: string | null;
+  lifecycle_status?: string | null;
+  is_public?: boolean | null;
+  owner_user_id?: string | null;
+  submitted_at?: string | null;
+  updated_at?: string | null;
+} & Record<string, unknown>;
+
+/**
+ * Normalize a `viajes_staged_listings` row for admin user command center.
+ */
+export function normalizeViajesStagedListingForAdmin(
+  row: ViajesStagedListingAdminInput,
+  hints?: AdminAdOwnerHints | null,
+): AdminNormalizedAd | null {
+  const internalId = nonEmptyString(row.id);
+  const slug = nonEmptyString(row.slug);
+  if (!internalId || !slug) return null;
+
+  const categorySlug = "travel";
+  const publishedFromRow = readPublishedIdFromRow(row as Record<string, unknown>);
+  const { publishedId, fallbackDisplayId, displayId, publicIdLabel } = finalizeDisplayIds(
+    categorySlug,
+    internalId,
+    publishedFromRow,
+  );
+
+  const owner = mergeOwner(nonEmptyString(row.owner_user_id), hints);
+  const title = nonEmptyString(row.title) ?? "(sin título)";
+  const isPublic = row.is_public === true;
+  const lifecycle = nonEmptyString(row.lifecycle_status) ?? "—";
+  const status = isPublic && lifecycle.toLowerCase() === "approved" ? "live" : lifecycle;
+
+  const publicUrl = `/clasificados/viajes/oferta/${encodeURIComponent(slug)}`;
+  const leonix = nonEmptyString(row.leonix_ad_id);
+  const adminUrl = leonix
+    ? `/admin/workspace/clasificados/travel?q=${encodeURIComponent(leonix)}`
+    : `/admin/workspace/clasificados/travel?q=${encodeURIComponent(internalId)}`;
+
+  return {
+    source: "viajes",
+    categorySlug,
+    internalId,
+    publishedId,
+    leonixAdId: leonix,
+    publicIdLabel,
+    fallbackDisplayId,
+    displayId,
+    ...owner,
+    title,
+    slug,
+    status,
+    city: null,
+    createdAt: nonEmptyString(row.submitted_at),
+    updatedAt: nonEmptyString(row.updated_at),
+    publicUrl: isPublic && lifecycle.toLowerCase() === "approved" ? publicUrl : adminUrl,
+    adminUrl,
+    editUrl: null,
+    sourceMeta: {
+      table: "viajes_staged_listings",
+      lane: nonEmptyString(row.lane),
+      is_public: isPublic,
     },
   };
 }

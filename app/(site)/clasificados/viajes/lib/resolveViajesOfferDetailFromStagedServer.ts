@@ -17,6 +17,8 @@ export type ViajesStagedOfferDetailBundle = {
   offer: ViajesOfferDetailModel;
   stagedListingId: string;
   leonix_ad_id: string | null;
+  /** Stored listing language from `viajes_staged_listings.lang`. */
+  listingLang: "es" | "en" | null;
 };
 
 async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: "es" | "en"): Promise<ViajesStagedOfferDetailBundle | null> {
@@ -39,6 +41,7 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
     return {
       stagedListingId,
       leonix_ad_id,
+      listingLang: row.lang,
       offer: {
         ...base,
         slug: row.slug,
@@ -61,6 +64,7 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
     return {
       stagedListingId,
       leonix_ad_id,
+      listingLang: row.lang,
       offer: {
         ...base,
         slug: row.slug,

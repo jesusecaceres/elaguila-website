@@ -64,13 +64,11 @@ export const ADMIN_EDIT_SUPPORT_BY_SOURCE: Record<
     editSupportNote:
       "Staff: cola Autos — vista operativa y enlace público; sin mutación de contenido en esta cola. El anunciante gestiona el listado de pago en su cuenta (Mis anuncios / flujo Autos).",
   },
-};
-
-/** Viajes: not wired into fetchAdminUserAdsForUser; dashboard flujo aparte. */
-export const ADMIN_VIAJES_EDIT_SUPPORT = {
-  editSupportStatus: "SAFE_SKIP" as const,
-  editSupportNote:
-    "Anuncios Viajes no aparecen en el centro por usuario; flujo en /dashboard/viajes y APIs dedicadas — sin mapa admin unificado de fila aquí.",
+  viajes: {
+    editSupportStatus: "MANAGE_ONLY",
+    editSupportNote:
+      "Staff: cola Viajes (travel) — moderación y visibilidad en viajes_staged_listings; el anunciante gestiona en /dashboard/viajes.",
+  },
 };
 
 function empleosLangFromAd(ad: AdminNormalizedAd): "es" | "en" {
@@ -87,6 +85,8 @@ function sellerSelfServiceUrlForSource(ad: AdminNormalizedAd): string | null {
       const l = empleosLangFromAd(ad);
       return `/dashboard/empleos/${encodeURIComponent(ad.internalId)}?lang=${l}`;
     }
+    case "viajes":
+      return `/dashboard/viajes?lang=es`;
     default:
       return null;
   }

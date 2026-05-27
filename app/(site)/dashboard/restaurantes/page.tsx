@@ -19,6 +19,11 @@ import {
   listingPlanFootnote,
   resolveCategoryAdPlan,
 } from "@/app/lib/listingPlans/categoryAdPlans";
+import {
+  dashboardEntitlementBadgeForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+  type DashboardEntitlementBadgePayload,
+} from "../lib/dashboardPackageEntitlementBadges";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -126,6 +131,9 @@ export default function DashboardRestaurantesPage() {
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [entitlementBadges, setEntitlementBadges] = useState<
+    Record<string, DashboardEntitlementBadgePayload>
+  >({});
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -171,10 +179,25 @@ export default function DashboardRestaurantesPage() {
       setFetchErr(t.errRl);
       setRows([]);
     } else {
-      setRows((data ?? []) as DashboardRestaurantRow[]);
+      const loaded = (data ?? []) as DashboardRestaurantRow[];
+      setRows(loaded);
+      const { data: sessData } = await supabase.auth.getSession();
+      const accessToken = sessData.session?.access_token ?? null;
+      const badges = await fetchDashboardListingPackageEntitlementBadges(
+        loaded.map((r) => ({
+          key: r.id,
+          category: "restaurantes",
+          listingSource: "restaurantes_public_listings",
+          listingId: r.id,
+          slug: r.slug ?? null,
+          leonixAdId: r.leonix_ad_id ?? null,
+        })),
+        accessToken,
+      );
+      setEntitlementBadges(badges);
     }
     setLoading(false);
-    
+
     // Load analytics
     setAnalyticsLoading(true);
     try {
@@ -232,7 +255,9 @@ export default function DashboardRestaurantesPage() {
   const previewHref = appendLangToPath("/clasificados/restaurantes/preview", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
   const activeCount = rows.filter((row) => row.status === "published").length;
-  const promotedCount = rows.filter((row) => row.promoted).length;
+  const promotedCount = rows.filter((row) =>
+    dashboardEntitlementBadgeForKey(entitlementBadges, [row.id, row.leonix_ad_id ?? ""])?.grantsDestacado,
+  ).length;
   const verifiedCount = rows.filter((row) => row.leonix_verified).length;
 
   return (
@@ -319,7 +344,12 @@ export default function DashboardRestaurantesPage() {
                     status={statusLabel}
                     subtitle={`${t.cardLeonixAdId}: ${r.leonix_ad_id ?? "—"}`}
                     badges={[
-                      r.promoted ? (lang === "es" ? "Destacado" : "Promoted") : "",
+                      dashboardEntitlementBadgeForKey(entitlementBadges, [r.id, r.leonix_ad_id ?? ""])
+                        ?.grantsDestacado
+                        ? lang === "es"
+                          ? "Destacado"
+                          : "Promoted"
+                        : "",
                       r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
                     footerHint={listingPlanFootnote(lang)}

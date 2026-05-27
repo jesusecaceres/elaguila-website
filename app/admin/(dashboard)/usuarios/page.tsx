@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { fetchProfilesForAdminList } from "../../_lib/adminProfilesQuery";
+import { fetchAdminUserListCountsBatch } from "../../_lib/adminUserRollups";
 import AdminUserActions from "./AdminUserActions";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminTableWrap, adminCtaChipCompact } from "../../_components/adminTheme";
@@ -137,6 +138,14 @@ export default async function AdminUsuariosPage(props: PageProps) {
   }
 
   const filteredRows = rows;
+  const countsByUser =
+    filteredRows.length > 0 && filteredRows.length <= 80
+      ? await fetchAdminUserListCountsBatch(filteredRows.map((r) => r.id))
+      : new Map<string, { totalListings: number | null; activeListings: number | null; activeEntitlements: number | null; unavailable: boolean }>();
+  const countsNote =
+    filteredRows.length > 80
+      ? "Conteos de anuncios/paquetes solo se calculan con ≤80 filas visibles (evita sobrecarga)."
+      : null;
   const disabledCount = filteredRows.filter((r) => r.is_disabled === true).length;
   const newsletterCount = filteredRows.filter((r) => r.newsletter_opt_in === true).length;
   const profileTierCount = filteredRows.filter((r) => hasProfileTier(r.membership_tier)).length;
@@ -169,6 +178,9 @@ export default async function AdminUsuariosPage(props: PageProps) {
         <>
           {searchNote ? (
             <div className="mb-4 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/90 p-3 text-xs text-[#5C5346]">{searchNote}</div>
+          ) : null}
+          {countsNote ? (
+            <div className="mb-4 rounded-2xl border border-amber-200/90 bg-amber-50/80 p-3 text-xs text-amber-950">{countsNote}</div>
           ) : null}
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <p className="text-xs text-[#7A7164]">Cross-entity lookup (listings + Tienda orders in one pass):</p>
@@ -210,13 +222,26 @@ export default async function AdminUsuariosPage(props: PageProps) {
                       <th className="p-2.5 font-semibold text-[#5C4E2E]">Ciudad</th>
                       <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Tipo</th>
                       <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Membresía</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Inventario total (todas las tablas)">
+                        Anuncios
+                      </th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Activos/publicados cuando aplica">
+                        Activos
+                      </th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Entitlements activos (listing_package_entitlements)">
+                        Paquetes
+                      </th>
                       <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Newsletter</th>
                       <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Fecha</th>
                       <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRows.map((row) => (
+                    {filteredRows.map((row) => {
+                      const counts = countsByUser.get(row.id);
+                      const fmtCount = (n: number | null | undefined) =>
+                        counts?.unavailable ? "—" : n == null ? "—" : String(n);
+                      return (
                       <tr key={row.id} className={`border-b border-[#E8DFD0]/50 ${row.is_disabled ? "opacity-60" : ""}`}>
                         <td className="p-2.5 pr-3 font-mono text-xs text-[#6B5B2E] whitespace-nowrap">
                           {accountRefFromId(row.id)}
@@ -239,11 +264,15 @@ export default async function AdminUsuariosPage(props: PageProps) {
                         <td className="p-2.5 text-[#3D3428] whitespace-nowrap">{row.home_city ?? "—"}</td>
                         <td className="p-2.5 text-[#3D3428] whitespace-nowrap">{row.account_type ?? "—"}</td>
                         <td className="p-2.5 text-[#3D3428] whitespace-nowrap">{membresia(row.membership_tier)}</td>
+                        <td className="p-2.5 text-[#3D3428] whitespace-nowrap tabular-nums">{fmtCount(counts?.totalListings)}</td>
+                        <td className="p-2.5 text-[#3D3428] whitespace-nowrap tabular-nums">{fmtCount(counts?.activeListings)}</td>
+                        <td className="p-2.5 text-[#3D3428] whitespace-nowrap tabular-nums">{fmtCount(counts?.activeEntitlements)}</td>
                         <td className="p-2.5 text-[#3D3428] whitespace-nowrap">{newsletterLabel(row.newsletter_opt_in)}</td>
                         <td className="p-2.5 text-[#7A7164] whitespace-nowrap">{formatDate(row.created_at)}</td>
                         <AdminUserActions userId={row.id} disabled={row.is_disabled} />
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -260,6 +289,14 @@ export default async function AdminUsuariosPage(props: PageProps) {
                       <span>Teléfono: {row.phone ?? "—"}</span>
                       <span>Ciudad: {row.home_city ?? "—"}</span>
                       <span>Membresía: {membresia(row.membership_tier)}</span>
+                      {countsByUser.get(row.id) ? (
+                        <span>
+                          Anuncios:{" "}
+                          {countsByUser.get(row.id)?.unavailable
+                            ? "—"
+                            : `${countsByUser.get(row.id)?.totalListings ?? "—"} total · ${countsByUser.get(row.id)?.activeListings ?? "—"} activos · ${countsByUser.get(row.id)?.activeEntitlements ?? "—"} paquetes`}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-3">
                       <Link
