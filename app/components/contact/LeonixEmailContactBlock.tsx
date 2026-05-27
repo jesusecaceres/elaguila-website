@@ -24,25 +24,36 @@ const LABELS = {
 const ACTION_BTN =
   "inline-flex min-h-[40px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] active:scale-[0.99]";
 
-function CopyEmailChip({ email, lang }: { email: string; lang: LeonixEmailContactLang }) {
+/** Small two-square copy control — clipboard only, not share sheet. */
+export function EmailCopyIconButton({
+  email,
+  lang,
+  className = "",
+}: {
+  email: string;
+  lang: LeonixEmailContactLang;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const t = LABELS[lang];
+  const em = email.trim();
+  if (!em) return null;
 
   const onCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(email);
+      await navigator.clipboard.writeText(em);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       /* silent */
     }
-  }, [email]);
+  }, [em]);
 
   return (
     <button
       type="button"
       onClick={() => void onCopy()}
-      className="ml-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[color:var(--lx-text-2)] transition hover:bg-black/[0.05] hover:text-[color:var(--lx-text)]"
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-[color:var(--lx-text-2)] transition hover:bg-black/[0.05] hover:text-[color:var(--lx-text)] ${className}`}
       aria-label={t.copyAria}
       title={copied ? t.copied : t.copyAria}
     >
@@ -51,9 +62,29 @@ function CopyEmailChip({ email, lang }: { email: string; lang: LeonixEmailContac
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       ) : (
-        <FiCopy className="h-3.5 w-3.5" aria-hidden />
+        <FiCopy className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
       )}
     </button>
+  );
+}
+
+/** Inline visible email + copy icon (no mailto on the address). */
+export function VisibleEmailWithCopy({
+  email,
+  lang,
+  className = "",
+}: {
+  email: string;
+  lang: LeonixEmailContactLang;
+  className?: string;
+}) {
+  const em = email.trim();
+  if (!em) return null;
+  return (
+    <span className={`inline-flex max-w-full items-center gap-0.5 align-baseline ${className}`}>
+      <span className="break-all font-medium">{em}</span>
+      <EmailCopyIconButton email={em} lang={lang} />
+    </span>
   );
 }
 
@@ -78,7 +109,6 @@ export function LeonixEmailContactBlock({
   showEmail = true,
 }: LeonixEmailContactBlockProps) {
   const t = LABELS[lang];
-  const [shareHint, setShareHint] = useState<string | null>(null);
 
   const em = email.trim();
   if (!em) return null;
@@ -89,26 +119,15 @@ export function LeonixEmailContactBlock({
       title: shareTitle?.trim() || (lang === "en" ? "Leonix contact" : "Contacto Leonix"),
       text: textParts.join("\n"),
     };
-    const result = await tryWebShare(payload);
-    if (result === "shared" || result === "aborted") {
-      setShareHint(null);
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(em);
-      setShareHint(t.copied);
-      window.setTimeout(() => setShareHint(null), 2000);
-    } catch {
-      setShareHint(null);
-    }
-  }, [em, lang, shareText, shareTitle, t.copied]);
+    await tryWebShare(payload);
+  }, [em, lang, shareText, shareTitle]);
 
   return (
     <div className={className}>
       {showEmail ? (
         <p className="flex flex-wrap items-center gap-0.5">
-          <span className="font-medium text-[color:var(--lx-blue)] hover:text-[color:var(--lx-text)]">{em}</span>
-          <CopyEmailChip email={em} lang={lang} />
+          <span className="font-medium text-[color:var(--lx-blue)]">{em}</span>
+          <EmailCopyIconButton email={em} lang={lang} className="ml-0.5" />
         </p>
       ) : null}
 
@@ -121,11 +140,6 @@ export function LeonixEmailContactBlock({
         </button>
       </div>
 
-      {shareHint ? (
-        <p className="mt-1.5 text-xs font-medium text-[color:var(--lx-text-2)]" aria-live="polite">
-          {shareHint}
-        </p>
-      ) : null}
     </div>
   );
 }

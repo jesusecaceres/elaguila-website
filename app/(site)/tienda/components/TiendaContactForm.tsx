@@ -2,12 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import type { Lang } from "../types/tienda";
-import {
-  LEONIX_MAILTO_TIENDA,
-  LEONIX_PHONE_DISPLAY,
-  LEONIX_PHONE_TEL,
-  LEONIX_TIENDA_EMAIL,
-} from "../data/leonixContact";
+import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
+import { LEONIX_PHONE_DISPLAY, LEONIX_PHONE_TEL, LEONIX_TIENDA_EMAIL } from "../data/leonixContact";
 
 const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "specialty_product", es: "Producto especial / acabado distinto", en: "Specialty product / different finish" },
@@ -59,10 +55,7 @@ function TiendaContactFallback({ lang }: { lang: Lang }) {
       {en ? (
         <p>
           We could not open your email app automatically. Email us at{" "}
-          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
-            {LEONIX_TIENDA_EMAIL}
-          </a>{" "}
-          or call us at{" "}
+          <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang="en" /> or call us at{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
           </a>
@@ -71,10 +64,7 @@ function TiendaContactFallback({ lang }: { lang: Lang }) {
       ) : (
         <p>
           No pudimos abrir tu correo automáticamente. Escríbenos a{" "}
-          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
-            {LEONIX_TIENDA_EMAIL}
-          </a>{" "}
-          o llámanos al{" "}
+          <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang="es" /> o llámanos al{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
           </a>
@@ -120,9 +110,17 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         {en ? "Send us a note" : "Escríbenos"}
       </h2>
       <p className="mt-2 text-sm text-[color:var(--lx-muted)] leading-relaxed">
-        {en
-          ? `This form opens your email app to send a message to ${LEONIX_TIENDA_EMAIL}. For fastest help, visit or call us.`
-          : `Este formulario abre tu correo para enviar un mensaje a ${LEONIX_TIENDA_EMAIL}. Para ayuda más rápida, visita o llámanos.`}
+        {en ? (
+          <>
+            This form opens your email app to send a message to{" "}
+            <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang="en" />. For fastest help, visit or call us.
+          </>
+        ) : (
+          <>
+            Este formulario abre tu correo para enviar un mensaje a{" "}
+            <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang="es" />. Para ayuda más rápida, visita o llámanos.
+          </>
+        )}
       </p>
 
       {status === "opened" ? (

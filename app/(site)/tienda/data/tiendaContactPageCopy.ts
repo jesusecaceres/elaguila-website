@@ -34,8 +34,8 @@ export function tiendaContactRankPhone(lang: Lang): string {
 
 export function tiendaContactRankEmail(lang: Lang): string {
   return t(
-    "3. Correo (info@leonixmedia.com) — válido para pedidos y seguimiento; respuesta más lenta.",
-    "3. Email (info@leonixmedia.com) — valid for orders and follow-up; slower response.",
+    "3. Correo — válido para pedidos y seguimiento; respuesta más lenta.",
+    "3. Email — valid for orders and follow-up; slower response.",
     lang
   );
 }

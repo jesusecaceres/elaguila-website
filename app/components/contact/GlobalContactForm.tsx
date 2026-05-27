@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { LEONIX_GLOBAL_EMAIL, LEONIX_GLOBAL_MAILTO } from "@/app/data/leonixGlobalContact";
+import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
 import {
   LEONIX_PHONE_DISPLAY,
   LEONIX_PHONE_TEL,
   LEONIX_TIENDA_CONTACT_PATH,
 } from "@/app/(site)/tienda/data/leonixContact";
+import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 
 type Lang = "es" | "en";
 
@@ -66,10 +67,7 @@ function ContactFallback({ lang }: { lang: Lang }) {
       {en ? (
         <p>
           We could not open your email app automatically. Email us at{" "}
-          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
-            {LEONIX_GLOBAL_EMAIL}
-          </a>{" "}
-          or call us at{" "}
+          <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="en" /> or call us at{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
           </a>
@@ -78,10 +76,7 @@ function ContactFallback({ lang }: { lang: Lang }) {
       ) : (
         <p>
           No pudimos abrir tu correo automáticamente. Escríbenos a{" "}
-          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
-            {LEONIX_GLOBAL_EMAIL}
-          </a>{" "}
-          o llámanos al{" "}
+          <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="es" /> o llámanos al{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
           </a>
@@ -119,9 +114,17 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
         {en ? "Send a message" : "Envíanos un mensaje"}
       </h2>
       <p className="text-sm text-[color:var(--lx-muted)] mb-6 leading-relaxed">
-        {en
-          ? `Messages go to ${LEONIX_GLOBAL_EMAIL}. For promotional product quotes, use the promotional products contact linked above.`
-          : `Los mensajes llegan a ${LEONIX_GLOBAL_EMAIL}. Para cotizaciones de productos promocionales, usa el contacto de productos promocionales arriba.`}
+        {en ? (
+          <>
+            Messages go to <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="en" />. For promotional product
+            quotes, use the promotional products contact linked above.
+          </>
+        ) : (
+          <>
+            Los mensajes llegan a <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="es" />. Para cotizaciones de
+            productos promocionales, usa el contacto de productos promocionales arriba.
+          </>
+        )}
       </p>
 
       {status === "opened" ? (
