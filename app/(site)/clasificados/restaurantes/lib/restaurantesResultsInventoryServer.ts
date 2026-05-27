@@ -10,7 +10,7 @@ import {
   tryListRestaurantesPublicListingsFromDb,
   type RestaurantesPublicListingDbRow,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
-import { hydratePublicRowsWithActivePackageEntitlements } from "@/app/lib/listingPlans/listingPackageEntitlementsServer";
+import { overlayActiveEntitlementsForRestaurantesResults } from "./restaurantesEntitlementOverlay";
 import {
   packageEntitlementGrantsDestacado,
   resolveListingPlacementEntitlement,
@@ -74,10 +74,7 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
     };
   }
 
-  const hydrated = await hydratePublicRowsWithActivePackageEntitlements(listed.rows, {
-    category: "restaurantes",
-    listingSource: "restaurantes_public_listings",
-  });
+  const hydrated = await overlayActiveEntitlementsForRestaurantesResults(listed.rows);
   const rowsForMap = hydrated.map(applyRestaurantesPromotedFromEntitlement);
   const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
   const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);

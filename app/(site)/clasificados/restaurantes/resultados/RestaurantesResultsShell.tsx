@@ -33,10 +33,9 @@ import {
   readRestaurantesSavedIds,
   rememberRestaurantesDiscoveryFromState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
-import {
-  RESTAURANTES_RESULTS_PROMOTED_BAND_MAX,
-  selectPromotedResultsCandidates,
-} from "@/app/clasificados/restaurantes/lib/restaurantesListingExposurePolicy";
+import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
+import { getRestaurantesDestacadosRows } from "@/app/clasificados/restaurantes/lib/restaurantesDestacados";
+import { applyRestaurantesVisibilityRanking } from "@/app/clasificados/restaurantes/lib/restaurantesVisibilityRanking";
 import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -142,15 +141,16 @@ export function RestaurantesResultsShell({
     [parsed, savedIds, initialInventory],
   );
 
-  const sorted = useMemo(() => sortRestaurantesBlueprintRows(filteredUnsorted, effectiveSort), [filteredUnsorted, effectiveSort]);
-
-  const promotedBand = useMemo(
-    () => selectPromotedResultsCandidates(sorted, RESTAURANTES_RESULTS_PROMOTED_BAND_MAX),
-    [sorted],
+  const ranked = useMemo(
+    () => applyRestaurantesVisibilityRanking(filteredUnsorted),
+    [filteredUnsorted],
   );
-  const promotedIds = useMemo(() => new Set(promotedBand.map((r) => r.id)), [promotedBand]);
 
-  const gridRows = useMemo(() => sorted.filter((r) => !promotedIds.has(r.id)), [sorted, promotedIds]);
+  const destacadosRows = useMemo(() => getRestaurantesDestacadosRows(ranked), [ranked]);
+
+  const sorted = useMemo(() => sortRestaurantesBlueprintRows(ranked, effectiveSort), [ranked, effectiveSort]);
+
+  const gridRows = sorted;
 
   const shown = useMemo(() => gridRows.slice(0, visible), [gridRows, visible]);
 
@@ -1269,27 +1269,14 @@ export function RestaurantesResultsShell({
           </aside>
 
           <div className="min-w-0">
-            {promotedBand.length ? (
-              <section className="mb-6 sm:mb-8" aria-label={t.featured}>
-                <div className="mb-2 flex items-center gap-2 sm:mb-3">
-                  <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-                  <h2 className="font-serif text-lg font-semibold">{t.featured}</h2>
-                </div>
-                <p className="mb-3 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:mb-4">{t.promotedCaption}</p>
-                <div className="flex w-full min-w-0 flex-col gap-5 sm:gap-6">
-                  {promotedBand.map((row) => (
-                    <div key={row.id} className="min-w-0 w-full">
-                      <RestaurantePublishedListingCard
-                        row={row}
-                        lang={lang}
-                        badge={t.promotedBadge}
-                        cta={t.verMas}
-                        narrowLabel={t.resultNarrowInResults}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </section>
+            {destacadosRows.length > 0 ? (
+              <div className="mb-6 sm:mb-8">
+                <RestaurantesDestacadosSection
+                  rows={destacadosRows}
+                  lang={lang}
+                  id="restaurantes-res-destacados"
+                />
+              </div>
             ) : null}
 
             {shown.length === 0 ? (

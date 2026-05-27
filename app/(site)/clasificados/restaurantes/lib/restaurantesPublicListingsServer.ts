@@ -41,6 +41,11 @@ export type RestaurantesPublicListingDbRow = {
   republished_at?: string | null;
   republish_count?: number | null;
   republish_override?: boolean | null;
+  package_entitlement_tier?: string | null;
+  entitlement_starts_at?: string | null;
+  entitlement_ends_at?: string | null;
+  entitlement_digital_placement_priority?: number | null;
+  entitlement_print_placement_type?: string | null;
 };
 
 const LIST_SELECT =

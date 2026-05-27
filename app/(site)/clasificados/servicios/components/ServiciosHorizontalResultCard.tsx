@@ -398,7 +398,6 @@ export function ServiciosHorizontalResultCard({
   const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View showcase" : "Ver vitrina");
 
   const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, lang).slice(0, 3) : [];
-  const verifiedListing = row ? row.leonix_verified === true : profile.hero.badges.some((b) => b.kind === "verified");
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) ? profile.hero.rating : undefined;
@@ -488,17 +487,14 @@ export function ServiciosHorizontalResultCard({
                       ? "bg-gradient-to-r from-[#D4AF37] to-[#9A7329] text-white"
                       : b.key === "leonix_advertiser"
                         ? "bg-[#1a3352]/90 text-white"
-                        : "bg-white/95 text-[#5a4630]"
+                        : b.key === "verificado_leonix"
+                          ? "border-emerald-400/80 bg-emerald-50/95 text-emerald-950"
+                          : "bg-white/95 text-[#5a4630]"
                   }`}
                 >
                   {b.label}
                 </span>
               ))}
-              {verifiedListing ? (
-                <span className="rounded-full border border-white/80 bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#2A7F3E] shadow-sm md:px-2 md:text-[10px]">
-                  {lang === "en" ? "Verified" : "Verificado"}
-                </span>
-              ) : null}
             </div>
           </div>
         </div>

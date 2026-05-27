@@ -11,7 +11,8 @@ import {
   isSupabaseAdminConfigured,
   tryListRestaurantesPublicListingsFromDb,
 } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
-import { hydratePublicRowsWithActivePackageEntitlements } from "@/app/lib/listingPlans/listingPackageEntitlementsServer";
+import { getRestaurantesDestacadosRows } from "./restaurantesDestacados";
+import { overlayActiveEntitlementsForRestaurantesResults } from "./restaurantesEntitlementOverlay";
 import {
   packageEntitlementGrantsDestacado,
   resolveListingPlacementEntitlement,
@@ -27,6 +28,7 @@ export type RestaurantesLandingInventoryMode = "live_pool" | "empty" | "inventor
 export type RestaurantesLandingInventoryPayload = {
   featuredCards: RestaurantesBlueprintCard[];
   recentCards: RestaurantesBlueprintCard[];
+  destacadosRows: RestaurantesPublicBlueprintRow[];
   mode: RestaurantesLandingInventoryMode;
   landingNote?: string;
   discoveryLookupRows: RestaurantesPublicBlueprintRow[];
@@ -45,6 +47,7 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
       landingNote:
         "Sin inventario publicado conectado: configura `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en el servidor para mostrar restaurantes reales.",
       discoveryLookupRows: [],
+      destacadosRows: [],
     };
   }
 
@@ -57,6 +60,7 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
       mode: "inventory_unavailable",
       landingNote: `No se pudo leer la tabla de listados: ${listed.error}`,
       discoveryLookupRows: [],
+      destacadosRows: [],
     };
   }
   if (listed.rows.length === 0) {
@@ -67,13 +71,11 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
       landingNote:
         "Aún no hay publicaciones: las secciones destacadas y recientes aparecerán cuando existan listados «published».",
       discoveryLookupRows: [],
+      destacadosRows: [],
     };
   }
 
-  const hydrated = await hydratePublicRowsWithActivePackageEntitlements(listed.rows, {
-    category: "restaurantes",
-    listingSource: "restaurantes_public_listings",
-  });
+  const hydrated = await overlayActiveEntitlementsForRestaurantesResults(listed.rows);
   const rowsForMap = hydrated.map((row) => {
     const summary = resolveListingPlacementEntitlement({
       category: "restaurantes",
@@ -84,11 +86,13 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
   const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
   const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);
   const shellRows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
+  const destacadosRows = getRestaurantesDestacadosRows(shellRows);
   const featured = selectLandingDestacadosCandidates(shellRows).map(blueprintRowToLandingCard);
   const recent = selectLandingRecientesCandidates(shellRows).map(blueprintRowToLandingCard);
   return {
     featuredCards: featured,
     recentCards: recent,
+    destacadosRows,
     mode: "live_pool",
     discoveryLookupRows: shellRows,
   };

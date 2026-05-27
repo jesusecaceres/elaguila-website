@@ -38,6 +38,13 @@ export type RestaurantesPublicBlueprintRow = {
   promoted: boolean;
   /** Persisted package (`free`, `standard`, …) for balance policy — not a paid-placement flag on its own. */
   packageTier?: string | null;
+  /** Active `listing_package_entitlements` tier (public-safe overlay). */
+  packageEntitlementTier?: string | null;
+  entitlementStartsAt?: string | null;
+  entitlementEndsAt?: string | null;
+  entitlementDigitalPlacementPriority?: number | null;
+  entitlementPrintPlacementType?: string | null;
+  republishedAt?: string | null;
   /** Leonix editorial verification (from `restaurantes_public_listings.leonix_verified`). */
   leonixVerified?: boolean;
   /** Demo until `weeklyHours` + server “open now” evaluation exists. */

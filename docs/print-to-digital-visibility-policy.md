@@ -243,6 +243,11 @@ Verify: `npm run verify:magazine-placement-priority-model`
 Helper: `app/(site)/clasificados/servicios/lib/serviciosDestacados.ts` · Component: `ServiciosDestacadosSection.tsx`
 Verify: `npm run verify:servicios-destacados-module`
 
+**FINAL-MONETIZATION-VISIBILITY-STACK** completes Servicios polish (shared honest badges via `publicMonetizationBadges.ts`) and adds **Restaurantes** parity: active entitlement overlay, visibility ranking behind filters, and Destacados / Patrocinados on landing + results. Premium → Destacados module; full-page → results priority; magazine placement/page order applies inside Destacados. `package_tier` on restaurants is preserved separately from entitlement truth. Stripe Checkout, public redemption, and other categories (Autos, Bienes Raíces, Rentas) are unchanged. **Run one full monetization QA sweep after this stack (final QA).**
+
+Helpers: `restaurantesEntitlementOverlay.ts` · `restaurantesVisibilityRanking.ts` · `restaurantesDestacados.ts` · `RestaurantesDestacadosSection.tsx`
+Verify: `npm run verify:final-monetization-visibility-stack`
+
 ---
 
 ## 16. Package entitlements (Gate G1.6 — official spec)

@@ -9,6 +9,7 @@ export default async function ClasificadosRestaurantesLandingPage() {
     <RestaurantesLandingPage
       featuredCards={inv.featuredCards}
       recentCards={inv.recentCards}
+      destacadosRows={inv.destacadosRows}
       landingNote={inv.landingNote}
       discoveryLookupRows={inv.discoveryLookupRows}
     />

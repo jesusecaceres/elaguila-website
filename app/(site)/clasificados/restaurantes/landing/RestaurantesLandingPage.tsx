@@ -30,6 +30,7 @@ import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
 import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
+import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
 
 const ACCENT = "#D4A574";
 
@@ -52,11 +53,13 @@ function RestaurantesLandingPageFallback() {
 function RestaurantesLandingPageInner({
   featuredCards,
   recentCards,
+  destacadosRows = [],
   landingNote,
   discoveryLookupRows,
 }: {
   featuredCards: RestaurantesBlueprintCard[];
   recentCards: RestaurantesBlueprintCard[];
+  destacadosRows?: RestaurantesPublicBlueprintRow[];
   landingNote?: string;
   discoveryLookupRows: RestaurantesPublicBlueprintRow[];
 }) {
@@ -323,6 +326,14 @@ function RestaurantesLandingPageInner({
           ))}
         </section>
 
+        {destacadosRows.length > 0 ? (
+          <RestaurantesDestacadosSection
+            rows={destacadosRows}
+            lang={lang}
+            id="restaurantes-landing-destacados"
+          />
+        ) : null}
+
         <section aria-labelledby="rx-featured-heading">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -496,6 +507,7 @@ function RestaurantesLandingPageInner({
 export function RestaurantesLandingPage(props: {
   featuredCards: RestaurantesBlueprintCard[];
   recentCards: RestaurantesBlueprintCard[];
+  destacadosRows?: RestaurantesPublicBlueprintRow[];
   landingNote?: string;
   discoveryLookupRows: RestaurantesPublicBlueprintRow[];
 }) {

@@ -10,6 +10,7 @@ import {
   restaurantesDiscoveryParamsForRowDeepLink,
   type RestaurantesDiscoveryLang,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import { getRestaurantesPublicMonetizationBadges } from "@/app/clasificados/restaurantes/lib/restaurantesDestacados";
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 
 const ACCENT = "#D4A574";
@@ -46,6 +47,8 @@ export function RestaurantePublishedListingCard({
     : "";
 
   const shell = row.previewShellData;
+  const monetizationBadges = getRestaurantesPublicMonetizationBadges(row, lang as "es" | "en").slice(0, 3);
+  const displayBadge = badge ?? monetizationBadges.find((b) => b.key === "patrocinado" || b.key === "destacado")?.label;
 
   if (!shell) {
     return (
@@ -67,24 +70,34 @@ export function RestaurantePublishedListingCard({
 
   return (
     <article className="relative min-w-0 w-full max-w-none">
-      {badge ? (
+      {monetizationBadges.length > 0 ? (
+        <div className="pointer-events-none absolute left-5 top-5 z-20 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-1">
+          {monetizationBadges.map((b) => (
+            <span
+              key={b.key}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-[#FFFCF7] shadow-sm ${
+                b.key === "destacado" || b.key === "patrocinado"
+                  ? ""
+                  : b.key === "verificado_leonix"
+                    ? "border border-sky-400/80 bg-sky-50/95 text-sky-950"
+                    : "bg-[#1a3352]/90"
+              }`}
+              style={
+                b.key === "destacado" || b.key === "patrocinado"
+                  ? { background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }
+                  : undefined
+              }
+            >
+              {b.label}
+            </span>
+          ))}
+        </div>
+      ) : displayBadge ? (
         <span
           className="pointer-events-none absolute left-5 top-5 z-20 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
           style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
         >
-          {badge}
-        </span>
-      ) : row.promoted ? (
-        <span
-          className="pointer-events-none absolute left-5 top-5 z-20 rounded-full px-3 py-1 text-[11px] font-bold text-[#FFFCF7] shadow-sm"
-          style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-        >
-          {lang === "es" ? "Patrocinado" : "Sponsored"}
-        </span>
-      ) : null}
-      {row.leonixVerified ? (
-        <span className="pointer-events-none absolute right-5 top-5 z-20 rounded-full border border-sky-400/80 bg-sky-50/95 px-2 py-0.5 text-[10px] font-bold text-sky-950 shadow-sm backdrop-blur-sm">
-          {lang === "es" ? "Verificado" : "Verified"}
+          {displayBadge}
         </span>
       ) : null}
       <RestaurantePreviewCard
@@ -96,7 +109,7 @@ export function RestaurantePublishedListingCard({
         publicDetailLabel={cta}
         discoveryRefineHref={slug ? narrowHref : undefined}
         discoveryRefineLabel={slug ? narrowLabel : undefined}
-        className={badge || row.promoted || row.leonixVerified ? "pt-9" : ""}
+        className={displayBadge || monetizationBadges.length || row.promoted ? "pt-9" : ""}
       />
     </article>
   );

@@ -406,6 +406,31 @@ Confirm V1 base prices (premium $1999, full $1199, half $799, quarter $499, clas
 
 ---
 
+## FINAL-MONETIZATION-VISIBILITY-STACK — Servicios polish + Restaurantes parity
+
+### Automated
+
+- `npm run verify:final-monetization-visibility-stack`
+- `npm run verify:servicios-destacados-module`
+
+### Manual smoke (final QA prep)
+
+**Servicios**
+
+1. Premium entitlement → Destacados on landing and results; also in main list with badges.
+2. Full-page entitlement → higher in results, not forced into Destacados unless premium.
+3. Labels: Destacado, Patrocinado, Anunciante Leonix, Refrescado, Verificado por Leonix (trust only).
+
+**Restaurantes**
+
+1. Create premium entitlement for `restaurantes` + published listing.
+2. `/clasificados/restaurantes` — Destacados / Patrocinados section when eligible.
+3. `/clasificados/restaurantes/resultados` — filter/search first, then Destacados band, then full grid (duplicates OK).
+4. `package_tier` on listing unchanged for organic policy; entitlement drives promoted/Destacados.
+5. No payment/sales rep data in page source.
+
+---
+
 ## Next Steps
 
 1. **Immediate**: Use existing TRUE editors for content updates
