@@ -12,6 +12,8 @@ export type {
 
 export type { TranslateAdProviderFn, TranslateAdRequest } from "@/app/lib/translation/provider";
 
+export { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+
 export {
   buildAdTranslationPayloadSlice,
   buildTranslateCacheKey,

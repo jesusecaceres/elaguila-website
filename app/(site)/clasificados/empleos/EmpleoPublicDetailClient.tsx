@@ -21,6 +21,7 @@ import {
   EMPLEOS_LINK_MUTED,
 } from "./lib/empleosPremiumUi";
 import { EmpleosClasificadosEngagementRow } from "./components/EmpleosClasificadosEngagementRow";
+import { EmpleosJobTranslationLayer } from "./components/EmpleosJobTranslationLayer";
 
 type Props = {
   slug: string;
@@ -35,6 +36,8 @@ type Props = {
   engagementListingKey?: string | null;
   engagementOwnerUserId?: string | null;
   persistListingEngagement?: boolean;
+  /** Stored listing language from `empleos_public_listings.lang` when live. */
+  listingLang?: string | null;
 };
 
 export function EmpleoPublicDetailClient({
@@ -47,6 +50,7 @@ export function EmpleoPublicDetailClient({
   engagementListingKey = null,
   engagementOwnerUserId = null,
   persistListingEngagement = false,
+  listingLang = null,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -105,7 +109,11 @@ export function EmpleoPublicDetailClient({
     );
   }
 
+  const listingKey = engagementListingKey?.trim() || slug;
+
   return (
+    <EmpleosJobTranslationLayer job={job} siteLocale={lang} listingLang={listingLang} listingKey={listingKey}>
+      {(displayJob, translateControl) => (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
       <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
@@ -142,7 +150,7 @@ export function EmpleoPublicDetailClient({
             <div className="absolute inset-0 bg-gradient-to-t from-[#2A2826]/55 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-white drop-shadow sm:text-3xl">{job.title}</h1>
+                <h1 className="text-2xl font-bold leading-tight text-white drop-shadow sm:text-3xl">{displayJob.title}</h1>
                 <p className="mt-1 text-sm font-semibold text-white/95">{job.company}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -225,22 +233,24 @@ export function EmpleoPublicDetailClient({
                   lang={lang}
                   listingId={engagementListingKey.trim()}
                   ownerUserId={engagementOwnerUserId}
-                  listingTitle={job.title}
+                  listingTitle={displayJob.title}
                   shareUrl={shareAbs || (typeof window !== "undefined" ? window.location.href : "")}
                   persistEngagement={persistListingEngagement}
                 />
               ) : null}
 
+              {translateControl ? <div className="pb-1">{translateControl}</div> : null}
+
               <section>
                 <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Descripción" : "Description"}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#4A4744]">{job.description}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#4A4744]">{displayJob.description}</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Requisitos" : "Requirements"}</h2>
-                {job.requirements.length ? (
+                {displayJob.requirements.length ? (
                   <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
-                    {job.requirements.map((r) => (
+                    {displayJob.requirements.map((r) => (
                       <li key={r}>{r}</li>
                     ))}
                   </ul>
@@ -251,9 +261,9 @@ export function EmpleoPublicDetailClient({
 
               <section>
                 <h2 className="text-lg font-bold tracking-tight">{lang === "es" ? "Beneficios" : "Benefits"}</h2>
-                {job.benefits.length ? (
+                {displayJob.benefits.length ? (
                   <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#4A4744]">
-                    {job.benefits.map((b) => (
+                    {displayJob.benefits.map((b) => (
                       <li key={b}>{b}</li>
                     ))}
                   </ul>
@@ -333,5 +343,7 @@ export function EmpleoPublicDetailClient({
         ) : null}
       </main>
     </div>
+      )}
+    </EmpleosJobTranslationLayer>
   );
 }

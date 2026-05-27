@@ -26,6 +26,7 @@ import {
 } from "./lib/empleosPublishedLaneShell";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EmpleosClasificadosEngagementRow } from "./components/EmpleosClasificadosEngagementRow";
+import { EmpleosJobTranslationLayer } from "./components/EmpleosJobTranslationLayer";
 
 type Props = {
   slug: string;
@@ -38,6 +39,7 @@ type Props = {
   engagementListingKey?: string | null;
   engagementOwnerUserId?: string | null;
   persistListingEngagement?: boolean;
+  listingLang?: string | null;
 };
 
 function PublicApplyFooter({
@@ -118,6 +120,7 @@ export function EmpleosPublicLaneDetailClient({
   engagementListingKey = null,
   engagementOwnerUserId = null,
   persistListingEngagement = false,
+  listingLang = null,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -150,6 +153,7 @@ export function EmpleosPublicLaneDetailClient({
   );
 
   const lane = job.publicationLane ?? envelope?.lane ?? "quick";
+  const listingKey = engagementListingKey?.trim() || slug;
   const engagement = engagementListingKey?.trim()
     ? {
         listingId: engagementListingKey.trim(),
@@ -165,61 +169,61 @@ export function EmpleosPublicLaneDetailClient({
     </div>
   ) : null;
 
-  if (lane === "premium") {
-    const data = mapPublishedPremiumToShell(job, envelope);
-    return (
-      <>
-        {leonixBanner}
-        <EmpleoPremiumDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
-        {related.length > 0 ? (
-          <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">
-            <h2 className="text-lg font-bold text-[#2A2826]">{lang === "es" ? "Relacionados" : "Related"}</h2>
-            <div className="mt-4 flex flex-col gap-4">
-              {related.map((r) => (
-                <EmpleosJobResultCard key={r.id} job={r} lang={lang} variant="list" />
-              ))}
-            </div>
-          </section>
-        ) : null}
-      </>
-    );
-  }
-
-  if (lane === "feria") {
-    const data = mapPublishedFeriaToShell(job, envelope);
-    return (
-      <>
-        {leonixBanner}
-        <EmpleoJobFairDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
-        {related.length > 0 ? (
-          <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">
-            <h2 className="text-lg font-bold text-[#2A2826]">{lang === "es" ? "Relacionados" : "Related"}</h2>
-            <div className="mt-4 flex flex-col gap-4">
-              {related.map((r) => (
-                <EmpleosJobResultCard key={r.id} job={r} lang={lang} variant="list" />
-              ))}
-            </div>
-          </section>
-        ) : null}
-      </>
-    );
-  }
-
-  const quickData = mapPublishedQuickToShell(job, envelope);
   return (
-    <>
-      {leonixBanner}
-      <EmpleoQuickDetailPage data={quickData} withSiteChrome={false} publicFooterSlot={footer} />
-      {related.length > 0 ? (
-        <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">
-          <h2 className="text-lg font-bold text-[#2A2826]">{lang === "es" ? "Relacionados" : "Related"}</h2>
-          <div className="mt-4 flex flex-col gap-4">
-            {related.map((r) => (
-              <EmpleosJobResultCard key={r.id} job={r} lang={lang} variant="list" />
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </>
+    <EmpleosJobTranslationLayer job={job} siteLocale={lang} listingLang={listingLang} listingKey={listingKey}>
+      {(displayJob, translateControl) => {
+        const relatedSection =
+          related.length > 0 ? (
+            <section className="mx-auto mt-12 max-w-6xl px-4 pb-16 sm:px-5 lg:px-8">
+              <h2 className="text-lg font-bold text-[#2A2826]">{lang === "es" ? "Relacionados" : "Related"}</h2>
+              <div className="mt-4 flex flex-col gap-4">
+                {related.map((r) => (
+                  <EmpleosJobResultCard key={r.id} job={r} lang={lang} variant="list" />
+                ))}
+              </div>
+            </section>
+          ) : null;
+
+        if (lane === "premium") {
+          const data = mapPublishedPremiumToShell(displayJob, envelope);
+          return (
+            <>
+              {leonixBanner}
+              {translateControl ? (
+                <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-5 lg:px-8">{translateControl}</div>
+              ) : null}
+              <EmpleoPremiumDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
+              {relatedSection}
+            </>
+          );
+        }
+
+        if (lane === "feria") {
+          const data = mapPublishedFeriaToShell(displayJob, envelope);
+          return (
+            <>
+              {leonixBanner}
+              {translateControl ? (
+                <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-5 lg:px-8">{translateControl}</div>
+              ) : null}
+              <EmpleoJobFairDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
+              {relatedSection}
+            </>
+          );
+        }
+
+        const quickData = mapPublishedQuickToShell(displayJob, envelope);
+        return (
+          <>
+            {leonixBanner}
+            {translateControl ? (
+              <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-5 lg:px-8">{translateControl}</div>
+            ) : null}
+            <EmpleoQuickDetailPage data={quickData} withSiteChrome={false} publicFooterSlot={footer} />
+            {relatedSection}
+          </>
+        );
+      }}
+    </EmpleosJobTranslationLayer>
   );
 }

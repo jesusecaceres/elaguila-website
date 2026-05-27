@@ -17,6 +17,7 @@ import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosCla
 import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { AutosLiveVehicleOwnerInventoryBar } from "./AutosLiveVehicleOwnerInventoryBar";
+import { AutosListingTranslationLayer } from "./AutosListingTranslationLayer";
 
 type PublicListingApiOk = {
   ok: true;
@@ -36,6 +37,7 @@ export function AutosLiveVehicleClient({
   const [data, setData] = useState<AutoDealerListing | null>(null);
   const [lane, setLane] = useState<AutosClassifiedsLane | null>(null);
   const [leonixAdId, setLeonixAdId] = useState<string | null>(null);
+  const [listingLang, setListingLang] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,16 +55,19 @@ export function AutosLiveVehicleClient({
           setData(withNormalizedVehicleIdentityForDisplay(normalizeLoadedListing({ ...payload.listing, autosLane: payload.lane })));
           setLane(payload.lane);
           setLeonixAdId(payload.leonix_ad_id?.trim() || null);
+          setListingLang(payload.lang ?? null);
         } else {
           setData(null);
           setLane(null);
           setLeonixAdId(null);
+          setListingLang(null);
         }
       } catch {
         if (!cancelled) {
           setData(null);
           setLane(null);
           setLeonixAdId(null);
+          setListingLang(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -120,10 +125,24 @@ export function AutosLiveVehicleClient({
     return notFound;
   }
 
+  const listingKey = leonixAdId || listingId;
+
   if (lane === "privado") {
     return (
       <AutosPrivadoPreviewLocaleProvider lang={lang}>
-        <AutoPrivadoPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
+        <AutosListingTranslationLayer
+          listing={data}
+          siteLocale={lang}
+          listingLang={listingLang}
+          listingKey={listingKey}
+        >
+          {(displayListing, translateControl) => (
+            <>
+              {translateControl}
+              <AutoPrivadoPreviewPage data={displayListing} editBackHref={undefined} publicPlaybackOnly />
+            </>
+          )}
+        </AutosListingTranslationLayer>
         {leonixAdId ? (
           <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
             {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId}
@@ -144,7 +163,19 @@ export function AutosLiveVehicleClient({
   return (
     <AutosNegociosPreviewLocaleProvider lang={lang}>
       <AutosLiveVehicleOwnerInventoryBar listingId={listingId} lang={lang} />
-      <AutoDealerPreviewPage data={data} editBackHref={undefined} publicPlaybackOnly />
+      <AutosListingTranslationLayer
+        listing={data}
+        siteLocale={lang}
+        listingLang={listingLang}
+        listingKey={listingKey}
+      >
+        {(displayListing, translateControl) => (
+          <>
+            {translateControl}
+            <AutoDealerPreviewPage data={displayListing} editBackHref={undefined} publicPlaybackOnly />
+          </>
+        )}
+      </AutosListingTranslationLayer>
       {leonixAdId ? (
         <p className="bg-[color:var(--lx-page)] px-4 py-2 text-center text-xs text-[color:var(--lx-muted)]">
           {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId}

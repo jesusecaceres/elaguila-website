@@ -124,12 +124,40 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 - CTA is shown when translatable prose exists and `siteLocale` is `es` or `en` (Servicios-specific; global `shouldOfferTranslateAd` unchanged).
 - Future: persist original locale on publish and pass detected/stored locale for smarter CTA gating.
 
+## Gate T5 (Empleos + Autos) ✅
+
+### Wired surfaces
+
+| Category | Path / components |
+|---|---|
+| Empleos legacy detail | `EmpleoPublicDetailClient.tsx` + `EmpleosJobTranslationLayer` |
+| Empleos lane shells (quick / premium / feria) | `EmpleosPublicLaneDetailClient.tsx` → remapped lane data from translated `EmpleosJobRecord` |
+| Empleos helpers | `app/(site)/clasificados/empleos/lib/empleosTranslateAd.ts` |
+| Autos live vehicle | `AutosLiveVehicleClient.tsx` + `AutosListingTranslationLayer.tsx` |
+| Autos helpers | `app/(site)/clasificados/autos/lib/autosTranslateAd.ts` |
+| Shared client API | `app/lib/translation/requestAdTranslation.ts` → `POST /api/translate-ad` |
+
+- **Session cache only** (Gate 3A helpers); no Supabase migration; no `listing_translations`.
+- **Stored listing `lang`:** `empleos_public_listings.lang` passed from `[slug]/page.tsx`; Autos public API `lang` on listing payload.
+- CTA hidden when `sourceLocale === targetLocale` (via `shouldOfferTranslateAd`); unknown listing lang falls back to Servicios-style pilot rule (prose + site `es`/`en`).
+
+### Empleos — translated vs excluded
+
+| Translated | Excluded |
+|---|---|
+| Job title, summary, description, requirements, benefits, schedule label, custom category, industry line | Company name, salary/pay, phone, email, website, apply URL, address, city/state, modality/job-type codes, IDs |
+
+### Autos — translated vs excluded
+
+| Translated | Excluded |
+|---|---|
+| Seller description, other equipment notes, custom equipment lines; custom `vehicleTitle` only when not YMM-only | Make/model/trim/year, VIN, mileage, price, dealer/seller name, contact, specs/features checklist values, financing numbers |
+
 ### Next rollout candidates
 
-1. **Empleos** — job title + description boundary
-2. **Autos** — vehicle description / highlights
-3. **Viajes** — offer prose
-4. **Generic `anuncio/[id]` shell** — after per-category pilots prove the contract
+1. **Viajes** — offer prose
+2. **Generic `anuncio/[id]` shell**
+3. **Restaurantes** — after `lang` hardcode fix / verification
 
 ## Later gates
 
