@@ -666,6 +666,8 @@ export function RestauranteAdStoryPreview({
               <RestaurantContactHub
                 hub={data.contactHub}
                 lang={lang}
+                listingId={listingId}
+                ownerUserId={analyticsOwnerUserId}
                 contactShareExtras={{
                   email: data.contact?.email,
                   websiteUrl: data.contact?.websiteHref,

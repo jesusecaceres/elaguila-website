@@ -23,6 +23,7 @@ import {
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import type { RestaurantContactHubData, RestaurantHubButton } from "../application/buildRestaurantContactHub";
+import { trackRestaurantesCtaClick } from "../analytics/restaurantesAnalytics";
 import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 
@@ -125,14 +126,40 @@ function CopyChip({ value }: { value: string }) {
   );
 }
 
+function hubButtonToCtaType(
+  action: RestaurantHubButton["action"],
+): "phone" | "whatsapp" | "website" | "directions" | "order" | "reserve" | "general" {
+  switch (action) {
+    case "call":
+      return "phone";
+    case "whatsapp":
+      return "whatsapp";
+    case "directions":
+      return "directions";
+    case "website":
+    case "menu":
+      return "website";
+    case "order":
+      return "order";
+    case "booking":
+      return "reserve";
+    default:
+      return "general";
+  }
+}
+
 export function RestaurantContactHub({
   hub,
   lang = "es",
   contactShareExtras,
+  listingId,
+  ownerUserId,
 }: {
   hub: RestaurantContactHubData;
   lang?: "es" | "en";
   contactShareExtras?: CtaContactShareExtras | null;
+  listingId?: string;
+  ownerUserId?: string | null;
 }) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [dataModal, setDataModal] = useState<{ href: string; title: string } | null>(null);
@@ -146,10 +173,21 @@ export function RestaurantContactHub({
     if (intent) setCtaIntent(intent);
   };
 
+  const emitCtaAnalytics = (btn: RestaurantHubButton) => {
+    const lid = (listingId ?? "").trim();
+    if (!lid) return;
+    void trackRestaurantesCtaClick(lid, hubButtonToCtaType(btn.action), {
+      ownerUserId: ownerUserId ?? undefined,
+      eventSource: "detail",
+      metadata: { hubButtonId: btn.id },
+    });
+  };
+
   const openButton = (btn: RestaurantHubButton, e?: React.MouseEvent) => {
     e?.stopPropagation();
     const href = btn.href.trim();
     if (!href) return;
+    emitCtaAnalytics(btn);
 
     if (btn.action === "call") {
       window.location.href = href.startsWith("tel:") ? href : `tel:${href.replace(/^tel:/i, "")}`;
@@ -207,11 +245,13 @@ export function RestaurantContactHub({
 
   const openSocial = (url: string, _label: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    emitCtaAnalytics({ id: "social", label: "", href: url, action: "social" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const openMaps = (mapsHref: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    emitCtaAnalytics({ id: "maps", label: "", href: mapsHref, action: "directions" });
     window.open(mapsHref, "_blank", "noopener,noreferrer");
   };
 

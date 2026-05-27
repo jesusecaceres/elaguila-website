@@ -12,13 +12,19 @@ type CategoryCard = { title: string; subtitle: string; tagline: string };
 
 type FeatureItem = { title: string; description: string };
 
+type HeroAccent = "burgundy" | "gold";
+
+type HeroLinePart = { text: string; accent?: HeroAccent };
+
+type HeroLine = { parts: HeroLinePart[] };
+
 type Copy = {
   langToggle: { es: string; en: string };
   nav: NavItem[];
   navLaunch: string;
   badge: string;
   heroTitle: string;
-  heroLines: [string, string, string];
+  heroLines: [HeroLine, HeroLine, HeroLine];
   heroParagraph: string;
   ctaAdvertise: string;
   ctaMediaKit: string;
@@ -51,9 +57,29 @@ const COPY: Record<Lang, Copy> = {
     badge: "PRÓXIMAMENTE",
     heroTitle: "Leonix Media",
     heroLines: [
-      "Publicidad impresa en español.",
-      "Exposición digital bilingüe.",
-      "Acceso multilingüe por QR.",
+      {
+        parts: [
+          { text: "Publicidad impresa en " },
+          { text: "español", accent: "burgundy" },
+          { text: "." },
+        ],
+      },
+      {
+        parts: [
+          { text: "Exposición digital " },
+          { text: "bilingüe", accent: "burgundy" },
+          { text: "." },
+        ],
+      },
+      {
+        parts: [
+          { text: "Acceso " },
+          { text: "multilingüe", accent: "burgundy" },
+          { text: " por " },
+          { text: "QR", accent: "gold" },
+          { text: "." },
+        ],
+      },
     ],
     heroParagraph:
       "Conectando negocios locales con la comunidad latina a través de una revista premium, visibilidad digital y herramientas que generan acción.",
@@ -121,9 +147,26 @@ const COPY: Record<Lang, Copy> = {
     badge: "COMING SOON",
     heroTitle: "Leonix Media",
     heroLines: [
-      "Spanish print advertising.",
-      "Bilingual digital exposure.",
-      "Multilingual access through QR.",
+      {
+        parts: [
+          { text: "Spanish ", accent: "burgundy" },
+          { text: "print advertising." },
+        ],
+      },
+      {
+        parts: [
+          { text: "Bilingual ", accent: "burgundy" },
+          { text: "digital exposure." },
+        ],
+      },
+      {
+        parts: [
+          { text: "Multilingual ", accent: "burgundy" },
+          { text: "access through " },
+          { text: "QR", accent: "gold" },
+          { text: "." },
+        ],
+      },
     ],
     heroParagraph:
       "Connecting local businesses with the Latino community through a premium magazine, digital visibility and action-driven tools.",
@@ -192,6 +235,30 @@ function advertiseHref(lang: Lang) {
 
 function newsletterAction(lang: Lang) {
   return `/newsletter?source=coming-soon&lang=${lang}`;
+}
+
+const heroLineClass =
+  "text-lg font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
+
+const heroAccentClass: Record<HeroAccent, string> = {
+  burgundy: "font-bold text-[#7A1E2C]",
+  gold: "font-bold text-[#9A7B28] underline decoration-[#C9A84A]/70 decoration-2 underline-offset-[0.2em]",
+};
+
+function HeroLineText({ line }: { line: HeroLine }) {
+  return (
+    <>
+      {line.parts.map((part, index) =>
+        part.accent ? (
+          <span key={`${part.text}-${index}`} className={heroAccentClass[part.accent]}>
+            {part.text}
+          </span>
+        ) : (
+          <span key={`${part.text}-${index}`}>{part.text}</span>
+        )
+      )}
+    </>
+  );
 }
 
 function SocialPlaceholder({ label }: { label: string }) {
@@ -295,12 +362,20 @@ export function ComingSoonGate() {
               <h1 className="mt-4 font-serif text-4xl font-bold tracking-tight text-[#7A1E2C] sm:text-5xl">
                 {t.heroTitle}
               </h1>
-              <ul className="mt-4 space-y-1 text-lg font-semibold text-[#556B3E] sm:text-xl">
-                {t.heroLines.map((line) => (
-                  <li key={line}>{line}</li>
+              <ul
+                className="mt-5 max-w-xl border-l-[3px] border-[#C9A84A]/55 pl-4 sm:pl-5"
+                aria-label={lang === "es" ? "Propuesta principal" : "Main value proposition"}
+              >
+                {t.heroLines.map((line, index) => (
+                  <li
+                    key={index}
+                    className={`${heroLineClass} ${index > 0 ? "mt-2 sm:mt-2.5" : ""}`}
+                  >
+                    <HeroLineText line={line} />
+                  </li>
                 ))}
               </ul>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-[#3D3428] sm:text-lg">
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-[#3D3428] sm:mt-6 sm:text-lg">
                 {t.heroParagraph}
               </p>
               <div id="anunciate" className="mt-8 flex scroll-mt-24 flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -428,12 +503,20 @@ export function ComingSoonGate() {
           </form>
         </section>
 
-        <section className="mt-10 flex flex-col gap-6 border-t border-[#D6C7AD] pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-xl">
-            <h2 className="text-lg font-bold text-[#7A1E2C]">{t.multilingualTitle}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{t.multilingualBody}</p>
+        <section
+          id="multilingual"
+          className="mt-10 scroll-mt-24 border-t border-[#D6C7AD] pt-8 sm:flex sm:items-start sm:justify-between sm:gap-8"
+        >
+          <div className="max-w-xl rounded-2xl border border-[#D6C7AD]/90 bg-[#FBF7EF] p-5 shadow-sm sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#556B3E]">
+              {lang === "es" ? "Acceso multilingüe" : "Multilingual access"}
+            </p>
+            <h2 className="mt-2 font-serif text-xl font-bold tracking-tight text-[#7A1E2C] sm:text-2xl">
+              {t.multilingualTitle}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#3D3428] sm:text-base">{t.multilingualBody}</p>
           </div>
-          <div className="flex gap-2" aria-label={t.socialAria}>
+          <div className="mt-6 flex shrink-0 gap-2 sm:mt-0" aria-label={t.socialAria}>
             <SocialPlaceholder label="Facebook" />
             <SocialPlaceholder label="Instagram" />
             <SocialPlaceholder label="LinkedIn" />
