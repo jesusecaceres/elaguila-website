@@ -4,9 +4,9 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CookiePreferencesTrigger } from "./CookiePreferencesTrigger";
+import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 import {
   LEONIX_GLOBAL_EMAIL,
-  LEONIX_GLOBAL_MAILTO,
   LEONIX_GLOBAL_PHONE_DISPLAY,
   LEONIX_GLOBAL_PHONE_TEL,
   LEONIX_MEDIA_BRAND,
@@ -62,12 +62,7 @@ function FooterInner() {
           <ul className="space-y-2.5">
             <li>
               <span className="text-sm text-[color:var(--lx-muted)]">{t.email}:</span>{" "}
-              <a
-                href={LEONIX_GLOBAL_MAILTO}
-                className="break-all text-sm font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 transition hover:text-[color:var(--lx-lion)]"
-              >
-                {LEONIX_GLOBAL_EMAIL}
-              </a>
+              <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang={lang} className="text-sm" />
             </li>
             <li>
               <span className="text-sm text-[color:var(--lx-muted)]">{t.phone}:</span>{" "}

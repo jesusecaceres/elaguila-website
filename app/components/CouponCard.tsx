@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 
 interface CouponCardProps {
   title: string;
@@ -72,11 +73,12 @@ export default function CouponCard({
           </p>
         )}
 
-        {email && (
+        {email ? (
           <p>
-            <span className="font-semibold">Email:</span> {email}
+            <span className="font-semibold">{lang === "es" ? "Correo:" : "Email:"}</span>{" "}
+            <VisibleEmailWithCopy email={email} lang={lang} />
           </p>
-        )}
+        ) : null}
       </div>
     </motion.div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 import { LEONIX_GLOBAL_EMAIL, LEONIX_MEDIA_BRAND } from "@/app/data/leonixGlobalContact";
 import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_DESCRIPTOR_EN } from "@/app/lib/leonixBrand";
 
@@ -29,10 +30,10 @@ function ContactContent() {
 
           <div className="space-y-3 text-[color:var(--lx-text-2)]/90">
             <p>
-              <span className="font-semibold text-[color:var(--lx-text)]">Email:</span>{" "}
-              <a className="underline" href={`mailto:${LEONIX_GLOBAL_EMAIL}`}>
-                {LEONIX_GLOBAL_EMAIL}
-              </a>
+              <span className="font-semibold text-[color:var(--lx-text)]">
+                {lang === "es" ? "Correo:" : "Email:"}
+              </span>{" "}
+              <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang={lang === "es" ? "es" : "en"} />
             </p>
 
             <p>
