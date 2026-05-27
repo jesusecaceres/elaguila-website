@@ -90,6 +90,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
   const [publishOutcome, setPublishOutcome] = useState<{
     listingId: string;
     gallery: EnVentaGalleryUploadOutcome;
+    leonixAdId: string | null;
   } | null>(null);
 
   const blockers = collectPublishBlockers(lang, state);
@@ -117,7 +118,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
       }
       clearEnVentaPublishTempState();
       clearAllClassifiedsDrafts();
-      setPublishOutcome({ listingId: res.listingId, gallery: res.gallery });
+      setPublishOutcome({ listingId: res.listingId, gallery: res.gallery, leonixAdId: res.leonixAdId });
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Error");
     } finally {
@@ -146,6 +147,12 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
         data-testid="ev-publish-success"
       >
         <p className="text-base font-bold text-[#3D2C12]">{t.successTitle}</p>
+        {publishOutcome.leonixAdId ? (
+          <p className="mt-2 rounded-lg border border-[#C9B46A]/30 bg-[#FBF7EF] px-3 py-2 font-mono text-[12px] text-[#3D2C12]/85">
+            <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#3D2C12]/50">Leonix Ad ID</span>
+            <span className="ml-2 select-all font-semibold">{publishOutcome.leonixAdId}</span>
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
           <Link
             data-testid="ev-publish-success-detail"

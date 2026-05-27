@@ -25,11 +25,13 @@ type Props = {
    * Native share and per-network actions live inside the sheet.
    */
   preferNativeShareOnNarrowViewports?: boolean;
+  /** When true, bypass the share drawer and invoke `navigator.share` directly with clipboard fallback. */
+  directNativeShare?: boolean;
 };
 
 const LABELS = {
-  es: { share: "Compartir" },
-  en: { share: "Share" },
+  es: { share: "Compartir", shareDirect: "Compartir con apps" },
+  en: { share: "Share", shareDirect: "Share with apps" },
 } as const;
 
 /**
@@ -47,6 +49,7 @@ export function LeonixShareButton({
   ownerUserId,
   persistEngagement,
   preferNativeShareOnNarrowViewports: _legacyPreferNative,
+  directNativeShare = false,
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const allowTrack = persistEngagement !== false && Boolean(effectiveId);
@@ -155,7 +158,34 @@ export function LeonixShareButton({
     large: "h-5 w-5",
   };
 
+  const triggerNativeShare = useCallback(async () => {
+    const safeTitle = (listingTitle ?? "").trim() || (lang === "en" ? "Leonix listing" : "Anuncio Leonix");
+    const body = (shareText ?? "").trim();
+    const shareData: ShareData = {
+      title: safeTitle,
+      text: body || safeTitle,
+      url: publicUrl || undefined,
+    };
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        void trackShare("web_share", { direct: true });
+      } catch {
+        /* user cancelled or unsupported — silent */
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(publicUrl || window.location.href);
+        void trackShare("copy_link", { direct: true, nativeFallback: true });
+      } catch { /* silent */ }
+    }
+  }, [listingTitle, shareText, publicUrl, lang, trackShare]);
+
   const openShareHub = () => {
+    if (directNativeShare) {
+      void triggerNativeShare();
+      return;
+    }
     const safeTitle = (listingTitle ?? "").trim();
     const body = (shareText ?? "").trim();
     setSheetIntent({
@@ -181,7 +211,7 @@ export function LeonixShareButton({
         aria-label={labels.share}
       >
         <FiShare2 className={iconSizes[variant]} />
-        <span>{labels.share}</span>
+        <span>{directNativeShare ? labels.shareDirect : labels.share}</span>
       </button>
 
       <CtaActionSheet

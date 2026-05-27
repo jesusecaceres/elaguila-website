@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   FiClock,
+  FiCopy,
   FiExternalLink,
   FiGlobe,
   FiMail,
@@ -92,6 +93,34 @@ function HubSectionTitle({ children }: { children: ReactNode }) {
 
 function HubDivider() {
   return <hr className="my-5 border-0 border-t sm:my-6" style={{ borderColor: SV.borderSoft }} />;
+}
+
+function CopyChip({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* silent */ }
+  }, [value]);
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="ml-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-[color:var(--lx-text-2)] transition hover:text-[color:var(--lx-text)]"
+      aria-label="Copy"
+      title="Copy"
+    >
+      {copied ? (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <FiCopy className="h-3.5 w-3.5" />
+      )}
+    </button>
+  );
 }
 
 type ContactAction = { id: string; label: string; onClick: () => void; icon: ReactNode };
@@ -190,22 +219,15 @@ export function ServiciosBusinessHubContactCard({
   const openCall = () => {
     const href = profile.contact.phoneTelHref?.trim();
     if (!href) return;
-    const raw = href.replace(/^tel:/i, "").trim();
-    openCtaSheet({ kind: "call", phone: raw, contactShareExtras: contactExtras }, "cta_call_click");
+    trackServiciosListingCta(listingSlug, "cta_call_click", { source: "business_hub" });
+    window.location.href = href.startsWith("tel:") ? href : `tel:${href}`;
   };
 
   const openMessage = () => {
-    if (!vm.contact.messageSmsHref) return;
-    const phone = profile.contact.quoteMessagePhone?.trim() || profile.contact.phoneDisplay?.trim() || "";
-    openCtaSheet(
-      {
-        kind: "send_message",
-        message: quoteMsgText,
-        phone,
-        contactShareExtras: contactExtras,
-      },
-      "cta_quote_sms_click",
-    );
+    const href = vm.contact.messageSmsHref;
+    if (!href) return;
+    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", { source: "business_hub" });
+    window.location.href = href;
   };
 
   const openWhatsApp = () => {
@@ -213,16 +235,8 @@ export function ServiciosBusinessHubContactCard({
     if (!href) return;
     const digits = extractWaMeDigitsFromHref(href);
     if (digits.replace(/\D/g, "").length < 8) return;
-    openCtaSheet(
-      {
-        kind: "send_message",
-        message: "",
-        phone: digits,
-        whatsappDigits: digits,
-        contactShareExtras: contactExtras,
-      },
-      "cta_whatsapp_click",
-    );
+    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { source: "business_hub" });
+    window.open(`https://wa.me/${digits.replace(/\D/g, "")}`, "_blank", "noopener,noreferrer");
   };
 
   const openEmail = () => {
@@ -233,23 +247,32 @@ export function ServiciosBusinessHubContactCard({
     openCtaSheet(intent, "cta_email_click");
   };
 
-  const openSocialOutbound = (url: string, headline: string) => {
-    openCtaSheet({ kind: "social_link", url, headline }, "cta_website_click");
+  const openSocialOutbound = (url: string, _headline: string) => {
+    trackServiciosListingCta(listingSlug, "cta_website_click", { source: "business_hub" });
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const openLink = (url: string) => {
-    openCtaSheet({ kind: "website", url }, "cta_website_click");
+    trackServiciosListingCta(listingSlug, "cta_website_click", { source: "business_hub" });
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const openReviewLink = (link: ServiciosBusinessHubReviewLink) => {
-    openCtaSheet({ kind: "website", url: link.url }, "cta_website_click");
+    trackServiciosListingCta(listingSlug, "cta_website_click", { source: "business_hub" });
+    window.open(link.url, "_blank", "noopener,noreferrer");
   };
 
-  const openDirectionsSheet = (addressOrUrl: string, isMapsUrl: boolean) => {
-    openCtaSheet(
-      { kind: "directions", addressOrUrl, isMapsUrl, contactShareExtras: contactExtras },
-      "cta_maps_click",
-    );
+  const openDirections = (addressOrUrl: string, isMapsUrl: boolean) => {
+    trackServiciosListingCta(listingSlug, "cta_maps_click", { source: "business_hub" });
+    if (isMapsUrl) {
+      window.open(addressOrUrl, "_blank", "noopener,noreferrer");
+    } else {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressOrUrl)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+    }
   };
 
   const contactActions: ContactAction[] = [];
@@ -559,8 +582,9 @@ export function ServiciosBusinessHubContactCard({
                 <span id="hub-location-heading">{lang === "en" ? "Our location" : "Nuestra ubicación"}</span>
               </HubSectionTitle>
               {vm.location?.addressDisplay?.trim() ? (
-                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[color:var(--lx-text)]">
-                  {vm.location.addressDisplay}
+                <p className="mt-2 flex items-start gap-0 whitespace-pre-line text-sm leading-relaxed text-[color:var(--lx-text)]">
+                  <span className="flex-1">{vm.location.addressDisplay}</span>
+                  <CopyChip value={vm.location.addressDisplay.trim()} />
                 </p>
               ) : null}
               <ServiciosBusinessHubFauxMap />
@@ -569,7 +593,7 @@ export function ServiciosBusinessHubContactCard({
                   type="button"
                   className={`${primaryClass} mt-3 w-full border-0`}
                   style={{ backgroundColor: HUB_CTA_BG, boxShadow: "0 8px 24px rgba(47, 95, 158, 0.18)" }}
-                  onClick={() => openDirectionsSheet(vm.location!.mapsHref!, true)}
+                  onClick={() => openDirections(vm.location!.mapsHref!, true)}
                 >
                   <FiMapPin className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
                   {lang === "en" ? "View on map" : "Ver en el mapa"}
@@ -599,7 +623,7 @@ export function ServiciosBusinessHubContactCard({
             href ||
             (areaText ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(areaText)}` : "");
           if (!fallback) return;
-          openDirectionsSheet(fallback, /^https?:\/\//i.test(fallback));
+          openDirections(fallback, /^https?:\/\//i.test(fallback));
         }}
       />
 

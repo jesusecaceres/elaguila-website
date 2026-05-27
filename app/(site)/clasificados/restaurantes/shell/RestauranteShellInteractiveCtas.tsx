@@ -197,6 +197,7 @@ export function RestauranteShellInteractiveCtas({
               category="restaurantes"
               lang="es"
               variant="default"
+              directNativeShare
               className="[&>button]:min-h-[44px] [&>button]:shrink-0 [&>button]:snap-start [&>button]:rounded-full [&>button]:border-white/25 [&>button]:bg-white/95 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-semibold [&>button]:text-[color:var(--lx-text)] [&>button]:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] [&>button]:backdrop-blur [&>button]:hover:bg-white"
             />
           );

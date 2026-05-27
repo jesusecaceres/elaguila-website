@@ -353,7 +353,7 @@ export function RestauranteAdStoryPreview({
                       variant="small"
                       lang={lang}
                       category="restaurantes"
-                      preferNativeShareOnNarrowViewports
+                      directNativeShare
                       persistEngagement={persistListingEngagement}
                       className="flex-1 min-w-0 basis-0 [&>button]:flex [&>button]:h-full [&>button]:w-full [&>button]:min-h-0 [&>button]:min-w-0 [&>button]:justify-center [&>button]:gap-1 [&>button]:!px-2 [&>button]:!py-1 [&>button]:text-[11px] [&>button]:font-medium [&>button]:opacity-90 [&>button>span]:min-w-0 [&>button>span]:truncate"
                     />
@@ -515,6 +515,7 @@ export function RestauranteAdStoryPreview({
                     variant="small"
                     lang={lang}
                     category="restaurantes"
+                    directNativeShare
                     persistEngagement={persistListingEngagement}
                   />
                 </div>

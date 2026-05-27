@@ -17,31 +17,66 @@ const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
   { value: "general_tienda", es: "Pregunta general sobre Tienda", en: "General Tienda question" },
 ];
 
-function TiendaContactSubmitError({ lang }: { lang: Lang }) {
+function buildTiendaMailto(fields: {
+  name: string;
+  email: string;
+  phone: string;
+  inquiryType: string;
+  message: string;
+  service?: string;
+  lang: Lang;
+}): string {
+  const en = fields.lang === "en";
+  const topicOption = INQUIRY_OPTIONS.find((o) => o.value === fields.inquiryType);
+  const topicLabel = topicOption ? (en ? topicOption.en : topicOption.es) : fields.inquiryType;
+
+  const subject = en
+    ? "Promotional Products Quote - Leonix Media"
+    : "Cotización Productos para Promoción - Leonix Media";
+
+  const bodyLines = [
+    en ? "Source: Tienda / Productos para Promoción" : "Origen: Tienda / Productos para Promoción",
+    "",
+    `${en ? "Topic" : "Tema"}: ${topicLabel}`,
+    fields.service ? `${en ? "Product / service" : "Producto / servicio"}: ${fields.service.replace(/-/g, " ")}` : "",
+    `${en ? "Name" : "Nombre"}: ${fields.name}`,
+    `${en ? "Email" : "Correo"}: ${fields.email}`,
+    fields.phone ? `${en ? "Phone" : "Teléfono"}: ${fields.phone}` : "",
+    `${en ? "Language" : "Idioma"}: ${fields.lang}`,
+    "",
+    `${en ? "Message" : "Mensaje"}:`,
+    fields.message,
+  ].filter(Boolean);
+
+  const params = new URLSearchParams({ subject, body: bodyLines.join("\n") });
+  return `mailto:${LEONIX_TIENDA_EMAIL}?${params.toString()}`;
+}
+
+function TiendaContactFallback({ lang }: { lang: Lang }) {
   const en = lang === "en";
   return (
-    <div role="alert" className="rounded-xl border border-rose-400/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-100 leading-relaxed">
+    <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm leading-relaxed text-amber-900">
       {en ? (
         <p>
-          We could not send your message right now. Please call us at{" "}
+          We could not open your email app automatically. Email us at{" "}
+          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
+            {LEONIX_TIENDA_EMAIL}
+          </a>{" "}
+          or call us at{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
-          </a>{" "}
-          or{" "}
-          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
-            email us directly
           </a>
           .
         </p>
       ) : (
         <p>
-          No pudimos enviar tu mensaje ahora. Llámanos al{" "}
+          No pudimos abrir tu correo automáticamente. Escríbenos a{" "}
+          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
+            {LEONIX_TIENDA_EMAIL}
+          </a>{" "}
+          o llámanos al{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
-          </a>{" "}
-          o{" "}
-          <a href={LEONIX_MAILTO_TIENDA} className="font-semibold underline break-all">
-            escríbenos directamente
           </a>
           .
         </p>
@@ -58,36 +93,14 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
   const [phone, setPhone] = useState("");
   const [inquiryType, setInquiryType] = useState(service ? "rep_catalog" : "general_tienda");
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "opened" | "error">("idle");
 
-  const onSubmit = async (e: FormEvent) => {
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setStatus("loading");
+    const mailto = buildTiendaMailto({ name, email, phone: phone.trim(), inquiryType, message, service, lang });
     try {
-      const res = await fetch("/api/tienda/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          phone: phone.trim() || undefined,
-          inquiryType,
-          message,
-          lang,
-          service: service?.trim() || undefined,
-        }),
-      });
-      const data = (await res.json()) as { ok?: boolean };
-      if (!res.ok || !data.ok) {
-        setStatus("error");
-        return;
-      }
-      setStatus("success");
-      setName("");
-      setEmail("");
-      setPhone("");
-      setInquiryType(service ? "rep_catalog" : "general_tienda");
-      setMessage("");
+      window.location.href = mailto;
+      setStatus("opened");
     } catch {
       setStatus("error");
     }
@@ -108,30 +121,30 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
       </h2>
       <p className="mt-2 text-sm text-[color:var(--lx-muted)] leading-relaxed">
         {en
-          ? `This form delivers to ${LEONIX_TIENDA_EMAIL}. For fastest help, visit or call us — email may take longer.`
-          : `Este formulario llega a ${LEONIX_TIENDA_EMAIL}. Para ayuda más rápida, visita o llámanos — el correo puede tardar más.`}
+          ? `This form opens your email app to send a message to ${LEONIX_TIENDA_EMAIL}. For fastest help, visit or call us.`
+          : `Este formulario abre tu correo para enviar un mensaje a ${LEONIX_TIENDA_EMAIL}. Para ayuda más rápida, visita o llámanos.`}
       </p>
 
-      {status === "success" ? (
+      {status === "opened" ? (
         <div
           role="status"
           className="mt-6 rounded-xl border border-[color:var(--lx-lion)]/40 bg-[color:var(--lx-lion)]/12 px-4 py-4 text-sm text-[color:var(--lx-text)]"
         >
           <p>
             {en
-              ? "Message sent. We will reply as soon as possible."
-              : "Mensaje enviado. Te responderemos lo antes posible."}
+              ? "Your email app opened. Review the quote request and press send."
+              : "Se abrió tu aplicación de correo. Revisa la cotización y presiona enviar."}
           </p>
           <button
             type="button"
             onClick={() => setStatus("idle")}
             className="mt-3 text-sm font-medium text-[color:var(--lx-lion)] underline"
           >
-            {en ? "Send another message" : "Enviar otro mensaje"}
+            {en ? "Fill out again" : "Llenar de nuevo"}
           </button>
         </div>
       ) : (
-        <form className="mt-6 space-y-5" onSubmit={(ev) => void onSubmit(ev)}>
+        <form className="mt-6 space-y-5" onSubmit={onSubmit}>
           <div>
             <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--lx-lion)]">
               {en ? "Topic" : "Tema"}
@@ -200,19 +213,16 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
             />
           </div>
 
-          {status === "error" ? <TiendaContactSubmitError lang={lang} /> : null}
+          {status === "error" ? <TiendaContactFallback lang={lang} /> : null}
 
           <button
             type="submit"
-            disabled={status === "loading"}
             className={[
               "w-full min-h-[44px] whitespace-nowrap text-center text-sm sm:text-base px-4 py-3.5 rounded-full font-semibold transition shadow-[0_14px_40px_rgba(201,168,74,0.22)]",
-              status === "loading"
-                ? "bg-[color:var(--lx-gold)]/50 text-[color:var(--lx-text)] cursor-wait"
-                : "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",
+              "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",
             ].join(" ")}
           >
-            {status === "loading" ? (en ? "Sending…" : "Enviando…") : en ? "Send to Tienda" : "Enviar a Tienda"}
+            {en ? "Send to Tienda" : "Enviar a Tienda"}
           </button>
         </form>
       )}

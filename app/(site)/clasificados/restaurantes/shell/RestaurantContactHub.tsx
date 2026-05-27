@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import {
+  FiCopy,
   FiExternalLink,
   FiGlobe,
   FiMail,
@@ -16,13 +17,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { SiFacebook, SiInstagram, SiTiktok, SiYoutube, SiYelp } from "react-icons/si";
 import type { IconType } from "react-icons";
 import {
-  buildCallIntent,
-  buildDirectionsIntent,
   buildSendEmailIntent,
-  buildSendMessageIntent,
-  buildWebsiteIntent,
-  buildWhatsAppMessageIntent,
-  buildSocialLinkIntent,
   CtaActionSheet,
   type CtaContactShareExtras,
   type CtaSheetIntent,
@@ -53,16 +48,6 @@ function parseWhatsAppHref(href: string): { digits: string; message: string } {
   } catch {
     return { digits: href.replace(/\D/g, ""), message: "" };
   }
-}
-
-function parseSmsHref(href: string): { phone: string; message: string } {
-  const raw = href.replace(/^sms:/i, "");
-  const [phonePart, query = ""] = raw.split("?");
-  const params = new URLSearchParams(query);
-  return {
-    phone: phonePart ?? "",
-    message: params.get("body") ?? "",
-  };
 }
 
 function iconForButton(btn: RestaurantHubButton): IconType {
@@ -112,6 +97,34 @@ function reviewIcon(id: string): IconType {
   return FiExternalLink;
 }
 
+function CopyChip({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* silent */ }
+  }, [value]);
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="ml-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-[color:var(--lx-muted)] transition hover:text-[color:var(--lx-text)]"
+      aria-label="Copy"
+      title="Copy"
+    >
+      {copied ? (
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <FiCopy className="h-3.5 w-3.5" />
+      )}
+    </button>
+  );
+}
+
 export function RestaurantContactHub({
   hub,
   lang = "es",
@@ -139,17 +152,19 @@ export function RestaurantContactHub({
     if (!href) return;
 
     if (btn.action === "call") {
-      openIntent(buildCallIntent({ phone: href.replace(/^tel:/i, ""), contactShareExtras: extras }));
+      window.location.href = href.startsWith("tel:") ? href : `tel:${href.replace(/^tel:/i, "")}`;
       return;
     }
     if (btn.action === "sms") {
-      const parsed = parseSmsHref(href);
-      openIntent(buildSendMessageIntent({ phone: parsed.phone, message: parsed.message, contactShareExtras: extras }));
+      window.location.href = href.startsWith("sms:") ? href : `sms:${href}`;
       return;
     }
     if (btn.action === "whatsapp") {
       const { digits, message } = parseWhatsAppHref(href);
-      openIntent(buildWhatsAppMessageIntent({ whatsappDigits: digits, message, contactShareExtras: extras }));
+      const waUrl = message
+        ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/${digits}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
       return;
     }
     if (btn.action === "email") {
@@ -173,30 +188,31 @@ export function RestaurantContactHub({
       return;
     }
     if (btn.action === "directions") {
-      openIntent(buildDirectionsIntent({ addressOrUrl: href, isMapsUrl: /^https?:\/\//i.test(href), contactShareExtras: extras }));
+      const url = /^https?:\/\//i.test(href)
+        ? href
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(href)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
       return;
     }
     if (btn.action === "social" || btn.action === "review") {
-      openIntent(buildSocialLinkIntent({ url: href, headline: btn.label }));
+      window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
     if (href.startsWith("data:") || href.startsWith("blob:")) {
       setDataModal({ href, title: btn.label });
       return;
     }
-    const kind =
-      btn.action === "order" ? "order" : btn.action === "booking" ? "booking" : btn.action === "menu" ? "menu" : "website";
-    openIntent(buildWebsiteIntent({ url: href, headline: btn.label, kind }));
+    window.open(href, "_blank", "noopener,noreferrer");
   };
 
-  const openSocial = (url: string, label: string, e?: React.MouseEvent) => {
+  const openSocial = (url: string, _label: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    openIntent(buildSocialLinkIntent({ url, headline: label }));
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const openMaps = (mapsHref: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    openIntent(buildDirectionsIntent({ addressOrUrl: mapsHref, isMapsUrl: true, contactShareExtras: extras }));
+    window.open(mapsHref, "_blank", "noopener,noreferrer");
   };
 
   const renderGrid = (buttons: RestaurantHubButton[]) => (
@@ -284,7 +300,10 @@ export function RestaurantContactHub({
             <p className={SECTION_HEAD}>{labels.location}</p>
             <div className="space-y-2 text-sm text-[color:var(--lx-text-2)]">
               {hub.location.addressLine1 ? (
-                <p className="font-medium text-[color:var(--lx-text)]">{hub.location.addressLine1}</p>
+                <p className="flex items-center font-medium text-[color:var(--lx-text)]">
+                  <span>{hub.location.addressLine1}</span>
+                  <CopyChip value={[hub.location.addressLine1, hub.location.addressLine2].filter(Boolean).join(", ")} />
+                </p>
               ) : null}
               {hub.location.addressLine2 ? <p>{hub.location.addressLine2}</p> : null}
               {hub.location.supportingText ? (

@@ -28,31 +28,62 @@ function tiendaQuoteHref(lang: Lang): string {
   return `${LEONIX_TIENDA_CONTACT_PATH}?${params.toString()}`;
 }
 
-function ContactSubmitError({ lang }: { lang: Lang }) {
+function buildGeneralMailto(fields: {
+  name: string;
+  email: string;
+  phone: string;
+  topic: string;
+  message: string;
+  lang: Lang;
+}): string {
+  const en = fields.lang === "en";
+  const topicOption = TOPIC_OPTIONS.find((o) => o.value === fields.topic);
+  const topicLabel = topicOption ? (en ? topicOption.en : topicOption.es) : fields.topic;
+
+  const subject = en ? "Leonix Media Contact" : "Contacto Leonix Media";
+
+  const bodyLines = [
+    en ? "Source: Leonix Media general contact form" : "Origen: Formulario de contacto general Leonix Media",
+    "",
+    `${en ? "Topic" : "Motivo"}: ${topicLabel}`,
+    `${en ? "Name" : "Nombre"}: ${fields.name}`,
+    `${en ? "Email" : "Correo"}: ${fields.email}`,
+    fields.phone ? `${en ? "Phone" : "Teléfono"}: ${fields.phone}` : "",
+    `${en ? "Language" : "Idioma"}: ${fields.lang}`,
+    "",
+    `${en ? "Message" : "Mensaje"}:`,
+    fields.message,
+  ].filter(Boolean);
+
+  const params = new URLSearchParams({ subject, body: bodyLines.join("\n") });
+  return `mailto:${LEONIX_GLOBAL_EMAIL}?${params.toString()}`;
+}
+
+function ContactFallback({ lang }: { lang: Lang }) {
   const en = lang === "en";
   return (
-    <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-900">
+    <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm leading-relaxed text-amber-900">
       {en ? (
         <p>
-          We could not send your message right now. Please call us at{" "}
+          We could not open your email app automatically. Email us at{" "}
+          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
+            {LEONIX_GLOBAL_EMAIL}
+          </a>{" "}
+          or call us at{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
-          </a>{" "}
-          or{" "}
-          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
-            email us directly
           </a>
           .
         </p>
       ) : (
         <p>
-          No pudimos enviar tu mensaje ahora. Llámanos al{" "}
+          No pudimos abrir tu correo automáticamente. Escríbenos a{" "}
+          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
+            {LEONIX_GLOBAL_EMAIL}
+          </a>{" "}
+          o llámanos al{" "}
           <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
             {LEONIX_PHONE_DISPLAY}
-          </a>{" "}
-          o{" "}
-          <a href={LEONIX_GLOBAL_MAILTO} className="font-semibold underline break-all">
-            escríbenos directamente
           </a>
           .
         </p>
@@ -69,28 +100,14 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
   const [phone, setPhone] = useState("");
   const [topic, setTopic] = useState("general_question");
   const [message, setMessage] = useState(() => (initialMessage ?? "").slice(0, 12000));
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "opened" | "error">("idle");
 
-  const onSubmit = async (e: FormEvent) => {
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setStatus("loading");
+    const mailto = buildGeneralMailto({ name, email, phone: phone.trim(), topic, message, lang });
     try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone: phone.trim() || undefined, message, lang, topic }),
-      });
-      const data = (await res.json()) as { ok?: boolean };
-      if (!res.ok || !data.ok) {
-        setStatus("error");
-        return;
-      }
-      setStatus("success");
-      setName("");
-      setEmail("");
-      setPhone("");
-      setTopic("general_question");
-      setMessage("");
+      window.location.href = mailto;
+      setStatus("opened");
     } catch {
       setStatus("error");
     }
@@ -107,26 +124,26 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
           : `Los mensajes llegan a ${LEONIX_GLOBAL_EMAIL}. Para pedidos de impresión y cotizaciones de Tienda, usa la página de contacto Tienda arriba.`}
       </p>
 
-      {status === "success" ? (
+      {status === "opened" ? (
         <div
           role="status"
           className="rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-4 text-sm text-emerald-900"
         >
           <p>
             {en
-              ? "Thank you — your message was sent. We’ll get back to you as soon as we can."
-              : "Gracias — tu mensaje se envió. Te responderemos lo antes posible."}
+              ? "Your email app opened. Review the message and press send."
+              : "Se abrió tu aplicación de correo. Revisa el mensaje y presiona enviar."}
           </p>
           <button
             type="button"
             onClick={() => setStatus("idle")}
             className="mt-3 text-sm font-medium text-emerald-800 underline"
           >
-            {en ? "Send another message" : "Enviar otro mensaje"}
+            {en ? "Fill out again" : "Llenar de nuevo"}
           </button>
         </div>
       ) : (
-        <form className="space-y-6" onSubmit={(ev) => void onSubmit(ev)}>
+        <form className="space-y-6" onSubmit={onSubmit}>
           <div>
             <label className="block mb-1 text-[color:var(--lx-text-2)]/90">{en ? "Topic" : "Motivo"}</label>
             <select
@@ -189,7 +206,7 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full p-3 rounded-lg bg-white/70 border border-[color:var(--lx-nav-border)] text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)] focus:outline-none"
-              placeholder={en ? "If you’d like a callback" : "Si deseas que te llamemos"}
+              placeholder={en ? "If you'd like a callback" : "Si deseas que te llamemos"}
               autoComplete="tel"
             />
           </div>
@@ -207,25 +224,16 @@ export function GlobalContactForm(props: { lang: Lang; initialMessage?: string }
             />
           </div>
 
-          {status === "error" ? <ContactSubmitError lang={lang} /> : null}
+          {status === "error" ? <ContactFallback lang={lang} /> : null}
 
           <button
             type="submit"
-            disabled={status === "loading"}
             className={[
               SUBMIT_BTN,
-              status === "loading"
-                ? "bg-[color:var(--lx-cta-dark)]/60 text-[color:var(--lx-cta-light)] cursor-wait"
-                : "bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)]",
+              "bg-[color:var(--lx-cta-dark)] text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)]",
             ].join(" ")}
           >
-            {status === "loading"
-              ? en
-                ? "Sending…"
-                : "Enviando…"
-              : en
-                ? "Send to Leonix Media"
-                : "Enviar a Leonix Media"}
+            {en ? "Send to Leonix Media" : "Enviar a Leonix Media"}
           </button>
         </form>
       )}

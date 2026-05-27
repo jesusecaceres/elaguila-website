@@ -147,7 +147,7 @@ async function fetchAsBlob(src: string): Promise<Blob> {
 export type EnVentaGalleryUploadOutcome = "none" | "full";
 
 export type EnVentaPublishFromDraftResult =
-  | { ok: true; listingId: string; gallery: EnVentaGalleryUploadOutcome }
+  | { ok: true; listingId: string; gallery: EnVentaGalleryUploadOutcome; leonixAdId: string | null }
   | { ok: false; error: string };
 
 /**
@@ -325,5 +325,15 @@ export async function publishEnVentaFromDraft(
     return { ok: false, error: finErr.message };
   }
 
-  return { ok: true, listingId, gallery };
+  let leonixAdId: string | null = null;
+  try {
+    const { data: row } = await supabase
+      .from("listings")
+      .select("leonix_ad_id")
+      .eq("id", listingId)
+      .maybeSingle();
+    leonixAdId = (row as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+  } catch { /* non-critical */ }
+
+  return { ok: true, listingId, gallery, leonixAdId };
 }

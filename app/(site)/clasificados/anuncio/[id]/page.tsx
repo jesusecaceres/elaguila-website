@@ -1178,6 +1178,7 @@ export default function AnuncioDetallePage() {
             contact_phone: ev.contact_phone ?? null,
             contact_email: ev.contact_email ?? null,
             owner_id: listing.owner_id ?? null,
+            leonix_ad_id: listing.leonix_ad_id ?? null,
             business_meta: listing.business_meta ?? ev.business_meta ?? null,
             br_inventory_group_id:
               (listing as Listing & { br_inventory_group_id?: string | null }).br_inventory_group_id ?? null,

@@ -80,6 +80,7 @@ type AnuncioListingLike = {
   contact_email?: string | null;
   owner_id?: string | null;
   business_meta?: string | null;
+  leonix_ad_id?: string | null;
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
   inventory_role?: string | null;
@@ -575,6 +576,12 @@ export function EnVentaAnuncioLayout({
                 <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#111111]/50">{listingIdLabel}</span>
                 <span className="ml-2 select-all">{listing.id}</span>
               </p>
+              {listing.leonix_ad_id?.trim() ? (
+                <p className="mt-2 rounded-lg border border-[#C9B46A]/30 bg-[#FBF7EF] px-3 py-2 font-mono text-[11px] text-[#3D2C12]/85">
+                  <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#3D2C12]/50">Leonix Ad ID</span>
+                  <span className="ml-2 select-all font-semibold">{listing.leonix_ad_id.trim()}</span>
+                </p>
+              ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
                 <LeonixLikeButton
                   listingId={listing.id}

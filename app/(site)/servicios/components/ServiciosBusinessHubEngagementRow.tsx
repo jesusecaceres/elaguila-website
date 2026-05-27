@@ -74,6 +74,7 @@ export function ServiciosBusinessHubEngagementRow({
                 category="servicios"
                 className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
                 persistEngagement={persistEngagement}
+                directNativeShare
               />
             </div>
           ) : (
@@ -103,6 +104,7 @@ export function ServiciosBusinessHubEngagementRow({
             category="servicios"
             className="!w-full !max-w-full !border-[color:var(--lx-border,#E8D7B8)]"
             persistEngagement={persistEngagement}
+            directNativeShare
           />
         </div>
       ) : null}
