@@ -11,6 +11,7 @@ import {
   ownerListingResumeFromPausePatch,
 } from "../lib/ownerListingsLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
+import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
 import { AutosDealerInventoryDashboardSection } from "@/app/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection";
 import { BrPropertyInventoryDashboardSection } from "@/app/clasificados/bienes-raices/dashboard/BrPropertyInventoryDashboardSection";
@@ -1047,7 +1048,7 @@ export default function MyListingsPage() {
                 },
                 {
                   key: "en-venta" as const,
-                  title: lang === "es" ? "En venta" : "For sale",
+                  title: enVentaPublicLabel(lang),
                   owned: categoryCounts["en-venta"],
                   manage: `/dashboard/mis-anuncios?${q}&cat=en-venta`,
                   publish: `/clasificados/publicar/en-venta?${q}`,
@@ -1161,9 +1162,7 @@ export default function MyListingsPage() {
               {filterChips.map((fk) => {
                 const label =
                   fk === "en-venta"
-                    ? lang === "es"
-                      ? "En venta"
-                      : "For sale"
+                    ? enVentaPublicLabel(lang)
                     : fk === "bienes-raices"
                       ? lang === "es"
                         ? "BR"

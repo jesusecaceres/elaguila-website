@@ -305,8 +305,7 @@ export default function ListingWorkspacePage() {
     }
     listing = q.data as ListingRow;
 
-    const owner = listing.owner_id;
-    if (owner && owner !== user.id) {
+    if (listing.owner_id !== user.id) {
       setRow(null);
       setAccess("forbidden");
       setListingMessages([]);

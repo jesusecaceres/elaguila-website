@@ -131,7 +131,7 @@ export default async function ClasificadosCategoryWorkspacePage(props: PageProps
             </li>
             {isEnVenta ? (
               <li>
-                Copy y taxonomía En Venta:{" "}
+                Copy y taxonomía Varios:{" "}
                 <code className="rounded bg-[#FBF7EF] px-1 text-[11px]">app/clasificados/en-venta/</code> (wizards, visibilidad, contrato
                 Leonix).
               </li>
@@ -163,13 +163,13 @@ export default async function ClasificadosCategoryWorkspacePage(props: PageProps
               cola filtrada
             </Link>{" "}
             y <Link href="/admin/reportes" className="font-bold text-[#6B5B2E] underline">/admin/reportes</Link>. Los motivos específicos
-            En Venta están documentados abajo.
+            Varios están documentados abajo.
           </p>
         </AdminSectionCard>
 
         {isEnVenta ? (
           <AdminSectionCard
-            title="En Venta — referencia de moderación (campos de contrato)"
+            title="Varios — referencia de moderación (campos de contrato)"
             subtitle="Solo documentación; no persiste en BD desde aquí."
           >
             <EnVentaModerationFields lang="es" />

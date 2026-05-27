@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GlobalContactForm } from "@/app/components/contact/GlobalContactForm";
+import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
 import { LEONIX_GLOBAL_CONTACT_PATH } from "@/app/data/leonixGlobalContact";
 import { LEONIX_MEDIA_DESCRIPTOR_EN, LEONIX_MEDIA_DESCRIPTOR_ES, LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 import {
@@ -95,12 +96,16 @@ export default async function ContactoPage(props: {
           <h2 className="mb-4 text-2xl font-semibold text-[color:var(--lx-text)]">{copy.business}</h2>
 
           <div className="space-y-3 text-[color:var(--lx-text-2)]/90">
-            <p>
-              <span className="font-semibold text-[color:var(--lx-text)]">{copy.emailLabel}:</span>{" "}
-              <a href={copy.mailto} className="underline hover:opacity-80">
-                {copy.email}
-              </a>
-            </p>
+            <div>
+              <span className="font-semibold text-[color:var(--lx-text)]">{copy.emailLabel}:</span>
+              <LeonixEmailContactBlock
+                email={copy.email}
+                mailtoHref={copy.mailto}
+                lang={lang}
+                shareTitle={copy.business}
+                className="mt-1"
+              />
+            </div>
 
             {copy.phoneLine ? (
               <p>

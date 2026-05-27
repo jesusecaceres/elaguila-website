@@ -14,3 +14,9 @@ export type TranslateAdRequest = {
 };
 
 export type TranslateAdProviderFn = (req: TranslateAdRequest) => Promise<AdTranslationResult>;
+
+/**
+ * Server-side implementation: `translateAdWithConfiguredProvider` in
+ * `app/lib/translation/serverProvider.ts` (`import "server-only"`).
+ * API route: `POST /api/translate-ad`. Do not import serverProvider from client code.
+ */

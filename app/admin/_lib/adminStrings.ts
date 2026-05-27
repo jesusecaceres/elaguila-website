@@ -150,7 +150,7 @@ const EN: Record<string, string> = {
   "clasificados.limitAria": "Row limit",
   "clasificados.applyFiltersTitle": "Reload the queue with URL filters (read-only)",
   "clasificados.backWorkspace": "← Site sections overview",
-  "clasificados.envSectionTitle": "En Venta — moderation reference",
+  "clasificados.envSectionTitle": "Varios (For Sale) — moderation reference",
   "clasificados.envSectionSubtitle":
     "Reference only (reason list). Does not write to the database — documentation for the team.",
   "audit.title": "Operational audit — queues by category",
@@ -222,7 +222,7 @@ const EN: Record<string, string> = {
   "listings.emptyRentasExtra":
     ", plus merged rows with category «bienes-raices» and Leonix:operation=rent in detail_pairs when there is no text search (q).",
   "listings.col.leonixTitle": "Leonix BR/Rentas: branch, operation, category, published",
-  "listings.col.envVisTitleOk": "En Venta plan and visibility (detail_pairs + republished_at)",
+  "listings.col.envVisTitleOk": "Varios (For Sale) plan and visibility (detail_pairs + republished_at)",
   "listings.col.envVisTitleNoDetailPairs":
     "detail_pairs column not available in this database — apply listings.detail_pairs migration",
   "listings.col.envVisTitleNoBoost": "republished_at column not available — apply classifieds_republish_capability migration",
@@ -230,7 +230,7 @@ const EN: Record<string, string> = {
     "Staff actions on this row (publish/hide/delete). Text and image editing: advertiser panel with owner_id validation.",
   "listings.publicRentasTitle": "Public Rentas detail (canonical path)",
   "listings.publicGenericTitle": "Open listing on public site (new tab)",
-  "listings.hidePublicTitle": "Hide from public listings (is_published=false). En Venta / results stop showing it.",
+  "listings.hidePublicTitle": "Hide from public listings (is_published=false). Varios / For Sale results stop showing it.",
   "listings.republishTitle": "Publish again on the site (is_published=true) if status remains active.",
   "listings.deleteTitle": "Mark listing as removed in database (staff action; appears in audit)",
   "listings.deleteAria": "Mark listing as deleted in database",
@@ -804,7 +804,7 @@ const ES: Record<string, string> = {
   "clasificados.limitAria": "Límite de filas",
   "clasificados.applyFiltersTitle": "Recargar la cola con los filtros en la URL (sin mutar datos)",
   "clasificados.backWorkspace": "← Resumen de secciones del sitio",
-  "clasificados.envSectionTitle": "En Venta — contrato de moderación",
+  "clasificados.envSectionTitle": "Varios — contrato de moderación",
   "clasificados.envSectionSubtitle":
     "Solo referencia (lista de motivos). No envía cambios a la base — documentación para el equipo.",
   "audit.title": "Auditoría operativa — colas por categoría",
@@ -877,7 +877,7 @@ const ES: Record<string, string> = {
   "listings.emptyRentasExtra":
     ", más filas con categoría «bienes-raices» y Leonix:operation=rent en detail_pairs cuando no hay búsqueda de texto (q).",
   "listings.col.leonixTitle": "Leonix BR/Rentas: rama, operación, categoría, publicado",
-  "listings.col.envVisTitleOk": "Plan En Venta y visibilidad (detail_pairs + republished_at)",
+  "listings.col.envVisTitleOk": "Plan Varios y visibilidad (detail_pairs + republished_at)",
   "listings.col.envVisTitleNoDetailPairs":
     "Columna detail_pairs no disponible en esta base — aplica la migración listings.detail_pairs",
   "listings.col.envVisTitleNoBoost": "Columna republished_at no disponible — aplica la migración classifieds_republish_capability",
@@ -885,7 +885,7 @@ const ES: Record<string, string> = {
     "Acciones de staff en la misma fila (publicar/ocultar/eliminar). Edición de texto e imágenes: panel del anunciante con validación owner_id.",
   "listings.publicRentasTitle": "Detalle público Rentas (ruta canónica)",
   "listings.publicGenericTitle": "Abrir anuncio en el sitio público (nueva pestaña)",
-  "listings.hidePublicTitle": "Oculta del listado público (is_published=false). En Venta / resultados dejan de mostrarlo.",
+  "listings.hidePublicTitle": "Oculta del listado público (is_published=false). Varios / resultados dejan de mostrarlo.",
   "listings.republishTitle": "Vuelve a publicar en el sitio (is_published=true) si el estado sigue activo.",
   "listings.deleteTitle": "Marca el anuncio como removed en base (acción de staff; aparece en auditoría)",
   "listings.deleteAria": "Marcar anuncio como eliminado en base de datos",

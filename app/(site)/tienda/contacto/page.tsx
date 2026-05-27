@@ -22,6 +22,7 @@ import {
   tiendaContactRankPhone,
 } from "../data/tiendaContactPageCopy";
 import type { Lang } from "../types/tienda";
+import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
 import { TiendaContactForm } from "../components/TiendaContactForm";
 import { normalizeLang, withLang } from "../utils/tiendaRouting";
 
@@ -112,12 +113,17 @@ export default async function TiendaContactoPage(props: { searchParams?: Promise
             </li>
             <li className="flex flex-col gap-1">
               <span className="font-semibold text-[color:var(--lx-text)]">{tiendaContactRankEmail(lang)}</span>
-              <a
-                href={`${LEONIX_MAILTO_TIENDA}?subject=${encodeURIComponent(mailSubject)}`}
-                className="text-[color:var(--lx-blue)] hover:text-[color:var(--lx-text)] w-fit break-all"
-              >
-                {LEONIX_TIENDA_EMAIL}
-              </a>
+              <LeonixEmailContactBlock
+                email={LEONIX_TIENDA_EMAIL}
+                mailtoHref={`${LEONIX_MAILTO_TIENDA}?subject=${encodeURIComponent(mailSubject)}`}
+                lang={lang}
+                shareTitle={tiendaContactPageTitle(lang)}
+                shareText={
+                  lang === "en"
+                    ? "Tienda — question / quote"
+                    : "Tienda — pregunta / cotización"
+                }
+              />
             </li>
           </ul>
         </section>

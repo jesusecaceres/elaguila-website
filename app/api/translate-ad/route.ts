@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import type {
-  AdTranslationResult,
   ContentLocale,
   Locale,
   TranslatableAdFieldKey,
   TranslatableAdFields,
 } from "@/app/lib/translation/types";
+import type { TranslateAdRequest } from "@/app/lib/translation/provider";
+import {
+  isTranslationProviderConfigured,
+  translateAdWithConfiguredProvider,
+  TranslationProviderNotConfiguredError,
+  TranslationProviderRequestError,
+} from "@/app/lib/translation/serverProvider";
 
 const ALLOWED_FIELD_KEYS: ReadonlySet<TranslatableAdFieldKey> = new Set([
   "title",
@@ -24,9 +30,34 @@ const VALID_SOURCE_LOCALES: ReadonlySet<string> = new Set(["es", "en", "unknown"
 
 const MAX_TOTAL_CHARS = 12_000;
 const MAX_FIELD_CHARS = 5_000;
+const MAX_META_CHARS = 128;
+const SAFE_META_RE = /^[a-zA-Z0-9._:/-]+$/;
 
-function mapLocaleToDeepL(locale: Locale): string {
-  return locale === "en" ? "EN-US" : "ES";
+/** Reject payloads that still contain contact data outside mask placeholders. */
+const UNMASKED_EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/;
+const UNMASKED_URL_RE =
+  /\b(?:https?:\/\/|www\.)[^\s<>"{}|\\^`[\]]+|(?:wa\.me|api\.whatsapp\.com|maps\.google\.com|goo\.gl\/maps)[^\s]*/i;
+const UNMASKED_PHONE_RE = /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}\b|\+\d{8,15}\b/;
+
+function textWithoutMaskPlaceholders(text: string): string {
+  return text.replace(/__LEONIX_MASK_\d+__/g, " ");
+}
+
+function containsUnmaskedSensitiveContent(text: string): boolean {
+  const probe = textWithoutMaskPlaceholders(text);
+  if (UNMASKED_EMAIL_RE.test(probe)) return true;
+  if (UNMASKED_URL_RE.test(probe)) return true;
+  const phoneMatch = probe.match(UNMASKED_PHONE_RE);
+  if (phoneMatch?.some((m) => m.replace(/\D/g, "").length >= 7)) return true;
+  return false;
+}
+
+function sanitizeMetaString(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > MAX_META_CHARS) return null;
+  if (!SAFE_META_RE.test(trimmed)) return null;
+  return trimmed;
 }
 
 function sanitizeFieldsPayload(raw: unknown): TranslatableAdFields | null {
@@ -50,57 +81,39 @@ function sanitizeFieldsPayload(raw: unknown): TranslatableAdFields | null {
   return Object.keys(out).length > 0 ? out : null;
 }
 
-type DeepLTranslation = { text: string };
-type DeepLResponse = { translations: DeepLTranslation[] };
+function parseTranslateAdRequest(body: unknown): TranslateAdRequest | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const payload = body as Record<string, unknown>;
 
-async function translateWithDeepL(
-  texts: string[],
-  targetLocale: Locale,
-  sourceLocale: ContentLocale,
-  apiKey: string,
-): Promise<string[]> {
-  const targetLang = mapLocaleToDeepL(targetLocale);
-  const sourceLang = sourceLocale !== "unknown" ? mapLocaleToDeepL(sourceLocale as Locale) : undefined;
+  const targetLocale = payload.targetLocale;
+  if (typeof targetLocale !== "string" || !VALID_TARGET_LOCALES.has(targetLocale)) return null;
 
-  const body: Record<string, unknown> = {
-    text: texts,
-    target_lang: targetLang,
-    tag_handling: "xml",
-    ignore_tags: "x",
+  const sourceLocale = payload.sourceLocale;
+  if (typeof sourceLocale !== "string" || !VALID_SOURCE_LOCALES.has(sourceLocale)) return null;
+
+  const category = sanitizeMetaString(payload.category);
+  if (!category) return null;
+
+  const listingKey = sanitizeMetaString(payload.listingKey);
+  if (!listingKey) return null;
+
+  const maskedFields = sanitizeFieldsPayload(payload.maskedFields);
+  if (!maskedFields) return null;
+
+  return {
+    maskedFields,
+    category,
+    listingKey,
+    sourceLocale: sourceLocale as ContentLocale,
+    targetLocale: targetLocale as Locale,
   };
-  if (sourceLang) body.source_lang = sourceLang;
-
-  const endpoint = apiKey.endsWith(":fx")
-    ? "https://api-free.deepl.com/v2/translate"
-    : "https://api.deepl.com/v2/translate";
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `DeepL-Auth-Key ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const status = res.status;
-    throw new Error(`DeepL API returned ${status}`);
-  }
-
-  const json = (await res.json()) as DeepLResponse;
-  return json.translations.map((t) => t.text);
-}
-
-function wrapMaskPlaceholders(text: string): string {
-  return text.replace(/__LEONIX_MASK_\d+__/g, (m) => `<x>${m}</x>`);
-}
-
-function unwrapMaskPlaceholders(text: string): string {
-  return text.replace(/<x>(__LEONIX_MASK_\d+__)<\/x>/g, (_, m) => m);
 }
 
 export async function POST(request: NextRequest) {
+  if (request.method !== "POST") {
+    return NextResponse.json({ error: "Method not allowed." }, { status: 405 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -108,90 +121,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return NextResponse.json({ error: "Request body must be a JSON object." }, { status: 400 });
-  }
-
-  const payload = body as Record<string, unknown>;
-
-  const targetLocale = payload.targetLocale;
-  if (typeof targetLocale !== "string" || !VALID_TARGET_LOCALES.has(targetLocale)) {
-    return NextResponse.json({ error: "Invalid targetLocale. Must be 'es' or 'en'." }, { status: 400 });
-  }
-
-  const sourceLocale = payload.sourceLocale;
-  if (typeof sourceLocale !== "string" || !VALID_SOURCE_LOCALES.has(sourceLocale)) {
-    return NextResponse.json({ error: "Invalid sourceLocale. Must be 'es', 'en', or 'unknown'." }, { status: 400 });
-  }
-
-  const category = payload.category;
-  if (typeof category !== "string" || !category.trim()) {
-    return NextResponse.json({ error: "category is required." }, { status: 400 });
-  }
-
-  const listingKey = payload.listingKey;
-  if (typeof listingKey !== "string" || !listingKey.trim()) {
-    return NextResponse.json({ error: "listingKey is required." }, { status: 400 });
-  }
-
-  const maskedFields = sanitizeFieldsPayload(payload.maskedFields);
-  if (!maskedFields) {
+  const parsed = parseTranslateAdRequest(body);
+  if (!parsed) {
     return NextResponse.json(
-      { error: "maskedFields must contain at least one valid translatable field (max 5000 chars/field, 12000 total)." },
+      {
+        error:
+          "Invalid request. Required: maskedFields (non-empty), category, listingKey, sourceLocale (es|en|unknown), targetLocale (es|en).",
+      },
       { status: 400 },
     );
   }
 
-  const provider = process.env.TRANSLATION_PROVIDER;
-  const deeplKey = process.env.DEEPL_API_KEY;
+  for (const value of Object.values(parsed.maskedFields)) {
+    if (typeof value === "string" && containsUnmaskedSensitiveContent(value)) {
+      return NextResponse.json(
+        { error: "maskedFields contain unmasked contact or URL data. Mask before translating." },
+        { status: 400 },
+      );
+    }
+  }
 
-  if (!provider || !deeplKey) {
+  if (!isTranslationProviderConfigured()) {
     return NextResponse.json(
       { error: "Translation provider is not configured." },
       { status: 503 },
     );
   }
 
-  if (provider !== "deepl") {
-    return NextResponse.json(
-      { error: "Translation provider is not configured." },
-      { status: 503 },
-    );
-  }
+  // TODO(T4+): per-user rate limiting and optional auth before calling external provider.
 
-  // TODO: Add per-user rate limiting / auth checks in a future gate.
-
-  const fieldKeys = Object.keys(maskedFields) as TranslatableAdFieldKey[];
-  const textsToTranslate = fieldKeys.map((k) => wrapMaskPlaceholders(maskedFields[k]!));
-
-  let translatedTexts: string[];
   try {
-    translatedTexts = await translateWithDeepL(
-      textsToTranslate,
-      targetLocale as Locale,
-      sourceLocale as ContentLocale,
-      deeplKey,
-    );
-  } catch {
+    const result = await translateAdWithConfiguredProvider(parsed);
+    return NextResponse.json(result);
+  } catch (e) {
+    if (e instanceof TranslationProviderNotConfiguredError) {
+      return NextResponse.json({ error: e.message }, { status: 503 });
+    }
+    if (e instanceof TranslationProviderRequestError) {
+      return NextResponse.json({ error: e.message }, { status: 502 });
+    }
     return NextResponse.json(
       { error: "Translation service temporarily unavailable." },
       { status: 502 },
     );
   }
-
-  const translated: TranslatableAdFields = {};
-  for (let i = 0; i < fieldKeys.length; i++) {
-    translated[fieldKeys[i]] = unwrapMaskPlaceholders(translatedTexts[i]);
-  }
-
-  const result: AdTranslationResult = {
-    translated,
-    sourceLocale: sourceLocale as ContentLocale,
-    targetLocale: targetLocale as Locale,
-    provider: "deepl",
-    translatedAt: new Date().toISOString(),
-    fromCache: false,
-  };
-
-  return NextResponse.json(result);
 }

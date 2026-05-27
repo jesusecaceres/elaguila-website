@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
 import {
   CATALOG_CATEGORIES,
   CUSTOM_QUOTE_SERVICE_SLUG,
@@ -35,8 +36,13 @@ const CONTACT = {
     "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20202%20San%20Jose%20CA%2095110",
 } as const;
 
-const MAILTO_QUOTE =
-  "mailto:info@leonixmedia.com?subject=Solicitud%20de%20cotizaci%C3%B3n%20-%20Productos%20para%20Promoci%C3%B3n";
+function promoMailtoHref(lang: Lang): string {
+  const subject =
+    lang === "en"
+      ? "Quote request — Promotional Products"
+      : "Solicitud de cotización — Productos para Promoción";
+  return `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}`;
+}
 
 function generalQuoteHref(lang: Lang): string {
   return `/tienda/contacto?service=cotizacion-general&lang=${lang}`;
@@ -208,23 +214,31 @@ function ContactActionLink({
 function HeroContactActions({ lang }: { lang: Lang }) {
   const quoteLabel = lang === "es" ? "Solicitar cotización" : "Request quote";
   const callLabel = lang === "es" ? "Llamar" : "Call";
-  const emailLabel = lang === "es" ? "Enviar email" : "Email";
   const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
 
   return (
-    <div className="flex flex-wrap justify-center gap-3">
-      <Link
-        href={generalQuoteHref(lang)}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
-        style={{ background: OLIVE_BG, color: OLIVE_FG }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
-      >
-        {quoteLabel}
-      </Link>
-      <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
-      <ContactActionLink href={MAILTO_QUOTE} label={emailLabel} />
-      <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
+    <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link
+          href={generalQuoteHref(lang)}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
+          style={{ background: OLIVE_BG, color: OLIVE_FG }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
+        >
+          {quoteLabel}
+        </Link>
+        <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
+        <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
+      </div>
+      <LeonixEmailContactBlock
+        email={CONTACT.email}
+        mailtoHref={promoMailtoHref(lang)}
+        lang={lang}
+        shareTitle={CONTACT.businessName}
+        showEmail={false}
+        className="flex justify-center"
+      />
     </div>
   );
 }
@@ -237,7 +251,6 @@ function BottomContactBlock({ lang }: { lang: Lang }) {
       : "Visit us, call us, or send us an email. We can help you choose the right products for your business.";
   const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
   const callLabel = lang === "es" ? "Llamar" : "Call";
-  const emailLabel = lang === "es" ? "Enviar email" : "Email";
 
   return (
     <section
@@ -263,11 +276,15 @@ function BottomContactBlock({ lang }: { lang: Lang }) {
               {CONTACT.phoneDisplay}
             </a>
           </p>
-          <p className="mt-1 break-all">
-            <a href={MAILTO_QUOTE} className="font-medium underline-offset-2 hover:underline">
-              {CONTACT.email}
-            </a>
-          </p>
+          <div className="mt-3">
+            <LeonixEmailContactBlock
+              email={CONTACT.email}
+              mailtoHref={promoMailtoHref(lang)}
+              lang={lang}
+              shareTitle={CONTACT.businessName}
+              className="text-left sm:text-center [&_p]:sm:justify-center [&>div:last-child]:sm:justify-center"
+            />
+          </div>
         </address>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -280,7 +297,6 @@ function BottomContactBlock({ lang }: { lang: Lang }) {
           </Link>
           <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
           <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
-          <ContactActionLink href={MAILTO_QUOTE} label={emailLabel} />
         </div>
       </div>
     </section>
