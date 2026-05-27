@@ -46,7 +46,14 @@ function unwrapMaskPlaceholders(text: string): string {
   return text.replace(/<x>(__LEONIX_MASK_\d+__)<\/x>/g, (_, m) => m);
 }
 
+function isDeepLProviderSelected(): boolean {
+  const provider = process.env.TRANSLATION_PROVIDER?.trim().toLowerCase();
+  if (!provider) return true;
+  return provider === "deepl";
+}
+
 function readDeepLApiKey(): string | null {
+  if (!isDeepLProviderSelected()) return null;
   const key = process.env.DEEPL_API_KEY?.trim();
   return key || null;
 }

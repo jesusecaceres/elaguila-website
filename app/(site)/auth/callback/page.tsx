@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createSupabaseBrowserClient, withAuthTimeout } from "../../../lib/supabase/browser";
+import {
+  createSupabaseBrowserClient,
+  waitForBrowserSession,
+  withAuthTimeout,
+} from "@/app/lib/supabase/browser";
 
 type Lang = "es" | "en";
 
@@ -33,7 +37,14 @@ function stripHashFromUrl() {
   }
 }
 
-export default function AuthCallbackPage() {
+function readCallbackSearchParams() {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+  return new URLSearchParams(window.location.search);
+}
+
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -52,8 +63,11 @@ export default function AuthCallbackPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const CALLBACK_TIMEOUT_MS = 12000;
+  const SESSION_WAIT_MS = 8000;
 
   useEffect(() => {
+    let cancelled = false;
+
     let supabase: ReturnType<typeof createSupabaseBrowserClient>;
     try {
       supabase = createSupabaseBrowserClient();
@@ -63,16 +77,58 @@ export default function AuthCallbackPage() {
       return;
     }
 
+    const params = readCallbackSearchParams();
+    const redirectFromUrl = safeInternalRedirect(
+      params.get("redirect") ?? redirectParam
+    );
+    const destination =
+      redirectFromUrl || redirectTo || `/dashboard?lang=${redirectLang}`;
+
+    function redirectToLoginWithError(message: string) {
+      const q = new URLSearchParams();
+      if (redirectFromUrl || redirectParam) {
+        q.set("redirect", redirectFromUrl || redirectParam || destination);
+      }
+      q.set("auth_error", "callback");
+      router.replace(`/login?${q.toString()}`);
+      if (!cancelled) {
+        setStatus("error");
+        setErrorMsg(message);
+      }
+    }
+
     async function finalizeSessionFromUrl() {
-      const code = searchParams?.get("code");
+      const oauthError = params.get("error");
+      const oauthErrorDescription = params.get("error_description");
+      if (oauthError) {
+        console.error("[auth] OAuth provider error", {
+          error: oauthError,
+          description: oauthErrorDescription,
+        });
+        throw new Error(
+          oauthErrorDescription?.trim() ||
+            oauthError ||
+            "OAuth sign-in was cancelled or denied."
+        );
+      }
+
+      const code = params.get("code");
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) throw error;
+        const { user } = await waitForBrowserSession(supabase, SESSION_WAIT_MS);
+        if (!user) {
+          throw new Error("Session was not established after OAuth exchange.");
+        }
         return;
       }
 
       const hash = window.location.hash?.replace(/^#/, "") ?? "";
-      if (!hash) return;
+      if (!hash) {
+        const { user } = await waitForBrowserSession(supabase, 1500);
+        if (user) return;
+        return;
+      }
 
       const hashParams = new URLSearchParams(hash);
       const access_token = hashParams.get("access_token");
@@ -86,16 +142,26 @@ export default function AuthCallbackPage() {
           refresh_token,
         });
         if (error) throw error;
+        const { user } = await waitForBrowserSession(supabase, SESSION_WAIT_MS);
+        if (!user) {
+          throw new Error("Session was not established after token handoff.");
+        }
       }
     }
 
     async function decideWhereToGo() {
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
+      const { session, user } = await waitForBrowserSession(
+        supabase,
+        SESSION_WAIT_MS
+      );
+      const u = user ?? session?.user ?? null;
 
       if (!u) {
-        const r = encodeURIComponent(redirectTo);
-        router.replace(`/login?redirect=${r}`);
+        redirectToLoginWithError(
+          redirectLang === "es"
+            ? "No pudimos completar el inicio de sesión. Intenta de nuevo."
+            : "We couldn't complete sign-in. Please try again."
+        );
         return;
       }
 
@@ -104,16 +170,16 @@ export default function AuthCallbackPage() {
         (meta.full_name as string)?.trim() || (meta.name as string)?.trim()
       );
 
-      const safeRedirect = safeInternalRedirect(redirectParam);
+      const safeRedirect = redirectFromUrl || safeInternalRedirect(redirectParam);
       const isRequirePost = safeRedirect && safeRedirect.includes("require=post");
 
       if (isRequirePost) {
-        router.replace(redirectTo);
+        router.replace(destination);
         return;
       }
 
       if (safeRedirect) {
-        router.replace(redirectTo);
+        router.replace(destination);
         return;
       }
 
@@ -137,21 +203,24 @@ export default function AuthCallbackPage() {
       } catch (e: unknown) {
         stripHashFromUrl();
         console.error("[auth] callback failed", e);
-        setStatus("error");
         const msg = (e as { message?: string })?.message;
-        setErrorMsg(
+        const safeMessage =
           msg === "auth_timeout"
-            ? (redirectLang === "es"
-                ? "El servicio tardó demasiado. Intenta de nuevo."
-                : "Service took too long. Please try again.")
-            : msg ?? "Unknown error"
-        );
+            ? redirectLang === "es"
+              ? "El servicio tardó demasiado. Intenta de nuevo."
+              : "Service took too long. Please try again."
+            : msg ?? "Unknown error";
+
+        redirectToLoginWithError(safeMessage);
       }
     }
 
-    run();
-     
-  }, []);
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [redirectParam, redirectTo, redirectLang, router]);
 
   const langDisplay = redirectTo ? redirectLang : lang;
 
@@ -182,9 +251,11 @@ export default function AuthCallbackPage() {
             </p>
 
             <button
-              onClick={() =>
-                router.replace(`/login?redirect=${encodeURIComponent(redirectTo)}`)
-              }
+              onClick={() => {
+                const q = new URLSearchParams();
+                q.set("redirect", redirectTo);
+                router.replace(`/login?${q.toString()}`);
+              }}
               className="mt-6 w-full rounded-xl bg-yellow-500/90 hover:bg-yellow-500 text-black font-semibold py-3"
             >
               {langDisplay === "es" ? "Volver a intentar" : "Try again"}
@@ -193,5 +264,19 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+          <div className="text-yellow-400 font-semibold text-lg">…</div>
+        </main>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

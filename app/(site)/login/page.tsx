@@ -91,6 +91,7 @@ export default function LoginPage() {
 
   const redirectParam = searchParams?.get("redirect");
   const modeParam = searchParams?.get("mode");
+  const authErrorParam = searchParams?.get("auth_error");
   const urlLang = searchParams?.get("lang") as Lang | null;
 
   const defaultLang: Lang = urlLang === "en" ? "en" : "es";
@@ -160,6 +161,15 @@ export default function LoginPage() {
     }, 1000);
     return () => window.clearInterval(t);
   }, [cooldownSeconds]);
+
+  useEffect(() => {
+    if (authErrorParam !== "callback") return;
+    setMsg(
+      lang === "es"
+        ? "No pudimos completar el inicio de sesión con Google o Facebook. Intenta de nuevo."
+        : "We couldn't complete sign-in with Google or Facebook. Please try again."
+    );
+  }, [authErrorParam, lang]);
 
   const callbackUrl = useMemo(() => {
     if (typeof window === "undefined") return "";

@@ -28,6 +28,7 @@ import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidades
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
+import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
 import { SV } from "./serviciosDesignTokens";
 
 export function ServiciosProfileView({
@@ -78,6 +79,7 @@ export function ServiciosProfileView({
   serviciosDiscoveryResultsHref?: string | null;
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
+  const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
@@ -109,82 +111,87 @@ export function ServiciosProfileView({
             </Link>
           </div>
         ) : null}
-        {hasHeroIdentityResolved(profile) ? (
-          <ServiciosHero profile={profile} lang={lang} />
-        ) : null}
-
-        {hasQuickFactsResolved(profile) ? (
-          <div className="mt-5 md:mt-8">
-            <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} />
-          </div>
-        ) : null}
-
-        {/*
-          NEW LAYOUT: Two-column desktop with reorganized sections
-          Mobile: stacked order per requirements
-        */}
-        <div className="mt-5 grid grid-cols-1 gap-5 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]">
-          {/* Main column: mobile puts About before Trust; promos stay out of the contact panel when a promos section exists. */}
-          <div className="order-1 flex min-w-0 flex-col gap-5 sm:gap-8 lg:order-1">
-            {hasAboutSectionResolved(profile) ? (
-              <div className="order-1 lg:order-2">
-                <ServiciosAbout profile={profile} lang={lang} />
-              </div>
-            ) : null}
-
-            <div className={hasAboutSectionResolved(profile) ? "order-2 lg:order-1" : "order-1 lg:order-1"}>
-              <ServiciosTrustSection profile={profile} lang={lang} />
-            </div>
-
-            <div className="order-3 lg:hidden">
-              <ServiciosBusinessHubContactCard
-                profile={profile}
-                lang={lang}
-                listingSlug={analyticsListingSlug}
-                listingShareUrl={listingShareUrl}
-                engagementListingId={engagementListingId}
-                engagementOwnerUserId={engagementOwnerUserId}
-                persistListingEngagement={persistListingEngagement}
-                publicLikeCount={publicLikeCount}
-                directContactFasterResponseHint={directContactFasterResponseHint}
-                showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
-              />
-            </div>
-
-            <div className="order-4 lg:order-3">
-              <ServiciosGalleryWithTabs
-                profile={profile}
-                lang={lang}
-                listingSlug={analyticsListingSlug}
-                listingShareUrl={listingShareUrl}
-              />
-            </div>
-
-            <div className="order-5 lg:hidden">
-              <ServiciosPromocionesCard profile={profile} lang={lang} />
-            </div>
-
-            {hasCredentialsResolved(profile) ? (
-              <div className="order-6 lg:order-4">
-                <ServiciosLicense profile={profile} lang={lang} />
-              </div>
-            ) : null}
-
-            <div className="order-7 lg:order-5">
-              <ServiciosOfferedSection
-                services={profile.services}
-                lang={lang}
-                profileForQuote={profile}
-                listingSlug={analyticsListingSlug}
-                listingShareUrl={listingShareUrl}
-              />
-            </div>
-
-            <div className="order-8 lg:order-6">
-              {hasBusinessHighlightsResolved(profile) ? (
-                <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+        <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
+          {(displayProfile, translateControl) => (
+            <>
+              {hasHeroIdentityResolved(profile) ? (
+                <ServiciosHero profile={displayProfile} lang={lang} />
               ) : null}
-            </div>
+
+              {hasQuickFactsResolved(profile) ? (
+                <div className="mt-5 md:mt-8">
+                  <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} />
+                </div>
+              ) : null}
+
+              {/*
+                NEW LAYOUT: Two-column desktop with reorganized sections
+                Mobile: stacked order per requirements
+              */}
+              <div className="mt-5 grid grid-cols-1 gap-5 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]">
+                {/* Main column: mobile puts About before Trust; promos stay out of the contact panel when a promos section exists. */}
+                <div className="order-1 flex min-w-0 flex-col gap-5 sm:gap-8 lg:order-1">
+                  {translateControl ? <div className="order-0">{translateControl}</div> : null}
+
+                  {hasAboutSectionResolved(profile) ? (
+                    <div className="order-1 lg:order-2">
+                      <ServiciosAbout profile={displayProfile} lang={lang} />
+                    </div>
+                  ) : null}
+
+                  <div className={hasAboutSectionResolved(profile) ? "order-2 lg:order-1" : "order-1 lg:order-1"}>
+                    <ServiciosTrustSection profile={profile} lang={lang} />
+                  </div>
+
+                  <div className="order-3 lg:hidden">
+                    <ServiciosBusinessHubContactCard
+                      profile={profile}
+                      lang={lang}
+                      listingSlug={analyticsListingSlug}
+                      listingShareUrl={listingShareUrl}
+                      engagementListingId={engagementListingId}
+                      engagementOwnerUserId={engagementOwnerUserId}
+                      persistListingEngagement={persistListingEngagement}
+                      publicLikeCount={publicLikeCount}
+                      directContactFasterResponseHint={directContactFasterResponseHint}
+                      showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
+                    />
+                  </div>
+
+                  <div className="order-4 lg:order-3">
+                    <ServiciosGalleryWithTabs
+                      profile={profile}
+                      lang={lang}
+                      listingSlug={analyticsListingSlug}
+                      listingShareUrl={listingShareUrl}
+                    />
+                  </div>
+
+                  <div className="order-5 lg:hidden">
+                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
+                  </div>
+
+                  {hasCredentialsResolved(profile) ? (
+                    <div className="order-6 lg:order-4">
+                      <ServiciosLicense profile={profile} lang={lang} />
+                    </div>
+                  ) : null}
+
+                  <div className="order-7 lg:order-5">
+                    <ServiciosOfferedSection
+                      services={displayProfile.services}
+                      lang={lang}
+                      profileForQuote={profile}
+                      listingSlug={analyticsListingSlug}
+                      listingShareUrl={listingShareUrl}
+                    />
+                  </div>
+
+                  <div className="order-8 lg:order-6">
+                    {hasBusinessHighlightsResolved(profile) ? (
+                      <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
+                    ) : null}
+                  </div>
 
             {hasAmenityOptionsResolved(profile) ? (
               <div className="order-9 lg:order-7">
@@ -236,10 +243,13 @@ export function ServiciosProfileView({
               showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
             />
             <div className="mt-5 lg:mt-6">
-              <ServiciosPromocionesCard profile={profile} lang={lang} />
+              <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
             </div>
           </aside>
         </div>
+            </>
+          )}
+        </ServiciosPublicTranslationLayer>
 
         {leonixAdIdFooter ? (
           <p className="mx-auto mt-8 max-w-3xl border-t border-black/[0.06] pt-4 text-center text-[11px] leading-relaxed text-[#7A7164]">

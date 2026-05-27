@@ -22,10 +22,19 @@
 
 | Variable | Required | Notes |
 |---|---|---|
+| `TRANSLATION_PROVIDER` | Recommended | Set to `deepl` (default when omitted). Any other value → route returns **503**. |
 | `DEEPL_API_KEY` | **Yes** | DeepL auth key. Free-tier keys ending in `:fx` auto-select the free API host unless `DEEPL_API_URL` is set. |
 | `DEEPL_API_URL` | No | Optional override, e.g. `https://api-free.deepl.com/v2/translate` or `https://api.deepl.com/v2/translate` |
 
-If `DEEPL_API_KEY` is missing, the route returns **HTTP 503** with `{ "error": "Translation provider is not configured." }` — no fake success, no key leakage.
+Example (local `.env.local` / Vercel — no real secrets in git):
+
+```bash
+TRANSLATION_PROVIDER=deepl
+DEEPL_API_KEY=
+# DEEPL_API_URL=https://api-free.deepl.com/v2/translate
+```
+
+If `DEEPL_API_KEY` is missing or `TRANSLATION_PROVIDER` is not `deepl` (when set), the route returns **HTTP 503** with `{ "error": "Translation provider is not configured." }` — no fake success, no key leakage.
 
 There is **no** `.env.example` in this repo; configure the variables above in Vercel / local `.env.local` only.
 
@@ -74,7 +83,8 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 - Route does not accept separate raw contact fields.
 - Provider errors return generic messages (502/503); no DeepL response bodies or keys in JSON.
 - Full ad text and API keys must not be logged.
-- **Rate limiting:** not implemented in T3 — TODO in route for T4+ (per-user / auth).
+- **Rate limiting / auth:** not implemented in T3 — TODO in route for T4+.
+- **Durable cache / `listing_translations`:** not implemented in T3 — TODO in route; client session cache only (Gate 3A helpers).
 
 ### Out of scope (T3)
 
@@ -82,11 +92,44 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 - No `listing_translations` table or Supabase migration
 - No durable translation storage (session cache on client only via helpers)
 
-## Next gate: T4 — Servicios TranslateAdControl pilot
+## Gate T4 (Servicios pilot) ✅
 
-1. Wire `TranslateAdControl` on Servicios public profile/detail boundary only.
-2. Pass `requestTranslation` that `POST`s to `/api/translate-ad` with masked fields.
-3. Keep contact fields out of the payload; preserve `?lang=` behavior from T2.
+### Wired surfaces
+
+| Surface | Path |
+|---|---|
+| Public Clasificados detail | `app/(site)/clasificados/servicios/[slug]/page.tsx` → `ServiciosProfileView` or `ServiciosProfessionalProfileShell` |
+| Translation layer | `app/(site)/servicios/components/ServiciosPublicTranslationLayer.tsx` |
+| Payload + API client | `app/(site)/servicios/lib/serviciosTranslateAd.ts` |
+
+- `TranslateAdControl` with `category="servicios"`, `siteLocale` from `?lang=`, `listingKey` = public slug (or engagement id fallback).
+- Client `requestServiciosAdTranslation` → `POST /api/translate-ad` (masked fields only; no API keys in the browser).
+- **Session cache only** via Gate 3A helpers (`leonix:adTranslate`); no Supabase migration and no `listing_translations` table.
+
+### Translated fields (user prose)
+
+- About body (`description`)
+- Specialties line (`customServiceText`)
+- Service card titles + secondary lines (`details` — tab-encoded, reapplied by index)
+- Business highlight labels (`highlights` — newline-separated)
+- First promotion headline (`shareText`)
+
+### Excluded (never sent / never replaced)
+
+- `businessName`, phone, email, website, WhatsApp, address, maps URL, social links, prices, license numbers, raw URLs, contact card fields
+
+### Original language (T4 limitation)
+
+- Listings do not yet store advertiser `original_language`; pilot uses `originalLocale="unknown"` and `sourceLocale: "unknown"` on the API request.
+- CTA is shown when translatable prose exists and `siteLocale` is `es` or `en` (Servicios-specific; global `shouldOfferTranslateAd` unchanged).
+- Future: persist original locale on publish and pass detected/stored locale for smarter CTA gating.
+
+### Next rollout candidates
+
+1. **Empleos** — job title + description boundary
+2. **Autos** — vehicle description / highlights
+3. **Viajes** — offer prose
+4. **Generic `anuncio/[id]` shell** — after per-category pilots prove the contract
 
 ## Later gates
 

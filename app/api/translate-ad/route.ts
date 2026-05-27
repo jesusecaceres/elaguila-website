@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
   }
 
   // TODO(T4+): per-user rate limiting and optional auth before calling external provider.
+  // TODO(later): durable translation cache / listing_translations table — no DB writes in T3.
 
   try {
     const result = await translateAdWithConfiguredProvider(parsed);

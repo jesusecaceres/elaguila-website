@@ -1,5 +1,10 @@
 // lib/supabase/browser.ts
-import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import {
+  createClient,
+  type Session,
+  type SupabaseClient,
+  type User,
+} from "@supabase/supabase-js";
 
 /** Single browser client to avoid multiple GoTrueClient instances (same storage key). */
 let browserSingleton: SupabaseClient | null = null;
@@ -31,7 +36,9 @@ export function createSupabaseBrowserClient(): SupabaseClient {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      // OAuth/magic-link completion is handled explicitly in /auth/callback.
+      detectSessionInUrl: false,
+      flowType: "pkce",
     },
   } as const;
 
@@ -49,6 +56,52 @@ export function createSupabaseBrowserClient(): SupabaseClient {
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
+  });
+}
+
+/**
+ * Waits for a browser session after OAuth code exchange or hash token handoff.
+ * Prefers local `getSession()` (immediate) and listens for SIGNED_IN when needed.
+ */
+export async function waitForBrowserSession(
+  supabase: SupabaseClient,
+  timeoutMs: number
+): Promise<{ session: Session | null; user: User | null }> {
+  const read = async () => {
+    const { data } = await supabase.auth.getSession();
+    const session = data.session ?? null;
+    return { session, user: session?.user ?? null };
+  };
+
+  const initial = await read();
+  if (initial.user) return initial;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (session: Session | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      subscription.unsubscribe();
+      resolve({ session, user: session?.user ?? null });
+    };
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
+        session?.user
+      ) {
+        finish(session);
+      }
+    });
+
+    void read().then(({ session, user }) => {
+      if (user) finish(session);
+    });
   });
 }
 

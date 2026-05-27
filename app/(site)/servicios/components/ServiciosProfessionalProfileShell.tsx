@@ -24,6 +24,7 @@ import {
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
+import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
 import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
 import { ServiciosAbout } from "./ServiciosAbout";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
@@ -229,7 +230,7 @@ export function ServiciosProfessionalProfileShell({
 }: ServiciosProfessionalProfileShellProps) {
   const primaryCta = getPrimaryCtaLabel(template, lang);
   const servicesTitle = getServicesTitle(template, lang);
-  const chips = collectServiceChips(profile, 8);
+  const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
   const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
 
   const scrollToSection = useCallback((id: string) => {
@@ -423,8 +424,14 @@ export function ServiciosProfessionalProfileShell({
             </button>
           </div>
 
+          <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
+            {(displayProfile, translateControl) => {
+              const chips = collectServiceChips(displayProfile, 8);
+              return (
           <div className="px-3 py-4 sm:px-6 sm:py-6">
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} space-y-5 sm:space-y-6`}>
+              {translateControl ? <div>{translateControl}</div> : null}
+
               {(chips.length > 0 || hasQuickFactsResolved(profile)) && (
                 <div
                   className="rounded-2xl border p-4 sm:p-5"
@@ -455,7 +462,7 @@ export function ServiciosProfessionalProfileShell({
                 </div>
               )}
 
-              {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
+              {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={displayProfile} lang={lang} /> : null}
 
               {hasGallerySectionResolved(profile) ? (
                 <ServiciosGalleryWithTabs
@@ -485,7 +492,7 @@ export function ServiciosProfessionalProfileShell({
                       <ServiciosLicense profile={profile} lang={lang} />
                     ) : null}
                     {hasBusinessHighlightsResolved(profile) ? (
-                      <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+                      <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
                     ) : null}
                     <ServiciosSmartTrustSummary profile={profile} lang={lang} />
                   </section>
@@ -499,7 +506,7 @@ export function ServiciosProfessionalProfileShell({
                   showServicesSection ? (
                     <section id="servicios-pro-services" className={SECTION_SCROLL}>
                       <ServiciosOfferedSection
-                        services={profile.services}
+                        services={displayProfile.services}
                         lang={lang}
                         profileForQuote={profile}
                         listingSlug={analyticsListingSlug}
@@ -519,7 +526,7 @@ export function ServiciosProfessionalProfileShell({
 
                 {template === "legal_provider" && showServicesSection ? (
                   <ServiciosOfferedSection
-                    services={profile.services}
+                    services={displayProfile.services}
                     lang={lang}
                     profileForQuote={profile}
                     listingSlug={analyticsListingSlug}
@@ -546,7 +553,7 @@ export function ServiciosProfessionalProfileShell({
                 </div>
 
                 <div className="lg:hidden">
-                  <ServiciosPromocionesCard profile={profile} lang={lang} />
+                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
                 </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
@@ -572,7 +579,7 @@ export function ServiciosProfessionalProfileShell({
                   />
                 </div>
                 <div className="mt-5 lg:mt-6">
-                  <ServiciosPromocionesCard profile={profile} lang={lang} />
+                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
                 </div>
               </aside>
             </div>
@@ -583,6 +590,9 @@ export function ServiciosProfessionalProfileShell({
               </p>
             ) : null}
           </div>
+              );
+            }}
+          </ServiciosPublicTranslationLayer>
         </div>
       </main>
 
