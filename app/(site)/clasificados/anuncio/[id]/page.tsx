@@ -37,6 +37,9 @@ import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { copyToClipboard } from "@/app/components/cta";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -486,6 +489,32 @@ export default function AnuncioDetallePage() {
 
   const listing: Listing | undefined = sampleListing ?? fetchedListing;
 
+  const listingKey = useMemo(
+    () => (listing?.leonix_ad_id?.trim() || listing?.id || "").trim(),
+    [listing?.leonix_ad_id, listing?.id],
+  );
+
+  const anuncioTx = useAnuncioListingTranslation(listing, lang, listingKey);
+  const proseListing = anuncioTx.displayListing ?? listing;
+
+  const translateControl =
+    listing && anuncioTx.offerTranslate ? (
+      <div className="mb-3 flex justify-start" data-anuncio-translate-ad="1">
+        <TranslateAdControl
+          siteLocale={lang}
+          originalLocale={anuncioTx.sourceLocale}
+          category="anuncio"
+          listingKey={listingKey}
+          version="anuncio-t7-v1"
+          translatableContent={anuncioTx.translatableContent}
+          onTranslated={anuncioTx.onTranslated}
+          onShowOriginal={anuncioTx.onShowOriginal}
+          requestTranslation={requestAdTranslation}
+          className="w-full sm:w-auto"
+        />
+      </div>
+    ) : null;
+
   useEffect(() => {
     setBrPublishBanner(null);
     if (!listing?.id || sampleListing) return;
@@ -628,7 +657,7 @@ export default function AnuncioDetallePage() {
 
   const anuncioShareBody = useMemo(() => {
     if (!listing) return "";
-    const title = listing.title[lang];
+    const title = (proseListing ?? listing).title[lang];
     const price = listing.priceLabel[lang];
     const city = listing.city;
     const url = shareListingAbsUrl || (typeof window !== "undefined" ? window.location.href : anuncioDetailHref);
@@ -1101,45 +1130,51 @@ export default function AnuncioDetallePage() {
 
   if (useBuscoQuickDetail && listing.category === "busco") {
     return (
-      <BuscoPublishedDetailPage
+      <>
+        {translateControl}
+        <BuscoPublishedDetailPage
         listing={{
           id: listing.id,
           category: "busco",
-          title: listing.title,
+          title: proseListing!.title,
           priceLabel: listing.priceLabel,
           city: listing.city,
-          blurb: listing.blurb,
+          blurb: proseListing!.blurb,
           images: listing.images ?? null,
           contact_phone: listing.contact_phone ?? null,
           contact_email: listing.contact_email ?? null,
-          detailPairs: listing.detailPairs,
+          detailPairs: proseListing!.detailPairs,
           owner_id: listing.owner_id ?? null,
         }}
         lang={lang}
         skipAnalytics={Boolean(sampleListing)}
       />
+      </>
     );
   }
 
   if (useCommunityQuickWysiwyg && (listing.category === "clases" || listing.category === "comunidad")) {
     return (
-      <CommunityQuickPublishedDetailPage
+      <>
+        {translateControl}
+        <CommunityQuickPublishedDetailPage
         listing={{
           id: listing.id,
           category: listing.category,
-          title: listing.title,
+          title: proseListing!.title,
           priceLabel: listing.priceLabel,
           city: listing.city,
-          blurb: listing.blurb,
+          blurb: proseListing!.blurb,
           images: listing.images ?? null,
           contact_phone: listing.contact_phone ?? null,
           contact_email: listing.contact_email ?? null,
-          detailPairs: listing.detailPairs,
+          detailPairs: proseListing!.detailPairs,
           owner_id: listing.owner_id ?? null,
         }}
         lang={lang}
         skipAnalytics={Boolean(sampleListing)}
       />
+      </>
     );
   }
 
@@ -1161,18 +1196,21 @@ export default function AnuncioDetallePage() {
             {brPublishBanner}
           </div>
         ) : null}
+        {translateControl}
         <EnVentaAnuncioLayout
           listing={{
             id: listing.id,
-            title: listing.title,
+            title: proseListing!.title,
             priceLabel: listing.priceLabel,
             city: listing.city,
-            blurb: listing.blurb,
+            blurb: proseListing!.blurb,
             images: listing.images ?? null,
             sellerType: listing.sellerType,
             businessName: listing.businessName ?? null,
             business_name: listing.business_name ?? null,
-            detailPairs: Array.isArray(ev.detailPairs) ? (ev.detailPairs as Array<{ label: string; value: string }>) : null,
+            detailPairs: Array.isArray(proseListing!.detailPairs)
+              ? (proseListing!.detailPairs as Array<{ label: string; value: string }>)
+              : null,
             created_at: listing.created_at ?? null,
             status: listing.status,
             contact_phone: ev.contact_phone ?? null,
@@ -1237,8 +1275,8 @@ export default function AnuncioDetallePage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "ClassifiedAd",
-            name: listing.title[lang],
-            description: listing.blurb[lang],
+            name: proseListing!.title[lang],
+            description: proseListing!.blurb[lang],
             url: `/clasificados/anuncio/${listing.id}`,
             price: listing.priceLabel[lang],
             priceCurrency: "USD",
@@ -1395,7 +1433,7 @@ export default function AnuncioDetallePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h1 className="text-4xl md:text-5xl font-bold text-[#111111] leading-tight">
-                        {listing.title[lang]}
+                        {proseListing!.title[lang]}
                       </h1>
                       {listing.leonix_ad_id?.trim() ? (
                         <p className="mt-2 text-sm text-[#5C5346]">
@@ -1508,13 +1546,14 @@ export default function AnuncioDetallePage() {
                           : "border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)]",
                     )}
                   >
+                    {translateControl}
                     <div
                       className={cx(
                         "text-sm leading-relaxed",
                         isCommunityCategory ? "text-[#2A2626]" : "text-[#111111]",
                       )}
                     >
-                      {listing.blurb[lang]}
+                      {proseListing!.blurb[lang]}
                     </div>
                   </div>
               </>
@@ -1672,7 +1711,7 @@ export default function AnuncioDetallePage() {
                   <CommunityQuickAnuncioDetail
                     lang={lang}
                     category={listing.category}
-                    detailPairs={listing.detailPairs}
+                    detailPairs={proseListing!.detailPairs}
                     city={listing.city}
                     isFree={listing.isFree ?? false}
                     priceLabel={listing.priceLabel[lang]}
@@ -1887,7 +1926,7 @@ export default function AnuncioDetallePage() {
                 <LeonixShareButton
                   listingId={listing.id}
                   listingUrl={shareListingAbsUrl || anuncioDetailHref}
-                  listingTitle={listing.title[lang]}
+                  listingTitle={proseListing!.title[lang]}
                   shareText={anuncioShareBody}
                   category={listing.category}
                   ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}

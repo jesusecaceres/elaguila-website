@@ -15,6 +15,15 @@ export type { TranslateAdProviderFn, TranslateAdRequest } from "@/app/lib/transl
 export { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 
 export {
+  applyAnuncioTranslation,
+  buildAnuncioTranslatableContent,
+  shouldOfferAnuncioTranslateAd,
+  type AnuncioListingTranslatable,
+} from "@/app/lib/translation/anuncioTranslateAd";
+
+export { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
+
+export {
   buildAdTranslationPayloadSlice,
   buildTranslateCacheKey,
   clearCachedAdTranslation,

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShell";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
+import { submitLeadForm } from "@/app/(site)/lib/submitLeadForm";
 
 const COPY = {
   es: {
@@ -24,6 +25,7 @@ const COPY = {
       { value: "both", label: "Ambos / Both" },
     ],
     submit: "Notifícame",
+    submitting: "Guardando…",
     successTitle: "Gracias",
     successBody: "Te avisaremos cuando Leonix Media lance oficialmente.",
     placeholders: {
@@ -53,6 +55,7 @@ const COPY = {
       { value: "both", label: "Both" },
     ],
     submit: "Notify Me",
+    submitting: "Saving…",
     successTitle: "Thank you",
     successBody: "We'll notify you when Leonix Media officially launches.",
     placeholders: {
@@ -76,12 +79,42 @@ export default function NewsletterPageClient() {
   const emailPrefill = searchParams?.get("email") ?? "";
   const t = COPY[lang];
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const preserveQueryKeys = source ? (["source"] as const) : undefined;
+  const resolvedSource = source.trim() || "newsletter_page";
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitted(true);
+    if (loading) return;
+    setError(null);
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+
+    const result = await submitLeadForm(
+      "/api/newsletter/subscribe",
+      {
+        email: fd.get("email"),
+        name: fd.get("name"),
+        city: fd.get("city"),
+        zipCode: fd.get("zip"),
+        preferredLanguage: fd.get("preferredLanguage"),
+        interests: fd.get("interests"),
+        source: resolvedSource,
+        lang,
+      },
+      lang
+    );
+
+    setLoading(false);
+    if (result.ok) {
+      setSubmitted(true);
+      return;
+    }
+    setError(result.message);
   }
 
   if (submitted) {
@@ -116,13 +149,12 @@ export default function NewsletterPageClient() {
         <p className="mb-4 text-sm font-medium text-[#556B3E]">{t.fromComingSoon}</p>
       ) : null}
       <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-sm">
-        {source ? <input type="hidden" name="source" value={source} readOnly /> : null}
-        <input type="hidden" name="lang" value={lang} readOnly />
         <Field label={t.fields.email}>
           <input
             name="email"
             type="email"
             required
+            disabled={loading}
             autoComplete="email"
             defaultValue={emailPrefill}
             className={inputClass}
@@ -133,6 +165,7 @@ export default function NewsletterPageClient() {
           <input
             name="name"
             type="text"
+            disabled={loading}
             autoComplete="name"
             className={inputClass}
             placeholder={t.placeholders.name}
@@ -143,6 +176,7 @@ export default function NewsletterPageClient() {
             <input
               name="city"
               type="text"
+              disabled={loading}
               autoComplete="address-level2"
               className={inputClass}
               placeholder={t.placeholders.city}
@@ -153,6 +187,7 @@ export default function NewsletterPageClient() {
               name="zip"
               type="text"
               inputMode="numeric"
+              disabled={loading}
               autoComplete="postal-code"
               className={inputClass}
               placeholder={t.placeholders.zip}
@@ -160,11 +195,7 @@ export default function NewsletterPageClient() {
           </Field>
         </div>
         <Field label={t.fields.preferredLanguage}>
-          <select
-            name="preferredLanguage"
-            defaultValue={lang}
-            className={inputClass}
-          >
+          <select name="preferredLanguage" defaultValue={lang} disabled={loading} className={inputClass}>
             {t.preferredOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -176,15 +207,22 @@ export default function NewsletterPageClient() {
           <textarea
             name="interests"
             rows={3}
+            disabled={loading}
             className={inputClass}
             placeholder={t.placeholders.interests}
           />
         </Field>
+        {error ? (
+          <p className="rounded-lg border border-[#7A1E2C]/30 bg-[#7A1E2C]/10 px-3 py-2 text-sm text-[#7A1E2C]" role="alert">
+            {error}
+          </p>
+        ) : null}
         <button
           type="submit"
-          className="w-full rounded-lg bg-[#556B3E] px-6 py-3 text-base font-bold text-white shadow-md transition hover:bg-[#445632]"
+          disabled={loading}
+          className="w-full rounded-lg bg-[#556B3E] px-6 py-3 text-base font-bold text-white shadow-md transition hover:bg-[#445632] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {t.submit}
+          {loading ? t.submitting : t.submit}
         </button>
       </form>
     </GateDestinationShell>

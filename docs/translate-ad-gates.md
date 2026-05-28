@@ -175,12 +175,41 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 |---|---|
 | Title, description, includes[], whoItsFor[], notes, trustNote | Destination, priceFrom, duration, departureCity, dateRange, partner name/CTAs/hrefs, contact channels, main booking CTA, image URLs, slugs/IDs |
 
+## Gate T7 (Generic `anuncio/[id]`) ✅
+
+### Wired surfaces
+
+| Surface | Path / modules |
+|---|---|
+| Generic public detail | `app/(site)/clasificados/anuncio/[id]/page.tsx` |
+| Helpers + hook | `app/lib/translation/anuncioTranslateAd.ts`, `useAnuncioListingTranslation.ts` |
+| Control | `TranslateAdControl` with `category="anuncio"`, `version="anuncio-t7-v1"` |
+| Client API | `requestAdTranslation` → `POST /api/translate-ad` |
+
+- **No Supabase migration**; `public.listings` has no `original_language` column yet.
+- **Unknown-source strategy:** `sourceLocale` / `originalLocale` = `"unknown"` on every request; CTA shows when translatable prose exists and `siteLocale` is `es` or `en` (does not guess Spanish/English as source).
+- **Session cache only** (Gate 3A helpers); no `listing_translations` table or durable storage.
+- Single `useAnuncioListingTranslation` instance in the page drives both `TranslateAdControl` and `proseListing` display (title, blurb, prose `detailPairs`).
+- Inherited branch shells (Busco quick, Comunidad/Clases WYSIWYG, En Venta / Bienes Raíces `EnVentaAnuncioLayout`) receive translated title/blurb/detail prose via props; contact/price/city/IDs stay on the original `listing` object.
+- `ContactActions`, saved/guardado rail, and `LeonixShareButton` hub are unchanged; CTA is placed above prose blocks, not inside contact/share rails.
+
+### Translated vs excluded
+
+| Translated | Excluded |
+|---|---|
+| Title, description/blurb, user-authored `detailPairs` values (human labels only; `Leonix:*` and contact/spec labels filtered) | Phone, email, website, WhatsApp, URLs, address/map links, price, dates/times, city/state, category/status codes, business/seller/company names, Leonix ad id, structured specs (bed/bath/VIN/mileage/sqft), legal disclaimers |
+
+### Follow-up
+
+- Add `original_language` on `public.listings` (migration + publish pipeline) and pass stored locale instead of `"unknown"`.
+- Per-branch polish where delegated layouts still render untranslated nested prose.
+
 ### Next rollout candidates
 
-1. **Generic `anuncio/[id]` shell**
-2. **Rentas**
-3. **En Venta**
-4. **Restaurantes** — after `lang` hardcode fix / verification
+1. **Rentas** dedicated detail route
+2. **En Venta** branch polish if nested layout prose is not fully covered
+3. **Restaurantes** dedicated detail
+4. **Bienes Raíces** dedicated/preview polish
 
 ## Later gates
 

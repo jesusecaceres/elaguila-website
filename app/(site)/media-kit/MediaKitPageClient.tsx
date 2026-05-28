@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShell";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
+import { submitLeadForm } from "@/app/(site)/lib/submitLeadForm";
 
 const COPY = {
   es: {
@@ -18,8 +19,9 @@ const COPY = {
       message: "Mensaje",
     },
     submit: "Solicitar Media Kit",
+    submitting: "Enviando…",
     successTitle: "¡Gracias!",
-    successBody: "Recibimos tu solicitud. Te contactaremos cuando el Media Kit esté listo.",
+    successBody: "Te enviaremos el Media Kit cuando esté listo.",
     placeholders: {
       name: "Tu nombre",
       email: "tu@correo.com",
@@ -40,8 +42,9 @@ const COPY = {
       message: "Message",
     },
     submit: "Request Media Kit",
+    submitting: "Sending…",
     successTitle: "Thank you!",
-    successBody: "We received your request. We'll reach out when the Media Kit is ready.",
+    successBody: "We'll send you the Media Kit when it's ready.",
     placeholders: {
       name: "Your name",
       email: "you@example.com",
@@ -63,10 +66,38 @@ export default function MediaKitPageClient() {
   );
   const t = COPY[lang];
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitted(true);
+    if (loading) return;
+    setError(null);
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+
+    const result = await submitLeadForm(
+      "/api/media-kit/request",
+      {
+        name: fd.get("name"),
+        email: fd.get("email"),
+        phone: fd.get("phone"),
+        business: fd.get("business"),
+        message: fd.get("message"),
+        lang,
+        source: "media_kit_page",
+      },
+      lang
+    );
+
+    setLoading(false);
+    if (result.ok) {
+      setSubmitted(true);
+      return;
+    }
+    setError(result.message);
   }
 
   if (submitted) {
@@ -88,6 +119,7 @@ export default function MediaKitPageClient() {
             name="name"
             type="text"
             required
+            disabled={loading}
             autoComplete="name"
             className={inputClass}
             placeholder={t.placeholders.name}
@@ -98,6 +130,7 @@ export default function MediaKitPageClient() {
             name="email"
             type="email"
             required
+            disabled={loading}
             autoComplete="email"
             className={inputClass}
             placeholder={t.placeholders.email}
@@ -107,6 +140,7 @@ export default function MediaKitPageClient() {
           <input
             name="phone"
             type="tel"
+            disabled={loading}
             autoComplete="tel"
             className={inputClass}
             placeholder={t.placeholders.phone}
@@ -116,6 +150,7 @@ export default function MediaKitPageClient() {
           <input
             name="business"
             type="text"
+            disabled={loading}
             autoComplete="organization"
             className={inputClass}
             placeholder={t.placeholders.business}
@@ -125,15 +160,22 @@ export default function MediaKitPageClient() {
           <textarea
             name="message"
             rows={4}
+            disabled={loading}
             className={inputClass}
             placeholder={t.placeholders.message}
           />
         </Field>
+        {error ? (
+          <p className="rounded-lg border border-[#7A1E2C]/30 bg-[#7A1E2C]/10 px-3 py-2 text-sm text-[#7A1E2C]" role="alert">
+            {error}
+          </p>
+        ) : null}
         <button
           type="submit"
-          className="w-full rounded-lg bg-[#7A1E2C] px-6 py-3 text-base font-bold text-white shadow-md transition hover:bg-[#5e1721]"
+          disabled={loading}
+          className="w-full rounded-lg bg-[#7A1E2C] px-6 py-3 text-base font-bold text-white shadow-md transition hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {t.submit}
+          {loading ? t.submitting : t.submit}
         </button>
       </form>
     </GateDestinationShell>
