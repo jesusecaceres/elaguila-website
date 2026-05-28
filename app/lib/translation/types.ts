@@ -41,7 +41,10 @@ export type TranslatableAdFieldKey = keyof Pick<
 
 export type TranslatableAdFields = Partial<Record<TranslatableAdFieldKey, string>>;
 
-export type TranslationProviderId = string;
+/** Primary Translate Ad provider id (T3G). */
+export const GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID = "google-cloud-translation" as const;
+
+export type TranslationProviderId = typeof GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID | string;
 
 export type AdTranslationResult = {
   translated: TranslatableAdFields;

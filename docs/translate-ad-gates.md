@@ -90,7 +90,7 @@ There is **no** `.env.example` in this repo; configure the variables above in Ve
   "translated": { "...": "same keys as maskedFields" },
   "sourceLocale": "es" | "en" | "unknown",
   "targetLocale": "es" | "en",
-  "provider": "deepl",
+  "provider": "google-cloud-translation",
   "translatedAt": "ISO-8601 timestamp",
   "fromCache": false
 }
@@ -112,6 +112,65 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 - No `TranslateAdControl` wiring on category detail pages
 - No `listing_translations` table or Supabase migration
 - No durable translation storage (session cache on client only via helpers)
+
+## Gate T3G (Google Cloud Translation Advanced — primary provider) ✅
+
+**Scope:** Replace DeepL-first provider with Google Cloud Translation Advanced as the sole active backend. No category wiring, no DB storage, no migrations.
+
+### What changed
+
+| Item | Path |
+|---|---|
+| Server provider | `app/lib/translation/provider.ts` — `translateAdWithConfiguredProvider()` (Google only; import server fns from API route only) |
+| API route | `app/api/translate-ad/route.ts` — delegates to `provider.ts` |
+| Provider id | `"google-cloud-translation"` in `AdTranslationResult.provider` |
+
+### Environment (server-only)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `TRANSLATION_PROVIDER` | **Yes** | Must be `google`. DeepL is **disabled by default** (returns **503**). |
+| `GOOGLE_CLOUD_PROJECT_ID` | **Yes** | Google Cloud project id. |
+| `GOOGLE_TRANSLATE_LOCATION` | No | Default `global`. |
+| `GOOGLE_APPLICATION_CREDENTIALS` | **Yes** (local) | Service account JSON file path, or inline JSON string. |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | Vercel alt | Single-line service account JSON (also supported). |
+| `GOOGLE_TRANSLATE_GLOSSARY_ID` | No | Future glossary / protected terms (optional). |
+
+Example (Vercel / `.env.local` — no secrets in git):
+
+```bash
+TRANSLATION_PROVIDER=google
+GOOGLE_CLOUD_PROJECT_ID=
+GOOGLE_TRANSLATE_LOCATION=global
+GOOGLE_APPLICATION_CREDENTIALS=
+# GOOGLE_TRANSLATE_GLOSSARY_ID=
+```
+
+| Condition | HTTP |
+|---|---|
+| Missing / invalid payload | **400** |
+| Missing Google env / `TRANSLATION_PROVIDER` not `google` | **503** — `Translation provider is not configured.` |
+| `TRANSLATION_PROVIDER=deepl` or other unsupported value | **503** — not supported / not configured |
+| Google upstream failure | **502** |
+
+### Response shape (success)
+
+```json
+{
+  "translated": { "...": "same keys as maskedFields" },
+  "sourceLocale": "es" | "en" | "unknown",
+  "targetLocale": "es" | "en",
+  "provider": "google-cloud-translation",
+  "translatedAt": "ISO-8601 timestamp",
+  "fromCache": false
+}
+```
+
+### Out of scope (T3G)
+
+- No `TranslateAdControl` category wiring (Servicios pilot remains next after env is aligned)
+- No Supabase migration
+- No `listing_translations` / `translation_records` table
 
 ## Gate G2 (provider abstraction pivot) ✅
 

@@ -8,7 +8,6 @@ import type {
 } from "@/app/lib/translation/types";
 import type { TranslateAdRequest } from "@/app/lib/translation/provider";
 import {
-  getTranslationProviderConfig,
   isTranslationProviderConfigured,
   isUnsupportedProviderEnv,
   translateAdWithConfiguredProvider,
@@ -16,7 +15,7 @@ import {
   TranslationProviderNotImplementedError,
   TranslationProviderRequestError,
   TranslationProviderUnsupportedError,
-} from "@/app/lib/translation/serverProvider";
+} from "@/app/lib/translation/provider";
 
 const ALLOWED_FIELD_KEYS: ReadonlySet<TranslatableAdFieldKey> = new Set([
   "title",
@@ -118,12 +117,6 @@ function providerGateResponse(): NextResponse | null {
     return NextResponse.json({ error: "Translation provider is not supported." }, { status: 503 });
   }
 
-  const config = getTranslationProviderConfig();
-
-  if (config.provider === "disabled") {
-    return NextResponse.json({ error: "Translation provider is not configured." }, { status: 503 });
-  }
-
   if (!isTranslationProviderConfigured()) {
     return NextResponse.json({ error: "Translation provider is not configured." }, { status: 503 });
   }
@@ -167,7 +160,7 @@ export async function POST(request: NextRequest) {
   if (gate) return gate;
 
   // TODO(T4+): per-user rate limiting and optional auth before calling external provider.
-  // TODO(later): durable translation cache / translation_records table — no DB writes in G3.
+  // TODO(later): durable translation cache / translation_records table — no DB writes in T3G.
 
   try {
     const result = await translateAdWithConfiguredProvider(parsed);
