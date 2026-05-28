@@ -8,10 +8,14 @@ import type {
 } from "@/app/lib/translation/types";
 import type { TranslateAdRequest } from "@/app/lib/translation/provider";
 import {
+  getTranslationProviderConfig,
   isTranslationProviderConfigured,
+  isUnsupportedProviderEnv,
   translateAdWithConfiguredProvider,
   TranslationProviderNotConfiguredError,
+  TranslationProviderNotImplementedError,
   TranslationProviderRequestError,
+  TranslationProviderUnsupportedError,
 } from "@/app/lib/translation/serverProvider";
 
 const ALLOWED_FIELD_KEYS: ReadonlySet<TranslatableAdFieldKey> = new Set([
@@ -109,6 +113,31 @@ function parseTranslateAdRequest(body: unknown): TranslateAdRequest | null {
   };
 }
 
+function providerGateResponse(): NextResponse | null {
+  if (isUnsupportedProviderEnv()) {
+    return NextResponse.json({ error: "Translation provider is not supported." }, { status: 503 });
+  }
+
+  const config = getTranslationProviderConfig();
+
+  if (config.provider === "disabled") {
+    return NextResponse.json({ error: "Translation provider is not configured." }, { status: 503 });
+  }
+
+  if (config.provider === "google") {
+    return NextResponse.json(
+      { error: "Google Cloud Translation provider is not implemented yet." },
+      { status: 501 },
+    );
+  }
+
+  if (!isTranslationProviderConfigured()) {
+    return NextResponse.json({ error: "Translation provider is not configured." }, { status: 503 });
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   if (request.method !== "POST") {
     return NextResponse.json({ error: "Method not allowed." }, { status: 405 });
@@ -141,21 +170,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (!isTranslationProviderConfigured()) {
-    return NextResponse.json(
-      { error: "Translation provider is not configured." },
-      { status: 503 },
-    );
-  }
+  const gate = providerGateResponse();
+  if (gate) return gate;
 
   // TODO(T4+): per-user rate limiting and optional auth before calling external provider.
-  // TODO(later): durable translation cache / listing_translations table — no DB writes in T3.
+  // TODO(later): durable translation cache / translation_records table — no DB writes in G3.
 
   try {
     const result = await translateAdWithConfiguredProvider(parsed);
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof TranslationProviderNotConfiguredError) {
+      return NextResponse.json({ error: e.message }, { status: 503 });
+    }
+    if (e instanceof TranslationProviderNotImplementedError) {
+      return NextResponse.json({ error: e.message }, { status: 501 });
+    }
+    if (e instanceof TranslationProviderUnsupportedError) {
       return NextResponse.json({ error: e.message }, { status: 503 });
     }
     if (e instanceof TranslationProviderRequestError) {

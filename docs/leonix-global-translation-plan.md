@@ -1,8 +1,8 @@
 # Leonix Global Translation — G1 Architecture Plan (design only)
 
-**Status:** Planning gate G1 — not implemented.  
-**Primary provider target:** Google Cloud Translation API (Advanced).  
-**DeepL:** Retire as default; keep adapter optional behind feature flag.
+**Status:** G1 design complete; **G2 provider abstraction implemented** (no Google backend yet).  
+**Primary provider target:** Google Cloud Translation API (Advanced) — **G3**.  
+**DeepL:** Optional fallback only (`TRANSLATION_PROVIDER=deepl`); not the strategic default.
 
 ---
 
@@ -29,18 +29,23 @@
 
 ---
 
-## Provider abstraction (G2)
+## Provider abstraction (G2) ✅
+
+Implemented layout (G2):
 
 ```
 app/lib/translation/
+  config.ts               # TranslationProviderName, getTranslationProviderConfig()
+  errors.ts               # NotConfigured, NotImplemented, Unsupported, Request
   providers/
-    types.ts              # TranslationProvider, TranslateBatchRequest/Result
-    registry.ts           # resolveProvider(env.TRANSLATION_PROVIDER)
-    googleCloudAdvanced.ts
-    deepl.ts              # optional, disabled by default
-  server/
-    translateContent.ts   # mask → provider → unmask → cache lookup/write
+    index.ts              # translateAdWithConfiguredProvider()
+    google.ts             # placeholder — G3
+    deepl.ts              # optional fallback
+    maskPlaceholders.ts
+  serverProvider.ts       # facade for API route
 ```
+
+G3 will implement `providers/google.ts` (Cloud Translation Advanced v3).
 
 **Env (server only):**
 
@@ -124,7 +129,7 @@ create table public.translation_records (
 
 | Gate | Scope |
 |------|--------|
-| **G2** | Provider interface + registry; no behavior change |
+| **G2** | ✅ Provider interface + registry; DeepL isolated; Google placeholder; no category/DB changes |
 | **G3** | Google Cloud Advanced adapter; env docs; feature flag |
 | **G4** | `translation_records` migration + read/write service |
 | **G5** | `original_language` + publish pipeline writes |

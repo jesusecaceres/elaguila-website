@@ -16,25 +16,43 @@
 |---|---|
 | Path | `POST /api/translate-ad` |
 | Implementation | `app/api/translate-ad/route.ts` |
-| Server provider | `app/lib/translation/serverProvider.ts` — `translateAdWithConfiguredProvider()` (`import "server-only"`; never import from client) |
+| Server provider | `app/lib/translation/providers/` — `translateAdWithConfiguredProvider()` (facade: `serverProvider.ts`; `import "server-only"`; never import from client) |
 
 ### Environment (server-only)
 
 | Variable | Required | Notes |
 |---|---|---|
-| `TRANSLATION_PROVIDER` | Recommended | Set to `deepl` (default when omitted). Any other value → route returns **503**. |
-| `DEEPL_API_KEY` | **Yes** | DeepL auth key. Free-tier keys ending in `:fx` auto-select the free API host unless `DEEPL_API_URL` is set. |
-| `DEEPL_API_URL` | No | Optional override, e.g. `https://api-free.deepl.com/v2/translate` or `https://api.deepl.com/v2/translate` |
+| `TRANSLATION_PROVIDER` | **Yes** | `google` (future primary, **G3**), `deepl` (optional fallback), or `disabled`. **Omitted → 503** (no default provider). |
+| `DEEPL_API_KEY` | When `deepl` | DeepL auth key (optional / fallback only). Free-tier `:fx` keys use free API host unless `DEEPL_API_URL` is set. |
+| `DEEPL_API_URL` | No | Optional DeepL endpoint override. |
+| `GOOGLE_CLOUD_PROJECT_ID` | When `google` (G3) | Google Cloud project — placeholder in G2. |
+| `GOOGLE_TRANSLATE_LOCATION` | No | Default `global` (G3). |
+| `GOOGLE_APPLICATION_CREDENTIALS` | When `google` (G3) | Service account JSON path or Vercel GCP integration. |
+
+**Strategic direction:** **Google Cloud Translation Advanced** is the future primary provider (**G3**). DeepL is **optional fallback only**, not the long-term default.
 
 Example (local `.env.local` / Vercel — no real secrets in git):
 
 ```bash
+# G3 target (not implemented until Gate G3):
+# TRANSLATION_PROVIDER=google
+# GOOGLE_CLOUD_PROJECT_ID=
+# GOOGLE_TRANSLATE_LOCATION=global
+
+# Optional fallback until Google is live:
 TRANSLATION_PROVIDER=deepl
 DEEPL_API_KEY=
-# DEEPL_API_URL=https://api-free.deepl.com/v2/translate
 ```
 
-If `DEEPL_API_KEY` is missing or `TRANSLATION_PROVIDER` is not `deepl` (when set), the route returns **HTTP 503** with `{ "error": "Translation provider is not configured." }` — no fake success, no key leakage.
+| `TRANSLATION_PROVIDER` | Behavior (G2+) |
+|---|---|
+| *(missing)* | **503** — not configured |
+| `google` | **501** — not implemented yet (G3) |
+| `deepl` + valid `DEEPL_API_KEY` | **200** on valid masked payload |
+| `deepl` without key | **503** |
+| unsupported value | **503** — not supported |
+
+No fake success, no key leakage in JSON responses.
 
 There is **no** `.env.example` in this repo; configure the variables above in Vercel / local `.env.local` only.
 
@@ -79,7 +97,7 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 
 ### Safety
 
-- API key is read only in `serverProvider.ts` (`import "server-only"`).
+- API keys are read only under `app/lib/translation/providers/` and `config.ts` (`import "server-only"`).
 - Route does not accept separate raw contact fields.
 - Provider errors return generic messages (502/503); no DeepL response bodies or keys in JSON.
 - Full ad text and API keys must not be logged.
@@ -91,6 +109,44 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 - No `TranslateAdControl` wiring on category detail pages
 - No `listing_translations` table or Supabase migration
 - No durable translation storage (session cache on client only via helpers)
+
+## Gate G2 (provider abstraction pivot) ✅
+
+**Scope:** Provider architecture only — no Google SDK, no Supabase migration, no category UI changes.
+
+### What changed
+
+| Item | Path |
+|---|---|
+| Provider registry | `app/lib/translation/providers/index.ts` — `translateAdWithConfiguredProvider()` |
+| Config | `app/lib/translation/config.ts` — `TranslationProviderName`, `getTranslationProviderConfig()` |
+| DeepL (optional fallback) | `app/lib/translation/providers/deepl.ts` |
+| Google placeholder (future primary) | `app/lib/translation/providers/google.ts` — throws until **G3** |
+| Typed errors | `app/lib/translation/errors.ts` |
+| API route | `app/api/translate-ad/route.ts` — validation + safety only; delegates to provider layer |
+| Facade | `app/lib/translation/serverProvider.ts` re-exports providers (backward compatible) |
+
+### HTTP mapping (G2+)
+
+| Condition | Status |
+|---|---|
+| Invalid payload / unmasked contact | **400** |
+| `TRANSLATION_PROVIDER` missing / `disabled` / DeepL without key | **503** |
+| Unsupported `TRANSLATION_PROVIDER` value | **503** |
+| `TRANSLATION_PROVIDER=google` | **501** (not implemented until G3) |
+| Provider upstream failure | **502** |
+
+### Strategic direction
+
+- **Google Cloud Translation Advanced** = future primary (`TRANSLATION_PROVIDER=google` in **G3**).
+- **DeepL** = optional fallback only when explicitly enabled (`TRANSLATION_PROVIDER=deepl` + `DEEPL_API_KEY`).
+- **No implicit default** — omitting `TRANSLATION_PROVIDER` fails safely (**503**).
+
+### Out of scope (G2)
+
+- Google Cloud Translation Advanced implementation (**G3**)
+- `translation_records` / `listing_translations` tables
+- Category detail wiring changes (T4–T9 behavior unchanged from user perspective)
 
 ## Gate T4 (Servicios pilot) ✅
 
