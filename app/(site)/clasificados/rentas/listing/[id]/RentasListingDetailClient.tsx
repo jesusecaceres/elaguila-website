@@ -7,12 +7,18 @@ import { FiChevronLeft } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRentasListingTranslation";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { trackRentasContactClick, trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
-import type { RentasListingDetailExtra } from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
+import {
+  getRentasListingDetailExtra,
+  type RentasListingDetailExtra,
+} from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
 import {
   mapRentasListingToNegocioPreviewVm,
   mapRentasListingToPrivadoPreviewVm,
@@ -66,13 +72,39 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
   const sellerLine = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const listingUuid = isUuid(listing.id);
 
+  const listingKey = (listing.leonixAdId?.trim() || listing.id).trim();
+  const rentasTx = useRentasListingTranslation(listing, lang, listingKey);
+  const proseListing = rentasTx.displayListing;
+
+  const extraForDisplay = useMemo(
+    () => getRentasListingDetailExtra(proseListing),
+    [proseListing],
+  );
+
+  const translateControl = rentasTx.offerTranslate ? (
+    <div className="mb-4 flex justify-start" data-rentas-translate-ad="1">
+      <TranslateAdControl
+        siteLocale={lang}
+        originalLocale={rentasTx.sourceLocale}
+        category="rentas"
+        listingKey={listingKey}
+        version="rentas-t9-v1"
+        translatableContent={rentasTx.translatableContent}
+        onTranslated={rentasTx.onTranslated}
+        onShowOriginal={rentasTx.onShowOriginal}
+        requestTranslation={requestAdTranslation}
+        className="w-full sm:w-auto"
+      />
+    </div>
+  ) : null;
+
   const vmPrivado = useMemo(
-    () => mapRentasListingToPrivadoPreviewVm(listing, extra, lang),
-    [listing, extra, lang],
+    () => mapRentasListingToPrivadoPreviewVm(proseListing, extraForDisplay, lang),
+    [proseListing, extraForDisplay, lang],
   );
   const vmNegocio = useMemo(
-    () => mapRentasListingToNegocioPreviewVm(listing, extra, lang),
-    [listing, extra, lang],
+    () => mapRentasListingToNegocioPreviewVm(proseListing, extraForDisplay, lang),
+    [proseListing, extraForDisplay, lang],
   );
 
   const leonixAdIdLine = listing.leonixAdId?.trim();
@@ -115,6 +147,8 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
           </div>
         ) : null}
 
+        {translateControl}
+
         {listing.branch === "privado" ? (
           <BienesRaicesPrivadoPreviewView vm={vmPrivado} onContactLinkClick={onContactLinkClick} lang={lang} />
         ) : (
@@ -136,7 +170,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
                 <LeonixShareButton
                   listingId={listing.id}
                   category="rentas"
-                  listingTitle={listing.title}
+                  listingTitle={proseListing.title}
                   listingUrl={shareListingUrl}
                   variant="small"
                   lang={lang}

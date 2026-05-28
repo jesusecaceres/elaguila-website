@@ -204,12 +204,44 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 - Add `original_language` on `public.listings` (migration + publish pipeline) and pass stored locale instead of `"unknown"`.
 - Per-branch polish where delegated layouts still render untranslated nested prose.
 
-### Next rollout candidates
+## Gate T9 (Rentas + Restaurantes dedicated) ✅
 
-1. **Rentas** dedicated detail route
-2. **En Venta** branch polish if nested layout prose is not fully covered
-3. **Restaurantes** dedicated detail
-4. **Bienes Raíces** dedicated/preview polish
+### Wired surfaces
+
+| Category | Path / modules |
+|---|---|
+| Rentas dedicated detail | `rentas/listing/[id]/RentasListingDetailClient.tsx` |
+| Rentas helpers | `rentas/lib/rentasTranslateAd.ts`, `useRentasListingTranslation.ts` |
+| Restaurantes dedicated detail | `restaurantes/[slug]/page.tsx` → `RestauranteAdStoryPreview.tsx` |
+| Restaurantes helpers | `restaurantes/lib/restaurantesTranslateAd.ts`, `useRestauranteShellTranslation.ts` |
+
+- **Display-only** overlay; original listing/shell data unchanged in memory until user clicks Translate Ad; **Show original** restores.
+- **Session cache only**; no Supabase migration; no `listing_translations`.
+- **`sourceLocale: "unknown"`** on both categories until `original_language` is stored on publish rows.
+- CTA when translatable prose exists and site lang is `es` or `en`.
+- Contact/share/save/order rails untouched; CTA placed above main prose blocks.
+
+### Rentas — translated vs excluded
+
+| Translated | Excluded |
+|---|---|
+| Title, description, lease conditions, requirements, availability note, shared-space preferences, services included, business description (bio), filtered `flowExtensionRows` prose | `rentDisplay`, deposit/fees, address, city/state, beds/baths/sqft, phone/email/SMS/WhatsApp, website/social, map/video URLs, `businessMarca`, `businessAgentName`, Leonix ad id, structured property specs |
+
+### Restaurantes — translated vs excluded
+
+| Translated | Excluded |
+|---|---|
+| `aboutBody`, `summaryShort`, menu `supportingLine` only (dish names stay original), stack section prose values, hours special/temporary notes, trust summary line | `businessName`, cuisine/taxonomy chips, contact block, hours time rows, menu prices, primary CTAs/hrefs, ratings counts, IDs/slugs |
+
+### Next step
+
+- **Final manual browser QA** across all wired categories (T4–T9).
+- Future DB gate: `original_language` on publish + optional durable `listing_translations`.
+
+### Remaining polish (non-blocking)
+
+1. **En Venta** generic branch nested layout prose
+2. **Bienes Raíces** dedicated/preview polish
 
 ## Later gates
 

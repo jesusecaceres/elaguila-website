@@ -14,6 +14,9 @@ import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesS
 import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
 import { RestaurantContactHub } from "./RestaurantContactHub";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import { useRestauranteShellTranslation } from "@/app/clasificados/restaurantes/lib/useRestauranteShellTranslation";
 
 // Leonix premium visual tokens
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -60,6 +63,27 @@ export function RestauranteAdStoryPreview({
   persistListingEngagement = true,
 }: RestauranteAdStoryPreviewProps) {
   const ownerUid = (analyticsOwnerUserId ?? "").trim() || undefined;
+  const listingKeyResolved = (listingId ?? "").trim() || data.id;
+  const shellTx = useRestauranteShellTranslation(data, lang, listingKeyResolved);
+  const proseData = shellTx.displayData;
+
+  const translateControl = shellTx.offerTranslate ? (
+    <div className="mb-3 flex justify-start" data-restaurantes-translate-ad="1">
+      <TranslateAdControl
+        siteLocale={lang}
+        originalLocale={shellTx.sourceLocale}
+        category="restaurantes"
+        listingKey={listingKeyResolved}
+        version="restaurantes-t9-v1"
+        translatableContent={shellTx.translatableContent}
+        onTranslated={shellTx.onTranslated}
+        onShowOriginal={shellTx.onShowOriginal}
+        requestTranslation={requestAdTranslation}
+        className="w-full sm:w-auto"
+      />
+    </div>
+  ) : null;
+
   const pathname = usePathname();
   const [shareAbs, setShareAbs] = useState("");
   const [aboutExpanded, setAboutExpanded] = useState(false);
@@ -102,11 +126,11 @@ export function RestauranteAdStoryPreview({
     });
   };
   const hasContactInfo = Boolean(data.contactHub?.hasAny);
-  const hasMenuHighlights = data.menuHighlights && data.menuHighlights.length > 0;
+  const hasMenuHighlights = proseData.menuHighlights && proseData.menuHighlights.length > 0;
   const hasGallery = data.venueGallery || data.gallery;
   const hasHoursSection = Boolean(data.hoursPreview);
   const hasTrustInfo = data.trustRating || data.trustLight;
-  const hasStackSections = data.stackSections && data.stackSections.length > 0;
+  const hasStackSections = proseData.stackSections && proseData.stackSections.length > 0;
 
   const primaryCtas = data.primaryCtas || [];
   const hubHandlesContact = Boolean(data.contactHub?.hasAny);
@@ -623,21 +647,22 @@ export function RestauranteAdStoryPreview({
       </section>
 
       {/* B. Story / About Zone */}
-      {(data.aboutBody || data.summaryShort) && (
+      {(proseData.aboutBody || proseData.summaryShort) && (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
+            {translateControl}
             <h2 className={SECTION_TITLE}>Sobre el Negocio</h2>
             <div className="prose prose-lg max-w-none">
-              {data.aboutBody ? (
+              {proseData.aboutBody ? (
                 <>
                   <div
                     className={`text-sm leading-relaxed text-[color:var(--lx-text)] whitespace-pre-wrap md:text-base ${
                       aboutExpanded ? "" : "line-clamp-5 md:line-clamp-none"
                     }`}
                   >
-                    {data.aboutBody}
+                    {proseData.aboutBody}
                   </div>
-                  {data.aboutBody.length > 220 ? (
+                  {proseData.aboutBody.length > 220 ? (
                     <button
                       type="button"
                       onClick={() => setAboutExpanded((e) => !e)}
@@ -648,7 +673,7 @@ export function RestauranteAdStoryPreview({
                   ) : null}
                 </>
               ) : (
-                <p className="text-base text-[color:var(--lx-text)] leading-relaxed">{data.summaryShort}</p>
+                <p className="text-base text-[color:var(--lx-text)] leading-relaxed">{proseData.summaryShort}</p>
               )}
             </div>
           </div>
@@ -692,10 +717,11 @@ export function RestauranteAdStoryPreview({
       {hasMenuHighlights && (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
+            {!(proseData.aboutBody || proseData.summaryShort) ? translateControl : null}
             <h2 className={SECTION_TITLE}>Especialidades de la Casa</h2>
             {/* Mobile: horizontal snap carousel */}
             <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
-              {data.menuHighlights!.map((dish, index) => (
+              {proseData.menuHighlights!.map((dish, index) => (
                 <div
                   key={`m-dish-${index}`}
                   className="flex w-[min(82vw,300px)] shrink-0 snap-center flex-col rounded-2xl border border-[#D8C2A0] bg-white p-3 shadow-sm"
@@ -719,7 +745,7 @@ export function RestauranteAdStoryPreview({
             </div>
             {/* Desktop: grid (md+) */}
             <div className="hidden gap-6 md:grid md:grid-cols-2">
-              {data.menuHighlights!.map((dish, index) => (
+              {proseData.menuHighlights!.map((dish, index) => (
                 <div key={index} className="rounded-2xl border border-[#D8C2A0] bg-white p-4 shadow-sm">
                   {dish.imageUrl && (
                     <div className="relative mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl">
@@ -790,10 +816,11 @@ export function RestauranteAdStoryPreview({
                         </div>
                       ))}
                     </dl>
-                    {data.hoursDetail.specialNote ? (
+                    {(proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote) ? (
                       <div className="mt-4 rounded-xl bg-[#F6EBDD] p-4">
                         <p className="text-sm text-[#1F1A17]">
-                          <strong>Nota especial:</strong> {data.hoursDetail.specialNote}
+                          <strong>Nota especial:</strong>{" "}
+                          {proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote}
                         </p>
                       </div>
                     ) : null}
@@ -819,9 +846,10 @@ export function RestauranteAdStoryPreview({
                             </div>
                           ))}
                         </dl>
-                        {data.hoursDetail.specialNote ? (
+                        {(proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote) ? (
                           <p className="mt-3 rounded-lg bg-[#F6EBDD] p-3 text-xs text-[#1F1A17]">
-                            <strong>Nota:</strong> {data.hoursDetail.specialNote}
+                            <strong>Nota:</strong>{" "}
+                            {proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote}
                           </p>
                         ) : null}
                       </div>
@@ -874,7 +902,7 @@ export function RestauranteAdStoryPreview({
             {data.trustLight && (
               <div className="rounded-2xl border border-[#D8C2A0] bg-white p-4 md:p-6">
                 <p className="text-base text-[#1F1A17] leading-relaxed mb-4">
-                  {data.trustLight.summaryLine}
+                  {proseData.trustLight?.summaryLine ?? data.trustLight.summaryLine}
                 </p>
                 
                 {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel && (
@@ -900,7 +928,7 @@ export function RestauranteAdStoryPreview({
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Información Adicional</h2>
             <div className="space-y-3 md:space-y-6">
-              {data.stackSections!.map((stack) => (
+              {proseData.stackSections!.map((stack) => (
                 <div key={stack.id}>
                   <div className="hidden rounded-2xl border border-[#D8C2A0] bg-white p-6 md:block">
                     <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
