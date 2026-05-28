@@ -55,7 +55,8 @@ function mapTableError(e: unknown): { unavailable: boolean; message: string | nu
     "message" in e && typeof (e as { message: unknown }).message === "string"
       ? (e as { message: string }).message
       : "";
-  if (msg.includes("does not exist") || msg.includes("schema cache")) {
+  const code = "code" in e && typeof (e as { code: unknown }).code === "string" ? (e as { code: string }).code : "";
+  if (code === "PGRST205" || msg.includes("does not exist") || msg.includes("schema cache")) {
     return { unavailable: true, message: LEAD_CAPTURE_MIGRATION_NOTE };
   }
   return { unavailable: false, message: msg || "Could not load leads." };
