@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
-import { clearEnVentaPublishTempState } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import {
+  clearEnVentaPublishTempState,
+  saveEnVentaPreviewDraft,
+  saveEnVentaPreviewReturnDraft,
+} from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import { buildEnVentaPublishSuccessUrls } from "@/app/clasificados/en-venta/shared/constants/enVentaResultsRoutes";
 import { buildEnVentaListingDetailHrefFromResults } from "@/app/clasificados/en-venta/results/utils/enVentaListingLinks";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
@@ -15,8 +19,7 @@ import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enV
 
 const COPY = {
   es: {
-    publishFree: "Publicar anuncio",
-    publishPro: "Publicar anuncio Pro",
+    publish: "Publicar anuncio",
     publishing: "Publicando…",
     successTitle: "¡Tu anuncio ya está publicado!",
     successScoped: "Ver en resultados de esta categoría",
@@ -31,8 +34,7 @@ const COPY = {
     blockerRules: "Confirma las reglas antes de publicar.",
   },
   en: {
-    publishFree: "Publish listing",
-    publishPro: "Publish Pro listing",
+    publish: "Publish listing",
     publishing: "Publishing…",
     successTitle: "Your listing is live!",
     successScoped: "View results in this category",
@@ -111,6 +113,8 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
     }
     setBusy(true);
     try {
+      saveEnVentaPreviewDraft(plan, state, lang);
+      saveEnVentaPreviewReturnDraft(plan, state);
       const res = await publishEnVentaFromDraft(state, lang, plan);
       if (!res.ok) {
         setErr(res.error);
@@ -210,7 +214,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
         onClick={() => void onPublish()}
         className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-6 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? t.publishing : plan === "pro" ? t.publishPro : t.publishFree}
+        {busy ? t.publishing : t.publish}
       </button>
     </div>
   );

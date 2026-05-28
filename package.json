@@ -92,6 +92,7 @@
     "enventa:gate2h-full-launch-audit": "tsx scripts/en-venta-gate-2h-varios-full-launch-audit.ts",
     "enventa:gate2o-final-polish-audit": "tsx scripts/en-venta-gate-2o-varios-final-polish-audit.ts",
     "enventa:gate2p-final-audit": "tsx scripts/en-venta-gate-2p-final-repo-completion-audit.ts",
+    "enventa:gate2q-publish-flow-audit": "tsx scripts/en-venta-gate-2q-publish-flow-reality-fix-audit.ts",
     "varios:final-stack-audit": "tsx scripts/varios-final-stack-2k-2l-2m-2p-audit.ts",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts && npx tsx scripts/en-venta-schema-readiness.ts",
     "verify:en-venta:e2e": "npx playwright test e2e/en-venta-smoke.spec.ts e2e/en-venta-seeded-trace.spec.ts e2e/en-venta-auth-smoke.spec.ts",

@@ -222,7 +222,7 @@ export function EnVentaPreviewPage() {
   useEffect(() => {
     const id = window.setTimeout(() => {
       clearLeonixPreviewNavSessionFlag();
-    }, 0);
+    }, 120);
     return () => window.clearTimeout(id);
   }, []);
 
@@ -416,11 +416,6 @@ export function EnVentaPreviewPage() {
       <div>
         <div className="flex flex-wrap items-start gap-2">
           <h1 className="text-[1.65rem] font-bold tracking-tight text-[#1E1810] sm:text-[1.85rem]">{vm.title}</h1>
-          {plan === "pro" ? (
-            <span className="mt-1 inline-flex rounded-full border border-[#C9B46A]/55 bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#5C4E2E]">
-              Pro
-            </span>
-          ) : null}
         </div>
         <p className="mt-1.5 text-xs font-semibold tracking-wide text-[#7A7164]">{shellStatusLine}</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -714,7 +709,7 @@ export function EnVentaPreviewPage() {
       initials={vm.sellerInitials}
       name={vm.sellerName}
       subline={vm.sellerSubline}
-      showProBadge={plan === "pro"}
+      showProBadge={false}
       desktopContact={
         waAction || state.email.trim() ? (
           <div className="flex flex-col gap-2">

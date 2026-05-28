@@ -70,8 +70,8 @@ export type EnVentaPreviewViewModel = {
 
 const COPY = {
   es: {
-    shellFree: "Vista previa del anuncio Pro",
-    shellPro: "Vista previa del anuncio Pro",
+    shellFree: "Vista previa del anuncio",
+    shellPro: "Vista previa del anuncio",
     posted: "Borrador · no publicado aún",
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
@@ -103,13 +103,13 @@ const COPY = {
     photoCount: (n: number, max: number) => `${n} / ${max} fotos`,
   },
   en: {
-    shellFree: "Preview Pro listing",
-    shellPro: "Preview Pro listing",
+    shellFree: "Listing preview",
+    shellPro: "Listing preview",
     posted: "Draft · not published yet",
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
     approxLoc: "General area from the seller; exact meeting point is arranged when you contact them.",
-    negotiableChip: "Negotiable price",
+    negotiableChip: "Negotiable",
     makeOfferHint: "Message the seller to make an offer.",
     ship: "Shipping available",
     pickup: "Local pickup",
@@ -388,14 +388,7 @@ export function buildEnVentaPreviewModel(
     trustNote: t.trust,
     sellerName,
     sellerInitials: initialsFromName(sellerName),
-    sellerSubline:
-      lang === "es"
-        ? plan === "pro"
-          ? "Anuncio Pro · borrador"
-          : "Anuncio Gratis · borrador"
-        : plan === "pro"
-          ? "Pro listing · draft"
-          : "Free listing · draft",
+    sellerSubline: lang === "es" ? "Anuncio de Varios · borrador" : "For Sale listing · draft",
     sellerKindLabel,
     viewProfileLabel: t.profile,
     contactActions,

@@ -8,10 +8,7 @@ import {
   takeEnVentaPreviewReturnInitialState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 const EN_VENTA_LANDING = "/clasificados/en-venta";
-import {
-  enVentaPublicLabel,
-  enVentaPublicProLabel,
-} from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
+import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import {
   abandonLeonixPublishFlowClient,
   clearLeonixReturningToEditSessionFlag,
@@ -44,11 +41,12 @@ export default function LeonixEnVentaProApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const [state, setState] = useState(createEmptyEnVentaFreeState);
+  const [state, setState] = useState(() =>
+    typeof window !== "undefined" ? takeEnVentaPreviewReturnInitialState("pro") : createEmptyEnVentaFreeState()
+  );
   const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    setState(takeEnVentaPreviewReturnInitialState("pro"));
     clearLeonixReturningToEditSessionFlag();
   }, []);
 
@@ -56,15 +54,15 @@ export default function LeonixEnVentaProApplication() {
     () =>
       lang === "es"
         ? {
-            title: `Publicar — ${enVentaPublicProLabel("es")}`,
+            title: `Publicar — ${enVentaPublicLabel("es")}`,
             subtitle:
-              "Anuncio Pro incluido sin costo. Más fotos, video y opciones de contacto. Sin pago. Sin comisión.",
+              "Anuncio de Varios incluido sin costo. Publica con fotos, video opcional y opciones de contacto. Sin pago. Sin comisión.",
             back: `Volver a ${enVentaPublicLabel("es")}`,
           }
         : {
-            title: `Post — ${enVentaPublicProLabel("en")}`,
+            title: `Post — ${enVentaPublicLabel("en")}`,
             subtitle:
-              "Pro listing included at no charge. More photos, video, and contact options. No payment. No commission.",
+              "For Sale listing included at no cost. Post with photos, optional video, and contact options. No payment. No commission.",
             back: `Back to ${enVentaPublicLabel("en")}`,
           },
     [lang]

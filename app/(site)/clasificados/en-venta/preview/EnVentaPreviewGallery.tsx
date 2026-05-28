@@ -49,11 +49,6 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
   return (
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7] shadow-[0_14px_44px_-14px_rgba(42,36,22,0.16),inset_0_1px_0_rgba(255,255,255,0.9)]">
-        {plan === "pro" ? (
-          <span className="absolute right-3 top-3 z-10 rounded-full border border-[#C9B46A]/50 bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5C4E2E] shadow-sm">
-            Pro
-          </span>
-        ) : null}
         <button
           type="button"
           onClick={() => setOpen(true)}

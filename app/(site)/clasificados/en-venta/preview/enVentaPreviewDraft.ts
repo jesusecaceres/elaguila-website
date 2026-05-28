@@ -2,8 +2,6 @@ import {
   createEmptyEnVentaFreeState,
   type EnVentaFreeApplicationState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
-import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
-
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
 export const EN_VENTA_PREVIEW_DRAFT_META_KEY = "en-venta-preview-draft-meta";
@@ -42,6 +40,12 @@ function mergePartialEnVentaState(parsed: Partial<EnVentaFreeApplicationState>):
 }
 
 /**
+ * In-tab module cache for full preview drafts (includes image data URLs).
+ * Survives Next.js client navigations; cleared on publish success / explicit abandon.
+ */
+let previewDraftMemory: Partial<Record<"free" | "pro", EnVentaFreeApplicationState>> = {};
+
+/**
  * Short-lived module cache so `useState(() => …)` runs twice under React Strict Mode
  * without losing the restored snapshot after sessionStorage was cleared on the first read.
  */
@@ -65,6 +69,7 @@ export function clearEnVentaPublishTempState(): void {
     previewReturnMemoryTimer = null;
   }
   previewReturnMemory = {};
+  previewDraftMemory = {};
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_KEY_FREE);
@@ -76,41 +81,57 @@ export function clearEnVentaPublishTempState(): void {
   }
 }
 
+/** Whether a preview draft exists for the plan (memory or sessionStorage). */
+export function hasEnVentaPreviewDraft(plan: "free" | "pro"): boolean {
+  if (previewDraftMemory[plan]) return true;
+  return loadEnVentaPreviewDraft(plan) !== null;
+}
+
+/**
+ * Force-save draft before preview/publish navigation.
+ * Always writes to in-tab memory; sessionStorage is best-effort (large photo data URLs may exceed quota).
+ */
 export function saveEnVentaPreviewDraft(
   plan: "free" | "pro",
   state: EnVentaFreeApplicationState,
-  lang: "es" | "en" = "es"
+  _lang: "es" | "en" = "es"
 ): boolean {
-  if (evaluateEnVentaFamilySafetyFromState(state, lang).status !== "safe") {
-    return false;
-  }
-  if (typeof window === "undefined") return false;
+  const merged = mergePartialEnVentaState(state);
+  previewDraftMemory[plan] = merged;
+  if (typeof window === "undefined") return true;
   try {
-    sessionStorage.setItem(keyForPlan(plan), JSON.stringify(state));
+    sessionStorage.setItem(keyForPlan(plan), JSON.stringify(merged));
     sessionStorage.setItem(
       EN_VENTA_PREVIEW_DRAFT_META_KEY,
       JSON.stringify({ plan, updatedAt: Date.now() })
     );
-    return true;
   } catch {
-    /* ignore quota / private mode */
-    return false;
+    /* Quota — memory cache still valid for same-tab client navigation */
   }
+  return true;
 }
 
 /** Persists form state for the preview → "Volver a editar" round-trip only (separate from main preview draft keys). */
 export function saveEnVentaPreviewReturnDraft(plan: "free" | "pro", state: EnVentaFreeApplicationState): void {
+  const merged = mergePartialEnVentaState(state);
+  previewDraftMemory[plan] = merged;
   if (typeof window === "undefined") return;
   delete previewReturnMemory[plan];
   try {
-    const payload: EnVentaPreviewReturnPayload = { plan, state, savedAt: Date.now() };
+    const payload: EnVentaPreviewReturnPayload = { plan, state: merged, savedAt: Date.now() };
     sessionStorage.setItem(EN_VENTA_PREVIEW_RETURN_DRAFT, JSON.stringify(payload));
+    sessionStorage.setItem(keyForPlan(plan), JSON.stringify(merged));
+    sessionStorage.setItem(
+      EN_VENTA_PREVIEW_DRAFT_META_KEY,
+      JSON.stringify({ plan, updatedAt: Date.now() })
+    );
   } catch {
-    /* ignore quota / private mode */
+    /* ignore quota / private mode — memory cache remains */
   }
 }
 
 export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplicationState | null {
+  if (previewDraftMemory[plan]) return previewDraftMemory[plan]!;
   if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(keyForPlan(plan));

@@ -68,7 +68,7 @@ export function EnVentaPublishHubClient({ hub }: { hub: EnVentaPublishHubResolve
               <span className="mt-2 block text-xl font-bold text-[#E4D4A8]">{copy.proTitle}</span>
               <span className="mt-1 block text-sm text-white/85">{copy.proDesc}</span>
               <span className="mt-3 inline-flex rounded-lg bg-[#C9B46A]/20 px-3 py-1.5 text-sm font-semibold text-[#F5EED4]">
-                {lang === "es" ? "Continuar con Varios Pro →" : "Continue with For Sale Pro →"}
+                {lang === "es" ? "Continuar a publicar →" : "Continue to post →"}
               </span>
             </Link>
             <Link

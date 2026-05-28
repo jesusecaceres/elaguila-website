@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaPhotosSectionProps } from "../types/sectionProps";
@@ -24,10 +24,13 @@ type MuxStatusPayload = {
 
 const COPY = {
   es: {
-    title: "Fotos y medios",
+    title: "Fotos y video",
     desc: "Añade fotos reales y bien iluminadas. Las fotos claras ayudan a vender más rápido.",
-    planFree: "Plan Gratis: hasta 3 fotos. No se admite video en este plan.",
-    planPro: "Plan Pro: hasta 12 fotos y 1 video corto (archivo o enlace).",
+    planFree: "Hasta 3 fotos. No se admite video en esta vía.",
+    planIncluded: "Hasta 12 fotos y 1 video opcional (archivo o enlace).",
+    reorderTitle: "Ordenar fotos",
+    reorderDrag: "Arrastra las fotos para cambiar el orden.",
+    reorderMobile: "En móvil, usa los controles para moverlas.",
     count: (n: number, max: number) => `${n} / ${max} fotos`,
     primary: "Principal",
     setMain: "Usar como principal",
@@ -35,24 +38,26 @@ const COPY = {
     moveDown: "Mover abajo",
     add: "Añadir fotos",
     addHint: "PNG o JPG · se muestran al instante en tu borrador",
-    atLimit: "Límite de fotos alcanzado para tu plan.",
+    atLimit: "Límite de fotos alcanzado.",
     remove: "Quitar",
     emptyTitle: "Aún no hay fotos",
     emptyHint: "Sube al menos una foto clara del artículo. Puedes reordenarlas y marcar la principal.",
-    videoTitle: "Video (Pro)",
-    videoDesc: "Un clip corto ayuda, pero es opcional. Máximo 1 video.",
+    videoTitle: "Video opcional",
+    videoDesc: "Agrega un video corto o pega un enlace. Máximo 1 video.",
     videoFile: "Elegir archivo de video",
     videoLink: "O pega un enlace al video (YouTube, Vimeo, etc.)",
     videoClear: "Quitar video",
-    noVideoFree: "El plan Gratis no incluye video; cambia a Pro para añadir video.",
-    hint: "La publicación final conectará al almacenamiento; esto es tu borrador de medios.",
+    videoAdded: "Video agregado",
+    videoLinkAdded: "Enlace de video agregado",
+    videoSaved: "Tu video se guardó para este anuncio.",
+    noVideoFree: "Esta vía no incluye video.",
     uploadRequest: "Solicitando carga segura...",
     uploading: "Subiendo video...",
     preparing: "Procesando video en Mux...",
     ready: "Video listo",
     failed: "Video",
     fileUploadBlockedLeonix:
-      "Leonix no puede aceptar la subida de archivo en este momento (límite o configuración del proveedor de video). Puedes pegar un enlace público (YouTube, Vimeo, etc.) para tu anuncio Pro.",
+      "Leonix no puede aceptar la subida de archivo en este momento (límite o configuración del proveedor de video). Puedes pegar un enlace público (YouTube, Vimeo, etc.).",
     fileUploadTransferFailed:
       "No se pudo completar la subida del archivo. Comprueba tu conexión o usa un enlace de video en su lugar.",
     fileUploadStatusFailed:
@@ -61,35 +66,40 @@ const COPY = {
       "El video tardó demasiado en procesarse. Prueba un archivo más corto o un enlace público.",
   },
   en: {
-    title: "Photos & media",
+    title: "Photos and video",
     desc: "Add real, well-lit photos. Clear photos help items sell faster.",
-    planFree: "Free plan: up to 3 photos. No video on Free.",
-    planPro: "Pro plan: up to 12 photos and 1 short video (file or link).",
+    planFree: "Up to 3 photos. No video on this path.",
+    planIncluded: "Up to 12 photos and 1 optional video (file or link).",
+    reorderTitle: "Reorder photos",
+    reorderDrag: "Drag photos to change the order.",
+    reorderMobile: "On mobile, use the controls to move them.",
     count: (n: number, max: number) => `${n} / ${max} photos`,
     primary: "Main",
-    setMain: "Set as main",
+    setMain: "Use as main",
     moveUp: "Move up",
     moveDown: "Move down",
     add: "Add photos",
     addHint: "PNG or JPG · shown instantly in your draft",
-    atLimit: "Photo limit reached for your plan.",
+    atLimit: "Photo limit reached.",
     remove: "Remove",
     emptyTitle: "No photos yet",
     emptyHint: "Upload at least one clear photo. You can reorder and pick a main image.",
-    videoTitle: "Video (Pro)",
-    videoDesc: "A short clip helps buyers — optional. Max 1 video.",
+    videoTitle: "Optional video",
+    videoDesc: "Add a short video or paste a link. Maximum 1 video.",
     videoFile: "Choose video file",
     videoLink: "Or paste a link (YouTube, Vimeo, etc.)",
     videoClear: "Remove video",
-    noVideoFree: "Free doesn’t include video; switch to Pro to add video.",
-    hint: "Publish will connect storage; this is your draft media.",
+    videoAdded: "Video added",
+    videoLinkAdded: "Video link added",
+    videoSaved: "Your video was saved for this listing.",
+    noVideoFree: "This path does not include video.",
     uploadRequest: "Requesting secure upload...",
     uploading: "Uploading video...",
     preparing: "Processing video in Mux...",
     ready: "Video ready",
     failed: "Video",
     fileUploadBlockedLeonix:
-      "Leonix can’t accept file upload right now (video provider limit or account configuration). Paste a public link (YouTube, Vimeo, etc.) to include video on your Pro listing.",
+      "Leonix can’t accept file upload right now (video provider limit or account configuration). Paste a public link (YouTube, Vimeo, etc.).",
     fileUploadTransferFailed:
       "Could not finish uploading the file. Check your connection or use a video link instead.",
     fileUploadStatusFailed:
@@ -263,6 +273,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   const t = COPY[lang];
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const isProMedia = allowVideo && maxPhotos > 3;
   const dark = surface === "dark";
   const c = {
@@ -354,15 +365,25 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   function moveImage(index: number, dir: -1 | 1) {
     const j = index + dir;
     if (j < 0 || j >= state.images.length) return;
+    reorderImages(index, j);
+  }
+
+  function reorderImages(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= state.images.length || to >= state.images.length) return;
     setState((s) => {
       const imgs = [...s.images];
-      [imgs[index], imgs[j]] = [imgs[j], imgs[index]];
-      let pi = s.primaryImageIndex;
-      if (pi === index) pi = j;
-      else if (pi === j) pi = index;
+      const primaryUrl = imgs[Math.min(Math.max(0, s.primaryImageIndex), imgs.length - 1)];
+      const [moved] = imgs.splice(from, 1);
+      imgs.splice(to, 0, moved);
+      const pi = primaryUrl ? Math.max(0, imgs.indexOf(primaryUrl)) : 0;
       return { ...s, images: imgs, primaryImageIndex: pi };
     });
   }
+
+  const videoSlot = state.listingVideoSlots[0];
+  const videoLinkReady = Boolean(state.listingVideoUrl.trim().startsWith("http"));
+  const videoFileReady = videoSlot.status === "ready" && Boolean(videoSlot.playbackUrl || videoSlot.fileName);
+  const videoAccepted = videoFileReady || videoLinkReady;
 
   function onVideoFile(files: FileList | null) {
     const f = files?.[0];
@@ -514,8 +535,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
           dark ? "border-white/12 bg-white/[0.03]" : "border-black/10 bg-white"
         )}
       >
-        <p className={cx("text-sm font-semibold leading-snug", c.plan)}>{isProMedia ? t.planPro : t.planFree}</p>
-        <p className={cx("mt-1.5 text-xs leading-relaxed", c.hint)}>{t.hint}</p>
+        <p className={cx("text-sm font-semibold leading-snug", c.plan)}>{isProMedia ? t.planIncluded : t.planFree}</p>
       </div>
 
       <div className={cx("mt-5 rounded-2xl border p-4 sm:p-5", c.tray)}>
@@ -556,16 +576,34 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
             <p className="mt-2 max-w-md text-xs leading-relaxed">{t.emptyHint}</p>
           </div>
         ) : (
-          <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <>
+            <div className="mt-5 rounded-xl border border-dashed border-black/15 bg-white/60 px-3 py-2.5">
+              <p className="text-xs font-bold text-[#111111]/80">{t.reorderTitle}</p>
+              <p className="mt-0.5 text-[11px] text-[#111111]/60">{t.reorderDrag}</p>
+              <p className="text-[11px] text-[#111111]/55">{t.reorderMobile}</p>
+            </div>
+            <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {state.images.map((url, index) => {
               const isMain = index === primaryIdx;
               return (
                 <li
                   key={`${url}-${index}`}
+                  draggable
+                  onDragStart={() => setDragIndex(index)}
+                  onDragEnd={() => setDragIndex(null)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragIndex !== null) reorderImages(dragIndex, index);
+                    setDragIndex(null);
+                  }}
                   className={cx(
-                    "flex flex-col overflow-hidden rounded-2xl border shadow-sm",
+                    "flex cursor-grab flex-col overflow-hidden rounded-2xl border shadow-sm active:cursor-grabbing",
                     c.imgBorder,
-                    dark ? "bg-black/20" : "bg-white"
+                    dark ? "bg-black/20" : "bg-white",
+                    dragIndex === index ? "ring-2 ring-[#A98C2A]/50" : ""
                   )}
                 >
                   <div className="relative aspect-[4/3] w-full bg-black/5">
@@ -609,6 +647,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
               );
             })}
           </ul>
+          </>
         )}
 
         {!canAddMore ? (
@@ -640,7 +679,18 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
               </button>
             ) : null}
           </div>
-          {state.listingVideoSlots[0].status !== "idle" ? (
+          {videoAccepted ? (
+            <p
+              className={cx(
+                "mt-2 rounded-lg border border-[#C9B46A]/35 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#3D2C12]",
+                c.vidStatus
+              )}
+              role="status"
+            >
+              {videoFileReady ? t.videoAdded : t.videoLinkAdded}
+              <span className="mt-0.5 block font-normal text-[#5D4A25]/85">{t.videoSaved}</span>
+            </p>
+          ) : state.listingVideoSlots[0].status !== "idle" ? (
             <p className={cx("mt-2 text-xs leading-snug", c.vidStatus)} role="status">
               {state.listingVideoSlots[0].status === "requesting_upload"
                 ? t.uploadRequest
@@ -682,7 +732,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                 : "If you upload a file, you can leave the link blank."}
             </p>
           </div>
-          {state.listingVideoSlots[0].fileName || state.listingVideoUrl ? (
+          {!videoAccepted && (state.listingVideoSlots[0].fileName || state.listingVideoUrl) ? (
             <p className={cx("mt-2 text-xs", c.vidStatus)}>
               {state.listingVideoSlots[0].fileName
                 ? `${lang === "es" ? "Archivo seleccionado" : "Selected file"}: ${state.listingVideoSlots[0].fileName}`

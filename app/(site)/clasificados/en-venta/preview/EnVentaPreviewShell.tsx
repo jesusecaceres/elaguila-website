@@ -6,11 +6,11 @@ import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFl
 const COPY = {
   es: {
     back: "Volver a editar",
-    publishPro: "Publicar anuncio Pro",
+    publish: "Publicar anuncio",
   },
   en: {
     back: "Back to edit",
-    publishPro: "Publish Pro listing",
+    publish: "Publish listing",
   },
 } as const;
 
@@ -79,7 +79,7 @@ export function EnVentaPreviewShell({
                   markPublishFlowReturningToEdit();
                 }}
               >
-                {t.publishPro}
+                {t.publish}
               </a>
             </nav>
           </div>
@@ -97,7 +97,7 @@ export function EnVentaPreviewShell({
               markPublishFlowReturningToEdit();
             }}
           >
-            {t.publishPro}
+            {t.publish}
           </a>
         </div>
       </div>
