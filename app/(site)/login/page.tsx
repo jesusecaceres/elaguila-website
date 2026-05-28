@@ -163,13 +163,25 @@ export default function LoginPage() {
   }, [cooldownSeconds]);
 
   useEffect(() => {
-    if (authErrorParam !== "callback") return;
-    setMsg(
-      lang === "es"
-        ? "No pudimos completar el inicio de sesión con Google o Facebook. Intenta de nuevo."
-        : "We couldn't complete sign-in with Google or Facebook. Please try again."
-    );
-  }, [authErrorParam, lang]);
+    if (!authErrorParam) return;
+    const recoveryIntent =
+      redirectParam?.includes("recovery=1") || mode === "reset";
+    if (authErrorParam === "recovery" || (authErrorParam === "callback" && recoveryIntent)) {
+      setMsg(
+        lang === "es"
+          ? "No pudimos abrir el enlace de recuperación. Solicita uno nuevo."
+          : "We couldn't open your recovery link. Please request a new one."
+      );
+      return;
+    }
+    if (authErrorParam === "callback") {
+      setMsg(
+        lang === "es"
+          ? "No pudimos completar el inicio de sesión con Google o Facebook. Intenta de nuevo."
+          : "We couldn't complete sign-in with Google or Facebook. Please try again."
+      );
+    }
+  }, [authErrorParam, lang, redirectParam, mode]);
 
   const callbackUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -183,10 +195,14 @@ export default function LoginPage() {
     if (typeof window === "undefined") return "";
     const base = `${window.location.origin}/auth/callback`;
     const q = new URLSearchParams();
-    const recoveryRedirect = safeInternalRedirect(redirectParam) || `/dashboard/seguridad?recovery=1&lang=${lang}`;
+    const recoveryRedirect =
+      mode === "reset" || !redirectParam
+        ? `/dashboard/seguridad?recovery=1&lang=${lang}`
+        : safeInternalRedirect(redirectParam) ||
+          `/dashboard/seguridad?recovery=1&lang=${lang}`;
     q.set("redirect", recoveryRedirect);
     return `${base}?${q.toString()}`;
-  }, [redirectParam, lang]);
+  }, [redirectParam, lang, mode]);
 
   function buildLoginUrl(nextMode: LoginMode) {
     const params = new URLSearchParams();
