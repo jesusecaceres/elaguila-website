@@ -27,27 +27,30 @@
 | `DEEPL_API_URL` | No | Optional DeepL endpoint override. |
 | `GOOGLE_CLOUD_PROJECT_ID` | When `google` (G3) | Google Cloud project — placeholder in G2. |
 | `GOOGLE_TRANSLATE_LOCATION` | No | Default `global` (G3). |
-| `GOOGLE_APPLICATION_CREDENTIALS` | When `google` (G3) | Service account JSON path or Vercel GCP integration. |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | When `google` | Vercel-safe service account JSON (single-line env). |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Local optional | File path to service account JSON (local dev). |
 
-**Strategic direction:** **Google Cloud Translation Advanced** is the future primary provider (**G3**). DeepL is **optional fallback only**, not the long-term default.
+**Strategic direction:** **Google Cloud Translation Advanced** is the **primary** provider when `TRANSLATION_PROVIDER=google` (**G3**). DeepL is **optional fallback only**, not the long-term default.
 
 Example (local `.env.local` / Vercel — no real secrets in git):
 
 ```bash
-# G3 target (not implemented until Gate G3):
-# TRANSLATION_PROVIDER=google
-# GOOGLE_CLOUD_PROJECT_ID=
-# GOOGLE_TRANSLATE_LOCATION=global
+# Primary provider (G3):
+TRANSLATION_PROVIDER=google
+GOOGLE_CLOUD_PROJECT_ID=
+GOOGLE_TRANSLATE_LOCATION=global
+GOOGLE_APPLICATION_CREDENTIALS_JSON=
 
-# Optional fallback until Google is live:
-TRANSLATION_PROVIDER=deepl
-DEEPL_API_KEY=
+# Optional fallback only:
+# TRANSLATION_PROVIDER=deepl
+# DEEPL_API_KEY=
 ```
 
-| `TRANSLATION_PROVIDER` | Behavior (G2+) |
+| `TRANSLATION_PROVIDER` | Behavior (G3+) |
 |---|---|
 | *(missing)* | **503** — not configured |
-| `google` | **501** — not implemented yet (G3) |
+| `google` + valid Google env | **200** on valid masked payload |
+| `google` without project/credentials | **503** |
 | `deepl` + valid `DEEPL_API_KEY` | **200** on valid masked payload |
 | `deepl` without key | **503** |
 | unsupported value | **503** — not supported |
@@ -144,9 +147,54 @@ Compatible with `AdTranslationResult` in `app/lib/translation/types.ts`.
 
 ### Out of scope (G2)
 
-- Google Cloud Translation Advanced implementation (**G3**)
+- ~~Google Cloud Translation Advanced implementation (**G3**)~~ → **G3 ✅**
 - `translation_records` / `listing_translations` tables
 - Category detail wiring changes (T4–T9 behavior unchanged from user perspective)
+
+## Gate G3 (Google Cloud Translation Advanced backend) ✅
+
+**Scope:** Server-side Google provider only — no Supabase migration, no category UI changes, no durable cache yet.
+
+### What changed
+
+| Item | Path |
+|---|---|
+| Google provider (primary) | `app/lib/translation/providers/google.ts` — Cloud Translation v3 via `googleapis` (dynamic import) |
+| Mask protection (HTML) | `app/lib/translation/providers/maskPlaceholders.ts` — `translate="no"` spans for `__LEONIX_MASK_N__` |
+| Config | `app/lib/translation/config.ts` — `GOOGLE_APPLICATION_CREDENTIALS_JSON` + `isImplemented: true` for Google |
+| Provider registry | `app/lib/translation/providers/index.ts` — Google configured → live translation |
+| API route | `app/api/translate-ad/route.ts` — removed G2 **501** gate for Google |
+
+### Vercel env (no secrets in git)
+
+```bash
+TRANSLATION_PROVIDER=google
+GOOGLE_CLOUD_PROJECT_ID=
+GOOGLE_TRANSLATE_LOCATION=global
+GOOGLE_APPLICATION_CREDENTIALS_JSON=
+```
+
+Local dev may use `GOOGLE_APPLICATION_CREDENTIALS` (file path) instead of JSON env.
+
+### Active locales (G3)
+
+- `es`, `en` only — G6 will add zh, fil/tl, vi, ko, hi, fa, ar, hy, ru, pt, pa, ja after verification.
+
+### HTTP mapping (G3+)
+
+| Condition | Status |
+|---|---|
+| Invalid payload / unmasked contact | **400** |
+| Provider missing / Google or DeepL env incomplete | **503** |
+| Unsupported `TRANSLATION_PROVIDER` | **503** |
+| Google or DeepL upstream failure | **502** |
+
+### Out of scope (G3)
+
+- `translation_records` / durable cache (**G4**)
+- Category UI wiring changes
+- Supabase migrations
+- Source listing/ad content mutation
 
 ## Gate T4 (Servicios pilot) ✅
 

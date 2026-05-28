@@ -28,14 +28,20 @@ function isDeepLConfigured(): boolean {
   return Boolean(process.env.DEEPL_API_KEY?.trim());
 }
 
+function hasGoogleCredentialsEnv(): boolean {
+  return Boolean(
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim() ||
+      process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim(),
+  );
+}
+
 function googleEnvMissing(): string[] {
   const missing: string[] = [];
   if (!process.env.GOOGLE_CLOUD_PROJECT_ID?.trim()) {
     missing.push("GOOGLE_CLOUD_PROJECT_ID");
   }
-  // G3: Vercel may use GOOGLE_APPLICATION_CREDENTIALS JSON or workload identity.
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim()) {
-    missing.push("GOOGLE_APPLICATION_CREDENTIALS");
+  if (!hasGoogleCredentialsEnv()) {
+    missing.push("GOOGLE_APPLICATION_CREDENTIALS_JSON");
   }
   return missing;
 }
@@ -88,8 +94,8 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
     return {
       provider: "google",
       isConfigured: missing.length === 0,
-      isImplemented: false,
-      missingEnv: missing.length > 0 ? missing : ["GOOGLE_TRANSLATION_NOT_IMPLEMENTED"],
+      isImplemented: true,
+      missingEnv: missing,
       googleCloudProjectId,
       googleTranslateLocation,
     };

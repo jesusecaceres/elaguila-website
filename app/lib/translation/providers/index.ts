@@ -8,7 +8,6 @@ import {
 } from "@/app/lib/translation/config";
 import {
   TranslationProviderNotConfiguredError,
-  TranslationProviderNotImplementedError,
   TranslationProviderUnsupportedError,
 } from "@/app/lib/translation/errors";
 import { translateAdWithDeepL } from "@/app/lib/translation/providers/deepl";
@@ -45,10 +44,8 @@ export async function translateAdWithConfiguredProvider(
   }
 
   if (config.provider === "google") {
-    if (!config.isImplemented) {
-      throw new TranslationProviderNotImplementedError(
-        "Google Cloud Translation provider is not implemented yet.",
-      );
+    if (!config.isConfigured || !config.isImplemented) {
+      throw new TranslationProviderNotConfiguredError();
     }
     return translateAdWithGoogle(req);
   }
@@ -69,7 +66,7 @@ export function isTranslationProviderConfigured(): boolean {
 
   const config = getTranslationProviderConfig();
   if (config.provider === "disabled") return false;
-  if (config.provider === "google") return false;
+  if (config.provider === "google") return config.isConfigured && config.isImplemented;
   if (config.provider === "deepl") return config.isConfigured && config.isImplemented;
   return false;
 }

@@ -124,13 +124,6 @@ function providerGateResponse(): NextResponse | null {
     return NextResponse.json({ error: "Translation provider is not configured." }, { status: 503 });
   }
 
-  if (config.provider === "google") {
-    return NextResponse.json(
-      { error: "Google Cloud Translation provider is not implemented yet." },
-      { status: 501 },
-    );
-  }
-
   if (!isTranslationProviderConfigured()) {
     return NextResponse.json({ error: "Translation provider is not configured." }, { status: 503 });
   }
