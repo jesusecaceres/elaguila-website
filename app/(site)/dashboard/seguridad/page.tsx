@@ -2,7 +2,7 @@
 
 /**
  * Gate 2A/2B QA audit (customer dashboard security):
- * - GOOGLE_LOGIN_PRESERVED: TRUE (unaffected; Google-only users see recovery guidance)
+ * - GOOGLE_LOGIN_PRESERVED: TRUE (OAuth-only users can create a Leonix password without current password)
  * - MAGIC_LINK_PRESERVED: TRUE
  * - PASSWORD_LOGIN_ADDED: TRUE
  * - PASSWORD_SIGNUP_ADDED: TRUE
@@ -19,6 +19,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { PasswordStrengthMeter } from "../../components/auth/PasswordStrengthMeter";
 import { evaluatePassword, mapAuthErrorMessage } from "@/app/lib/auth/customerPassword";
+import {
+  formatOAuthProviderNames,
+  getOAuthProviderIds,
+  resolveDashboardPasswordMode,
+  type DashboardPasswordMode,
+} from "@/app/lib/auth/dashboardPasswordMode";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
@@ -40,27 +46,48 @@ export default function DashboardSecurityPage() {
   const q = `lang=${lang}`;
   const recoveryMode = searchParams?.get("recovery") === "1";
 
+  const [passwordMode, setPasswordMode] = useState<DashboardPasswordMode | null>(
+    null
+  );
+  const [oauthProviderIds, setOauthProviderIds] = useState<string[]>([]);
+
   const t = useMemo(
     () =>
       lang === "es"
         ? {
             title: "Seguridad",
             subtitle: "Administra la contraseña de tu cuenta Leonix.",
+            createTitle: "Crea tu contraseña de Leonix",
+            createSubtitle:
+              "Podrás iniciar sesión con tu correo y esta contraseña además de tu cuenta social.",
             reauthHint:
               "Por tu seguridad, ingresa tu contraseña actual antes de crear una nueva.",
             recoveryTitle: "Crea tu nueva contraseña",
             recoverySubtitle:
               "Completaste la verificación por correo. Elige una contraseña segura para tu cuenta.",
+            oauthHint: (providers: string) =>
+              `Iniciaste sesión con ${providers}. Puedes crear una contraseña de Leonix para iniciar sesión también con correo y contraseña.`,
+            noEmailTitle: "Correo necesario",
+            noEmailBody:
+              "Para crear una contraseña de Leonix, primero agrega y verifica un correo en tu perfil.",
+            emailUnverifiedTitle: "Verifica tu correo",
+            emailUnverifiedBody:
+              "Confirma tu correo antes de crear o cambiar tu contraseña de Leonix. Revisa tu bandeja de entrada o carpeta de spam.",
+            profileLink: "Ir a mi perfil",
             current: "Contraseña actual",
             new: "Nueva contraseña",
             confirm: "Confirmar nueva contraseña",
             save: "Actualizar contraseña",
+            createSave: "Crear contraseña",
             saving: "Guardando…",
             success: "Tu contraseña se actualizó correctamente.",
+            createSuccess:
+              "Tu contraseña de Leonix se creó correctamente. Ya puedes iniciar sesión con correo y contraseña.",
             mismatch: "Las contraseñas nuevas no coinciden.",
+            short: "La contraseña debe tener al menos 8 caracteres.",
             weak: "La nueva contraseña no cumple los requisitos.",
-            noPasswordProvider:
-              "Usa recuperar contraseña para crear o recuperar tu contraseña.",
+            wrongCurrent:
+              "La contraseña actual no es correcta. Si entraste con Google o Facebook, usa el flujo para crear tu primera contraseña.",
             resetLink: "Recuperar contraseña",
             back: "Volver al resumen",
             loading: "Cargando…",
@@ -69,21 +96,37 @@ export default function DashboardSecurityPage() {
         : {
             title: "Security",
             subtitle: "Manage your Leonix account password.",
+            createTitle: "Create your Leonix password",
+            createSubtitle:
+              "You can sign in with your email and this password in addition to your social account.",
             reauthHint:
               "For your security, enter your current password before creating a new one.",
             recoveryTitle: "Create your new password",
             recoverySubtitle:
               "You verified your email. Choose a strong password for your account.",
+            oauthHint: (providers: string) =>
+              `You signed in with ${providers}. You can create a Leonix password to also sign in with email and password.`,
+            noEmailTitle: "Email required",
+            noEmailBody:
+              "To create a Leonix password, add and verify an email on your profile first.",
+            emailUnverifiedTitle: "Verify your email",
+            emailUnverifiedBody:
+              "Confirm your email before creating or changing your Leonix password. Check your inbox or spam folder.",
+            profileLink: "Go to my profile",
             current: "Current password",
             new: "New password",
             confirm: "Confirm new password",
             save: "Update password",
+            createSave: "Create password",
             saving: "Saving…",
             success: "Your password was updated successfully.",
+            createSuccess:
+              "Your Leonix password was created. You can now sign in with email and password.",
             mismatch: "New passwords do not match.",
+            short: "Password must be at least 8 characters.",
             weak: "New password does not meet requirements.",
-            noPasswordProvider:
-              "Use password reset to create or recover your password.",
+            wrongCurrent:
+              "Current password is incorrect. If you sign in with Google or Facebook, use the create-password flow instead.",
             resetLink: "Reset password",
             back: "Back to overview",
             loading: "Loading…",
@@ -125,6 +168,8 @@ export default function DashboardSecurityPage() {
 
       const u = data.user;
       setEmail(u.email ?? null);
+      setOauthProviderIds(getOAuthProviderIds(u));
+      setPasswordMode(resolveDashboardPasswordMode(u, recoveryMode));
       const existingName =
         (u.user_metadata?.full_name as string | undefined) ||
         (u.user_metadata?.name as string | undefined) ||
@@ -146,15 +191,33 @@ export default function DashboardSecurityPage() {
     return () => {
       mounted = false;
     };
-  }, [router, pathname]);
+  }, [router, pathname, recoveryMode]);
+
+  const mode = passwordMode ?? "password_change";
+  const isBlocked = mode === "no_email" || mode === "email_unverified";
+  const needsCurrentPassword = mode === "password_change";
+  const isCreateFlow =
+    mode === "oauth_create" || mode === "recovery";
+
+  const oauthHint = useMemo(() => {
+    if (mode !== "oauth_create") return "";
+    return t.oauthHint(formatOAuthProviderNames(oauthProviderIds, lang));
+  }, [mode, oauthProviderIds, lang, t]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
     setSuccess(false);
 
+    if (isBlocked) return;
+
     if (!email?.trim()) {
       setMsg(lang === "es" ? "No hay correo en la sesión." : "No email on session.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setMsg(t.short);
       return;
     }
 
@@ -172,7 +235,7 @@ export default function DashboardSecurityPage() {
     try {
       const supabase = createSupabaseBrowserClient();
 
-      if (!recoveryMode) {
+      if (needsCurrentPassword) {
         const trimmedCurrent = currentPassword;
         if (!trimmedCurrent) {
           setMsg(
@@ -190,14 +253,14 @@ export default function DashboardSecurityPage() {
         });
 
         if (verifyErr) {
-          const mapped = mapAuthErrorMessage(verifyErr.message, lang);
+          const lower = verifyErr.message?.toLowerCase() ?? "";
           if (
-            verifyErr.message?.toLowerCase().includes("invalid") ||
-            verifyErr.message?.toLowerCase().includes("credentials")
+            lower.includes("invalid") ||
+            lower.includes("credentials")
           ) {
-            setMsg(t.noPasswordProvider);
+            setMsg(t.wrongCurrent);
           } else {
-            setMsg(mapped);
+            setMsg(mapAuthErrorMessage(verifyErr.message, lang));
           }
           setSaving(false);
           return;
@@ -218,7 +281,14 @@ export default function DashboardSecurityPage() {
       setNewPassword("");
       setConfirmPassword("");
       setSuccess(true);
-      setMsg(t.success);
+      setMsg(isCreateFlow ? t.createSuccess : t.success);
+
+      if (mode === "oauth_create") {
+        const { data: refreshed } = await supabase.auth.getUser();
+        if (refreshed.user) {
+          setPasswordMode(resolveDashboardPasswordMode(refreshed.user, false));
+        }
+      }
 
       if (recoveryMode) {
         router.replace(`/dashboard/seguridad?${q}`);
@@ -231,10 +301,11 @@ export default function DashboardSecurityPage() {
   }
 
   const canSubmit =
+    !isBlocked &&
     passwordEval.signupReady &&
-    newPassword.length > 0 &&
+    newPassword.length >= 8 &&
     confirmPassword.length > 0 &&
-    (recoveryMode || currentPassword.length > 0) &&
+    (!needsCurrentPassword || currentPassword.length > 0) &&
     !saving;
 
   const inputClass =
@@ -257,16 +328,43 @@ export default function DashboardSecurityPage() {
         <>
           <header>
             <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
-              {recoveryMode ? t.recoveryTitle : t.title}
+              {mode === "recovery"
+                ? t.recoveryTitle
+                : mode === "oauth_create"
+                  ? t.createTitle
+                  : t.title}
             </h1>
             <p className="mt-2 text-sm text-[#5C5346]/95">
-              {recoveryMode ? t.recoverySubtitle : t.subtitle}
+              {mode === "recovery"
+                ? t.recoverySubtitle
+                : mode === "oauth_create"
+                  ? t.createSubtitle
+                  : t.subtitle}
             </p>
-            {!recoveryMode ? (
+            {needsCurrentPassword ? (
               <p className="mt-3 text-sm font-medium text-[#6B5B2E]">{t.reauthHint}</p>
+            ) : null}
+            {mode === "oauth_create" && oauthHint ? (
+              <p className="mt-3 text-sm font-medium text-[#6B5B2E]">{oauthHint}</p>
             ) : null}
           </header>
 
+          {isBlocked ? (
+            <div className="mt-8 max-w-lg rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-7">
+              <h2 className="text-lg font-semibold text-[#1E1810]">
+                {mode === "no_email" ? t.noEmailTitle : t.emailUnverifiedTitle}
+              </h2>
+              <p className="mt-2 text-sm text-[#5C5346]/95">
+                {mode === "no_email" ? t.noEmailBody : t.emailUnverifiedBody}
+              </p>
+              <Link
+                href={`/dashboard/perfil?${q}`}
+                className="mt-5 inline-flex min-h-[44px] items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-[1.03]"
+              >
+                {t.profileLink}
+              </Link>
+            </div>
+          ) : (
           <form
             onSubmit={(e) => void handleSubmit(e)}
             className="mt-8 max-w-lg rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-7"
@@ -283,7 +381,7 @@ export default function DashboardSecurityPage() {
               </div>
             ) : null}
 
-            {!recoveryMode ? (
+            {needsCurrentPassword ? (
               <label className="block">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                   {t.current}
@@ -299,7 +397,7 @@ export default function DashboardSecurityPage() {
               </label>
             ) : null}
 
-            <label className={`block ${recoveryMode ? "" : "mt-4"}`}>
+            <label className={`block ${needsCurrentPassword ? "mt-4" : ""}`}>
               <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                 {t.new}
               </span>
@@ -343,19 +441,26 @@ export default function DashboardSecurityPage() {
               disabled={!canSubmit}
               className="mt-6 flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-[1.03] disabled:opacity-60 sm:w-auto"
             >
-              {saving ? t.saving : t.save}
+              {saving
+                ? t.saving
+                : isCreateFlow
+                  ? t.createSave
+                  : t.save}
             </button>
 
-            <p className="mt-4 text-sm text-[#5C5346]/95">
-              {t.forgotCurrent}{" "}
-              <Link
-                href={`/login?mode=reset&lang=${lang}&redirect=${encodeURIComponent(`/dashboard/seguridad?${q}`)}`}
-                className="font-semibold text-[#6B5B2E] underline decoration-[#C9B46A]/55"
-              >
-                {t.resetLink}
-              </Link>
-            </p>
+            {needsCurrentPassword ? (
+              <p className="mt-4 text-sm text-[#5C5346]/95">
+                {t.forgotCurrent}{" "}
+                <Link
+                  href={`/login?mode=reset&lang=${lang}&redirect=${encodeURIComponent(`/dashboard/seguridad?${q}`)}`}
+                  className="font-semibold text-[#6B5B2E] underline decoration-[#C9B46A]/55"
+                >
+                  {t.resetLink}
+                </Link>
+              </p>
+            ) : null}
           </form>
+          )}
 
           <div className="mt-6">
             <Link
