@@ -40,7 +40,12 @@ export type LeonixComingSoonCopy = {
   notifyError: string;
   multilingualLabel: string;
   multilingualTitle: string;
+  multilingualSummary: [string, string, string];
   multilingualBody: string;
+  heroValueLabel: string;
+  mobileNavAria: string;
+  featureSectionLabel: string;
+  categorySectionLabel: string;
   magazineAlt: string;
   magazineCaption: string;
   magazineRibbon: string;
@@ -144,8 +149,17 @@ export const LEONIX_COMING_SOON_COPY: Record<LeonixComingSoonLang, LeonixComingS
     notifyError: "No pudimos guardar tu correo. Inténtalo de nuevo.",
     multilingualLabel: "Acceso multilingüe",
     multilingualTitle: "Escanea. Traduce. Conecta.",
+    multilingualSummary: [
+      "Revista impresa en español",
+      "Experiencia digital bilingüe",
+      "QR: el lector elige idioma con herramientas de escaneo",
+    ],
     multilingualBody:
-      "Los lectores pueden usar herramientas de escaneo y traducción para ver contenido en su idioma preferido.",
+      "La revista impresa llega en español. Lo digital es bilingüe (español e inglés). Al escanear un código QR, los lectores pueden usar herramientas de escaneo y traducción—como Google Lens o Apple Translate—para ver contenido digital en su idioma preferido. Leonix no traduce automáticamente toda la revista impresa a todos los idiomas.",
+    heroValueLabel: "En tres líneas",
+    mobileNavAria: "Navegación móvil",
+    featureSectionLabel: "Herramientas para anunciantes",
+    categorySectionLabel: "Para la comunidad",
     magazineAlt: "Vista previa decorativa de la revista Leonix Media",
     magazineCaption: "Vista previa visual — el contenido interactivo vive en esta página.",
     magazineRibbon: "Revista & digital",
@@ -246,8 +260,17 @@ export const LEONIX_COMING_SOON_COPY: Record<LeonixComingSoonLang, LeonixComingS
     notifyError: "We couldn't save your email. Please try again.",
     multilingualLabel: "Multilingual access",
     multilingualTitle: "Scan. Translate. Connect.",
+    multilingualSummary: [
+      "Print magazine in Spanish",
+      "Bilingual digital experience",
+      "QR: reader-led language tools on scan",
+    ],
     multilingualBody:
-      "Readers can use scan-and-translate tools to view content in their preferred language.",
+      "The print magazine is in Spanish. Digital content is bilingual (Spanish and English). When readers scan a QR code, they can use scan-and-translate tools—such as Google Lens or Apple Translate—to view digital content in their preferred language. Leonix does not automatically translate the entire printed magazine into every language.",
+    heroValueLabel: "In three lines",
+    mobileNavAria: "Mobile navigation",
+    featureSectionLabel: "Tools for advertisers",
+    categorySectionLabel: "For the community",
     magazineAlt: "Decorative Leonix Media magazine preview",
     magazineCaption: "Visual preview — interactive content lives on this page.",
     magazineRibbon: "Magazine & digital",
