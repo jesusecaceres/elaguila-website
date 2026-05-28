@@ -17,6 +17,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { PasswordInputField } from "../../components/auth/PasswordInputField";
 import { PasswordStrengthMeter } from "../../components/auth/PasswordStrengthMeter";
 import { evaluatePassword, mapAuthErrorMessage } from "@/app/lib/auth/customerPassword";
 import {
@@ -386,8 +387,9 @@ export default function DashboardSecurityPage() {
                 <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                   {t.current}
                 </span>
-                <input
-                  type="password"
+                <PasswordInputField
+                  lang={lang}
+                  variant="light"
                   autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -401,8 +403,9 @@ export default function DashboardSecurityPage() {
               <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                 {t.new}
               </span>
-              <input
-                type="password"
+              <PasswordInputField
+                lang={lang}
+                variant="light"
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -426,8 +429,9 @@ export default function DashboardSecurityPage() {
               <span className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                 {t.confirm}
               </span>
-              <input
-                type="password"
+              <PasswordInputField
+                lang={lang}
+                variant="light"
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

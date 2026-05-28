@@ -18,6 +18,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PasswordInputField } from "../components/auth/PasswordInputField";
 import { PasswordStrengthMeter } from "../components/auth/PasswordStrengthMeter";
 import { evaluatePassword, mapAuthErrorMessage } from "@/app/lib/auth/customerPassword";
 import { createSupabaseBrowserClient, withAuthTimeout } from "@/app/lib/supabase/browser";
@@ -706,12 +707,13 @@ export default function LoginPage() {
                     autoComplete="email"
                     disabled={isLoading}
                   />
-                  <input
+                  <PasswordInputField
+                    lang={lang}
+                    variant="dark"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={common.passwordPlaceholder}
                     className={inputClass}
-                    type="password"
                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     disabled={isLoading}
                   />
@@ -724,12 +726,13 @@ export default function LoginPage() {
                     />
                   ) : null}
                   {mode === "signup" ? (
-                    <input
+                    <PasswordInputField
+                      lang={lang}
+                      variant="dark"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder={common.confirmPlaceholder}
                       className={inputClass}
-                      type="password"
                       autoComplete="new-password"
                       disabled={isLoading}
                     />
