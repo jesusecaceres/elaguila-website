@@ -2,8 +2,10 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { EmpleoQuickPreviewClient } from "./EmpleoQuickPreviewClient";
+import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 
 export const metadata: Metadata = {
+  ...PREVIEW_NOINDEX_METADATA,
   title: "Se Busca Cocinero | Empleos | Leonix Clasificados",
   description:
     "Detalle de empleo rápido: contacto directo, ubicación y beneficios. Leonix Clasificados.",

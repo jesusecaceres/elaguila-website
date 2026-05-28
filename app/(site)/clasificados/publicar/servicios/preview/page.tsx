@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ClasificadosServiciosPreviewClient } from "./ClasificadosServiciosPreviewClient";
+import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 
 export const metadata: Metadata = {
+  ...PREVIEW_NOINDEX_METADATA,
   title: "Vista previa · Servicios · Leonix Clasificados",
   description: "Vista previa del perfil de negocio (borrador de la aplicación o ejemplo).",
   alternates: {

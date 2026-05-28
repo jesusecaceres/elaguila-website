@@ -2,8 +2,10 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { EmpleoFeriaPreviewClient } from "./EmpleoFeriaPreviewClient";
+import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 
 export const metadata: Metadata = {
+  ...PREVIEW_NOINDEX_METADATA,
   title: "Feria de Empleo | Leonix Clasificados",
   description:
     "Información de la feria de empleo: fecha, sede y detalles. Leonix Clasificados.",

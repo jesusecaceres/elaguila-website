@@ -366,6 +366,7 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       "/admin/clasificados/viajes",
       "/admin/usuarios",
       "/admin/ops",
+      "/admin/leads/newsletter",
       "/admin/support",
     );
     if (canViewPaymentTracker(ctx.normalizedRole)) {
