@@ -1,6 +1,5 @@
-import type { TranslateAdProviderFn } from "@/app/lib/translation/provider";
 import { pickTranslatableAdFields } from "@/app/lib/translation/helpers";
-import type { AdTranslationResult, TranslatableAdFields } from "@/app/lib/translation/types";
+import type { TranslatableAdFields } from "@/app/lib/translation/types";
 import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 
 /** Encodes service cards for the `details` translatable field (index + title + secondary line). */
@@ -72,6 +71,7 @@ export function buildServiciosTranslatableContent(
   const firstPromo = profile.promotions[0];
 
   return {
+    title: profile.hero.categoryLine?.trim() || undefined,
     description: about?.text?.trim() || undefined,
     customServiceText: about?.specialtiesLine?.trim() || undefined,
     highlights: encodeHighlightsForTranslation(profile.highlights),
@@ -90,6 +90,13 @@ export function applyServiciosTranslation(
   translated: Partial<TranslatableAdFields>,
 ): ServiciosProfileResolved {
   let next: ServiciosProfileResolved = profile;
+
+  if (translated.title?.trim()) {
+    next = {
+      ...next,
+      hero: { ...next.hero, categoryLine: translated.title.trim() },
+    };
+  }
 
   if (translated.description?.trim()) {
     next = {
@@ -132,22 +139,4 @@ export function applyServiciosTranslation(
 }
 
 /** Client-only: POST masked fields to the server translate route (no API keys). */
-export const requestServiciosAdTranslation: TranslateAdProviderFn = async (req) => {
-  const res = await fetch("/api/translate-ad", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  const body: unknown = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const message =
-      body && typeof body === "object" && "error" in body && typeof (body as { error: unknown }).error === "string"
-        ? (body as { error: string }).error
-        : "Translation request failed";
-    throw new Error(message);
-  }
-
-  return body as AdTranslationResult;
-};
+export { requestAdTranslation as requestServiciosAdTranslation } from "@/app/lib/translation/requestAdTranslation";

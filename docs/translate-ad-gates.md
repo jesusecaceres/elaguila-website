@@ -299,20 +299,30 @@ Local dev may use `GOOGLE_APPLICATION_CREDENTIALS` (file path) instead of JSON e
 
 ## Gate T4 (Servicios pilot) ✅
 
+**Scope:** First category wired to `TranslateAdControl` + `POST /api/translate-ad`. No Supabase migration; no other categories in this gate.
+
 ### Wired surfaces
 
 | Surface | Path |
 |---|---|
 | Public Clasificados detail | `app/(site)/clasificados/servicios/[slug]/page.tsx` → `ServiciosProfileView` or `ServiciosProfessionalProfileShell` |
 | Translation layer | `app/(site)/servicios/components/ServiciosPublicTranslationLayer.tsx` |
-| Payload + API client | `app/(site)/servicios/lib/serviciosTranslateAd.ts` |
+| Payload + API client | `app/(site)/servicios/lib/serviciosTranslateAd.ts` → `requestAdTranslation` → `/api/translate-ad` |
 
-- `TranslateAdControl` with `category="servicios"`, `siteLocale` from `?lang=`, `listingKey` = public slug (or engagement id fallback).
-- Client `requestServiciosAdTranslation` → `POST /api/translate-ad` (masked fields only; no API keys in the browser).
-- **Session cache only** via Gate 3A helpers (`leonix:adTranslate`); no Supabase migration and no `listing_translations` table.
+- `TranslateAdControl` with `category="servicios"`, `siteLocale` from `?lang=`, `listingKey` = public slug (`analyticsListingSlug`).
+- **Client session cache** via Gate 3A helpers (`leonix:adTranslate`); **server cache adapter** (G4) when `translation_records` storage lands.
+- **Provider:** Google Cloud Translation Advanced (`TRANSLATION_PROVIDER=google` + Google env). Missing env → **503** → control shows friendly error (no page crash).
+- **No Supabase migration** and **no `listing_translations` table**.
+
+### Placement
+
+- Standard shell: above About / main column content (`ServiciosProfileView`).
+- Professional shell: top of overview section, before service chips (`ServiciosProfessionalProfileShell`).
+- Contact CTAs / Business Hub panel unchanged and not inside translate control.
 
 ### Translated fields (user prose)
 
+- Hero category line (`title`)
 - About body (`description`)
 - Specialties line (`customServiceText`)
 - Service card titles + secondary lines (`details` — tab-encoded, reapplied by index)
@@ -321,13 +331,17 @@ Local dev may use `GOOGLE_APPLICATION_CREDENTIALS` (file path) instead of JSON e
 
 ### Excluded (never sent / never replaced)
 
-- `businessName`, phone, email, website, WhatsApp, address, maps URL, social links, prices, license numbers, raw URLs, contact card fields
+- `businessName`, owner name, phone, email, website, WhatsApp, address, maps URL, social links, prices, license numbers, raw URLs, contact card fields
 
 ### Original language (T4 limitation)
 
 - Listings do not yet store advertiser `original_language`; pilot uses `originalLocale="unknown"` and `sourceLocale: "unknown"` on the API request.
-- CTA is shown when translatable prose exists and `siteLocale` is `es` or `en` (Servicios-specific; global `shouldOfferTranslateAd` unchanged).
-- Future: persist original locale on publish and pass detected/stored locale for smarter CTA gating.
+- CTA shown when translatable prose exists and (`shouldOfferTranslateAd` passes **or** `originalLocale === "unknown"` for current `siteLocale`).
+- Future: persist original locale on publish (G5+) for smarter CTA gating.
+
+### Next gate
+
+- **T5 — QA Servicios pilot + next category** (likely Empleos or Autos, per rollout plan).
 
 ## Gate T5 (Empleos + Autos) ✅
 

@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
-import type { AdTranslationResult } from "@/app/lib/translation/types";
+import { shouldOfferTranslateAd } from "@/app/lib/translation/helpers";
+import type { AdTranslationResult, ContentLocale } from "@/app/lib/translation/types";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import {
   applyServiciosTranslation,
@@ -22,9 +23,13 @@ export type ServiciosPublicTranslationLayerProps = {
   ) => React.ReactNode;
 };
 
+/** No DB `original_language` yet — listings default to unknown until publish pipeline stores locale. */
+function inferServiciosOriginalLocale(_profile: ServiciosProfileResolved): ContentLocale {
+  return "unknown";
+}
+
 /**
- * Servicios pilot: session-only ad translation overlay.
- * `originalLocale` is unknown until listing language is stored — CTA still shows when prose exists.
+ * Servicios pilot (T4): session + server cache via TranslateAdControl; overlay only — source profile unchanged.
  */
 export function ServiciosPublicTranslationLayer({
   profile,
@@ -35,12 +40,14 @@ export function ServiciosPublicTranslationLayer({
   const [showTranslated, setShowTranslated] = useState(false);
   const [translation, setTranslation] = useState<AdTranslationResult | null>(null);
 
+  const originalLocale = useMemo(() => inferServiciosOriginalLocale(profile), [profile]);
   const translatableContent = useMemo(() => buildServiciosTranslatableContent(profile), [profile]);
 
-  const offerTranslate = useMemo(
-    () => (lang === "es" || lang === "en") && hasServiciosTranslatableProse(translatableContent),
-    [lang, translatableContent],
-  );
+  const offerTranslate = useMemo(() => {
+    if (!hasServiciosTranslatableProse(translatableContent)) return false;
+    if (shouldOfferTranslateAd({ siteLocale: lang, originalLocale })) return true;
+    return originalLocale === "unknown";
+  }, [lang, originalLocale, translatableContent]);
 
   const displayProfile = useMemo(() => {
     if (!showTranslated || !translation?.translated) return profile;
@@ -60,10 +67,10 @@ export function ServiciosPublicTranslationLayer({
     <div className="flex justify-start" data-servicios-translate-ad="1">
       <TranslateAdControl
         siteLocale={lang}
-        originalLocale="unknown"
+        originalLocale={originalLocale}
         category="servicios"
         listingKey={listingKey}
-        version="servicios-t4-v1"
+        version="servicios-t4-v2"
         translatableContent={translatableContent}
         onTranslated={onTranslated}
         onShowOriginal={onShowOriginal}

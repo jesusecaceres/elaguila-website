@@ -90,7 +90,7 @@ export function ComingSoonV2Shell() {
                 alt="Leonix Media"
                 width={240}
                 height={84}
-                className="h-auto w-[132px] object-contain sm:w-[168px] lg:w-[228px]"
+                className="h-auto w-[148px] object-contain sm:w-[180px] lg:w-[248px]"
                 priority
               />
             </Link>
