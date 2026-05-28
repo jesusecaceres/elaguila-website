@@ -58,8 +58,9 @@ export default async function TermsPage(props: { searchParams?: Promise<{ lang?:
           <section>
             <h2>Paid features</h2>
             <p>
-              Some features may require payment. Fees, billing, and refunds are described at checkout or in applicable
-              product terms. You are responsible for charges you authorize.
+              Some features may require payment. Where online checkout is available, fees, billing, and refunds are
+              described at checkout or in applicable product terms. Where checkout is not yet live, paid plans are arranged
+              directly with Leonix. You are responsible for charges you authorize.
             </p>
           </section>
           <section>
@@ -112,8 +113,9 @@ export default async function TermsPage(props: { searchParams?: Promise<{ lang?:
           <section>
             <h2>Funciones de pago</h2>
             <p>
-              Algunas funciones pueden requerir pago. Tarifas, facturación y reembolsos se describen al pagar o en los
-              términos del producto aplicable. Eres responsable de los cargos que autorices.
+              Algunas funciones pueden requerir pago. Cuando el pago en línea esté disponible, las tarifas, facturación y
+              reembolsos se describen al pagar o en los términos del producto aplicable. Si el checkout aún no está activo,
+              los planes pagados se coordinan directamente con Leonix. Eres responsable de los cargos que autorices.
             </p>
           </section>
           <section>

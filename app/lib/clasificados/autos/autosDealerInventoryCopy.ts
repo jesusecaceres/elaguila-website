@@ -1,3 +1,4 @@
+import { LEONIX_GLOBAL_MAILTO } from "@/app/data/leonixGlobalContact";
 import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPolicy";
 
@@ -45,7 +46,7 @@ export function autosDealerInventoryUpgradeContactHref(lang: AutosClassifiedsLan
   const body = encodeURIComponent(
     `${autosDealerInventoryUpgradePitch(lang)}\n\n${autosDealerInventoryTotalWithBoostLine(lang)}`,
   );
-  return `mailto:soporte@elaguila.com?subject=${subject}&body=${body}`;
+  return `${LEONIX_GLOBAL_MAILTO}?subject=${subject}&body=${body}`;
 }
 
 export function autosDealerInventoryTotalWithBoostLine(lang: AutosClassifiedsLang): string {

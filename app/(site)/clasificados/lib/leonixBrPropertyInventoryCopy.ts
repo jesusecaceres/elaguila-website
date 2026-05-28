@@ -1,3 +1,4 @@
+import { LEONIX_GLOBAL_MAILTO } from "@/app/data/leonixGlobalContact";
 import type { BrPropertyInventoryLang } from "./leonixBrPropertyInventoryPolicy";
 import {
   BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES,
@@ -96,7 +97,7 @@ export function brPropertyInventoryUpgradeContactHref(lang: BrPropertyInventoryL
   const body = encodeURIComponent(
     `${brPropertyInventoryUpgradePitch(lang)}\n\n${brPropertyInventoryTotalWithUpgradeLine(lang)}\n\n${brPropertyInventoryContactLeonixLine(lang)}`,
   );
-  return `mailto:soporte@elaguila.com?subject=${subject}&body=${body}`;
+  return `${LEONIX_GLOBAL_MAILTO}?subject=${subject}&body=${body}`;
 }
 
 export function brPropertyInventoryValueDrawerCopy(lang: BrPropertyInventoryLang): {

@@ -29,6 +29,10 @@ const COPY = {
       "conecta negocios, clasificados y comunidad en un solo ecosistema bilingüe para el Área de la Bahía y el norte de California.",
     socialNote: "Próximamente en redes.",
     companyNote: "Una empresa bajo",
+    legal: "Legal",
+    privacy: "Privacidad",
+    terms: "Términos",
+    dataDeletion: "Eliminación de datos",
   },
   en: {
     followUs: "Follow us",
@@ -43,6 +47,10 @@ const COPY = {
       "connects businesses, classifieds, and community in one bilingual ecosystem for the Bay Area and Northern California.",
     socialNote: "Social channels coming soon.",
     companyNote: "A company under",
+    legal: "Legal",
+    privacy: "Privacy",
+    terms: "Terms",
+    dataDeletion: "Data deletion",
   },
 } as const;
 
@@ -126,6 +134,26 @@ function FooterInner() {
       </div>
 
       <div className="mt-10 flex flex-col items-center gap-3 px-4 text-center">
+        <nav
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm"
+          aria-label={lang === "es" ? "Enlaces legales" : "Legal links"}
+        >
+          <Link href={`/legal${langQuery}`} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
+            {t.legal}
+          </Link>
+          <Link href={`/privacy${langQuery}`} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
+            {t.privacy}
+          </Link>
+          <Link href={`/terms${langQuery}`} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
+            {t.terms}
+          </Link>
+          <Link
+            href={`/data-deletion${langQuery}`}
+            className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]"
+          >
+            {t.dataDeletion}
+          </Link>
+        </nav>
         <CookiePreferencesTrigger labelEs={COPY.es.cookiePrefs} labelEn={COPY.en.cookiePrefs} />
         <p className="max-w-xl text-sm text-[color:var(--lx-muted)]">{LEONIX_MEDIA_SLOGAN}</p>
         <p className="text-sm text-[color:var(--lx-muted)]">

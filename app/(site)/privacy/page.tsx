@@ -37,8 +37,8 @@ export default async function PrivacyPage(props: { searchParams?: Promise<{ lang
             <h2>Information we collect</h2>
             <ul>
               <li>
-                <strong>Account information</strong> when you sign in: email address, display name, and profile photo
-                provided by login providers (for example Google) or information you enter in your profile.
+                <strong>Account information</strong> when you sign in: email address, display name, phone, home city, and
+                related profile fields you enter, or information provided by login providers (for example Google or Facebook).
               </li>
               <li>
                 <strong>Listing and business information</strong> you choose to submit: ad copy, photos, contact details,
@@ -99,8 +99,9 @@ export default async function PrivacyPage(props: { searchParams?: Promise<{ lang
             <h2>Información que recopilamos</h2>
             <ul>
               <li>
-                <strong>Información de cuenta</strong> al iniciar sesión: correo electrónico, nombre para mostrar y foto de
-                perfil proporcionados por proveedores de acceso (por ejemplo Google) o datos que ingreses en tu perfil.
+                <strong>Información de cuenta</strong> al iniciar sesión: correo electrónico, nombre para mostrar, teléfono,
+                ciudad y otros campos de perfil que ingreses, o datos proporcionados por proveedores de acceso (por ejemplo
+                Google o Facebook).
               </li>
               <li>
                 <strong>Información de anuncios y negocio</strong> que decides enviar: textos, fotos, datos de contacto,
