@@ -20,6 +20,7 @@ import {
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import { EnVentaPublishSubmitBar } from "@/app/clasificados/en-venta/publish/EnVentaPublishSubmitBar";
+import { collectEnVentaCoreBlockers } from "@/app/clasificados/en-venta/publish/enVentaPublishValidation";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
 import { BasicInfoSection } from "../../free/application/sections/BasicInfoSection";
@@ -50,13 +51,15 @@ export default function LeonixEnVentaProApplication() {
     clearLeonixReturningToEditSessionFlag();
   }, []);
 
+  const previewBlockers = useMemo(() => collectEnVentaCoreBlockers(lang, state), [lang, state]);
+
   const copy = useMemo(
     () =>
       lang === "es"
         ? {
             title: `Publicar — ${enVentaPublicLabel("es")}`,
             subtitle:
-              "Anuncio de Varios incluido sin costo. Publica con fotos, video opcional y opciones de contacto. Sin pago. Sin comisión.",
+              "Anuncio incluido sin costo. Publica con fotos, video opcional y opciones de contacto. Sin pago. Sin comisión.",
             back: `Volver a ${enVentaPublicLabel("es")}`,
           }
         : {
@@ -149,7 +152,11 @@ export default function LeonixEnVentaProApplication() {
               {familySafetyMsg}
             </p>
           ) : null}
-          <EnVentaPreviewBeforePublishCta lang={lang} onBeforePreview={onBeforePreview} />
+          <EnVentaPreviewBeforePublishCta
+            lang={lang}
+            onBeforePreview={onBeforePreview}
+            previewBlockers={previewBlockers}
+          />
           <ListingRulesConfirmationSection
             lang={lang}
             confirmAccurate={state.confirmListingAccurate}

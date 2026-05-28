@@ -13,8 +13,8 @@ import { buildEnVentaPublishSuccessUrls } from "@/app/clasificados/en-venta/shar
 import { buildEnVentaListingDetailHrefFromResults } from "@/app/clasificados/en-venta/results/utils/enVentaListingLinks";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
 import { getEnVentaSupabaseBrowserEnvIssues } from "@/app/lib/supabase/enVentaClientEnvCheck";
-import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
+import { collectEnVentaPublishBlockers } from "./enVentaPublishValidation";
 import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enVentaPublishFromDraft";
 
 const COPY = {
@@ -28,10 +28,6 @@ const COPY = {
     successDashboard: "Ir a Mis anuncios",
     errPrefix: "No se pudo publicar:",
     blockedIntro: "Para habilitar Publicar, completa lo siguiente:",
-    blockerTitle: "Agrega un título para tu artículo.",
-    blockerTaxonomy: "Completa categoría, tipo de artículo y condición.",
-    blockerPrice: "Agrega un precio o marca Gratis.",
-    blockerRules: "Confirma las reglas antes de publicar.",
   },
   en: {
     publish: "Publish listing",
@@ -43,41 +39,8 @@ const COPY = {
     successDashboard: "Go to My listings",
     errPrefix: "Could not publish:",
     blockedIntro: "To enable Publish, complete the following:",
-    blockerTitle: "Add a title for your item.",
-    blockerTaxonomy: "Complete department, item type, and condition.",
-    blockerPrice: "Add a price or mark it as Free.",
-    blockerRules: "Confirm the rules before publishing.",
   },
 } as const;
-
-/** Mirrors `publishEnVentaFromDraft` gates (title, taxonomy, price/gratis, location, confirmations). */
-function collectPublishBlockers(lang: "es" | "en", state: EnVentaFreeApplicationState): string[] {
-  const t = COPY[lang];
-  const reasons: string[] = [];
-
-  if (!state.title.trim()) reasons.push(t.blockerTitle);
-
-  const rama = state.rama.trim();
-  const itemType = state.itemType.trim();
-  const condition = state.condition.trim();
-  if (!rama || !itemType || !condition) reasons.push(t.blockerTaxonomy);
-
-  if (!state.priceIsFree && !String(state.price).trim()) reasons.push(t.blockerPrice);
-
-  const loc = validateEnVentaLocation(state.city, state.zip);
-  if (!loc.ok) reasons.push(lang === "es" ? loc.messageEs : loc.messageEn);
-
-  if (!state.confirmListingAccurate || !state.confirmPhotosRepresentItem || !state.confirmCommunityRules) {
-    reasons.push(t.blockerRules);
-  }
-
-  const safety = evaluateEnVentaFamilySafetyFromState(state, lang);
-  if (safety.status !== "safe") {
-    reasons.push(safety.userMessage);
-  }
-
-  return reasons;
-}
 
 type Props = {
   lang: "es" | "en";
@@ -95,7 +58,7 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
     leonixAdId: string | null;
   } | null>(null);
 
-  const blockers = collectPublishBlockers(lang, state);
+  const blockers = collectEnVentaPublishBlockers(lang, state);
   const ready = blockers.length === 0;
   const { generalUrl, scopedUrl } = buildEnVentaPublishSuccessUrls(lang, state);
 

@@ -31,17 +31,25 @@ type Props = {
   variant?: EnVentaPreviewCtaVariant;
   /** Runs synchronously before navigation; must persist preview draft (throws on family-safety block). */
   onBeforePreview?: (plan: "free" | "pro") => void;
+  /** Core-field blockers; preview allowed when empty. Checkboxes not required. */
+  previewBlockers?: string[];
 };
 
 /**
  * Preview call-to-action shown above the legal/rules confirmation block in Varios / For Sale publish flows.
  */
-export function EnVentaPreviewBeforePublishCta({ lang, variant = "light", onBeforePreview }: Props) {
+export function EnVentaPreviewBeforePublishCta({
+  lang,
+  variant = "light",
+  onBeforePreview,
+  previewBlockers = [],
+}: Props) {
   const router = useRouter();
   const t = PREVIEW_CTA[lang];
   const proHref = `${PREVIEW_HREF_BASE}?lang=${lang}&plan=pro`;
 
   function goPreview() {
+    if (previewBlockers.length > 0) return;
     try {
       onBeforePreview?.("pro");
     } catch {
@@ -76,8 +84,25 @@ export function EnVentaPreviewBeforePublishCta({ lang, variant = "light", onBefo
       <p className="mt-1 text-xs text-[#5D4A25]/75">
         {enVentaPublicLabel(lang)} · {t.includedNote}
       </p>
+      {previewBlockers.length > 0 ? (
+        <div className="mt-3 rounded-xl border border-amber-300/80 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+          <p className="font-semibold">
+            {lang === "es" ? "Para ver la vista previa, completa:" : "To open preview, complete:"}
+          </p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-5 text-xs leading-snug">
+            {previewBlockers.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="mt-4">
-        <button type="button" className={previewBtn} onClick={goPreview}>
+        <button
+          type="button"
+          className={previewBtn}
+          onClick={goPreview}
+          disabled={previewBlockers.length > 0}
+        >
           {t.previewBtn}
         </button>
       </div>

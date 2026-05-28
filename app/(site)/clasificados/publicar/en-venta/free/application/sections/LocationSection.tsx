@@ -53,15 +53,10 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
   }, [state.zip, state.city, setState]);
 
   const msg = validation.ok ? null : lang === "es" ? validation.messageEs : validation.messageEn;
-  const cityInvalid =
-    !validation.ok &&
-    (validation.code === "bad_city" || validation.code === "mismatch" || validation.code === "missing_both");
+  const cityInvalid = !validation.ok && (validation.code === "bad_city" || validation.code === "mismatch");
   const zipInvalid =
     !validation.ok &&
-    (validation.code === "bad_zip" ||
-      validation.code === "mismatch" ||
-      validation.code === "incomplete_zip" ||
-      validation.code === "missing_both");
+    (validation.code === "bad_zip" || validation.code === "mismatch" || validation.code === "incomplete_zip");
 
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>

@@ -17,7 +17,7 @@ const COPY: Record<
   }
 > = {
   es: {
-    title: "Anuncio de Varios incluido sin costo",
+    title: "Anuncio incluido sin costo",
     subtitle: "Publica con fotos, video opcional y opciones de contacto. Sin pago. Sin comisión.",
     featureTitle: "Anuncio de Varios",
     featureBadge: "Incluido",

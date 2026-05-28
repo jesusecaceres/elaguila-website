@@ -49,13 +49,14 @@ const COPY = {
     videoClear: "Quitar video",
     videoAdded: "Video agregado",
     videoLinkAdded: "Enlace de video agregado",
-    videoSaved: "Tu video se guardó para este anuncio.",
+    videoSaved: "Guardado en tu borrador para vista previa y publicación.",
     noVideoFree: "Esta vía no incluye video.",
     uploadRequest: "Solicitando carga segura...",
     uploading: "Subiendo video...",
     preparing: "Procesando video en Mux...",
     ready: "Video listo",
     failed: "Video",
+    videoLinkInvalid: "Usa un enlace que comience con http:// o https://",
     fileUploadBlockedLeonix:
       "Leonix no puede aceptar la subida de archivo en este momento (límite o configuración del proveedor de video). Puedes pegar un enlace público (YouTube, Vimeo, etc.).",
     fileUploadTransferFailed:
@@ -91,7 +92,8 @@ const COPY = {
     videoClear: "Remove video",
     videoAdded: "Video added",
     videoLinkAdded: "Video link added",
-    videoSaved: "Your video was saved for this listing.",
+    videoSaved: "Saved in your draft for preview and publish.",
+    videoLinkInvalid: "Use a link that starts with http:// or https://",
     noVideoFree: "This path does not include video.",
     uploadRequest: "Requesting secure upload...",
     uploading: "Uploading video...",
@@ -108,6 +110,10 @@ const COPY = {
       "Processing took too long. Try a shorter file or paste a public link.",
   },
 } as const;
+
+function isValidVideoUrl(raw: string): boolean {
+  return /^https?:\/\//i.test(raw.trim());
+}
 
 function looksLikeProviderLimitOrPolicy(raw: string): boolean {
   const s = raw.toLowerCase();
@@ -381,8 +387,10 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   }
 
   const videoSlot = state.listingVideoSlots[0];
-  const videoLinkReady = Boolean(state.listingVideoUrl.trim().startsWith("http"));
+  const videoUrlRaw = state.listingVideoUrl.trim();
+  const videoLinkInvalid = videoUrlRaw.length > 0 && !isValidVideoUrl(videoUrlRaw);
   const videoFileReady = videoSlot.status === "ready" && Boolean(videoSlot.playbackUrl || videoSlot.fileName);
+  const videoLinkReady = isValidVideoUrl(videoUrlRaw);
   const videoAccepted = videoFileReady || videoLinkReady;
 
   function onVideoFile(files: FileList | null) {
@@ -687,7 +695,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
               )}
               role="status"
             >
-              {videoFileReady ? t.videoAdded : t.videoLinkAdded}
+              {t.ready}
               <span className="mt-0.5 block font-normal text-[#5D4A25]/85">{t.videoSaved}</span>
             </p>
           ) : state.listingVideoSlots[0].status !== "idle" ? (
@@ -706,26 +714,31 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
           <div className="mt-3">
             <label className={c.label}>{t.videoLink}</label>
             <input
-              className={c.input}
+              className={cx(c.input, videoLinkInvalid ? "border-red-400 ring-1 ring-red-400/35" : "")}
               value={state.listingVideoUrl}
-              onChange={(e) =>
+              onChange={(e) => {
+                const v = e.target.value;
                 setState((s) => {
-                  const v = e.target.value.trim();
-                  if (v.startsWith("http") || v === "") {
-                    const next = [...s.listingVideoSlots] as EnVentaFreeApplicationState["listingVideoSlots"];
-                    next[0] = {
-                      ...next[0],
-                      playbackUrl: v,
-                      status: v ? "ready" : "idle",
-                      errorMessage: "",
-                    };
-                    return { ...s, listingVideoUrl: v, listingVideoSlots: next };
-                  }
-                  return s;
-                })
-              }
+                  const trimmed = v.trim();
+                  const valid = isValidVideoUrl(trimmed);
+                  const next = [...s.listingVideoSlots] as EnVentaFreeApplicationState["listingVideoSlots"];
+                  next[0] = {
+                    ...next[0],
+                    playbackUrl: valid ? trimmed : "",
+                    status: valid ? "ready" : next[0].status === "ready" && next[0].fileName ? "ready" : "idle",
+                    errorMessage: "",
+                  };
+                  return { ...s, listingVideoUrl: v, listingVideoSlots: next };
+                });
+              }}
               placeholder="https://"
+              aria-invalid={videoLinkInvalid}
             />
+            {videoLinkInvalid ? (
+              <p className="mt-1 text-xs font-medium text-red-800" role="alert">
+                {t.videoLinkInvalid}
+              </p>
+            ) : null}
             <p className={cx("mt-1 text-xs", c.vidHint)}>
               {lang === "es"
                 ? "Si subes un archivo, el enlace se puede dejar vacío."

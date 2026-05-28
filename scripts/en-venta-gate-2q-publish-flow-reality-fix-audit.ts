@@ -84,10 +84,20 @@ add("Drag reorder", photos.includes("draggable") && photos.includes("onDrop"), "
 add("Reorder copy ES", photos.includes("Ordenar fotos") && photos.includes("Arrastra las fotos"), "PhotosSection.tsx");
 add("Mobile reorder fallback", photos.includes("moveImage"), "PhotosSection.tsx");
 add("Video optional copy", photos.includes("Video opcional") && photos.includes("Optional video"), "PhotosSection.tsx");
-add("Video accepted copy", photos.includes("Video agregado") && photos.includes("Tu video se guardó"), "PhotosSection.tsx");
+add(
+  "Video accepted copy",
+  photos.includes("Video listo") &&
+    photos.includes("Video ready") &&
+    (photos.includes("Guardado en tu borrador") || photos.includes("Saved in your draft")),
+  "PhotosSection.tsx"
+);
 
 const callout = read("app/(site)/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout.tsx");
-add("Included listing callout", callout.includes("Anuncio de Varios incluido sin costo"), "EnVentaPlanIntakeCallout.tsx");
+add(
+  "Included listing callout",
+  callout.includes("Anuncio incluido sin costo") || callout.includes("Anuncio de Varios incluido sin costo"),
+  "EnVentaPlanIntakeCallout.tsx"
+);
 
 const previewModel = read("app/(site)/clasificados/en-venta/preview/buildEnVentaPreviewModel.ts");
 add("Price with currency in preview", previewModel.includes('`$${formatPriceInputDisplay'), "buildEnVentaPreviewModel.ts");
