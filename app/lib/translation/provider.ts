@@ -9,6 +9,10 @@ import {
   unwrapMaskPlaceholdersFromGoogleHtml,
   wrapMaskPlaceholdersForGoogleHtml,
 } from "@/app/lib/translation/providers/maskPlaceholders";
+import {
+  lookupCachedTranslations,
+  writeCachedTranslations,
+} from "@/app/lib/translation/serverCache";
 
 /**
  * Typed hook for a future server-backed translator (Gate 3B+).
@@ -237,7 +241,43 @@ async function callGoogleCloudTranslationAdvanced(
   });
 }
 
-/** Primary server entry — Google Cloud Translation Advanced (T3G). */
+async function translateMaskedFieldsViaGoogle(
+  maskedFields: TranslatableAdFields,
+  targetLocale: Locale,
+  sourceLocale: ContentLocale,
+): Promise<TranslatableAdFields> {
+  const fieldKeys = Object.keys(maskedFields) as TranslatableAdFieldKey[];
+  if (fieldKeys.length === 0) {
+    throw new TranslationProviderRequestError("No translatable fields.");
+  }
+
+  const textsToTranslate = fieldKeys.map((k) =>
+    wrapMaskPlaceholdersForGoogleHtml(maskedFields[k]!),
+  );
+
+  let translatedTexts: string[];
+  try {
+    translatedTexts = await callGoogleCloudTranslationAdvanced(
+      textsToTranslate,
+      targetLocale,
+      sourceLocale,
+    );
+  } catch (e) {
+    if (e instanceof TranslationProviderNotConfiguredError) throw e;
+    if (e instanceof TranslationProviderUnsupportedError) throw e;
+    if (e instanceof TranslationProviderRequestError) throw e;
+    throw new TranslationProviderRequestError();
+  }
+
+  const translated: TranslatableAdFields = {};
+  for (let i = 0; i < fieldKeys.length; i++) {
+    translated[fieldKeys[i]] = unwrapMaskPlaceholdersFromGoogleHtml(translatedTexts[i]);
+  }
+
+  return translated;
+}
+
+/** Primary server entry — Google Cloud Translation Advanced (T3G) with G4 cache adapter. */
 export async function translateAdWithConfiguredProvider(
   req: TranslateAdRequest,
 ): Promise<AdTranslationResult> {
@@ -255,28 +295,36 @@ export async function translateAdWithConfiguredProvider(
     throw new TranslationProviderRequestError("No translatable fields.");
   }
 
-  const textsToTranslate = fieldKeys.map((k) =>
-    wrapMaskPlaceholdersForGoogleHtml(maskedFields[k]!),
+  const cacheLookup = await lookupCachedTranslations(req);
+
+  if (cacheLookup.misses.length === 0) {
+    return {
+      translated: cacheLookup.translated,
+      sourceLocale: req.sourceLocale,
+      targetLocale: req.targetLocale,
+      provider: GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID,
+      translatedAt: cacheLookup.cachedAt ?? new Date().toISOString(),
+      fromCache: true,
+    };
+  }
+
+  const missFields: TranslatableAdFields = {};
+  for (const fieldKey of cacheLookup.misses) {
+    missFields[fieldKey] = maskedFields[fieldKey]!;
+  }
+
+  const freshTranslated = await translateMaskedFieldsViaGoogle(
+    missFields,
+    req.targetLocale,
+    req.sourceLocale,
   );
 
-  let translatedTexts: string[];
-  try {
-    translatedTexts = await callGoogleCloudTranslationAdvanced(
-      textsToTranslate,
-      req.targetLocale,
-      req.sourceLocale,
-    );
-  } catch (e) {
-    if (e instanceof TranslationProviderNotConfiguredError) throw e;
-    if (e instanceof TranslationProviderUnsupportedError) throw e;
-    if (e instanceof TranslationProviderRequestError) throw e;
-    throw new TranslationProviderRequestError();
-  }
+  await writeCachedTranslations(req, freshTranslated, GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID);
 
-  const translated: TranslatableAdFields = {};
-  for (let i = 0; i < fieldKeys.length; i++) {
-    translated[fieldKeys[i]] = unwrapMaskPlaceholdersFromGoogleHtml(translatedTexts[i]);
-  }
+  const translated: TranslatableAdFields = {
+    ...cacheLookup.translated,
+    ...freshTranslated,
+  };
 
   return {
     translated,

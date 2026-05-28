@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isServerTranslationStorageAvailable } from "@/app/lib/translation/serverCache";
+
 export type TranslationProviderName = "google" | "deepl" | "disabled";
 
 export type TranslationProviderConfig = {
@@ -15,6 +17,8 @@ export type TranslationProviderConfig = {
   googleCloudProjectId: string | null;
   /** Future Google Translate location, e.g. global (G3). */
   googleTranslateLocation: string | null;
+  /** True when durable server cache storage is wired (G4). */
+  serverCacheStorageAvailable: boolean;
 };
 
 const SUPPORTED_PROVIDERS = new Set<TranslationProviderName>(["google", "deepl", "disabled"]);
@@ -55,6 +59,7 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
   const googleTranslateLocation =
     process.env.GOOGLE_TRANSLATE_LOCATION?.trim() || "global";
   const googleCloudProjectId = process.env.GOOGLE_CLOUD_PROJECT_ID?.trim() || null;
+  const serverCacheStorageAvailable = isServerTranslationStorageAvailable();
 
   if (!raw) {
     return {
@@ -64,6 +69,7 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
       missingEnv: ["TRANSLATION_PROVIDER"],
       googleCloudProjectId,
       googleTranslateLocation,
+      serverCacheStorageAvailable,
     };
   }
 
@@ -75,6 +81,7 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
       missingEnv: ["TRANSLATION_PROVIDER"],
       googleCloudProjectId,
       googleTranslateLocation,
+      serverCacheStorageAvailable,
     };
   }
 
@@ -86,6 +93,7 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
       missingEnv: ["TRANSLATION_PROVIDER"],
       googleCloudProjectId,
       googleTranslateLocation,
+      serverCacheStorageAvailable,
     };
   }
 
@@ -98,6 +106,7 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
       missingEnv: missing,
       googleCloudProjectId,
       googleTranslateLocation,
+      serverCacheStorageAvailable,
     };
   }
 
@@ -110,6 +119,7 @@ export function getTranslationProviderConfig(): TranslationProviderConfig {
     missingEnv: deeplKeyMissing ? ["DEEPL_API_KEY"] : [],
     googleCloudProjectId,
     googleTranslateLocation,
+    serverCacheStorageAvailable,
   };
 }
 

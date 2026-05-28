@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
   if (gate) return gate;
 
   // TODO(T4+): per-user rate limiting and optional auth before calling external provider.
-  // TODO(later): durable translation cache / translation_records table — no DB writes in T3G.
+  // G4: server cache adapter in serverCache.ts — durable storage when translation_records exists.
 
   try {
     const result = await translateAdWithConfiguredProvider(parsed);

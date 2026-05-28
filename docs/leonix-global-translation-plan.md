@@ -131,7 +131,7 @@ create table public.translation_records (
 |------|--------|
 | **G2** | ✅ Provider interface + registry; DeepL isolated; Google placeholder; no category/DB changes |
 | **G3** | ✅ Google Cloud Advanced adapter; env docs; `TRANSLATION_PROVIDER=google` |
-| **G4** | `translation_records` migration + read/write service |
+| **G4** | ✅ Server cache adapter (`serverCache.ts`); no migration yet — provider-only until `translation_records` |
 | **G5** | `original_language` + publish pipeline writes |
 | **G6** | Language config module + selector UX (ES/EN stable) |
 | **G7** | Wire cache lookup into translate-ad + category hooks |

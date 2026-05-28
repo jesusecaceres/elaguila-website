@@ -16,5 +16,10 @@ export {
 
 export type { TranslationProviderConfig, TranslationProviderName } from "@/app/lib/translation/config";
 
+export {
+  isServerTranslationStorageAvailable,
+  SERVER_TRANSLATION_CACHE_VERSION,
+} from "@/app/lib/translation/serverCache";
+
 /** @deprecated Use provider id from translation result (`deepl` | `google`). */
 export const TRANSLATION_PROVIDER_ID = "deepl";

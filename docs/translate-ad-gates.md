@@ -172,6 +172,48 @@ GOOGLE_APPLICATION_CREDENTIALS=
 - No Supabase migration
 - No `listing_translations` / `translation_records` table
 
+## Gate G4 (translation cache adapter) ✅
+
+**Scope:** Server-side cache lookup/write adapter before/after Google calls. No migration, no category wiring.
+
+### What changed
+
+| Item | Path |
+|---|---|
+| Server cache module | `app/lib/translation/serverCache.ts` — cache keys, SHA-256 source hash, read/write adapter |
+| Provider integration | `app/lib/translation/provider.ts` — cache lookup → Google for misses only → cache write |
+| Config | `app/lib/translation/config.ts` — `serverCacheStorageAvailable` flag |
+
+### Cache key parts
+
+Per translatable field:
+
+- `category` (content type)
+- `listingKey` (content id)
+- `fieldKey` (`title`, `description`, …)
+- `sourceLocale` / `targetLocale`
+- `sourceTextHash` — SHA-256 of **masked** source text (never logged)
+- `version` — `v1` (masking/payload version)
+
+### Cache behavior
+
+| Storage | Behavior |
+|---|---|
+| **Unavailable** (current — no `translation_records` table) | Skip read/write; call Google; `fromCache: false` |
+| **Available** (future migration gate) | Read before Google; full hit → `fromCache: true`; miss → Google + write; partial hit translates misses only |
+
+Future enablement: `TRANSLATION_CACHE_STORAGE=supabase` after `translation_records` migration lands.
+
+### Response `fromCache`
+
+- **Full cache hit:** `fromCache: true` (no Google call)
+- **Any cache miss:** `fromCache: false` (Google called for missing fields)
+
+### Out of scope (G4)
+
+- No Supabase migration / `translation_records` table
+- No category UI wiring — **Servicios pilot (T4)** is next after provider + env alignment
+
 ## Gate G2 (provider abstraction pivot) ✅
 
 **Scope:** Provider architecture only — no Google SDK, no Supabase migration, no category UI changes.
