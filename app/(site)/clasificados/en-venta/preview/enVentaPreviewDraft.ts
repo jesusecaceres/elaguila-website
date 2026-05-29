@@ -9,6 +9,7 @@ import {
   idbPutEnVentaPreviewDraft,
   idbPutEnVentaPreviewReturnDraft,
 } from "./enVentaPreviewDraftIdb";
+import { normalizeEnVentaFreeApplicationState } from "../shared/utils/normalizeEnVentaApplicationState";
 
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
@@ -34,7 +35,7 @@ function keyForPlan(plan: "free" | "pro") {
 
 function mergePartialEnVentaState(parsed: Partial<EnVentaFreeApplicationState>): EnVentaFreeApplicationState {
   const base = createEmptyEnVentaFreeState();
-  return {
+  return normalizeEnVentaFreeApplicationState({
     ...base,
     ...parsed,
     listingVideoSlots:
@@ -44,7 +45,8 @@ function mergePartialEnVentaState(parsed: Partial<EnVentaFreeApplicationState>):
             { ...base.listingVideoSlots[1], ...parsed.listingVideoSlots[1] },
           ]
         : base.listingVideoSlots,
-  };
+    images: Array.isArray(parsed.images) ? parsed.images : base.images,
+  });
 }
 
 /**

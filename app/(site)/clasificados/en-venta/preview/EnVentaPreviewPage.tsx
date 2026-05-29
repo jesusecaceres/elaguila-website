@@ -14,6 +14,7 @@ import { EnVentaContactButtons } from "@/app/clasificados/en-venta/shared/compon
 import { EnVentaListingHero } from "@/app/clasificados/en-venta/shared/components/EnVentaListingHero";
 import { EnVentaDetailContentStack } from "@/app/clasificados/en-venta/shared/components/EnVentaDetailContentStack";
 import { buildEnVentaContentStackFromDraftState } from "@/app/clasificados/en-venta/shared/utils/buildEnVentaContentStackModel";
+import { normalizeEnVentaFreeApplicationState } from "@/app/clasificados/en-venta/shared/utils/normalizeEnVentaApplicationState";
 import {
   buildCallIntent,
   buildDirectionsIntent,
@@ -143,10 +144,14 @@ export function EnVentaPreviewPage() {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  const state = draft ?? createEmptyEnVentaFreeState();
+  const state = useMemo(
+    () => normalizeEnVentaFreeApplicationState(draft ?? createEmptyEnVentaFreeState()),
+    [draft],
+  );
   const hasDraft = draft !== null;
 
   const vm = useMemo(() => buildEnVentaPreviewModel(state, lang, plan), [state, lang, plan]);
+  const contentStack = useMemo(() => buildEnVentaContentStackFromDraftState(state, lang), [state, lang]);
   const draftMeta = useMemo(() => loadEnVentaPreviewDraftMeta(), [plan]);
   const shellStatusLine = useMemo(() => {
     if (draftMeta?.updatedAt) return relativeTimeLabel(draftMeta.updatedAt, lang);
@@ -296,8 +301,6 @@ export function EnVentaPreviewPage() {
     />
   );
 
-  const contentStack = useMemo(() => buildEnVentaContentStackFromDraftState(state, lang), [state, lang]);
-
   const lowerContent = (
     <EnVentaDetailContentStack lang={lang} model={contentStack} descriptionAnchorId="leonix-listing-description" />
   );
@@ -328,7 +331,7 @@ export function EnVentaPreviewPage() {
                 )
             : undefined
         }
-        fulfillmentLabels={contentStack.deliveryChipLabels}
+        fulfillmentLabels={Array.isArray(contentStack.deliveryChipLabels) ? contentStack.deliveryChipLabels : []}
         safetyLine={vm.trustNote}
         contactSection={previewContactSection}
       />

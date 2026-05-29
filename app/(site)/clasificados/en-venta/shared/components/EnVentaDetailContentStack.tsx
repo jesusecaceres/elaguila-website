@@ -75,12 +75,16 @@ type Props = {
 export function EnVentaDetailContentStack({ lang, model, descriptionAnchorId }: Props) {
   const t = EN_VENTA_CONTENT_STACK_COPY[lang];
 
-  const hasDescription = Boolean(model.description.trim());
-  const hasFacts = model.itemFacts.length > 0;
+  const description = typeof model.description === "string" ? model.description : "";
+  const itemFacts = Array.isArray(model.itemFacts) ? model.itemFacts : [];
+  const deliveryItems = Array.isArray(model.deliveryItems) ? model.deliveryItems : [];
+
+  const hasDescription = Boolean(description.trim());
+  const hasFacts = itemFacts.length > 0;
   const hasCondition = Boolean(model.conditionAndUse?.trim());
   const hasAccessories = Boolean(model.accessories?.trim());
   const hasTechnical = Boolean(model.technicalDetails?.trim());
-  const hasDelivery = model.deliveryItems.length > 0;
+  const hasDelivery = deliveryItems.length > 0;
 
   if (!hasDescription && !hasFacts && !hasCondition && !hasAccessories && !hasTechnical && !hasDelivery) {
     return null;
@@ -103,7 +107,7 @@ export function EnVentaDetailContentStack({ lang, model, descriptionAnchorId }: 
       {hasDescription ? (
         <section id={descriptionAnchorId} className={CARD}>
           <h2 className={TITLE}>{t.description}</h2>
-          <p className={`mt-3 ${BODY}`}>{model.description}</p>
+          <p className={`mt-3 ${BODY}`}>{description}</p>
         </section>
       ) : null}
 
@@ -111,7 +115,7 @@ export function EnVentaDetailContentStack({ lang, model, descriptionAnchorId }: 
         <section className={CARD}>
           <h2 className={TITLE}>{t.itemDetails}</h2>
           <div className="mt-3">
-            <ItemFactsGrid facts={model.itemFacts} />
+            <ItemFactsGrid facts={itemFacts} />
           </div>
         </section>
       ) : null}
@@ -141,7 +145,7 @@ export function EnVentaDetailContentStack({ lang, model, descriptionAnchorId }: 
 
       {hasDelivery ? (
         <SectionCard title={t.delivery}>
-          <DeliveryList items={model.deliveryItems} lang={lang} />
+          <DeliveryList items={deliveryItems} lang={lang} />
         </SectionCard>
       ) : null}
     </div>

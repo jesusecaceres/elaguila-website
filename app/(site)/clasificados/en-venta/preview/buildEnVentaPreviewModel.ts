@@ -150,10 +150,11 @@ const EMAIL_SUBJ_EN = "Question about your Leonix listing";
 export const EN_VENTA_PREVIEW_MAX_PHOTOS = { free: 3, pro: 12 } as const;
 
 export function getOrderedEnVentaImageUrls(state: EnVentaFreeApplicationState): string[] {
-  const n = state.images.length;
+  const images = Array.isArray(state.images) ? state.images : [];
+  const n = images.length;
   if (n === 0) return [];
   const pi = Math.min(Math.max(0, state.primaryImageIndex), n - 1);
-  return [state.images[pi], ...state.images.filter((_, i) => i !== pi)];
+  return [images[pi], ...images.filter((_, i) => i !== pi)];
 }
 
 export function buildEnVentaPreviewModel(

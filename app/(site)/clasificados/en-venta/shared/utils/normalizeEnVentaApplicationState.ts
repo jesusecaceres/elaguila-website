@@ -1,0 +1,83 @@
+import {
+  createEmptyEnVentaFreeState,
+  type EnVentaFreeApplicationState,
+} from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+
+function str(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+const CONTACT_METHODS = new Set<EnVentaFreeApplicationState["contactMethod"]>([
+  "phone",
+  "email",
+  "both",
+  "whatsapp",
+]);
+
+/** Coerce persisted/partial drafts so preview builders never call methods on undefined. */
+export function normalizeEnVentaFreeApplicationState(
+  input: EnVentaFreeApplicationState
+): EnVentaFreeApplicationState {
+  const base = createEmptyEnVentaFreeState();
+  const images = Array.isArray(input.images)
+    ? input.images.filter((x): x is string => typeof x === "string")
+    : [];
+  const primaryImageIndex =
+    typeof input.primaryImageIndex === "number" && Number.isFinite(input.primaryImageIndex)
+      ? Math.max(0, Math.floor(input.primaryImageIndex))
+      : 0;
+
+  let listingVideoSlots = base.listingVideoSlots;
+  if (Array.isArray(input.listingVideoSlots) && input.listingVideoSlots.length === 2) {
+    listingVideoSlots = [
+      { ...base.listingVideoSlots[0], ...input.listingVideoSlots[0] },
+      { ...base.listingVideoSlots[1], ...input.listingVideoSlots[1] },
+    ];
+  }
+
+  const contactMethod = CONTACT_METHODS.has(input.contactMethod) ? input.contactMethod : base.contactMethod;
+
+  return {
+    ...base,
+    ...input,
+    rama: str(input.rama),
+    evSub: str(input.evSub),
+    itemType: str(input.itemType),
+    condition: str(input.condition),
+    title: str(input.title),
+    priceIsFree: Boolean(input.priceIsFree),
+    price: str(input.price),
+    negotiable: input.negotiable === "yes" ? "yes" : "",
+    description: str(input.description),
+    quantity: str(input.quantity),
+    brand: str(input.brand),
+    model: str(input.model),
+    images,
+    primaryImageIndex,
+    city: str(input.city),
+    zip: str(input.zip),
+    pickup: Boolean(input.pickup),
+    meetup: Boolean(input.meetup),
+    localDelivery: Boolean(input.localDelivery),
+    shipping: Boolean(input.shipping),
+    shippingNotes: str(input.shippingNotes),
+    pickupDetailNotes: str(input.pickupDetailNotes),
+    meetupDetailNotes: str(input.meetupDetailNotes),
+    localDeliveryDetailNotes: str(input.localDeliveryDetailNotes),
+    seller_kind:
+      input.seller_kind === "business" ? "business" : input.seller_kind === "individual" ? "individual" : "",
+    displayName: str(input.displayName),
+    phone: str(input.phone),
+    email: str(input.email),
+    whatsapp: str(input.whatsapp),
+    contactMethod,
+    listingVideoUrl: str(input.listingVideoUrl),
+    listingVideoSlots,
+    confirmListingAccurate: Boolean(input.confirmListingAccurate),
+    confirmPhotosRepresentItem: Boolean(input.confirmPhotosRepresentItem),
+    confirmCommunityRules: Boolean(input.confirmCommunityRules),
+    wearNotes: str(input.wearNotes),
+    accessoriesNotes: str(input.accessoriesNotes),
+    itemExtraDetails: str(input.itemExtraDetails),
+  };
+}
