@@ -43,6 +43,8 @@ export type EnVentaPreviewViewModel = {
   shellStatusLine: string;
   chips: EnVentaPreviewChip[];
   classificationLine: string;
+  /** Hero metadata: condition, category, city/ZIP. */
+  metadataParts: string[];
   locationLine: string;
   /** Buyer-facing note — approximate area, not exact address unless seller chose. */
   locationApproximateNote: string;
@@ -180,9 +182,6 @@ export function buildEnVentaPreviewModel(
   if (condLabel) {
     chips.push({ key: "condition", text: condLabel, tone: "success" });
   }
-  if (negotiable) {
-    chips.push({ key: "neg", text: t.negotiableChip, tone: "muted" });
-  }
 
   const dept = state.rama.trim();
   const sub = state.evSub.trim();
@@ -281,6 +280,11 @@ export function buildEnVentaPreviewModel(
 
   const contactActions = buildEnVentaContactActions(state, lang);
 
+  const metadataParts: string[] = [];
+  if (condLabel) metadataParts.push(condLabel);
+  if (classificationLine) metadataParts.push(classificationLine);
+  if (locationLine) metadataParts.push(locationLine);
+
   const shellPlanLabel = plan === "pro" ? t.shellPro : t.shellFree;
   const shellStatusLine = t.posted;
 
@@ -293,6 +297,7 @@ export function buildEnVentaPreviewModel(
     shellStatusLine,
     chips,
     classificationLine,
+    metadataParts,
     locationLine,
     locationApproximateNote: t.approxLoc,
     description: state.description.trim(),

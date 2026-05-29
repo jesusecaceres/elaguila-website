@@ -10,6 +10,8 @@ import { buildEnVentaPreviewModel, type EnVentaPreviewContactAction } from "./bu
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewShell } from "./EnVentaPreviewShell";
 import { EnVentaBuyerPanel } from "@/app/clasificados/en-venta/shared/components/EnVentaBuyerPanel";
+import { EnVentaContactButtons } from "@/app/clasificados/en-venta/shared/components/EnVentaContactButtons";
+import { EnVentaListingHero } from "@/app/clasificados/en-venta/shared/components/EnVentaListingHero";
 import { enVentaFulfillmentLabels } from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
 import {
   buildCallIntent,
@@ -56,19 +58,9 @@ const BUYER = {
     contactH: "Contactar al vendedor",
     makeOffer: "Hacer oferta",
     makeOfferHint: "Puedes proponer un precio por correo.",
-    locationH: "Ubicación",
-    mapArea: "Mapa / zona",
     openMaps: "Abrir en Google Maps",
-    distanceH: "Distancia",
-    distanceSoon: "Calculando…",
-    distanceUnknown: "No disponible para esta ubicación.",
-    approxMiles: (n: number) => `Aproximadamente ${n} millas`,
-    startPointLabel: "Tu punto de partida",
-    startPointPlaceholder: "Código postal o ciudad",
-    useMyLocation: "Usar mi ubicación",
-    locationNotAvailable: "Ubicación no disponible en este dispositivo.",
-    locationDenied: "Permiso denegado. Puedes ingresar tu ZIP o ciudad.",
     close: "Cerrar",
+    mapArea: "Mapa",
   },
   en: {
     share: "Share",
@@ -81,60 +73,14 @@ const BUYER = {
     contactH: "Contact the seller",
     makeOffer: "Make an offer",
     makeOfferHint: "You can propose a price by email.",
-    locationH: "Location",
-    mapArea: "Map / area",
     openMaps: "Open in Google Maps",
-    distanceH: "Distance",
-    distanceSoon: "Calculating…",
-    distanceUnknown: "Not available for this location.",
-    approxMiles: (n: number) => `Approximately ${n} miles`,
-    startPointLabel: "Your starting point",
-    startPointPlaceholder: "ZIP code or city",
-    useMyLocation: "Use my location",
-    locationNotAvailable: "Location is not available on this device.",
-    locationDenied: "Permission denied. You can enter your ZIP or city instead.",
     close: "Close",
+    mapArea: "Map",
   },
 } as const;
 
-function cx(...parts: Array<string | false | undefined>) {
-  return parts.filter(Boolean).join(" ");
-}
-
-function roundMiles(miles: number): number {
-  if (!Number.isFinite(miles)) return 0;
-  return Math.max(1, Math.round(miles));
-}
-
-function googleMapsDirHref(origin: string, destination: string): string {
-  const o = origin.trim();
-  const d = destination.trim();
-  if (!o || !d) return "";
-  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(o)}&destination=${encodeURIComponent(d)}`;
-}
-
-function googleMapsDirHrefFromCoords(origin: { lat: number; lng: number }, destination: string): string {
-  if (!Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) return "";
-  const d = destination.trim();
-  if (!d) return "";
-  return googleMapsDirHref(`${origin.lat},${origin.lng}`, d);
-}
-
-function chipClass(tone: "success" | "neutral" | "muted") {
-  if (tone === "success") {
-    return "inline-flex items-center gap-1 rounded-full border border-[#C9B46A]/45 bg-[#FBF7EF] px-2.5 py-1 text-xs font-semibold text-[#3D3428]";
-  }
-  if (tone === "neutral") {
-    return "inline-flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-2.5 py-1 text-xs font-semibold text-[#3D3428]/90";
-  }
-  return "inline-flex items-center gap-1 rounded-full border border-[#E8DFD0]/80 bg-white/80 px-2.5 py-1 text-xs font-semibold text-[#5C5346]/85";
-}
-
-function chipIcon(key: string): string {
-  if (key === "pickup" || key === "meetup" || key === "local") return "📍";
-  if (key === "condition") return "✓";
-  return "";
-}
+const engagementBtnClass =
+  "inline-flex min-h-[40px] items-center gap-1.5 rounded-md border border-[#E8DFD0]/90 bg-white px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#C9A84A]/55 hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-60";
 
 function relativeTimeLabel(ts: number, lang: "es" | "en"): string {
   const diffMs = Date.now() - ts;
@@ -164,13 +110,6 @@ export function EnVentaPreviewPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-  const [buyerStart, setBuyerStart] = useState("");
-  const [buyerGeoStatus, setBuyerGeoStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
-    "idle"
-  );
-  const [buyerCoords, setBuyerCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [distanceMiles, setDistanceMiles] = useState<number | null>(null);
-  const [distanceStatus, setDistanceStatus] = useState<"idle" | "computing" | "ready" | "unavailable">("idle");
 
   /**
    * Defer clearing the "opening preview" session flag until after the previous document's
@@ -257,85 +196,9 @@ export function EnVentaPreviewPage() {
     openPreviewEmailSheet();
   };
 
-  const listingDistanceKey = useMemo(() => {
-    const city = state.city.trim();
-    const zip = state.zip.trim();
-    // Prefer ZIP if available (works for more inputs), else fall back to city.
-    return zip || city;
-  }, [state.city, state.zip]);
-
-  const destinationForMaps = useMemo(() => {
-    // Prefer explicit city/zip string, fall back to rendered location line.
-    const city = state.city.trim();
-    const zip = state.zip.trim();
-    return [city, zip].filter(Boolean).join(" ") || vm.locationLine || "";
-  }, [state.city, state.zip, vm.locationLine]);
-
-  const mapsHref = useMemo(() => {
-    if (!destinationForMaps) return vm.locationMapHref ?? null;
-    if (buyerCoords) {
-      const href = googleMapsDirHrefFromCoords(buyerCoords, destinationForMaps);
-      return href || (vm.locationMapHref ?? null);
-    }
-    if (buyerStart.trim()) {
-      const href = googleMapsDirHref(buyerStart, destinationForMaps);
-      return href || (vm.locationMapHref ?? null);
-    }
-    return vm.locationMapHref ?? null;
-  }, [buyerCoords, buyerStart, destinationForMaps, vm.locationMapHref]);
-
-  useEffect(() => {
-    if (!listingDistanceKey.trim()) {
-      setDistanceMiles(null);
-      setDistanceStatus("idle");
-      return;
-    }
-
-    const viewerText = buyerStart.trim();
-    const viewerCoords = buyerCoords;
-    if (!viewerText && !viewerCoords) {
-      setDistanceMiles(null);
-      setDistanceStatus("idle");
-      return;
-    }
-
-    setDistanceStatus("computing");
-    const ctrl = new AbortController();
-    const t = window.setTimeout(() => {
-      const url = new URL("/api/clasificados/distance", window.location.origin);
-      url.searchParams.set("listing", listingDistanceKey);
-      if (viewerCoords) {
-        url.searchParams.set("viewerLat", String(viewerCoords.lat));
-        url.searchParams.set("viewerLng", String(viewerCoords.lng));
-      } else {
-        url.searchParams.set("viewer", viewerText);
-      }
-
-      fetch(url.toString(), { signal: ctrl.signal })
-        .then(async (r) => {
-          if (!r.ok) throw new Error(`distance_http_${r.status}`);
-          const data = (await r.json()) as { miles: number | null };
-          const miles = typeof data?.miles === "number" && Number.isFinite(data.miles) ? data.miles : null;
-          if (miles === null) {
-            setDistanceMiles(null);
-            setDistanceStatus("unavailable");
-          } else {
-            setDistanceMiles(miles);
-            setDistanceStatus("ready");
-          }
-        })
-        .catch((e) => {
-          if (e?.name === "AbortError") return;
-          setDistanceMiles(null);
-          setDistanceStatus("unavailable");
-        });
-    }, 450);
-
-    return () => {
-      ctrl.abort();
-      window.clearTimeout(t);
-    };
-  }, [buyerCoords, buyerStart, listingDistanceKey]);
+  const scrollToContactPanel = useCallback(() => {
+    document.getElementById("enventa-buyer-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const shell = (children: ReactNode) => (
     <div className="relative min-h-screen text-[#2C2416]" style={PAGE_BG_STYLE}>
@@ -377,95 +240,59 @@ export function EnVentaPreviewPage() {
     );
   }
 
+  const primaryCtaLabel =
+    vm.negotiable && vm.offerMailtoHref ? tBuyer.makeOffer : vm.contactActions.length > 0 ? tBuyer.contactH : tBuyer.contactH;
+
+  const onPrimaryCta = () => {
+    if (vm.negotiable && vm.offerMailtoHref) {
+      openPreviewEmailSheet(
+        lang === "es" ? "Oferta por tu artículo Leonix" : "Offer on your Leonix listing",
+        lang === "es" ? "Hola, me gustaría hacer una oferta por tu artículo." : "Hi — I'd like to make an offer on your item."
+      );
+      return;
+    }
+    if (vm.contactActions.length > 0) {
+      scrollToContactPanel();
+      return;
+    }
+  };
+
   const mainTop = (
-    <div className="flex flex-col gap-4">
-      <div>
-        <div className="flex flex-wrap items-start gap-2">
-          <h1 className="text-[1.65rem] font-bold tracking-tight text-[#1E1810] sm:text-[1.85rem]">{vm.title}</h1>
-        </div>
-        <p className="mt-1.5 text-xs font-semibold tracking-wide text-[#7A7164]">{shellStatusLine}</p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <p className="text-3xl font-bold tracking-tight text-[#1E1810] sm:text-[2.15rem]">{vm.priceLine}</p>
-          {vm.priceDrop ? (
-            <span className="rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2.5 py-1 text-xs font-bold text-[#5C4E2E]">
-              {lang === "es" ? "Precio reducido" : "Reduced price"}
-            </span>
-          ) : null}
-        </div>
-        {vm.priceDrop ? (
-          <p className="mt-1 text-sm text-[#7A7164] line-through">{vm.priceDrop.previousLine}</p>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {plan === "pro" ? (
-            <>
-              <button
-                type="button"
-                disabled
-                title={tBuyer.saveDraftHint}
-                className="inline-flex min-h-[40px] cursor-not-allowed items-center gap-1.5 rounded-2xl border border-[#E8DFD0]/90 bg-[#EFEAE0] px-3 py-2 text-xs font-bold text-[#5C5346]"
-              >
-                <span aria-hidden>💛</span>
-                {tBuyer.save}
-                <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
-              </button>
-              <LeonixShareButton
-                listingId={null}
-                listingUrl={previewPublicUrl}
-                listingTitle={vm.title}
-                lang={lang}
-                variant="small"
-                persistEngagement={false}
-                className="[&>button]:min-h-[40px] [&>button]:rounded-2xl [&>button]:border-[#E8DFD0] [&>button]:bg-white/90 [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#3D3428] [&>button]:hover:border-[#D4C4A8]"
-              />
-            </>
-          ) : null}
-          <button
-            type="button"
-            disabled
-            title={tBuyer.reportHint}
-            className="inline-flex min-h-[40px] cursor-not-allowed items-center rounded-2xl border border-[#E8DFD0]/80 bg-white/50 px-3 py-2 text-xs font-bold text-[#7A7164]/70"
-          >
-            🚩 {tBuyer.report}
+    <EnVentaListingHero
+      lang={lang}
+      title={vm.title}
+      priceLine={vm.priceLine}
+      negotiable={vm.negotiable}
+      statusLine={shellStatusLine}
+      metadataParts={vm.metadataParts}
+      primaryCta={{
+        label: primaryCtaLabel,
+        onClick: onPrimaryCta,
+        disabled: !vm.negotiable && vm.contactActions.length === 0,
+        title: vm.negotiable && vm.offerMailtoHref ? tBuyer.makeOfferHint : undefined,
+      }}
+      engagementRow={
+        <>
+          <button type="button" disabled title={tBuyer.saveDraftHint} className={engagementBtnClass}>
+            <span aria-hidden>♡</span>
+            {tBuyer.save}
+            <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
           </button>
-        </div>
-      </div>
-
-      {vm.chips.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {vm.chips.map((c) => (
-            <span key={c.key} className={chipClass(c.tone)}>
-              {chipIcon(c.key) ? <span aria-hidden>{chipIcon(c.key)} </span> : null}
-              {c.text}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {vm.negotiable && vm.offerMailtoHref ? (
-        <p className="text-sm text-[#3D3428]/90">
-          <button
-            type="button"
-            onClick={() =>
-              openPreviewEmailSheet(
-                lang === "es" ? "Oferta por tu artículo Leonix" : "Offer on your Leonix listing",
-                lang === "es"
-                  ? "Hola, me gustaría hacer una oferta por tu artículo."
-                  : "Hi — I'd like to make an offer on your item.",
-              )
-            }
-            className="font-semibold text-[#6B5B2E] underline decoration-[#C9B46A]/60 underline-offset-2 hover:text-[#1E1810]"
-          >
-            {tBuyer.makeOffer}
+          <LeonixShareButton
+            listingId={null}
+            listingUrl={previewPublicUrl}
+            listingTitle={vm.title}
+            lang={lang}
+            variant="small"
+            persistEngagement={false}
+            className="[&>button]:min-h-[40px] [&>button]:rounded-md [&>button]:border-[#E8DFD0] [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#3D3428] [&>button]:hover:border-[#C9A84A]/55"
+          />
+          <button type="button" disabled title={tBuyer.reportHint} className={engagementBtnClass}>
+            {tBuyer.report}
           </button>
-          <span className="text-[#5C5346]/85"> — {tBuyer.makeOfferHint}</span>
-        </p>
-      ) : null}
-
-      {vm.classificationLine ? (
-        <p className="text-sm font-medium leading-snug text-[#5C5346]">{vm.classificationLine}</p>
-      ) : null}
-    </div>
+        </>
+      }
+    />
   );
 
   const descriptionCard = vm.description ? (
@@ -526,136 +353,38 @@ export function EnVentaPreviewPage() {
     })
     .filter(Boolean);
 
-  const previewContactSection =
-    vm.contactActions.length > 0 ? (
-      <div className="flex flex-wrap gap-2">
-        {vm.contactActions.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => openPreviewContactAction(a)}
-            className={cx(
-              "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
-              a.id === "whatsapp"
-                ? "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
-                : plan === "pro"
-                  ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                  : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-            )}
-          >
-            {a.id === "whatsapp" ? (
-              <span className="inline-flex items-center gap-1">
-                <span aria-hidden>💬</span>
-                {a.label}
-              </span>
-            ) : (
-              a.label
-            )}
-          </button>
-        ))}
-      </div>
-    ) : (
-      <p className="text-sm text-[#7A7164]/90">
-        {lang === "es"
-          ? "Añade teléfono, correo o WhatsApp en el formulario de contacto."
-          : "Add phone, email, or WhatsApp in the contact step."}
-      </p>
-    );
-
-  const locationDistanceExtra = vm.locationLine ? (
-    <div className="overflow-hidden rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
-        <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
-      </div>
-      {(distanceStatus === "ready" && distanceMiles !== null) ||
-      distanceStatus === "computing" ||
-      distanceStatus === "unavailable" ? (
-        <p className="mt-1 text-sm font-semibold leading-snug text-[#1E1810]">
-          {distanceStatus === "ready" && distanceMiles !== null
-            ? tBuyer.approxMiles(roundMiles(distanceMiles))
-            : distanceStatus === "computing"
-              ? tBuyer.distanceSoon
-              : tBuyer.distanceUnknown}
-        </p>
-      ) : null}
-      <div className="mt-3 flex min-w-0 flex-col gap-2">
-        <label className="block min-w-0">
-          <span className="sr-only">{tBuyer.startPointLabel}</span>
-          <input
-            value={buyerStart}
-            onChange={(e) => setBuyerStart(e.target.value)}
-            placeholder={tBuyer.startPointPlaceholder}
-            className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:font-normal placeholder:text-sm placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
-            inputMode="search"
-          />
-        </label>
-        <div className="grid min-w-0 grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof navigator === "undefined" || !navigator.geolocation) {
-                setBuyerGeoStatus("unavailable");
-                setToast(tBuyer.locationNotAvailable);
-                return;
-              }
-              setBuyerGeoStatus("requesting");
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  setBuyerGeoStatus("granted");
-                  setBuyerCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                  setToast(lang === "es" ? "Ubicación lista." : "Location ready.");
-                },
-                (err) => {
-                  if (err?.code === 1) {
-                    setBuyerGeoStatus("denied");
-                    setToast(tBuyer.locationDenied);
-                  } else {
-                    setBuyerGeoStatus("unavailable");
-                    setToast(tBuyer.locationNotAvailable);
-                  }
-                },
-                { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-              );
-            }}
-            className={cx(
-              "inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border px-2 py-2 text-center text-[11px] font-bold leading-tight transition sm:text-xs",
-              buyerGeoStatus === "requesting"
-                ? "cursor-wait border-[#E8DFD0]/80 bg-white/60 text-[#7A7164]"
-                : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
-            )}
-          >
-            <span className="line-clamp-2">
-              {buyerGeoStatus === "requesting" ? (lang === "es" ? "Solicitando…" : "Requesting…") : tBuyer.useMyLocation}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMapOpen(true)}
-            className="inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-2 py-2 text-center text-[11px] font-bold leading-tight text-[#3D3428] transition hover:border-[#D4C4A8] sm:text-xs"
-          >
-            <span className="line-clamp-2">{tBuyer.mapArea}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  const previewContactSection = (
+    <EnVentaContactButtons actions={vm.contactActions} lang={lang} onAction={openPreviewContactAction} />
+  );
 
   const buyerPanel = (
-    <EnVentaBuyerPanel
-      lang={lang}
-      sellerInitials={vm.sellerInitials}
-      sellerName={vm.sellerName}
-      sellerSubline={vm.sellerSubline}
-      sellerKindLabel={vm.sellerKindLabel || undefined}
-      locationLine={vm.locationLine || undefined}
-      locationNote={vm.locationLine ? vm.locationApproximateNote : undefined}
-      locationExtra={locationDistanceExtra}
-      fulfillmentLabels={fulfillmentLabels}
-      fulfillmentNotes={fulfillmentNotes}
-      safetyLine={vm.trustNote}
-      contactSection={previewContactSection}
-    />
+    <div id="enventa-buyer-panel">
+      <EnVentaBuyerPanel
+        lang={lang}
+        sellerInitials={vm.sellerInitials}
+        sellerName={vm.sellerName}
+        sellerSubline={vm.sellerSubline}
+        sellerKindLabel={vm.sellerKindLabel || undefined}
+        locationLine={vm.locationLine || undefined}
+        mapHref={vm.locationMapHref}
+        onOpenMap={
+          vm.locationMapHref
+            ? () =>
+                openSheet(
+                  buildDirectionsIntent({
+                    addressOrUrl: vm.locationMapHref!,
+                    isMapsUrl: true,
+                    contactShareExtras: previewContactShareExtras,
+                  })
+                )
+            : undefined
+        }
+        fulfillmentLabels={fulfillmentLabels}
+        fulfillmentNotes={fulfillmentNotes}
+        safetyLine={vm.trustNote}
+        contactSection={previewContactSection}
+      />
+    </div>
   );
 
   return shell(
@@ -735,37 +464,25 @@ export function EnVentaPreviewPage() {
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-4">
-              <p className="text-[11px] leading-tight text-[#7A7164]/95">{vm.locationApproximateNote}</p>
-              {(distanceStatus === "ready" && distanceMiles !== null) ||
-              distanceStatus === "computing" ||
-              distanceStatus === "unavailable" ? (
-                <p className="mt-2 text-sm font-semibold text-[#1E1810]">
-                  {tBuyer.distanceH}:{" "}
-                  {distanceStatus === "ready" && distanceMiles !== null
-                    ? tBuyer.approxMiles(roundMiles(distanceMiles))
-                    : distanceStatus === "computing"
-                      ? tBuyer.distanceSoon
-                      : tBuyer.distanceUnknown}
-                </p>
-              ) : null}
+            <div className="mt-4 rounded-md border border-[#E8DFD0]/80 bg-white/70 p-4">
+              <p className="text-[11px] leading-relaxed text-[#7A7164]/95">{vm.locationApproximateNote}</p>
             </div>
 
-            {mapsHref ? (
+            {vm.locationMapHref ? (
               <button
                 type="button"
                 onClick={() =>
                   openSheet(
                     buildDirectionsIntent({
-                      addressOrUrl: mapsHref,
+                      addressOrUrl: vm.locationMapHref!,
                       isMapsUrl: true,
                       contactShareExtras: previewContactShareExtras,
-                    }),
+                    })
                   )
                 }
-                className="mt-4 inline-flex w-full min-h-[44px] items-center justify-center rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1a1814]"
+                className="mt-4 inline-flex w-full min-h-[44px] items-center justify-center rounded-md bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-sm transition hover:bg-[#1a1814]"
               >
-                ↗️ {tBuyer.openMaps}
+                {tBuyer.openMaps}
               </button>
             ) : null}
           </div>

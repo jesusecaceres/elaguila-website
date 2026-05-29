@@ -62,7 +62,9 @@ import {
 import { parseEnVentaDetailPairSignals } from "../mapping/enVentaDetailPairSignals";
 import { getArticuloLabel } from "../shared/fields/enVentaTaxonomy";
 import { EnVentaBuyerPanel } from "../shared/components/EnVentaBuyerPanel";
-import { enVentaLiveContactPrefs } from "../shared/utils/enVentaContactActions";
+import { EnVentaContactButtons } from "../shared/components/EnVentaContactButtons";
+import { EnVentaListingHero } from "../shared/components/EnVentaListingHero";
+import { enVentaLiveContactPrefs, buildEnVentaLiveContactActions } from "../shared/utils/enVentaContactActions";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
 
 type Lang = "es" | "en";
@@ -320,6 +322,33 @@ export function EnVentaAnuncioLayout({
     return [listing.city, zip].filter(Boolean).join(zip && listing.city ? ", " : "");
   }, [listing.city, listing.zip]);
 
+  const evNegotiable = useMemo(() => {
+    if (surface !== "en-venta") return false;
+    const signals = parseEnVentaDetailPairSignals(rows, {
+      title: listing.title[lang],
+      description: listing.blurb[lang],
+    });
+    return signals.negotiable;
+  }, [surface, rows, listing.title, listing.blurb, lang]);
+
+  const evMetadataParts = useMemo(() => {
+    if (surface !== "en-venta") return [] as string[];
+    const parts: string[] = [];
+    if (condition) parts.push(condition);
+    const dept = machinePairValue(rows, "Leonix:evDept");
+    const sub = machinePairValue(rows, "Leonix:evSub");
+    const article = machinePairValue(rows, "Leonix:itemType");
+    const categoryLine = enVentaCategoryLine({ departmentKey: dept, subKey: sub, articleKey: article }, lang);
+    if (categoryLine) parts.push(categoryLine);
+    if (evLocationLine) parts.push(evLocationLine);
+    return parts;
+  }, [surface, condition, rows, lang, evLocationLine]);
+
+  const evLocationMapHref = useMemo(() => {
+    if (!evLocationLine.trim()) return null;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evLocationLine)}`;
+  }, [evLocationLine]);
+
   const evSellerDisplayName =
     sellerKind === "business"
       ? biz || (lang === "es" ? "Negocio" : "Business")
@@ -439,7 +468,9 @@ export function EnVentaAnuncioLayout({
   const gateAllowCall = ch12?.allowCall !== false;
   const gateAllowSms = ch12?.allowSms !== false;
   const showWhatsAppCta =
-    contactPrefs.allowsWhatsApp && Boolean(waDigits) && (ch12?.whatsappEnabled !== false);
+    contactChannel.trim().toLowerCase() === "whatsapp" &&
+    Boolean(waDigits) &&
+    (ch12?.whatsappEnabled !== false);
   const showPhoneCall = contactPrefs.allowsPhone && Boolean(phoneTel) && gateAllowCall;
   const showPhoneSms = contactPrefs.allowsPhone && Boolean(phoneTel) && gateAllowSms;
   const showEmailCta = contactPrefs.allowsEmail;
@@ -464,6 +495,37 @@ export function EnVentaAnuncioLayout({
   const openWhatsAppSheet = () =>
     openSheet(buildWhatsAppMessageIntent({ message: contactMessage, phone: phoneTel, whatsappDigits: waDigits, contactShareExtras }));
   const openEmailSheet = () => openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
+
+  const evLiveContactActions = useMemo(
+    () =>
+      buildEnVentaLiveContactActions({
+        lang,
+        contactChannel,
+        phoneTel,
+        email,
+        gateAllowCall,
+        gateAllowSms,
+        whatsappEnabled: ch12?.whatsappEnabled,
+      }),
+    [lang, contactChannel, phoneTel, email, gateAllowCall, gateAllowSms, ch12?.whatsappEnabled]
+  );
+
+  const openLiveContactAction = (action: { id: string }) => {
+    if (action.id === "call") {
+      openCallSheet();
+      return;
+    }
+    if (action.id === "sms") {
+      openSmsSheet();
+      return;
+    }
+    if (action.id === "whatsapp") {
+      openWhatsAppSheet();
+      return;
+    }
+    openEmailSheet();
+  };
+
   const openDirectionsSheet = () => {
     const href = brLocationBlock?.mapsHref;
     if (!href) return;
@@ -486,11 +548,7 @@ export function EnVentaAnuncioLayout({
           ? "tel"
           : null;
 
-  const hasPublicEvContact =
-    (showPhoneCall && phoneTel) ||
-    (showPhoneSms && phoneTel) ||
-    (showWhatsAppCta && waDigits) ||
-    (showEmailCta && email);
+  const hasPublicEvContact = evLiveContactActions.length > 0;
 
   const scrollToContact = useCallback(() => {
     const el = document.getElementById("leonix-contact-actions");
@@ -527,7 +585,9 @@ export function EnVentaAnuncioLayout({
       className={
         premiumBr
           ? `${brLuxuryPageClass} pb-28 text-[#2A2620] sm:pb-32`
-          : "min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]"
+          : surface === "en-venta"
+            ? "min-h-screen bg-[#F3EBDD] pb-24 text-[#1E1810]"
+            : "min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]"
       }
     >
       <Navbar />
@@ -593,9 +653,72 @@ export function EnVentaAnuncioLayout({
               className={
                 premiumBr
                   ? `${brLuxuryCardClass} p-6 ring-1 ring-[#C9B46A]/12`
-                  : "rounded-2xl border border-black/10 bg-white p-5 shadow-sm"
+                  : surface === "en-venta"
+                    ? "rounded-md border border-[#E8DFD0]/90 bg-[#FFFCF7] p-5 shadow-sm"
+                    : "rounded-2xl border border-black/10 bg-white p-5 shadow-sm"
               }
             >
+              {surface === "en-venta" && !premiumBr ? (
+                <>
+                  <EnVentaListingHero
+                    lang={lang}
+                    title={listing.title[lang]}
+                    priceLine={listing.priceLabel[lang]}
+                    negotiable={evNegotiable}
+                    statusLine={posted ?? undefined}
+                    metadataParts={evMetadataParts}
+                    primaryCta={{
+                      label: lang === "es" ? "Contactar vendedor" : "Contact seller",
+                      onClick: scrollToContact,
+                      disabled: !hasPublicEvContact,
+                    }}
+                    engagementRow={
+                      <>
+                        <LeonixLikeButton
+                          listingId={listing.id}
+                          ownerUserId={ownerId}
+                          variant="small"
+                          lang={lang}
+                          category="en-venta"
+                        />
+                        <button
+                          type="button"
+                          title={saveHint}
+                          disabled={!saveReady}
+                          onClick={() => void onToggleSave()}
+                          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-md border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:border-[#C9A84A]/55 disabled:opacity-50"
+                        >
+                          {saveLabel}
+                        </button>
+                        <LeonixShareButton
+                          listingId={listing.id}
+                          listingUrl={publicListingUrl}
+                          listingTitle={listing.title[lang]}
+                          category="en-venta"
+                          ownerUserId={ownerId}
+                          lang={lang}
+                          variant="small"
+                          className="[&>button]:min-h-[40px] [&>button]:rounded-md [&>button]:border-[#E8DFD0] [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#1E1810]"
+                        />
+                        {showListingReport ? (
+                          <button
+                            type="button"
+                            onClick={scrollToContact}
+                            className="inline-flex min-h-[40px] items-center rounded-md border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:border-[#C9A84A]/55"
+                          >
+                            {lang === "es" ? "Reportar" : "Report"}
+                          </button>
+                        ) : null}
+                      </>
+                    }
+                  />
+                  <p className="mt-4 rounded-md border border-[#E8DFD0]/70 bg-white/80 px-3 py-2 font-mono text-[11px] text-[#5C5346]">
+                    <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{listingIdLabel}</span>
+                    <span className="ml-2 select-all">{listing.id}</span>
+                  </p>
+                </>
+              ) : (
+                <>
               <p className={premiumBr ? brLuxuryOverlineClass : "hidden"}>
                 {lang === "es" ? "Leonix · Bienes raíces" : "Leonix · Real estate"}
               </p>
@@ -647,7 +770,7 @@ export function EnVentaAnuncioLayout({
                   ownerUserId={ownerId}
                   variant="small"
                   lang={lang}
-                  category={surface === "en-venta" ? "en-venta" : "bienes-raices"}
+                  category="bienes-raices"
                 />
                 <button
                   type="button"
@@ -662,26 +785,13 @@ export function EnVentaAnuncioLayout({
                 >
                   {saveLabel}
                 </button>
-                {premiumBr ? (
-                  <button
-                    type="button"
-                    onClick={() => void onShareListing()}
-                    className="inline-flex min-h-[40px] items-center rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/90 px-3 py-2 text-xs font-bold text-[#2A2620] transition hover:bg-white"
-                  >
-                    ↗️ {shareLabel}
-                  </button>
-                ) : (
-                  <LeonixShareButton
-                    listingId={listing.id}
-                    listingUrl={publicListingUrl}
-                    listingTitle={listing.title[lang]}
-                    category="en-venta"
-                    ownerUserId={ownerId}
-                    lang={lang}
-                    variant="small"
-                    className="[&>button]:min-h-[40px] [&>button]:rounded-xl [&>button]:border-black/10 [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#1E1810] [&>button]:hover:bg-[#F5F5F5]"
-                  />
-                )}
+                <button
+                  type="button"
+                  onClick={() => void onShareListing()}
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/90 px-3 py-2 text-xs font-bold text-[#2A2620] transition hover:bg-white"
+                >
+                  ↗️ {shareLabel}
+                </button>
               </div>
               {fulfillmentLine && premiumBr ? (
                 <p className="mt-3 text-sm font-medium text-[#111111]/85">
@@ -689,6 +799,8 @@ export function EnVentaAnuncioLayout({
                   {fulfillmentLine}
                 </p>
               ) : null}
+                </>
+              )}
             </div>
 
             {sellerKind === "business" && negocioDisplay ? (
@@ -714,94 +826,29 @@ export function EnVentaAnuncioLayout({
                   sellerSubline={trustModeratedLine}
                   sellerKindLabel={sellerTypeBadge}
                   locationLine={evLocationLine || undefined}
-                  locationNote={
-                    evLocationLine
-                      ? lang === "es"
-                        ? "Ubicación general indicada por el vendedor; el punto exacto se acuerda al contactar."
-                        : "General area from the seller; exact meeting point is arranged when you contact them."
+                  mapHref={evLocationMapHref}
+                  onOpenMap={
+                    evLocationMapHref
+                      ? () =>
+                          openSheet(
+                            buildDirectionsIntent({
+                              addressOrUrl: evLocationMapHref,
+                              isMapsUrl: true,
+                              contactShareExtras,
+                            })
+                          )
                       : undefined
                   }
                   fulfillmentLabels={evFulfillmentLabels}
                   safetyLine={trustSafetyLine}
                   contactSection={
-                    hasPublicEvContact ? (
-                      <div className="space-y-3">
-                        {evPrimaryContactKind === "wa" && waDigits ? (
-                          <button
-                            type="button"
-                            onClick={openWhatsAppSheet}
-                            className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#128C7E]/45 bg-[#25D366]/15 px-4 py-3 text-sm font-bold text-[#0b3d32] shadow-sm transition hover:bg-[#25D366]/26"
-                          >
-                            WhatsApp
-                          </button>
-                        ) : null}
-                        {evPrimaryContactKind === "email" && email ? (
-                          <button
-                            type="button"
-                            onClick={openEmailSheet}
-                            className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-[#C9B46A]/55 bg-white px-4 py-3 text-sm font-bold text-[#1E1810] shadow-sm transition hover:bg-[#FFFCF7]"
-                          >
-                            {lang === "es" ? "Correo" : "Email"}
-                          </button>
-                        ) : null}
-                        {evPrimaryContactKind === "tel" && phoneTel && showPhoneCall ? (
-                          <button
-                            type="button"
-                            onClick={openCallSheet}
-                            className="flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-sm transition hover:bg-[#1a1814]"
-                          >
-                            {lang === "es" ? "Llamar" : "Call"}
-                          </button>
-                        ) : null}
-                        <div className="flex flex-wrap gap-2">
-                          {showPhoneCall && phoneTel && evPrimaryContactKind !== "tel" ? (
-                            <button
-                              type="button"
-                              onClick={openCallSheet}
-                              className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-xs font-bold text-[#1E1810] hover:border-[#D4C4A8]"
-                            >
-                              {lang === "es" ? "Llamar" : "Call"}
-                            </button>
-                          ) : null}
-                          {showPhoneSms && phoneTel ? (
-                            <button
-                              type="button"
-                              onClick={openSmsSheet}
-                              className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-xs font-bold text-[#1E1810] hover:border-[#D4C4A8]"
-                            >
-                              SMS
-                            </button>
-                          ) : null}
-                          {showWhatsAppCta && waDigits && evPrimaryContactKind !== "wa" ? (
-                            <button
-                              type="button"
-                              onClick={openWhatsAppSheet}
-                              className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-[#128C7E]/45 bg-[#25D366]/15 px-4 py-2 text-xs font-bold text-[#0b3d32] hover:bg-[#25D366]/26"
-                            >
-                              WhatsApp
-                            </button>
-                          ) : null}
-                          {showEmailCta && email && evPrimaryContactKind !== "email" ? (
-                            <button
-                              type="button"
-                              onClick={openEmailSheet}
-                              className="inline-flex min-h-[42px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-xs font-bold text-[#1E1810] hover:border-[#D4C4A8]"
-                            >
-                              {lang === "es" ? "Correo" : "Email"}
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-[#7A7164]/90">
-                        {lang === "es"
-                          ? "El vendedor no indicó un método de contacto público."
-                          : "The seller did not provide a public contact method."}
-                      </p>
-                    )
+                    <EnVentaContactButtons
+                      actions={evLiveContactActions}
+                      lang={lang}
+                      onAction={openLiveContactAction}
+                    />
                   }
                 />
-                <EnVentaSellerPublicStats ownerId={ownerId} lang={lang} />
                 {showListingReport ? <EnVentaListingReportDrawer listingId={listing.id} lang={lang} /> : null}
               </div>
             ) : (
