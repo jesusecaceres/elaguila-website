@@ -63,6 +63,16 @@ export const EN_VENTA_SURFACE = {
   shellBar: "border-[#D6C7AD]/85 bg-[#FFFDF7]/95",
   sellerAvatar:
     "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7A1E2C]/12 via-[#C9A84A]/20 to-[#C9A84A]/35 text-[12px] font-semibold text-[#7A1E2C] ring-1 ring-[#C9A84A]/35",
+  resultsCard:
+    "rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/10",
+  resultsCardPro:
+    "rounded-xl border-2 border-[#C9A84A]/55 bg-gradient-to-b from-[#FFFDF7] via-[#FFFDF7] to-[#FBF7EF] shadow-[0_14px_40px_-16px_rgba(201,168,74,0.28)] ring-1 ring-[#C9A84A]/15",
+  resultsCardHover:
+    "transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-14px_rgba(31,36,28,0.22)] hover:border-[#C9A84A]/45",
+  resultsChipCondition:
+    "inline-flex items-center gap-1 rounded-full border border-[#C9A84A]/45 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-semibold text-[#8A6B1F]",
+  resultsChipFulfillment:
+    "inline-flex max-w-full items-center gap-1 rounded-full border border-[#2A4536]/25 bg-[#2A4536]/[0.06] px-2 py-0.5 text-[11px] font-semibold text-[#2A4536]",
 } as const;
 
 export function enVentaEngagementListingKey(listingId: string, leonixAdId?: string | null): string {

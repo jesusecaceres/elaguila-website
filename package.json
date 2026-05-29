@@ -101,6 +101,7 @@
     "varios:p3-detail-stack-audit": "tsx scripts/varios-p3-detail-content-stack-audit.ts",
     "varios:p4-typography-engagement-audit": "tsx scripts/varios-p4-typography-engagement-audit.ts",
     "varios:p4b-leonix-brand-audit": "tsx scripts/varios-p4b-leonix-brand-audit.ts",
+    "varios:p4c-preview-results-detail-polish-audit": "tsx scripts/varios-p4c-preview-results-detail-polish-audit.ts",
     "website:h1-header-home-brand-audit": "tsx scripts/website-h1-header-home-brand-audit.ts",
     "varios:final-stack-audit": "tsx scripts/varios-final-stack-2k-2l-2m-2p-audit.ts",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts && npx tsx scripts/en-venta-schema-readiness.ts",

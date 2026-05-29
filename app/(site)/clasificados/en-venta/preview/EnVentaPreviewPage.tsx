@@ -26,6 +26,7 @@ import {
 } from "@/app/components/cta";
 import { EnVentaEngagementRow } from "@/app/clasificados/en-venta/shared/components/EnVentaEngagementRow";
 import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
+import { EnVentaPreviewResultsCardSample } from "./EnVentaPreviewResultsCardSample";
 
 const PAGE_BG_STYLE = EN_VENTA_SURFACE.pageBgStyle;
 
@@ -338,6 +339,7 @@ export function EnVentaPreviewPage() {
       >
         <main className="relative pb-8 lg:pb-12">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
+            <EnVentaPreviewResultsCardSample state={state} lang={lang} plan={plan} />
             <div className={EN_VENTA_SURFACE.listingCanvas}>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-6">
               <div className="order-1 lg:col-span-5 lg:row-start-1">

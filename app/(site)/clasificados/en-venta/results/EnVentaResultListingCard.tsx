@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import type { EnVentaResultsCardModel } from "./buildEnVentaResultsCardModel";
+import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
 
 type Lang = "es" | "en";
+type CardMode = "live" | "preview";
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -65,6 +67,7 @@ export function EnVentaResultListingCard({
   model,
   lang,
   layout,
+  mode = "live",
   isFav,
   onToggleFav,
   href,
@@ -72,31 +75,48 @@ export function EnVentaResultListingCard({
   model: EnVentaResultsCardModel;
   lang: Lang;
   layout: "grid" | "list";
+  mode?: CardMode;
   isFav: boolean;
   onToggleFav: (id: string) => void;
   href: string;
 }) {
+  const isPreview = mode === "preview";
   const isPro = model.plan === "pro";
   const L =
     lang === "es"
-      ? { pro: "PRO", dest: "RECIENTE", video: "Video", neg: "Negociable", save: "Guardar", unsave: "Quitar" }
-      : { pro: "PRO", dest: "RECENT", video: "Video", neg: "Negotiable", save: "Save", unsave: "Remove" };
+      ? {
+          pro: "PRO",
+          dest: "RECIENTE",
+          preview: "Vista previa",
+          video: "Video",
+          neg: "Negociable",
+          save: "Guardar",
+          unsave: "Quitar",
+        }
+      : {
+          pro: "PRO",
+          dest: "RECENT",
+          preview: "Preview",
+          video: "Video",
+          neg: "Negotiable",
+          save: "Save",
+          unsave: "Remove",
+        };
 
   const frame = cx(
-    "group relative flex w-full overflow-hidden transition duration-200",
+    "group relative flex w-full overflow-hidden",
     layout === "list" ? "flex-row items-stretch" : "flex-col",
-    isPro
-      ? "rounded-3xl border-2 border-[#D4BC6A]/80 bg-gradient-to-b from-[#FFFCF7] via-[#FFFCF7] to-[#FAF4EA] shadow-[0_14px_44px_-12px_rgba(201,164,74,0.38)] hover:-translate-y-0.5 hover:shadow-[0_18px_48px_-10px_rgba(201,164,74,0.42)]"
-      : "rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.14)] hover:-translate-y-0.5 hover:border-[#D4C4A8]/80 hover:shadow-[0_18px_48px_-14px_rgba(201,180,106,0.2)]"
+    isPro ? EN_VENTA_SURFACE.resultsCardPro : EN_VENTA_SURFACE.resultsCard,
+    !isPreview && EN_VENTA_SURFACE.resultsCardHover,
+    isPreview && "pointer-events-none select-none"
   );
 
   const imageShell = cx(
-    "relative shrink-0 overflow-hidden",
-    layout === "list" ? "h-[168px] w-[148px] sm:h-[180px] sm:w-[192px]" : "aspect-[4/3] w-full",
-    isPro ? "bg-gradient-to-br from-[#FAF4EA] via-[#F3EBDD] to-[#EDE4D4]" : "bg-[#EDE6DC]"
+    "relative shrink-0 overflow-hidden bg-[#FBF7EF]",
+    layout === "list" ? "h-[168px] w-[148px] sm:h-[180px] sm:w-[192px]" : "aspect-[4/3] w-full"
   );
 
-  const favBtn = (
+  const favBtn = !isPreview ? (
     <button
       type="button"
       onClick={(e) => {
@@ -107,45 +127,51 @@ export function EnVentaResultListingCard({
       className={cx(
         "z-20 rounded-full border p-2 shadow-sm transition",
         isFav
-          ? "border-[#C9B46A]/60 bg-[#FBF7EF] text-[#8B6914]"
-          : "border-[#E8DFD0]/90 bg-white/95 text-[#5C5346] hover:bg-white"
+          ? "border-[#7A1E2C]/35 bg-[#FBF7EF] text-[#7A1E2C]"
+          : "border-[#D6C7AD]/90 bg-white/95 text-[#5C5346] hover:border-[#C9A84A]/45 hover:bg-[#FFFDF7]"
       )}
       aria-label={isFav ? L.unsave : L.save}
     >
       <HeartIcon filled={isFav} className="h-[18px] w-[18px]" />
     </button>
-  );
+  ) : null;
 
-  const badgesRow = isPro ? (
+  const badgesRow = (
     <div
       className={cx(
         "absolute left-2 right-2 top-2 z-10 flex items-start gap-2",
-        model.featuredHighlight ? "justify-between" : "justify-start"
+        model.featuredHighlight || isPreview ? "justify-between" : "justify-start"
       )}
     >
-      <span className="inline-flex items-center rounded-full border border-[#C9B46A]/55 bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#5C4E2E] shadow-sm">
-        {L.pro}
-      </span>
-      {model.featuredHighlight ? (
-        <span className="rounded-full border border-[#C9B46A]/60 bg-gradient-to-r from-[#E8D48A]/90 via-[#D4BC6A]/90 to-[#C9A84A]/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[#1E1810] shadow">
+      {isPro ? (
+        <span className="inline-flex items-center rounded-full border border-[#C9A84A]/55 bg-[#FBF7EF] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#8A6B1F] shadow-sm">
+          {L.pro}
+        </span>
+      ) : null}
+      {isPreview ? (
+        <span className="rounded-full border border-[#D6C7AD]/80 bg-[#FFFDF7]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#3D3428] shadow-sm">
+          {L.preview}
+        </span>
+      ) : null}
+      {!isPreview && model.featuredHighlight ? (
+        <span className="rounded-full border border-[#C9A84A]/60 bg-gradient-to-r from-[#FBF7EF] via-[#F3EBDD] to-[#E8D48A]/80 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[#3D3428] shadow">
           {L.dest}
         </span>
       ) : null}
     </div>
-  ) : null;
+  );
 
-  const imagePadTop = isPro && layout === "grid" ? "pt-9" : isPro && layout === "list" ? "pt-9" : "";
+  const imagePadTop = isPro || isPreview ? (layout === "grid" || layout === "list" ? "pt-9" : "") : "";
 
   const heroInner =
     model.heroImage != null ? (
-       
       <img
         src={model.heroImage}
         alt=""
         className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
       />
     ) : (
-      <div className="flex h-full w-full items-center justify-center text-[#2C2416]/18">
+      <div className="flex h-full w-full items-center justify-center text-[#3D3428]/15">
         <span className="text-4xl" aria-hidden>
           📦
         </span>
@@ -161,11 +187,11 @@ export function EnVentaResultListingCard({
           return (
             <div
               key={`${u}-${i}`}
-              className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] sm:h-14 sm:w-14"
+              className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[#D6C7AD]/70 bg-[#FBF7EF] sm:h-14 sm:w-14"
             >
               <img src={u} alt="" className="h-full w-full object-cover" />
               {showOverlay ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#1E1810]/55 text-xs font-bold text-white">
+                <div className="absolute inset-0 flex items-center justify-center bg-[#1F241C]/55 text-xs font-bold text-white">
                   +{model.extraThumbOverflow}
                 </div>
               ) : null}
@@ -186,13 +212,13 @@ export function EnVentaResultListingCard({
       <div className="flex items-start justify-between gap-3">
         <h3
           className={cx(
-            "min-w-0 flex-1 font-bold leading-snug text-[#1E1810]",
+            "min-w-0 flex-1 font-bold leading-snug text-[#3D3428]",
             layout === "list" ? "line-clamp-2 text-[17px] sm:text-lg" : "line-clamp-2 text-base sm:text-[17px]"
           )}
         >
           {model.title}
         </h3>
-        <p className="shrink-0 text-right text-lg font-bold tabular-nums tracking-tight text-[#1E1810] sm:text-xl">
+        <p className="shrink-0 text-right text-lg font-bold tabular-nums tracking-tight text-[#7A1E2C] sm:text-xl">
           {model.priceText}
         </p>
       </div>
@@ -206,45 +232,50 @@ export function EnVentaResultListingCard({
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {model.conditionLabel ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
-            <CheckIcon className="text-emerald-700" />
+          <span className={EN_VENTA_SURFACE.resultsChipCondition}>
+            <CheckIcon className="text-[#8A6B1F]" />
             {model.conditionLabel}
           </span>
         ) : null}
         <span className="text-[11px] font-medium tabular-nums text-[#5C5346]/90">{model.postedAgo}</span>
-        {model.featuredHighlight && !isPro ? (
-          <span className="rounded-full border border-[#C9B46A]/50 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6B5B2E]">
+        {!isPro && !isPreview && model.featuredHighlight ? (
+          <span className="rounded-full border border-[#C9A84A]/50 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">
             {L.dest}
           </span>
         ) : null}
       </div>
 
-      {isPro && (model.showViews || model.fulfillmentChip) ? (
+      {model.categoryLine ? (
+        <p className="mt-2 text-[11px] font-medium leading-snug text-[#5C5346]/95">{model.categoryLine}</p>
+      ) : null}
+
+      {isPro && model.showViews && !isPreview ? (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#3D3428]">
-          {model.showViews ? (
-            <span className="inline-flex items-center gap-1 font-semibold text-[#2A2620]">
-              <EyeIcon className="text-[#5C5346]" />
-              {model.views}
-            </span>
-          ) : null}
-          {model.fulfillmentChip ? (
-            <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-emerald-200/90 bg-white/80 px-2 py-0.5 text-[11px] font-semibold text-emerald-900">
-              <CheckIcon className="shrink-0 text-emerald-700" />
-              <span className="truncate">{model.fulfillmentChip}</span>
-            </span>
-          ) : null}
+          <span className="inline-flex items-center gap-1 font-semibold text-[#3D3428]">
+            <EyeIcon className="text-[#5C5346]" />
+            {model.views}
+          </span>
         </div>
       ) : null}
 
-      {!isPro && model.fulfillmentChip ? (
-        <div className="mt-2 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-[#E8DFD0] bg-[#F5F3EF] px-2.5 py-1 text-[11px] font-semibold text-[#3D3428]">
-          <TruckIcon className="shrink-0 text-[#5C5346]" />
-          <span className="leading-snug">{model.fulfillmentChip}</span>
+      {model.fulfillmentChip ? (
+        <div className="mt-2">
+          {isPro ? (
+            <span className={EN_VENTA_SURFACE.resultsChipFulfillment}>
+              <CheckIcon className="shrink-0 text-[#2A4536]" />
+              <span className="truncate">{model.fulfillmentChip}</span>
+            </span>
+          ) : (
+            <span className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-2.5 py-1 text-[11px] font-semibold text-[#3D3428]">
+              <TruckIcon className="shrink-0 text-[#5C5346]" />
+              <span className="leading-snug">{model.fulfillmentChip}</span>
+            </span>
+          )}
         </div>
       ) : null}
 
       {model.negotiableChip ? (
-        <span className="mt-2 inline-flex w-fit rounded-full border border-[#E8DFD0]/90 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5C5346]">
+        <span className="mt-2 inline-flex w-fit rounded-full border border-[#D6C7AD]/90 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5C5346]">
           {L.neg}
         </span>
       ) : null}
@@ -255,19 +286,8 @@ export function EnVentaResultListingCard({
 
       {isPro ? thumbStrip : null}
 
-      {layout === "list" ? (
-        <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#E8DFD0]/50 pt-3">{favBtn}</div>
-      ) : null}
-
-      {model.categoryLine ? (
-        <p
-          className={cx(
-            "text-[11px] font-medium leading-snug text-[#5C5346]/95",
-            layout === "list" ? "mt-3" : "mt-2"
-          )}
-        >
-          {model.categoryLine}
-        </p>
+      {layout === "list" && favBtn ? (
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#D6C7AD]/50 pt-3">{favBtn}</div>
       ) : null}
     </div>
   );
@@ -275,31 +295,40 @@ export function EnVentaResultListingCard({
   const imageSection = (
     <div className={cx("relative shrink-0", layout === "list" ? "" : "w-full")}>
       <div className={imageShell}>
-        {badgesRow}
+        {(isPro || isPreview || model.featuredHighlight) && badgesRow}
         <div className={cx("relative h-full w-full", imagePadTop)}>{heroInner}</div>
         {model.showVideoBadge ? (
-          <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#1E1810]/75 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">
+          <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#1F241C]/75 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FFFDF7]">
             ▶ {L.video}
           </span>
         ) : null}
       </div>
-      {layout === "grid" ? <div className="absolute right-2 top-2 z-20">{favBtn}</div> : null}
+      {layout === "grid" && favBtn ? <div className="absolute right-2 top-2 z-20">{favBtn}</div> : null}
     </div>
   );
+
+  const inner = (
+    <>
+      {imageSection}
+      {metaBlock}
+    </>
+  );
+
+  if (isPreview) {
+    return <div className={frame}>{inner}</div>;
+  }
 
   if (layout === "list") {
     return (
       <Link href={href} className={frame}>
-        {imageSection}
-        {metaBlock}
+        {inner}
       </Link>
     );
   }
 
   return (
     <Link href={href} className={frame}>
-      {imageSection}
-      {metaBlock}
+      {inner}
     </Link>
   );
 }
