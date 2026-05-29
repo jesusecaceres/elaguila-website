@@ -22,6 +22,7 @@ type ServiciosPreviewReturnPayload = {
 
 let previewReturnMemory: ClasificadosServiciosApplicationState | null = null;
 let previewReturnTimer: ReturnType<typeof setTimeout> | null = null;
+let consumedPreviewReturnThisMount = false;
 
 function scheduleClearReturnMemory() {
   if (previewReturnTimer) clearTimeout(previewReturnTimer);
@@ -29,6 +30,55 @@ function scheduleClearReturnMemory() {
     previewReturnMemory = null;
     previewReturnTimer = null;
   }, 30000);
+}
+
+function consumePreviewReturnFromSession(): ClasificadosServiciosApplicationState | null {
+  if (typeof window === "undefined") return null;
+  if (previewReturnMemory) {
+    consumedPreviewReturnThisMount = true;
+    scheduleClearReturnMemory();
+    return previewReturnMemory;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(SERVICIOS_PREVIEW_RETURN_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Partial<ServiciosPreviewReturnPayload>;
+    if (!data.state || typeof data.state !== "object") return null;
+    window.sessionStorage.removeItem(SERVICIOS_PREVIEW_RETURN_KEY);
+    const merged = normalizeClasificadosServiciosApplicationState(data.state);
+    previewReturnMemory = merged;
+    consumedPreviewReturnThisMount = true;
+    scheduleClearReturnMemory();
+    return merged;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sync bootstrap (En Venta-style): preview-return payload, else session JSON, else defaults.
+ * Does not rehydrate IndexedDB blobs — call `rehydrateServiciosApplicationMedia` after mount.
+ */
+export function bootstrapServiciosApplicationStateSync(): ClasificadosServiciosApplicationState {
+  consumedPreviewReturnThisMount = false;
+  if (typeof window === "undefined") return createDefaultClasificadosServiciosState();
+  const fromReturn = consumePreviewReturnFromSession();
+  if (fromReturn) return fromReturn;
+  const sessionDraft = readClasificadosServiciosApplicationFromBrowser();
+  if (sessionDraft) return sessionDraft;
+  return createDefaultClasificadosServiciosState();
+}
+
+/** Merge IDB media refs into in-memory state after sync bootstrap. */
+export async function rehydrateServiciosApplicationMedia(
+  base: ClasificadosServiciosApplicationState,
+): Promise<ClasificadosServiciosApplicationState> {
+  try {
+    const full = await inlineServiciosHeavyMediaFromIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, base);
+    return normalizeClasificadosServiciosApplicationState(full);
+  } catch {
+    return normalizeClasificadosServiciosApplicationState(base);
+  }
 }
 
 /** Write immediately before navigating to preview (alongside the main session draft). Payload is compact (IDB refs). */
@@ -64,6 +114,7 @@ export function clearServiciosPreviewReturnHandoff(): void {
   if (previewReturnTimer) clearTimeout(previewReturnTimer);
   previewReturnTimer = null;
   previewReturnMemory = null;
+  consumedPreviewReturnThisMount = false;
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.removeItem(SERVICIOS_PREVIEW_RETURN_KEY);
@@ -80,43 +131,15 @@ export function clearServiciosPreviewReturnHandoff(): void {
  * 4. Else empty defaults
  */
 export async function bootstrapServiciosApplicationStateAsync(): Promise<ClasificadosServiciosApplicationState> {
-  if (typeof window === "undefined") return createDefaultClasificadosServiciosState();
-  if (previewReturnMemory) {
-    scheduleClearReturnMemory();
-    await saveClasificadosServiciosApplicationResolved(previewReturnMemory);
-    return previewReturnMemory;
+  const sync = bootstrapServiciosApplicationStateSync();
+  const full = await rehydrateServiciosApplicationMedia(sync);
+  if (consumedPreviewReturnThisMount) {
+    await saveClasificadosServiciosApplicationResolved(full);
   }
-  try {
-    const raw = window.sessionStorage.getItem(SERVICIOS_PREVIEW_RETURN_KEY);
-    if (raw) {
-      const data = JSON.parse(raw) as Partial<ServiciosPreviewReturnPayload>;
-      if (data.state && typeof data.state === "object") {
-        const merged = normalizeClasificadosServiciosApplicationState(data.state);
-        window.sessionStorage.removeItem(SERVICIOS_PREVIEW_RETURN_KEY);
-        let full: ClasificadosServiciosApplicationState;
-        try {
-          full = await inlineServiciosHeavyMediaFromIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, merged);
-        } catch {
-          full = merged;
-        }
-        previewReturnMemory = full;
-        scheduleClearReturnMemory();
-        await saveClasificadosServiciosApplicationResolved(full);
-        return full;
-      }
-    }
-  } catch {
-    /* fall through */
-  }
-  const sessionDraft = await loadClasificadosServiciosApplicationResolved();
-  if (sessionDraft) return sessionDraft;
-  return createDefaultClasificadosServiciosState();
+  return full;
 }
 
 /** @deprecated Use `bootstrapServiciosApplicationStateAsync` — sync bootstrap cannot rehydrate IndexedDB. */
 export function bootstrapServiciosApplicationState(): ClasificadosServiciosApplicationState {
-  if (typeof window === "undefined") return createDefaultClasificadosServiciosState();
-  const sync = readClasificadosServiciosApplicationFromBrowser();
-  if (sync) return normalizeClasificadosServiciosApplicationState(sync);
-  return createDefaultClasificadosServiciosState();
+  return bootstrapServiciosApplicationStateSync();
 }

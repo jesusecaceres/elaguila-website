@@ -26,9 +26,10 @@ import type {
 } from "../lib/clasificadosServiciosApplicationTypes";
 import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTypes";
 import {
-  bootstrapServiciosApplicationStateAsync,
+  bootstrapServiciosApplicationStateSync,
   clearServiciosPreviewReturnHandoff,
   persistServiciosDraftForPreviewNavigation,
+  rehydrateServiciosApplicationMedia,
 } from "../lib/clasificadosServiciosPreviewHandoff";
 import {
   clearServiciosDraftStorageAndIdb,
@@ -222,27 +223,45 @@ export function ClasificadosServiciosApplication() {
 
   useLayoutEffect(() => {
     clearLeonixReturningToEditSessionFlag();
+    setState(bootstrapServiciosApplicationStateSync());
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     let cancelled = false;
     void (async () => {
-      const next = await bootstrapServiciosApplicationStateAsync();
-      if (!cancelled) {
-        setState(next);
-        setHydrated(true);
-      }
+      const full = await rehydrateServiciosApplicationMedia(stateRef.current);
+      if (cancelled) return;
+      setState(full);
+      await saveClasificadosServiciosApplicationResolved(full);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
     const t = window.setTimeout(() => void saveClasificadosServiciosApplicationResolved(state), DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const flush = () => {
+      void saveClasificadosServiciosApplicationResolved(stateRef.current);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [hydrated]);
 
   useEffect(() => {
     if (step !== 8) setFinalStepPublishBlocked(null);

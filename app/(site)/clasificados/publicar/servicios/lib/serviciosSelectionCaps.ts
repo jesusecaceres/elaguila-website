@@ -110,21 +110,21 @@ export function enforceServiciosSelectionCaps(
 
   const customBusinessHighlightLabel =
     typeof s.customBusinessHighlightLabel === "string"
-      ? s.customBusinessHighlightLabel.trim().slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX)
+      ? s.customBusinessHighlightLabel.slice(0, BUSINESS_HIGHLIGHT_LABEL_MAX)
       : "";
 
   const paymentMethodIds = sanitizeServiciosPaymentMethodIds(s.paymentMethodIds);
   const customPaymentMethods = sanitizeCustomPaymentMethodLabels(s.customPaymentMethods);
   const customPaymentMethodLabel =
     typeof s.customPaymentMethodLabel === "string"
-      ? s.customPaymentMethodLabel.trim().slice(0, CUSTOM_PAYMENT_LABEL_MAX)
+      ? s.customPaymentMethodLabel.slice(0, CUSTOM_PAYMENT_LABEL_MAX)
       : "";
 
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(s.amenityOptionIds);
   const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(s.customAmenityOptions);
   const pendingCustomAmenityOption =
     typeof s.pendingCustomAmenityOption === "string"
-      ? s.pendingCustomAmenityOption.trim().slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX)
+      ? s.pendingCustomAmenityOption.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX)
       : "";
 
   const certifications = sanitizeCertificationLabels(
@@ -132,11 +132,11 @@ export function enforceServiciosSelectionCaps(
   );
   const pendingCertification =
     typeof s.pendingCertification === "string"
-      ? s.pendingCertification.trim().slice(0, SERVICIOS_CERTIFICATION_LABEL_MAX)
+      ? s.pendingCertification.slice(0, SERVICIOS_CERTIFICATION_LABEL_MAX)
       : "";
-  const trimCred = (v: unknown, max: number) => {
-    const t = typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
-    return t.slice(0, max);
+  /** Preserve spaces while typing; trim/collapse only when persisting committed credential strings. */
+  const sliceCred = (v: unknown, max: number) => {
+    return typeof v === "string" ? v.slice(0, max) : "";
   };
 
   const normalizePromoPrimaryAsset = (v: unknown): ClasificadosServiciosPromoRow["primaryAsset"] => {
@@ -150,8 +150,8 @@ export function enforceServiciosSelectionCaps(
   if (promotions.length === 0) promotions = [createEmptyClasificadosPromoRow()];
   promotions = promotions.slice(0, MAX_CLASIFICADOS_PROMOTIONS);
   promotions = promotions.map((row) => ({
-    title: typeof row.title === "string" ? row.title.trim().slice(0, CLASIFICADOS_PROMO_TITLE_MAX) : "",
-    details: typeof row.details === "string" ? row.details.trim().slice(0, CLASIFICADOS_PROMO_DETAILS_MAX) : "",
+    title: typeof row.title === "string" ? row.title.slice(0, CLASIFICADOS_PROMO_TITLE_MAX) : "",
+    details: typeof row.details === "string" ? row.details.slice(0, CLASIFICADOS_PROMO_DETAILS_MAX) : "",
     link: typeof row.link === "string" ? row.link.trim().slice(0, CLASIFICADOS_PROMO_LINK_MAX) : "",
     imageUrl: typeof row.imageUrl === "string" ? row.imageUrl.trim() : "",
     pdfUrl: typeof row.pdfUrl === "string" ? row.pdfUrl.trim() : "",
@@ -179,13 +179,13 @@ export function enforceServiciosSelectionCaps(
     pendingCustomAmenityOption,
     hasLicense: s.hasLicense === true,
     isInsured: s.isInsured === true,
-    licenseType: trimCred(s.licenseType, SERVICIOS_CREDENTIAL_STRING_MAX.licenseType),
-    licenseNumber: trimCred(s.licenseNumber, SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber),
-    licenseAuthority: trimCred(s.licenseAuthority, SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority),
-    licenseExpiration: trimCred(s.licenseExpiration, SERVICIOS_CREDENTIAL_STRING_MAX.licenseExpiration),
-    insuranceType: trimCred(s.insuranceType, SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType),
-    licenseDocumentUrl: trimCred(s.licenseDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
-    insuranceDocumentUrl: trimCred(s.insuranceDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
+    licenseType: sliceCred(s.licenseType, SERVICIOS_CREDENTIAL_STRING_MAX.licenseType),
+    licenseNumber: sliceCred(s.licenseNumber, SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber),
+    licenseAuthority: sliceCred(s.licenseAuthority, SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority),
+    licenseExpiration: sliceCred(s.licenseExpiration, SERVICIOS_CREDENTIAL_STRING_MAX.licenseExpiration),
+    insuranceType: sliceCred(s.insuranceType, SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType),
+    licenseDocumentUrl: sliceCred(s.licenseDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
+    insuranceDocumentUrl: sliceCred(s.insuranceDocumentUrl, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
     certifications,
     pendingCertification,
     promotions,

@@ -83,6 +83,7 @@ export function ClasificadosServiciosPreviewClient() {
       setAppState(normalized);
       setAppDraft(mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang));
       setSource("application");
+      await saveClasificadosServiciosApplicationResolved(normalized);
     })();
     return () => {
       cancelled = true;
