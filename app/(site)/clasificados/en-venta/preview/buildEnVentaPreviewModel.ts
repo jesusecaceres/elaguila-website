@@ -213,9 +213,6 @@ export function buildEnVentaPreviewModel(
   if (state.quantity.trim()) {
     specRows.push({ label: t.qty, value: state.quantity.trim() });
   }
-  if (state.itemExtraDetails.trim()) {
-    specRows.push({ label: t.storage, value: state.itemExtraDetails.trim() });
-  }
 
   const extraParagraphs: Array<{ title: string; body: string }> = [];
   if (state.wearNotes.trim()) {

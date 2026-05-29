@@ -62,6 +62,8 @@ import {
 import { parseEnVentaDetailPairSignals } from "../mapping/enVentaDetailPairSignals";
 import { getArticuloLabel } from "../shared/fields/enVentaTaxonomy";
 import { EnVentaBuyerPanel } from "../shared/components/EnVentaBuyerPanel";
+import { EnVentaDetailContentStack } from "../shared/components/EnVentaDetailContentStack";
+import { buildEnVentaContentStackFromLiveListing } from "../shared/utils/buildEnVentaContentStackModel";
 import { EnVentaContactButtons } from "../shared/components/EnVentaContactButtons";
 import { EnVentaListingHero } from "../shared/components/EnVentaListingHero";
 import { enVentaLiveContactPrefs, buildEnVentaLiveContactActions } from "../shared/utils/enVentaContactActions";
@@ -348,6 +350,15 @@ export function EnVentaAnuncioLayout({
     if (!evLocationLine.trim()) return null;
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evLocationLine)}`;
   }, [evLocationLine]);
+
+  const evContentStack = useMemo(() => {
+    if (surface !== "en-venta") return null;
+    return buildEnVentaContentStackFromLiveListing({
+      rows,
+      description: listing.blurb[lang],
+      lang,
+    });
+  }, [surface, rows, listing.blurb, lang]);
 
   const evSellerDisplayName =
     sellerKind === "business"
@@ -839,7 +850,7 @@ export function EnVentaAnuncioLayout({
                           )
                       : undefined
                   }
-                  fulfillmentLabels={evFulfillmentLabels}
+                  fulfillmentLabels={evContentStack?.deliveryChipLabels ?? evFulfillmentLabels}
                   safetyLine={trustSafetyLine}
                   contactSection={
                     <EnVentaContactButtons
@@ -1151,6 +1162,14 @@ export function EnVentaAnuncioLayout({
                 ) : null}
               </section>
             ) : null}
+            {surface === "en-venta" && evContentStack ? (
+              <EnVentaDetailContentStack
+                lang={lang}
+                model={evContentStack}
+                descriptionAnchorId="leonix-listing-description"
+              />
+            ) : (
+              <>
             <section
               className={
                 premiumBr
@@ -1172,6 +1191,8 @@ export function EnVentaAnuncioLayout({
               </p>
             </section>
             <EnVentaItemSpecs lang={lang} rows={specRows} />
+              </>
+            )}
             {premiumBr && listing.sellerType === "business" ? (
               <BrRelatedAgentPropertiesSection
                 listingId={listing.id}

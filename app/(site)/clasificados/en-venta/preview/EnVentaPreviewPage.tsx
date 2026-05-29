@@ -12,7 +12,8 @@ import { EnVentaPreviewShell } from "./EnVentaPreviewShell";
 import { EnVentaBuyerPanel } from "@/app/clasificados/en-venta/shared/components/EnVentaBuyerPanel";
 import { EnVentaContactButtons } from "@/app/clasificados/en-venta/shared/components/EnVentaContactButtons";
 import { EnVentaListingHero } from "@/app/clasificados/en-venta/shared/components/EnVentaListingHero";
-import { enVentaFulfillmentLabels } from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
+import { EnVentaDetailContentStack } from "@/app/clasificados/en-venta/shared/components/EnVentaDetailContentStack";
+import { buildEnVentaContentStackFromDraftState } from "@/app/clasificados/en-venta/shared/utils/buildEnVentaContentStackModel";
 import {
   buildCallIntent,
   buildDirectionsIntent,
@@ -295,63 +296,11 @@ export function EnVentaPreviewPage() {
     />
   );
 
-  const descriptionCard = vm.description ? (
-    <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)]">
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#2C2416]/90">{vm.description}</p>
-    </div>
-  ) : null;
-
-  const specsCard =
-    vm.specRows.length > 0 ? (
-      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 p-5 shadow-inner">
-        <dl className="space-y-3">
-          {vm.specRows.map((row, idx) => (
-            <div
-              key={`${row.label}-${idx}`}
-              className="grid grid-cols-1 gap-1 border-b border-[#E8DFD0]/60 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,38%)_1fr] sm:gap-4"
-            >
-              <dt className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{row.label}</dt>
-              <dd className="text-sm font-medium text-[#1E1810]">{row.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    ) : null;
-
-  const extrasCards = vm.extraParagraphs.length ? (
-    <div className="flex flex-col gap-4">
-      {vm.extraParagraphs.map((block) => (
-        <div key={block.title} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/70 p-5">
-          <h3 className="text-sm font-bold text-[#1E1810]">{block.title}</h3>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#2C2416]/88">{block.body}</p>
-        </div>
-      ))}
-    </div>
-  ) : null;
+  const contentStack = useMemo(() => buildEnVentaContentStackFromDraftState(state, lang), [state, lang]);
 
   const lowerContent = (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
-      <div className="lg:col-span-8">{descriptionCard}</div>
-      <div className="lg:col-span-4">{specsCard}</div>
-      {extrasCards ? <div className="lg:col-span-12">{extrasCards}</div> : null}
-    </div>
+    <EnVentaDetailContentStack lang={lang} model={contentStack} descriptionAnchorId="leonix-listing-description" />
   );
-
-  const fulfillmentLabels = enVentaFulfillmentLabels(
-    {
-      shipping: state.shipping,
-      pickup: state.pickup,
-      meetup: state.meetup,
-      delivery: state.localDelivery,
-    },
-    lang
-  );
-  const fulfillmentNotes = vm.deliveryLines
-    .map((line) => {
-      const idx = line.indexOf(" — ");
-      return idx >= 0 ? line.slice(idx + 3).trim() : "";
-    })
-    .filter(Boolean);
 
   const previewContactSection = (
     <EnVentaContactButtons actions={vm.contactActions} lang={lang} onAction={openPreviewContactAction} />
@@ -379,8 +328,7 @@ export function EnVentaPreviewPage() {
                 )
             : undefined
         }
-        fulfillmentLabels={fulfillmentLabels}
-        fulfillmentNotes={fulfillmentNotes}
+        fulfillmentLabels={contentStack.deliveryChipLabels}
         safetyLine={vm.trustNote}
         contactSection={previewContactSection}
       />

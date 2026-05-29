@@ -14,7 +14,6 @@ type Props = {
   mapHref?: string | null;
   onOpenMap?: () => void;
   fulfillmentLabels?: string[];
-  fulfillmentNotes?: string[];
   contactSection: ReactNode;
   safetyLine: string;
 };
@@ -34,7 +33,6 @@ export function EnVentaBuyerPanel({
   mapHref,
   onOpenMap,
   fulfillmentLabels = [],
-  fulfillmentNotes = [],
   contactSection,
   safetyLine,
 }: Props) {
@@ -124,15 +122,6 @@ export function EnVentaBuyerPanel({
               </span>
             ))}
           </div>
-          {fulfillmentNotes.length > 0 ? (
-            <ul className="mt-2.5 space-y-1.5 text-xs leading-relaxed text-[#5C5346]/95">
-              {fulfillmentNotes.map((note, i) => (
-                <li key={i} className="break-words [overflow-wrap:anywhere]">
-                  {note}
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </div>
       ) : null}
 
