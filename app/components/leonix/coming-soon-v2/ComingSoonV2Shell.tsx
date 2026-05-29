@@ -19,6 +19,14 @@ type HeroLine = { parts: HeroLinePart[] };
 
 type HeroCta = { label: string; href: string; variant: "primary" | "secondary" | "green" };
 
+type WhatYouGetCardAccent = "burgundy" | "gold" | "green" | "qr" | "founder";
+
+type WhatYouGetCard = {
+  title: string;
+  body: string;
+  accent: WhatYouGetCardAccent;
+};
+
 const COPY: Record<
   Lang,
   {
@@ -43,6 +51,18 @@ const COPY: Record<
         qrOverlay: string;
         magazineAlt: string;
       };
+    };
+    whatYouGet: {
+      eyebrow: string;
+      headline: string;
+      intro: string;
+      cards: [
+        WhatYouGetCard,
+        WhatYouGetCard,
+        WhatYouGetCard,
+        WhatYouGetCard,
+        WhatYouGetCard,
+      ];
     };
   }
 > = {
@@ -116,6 +136,39 @@ const COPY: Record<
         magazineAlt: "Vista previa decorativa de la revista Leonix Media",
       },
     },
+    whatYouGet: {
+      eyebrow: "QUÉ OBTIENES",
+      headline: "Más que un anuncio: una presencia completa para tu negocio.",
+      intro:
+        "Leonix combina revista impresa, presencia digital y acciones por QR para ayudar a que más clientes encuentren, entiendan y contacten tu negocio.",
+      cards: [
+        {
+          title: "Revista impresa premium",
+          body: "Tu negocio aparece en una publicación diseñada para conectar con la comunidad latina local.",
+          accent: "burgundy",
+        },
+        {
+          title: "Presencia digital bilingüe",
+          body: "Tu anuncio también puede vivir en una experiencia digital clara, profesional y fácil de compartir.",
+          accent: "gold",
+        },
+        {
+          title: "QR + acciones reales",
+          body: "Convierte la atención en llamadas, mensajes, mapas, enlaces, ofertas y más información.",
+          accent: "qr",
+        },
+        {
+          title: "Negocios Locales",
+          body: "Una presencia organizada para mostrar teléfono, ubicación, redes, fotos, reseñas y enlaces importantes.",
+          accent: "green",
+        },
+        {
+          title: "Oportunidad de lanzamiento fundador",
+          body: "Sé parte de los primeros negocios en aparecer con Leonix Media durante la etapa de lanzamiento.",
+          accent: "founder",
+        },
+      ],
+    },
   },
   en: {
     nav: [
@@ -183,6 +236,39 @@ const COPY: Record<
         qrOverlay: "Scan. Translate. Connect.",
         magazineAlt: "Decorative Leonix Media magazine preview",
       },
+    },
+    whatYouGet: {
+      eyebrow: "WHAT YOU GET",
+      headline: "More than an ad: a complete presence for your business.",
+      intro:
+        "Leonix combines print magazine visibility, digital presence, and QR-powered actions to help more customers find, understand, and contact your business.",
+      cards: [
+        {
+          title: "Premium print magazine",
+          body: "Your business appears in a publication designed to connect with the local Latino community.",
+          accent: "burgundy",
+        },
+        {
+          title: "Bilingual digital presence",
+          body: "Your ad can also live in a clear, professional digital experience that is easy to share.",
+          accent: "gold",
+        },
+        {
+          title: "QR + real actions",
+          body: "Turn attention into calls, messages, maps, links, offers, and more information.",
+          accent: "qr",
+        },
+        {
+          title: "Local Businesses",
+          body: "An organized presence for phone, location, socials, photos, reviews, and important links.",
+          accent: "green",
+        },
+        {
+          title: "Founder launch opportunity",
+          body: "Be one of the first businesses featured with Leonix Media during the launch stage.",
+          accent: "founder",
+        },
+      ],
     },
   },
 };
@@ -296,6 +382,124 @@ function HeroMediaVisual({
   );
 }
 
+const cardAccentStyles: Record<
+  WhatYouGetCardAccent,
+  { iconRing: string; iconBg: string; iconText: string; articleExtra?: string }
+> = {
+  burgundy: {
+    iconRing: "border-[#7A1E2C]/35",
+    iconBg: "bg-[#7A1E2C]/10",
+    iconText: "text-[#7A1E2C]",
+  },
+  gold: {
+    iconRing: "border-[#C9A84A]/45",
+    iconBg: "bg-[#C9A84A]/12",
+    iconText: "text-[#8A6B1F]",
+  },
+  green: {
+    iconRing: "border-[#2A4536]/35",
+    iconBg: "bg-[#2A4536]/10",
+    iconText: "text-[#2A4536]",
+  },
+  qr: {
+    iconRing: "border-[#C9A84A]/55",
+    iconBg: "bg-[#FFFDF7]",
+    iconText: "text-[#7A1E2C]",
+  },
+  founder: {
+    iconRing: "border-[#C9A84A]/55",
+    iconBg: "bg-gradient-to-br from-[#7A1E2C]/12 to-[#C9A84A]/15",
+    iconText: "text-[#7A1E2C]",
+    articleExtra: "ring-1 ring-[#C9A84A]/35",
+  },
+};
+
+function WhatYouGetCardIcon({ accent }: { accent: WhatYouGetCardAccent }) {
+  const s = cardAccentStyles[accent];
+  return (
+    <span
+      className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border-2 ${s.iconRing} ${s.iconBg} ${s.iconText}`}
+      aria-hidden
+    >
+      {accent === "qr" ? (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 3h3v3h-3v-3z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+function WhatYouGetSection({
+  eyebrow,
+  headline,
+  intro,
+  cards,
+}: {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  cards: WhatYouGetCard[];
+}) {
+  return (
+    <section
+      id="que-obtienes"
+      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      aria-labelledby="what-you-get-title"
+    >
+      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
+        {eyebrow}
+      </p>
+      <h2
+        id="what-you-get-title"
+        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
+      >
+        {headline}
+      </h2>
+      <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+        {intro}
+      </p>
+
+      <ul className="mt-8 grid list-none gap-5 p-0 lg:grid-cols-6 lg:gap-5">
+        {cards.map((card, index) => {
+          const extra = cardAccentStyles[card.accent].articleExtra ?? "";
+          const spanClass =
+            index < 3 ? "lg:col-span-2" : "lg:col-span-3";
+          return (
+            <li key={card.title} className={spanClass}>
+              <article
+                className={`flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.22)] sm:p-6 ${extra} ${
+                  card.accent === "founder"
+                    ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
+                    : ""
+                } ${card.accent === "green" ? "border-l-[3px] border-l-[#2A4536]/50" : ""}`}
+              >
+                <WhatYouGetCardIcon accent={card.accent} />
+                <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+                  {card.title}
+                </h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                  {card.body}
+                </p>
+              </article>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function launchHref(lang: Lang) {
   return `/contact?interest=launch&lang=${lang}`;
 }
@@ -315,6 +519,7 @@ export function ComingSoonV2Shell() {
   const [lang, setLang] = useState<Lang>("es");
   const t = COPY[lang];
   const h = t.hero;
+  const wyg = t.whatYouGet;
 
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
@@ -478,6 +683,13 @@ export function ComingSoonV2Shell() {
             />
           </div>
         </section>
+
+        <WhatYouGetSection
+          eyebrow={wyg.eyebrow}
+          headline={wyg.headline}
+          intro={wyg.intro}
+          cards={wyg.cards}
+        />
       </main>
     </div>
   );
