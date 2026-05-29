@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
+  restoreEnVentaFormFromIdbIfEmpty,
   saveEnVentaPreviewDraft,
   saveEnVentaPreviewReturnDraft,
   takeEnVentaPreviewReturnInitialState,
@@ -49,6 +50,18 @@ export default function LeonixEnVentaProApplication() {
 
   useLayoutEffect(() => {
     clearLeonixReturningToEditSessionFlag();
+  }, []);
+
+  useLayoutEffect(() => {
+    let cancelled = false;
+    void restoreEnVentaFormFromIdbIfEmpty("pro", state).then((restored) => {
+      if (!cancelled && restored) {
+        setState(restored);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const previewBlockers = useMemo(() => collectEnVentaCoreBlockers(lang, state), [lang, state]);

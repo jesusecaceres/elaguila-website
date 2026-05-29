@@ -2,6 +2,14 @@ import {
   createEmptyEnVentaFreeState,
   type EnVentaFreeApplicationState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import {
+  idbClearEnVentaPreviewDrafts,
+  idbGetEnVentaPreviewDraft,
+  idbGetEnVentaPreviewReturnDraft,
+  idbPutEnVentaPreviewDraft,
+  idbPutEnVentaPreviewReturnDraft,
+} from "./enVentaPreviewDraftIdb";
+
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
 export const EN_VENTA_PREVIEW_DRAFT_META_KEY = "en-venta-preview-draft-meta";
@@ -62,7 +70,20 @@ function scheduleClearPreviewReturnMemory() {
   }, 2000);
 }
 
-/** Drop En Venta preview handoff keys + in-memory Strict Mode cache. */
+function parseDraftJson(raw: string): EnVentaFreeApplicationState | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<EnVentaFreeApplicationState>;
+    return mergePartialEnVentaState(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function cacheDraftInMemory(plan: "free" | "pro", merged: EnVentaFreeApplicationState): void {
+  previewDraftMemory[plan] = merged;
+}
+
+/** Drop En Venta preview handoff keys + in-memory Strict Mode cache + IndexedDB drafts. */
 export function clearEnVentaPublishTempState(): void {
   if (previewReturnMemoryTimer != null) {
     clearTimeout(previewReturnMemoryTimer);
@@ -79,6 +100,7 @@ export function clearEnVentaPublishTempState(): void {
   } catch {
     /* ignore */
   }
+  void idbClearEnVentaPreviewDrafts();
 }
 
 /** Whether a preview draft exists for the plan (memory or sessionStorage). */
@@ -89,7 +111,7 @@ export function hasEnVentaPreviewDraft(plan: "free" | "pro"): boolean {
 
 /**
  * Force-save draft before preview/publish navigation.
- * Always writes to in-tab memory; sessionStorage is best-effort (large photo data URLs may exceed quota).
+ * Always writes to in-tab memory; sessionStorage + IndexedDB are best-effort for reload/back.
  */
 export function saveEnVentaPreviewDraft(
   plan: "free" | "pro",
@@ -97,37 +119,43 @@ export function saveEnVentaPreviewDraft(
   _lang: "es" | "en" = "es"
 ): boolean {
   const merged = mergePartialEnVentaState(state);
-  previewDraftMemory[plan] = merged;
+  cacheDraftInMemory(plan, merged);
   if (typeof window === "undefined") return true;
+  const json = JSON.stringify(merged);
   try {
-    sessionStorage.setItem(keyForPlan(plan), JSON.stringify(merged));
+    sessionStorage.setItem(keyForPlan(plan), json);
     sessionStorage.setItem(
       EN_VENTA_PREVIEW_DRAFT_META_KEY,
-      JSON.stringify({ plan, updatedAt: Date.now() })
+      JSON.stringify({ plan, updatedAt: Date.now() } satisfies EnVentaPreviewDraftMeta)
     );
   } catch {
-    /* Quota — memory cache still valid for same-tab client navigation */
+    /* Quota — IndexedDB fallback below */
   }
+  void idbPutEnVentaPreviewDraft(plan, json);
   return true;
 }
 
-/** Persists form state for the preview → "Volver a editar" round-trip only (separate from main preview draft keys). */
+/** Persists form state for the preview → "Volver a editar" round-trip. */
 export function saveEnVentaPreviewReturnDraft(plan: "free" | "pro", state: EnVentaFreeApplicationState): void {
   const merged = mergePartialEnVentaState(state);
-  previewDraftMemory[plan] = merged;
+  cacheDraftInMemory(plan, merged);
   if (typeof window === "undefined") return;
   delete previewReturnMemory[plan];
+  const json = JSON.stringify(merged);
+  const payload: EnVentaPreviewReturnPayload = { plan, state: merged, savedAt: Date.now() };
+  const returnJson = JSON.stringify(payload);
   try {
-    const payload: EnVentaPreviewReturnPayload = { plan, state: merged, savedAt: Date.now() };
-    sessionStorage.setItem(EN_VENTA_PREVIEW_RETURN_DRAFT, JSON.stringify(payload));
-    sessionStorage.setItem(keyForPlan(plan), JSON.stringify(merged));
+    sessionStorage.setItem(EN_VENTA_PREVIEW_RETURN_DRAFT, returnJson);
+    sessionStorage.setItem(keyForPlan(plan), json);
     sessionStorage.setItem(
       EN_VENTA_PREVIEW_DRAFT_META_KEY,
-      JSON.stringify({ plan, updatedAt: Date.now() })
+      JSON.stringify({ plan, updatedAt: Date.now() } satisfies EnVentaPreviewDraftMeta)
     );
   } catch {
-    /* ignore quota / private mode — memory cache remains */
+    /* Quota — IndexedDB fallback below */
   }
+  void idbPutEnVentaPreviewReturnDraft(plan, returnJson);
+  void idbPutEnVentaPreviewDraft(plan, json);
 }
 
 export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplicationState | null {
@@ -136,8 +164,81 @@ export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplic
   try {
     const raw = sessionStorage.getItem(keyForPlan(plan));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<EnVentaFreeApplicationState>;
-    return mergePartialEnVentaState(parsed);
+    const merged = parseDraftJson(raw);
+    if (merged) cacheDraftInMemory(plan, merged);
+    return merged;
+  } catch {
+    return null;
+  }
+}
+
+/** Async load including IndexedDB when sessionStorage is empty or over quota. */
+export async function loadEnVentaPreviewDraftAsync(
+  plan: "free" | "pro"
+): Promise<EnVentaFreeApplicationState | null> {
+  const sync = loadEnVentaPreviewDraft(plan);
+  if (sync) return sync;
+  try {
+    const raw = await idbGetEnVentaPreviewDraft(plan);
+    if (!raw) return null;
+    const merged = parseDraftJson(raw);
+    if (merged) cacheDraftInMemory(plan, merged);
+    return merged;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadLatestEnVentaPreviewDraftAsync(
+  preferredPlan: "free" | "pro"
+): Promise<{ plan: "free" | "pro"; draft: EnVentaFreeApplicationState } | null> {
+  const preferred = await loadEnVentaPreviewDraftAsync(preferredPlan);
+  const otherPlan: "free" | "pro" = preferredPlan === "free" ? "pro" : "free";
+  const other = await loadEnVentaPreviewDraftAsync(otherPlan);
+  if (preferred && !other) return { plan: preferredPlan, draft: preferred };
+  if (!preferred && other) return { plan: otherPlan, draft: other };
+  if (!preferred && !other) return null;
+
+  try {
+    const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
+    const meta = raw ? (JSON.parse(raw) as { plan?: "free" | "pro" }) : null;
+    if (meta?.plan === otherPlan && other) return { plan: otherPlan, draft: other };
+  } catch {
+    /* ignore */
+  }
+  return preferred ? { plan: preferredPlan, draft: preferred } : other ? { plan: otherPlan, draft: other } : null;
+}
+
+/**
+ * If the form is still empty after sync restore, hydrate from IndexedDB return/main draft.
+ * Used after full-page reload when sessionStorage exceeded quota.
+ */
+export async function restoreEnVentaFormFromIdbIfEmpty(
+  plan: "free" | "pro",
+  current: EnVentaFreeApplicationState
+): Promise<EnVentaFreeApplicationState | null> {
+  const hasProgress = Boolean(
+    current.title.trim() ||
+      current.rama.trim() ||
+      current.images.length > 0 ||
+      current.description.trim()
+  );
+  if (hasProgress) return null;
+
+  try {
+    const returnRaw = await idbGetEnVentaPreviewReturnDraft(plan);
+    if (returnRaw) {
+      const data = JSON.parse(returnRaw) as Partial<EnVentaPreviewReturnPayload>;
+      if (data.plan === plan && data.state && typeof data.state === "object") {
+        const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
+        cacheDraftInMemory(plan, merged);
+        previewReturnMemory[plan] = merged;
+        scheduleClearPreviewReturnMemory();
+        return merged;
+      }
+    }
+    const main = await loadEnVentaPreviewDraftAsync(plan);
+    return main;
   } catch {
     return null;
   }
@@ -169,6 +270,7 @@ export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVe
     const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     previewReturnMemory[plan] = merged;
+    cacheDraftInMemory(plan, merged);
     scheduleClearPreviewReturnMemory();
     return merged;
   } catch {

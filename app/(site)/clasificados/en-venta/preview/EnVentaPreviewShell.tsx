@@ -1,7 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { saveEnVentaPreviewReturnDraft } from "./enVentaPreviewDraft";
 
 const COPY = {
   es: {
@@ -30,23 +33,36 @@ const pillPublishNav =
 export type EnVentaPreviewShellProps = {
   lang: "es" | "en";
   plan: "free" | "pro";
-  /** Centered header title (e.g. Vista previa Pro). */
+  /** Centered header title (e.g. Vista previa). */
   previewTitle: string;
-  /** Full URL for back-to-edit (full page load via native anchor). */
+  /** Full URL for back-to-edit (client navigation). */
   editBackHref: string;
   previewHrefFree: string;
   previewHrefPro: string;
+  /** Current preview draft — re-saved before return-to-edit so reload/back never loses data. */
+  returnDraft: EnVentaFreeApplicationState | null;
   children: ReactNode;
 };
 
 export function EnVentaPreviewShell({
   lang,
+  plan,
   previewTitle,
   editBackHref,
+  returnDraft,
   children,
 }: EnVentaPreviewShellProps) {
+  const router = useRouter();
   const t = COPY[lang];
   const editPublishFocusHref = hrefWithListingPublishFocus(editBackHref);
+
+  function goBackToEdit(href: string) {
+    markPublishFlowReturningToEdit();
+    if (returnDraft) {
+      saveEnVentaPreviewReturnDraft(plan, returnDraft);
+    }
+    router.push(href);
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -63,24 +79,20 @@ export function EnVentaPreviewShell({
               className="relative z-10 flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1 sm:gap-1.5"
               aria-label={lang === "es" ? "Acciones de vista previa" : "Preview actions"}
             >
-              <a
-                href={editBackHref}
+              <button
+                type="button"
                 className={pillOutline}
-                onClick={() => {
-                  markPublishFlowReturningToEdit();
-                }}
+                onClick={() => goBackToEdit(editBackHref)}
               >
                 {t.back}
-              </a>
-              <a
-                href={editPublishFocusHref}
+              </button>
+              <button
+                type="button"
                 className={pillPublishNav}
-                onClick={() => {
-                  markPublishFlowReturningToEdit();
-                }}
+                onClick={() => goBackToEdit(editPublishFocusHref)}
               >
                 {t.publish}
-              </a>
+              </button>
             </nav>
           </div>
         </div>
@@ -90,15 +102,13 @@ export function EnVentaPreviewShell({
 
       <div className="sticky bottom-0 z-40 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-2.5 backdrop-blur-md lg:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2">
-          <a
-            href={editPublishFocusHref}
+          <button
+            type="button"
             className="rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 py-2 text-xs font-bold text-[#1E1810] shadow-md"
-            onClick={() => {
-              markPublishFlowReturningToEdit();
-            }}
+            onClick={() => goBackToEdit(editPublishFocusHref)}
           >
             {t.publish}
-          </a>
+          </button>
         </div>
       </div>
     </div>

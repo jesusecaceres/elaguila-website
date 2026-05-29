@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { hasEnVentaPreviewDraft } from "../preview/enVentaPreviewDraft";
 import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
@@ -12,6 +13,7 @@ const PREVIEW_CTA = {
     previewBtn: "Vista previa del anuncio",
     aria: "Vista previa antes de publicar",
     includedNote: "incluido sin costo",
+    saveFailed: "No se pudo guardar el borrador. Intenta de nuevo o quita fotos muy pesadas.",
   },
   en: {
     title: "Before publishing, review your listing",
@@ -19,6 +21,7 @@ const PREVIEW_CTA = {
     previewBtn: "Listing preview",
     aria: "Preview before publishing",
     includedNote: "included at no charge",
+    saveFailed: "Could not save your draft. Try again or remove very large photos.",
   },
 } as const;
 
@@ -46,16 +49,19 @@ export function EnVentaPreviewBeforePublishCta({
 }: Props) {
   const router = useRouter();
   const t = PREVIEW_CTA[lang];
+  const [saveError, setSaveError] = useState<string | null>(null);
   const proHref = `${PREVIEW_HREF_BASE}?lang=${lang}&plan=pro`;
 
   function goPreview() {
     if (previewBlockers.length > 0) return;
+    setSaveError(null);
     try {
       onBeforePreview?.("pro");
     } catch {
       return;
     }
     if (!hasEnVentaPreviewDraft("pro")) {
+      setSaveError(t.saveFailed);
       return;
     }
     markPublishFlowOpeningPreview();
@@ -95,6 +101,11 @@ export function EnVentaPreviewBeforePublishCta({
             ))}
           </ul>
         </div>
+      ) : null}
+      {saveError ? (
+        <p className="mt-3 text-sm font-medium text-red-800" role="alert">
+          {saveError}
+        </p>
       ) : null}
       <div className="mt-4">
         <button

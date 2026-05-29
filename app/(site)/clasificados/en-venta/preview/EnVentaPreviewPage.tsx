@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties, type Rea
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
-import { loadLatestEnVentaPreviewDraft, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
+import { loadLatestEnVentaPreviewDraftAsync, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
 import { buildEnVentaPreviewModel, type EnVentaPreviewContactAction } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
@@ -194,11 +194,15 @@ function MapPinIcon({ className }: { className?: string }) {
 export function EnVentaPreviewPage() {
   const sp = useSearchParams();
   const lang = sp?.get("lang") === "en" ? "en" : "es";
-  const plan = "pro";
+  const planParam = sp?.get("plan");
+  const plan: "free" | "pro" = planParam === "free" ? "free" : "pro";
   const tEmpty = EMPTY[lang];
   const tBuyer = BUYER[lang];
 
-  const editBackHref = `/clasificados/publicar/en-venta/pro?lang=${lang}`;
+  const editBackHref =
+    plan === "free"
+      ? `/clasificados/publicar/en-venta/free?lang=${lang}`
+      : `/clasificados/publicar/en-venta/pro?lang=${lang}`;
   const previewHrefFree = `/clasificados/en-venta/preview?lang=${lang}&plan=free`;
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);
@@ -227,9 +231,16 @@ export function EnVentaPreviewPage() {
   }, []);
 
   useEffect(() => {
-    const loaded = loadLatestEnVentaPreviewDraft(plan);
-    setDraft(loaded?.draft ?? null);
-    setHydrated(true);
+    let cancelled = false;
+    void loadLatestEnVentaPreviewDraftAsync(plan).then((loaded) => {
+      if (!cancelled) {
+        setDraft(loaded?.draft ?? null);
+        setHydrated(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [plan]);
 
   useEffect(() => {
@@ -770,6 +781,7 @@ export function EnVentaPreviewPage() {
         editBackHref={editBackHref}
         previewHrefFree={previewHrefFree}
         previewHrefPro={previewHrefPro}
+        returnDraft={draft}
       >
         <main className="relative pb-8 text-[#2C2416] lg:pb-12">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">

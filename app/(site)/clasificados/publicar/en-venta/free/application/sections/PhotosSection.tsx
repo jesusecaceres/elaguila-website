@@ -29,8 +29,9 @@ const COPY = {
     planFree: "Hasta 3 fotos. No se admite video en esta vía.",
     planIncluded: "Hasta 12 fotos y 1 video opcional (archivo o enlace).",
     reorderTitle: "Ordenar fotos",
-    reorderDrag: "Arrastra las fotos para cambiar el orden.",
-    reorderMobile: "En móvil, usa los controles para moverlas.",
+    reorderDrag: "Usa la asa (⋮⋮) de cada foto para arrastrar y cambiar el orden.",
+    reorderMobile: "En móvil, usa los controles ↑ ↓ para moverlas.",
+    dragHandleAria: "Asa para reordenar foto",
     count: (n: number, max: number) => `${n} / ${max} fotos`,
     primary: "Principal",
     setMain: "Usar como principal",
@@ -72,8 +73,9 @@ const COPY = {
     planFree: "Up to 3 photos. No video on this path.",
     planIncluded: "Up to 12 photos and 1 optional video (file or link).",
     reorderTitle: "Reorder photos",
-    reorderDrag: "Drag photos to change the order.",
-    reorderMobile: "On mobile, use the controls to move them.",
+    reorderDrag: "Use the grip (⋮⋮) on each photo to drag and change the order.",
+    reorderMobile: "On mobile, use the ↑ ↓ controls to move them.",
+    dragHandleAria: "Photo drag handle",
     count: (n: number, max: number) => `${n} / ${max} photos`,
     primary: "Main",
     setMain: "Use as main",
@@ -279,6 +281,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   const t = COPY[lang];
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const allowDragFromRef = useRef<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const isProMedia = allowVideo && maxPhotos > 3;
   const dark = surface === "dark";
@@ -597,8 +600,18 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                 <li
                   key={`${url}-${index}`}
                   draggable
-                  onDragStart={() => setDragIndex(index)}
-                  onDragEnd={() => setDragIndex(null)}
+                  onDragStart={(e) => {
+                    if (allowDragFromRef.current !== index) {
+                      e.preventDefault();
+                      return;
+                    }
+                    setDragIndex(index);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    setDragIndex(null);
+                    allowDragFromRef.current = null;
+                  }}
                   onDragOver={(e) => {
                     e.preventDefault();
                   }}
@@ -606,17 +619,42 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                     e.preventDefault();
                     if (dragIndex !== null) reorderImages(dragIndex, index);
                     setDragIndex(null);
+                    allowDragFromRef.current = null;
                   }}
                   className={cx(
-                    "flex cursor-grab flex-col overflow-hidden rounded-2xl border shadow-sm active:cursor-grabbing",
+                    "flex flex-col overflow-hidden rounded-2xl border shadow-sm",
                     c.imgBorder,
                     dark ? "bg-black/20" : "bg-white",
                     dragIndex === index ? "ring-2 ring-[#A98C2A]/50" : ""
                   )}
                 >
                   <div className="relative aspect-[4/3] w-full bg-black/5">
-                    { }
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      aria-label={t.dragHandleAria}
+                      title={t.dragHandleAria}
+                      className="absolute right-2 top-2 z-10 flex h-9 w-9 cursor-grab flex-col items-center justify-center gap-[3px] rounded-lg border border-white/40 bg-black/55 px-1.5 py-1 shadow active:cursor-grabbing"
+                      onMouseDown={() => {
+                        allowDragFromRef.current = index;
+                      }}
+                      onTouchStart={() => {
+                        allowDragFromRef.current = index;
+                      }}
+                    >
+                      <span className="flex gap-[3px]" aria-hidden>
+                        <span className="h-1 w-1 rounded-full bg-white/90" />
+                        <span className="h-1 w-1 rounded-full bg-white/90" />
+                      </span>
+                      <span className="flex gap-[3px]" aria-hidden>
+                        <span className="h-1 w-1 rounded-full bg-white/90" />
+                        <span className="h-1 w-1 rounded-full bg-white/90" />
+                      </span>
+                      <span className="flex gap-[3px]" aria-hidden>
+                        <span className="h-1 w-1 rounded-full bg-white/90" />
+                        <span className="h-1 w-1 rounded-full bg-white/90" />
+                      </span>
+                    </button>
+                    <img src={url} alt="" className="h-full w-full object-cover" draggable={false} />
                     {isMain ? (
                       <span className="absolute left-2 top-2 rounded-full bg-[#A98C2A] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow">
                         {t.primary}
