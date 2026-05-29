@@ -17,7 +17,12 @@ type HeroLinePart = { text: string; accent?: HeroAccent };
 
 type HeroLine = { parts: HeroLinePart[] };
 
-type HeroCta = { label: string; href: string; variant: "primary" | "secondary" | "green" };
+type HeroCta = {
+  label: string;
+  href: string;
+  variant: "primary" | "secondary" | "green";
+  external?: boolean;
+};
 
 type WhatYouGetCardAccent = "burgundy" | "gold" | "green" | "qr" | "founder";
 
@@ -92,6 +97,7 @@ const COPY: Record<
       headline: string;
       body: string;
       ctas: [HeroCta, HeroCta, HeroCta];
+      mediaKitDownload: { label: string; href: string };
     };
     contact: {
       title: string;
@@ -168,9 +174,10 @@ const COPY: Record<
           variant: "primary",
         },
         {
-          label: "Solicitar Media Kit",
-          href: "/media-kit?lang=es",
+          label: "Ver Media Kit",
+          href: "/media-kit/leonix-media-kit-es.pdf",
           variant: "secondary",
+          external: true,
         },
         {
           label: "Únete al lanzamiento",
@@ -293,8 +300,9 @@ const COPY: Record<
         },
         {
           label: "Ver Media Kit",
-          href: "/media-kit?lang=es",
+          href: "/media-kit/leonix-media-kit-es.pdf",
           variant: "secondary",
+          external: true,
         },
         {
           label: "Únete al lanzamiento",
@@ -302,6 +310,10 @@ const COPY: Record<
           variant: "green",
         },
       ],
+      mediaKitDownload: {
+        label: "Descargar Media Kit",
+        href: "/media-kit/leonix-media-kit-es.pdf",
+      },
     },
     contact: {
       title: "Contacto",
@@ -374,9 +386,10 @@ const COPY: Record<
           variant: "primary",
         },
         {
-          label: "Request Media Kit",
-          href: "/media-kit?lang=en",
+          label: "View Media Kit",
+          href: "/media-kit/leonix-media-kit-en.pdf",
           variant: "secondary",
+          external: true,
         },
         {
           label: "Join the launch",
@@ -499,8 +512,9 @@ const COPY: Record<
         },
         {
           label: "View Media Kit",
-          href: "/media-kit?lang=en",
+          href: "/media-kit/leonix-media-kit-en.pdf",
           variant: "secondary",
+          external: true,
         },
         {
           label: "Join the launch",
@@ -508,6 +522,10 @@ const COPY: Record<
           variant: "green",
         },
       ],
+      mediaKitDownload: {
+        label: "Download Media Kit",
+        href: "/media-kit/leonix-media-kit-en.pdf",
+      },
     },
     contact: {
       title: "Contact",
@@ -567,7 +585,13 @@ function HeroCtaLink({ cta }: { cta: HeroCta }) {
     green: `${base} bg-[#2A4536] text-[#F8F4EA] shadow-[0_6px_16px_-6px_rgba(42,69,54,0.45)] hover:bg-[#223528]`,
   };
   return (
-    <Link href={cta.href} className={styles[cta.variant]}>
+    <Link
+      href={cta.href}
+      className={styles[cta.variant]}
+      {...(cta.external
+        ? { target: "_blank", rel: "noopener noreferrer" }
+        : {})}
+    >
       {cta.label}
     </Link>
   );
@@ -998,6 +1022,7 @@ function FinalContactSection({
     headline: string;
     body: string;
     ctas: [HeroCta, HeroCta, HeroCta];
+    mediaKitDownload: { label: string; href: string };
   };
   contact: {
     title: string;
@@ -1048,6 +1073,15 @@ function FinalContactSection({
             <HeroCtaLink key={cta.label} cta={cta} />
           ))}
         </div>
+        <a
+          href={finalCta.mediaKitDownload.href}
+          download
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/45 underline-offset-[0.25em] transition hover:text-[#F8F4EA] hover:decoration-[#F8F4EA]/60 sm:text-[0.9375rem]"
+        >
+          {finalCta.mediaKitDownload.label}
+        </a>
       </div>
 
       <div className="mt-10 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-8">
