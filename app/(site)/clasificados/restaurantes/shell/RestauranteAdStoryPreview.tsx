@@ -45,6 +45,19 @@ const CTA_SECONDARY = "bg-white text-[#1F1A17] border-[#D8C2A0] hover:bg-[#FFFAF
 
 const SERVICE_CHIP = "px-3 py-1.5 rounded-full bg-[#F6EBDD] text-[#1F1A17] text-xs font-semibold border border-[#D8C2A0] inline-flex items-center gap-1";
 
+const SHELL_UI = {
+  es: {
+    contactHeading: "Contacto y Ubicación",
+    readMore: "Leer más",
+    readLess: "Leer menos",
+  },
+  en: {
+    contactHeading: "Contact & location",
+    readMore: "Read more",
+    readLess: "Read less",
+  },
+} as const;
+
 interface RestauranteAdStoryPreviewProps {
   data: RestaurantDetailShellData;
   listingId?: string;
@@ -66,6 +79,7 @@ export function RestauranteAdStoryPreview({
   const listingKeyResolved = (listingId ?? "").trim() || data.id;
   const shellTx = useRestauranteShellTranslation(data, lang, listingKeyResolved);
   const proseData = shellTx.displayData;
+  const ui = SHELL_UI[lang];
 
   const translateControl = shellTx.offerTranslate ? (
     <div className="mb-3 flex justify-start" data-restaurantes-translate-ad="1">
@@ -668,7 +682,7 @@ export function RestauranteAdStoryPreview({
                       onClick={() => setAboutExpanded((e) => !e)}
                       className="mt-2 text-sm font-semibold text-[color:var(--lx-olive)] underline underline-offset-2 md:hidden"
                     >
-                      {aboutExpanded ? "Leer menos" : "Leer más"}
+                      {aboutExpanded ? ui.readLess : ui.readMore}
                     </button>
                   ) : null}
                 </>
@@ -685,7 +699,7 @@ export function RestauranteAdStoryPreview({
         <section className="overflow-hidden rounded-3xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-sm">
           <div className={SECTION_PADDING}>
             <h2 className="mb-4 text-xl font-bold tracking-tight text-[color:var(--lx-text)] md:mb-6 md:text-2xl">
-              Contacto y Ubicación
+              {ui.contactHeading}
             </h2>
             {data.contactHub ? (
               <RestaurantContactHub

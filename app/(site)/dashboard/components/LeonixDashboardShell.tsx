@@ -165,9 +165,9 @@ export function LeonixDashboardShell({
     } catch {
       /* ignore */
     }
-    router.push(`/login?redirect=${encodeURIComponent("/dashboard")}`);
+    router.push(`/login?lang=${lang}&redirect=${encodeURIComponent(`/dashboard?${q}`)}`);
     router.refresh();
-  }, [router]);
+  }, [router, lang, q]);
 
   function badgePill(n: number | null | undefined, title: string) {
     if (n == null || n <= 0) return null;

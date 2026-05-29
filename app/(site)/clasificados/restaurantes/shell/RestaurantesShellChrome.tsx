@@ -10,11 +10,13 @@ const copy = {
     breadcrumbClassifieds: "Clasificados",
     breadcrumbRestaurants: "Restaurantes",
     breadcrumbCurrent: "Vista previa del anuncio",
+    backToEdit: "← Volver a editar",
   },
   en: {
     breadcrumbClassifieds: "Classifieds",
     breadcrumbRestaurants: "Restaurants",
     breadcrumbCurrent: "Listing preview",
+    backToEdit: "← Back to edit",
   },
 } as const;
 
@@ -56,7 +58,7 @@ export function RestaurantesShellChrome({
               href={previewEditHref}
               className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
             >
-              ← Volver a editar
+              {c.backToEdit}
             </Link>
           </div>
         ) : (

@@ -90,20 +90,22 @@ function hasContactContent(c: RestaurantDetailShellData["contact"]): boolean {
   );
 }
 
-function ContactSection({ data }: { data: RestaurantDetailShellData }) {
+type ShellLang = "es" | "en";
+
+function ContactSection({ data, lang }: { data: RestaurantDetailShellData; lang: ShellLang }) {
   if (!data.contactHub?.hasAny) return null;
   return (
     <section aria-labelledby="contact-access-heading" className="scroll-mt-24">
       <div className="mb-4 max-w-2xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Acceso</p>
         <h2 id="contact-access-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-          Contacto y ubicación
+          {lang === "en" ? "Contact & location" : "Contacto y ubicación"}
         </h2>
       </div>
       <div className={`${CARD} p-5 sm:p-6`}>
         <RestaurantContactHub
           hub={data.contactHub}
-          lang="es"
+          lang={lang}
           contactShareExtras={{
             email: data.contact?.email,
             websiteUrl: data.contact?.websiteHref,
@@ -114,7 +116,13 @@ function ContactSection({ data }: { data: RestaurantDetailShellData }) {
   );
 }
 
-export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellData }) {
+export function RestauranteDetailShell({
+  data,
+  lang = "es",
+}: {
+  data: RestaurantDetailShellData;
+  lang?: ShellLang;
+}) {
   const open = data.hoursPreview.status === "open";
   const showQuick = (data.quickInfo?.length ?? 0) > 0;
   const showPlatillos = (data.menuHighlights?.length ?? 0) > 0;
@@ -306,7 +314,7 @@ export function RestauranteDetailShell({ data }: { data: RestaurantDetailShellDa
           <div className="lg:col-span-1">
             {showContact ? (
               <div className="sticky top-8">
-                <ContactSection data={data} />
+                <ContactSection data={data} lang={lang} />
               </div>
             ) : null}
           </div>
