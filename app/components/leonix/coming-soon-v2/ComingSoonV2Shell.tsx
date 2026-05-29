@@ -342,7 +342,7 @@ function HeroMediaVisual({
   return (
     <aside className="w-full min-w-0 lg:justify-self-stretch" aria-label={label}>
       <div className="relative mx-auto w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] lg:mx-0 lg:max-w-none">
-        <div className="relative rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-1.5 shadow-[0_20px_48px_-20px_rgba(31,36,28,0.38)] ring-1 ring-[#C9A84A]/12 sm:p-2 lg:pb-3">
+        <div className="rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-1.5 shadow-[0_20px_48px_-20px_rgba(31,36,28,0.38)] ring-1 ring-[#C9A84A]/12 sm:p-2">
           <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-gradient-to-b from-[#EDE6D6]/30 to-[#F8F4EA]">
             <Image
               src="/magazine/leonix-media-launch-es.png"
@@ -353,17 +353,16 @@ function HeroMediaVisual({
               priority
             />
           </div>
-
-          <div className="relative z-10 mx-auto mt-3 max-w-[13.5rem] rounded-xl border border-[#C9A84A]/45 bg-[#2A4536] px-3.5 py-2.5 text-center shadow-[0_10px_24px_-12px_rgba(42,69,54,0.7)] sm:max-w-[14rem] lg:absolute lg:bottom-5 lg:left-4 lg:mx-0 lg:mt-0 lg:text-left">
-            <p className="font-serif text-[0.8125rem] font-bold leading-snug text-[#F8F4EA] sm:text-sm">
-              {qrOverlay}
-            </p>
-          </div>
         </div>
 
-        <p className="mt-3 text-center text-[0.65rem] font-bold uppercase tracking-[0.13em] text-[#556B3E] sm:text-xs lg:mt-4 lg:text-left">
-          {label}
-        </p>
+        <div className="mt-3 flex flex-col items-center gap-2 sm:mt-3.5 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5 lg:mt-4">
+          <p className="inline-flex max-w-full rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-center text-[0.65rem] font-bold uppercase tracking-[0.11em] text-[#2A4536] shadow-sm sm:text-[0.68rem]">
+            {label}
+          </p>
+          <p className="inline-flex max-w-full rounded-full border border-[#C9A84A]/45 bg-[#2A4536] px-3 py-1.5 text-center font-serif text-[0.75rem] font-bold leading-snug text-[#F8F4EA] shadow-[0_6px_16px_-10px_rgba(42,69,54,0.65)] sm:text-[0.8125rem]">
+            {qrOverlay}
+          </p>
+        </div>
       </div>
     </aside>
   );
