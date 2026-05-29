@@ -74,7 +74,7 @@ import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnu
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at";
+  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at, mux_playback_id";
 
 type CategoryKey =
   | "en-venta"
@@ -129,6 +129,8 @@ type Listing = {
   detailPairs?: unknown;
   contact_phone?: string | null;
   contact_email?: string | null;
+  mux_playback_id?: string | null;
+  zip?: string | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -282,6 +284,14 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   out.contact_phone = normalizedContactPhone;
   out.contact_email = normalizedContactEmail;
   out.seller_type = sellerType;
+  const muxPid = row.mux_playback_id;
+  if (typeof muxPid === "string" && muxPid.trim()) {
+    (out as Listing).mux_playback_id = muxPid.trim();
+  }
+  const zipRaw = row.zip;
+  if (typeof zipRaw === "string" && zipRaw.trim()) {
+    (out as Listing).zip = zipRaw.trim();
+  }
   return out;
 }
 
@@ -1218,6 +1228,8 @@ export default function AnuncioDetallePage() {
             owner_id: listing.owner_id ?? null,
             leonix_ad_id: listing.leonix_ad_id ?? null,
             business_meta: listing.business_meta ?? ev.business_meta ?? null,
+            mux_playback_id: (listing as Listing).mux_playback_id ?? null,
+            zip: (listing as Listing).zip ?? null,
             br_inventory_group_id:
               (listing as Listing & { br_inventory_group_id?: string | null }).br_inventory_group_id ?? null,
             br_inventory_parent_listing_id:

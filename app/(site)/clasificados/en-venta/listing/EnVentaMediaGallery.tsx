@@ -1,11 +1,32 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { EnVentaVideoPlayer } from "@/app/clasificados/en-venta/shared/components/EnVentaVideoPlayer";
+import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 
-export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: string }) {
+type Slide = { type: "image"; src: string } | { type: "video"; src: string };
+
+type Props = {
+  urls: string[];
+  title: string;
+  videoUrl?: string | null;
+  lang?: "es" | "en";
+};
+
+export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" }: Props) {
   const [idx, setIdx] = useState(0);
-  const safe = urls.length ? urls : [];
-  const current = safe[idx] ?? "";
+
+  const slides = useMemo((): Slide[] => {
+    const imgs: Slide[] = urls.filter(Boolean).map((src) => ({ type: "image", src }));
+    const v = videoUrl?.trim();
+    if (v && isEmbeddableExternalVideoUrl(v)) {
+      imgs.push({ type: "video", src: v });
+    }
+    return imgs;
+  }, [urls, videoUrl]);
+
+  const safe = slides.length ? slides : [];
+  const current = safe[idx] ?? null;
 
   const go = useCallback(
     (d: number) => {
@@ -17,7 +38,7 @@ export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: st
 
   if (!safe.length) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl border border-black/10 bg-[#E8E8E8] text-[#111111]/35">
+      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 text-[#5C5346]/50">
         📷
       </div>
     );
@@ -26,7 +47,7 @@ export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: st
   return (
     <div className="space-y-3">
       <div
-        className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-black/10 bg-[#111111]/5"
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-[#E8DFD0]/90 bg-[#111111]/5 shadow-[0_10px_36px_-12px_rgba(42,36,22,0.12)]"
         onTouchStart={(e) => {
           (e.currentTarget as HTMLDivElement).dataset.x0 = String(e.touches[0]?.clientX ?? 0);
         }}
@@ -38,23 +59,26 @@ export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: st
           else if (dx < -50) go(1);
         }}
       >
-        { }
-        <img src={current} alt={title} className="h-full w-full object-contain bg-black/5" />
+        {current?.type === "video" ? (
+          <EnVentaVideoPlayer url={current.src} lang={lang} />
+        ) : current?.type === "image" ? (
+          <img src={current.src} alt={title} className="h-full w-full bg-black/5 object-contain" />
+        ) : null}
         {safe.length > 1 ? (
           <>
             <button
               type="button"
-              aria-label="Previous"
+              aria-label={lang === "es" ? "Anterior" : "Previous"}
               onClick={() => go(-1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-sm shadow"
+              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full border border-[#E8DFD0]/80 bg-white/95 px-2.5 py-1.5 text-sm shadow"
             >
               ‹
             </button>
             <button
               type="button"
-              aria-label="Next"
+              aria-label={lang === "es" ? "Siguiente" : "Next"}
               onClick={() => go(1)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-sm shadow"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-[#E8DFD0]/80 bg-white/95 px-2.5 py-1.5 text-sm shadow"
             >
               ›
             </button>
@@ -62,16 +86,23 @@ export function EnVentaMediaGallery({ urls, title }: { urls: string[]; title: st
         ) : null}
       </div>
       {safe.length > 1 ? (
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {safe.map((u, i) => (
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {safe.map((s, i) => (
             <button
-              key={u + i}
+              key={`${s.type}-${i}-${s.src.slice(0, 24)}`}
               type="button"
               onClick={() => setIdx(i)}
-              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border ${i === idx ? "border-yellow-500 ring-1 ring-yellow-400/40" : "border-black/10"}`}
+              className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border ${
+                i === idx ? "border-[#C9A84A] ring-1 ring-[#D4BC6A]/45" : "border-[#E8DFD0]/90"
+              }`}
             >
-              { }
-              <img src={u} alt="" className="h-full w-full object-cover" />
+              {s.type === "image" ? (
+                <img src={s.src} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center bg-[#2A2620] text-[9px] font-bold uppercase text-[#FAF7F2]">
+                  ▶
+                </div>
+              )}
             </button>
           ))}
         </div>

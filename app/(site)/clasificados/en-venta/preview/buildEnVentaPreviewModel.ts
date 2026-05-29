@@ -6,6 +6,11 @@ import {
   enVentaConditionDisplay,
   enVentaFulfillmentLabels,
 } from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
+import {
+  buildEnVentaContactActions,
+  buildEnVentaPrimaryContactHref,
+} from "@/app/clasificados/en-venta/shared/utils/enVentaContactActions";
+import { resolveEnVentaVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -87,7 +92,7 @@ const COPY = {
     kindBusiness: "Comercial",
     deliveryH: "Entrega y pago",
     contact: "Contactar al vendedor",
-    trust: "Compra con confianza: mantén la comunicación dentro de Leonix cuando sea posible.",
+    trust: "Compra con cuidado. Verifica el artículo antes de pagar.",
     profile: "Ver perfil del vendedor",
     free: "Gratis",
     qty: "Cantidad",
@@ -119,7 +124,7 @@ const COPY = {
     kindBusiness: "Business",
     deliveryH: "Delivery & payment",
     contact: "Contact seller",
-    trust: "Shop with confidence — keep communication on Leonix when possible.",
+    trust: "Buy with care. Verify the item before paying.",
     profile: "View seller profile",
     free: "Free",
     qty: "Quantity",
@@ -136,19 +141,8 @@ const COPY = {
   },
 } as const;
 
-const SMS_PREFILL_ES = "Hola, ¿sigue disponible este artículo?";
-const SMS_PREFILL_EN = "Hi — is this item still available?";
 const EMAIL_SUBJ_ES = "Interés en tu anuncio Leonix";
 const EMAIL_SUBJ_EN = "Question about your Leonix listing";
-
-/** Digits suitable for `wa.me` — explicit WhatsApp field, else phone when long enough for intl. */
-function effectiveWhatsAppDigits(state: EnVentaFreeApplicationState): string {
-  const wa = state.whatsapp.replace(/\D/g, "");
-  if (wa.length >= 8) return wa;
-  const phone = state.phone.replace(/\D/g, "");
-  if (phone.length >= 10) return phone;
-  return "";
-}
 
 /** Gallery caps align with publish product copy: Free 3 photos, Pro 12 (+ video). */
 export const EN_VENTA_PREVIEW_MAX_PHOTOS = { free: 3, pro: 12 } as const;
@@ -158,66 +152,6 @@ export function getOrderedEnVentaImageUrls(state: EnVentaFreeApplicationState): 
   if (n === 0) return [];
   const pi = Math.min(Math.max(0, state.primaryImageIndex), n - 1);
   return [state.images[pi], ...state.images.filter((_, i) => i !== pi)];
-}
-
-function buildContactActions(state: EnVentaFreeApplicationState, lang: "es" | "en"): EnVentaPreviewContactAction[] {
-  const actions: EnVentaPreviewContactAction[] = [];
-  const phone = state.phone.replace(/\s/g, "");
-  const email = state.email.trim();
-  const waDigits = effectiveWhatsAppDigits(state);
-
-  if (phone) {
-    actions.push({
-      id: "call",
-      label: lang === "es" ? "Llamar" : "Call",
-      href: `tel:${phone}`,
-    });
-    const smsBody = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    actions.push({
-      id: "sms",
-      label: "SMS",
-      href: `sms:${phone}?body=${smsBody}`,
-    });
-  }
-
-  if (email) {
-    const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
-    const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    actions.push({
-      id: "email",
-      label: lang === "es" ? "Correo" : "Email",
-      href: `mailto:${email}?subject=${sub}&body=${body}`,
-    });
-  }
-
-  if (waDigits) {
-    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    actions.push({
-      id: "whatsapp",
-      label: lang === "es" ? "WhatsApp (recomendado)" : "WhatsApp (recommended)",
-      href: `https://wa.me/${waDigits}?text=${text}`,
-    });
-  }
-
-  const pref = state.contactMethod;
-  const rank = (id: EnVentaPreviewContactAction["id"]): number => {
-    const orderPhone = { call: 0, sms: 1, whatsapp: 2, email: 3 } as const;
-    const orderEmail = { email: 0, call: 1, sms: 2, whatsapp: 3 } as const;
-    const orderWa = { whatsapp: 0, call: 1, sms: 2, email: 3 } as const;
-    const orderBoth = { call: 0, sms: 1, email: 2, whatsapp: 3 } as const;
-    if (pref === "phone") return orderPhone[id];
-    if (pref === "email") return orderEmail[id];
-    if (pref === "whatsapp") return orderWa[id];
-    return orderBoth[id];
-  };
-
-  actions.sort((a, b) => {
-    if (a.id === "whatsapp" && b.id !== "whatsapp") return -1;
-    if (b.id === "whatsapp" && a.id !== "whatsapp") return 1;
-    return rank(a.id) - rank(b.id);
-  });
-
-  return actions;
 }
 
 export function buildEnVentaPreviewModel(
@@ -320,29 +254,7 @@ export function buildEnVentaPreviewModel(
         ? t.kindIndividual
         : "";
 
-  const method = state.contactMethod;
-  let contactHref = "#";
-  if (method === "phone" && state.phone.trim()) {
-    contactHref = `tel:${state.phone.replace(/\s/g, "")}`;
-  } else if (method === "email" && state.email.trim()) {
-    const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
-    const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    contactHref = `mailto:${state.email.trim()}?subject=${sub}&body=${body}`;
-  } else if (method === "whatsapp") {
-    const n = effectiveWhatsAppDigits(state);
-    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    contactHref = n ? `https://wa.me/${n}?text=${text}` : "#";
-  } else if (method === "both") {
-    const n = effectiveWhatsAppDigits(state);
-    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    if (n) contactHref = `https://wa.me/${n}?text=${text}`;
-    else if (state.phone.trim()) contactHref = `tel:${state.phone.replace(/\s/g, "")}`;
-    else if (state.email.trim()) {
-      const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
-      const body = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-      contactHref = `mailto:${state.email.trim()}?subject=${sub}&body=${body}`;
-    }
-  }
+  const contactHref = buildEnVentaPrimaryContactHref(state, lang);
 
   let offerMailtoHref: string | null = null;
   if (negotiable && state.email.trim()) {
@@ -359,10 +271,15 @@ export function buildEnVentaPreviewModel(
   const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
   const orderedImages = orderedFull.slice(0, maxPhotos);
 
-  const videoUrl = state.listingVideoSlots?.[0]?.playbackUrl?.trim() || state.listingVideoUrl.trim() || null;
-  const showVideo = plan === "pro" && !!videoUrl;
+  const slot = state.listingVideoSlots?.[0];
+  const videoUrl = resolveEnVentaVideoUrl({
+    muxPlaybackId: slot?.playbackId ?? null,
+    muxPlaybackUrl: slot?.playbackUrl ?? null,
+    externalUrl: state.listingVideoUrl.trim() || null,
+  });
+  const showVideo = plan === "pro" && Boolean(videoUrl);
 
-  const contactActions = buildContactActions(state, lang);
+  const contactActions = buildEnVentaContactActions(state, lang);
 
   const shellPlanLabel = plan === "pro" ? t.shellPro : t.shellFree;
   const shellStatusLine = t.posted;

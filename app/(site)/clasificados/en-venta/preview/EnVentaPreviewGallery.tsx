@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { EnVentaVideoPlayer } from "@/app/clasificados/en-venta/shared/components/EnVentaVideoPlayer";
+import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 
 type Props = {
   orderedImages: string[];
@@ -18,7 +20,7 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
   const slides = useMemo(() => {
     const imgs: Array<{ type: "image"; src: string; i: number } | { type: "video"; src: string; i: number }> =
       orderedImages.map((src, i) => ({ type: "image" as const, src, i }));
-    if (showVideo && videoUrl) {
+    if (showVideo && videoUrl && isEmbeddableExternalVideoUrl(videoUrl)) {
       imgs.push({ type: "video" as const, src: videoUrl, i: imgs.length });
     }
     return imgs;
@@ -46,25 +48,39 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
     );
   }
 
+  const mainIsPlayableVideo = current?.type === "video" && isEmbeddableExternalVideoUrl(current.src);
+
   return (
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7] shadow-[0_14px_44px_-14px_rgba(42,36,22,0.16),inset_0_1px_0_rgba(255,255,255,0.9)]">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="group relative block w-full text-left"
-          aria-label={openLabel}
-        >
-          <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-[#FAF7F2] to-[#EDE6DC]">
-          {current?.type === "image" ? (
-             
-            <img src={current.src} alt="" className="h-full w-full object-cover" />
-          ) : current?.type === "video" ? (
-            <VideoCover lang={lang} />
-          ) : null}
+        {mainIsPlayableVideo ? (
+          <div className="relative aspect-[4/3] w-full bg-black">
+            <EnVentaVideoPlayer url={current.src} lang={lang} />
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="absolute bottom-3 right-3 rounded-xl border border-white/20 bg-black/50 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-sm transition hover:bg-black/65"
+            >
+              {openLabel}
+            </button>
           </div>
-          <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/10" />
-        </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="group relative block w-full text-left"
+            aria-label={openLabel}
+          >
+            <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-[#FAF7F2] to-[#EDE6DC]">
+              {current?.type === "image" ? (
+                <img src={current.src} alt="" className="h-full w-full object-cover" />
+              ) : current?.type === "video" ? (
+                <VideoCover lang={lang} />
+              ) : null}
+            </div>
+            <span className="pointer-events-none absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
+          </button>
+        )}
       </div>
 
       <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]/90">{photoCountLabel}</p>
@@ -83,7 +99,6 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
               }`}
             >
               {s.type === "image" ? (
-                 
                 <img src={s.src} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-[#2A2620] text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">
@@ -177,10 +192,9 @@ function Lightbox({
 
         <div className="relative aspect-[16/10] w-full bg-black">
           {current?.type === "image" ? (
-             
             <img src={current.src} alt="" className="h-full w-full object-contain" />
           ) : current?.type === "video" ? (
-            <VideoPlayer url={current.src} lang={lang} />
+            <EnVentaVideoPlayer url={current.src} lang={lang} />
           ) : null}
 
           {slides.length > 1 ? (
@@ -207,106 +221,4 @@ function Lightbox({
       </div>
     </div>
   );
-}
-
-function VideoPlayer({ url, lang }: { url: string; lang: "es" | "en" }) {
-  if (url.startsWith("blob:")) {
-    return <video src={url} controls className="h-full w-full object-contain" />;
-  }
-  const yt = extractYoutubeId(url);
-  if (yt) {
-    return (
-      <iframe
-        title={lang === "es" ? "Video del anuncio" : "Listing video"}
-        className="h-full w-full"
-        src={`https://www.youtube-nocookie.com/embed/${yt}`}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
-    );
-  }
-  return <StreamableVideo url={url} lang={lang} />;
-}
-
-/**
- * Mux direct-upload uses HLS (.m3u8). Safari plays HLS natively; Chrome/Firefox need hls.js.
- */
-function StreamableVideo({ url, lang }: { url: string; lang: "es" | "en" }) {
-  const ref = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const isHls = /\.m3u8(\?|$)/i.test(url);
-
-    if (!isHls) {
-      el.src = url;
-      return () => {
-        el.pause();
-        el.removeAttribute("src");
-      };
-    }
-
-    let cancelled = false;
-    let hls: { destroy: () => void } | null = null;
-
-    if (el.canPlayType("application/vnd.apple.mpegurl")) {
-      el.src = url;
-      return () => {
-        el.pause();
-        el.removeAttribute("src");
-      };
-    }
-
-    void import("hls.js").then(({ default: HlsCtor }) => {
-      if (cancelled || !ref.current) return;
-      if (HlsCtor.isSupported()) {
-        const instance = new HlsCtor({ enableWorker: true });
-        hls = instance;
-        instance.loadSource(url);
-        instance.attachMedia(ref.current!);
-      } else {
-        ref.current!.src = url;
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      hls?.destroy();
-      const v = ref.current;
-      if (v) {
-        v.pause();
-        v.removeAttribute("src");
-      }
-    };
-  }, [url]);
-
-  return (
-    <video
-      ref={ref}
-      controls
-      playsInline
-      className="h-full w-full object-contain"
-      aria-label={lang === "es" ? "Video del anuncio" : "Listing video"}
-    />
-  );
-}
-
-function extractYoutubeId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) {
-      return u.pathname.slice(1).split("/")[0] || null;
-    }
-    if (u.hostname.includes("youtube.com")) {
-      const v = u.searchParams.get("v");
-      if (v) return v;
-      const m = u.pathname.match(/\/embed\/([^/]+)/);
-      if (m) return m[1];
-    }
-  } catch {
-    return null;
-  }
-  return null;
 }

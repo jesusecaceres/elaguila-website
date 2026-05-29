@@ -11,6 +11,7 @@ import {
   evaluateEnVentaFamilySafetyFromState,
   formatEnVentaFamilySafetyPublishError,
 } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
+import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -90,6 +91,13 @@ function buildDetailPairs(
   }
   pairs.push({ label: "Leonix:plan", value: plan });
   pairs.push({ label: "Leonix:contactChannel", value: state.contactMethod });
+  if (plan === "pro") {
+    const slot = state.listingVideoSlots?.[0];
+    const external = state.listingVideoUrl.trim();
+    if (external && isEmbeddableExternalVideoUrl(external) && !slot?.playbackId) {
+      pairs.push({ label: "Leonix:videoUrl", value: external });
+    }
+  }
   return pairs;
 }
 

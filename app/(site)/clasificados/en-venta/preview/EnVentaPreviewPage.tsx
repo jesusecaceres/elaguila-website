@@ -8,8 +8,9 @@ import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-vent
 import { loadLatestEnVentaPreviewDraftAsync, loadEnVentaPreviewDraftMeta, buildEnVentaEditResumeHref } from "./enVentaPreviewDraft";
 import { buildEnVentaPreviewModel, type EnVentaPreviewContactAction } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
-import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
 import { EnVentaPreviewShell } from "./EnVentaPreviewShell";
+import { EnVentaBuyerPanel } from "@/app/clasificados/en-venta/shared/components/EnVentaBuyerPanel";
+import { enVentaFulfillmentLabels } from "@/app/clasificados/en-venta/mapping/appendEnVentaDetailPairs";
 import {
   buildCallIntent,
   buildDirectionsIntent,
@@ -167,28 +168,6 @@ function relativeTimeLabel(ts: number, lang: "es" | "en"): string {
   if (mins < 60) return lang === "es" ? `Hace ${mins} min` : `${mins} min ago`;
   if (hours < 24) return lang === "es" ? (hours === 1 ? "Hace 1 hora" : `Hace ${hours} horas`) : (hours === 1 ? "1 hour ago" : `${hours} hours ago`);
   return lang === "es" ? (days === 1 ? "Hace 1 día" : `Hace ${days} días`) : (days === 1 ? "1 day ago" : `${days} days ago`);
-}
-
-function ContactIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function MapPinIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-        fill="currentColor"
-      />
-    </svg>
-  );
 }
 
 export function EnVentaPreviewPage() {
@@ -507,141 +486,6 @@ export function EnVentaPreviewPage() {
       {vm.classificationLine ? (
         <p className="text-sm font-medium leading-snug text-[#5C5346]">{vm.classificationLine}</p>
       ) : null}
-
-      {vm.locationLine ? (
-        <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/82 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)] sm:p-5">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.locationH}</p>
-            <p className="mt-2 flex items-start gap-2 text-sm font-semibold leading-snug text-[#1E1810]">
-              <MapPinIcon className="mt-0.5 shrink-0 text-[#8A8070]" />
-              <span className="min-w-0 break-words">{vm.locationLine}</span>
-            </p>
-            <p className="mt-1 max-w-xl text-[11px] leading-snug text-[#7A7164]/95">
-              {vm.locationApproximateNote}
-            </p>
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3.5 sm:p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
-              <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
-            </div>
-            {(distanceStatus === "ready" && distanceMiles !== null) ||
-            distanceStatus === "computing" ||
-            distanceStatus === "unavailable" ? (
-              <p className="mt-1 text-sm font-semibold leading-snug text-[#1E1810]">
-                {distanceStatus === "ready" && distanceMiles !== null
-                  ? tBuyer.approxMiles(roundMiles(distanceMiles))
-                  : distanceStatus === "computing"
-                    ? tBuyer.distanceSoon
-                    : tBuyer.distanceUnknown}
-              </p>
-            ) : null}
-            <div className="mt-3 flex min-w-0 flex-col gap-2">
-              <label className="block min-w-0">
-                <span className="sr-only">{tBuyer.startPointLabel}</span>
-                <input
-                  value={buyerStart}
-                  onChange={(e) => setBuyerStart(e.target.value)}
-                  placeholder={tBuyer.startPointPlaceholder}
-                  className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:font-normal placeholder:text-sm placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
-                  inputMode="search"
-                />
-              </label>
-              <div className="grid min-w-0 grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof navigator === "undefined" || !navigator.geolocation) {
-                      setBuyerGeoStatus("unavailable");
-                      setToast(tBuyer.locationNotAvailable);
-                      return;
-                    }
-                    setBuyerGeoStatus("requesting");
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => {
-                        setBuyerGeoStatus("granted");
-                        setBuyerCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                        setToast(lang === "es" ? "Ubicación lista." : "Location ready.");
-                      },
-                      (err) => {
-                        if (err?.code === 1) {
-                          setBuyerGeoStatus("denied");
-                          setToast(tBuyer.locationDenied);
-                        } else {
-                          setBuyerGeoStatus("unavailable");
-                          setToast(tBuyer.locationNotAvailable);
-                        }
-                      },
-                      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-                    );
-                  }}
-                  className={cx(
-                    "inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border px-2 py-2 text-center text-[11px] font-bold leading-tight transition sm:text-xs",
-                    buyerGeoStatus === "requesting"
-                      ? "cursor-wait border-[#E8DFD0]/80 bg-white/60 text-[#7A7164]"
-                      : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
-                  )}
-                >
-                  <span className="line-clamp-2">
-                    {buyerGeoStatus === "requesting" ? (lang === "es" ? "Solicitando…" : "Requesting…") : tBuyer.useMyLocation}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMapOpen(true)}
-                  className="inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-2 py-2 text-center text-[11px] font-bold leading-tight text-[#3D3428] transition hover:border-[#D4C4A8] sm:text-xs"
-                >
-                  <span className="line-clamp-2">{tBuyer.mapArea}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-4 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.1)] lg:hidden">
-        <h2 className="text-sm font-bold text-[#1E1810]">{tBuyer.contactH}</h2>
-        {vm.contactActions.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {vm.contactActions.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => openPreviewContactAction(a)}
-                className={cx(
-                  "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
-                  a.id === "whatsapp"
-                    ? "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
-                    : plan === "pro"
-                      ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                      : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-                )}
-              >
-                {a.id === "whatsapp" ? <span className="inline-flex items-center gap-1"><span aria-hidden>💬</span>{a.label}</span> : a.label}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-[#7A7164]/90">
-            {lang === "es" ? "Añade teléfono, correo o WhatsApp en el formulario de contacto." : "Add phone, email, or WhatsApp in the contact step."}
-          </p>
-        )}
-        {vm.contactActions.length === 0 && vm.primaryCtaHref !== "#" ? (
-          <button
-            type="button"
-            onClick={() => openPreviewEmailSheet()}
-            className={cx(
-              "mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold text-[#FAF7F2] shadow-md transition",
-              "bg-[#2A2620] hover:bg-[#1a1814] active:scale-[0.99]"
-            )}
-          >
-            <ContactIcon className="h-5 w-5 shrink-0 text-[#FAF7F2]" />
-            {vm.primaryCtaLabel}
-          </button>
-        ) : null}
-        <p className="mt-3 text-center text-[11px] leading-relaxed text-[#7A7164]/95">{vm.trustNote}</p>
-      </div>
     </div>
   );
 
@@ -679,84 +523,159 @@ export function EnVentaPreviewPage() {
     </div>
   ) : null;
 
-  const deliveryCard = (
-    <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/80 p-5">
-      <h3 className="text-sm font-bold text-[#1E1810]">{vm.deliveryHeading}</h3>
-      {vm.deliveryLines.length > 0 ? (
-        <ul className="mt-3 space-y-2 text-sm text-[#2C2416]/88">
-          {vm.deliveryLines.map((line, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#C9B46A]/80" aria-hidden />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm text-[#7A7164]/90">
-          {lang === "es" ? "Sin opciones de entrega indicadas." : "No delivery options specified."}
-        </p>
-      )}
-    </div>
-  );
-
   const lowerContent = (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-6">
       <div className="lg:col-span-8">{descriptionCard}</div>
       <div className="lg:col-span-4">{specsCard}</div>
-      <div className="lg:col-span-7">{extrasCards}</div>
-      <div className="lg:col-span-5">{deliveryCard}</div>
+      {extrasCards ? <div className="lg:col-span-12">{extrasCards}</div> : null}
     </div>
   );
 
-  const emailActionLabel =
-    vm.contactActions.find((a) => a.id === "email")?.label ?? (lang === "es" ? "Correo" : "Email");
-  const waAction = vm.contactActions.find((a) => a.id === "whatsapp");
+  const fulfillmentLabels = enVentaFulfillmentLabels(
+    {
+      shipping: state.shipping,
+      pickup: state.pickup,
+      meetup: state.meetup,
+      delivery: state.localDelivery,
+    },
+    lang
+  );
+  const fulfillmentNotes = vm.deliveryLines
+    .map((line) => {
+      const idx = line.indexOf(" — ");
+      return idx >= 0 ? line.slice(idx + 3).trim() : "";
+    })
+    .filter(Boolean);
 
-  const seller = (
-    <EnVentaPreviewSellerCard
-      initials={vm.sellerInitials}
-      name={vm.sellerName}
-      subline={vm.sellerSubline}
-      showProBadge={false}
-      desktopContact={
-        waAction || state.email.trim() ? (
-          <div className="flex flex-col gap-2">
-            {waAction ? (
-              <button
-                type="button"
-                onClick={() => openPreviewContactAction(waAction)}
-                className={cx(
-                  "inline-flex w-full min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-2xl border px-3 py-2.5 text-center text-xs font-bold transition",
-                  "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
-                )}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden>💬</span>
-                  {lang === "es" ? "WhatsApp" : "WhatsApp"}
-                </span>
-                <span className="text-[10px] font-semibold leading-tight text-[#0b3d32]/85">
-                  {lang === "es" ? "Contacto rápido — recomendado" : "Fast contact — recommended"}
-                </span>
-              </button>
-            ) : null}
-            {state.email.trim() ? (
-              <button
-                type="button"
-                onClick={() => openPreviewEmailSheet()}
-                className={cx(
-                  "inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition",
-                  plan === "pro"
-                    ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-                    : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
-                )}
-              >
-                <ContactIcon className="h-5 w-5 shrink-0" />
-                {emailActionLabel}
-              </button>
-            ) : null}
-          </div>
-        ) : undefined
-      }
+  const previewContactSection =
+    vm.contactActions.length > 0 ? (
+      <div className="flex flex-wrap gap-2">
+        {vm.contactActions.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => openPreviewContactAction(a)}
+            className={cx(
+              "inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-3 py-2 text-xs font-bold transition",
+              a.id === "whatsapp"
+                ? "border-[#128C7E]/45 bg-[#25D366]/15 text-[#0b3d32] shadow-sm hover:bg-[#25D366]/26"
+                : plan === "pro"
+                  ? "border-[#C9B46A]/55 bg-white text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
+                  : "border-[#E8DFD0] bg-white/90 text-[#1E1810] hover:border-[#D4C4A8]"
+            )}
+          >
+            {a.id === "whatsapp" ? (
+              <span className="inline-flex items-center gap-1">
+                <span aria-hidden>💬</span>
+                {a.label}
+              </span>
+            ) : (
+              a.label
+            )}
+          </button>
+        ))}
+      </div>
+    ) : (
+      <p className="text-sm text-[#7A7164]/90">
+        {lang === "es"
+          ? "Añade teléfono, correo o WhatsApp en el formulario de contacto."
+          : "Add phone, email, or WhatsApp in the contact step."}
+      </p>
+    );
+
+  const locationDistanceExtra = vm.locationLine ? (
+    <div className="overflow-hidden rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{tBuyer.distanceH}</p>
+        <p className="text-[11px] font-medium text-[#7A7164]/90">{lang === "es" ? "Vista previa" : "Preview"}</p>
+      </div>
+      {(distanceStatus === "ready" && distanceMiles !== null) ||
+      distanceStatus === "computing" ||
+      distanceStatus === "unavailable" ? (
+        <p className="mt-1 text-sm font-semibold leading-snug text-[#1E1810]">
+          {distanceStatus === "ready" && distanceMiles !== null
+            ? tBuyer.approxMiles(roundMiles(distanceMiles))
+            : distanceStatus === "computing"
+              ? tBuyer.distanceSoon
+              : tBuyer.distanceUnknown}
+        </p>
+      ) : null}
+      <div className="mt-3 flex min-w-0 flex-col gap-2">
+        <label className="block min-w-0">
+          <span className="sr-only">{tBuyer.startPointLabel}</span>
+          <input
+            value={buyerStart}
+            onChange={(e) => setBuyerStart(e.target.value)}
+            placeholder={tBuyer.startPointPlaceholder}
+            className="w-full rounded-2xl border border-[#E8DFD0] bg-white/90 px-3 py-2 text-sm font-semibold text-[#1E1810] placeholder:font-normal placeholder:text-sm placeholder:text-[#8A8070] outline-none transition focus:border-[#C9B46A]/70"
+            inputMode="search"
+          />
+        </label>
+        <div className="grid min-w-0 grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof navigator === "undefined" || !navigator.geolocation) {
+                setBuyerGeoStatus("unavailable");
+                setToast(tBuyer.locationNotAvailable);
+                return;
+              }
+              setBuyerGeoStatus("requesting");
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  setBuyerGeoStatus("granted");
+                  setBuyerCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                  setToast(lang === "es" ? "Ubicación lista." : "Location ready.");
+                },
+                (err) => {
+                  if (err?.code === 1) {
+                    setBuyerGeoStatus("denied");
+                    setToast(tBuyer.locationDenied);
+                  } else {
+                    setBuyerGeoStatus("unavailable");
+                    setToast(tBuyer.locationNotAvailable);
+                  }
+                },
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+              );
+            }}
+            className={cx(
+              "inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border px-2 py-2 text-center text-[11px] font-bold leading-tight transition sm:text-xs",
+              buyerGeoStatus === "requesting"
+                ? "cursor-wait border-[#E8DFD0]/80 bg-white/60 text-[#7A7164]"
+                : "border-[#E8DFD0] bg-white/90 text-[#3D3428] hover:border-[#D4C4A8]"
+            )}
+          >
+            <span className="line-clamp-2">
+              {buyerGeoStatus === "requesting" ? (lang === "es" ? "Solicitando…" : "Requesting…") : tBuyer.useMyLocation}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapOpen(true)}
+            className="inline-flex min-h-[40px] min-w-0 items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white/90 px-2 py-2 text-center text-[11px] font-bold leading-tight text-[#3D3428] transition hover:border-[#D4C4A8] sm:text-xs"
+          >
+            <span className="line-clamp-2">{tBuyer.mapArea}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const buyerPanel = (
+    <EnVentaBuyerPanel
+      lang={lang}
+      sellerInitials={vm.sellerInitials}
+      sellerName={vm.sellerName}
+      sellerSubline={vm.sellerSubline}
+      sellerKindLabel={vm.sellerKindLabel || undefined}
+      locationLine={vm.locationLine || undefined}
+      locationNote={vm.locationLine ? vm.locationApproximateNote : undefined}
+      locationExtra={locationDistanceExtra}
+      fulfillmentLabels={fulfillmentLabels}
+      fulfillmentNotes={fulfillmentNotes}
+      safetyLine={vm.trustNote}
+      contactSection={previewContactSection}
     />
   );
 
@@ -831,10 +750,7 @@ export function EnVentaPreviewPage() {
               <div className="order-2 lg:col-span-4 lg:col-start-6 lg:row-start-1">{mainTop}</div>
 
               <div className="order-3 lg:col-span-3 lg:col-start-10 lg:row-span-2 lg:row-start-1">
-                <div className="flex flex-col gap-3 lg:sticky lg:top-[calc(9rem+1px)]">
-                  {seller}
-                  <p className="hidden text-center text-[11px] leading-relaxed text-[#7A7164]/95 lg:block">{vm.trustNote}</p>
-                </div>
+                <div className="flex flex-col gap-3 lg:sticky lg:top-[calc(9rem+1px)]">{buyerPanel}</div>
               </div>
 
               <div className="order-4 lg:col-span-9 lg:row-start-2">{lowerContent}</div>
