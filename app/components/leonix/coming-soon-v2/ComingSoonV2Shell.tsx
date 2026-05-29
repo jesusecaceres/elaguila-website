@@ -341,21 +341,20 @@ function HeroMediaVisual({
 }) {
   return (
     <aside className="w-full min-w-0 lg:justify-self-stretch" aria-label={label}>
-      <div className="relative mx-auto w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] lg:mx-0 lg:max-w-none">
-        <div className="rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-1.5 shadow-[0_20px_48px_-20px_rgba(31,36,28,0.38)] ring-1 ring-[#C9A84A]/12 sm:p-2">
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-gradient-to-b from-[#EDE6D6]/30 to-[#F8F4EA]">
-            <Image
-              src="/magazine/leonix-media-launch-es.png"
-              alt={magazineAlt}
-              fill
-              className="object-contain object-center"
-              sizes="(max-width: 640px) 352px, (max-width: 1024px) 416px, 512px"
-              priority
-            />
-          </div>
+      <div className="mx-auto w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] lg:mx-0 lg:max-w-none">
+        <div className="w-full overflow-hidden rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] shadow-[0_20px_48px_-20px_rgba(31,36,28,0.38)] ring-1 ring-[#C9A84A]/12">
+          <Image
+            src="/magazine/leonix-media-launch-es.png"
+            alt={magazineAlt}
+            width={1792}
+            height={1344}
+            className="block h-auto w-full max-w-full"
+            sizes="(max-width: 640px) 352px, (max-width: 1024px) 416px, 512px"
+            priority
+          />
         </div>
 
-        <div className="mt-3 flex flex-col items-center gap-2 sm:mt-3.5 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5 lg:mt-4">
+        <div className="mt-3.5 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5">
           <p className="inline-flex max-w-full rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-center text-[0.65rem] font-bold uppercase tracking-[0.11em] text-[#2A4536] shadow-sm sm:text-[0.68rem]">
             {label}
           </p>
