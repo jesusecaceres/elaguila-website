@@ -312,7 +312,7 @@ export function BienesRaicesPrivadoForm() {
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Anuncio</h2>
+          <h2 className={aiTitleClass}>{lang === "en" ? "Listing" : "Anuncio"}</h2>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
               <AiField required label="TÃ­tulo">

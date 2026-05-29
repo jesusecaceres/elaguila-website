@@ -65,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
         <LeonixRootJsonLd />
         <ComingSoonGateRoot>
-          <Suspense fallback={<div className="flex min-h-screen items-center justify-center" aria-busy="true" aria-label="Loading" />}>{children}</Suspense>
+          <Suspense fallback={<div className="flex min-h-screen items-center justify-center" aria-busy="true" />}>{children}</Suspense>
         </ComingSoonGateRoot>
       </body>
     </html>

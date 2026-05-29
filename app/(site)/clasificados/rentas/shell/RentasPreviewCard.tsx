@@ -59,10 +59,26 @@ const ENGAGEMENT_LABELS = {
   es: {
     title: "Interacción",
     metricsNote: "Las métricas de engagement se mostrarán cuando estén disponibles",
+    imageUnavailable: "Imagen no disponible",
+    availableNow: "Disponible ahora",
+    availableSoon: "Disponible pronto",
+    rented: "Rentado",
+    deposit: "Depósito",
+    term: "Plazo",
+    pets: "Mascotas",
+    moreFacts: "más",
   },
   en: {
     title: "Engagement",
     metricsNote: "Engagement metrics will appear when available.",
+    imageUnavailable: "Image unavailable",
+    availableNow: "Available now",
+    availableSoon: "Available soon",
+    rented: "Rented",
+    deposit: "Deposit",
+    term: "Term",
+    pets: "Pets",
+    moreFacts: "more",
   },
 } as const;
 
@@ -156,7 +172,7 @@ export function RentasPreviewCard({
               <div className="w-16 h-16 bg-[#D4A574]/20 rounded-full flex items-center justify-center mx-auto mb-3">
                 <FiHome className="w-8 h-8 text-[#D4A574]" />
               </div>
-              <p className="text-sm font-medium text-[#7A7A7A]">Imagen no disponible</p>
+              <p className="text-sm font-medium text-[#7A7A7A]">{eg.imageUnavailable}</p>
             </div>
           </div>
         )}
@@ -174,9 +190,9 @@ export function RentasPreviewCard({
                 availabilityStatus === "soon" ? AVAILABILITY_SOON :
                 AVAILABILITY_RENTED
               }`}>
-                {availabilityStatus === "available" && "Disponible ahora"}
-                {availabilityStatus === "soon" && "Disponible pronto"}
-                {availabilityStatus === "rented" && "Rentado"}
+                {availabilityStatus === "available" && eg.availableNow}
+                {availabilityStatus === "soon" && eg.availableSoon}
+                {availabilityStatus === "rented" && eg.rented}
               </span>
             </div>
           )}
@@ -229,7 +245,7 @@ export function RentasPreviewCard({
               })}
               {data.quickFacts.length > 4 && (
                 <span className={FACT_CHIP}>
-                  +{data.quickFacts.length - 4} más
+                  +{data.quickFacts.length - 4} {eg.moreFacts}
                 </span>
               )}
             </div>
@@ -248,12 +264,12 @@ export function RentasPreviewCard({
             {depositInfo && (
               <span className={LEASE_CHIP}>
                 <FiDollarSign className="w-3 h-3" />
-                Depósito: {depositInfo.value}
+                {eg.deposit}: {depositInfo.value}
               </span>
             )}
             {contractTermInfo && (
               <span className={LEASE_CHIP}>
-                Plazo: {contractTermInfo.value}
+                {eg.term}: {contractTermInfo.value}
               </span>
             )}
             {furnishedInfo && (
@@ -263,7 +279,7 @@ export function RentasPreviewCard({
             )}
             {petsInfo && (
               <span className={LEASE_CHIP}>
-                Mascotas: {petsInfo.value}
+                {eg.pets}: {petsInfo.value}
               </span>
             )}
           </div>

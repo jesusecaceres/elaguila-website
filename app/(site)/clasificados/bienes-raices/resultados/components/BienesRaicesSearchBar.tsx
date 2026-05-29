@@ -19,14 +19,29 @@ type Props = {
 };
 
 /** Exported for Rentas landing toolbar (slider steps align with results `precio`). */
-export const RENTAS_PRICE_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "Cualquiera" },
-  { value: "r0-15k", label: "Hasta $15,000 / mes" },
-  { value: "r15-25k", label: "$15,000 – $25,000 / mes" },
-  { value: "r25-40k", label: "$25,000 – $40,000 / mes" },
-  { value: "r40-60k", label: "$40,000 – $60,000 / mes" },
-  { value: "r60k+", label: "Más de $60,000 / mes" },
-];
+export function getRentasPriceOptions(lang: Lang = "es"): { value: string; label: string }[] {
+  if (lang === "en") {
+    return [
+      { value: "", label: "Any" },
+      { value: "r0-15k", label: "Up to $15,000 / mo" },
+      { value: "r15-25k", label: "$15,000 – $25,000 / mo" },
+      { value: "r25-40k", label: "$25,000 – $40,000 / mo" },
+      { value: "r40-60k", label: "$40,000 – $60,000 / mo" },
+      { value: "r60k+", label: "Over $60,000 / mo" },
+    ];
+  }
+  return [
+    { value: "", label: "Cualquiera" },
+    { value: "r0-15k", label: "Hasta $15,000 / mes" },
+    { value: "r15-25k", label: "$15,000 – $25,000 / mes" },
+    { value: "r25-40k", label: "$25,000 – $40,000 / mes" },
+    { value: "r40-60k", label: "$40,000 – $60,000 / mes" },
+    { value: "r60k+", label: "Más de $60,000 / mes" },
+  ];
+}
+
+/** @deprecated Prefer {@link getRentasPriceOptions} with `lang` for bilingual labels. */
+export const RENTAS_PRICE_OPTIONS = getRentasPriceOptions("es");
 
 const COPY = {
   es: {
@@ -137,7 +152,7 @@ export function BienesRaicesSearchBar({
               className="w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/65"
             >
               {isRentas
-                ? RENTAS_PRICE_OPTIONS.map((o) => (
+                ? getRentasPriceOptions(lang).map((o) => (
                     <option key={o.value || "any"} value={o.value}>
                       {o.label}
                     </option>

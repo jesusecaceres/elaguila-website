@@ -83,6 +83,23 @@ const RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS = {
   deleteApplication: "Eliminar borrador",
 } as const;
 
+const RENTAS_SECTION = {
+  es: {
+    photosVideo: "Fotos y video",
+    contact: "Información de contacto",
+    residential: "Detalle residencial",
+    commercial: "Detalle comercial",
+    land: "Detalle terreno / lote",
+  },
+  en: {
+    photosVideo: "Photos and video",
+    contact: "Contact information",
+    residential: "Residential details",
+    commercial: "Commercial details",
+    land: "Land / lot details",
+  },
+} as const;
+
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
   { id: "comercial", label: "Comercial" },
@@ -438,7 +455,7 @@ export function RentasNegocioForm() {
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
           </Link>
           <Link
-            href={RENTAS_PUBLICAR_PRIVADO}
+            href={`${RENTAS_PUBLICAR_PRIVADO}?lang=${lang}`}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#E8DFD0] px-6 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FFFCF7] sm:w-auto"
           >
             {lang === "en" ? "Private branch" : "Rama Privado"}
@@ -482,7 +499,7 @@ export function RentasNegocioForm() {
         />
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Fotos y video</h2>
+          <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].photosVideo}</h2>
           <p className={aiSubClass}>
             Hasta {MAX_PHOTOS} fotos (se comprimen en el navegador). Para una vista previa completa hace falta al menos una
             foto
@@ -629,7 +646,7 @@ export function RentasNegocioForm() {
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Información de contacto</h2>
+          <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].contact}</h2>
           <p className={aiSubClass}>
             Tu nombre o marca y cómo quieres que te contacten. La vista previa reutiliza el shell de Bienes Raíces Negocio
             (identidad, CTAs, redes). Nombre visible
@@ -832,7 +849,7 @@ export function RentasNegocioForm() {
 
         {cat === "residencial" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>Detalle residencial</h2>
+            <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].residential}</h2>
             {residencialRowsMode === "full_legacy" ? (
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo">
@@ -1012,7 +1029,7 @@ export function RentasNegocioForm() {
 
         {cat === "comercial" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>Detalle comercial</h2>
+            <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].commercial}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo comercial">
                 <select
@@ -1153,7 +1170,7 @@ export function RentasNegocioForm() {
 
         {cat === "terreno_lote" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>Detalle terreno / lote</h2>
+            <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].land}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
               <AiField label="Tipo">
                 <select
