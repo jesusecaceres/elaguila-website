@@ -490,12 +490,14 @@ export default function LoginPage() {
         es: {
           google: "Continuar con Google",
           facebook: "Continuar con Facebook",
-          emailTitle: "Link por email",
+          emailTitle: "Entrar con enlace por email",
+          emailDescription:
+            "Te enviaremos un enlace seguro para iniciar sesión sin contraseña.",
           passwordTitle: "Contraseña",
           emailPlaceholder: "tu@email.com",
           passwordPlaceholder: "Contraseña",
           confirmPlaceholder: "Confirmar contraseña",
-          emailButton: "Enviar link",
+          emailButton: "Enviar enlace de acceso",
           signInPassword: "Iniciar sesión con contraseña",
           signUpPassword: "Crear cuenta con contraseña",
           sendReset: "Enviar enlace de recuperación",
@@ -504,9 +506,7 @@ export default function LoginPage() {
           connecting: "Conectando…",
           sending: "Enviando…",
           tip: "Si no ves el correo, revisa Spam o Promociones.",
-          sameAccount:
-            "Si ya tienes cuenta, usa el mismo correo o la misma cuenta de Google de siempre.",
-          magicHint: "También puedes entrar con link por email o Google.",
+          magicHint: "También puedes entrar con enlace por email o Google.",
           supportHint:
             "Si tu cuenta ya existe, entra con el mismo método que usaste al crearla.",
           noAccount: "¿No tienes cuenta?",
@@ -518,12 +518,14 @@ export default function LoginPage() {
         en: {
           google: "Continue with Google",
           facebook: "Continue with Facebook",
-          emailTitle: "Email link",
+          emailTitle: "Sign in with an email link",
+          emailDescription:
+            "We'll send you a secure link to sign in without a password.",
           passwordTitle: "Password",
           emailPlaceholder: "you@email.com",
           passwordPlaceholder: "Password",
           confirmPlaceholder: "Confirm password",
-          emailButton: "Send link",
+          emailButton: "Send sign-in link",
           signInPassword: "Sign in with password",
           signUpPassword: "Create account with password",
           sendReset: "Send recovery email",
@@ -532,8 +534,6 @@ export default function LoginPage() {
           connecting: "Connecting…",
           sending: "Sending…",
           tip: "If you don't see the email, check Spam or Promotions.",
-          sameAccount:
-            "If you already have an account, use the same email or Google account as before.",
           magicHint: "You can also sign in with an email link or Google.",
           supportHint:
             "If your account already exists, sign in with the same method you used when you created it.",
@@ -769,7 +769,7 @@ export default function LoginPage() {
 
               <div className="mt-8 border-t border-white/10 pt-6">
                 <h2 className="text-sm font-semibold text-white">{common.emailTitle}</h2>
-                <p className="mt-2 text-xs text-white/60">{common.sameAccount}</p>
+                <p className="mt-2 text-xs text-white/60">{common.emailDescription}</p>
                 <form onSubmit={sendMagicLink} className="mt-4 space-y-4">
                   <input
                     value={email}

@@ -24,6 +24,7 @@ type WhatYouGetCardAccent = "burgundy" | "gold" | "green" | "qr" | "founder";
 type WhatYouGetCard = {
   title: string;
   body: string;
+  detail: string;
   accent: WhatYouGetCardAccent;
 };
 
@@ -56,6 +57,8 @@ const COPY: Record<
       eyebrow: string;
       headline: string;
       intro: string;
+      expandMore: string;
+      expandLess: string;
       cards: [
         WhatYouGetCard,
         WhatYouGetCard,
@@ -141,30 +144,42 @@ const COPY: Record<
       headline: "Más que un anuncio: una presencia completa para tu negocio.",
       intro:
         "Leonix combina revista impresa, presencia digital y acciones por QR para ayudar a que más clientes encuentren, entiendan y contacten tu negocio.",
+      expandMore: "Ver más",
+      expandLess: "Ver menos",
       cards: [
         {
           title: "Revista impresa premium",
           body: "Tu negocio aparece en una publicación diseñada para conectar con la comunidad latina local.",
+          detail:
+            "Tu anuncio aparece dentro de una revista diseñada para sentirse local, confiable y profesional. La meta no es solo verse bonito; es poner tu negocio frente a una comunidad que quiere apoyar negocios locales.",
           accent: "burgundy",
         },
         {
           title: "Presencia digital bilingüe",
           body: "Tu anuncio también puede vivir en una experiencia digital clara, profesional y fácil de compartir.",
+          detail:
+            "Tu presencia digital ayuda a que el anuncio no termine en una sola página. Los clientes pueden encontrar tu información, compartirla y volver a verla desde su celular.",
           accent: "gold",
         },
         {
           title: "QR + acciones reales",
           body: "Convierte la atención en llamadas, mensajes, mapas, enlaces, ofertas y más información.",
+          detail:
+            "El QR ayuda a llevar a las personas desde la revista a una acción concreta: llamar, abrir un mapa, mandar mensaje, visitar un sitio web, ver redes sociales o pedir más información.",
           accent: "qr",
         },
         {
           title: "Negocios Locales",
           body: "Una presencia organizada para mostrar teléfono, ubicación, redes, fotos, reseñas y enlaces importantes.",
+          detail:
+            "Negocios Locales organiza tu información en un solo lugar para que el cliente no tenga que buscar entre plataformas separadas. Teléfono, dirección, mapa, redes, fotos y enlaces pueden vivir juntos.",
           accent: "green",
         },
         {
           title: "Oportunidad de lanzamiento fundador",
           body: "Sé parte de los primeros negocios en aparecer con Leonix Media durante la etapa de lanzamiento.",
+          detail:
+            "Durante el lanzamiento, los primeros negocios ayudan a construir la red inicial de Leonix Media. Esto crea oportunidad de visibilidad temprana mientras la comunidad empieza a conocer la plataforma.",
           accent: "founder",
         },
       ],
@@ -242,30 +257,42 @@ const COPY: Record<
       headline: "More than an ad: a complete presence for your business.",
       intro:
         "Leonix combines print magazine visibility, digital presence, and QR-powered actions to help more customers find, understand, and contact your business.",
+      expandMore: "Learn more",
+      expandLess: "Show less",
       cards: [
         {
           title: "Premium print magazine",
           body: "Your business appears in a publication designed to connect with the local Latino community.",
+          detail:
+            "Your ad appears inside a magazine designed to feel local, trustworthy, and professional. The goal is not just to look good; it is to place your business in front of a community that wants to support local businesses.",
           accent: "burgundy",
         },
         {
           title: "Bilingual digital presence",
           body: "Your ad can also live in a clear, professional digital experience that is easy to share.",
+          detail:
+            "Your digital presence helps the ad go beyond a single page. Customers can find your information, share it, and return to it from their phone.",
           accent: "gold",
         },
         {
           title: "QR + real actions",
           body: "Turn attention into calls, messages, maps, links, offers, and more information.",
+          detail:
+            "The QR helps move people from the magazine to a concrete action: call, open a map, send a message, visit a website, view social media, or request more information.",
           accent: "qr",
         },
         {
           title: "Local Businesses",
           body: "An organized presence for phone, location, socials, photos, reviews, and important links.",
+          detail:
+            "Local Businesses organizes your information in one place so customers do not have to search across separate platforms. Phone, address, map, socials, photos, and links can live together.",
           accent: "green",
         },
         {
           title: "Founder launch opportunity",
           body: "Be one of the first businesses featured with Leonix Media during the launch stage.",
+          detail:
+            "During launch, the first businesses help build the initial Leonix Media network. This creates an early visibility opportunity while the community starts discovering the platform.",
           accent: "founder",
         },
       ],
@@ -425,17 +452,98 @@ function WhatYouGetCardIcon({ accent }: { accent: WhatYouGetCardAccent }) {
   );
 }
 
+function WhatYouGetCardArticle({
+  card,
+  index,
+  isOpen,
+  expandMore,
+  expandLess,
+  onToggle,
+}: {
+  card: WhatYouGetCard;
+  index: number;
+  isOpen: boolean;
+  expandMore: string;
+  expandLess: string;
+  onToggle: () => void;
+}) {
+  const detailId = `wyg-detail-${index}`;
+  const extra = cardAccentStyles[card.accent].articleExtra ?? "";
+
+  return (
+    <article
+      className={`flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.22)] sm:p-6 ${extra} ${
+        card.accent === "founder"
+          ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
+          : ""
+      } ${card.accent === "green" ? "border-l-[3px] border-l-[#2A4536]/50" : ""}`}
+    >
+      <WhatYouGetCardIcon accent={card.accent} />
+      <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+        {card.title}
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+        {card.body}
+      </p>
+
+      <button
+        type="button"
+        className="mt-4 inline-flex min-h-[2.25rem] self-start items-center rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 py-1.5 text-xs font-semibold text-[#7A1E2C] transition-colors hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:text-[0.8125rem]"
+        aria-expanded={isOpen}
+        aria-controls={detailId}
+        onClick={onToggle}
+      >
+        {isOpen ? expandLess : expandMore}
+      </button>
+
+      <div
+        id={detailId}
+        aria-hidden={!isOpen}
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="mt-3 border-t border-[#C9A84A]/40 pt-3">
+            <p className="text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+              {card.detail}
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function WhatYouGetSection({
   eyebrow,
   headline,
   intro,
   cards,
+  expandMore,
+  expandLess,
 }: {
   eyebrow: string;
   headline: string;
   intro: string;
   cards: WhatYouGetCard[];
+  expandMore: string;
+  expandLess: string;
 }) {
+  const [openCards, setOpenCards] = useState<Set<number>>(() => new Set());
+
+  const toggleCard = (index: number) => {
+    setOpenCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
   return (
     <section
       id="que-obtienes"
@@ -457,26 +565,17 @@ function WhatYouGetSection({
 
       <ul className="mt-8 grid list-none gap-5 p-0 lg:grid-cols-6 lg:gap-5">
         {cards.map((card, index) => {
-          const extra = cardAccentStyles[card.accent].articleExtra ?? "";
-          const spanClass =
-            index < 3 ? "lg:col-span-2" : "lg:col-span-3";
+          const spanClass = index < 3 ? "lg:col-span-2" : "lg:col-span-3";
           return (
-            <li key={card.title} className={spanClass}>
-              <article
-                className={`flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.22)] sm:p-6 ${extra} ${
-                  card.accent === "founder"
-                    ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
-                    : ""
-                } ${card.accent === "green" ? "border-l-[3px] border-l-[#2A4536]/50" : ""}`}
-              >
-                <WhatYouGetCardIcon accent={card.accent} />
-                <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
-                  {card.title}
-                </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
-                  {card.body}
-                </p>
-              </article>
+            <li key={index} className={spanClass}>
+              <WhatYouGetCardArticle
+                card={card}
+                index={index}
+                isOpen={openCards.has(index)}
+                expandMore={expandMore}
+                expandLess={expandLess}
+                onToggle={() => toggleCard(index)}
+              />
             </li>
           );
         })}
@@ -674,6 +773,8 @@ export function ComingSoonV2Shell() {
           headline={wyg.headline}
           intro={wyg.intro}
           cards={wyg.cards}
+          expandMore={wyg.expandMore}
+          expandLess={wyg.expandLess}
         />
       </main>
     </div>
