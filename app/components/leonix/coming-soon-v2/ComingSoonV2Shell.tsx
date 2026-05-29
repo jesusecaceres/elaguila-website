@@ -1011,6 +1011,44 @@ function QrAccessSection({
   );
 }
 
+function MediaKitDownloadLink({ label, href }: { label: string; href: string }) {
+  return (
+    <a
+      href={href}
+      download
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-full border border-[#C9A84A]/40 bg-[#1a2d24]/35 px-5 py-3 text-center text-sm font-semibold text-[#EDE6D6] transition hover:border-[#C9A84A]/60 hover:bg-[#1a2d24]/55 sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:text-[0.9375rem]"
+    >
+      {label}
+    </a>
+  );
+}
+
+function FinalCtaActions({
+  ctas,
+  mediaKitDownload,
+}: {
+  ctas: [HeroCta, HeroCta, HeroCta];
+  mediaKitDownload: { label: string; href: string };
+}) {
+  const [advertiseCta, mediaKitViewCta, joinCta] = ctas;
+
+  return (
+    <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
+      <HeroCtaLink cta={advertiseCta} />
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2">
+        <HeroCtaLink cta={mediaKitViewCta} />
+        <MediaKitDownloadLink
+          label={mediaKitDownload.label}
+          href={mediaKitDownload.href}
+        />
+      </div>
+      <HeroCtaLink cta={joinCta} />
+    </div>
+  );
+}
+
 function FinalContactSection({
   finalCta,
   contact,
@@ -1068,20 +1106,10 @@ function FinalContactSection({
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#EDE6D6] sm:text-[1.0625rem]">
           {finalCta.body}
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {finalCta.ctas.map((cta) => (
-            <HeroCtaLink key={cta.label} cta={cta} />
-          ))}
-        </div>
-        <a
-          href={finalCta.mediaKitDownload.href}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/45 underline-offset-[0.25em] transition hover:text-[#F8F4EA] hover:decoration-[#F8F4EA]/60 sm:text-[0.9375rem]"
-        >
-          {finalCta.mediaKitDownload.label}
-        </a>
+        <FinalCtaActions
+          ctas={finalCta.ctas}
+          mediaKitDownload={finalCta.mediaKitDownload}
+        />
       </div>
 
       <div className="mt-10 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-8">
