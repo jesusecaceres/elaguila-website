@@ -114,7 +114,7 @@ const COPY = {
     location: (city: string, zip: string) =>
       [city, zip].filter(Boolean).join(zip && city ? ", " : "") || "",
     approxLoc: "General area from the seller; exact meeting point is arranged when you contact them.",
-    negotiableChip: "Negotiable",
+    negotiableChip: "Negotiable price",
     makeOfferHint: "Message the seller to make an offer.",
     ship: "Shipping available",
     pickup: "Local pickup",

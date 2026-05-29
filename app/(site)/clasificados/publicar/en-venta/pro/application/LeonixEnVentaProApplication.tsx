@@ -10,16 +10,18 @@ import {
 const EN_VENTA_LANDING = "/clasificados/en-venta";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import {
-  abandonLeonixPublishFlowClient,
   clearLeonixReturningToEditSessionFlag,
-  collectMuxAssetIdsFromEnVentaState,
-  confirmLeavePublishFlow,
   enVentaFormHasProgress,
-  useLeonixPublishLeaveGuard,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import { EnVentaPublishSubmitBar } from "@/app/clasificados/en-venta/publish/EnVentaPublishSubmitBar";
+import {
+  confirmLeaveEnVentaPublishFlow,
+  EN_VENTA_AUTOSAVE_COPY,
+  useEnVentaFormAutosave,
+} from "@/app/clasificados/en-venta/publish/useEnVentaFormAutosave";
+import { useEnVentaPublishLeaveGuard } from "@/app/clasificados/en-venta/publish/useEnVentaPublishLeaveGuard";
 import { collectEnVentaCoreBlockers } from "@/app/clasificados/en-venta/publish/enVentaPublishValidation";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
@@ -36,7 +38,7 @@ import { createEmptyEnVentaFreeState } from "../../free/application/schema/enVen
 type Lang = "es" | "en";
 
 /**
- * Pro lane — premium listing upgrade (`/clasificados/publicar/en-venta/pro`).
+ * Varios publish application (`/clasificados/publicar/en-venta/pro`).
  */
 export default function LeonixEnVentaProApplication() {
   const router = useRouter();
@@ -87,22 +89,17 @@ export default function LeonixEnVentaProApplication() {
   qs.set("lang", lang);
 
   const isDirty = enVentaFormHasProgress(state);
-  const muxIds = collectMuxAssetIdsFromEnVentaState(state);
 
-  useLeonixPublishLeaveGuard({
-    lang,
-    isDirty,
-    muxAssetIds: muxIds,
-  });
+  useEnVentaFormAutosave("pro", state, lang);
+  useEnVentaPublishLeaveGuard({ lang, plan: "pro", isDirty, state });
 
   const leaveAndGo = useCallback(
     (href: string) => {
-      if (!isDirty || confirmLeavePublishFlow(lang)) {
-        abandonLeonixPublishFlowClient({ muxAssetIds: muxIds, useBeacon: false });
+      if (!isDirty || confirmLeaveEnVentaPublishFlow(lang)) {
         router.push(href);
       }
     },
-    [isDirty, lang, muxIds, router]
+    [isDirty, lang, router]
   );
 
   const onBeforePreview = useCallback(
@@ -144,6 +141,14 @@ export default function LeonixEnVentaProApplication() {
 
         <div className="mb-5">
           <EnVentaPlanIntakeCallout lang={lang} plan="pro" />
+        </div>
+
+        <div
+          className="mb-5 rounded-2xl border border-[#C9B46A]/35 bg-[#FBF7EF] px-4 py-3 text-xs leading-relaxed text-[#5C5346]"
+          role="status"
+        >
+          <p className="font-semibold text-[#3D2C12]">{EN_VENTA_AUTOSAVE_COPY[lang].title}</p>
+          <p className="mt-1">{EN_VENTA_AUTOSAVE_COPY[lang].body}</p>
         </div>
 
         <div className="space-y-6 [&_section]:border-[#E5D6B0] [&_section]:bg-[#FFFCF4] [&_h2]:text-[#3D2C12] [&_label]:text-[#5D4A25]/80 [&_input]:border-[#DCCAA0] [&_input]:bg-white [&_input]:text-[#3D2C12] [&_select]:border-[#DCCAA0] [&_select]:bg-white [&_select]:text-[#3D2C12] [&_textarea]:border-[#DCCAA0] [&_textarea]:bg-white [&_textarea]:text-[#3D2C12] [&_p]:text-[#5D4A25]/80">

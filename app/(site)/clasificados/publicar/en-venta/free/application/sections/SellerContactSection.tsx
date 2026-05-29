@@ -132,7 +132,6 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
             if (displayName) next.displayName = displayName;
             if (emailVal) next.email = emailVal;
             if (phoneFmt) next.phone = phoneFmt;
-            if (phoneFmt && !String(s.whatsapp ?? "").trim()) next.whatsapp = phoneFmt;
             return next as S;
           });
         }

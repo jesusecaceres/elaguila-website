@@ -28,6 +28,10 @@ type WhatYouGetCard = {
   accent: WhatYouGetCardAccent;
 };
 
+type ProcessStep = { title: string; body: string };
+
+type QrBenefitCard = { title: string; body: string };
+
 const COPY: Record<
   Lang,
   {
@@ -66,6 +70,22 @@ const COPY: Record<
         WhatYouGetCard,
         WhatYouGetCard,
       ];
+    };
+    howItWorks: {
+      eyebrow: string;
+      headline: string;
+      intro: string;
+      steps: [ProcessStep, ProcessStep, ProcessStep, ProcessStep];
+      stepsAria: string;
+    };
+    qrAccess: {
+      eyebrow: string;
+      headline: string;
+      intro: string;
+      callout: string;
+      explanation: string;
+      benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
+      benefitsAria: string;
     };
   }
 > = {
@@ -184,6 +204,55 @@ const COPY: Record<
         },
       ],
     },
+    howItWorks: {
+      eyebrow: "CÓMO FUNCIONA",
+      headline: "Un proceso claro para lanzar tu presencia con Leonix.",
+      intro:
+        "Te guiamos desde la información inicial hasta una presencia lista para imprimir, compartir y conectar.",
+      stepsAria: "Pasos del proceso",
+      steps: [
+        {
+          title: "Elige tu camino",
+          body: "Selecciona el tipo de presencia que quieres: anuncio impreso, presencia digital, QR, Media Kit o paquete de lanzamiento.",
+        },
+        {
+          title: "Envíanos tu información",
+          body: "Compártenos logo, fotos, teléfono, dirección, redes, enlaces, oferta y los detalles principales de tu negocio.",
+        },
+        {
+          title: "Preparamos tu presencia",
+          body: "Organizamos tu anuncio, tu información digital y los elementos que ayudan al cliente a entender y contactar tu negocio.",
+        },
+        {
+          title: "Lanza y conecta",
+          body: "Tu negocio queda listo para aparecer ante la comunidad y convertir interés en llamadas, mensajes, visitas y conexiones.",
+        },
+      ],
+    },
+    qrAccess: {
+      eyebrow: "ACCESO QR",
+      headline: "Del anuncio impreso al celular del cliente.",
+      intro:
+        "El QR ayuda a que tu anuncio no termine en una sola página. El cliente puede escanear, entender y tomar acción desde su teléfono.",
+      callout: "Escanea. Traduce. Conecta.",
+      explanation:
+        "La revista mantiene su identidad en español para servir primero a nuestra comunidad latina. Con el QR, los clientes pueden abrir la experiencia digital y usar herramientas de traducción del dispositivo o navegador para entender la información en el idioma que prefieran.",
+      benefitsAria: "Beneficios del acceso QR",
+      benefits: [
+        {
+          title: "Más formas de entender",
+          body: "El cliente puede apoyarse en herramientas como traducción del navegador, Google Lens o Apple Translate cuando lo necesite.",
+        },
+        {
+          title: "Más formas de actuar",
+          body: "Desde el celular puede llamar, abrir mapas, enviar mensajes, visitar enlaces, ver redes sociales o pedir más información.",
+        },
+        {
+          title: "Sin perder la identidad",
+          body: "Leonix sigue siendo una revista pensada en español, con acceso digital que ayuda a abrir la puerta a más comunidades.",
+        },
+      ],
+    },
   },
   en: {
     nav: [
@@ -294,6 +363,55 @@ const COPY: Record<
           detail:
             "During launch, the first businesses help build the initial Leonix Media network. This creates an early visibility opportunity while the community starts discovering the platform.",
           accent: "founder",
+        },
+      ],
+    },
+    howItWorks: {
+      eyebrow: "HOW IT WORKS",
+      headline: "A clear process to launch your presence with Leonix.",
+      intro:
+        "We guide you from the first information to a presence ready to print, share, and connect.",
+      stepsAria: "Process steps",
+      steps: [
+        {
+          title: "Choose your path",
+          body: "Select the type of presence you want: print ad, digital presence, QR, Media Kit, or launch package.",
+        },
+        {
+          title: "Send your information",
+          body: "Share your logo, photos, phone, address, socials, links, offer, and the main details of your business.",
+        },
+        {
+          title: "We prepare your presence",
+          body: "We organize your ad, your digital information, and the elements that help customers understand and contact your business.",
+        },
+        {
+          title: "Launch and connect",
+          body: "Your business is ready to appear in front of the community and turn interest into calls, messages, visits, and connections.",
+        },
+      ],
+    },
+    qrAccess: {
+      eyebrow: "QR ACCESS",
+      headline: "From the printed ad to the customer’s phone.",
+      intro:
+        "The QR helps your ad go beyond a single page. Customers can scan, understand, and take action from their phone.",
+      callout: "Scan. Translate. Connect.",
+      explanation:
+        "The magazine keeps its Spanish-first identity to serve our Latino community first. Through QR, customers can open the digital experience and use device or browser translation tools to understand the information in the language they prefer.",
+      benefitsAria: "QR access benefits",
+      benefits: [
+        {
+          title: "More ways to understand",
+          body: "Customers can use tools like browser translation, Google Lens, or Apple Translate when they need them.",
+        },
+        {
+          title: "More ways to act",
+          body: "From their phone, they can call, open maps, send messages, visit links, view social media, or request more information.",
+        },
+        {
+          title: "Identity stays intact",
+          body: "Leonix remains a Spanish-first magazine, with digital access that helps open the door to more communities.",
         },
       ],
     },
@@ -584,6 +702,173 @@ function WhatYouGetSection({
   );
 }
 
+const processStepBadgeStyles = [
+  "bg-[#7A1E2C] text-white ring-[#C9A84A]/45",
+  "bg-[#2A4536] text-[#F8F4EA] ring-[#C9A84A]/40",
+  "bg-[#C9A84A] text-[#1F241C] ring-[#7A1E2C]/20",
+  "bg-[#7A1E2C] text-white ring-[#2A4536]/35",
+] as const;
+
+function HowItWorksSection({
+  eyebrow,
+  headline,
+  intro,
+  steps,
+  stepsAria,
+}: {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  steps: [ProcessStep, ProcessStep, ProcessStep, ProcessStep];
+  stepsAria: string;
+}) {
+  return (
+    <section
+      id="how-it-works"
+      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      aria-labelledby="how-it-works-title"
+    >
+      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
+        {eyebrow}
+      </p>
+      <h2
+        id="how-it-works-title"
+        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
+      >
+        {headline}
+      </h2>
+      <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+        {intro}
+      </p>
+
+      <ol
+        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5"
+        aria-label={stepsAria}
+      >
+        {steps.map((step, index) => (
+          <li key={index}>
+            <article className="flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.2)] sm:p-6">
+              <span
+                className={`mb-4 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 ${processStepBadgeStyles[index]}`}
+                aria-hidden
+              >
+                {index + 1}
+              </span>
+              <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+                {step.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                {step.body}
+              </p>
+            </article>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** Decorative QR-style grid — not scannable. */
+function DecorativeQrVisual() {
+  const pattern = [
+    1, 1, 1, 1, 1, 0, 1,
+    1, 0, 0, 0, 1, 0, 1,
+    1, 0, 1, 0, 1, 0, 0,
+    1, 0, 0, 0, 1, 0, 1,
+    1, 1, 1, 0, 1, 0, 1,
+    0, 0, 0, 0, 0, 0, 1,
+    1, 1, 1, 0, 1, 1, 1,
+  ];
+
+  return (
+    <div
+      className="rounded-xl border-2 border-[#C9A84A]/45 bg-[#FFFDF7] p-2.5 shadow-inner sm:p-3"
+      aria-hidden
+    >
+      <div className="grid grid-cols-7 gap-0.5">
+        {pattern.map((filled, index) => (
+          <span
+            key={index}
+            className={`h-2.5 w-2.5 rounded-[1px] sm:h-3 sm:w-3 ${
+              filled ? "bg-[#2A4536]" : "bg-[#F8F4EA]"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QrAccessSection({
+  eyebrow,
+  headline,
+  intro,
+  callout,
+  explanation,
+  benefits,
+  benefitsAria,
+}: {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  callout: string;
+  explanation: string;
+  benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
+  benefitsAria: string;
+}) {
+  return (
+    <section
+      id="qr-access"
+      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      aria-labelledby="qr-access-title"
+    >
+      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
+        {eyebrow}
+      </p>
+      <h2
+        id="qr-access-title"
+        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
+      >
+        {headline}
+      </h2>
+      <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+        {intro}
+      </p>
+
+      <div className="mt-8 grid min-w-0 items-start gap-6 lg:grid-cols-2 lg:gap-8">
+        <p className="text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+          {explanation}
+        </p>
+
+        <div className="flex min-w-0 flex-col items-center gap-4 rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-6 py-7 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:px-8 sm:py-8">
+          <DecorativeQrVisual />
+          <p className="font-serif text-xl font-bold leading-snug text-[#F8F4EA] sm:text-2xl">
+            {callout}
+          </p>
+        </div>
+      </div>
+
+      <ul
+        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5"
+        aria-label={benefitsAria}
+      >
+        {benefits.map((benefit, index) => (
+          <li key={index}>
+            <article className="h-full rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-6">
+              <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C]">
+                {benefit.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                {benefit.body}
+              </p>
+            </article>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function launchHref(lang: Lang) {
   return `/contact?interest=launch&lang=${lang}`;
 }
@@ -604,6 +889,8 @@ export function ComingSoonV2Shell() {
   const t = COPY[lang];
   const h = t.hero;
   const wyg = t.whatYouGet;
+  const hiw = t.howItWorks;
+  const qr = t.qrAccess;
 
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
@@ -775,6 +1062,24 @@ export function ComingSoonV2Shell() {
           cards={wyg.cards}
           expandMore={wyg.expandMore}
           expandLess={wyg.expandLess}
+        />
+
+        <HowItWorksSection
+          eyebrow={hiw.eyebrow}
+          headline={hiw.headline}
+          intro={hiw.intro}
+          steps={hiw.steps}
+          stepsAria={hiw.stepsAria}
+        />
+
+        <QrAccessSection
+          eyebrow={qr.eyebrow}
+          headline={qr.headline}
+          intro={qr.intro}
+          callout={qr.callout}
+          explanation={qr.explanation}
+          benefits={qr.benefits}
+          benefitsAria={qr.benefitsAria}
         />
       </main>
     </div>

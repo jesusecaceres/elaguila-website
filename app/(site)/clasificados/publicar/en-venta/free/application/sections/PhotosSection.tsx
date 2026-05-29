@@ -29,8 +29,8 @@ const COPY = {
     planFree: "Hasta 3 fotos. No se admite video en esta vía.",
     planIncluded: "Hasta 12 fotos y 1 video opcional (archivo o enlace).",
     reorderTitle: "Ordenar fotos",
-    reorderDrag: "Arrastra para ordenar",
-    reorderMobile: "En móvil, usa los controles ↑ ↓ para moverlas.",
+    reorderDrag: "Arrastra las fotos para cambiar el orden.",
+    reorderMobile: "En móvil, usa los controles para moverlas.",
     dragHandleAria: "Asa para reordenar foto",
     count: (n: number, max: number) => `${n} / ${max} fotos`,
     primary: "Principal",
@@ -49,6 +49,7 @@ const COPY = {
     videoLink: "O pega un enlace al video (YouTube, Vimeo, etc.)",
     videoClear: "Quitar video",
     videoLinkSavedDraft: "Video guardado para vista previa.",
+    videoLinkSavedPublished: "Este video se mostrará en la vista previa y en el anuncio publicado.",
     videoFileSavedDraft: "Video guardado en el borrador. Se procesará al publicar.",
     noVideoFree: "Esta vía no incluye video.",
     uploadRequest: "Solicitando carga segura...",
@@ -56,7 +57,7 @@ const COPY = {
     preparing: "Procesando video en Mux...",
     ready: "Video listo",
     failed: "Video",
-    videoLinkInvalid: "Usa un enlace que comience con http:// o https://",
+    videoLinkInvalid: "Agrega un enlace válido de YouTube o Vimeo.",
     fileUploadBlockedLeonix:
       "Leonix no puede aceptar la subida de archivo en este momento (límite o configuración del proveedor de video). Puedes pegar un enlace público (YouTube, Vimeo, etc.).",
     fileUploadTransferFailed:
@@ -72,12 +73,12 @@ const COPY = {
     planFree: "Up to 3 photos. No video on this path.",
     planIncluded: "Up to 12 photos and 1 optional video (file or link).",
     reorderTitle: "Reorder photos",
-    reorderDrag: "Drag to reorder",
-    reorderMobile: "On mobile, use the ↑ ↓ controls to move them.",
+    reorderDrag: "Drag photos to change the order.",
+    reorderMobile: "On mobile, use the controls to move them.",
     dragHandleAria: "Photo drag handle",
     count: (n: number, max: number) => `${n} / ${max} photos`,
-    primary: "Main",
-    setMain: "Use as main",
+    primary: "Primary",
+    setMain: "Use as primary",
     moveUp: "Move up",
     moveDown: "Move down",
     add: "Add photos",
@@ -92,8 +93,9 @@ const COPY = {
     videoLink: "Or paste a link (YouTube, Vimeo, etc.)",
     videoClear: "Remove video",
     videoLinkSavedDraft: "Video saved for preview.",
+    videoLinkSavedPublished: "This video will appear in preview and on the published listing.",
     videoFileSavedDraft: "Video saved in draft. It will process when published.",
-    videoLinkInvalid: "Use a link that starts with http:// or https://",
+    videoLinkInvalid: "Add a valid YouTube or Vimeo link.",
     noVideoFree: "This path does not include video.",
     uploadRequest: "Requesting secure upload...",
     uploading: "Uploading video...",
@@ -732,7 +734,10 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
               role="status"
             >
               {videoLinkDraftSaved ? (
-                <p className="font-normal text-[#5D4A25]/90">{t.videoLinkSavedDraft}</p>
+                <>
+                  <p className="font-normal text-[#5D4A25]/90">{t.videoLinkSavedDraft}</p>
+                  <p className="font-normal text-[#5D4A25]/80">{t.videoLinkSavedPublished}</p>
+                </>
               ) : null}
               {videoFileDraftSaved ? (
                 <p className="font-normal text-[#5D4A25]/90">{t.videoFileSavedDraft}</p>
