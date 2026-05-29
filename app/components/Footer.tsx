@@ -23,8 +23,6 @@ const COPY = {
     promoProducts: "Productos para Promoción",
     cookiePrefs: "Preferencias de cookies",
     learnMore: "Más información",
-    about: "Nosotros",
-    contactLink: "Contacto",
     email: "Correo",
     phone: "Teléfono",
     advertiseBody:
@@ -43,8 +41,6 @@ const COPY = {
     promoProducts: "Promotional Products",
     cookiePrefs: "Cookie preferences",
     learnMore: "Learn more",
-    about: "About Us",
-    contactLink: "Contact",
     email: "Email",
     phone: "Phone",
     advertiseBody:
@@ -66,7 +62,7 @@ function FooterInner() {
   const langQuery = `?lang=${lang}`;
 
   return (
-    <footer className="mt-0 w-full border-t border-[#D6C7AD]/60 bg-[#FAF6EE] py-12 text-[color:var(--lx-text)]">
+    <footer className="mt-20 w-full border-t border-[color:var(--lx-border)] bg-[color:var(--lx-section)] py-12 text-[color:var(--lx-text)]">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 md:grid-cols-3">
         {/* Column 1: Contact */}
         <div>
@@ -138,23 +134,6 @@ function FooterInner() {
       </div>
 
       <div className="mt-10 flex flex-col items-center gap-3 px-4 text-center">
-        <nav
-          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm"
-          aria-label={lang === "es" ? "Enlaces del sitio" : "Site links"}
-        >
-          <Link
-            href={`/about${langQuery}`}
-            className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]"
-          >
-            {t.about}
-          </Link>
-          <Link
-            href={`/contacto${langQuery}`}
-            className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]"
-          >
-            {t.contactLink}
-          </Link>
-        </nav>
         <nav
           className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm"
           aria-label={lang === "es" ? "Enlaces legales" : "Legal links"}

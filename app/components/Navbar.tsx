@@ -1,19 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, Suspense, useCallback } from "react";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../lib/supabase/browser";
-import {
-  PUBLIC_NAV_ADVERTISE,
-  PUBLIC_NAV_MAS_ITEMS,
-  PUBLIC_NAV_PRIMARY,
-  publicNavLabel,
-  type PublicNavLang,
-} from "../lib/publicNavConfig";
 
-type Lang = PublicNavLang;
+type Lang = "es" | "en";
 
 function accountBadgeLabel(lang: Lang) {
   return lang === "es" ? "Cuenta" : "Account";
@@ -38,8 +30,6 @@ function getInitials(input?: string | null) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-const HEADER_LOGO_SRC = "/logo.png";
-
 function NavbarContent() {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -48,8 +38,6 @@ function NavbarContent() {
   const urlLang = searchParams?.get("lang");
   const [lang, setLang] = useState<Lang>(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [masOpen, setMasOpen] = useState(false);
-  const masRef = useRef<HTMLDivElement>(null);
 
   const [user, setUser] = useState<NavbarUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -57,7 +45,6 @@ function NavbarContent() {
 
   const signedOutParam = searchParams?.get("signed_out") === "1";
   const [showSignedOutToast, setShowSignedOutToast] = useState(false);
-
   useEffect(() => {
     if (pathname === "/home" && signedOutParam) {
       setShowSignedOutToast(true);
@@ -79,7 +66,7 @@ function NavbarContent() {
   useEffect(() => {
     setMobileOpen(false);
     setAccountOpen(false);
-    setMasOpen(false);
+     
   }, [pathname, urlLang, searchParams?.toString()]);
 
   useEffect(() => {
@@ -91,50 +78,49 @@ function NavbarContent() {
     };
   }, [mobileOpen]);
 
-  useEffect(() => {
-    if (!masOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (masRef.current && !masRef.current.contains(e.target as Node)) setMasOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [masOpen]);
-
   const t = useMemo(
     () => ({
       es: {
-        brandName: "Leonix Media",
-        mas: "Más",
-        navAria: "Navegación principal",
-        langAria: "Idioma",
+        home: "Inicio",
+        magazine: "Revista",
+        classifieds: "Clasificados",
+        coupons: "Cupones",
+        shop: "Productos para Promoción",
+        news: "Noticias",
+        contact: "Contacto",
+        about: "Nosotros",
+        churches: "Iglesias",
+        advertise: "Anúnciate",
         signIn: "Iniciar sesión",
         createAccount: "Crear cuenta",
         myAccount: "Mi cuenta",
         myListings: "Mis anuncios",
         signOut: "Cerrar sesión",
+        dashboard: "Panel",
         account: "Cuenta",
         manageAccount: "Administrar mi cuenta",
         signedOutToast: "Sesión cerrada correctamente",
-        openMenu: "Abrir menú",
-        closeMenu: "Cerrar menú",
-        menu: "Menú",
       },
       en: {
-        brandName: "Leonix Media",
-        mas: "More",
-        navAria: "Main navigation",
-        langAria: "Language",
+        home: "Home",
+        magazine: "Magazine",
+        classifieds: "Classifieds",
+        coupons: "Coupons",
+        shop: "Promotional Products",
+        news: "News",
+        contact: "Contact",
+        about: "About Us",
+        churches: "Churches",
+        advertise: "Advertise",
         signIn: "Sign in",
         createAccount: "Create account",
         myAccount: "My account",
         myListings: "My listings",
         signOut: "Sign out",
+        dashboard: "Dashboard",
         account: "Account",
         manageAccount: "Manage account",
         signedOutToast: "Signed out successfully",
-        openMenu: "Open menu",
-        closeMenu: "Close menu",
-        menu: "Menu",
       },
     }),
     []
@@ -143,17 +129,16 @@ function NavbarContent() {
   const L = t[lang];
 
   const buildLink = (href: string) => {
+    if (href === "/") return `/home?lang=${lang}`;
     const cleanHref = href.split("?")[0];
     return `${cleanHref}?lang=${lang}`;
   };
 
   const isActive = (href: string) => {
     const cleanHref = href.split("?")[0];
-    if (cleanHref === "/home") return pathname === "/home";
+    if (cleanHref === "/") return pathname === "/home";
     return pathname === cleanHref || pathname.startsWith(`${cleanHref}/`);
   };
-
-  const masActive = PUBLIC_NAV_MAS_ITEMS.some((item) => isActive(item.href));
 
   const switchLang = (target: Lang) => {
     const next = new URLSearchParams(searchParams?.toString() ?? "");
@@ -162,7 +147,18 @@ function NavbarContent() {
     router.push(q ? `${pathname}?${q}` : pathname);
   };
 
-  const advertiseHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
+  const navLinks: Array<{ href: string; label: string; gold?: boolean }> = [
+    { href: "/", label: L.home },
+    { href: "/magazine", label: L.magazine },
+    { href: "/clasificados", label: L.classifieds },
+    { href: "/coupons", label: L.coupons },
+    { href: "/productos-promocion", label: L.shop },
+    { href: "/noticias", label: L.news },
+    { href: "/contacto", label: L.contact },
+    { href: "/about", label: L.about },
+    { href: "/iglesias", label: L.churches },
+    { href: "/advertise", label: L.advertise, gold: true },
+  ];
 
   const currentPathWithQuery = useMemo(() => {
     const q = searchParams?.toString() ?? "";
@@ -192,7 +188,10 @@ function NavbarContent() {
 
     async function loadSession() {
       try {
-        const { data } = await withAuthTimeout(supabase!.auth.getUser(), AUTH_CHECK_TIMEOUT_MS);
+        const { data } = await withAuthTimeout(
+          supabase!.auth.getUser(),
+          AUTH_CHECK_TIMEOUT_MS
+        );
         if (!mounted) return;
         const u = data.user;
         if (!u) {
@@ -258,358 +257,344 @@ function NavbarContent() {
     (user?.email ? user.email.split("@")[0] : null) ||
     L.myAccount;
 
-  const isPreviewSurface = pathname.endsWith("/preview") || pathname.includes("/preview/");
-  const isServiciosPublicProfile = pathname.startsWith("/servicios/perfil");
+  const isPreviewSurface =
+    pathname.endsWith("/preview") ||
+    pathname.includes("/preview/");
+  const isServiciosPublicProfile =
+    pathname.startsWith("/servicios/perfil");
   if (pathname === "/" || isPreviewSurface || isServiciosPublicProfile) return null;
 
-  const navLinkClass = (active: boolean) =>
-    cx(
-      "whitespace-nowrap transition-colors",
-      active
-        ? "text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em]"
-        : "text-[#3D3428] hover:text-[#7A1E2C]"
-    );
-
-  const langToggle = (
-    <div
-      className="flex rounded-md border border-[#D6C7AD] bg-[#FFFDF7] p-0.5 text-[0.6875rem] font-semibold sm:text-xs"
-      role="group"
-      aria-label={L.langAria}
-    >
-      {(["es", "en"] as const).map((code) => (
-        <button
-          key={code}
-          type="button"
-          onClick={() => switchLang(code)}
-          aria-pressed={lang === code}
-          className={cx(
-            "min-h-[1.875rem] min-w-[2.5rem] rounded-sm px-2 py-1 transition-colors sm:min-h-[2rem] sm:min-w-[2.75rem]",
-            lang === code ? "bg-[#7A1E2C] text-white" : "text-[#3D3428] hover:bg-[#EDE6D6]"
-          )}
-        >
-          {code.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-
-  const accountControlDesktop = (
-    <div className="relative">
-      {authLoading ? (
-        <div className="h-9 w-20 rounded-md bg-[#D6C7AD]/30 animate-pulse" />
-      ) : user ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setAccountOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-md border border-[#D6C7AD] bg-[#FFFDF7] px-2.5 py-1.5 hover:bg-[#FBF7EF] transition"
-            aria-label={L.myAccount}
-            aria-expanded={accountOpen}
-          >
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt=""
-                className="h-7 w-7 rounded-full border border-[#D6C7AD] object-cover"
-              />
-            ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#D6C7AD] bg-[#EDE6D6] text-xs font-bold text-[#1F241C]">
-                {initials}
-              </div>
-            )}
-            <span className="hidden max-w-[120px] truncate text-xs text-[#1F241C] lg:inline">
-              {accountLabel}
-            </span>
-            <span className="text-[#3D3428]/60 text-xs">{accountOpen ? "▲" : "▼"}</span>
-          </button>
-
-          {accountOpen && (
-            <div
-              className="absolute right-0 mt-2 w-56 overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_18px_48px_rgba(31,36,28,0.18)]"
-              role="menu"
-            >
-              <div className="border-b border-[#D6C7AD]/60 px-4 py-3">
-                <div className="truncate text-xs font-medium text-[#1F241C]">{displayName}</div>
-                {user.email && (
-                  <div className="mt-0.5 truncate text-xs text-[#3D3428]/75">{user.email}</div>
-                )}
-              </div>
-              <Link
-                href={`/dashboard?lang=${lang}`}
-                className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
-                onClick={() => setAccountOpen(false)}
-              >
-                {L.manageAccount}
-              </Link>
-              <Link
-                href={`/dashboard/mis-anuncios?lang=${lang}`}
-                className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
-                onClick={() => setAccountOpen(false)}
-              >
-                {L.myListings}
-              </Link>
-              <button
-                type="button"
-                onClick={signOut}
-                className="w-full border-t border-[#D6C7AD]/60 px-4 py-3 text-left text-sm text-[#3D3428] hover:bg-[#FBF7EF]"
-              >
-                {L.signOut}
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <button
-          type="button"
-          onClick={goToLogin}
-          className="rounded-md border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#1F241C] hover:bg-[#FBF7EF] transition"
-        >
-          {L.signIn}
-        </button>
-      )}
-    </div>
-  );
-
-  const advertiseCta = (
-    <Link
-      href={advertiseHref}
-      className="inline-flex min-h-[2rem] shrink-0 items-center justify-center rounded-md bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs"
-    >
-      {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
-    </Link>
-  );
-
   return (
-    <header className="fixed top-0 left-0 z-50 w-full" data-navbar-root>
+    <nav className="fixed top-0 left-0 w-full z-50" data-navbar-root>
       {showSignedOutToast && (
         <div
-          className="fixed top-20 left-1/2 z-[1000] -translate-x-1/2 rounded-lg border border-[#2A4536]/30 bg-[#2A4536] px-4 py-2.5 text-sm font-medium text-[#F8F4EA] shadow-lg"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-green-600/95 text-white px-4 py-2.5 text-sm font-medium shadow-lg border border-green-500/30"
           role="status"
         >
           {L.signedOutToast}
         </div>
       )}
 
-      <div className="border-b border-[#D6C7AD] bg-[#FAF6EE] shadow-[0_1px_0_0_rgba(201,168,74,0.35)]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 py-2 lg:gap-x-4">
-            {/* Brand */}
-            <Link
-              href={buildLink("/home")}
-              className="flex shrink-0 items-center gap-1.5 sm:gap-2"
-              aria-label={L.brandName}
-            >
-              <span className="inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9">
-                <Image
-                  src={HEADER_LOGO_SRC}
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="h-full w-full object-cover object-center"
-                  priority
-                  aria-hidden
-                />
-              </span>
-              <span className="hidden font-serif text-xs font-bold leading-tight text-[#2A4536] sm:inline sm:text-sm">
-                {L.brandName}
-              </span>
-            </Link>
-
-            {/* Desktop nav */}
-            <nav
-              className="hidden min-w-0 items-center justify-center gap-x-3 text-[0.8125rem] font-medium lg:flex xl:gap-x-4 xl:text-[0.875rem]"
-              aria-label={L.navAria}
-            >
-              {PUBLIC_NAV_PRIMARY.map((item) => (
-                <Link
-                  key={item.id}
-                  href={buildLink(item.href)}
-                  className={navLinkClass(isActive(item.href))}
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                >
-                  {publicNavLabel(item, lang)}
-                </Link>
-              ))}
-
-              <div className="relative" ref={masRef}>
-                <button
-                  type="button"
-                  onClick={() => setMasOpen((v) => !v)}
-                  className={cx(navLinkClass(masActive), "inline-flex items-center gap-1")}
-                  aria-expanded={masOpen}
-                  aria-haspopup="true"
-                >
-                  {L.mas}
-                  <span className="text-[0.65rem]">{masOpen ? "▲" : "▼"}</span>
-                </button>
-                {masOpen && (
-                  <div className="absolute left-1/2 top-full z-50 mt-1 min-w-[10rem] -translate-x-1/2 overflow-hidden rounded-md border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)]">
-                    {PUBLIC_NAV_MAS_ITEMS.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={buildLink(item.href)}
-                        className="block px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C]"
-                        onClick={() => setMasOpen(false)}
-                      >
-                        {publicNavLabel(item, lang)}
-                      </Link>
-                    ))}
-                  </div>
+      <div
+        className="
+          backdrop-blur-md bg-[color:var(--lx-nav-bg)]
+          border-b border-[color:var(--lx-nav-border)] py-2 px-4 sm:px-6
+          flex flex-wrap items-center gap-x-4 gap-y-2
+        "
+      >
+        {/* DESKTOP MENU */}
+        <div className="hidden sm:flex flex-wrap gap-x-4 gap-y-2 text-[color:var(--lx-nav-fg)] text-[clamp(12px,1.05vw,15px)] font-semibold tracking-tight">
+          {navLinks.map((item, i) => {
+            const active = isActive(item.href);
+            const href = item.href === "/advertise" ? `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}` : buildLink(item.href);
+            return (
+              <Link
+                key={i}
+                href={href}
+                className={cx(
+                  "transition px-2 py-1 rounded-lg border border-transparent hover:bg-[color:var(--lx-nav-hover)] hover:border-[color:var(--lx-nav-border)]",
+                  item.gold
+                    ? "text-[color:var(--lx-text)] font-bold bg-[color:var(--lx-nav-active)] border-[color:var(--lx-nav-border)]"
+                    : active
+                    ? "text-[color:var(--lx-nav-fg)] bg-[color:var(--lx-nav-active)] border-[color:var(--lx-nav-border)]"
+                    : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)]"
                 )}
-              </div>
-            </nav>
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
 
-            {/* Right controls — desktop */}
-            <div className="hidden items-center justify-end gap-2 sm:flex lg:gap-2.5">
-              {langToggle}
-              {accountControlDesktop}
-              {advertiseCta}
-            </div>
+        {/* RIGHT SIDE (LANG + ACCOUNT) */}
+        <div className="hidden sm:flex items-center gap-3 ml-auto text-[clamp(11px,0.95vw,13px)]">
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={() => switchLang("es")}
+              className={
+                lang === "es"
+                  ? "text-[color:var(--lx-lion)] font-semibold"
+                  : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)] transition"
+              }
+              aria-label="Cambiar idioma a Español"
+            >
+              ES
+            </button>
+            <span className="text-[color:var(--lx-nav-fg-subtle)]">|</span>
+            <button
+              onClick={() => switchLang("en")}
+              className={
+                lang === "en"
+                  ? "text-[color:var(--lx-lion)] font-semibold"
+                  : "text-[color:var(--lx-nav-fg-muted)] hover:text-[color:var(--lx-nav-fg)] transition"
+              }
+              aria-label="Switch language to English"
+            >
+              EN
+            </button>
+          </div>
 
-            {/* Mobile — lang + account + hamburger */}
-            <div className="flex items-center justify-end gap-2 sm:hidden">
-              {langToggle}
-              {!authLoading && !user && (
+          {/* DESKTOP ACCOUNT */}
+          <div className="relative">
+            {authLoading ? (
+              <div className="h-9 w-24 rounded-full bg-black/5 animate-pulse" />
+            ) : user ? (
+              <>
                 <button
-                  type="button"
-                  onClick={goToLogin}
-                  className="rounded-md border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 text-[0.65rem] font-semibold text-[#1F241C]"
-                  aria-label={L.signIn}
-                >
-                  {L.signIn}
-                </button>
-              )}
-              {!authLoading && user && (
-                <Link
-                  href={`/dashboard?lang=${lang}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#D6C7AD] bg-[#EDE6D6] text-xs font-bold text-[#1F241C]"
+                  onClick={() => setAccountOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 px-3 py-1.5 hover:bg-white/80 transition"
                   aria-label={L.myAccount}
                 >
-                  {initials}
-                </Link>
-              )}
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt=""
+                      className="h-7 w-7 rounded-full border border-[color:var(--lx-nav-border)] object-cover"
+                    />
+                  ) : (
+                    <div className="h-7 w-7 rounded-full bg-[color:var(--lx-nav-active)] border border-[color:var(--lx-nav-border)] flex items-center justify-center text-[color:var(--lx-text)] font-bold text-xs">
+                      {initials}
+                    </div>
+                  )}
+                  <span className="text-[color:var(--lx-text)] text-xs max-w-[140px] truncate">
+                    {accountLabel}
+                  </span>
+                  <span className="hidden sm:inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)]">
+                    {accountBadgeLabel(lang)}
+                  </span>
+                  <span className="text-[color:var(--lx-nav-fg-muted)] text-xs">{accountOpen ? "▲" : "▼"}</span>
+                </button>
+
+                {accountOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-56 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] backdrop-blur-xl shadow-[0_18px_48px_rgba(42,36,22,0.18)] overflow-hidden"
+                    role="menu"
+                  >
+                    <div className="px-4 py-3 border-b border-black/10">
+                      <div className="text-xs text-[color:var(--lx-text)] truncate font-medium">
+                        {displayName}
+                      </div>
+                      {user.email && (
+                        <div className="text-xs text-[color:var(--lx-text-2)]/80 truncate mt-0.5">
+                          {user.email}
+                        </div>
+                      )}
+                      <div className="mt-1.5 inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)]">
+                        {accountBadgeLabel(lang)}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/dashboard?lang=${lang}`}
+                      className="block px-4 py-3 text-sm text-[color:var(--lx-text)] hover:bg-black/5"
+                      onClick={() => setAccountOpen(false)}
+                    >
+                      {L.manageAccount}
+                    </Link>
+                    <Link
+                      href={`/dashboard/mis-anuncios?lang=${lang}`}
+                      className="block px-4 py-3 text-sm text-[color:var(--lx-text)] hover:bg-black/5"
+                      onClick={() => setAccountOpen(false)}
+                    >
+                      {L.myListings}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={signOut}
+                      className="w-full text-left px-4 py-3 text-sm text-[color:var(--lx-text)] hover:bg-black/5 border-t border-black/10"
+                    >
+                      {L.signOut}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
               <button
-                type="button"
-                className="min-h-[44px] min-w-[44px] text-xl text-[#3D3428]"
-                onClick={() => setMobileOpen(true)}
-                aria-label={L.openMenu}
+                onClick={goToLogin}
+                className="rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 px-4 py-2 text-[color:var(--lx-text)] hover:bg-white/80 transition"
               >
-                ☰
+                {L.signIn}
               </button>
-            </div>
+            )}
           </div>
         </div>
+
+        {/* MOBILE HAMBURGER */}
+        <button
+          className="sm:hidden ml-auto text-[color:var(--lx-nav-fg)] text-xl"
+          onClick={() => setMobileOpen(true)}
+          aria-label={lang === "en" ? "Open menu" : "Abrir menú"}
+        >
+          ☰
+        </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* MOBILE DRAWER — 3 zones: top (title/close), middle (nav links, scrolls), bottom (account + lang) */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-[999] sm:hidden">
+        <div className="fixed inset-0 z-[999]">
           <button
-            type="button"
             className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
             onClick={() => setMobileOpen(false)}
-            aria-label={L.closeMenu}
+            aria-label={lang === "en" ? "Close menu" : "Cerrar menú"}
           />
+
           <div
-            className="absolute top-0 right-0 flex h-[100dvh] max-h-[100dvh] w-[min(88vw,22rem)] flex-col overflow-hidden rounded-l-lg border-l border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_0_22px_rgba(31,36,28,0.28)]"
+            className="absolute top-0 right-0 w-[min(88vw,22rem)] max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-[color:var(--lx-card)] backdrop-blur-xl rounded-l-2xl shadow-[0_0_22px_rgba(42,36,22,0.28)] border-l border-[color:var(--lx-nav-border)]"
             role="dialog"
             aria-modal="true"
+            style={{ height: "100dvh" }}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-[#D6C7AD]/60 px-4 py-3">
-              <span className="font-serif text-sm font-bold text-[#2A4536]">{L.menu}</span>
+            {/* ZONE 1: Top — title + close, always visible */}
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-black/10">
+              <span className="text-[color:var(--lx-text-2)]/80 text-sm font-semibold">{lang === "en" ? "Menu" : "Menú"}</span>
               <button
-                type="button"
                 onClick={() => setMobileOpen(false)}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center text-2xl text-[#1F241C]"
-                aria-label={L.closeMenu}
+                className="text-[color:var(--lx-text)] text-2xl leading-none p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label={lang === "en" ? "Close menu" : "Cerrar menú"}
               >
                 ×
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-              <nav className="flex flex-col gap-0.5" aria-label={L.navAria}>
-                {PUBLIC_NAV_PRIMARY.map((item) => (
+            {/* ZONE 2: Middle — nav links only, primary scroll area */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3">
+              <nav className="flex flex-col gap-1" aria-label={lang === "en" ? "Navigation" : "Navegación"}>
+                {navLinks.map((item, i) => (
                   <Link
-                    key={item.id}
-                    href={buildLink(item.href)}
+                    key={i}
+                    href={item.href === "/advertise" ? `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}` : buildLink(item.href)}
                     onClick={() => setMobileOpen(false)}
                     className={cx(
-                      "rounded-md px-2 py-2.5 text-[15px] font-semibold transition",
-                      isActive(item.href)
-                        ? "bg-[#7A1E2C]/10 text-[#7A1E2C]"
-                        : "text-[#1F241C] hover:bg-[#FBF7EF]"
+                      "py-2.5 text-[15px] font-semibold rounded-xl px-2 transition",
+                      item.gold
+                        ? "text-[color:var(--lx-text)] bg-[color:var(--lx-nav-active)]"
+                        : "text-[color:var(--lx-text)] hover:bg-black/5",
+                      isActive(item.href) && !item.gold && "bg-[color:var(--lx-nav-hover)]"
                     )}
                   >
-                    {publicNavLabel(item, lang)}
-                  </Link>
-                ))}
-                <p className="mt-3 px-2 text-[10px] font-bold uppercase tracking-wider text-[#556B3E]">
-                  {L.mas}
-                </p>
-                {PUBLIC_NAV_MAS_ITEMS.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={buildLink(item.href)}
-                    onClick={() => setMobileOpen(false)}
-                    className={cx(
-                      "rounded-md px-2 py-2.5 text-[15px] font-medium transition",
-                      isActive(item.href)
-                        ? "bg-[#7A1E2C]/10 text-[#7A1E2C]"
-                        : "text-[#3D3428] hover:bg-[#FBF7EF]"
-                    )}
-                  >
-                    {publicNavLabel(item, lang)}
+                    {item.label}
                   </Link>
                 ))}
               </nav>
             </div>
 
-            <div className="shrink-0 space-y-3 border-t border-[#D6C7AD]/60 px-4 py-4">
-              <Link
-                href={advertiseHref}
-                onClick={() => setMobileOpen(false)}
-                className="flex w-full items-center justify-center rounded-md bg-[#7A1E2C] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-6px_rgba(122,30,44,0.5)]"
-              >
-                {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
-              </Link>
-
-              {user && (
-                <div className="rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-3">
-                  <div className="truncate text-sm font-semibold text-[#1F241C]">{displayName}</div>
-                  <div className="mt-2 flex flex-col gap-2">
-                    <Link
-                      href={`/dashboard?lang=${lang}`}
-                      onClick={() => setMobileOpen(false)}
-                      className="rounded-md bg-[#2A4536] px-3 py-2 text-center text-sm font-semibold text-[#F8F4EA]"
-                    >
-                      {L.manageAccount}
-                    </Link>
+            {/* ZONE 3: Bottom — account card + language, pinned */}
+            <div className="flex-shrink-0 flex flex-col gap-3 px-4 py-4 pt-3 border-t border-black/10">
+              <section aria-label={L.account} className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
+                {authLoading ? (
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-black/5 flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3.5 w-24 rounded bg-black/5" />
+                      <div className="h-3 w-20 rounded bg-black/5" />
+                    </div>
+                  </div>
+                ) : user ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      {user.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt=""
+                          className="h-10 w-10 rounded-full border border-[color:var(--lx-nav-border)] object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-active)] flex items-center justify-center text-[color:var(--lx-text)] font-bold text-sm flex-shrink-0">
+                          {initials}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[color:var(--lx-text)] font-semibold text-sm truncate">
+                          {displayName}
+                        </div>
+                        {user.email && (
+                          <div className="text-[color:var(--lx-text-2)]/80 text-xs truncate">
+                            {user.email}
+                          </div>
+                        )}
+                        <div className="mt-1 inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] text-[color:var(--lx-text)] w-fit">
+                          {accountBadgeLabel(lang)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <Link
+                        href={`/dashboard?lang=${lang}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-3 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)] transition text-center"
+                      >
+                        {L.manageAccount}
+                      </Link>
+                      <Link
+                        href={`/dashboard/mis-anuncios?lang=${lang}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white/60 px-3 py-2 text-sm font-medium text-[color:var(--lx-text)] hover:bg-white/80 transition text-center"
+                      >
+                        {L.myListings}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await signOut();
+                        }}
+                        className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm text-[color:var(--lx-text-2)] hover:bg-black/5 transition text-center"
+                      >
+                        {L.signOut}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold text-[color:var(--lx-text)]">
+                      {L.account}
+                    </h3>
                     <button
                       type="button"
-                      onClick={() => void signOut()}
-                      className="rounded-md border border-[#D6C7AD] px-3 py-2 text-sm text-[#3D3428]"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        goToLogin();
+                      }}
+                      className="w-full rounded-xl bg-[color:var(--lx-cta-dark)] px-3 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] hover:bg-[color:var(--lx-cta-dark-hover)] transition"
                     >
-                      {L.signOut}
+                      {L.signIn}
                     </button>
+                    <Link
+                      href={`/login?mode=signup&lang=${lang}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white/60 px-3 py-2.5 text-sm font-medium text-[color:var(--lx-text)] hover:bg-white/80 transition text-center block"
+                    >
+                      {L.createAccount}
+                    </Link>
                   </div>
-                </div>
-              )}
-
-              {!authLoading && !user && (
-                <Link
-                  href={`/login?mode=signup&lang=${lang}`}
-                  onClick={() => setMobileOpen(false)}
-                  className="block rounded-md border border-[#D6C7AD] px-3 py-2.5 text-center text-sm font-medium text-[#1F241C]"
+                )}
+              </section>
+              <div className="flex gap-6 text-[color:var(--lx-text)] text-sm font-semibold">
+                <button
+                  onClick={() => {
+                    switchLang("es");
+                    setMobileOpen(false);
+                  }}
+                  className={lang === "es" ? "text-[color:var(--lx-lion)]" : "text-[color:var(--lx-nav-fg-muted)]"}
+                  aria-label="Cambiar idioma a Español"
                 >
-                  {L.createAccount}
-                </Link>
-              )}
+                  ES
+                </button>
+                <button
+                  onClick={() => {
+                    switchLang("en");
+                    setMobileOpen(false);
+                  }}
+                  className={lang === "en" ? "text-[color:var(--lx-lion)]" : "text-[color:var(--lx-nav-fg-muted)]"}
+                  aria-label="Switch language to English"
+                >
+                  EN
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </header>
+    </nav>
   );
 }
 
