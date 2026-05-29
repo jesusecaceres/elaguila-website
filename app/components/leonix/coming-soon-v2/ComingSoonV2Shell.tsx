@@ -62,7 +62,7 @@ function LaunchCtaLink({ lang, label, className }: { lang: Lang; label: string; 
       href={launchHref(lang)}
       className={
         className ??
-        "inline-flex min-h-[2.5rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white shadow-[0_4px_14px_-4px_rgba(122,30,44,0.5)] transition-colors hover:bg-[#5e1721] sm:text-sm"
+        "inline-flex min-h-[2.25rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-3.5 py-1.5 text-xs font-bold text-white shadow-[0_4px_14px_-4px_rgba(122,30,44,0.5)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.375rem] sm:px-4 sm:py-2 sm:text-sm"
       }
     >
       {label}
@@ -77,20 +77,20 @@ export function ComingSoonV2Shell() {
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#EDE6D6]/60 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-[#EDE6D6]/50 to-transparent"
         aria-hidden
       />
 
       <header className="relative border-b border-[#D6C7AD] bg-[#FAF6EE] shadow-[0_1px_0_0_rgba(201,168,74,0.35)]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex items-center gap-2.5 py-2 sm:gap-3 sm:py-2.5 lg:gap-4 lg:py-2.5">
+          <div className="flex items-center gap-2 py-1.5 sm:gap-3 sm:py-2 lg:gap-4">
             <Link href="#inicio" className="block shrink-0 bg-[#FAF6EE] leading-none">
               <Image
                 src="/logo-clean.png"
                 alt="Leonix Media"
-                width={220}
-                height={76}
-                className="h-auto w-[138px] max-w-[160px] bg-transparent object-contain object-left sm:w-[150px] lg:w-[220px] lg:max-w-[260px]"
+                width={172}
+                height={60}
+                className="h-auto w-[124px] max-w-[135px] bg-transparent object-contain object-left sm:w-[132px] lg:w-[172px] lg:max-w-[190px]"
                 priority
               />
             </Link>
@@ -126,7 +126,7 @@ export function ComingSoonV2Shell() {
                     type="button"
                     onClick={() => setLang(code)}
                     aria-pressed={lang === code}
-                    className={`min-h-[2.25rem] min-w-[3.75rem] rounded-full px-2.5 py-1.5 transition-colors sm:min-h-[2.5rem] sm:min-w-[4.25rem] sm:px-3 ${
+                    className={`min-h-[2rem] min-w-[3.5rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2.25rem] sm:min-w-[4rem] sm:px-2.5 sm:py-1.5 ${
                       lang === code
                         ? "bg-[#7A1E2C] text-white"
                         : "text-[#3D3428] hover:bg-[#EDE6D6]"
@@ -142,7 +142,7 @@ export function ComingSoonV2Shell() {
           </div>
 
           <nav
-            className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+            className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
             aria-label={t.navAria}
           >
             {t.nav.map((item) => (
