@@ -650,6 +650,23 @@ const heroAccentClass: Record<HeroAccent, string> = {
 const heroLineClass =
   "text-[1.05rem] font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
 
+/** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
+const ANCHOR_SCROLL = "scroll-mt-32 lg:scroll-mt-28";
+
+const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-11 sm:py-12 lg:py-14`;
+
+const sectionEyebrowClass =
+  "text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs";
+
+const sectionTitleClass =
+  "mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl";
+
+const sectionIntroClass =
+  "mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]";
+
+const cardShellClass =
+  "rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.2)]";
+
 function HeroLineText({ line }: { line: HeroLine }) {
   return (
     <>
@@ -677,7 +694,7 @@ function HeroCtaLink({ cta }: { cta: HeroCta }) {
   return (
     <Link
       href={cta.href}
-      className={styles[cta.variant]}
+      className={`${styles[cta.variant]} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]`}
       {...(cta.external
         ? { target: "_blank", rel: "noopener noreferrer" }
         : {})}
@@ -729,7 +746,7 @@ function HeroMediaVisual({
           />
         </div>
 
-        <div className="mt-3.5 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5">
+        <div className="mt-3.5 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5 lg:items-start lg:justify-start">
           <p className="inline-flex max-w-full rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-center text-[0.65rem] font-bold uppercase tracking-[0.11em] text-[#2A4536] shadow-sm sm:text-[0.68rem]">
             {label}
           </p>
@@ -820,7 +837,7 @@ function WhatYouGetCardArticle({
 
   return (
     <article
-      className={`flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.22)] sm:p-6 ${extra} ${
+      className={`flex h-full flex-col ${cardShellClass} p-5 sm:p-6 ${extra} ${
         card.accent === "founder"
           ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
           : ""
@@ -830,7 +847,7 @@ function WhatYouGetCardArticle({
       <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
         {card.title}
       </h3>
-      <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
         {card.body}
       </p>
 
@@ -895,27 +912,20 @@ function WhatYouGetSection({
   return (
     <section
       id="que-obtienes"
-      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      className={sectionShellClass}
       aria-labelledby="what-you-get-title"
     >
-      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
-        {eyebrow}
-      </p>
-      <h2
-        id="what-you-get-title"
-        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
-      >
+      <p className={sectionEyebrowClass}>{eyebrow}</p>
+      <h2 id="what-you-get-title" className={sectionTitleClass}>
         {headline}
       </h2>
-      <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
-        {intro}
-      </p>
+      <p className={sectionIntroClass}>{intro}</p>
 
-      <ul className="mt-8 grid list-none gap-5 p-0 lg:grid-cols-6 lg:gap-5">
+      <ul className="mt-8 grid list-none gap-5 p-0 sm:gap-5 lg:grid-cols-6">
         {cards.map((card, index) => {
           const spanClass = index < 3 ? "lg:col-span-2" : "lg:col-span-3";
           return (
-            <li key={index} className={spanClass}>
+            <li key={index} className={`flex ${spanClass}`}>
               <WhatYouGetCardArticle
                 card={card}
                 index={index}
@@ -955,30 +965,23 @@ function HowItWorksSection({
   return (
     <section
       id="como-funciona"
-      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      className={sectionShellClass}
       aria-labelledby="como-funciona-title"
     >
-      <span id="how-it-works" className="block h-0 scroll-mt-28" aria-hidden />
-      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
-        {eyebrow}
-      </p>
-      <h2
-        id="como-funciona-title"
-        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
-      >
+      <span id="how-it-works" className="block h-0" aria-hidden />
+      <p className={sectionEyebrowClass}>{eyebrow}</p>
+      <h2 id="como-funciona-title" className={sectionTitleClass}>
         {headline}
       </h2>
-      <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
-        {intro}
-      </p>
+      <p className={sectionIntroClass}>{intro}</p>
 
       <ol
-        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5"
+        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 sm:items-stretch lg:grid-cols-4"
         aria-label={stepsAria}
       >
         {steps.map((step, index) => (
-          <li key={index}>
-            <article className="flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.2)] sm:p-6">
+          <li key={index} className="flex">
+            <article className={`flex h-full w-full flex-col ${cardShellClass} p-5 sm:p-6`}>
               <span
                 className={`mb-4 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 ${processStepBadgeStyles[index]}`}
                 aria-hidden
@@ -1050,43 +1053,36 @@ function QrAccessSection({
   return (
     <section
       id="qr"
-      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      className={sectionShellClass}
       aria-labelledby="qr-title"
     >
-      <span id="qr-access" className="block h-0 scroll-mt-28" aria-hidden />
-      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
-        {eyebrow}
-      </p>
-      <h2
-        id="qr-title"
-        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
-      >
+      <span id="qr-access" className="block h-0" aria-hidden />
+      <p className={sectionEyebrowClass}>{eyebrow}</p>
+      <h2 id="qr-title" className={sectionTitleClass}>
         {headline}
       </h2>
-      <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
-        {intro}
-      </p>
+      <p className={sectionIntroClass}>{intro}</p>
 
       <div className="mt-8 grid min-w-0 items-start gap-6 lg:grid-cols-2 lg:gap-8">
-        <p className="text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+        <p className="text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem] lg:max-w-xl">
           {explanation}
         </p>
 
-        <div className="flex min-w-0 flex-col items-center gap-4 rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-6 py-7 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:px-8 sm:py-8">
+        <div className="flex min-w-0 max-w-md flex-col items-center gap-4 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-6 py-6 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
           <DecorativeQrVisual />
-          <p className="font-serif text-xl font-bold leading-snug text-[#F8F4EA] sm:text-2xl">
+          <p className="font-serif text-xl font-bold leading-snug text-[#F8F4EA] sm:text-[1.75rem]">
             {callout}
           </p>
         </div>
       </div>
 
       <ul
-        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5"
+        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 sm:items-stretch lg:grid-cols-3"
         aria-label={benefitsAria}
       >
         {benefits.map((benefit, index) => (
-          <li key={index}>
-            <article className="h-full rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-6">
+          <li key={index} className="flex">
+            <article className={`h-full w-full ${cardShellClass} p-5 sm:p-6`}>
               <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C]">
                 {benefit.title}
               </h3>
@@ -1179,34 +1175,29 @@ function MediaKitPreviewSection({
   return (
     <section
       id="media-kit-preview"
-      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      className={sectionShellClass}
       aria-labelledby="media-kit-preview-title"
     >
-      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
-        {eyebrow}
-      </p>
-      <h2
-        id="media-kit-preview-title"
-        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
-      >
+      <p className={sectionEyebrowClass}>{eyebrow}</p>
+      <h2 id="media-kit-preview-title" className={sectionTitleClass}>
         {headline}
       </h2>
-      <p className="mt-4 max-w-3xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
-        {intro}
-      </p>
+      <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
 
       <ul
-        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5"
+        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 sm:items-stretch lg:grid-cols-4"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
-          <li key={index}>
-            <article className="flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/10 sm:p-6">
+          <li key={index} className="flex">
+            <article
+              className={`flex h-full w-full flex-col ${cardShellClass} p-5 ring-1 ring-[#C9A84A]/10 sm:p-6`}
+            >
               <MediaKitPreviewCardIcon index={index} />
               <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C]">
                 {card.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
                 {card.body}
               </p>
             </article>
@@ -1214,11 +1205,11 @@ function MediaKitPreviewSection({
         ))}
       </ul>
 
-      <div className="mt-8 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-6 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/15 sm:p-8">
-        <h3 className="font-serif text-xl font-bold text-[#2A4536] sm:text-[1.35rem]">
+      <div className="mt-8 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-6 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:p-7">
+        <h3 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">
           {ctaHeading}
         </h3>
-        <div className="mt-5 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+        <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2.5">
           <HeroCtaLink cta={viewLinkCta} />
           <MediaKitDownloadLink
             label={downloadCta.label}
@@ -1226,7 +1217,7 @@ function MediaKitPreviewSection({
             tone="light"
           />
         </div>
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428]/90 sm:text-[0.9375rem]">
           {supportingLine}
         </p>
       </div>
@@ -1254,7 +1245,7 @@ function MediaKitDownloadLink({
       download
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex min-h-[3rem] w-full items-center justify-center rounded-full border px-5 py-3 text-center text-sm font-semibold transition sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:text-[0.9375rem] ${toneClass}`}
+      className={`inline-flex min-h-[3rem] w-full items-center justify-center rounded-full border px-5 py-3 text-center text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:text-[0.9375rem] ${toneClass}`}
     >
       {label}
     </a>
@@ -1324,12 +1315,12 @@ function FinalContactSection({
   return (
     <section
       id="contacto"
-      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      className={sectionShellClass}
       aria-labelledby="contacto-title"
     >
-      <span id="contact" className="block h-0 scroll-mt-28" aria-hidden />
+      <span id="contact" className="block h-0" aria-hidden />
 
-      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-6 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8 lg:p-10">
+      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-6 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8">
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#C9A84A] sm:text-xs">
           {finalCta.eyebrow}
         </p>
@@ -1348,7 +1339,7 @@ function FinalContactSection({
         />
       </div>
 
-      <div className="mt-10 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-8">
+      <div className="mt-8 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-8">
         <h2 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
           {contact.title}
         </h2>
@@ -1441,7 +1432,7 @@ function FinalContactSection({
 
 function ComingSoonV2Footer({ text }: { text: string }) {
   return (
-    <footer className="border-t border-[#D6C7AD]/60 bg-[#FAF6EE] py-6">
+    <footer className="border-t border-[#D6C7AD]/55 bg-[#FAF6EE] py-6 sm:py-7">
       <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
         <p className="text-sm font-medium text-[#3D3428]">{text}</p>
       </div>
@@ -1478,7 +1469,7 @@ export function ComingSoonV2Shell() {
 
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
-      <header className="border-b border-[#D6C7AD] bg-[#FAF6EE] shadow-[0_1px_0_0_rgba(201,168,74,0.35)]">
+      <header className="sticky top-0 z-50 border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0 py-1.5 sm:gap-x-4 sm:py-2 lg:py-2">
             <Link
@@ -1569,12 +1560,16 @@ export function ComingSoonV2Shell() {
         </div>
       </header>
 
-      <main id="inicio" className="relative mx-auto max-w-6xl px-4 sm:px-6" aria-label={t.mainAria}>
+      <main
+        id="inicio"
+        className={`relative mx-auto max-w-6xl px-4 sm:px-6 ${ANCHOR_SCROLL}`}
+        aria-label={t.mainAria}
+      >
         <section
-          className="scroll-mt-28 py-10 sm:py-12 lg:py-14"
+          className="pb-10 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-10 lg:grid-cols-2 lg:items-start lg:gap-8 xl:gap-10">
+          <div className="grid items-start gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
             <div className="min-w-0 max-w-3xl lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
@@ -1609,7 +1604,7 @@ export function ComingSoonV2Shell() {
                 {h.paragraph}
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch">
                 {h.ctas.map((cta) => (
                   <HeroCtaLink key={cta.label} cta={cta} />
                 ))}
