@@ -393,7 +393,7 @@ const COPY: Record<
     },
     qrAccess: {
       eyebrow: "QR ACCESS",
-      headline: "From the printed ad to the customer’s phone.",
+      headline: "From the printed ad to the customer's phone.",
       intro:
         "The QR helps your ad go beyond a single page. Customers can scan, understand, and take action from their phone.",
       callout: "Scan. Translate. Connect.",
@@ -724,15 +724,16 @@ function HowItWorksSection({
 }) {
   return (
     <section
-      id="how-it-works"
+      id="como-funciona"
       className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
-      aria-labelledby="how-it-works-title"
+      aria-labelledby="como-funciona-title"
     >
+      <span id="how-it-works" className="block h-0 scroll-mt-28" aria-hidden />
       <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
         {eyebrow}
       </p>
       <h2
-        id="how-it-works-title"
+        id="como-funciona-title"
         className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
       >
         {headline}
@@ -818,15 +819,16 @@ function QrAccessSection({
 }) {
   return (
     <section
-      id="qr-access"
+      id="qr"
       className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
-      aria-labelledby="qr-access-title"
+      aria-labelledby="qr-title"
     >
+      <span id="qr-access" className="block h-0 scroll-mt-28" aria-hidden />
       <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
         {eyebrow}
       </p>
       <h2
-        id="qr-access-title"
+        id="qr-title"
         className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
       >
         {headline}
