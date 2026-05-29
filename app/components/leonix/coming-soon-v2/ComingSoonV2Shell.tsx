@@ -38,6 +38,11 @@ const COPY: Record<
       trustChips: [string, string, string];
       valueAria: string;
       trustAria: string;
+      mediaVisual: {
+        label: string;
+        qrOverlay: string;
+        magazineAlt: string;
+      };
     };
   }
 > = {
@@ -105,6 +110,11 @@ const COPY: Record<
       trustChips: ["Hecho para nuestra comunidad", "Confianza local", "Acción digital"],
       valueAria: "Propuesta de valor",
       trustAria: "Confianza",
+      mediaVisual: {
+        label: "Revista premium + presencia digital",
+        qrOverlay: "Escanea. Traduce. Conecta.",
+        magazineAlt: "Vista previa decorativa de la revista Leonix Media",
+      },
     },
   },
   en: {
@@ -168,6 +178,11 @@ const COPY: Record<
       trustChips: ["Built for our community", "Local trust", "Digital action"],
       valueAria: "Value proposition",
       trustAria: "Trust",
+      mediaVisual: {
+        label: "Premium magazine + digital presence",
+        qrOverlay: "Scan. Translate. Connect.",
+        magazineAlt: "Decorative Leonix Media magazine preview",
+      },
     },
   },
 };
@@ -226,6 +241,58 @@ function TrustChipIcon() {
         />
       </svg>
     </span>
+  );
+}
+
+function HeroMediaVisual({
+  label,
+  qrOverlay,
+  magazineAlt,
+}: {
+  label: string;
+  qrOverlay: string;
+  magazineAlt: string;
+}) {
+  return (
+    <aside
+      className="mx-auto w-full max-w-[17rem] sm:max-w-xs lg:mx-0 lg:max-w-none lg:justify-self-end"
+      aria-label={label}
+    >
+      <div className="overflow-hidden rounded-2xl border border-[#C9A84A]/45 bg-[#FFFDF7] shadow-[0_16px_40px_-18px_rgba(31,36,28,0.35)] ring-1 ring-[#C9A84A]/15">
+        <p className="border-b border-[#D6C7AD]/75 bg-[#FBF7EF] px-3 py-2 text-center text-[0.65rem] font-bold uppercase tracking-[0.13em] text-[#556B3E] sm:text-xs">
+          {label}
+        </p>
+
+        <div className="relative bg-gradient-to-br from-[#EDE6D6]/45 via-[#F8F4EA] to-[#FFFDF7] px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5 lg:min-h-[19rem] lg:pb-6">
+          <div
+            className="pointer-events-none absolute -right-6 top-8 h-24 w-24 rounded-full bg-[#7A1E2C]/8 blur-2xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -left-4 bottom-16 h-20 w-20 rounded-full bg-[#C9A84A]/15 blur-2xl"
+            aria-hidden
+          />
+
+          <div className="relative mx-auto aspect-[3/4] w-full max-w-[220px] overflow-hidden rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] shadow-[0_10px_28px_-14px_rgba(31,36,28,0.4)] sm:max-w-[232px]">
+            <Image
+              src="/magazine/leonix-media-launch-es.png"
+              alt={magazineAlt}
+              fill
+              className="object-contain object-center p-1.5"
+              sizes="(max-width: 1024px) 220px, 232px"
+            />
+          </div>
+
+          <div
+            className="relative z-10 mx-auto mt-3 max-w-[220px] rounded-xl border border-[#C9A84A]/45 bg-[#2A4536] px-3 py-2.5 text-center shadow-[0_8px_20px_-10px_rgba(42,69,54,0.65)] sm:max-w-[232px] lg:absolute lg:bottom-6 lg:right-4 lg:mx-0 lg:mt-0 lg:max-w-[11.5rem] lg:text-left"
+          >
+            <p className="font-serif text-[0.8125rem] font-bold leading-snug text-[#F8F4EA] sm:text-sm">
+              {qrOverlay}
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -347,60 +414,68 @@ export function ComingSoonV2Shell() {
           className="scroll-mt-28 py-10 sm:py-12 lg:py-14"
           aria-labelledby="hero-title"
         >
-          <div className="max-w-3xl">
-            <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
-              {h.badge}
-            </p>
+          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)] lg:gap-10 xl:gap-12">
+            <div className="min-w-0 max-w-3xl lg:max-w-none">
+              <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
+                {h.badge}
+              </p>
 
-            <h1
-              id="hero-title"
-              className="mt-5 font-serif text-[2.35rem] font-bold leading-[1.05] tracking-tight text-[#2A4536] sm:mt-6 sm:text-5xl lg:text-[3.15rem]"
-            >
-              {h.title}
-            </h1>
+              <h1
+                id="hero-title"
+                className="mt-5 font-serif text-[2.35rem] font-bold leading-[1.05] tracking-tight text-[#2A4536] sm:mt-6 sm:text-5xl lg:text-[3.15rem]"
+              >
+                {h.title}
+              </h1>
 
-            <ul
-              className="mt-6 space-y-2.5 border-l-[3px] border-[#C9A84A]/55 pl-4 sm:mt-7 sm:space-y-3 sm:pl-5"
-              aria-label={h.valueAria}
-            >
-              {h.valueLines.map((line, index) => (
-                <li
-                  key={index}
-                  className={
-                    index === 2
-                      ? `${heroLineClass} rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] px-3 py-2.5 sm:px-4`
-                      : heroLineClass
-                  }
-                >
-                  <HeroLineText line={line} />
-                </li>
-              ))}
-            </ul>
+              <ul
+                className="mt-6 space-y-2.5 border-l-[3px] border-[#C9A84A]/55 pl-4 sm:mt-7 sm:space-y-3 sm:pl-5"
+                aria-label={h.valueAria}
+              >
+                {h.valueLines.map((line, index) => (
+                  <li
+                    key={index}
+                    className={
+                      index === 2
+                        ? `${heroLineClass} rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] px-3 py-2.5 sm:px-4`
+                        : heroLineClass
+                    }
+                  >
+                    <HeroLineText line={line} />
+                  </li>
+                ))}
+              </ul>
 
-            <p className="mt-6 max-w-[38rem] text-base leading-relaxed text-[#3D3428] sm:mt-8 sm:text-[1.0625rem]">
-              {h.paragraph}
-            </p>
+              <p className="mt-6 max-w-[38rem] text-base leading-relaxed text-[#3D3428] sm:mt-8 sm:text-[1.0625rem]">
+                {h.paragraph}
+              </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
-              {h.ctas.map((cta) => (
-                <HeroCtaLink key={cta.label} cta={cta} />
-              ))}
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap">
+                {h.ctas.map((cta) => (
+                  <HeroCtaLink key={cta.label} cta={cta} />
+                ))}
+              </div>
+
+              <ul
+                className="mt-8 flex flex-col gap-2.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
+                aria-label={h.trustAria}
+              >
+                {h.trustChips.map((chip) => (
+                  <li
+                    key={chip}
+                    className="flex items-center text-sm font-semibold text-[#3D3428]"
+                  >
+                    <TrustChipIcon />
+                    {chip}
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <ul
-              className="mt-8 flex flex-col gap-2.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
-              aria-label={h.trustAria}
-            >
-              {h.trustChips.map((chip) => (
-                <li
-                  key={chip}
-                  className="flex items-center text-sm font-semibold text-[#3D3428]"
-                >
-                  <TrustChipIcon />
-                  {chip}
-                </li>
-              ))}
-            </ul>
+            <HeroMediaVisual
+              label={h.mediaVisual.label}
+              qrOverlay={h.mediaVisual.qrOverlay}
+              magazineAlt={h.mediaVisual.magazineAlt}
+            />
           </div>
         </section>
       </main>
