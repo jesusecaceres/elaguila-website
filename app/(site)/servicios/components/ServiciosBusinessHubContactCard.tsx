@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   FiClock,
   FiCopy,
-  FiExternalLink,
   FiGlobe,
   FiMail,
   FiMapPin,
@@ -49,9 +48,10 @@ import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { SV } from "./serviciosDesignTokens";
+import { LX, LX_CTA_MAP, LX_CTA_PRIMARY, LX_CTA_WHATSAPP } from "./serviciosLeonixBrand";
+import { ServiciosHubReviewLinkButton } from "./ServiciosHubReviewLinkButton";
 
-const HUB_CTA_BG = "var(--lx-blue, #2F5F9E)";
-const HUB_GOLD = "var(--lx-gold, #D4AF37)";
+const HUB_GOLD = LX.gold;
 
 function analyticsForQuoteKind(kind: ServiciosQuoteDestinationKind): string {
   if (kind === "sms") return "cta_quote_sms_click";
@@ -86,9 +86,7 @@ function socialHeadline(platform: ServiciosBusinessHubSocialLink["platform"]): s
 }
 
 function HubSectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <h3 className="text-sm font-bold tracking-tight text-[color:var(--lx-text)] sm:text-base">{children}</h3>
-  );
+  return <h3 className="font-serif text-base font-semibold tracking-tight text-[#1E1814] sm:text-lg">{children}</h3>;
 }
 
 function HubDivider() {
@@ -281,7 +279,7 @@ export function ServiciosBusinessHubContactCard({
       id: "call",
       label: lang === "en" ? "Call" : "Llamar",
       onClick: openCall,
-      icon: <FiPhone className="h-5 w-5" style={{ color: HUB_GOLD }} aria-hidden />,
+      icon: <FiPhone className="h-5 w-5 shrink-0 text-white" aria-hidden />,
     });
   }
   if (vm.contact.messageSmsHref) {
@@ -289,7 +287,7 @@ export function ServiciosBusinessHubContactCard({
       id: "message",
       label: lang === "en" ? "Message" : "Mensaje",
       onClick: openMessage,
-      icon: <FiMessageSquare className="h-5 w-5" style={{ color: HUB_GOLD }} aria-hidden />,
+      icon: <FiMessageSquare className="h-5 w-5 shrink-0 text-white" aria-hidden />,
     });
   }
   if (vm.contact.whatsappHref) {
@@ -297,7 +295,7 @@ export function ServiciosBusinessHubContactCard({
       id: "whatsapp",
       label: "WhatsApp",
       onClick: openWhatsApp,
-      icon: <FaWhatsapp className="h-5 w-5" style={{ color: HUB_GOLD }} aria-hidden />,
+      icon: <FaWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />,
     });
   }
   if (vm.contact.emailMailto) {
@@ -305,7 +303,7 @@ export function ServiciosBusinessHubContactCard({
       id: "email",
       label: lang === "en" ? "Email" : "Correo",
       onClick: openEmail,
-      icon: <FiMail className="h-5 w-5" style={{ color: HUB_GOLD }} aria-hidden />,
+      icon: <FiMail className="h-5 w-5 shrink-0 text-white" aria-hidden />,
     });
   }
 
@@ -320,14 +318,16 @@ export function ServiciosBusinessHubContactCard({
   const showMore = vm.moreLinks.length > 0;
   const showLocation = Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref);
 
-  const primaryClass =
-    "flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-[0.97] active:scale-[0.99]";
+  const primaryClass = `${LX_CTA_PRIMARY} w-full`;
 
-  const contactBtnClass =
-    "flex min-h-[44px] flex-col items-center justify-center gap-1.5 rounded-2xl px-3 py-3 text-center text-xs font-semibold text-white shadow-md transition hover:opacity-[0.97] active:scale-[0.99] sm:text-sm";
+  const contactBtnBase =
+    "flex min-h-[48px] w-full flex-col items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-center text-xs font-bold text-white shadow-md transition hover:brightness-[1.04] active:scale-[0.99] sm:text-sm";
 
   const socialChipClass =
-    "flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full shadow-md transition hover:scale-[1.03] hover:shadow-lg active:scale-[0.98] sm:h-11 sm:w-11";
+    "flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg shadow-md transition hover:scale-[1.03] hover:shadow-lg active:scale-[0.98]";
+
+  const moreLinkClass =
+    "flex min-h-[48px] w-full items-center gap-2 rounded-lg border-2 bg-[#FFFCF7] px-3 py-3 text-left text-sm font-bold text-[#1E1814] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFDF9] active:scale-[0.99]";
 
   const showPrimaryQuote =
     quote &&
@@ -338,8 +338,8 @@ export function ServiciosBusinessHubContactCard({
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
       <article
-        className="overflow-hidden rounded-3xl border p-4 shadow-md sm:p-6"
-        style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadow }}
+        className="overflow-hidden rounded-xl border p-4 shadow-md sm:rounded-2xl sm:p-6"
+        style={{ backgroundColor: LX.ivory, borderColor: LX.goldBorder, boxShadow: SV.shadow }}
         data-servicios-business-hub="1"
       >
         {featured ? (
@@ -376,7 +376,7 @@ export function ServiciosBusinessHubContactCard({
             listingSlug={listingSlug}
             analyticsEventType={analyticsForQuoteKind("mailto")}
             triggerClassName={`${primaryClass} ${hasContactGrid ? "mb-4" : ""} justify-between`}
-            triggerStyle={{ backgroundColor: HUB_CTA_BG, boxShadow: "0 12px 32px rgba(47, 95, 158, 0.22)" }}
+            triggerStyle={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
           >
             <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
             {primaryCtaLabel}
@@ -385,7 +385,7 @@ export function ServiciosBusinessHubContactCard({
           <button
             type="button"
             className={`${primaryClass} ${hasContactGrid ? "mb-4" : ""} w-full border-0`}
-            style={{ backgroundColor: HUB_CTA_BG, boxShadow: "0 12px 32px rgba(47, 95, 158, 0.22)" }}
+            style={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
             onClick={openPrimaryMailtoSheet}
           >
             <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
@@ -395,7 +395,7 @@ export function ServiciosBusinessHubContactCard({
           <button
             type="button"
             className={`${primaryClass} ${hasContactGrid ? "mb-4" : ""} w-full border-0`}
-            style={{ backgroundColor: HUB_CTA_BG, boxShadow: "0 12px 32px rgba(47, 95, 158, 0.22)" }}
+            style={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
             onClick={openPrimaryQuoteSheet}
           >
             <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
@@ -424,8 +424,14 @@ export function ServiciosBusinessHubContactCard({
                 <button
                   key={action.id}
                   type="button"
-                  className={`${contactBtnClass} w-full border-0`}
-                  style={{ backgroundColor: HUB_CTA_BG }}
+                  className={`${contactBtnBase} border-0`}
+                  style={{
+                    backgroundColor: action.id === "whatsapp" ? LX.whatsApp : LX.burgundy,
+                    boxShadow:
+                      action.id === "whatsapp"
+                        ? "0 6px 16px rgba(37, 211, 102, 0.22)"
+                        : "0 6px 16px rgba(92, 22, 34, 0.2)",
+                  }}
                   onClick={action.onClick}
                 >
                   {action.icon}
@@ -450,7 +456,7 @@ export function ServiciosBusinessHubContactCard({
           <>
             {hasContactGrid || showPrimaryQuote || showEngagementRow ? <HubDivider /> : null}
             <p className="flex items-start gap-2 text-xs text-[color:var(--lx-text-2)]">
-              <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: HUB_CTA_BG }} aria-hidden />
+              <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
               <span>
                 <span className="font-semibold text-[color:var(--lx-text)]">{hours.openNowLabel}:</span>{" "}
                 {hours.todayHoursLine}
@@ -483,12 +489,7 @@ export function ServiciosBusinessHubContactCard({
               <HubSectionTitle>
                 <span id="hub-social-heading">{lang === "en" ? "Follow us" : "Síguenos"}</span>
               </HubSectionTitle>
-              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
-                {lang === "en"
-                  ? "Find us here, don't forget to follow and like."
-                  : "Encuéntranos aquí, no olvides seguir y dar like."}
-              </p>
-              <div className="mt-4 flex max-w-full flex-wrap gap-3 break-words">
+              <div className="mt-3 flex max-w-full flex-wrap gap-2.5 break-words">
                 {vm.social.map((link) => {
                   const brand = businessHubSocialBrandStyle(link.platform);
                   return (
@@ -524,25 +525,12 @@ export function ServiciosBusinessHubContactCard({
               </HubSectionTitle>
               <div className="mt-3 flex flex-col gap-2">
                 {vm.reviews.map((link) => (
-                  <button
+                  <ServiciosHubReviewLinkButton
                     key={link.id}
-                    type="button"
+                    link={link}
+                    lang={lang}
                     onClick={() => openReviewLink(link)}
-                    className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl border bg-white px-3 py-3 text-left text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:shadow-md"
-                    style={{ borderColor: SV.border }}
-                  >
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                      {link.rating != null ? (
-                        <ServiciosStarRating value={link.rating} size="sm" />
-                      ) : (
-                        <FiExternalLink className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-                      )}
-                      <span className="min-w-0 break-words">{link.label}</span>
-                    </span>
-                    {link.reviewCount != null ? (
-                      <span className="shrink-0 text-xs text-[color:var(--lx-text-2)]">({link.reviewCount})</span>
-                    ) : null}
-                  </button>
+                  />
                 ))}
               </div>
             </section>
@@ -554,7 +542,7 @@ export function ServiciosBusinessHubContactCard({
             <HubDivider />
             <section aria-labelledby="hub-more-heading">
               <HubSectionTitle>
-                <span id="hub-more-heading">{lang === "en" ? "Find us here" : "Encuéntranos aquí"}</span>
+                <span id="hub-more-heading">{lang === "en" ? "Find us online" : "Búscanos aquí"}</span>
               </HubSectionTitle>
               <div className="mt-3 flex flex-col gap-2">
                 {vm.moreLinks.map((link, i) => (
@@ -562,10 +550,10 @@ export function ServiciosBusinessHubContactCard({
                     key={`${link.label}-${i}`}
                     type="button"
                     onClick={() => openLink(link.url)}
-                    className="flex min-h-[44px] w-full items-center gap-2 rounded-xl border bg-white px-3 py-3 text-left text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:shadow-md"
-                    style={{ borderColor: SV.border }}
+                    className={moreLinkClass}
+                    style={{ borderColor: LX.goldBorder }}
                   >
-                    <FiGlobe className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
+                    <FiGlobe className="h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
                     <span className="min-w-0 flex-1 break-words">{link.label}</span>
                   </button>
                 ))}
@@ -591,12 +579,11 @@ export function ServiciosBusinessHubContactCard({
               {vm.location?.mapsHref ? (
                 <button
                   type="button"
-                  className={`${primaryClass} mt-3 w-full border-0`}
-                  style={{ backgroundColor: HUB_CTA_BG, boxShadow: "0 8px 24px rgba(47, 95, 158, 0.18)" }}
+                  className={`${LX_CTA_MAP} mt-3 w-full`}
                   onClick={() => openDirections(vm.location!.mapsHref!, true)}
                 >
-                  <FiMapPin className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-                  {lang === "en" ? "View on map" : "Ver en el mapa"}
+                  <FiMapPin className="h-5 w-5 shrink-0" aria-hidden />
+                  {lang === "en" ? "Get directions" : "Cómo llegar"}
                 </button>
               ) : null}
             </section>

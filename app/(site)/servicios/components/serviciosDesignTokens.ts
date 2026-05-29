@@ -27,6 +27,10 @@ export const SV = {
   warmSoft: "rgba(184, 106, 50, 0.1)",
   warmBorder: "rgba(184, 106, 50, 0.2)",
   
+  // Leonix burgundy — primary professional CTAs (Gate 13)
+  burgundy: "#7A1E2C",
+  burgundyDark: "#5C1622",
+
   // CTA dark - espresso brown
   cta: "#3B2117",             // espresso brown
   ctaSoft: "rgba(59, 33, 23, 0.08)",

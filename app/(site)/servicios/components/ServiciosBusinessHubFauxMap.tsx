@@ -1,7 +1,7 @@
 import { FiMapPin } from "react-icons/fi";
 import { SV } from "./serviciosDesignTokens";
 
-const HUB_GOLD = "var(--lx-gold, #D4AF37)";
+const HUB_PIN = "#7A1E2C";
 
 /**
  * Decorative faux map panel — no external APIs, tiles, or geolocation claims.
@@ -32,8 +32,8 @@ export function ServiciosBusinessHubFauxMap() {
             />
           </pattern>
           <linearGradient id="hub-map-water" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(47, 95, 158, 0.08)" />
-            <stop offset="100%" stopColor="rgba(47, 95, 158, 0.14)" />
+            <stop offset="0%" stopColor="rgba(122, 30, 44, 0.06)" />
+            <stop offset="100%" stopColor="rgba(59, 33, 23, 0.1)" />
           </linearGradient>
         </defs>
         <rect width="400" height="225" fill="url(#hub-map-grid)" />
@@ -46,7 +46,7 @@ export function ServiciosBusinessHubFauxMap() {
         <path
           d="M 0 112 Q 80 96 160 112 T 320 108 T 400 118"
           fill="none"
-          stroke="rgba(47, 95, 158, 0.12)"
+          stroke="rgba(122, 30, 44, 0.1)"
           strokeWidth="10"
           strokeLinecap="round"
         />
@@ -73,8 +73,8 @@ export function ServiciosBusinessHubFauxMap() {
         <div
           className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white shadow-lg sm:h-12 sm:w-12"
           style={{
-            backgroundColor: HUB_GOLD,
-            boxShadow: "0 8px 20px rgba(30, 24, 16, 0.18), 0 0 0 4px rgba(212, 175, 55, 0.25)",
+            backgroundColor: HUB_PIN,
+            boxShadow: "0 8px 20px rgba(30, 24, 16, 0.18), 0 0 0 4px rgba(201, 168, 74, 0.28)",
           }}
         >
           <FiMapPin className="h-5 w-5 text-white sm:h-6 sm:w-6" aria-hidden />

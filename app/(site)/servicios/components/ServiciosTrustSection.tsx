@@ -1,16 +1,16 @@
 import { FaCheck, FaClock, FaHeart, FaShieldAlt, FaStar } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
-import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { SV } from "./serviciosDesignTokens";
+import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
+import { LX_SECTION_CARD, getTrustSectionHeading, getTrustSectionKicker } from "./serviciosLeonixBrand";
 
 function TrustIcon({ icon }: { icon: string }) {
-  const c = "h-5 w-5 text-[#6F7A3A]";
+  const c = "h-5 w-5 text-[#7A1E2C]";
   switch (icon) {
     case "shieldCheck":
       return (
         <span className="relative inline-flex" aria-hidden>
           <FaShieldAlt className={c} />
-          <FaCheck className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-white text-emerald-600" />
+          <FaCheck className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-white text-[#2D5A3D]" />
         </span>
       );
     case "shield":
@@ -28,30 +28,35 @@ function TrustIcon({ icon }: { icon: string }) {
   }
 }
 
-export function ServiciosTrustSection({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
-  const L = getServiciosProfileLabels(lang);
-  const items = profile.trust;
+export function ServiciosTrustSection({
+  profile,
+  lang,
+  template,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  template?: ServiciosListingTemplate;
+}) {
+  const items = profile.trust.slice(0, 6);
   if (!items.length) return null;
 
+  const heading = template ? getTrustSectionHeading(template, lang) : lang === "en" ? "Why choose us" : "¿Por qué elegirnos?";
+  const kicker = template ? getTrustSectionKicker(template, lang) : lang === "en" ? "Trust & credentials" : "Confianza y credenciales";
+
   return (
-    <section
-      className="rounded-2xl border px-3 py-4 shadow-sm sm:px-6 sm:py-7 md:px-8"
-      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-    >
-      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#2F2A23]">
-        {lang === "en" ? "Why work with us" : "Por qué con nosotros"}
-      </p>
-      <h2 className="mt-1 text-lg font-bold tracking-tight text-[#2F2A23] md:text-xl">{L.trust}</h2>
-      <div className="mt-4 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 md:mt-5 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3">
+    <section className={`${LX_SECTION_CARD} px-3 py-4 sm:px-6 sm:py-6`}>
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F6254]">{kicker}</p>
+      <h2 className="mt-1 font-serif text-xl font-semibold tracking-tight text-[#1E1814] md:text-2xl">{heading}</h2>
+      <div className="mt-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 md:mt-5 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3">
         {items.map((t) => (
           <div
             key={t.id}
-            className="flex min-w-[min(16rem,82vw)] max-w-[min(22rem,92vw)] shrink-0 snap-start items-center gap-2.5 rounded-xl border border-[#E8D7B8] bg-white/95 px-3 py-2.5 shadow-sm sm:min-w-0 sm:max-w-none sm:gap-3.5 sm:px-3.5 sm:py-3.5 md:min-w-0"
+            className="flex min-w-[min(16rem,82vw)] max-w-[min(22rem,92vw)] shrink-0 snap-start items-center gap-2.5 rounded-lg border border-[#E8D9C4] bg-[#F5F0E8] px-3 py-3 shadow-sm sm:min-w-0 sm:max-w-none sm:gap-3 md:min-w-0"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#FCF9F2] shadow-inner">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#D4C4A8]/60 bg-[#FFFCF7]">
               <TrustIcon icon={t.icon} />
             </div>
-            <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-[#2F2A23]">{t.label}</p>
+            <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-[#1E1814]">{t.label}</p>
           </div>
         ))}
       </div>

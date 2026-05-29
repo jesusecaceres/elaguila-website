@@ -23,70 +23,27 @@ import {
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
+import {
+  LX,
+  LX_CHIP,
+  LX_CTA_MAP,
+  LX_CTA_PRIMARY,
+  LX_CTA_SECONDARY,
+  LX_CTA_WHATSAPP,
+  collectHeroTrustChips,
+  collectProfessionalServiceChips,
+  getPrimaryCtaLabel,
+  hasPhysicalAddress,
+} from "@/app/servicios/components/serviciosLeonixBrand";
 
 const CARD =
-  "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#E4D4BC] bg-[#FFFDF9] shadow-sm transition hover:border-[#D4C4A8] hover:shadow-md sm:rounded-3xl";
+  "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4D4BC] bg-[#FFFDF9] shadow-sm transition hover:border-[#D4C4A8] hover:shadow-md sm:rounded-2xl";
 
-const CHIP =
-  "inline-flex max-w-full shrink-0 items-center rounded-full border border-[#D4C4A8]/90 bg-[#EBDCC4] px-2.5 py-1 text-[11px] font-semibold leading-tight text-[#1E1814] sm:text-xs";
-
-const CTA_PRIMARY =
-  "inline-flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] px-4 text-sm font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50";
-
-const CTA_SECONDARY =
-  "inline-flex min-h-[42px] flex-1 items-center justify-center rounded-xl border border-[#E0D0B8] bg-white px-4 text-sm font-bold text-[#2A2620] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFCF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
-
-const CTA_TERTIARY =
-  "inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-[#E0D0B8] bg-[#FFFCF7] px-3 text-xs font-bold text-[#2A2620] transition hover:border-[#C9A84A]";
-
-function cleanChipLabel(raw: string): string {
-  const t = String(raw ?? "").trim();
-  if (!t) return "";
-  const lower = t.toLowerCase();
-  if (lower === "otro" || lower === "other") return "";
-  if (lower.startsWith("otro:") || lower.startsWith("other:")) {
-    return t.split(":").slice(1).join(":").trim();
-  }
-  return t;
-}
-
-function isWeakChipLabel(label: string): boolean {
-  const low = label.trim().toLowerCase();
-  if (!low) return true;
-  const weak = new Set([
-    "innovacion constante",
-    "innovación constante",
-    "constant innovation",
-    "etiqueta breve",
-    "brief tag",
-  ]);
-  return weak.has(low);
-}
-
-function getProfessionalCtas(template: ServiciosListingTemplate, lang: ServiciosLang) {
+function getProfileCtaSecondary(template: ServiciosListingTemplate, lang: ServiciosLang): string {
   if (template === "legal_provider") {
-    return lang === "en"
-      ? { primary: "Call for Consultation", secondary: "View Legal Profile" }
-      : { primary: "Llamar para consulta", secondary: "Ver perfil legal" };
+    return lang === "en" ? "View profile" : "Ver perfil";
   }
-  if (template === "clinic_provider") {
-    return lang === "en"
-      ? { primary: "Request Appointment", secondary: "View Profile" }
-      : { primary: "Solicitar cita", secondary: "Ver perfil" };
-  }
-  if (template === "financial_provider") {
-    return lang === "en"
-      ? { primary: "Request Help", secondary: "View Profile" }
-      : { primary: "Solicitar ayuda", secondary: "Ver perfil" };
-  }
-  if (template === "advisor_provider") {
-    return lang === "en"
-      ? { primary: "Schedule Consultation", secondary: "View Profile" }
-      : { primary: "Agendar consulta", secondary: "Ver perfil" };
-  }
-  return lang === "en"
-    ? { primary: "Contact", secondary: "View Profile" }
-    : { primary: "Contactar", secondary: "Ver perfil" };
+  return lang === "en" ? "View profile" : "Ver perfil";
 }
 
 function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
@@ -116,7 +73,6 @@ function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
 export function ServiciosProfessionalResultCard({
   row,
   lang,
-  /** When true, omit outer `<li>` (parent list item already wraps this card). */
   embedded = false,
 }: {
   row: ServiciosPublicListingRow;
@@ -143,21 +99,19 @@ export function ServiciosProfessionalResultCard({
     internalGroup: row.internal_group,
     categoryLabel: profile.hero.categoryLine,
   });
-  const ctas = getProfessionalCtas(template, lang);
+  const primaryLabel = getPrimaryCtaLabel(template, lang);
+  const secondaryLabel = getProfileCtaSecondary(template, lang);
 
   const href = `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
-  const thumb =
-    profile.hero.logoUrl ||
-    profile.gallery[0]?.url ||
-    profile.hero.coverImageUrl ||
-    null;
+  const thumb = profile.hero.logoUrl || null;
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || row.city?.trim();
-  const snippet = profile.about?.text?.trim().slice(0, 120);
-  const trustFact = profile.quickFacts[0]?.label?.trim();
   const tel = profile.contact.phoneTelHref;
   const wa = profile.contact.socialLinks?.whatsapp;
   const promoted = isServiciosListingPromoted(row);
+  const showDirections = hasPhysicalAddress(profile);
+  const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 4), [profile]);
+  const trustChips = useMemo(() => collectHeroTrustChips(profile, 3), [profile]);
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -167,25 +121,6 @@ export function ServiciosProfessionalResultCard({
     typeof profile.hero.reviewCount === "number" && profile.hero.reviewCount > 0
       ? profile.hero.reviewCount
       : undefined;
-
-  const chips = useMemo(() => {
-    const out: string[] = [];
-    const seen = new Set<string>();
-    const add = (raw: string) => {
-      const c = cleanChipLabel(raw);
-      if (!c || isWeakChipLabel(c)) return;
-      const key = c.toLowerCase();
-      if (seen.has(key)) return;
-      seen.add(key);
-      out.push(c);
-    };
-    for (const s of profile.services) add(s.title);
-    const spec = profile.about?.specialtiesLine?.trim();
-    if (spec) {
-      for (const part of spec.split(/[,;|·]/)) add(part);
-    }
-    return out.slice(0, 4);
-  }, [profile.about?.specialtiesLine, profile.services]);
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
@@ -253,58 +188,80 @@ export function ServiciosProfessionalResultCard({
     );
   }, [contactExtras, lang, openOutbound, waHrefNormalized]);
 
-  const primaryIsCall = Boolean(tel);
+  const onDirectionsClick = useCallback(() => {
+    const mapsHref = profile.contact.mapsSearchHref?.trim();
+    const addr = profile.contact.physicalAddressDisplay?.trim();
+    trackServiciosListingCta(row.slug, "cta_maps_click", { source: "servicios_professional_card" });
+    if (mapsHref && /^https?:\/\//i.test(mapsHref)) {
+      window.open(mapsHref, "_blank", "noopener,noreferrer");
+    } else if (addr) {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+    }
+  }, [profile.contact.mapsSearchHref, profile.contact.physicalAddressDisplay, row.slug]);
 
   const cardSurface = promoted
-    ? `${CARD} ring-2 ring-[#D4AF37]/25 border-[#D4AF37]/50`
+    ? `${CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : CARD;
+  const primaryIsCall = Boolean(tel);
+  const showSecondaryRow = (primaryIsCall && Boolean(waHrefNormalized)) || showDirections;
 
   const body = (
     <>
       <article className={cardSurface}>
-        <div className="flex gap-3 p-4 pb-3 sm:gap-4 sm:p-5">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#E4D4BC]/80 bg-[#F6F0E8] sm:h-[4.5rem] sm:w-[4.5rem]">
+        <div className="flex gap-3 p-4 pb-2 sm:gap-4 sm:p-5 sm:pb-3">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-1 sm:h-[4.5rem] sm:w-[4.5rem]">
             {thumb ? (
               <Image
                 src={thumb}
                 alt={profile.hero.logoAlt || profile.identity.businessName}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="72px"
                 unoptimized={serviciosImageUnoptimized(thumb)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase tracking-wide text-[#8B7E70]">
+              <div className="flex h-full w-full items-center justify-center font-serif text-sm font-semibold uppercase tracking-wide text-[#3B2117]">
                 {profile.identity.businessName.slice(0, 2)}
               </div>
             )}
           </div>
 
-          <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-1">
               {promoted ? (
-                <span className="rounded-full border border-[#D4AF37]/40 bg-gradient-to-r from-[#D4AF37] to-[#9A7329] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
                   {lang === "en" ? "Featured" : "Destacado"}
                 </span>
               ) : null}
               {row.leonix_verified ? (
-                <span className="rounded-full border border-[#6F7A3A]/30 bg-[#6F7A3A]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#4d5630]">
+                <span
+                  className="rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                  style={{
+                    borderColor: "rgba(45, 90, 61, 0.35)",
+                    backgroundColor: LX.trustGreenSoft,
+                    color: LX.trustGreen,
+                  }}
+                >
                   {lang === "en" ? "Verified" : "Verificado"}
                 </span>
               ) : null}
             </div>
 
-            <h3 className="text-base font-bold leading-snug text-[#1A1A1A] sm:text-lg">
+            <h3 className="font-serif text-lg font-semibold leading-snug text-[#1E1814] sm:text-xl">
               {profile.identity.businessName}
             </h3>
 
             {category ? (
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#6F6254]">{category}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-xs">{category}</p>
             ) : null}
 
             {location ? (
-              <p className="flex items-start gap-1.5 text-xs text-[#4A4A4A] sm:text-sm">
-                <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#6F7A3A]" aria-hidden />
+              <p className="flex items-start gap-1.5 text-xs text-[#4A4A4A]">
+                <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
                 <span className="line-clamp-2">{location}</span>
               </p>
             ) : null}
@@ -314,7 +271,7 @@ export function ServiciosProfessionalResultCard({
                 <StarRow rating={ratingValue} lang={lang} />
                 {reviewCount != null ? (
                   <span className="text-[11px] font-medium text-[#6F6254]">
-                    {lang === "en" ? `(${reviewCount} reviews)` : `(${reviewCount} reseñas)`}
+                    {lang === "en" ? `(${reviewCount})` : `(${reviewCount})`}
                   </span>
                 ) : null}
               </div>
@@ -322,60 +279,92 @@ export function ServiciosProfessionalResultCard({
           </div>
         </div>
 
-        {(chips.length > 0 || snippet || trustFact) && (
-          <div className="space-y-2 px-4 pb-3 sm:px-5">
-            {chips.length > 0 ? (
+        {(serviceChips.length > 0 || trustChips.length > 0) && (
+          <div className="space-y-2 px-4 pb-2 sm:px-5">
+            {serviceChips.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {chips.map((chip) => (
-                  <span key={chip} className={CHIP}>
+                {serviceChips.map((chip) => (
+                  <span key={chip} className={LX_CHIP}>
                     {chip}
                   </span>
                 ))}
               </div>
             ) : null}
-            {snippet ? (
-              <p className="line-clamp-2 text-xs leading-relaxed text-[#4A4A4A] sm:text-sm">{snippet}</p>
-            ) : null}
-            {trustFact ? (
-              <p className="text-[11px] font-medium text-[#6F6254] sm:text-xs">{trustFact}</p>
+            {trustChips.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {trustChips.map((chip) => (
+                  <span
+                    key={chip}
+                    className="rounded-md border border-[#D4C4A8]/70 bg-[#F5F0E8] px-2 py-0.5 text-[10px] font-semibold text-[#1E1814]"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
             ) : null}
           </div>
         )}
 
         <div className="mt-auto flex flex-col gap-2 border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex flex-col gap-2 sm:flex-row">
-            {primaryIsCall ? (
-              <button type="button" onClick={onCallClick} className={CTA_PRIMARY}>
+            {tel ? (
+              <button
+                type="button"
+                onClick={onCallClick}
+                className={`${LX_CTA_PRIMARY} flex-1`}
+                style={{ backgroundColor: LX.burgundy }}
+              >
                 <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
-                {ctas.primary}
+                {primaryLabel}
               </button>
             ) : waHrefNormalized ? (
-              <button type="button" onClick={onWhatsAppClick} className={CTA_PRIMARY}>
-                <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
-                {ctas.primary}
+              <button
+                type="button"
+                onClick={onWhatsAppClick}
+                className={`${LX_CTA_WHATSAPP} flex-1`}
+                style={{ backgroundColor: LX.whatsApp }}
+              >
+                <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
+                WhatsApp
               </button>
-            ) : (
-              <Link href={href} className={CTA_PRIMARY}>
-                {ctas.primary}
-              </Link>
-            )}
-            <Link href={href} className={CTA_SECONDARY}>
-              {ctas.secondary}
+            ) : null}
+            <Link href={href} className={`${LX_CTA_SECONDARY} flex-1`}>
+              {secondaryLabel}
             </Link>
           </div>
-          {tel && waHrefNormalized ? (
+          {showSecondaryRow ? (
             <div className="flex flex-wrap gap-2">
-              {!primaryIsCall ? (
-                <button type="button" onClick={onCallClick} className={CTA_TERTIARY}>
-                  <FiPhone className="h-3.5 w-3.5" aria-hidden />
-                  {lang === "en" ? "Call" : "Llamar"}
-                </button>
-              ) : (
-                <button type="button" onClick={onWhatsAppClick} className={CTA_TERTIARY}>
-                  <FaWhatsapp className="h-3.5 w-3.5" aria-hidden />
+              {primaryIsCall && waHrefNormalized ? (
+                <button
+                  type="button"
+                  onClick={onWhatsAppClick}
+                  className={`${LX_CTA_WHATSAPP} min-h-[40px] flex-1 px-3 py-2 text-xs`}
+                  style={{ backgroundColor: LX.whatsApp }}
+                >
+                  <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
                   WhatsApp
                 </button>
-              )}
+              ) : null}
+              {!primaryIsCall && tel ? (
+                <button
+                  type="button"
+                  onClick={onCallClick}
+                  className={`${LX_CTA_SECONDARY} min-h-[40px] flex-1 px-3 py-2 text-xs`}
+                >
+                  <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {lang === "en" ? "Call" : "Llamar"}
+                </button>
+              ) : null}
+              {showDirections ? (
+                <button
+                  type="button"
+                  onClick={onDirectionsClick}
+                  className={`${LX_CTA_MAP} min-h-[40px] flex-1 px-3 py-2 text-xs`}
+                >
+                  <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {lang === "en" ? "Directions" : "Cómo llegar"}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
