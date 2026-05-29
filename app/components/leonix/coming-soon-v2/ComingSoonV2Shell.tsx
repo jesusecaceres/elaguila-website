@@ -340,43 +340,30 @@ function HeroMediaVisual({
   magazineAlt: string;
 }) {
   return (
-    <aside
-      className="mx-auto w-full max-w-[17rem] sm:max-w-xs lg:mx-0 lg:max-w-none lg:justify-self-end"
-      aria-label={label}
-    >
-      <div className="overflow-hidden rounded-2xl border border-[#C9A84A]/45 bg-[#FFFDF7] shadow-[0_16px_40px_-18px_rgba(31,36,28,0.35)] ring-1 ring-[#C9A84A]/15">
-        <p className="border-b border-[#D6C7AD]/75 bg-[#FBF7EF] px-3 py-2 text-center text-[0.65rem] font-bold uppercase tracking-[0.13em] text-[#556B3E] sm:text-xs">
-          {label}
-        </p>
-
-        <div className="relative bg-gradient-to-br from-[#EDE6D6]/45 via-[#F8F4EA] to-[#FFFDF7] px-4 pb-4 pt-4 sm:px-5 sm:pb-5 sm:pt-5 lg:min-h-[19rem] lg:pb-6">
-          <div
-            className="pointer-events-none absolute -right-6 top-8 h-24 w-24 rounded-full bg-[#7A1E2C]/8 blur-2xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -left-4 bottom-16 h-20 w-20 rounded-full bg-[#C9A84A]/15 blur-2xl"
-            aria-hidden
-          />
-
-          <div className="relative mx-auto aspect-[3/4] w-full max-w-[220px] overflow-hidden rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] shadow-[0_10px_28px_-14px_rgba(31,36,28,0.4)] sm:max-w-[232px]">
+    <aside className="w-full min-w-0 lg:justify-self-stretch" aria-label={label}>
+      <div className="relative mx-auto w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] lg:mx-0 lg:max-w-none">
+        <div className="relative rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-1.5 shadow-[0_20px_48px_-20px_rgba(31,36,28,0.38)] ring-1 ring-[#C9A84A]/12 sm:p-2 lg:pb-3">
+          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-gradient-to-b from-[#EDE6D6]/30 to-[#F8F4EA]">
             <Image
               src="/magazine/leonix-media-launch-es.png"
               alt={magazineAlt}
               fill
-              className="object-contain object-center p-1.5"
-              sizes="(max-width: 1024px) 220px, 232px"
+              className="object-contain object-center"
+              sizes="(max-width: 640px) 352px, (max-width: 1024px) 416px, 512px"
+              priority
             />
           </div>
 
-          <div
-            className="relative z-10 mx-auto mt-3 max-w-[220px] rounded-xl border border-[#C9A84A]/45 bg-[#2A4536] px-3 py-2.5 text-center shadow-[0_8px_20px_-10px_rgba(42,69,54,0.65)] sm:max-w-[232px] lg:absolute lg:bottom-6 lg:right-4 lg:mx-0 lg:mt-0 lg:max-w-[11.5rem] lg:text-left"
-          >
+          <div className="relative z-10 mx-auto mt-3 max-w-[13.5rem] rounded-xl border border-[#C9A84A]/45 bg-[#2A4536] px-3.5 py-2.5 text-center shadow-[0_10px_24px_-12px_rgba(42,69,54,0.7)] sm:max-w-[14rem] lg:absolute lg:bottom-5 lg:left-4 lg:mx-0 lg:mt-0 lg:text-left">
             <p className="font-serif text-[0.8125rem] font-bold leading-snug text-[#F8F4EA] sm:text-sm">
               {qrOverlay}
             </p>
           </div>
         </div>
+
+        <p className="mt-3 text-center text-[0.65rem] font-bold uppercase tracking-[0.13em] text-[#556B3E] sm:text-xs lg:mt-4 lg:text-left">
+          {label}
+        </p>
       </div>
     </aside>
   );
@@ -619,7 +606,7 @@ export function ComingSoonV2Shell() {
           className="scroll-mt-28 py-10 sm:py-12 lg:py-14"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(240px,0.92fr)] lg:gap-10 xl:gap-12">
+          <div className="grid items-start gap-10 lg:grid-cols-2 lg:items-start lg:gap-8 xl:gap-10">
             <div className="min-w-0 max-w-3xl lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
