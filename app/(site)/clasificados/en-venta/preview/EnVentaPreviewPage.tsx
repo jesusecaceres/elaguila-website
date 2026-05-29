@@ -24,7 +24,7 @@ import {
   CtaActionSheet,
   type CtaSheetIntent,
 } from "@/app/components/cta";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { EnVentaEngagementRow } from "@/app/clasificados/en-venta/shared/components/EnVentaEngagementRow";
 
 const PAGE_BG_STYLE: CSSProperties = {
   backgroundColor: "#F3EBDD",
@@ -80,9 +80,6 @@ const BUYER = {
     mapArea: "Map",
   },
 } as const;
-
-const engagementBtnClass =
-  "inline-flex min-h-[40px] items-center gap-1.5 rounded-md border border-[#E8DFD0]/90 bg-white px-3 py-2 text-xs font-bold text-[#3D3428] transition hover:border-[#C9A84A]/55 hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-60";
 
 function relativeTimeLabel(ts: number, lang: "es" | "en"): string {
   const diffMs = Date.now() - ts;
@@ -278,25 +275,12 @@ export function EnVentaPreviewPage() {
         title: vm.negotiable && vm.offerMailtoHref ? tBuyer.makeOfferHint : undefined,
       }}
       engagementRow={
-        <>
-          <button type="button" disabled title={tBuyer.saveDraftHint} className={engagementBtnClass}>
-            <span aria-hidden>♡</span>
-            {tBuyer.save}
-            <span className="sr-only"> — {tBuyer.saveDraftHint}</span>
-          </button>
-          <LeonixShareButton
-            listingId={null}
-            listingUrl={previewPublicUrl}
-            listingTitle={vm.title}
-            lang={lang}
-            variant="small"
-            persistEngagement={false}
-            className="[&>button]:min-h-[40px] [&>button]:rounded-md [&>button]:border-[#E8DFD0] [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#3D3428] [&>button]:hover:border-[#C9A84A]/55"
-          />
-          <button type="button" disabled title={tBuyer.reportHint} className={engagementBtnClass}>
-            {tBuyer.report}
-          </button>
-        </>
+        <EnVentaEngagementRow
+          lang={lang}
+          mode="preview"
+          listingUrl={previewPublicUrl}
+          listingTitle={vm.title}
+        />
       }
     />
   );

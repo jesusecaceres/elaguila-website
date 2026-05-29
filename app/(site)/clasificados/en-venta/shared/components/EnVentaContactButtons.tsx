@@ -1,6 +1,7 @@
 "use client";
 
 import type { EnVentaContactAction } from "../utils/enVentaContactActions";
+import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
 
 type Props = {
   actions: EnVentaContactAction[];
@@ -53,8 +54,7 @@ function actionIcon(id: EnVentaContactAction["id"]) {
 }
 
 function actionClass(id: EnVentaContactAction["id"]): string {
-  const base =
-    "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A]/60";
+  const base = `${EN_VENTA_TYPO.contactBtn} focus-visible:outline-[#C9A84A]/60`;
   if (id === "whatsapp") {
     return `${base} border-[#128C7E]/40 bg-[#25D366]/12 text-[#0b3d32] hover:bg-[#25D366]/22`;
   }

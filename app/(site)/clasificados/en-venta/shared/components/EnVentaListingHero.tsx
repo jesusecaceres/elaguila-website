@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
 
 type Props = {
   lang: "es" | "en";
@@ -33,25 +34,21 @@ export function EnVentaListingHero({
 
   return (
     <header className="text-left">
-      <h1 className="font-serif text-[1.65rem] font-bold leading-tight tracking-tight text-[#1E1810] sm:text-[1.9rem]">
-        {title}
-      </h1>
+      <h1 className={EN_VENTA_TYPO.listingTitle}>{title}</h1>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <p className="text-[1.75rem] font-bold leading-none tracking-tight text-[#1E1810] sm:text-[2rem]">{priceLine}</p>
+        <p className={EN_VENTA_TYPO.listingPrice}>{priceLine}</p>
         {negotiable ? (
-          <span className="rounded-md border border-[#C9B46A]/50 bg-[#FBF7EF] px-2 py-0.5 text-xs font-semibold text-[#5C4E2E]">
-            {negotiableLabel}
-          </span>
+          <span className={EN_VENTA_TYPO.negotiableChip}>{negotiableLabel}</span>
         ) : null}
       </div>
 
       {statusLine ? (
-        <p className="mt-2 text-xs font-medium tracking-wide text-[#7A7164]">{statusLine}</p>
+        <p className={`mt-2 ${EN_VENTA_TYPO.listingStatus}`}>{statusLine}</p>
       ) : null}
 
       {meta.length > 0 ? (
-        <p className="mt-3 text-sm leading-snug text-[#5C5346]">{meta.join(" · ")}</p>
+        <p className={`mt-3 ${EN_VENTA_TYPO.listingMeta}`}>{meta.join(" · ")}</p>
       ) : null}
 
       {primaryCta ? (
@@ -61,7 +58,7 @@ export function EnVentaListingHero({
           title={primaryCta.title}
           onClick={primaryCta.onClick}
           className={cx(
-            "mt-4 inline-flex min-h-[44px] w-full items-center justify-center rounded-md px-4 py-2.5 text-sm font-bold transition sm:w-auto sm:min-w-[12rem]",
+            `mt-4 ${EN_VENTA_TYPO.primaryCta}`,
             primaryCta.disabled
               ? "cursor-not-allowed border border-[#E8DFD0] bg-[#EFEAE0] text-[#7A7164]"
               : "border border-[#7A1E2C]/20 bg-[#7A1E2C] text-[#FFFCF7] shadow-sm hover:bg-[#631824]"
@@ -71,7 +68,7 @@ export function EnVentaListingHero({
         </button>
       ) : null}
 
-      {engagementRow ? <div className="mt-4 flex flex-wrap items-center gap-2">{engagementRow}</div> : null}
+      {engagementRow ? <div className={`mt-4 ${EN_VENTA_TYPO.engagementWrap}`}>{engagementRow}</div> : null}
     </header>
   );
 }

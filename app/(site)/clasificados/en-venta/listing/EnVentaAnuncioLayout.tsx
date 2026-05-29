@@ -41,6 +41,8 @@ import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/list
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
 import { BrRelatedAgentPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrRelatedAgentPropertiesSection";
 import { EnVentaListingReportDrawer } from "./EnVentaListingReportDrawer";
+import { EnVentaEngagementRow } from "../shared/components/EnVentaEngagementRow";
+import { enVentaEngagementListingKey } from "../shared/styles/enVentaTypography";
 import { EN_VENTA_PLATFORM_RESPONSIBILITY } from "../moderation/enVentaPolicyCopy";
 import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
@@ -684,43 +686,18 @@ export function EnVentaAnuncioLayout({
                       disabled: !hasPublicEvContact,
                     }}
                     engagementRow={
-                      <>
-                        <LeonixLikeButton
-                          listingId={listing.id}
-                          ownerUserId={ownerId}
-                          variant="small"
-                          lang={lang}
-                          category="en-venta"
-                        />
-                        <button
-                          type="button"
-                          title={saveHint}
-                          disabled={!saveReady}
-                          onClick={() => void onToggleSave()}
-                          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-md border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:border-[#C9A84A]/55 disabled:opacity-50"
-                        >
-                          {saveLabel}
-                        </button>
-                        <LeonixShareButton
-                          listingId={listing.id}
-                          listingUrl={publicListingUrl}
-                          listingTitle={listing.title[lang]}
-                          category="en-venta"
-                          ownerUserId={ownerId}
-                          lang={lang}
-                          variant="small"
-                          className="[&>button]:min-h-[40px] [&>button]:rounded-md [&>button]:border-[#E8DFD0] [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-bold [&>button]:text-[#1E1810]"
-                        />
-                        {showListingReport ? (
-                          <button
-                            type="button"
-                            onClick={scrollToContact}
-                            className="inline-flex min-h-[40px] items-center rounded-md border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:border-[#C9A84A]/55"
-                          >
-                            {lang === "es" ? "Reportar" : "Report"}
-                          </button>
-                        ) : null}
-                      </>
+                      <EnVentaEngagementRow
+                        lang={lang}
+                        mode="live"
+                        listingId={enVentaEngagementListingKey(
+                          listing.id,
+                          (listing as { leonix_ad_id?: string | null }).leonix_ad_id
+                        )}
+                        listingUrl={publicListingUrl}
+                        listingTitle={listing.title[lang]}
+                        ownerUserId={ownerId}
+                        showReport={showListingReport}
+                      />
                     }
                   />
                   <p className="mt-4 rounded-md border border-[#E8DFD0]/70 bg-white/80 px-3 py-2 font-mono text-[11px] text-[#5C5346]">

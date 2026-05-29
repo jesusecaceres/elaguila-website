@@ -5,13 +5,14 @@ import {
   EN_VENTA_CONTENT_STACK_COPY,
   type EnVentaContentStackModel,
 } from "../types/enVentaContentStack.types";
+import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
 
 type Lang = "es" | "en";
 
 const CARD =
   "rounded-md border border-[#E8DFD0]/90 bg-[#FFFCF7] p-4 shadow-[0_4px_18px_-10px_rgba(42,36,22,0.08)] sm:p-5";
-const TITLE = "text-xs font-bold uppercase tracking-wide text-[#7A7164]";
-const BODY = "whitespace-pre-wrap text-sm leading-relaxed text-[#2C2416]/90 [overflow-wrap:anywhere]";
+const TITLE = EN_VENTA_TYPO.sectionTitle;
+const BODY = EN_VENTA_TYPO.body;
 
 function SectionCard({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -30,8 +31,8 @@ function ItemFactsGrid({ facts }: { facts: EnVentaContentStackModel["itemFacts"]
           key={fact.label}
           className="min-w-0 rounded-md border border-[#E8DFD0]/70 bg-white/70 px-3 py-2.5"
         >
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{fact.label}</dt>
-          <dd className="mt-1 break-words text-sm font-semibold leading-snug text-[#1E1810]">{fact.value}</dd>
+          <dt className={EN_VENTA_TYPO.factLabel}>{fact.label}</dt>
+          <dd className={`mt-1 break-words ${EN_VENTA_TYPO.factValue}`}>{fact.value}</dd>
         </div>
       ))}
     </dl>
@@ -50,13 +51,11 @@ function DeliveryList({ items, lang }: { items: EnVentaContentStackModel["delive
           key={item.label}
           className="rounded-md border border-[#E8DFD0]/70 bg-white/70 px-3 py-2.5"
         >
-          <p className="text-sm font-semibold text-[#1E1810]">{item.label}</p>
+          <p className={EN_VENTA_TYPO.deliveryTitle}>{item.label}</p>
           {item.note ? (
-            <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-[#5C5346]/95 [overflow-wrap:anywhere]">
-              {item.note}
-            </p>
+            <p className={`mt-1.5 ${EN_VENTA_TYPO.deliveryNote}`}>{item.note}</p>
           ) : (
-            <p className="mt-1 text-xs text-[#7A7164]/90">
+            <p className={`mt-1 ${EN_VENTA_TYPO.deliveryPlaceholder}`}>
               {lang === "es" ? "Disponible — coordina con el vendedor." : "Available — coordinate with the seller."}
             </p>
           )}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBookmark } from "react-icons/fa";
-import { FiBookmark } from "react-icons/fi";
+import { FaBookmark, FaHeart } from "react-icons/fa";
+import { FiBookmark, FiHeart } from "react-icons/fi";
 import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
 import { formatEngagementWriteErrorForDev, logEngagementWriteFailure } from "@/app/lib/leonixEngagementClientDiagnostics";
@@ -18,6 +18,8 @@ type Props = {
   ownerUserId?: string | null;
   /** When false, no analytics or `saved_listings` writes. */
   persistEngagement?: boolean;
+  /** Visual icon for save — default bookmark; Varios uses heart. */
+  iconStyle?: "bookmark" | "heart";
 };
 
 const LABELS = {
@@ -55,6 +57,7 @@ export function LeonixSaveButton({
   category,
   ownerUserId,
   persistEngagement,
+  iconStyle = "bookmark",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const allowEngage = persistEngagement !== false && Boolean(effectiveId);
@@ -242,7 +245,9 @@ export function LeonixSaveButton({
           className,
           inert ? "opacity-60 cursor-not-allowed" : "",
           isSaved && !inert
-            ? "!bg-amber-100 !text-amber-950 !shadow-md !ring-2 !ring-amber-500 !ring-offset-1 !ring-offset-white font-bold"
+            ? iconStyle === "heart"
+              ? "!bg-[#FBF0F2] !text-[#7A1E2C] !shadow-sm !ring-2 !ring-[#7A1E2C]/25 !ring-offset-1 !ring-offset-white font-semibold"
+              : "!bg-amber-100 !text-amber-950 !shadow-md !ring-2 !ring-amber-500 !ring-offset-1 !ring-offset-white font-bold"
             : "!bg-white !text-neutral-900 !shadow-sm !ring-1 !ring-neutral-300 hover:!bg-amber-50/90",
         ]
           .filter(Boolean)
@@ -250,12 +255,18 @@ export function LeonixSaveButton({
         aria-label={inert ? labels.preview : isSaved ? labels.saved : labels.save}
         aria-disabled={inert || !hydrated}
       >
-        {isSaved ? (
+        {iconStyle === "heart" ? (
+          isSaved ? (
+            <FaHeart className={`${iconSizes[variant]} shrink-0 text-[#7A1E2C]`} aria-hidden />
+          ) : (
+            <FiHeart className={`${iconSizes[variant]} shrink-0 text-[#5C5346]`} aria-hidden />
+          )
+        ) : isSaved ? (
           <FaBookmark className={`${iconSizes[variant]} shrink-0 text-amber-600`} aria-hidden />
         ) : (
           <FiBookmark className={`${iconSizes[variant]} shrink-0 stroke-neutral-700 text-neutral-700`} aria-hidden />
         )}
-        <span className={isSaved && !inert ? "text-amber-950" : ""}>
+        <span className={isSaved && !inert ? (iconStyle === "heart" ? "text-[#7A1E2C]" : "text-amber-950") : ""}>
           {isSaving ? labels.saving : inert ? labels.preview : isSaved ? labels.saved : labels.save}
         </span>
       </button>

@@ -104,7 +104,7 @@ export function EnVentaListingReportDrawer({
   };
 
   return (
-    <div className="mt-4 border-t border-black/10 pt-4">
+    <div id="enventa-listing-report" className="mt-4 scroll-mt-28 border-t border-black/10 pt-4">
       {!open ? (
         <button
           type="button"
