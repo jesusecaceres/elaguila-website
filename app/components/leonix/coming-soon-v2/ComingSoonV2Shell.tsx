@@ -87,6 +87,34 @@ const COPY: Record<
       benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
       benefitsAria: string;
     };
+    finalCta: {
+      eyebrow: string;
+      headline: string;
+      body: string;
+      ctas: [HeroCta, HeroCta, HeroCta];
+    };
+    contact: {
+      title: string;
+      body: string;
+      emailLabel: string;
+      email: string;
+      phoneLabel: string;
+      phone: string;
+      phoneHref: string;
+      addressLabel: string;
+      address: string;
+      areaLabel: string;
+      area: string;
+    };
+    newsletter: {
+      title: string;
+      body: string;
+      placeholder: string;
+      button: string;
+      formAria: string;
+      emailLabel: string;
+    };
+    footer: string;
   }
 > = {
   es: {
@@ -253,6 +281,50 @@ const COPY: Record<
         },
       ],
     },
+    finalCta: {
+      eyebrow: "LISTO PARA LANZAR",
+      headline: "Reserva tu espacio antes del lanzamiento.",
+      body: "Leonix Media está preparando su lanzamiento para conectar negocios locales con la comunidad latina y multicultural del Bay Area. Si quieres aparecer desde el inicio, este es el momento de levantar la mano.",
+      ctas: [
+        {
+          label: "Anúnciate con nosotros",
+          href: "/contact?interest=advertise&lang=es",
+          variant: "primary",
+        },
+        {
+          label: "Ver Media Kit",
+          href: "/media-kit?lang=es",
+          variant: "secondary",
+        },
+        {
+          label: "Únete al lanzamiento",
+          href: "/newsletter?source=coming-soon-v2&lang=es",
+          variant: "green",
+        },
+      ],
+    },
+    contact: {
+      title: "Contacto",
+      body: "¿Tienes preguntas sobre publicidad, el Media Kit o la etapa de lanzamiento? Contáctanos y te ayudamos a elegir el mejor camino para tu negocio.",
+      emailLabel: "Correo",
+      email: "info@leonixmedia.com",
+      phoneLabel: "Teléfono",
+      phone: "(408) 303-6500",
+      phoneHref: "tel:+14083036500",
+      addressLabel: "Dirección",
+      address: "871 Coleman Avenue, Suite 202, San Jose, CA 95110",
+      areaLabel: "Área",
+      area: "San José • Silicon Valley • Comunidad Latina",
+    },
+    newsletter: {
+      title: "Sé parte del lanzamiento",
+      body: "Recibe noticias, oportunidades y actualizaciones de Leonix Media.",
+      placeholder: "Tu correo electrónico",
+      button: "Notifícame",
+      formAria: "Registro al boletín",
+      emailLabel: "Correo electrónico",
+    },
+    footer: "© 2026 Leonix Media. Hecho para nuestra comunidad.",
   },
   en: {
     nav: [
@@ -415,6 +487,50 @@ const COPY: Record<
         },
       ],
     },
+    finalCta: {
+      eyebrow: "READY TO LAUNCH",
+      headline: "Reserve your space before launch.",
+      body: "Leonix Media is preparing its launch to connect local businesses with the Latino and multicultural Bay Area community. If you want to appear from the beginning, this is the moment to raise your hand.",
+      ctas: [
+        {
+          label: "Advertise with us",
+          href: "/contact?interest=advertise&lang=en",
+          variant: "primary",
+        },
+        {
+          label: "View Media Kit",
+          href: "/media-kit?lang=en",
+          variant: "secondary",
+        },
+        {
+          label: "Join the launch",
+          href: "/newsletter?source=coming-soon-v2&lang=en",
+          variant: "green",
+        },
+      ],
+    },
+    contact: {
+      title: "Contact",
+      body: "Have questions about advertising, the Media Kit, or the launch stage? Contact us and we'll help you choose the best path for your business.",
+      emailLabel: "Email",
+      email: "info@leonixmedia.com",
+      phoneLabel: "Phone",
+      phone: "(408) 303-6500",
+      phoneHref: "tel:+14083036500",
+      addressLabel: "Address",
+      address: "871 Coleman Avenue, Suite 202, San Jose, CA 95110",
+      areaLabel: "Area",
+      area: "San José • Silicon Valley • Latino Community",
+    },
+    newsletter: {
+      title: "Be part of the launch",
+      body: "Receive news, opportunities, and updates from Leonix Media.",
+      placeholder: "Your email address",
+      button: "Notify Me",
+      formAria: "Newsletter signup",
+      emailLabel: "Email address",
+    },
+    footer: "© 2026 Leonix Media. Built for our community.",
   },
 };
 
@@ -871,6 +987,170 @@ function QrAccessSection({
   );
 }
 
+function FinalContactSection({
+  finalCta,
+  contact,
+  newsletter,
+  lang,
+}: {
+  finalCta: {
+    eyebrow: string;
+    headline: string;
+    body: string;
+    ctas: [HeroCta, HeroCta, HeroCta];
+  };
+  contact: {
+    title: string;
+    body: string;
+    emailLabel: string;
+    email: string;
+    phoneLabel: string;
+    phone: string;
+    phoneHref: string;
+    addressLabel: string;
+    address: string;
+    areaLabel: string;
+    area: string;
+  };
+  newsletter: {
+    title: string;
+    body: string;
+    placeholder: string;
+    button: string;
+    formAria: string;
+    emailLabel: string;
+  };
+  lang: Lang;
+}) {
+  return (
+    <section
+      id="contacto"
+      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      aria-labelledby="contacto-title"
+    >
+      <span id="contact" className="block h-0 scroll-mt-28" aria-hidden />
+
+      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-6 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8 lg:p-10">
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#C9A84A] sm:text-xs">
+          {finalCta.eyebrow}
+        </p>
+        <h2
+          id="contacto-title"
+          className="mt-3 max-w-2xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#F8F4EA] sm:text-[1.75rem] lg:text-3xl"
+        >
+          {finalCta.headline}
+        </h2>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#EDE6D6] sm:text-[1.0625rem]">
+          {finalCta.body}
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {finalCta.ctas.map((cta) => (
+            <HeroCtaLink key={cta.label} cta={cta} />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-8">
+        <h2 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
+          {contact.title}
+        </h2>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+          {contact.body}
+        </p>
+        <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
+              {contact.emailLabel}
+            </dt>
+            <dd className="mt-1 text-sm font-semibold sm:text-base">
+              <a
+                href={`mailto:${contact.email}`}
+                className="text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-[0.2em] hover:text-[#5e1721]"
+              >
+                {contact.email}
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
+              {contact.phoneLabel}
+            </dt>
+            <dd className="mt-1 text-sm font-semibold sm:text-base">
+              <a
+                href={contact.phoneHref}
+                className="text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-[0.2em] hover:text-[#5e1721]"
+              >
+                {contact.phone}
+              </a>
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
+              {contact.addressLabel}
+            </dt>
+            <dd className="mt-1 text-sm leading-relaxed text-[#3D3428] sm:text-base">
+              {contact.address}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
+              {contact.areaLabel}
+            </dt>
+            <dd className="mt-1 text-sm font-semibold text-[#2A4536] sm:text-base">
+              {contact.area}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="mt-8 overflow-hidden rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] p-6 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:p-8">
+        <h2 className="font-serif text-xl font-bold text-[#F8F4EA] sm:text-2xl">
+          {newsletter.title}
+        </h2>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#EDE6D6] sm:text-base">
+          {newsletter.body}
+        </p>
+        <form
+          action="/newsletter"
+          method="get"
+          className="mt-5 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-stretch"
+          aria-label={newsletter.formAria}
+        >
+          <input type="hidden" name="source" value="coming-soon-v2" />
+          <input type="hidden" name="lang" value={lang} />
+          <label htmlFor="coming-soon-v2-newsletter-email" className="sr-only">
+            {newsletter.emailLabel}
+          </label>
+          <input
+            id="coming-soon-v2-newsletter-email"
+            type="email"
+            name="email"
+            placeholder={newsletter.placeholder}
+            autoComplete="email"
+            className="min-h-[3rem] min-w-0 flex-1 rounded-full border border-[#C9A84A]/45 bg-[#FFFDF7] px-4 text-sm text-[#1F241C] placeholder:text-[#3D3428]/55 focus:border-[#C9A84A] focus:outline-none focus:ring-2 focus:ring-[#C9A84A]/40 sm:text-[0.9375rem]"
+          />
+          <button
+            type="submit"
+            className="inline-flex min-h-[3rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-6px_rgba(122,30,44,0.5)] transition hover:bg-[#5e1721] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:text-[0.9375rem]"
+          >
+            {newsletter.button}
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+function ComingSoonV2Footer({ text }: { text: string }) {
+  return (
+    <footer className="border-t border-[#D6C7AD]/60 bg-[#FAF6EE] py-6">
+      <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
+        <p className="text-sm font-medium text-[#3D3428]">{text}</p>
+      </div>
+    </footer>
+  );
+}
+
 function launchHref(lang: Lang) {
   return `/contact?interest=launch&lang=${lang}`;
 }
@@ -893,6 +1173,9 @@ export function ComingSoonV2Shell() {
   const wyg = t.whatYouGet;
   const hiw = t.howItWorks;
   const qr = t.qrAccess;
+  const final = t.finalCta;
+  const contact = t.contact;
+  const newsletter = t.newsletter;
 
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
@@ -1083,7 +1366,16 @@ export function ComingSoonV2Shell() {
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
         />
+
+        <FinalContactSection
+          finalCta={final}
+          contact={contact}
+          newsletter={newsletter}
+          lang={lang}
+        />
       </main>
+
+      <ComingSoonV2Footer text={t.footer} />
     </div>
   );
 }
