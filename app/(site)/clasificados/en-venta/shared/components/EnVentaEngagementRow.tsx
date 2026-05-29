@@ -5,6 +5,7 @@ import { LeonixLikeButton } from "@/app/components/clasificados/analytics/Leonix
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
+import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
 const PREVIEW_COPY = {
   es: {
@@ -26,16 +27,14 @@ const PREVIEW_COPY = {
 } as const;
 
 const leonixBtnShell =
-  "max-w-none w-auto [&>button]:min-h-[40px] [&>button]:rounded-md [&>button]:border [&>button]:border-[#E8DFD0]/90 [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-[#3D3428] [&>button]:shadow-none [&>button]:hover:border-[#C9A84A]/55 [&>button]:hover:bg-[#FFFCF7]";
+  "max-w-none w-auto [&>button]:min-h-[40px] [&>button]:rounded-lg [&>button]:border [&>button]:border-[#C9A84A]/55 [&>button]:bg-[#FFFDF7] [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-[#3D3428] [&>button]:shadow-none [&>button]:hover:border-[#C9A84A] [&>button]:hover:bg-[#FBF7EF]";
 
 const leonixSaveShell =
-  "max-w-none w-auto [&>button]:min-h-[40px] [&>button]:rounded-md [&>button]:border [&>button]:border-[#E8DFD0]/90 [&>button]:bg-white [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-[#3D3428] [&>button]:shadow-none [&>button]:ring-0 [&>button]:hover:border-[#C9A84A]/55 [&>button]:hover:bg-[#FFFCF7] [&_[data-leonix-save-active='1']]:!border-[#7A1E2C]/35 [&_[data-leonix-save-active='1']]:!bg-[#FBF0F2] [&_[data-leonix-save-active='1']]:!text-[#7A1E2C]";
+  "max-w-none w-auto [&>button]:min-h-[40px] [&>button]:rounded-lg [&>button]:border [&>button]:border-[#C9A84A]/55 [&>button]:bg-[#FFFDF7] [&>button]:px-3 [&>button]:py-2 [&>button]:text-xs [&>button]:font-semibold [&>button]:text-[#3D3428] [&>button]:shadow-none [&>button]:ring-0 [&>button]:hover:border-[#C9A84A] [&>button]:hover:bg-[#FBF7EF] [&_[data-leonix-save-active='1']]:!border-[#7A1E2C]/35 [&_[data-leonix-save-active='1']]:!bg-[#FBF0F2] [&_[data-leonix-save-active='1']]:!text-[#7A1E2C]";
 
-const previewBtn =
-  "inline-flex min-h-[40px] items-center gap-1.5 rounded-md border border-[#E8DFD0]/90 bg-white px-3 py-2 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/55 hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-60";
+const previewBtn = `inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${EN_VENTA_SURFACE.secondaryBtn}`;
 
-const reportBtn =
-  "inline-flex min-h-[40px] items-center rounded-md border border-[#E8DFD0]/80 bg-white/95 px-3 py-2 text-xs font-semibold text-[#5C5346] transition hover:border-[#C9A84A]/45 hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-60";
+const reportBtnClass = `inline-flex min-h-[40px] items-center rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${EN_VENTA_SURFACE.reportBtn}`;
 
 type Props = {
   lang: "es" | "en";
@@ -71,7 +70,7 @@ export function EnVentaEngagementRow({
     return (
       <div className={EN_VENTA_TYPO.engagementWrap}>
         <button type="button" disabled title={PREVIEW_COPY[lang].saveHint} className={previewBtn}>
-          <FiHeart className="h-4 w-4 shrink-0 text-[#7A7164]" aria-hidden />
+          <FiHeart className="h-4 w-4 shrink-0 text-[#7A1E2C]/70" aria-hidden />
           {PREVIEW_COPY[lang].save}
           <span className="sr-only"> — {PREVIEW_COPY[lang].saveHint}</span>
         </button>
@@ -85,7 +84,7 @@ export function EnVentaEngagementRow({
           category="en-venta"
           className={leonixBtnShell}
         />
-        <button type="button" disabled title={PREVIEW_COPY[lang].reportHint} className={reportBtn}>
+        <button type="button" disabled title={PREVIEW_COPY[lang].reportHint} className={reportBtnClass}>
           {PREVIEW_COPY[lang].report}
         </button>
       </div>
@@ -127,7 +126,7 @@ export function EnVentaEngagementRow({
         className={leonixBtnShell}
       />
       {showReport ? (
-        <button type="button" onClick={scrollToReportBlock} className={reportBtn}>
+        <button type="button" onClick={scrollToReportBlock} className={reportBtnClass}>
           {lang === "es" ? "Reportar" : "Report"}
         </button>
       ) : null}

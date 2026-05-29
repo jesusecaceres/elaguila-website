@@ -16,6 +16,7 @@ import {
   enforceServiciosSelectionCaps,
 } from "./serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
+import { isJunkServiciosQuickFactLabel, syncServiciosContactEnables } from "./serviciosContactVisibility";
 import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
 import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import { CUSTOM_SERVICIOS_AMENITY_LABEL_MAX } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
@@ -256,7 +257,14 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     certifications = o.certifications.filter((x): x is string => typeof x === "string");
   }
 
-  return enforceServiciosSelectionCaps({
+  let customQuickFactLabel = str("customQuickFactLabel", d.customQuickFactLabel);
+  let customQuickFactIncluded = bool("customQuickFactIncluded", d.customQuickFactIncluded);
+  if (isJunkServiciosQuickFactLabel(customQuickFactLabel)) {
+    customQuickFactLabel = "";
+    customQuickFactIncluded = false;
+  }
+
+  const baseBeforeCaps = {
     applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
     businessName: str("businessName", d.businessName),
@@ -300,8 +308,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customReasonLabel: str("customReasonLabel", d.customReasonLabel),
     customReasonIncluded: bool("customReasonIncluded", d.customReasonIncluded),
     selectedQuickFactIds,
-    customQuickFactLabel: str("customQuickFactLabel", d.customQuickFactLabel),
-    customQuickFactIncluded: bool("customQuickFactIncluded", d.customQuickFactIncluded),
+    customQuickFactLabel,
+    customQuickFactIncluded,
     selectedBusinessHighlightIds,
     customBusinessHighlights,
     customBusinessHighlightLabel: str("customBusinessHighlightLabel", d.customBusinessHighlightLabel).slice(
@@ -357,5 +365,10 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     insuranceDocumentUrl: str("insuranceDocumentUrl", d.insuranceDocumentUrl),
     certifications,
     pendingCertification: str("pendingCertification", d.pendingCertification),
+  } as ClasificadosServiciosApplicationState;
+
+  return enforceServiciosSelectionCaps({
+    ...baseBeforeCaps,
+    ...syncServiciosContactEnables(baseBeforeCaps),
   });
 }

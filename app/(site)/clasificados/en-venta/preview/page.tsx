@@ -7,7 +7,7 @@ export default function EnVentaPreviewRoutePage() {
       fallback={
         <main
           className="min-h-screen text-[#5C5346]/80"
-          style={{ backgroundColor: "#F3EBDD" }}
+          style={{ backgroundColor: "#F8F4EA" }}
         >
           <div className="mx-auto max-w-6xl px-4 py-24 text-center text-sm">Cargando vista previa…</div>
         </main>

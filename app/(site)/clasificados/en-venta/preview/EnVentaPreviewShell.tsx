@@ -9,6 +9,7 @@ import {
   enVentaDraftHasAllPublishCheckboxes,
   saveEnVentaPreviewReturnDraft,
 } from "./enVentaPreviewDraft";
+import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
 
 const COPY = {
   es: {
@@ -32,11 +33,10 @@ function hrefWithListingPublishFocus(editBackHref: string) {
   return `${base}#${LISTING_PUBLISH_HASH}`;
 }
 
-const pillOutline =
-  "inline-flex shrink-0 items-center justify-center rounded-full border border-[#E8DFD0] bg-white/90 px-3.5 py-1.5 text-xs font-bold text-[#3D3428] shadow-sm transition hover:border-[#D4C4A8] hover:bg-[#FFFCF7]";
+const pillOutline = `inline-flex shrink-0 items-center justify-center rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-sm transition ${EN_VENTA_SURFACE.secondaryBtn}`;
 
 const pillPublishNav =
-  "inline-flex shrink-0 items-center justify-center rounded-full border border-[#C9B46A]/55 bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-3.5 py-1.5 text-xs font-bold text-[#1E1810] shadow-[0_4px_16px_-4px_rgba(201,164,74,0.4)] transition hover:brightness-[1.03] active:scale-[0.99]";
+  "inline-flex shrink-0 items-center justify-center rounded-full border border-[#7A1E2C]/20 bg-[#7A1E2C] px-3.5 py-1.5 text-xs font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-6px_rgba(122,30,44,0.4)] transition hover:bg-[#5e1721] active:scale-[0.99]";
 
 export type EnVentaPreviewShellProps = {
   lang: "es" | "en";
@@ -73,12 +73,12 @@ export function EnVentaPreviewShell({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="sticky top-0 z-40 border-b border-[#E8DFD0]/90 bg-[#FFFCF7]/95 shadow-[0_8px_24px_-12px_rgba(42,36,22,0.12)] backdrop-blur-md">
+      <div className={`sticky top-0 z-40 border-b shadow-[0_8px_24px_-12px_rgba(31,36,28,0.12)] backdrop-blur-md ${EN_VENTA_SURFACE.shellBar}`}>
         <div className="mx-auto max-w-6xl px-2 py-1.5 sm:px-4">
           <div className="relative flex items-center gap-1.5">
             <div className="min-w-0 flex-1" aria-hidden />
             <h1 className="pointer-events-none absolute left-1/2 z-0 max-w-[min(100%,16rem)] -translate-x-1/2 text-center text-sm font-extrabold leading-tight tracking-tight text-[#1E1810] sm:max-w-[min(100%,24rem)] sm:text-base">
-              <span className="relative inline-block border-b-2 border-[#C9A84A]/90 pb-0.5 text-[#2C2416] drop-shadow-[0_1px_0_rgba(255,252,247,0.95)]">
+              <span className="relative inline-block border-b-2 border-[#C9A84A]/90 pb-0.5 text-[#1F241C] drop-shadow-[0_1px_0_rgba(255,252,247,0.95)]">
                 {previewTitle}
               </span>
             </h1>
@@ -106,7 +106,7 @@ export function EnVentaPreviewShell({
 
       <div className="flex-1">{children}</div>
 
-      <div className="sticky bottom-0 z-40 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-2.5 backdrop-blur-md lg:hidden">
+      <div className={`sticky bottom-0 z-40 border-t p-2.5 backdrop-blur-md lg:hidden ${EN_VENTA_SURFACE.shellBar}`}>
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2">
           {!canPublishFromPreview ? (
             <p className="text-center text-[11px] font-medium leading-snug text-[#5C5346]/90">{t.publishNeedsCheckboxes}</p>
@@ -122,7 +122,7 @@ export function EnVentaPreviewShell({
             {canPublishFromPreview ? (
               <button
                 type="button"
-                className="rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 py-2 text-xs font-bold text-[#1E1810] shadow-md"
+                className="rounded-2xl bg-[#7A1E2C] px-4 py-2 text-xs font-semibold text-[#FFFCF7] shadow-md hover:bg-[#5e1721]"
                 onClick={() => goBackToEdit(editPublishFocusHref)}
               >
                 {t.publish}

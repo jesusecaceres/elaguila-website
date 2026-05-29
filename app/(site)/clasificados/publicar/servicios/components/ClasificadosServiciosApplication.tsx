@@ -43,6 +43,12 @@ import {
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
+import { buildServiciosContactPreviewLines, isJunkServiciosQuickFactLabel } from "../lib/serviciosContactVisibility";
+import {
+  getServiciosCredentialPlaceholders,
+  getServiciosPromoCopyHints,
+  resolveServiciosApplicationTemplate,
+} from "../lib/serviciosApplicationTemplateCopy";
 import {
   clasificadosServiciosApplicationHasProgress,
   createDefaultClasificadosServiciosState,
@@ -342,30 +348,22 @@ export function ClasificadosServiciosApplication() {
 
   const preset = useMemo(() => getBusinessTypePreset(state.businessTypeId), [state.businessTypeId]);
 
-  const contactSummaryLines = useMemo(() => {
-    const L = copy.labels;
-    const lines: string[] = [];
-    if (state.enableWhatsapp && (digitsOnly(state.whatsapp).length >= 8 || (state.whatsappBusinessUrl.trim() && isProbablyValidWebUrl(state.whatsappBusinessUrl)))) {
-      lines.push(L.contactSummaryWhatsapp);
-    }
-    if (state.enableCall && digitsOnly(state.phone).length >= 8) lines.push(L.contactSummaryCall);
-    if (state.enableEmail && isValidEmail(state.email)) lines.push(L.contactSummaryEmail);
-    if (state.enableWebsite && state.website.trim() && isProbablyValidWebUrl(state.website)) {
-      lines.push(L.contactSummaryWebsite);
-    }
-    return lines;
-  }, [
-    copy.labels,
-    state.enableCall,
-    state.enableEmail,
-    state.enableWebsite,
-    state.enableWhatsapp,
-    state.email,
-    state.phone,
-    state.website,
-    state.whatsapp,
-    state.whatsappBusinessUrl,
-  ]);
+  const listingTemplate = useMemo(
+    () => resolveServiciosApplicationTemplate(state.businessTypeId),
+    [state.businessTypeId],
+  );
+
+  const credentialPlaceholders = useMemo(
+    () => getServiciosCredentialPlaceholders(listingTemplate, lang),
+    [listingTemplate, lang],
+  );
+
+  const promoCopyHints = useMemo(() => getServiciosPromoCopyHints(listingTemplate, lang), [listingTemplate, lang]);
+
+  const contactPreviewLines = useMemo(
+    () => buildServiciosContactPreviewLines(state, lang),
+    [state, lang],
+  );
 
   const listingPhase = useMemo(() => {
     const r = evaluateServiciosPreviewReadiness(state, lang);
@@ -1114,7 +1112,7 @@ export function ClasificadosServiciosApplication() {
                         className={inputClass}
                         type="text"
                         maxLength={48}
-                        placeholder={lang === "es" ? "Menú en línea" : "Online menu"}
+                        placeholder={lang === "es" ? "Agendar cita" : "Book appointment"}
                         value={row.labelVal}
                         onChange={(e) => setState((s) => ({ ...s, [row.labelKey]: e.target.value }))}
                       />
@@ -1541,6 +1539,7 @@ export function ClasificadosServiciosApplication() {
             className={inputClass}
             value={state.specialtiesLine}
             maxLength={90}
+            placeholder={copy.labels.businessFocusPlaceholder}
             onChange={(e) => setState((s) => ({ ...s, specialtiesLine: e.target.value }))}
           />
         </section>
@@ -1893,7 +1892,9 @@ export function ClasificadosServiciosApplication() {
               <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.quickFacts}</h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.quickHint}</p>
               <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {preset.quickFacts.map((c: ChipDef) => {
+                {preset.quickFacts
+                  .filter((c: ChipDef) => !isJunkServiciosQuickFactLabel(chipLabel(c, lang)))
+                  .map((c: ChipDef) => {
                   const selected = state.selectedQuickFactIds.includes(c.id);
                   const disabled = !selected && quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION;
                   return (
@@ -2012,106 +2013,35 @@ export function ClasificadosServiciosApplication() {
 
         {step === 5 ? (
           <>
-        {/* Contact visibility */}
+        {/* Contact hub preview (populated-only; no manual action toggles) */}
         <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">
-            {copy.sections.contact}{" "}
-            <span className="text-sm font-semibold text-red-600" aria-hidden>
-              *
-            </span>
-          </h2>
-          <p className="mt-1 text-xs text-[#6b5c42]">
-            {lang === "es"
-              ? "* Activa al menos un método de contacto válido con los datos del paso “Datos básicos y contacto”."
-              : "* Turn on at least one valid contact method with matching details from “Basics & contact.”"}
-          </p>
+          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.contact}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.contactHubIntro}</p>
 
           <div className="mt-6 rounded-xl border border-[#D8C79A]/40 bg-[#FFFCF7]/90 p-4">
-            <p className="text-sm font-bold text-[#3D2C12]">{copy.labels.contactDataHeading}</p>
-            <ul className="mt-2 space-y-1.5 text-sm text-[#5D4A25]">
-              <li>
-                <span className="font-medium text-[#3D2C12]">{copy.labels.phone}:</span>{" "}
-                {state.phone.trim() ? formatPhoneInputDisplay(state.phone) : "—"}
-              </li>
-              <li>
-                <span className="font-medium text-[#3D2C12]">{copy.labels.phoneOffice}:</span>{" "}
-                {state.phoneOffice.trim() ? formatPhoneInputDisplay(state.phoneOffice) : "—"}
-              </li>
-              <li>
-                <span className="font-medium text-[#3D2C12]">{copy.labels.whatsapp}:</span>{" "}
-                {state.whatsapp.trim() ? formatPhoneInputDisplay(state.whatsapp) : "—"}
-              </li>
-              <li>
-                <span className="font-medium text-[#3D2C12]">{copy.labels.whatsappBusinessUrl}:</span>{" "}
-                {state.whatsappBusinessUrl.trim() ? state.whatsappBusinessUrl.trim() : "—"}
-              </li>
-              <li>
-                <span className="font-medium text-[#3D2C12]">{copy.labels.email}:</span> {state.email.trim() ? state.email.trim() : "—"}
-              </li>
-              <li>
-                <span className="font-medium text-[#3D2C12]">{copy.labels.website}:</span>{" "}
-                {state.website.trim() ? state.website.trim() : "—"}
-              </li>
-            </ul>
-            <p className="mt-3 text-xs text-[#6b5c42]">
-              {lang === "es"
-                ? "Edita estos datos en el paso “Datos básicos y contacto”."
-                : "Edit these fields under “Basics & contact.”"}
-            </p>
-          </div>
-
-          <div className="mt-6">
             <p className="text-sm font-bold text-[#3D2C12]">{copy.labels.contactVisibleHeading}</p>
             <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.contactSummaryIntro}</p>
-            {contactSummaryLines.length > 0 ? (
-              <ul className="mt-2 list-inside list-disc text-sm text-[#5D4A25]">
-                {contactSummaryLines.map((line) => (
-                  <li key={line}>{line}</li>
+            {contactPreviewLines.length > 0 ? (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {contactPreviewLines.map((line) => (
+                  <li
+                    key={line.id}
+                    className="inline-flex rounded-full border border-[#3B66AD]/25 bg-[#3B66AD]/8 px-3 py-1.5 text-sm font-medium text-[#1e3a5f]"
+                  >
+                    {line.label}
+                  </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-amber-900/90">{copy.labels.contactSummaryNone}</p>
+              <p className="mt-3 text-sm text-amber-900/90">{copy.labels.contactHubEmpty}</p>
             )}
-            <p className="mt-3 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                  checked={state.enableWhatsapp}
-                  onChange={(e) => setState((s) => ({ ...s, enableWhatsapp: e.target.checked }))}
-                />
-                {copy.labels.enableWhatsapp}
-              </label>
-              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                  checked={state.enableCall}
-                  onChange={(e) => setState((s) => ({ ...s, enableCall: e.target.checked }))}
-                />
-                {copy.labels.enableCall}
-              </label>
-              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                  checked={state.enableEmail}
-                  onChange={(e) => setState((s) => ({ ...s, enableEmail: e.target.checked }))}
-                />
-                {copy.labels.enableEmail}
-              </label>
-              <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm sm:min-h-0">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-neutral-300 text-[#3B66AD] focus:ring-[#3B66AD]"
-                  checked={state.enableWebsite}
-                  onChange={(e) => setState((s) => ({ ...s, enableWebsite: e.target.checked }))}
-                />
-                {copy.labels.enableWebsite}
-              </label>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
+            <p className="mt-4 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
+            <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
+            <p className="mt-3 text-xs text-[#6b5c42]">
+              {lang === "es"
+                ? "Edita teléfono, correo, redes y enlaces en el paso “Datos básicos y contacto”."
+                : "Edit phone, email, socials, and links under “Basics & contact.”"}
+            </p>
           </div>
         </section>
 
@@ -2351,7 +2281,7 @@ export function ClasificadosServiciosApplication() {
           <input
             className={inputClass}
             disabled={!state.hasLicense}
-            placeholder={copy.labels.licenseTypePlaceholder}
+            placeholder={credentialPlaceholders.licenseType}
             maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.licenseType}
             value={state.licenseType}
             onChange={(e) =>
@@ -2367,6 +2297,7 @@ export function ClasificadosServiciosApplication() {
           <input
             className={inputClass}
             disabled={!state.hasLicense}
+            placeholder={credentialPlaceholders.licenseNumber}
             maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.licenseNumber}
             value={state.licenseNumber}
             onChange={(e) =>
@@ -2382,7 +2313,7 @@ export function ClasificadosServiciosApplication() {
           <input
             className={inputClass}
             disabled={!state.hasLicense}
-            placeholder={copy.labels.licenseAuthorityPlaceholder}
+            placeholder={credentialPlaceholders.licenseAuthority}
             maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.licenseAuthority}
             value={state.licenseAuthority}
             onChange={(e) =>
@@ -2425,7 +2356,7 @@ export function ClasificadosServiciosApplication() {
           <input
             className={inputClass}
             disabled={!state.isInsured}
-            placeholder={copy.labels.insuranceTypePlaceholder}
+            placeholder={credentialPlaceholders.insuranceType}
             maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.insuranceType}
             value={state.insuranceType}
             onChange={(e) =>
@@ -2606,7 +2537,7 @@ export function ClasificadosServiciosApplication() {
           <h2 id="sec-promo" className="text-lg font-bold text-[#3D2C12]">
             {copy.sections.offer}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.promotionsSectionIntro}</p>
+          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{promoCopyHints.promotionsSectionIntro}</p>
 
           {state.promotions.map((row, i) => {
             const linkInvalid = row.link.trim() && !isProbablyValidWebUrl(row.link);
@@ -2639,10 +2570,10 @@ export function ClasificadosServiciosApplication() {
                 </div>
 
                 <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerTitle}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerTitleHelp}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{promoCopyHints.offerTitleHelp}</p>
                 <input
                   className={inputClass}
-                  placeholder={copy.labels.promoTitlePlaceholder}
+                  placeholder={promoCopyHints.promoTitlePlaceholder}
                   maxLength={CLASIFICADOS_PROMO_TITLE_MAX}
                   value={row.title}
                   onChange={(e) =>
@@ -2655,11 +2586,11 @@ export function ClasificadosServiciosApplication() {
                   }
                 />
                 <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerDetails}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerDetailsHelp}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{promoCopyHints.offerDetailsHelp}</p>
                 <textarea
                   className={inputClass}
                   rows={3}
-                  placeholder={copy.labels.promoDetailsPlaceholder}
+                  placeholder={promoCopyHints.promoDetailsPlaceholder}
                   maxLength={CLASIFICADOS_PROMO_DETAILS_MAX}
                   value={row.details}
                   onChange={(e) =>

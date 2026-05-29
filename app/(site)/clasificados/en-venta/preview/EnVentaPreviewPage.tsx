@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
@@ -25,15 +25,9 @@ import {
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import { EnVentaEngagementRow } from "@/app/clasificados/en-venta/shared/components/EnVentaEngagementRow";
+import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
 
-const PAGE_BG_STYLE: CSSProperties = {
-  backgroundColor: "#F3EBDD",
-  backgroundImage: `
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.2), transparent 55%),
-    radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.45), transparent 52%),
-    radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.1), transparent 50%)
-  `,
-};
+const PAGE_BG_STYLE = EN_VENTA_SURFACE.pageBgStyle;
 
 const EMPTY = {
   es: {
@@ -204,7 +198,7 @@ export function EnVentaPreviewPage() {
   }, []);
 
   const shell = (children: ReactNode) => (
-    <div className="relative min-h-screen text-[#2C2416]" style={PAGE_BG_STYLE}>
+    <div className={`relative ${EN_VENTA_SURFACE.pageShell}`} style={PAGE_BG_STYLE}>
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.035]"
         style={{
@@ -342,9 +336,9 @@ export function EnVentaPreviewPage() {
         previewHrefPro={previewHrefPro}
         returnDraft={draft}
       >
-        <main className="relative pb-8 text-[#2C2416] lg:pb-12">
+        <main className="relative pb-8 lg:pb-12">
           <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
-            <div className="rounded-[2rem] border border-[#E8DFD0]/90 bg-[#FFFDF7]/80 p-4 shadow-[0_18px_48px_rgba(42,36,22,0.12),inset_0_1px_0_rgba(255,255,255,0.85)] sm:p-6 lg:p-7">
+            <div className={EN_VENTA_SURFACE.listingCanvas}>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-6">
               <div className="order-1 lg:col-span-5 lg:row-start-1">
                 <div className="space-y-4">

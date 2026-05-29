@@ -82,6 +82,7 @@ export type ClasificadosServiciosCopy = {
     about: string;
     businessFocus: string;
     businessFocusHelper: string;
+    businessFocusPlaceholder: string;
     aboutHelper: string;
     servicesHint: string;
     reasonsHint: string;
@@ -227,6 +228,8 @@ export type ClasificadosServiciosCopy = {
     languageOtherPlaceholder: string;
     /** Paso contacto — visibilidad */
     contactDataHeading: string;
+    contactHubIntro: string;
+    contactHubEmpty: string;
     contactVisibleHeading: string;
     contactPrimaryCtaHeading: string;
     contactPrimaryCtaHelp: string;
@@ -279,9 +282,9 @@ export type ClasificadosServiciosCopy = {
 };
 
 const es: ClasificadosServiciosCopy = {
-  pageTitle: "Perfil de negocio · Servicios",
+  pageTitle: "Publicar tu negocio en Servicios",
   pageSubtitle:
-    "Un solo formulario para tu vitrina premium en Leonix. Completa cada sección; podrás refinar el texto con herramientas externas si lo deseas.",
+    "Completa tu perfil paso a paso. Leonix muestra en la vitrina solo lo que llenes con datos reales — contacto, servicios, horarios y promociones.",
   saveHint: "Borrador guardado en este navegador.",
   previewCta: "Vista previa",
   publishCta: "Publicar",
@@ -312,16 +315,16 @@ const es: ClasificadosServiciosCopy = {
   sections: {
     type: "1 · Tipo de negocio",
     basic: "2 · Datos básicos y contacto",
-    media: "3 · Imágenes y marca",
+    media: "3 · Imágenes y videos",
     about: "4 · Sobre el negocio",
     services: "5 · Servicios que ofreces",
-    reasons: "6 · ¿Por qué elegirte?",
-    quickFacts: "7 · Datos rápidos",
-    contact: "8 · Acciones visibles",
-    social: "9 · Redes sociales",
-    hours: "10 · Horarios",
-    testimonials: "11 · Testimonios (opcional)",
-    offer: "12 · Promociones destacadas (opcional)",
+    reasons: "¿Por qué elegirte?",
+    quickFacts: "Datos rápidos",
+    contact: "6 · Vista de contacto",
+    social: "Redes sociales",
+    hours: "7 · Horarios",
+    testimonials: "Testimonios (opcional)",
+    offer: "8 · Promoción (opcional)",
   },
   labels: {
     businessType: "Tipo de negocio",
@@ -355,9 +358,10 @@ const es: ClasificadosServiciosCopy = {
     cover: "Imagen de portada",
     gallery: "Galería de trabajos",
     about: "Sobre nosotros",
-    businessFocus: "Enfoque del negocio (una línea corta)",
+    businessFocus: "Eslogan o frase principal",
     businessFocusHelper:
-      "Agrega una frase breve para resumir tu enfoque, experiencia o tipo de trabajo principal. No repitas todos tus servicios.",
+      "Escribe una frase corta que represente tu negocio. No repitas todos tus servicios; usa una frase clara para atraer clientes.",
+    businessFocusPlaceholder: "Ej.: Tu ayuda legal cuando más la necesitas",
     aboutHelper:
       "Describe tu experiencia y cómo ayudas a tus clientes. Puedes borradorar ideas aquí y pulir el texto con IA externamente si te hace falta.",
     servicesHint: "Marca los servicios que ofreces (según tu tipo de negocio).",
@@ -382,8 +386,9 @@ const es: ClasificadosServiciosCopy = {
     yelpReviews: "Opiniones en Yelp (URL)",
     contactExtraLinksHeading: "Enlaces adicionales (opcional)",
     extraLinkUrl: "URL",
-    extraLinkLabel: "Etiqueta corta (opcional)",
-    extraLinkLabelHelp: "Si la dejas vacía, mostraremos “Enlace adicional”.",
+    extraLinkLabel: "Describe tu enlace (opcional)",
+    extraLinkLabelHelp:
+      "Escribe el texto que quieres mostrar en el botón. Ejemplo: Agendar cita, Sitio web, Formulario de consulta. Si la dejas vacía, mostraremos “Enlace adicional”.",
     closed: "Cerrado",
     open: "Abre",
     close: "Cierra",
@@ -421,8 +426,9 @@ const es: ClasificadosServiciosCopy = {
     customServicePlaceholder: "Ej.: marcos a medida",
     customReason: "Otro motivo",
     customQuickFact: "Otro dato rápido",
-    customChipPlaceholder: "Etiqueta breve",
-    customChipShortHint: "Usa pocas palabras",
+    customChipPlaceholder: "Consulta gratis",
+    customChipShortHint:
+      "Usa pocas palabras. Ejemplos: Consulta gratis, Atención bilingüe, Más de 10 años, Disponible hoy.",
     addCustomChip: "Añadir",
     addedCustomServicesSection: "Servicios agregados:",
     customServicesMax: `Máximo ${MAX_CUSTOM_SERVICES_OFFERED} servicios personalizados`,
@@ -497,19 +503,23 @@ const es: ClasificadosServiciosCopy = {
     languageOtherLabel: "Otros idiomas",
     languageOtherPlaceholder: "",
     contactDataHeading: "Tus datos de contacto",
-    contactVisibleHeading: "Qué puede usar el cliente en la vitrina",
+    contactHubIntro:
+      "Leonix arma tu hub de contacto con lo que llenaste en el paso 2: teléfono, WhatsApp, correo, sitio, dirección, redes, opiniones y enlaces extra. Solo aparece lo que tenga datos válidos.",
+    contactHubEmpty:
+      "Aún no hay métodos de contacto listos. Completa teléfono, WhatsApp, correo o sitio web en “Datos básicos y contacto”.",
+    contactVisibleHeading: "Vista previa del hub de contacto",
     contactPrimaryCtaHeading: "Destacado en la vitrina",
     contactPrimaryCtaHelp:
-      "Leonix prioriza automáticamente: WhatsApp, llamada, correo, sitio y mensaje (si aplica), según lo que actives y los datos válidos.",
+      "Leonix prioriza automáticamente: WhatsApp, llamada, correo y sitio web según los datos válidos que ingresaste.",
     contactSecondaryHeading: "Acciones secundarias",
-    contactSummaryIntro: "Vista previa lógica según lo activado:",
+    contactSummaryIntro: "Así se verá en tu vitrina pública:",
     contactSummaryCall: "Llamada",
     contactSummaryWhatsapp: "WhatsApp",
     contactSummaryWebsite: "Sitio web",
     contactSummaryEmail: "Correo",
-    contactSummaryNone: "Aún no hay un método de contacto válido activo.",
+    contactSummaryNone: "Completa al menos un contacto válido en el paso 2 para ver acciones aquí.",
     contactMessageFootnote:
-      "El canal “Mensaje” dentro de la vitrina no está activo en esta fase. Activa llamada, WhatsApp, correo o sitio según corresponda.",
+      "No necesitas elegir botones manualmente: el hub se actualiza solo cuando agregas o cambias tus datos de contacto.",
     paymentsSection: "Pagos",
     paymentsSectionHint: "Opcional. Indica cómo pueden pagar tus clientes.",
     paymentsOtherLabel: "Otro método de pago",
@@ -551,9 +561,9 @@ const es: ClasificadosServiciosCopy = {
 };
 
 const en: ClasificadosServiciosCopy = {
-  pageTitle: "Business profile · Services",
+  pageTitle: "Publish your business in Services",
   pageSubtitle:
-    "One guided form for your premium Leonix showcase. Complete each section; you can polish copy with external tools if needed.",
+    "Complete your profile step by step. Leonix only shows what you fill in with real data — contact, services, hours, and promotions.",
   saveHint: "Draft saved in this browser.",
   previewCta: "Preview",
   publishCta: "Publish",
@@ -584,16 +594,16 @@ const en: ClasificadosServiciosCopy = {
   sections: {
     type: "1 · Business type",
     basic: "2 · Basics & contact",
-    media: "3 · Brand & media",
+    media: "3 · Images & video",
     about: "4 · About the business",
     services: "5 · Services you offer",
-    reasons: "6 · Why choose you",
-    quickFacts: "7 · Quick facts",
-    contact: "8 · Visible actions",
-    social: "9 · Social media",
-    hours: "10 · Hours",
-    testimonials: "11 · Testimonials (optional)",
-    offer: "12 · Featured promotions (optional)",
+    reasons: "Why choose you",
+    quickFacts: "Quick facts",
+    contact: "6 · Contact preview",
+    social: "Social media",
+    hours: "7 · Hours",
+    testimonials: "Testimonials (optional)",
+    offer: "8 · Promotion (optional)",
   },
   labels: {
     businessType: "Business type",
@@ -627,9 +637,10 @@ const en: ClasificadosServiciosCopy = {
     cover: "Cover image",
     gallery: "Work gallery",
     about: "About you",
-    businessFocus: "Business focus (one short line)",
+    businessFocus: "Tagline or main phrase",
     businessFocusHelper:
-      "Add a short phrase summarizing your focus, experience, or main type of work. Do not repeat your full services list.",
+      "Write a short phrase that represents your business. Do not repeat every service — use one clear line to attract clients.",
+    businessFocusPlaceholder: "Ex: Your legal help when you need it most",
     aboutHelper:
       "Describe your experience and how you help clients. Draft here and refine with an external AI assistant if you want.",
     servicesHint: "Select the services you offer (based on your business type).",
@@ -654,8 +665,9 @@ const en: ClasificadosServiciosCopy = {
     yelpReviews: "Yelp Reviews (URL)",
     contactExtraLinksHeading: "Additional links (optional)",
     extraLinkUrl: "URL",
-    extraLinkLabel: "Short label (optional)",
-    extraLinkLabelHelp: "If empty, we show “Additional link”.",
+    extraLinkLabel: "Describe your link (optional)",
+    extraLinkLabelHelp:
+      "Text shown on the button. Ex: Book appointment, Website, Intake form. If empty, we show “Additional link”.",
     closed: "Closed",
     open: "Opens",
     close: "Closes",
@@ -693,8 +705,9 @@ const en: ClasificadosServiciosCopy = {
     customServicePlaceholder: "e.g. custom trim",
     customReason: "Other reason",
     customQuickFact: "Other quick fact",
-    customChipPlaceholder: "Short label",
-    customChipShortHint: "Keep it short",
+    customChipPlaceholder: "Free consultation",
+    customChipShortHint:
+      "Keep it short. Examples: Free consultation, Bilingual service, 10+ years, Available today.",
     addCustomChip: "Add",
     addedCustomServicesSection: "Added services:",
     customServicesMax: `Up to ${MAX_CUSTOM_SERVICES_OFFERED} custom services`,
@@ -769,19 +782,23 @@ const en: ClasificadosServiciosCopy = {
     languageOtherLabel: "Other languages",
     languageOtherPlaceholder: "",
     contactDataHeading: "Your contact details",
-    contactVisibleHeading: "What clients can use on your showcase",
+    contactHubIntro:
+      "Leonix builds your contact hub from step 2: phone, WhatsApp, email, website, address, socials, review links, and extra URLs. Only filled, valid entries appear.",
+    contactHubEmpty:
+      "No contact methods are ready yet. Add phone, WhatsApp, email, or website under “Basics & contact.”",
+    contactVisibleHeading: "Contact hub preview",
     contactPrimaryCtaHeading: "Highlight order",
     contactPrimaryCtaHelp:
-      "Leonix uses a fixed priority: WhatsApp, call, email, website, then message when available—based on what you enable with valid details.",
+      "Leonix automatically prioritizes WhatsApp, call, email, and website based on the valid details you entered.",
     contactSecondaryHeading: "Secondary actions",
-    contactSummaryIntro: "Logical preview from your toggles:",
+    contactSummaryIntro: "This is what your public showcase will show:",
     contactSummaryCall: "Call",
     contactSummaryWhatsapp: "WhatsApp",
     contactSummaryWebsite: "Website",
     contactSummaryEmail: "Email",
-    contactSummaryNone: "No valid contact method is active yet.",
+    contactSummaryNone: "Add at least one valid contact in step 2 to see actions here.",
     contactMessageFootnote:
-      "The in-showcase “Message” channel is not active in this phase. Enable call, WhatsApp, email, or website as needed.",
+      "You do not pick buttons manually — the hub updates when you add or change contact details.",
     paymentsSection: "Payments",
     paymentsSectionHint: "Optional. Tell customers how they can pay you.",
     paymentsOtherLabel: "Other payment method",

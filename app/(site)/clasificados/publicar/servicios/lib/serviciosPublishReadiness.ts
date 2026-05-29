@@ -1,9 +1,8 @@
 import { getBusinessTypePreset } from "./businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
-import { isValidEmail } from "./leonixContactCtaPriority";
+import { hasServiciosValidContactData } from "./serviciosContactVisibility";
 import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
-import { isProbablyValidWebUrl } from "./socialAndUrlHelpers";
 
 /** Step indices match `ClasificadosServiciosApplication` stepped UI (0-based). */
 export type PublishReadinessMissingItem = { id: string; label: string; stepIndex: number };
@@ -14,12 +13,7 @@ export type ServiciosPublishReadinessResult = {
 };
 
 function hasContactMethod(state: ClasificadosServiciosApplicationState): boolean {
-  if (state.enableCall && state.phone.trim().replace(/\D/g, "").length >= 8) return true;
-  if (state.enableWebsite && state.website.trim() && isProbablyValidWebUrl(state.website)) return true;
-  if (state.enableWhatsapp && String(state.whatsapp ?? "").replace(/\D/g, "").length >= 8) return true;
-  if (state.enableWhatsapp && state.whatsappBusinessUrl.trim() && isProbablyValidWebUrl(state.whatsappBusinessUrl)) return true;
-  if (state.enableEmail && isValidEmail(state.email)) return true;
-  return false;
+  return hasServiciosValidContactData(state);
 }
 
 function hasAtLeastOneService(state: ClasificadosServiciosApplicationState): boolean {

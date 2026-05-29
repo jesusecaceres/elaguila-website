@@ -6,7 +6,7 @@ const ES = [
   "Imágenes y videos",
   "Sobre el negocio",
   "Servicios y datos rápidos",
-  "Acciones visibles",
+  "Vista de contacto y opciones",
   "Horarios",
   "Promoción (opcional)",
   "Revisión y confirmación",
@@ -18,7 +18,7 @@ const EN = [
   "Images & video",
   "About the business",
   "Services & quick facts",
-  "Visible actions",
+  "Contact preview & options",
   "Hours",
   "Promotion (optional)",
   "Review & confirmation",
@@ -32,7 +32,7 @@ export function getServiciosApplicationStepLabels(lang: ServiciosLang): readonly
 
 export function getServiciosApplicationStepShortLabels(lang: ServiciosLang): readonly string[] {
   if (lang === "en") {
-    return ["Type", "Basics", "Media", "About", "Services", "Actions", "Hours", "Promo", "Review"];
+    return ["Type", "Basics", "Media", "About", "Services", "Contact", "Hours", "Promo", "Review"];
   }
-  return ["Tipo", "Básico", "Media", "Sobre", "Servicios", "Acciones", "Horario", "Promo", "Revisión"];
+  return ["Tipo", "Básico", "Media", "Sobre", "Servicios", "Contacto", "Horario", "Promo", "Revisión"];
 }

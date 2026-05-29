@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
+import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
 type Props = {
   lang: "es" | "en";
@@ -45,12 +46,9 @@ export function EnVentaBuyerPanel({
     lang === "es" ? "Ubicación indicada por el vendedor" : "Location provided by the seller";
 
   return (
-    <aside className="rounded-md border border-[#E8DFD0]/90 bg-[#FFFCF7] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-5">
+    <aside className={EN_VENTA_SURFACE.contactCard}>
       <div className="flex items-start gap-3">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] text-[12px] font-bold text-[#1E1810] ring-1 ring-[#C9B46A]/35"
-          aria-hidden
-        >
+        <div className={EN_VENTA_SURFACE.sellerAvatar} aria-hidden>
           {sellerInitials}
         </div>
         <div className="min-w-0 flex-1">
@@ -66,13 +64,13 @@ export function EnVentaBuyerPanel({
         </div>
       </div>
 
-      <div className="mt-4 border-t border-[#E8DFD0]/80 pt-4">
+      <div className="mt-4 border-t border-[#D6C7AD]/70 pt-4">
         <p className={EN_VENTA_TYPO.sectionTitle}>{contactH}</p>
         <div className="mt-3">{contactSection}</div>
       </div>
 
       {locationLine ? (
-        <div className="mt-4 border-t border-[#E8DFD0]/80 pt-4">
+        <div className="mt-4 border-t border-[#D6C7AD]/70 pt-4">
           <p className={EN_VENTA_TYPO.sectionTitle}>{locationH}</p>
           <p className={`mt-2 flex items-start gap-2 ${EN_VENTA_TYPO.panelLocationValue}`}>
             <svg className="mt-0.5 h-4 w-4 shrink-0 text-[#8A8070]" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -96,7 +94,7 @@ export function EnVentaBuyerPanel({
                   window.open(mapHref, "_blank", "noopener,noreferrer");
                 }
               }}
-              className="mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-md border border-[#C9B46A]/45 bg-white px-3 py-2 text-xs font-bold text-[#1E1810] transition hover:border-[#C9A84A]/65 hover:bg-[#FFFCF7]"
+              className={`mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition ${EN_VENTA_SURFACE.secondaryBtn}`}
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
@@ -109,13 +107,13 @@ export function EnVentaBuyerPanel({
       ) : null}
 
       {fulfillmentLabels.length > 0 ? (
-        <div className="mt-4 border-t border-[#E8DFD0]/80 pt-4">
+        <div className="mt-4 border-t border-[#D6C7AD]/70 pt-4">
           <p className={EN_VENTA_TYPO.sectionTitle}>{fulfillmentH}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {fulfillmentLabels.map((label) => (
               <span
                 key={label}
-                className={`inline-flex max-w-full rounded-md border border-[#C9B46A]/40 bg-[#FBF7EF] px-2.5 py-1 ${EN_VENTA_TYPO.panelChip}`}
+                className={`inline-flex max-w-full ${EN_VENTA_SURFACE.chipGold} ${EN_VENTA_TYPO.panelChip}`}
               >
                 {label}
               </span>
@@ -124,7 +122,7 @@ export function EnVentaBuyerPanel({
         </div>
       ) : null}
 
-      <p className={cx("mt-4 border-t border-[#E8DFD0]/80 pt-4 text-[11px] leading-relaxed text-[#7A7164]/95")}>
+      <p className={cx("mt-4 border-l-[3px] border-[#2A4536]/45 border-t border-[#D6C7AD]/70 pt-4 pl-3", EN_VENTA_TYPO.trustLine)}>
         {safetyLine}
       </p>
     </aside>

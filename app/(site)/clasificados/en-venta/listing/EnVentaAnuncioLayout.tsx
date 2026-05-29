@@ -70,6 +70,7 @@ import { EnVentaContactButtons } from "../shared/components/EnVentaContactButton
 import { EnVentaListingHero } from "../shared/components/EnVentaListingHero";
 import { enVentaLiveContactPrefs, buildEnVentaLiveContactActions } from "../shared/utils/enVentaContactActions";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
+import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
 
 type Lang = "es" | "en";
 
@@ -599,9 +600,10 @@ export function EnVentaAnuncioLayout({
         premiumBr
           ? `${brLuxuryPageClass} pb-28 text-[#2A2620] sm:pb-32`
           : surface === "en-venta"
-            ? "min-h-screen bg-[#F3EBDD] pb-24 text-[#1E1810]"
+            ? `${EN_VENTA_SURFACE.pageShell} pb-24`
             : "min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]"
       }
+      style={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.pageBgStyle : undefined}
     >
       <Navbar />
       <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -652,7 +654,7 @@ export function EnVentaAnuncioLayout({
 
         <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
-            <div className={premiumBr ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]" : ""}>
+            <div className={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.galleryFrame : premiumBr ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]" : ""}>
               <EnVentaMediaGallery
                 urls={images}
                 title={listing.title[lang]}
@@ -667,7 +669,7 @@ export function EnVentaAnuncioLayout({
                 premiumBr
                   ? `${brLuxuryCardClass} p-6 ring-1 ring-[#C9B46A]/12`
                   : surface === "en-venta"
-                    ? "rounded-md border border-[#E8DFD0]/90 bg-[#FFFCF7] p-5 shadow-sm"
+                    ? EN_VENTA_SURFACE.heroCard
                     : "rounded-2xl border border-black/10 bg-white p-5 shadow-sm"
               }
             >
@@ -700,8 +702,8 @@ export function EnVentaAnuncioLayout({
                       />
                     }
                   />
-                  <p className="mt-4 rounded-md border border-[#E8DFD0]/70 bg-white/80 px-3 py-2 font-mono text-[11px] text-[#5C5346]">
-                    <span className="font-sans text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{listingIdLabel}</span>
+                  <p className="mt-4 rounded-lg border border-[#C9A84A]/40 bg-[#FBF7EF]/90 px-3 py-2 font-mono text-[11px] text-[#3D3428]">
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">{listingIdLabel}</span>
                     <span className="ml-2 select-all">{listing.id}</span>
                   </p>
                 </>
@@ -1187,7 +1189,7 @@ export function EnVentaAnuncioLayout({
       </section>
 
       {premiumBr && phoneTel && gateAllowCall ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-18px_52px_-20px_rgba(42,36,22,0.22)] backdrop-blur-md lg:hidden">
+        <div className={`fixed inset-x-0 bottom-0 z-40 flex gap-2 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-18px_52px_-20px_rgba(31,36,28,0.22)] backdrop-blur-md lg:hidden ${EN_VENTA_SURFACE.shellBar}`}>
           <button type="button" onClick={openCallSheet} className={`${brLuxuryBtnPrimaryClass} flex-1 text-center text-[13px]`}>
             {lang === "es" ? "Llamar" : "Call"}
           </button>

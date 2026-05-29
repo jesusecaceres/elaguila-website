@@ -2,6 +2,7 @@
 
 import type { EnVentaContactAction } from "../utils/enVentaContactActions";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
+import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
 type Props = {
   actions: EnVentaContactAction[];
@@ -59,9 +60,9 @@ function actionClass(id: EnVentaContactAction["id"]): string {
     return `${base} border-[#128C7E]/40 bg-[#25D366]/12 text-[#0b3d32] hover:bg-[#25D366]/22`;
   }
   if (id === "call") {
-    return `${base} border-[#7A1E2C]/25 bg-[#7A1E2C] text-[#FFFCF7] hover:bg-[#631824]`;
+    return `${base} ${EN_VENTA_SURFACE.primaryCta} border-[#7A1E2C]`;
   }
-  return `${base} border-[#C9B46A]/45 bg-[#FFFCF7] text-[#1E1810] hover:border-[#C9A84A]/65 hover:bg-white`;
+  return `${base} ${EN_VENTA_SURFACE.secondaryBtn}`;
 }
 
 function smsLabel(lang: "es" | "en"): string {
@@ -71,7 +72,7 @@ function smsLabel(lang: "es" | "en"): string {
 export function EnVentaContactButtons({ actions, lang, onAction, layout = "stack" }: Props) {
   if (actions.length === 0) {
     return (
-      <p className="text-sm leading-relaxed text-[#5C5346]/90">
+      <p className="text-sm font-normal leading-relaxed text-[#3D3428]/85">
         {lang === "es"
           ? "El vendedor no indicó un método de contacto público."
           : "The seller did not provide a public contact method."}

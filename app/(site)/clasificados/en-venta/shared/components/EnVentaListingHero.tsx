@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
+import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
 type Props = {
   lang: "es" | "en";
@@ -60,8 +61,8 @@ export function EnVentaListingHero({
           className={cx(
             `mt-4 ${EN_VENTA_TYPO.primaryCta}`,
             primaryCta.disabled
-              ? "cursor-not-allowed border border-[#E8DFD0] bg-[#EFEAE0] text-[#7A7164]"
-              : "border border-[#7A1E2C]/20 bg-[#7A1E2C] text-[#FFFCF7] shadow-sm hover:bg-[#631824]"
+              ? EN_VENTA_SURFACE.primaryCtaDisabled
+              : EN_VENTA_SURFACE.primaryCta
           )}
         >
           {primaryCta.label}

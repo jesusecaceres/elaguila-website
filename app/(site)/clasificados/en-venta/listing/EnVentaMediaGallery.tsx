@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { EnVentaVideoPlayer } from "@/app/clasificados/en-venta/shared/components/EnVentaVideoPlayer";
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
 
 type Slide = { type: "image"; src: string } | { type: "video"; src: string };
 
@@ -38,7 +39,7 @@ export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" 
 
   if (!safe.length) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 text-[#5C5346]/50">
+      <div className={`flex aspect-[4/3] items-center justify-center ${EN_VENTA_SURFACE.contentCardInner} text-[#3D3428]/50`}>
         📷
       </div>
     );
@@ -47,7 +48,7 @@ export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" 
   return (
     <div className="space-y-3">
       <div
-        className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-[#E8DFD0]/90 bg-[#111111]/5 shadow-[0_10px_36px_-12px_rgba(42,36,22,0.12)]"
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#D6C7AD]/70 bg-[#FBF7EF]/50 shadow-[0_10px_36px_-12px_rgba(31,36,28,0.12)]"
         onTouchStart={(e) => {
           (e.currentTarget as HTMLDivElement).dataset.x0 = String(e.touches[0]?.clientX ?? 0);
         }}

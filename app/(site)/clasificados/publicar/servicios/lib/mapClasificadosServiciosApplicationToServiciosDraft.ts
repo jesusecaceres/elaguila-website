@@ -5,6 +5,7 @@ import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { serviciosQuickFactKindFromPresetChip } from "./serviciosQuickFactKindFromChip";
+import { isJunkServiciosQuickFactLabel } from "./serviciosContactVisibility";
 import { isValidEmail } from "./leonixContactCtaPriority";
 import { parseLanguageOtherLines } from "./languageOtherLines";
 import { digitsOnly } from "./serviciosPhoneUi";
@@ -152,7 +153,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       });
     }
   }
-  if (state.customQuickFactIncluded && state.customQuickFactLabel.trim()) {
+  if (state.customQuickFactIncluded && state.customQuickFactLabel.trim() && !isJunkServiciosQuickFactLabel(state.customQuickFactLabel)) {
     const lab = state.customQuickFactLabel.trim().slice(0, 28);
     const low = lab.toLowerCase();
     let kind: ServiciosQuickFactKind = "custom";

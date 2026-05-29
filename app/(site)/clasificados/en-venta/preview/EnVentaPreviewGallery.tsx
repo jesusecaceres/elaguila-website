@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { EnVentaVideoPlayer } from "@/app/clasificados/en-venta/shared/components/EnVentaVideoPlayer";
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
 
 type Props = {
   orderedImages: string[];
@@ -40,7 +41,7 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
 
   if (slides.length === 0) {
     return (
-      <div className="overflow-hidden rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 shadow-[0_10px_36px_-12px_rgba(42,36,22,0.12)]">
+      <div className={EN_VENTA_SURFACE.galleryFrame}>
         <div className="flex aspect-[4/3] items-center justify-center px-4 text-center text-sm text-[#5C5346]/75">
           {lang === "es" ? "Sin fotos en el borrador" : "No photos in draft"}
         </div>
@@ -52,7 +53,7 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
 
   return (
     <div className="space-y-3">
-      <div className="relative overflow-hidden rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7] shadow-[0_14px_44px_-14px_rgba(42,36,22,0.16),inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <div className={`relative ${EN_VENTA_SURFACE.galleryFrame}`}>
         {mainIsPlayableVideo ? (
           <div className="relative aspect-[4/3] w-full bg-black">
             <EnVentaVideoPlayer url={current.src} lang={lang} />

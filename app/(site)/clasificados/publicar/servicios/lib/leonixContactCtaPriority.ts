@@ -1,7 +1,6 @@
 import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
-import { digitsOnly } from "./serviciosPhoneUi";
-import { isProbablyValidWebUrl } from "./socialAndUrlHelpers";
+import { syncServiciosContactEnables } from "./serviciosContactVisibility";
 
 export function isValidEmail(raw: string): boolean {
   const t = raw.trim();
@@ -34,28 +33,14 @@ export function buildLeonixContactCtaLabels(
           msg: "Mensaje",
         };
 
+  const enables = syncServiciosContactEnables(state);
   type Slot = "wa" | "call" | "email" | "web" | "msg";
   const slots: { id: Slot; on: boolean }[] = [
-    {
-      id: "wa",
-      on:
-        state.enableWhatsapp &&
-        (digitsOnly(state.whatsapp).length >= 8 ||
-          (state.whatsappBusinessUrl.trim().length > 0 && isProbablyValidWebUrl(state.whatsappBusinessUrl))),
-    },
-    {
-      id: "call",
-      on: state.enableCall && digitsOnly(state.phone).length >= 8,
-    },
-    {
-      id: "email",
-      on: state.enableEmail && isValidEmail(state.email),
-    },
-    {
-      id: "web",
-      on: state.enableWebsite && state.website.trim().length > 0 && isProbablyValidWebUrl(state.website),
-    },
-    { id: "msg", on: state.enableMessage === true },
+    { id: "wa", on: enables.enableWhatsapp },
+    { id: "call", on: enables.enableCall },
+    { id: "email", on: enables.enableEmail },
+    { id: "web", on: enables.enableWebsite },
+    { id: "msg", on: enables.enableMessage === true },
   ];
 
   const order: Slot[] = ["wa", "call", "email", "web", "msg"];

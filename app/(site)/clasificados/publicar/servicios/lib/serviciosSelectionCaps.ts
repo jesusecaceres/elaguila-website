@@ -31,6 +31,7 @@ import {
   SERVICIOS_CREDENTIAL_STRING_MAX,
   sanitizeCertificationLabels,
 } from "@/app/servicios/lib/serviciosCredentialsCatalog";
+import { isJunkServiciosQuickFactLabel } from "./serviciosContactVisibility";
 
 /** Max preset service chips selected at once (generous cap for real listings) */
 export const MAX_SERVICES_SELECTION = 24;
@@ -69,6 +70,16 @@ export function enforceServiciosSelectionCaps(
     if (customs.length >= MAX_CUSTOM_SERVICES_OFFERED) break;
   }
 
+  let customQuickFactLabel =
+    typeof s.customQuickFactLabel === "string"
+      ? s.customQuickFactLabel.slice(0, CUSTOM_CHIP_MAX_LENGTH)
+      : "";
+  let customQ = !!(s.customQuickFactIncluded && customQuickFactLabel.trim());
+  if (isJunkServiciosQuickFactLabel(customQuickFactLabel)) {
+    customQuickFactLabel = "";
+    customQ = false;
+  }
+
   let customR = !!(s.customReasonIncluded && s.customReasonLabel.trim());
   const ris = [...s.selectedReasonIds];
   while (ris.length + (customR ? 1 : 0) > MAX_REASONS_SELECTION) {
@@ -79,7 +90,6 @@ export function enforceServiciosSelectionCaps(
     }
   }
 
-  let customQ = !!(s.customQuickFactIncluded && s.customQuickFactLabel.trim());
   const qis = [...s.selectedQuickFactIds];
   while (qis.length + (customQ ? 1 : 0) > MAX_QUICK_FACTS_SELECTION) {
     if (qis.length > 0) qis.pop();
@@ -168,6 +178,7 @@ export function enforceServiciosSelectionCaps(
     customServiceIncluded: false,
     customReasonIncluded: customR,
     customQuickFactIncluded: customQ,
+    customQuickFactLabel,
     selectedBusinessHighlightIds: highlightIds,
     customBusinessHighlights: bhCustom,
     customBusinessHighlightLabel,

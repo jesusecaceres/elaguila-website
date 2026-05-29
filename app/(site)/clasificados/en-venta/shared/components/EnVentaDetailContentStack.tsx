@@ -6,11 +6,11 @@ import {
   type EnVentaContentStackModel,
 } from "../types/enVentaContentStack.types";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
+import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
 type Lang = "es" | "en";
 
-const CARD =
-  "rounded-md border border-[#E8DFD0]/90 bg-[#FFFCF7] p-4 shadow-[0_4px_18px_-10px_rgba(42,36,22,0.08)] sm:p-5";
+const CARD = EN_VENTA_SURFACE.contentCard;
 const TITLE = EN_VENTA_TYPO.sectionTitle;
 const BODY = EN_VENTA_TYPO.body;
 
@@ -29,7 +29,7 @@ function ItemFactsGrid({ facts }: { facts: EnVentaContentStackModel["itemFacts"]
       {facts.map((fact) => (
         <div
           key={fact.label}
-          className="min-w-0 rounded-md border border-[#E8DFD0]/70 bg-white/70 px-3 py-2.5"
+          className={`min-w-0 ${EN_VENTA_SURFACE.contentCardInner}`}
         >
           <dt className={EN_VENTA_TYPO.factLabel}>{fact.label}</dt>
           <dd className={`mt-1 break-words ${EN_VENTA_TYPO.factValue}`}>{fact.value}</dd>
@@ -49,7 +49,7 @@ function DeliveryList({ items, lang }: { items: EnVentaContentStackModel["delive
       {items.map((item) => (
         <li
           key={item.label}
-          className="rounded-md border border-[#E8DFD0]/70 bg-white/70 px-3 py-2.5"
+          className={EN_VENTA_SURFACE.contentCardInner}
         >
           <p className={EN_VENTA_TYPO.deliveryTitle}>{item.label}</p>
           {item.note ? (
