@@ -37,6 +37,8 @@ type ProcessStep = { title: string; body: string };
 
 type QrBenefitCard = { title: string; body: string };
 
+type MediaKitPreviewCard = { title: string; body: string };
+
 const COPY: Record<
   Lang,
   {
@@ -91,6 +93,22 @@ const COPY: Record<
       explanation: string;
       benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
       benefitsAria: string;
+    };
+    mediaKitPreview: {
+      eyebrow: string;
+      headline: string;
+      intro: string;
+      cards: [
+        MediaKitPreviewCard,
+        MediaKitPreviewCard,
+        MediaKitPreviewCard,
+        MediaKitPreviewCard,
+      ];
+      cardsAria: string;
+      ctaHeading: string;
+      viewCta: { label: string; href: string };
+      downloadCta: { label: string; href: string };
+      supportingLine: string;
     };
     finalCta: {
       eyebrow: string;
@@ -287,6 +305,42 @@ const COPY: Record<
           body: "Leonix sigue siendo una revista pensada en español, con acceso digital que ayuda a abrir la puerta a más comunidades.",
         },
       ],
+    },
+    mediaKitPreview: {
+      eyebrow: "MEDIA KIT",
+      headline: "Lo que encontrarás en el Media Kit",
+      intro:
+        "El Media Kit reúne la explicación completa de cómo Leonix Media combina revista impresa, presencia digital, QR, acciones reales y paquetes publicitarios para ayudar a que tu negocio se vea mejor y sea más fácil de contactar.",
+      cardsAria: "Contenido del Media Kit",
+      cards: [
+        {
+          title: "Por qué anunciarte con Leonix",
+          body: "Conoce cómo Leonix ayuda a crear alcance, confianza y acción para negocios locales que quieren conectar con la comunidad latina y multicultural.",
+        },
+        {
+          title: "QR + botones de acción",
+          body: "Mira cómo un anuncio impreso puede llevar al cliente a llamar, abrir el mapa, enviar mensaje, visitar tu sitio web, ver redes sociales, reseñas y más.",
+        },
+        {
+          title: "Negocios Locales + presencia digital",
+          body: "Entiende cómo tu negocio puede tener una presencia organizada con teléfono, dirección, mapa, fotos, reseñas, redes, sitio web y botones de contacto.",
+        },
+        {
+          title: "Paquetes y próximos pasos",
+          body: "Revisa las opciones de publicidad, niveles de visibilidad y el proceso para empezar con Leonix Media.",
+        },
+      ],
+      ctaHeading: "¿Listo para ver los detalles?",
+      viewCta: {
+        label: "Ver Media Kit",
+        href: "/media-kit/leonix-media-kit-es.pdf",
+      },
+      downloadCta: {
+        label: "Descargar Media Kit",
+        href: "/media-kit/leonix-media-kit-es.pdf",
+      },
+      supportingLine:
+        "Abre el Media Kit para ver formatos, beneficios, paquetes y próximos pasos.",
     },
     finalCta: {
       eyebrow: "LISTO PARA LANZAR",
@@ -499,6 +553,42 @@ const COPY: Record<
           body: "Leonix remains a Spanish-first magazine, with digital access that helps open the door to more communities.",
         },
       ],
+    },
+    mediaKitPreview: {
+      eyebrow: "MEDIA KIT",
+      headline: "What you'll find in the Media Kit",
+      intro:
+        "The Media Kit brings together the full explanation of how Leonix Media combines print magazine exposure, digital presence, QR, real actions, and advertising packages to help your business look stronger and become easier to contact.",
+      cardsAria: "Media Kit contents",
+      cards: [
+        {
+          title: "Why advertise with Leonix",
+          body: "See how Leonix helps create reach, trust, and action for local businesses that want to connect with the Latino and multicultural community.",
+        },
+        {
+          title: "QR + action buttons",
+          body: "See how a printed ad can help customers call you, open your map, send a message, visit your website, view social media, reviews, and more.",
+        },
+        {
+          title: "Local Businesses + digital presence",
+          body: "Understand how your business can have an organized presence with phone, address, map, photos, reviews, social media, website, and contact buttons.",
+        },
+        {
+          title: "Packages and next steps",
+          body: "Review advertising options, visibility levels, and the process to get started with Leonix Media.",
+        },
+      ],
+      ctaHeading: "Ready to see the details?",
+      viewCta: {
+        label: "View Media Kit",
+        href: "/media-kit/leonix-media-kit-en.pdf",
+      },
+      downloadCta: {
+        label: "Download Media Kit",
+        href: "/media-kit/leonix-media-kit-en.pdf",
+      },
+      supportingLine:
+        "Open the Media Kit to see formats, benefits, packages, and next steps.",
     },
     finalCta: {
       eyebrow: "READY TO LAUNCH",
@@ -1011,14 +1101,160 @@ function QrAccessSection({
   );
 }
 
-function MediaKitDownloadLink({ label, href }: { label: string; href: string }) {
+const mediaKitPreviewAccents = [
+  {
+    ring: "border-[#7A1E2C]/35",
+    bg: "bg-[#7A1E2C]/10",
+    text: "text-[#7A1E2C]",
+  },
+  {
+    ring: "border-[#C9A84A]/55",
+    bg: "bg-[#C9A84A]/12",
+    text: "text-[#8A6B1F]",
+  },
+  {
+    ring: "border-[#2A4536]/35",
+    bg: "bg-[#2A4536]/10",
+    text: "text-[#2A4536]",
+  },
+  {
+    ring: "border-[#C9A84A]/55",
+    bg: "bg-gradient-to-br from-[#7A1E2C]/12 to-[#C9A84A]/15",
+    text: "text-[#7A1E2C]",
+  },
+] as const;
+
+function MediaKitPreviewCardIcon({ index }: { index: number }) {
+  const accent = mediaKitPreviewAccents[index];
+  return (
+    <span
+      className={`mb-4 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${accent.ring} ${accent.bg} ${accent.text}`}
+      aria-hidden
+    >
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M7 4h10v16H7V4zm2 2v12h6V6H9zm1.5 2h3v1.5h-3V8zm0 2.5h3v1.5h-3v-1.5z"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
+function MediaKitPreviewSection({
+  eyebrow,
+  headline,
+  intro,
+  cards,
+  cardsAria,
+  ctaHeading,
+  viewCta,
+  downloadCta,
+  supportingLine,
+}: {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  cards: [
+    MediaKitPreviewCard,
+    MediaKitPreviewCard,
+    MediaKitPreviewCard,
+    MediaKitPreviewCard,
+  ];
+  cardsAria: string;
+  ctaHeading: string;
+  viewCta: { label: string; href: string };
+  downloadCta: { label: string; href: string };
+  supportingLine: string;
+}) {
+  const viewLinkCta: HeroCta = {
+    label: viewCta.label,
+    href: viewCta.href,
+    variant: "secondary",
+    external: true,
+  };
+
+  return (
+    <section
+      id="media-kit-preview"
+      className="scroll-mt-28 border-t border-[#D6C7AD]/60 py-12 sm:py-14 lg:py-16"
+      aria-labelledby="media-kit-preview-title"
+    >
+      <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs">
+        {eyebrow}
+      </p>
+      <h2
+        id="media-kit-preview-title"
+        className="mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl"
+      >
+        {headline}
+      </h2>
+      <p className="mt-4 max-w-3xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+        {intro}
+      </p>
+
+      <ul
+        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5"
+        aria-label={cardsAria}
+      >
+        {cards.map((card, index) => (
+          <li key={index}>
+            <article className="flex h-full flex-col rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/10 sm:p-6">
+              <MediaKitPreviewCardIcon index={index} />
+              <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C]">
+                {card.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                {card.body}
+              </p>
+            </article>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-8 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-6 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/15 sm:p-8">
+        <h3 className="font-serif text-xl font-bold text-[#2A4536] sm:text-[1.35rem]">
+          {ctaHeading}
+        </h3>
+        <div className="mt-5 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+          <HeroCtaLink cta={viewLinkCta} />
+          <MediaKitDownloadLink
+            label={downloadCta.label}
+            href={downloadCta.href}
+            tone="light"
+          />
+        </div>
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+          {supportingLine}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function MediaKitDownloadLink({
+  label,
+  href,
+  tone = "dark",
+}: {
+  label: string;
+  href: string;
+  tone?: "dark" | "light";
+}) {
+  const toneClass =
+    tone === "dark"
+      ? "border-[#C9A84A]/40 bg-[#1a2d24]/35 text-[#EDE6D6] hover:border-[#C9A84A]/60 hover:bg-[#1a2d24]/55"
+      : "border-[#C9A84A]/55 bg-[#FFFDF7] text-[#2A4536] hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+
   return (
     <a
       href={href}
       download
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-full border border-[#C9A84A]/40 bg-[#1a2d24]/35 px-5 py-3 text-center text-sm font-semibold text-[#EDE6D6] transition hover:border-[#C9A84A]/60 hover:bg-[#1a2d24]/55 sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:text-[0.9375rem]"
+      className={`inline-flex min-h-[3rem] w-full items-center justify-center rounded-full border px-5 py-3 text-center text-sm font-semibold transition sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:text-[0.9375rem] ${toneClass}`}
     >
       {label}
     </a>
@@ -1235,6 +1471,7 @@ export function ComingSoonV2Shell() {
   const wyg = t.whatYouGet;
   const hiw = t.howItWorks;
   const qr = t.qrAccess;
+  const mkp = t.mediaKitPreview;
   const final = t.finalCta;
   const contact = t.contact;
   const newsletter = t.newsletter;
@@ -1427,6 +1664,18 @@ export function ComingSoonV2Shell() {
           explanation={qr.explanation}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
+        />
+
+        <MediaKitPreviewSection
+          eyebrow={mkp.eyebrow}
+          headline={mkp.headline}
+          intro={mkp.intro}
+          cards={mkp.cards}
+          cardsAria={mkp.cardsAria}
+          ctaHeading={mkp.ctaHeading}
+          viewCta={mkp.viewCta}
+          downloadCta={mkp.downloadCta}
+          supportingLine={mkp.supportingLine}
         />
 
         <FinalContactSection
