@@ -32,8 +32,8 @@ export type EnVentaPreviewCtaVariant = "light" | "dark";
 type Props = {
   lang: "es" | "en";
   variant?: EnVentaPreviewCtaVariant;
-  /** Runs synchronously before navigation; must persist preview draft (throws on family-safety block). */
-  onBeforePreview?: (plan: "free" | "pro") => void;
+  /** Runs before navigation; must persist preview draft (throws on family-safety block). */
+  onBeforePreview?: (plan: "free" | "pro") => void | Promise<void>;
   /** Core-field blockers; preview allowed when empty. Checkboxes not required. */
   previewBlockers?: string[];
 };
@@ -52,11 +52,11 @@ export function EnVentaPreviewBeforePublishCta({
   const [saveError, setSaveError] = useState<string | null>(null);
   const proHref = `${PREVIEW_HREF_BASE}?lang=${lang}&plan=pro`;
 
-  function goPreview() {
+  async function goPreview() {
     if (previewBlockers.length > 0) return;
     setSaveError(null);
     try {
-      onBeforePreview?.("pro");
+      await onBeforePreview?.("pro");
     } catch {
       return;
     }
@@ -111,7 +111,7 @@ export function EnVentaPreviewBeforePublishCta({
         <button
           type="button"
           className={previewBtn}
-          onClick={goPreview}
+          onClick={() => void goPreview()}
           disabled={previewBlockers.length > 0}
         >
           {t.previewBtn}

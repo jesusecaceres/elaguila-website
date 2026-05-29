@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties, type Rea
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
-import { loadLatestEnVentaPreviewDraftAsync, loadEnVentaPreviewDraftMeta } from "./enVentaPreviewDraft";
+import { loadLatestEnVentaPreviewDraftAsync, loadEnVentaPreviewDraftMeta, buildEnVentaEditResumeHref } from "./enVentaPreviewDraft";
 import { buildEnVentaPreviewModel, type EnVentaPreviewContactAction } from "./buildEnVentaPreviewModel";
 import { EnVentaPreviewGallery } from "./EnVentaPreviewGallery";
 import { EnVentaPreviewSellerCard } from "./EnVentaPreviewSellerCard";
@@ -34,7 +34,7 @@ const EMPTY = {
   es: {
     title: "Sin borrador para mostrar",
     body: "Completa tu anuncio en Publicar y vuelve a abrir la vista previa desde allí.",
-    edit: "Ir a editar",
+    edit: "Volver a editar",
   },
   en: {
     title: "No draft to preview",
@@ -199,10 +199,7 @@ export function EnVentaPreviewPage() {
   const tEmpty = EMPTY[lang];
   const tBuyer = BUYER[lang];
 
-  const editBackHref =
-    plan === "free"
-      ? `/clasificados/publicar/en-venta/free?lang=${lang}`
-      : `/clasificados/publicar/en-venta/pro?lang=${lang}`;
+  const editBackHref = buildEnVentaEditResumeHref(plan, lang);
   const previewHrefFree = `/clasificados/en-venta/preview?lang=${lang}&plan=free`;
   const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);

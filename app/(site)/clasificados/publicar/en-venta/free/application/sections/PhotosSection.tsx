@@ -29,7 +29,7 @@ const COPY = {
     planFree: "Hasta 3 fotos. No se admite video en esta vía.",
     planIncluded: "Hasta 12 fotos y 1 video opcional (archivo o enlace).",
     reorderTitle: "Ordenar fotos",
-    reorderDrag: "Usa la asa (⋮⋮) de cada foto para arrastrar y cambiar el orden.",
+    reorderDrag: "Arrastra para ordenar",
     reorderMobile: "En móvil, usa los controles ↑ ↓ para moverlas.",
     dragHandleAria: "Asa para reordenar foto",
     count: (n: number, max: number) => `${n} / ${max} fotos`,
@@ -48,9 +48,8 @@ const COPY = {
     videoFile: "Elegir archivo de video",
     videoLink: "O pega un enlace al video (YouTube, Vimeo, etc.)",
     videoClear: "Quitar video",
-    videoAdded: "Video agregado",
-    videoLinkAdded: "Enlace de video agregado",
-    videoSaved: "Guardado en tu borrador para vista previa y publicación.",
+    videoLinkSavedDraft: "Enlace de video guardado en el borrador",
+    videoFileSavedDraft: "Video guardado en el borrador. Se procesará al publicar.",
     noVideoFree: "Esta vía no incluye video.",
     uploadRequest: "Solicitando carga segura...",
     uploading: "Subiendo video...",
@@ -73,7 +72,7 @@ const COPY = {
     planFree: "Up to 3 photos. No video on this path.",
     planIncluded: "Up to 12 photos and 1 optional video (file or link).",
     reorderTitle: "Reorder photos",
-    reorderDrag: "Use the grip (⋮⋮) on each photo to drag and change the order.",
+    reorderDrag: "Drag to reorder",
     reorderMobile: "On mobile, use the ↑ ↓ controls to move them.",
     dragHandleAria: "Photo drag handle",
     count: (n: number, max: number) => `${n} / ${max} photos`,
@@ -92,9 +91,8 @@ const COPY = {
     videoFile: "Choose video file",
     videoLink: "Or paste a link (YouTube, Vimeo, etc.)",
     videoClear: "Remove video",
-    videoAdded: "Video added",
-    videoLinkAdded: "Video link added",
-    videoSaved: "Saved in your draft for preview and publish.",
+    videoLinkSavedDraft: "Video link saved in draft",
+    videoFileSavedDraft: "Video saved in draft. It will process when published.",
     videoLinkInvalid: "Use a link that starts with http:// or https://",
     noVideoFree: "This path does not include video.",
     uploadRequest: "Requesting secure upload...",
@@ -392,9 +390,13 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   const videoSlot = state.listingVideoSlots[0];
   const videoUrlRaw = state.listingVideoUrl.trim();
   const videoLinkInvalid = videoUrlRaw.length > 0 && !isValidVideoUrl(videoUrlRaw);
-  const videoFileReady = videoSlot.status === "ready" && Boolean(videoSlot.playbackUrl || videoSlot.fileName);
-  const videoLinkReady = isValidVideoUrl(videoUrlRaw);
-  const videoAccepted = videoFileReady || videoLinkReady;
+  const videoLinkDraftSaved = isValidVideoUrl(videoUrlRaw);
+  const videoFileDraftSaved = Boolean(videoSlot.fileName);
+  const videoMuxReady = videoSlot.status === "ready" && Boolean(videoSlot.playbackUrl || videoSlot.assetId);
+  const videoUploadInProgress =
+    videoSlot.status === "requesting_upload" ||
+    videoSlot.status === "uploading" ||
+    videoSlot.status === "preparing";
 
   function onVideoFile(files: FileList | null) {
     const f = files?.[0];
@@ -600,13 +602,9 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                 <li
                   key={`${url}-${index}`}
                   draggable
-                  onDragStart={(e) => {
-                    if (allowDragFromRef.current !== index) {
-                      e.preventDefault();
-                      return;
-                    }
+                  onDragStart={() => {
+                    allowDragFromRef.current = index;
                     setDragIndex(index);
-                    e.dataTransfer.effectAllowed = "move";
                   }}
                   onDragEnd={() => {
                     setDragIndex(null);
@@ -622,7 +620,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                     allowDragFromRef.current = null;
                   }}
                   className={cx(
-                    "flex flex-col overflow-hidden rounded-2xl border shadow-sm",
+                    "flex cursor-grab flex-col overflow-hidden rounded-2xl border shadow-sm active:cursor-grabbing",
                     c.imgBorder,
                     dark ? "bg-black/20" : "bg-white",
                     dragIndex === index ? "ring-2 ring-[#A98C2A]/50" : ""
@@ -725,28 +723,32 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
               </button>
             ) : null}
           </div>
-          {videoAccepted ? (
-            <p
+          {(videoLinkDraftSaved || videoFileDraftSaved) && !videoUploadInProgress ? (
+            <div
               className={cx(
-                "mt-2 rounded-lg border border-[#C9B46A]/35 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#3D2C12]",
+                "mt-2 space-y-1.5 rounded-lg border border-[#C9B46A]/35 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#3D2C12]",
                 c.vidStatus
               )}
               role="status"
             >
-              {t.ready}
-              <span className="mt-0.5 block font-normal text-[#5D4A25]/85">{t.videoSaved}</span>
-            </p>
-          ) : state.listingVideoSlots[0].status !== "idle" ? (
+              {videoLinkDraftSaved ? (
+                <p className="font-normal text-[#5D4A25]/90">{t.videoLinkSavedDraft}</p>
+              ) : null}
+              {videoFileDraftSaved ? (
+                <p className="font-normal text-[#5D4A25]/90">{t.videoFileSavedDraft}</p>
+              ) : null}
+            </div>
+          ) : videoUploadInProgress || (videoMuxReady && videoSlot.fileName) ? (
             <p className={cx("mt-2 text-xs leading-snug", c.vidStatus)} role="status">
-              {state.listingVideoSlots[0].status === "requesting_upload"
+              {videoSlot.status === "requesting_upload"
                 ? t.uploadRequest
-                : state.listingVideoSlots[0].status === "uploading"
-                  ? `${t.uploading} ${state.listingVideoSlots[0].progressPct}%`
-                  : state.listingVideoSlots[0].status === "preparing"
+                : videoSlot.status === "uploading"
+                  ? `${t.uploading} ${videoSlot.progressPct}%`
+                  : videoSlot.status === "preparing"
                     ? t.preparing
-                    : state.listingVideoSlots[0].status === "ready"
+                    : videoMuxReady
                       ? t.ready
-                      : state.listingVideoSlots[0].errorMessage}
+                      : videoSlot.errorMessage}
             </p>
           ) : null}
           <div className="mt-3">
@@ -783,7 +785,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
                 : "If you upload a file, you can leave the link blank."}
             </p>
           </div>
-          {!videoAccepted && (state.listingVideoSlots[0].fileName || state.listingVideoUrl) ? (
+          {!videoLinkDraftSaved && !videoFileDraftSaved && (videoSlot.fileName || state.listingVideoUrl) ? (
             <p className={cx("mt-2 text-xs", c.vidStatus)}>
               {state.listingVideoSlots[0].fileName
                 ? `${lang === "es" ? "Archivo seleccionado" : "Selected file"}: ${state.listingVideoSlots[0].fileName}`

@@ -324,3 +324,48 @@ export function loadEnVentaPreviewDraftMeta(): EnVentaPreviewDraftMeta | null {
     return null;
   }
 }
+
+/** Pro/Free edit route with resume flag after preview round-trip. */
+export function buildEnVentaEditResumeHref(plan: "free" | "pro", lang: "es" | "en"): string {
+  const base =
+    plan === "free" ? "/clasificados/publicar/en-venta/free" : "/clasificados/publicar/en-venta/pro";
+  return `${base}?lang=${lang}&resume=1`;
+}
+
+export function enVentaDraftHasAllPublishCheckboxes(state: EnVentaFreeApplicationState): boolean {
+  return (
+    state.confirmListingAccurate &&
+    state.confirmPhotosRepresentItem &&
+    state.confirmCommunityRules
+  );
+}
+
+/**
+ * Await durable draft write (memory + sessionStorage + IndexedDB) before preview navigation.
+ * Returns false only if memory cache could not be populated.
+ */
+export async function persistEnVentaPreviewHandoffAsync(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): Promise<boolean> {
+  const merged = mergePartialEnVentaState(state);
+  cacheDraftInMemory(plan, merged);
+  saveEnVentaPreviewDraft(plan, merged);
+  saveEnVentaPreviewReturnDraft(plan, merged);
+  if (typeof window === "undefined") return true;
+  try {
+    const json = JSON.stringify(merged);
+    const returnJson = JSON.stringify({
+      plan,
+      state: merged,
+      savedAt: Date.now(),
+    } satisfies EnVentaPreviewReturnPayload);
+    await Promise.all([
+      idbPutEnVentaPreviewDraft(plan, json),
+      idbPutEnVentaPreviewReturnDraft(plan, returnJson),
+    ]);
+  } catch {
+    /* memory + best-effort sessionStorage may still suffice for same-tab nav */
+  }
+  return hasEnVentaPreviewDraft(plan);
+}
