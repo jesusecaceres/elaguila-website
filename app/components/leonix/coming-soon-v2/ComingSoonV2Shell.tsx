@@ -77,20 +77,20 @@ export function ComingSoonV2Shell() {
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#EDE6D6]/70 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#EDE6D6]/60 to-transparent"
         aria-hidden
       />
 
       <header className="relative border-b border-[#D6C7AD] bg-[#FAF6EE] shadow-[0_1px_0_0_rgba(201,168,74,0.35)]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex items-center gap-3 py-2.5 sm:gap-4 sm:py-3 lg:py-3.5">
-            <Link href="#inicio" className="shrink-0">
+          <div className="flex items-center gap-2.5 py-2 sm:gap-3 sm:py-2.5 lg:gap-4 lg:py-2.5">
+            <Link href="#inicio" className="block shrink-0 bg-[#FAF6EE] leading-none">
               <Image
                 src="/logo-clean.png"
                 alt="Leonix Media"
-                width={240}
-                height={84}
-                className="h-auto w-[148px] object-contain sm:w-[180px] lg:w-[248px]"
+                width={220}
+                height={76}
+                className="h-auto w-[138px] max-w-[160px] bg-transparent object-contain object-left sm:w-[150px] lg:w-[220px] lg:max-w-[260px]"
                 priority
               />
             </Link>
@@ -142,7 +142,7 @@ export function ComingSoonV2Shell() {
           </div>
 
           <nav
-            className="flex items-center gap-2 overflow-x-auto pb-2.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+            className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
             aria-label={t.navAria}
           >
             {t.nav.map((item) => (
