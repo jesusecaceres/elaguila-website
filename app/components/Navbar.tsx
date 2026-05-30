@@ -7,8 +7,9 @@ import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from "rea
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../lib/supabase/browser";
 import {
   PUBLIC_NAV_ADVERTISE,
+  PUBLIC_NAV_DESKTOP,
   PUBLIC_NAV_MAS_ITEMS,
-  PUBLIC_NAV_PRIMARY,
+  PUBLIC_NAV_MOBILE,
   publicNavLabel,
   type PublicNavLang,
 } from "../lib/publicNavConfig";
@@ -39,11 +40,6 @@ function getInitials(input?: string | null) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
-
-const LANG_TOGGLE_LABELS = {
-  es: { es: "Español", en: "English" },
-  en: { es: "Español", en: "English" },
-} as const;
 
 function NavbarContent() {
   const pathname = usePathname() ?? "";
@@ -269,17 +265,9 @@ function NavbarContent() {
       ? "whitespace-nowrap text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em]"
       : "whitespace-nowrap text-[#3D3428] hover:text-[#7A1E2C]";
 
-  const mobilePillClass = (active: boolean) =>
-    cx(
-      "shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold sm:px-3 sm:py-1.5 sm:text-xs",
-      active
-        ? "bg-[#7A1E2C]/10 text-[#7A1E2C] ring-1 ring-[#7A1E2C]/25"
-        : "bg-[#FFFDF7] text-[#3D3428] ring-1 ring-[#D6C7AD]"
-    );
-
-  const langToggle = (
+  const langToggle = (compact?: boolean) => (
     <div
-      className="flex rounded-full border border-[#D6C7AD] bg-[#FFFDF7] p-0.5 text-[0.6875rem] font-semibold sm:text-xs"
+      className="flex shrink-0 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] p-0.5 text-[0.6875rem] font-semibold sm:text-xs"
       role="group"
       aria-label={L.langAria}
     >
@@ -290,26 +278,36 @@ function NavbarContent() {
           onClick={() => switchLang(code)}
           aria-pressed={lang === code}
           className={cx(
-            "min-h-[1.875rem] min-w-[3.25rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2rem] sm:min-w-[3.5rem] sm:px-2.5",
+            "min-h-[1.875rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2rem] sm:px-2.5",
+            compact ? "min-w-[2.5rem] sm:min-w-[2.75rem]" : "min-w-[3.25rem] sm:min-w-[3.5rem]",
             lang === code ? "bg-[#7A1E2C] text-white" : "text-[#3D3428] hover:bg-[#EDE6D6]"
           )}
         >
-          {LANG_TOGGLE_LABELS[lang][code]}
+          {code.toUpperCase()}
         </button>
       ))}
     </div>
   );
 
-  const accountControlDesktop = (
-    <div className="relative hidden sm:block">
-      {authLoading ? (
-        <div className="h-[2rem] w-16 animate-pulse rounded-full bg-[#D6C7AD]/40 sm:h-[2.125rem]" />
-      ) : user ? (
-        <>
+  const accountControl = (variant: "desktop" | "mobile-bar") => {
+    if (authLoading) {
+      return (
+        <div
+          className={cx(
+            "animate-pulse rounded-full bg-[#D6C7AD]/40",
+            variant === "desktop" ? "hidden h-[2.125rem] w-16 xl:block" : "hidden"
+          )}
+        />
+      );
+    }
+
+    if (user) {
+      return (
+        <div className={cx("relative", variant === "desktop" ? "hidden shrink-0 xl:block" : "hidden")}>
           <button
             type="button"
             onClick={() => setAccountOpen((v) => !v)}
-            className="inline-flex max-w-[9.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:px-2.5"
+            className="inline-flex max-w-[7.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:max-w-[8.5rem] sm:px-2.5"
             aria-label={L.myAccount}
             aria-expanded={accountOpen}
           >
@@ -364,35 +362,35 @@ function NavbarContent() {
               </button>
             </div>
           )}
-        </>
-      ) : (
-        <button
-          type="button"
-          onClick={goToLogin}
-          className="inline-flex min-h-[2rem] items-center justify-center rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-1 text-[0.7rem] font-semibold text-[#3D3428] transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs"
-        >
-          {L.signIn}
-        </button>
-      )}
-    </div>
-  );
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={goToLogin}
+        className={cx(
+          "inline-flex shrink-0 min-h-[2rem] items-center justify-center rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-1 text-[0.7rem] font-semibold text-[#3D3428] transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs",
+          variant === "desktop" ? "hidden xl:inline-flex" : "hidden"
+        )}
+      >
+        {L.signIn}
+      </button>
+    );
+  };
 
   const advertiseCta = (
     <Link
       href={advertiseHref}
-      className="inline-flex min-h-[2rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs lg:text-sm"
+      className="hidden shrink-0 min-h-[2rem] items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs xl:inline-flex"
     >
       {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
     </Link>
   );
 
-  const allMobileNavItems = [
-    ...PUBLIC_NAV_PRIMARY.map((item) => ({ ...item, isMas: false })),
-    ...PUBLIC_NAV_MAS_ITEMS.map((item) => ({ ...item, isMas: true })),
-  ];
-
   return (
-    <header className="fixed top-0 left-0 z-50 w-full" data-navbar-root>
+    <header className="fixed top-0 left-0 z-50 w-full overflow-x-hidden" data-navbar-root>
       {showSignedOutToast && (
         <div
           className="fixed top-20 left-1/2 z-[1000] -translate-x-1/2 rounded-xl bg-green-600/95 px-4 py-2.5 text-sm font-medium text-white shadow-lg border border-green-500/30"
@@ -404,10 +402,11 @@ function NavbarContent() {
 
       <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0 py-1.5 sm:gap-x-4 sm:py-2 lg:py-2">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:gap-x-6 sm:py-2 lg:py-2">
+            {/* ZONE 1 — brand (fixed, no shrink into nav) */}
             <Link
               href={buildLink("/home")}
-              className="flex shrink-0 items-center gap-1.5 sm:gap-2"
+              className="flex shrink-0 items-center gap-2.5 sm:gap-3"
               aria-label={L.brandName}
             >
               <span className="inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 lg:h-10 lg:w-10">
@@ -421,16 +420,17 @@ function NavbarContent() {
                   aria-hidden
                 />
               </span>
-              <span className="hidden font-serif text-xs font-bold leading-tight text-[#2A4536] sm:inline sm:text-sm lg:text-[0.9375rem]">
+              <span className="hidden max-w-[7rem] truncate font-serif text-xs font-bold leading-tight text-[#2A4536] sm:inline sm:max-w-none sm:text-sm lg:text-[0.9375rem]">
                 {L.brandName}
               </span>
             </Link>
 
+            {/* ZONE 2 — center nav (xl+ only; min-w-0 overflow protection) */}
             <nav
-              className="hidden min-w-0 items-center justify-center gap-x-4 text-[0.8125rem] font-medium text-[#3D3428] lg:flex xl:gap-x-5 xl:text-[0.875rem]"
+              className="hidden min-w-0 items-center justify-center gap-x-[1.375rem] px-2 text-[0.8125rem] font-medium text-[#3D3428] xl:flex 2xl:gap-x-[1.875rem] 2xl:text-[0.875rem]"
               aria-label={L.navAria}
             >
-              {PUBLIC_NAV_PRIMARY.map((item) => (
+              {PUBLIC_NAV_DESKTOP.map((item) => (
                 <Link
                   key={item.id}
                   href={buildLink(item.href)}
@@ -441,7 +441,7 @@ function NavbarContent() {
                 </Link>
               ))}
 
-              <div className="relative" ref={masRef}>
+              <div className="relative shrink-0" ref={masRef}>
                 <button
                   type="button"
                   onClick={() => setMasOpen((v) => !v)}
@@ -453,7 +453,7 @@ function NavbarContent() {
                   <span className="text-[0.6rem] leading-none">{masOpen ? "▲" : "▼"}</span>
                 </button>
                 {masOpen && (
-                  <div className="absolute left-1/2 top-full z-50 mt-1 min-w-[10rem] -translate-x-1/2 overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)]">
+                  <div className="absolute left-1/2 top-full z-50 mt-1 min-w-[12rem] -translate-x-1/2 overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)]">
                     {PUBLIC_NAV_MAS_ITEMS.map((item) => (
                       <Link
                         key={item.id}
@@ -469,13 +469,14 @@ function NavbarContent() {
               </div>
             </nav>
 
-            <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
-              {langToggle}
-              {accountControlDesktop}
+            {/* ZONE 3 — right controls (fixed, no shrink into nav) */}
+            <div className="flex shrink-0 items-center justify-end gap-2.5 sm:gap-3">
+              {langToggle(true)}
+              {accountControl("desktop")}
               {advertiseCta}
               <button
                 type="button"
-                className="inline-flex min-h-[2rem] min-w-[2rem] items-center justify-center text-lg text-[#3D3428] lg:hidden"
+                className="inline-flex min-h-[2rem] min-w-[2rem] shrink-0 items-center justify-center text-lg text-[#3D3428] xl:hidden"
                 onClick={() => setMobileOpen(true)}
                 aria-label={L.openMenu}
               >
@@ -483,33 +484,11 @@ function NavbarContent() {
               </button>
             </div>
           </div>
-
-          <nav
-            className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
-            aria-label={L.navAria}
-          >
-            {PUBLIC_NAV_PRIMARY.map((item) => (
-              <Link
-                key={item.id}
-                href={buildLink(item.href)}
-                className={mobilePillClass(isActive(item.href))}
-              >
-                {publicNavLabel(item, lang)}
-              </Link>
-            ))}
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className={mobilePillClass(masActive)}
-            >
-              {L.mas}
-            </button>
-          </nav>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-[999] lg:hidden">
+        <div className="fixed inset-0 z-[999] xl:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
@@ -533,9 +512,9 @@ function NavbarContent() {
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3">
               <nav className="flex flex-col gap-1" aria-label={L.navAria}>
-                {allMobileNavItems.map((item) => (
+                {PUBLIC_NAV_MOBILE.map((item) => (
                   <Link
                     key={item.id}
                     href={buildLink(item.href)}
@@ -554,6 +533,14 @@ function NavbarContent() {
             </div>
 
             <div className="shrink-0 space-y-3 border-t border-[#D6C7AD]/60 px-4 py-4">
+              <Link
+                href={advertiseHref}
+                onClick={() => setMobileOpen(false)}
+                className="flex w-full items-center justify-center rounded-full bg-[#7A1E2C] px-4 py-3 text-sm font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)]"
+              >
+                {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
+              </Link>
+
               {authLoading ? (
                 <div className="h-10 animate-pulse rounded-xl bg-[#D6C7AD]/30" />
               ) : user ? (
@@ -566,6 +553,13 @@ function NavbarContent() {
                       className="rounded-xl bg-[#7A1E2C] px-3 py-2.5 text-center text-sm font-semibold text-white"
                     >
                       {L.manageAccount}
+                    </Link>
+                    <Link
+                      href={`/dashboard/mis-anuncios?lang=${lang}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-center text-sm font-medium text-[#1F241C]"
+                    >
+                      {L.myListings}
                     </Link>
                     <button
                       type="button"
@@ -597,6 +591,8 @@ function NavbarContent() {
                   </Link>
                 </div>
               )}
+
+              <div className="flex justify-center">{langToggle(true)}</div>
             </div>
           </div>
         </div>

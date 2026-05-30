@@ -105,6 +105,7 @@
     "varios:vl1-published-visibility-audit": "tsx scripts/varios-vl1-published-visibility-audit.ts",
     "varios:p4f-desktop-detail-layout-repair-audit": "tsx scripts/varios-p4f-desktop-detail-layout-repair-audit.ts",
     "website:h1d-copy-coming-soon-header-layout-audit": "tsx scripts/website-h1d-copy-coming-soon-header-layout-audit.ts",
+    "website:h1e-header-spacing-fix-audit": "tsx scripts/website-h1e-header-spacing-fix-audit.ts",
     "varios:final-stack-audit": "tsx scripts/varios-final-stack-2k-2l-2m-2p-audit.ts",
     "verify:en-venta": "npx tsx scripts/en-venta-go-live-selftest.ts && npx tsx scripts/en-venta-schema-readiness.ts",
     "verify:en-venta:e2e": "npx playwright test e2e/en-venta-smoke.spec.ts e2e/en-venta-seeded-trace.spec.ts e2e/en-venta-auth-smoke.spec.ts",
