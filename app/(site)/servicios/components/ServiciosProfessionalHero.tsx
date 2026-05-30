@@ -185,9 +185,9 @@ export function ServiciosProfessionalHero({
                 <span
                   className="inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                   style={{
-                    borderColor: "rgba(45, 90, 61, 0.45)",
+                    borderColor: "rgba(45, 90, 61, 0.5)",
                     backgroundColor: LX.trustGreenSoft,
-                    color: "#B8E6C8",
+                    color: LX.trustGreenTextOnDark,
                   }}
                 >
                   {lang === "en" ? "Leonix Verified" : "Leonix Verificado"}
@@ -239,7 +239,7 @@ export function ServiciosProfessionalHero({
               type="button"
               onClick={openWhatsApp}
               className={LX_CTA_WHATSAPP}
-              style={{ backgroundColor: LX.whatsApp, boxShadow: "0 8px 20px rgba(37, 211, 102, 0.28)" }}
+              style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
             >
               <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
               WhatsApp

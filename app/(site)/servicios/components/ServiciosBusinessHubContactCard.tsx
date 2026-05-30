@@ -48,7 +48,14 @@ import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { SV } from "./serviciosDesignTokens";
-import { LX, LX_CTA_MAP, LX_CTA_PRIMARY, LX_CTA_WHATSAPP } from "./serviciosLeonixBrand";
+import {
+  LX,
+  LX_CTA_MAP,
+  LX_CTA_PRIMARY,
+  LX_CTA_WHATSAPP,
+  resolveProfessionalHubQuoteCtaLabel,
+} from "./serviciosLeonixBrand";
+import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { ServiciosHubReviewLinkButton } from "./ServiciosHubReviewLinkButton";
 
 const HUB_GOLD = LX.gold;
@@ -138,9 +145,12 @@ export function ServiciosBusinessHubContactCard({
   publicLikeCount,
   directContactFasterResponseHint = false,
   showOfferSidebarTeaser = true,
+  listingTemplate,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** When set (professional preview/profile), hub quote CTA uses template-aware copy. */
+  listingTemplate?: ServiciosListingTemplate;
   listingSlug?: string;
   listingShareUrl?: string;
   engagementListingId?: string | null;
@@ -190,7 +200,12 @@ export function ServiciosBusinessHubContactCard({
   const contactExtras = serviciosContactShareExtras(profile, listingSlug, listingShareUrl);
   const quote = resolveServiciosQuoteDestination(profile, lang);
   const quoteMsgText = serviciosUniversalQuoteMessage(lang);
-  const primaryCtaLabel = profile.contact.primaryCtaLabel?.trim() || L.requestQuote;
+  const primaryCtaLabel = resolveProfessionalHubQuoteCtaLabel(
+    profile.contact.primaryCtaLabel,
+    listingTemplate,
+    lang,
+    L.requestQuote,
+  );
   const primaryMailto = quote?.kind === "mailto" ? quote.href : null;
   const primaryEmailAddr =
     profile.contact.email?.trim() ||
@@ -427,10 +442,7 @@ export function ServiciosBusinessHubContactCard({
                   className={`${contactBtnBase} border-0`}
                   style={{
                     backgroundColor: action.id === "whatsapp" ? LX.whatsApp : LX.burgundy,
-                    boxShadow:
-                      action.id === "whatsapp"
-                        ? "0 6px 16px rgba(37, 211, 102, 0.22)"
-                        : "0 6px 16px rgba(92, 22, 34, 0.2)",
+                    boxShadow: action.id === "whatsapp" ? LX.whatsAppShadow : "0 6px 16px rgba(92, 22, 34, 0.2)",
                   }}
                   onClick={action.onClick}
                 >

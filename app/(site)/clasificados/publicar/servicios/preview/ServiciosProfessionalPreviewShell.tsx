@@ -99,6 +99,7 @@ export function ServiciosProfessionalPreviewShell({
               <ServiciosBusinessHubContactCard
                 profile={profile}
                 lang={lang}
+                listingTemplate={template}
                 directContactFasterResponseHint
                 showOfferSidebarTeaser={false}
               />
@@ -130,6 +131,7 @@ export function ServiciosProfessionalPreviewShell({
               <ServiciosBusinessHubContactCard
                 profile={profile}
                 lang={lang}
+                listingTemplate={template}
                 directContactFasterResponseHint
                 showOfferSidebarTeaser={false}
               />

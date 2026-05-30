@@ -369,6 +369,7 @@ export function ServiciosProfessionalProfileShell({
                   <ServiciosBusinessHubContactCard
                     profile={profile}
                     lang={lang}
+                    listingTemplate={template}
                     listingSlug={analyticsListingSlug}
                     listingShareUrl={listingShareUrl}
                     directContactFasterResponseHint={directContactFasterResponseHint}
@@ -396,6 +397,7 @@ export function ServiciosProfessionalProfileShell({
                   <ServiciosBusinessHubContactCard
                     profile={profile}
                     lang={lang}
+                    listingTemplate={template}
                     listingSlug={analyticsListingSlug}
                     listingShareUrl={listingShareUrl}
                     directContactFasterResponseHint={directContactFasterResponseHint}

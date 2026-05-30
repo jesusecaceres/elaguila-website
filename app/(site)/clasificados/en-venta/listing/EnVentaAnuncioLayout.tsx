@@ -65,6 +65,7 @@ import { parseEnVentaDetailPairSignals } from "../mapping/enVentaDetailPairSigna
 import { getArticuloLabel } from "../shared/fields/enVentaTaxonomy";
 import { EnVentaBuyerPanel } from "../shared/components/EnVentaBuyerPanel";
 import { EnVentaDetailContentStack } from "../shared/components/EnVentaDetailContentStack";
+import { EnVentaDetailPageLayout } from "../shared/components/EnVentaDetailPageLayout";
 import { buildEnVentaContentStackFromLiveListing } from "../shared/utils/buildEnVentaContentStackModel";
 import { EnVentaContactButtons } from "../shared/components/EnVentaContactButtons";
 import { EnVentaListingHero } from "../shared/components/EnVentaListingHero";
@@ -594,6 +595,10 @@ export function EnVentaAnuncioLayout({
   const browseMoreHref = moreInCategoryHref ?? `/clasificados/en-venta/results?lang=${lang}`;
   const browseMoreLabel = moreInCategory;
 
+  const isEnVentaSurface = surface === "en-venta";
+  const evVariosNonPremium = isEnVentaSurface && !premiumBr;
+  const useEnVentaUnifiedLayout = evVariosNonPremium;
+
   return (
     <div
       className={
@@ -603,7 +608,7 @@ export function EnVentaAnuncioLayout({
             ? `${EN_VENTA_SURFACE.pageShell} pb-24`
             : "min-h-screen bg-[#D9D9D9] pb-24 text-[#111111]"
       }
-      style={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.pageBgStyle : undefined}
+      style={evVariosNonPremium ? EN_VENTA_SURFACE.pageBgStyle : undefined}
     >
       <Navbar />
       <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -612,7 +617,9 @@ export function EnVentaAnuncioLayout({
         className={
           premiumBr
             ? `${brLuxuryInnerMaxClass} pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-24 sm:pt-28 lg:pb-10`
-            : "mx-auto max-w-6xl px-4 pt-28"
+            : useEnVentaUnifiedLayout
+              ? `${EN_VENTA_SURFACE.detailPageMax} px-4 pt-28 sm:px-6 lg:px-8`
+              : "mx-auto max-w-6xl px-4 pt-28"
         }
       >
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -652,13 +659,122 @@ export function EnVentaAnuncioLayout({
           </nav>
         ) : null}
 
+        {useEnVentaUnifiedLayout ? (
+          <EnVentaDetailPageLayout
+            gallery={
+              <div className={EN_VENTA_SURFACE.galleryFrame}>
+                <EnVentaMediaGallery
+                  urls={images}
+                  title={listing.title[lang]}
+                  videoUrl={listingVideoUrl}
+                  lang={lang}
+                />
+              </div>
+            }
+            hero={
+              <div className={EN_VENTA_SURFACE.heroCard}>
+                <EnVentaListingHero
+                  lang={lang}
+                  title={listing.title[lang]}
+                  priceLine={listing.priceLabel[lang]}
+                  negotiable={evNegotiable}
+                  statusLine={posted ?? undefined}
+                  metadataParts={evMetadataParts}
+                  primaryCta={{
+                    label: lang === "es" ? "Contactar vendedor" : "Contact seller",
+                    onClick: scrollToContact,
+                    disabled: !hasPublicEvContact,
+                  }}
+                  engagementRow={
+                    <EnVentaEngagementRow
+                      lang={lang}
+                      mode="live"
+                      listingId={enVentaEngagementListingKey(
+                        listing.id,
+                        (listing as { leonix_ad_id?: string | null }).leonix_ad_id
+                      )}
+                      listingUrl={publicListingUrl}
+                      listingTitle={listing.title[lang]}
+                      ownerUserId={ownerId}
+                      showReport={showListingReport}
+                    />
+                  }
+                />
+                <p className="mt-4 rounded-lg border border-[#C9A84A]/40 bg-[#FBF7EF]/90 px-3 py-2 font-mono text-[11px] text-[#3D3428]">
+                  <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">
+                    {listingIdLabel}
+                  </span>
+                  <span className="ml-2 select-all">{listing.id}</span>
+                </p>
+                {listing.leonix_ad_id?.trim() ? (
+                  <p className="mt-2 rounded-lg border border-[#C9A84A]/40 bg-[#FBF7EF]/90 px-3 py-2 font-mono text-[11px] text-[#3D3428]">
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">
+                      Leonix Ad ID
+                    </span>
+                    <span className="ml-2 select-all font-semibold">{listing.leonix_ad_id.trim()}</span>
+                  </p>
+                ) : null}
+              </div>
+            }
+            sidebar={
+              <div id="enventa-buyer-panel" className="space-y-3">
+                <EnVentaBuyerPanel
+                  lang={lang}
+                  sellerInitials={sellerInitials(evSellerDisplayName)}
+                  sellerName={evSellerDisplayName}
+                  sellerSubline={trustModeratedLine}
+                  sellerKindLabel={sellerTypeBadge}
+                  locationLine={evLocationLine || undefined}
+                  mapHref={evLocationMapHref}
+                  onOpenMap={
+                    evLocationMapHref
+                      ? () =>
+                          openSheet(
+                            buildDirectionsIntent({
+                              addressOrUrl: evLocationMapHref,
+                              isMapsUrl: true,
+                              contactShareExtras,
+                            })
+                          )
+                      : undefined
+                  }
+                  fulfillmentLabels={evContentStack?.deliveryChipLabels ?? evFulfillmentLabels}
+                  safetyLine={trustSafetyLine}
+                  contactSection={
+                    <EnVentaContactButtons
+                      actions={evLiveContactActions}
+                      lang={lang}
+                      onAction={openLiveContactAction}
+                    />
+                  }
+                />
+                {showListingReport ? <EnVentaListingReportDrawer listingId={listing.id} lang={lang} /> : null}
+              </div>
+            }
+            content={
+              <>
+                {evContentStack ? (
+                  <EnVentaDetailContentStack
+                    lang={lang}
+                    model={evContentStack}
+                    descriptionAnchorId="leonix-listing-description"
+                  />
+                ) : null}
+                <div className="mt-8">
+                  <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
+                </div>
+              </>
+            }
+          />
+        ) : (
+          <>
         <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
-            <div className={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.galleryFrame : premiumBr ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]" : ""}>
+            <div className={evVariosNonPremium ? EN_VENTA_SURFACE.galleryFrame : premiumBr ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]" : ""}>
               <EnVentaMediaGallery
                 urls={images}
                 title={listing.title[lang]}
-                videoUrl={surface === "en-venta" ? listingVideoUrl : null}
+                videoUrl={isEnVentaSurface ? listingVideoUrl : null}
                 lang={lang}
               />
             </div>
@@ -668,12 +784,12 @@ export function EnVentaAnuncioLayout({
               className={
                 premiumBr
                   ? `${brLuxuryCardClass} p-6 ring-1 ring-[#C9B46A]/12`
-                  : surface === "en-venta"
+                  : isEnVentaSurface
                     ? EN_VENTA_SURFACE.heroCard
                     : "rounded-2xl border border-black/10 bg-white p-5 shadow-sm"
               }
             >
-              {surface === "en-venta" && !premiumBr ? (
+              {evVariosNonPremium ? (
                 <>
                   <EnVentaListingHero
                     lang={lang}
@@ -807,7 +923,7 @@ export function EnVentaAnuncioLayout({
               />
             ) : null}
 
-            {surface === "en-venta" && !premiumBr && !(sellerKind === "business" && negocioDisplay) ? (
+            {evVariosNonPremium && !(sellerKind === "business" && negocioDisplay) ? (
               <div id="leonix-contact-actions" className="space-y-3">
                 <EnVentaBuyerPanel
                   lang={lang}
@@ -843,7 +959,7 @@ export function EnVentaAnuncioLayout({
               </div>
             ) : (
               <>
-            {surface === "en-venta" ? (
+            {isEnVentaSurface ? (
               <div
                 className="rounded-xl border border-black/10 bg-[#FAFAFA] px-3 py-2.5"
                 role="note"
@@ -1141,7 +1257,7 @@ export function EnVentaAnuncioLayout({
                 ) : null}
               </section>
             ) : null}
-            {surface === "en-venta" && evContentStack ? (
+            {isEnVentaSurface && evContentStack ? (
               <EnVentaDetailContentStack
                 lang={lang}
                 model={evContentStack}
@@ -1186,6 +1302,8 @@ export function EnVentaAnuncioLayout({
             <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
           </div>
         </div>
+          </>
+        )}
       </section>
 
       {premiumBr && phoneTel && gateAllowCall ? (

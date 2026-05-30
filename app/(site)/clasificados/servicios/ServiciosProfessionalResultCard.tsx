@@ -241,9 +241,9 @@ export function ServiciosProfessionalResultCard({
                 <span
                   className="rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
                   style={{
-                    borderColor: "rgba(45, 90, 61, 0.35)",
+                    borderColor: "rgba(45, 90, 61, 0.4)",
                     backgroundColor: LX.trustGreenSoft,
-                    color: LX.trustGreen,
+                    color: LX.trustGreenText,
                   }}
                 >
                   {lang === "en" ? "Verified" : "Verificado"}
@@ -322,7 +322,7 @@ export function ServiciosProfessionalResultCard({
                 type="button"
                 onClick={onWhatsAppClick}
                 className={`${LX_CTA_WHATSAPP} flex-1`}
-                style={{ backgroundColor: LX.whatsApp }}
+                style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
               >
                 <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
                 WhatsApp
@@ -339,7 +339,7 @@ export function ServiciosProfessionalResultCard({
                   type="button"
                   onClick={onWhatsAppClick}
                   className={`${LX_CTA_WHATSAPP} min-h-[40px] flex-1 px-3 py-2 text-xs`}
-                  style={{ backgroundColor: LX.whatsApp }}
+                  style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
                 >
                   <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
                   WhatsApp
