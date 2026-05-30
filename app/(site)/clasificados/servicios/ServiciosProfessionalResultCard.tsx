@@ -111,7 +111,7 @@ export function ServiciosProfessionalResultCard({
   const promoted = isServiciosListingPromoted(row);
   const showDirections = hasPhysicalAddress(profile);
   const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 4), [profile]);
-  const trustChips = useMemo(() => collectHeroTrustChips(profile, 3), [profile]);
+  const trustChips = useMemo(() => collectHeroTrustChips(profile, 2), [profile]);
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -206,8 +206,6 @@ export function ServiciosProfessionalResultCard({
   const cardSurface = promoted
     ? `${CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : CARD;
-  const primaryIsCall = Boolean(tel);
-  const showSecondaryRow = (primaryIsCall && Boolean(waHrefNormalized)) || showDirections;
 
   const body = (
     <>
@@ -267,51 +265,35 @@ export function ServiciosProfessionalResultCard({
             ) : null}
 
             {ratingValue != null ? (
-              <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                 <StarRow rating={ratingValue} lang={lang} />
-                {reviewCount != null ? (
-                  <span className="text-[11px] font-medium text-[#6F6254]">
-                    {lang === "en" ? `(${reviewCount})` : `(${reviewCount})`}
-                  </span>
-                ) : null}
               </div>
             ) : null}
           </div>
         </div>
 
         {(serviceChips.length > 0 || trustChips.length > 0) && (
-          <div className="space-y-2 px-4 pb-2 sm:px-5">
-            {serviceChips.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {serviceChips.map((chip) => (
-                  <span key={chip} className={LX_CHIP}>
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            {trustChips.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {trustChips.map((chip) => (
-                  <span
-                    key={chip}
-                    className="rounded-md border border-[#D4C4A8]/70 bg-[#F5F0E8] px-2 py-0.5 text-[10px] font-semibold text-[#1E1814]"
-                  >
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+          <div className="flex flex-wrap gap-1.5 px-4 pb-2 sm:px-5">
+            {serviceChips.map((chip) => (
+              <span key={`s-${chip}`} className={LX_CHIP}>
+                {chip}
+              </span>
+            ))}
+            {trustChips.map((chip) => (
+              <span key={`t-${chip}`} className={LX_CHIP}>
+                {chip}
+              </span>
+            ))}
           </div>
         )}
 
-        <div className="mt-auto flex flex-col gap-2 border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4">
-          <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="mt-auto border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="grid grid-cols-2 gap-2">
             {tel ? (
               <button
                 type="button"
                 onClick={onCallClick}
-                className={`${LX_CTA_PRIMARY} flex-1`}
+                className={`${LX_CTA_PRIMARY} col-span-2 w-full`}
                 style={{ backgroundColor: LX.burgundy }}
               >
                 <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
@@ -321,52 +303,43 @@ export function ServiciosProfessionalResultCard({
               <button
                 type="button"
                 onClick={onWhatsAppClick}
-                className={`${LX_CTA_WHATSAPP} flex-1`}
+                className={`${LX_CTA_WHATSAPP} col-span-2 w-full`}
                 style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
               >
                 <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
                 WhatsApp
               </button>
+            ) : showDirections ? (
+              <button
+                type="button"
+                onClick={onDirectionsClick}
+                className={`${LX_CTA_MAP} col-span-2 w-full`}
+              >
+                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                {lang === "en" ? "Directions" : "Cómo llegar"}
+              </button>
             ) : null}
-            <Link href={href} className={`${LX_CTA_SECONDARY} flex-1`}>
-              {secondaryLabel}
-            </Link>
+            {tel && waHrefNormalized ? (
+              <button
+                type="button"
+                onClick={onWhatsAppClick}
+                className={`${LX_CTA_WHATSAPP} w-full`}
+                style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+              >
+                <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
+                WhatsApp
+              </button>
+            ) : null}
+            {showDirections && (tel || waHrefNormalized) ? (
+              <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_MAP} w-full`}>
+                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                {lang === "en" ? "Directions" : "Cómo llegar"}
+              </button>
+            ) : null}
           </div>
-          {showSecondaryRow ? (
-            <div className="flex flex-wrap gap-2">
-              {primaryIsCall && waHrefNormalized ? (
-                <button
-                  type="button"
-                  onClick={onWhatsAppClick}
-                  className={`${LX_CTA_WHATSAPP} min-h-[40px] flex-1 px-3 py-2 text-xs`}
-                  style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
-                >
-                  <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
-                  WhatsApp
-                </button>
-              ) : null}
-              {!primaryIsCall && tel ? (
-                <button
-                  type="button"
-                  onClick={onCallClick}
-                  className={`${LX_CTA_SECONDARY} min-h-[40px] flex-1 px-3 py-2 text-xs`}
-                >
-                  <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Call" : "Llamar"}
-                </button>
-              ) : null}
-              {showDirections ? (
-                <button
-                  type="button"
-                  onClick={onDirectionsClick}
-                  className={`${LX_CTA_MAP} min-h-[40px] flex-1 px-3 py-2 text-xs`}
-                >
-                  <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Directions" : "Cómo llegar"}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+          <Link href={href} className={`${LX_CTA_SECONDARY} mt-2 w-full`}>
+            {secondaryLabel}
+          </Link>
         </div>
       </article>
       <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />

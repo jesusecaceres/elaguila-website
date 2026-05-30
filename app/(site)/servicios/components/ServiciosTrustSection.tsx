@@ -53,7 +53,7 @@ export function ServiciosTrustSection({
             key={t.id}
             className="flex min-w-[min(16rem,82vw)] max-w-[min(22rem,92vw)] shrink-0 snap-start items-center gap-2.5 rounded-lg border border-[#E8D9C4] bg-[#F5F0E8] px-3 py-3 shadow-sm sm:min-w-0 sm:max-w-none sm:gap-3 md:min-w-0"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#D4C4A8]/60 bg-[#FFFCF7]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#D4C4A8]/70 bg-[#FFFCF7] shadow-sm">
               <TrustIcon icon={t.icon} />
             </div>
             <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-[#1E1814]">{t.label}</p>

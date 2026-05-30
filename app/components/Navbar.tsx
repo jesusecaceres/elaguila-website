@@ -280,7 +280,7 @@ function NavbarContent() {
           className={cx(
             "min-h-[1.875rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2rem] sm:px-2.5",
             compact ? "min-w-[2.5rem] sm:min-w-[2.75rem]" : "min-w-[3.25rem] sm:min-w-[3.5rem]",
-            lang === code ? "bg-[#7A1E2C] text-white" : "text-[#3D3428] hover:bg-[#EDE6D6]"
+            lang === code ? "bg-[#7A1E2C] text-[#FFFDF7]" : "text-[#3D3428] hover:bg-[#EDE6D6]"
           )}
         >
           {code.toUpperCase()}
@@ -307,7 +307,7 @@ function NavbarContent() {
           <button
             type="button"
             onClick={() => setAccountOpen((v) => !v)}
-            className="inline-flex max-w-[7.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:max-w-[8.5rem] sm:px-2.5"
+            className="inline-flex max-w-[6.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:max-w-[7.5rem] sm:px-2.5 xl:max-w-[8rem]"
             aria-label={L.myAccount}
             aria-expanded={accountOpen}
           >
@@ -402,75 +402,82 @@ function NavbarContent() {
 
       <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:gap-x-6 sm:py-2 lg:py-2">
-            {/* ZONE 1 — brand (fixed, no shrink into nav) */}
-            <Link
-              href={buildLink("/home")}
-              className="flex shrink-0 items-center gap-2.5 sm:gap-3"
-              aria-label={L.brandName}
-            >
-              <span className="inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 lg:h-10 lg:w-10">
-                <Image
-                  src={HEADER_LOGO_SRC}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="h-full w-full object-cover object-center"
-                  priority
-                  aria-hidden
-                />
-              </span>
-              <span className="hidden max-w-[7rem] truncate font-serif text-xs font-bold leading-tight text-[#2A4536] sm:inline sm:max-w-none sm:text-sm lg:text-[0.9375rem]">
-                {L.brandName}
-              </span>
-            </Link>
+          <div
+            className="grid items-center py-1.5 sm:py-2"
+            style={{ gridTemplateColumns: "auto minmax(0, 1fr) auto" }}
+          >
+            {/* ZONE 1 — brand (protected, no overlap into center) */}
+            <div className="col-start-1 min-w-0 w-max max-w-[9.5rem] shrink-0 sm:max-w-[10.5rem] xl:max-w-[12rem]">
+              <Link
+                href={buildLink("/home")}
+                className="flex min-w-0 items-center gap-2.5 sm:gap-3"
+                aria-label={L.brandName}
+              >
+                <span className="inline-flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 xl:h-10 xl:w-10">
+                  <Image
+                    src={HEADER_LOGO_SRC}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-contain object-center"
+                    priority
+                    aria-hidden
+                  />
+                </span>
+                <span className="hidden truncate font-serif text-base font-bold leading-none text-[#2A4536] xl:inline xl:whitespace-nowrap">
+                  {L.brandName}
+                </span>
+              </Link>
+            </div>
 
-            {/* ZONE 2 — center nav (xl+ only; min-w-0 overflow protection) */}
+            {/* ZONE 2 — center nav (xl+ only; isolated column) */}
             <nav
-              className="hidden min-w-0 items-center justify-center gap-x-[1.375rem] px-2 text-[0.8125rem] font-medium text-[#3D3428] xl:flex 2xl:gap-x-[1.875rem] 2xl:text-[0.875rem]"
+              className="col-start-2 hidden min-w-0 justify-self-center xl:flex xl:max-w-full xl:px-4"
               aria-label={L.navAria}
             >
-              {PUBLIC_NAV_DESKTOP.map((item) => (
-                <Link
-                  key={item.id}
-                  href={buildLink(item.href)}
-                  className={navLinkClass(isActive(item.href))}
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                >
-                  {publicNavLabel(item, lang)}
-                </Link>
-              ))}
+              <div className="flex min-w-0 max-w-full items-center justify-center gap-x-[1.375rem] text-[0.8125rem] font-medium text-[#3D3428] 2xl:gap-x-7 2xl:text-[0.875rem]">
+                {PUBLIC_NAV_DESKTOP.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={buildLink(item.href)}
+                    className={navLinkClass(isActive(item.href))}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                  >
+                    {publicNavLabel(item, lang)}
+                  </Link>
+                ))}
 
-              <div className="relative shrink-0" ref={masRef}>
-                <button
-                  type="button"
-                  onClick={() => setMasOpen((v) => !v)}
-                  className={cx(navLinkClass(masActive), "inline-flex items-center gap-0.5")}
-                  aria-expanded={masOpen}
-                  aria-haspopup="true"
-                >
-                  {L.mas}
-                  <span className="text-[0.6rem] leading-none">{masOpen ? "▲" : "▼"}</span>
-                </button>
-                {masOpen && (
-                  <div className="absolute left-1/2 top-full z-50 mt-1 min-w-[12rem] -translate-x-1/2 overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)]">
-                    {PUBLIC_NAV_MAS_ITEMS.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={buildLink(item.href)}
-                        className="block px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C]"
-                        onClick={() => setMasOpen(false)}
-                      >
-                        {publicNavLabel(item, lang)}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                <div className="relative shrink-0" ref={masRef}>
+                  <button
+                    type="button"
+                    onClick={() => setMasOpen((v) => !v)}
+                    className={cx(navLinkClass(masActive), "inline-flex items-center gap-0.5")}
+                    aria-expanded={masOpen}
+                    aria-haspopup="true"
+                  >
+                    {L.mas}
+                    <span className="text-[0.6rem] leading-none">{masOpen ? "▲" : "▼"}</span>
+                  </button>
+                  {masOpen && (
+                    <div className="absolute left-1/2 top-full z-50 mt-1 min-w-[12rem] -translate-x-1/2 overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)]">
+                      {PUBLIC_NAV_MAS_ITEMS.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={buildLink(item.href)}
+                          className="block px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C]"
+                          onClick={() => setMasOpen(false)}
+                        >
+                          {publicNavLabel(item, lang)}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </nav>
 
-            {/* ZONE 3 — right controls (fixed, no shrink into nav) */}
-            <div className="flex shrink-0 items-center justify-end gap-2.5 sm:gap-3">
+            {/* ZONE 3 — right controls (protected, no overlap into center) */}
+            <div className="col-start-3 flex w-max shrink-0 items-center justify-end gap-2.5 sm:gap-3">
               {langToggle(true)}
               {accountControl("desktop")}
               {advertiseCta}

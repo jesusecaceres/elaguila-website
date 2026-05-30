@@ -7,6 +7,7 @@ import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servici
 import { SV } from "./serviciosDesignTokens";
 import {
   LX_CHIP,
+  LX_PRO_SECTION_GAP,
   LX_SECTION_CARD,
   collectProfessionalServiceChips,
   getServicesTitle,
@@ -253,10 +254,10 @@ export function ServiciosProfessionalProfileShell({
 
           <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
             {(displayProfile, translateControl) => {
-              const chips = collectProfessionalServiceChips(displayProfile, 8);
+              const chips = collectProfessionalServiceChips(displayProfile, 6);
               return (
           <div className="px-3 py-4 sm:px-6 sm:py-6">
-            <section id="servicios-pro-overview" className={`${SECTION_SCROLL} space-y-5 sm:space-y-6`}>
+            <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
               {(chips.length > 0 || hasQuickFactsResolved(profile)) && (
@@ -299,7 +300,7 @@ export function ServiciosProfessionalProfileShell({
             </section>
 
             <div className="mt-5 grid grid-cols-1 gap-5 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10">
-              <div className="flex min-w-0 flex-col gap-5 sm:gap-6">
+              <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
                 {showReviewsSection ? (
                   <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
                     <ServiciosReviews profile={profile} lang={lang} />
@@ -378,7 +379,7 @@ export function ServiciosProfessionalProfileShell({
                 </div>
 
                 <div className="lg:hidden">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
+                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
                 </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
@@ -405,7 +406,7 @@ export function ServiciosProfessionalProfileShell({
                   />
                 </div>
                 <div className="mt-5 lg:mt-6">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
+                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
                 </div>
               </aside>
             </div>

@@ -45,6 +45,14 @@ export const LX_CTA_MAP =
 export const LX_HERO_BG =
   "relative overflow-hidden bg-gradient-to-br from-[#1E1814] via-[#3B2117] to-[#2A2620] text-[#FFFCF7]";
 
+export const LX_HERO_CHIP =
+  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/40 bg-[#FFFCF7]/10 px-2.5 py-1 text-[10px] font-semibold leading-tight text-[#FFFCF7] sm:text-[11px]";
+
+export const LX_HUB_CARD =
+  "overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFCF7] p-4 shadow-lg sm:rounded-2xl sm:p-6";
+
+export const LX_PRO_SECTION_GAP = "space-y-6 sm:space-y-7";
+
 export function cleanProfessionalChipLabel(raw: string): string {
   const t = String(raw ?? "").trim();
   if (!t) return "";
@@ -203,6 +211,28 @@ export function collectHeroTrustChips(
     if (!c || isWeakProfessionalChipLabel(c)) continue;
     out.push(c);
     if (out.length >= max) break;
+  }
+  return out;
+}
+
+/** Hero: trust quick-facts first, then service chips — capped (Gate 14). */
+export function collectHeroDisplayChips(
+  profile: {
+    quickFacts: { label: string }[];
+    services: { title: string }[];
+    about?: { specialtiesLine?: string } | null;
+  },
+  max = 3,
+): string[] {
+  const out = collectHeroTrustChips(profile, max);
+  if (out.length >= max) return out;
+  const seen = new Set(out.map((c) => c.toLowerCase()));
+  for (const s of collectProfessionalServiceChips(profile, max)) {
+    if (out.length >= max) break;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
   }
   return out;
 }

@@ -5,6 +5,7 @@ import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servici
 import { SV } from "@/app/servicios/components/serviciosDesignTokens";
 import {
   LX_CHIP,
+  LX_PRO_SECTION_GAP,
   LX_SECTION_CARD,
   collectProfessionalServiceChips,
   getServicesTitle,
@@ -43,7 +44,7 @@ export function ServiciosProfessionalPreviewShell({
   cityFallback?: string;
   draftSlug?: string;
 }) {
-  const chips = collectProfessionalServiceChips(profile, 6);
+  const chips = collectProfessionalServiceChips(profile, 5);
   const servicesTitle = getServicesTitle(template, lang);
 
   if (!hasHeroIdentityResolved(profile)) {
@@ -84,7 +85,7 @@ export function ServiciosProfessionalPreviewShell({
 
       <div className="px-3 py-4 sm:px-6 sm:py-6">
         <div className="grid grid-cols-1 gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10">
-          <div className="order-1 flex min-w-0 flex-col gap-5 sm:gap-6">
+          <div className={`order-1 flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
             {hasQuickFactsResolved(profile) ? (
               <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
             ) : null}
@@ -110,7 +111,7 @@ export function ServiciosProfessionalPreviewShell({
             ) : null}
 
             <div className="lg:hidden">
-              <ServiciosPromocionesCard profile={profile} lang={lang} />
+              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
             </div>
 
             {hasServicesSectionResolved(profile) ? (
@@ -137,7 +138,7 @@ export function ServiciosProfessionalPreviewShell({
               />
             </div>
             <div className="mt-5">
-              <ServiciosPromocionesCard profile={profile} lang={lang} />
+              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
             </div>
           </aside>
         </div>

@@ -1,6 +1,6 @@
 /**
- * Normal site public nav — Gate H1E desktop/mobile split.
- * Desktop center: limited tabs + Más. Mobile drawer: full approved list.
+ * Normal site public nav — Gate H1F collision-safe desktop/mobile split.
+ * Desktop inline: 5 tabs + Más. Más dropdown: Viajes + secondary links.
  */
 
 export type PublicNavLang = "es" | "en";
@@ -13,7 +13,7 @@ export type PublicNavItem = {
   inMasDropdown?: boolean;
 };
 
-/** Visible desktop center nav (before Más) */
+/** Visible desktop center nav (before Más) — max 5 items for spacing */
 export const PUBLIC_NAV_DESKTOP: PublicNavItem[] = [
   { id: "inicio", href: "/home", labelEs: "Inicio", labelEn: "Home" },
   { id: "revista", href: "/magazine", labelEs: "La Revista", labelEn: "The Magazine" },
@@ -30,11 +30,11 @@ export const PUBLIC_NAV_DESKTOP: PublicNavItem[] = [
     labelEs: "Recursos Comunitarios",
     labelEn: "Community Resources",
   },
-  { id: "viajes", href: "/clasificados/viajes", labelEs: "Viajes", labelEn: "Travel" },
 ];
 
-/** Más dropdown — secondary desktop + part of mobile drawer */
+/** Más dropdown — not shown inline on desktop */
 export const PUBLIC_NAV_MAS_ITEMS: PublicNavItem[] = [
+  { id: "viajes", href: "/clasificados/viajes", labelEs: "Viajes", labelEn: "Travel", inMasDropdown: true },
   {
     id: "productos-promocionales",
     href: "/productos-promocion",

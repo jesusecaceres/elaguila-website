@@ -52,7 +52,7 @@ export function ServiciosHubReviewLinkButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+      className="flex min-h-[56px] w-full items-center justify-between gap-3 rounded-lg border-2 px-3.5 py-3 text-left shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
       style={{
         borderColor: isYelp ? "rgba(211, 35, 35, 0.35)" : isGoogle ? "rgba(66, 133, 244, 0.25)" : LX.goldBorder,
         backgroundColor: isYelp ? "#FFF8F8" : isGoogle ? "#FFFFFF" : LX.ivory,

@@ -53,6 +53,7 @@ import {
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
   LX_CTA_WHATSAPP,
+  LX_HUB_CARD,
   resolveProfessionalHubQuoteCtaLabel,
 } from "./serviciosLeonixBrand";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
@@ -93,7 +94,11 @@ function socialHeadline(platform: ServiciosBusinessHubSocialLink["platform"]): s
 }
 
 function HubSectionTitle({ children }: { children: ReactNode }) {
-  return <h3 className="font-serif text-base font-semibold tracking-tight text-[#1E1814] sm:text-lg">{children}</h3>;
+  return (
+    <h3 className="border-b border-[#E8D9C4]/80 pb-2 font-serif text-base font-semibold tracking-tight text-[#1E1814] sm:text-lg">
+      {children}
+    </h3>
+  );
 }
 
 function HubDivider() {
@@ -342,7 +347,13 @@ export function ServiciosBusinessHubContactCard({
     "flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg shadow-md transition hover:scale-[1.03] hover:shadow-lg active:scale-[0.98]";
 
   const moreLinkClass =
-    "flex min-h-[48px] w-full items-center gap-2 rounded-lg border-2 bg-[#FFFCF7] px-3 py-3 text-left text-sm font-bold text-[#1E1814] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFDF9] active:scale-[0.99]";
+    "flex min-h-[48px] w-full items-center gap-2.5 rounded-lg border-2 border-[#D4C4A8] bg-[#FFFCF7] px-3 py-3 text-left text-sm font-bold text-[#1E1814] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFDF9] active:scale-[0.99]";
+  const contactGridClass =
+    contactActions.length === 1
+      ? "mt-4 grid max-w-[14rem] grid-cols-1 gap-2.5"
+      : contactActions.length === 3
+        ? "mt-4 grid grid-cols-2 gap-2.5 [&>*:last-child]:col-span-2"
+        : "mt-4 grid grid-cols-2 gap-2.5";
 
   const showPrimaryQuote =
     quote &&
@@ -352,11 +363,11 @@ export function ServiciosBusinessHubContactCard({
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
-      <article
-        className="overflow-hidden rounded-xl border p-4 shadow-md sm:rounded-2xl sm:p-6"
-        style={{ backgroundColor: LX.ivory, borderColor: LX.goldBorder, boxShadow: SV.shadow }}
-        data-servicios-business-hub="1"
-      >
+      <article className={LX_HUB_CARD} data-servicios-business-hub="1">
+        <div
+          className="pointer-events-none -mx-4 -mt-4 mb-4 h-1 bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent sm:-mx-6 sm:-mt-6"
+          aria-hidden
+        />
         {featured ? (
           <div className="mb-4 flex flex-wrap items-center gap-2 border-b pb-4" style={{ borderColor: SV.borderSoft }}>
             <span
@@ -430,11 +441,7 @@ export function ServiciosBusinessHubContactCard({
                   : "Contacta directamente al negocio para una respuesta más rápida."}
               </p>
             ) : null}
-            <div
-              className={`mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 ${
-                contactActions.length === 1 ? "max-w-[50%]" : ""
-              }`}
-            >
+            <div className={contactGridClass}>
               {contactActions.map((action) => (
                 <button
                   key={action.id}
@@ -463,36 +470,6 @@ export function ServiciosBusinessHubContactCard({
           persistListingEngagement={persistListingEngagement}
           publicLikeCount={publicLikeCount}
         />
-
-        {hours?.openNowLabel && nonEmpty(hours.todayHoursLine) ? (
-          <>
-            {hasContactGrid || showPrimaryQuote || showEngagementRow ? <HubDivider /> : null}
-            <p className="flex items-start gap-2 text-xs text-[color:var(--lx-text-2)]">
-              <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
-              <span>
-                <span className="font-semibold text-[color:var(--lx-text)]">{hours.openNowLabel}:</span>{" "}
-                {hours.todayHoursLine}
-              </span>
-            </p>
-          </>
-        ) : null}
-
-        {hours?.weeklyRows && hours.weeklyRows.length > 0 ? (
-          <>
-            <HubDivider />
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">{L.weeklyHours}</p>
-              <ul className="mt-2 space-y-1.5">
-                {hours.weeklyRows.map((r, i) => (
-                  <li key={`${r.dayLabel}-${i}`} className="flex justify-between gap-3 text-xs text-[color:var(--lx-text-2)]">
-                    <span className="min-w-0 shrink font-medium text-[color:var(--lx-text)]">{r.dayLabel}</span>
-                    <span className="shrink-0 text-right tabular-nums">{r.line}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </>
-        ) : null}
 
         {showSocial ? (
           <>
@@ -563,7 +540,6 @@ export function ServiciosBusinessHubContactCard({
                     type="button"
                     onClick={() => openLink(link.url)}
                     className={moreLinkClass}
-                    style={{ borderColor: LX.goldBorder }}
                   >
                     <FiGlobe className="h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
                     <span className="min-w-0 flex-1 break-words">{link.label}</span>
@@ -587,7 +563,9 @@ export function ServiciosBusinessHubContactCard({
                   <CopyChip value={vm.location.addressDisplay.trim()} />
                 </p>
               ) : null}
-              <ServiciosBusinessHubFauxMap />
+              <div className="mt-3 overflow-hidden rounded-lg border border-[#E8D9C4]">
+                <ServiciosBusinessHubFauxMap />
+              </div>
               {vm.location?.mapsHref ? (
                 <button
                   type="button"
@@ -595,10 +573,48 @@ export function ServiciosBusinessHubContactCard({
                   onClick={() => openDirections(vm.location!.mapsHref!, true)}
                 >
                   <FiMapPin className="h-5 w-5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Get directions" : "Cómo llegar"}
+                  {lang === "en" ? "View on map" : "Ver en el mapa"}
                 </button>
               ) : null}
             </section>
+          </>
+        ) : null}
+
+        {hours?.openNowLabel && nonEmpty(hours.todayHoursLine) ? (
+          <>
+            <HubDivider />
+            <section aria-labelledby="hub-hours-heading">
+              <HubSectionTitle>
+                <span id="hub-hours-heading">{lang === "en" ? "Hours" : "Horarios"}</span>
+              </HubSectionTitle>
+              <p className="mt-3 flex items-start gap-2 text-xs text-[#6F6254]">
+                <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
+                <span>
+                  <span className="font-semibold text-[#1E1814]">{hours.openNowLabel}:</span> {hours.todayHoursLine}
+                </span>
+              </p>
+            </section>
+          </>
+        ) : null}
+
+        {hours?.weeklyRows && hours.weeklyRows.length > 0 ? (
+          <>
+            {!hours?.openNowLabel ? (
+              <>
+                <HubDivider />
+                <HubSectionTitle>
+                  <span>{lang === "en" ? "Hours" : "Horarios"}</span>
+                </HubSectionTitle>
+              </>
+            ) : null}
+            <ul className={`space-y-1.5 ${hours?.openNowLabel ? "mt-3" : "mt-3"}`}>
+              {hours.weeklyRows.map((r, i) => (
+                <li key={`${r.dayLabel}-${i}`} className="flex justify-between gap-3 text-xs text-[#6F6254]">
+                  <span className="min-w-0 shrink font-medium text-[#1E1814]">{r.dayLabel}</span>
+                  <span className="shrink-0 text-right tabular-nums">{r.line}</span>
+                </li>
+              ))}
+            </ul>
           </>
         ) : null}
 

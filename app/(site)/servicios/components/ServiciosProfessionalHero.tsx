@@ -9,12 +9,12 @@ import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import {
   LX,
-  LX_CHIP,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
-  collectHeroTrustChips,
+  LX_HERO_CHIP,
+  collectHeroDisplayChips,
   getPrimaryCtaLabel,
   hasPhysicalAddress,
 } from "./serviciosLeonixBrand";
@@ -56,7 +56,6 @@ export function ServiciosProfessionalHero({
   lang: ServiciosLang;
   template: ServiciosListingTemplate;
   cityFallback?: string;
-  /** Element id to scroll to for “contact” CTA (preview vs profile). */
   contactScrollTargetId?: string;
   listingSlug?: string;
   engagementSlot?: React.ReactNode;
@@ -64,7 +63,7 @@ export function ServiciosProfessionalHero({
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || cityFallback?.trim() || "";
   const thumb = profile.hero.logoUrl || null;
-  const trustChips = collectHeroTrustChips(profile, 3);
+  const displayChips = collectHeroDisplayChips(profile, 3);
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
       ? profile.hero.rating
@@ -74,7 +73,9 @@ export function ServiciosProfessionalHero({
       ? profile.hero.reviewCount
       : undefined;
   const isLeonixVerified = profile.hero.badges.some((b) => b.kind === "verified");
-  const languageBadges = profile.hero.badges.filter((b) => b.kind === "spanish" || b.kind === "custom");
+  const languageBadges = profile.hero.badges
+    .filter((b) => b.kind === "spanish" || b.kind === "custom")
+    .slice(0, 2);
   const showDirections = hasPhysicalAddress(profile);
   const tel = profile.contact.phoneTelHref?.trim();
   const wa = profile.contact.socialLinks?.whatsapp?.trim();
@@ -125,29 +126,33 @@ export function ServiciosProfessionalHero({
   return (
     <div className={LX_HERO_BG}>
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/70 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/80 to-transparent"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-[0.12]"
+        className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/45 to-transparent sm:inset-x-10"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full opacity-[0.1]"
         style={{ background: `radial-gradient(circle, ${LX.gold} 0%, transparent 70%)` }}
         aria-hidden
       />
 
-      <div className="relative px-4 py-5 sm:px-6 sm:py-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
-          <div className="relative mx-auto h-[5.5rem] w-[5.5rem] shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4]/90 bg-[#FFFCF7] p-1.5 shadow-lg sm:mx-0 sm:h-24 sm:w-24">
+      <div className="relative px-4 py-6 sm:px-8 sm:py-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
+          <div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-2 shadow-lg sm:mx-0 sm:h-[6.5rem] sm:w-[6.5rem]">
             {thumb ? (
               <Image
                 src={thumb}
                 alt={profile.hero.logoAlt || profile.identity.businessName}
                 fill
                 className="object-contain"
-                sizes="96px"
+                sizes="104px"
                 unoptimized={serviciosImageUnoptimized(thumb)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center font-serif text-lg font-semibold uppercase tracking-wide text-[#3B2117]">
+              <div className="flex h-full w-full items-center justify-center font-serif text-xl font-semibold uppercase tracking-wide text-[#3B2117]">
                 {profile.identity.businessName.slice(0, 2)}
               </div>
             )}
@@ -155,32 +160,21 @@ export function ServiciosProfessionalHero({
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
             {category ? (
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#C9A84A] sm:text-xs">{category}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#C9A84A]/95 sm:text-xs">
+                {category}
+              </p>
             ) : null}
-            <h1 className="mt-1 font-serif text-2xl font-semibold leading-[1.12] tracking-tight text-[#FFFCF7] sm:text-3xl md:text-[2.15rem]">
+            <h1 className="mt-1.5 font-serif text-[1.85rem] font-semibold leading-[1.08] tracking-tight text-[#FFFCF7] sm:text-4xl md:text-[2.75rem]">
               {profile.identity.businessName}
             </h1>
             {location ? (
-              <p className="mt-2 flex items-start justify-center gap-1.5 text-sm text-[#FFFCF7]/90 sm:justify-start">
-                <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className="line-clamp-2 text-left">{location}</span>
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-[#FFFCF7]/88 sm:justify-start sm:text-sm">
+                <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
+                <span className="line-clamp-1 text-left">{location}</span>
               </p>
             ) : null}
 
-            {ratingValue != null ? (
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <div className="rounded-md border border-white/15 bg-white/10 px-2 py-0.5">
-                  <StarRow rating={ratingValue} lang={lang} />
-                </div>
-                {reviewCount != null ? (
-                  <span className="text-[11px] font-medium text-[#FFFCF7]/85">
-                    {lang === "en" ? `${reviewCount} reviews` : `${reviewCount} reseñas`}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
               {isLeonixVerified ? (
                 <span
                   className="inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
@@ -196,20 +190,27 @@ export function ServiciosProfessionalHero({
               {languageBadges.map((b) => (
                 <span
                   key={`${b.kind}-${b.label}`}
-                  className="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/95"
+                  className="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/92"
                 >
                   {b.label}
                 </span>
               ))}
+              {ratingValue != null ? (
+                <div className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2 py-0.5">
+                  <StarRow rating={ratingValue} lang={lang} />
+                  {reviewCount != null ? (
+                    <span className="text-[10px] font-medium text-[#FFFCF7]/85">
+                      ({reviewCount})
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
-            {trustChips.length > 0 ? (
+            {displayChips.length > 0 ? (
               <div className="mt-3 flex flex-wrap justify-center gap-1.5 sm:justify-start">
-                {trustChips.map((chip) => (
-                  <span
-                    key={chip}
-                    className="rounded-md border border-[#C9A84A]/40 bg-[#FFFCF7]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7] sm:text-[11px]"
-                  >
+                {displayChips.map((chip) => (
+                  <span key={chip} className={LX_HERO_CHIP}>
                     {chip}
                   </span>
                 ))}
@@ -219,16 +220,20 @@ export function ServiciosProfessionalHero({
         </div>
 
         {engagementSlot ? (
-          <div className="mt-4 border-t border-white/15 pt-4">{engagementSlot}</div>
+          <div className="mt-5 border-t border-white/15 pt-4">{engagementSlot}</div>
         ) : null}
 
-        <div className="mt-4 flex flex-col gap-2 border-t border-white/15 pt-4 sm:flex-row sm:flex-wrap">
+        <div
+          className={`grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 ${
+            engagementSlot ? "mt-4" : "mt-5 border-t border-white/15 pt-5"
+          }`}
+        >
           {tel ? (
             <button
               type="button"
               onClick={openCall}
-              className={LX_CTA_PRIMARY}
-              style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.35)" }}
+              className={`${LX_CTA_PRIMARY} w-full sm:col-span-2`}
+              style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.32)" }}
             >
               <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
               {primaryLabel}
@@ -238,7 +243,7 @@ export function ServiciosProfessionalHero({
             <button
               type="button"
               onClick={openWhatsApp}
-              className={LX_CTA_WHATSAPP}
+              className={`${LX_CTA_WHATSAPP} w-full`}
               style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
             >
               <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
@@ -246,7 +251,7 @@ export function ServiciosProfessionalHero({
             </button>
           ) : null}
           {showDirections ? (
-            <button type="button" onClick={openDirections} className={LX_CTA_MAP}>
+            <button type="button" onClick={openDirections} className={`${LX_CTA_MAP} w-full`}>
               <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
               {lang === "en" ? "Directions" : "Cómo llegar"}
             </button>
@@ -255,7 +260,7 @@ export function ServiciosProfessionalHero({
             <button
               type="button"
               onClick={scrollToContact}
-              className={LX_CTA_PRIMARY}
+              className={`${LX_CTA_PRIMARY} w-full sm:col-span-2`}
               style={{ backgroundColor: LX.burgundy }}
             >
               {primaryLabel}
