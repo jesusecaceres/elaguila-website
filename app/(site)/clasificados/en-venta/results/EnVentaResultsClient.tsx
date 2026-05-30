@@ -48,7 +48,7 @@ import { buildEnVentaListingDetailHrefFromResults } from "./utils/enVentaListing
 import { enVentaQueryMatchesListing } from "./utils/buildEnVentaSearchText";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility";
-import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
+import { queryEnVentaBrowseListings } from "../lib/enVentaListingPublicSelect";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
@@ -56,10 +56,6 @@ type SortId = "newest" | "price-asc" | "price-desc";
 const PAGE_SIZE = 24;
 const PROMO_CAP = 2;
 const VIEW_PREF_KEY = "en-venta-results-view";
-
-/** Widen/shrink at runtime when optional `listings` columns are missing (see `listingsSelectShrink.ts`). */
-const EN_VENTA_RESULTS_SELECT_BASE =
-  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, views, rentas_tier, published_at, republished_at, republish_sort_at, admin_promoted";
 
 type RowPack = {
   row: Record<string, unknown>;
@@ -165,26 +161,7 @@ export function EnVentaResultsClient() {
       setLoadErr(null);
       try {
         const supabase = createSupabaseBrowserClient();
-        let cols = EN_VENTA_RESULTS_SELECT_BASE;
-        let data: unknown[] | null = null;
-        let error: { message: string } | null = null;
-        for (let attempt = 0; attempt < 32; attempt++) {
-          const res = await supabase
-            .from("listings")
-            .select(cols)
-            .eq("category", "en-venta")
-            .eq("status", "active")
-            .order("republish_sort_at", { ascending: false, nullsFirst: true })
-            .limit(800);
-          data = (res.data as unknown[] | null) ?? null;
-          error = res.error ? { message: res.error.message } : null;
-          if (!error) break;
-          const bad = missingListingsColumnName(res.error);
-          if (!bad) break;
-          const next = stripSelectColumn(cols, bad);
-          if (next === cols) break;
-          cols = next;
-        }
+        const { data, error } = await queryEnVentaBrowseListings(supabase);
 
         if (cancelled) return;
         if (error) {

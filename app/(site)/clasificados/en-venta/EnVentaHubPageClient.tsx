@@ -8,8 +8,10 @@ import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import { enVentaPublicLabel } from "./shared/constants/enVentaPublicLabels";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
+import type { EnVentaPublicBrowseListing } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
 import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
 import { DEFAULT_CITY } from "@/app/data/locations/norcal";
+import { EnVentaHubRecentListings } from "./hub/EnVentaHubRecentListings";
 
 /** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
 const DEFAULT_HERO_BACKDROP =
@@ -103,7 +105,13 @@ function TrustIconPeople({ className }: { className?: string }) {
   );
 }
 
-export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }) {
+export function EnVentaHubPageClient({
+  hub,
+  initialLiveListings,
+}: {
+  hub: EnVentaHubLandingResolved;
+  initialLiveListings: EnVentaPublicBrowseListing[];
+}) {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
 
@@ -338,6 +346,13 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
             {t.handoff}
           </p>
         </section>
+
+        <EnVentaHubRecentListings
+          listings={initialLiveListings}
+          lang={lang}
+          allListingsHref={allListingsHref}
+          allListingsLabel={t.lista}
+        />
 
         {/* Categories */}
         <section className="mt-11 sm:mt-16">

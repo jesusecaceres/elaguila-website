@@ -12,6 +12,8 @@ import {
   formatEnVentaFamilySafetyPublishError,
 } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import { isEnVentaListingPubliclyVisible } from "@/app/clasificados/en-venta/lib/enVentaListingVisibility";
+import { missingListingsColumnName } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -149,6 +151,69 @@ async function fetchAsBlob(src: string): Promise<Blob> {
   const res = await fetch(src);
   if (!res.ok) throw new Error("fetch blob failed");
   return res.blob();
+}
+
+type FinalizePublicRow = {
+  id?: string;
+  category?: string | null;
+  status?: string | null;
+  is_published?: boolean | null;
+  leonix_ad_id?: string | null;
+};
+
+/** Finalize draft → public; verify row actually became browse-visible (Supabase update can succeed with 0 rows). */
+async function finalizeEnVentaListingForPublicBrowse(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  listingId: string,
+  lang: PublishLang,
+): Promise<{ ok: true; leonixAdId: string | null } | { ok: false; error: string }> {
+  let patch: Record<string, unknown> = {
+    status: "active",
+    is_published: true,
+    published_at: new Date().toISOString(),
+  };
+
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const { data, error } = await supabase
+      .from("listings")
+      .update(patch)
+      .eq("id", listingId)
+      .select("id, category, status, is_published, leonix_ad_id")
+      .maybeSingle();
+
+    if (error) {
+      const col = missingListingsColumnName(error);
+      if (col && Object.prototype.hasOwnProperty.call(patch, col)) {
+        const next = { ...patch };
+        delete next[col];
+        patch = next;
+        continue;
+      }
+      return { ok: false, error: error.message };
+    }
+
+    const finRow = (data as FinalizePublicRow | null) ?? null;
+    if (!finRow?.id || !isEnVentaListingPubliclyVisible(finRow as Record<string, unknown>)) {
+      return {
+        ok: false,
+        error:
+          lang === "es"
+            ? "El anuncio no quedó público. Revisa Mis anuncios o inténtalo de nuevo."
+            : "The listing did not become public. Check My listings or try again.",
+      };
+    }
+
+    const leonixAdId = finRow.leonix_ad_id?.trim() || null;
+    return { ok: true, leonixAdId };
+  }
+
+  return {
+    ok: false,
+    error:
+      lang === "es"
+        ? "No se pudo finalizar la publicación del anuncio."
+        : "Could not finalize listing publication.",
+  };
 }
 
 /** Gallery outcome on successful publish (`ok: true` only). Partial uploads never finalize to public. */
@@ -324,24 +389,11 @@ export async function publishEnVentaFromDraft(
 
   const gallery: EnVentaGalleryUploadOutcome = ordered.length === 0 ? "none" : "full";
 
-  const { error: finErr } = await supabase
-    .from("listings")
-    .update({ status: "active", is_published: true })
-    .eq("id", listingId);
-  if (finErr) {
+  const finalized = await finalizeEnVentaListingForPublicBrowse(supabase, listingId, lang);
+  if (!finalized.ok) {
     await markPublishFailedNonPublic();
-    return { ok: false, error: finErr.message };
+    return { ok: false, error: finalized.error };
   }
 
-  let leonixAdId: string | null = null;
-  try {
-    const { data: row } = await supabase
-      .from("listings")
-      .select("leonix_ad_id")
-      .eq("id", listingId)
-      .maybeSingle();
-    leonixAdId = (row as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
-  } catch { /* non-critical */ }
-
-  return { ok: true, listingId, gallery, leonixAdId };
+  return { ok: true, listingId, gallery, leonixAdId: finalized.leonixAdId };
 }
