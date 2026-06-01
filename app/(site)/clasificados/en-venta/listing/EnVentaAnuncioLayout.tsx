@@ -1074,6 +1074,18 @@ export function EnVentaAnuncioLayout({
           </div>
         </div>
 
+        {surface === "en-venta" && !premiumBr ? (
+          <div className="mt-10 space-y-8">
+            {evContentStack ? (
+              <EnVentaDetailContentStack
+                lang={lang}
+                model={evContentStack}
+                descriptionAnchorId="leonix-listing-description"
+              />
+            ) : null}
+            <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
+          </div>
+        ) : (
         <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:gap-10">
           <div className="space-y-6 lg:col-span-8">
             {surface === "bienes-raices" ? <BrLiveFactsStrip detailPairs={listing.detailPairs} lang={lang} /> : null}
@@ -1141,14 +1153,7 @@ export function EnVentaAnuncioLayout({
                 ) : null}
               </section>
             ) : null}
-            {surface === "en-venta" && evContentStack ? (
-              <EnVentaDetailContentStack
-                lang={lang}
-                model={evContentStack}
-                descriptionAnchorId="leonix-listing-description"
-              />
-            ) : (
-              <>
+            <>
             <section
               className={
                 premiumBr
@@ -1170,8 +1175,7 @@ export function EnVentaAnuncioLayout({
               </p>
             </section>
             <EnVentaItemSpecs lang={lang} rows={specRows} />
-              </>
-            )}
+            </>
             {premiumBr && listing.sellerType === "business" ? (
               <BrRelatedAgentPropertiesSection
                 listingId={listing.id}
@@ -1186,6 +1190,7 @@ export function EnVentaAnuncioLayout({
             <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
           </div>
         </div>
+        )}
       </section>
 
       {premiumBr && phoneTel && gateAllowCall ? (

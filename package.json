@@ -105,6 +105,7 @@
     "varios:vl1-published-visibility-audit": "tsx scripts/varios-vl1-published-visibility-audit.ts",
     "varios:p4f-desktop-detail-layout-repair-audit": "tsx scripts/varios-p4f-desktop-detail-layout-repair-audit.ts",
     "varios:r1-revert-layout-regression-audit": "tsx scripts/varios-r1-revert-layout-regression-audit.ts",
+    "varios:r2-restore-stacked-layout-audit": "tsx scripts/varios-r2-restore-stacked-layout-audit.ts",
     "website:h1d-copy-coming-soon-header-layout-audit": "tsx scripts/website-h1d-copy-coming-soon-header-layout-audit.ts",
     "website:h1e-header-spacing-fix-audit": "tsx scripts/website-h1e-header-spacing-fix-audit.ts",
     "website:h1f-header-collision-fix-audit": "tsx scripts/website-h1f-header-collision-fix-audit.ts",
