@@ -73,8 +73,6 @@ export const EN_VENTA_SURFACE = {
     "inline-flex items-center gap-1 rounded-full border border-[#C9A84A]/45 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-semibold text-[#8A6B1F]",
   resultsChipFulfillment:
     "inline-flex max-w-full items-center gap-1 rounded-full border border-[#2A4536]/25 bg-[#2A4536]/[0.06] px-2 py-0.5 text-[11px] font-semibold text-[#2A4536]",
-  /** Varios detail/preview — centered canvas ~1200px (P4-F desktop layout). */
-  detailPageMax: "mx-auto w-full max-w-[min(100%,75rem)]",
 } as const;
 
 export function enVentaEngagementListingKey(listingId: string, leonixAdId?: string | null): string {

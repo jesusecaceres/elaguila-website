@@ -25,7 +25,6 @@ import {
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import { EnVentaEngagementRow } from "@/app/clasificados/en-venta/shared/components/EnVentaEngagementRow";
-import { EnVentaDetailPageLayout } from "@/app/clasificados/en-venta/shared/components/EnVentaDetailPageLayout";
 import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
 import { EnVentaPreviewResultsCardSample } from "./EnVentaPreviewResultsCardSample";
 
@@ -339,23 +338,32 @@ export function EnVentaPreviewPage() {
         returnDraft={draft}
       >
         <main className="relative pb-8 lg:pb-12">
-          <div className={`${EN_VENTA_SURFACE.detailPageMax} px-4 py-6 sm:px-6 lg:px-8 lg:py-8`}>
+          <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
             <EnVentaPreviewResultsCardSample state={state} lang={lang} plan={plan} />
-            <EnVentaDetailPageLayout
-              gallery={
-                <EnVentaPreviewGallery
-                  orderedImages={vm.gallery.orderedImages}
-                  videoUrl={vm.gallery.videoUrl}
-                  showVideo={vm.gallery.showVideo}
-                  photoCountLabel={vm.gallery.photoCountLabel}
-                  lang={lang}
-                  plan={plan}
-                />
-              }
-              hero={mainTop}
-              sidebar={buyerPanel}
-              content={lowerContent}
-            />
+            <div className={EN_VENTA_SURFACE.listingCanvas}>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-6">
+              <div className="order-1 lg:col-span-5 lg:row-start-1">
+                <div className="space-y-4">
+                  <EnVentaPreviewGallery
+                    orderedImages={vm.gallery.orderedImages}
+                    videoUrl={vm.gallery.videoUrl}
+                    showVideo={vm.gallery.showVideo}
+                    photoCountLabel={vm.gallery.photoCountLabel}
+                    lang={lang}
+                    plan={plan}
+                  />
+                </div>
+              </div>
+
+              <div className="order-2 lg:col-span-4 lg:col-start-6 lg:row-start-1">{mainTop}</div>
+
+              <div className="order-3 lg:col-span-3 lg:col-start-10 lg:row-span-2 lg:row-start-1">
+                <div className="flex flex-col gap-3 lg:sticky lg:top-[calc(9rem+1px)]">{buyerPanel}</div>
+              </div>
+
+              <div className="order-4 lg:col-span-9 lg:row-start-2">{lowerContent}</div>
+            </div>
+            </div>
           </div>
         </main>
       </EnVentaPreviewShell>
