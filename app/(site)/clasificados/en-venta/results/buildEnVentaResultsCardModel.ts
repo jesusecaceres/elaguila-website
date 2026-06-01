@@ -10,6 +10,7 @@ import {
   getOrderedEnVentaImageUrls,
 } from "../preview/buildEnVentaPreviewModel";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
+import { resolveEnVentaHeroImageUrl } from "../shared/utils/resolveEnVentaListingImageUrls";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 
 export type EnVentaResultsCardModel = {
@@ -45,7 +46,10 @@ export function buildEnVentaResultsCardModel(
   const { lang, effectiveDeptKey, featuredHighlight } = opts;
   const plan = dto.planTier;
   const images = Array.isArray(dto.images) ? dto.images.filter((u) => typeof u === "string" && u.trim()) : [];
-  const heroImage = images[0] ?? null;
+  const heroImage = resolveEnVentaHeroImageUrl(images, {
+    muxPlaybackId: dto.muxPlaybackId,
+    videoUrl: dto.listingVideoUrl,
+  });
   const extras = images.slice(1);
   const stripCap = 3;
   const extraThumbOverflow = extras.length > stripCap ? extras.length - stripCap : 0;
@@ -104,7 +108,17 @@ export function buildEnVentaResultsCardModelFromDraftState(
   const { lang, plan } = opts;
   const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
   const images = getOrderedEnVentaImageUrls(state).slice(0, maxPhotos);
-  const heroImage = images[0] ?? null;
+  const slot = state.listingVideoSlots?.[0];
+  const videoUrl = resolveEnVentaVideoUrl({
+    muxPlaybackId: slot?.playbackId ?? null,
+    muxPlaybackUrl: slot?.playbackUrl ?? null,
+    externalUrl: state.listingVideoUrl?.trim() || null,
+  });
+  const heroImage = resolveEnVentaHeroImageUrl(images, {
+    muxPlaybackId: slot?.playbackId ?? null,
+    muxThumbnailUrl: slot?.thumbnailUrl ?? null,
+    videoUrl,
+  });
   const extras = images.slice(1);
   const stripCap = 3;
   const extraThumbOverflow = extras.length > stripCap ? extras.length - stripCap : 0;
@@ -134,13 +148,6 @@ export function buildEnVentaResultsCardModelFromDraftState(
           ? "Particular"
           : "Individual"
         : null;
-
-  const slot = state.listingVideoSlots?.[0];
-  const videoUrl = resolveEnVentaVideoUrl({
-    muxPlaybackId: slot?.playbackId ?? null,
-    muxPlaybackUrl: slot?.playbackUrl ?? null,
-    externalUrl: state.listingVideoUrl?.trim() || null,
-  });
 
   const dept = state.rama?.trim() ?? "";
   const sub = state.evSub?.trim() ?? "";

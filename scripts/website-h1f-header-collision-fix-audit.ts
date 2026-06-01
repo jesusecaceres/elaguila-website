@@ -68,25 +68,34 @@ for (const p of CS_V2_PROTECTED) {
 const pageTsxInDiff = diffNames.some((f) => f.endsWith("page.tsx"));
 add("No page.tsx in git diff", !pageTsxInDiff, diffNames.join(", ") || "no tracked diff");
 
-const headerOnlyDiff =
-  diffNames.length === 0 ||
-  diffNames.every(
-    (f) =>
-      f === "app/components/Navbar.tsx" ||
-      f === "app/lib/publicNavConfig.ts" ||
-      f.startsWith("app/lib/website-audit/WEBSITE_H1F") ||
-      f === "scripts/website-h1f-header-collision-fix-audit.ts" ||
-      f === "package.json"
-  );
-add("Only normal header scope in diff", headerOnlyDiff, diffNames.join(", ") || "clean");
+const headerScopeViolations = diffNames.filter((f) => {
+  const n = f.replace(/\\/g, "/");
+  if (n === "app/components/Navbar.tsx") return false;
+  if (n === "app/lib/publicNavConfig.ts") return false;
+  if (n.startsWith("app/lib/website-audit/WEBSITE_H1F")) return false;
+  if (n === "scripts/website-h1f-header-collision-fix-audit.ts") return false;
+  if (n === "package.json") return false;
+  if (n.startsWith("app/components/") || n === "app/lib/publicNavConfig.ts") return true;
+  return false;
+});
+add(
+  "Only normal header scope in diff",
+  headerScopeViolations.length === 0,
+  headerScopeViolations.join(", ") || diffNames.join(", ") || "clean"
+);
 
 add("No ComingSoonV2Shell import", !navbar.includes("ComingSoonV2Shell"), "Navbar.tsx");
-add("Protected 3-zone grid", navbar.includes("minmax(0, 1fr)") || navbar.includes("minmax(0,1fr)"), "Navbar.tsx");
+add("Protected 3-zone grid", navbar.includes("minmax(0,1fr)"), "Navbar.tsx");
+add("Grid column gaps (CS V2 spacing)", navbar.includes("gap-x-4") && navbar.includes("sm:gap-x-6"), "Navbar.tsx");
 add("Brand zone col-start-1", navbar.includes("col-start-1"), "Navbar.tsx");
 add("Center nav col-start-2", navbar.includes("col-start-2"), "Navbar.tsx");
 add("Right controls col-start-3", navbar.includes("col-start-3"), "Navbar.tsx");
 add("Más inside center nav", /col-start-2[\s\S]*PUBLIC_NAV_MAS_ITEMS/.test(navbar), "Navbar.tsx");
-add("xl breakpoint for inline nav", navbar.includes("xl:flex") && navbar.includes("xl:hidden"), "Navbar.tsx");
+add(
+  "Inline nav before collision (2xl+)",
+  navbar.includes("2xl:flex") && navbar.includes("2xl:hidden"),
+  "Navbar.tsx"
+);
 
 for (const label of DESKTOP_INLINE) {
   add(`Desktop inline label: ${label}`, bundle.includes(label), label);

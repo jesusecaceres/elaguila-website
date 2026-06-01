@@ -5,38 +5,13 @@ import {
   readLeonixDetailPairValue,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
+import { resolveEnVentaListingImageUrls } from "../shared/utils/resolveEnVentaListingImageUrls";
+import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
 import { parseEnVentaDetailPairSignals } from "./enVentaDetailPairSignals";
+import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 
 function stripLeonixImages(desc: string): string {
-  return desc.replace(/\s*\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]\s*/g, "\n").trim();
-}
-
-function imageUrlsFromRow(row: Record<string, unknown>): string[] {
-  const fromJson = row.images;
-  if (Array.isArray(fromJson)) {
-    const u = fromJson
-      .map((item) => {
-        if (typeof item === "string" && item.trim()) return item.trim();
-        if (item && typeof item === "object") {
-          const o = item as Record<string, unknown>;
-          const url = (o.url ?? o.src ?? o.path) as string | undefined;
-          if (typeof url === "string" && url.trim()) return url.trim();
-        }
-        return null;
-      })
-      .filter((x): x is string => x != null);
-    if (u.length) return u;
-  }
-  const rawDesc = String(row.description ?? "");
-  const m = rawDesc.match(/\[LEONIX_IMAGES\]([\s\S]*?)\[\/LEONIX_IMAGES\]/);
-  if (!m) return [];
-  const urls: string[] = [];
-  for (const line of m[1].split("\n")) {
-    const t = line.trim();
-    const um = /^url=(.+)$/i.exec(t);
-    if (um?.[1]) urls.push(um[1].trim());
-  }
-  return urls;
+  return stripLeonixPublishedDescriptionBody(desc);
 }
 
 function postedAgoBilingual(createdAt: string | null | undefined): { es: string; en: string } {
@@ -143,7 +118,12 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     if (lk.includes("condición") || lk.includes("condicion") || lk.includes("condition")) condKey = p.value.trim();
   }
 
-  const images = imageUrlsFromRow(row);
+  const images = resolveEnVentaListingImageUrls(row);
+  const listingVideoUrl = resolveEnVentaVideoUrl({
+    muxPlaybackId: row.mux_playback_id != null ? String(row.mux_playback_id) : null,
+    description: rawDesc,
+    detailPairs: pairs,
+  });
   const sellerType = row.seller_type === "business" ? "business" : "individual";
   const businessName =
     row.business_name != null && String(row.business_name).trim()
@@ -209,5 +189,7 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     planTier,
     hasListingVideo,
     views,
+    muxPlaybackId: row.mux_playback_id != null ? String(row.mux_playback_id).trim() || null : null,
+    listingVideoUrl,
   };
 }

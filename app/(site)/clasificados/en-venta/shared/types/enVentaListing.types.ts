@@ -52,6 +52,10 @@ export type EnVentaAnuncioDTO = {
   hasListingVideo: boolean;
   /** `listings.views` engagement counter when present. */
   views: number;
+  /** Mux playback id when Pro video was uploaded. */
+  muxPlaybackId?: string | null;
+  /** Resolved embeddable video URL for thumbnail fallback. */
+  listingVideoUrl?: string | null;
 };
 
 export type EnVentaDashboardRowDTO = {

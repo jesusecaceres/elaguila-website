@@ -107,6 +107,7 @@
     "varios:r1-revert-layout-regression-audit": "tsx scripts/varios-r1-revert-layout-regression-audit.ts",
     "varios:r2-restore-stacked-layout-audit": "tsx scripts/varios-r2-restore-stacked-layout-audit.ts",
     "varios:r3-restore-approved-stacked-layout-audit": "tsx scripts/varios-r3-restore-approved-stacked-layout-audit.ts",
+    "varios:r4-restore-p2-layout-media-audit": "tsx scripts/varios-r4-restore-p2-layout-media-audit.ts",
     "website:h1d-copy-coming-soon-header-layout-audit": "tsx scripts/website-h1d-copy-coming-soon-header-layout-audit.ts",
     "website:h1e-header-spacing-fix-audit": "tsx scripts/website-h1e-header-spacing-fix-audit.ts",
     "website:h1f-header-collision-fix-audit": "tsx scripts/website-h1f-header-collision-fix-audit.ts",

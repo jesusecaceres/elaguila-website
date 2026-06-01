@@ -295,7 +295,7 @@ function NavbarContent() {
         <div
           className={cx(
             "animate-pulse rounded-full bg-[#D6C7AD]/40",
-            variant === "desktop" ? "hidden h-[2.125rem] w-16 xl:block" : "hidden"
+            variant === "desktop" ? "hidden h-[2.125rem] w-16 2xl:block" : "hidden"
           )}
         />
       );
@@ -303,11 +303,11 @@ function NavbarContent() {
 
     if (user) {
       return (
-        <div className={cx("relative", variant === "desktop" ? "hidden shrink-0 xl:block" : "hidden")}>
+        <div className={cx("relative", variant === "desktop" ? "hidden shrink-0 2xl:block" : "hidden")}>
           <button
             type="button"
             onClick={() => setAccountOpen((v) => !v)}
-            className="inline-flex max-w-[6.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:max-w-[7.5rem] sm:px-2.5 xl:max-w-[8rem]"
+            className="inline-flex max-w-[6.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:max-w-[7.5rem] sm:px-2.5 2xl:max-w-[8rem]"
             aria-label={L.myAccount}
             aria-expanded={accountOpen}
           >
@@ -372,7 +372,7 @@ function NavbarContent() {
         onClick={goToLogin}
         className={cx(
           "inline-flex shrink-0 min-h-[2rem] items-center justify-center rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-1 text-[0.7rem] font-semibold text-[#3D3428] transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs",
-          variant === "desktop" ? "hidden xl:inline-flex" : "hidden"
+          variant === "desktop" ? "hidden 2xl:inline-flex" : "hidden"
         )}
       >
         {L.signIn}
@@ -383,7 +383,7 @@ function NavbarContent() {
   const advertiseCta = (
     <Link
       href={advertiseHref}
-      className="hidden shrink-0 min-h-[2rem] items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs xl:inline-flex"
+      className="hidden shrink-0 min-h-[2rem] items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-[#FFFDF7] shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs 2xl:inline-flex"
     >
       {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
     </Link>
@@ -402,18 +402,15 @@ function NavbarContent() {
 
       <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div
-            className="grid items-center py-1.5 sm:py-2"
-            style={{ gridTemplateColumns: "auto minmax(0, 1fr) auto" }}
-          >
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:gap-x-6 sm:py-2">
             {/* ZONE 1 — brand (protected, no overlap into center) */}
-            <div className="col-start-1 min-w-0 w-max max-w-[9.5rem] shrink-0 sm:max-w-[10.5rem] xl:max-w-[12rem]">
+            <div className="col-start-1 flex min-w-0 shrink-0 items-center">
               <Link
                 href={buildLink("/home")}
-                className="flex min-w-0 items-center gap-2.5 sm:gap-3"
+                className="flex min-w-0 max-w-[10.5rem] items-center gap-2.5 sm:max-w-[11.5rem] sm:gap-3 2xl:max-w-none"
                 aria-label={L.brandName}
               >
-                <span className="inline-flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 xl:h-10 xl:w-10">
+                <span className="inline-flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 2xl:h-10 2xl:w-10">
                   <Image
                     src={HEADER_LOGO_SRC}
                     alt=""
@@ -424,18 +421,18 @@ function NavbarContent() {
                     aria-hidden
                   />
                 </span>
-                <span className="hidden truncate font-serif text-base font-bold leading-none text-[#2A4536] xl:inline xl:whitespace-nowrap">
+                <span className="hidden font-serif text-base font-bold leading-none text-[#2A4536] 2xl:inline 2xl:whitespace-nowrap">
                   {L.brandName}
                 </span>
               </Link>
             </div>
 
-            {/* ZONE 2 — center nav (xl+ only; isolated column) */}
+            {/* ZONE 2 — center nav (2xl+ only; isolated column with protected gaps) */}
             <nav
-              className="col-start-2 hidden min-w-0 justify-self-center xl:flex xl:max-w-full xl:px-4"
+              className="col-start-2 hidden min-w-0 max-w-full justify-self-center 2xl:flex 2xl:px-2"
               aria-label={L.navAria}
             >
-              <div className="flex min-w-0 max-w-full items-center justify-center gap-x-[1.375rem] text-[0.8125rem] font-medium text-[#3D3428] 2xl:gap-x-7 2xl:text-[0.875rem]">
+              <div className="flex min-w-0 max-w-full items-center justify-center gap-x-[1.375rem] text-[0.8125rem] font-medium text-[#3D3428] 2xl:gap-x-6 2xl:text-[0.875rem]">
                 {PUBLIC_NAV_DESKTOP.map((item) => (
                   <Link
                     key={item.id}
@@ -477,13 +474,13 @@ function NavbarContent() {
             </nav>
 
             {/* ZONE 3 — right controls (protected, no overlap into center) */}
-            <div className="col-start-3 flex w-max shrink-0 items-center justify-end gap-2.5 sm:gap-3">
+            <div className="col-start-3 flex w-max shrink-0 items-center justify-end gap-2.5 sm:gap-3.5">
               {langToggle(true)}
               {accountControl("desktop")}
               {advertiseCta}
               <button
                 type="button"
-                className="inline-flex min-h-[2rem] min-w-[2rem] shrink-0 items-center justify-center text-lg text-[#3D3428] xl:hidden"
+                className="inline-flex min-h-[2rem] min-w-[2rem] shrink-0 items-center justify-center text-lg text-[#3D3428] 2xl:hidden"
                 onClick={() => setMobileOpen(true)}
                 aria-label={L.openMenu}
               >
@@ -495,7 +492,7 @@ function NavbarContent() {
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-[999] xl:hidden">
+        <div className="fixed inset-0 z-[999] 2xl:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"
