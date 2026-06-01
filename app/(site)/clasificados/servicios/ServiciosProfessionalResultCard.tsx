@@ -28,6 +28,7 @@ import {
   LX_CHIP,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
+  LX_CTA_PRIMARY_LG,
   LX_CTA_SECONDARY,
   LX_CTA_WHATSAPP,
   collectHeroTrustChips,
@@ -210,8 +211,8 @@ export function ServiciosProfessionalResultCard({
   const body = (
     <>
       <article className={cardSurface}>
-        <div className="flex gap-3 p-4 pb-2 sm:gap-4 sm:p-5 sm:pb-3">
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-1 sm:h-[4.5rem] sm:w-[4.5rem]">
+        <div className="flex gap-4 p-5 pb-3 sm:gap-5 sm:p-6 sm:pb-4">
+          <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-1.5 sm:h-20 sm:w-20">
             {thumb ? (
               <Image
                 src={thumb}
@@ -249,7 +250,7 @@ export function ServiciosProfessionalResultCard({
               ) : null}
             </div>
 
-            <h3 className="font-serif text-lg font-semibold leading-snug text-[#1E1814] sm:text-xl">
+            <h3 className="font-serif text-xl font-semibold leading-snug text-[#1E1814] sm:text-2xl">
               {profile.identity.businessName}
             </h3>
 
@@ -287,13 +288,13 @@ export function ServiciosProfessionalResultCard({
           </div>
         )}
 
-        <div className="mt-auto border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="mt-auto border-t border-[#E8D9C4]/80 px-5 py-4 sm:px-6 sm:py-5">
+          <div className="grid grid-cols-2 gap-2.5">
             {tel ? (
               <button
                 type="button"
                 onClick={onCallClick}
-                className={`${LX_CTA_PRIMARY} col-span-2 w-full`}
+                className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} col-span-2 w-full`}
                 style={{ backgroundColor: LX.burgundy }}
               >
                 <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
@@ -303,7 +304,7 @@ export function ServiciosProfessionalResultCard({
               <button
                 type="button"
                 onClick={onWhatsAppClick}
-                className={`${LX_CTA_WHATSAPP} col-span-2 w-full`}
+                className={`${LX_CTA_WHATSAPP} ${LX_CTA_PRIMARY_LG} col-span-2 w-full`}
                 style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
               >
                 <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
@@ -313,7 +314,7 @@ export function ServiciosProfessionalResultCard({
               <button
                 type="button"
                 onClick={onDirectionsClick}
-                className={`${LX_CTA_MAP} col-span-2 w-full`}
+                className={`${LX_CTA_MAP} ${LX_CTA_PRIMARY_LG} col-span-2 w-full`}
               >
                 <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
                 {lang === "en" ? "Directions" : "Cómo llegar"}
@@ -337,7 +338,7 @@ export function ServiciosProfessionalResultCard({
               </button>
             ) : null}
           </div>
-          <Link href={href} className={`${LX_CTA_SECONDARY} mt-2 w-full`}>
+          <Link href={href} className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} mt-2.5 w-full`}>
             {secondaryLabel}
           </Link>
         </div>

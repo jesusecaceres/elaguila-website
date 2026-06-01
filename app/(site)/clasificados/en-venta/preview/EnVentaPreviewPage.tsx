@@ -214,7 +214,7 @@ export function EnVentaPreviewPage() {
   if (!hydrated) {
     return shell(
       <main className="relative">
-        <div className="mx-auto max-w-6xl px-4 py-24 text-center text-sm text-[#5C5346]/80">
+        <div className={`${EN_VENTA_SURFACE.detailViewport} py-24 text-center text-sm text-[#5C5346]/80`}>
           {lang === "es" ? "Cargando vista previa…" : "Loading preview…"}
         </div>
       </main>
@@ -338,7 +338,7 @@ export function EnVentaPreviewPage() {
         returnDraft={draft}
       >
         <main className="relative pb-8 lg:pb-12">
-          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+          <div className={`${EN_VENTA_SURFACE.detailViewport} py-6 lg:py-8`}>
             <EnVentaPreviewResultsCardSample state={state} lang={lang} plan={plan} />
             <div className={EN_VENTA_SURFACE.listingCanvas}>
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-8">

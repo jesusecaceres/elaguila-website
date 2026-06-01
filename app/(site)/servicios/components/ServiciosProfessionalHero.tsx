@@ -11,6 +11,7 @@ import {
   LX,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
+  LX_CTA_PRIMARY_LG,
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
   LX_HERO_CHIP,
@@ -139,9 +140,9 @@ export function ServiciosProfessionalHero({
         aria-hidden
       />
 
-      <div className="relative px-4 py-6 sm:px-8 sm:py-8">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
-          <div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-2 shadow-lg sm:mx-0 sm:h-[6.5rem] sm:w-[6.5rem]">
+      <div className="relative px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6 lg:gap-8">
+          <div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-2 shadow-lg sm:mx-0 sm:h-[6.75rem] sm:w-[6.75rem] lg:h-28 lg:w-28 lg:p-2.5">
             {thumb ? (
               <Image
                 src={thumb}
@@ -164,11 +165,11 @@ export function ServiciosProfessionalHero({
                 {category}
               </p>
             ) : null}
-            <h1 className="mt-1.5 font-serif text-[1.85rem] font-semibold leading-[1.08] tracking-tight text-[#FFFCF7] sm:text-4xl md:text-[2.75rem]">
+            <h1 className="mt-1.5 font-serif text-[1.9rem] font-semibold leading-[1.06] tracking-tight text-[#FFFCF7] sm:text-4xl md:text-[2.85rem] lg:text-[3.15rem]">
               {profile.identity.businessName}
             </h1>
             {location ? (
-              <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-[#FFFCF7]/88 sm:justify-start sm:text-sm">
+              <p className="mt-2.5 flex items-center justify-center gap-1.5 text-xs text-[#FFFCF7]/88 sm:justify-start sm:text-sm lg:mt-3">
                 <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
                 <span className="line-clamp-1 text-left">{location}</span>
               </p>
@@ -208,7 +209,7 @@ export function ServiciosProfessionalHero({
             </div>
 
             {displayChips.length > 0 ? (
-              <div className="mt-3 flex flex-wrap justify-center gap-1.5 sm:justify-start">
+              <div className="mt-3.5 flex flex-wrap justify-center gap-2 sm:justify-start lg:mt-4">
                 {displayChips.map((chip) => (
                   <span key={chip} className={LX_HERO_CHIP}>
                     {chip}
@@ -224,15 +225,15 @@ export function ServiciosProfessionalHero({
         ) : null}
 
         <div
-          className={`grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 ${
-            engagementSlot ? "mt-4" : "mt-5 border-t border-white/15 pt-5"
+          className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:flex lg:flex-wrap ${
+            engagementSlot ? "mt-4 border-t border-white/15 pt-5" : "mt-6 border-t border-white/15 pt-6"
           }`}
         >
           {tel ? (
             <button
               type="button"
               onClick={openCall}
-              className={`${LX_CTA_PRIMARY} w-full sm:col-span-2`}
+              className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} w-full sm:col-span-2 lg:min-w-[14rem] lg:flex-1`}
               style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.32)" }}
             >
               <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
@@ -243,7 +244,7 @@ export function ServiciosProfessionalHero({
             <button
               type="button"
               onClick={openWhatsApp}
-              className={`${LX_CTA_WHATSAPP} w-full`}
+              className={`${LX_CTA_WHATSAPP} ${LX_CTA_PRIMARY_LG} w-full lg:min-w-[10rem] lg:flex-1`}
               style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
             >
               <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
@@ -251,7 +252,7 @@ export function ServiciosProfessionalHero({
             </button>
           ) : null}
           {showDirections ? (
-            <button type="button" onClick={openDirections} className={`${LX_CTA_MAP} w-full`}>
+            <button type="button" onClick={openDirections} className={`${LX_CTA_MAP} ${LX_CTA_PRIMARY_LG} w-full lg:min-w-[10rem] lg:flex-1`}>
               <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
               {lang === "en" ? "Directions" : "Cómo llegar"}
             </button>
@@ -260,7 +261,7 @@ export function ServiciosProfessionalHero({
             <button
               type="button"
               onClick={scrollToContact}
-              className={`${LX_CTA_PRIMARY} w-full sm:col-span-2`}
+              className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} w-full sm:col-span-2`}
               style={{ backgroundColor: LX.burgundy }}
             >
               {primaryLabel}

@@ -5,6 +5,9 @@ import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servici
 import { SV } from "@/app/servicios/components/serviciosDesignTokens";
 import {
   LX_CHIP,
+  LX_PRO_ASIDE,
+  LX_PRO_GRID,
+  LX_PRO_INNER_PAD,
   LX_PRO_SECTION_GAP,
   LX_SECTION_CARD,
   collectProfessionalServiceChips,
@@ -71,7 +74,7 @@ export function ServiciosProfessionalPreviewShell({
       </p>
 
       {chips.length > 0 ? (
-        <div className={`mx-3 mt-4 sm:mx-6 ${LX_SECTION_CARD} p-4 sm:p-5`}>
+        <div className={`mx-4 mt-5 sm:mx-8 lg:mx-10 ${LX_SECTION_CARD} p-4 sm:p-6`}>
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6F6254]">{servicesTitle}</p>
           <div className="flex flex-wrap gap-1.5">
             {chips.map((chip) => (
@@ -83,8 +86,8 @@ export function ServiciosProfessionalPreviewShell({
         </div>
       ) : null}
 
-      <div className="px-3 py-4 sm:px-6 sm:py-6">
-        <div className="grid grid-cols-1 gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10">
+      <div className={LX_PRO_INNER_PAD}>
+        <div className={LX_PRO_GRID}>
           <div className={`order-1 flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
             {hasQuickFactsResolved(profile) ? (
               <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
@@ -127,7 +130,7 @@ export function ServiciosProfessionalPreviewShell({
             ) : null}
           </div>
 
-          <aside className="order-2 hidden min-w-0 lg:block lg:sticky lg:top-4 lg:self-start">
+          <aside className={`order-2 ${LX_PRO_ASIDE}`}>
             <div id="servicios-preview-contact-desktop" className="scroll-mt-20">
               <ServiciosBusinessHubContactCard
                 profile={profile}

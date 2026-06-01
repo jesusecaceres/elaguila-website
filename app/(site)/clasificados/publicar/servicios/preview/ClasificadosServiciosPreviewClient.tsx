@@ -341,7 +341,7 @@ export function ClasificadosServiciosPreviewClient() {
           <div className="mb-8">
             <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{cardPreviewTitle}</h2>
             {previewListingRow ? (
-              <ul className="mx-auto max-w-4xl list-none">
+              <ul className="mx-auto max-w-5xl list-none">
                 <ServiciosProfessionalResultCard row={previewListingRow} lang={lang} />
               </ul>
             ) : (

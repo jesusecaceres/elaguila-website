@@ -63,7 +63,7 @@ export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" 
         {current?.type === "video" ? (
           <EnVentaVideoPlayer url={current.src} lang={lang} />
         ) : current?.type === "image" ? (
-          <img src={current.src} alt={title} className="h-full w-full bg-black/5 object-contain" />
+          <img src={current.src} alt={title} className="h-full w-full bg-black/5 object-cover" />
         ) : null}
         {safe.length > 1 ? (
           <>

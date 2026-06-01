@@ -74,7 +74,7 @@ export function EnVentaPreviewShell({
   return (
     <div className="flex min-h-screen flex-col">
       <div className={`sticky top-0 z-40 border-b shadow-[0_8px_24px_-12px_rgba(31,36,28,0.12)] backdrop-blur-md ${EN_VENTA_SURFACE.shellBar}`}>
-        <div className="mx-auto max-w-6xl px-2 py-1.5 sm:px-4">
+        <div className={`${EN_VENTA_SURFACE.detailViewport} py-1.5 sm:py-1.5`}>
           <div className="relative flex items-center gap-1.5">
             <div className="min-w-0 flex-1" aria-hidden />
             <h1 className="pointer-events-none absolute left-1/2 z-0 max-w-[min(100%,16rem)] -translate-x-1/2 text-center text-sm font-extrabold leading-tight tracking-tight text-[#1E1810] sm:max-w-[min(100%,24rem)] sm:text-base">
@@ -107,7 +107,7 @@ export function EnVentaPreviewShell({
       <div className="flex-1">{children}</div>
 
       <div className={`sticky bottom-0 z-40 border-t p-2.5 backdrop-blur-md lg:hidden ${EN_VENTA_SURFACE.shellBar}`}>
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2">
+        <div className={`${EN_VENTA_SURFACE.detailViewport} flex flex-col items-center gap-2`}>
           {!canPublishFromPreview ? (
             <p className="text-center text-[11px] font-medium leading-snug text-[#5C5346]/90">{t.publishNeedsCheckboxes}</p>
           ) : null}

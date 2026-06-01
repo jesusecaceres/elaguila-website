@@ -34,6 +34,9 @@ export type HomeMarketingResolved = {
   callouts: HomeFeaturedCallout[];
 };
 
+const APPROVED_HOME_MAGAZINE_COVER = "/magazine/leonix-media-magazine-mockup-es.png";
+const LEGACY_HOME_COVER_SRCS = new Set(["/home_thumbnail.png", "/magazine/leonix-media-launch-es.png"]);
+
 const BASE: HomeMarketingResolved = {
   es: {
     title: "Leonix Media",
@@ -55,7 +58,7 @@ const BASE: HomeMarketingResolved = {
     announcement: "",
     promoStrip: "Que Ruja El León — Let The Lion Roar",
   },
-  coverImageSrc: "/home_thumbnail.png",
+  coverImageSrc: APPROVED_HOME_MAGAZINE_COVER,
   ctaPrimaryHref: null,
   ctaSecondaryHref: null,
   modules: {
@@ -70,6 +73,13 @@ const BASE: HomeMarketingResolved = {
 
 function s(v: string | undefined, fallback: string): string {
   return v !== undefined && v.trim() !== "" ? v.trim() : fallback;
+}
+
+/** Gate HOME-HERO-IMAGE-SWAP — always show approved magazine mockup unless CMS sets another path. */
+function resolveHomeCoverImageSrc(patchSrc: string | undefined): string {
+  const trimmed = patchSrc?.trim() ?? "";
+  if (!trimmed || LEGACY_HOME_COVER_SRCS.has(trimmed)) return APPROVED_HOME_MAGAZINE_COVER;
+  return trimmed;
 }
 
 function parseCallouts(raw: HomeMarketingPayload["featuredCallouts"]): HomeFeaturedCallout[] {
@@ -109,7 +119,7 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
       announcement: s(patch.announcementBar?.en, ""),
       promoStrip: s(patch.promoStrip?.en, ""),
     },
-    coverImageSrc: patch.coverImageSrc?.trim() || BASE.coverImageSrc,
+    coverImageSrc: resolveHomeCoverImageSrc(patch.coverImageSrc),
     ctaPrimaryHref: patch.ctaPrimaryHref?.trim() || null,
     ctaSecondaryHref: patch.ctaSecondaryHref?.trim() || null,
     modules: {

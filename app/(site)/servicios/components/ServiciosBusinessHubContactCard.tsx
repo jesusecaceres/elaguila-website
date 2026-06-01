@@ -50,10 +50,13 @@ import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { SV } from "./serviciosDesignTokens";
 import {
   LX,
+  LX_CTA_HUB_SECONDARY,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
+  LX_CTA_PRIMARY_LG,
   LX_CTA_WHATSAPP,
   LX_HUB_CARD,
+  LX_HUB_CARD_PRO,
   resolveProfessionalHubQuoteCtaLabel,
 } from "./serviciosLeonixBrand";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
@@ -299,7 +302,7 @@ export function ServiciosBusinessHubContactCard({
       id: "call",
       label: lang === "en" ? "Call" : "Llamar",
       onClick: openCall,
-      icon: <FiPhone className="h-5 w-5 shrink-0 text-white" aria-hidden />,
+      icon: <FiPhone className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });
   }
   if (vm.contact.messageSmsHref) {
@@ -307,7 +310,7 @@ export function ServiciosBusinessHubContactCard({
       id: "message",
       label: lang === "en" ? "Message" : "Mensaje",
       onClick: openMessage,
-      icon: <FiMessageSquare className="h-5 w-5 shrink-0 text-white" aria-hidden />,
+      icon: <FiMessageSquare className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });
   }
   if (vm.contact.whatsappHref) {
@@ -315,7 +318,7 @@ export function ServiciosBusinessHubContactCard({
       id: "whatsapp",
       label: "WhatsApp",
       onClick: openWhatsApp,
-      icon: <FaWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />,
+      icon: <FaWhatsapp className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });
   }
   if (vm.contact.emailMailto) {
@@ -323,11 +326,17 @@ export function ServiciosBusinessHubContactCard({
       id: "email",
       label: lang === "en" ? "Email" : "Correo",
       onClick: openEmail,
-      icon: <FiMail className="h-5 w-5 shrink-0 text-white" aria-hidden />,
+      icon: <FiMail className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });
   }
 
-  const hasContactGrid = contactActions.length > 0;
+  const isProfessionalHub = Boolean(listingTemplate);
+  const hubCardClass = isProfessionalHub ? LX_HUB_CARD_PRO : LX_HUB_CARD;
+  const callAction = contactActions.find((a) => a.id === "call");
+  const gridContactActions = isProfessionalHub && callAction
+    ? contactActions.filter((a) => a.id !== "call")
+    : contactActions;
+  const hasContactGridVisible = gridContactActions.length > 0 || (isProfessionalHub && Boolean(callAction));
   const lxListingIdForEngagement = (engagementListingId ?? "").trim() || profile.identity.slug;
   const showEngagementRow =
     (persistListingEngagement && Boolean(lxListingIdForEngagement)) ||
@@ -338,22 +347,23 @@ export function ServiciosBusinessHubContactCard({
   const showMore = vm.moreLinks.length > 0;
   const showLocation = Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref);
 
-  const primaryClass = `${LX_CTA_PRIMARY} w-full`;
+  const primaryClass = `${LX_CTA_PRIMARY} ${isProfessionalHub ? LX_CTA_PRIMARY_LG : ""} w-full`;
 
   const contactBtnBase =
-    "flex min-h-[48px] w-full flex-col items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-center text-xs font-bold text-white shadow-md transition hover:brightness-[1.04] active:scale-[0.99] sm:text-sm";
+    "flex min-h-[48px] w-full flex-col items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-center text-xs font-bold shadow-md transition active:scale-[0.99] sm:min-h-[50px] sm:text-sm";
+
+  const contactGridClass =
+    gridContactActions.length === 1
+      ? "mt-4 grid max-w-full grid-cols-1 gap-2.5"
+      : gridContactActions.length === 3
+        ? "mt-4 grid grid-cols-2 gap-2.5 [&>*:last-child]:col-span-2"
+        : "mt-4 grid grid-cols-2 gap-2.5";
 
   const socialChipClass =
     "flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg shadow-md transition hover:scale-[1.03] hover:shadow-lg active:scale-[0.98]";
 
   const moreLinkClass =
     "flex min-h-[48px] w-full items-center gap-2.5 rounded-lg border-2 border-[#D4C4A8] bg-[#FFFCF7] px-3 py-3 text-left text-sm font-bold text-[#1E1814] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFDF9] active:scale-[0.99]";
-  const contactGridClass =
-    contactActions.length === 1
-      ? "mt-4 grid max-w-[14rem] grid-cols-1 gap-2.5"
-      : contactActions.length === 3
-        ? "mt-4 grid grid-cols-2 gap-2.5 [&>*:last-child]:col-span-2"
-        : "mt-4 grid grid-cols-2 gap-2.5";
 
   const showPrimaryQuote =
     quote &&
@@ -363,7 +373,7 @@ export function ServiciosBusinessHubContactCard({
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
-      <article className={LX_HUB_CARD} data-servicios-business-hub="1">
+      <article className={hubCardClass} data-servicios-business-hub="1">
         <div
           className="pointer-events-none -mx-4 -mt-4 mb-4 h-1 bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent sm:-mx-6 sm:-mt-6"
           aria-hidden
@@ -401,7 +411,7 @@ export function ServiciosBusinessHubContactCard({
             lang={lang}
             listingSlug={listingSlug}
             analyticsEventType={analyticsForQuoteKind("mailto")}
-            triggerClassName={`${primaryClass} ${hasContactGrid ? "mb-4" : ""} justify-between`}
+            triggerClassName={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} justify-between`}
             triggerStyle={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
           >
             <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
@@ -410,7 +420,7 @@ export function ServiciosBusinessHubContactCard({
         ) : showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
           <button
             type="button"
-            className={`${primaryClass} ${hasContactGrid ? "mb-4" : ""} w-full border-0`}
+            className={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} w-full border-0`}
             style={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
             onClick={openPrimaryMailtoSheet}
           >
@@ -420,7 +430,7 @@ export function ServiciosBusinessHubContactCard({
         ) : showPrimaryQuote && quote && (quote.kind === "sms" || quote.kind === "whatsapp") ? (
           <button
             type="button"
-            className={`${primaryClass} ${hasContactGrid ? "mb-4" : ""} w-full border-0`}
+            className={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} w-full border-0`}
             style={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
             onClick={openPrimaryQuoteSheet}
           >
@@ -429,35 +439,60 @@ export function ServiciosBusinessHubContactCard({
           </button>
         ) : null}
 
-        {hasContactGrid ? (
+        {hasContactGridVisible ? (
           <section aria-labelledby="hub-contact-heading">
             <HubSectionTitle>
               <span id="hub-contact-heading">{lang === "en" ? "Contact us" : "Contáctanos"}</span>
             </HubSectionTitle>
             {directContactFasterResponseHint ? (
-              <p className="mt-2 text-xs leading-snug text-[color:var(--lx-text-2)]" data-servicios-direct-contact-hint="1">
+              <p className="mt-2 text-xs leading-snug text-[#6F6254]" data-servicios-direct-contact-hint="1">
                 {lang === "en"
                   ? "Contact the business directly for a faster response."
                   : "Contacta directamente al negocio para una respuesta más rápida."}
               </p>
             ) : null}
+            {isProfessionalHub && callAction ? (
+              <button
+                type="button"
+                className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} mt-4 w-full border-0`}
+                style={{ backgroundColor: LX.burgundy, boxShadow: "0 10px 28px rgba(92, 22, 34, 0.3)" }}
+                onClick={callAction.onClick}
+              >
+                {callAction.icon}
+                <span>{callAction.label}</span>
+              </button>
+            ) : null}
+            {gridContactActions.length > 0 ? (
             <div className={contactGridClass}>
-              {contactActions.map((action) => (
+              {gridContactActions.map((action) => {
+                const isWhatsApp = action.id === "whatsapp";
+                const isSecondary = action.id === "message" || action.id === "email";
+                return (
                 <button
                   key={action.id}
                   type="button"
-                  className={`${contactBtnBase} border-0`}
-                  style={{
-                    backgroundColor: action.id === "whatsapp" ? LX.whatsApp : LX.burgundy,
-                    boxShadow: action.id === "whatsapp" ? LX.whatsAppShadow : "0 6px 16px rgba(92, 22, 34, 0.2)",
-                  }}
+                  className={
+                    isSecondary && isProfessionalHub
+                      ? `${LX_CTA_HUB_SECONDARY} hover:brightness-100`
+                      : `${contactBtnBase} border-0 text-white hover:brightness-[1.04]`
+                  }
+                  style={
+                    isSecondary && isProfessionalHub
+                      ? undefined
+                      : {
+                          backgroundColor: isWhatsApp ? LX.whatsApp : LX.burgundy,
+                          boxShadow: isWhatsApp ? LX.whatsAppShadow : "0 6px 16px rgba(92, 22, 34, 0.2)",
+                        }
+                  }
                   onClick={action.onClick}
                 >
                   {action.icon}
                   <span>{action.label}</span>
                 </button>
-              ))}
+              );
+              })}
             </div>
+            ) : null}
           </section>
         ) : null}
 

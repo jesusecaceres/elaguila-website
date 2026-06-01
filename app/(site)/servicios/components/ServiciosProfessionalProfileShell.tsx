@@ -7,6 +7,10 @@ import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servici
 import { SV } from "./serviciosDesignTokens";
 import {
   LX_CHIP,
+  LX_PRO_ASIDE,
+  LX_PRO_GRID,
+  LX_PRO_INNER_PAD,
+  LX_PRO_MAIN_MAX,
   LX_PRO_SECTION_GAP,
   LX_SECTION_CARD,
   collectProfessionalServiceChips,
@@ -164,7 +168,6 @@ export function ServiciosProfessionalProfileShell({
 
   const showServicesSection = hasServicesSectionResolved(profile);
   const showReviewsSection = hasReviewsSectionResolved(profile);
-  const stickyAsideTop = "lg:top-[4.5rem]";
 
   if (!hasHeroIdentityResolved(profile)) {
     return null;
@@ -178,10 +181,7 @@ export function ServiciosProfessionalProfileShell({
       {analyticsListingSlug ? <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} /> : null}
       <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
 
-      <main
-        className="mx-auto max-w-[1280px] px-3 py-4 sm:px-6 sm:py-6"
-        style={{ backgroundColor: SV.bg }}
-      >
+      <main className={`${LX_PRO_MAIN_MAX} px-3 py-4 sm:px-6 sm:py-6 lg:px-8`} style={{ backgroundColor: SV.bg }}>
         <div
           className="overflow-hidden rounded-xl border shadow-sm sm:rounded-2xl"
           style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
@@ -256,7 +256,7 @@ export function ServiciosProfessionalProfileShell({
             {(displayProfile, translateControl) => {
               const chips = collectProfessionalServiceChips(displayProfile, 6);
               return (
-          <div className="px-3 py-4 sm:px-6 sm:py-6">
+          <div className={LX_PRO_INNER_PAD}>
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
@@ -299,7 +299,7 @@ export function ServiciosProfessionalProfileShell({
               ) : null}
             </section>
 
-            <div className="mt-5 grid grid-cols-1 gap-5 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10">
+            <div className={`mt-6 sm:mt-8 ${LX_PRO_GRID}`}>
               <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
                 {showReviewsSection ? (
                   <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
@@ -391,9 +391,7 @@ export function ServiciosProfessionalProfileShell({
                 ) : null}
               </div>
 
-              <aside
-                className={`hidden min-w-0 lg:sticky lg:block lg:self-start ${stickyAsideTop} lg:z-10`}
-              >
+              <aside className={`${LX_PRO_ASIDE} lg:top-[4.5rem]`}>
                 <div id="servicios-pro-contact-desktop" className={SECTION_SCROLL}>
                   <ServiciosBusinessHubContactCard
                     profile={profile}

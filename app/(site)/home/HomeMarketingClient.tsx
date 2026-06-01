@@ -130,8 +130,8 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
           {content.modules.showHeroImage ? (
             <a href={primaryHref} className="block">
               <div className="rounded-2xl border border-[color:var(--lx-nav-border)] overflow-hidden shadow-[0_18px_48px_rgba(42,36,22,0.12)] hover:shadow-[0_22px_60px_rgba(42,36,22,0.14)] transition-all duration-300 bg-[color:var(--lx-card)]">
-                <div className="w-80 sm:w-[26rem] md:w-[30rem]">
-                  <img src={content.coverImageSrc} alt={L.coverAlt} className="w-full h-auto object-cover" />
+                <div className="w-72 sm:w-80 md:w-[22rem]">
+                  <img src={content.coverImageSrc} alt={L.coverAlt} className="w-full h-auto object-contain" />
                 </div>
               </div>
             </a>

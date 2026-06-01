@@ -40,6 +40,9 @@ export const EN_VENTA_SURFACE = {
   } satisfies CSSProperties,
   listingCanvas:
     "rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 shadow-[0_20px_48px_-20px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/12 sm:p-6 lg:p-7",
+  /** Matches Varios hub/results browse width — avoids tiny centered detail on desktop. */
+  detailViewport:
+    "mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-4 sm:px-6 lg:px-10 xl:px-14",
   contentCard:
     "rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-5",
   contentCardInner: "rounded-lg border border-[#D6C7AD]/55 bg-[#FBF7EF]/90 px-3 py-2.5",

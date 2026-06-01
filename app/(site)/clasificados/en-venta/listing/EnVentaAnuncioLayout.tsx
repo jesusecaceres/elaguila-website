@@ -612,7 +612,9 @@ export function EnVentaAnuncioLayout({
         className={
           premiumBr
             ? `${brLuxuryInnerMaxClass} pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-24 sm:pt-28 lg:pb-10`
-            : "mx-auto max-w-6xl px-4 pt-28"
+            : surface === "en-venta" && !premiumBr
+              ? `${EN_VENTA_SURFACE.detailViewport} pt-28`
+              : "mx-auto max-w-6xl px-4 pt-28"
         }
       >
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">

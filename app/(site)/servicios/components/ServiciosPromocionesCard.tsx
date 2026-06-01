@@ -122,7 +122,7 @@ function PromoInnerCard({
   const showThumbCol = hasImage || !premiumLeonixTone;
   const cardClass = premiumLeonixTone
     ? `relative overflow-hidden rounded-lg border border-[#E8D9C4] bg-[#FFFDF7] shadow-sm transition hover:border-[#D4C4A8] ${
-        compact ? "px-3 py-3.5 sm:px-4 sm:py-4" : "px-4 py-5 sm:px-5 sm:py-5"
+        compact ? "px-4 py-4 sm:px-5 sm:py-5" : "px-5 py-5 sm:px-6 sm:py-6"
       }`
     : `relative overflow-hidden rounded-2xl border border-[#D4A574]/45 shadow-[0_8px_28px_-12px_rgba(61,44,18,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-md ${
         compact ? "px-3 py-3.5 sm:px-4 sm:py-4" : "px-4 py-5 sm:px-6 sm:py-6"
@@ -267,9 +267,9 @@ export function ServiciosPromocionesCard({
         <h2
           id="servicios-promociones-heading"
           className={
-            premiumLeonixTone
-              ? "font-serif text-xl font-semibold tracking-tight text-[#1E1814]"
-              : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+        premiumLeonixTone
+          ? "font-serif text-xl font-semibold tracking-tight text-[#1E1814] sm:text-2xl"
+          : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
           }
         >
           {copy.sectionTitle}

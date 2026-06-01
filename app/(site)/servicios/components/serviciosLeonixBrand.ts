@@ -51,7 +51,29 @@ export const LX_HERO_CHIP =
 export const LX_HUB_CARD =
   "overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFCF7] p-4 shadow-lg sm:rounded-2xl sm:p-6";
 
-export const LX_PRO_SECTION_GAP = "space-y-6 sm:space-y-7";
+/** Wider Contact Hub shell on desktop professional profiles (Gate 15). */
+export const LX_HUB_CARD_PRO =
+  "overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFCF7] p-5 shadow-xl sm:rounded-2xl sm:p-7 lg:p-8";
+
+export const LX_PRO_SECTION_GAP = "space-y-6 sm:space-y-7 lg:space-y-8";
+
+/** Centered professional profile canvas — premium width without full bleed (Gate 15). */
+export const LX_PRO_MAIN_MAX = "mx-auto w-full max-w-[1440px]";
+
+export const LX_PRO_INNER_PAD = "px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10";
+
+/** Two-column profile grid: wider main + substantial Contact Hub sidebar. */
+export const LX_PRO_GRID =
+  "grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,1.12fr)_min(100%,420px)] xl:grid-cols-[minmax(0,1.18fr)_min(100%,460px)] lg:gap-10 xl:gap-12";
+
+export const LX_PRO_ASIDE =
+  "hidden min-w-0 lg:block lg:sticky lg:top-6 lg:z-10 lg:w-full lg:max-w-[460px] lg:justify-self-end lg:self-start";
+
+export const LX_CTA_HUB_SECONDARY =
+  "inline-flex min-h-[48px] w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-[#D4C4A8] bg-[#FFFCF7] px-3 py-2.5 text-center text-xs font-bold text-[#1E1814] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFDF9] active:scale-[0.99] sm:text-sm";
+
+export const LX_CTA_PRIMARY_LG =
+  "sm:min-h-[48px] sm:px-5 sm:py-3 sm:text-base";
 
 export function cleanProfessionalChipLabel(raw: string): string {
   const t = String(raw ?? "").trim();
