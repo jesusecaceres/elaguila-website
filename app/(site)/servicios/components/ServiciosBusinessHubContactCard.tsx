@@ -51,7 +51,6 @@ import { SV } from "./serviciosDesignTokens";
 import {
   LX,
   LX_CTA_HUB_SECONDARY,
-  LX_CTA_MAP,
   LX_CTA_PRIMARY,
   LX_CTA_PRIMARY_LG,
   LX_CTA_WHATSAPP,
@@ -105,7 +104,7 @@ function HubSectionTitle({ children }: { children: ReactNode }) {
 }
 
 function HubDivider() {
-  return <hr className="my-5 border-0 border-t sm:my-6" style={{ borderColor: SV.borderSoft }} />;
+  return <hr className="my-4 border-0 border-t sm:my-5" style={{ borderColor: "#E8D9C4" }} />;
 }
 
 function CopyChip({ value }: { value: string }) {
@@ -513,7 +512,7 @@ export function ServiciosBusinessHubContactCard({
               <HubSectionTitle>
                 <span id="hub-social-heading">{lang === "en" ? "Follow us" : "Síguenos"}</span>
               </HubSectionTitle>
-              <div className="mt-3 flex max-w-full flex-wrap gap-2.5 break-words">
+              <div className="mt-3 flex max-w-full flex-wrap gap-2.5 break-words sm:mt-3.5">
                 {vm.social.map((link) => {
                   const brand = businessHubSocialBrandStyle(link.platform);
                   return (
@@ -547,7 +546,7 @@ export function ServiciosBusinessHubContactCard({
               <HubSectionTitle>
                 <span id="hub-reviews-heading">{lang === "en" ? "Reviews" : "Opiniones"}</span>
               </HubSectionTitle>
-              <div className="mt-3 flex flex-col gap-2">
+              <div className="mt-3 flex flex-col gap-2.5 sm:mt-3.5">
                 {vm.reviews.map((link) => (
                   <ServiciosHubReviewLinkButton
                     key={link.id}
@@ -568,7 +567,7 @@ export function ServiciosBusinessHubContactCard({
               <HubSectionTitle>
                 <span id="hub-more-heading">{lang === "en" ? "Find us online" : "Búscanos aquí"}</span>
               </HubSectionTitle>
-              <div className="mt-3 flex flex-col gap-2">
+              <div className="mt-3 flex flex-col gap-2.5 sm:mt-3.5">
                 {vm.moreLinks.map((link, i) => (
                   <button
                     key={`${link.label}-${i}`}
@@ -593,22 +592,24 @@ export function ServiciosBusinessHubContactCard({
                 <span id="hub-location-heading">{lang === "en" ? "Our location" : "Nuestra ubicación"}</span>
               </HubSectionTitle>
               {vm.location?.addressDisplay?.trim() ? (
-                <p className="mt-2 flex items-start gap-0 whitespace-pre-line text-sm leading-relaxed text-[color:var(--lx-text)]">
+                <p className="mt-3 flex items-start gap-1 whitespace-pre-line text-sm font-medium leading-relaxed text-[#1E1814]">
+                  <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
                   <span className="flex-1">{vm.location.addressDisplay}</span>
                   <CopyChip value={vm.location.addressDisplay.trim()} />
                 </p>
               ) : null}
-              <div className="mt-3 overflow-hidden rounded-lg border border-[#E8D9C4]">
+              <div className="mt-3 overflow-hidden rounded-lg border-2 border-[#D4C4A8] shadow-md ring-1 ring-[#C9A84A]/20">
                 <ServiciosBusinessHubFauxMap />
               </div>
               {vm.location?.mapsHref ? (
                 <button
                   type="button"
-                  className={`${LX_CTA_MAP} mt-3 w-full`}
+                  className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} mt-3 w-full border-2 border-[#C9A84A]/40`}
+                  style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.28)" }}
                   onClick={() => openDirections(vm.location!.mapsHref!, true)}
                 >
                   <FiMapPin className="h-5 w-5 shrink-0" aria-hidden />
-                  {lang === "en" ? "View on map" : "Ver en el mapa"}
+                  {lang === "en" ? "Get directions" : "Cómo llegar"}
                 </button>
               ) : null}
             </section>

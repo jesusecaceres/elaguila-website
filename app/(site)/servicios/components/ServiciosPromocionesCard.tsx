@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FaTicketAlt } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels, getServiciosPromocionesSectionCopy } from "../copy/serviciosProfileCopy";
@@ -11,14 +11,30 @@ import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
 type ResourceKind = "image" | "pdf" | "link";
+type PromoAction = { kind: ResourceKind; href: string };
 
-function buildPromoActions(promo: PromoRow): { primary: { kind: ResourceKind; href: string } | null; secondary: { kind: ResourceKind; href: string }[] } {
-  const ordered: { kind: ResourceKind; href: string }[] = [];
+function buildPromoActions(promo: PromoRow): { primary: PromoAction | null; secondary: PromoAction[] } {
+  const ordered: PromoAction[] = [];
   if (promo.assetImageHrefSafe) ordered.push({ kind: "image", href: promo.assetImageHrefSafe });
   if (promo.assetPdfHrefSafe) ordered.push({ kind: "pdf", href: promo.assetPdfHrefSafe });
   if (promo.hrefSafe) ordered.push({ kind: "link", href: promo.hrefSafe });
   if (ordered.length === 0) return { primary: null, secondary: [] };
   return { primary: ordered[0]!, secondary: ordered.slice(1) };
+}
+
+/** Premium: image via thumbnail; buttons only for link/PDF (Gate 16). */
+function buildPremiumPromoActions(
+  promo: PromoRow,
+  hasImage: boolean,
+): { primary: PromoAction | null; secondary: PromoAction[] } {
+  const secondary: PromoAction[] = [];
+  let primary: PromoAction | null = null;
+  if (promo.hrefSafe) primary = { kind: "link", href: promo.hrefSafe };
+  if (promo.assetPdfHrefSafe) secondary.push({ kind: "pdf", href: promo.assetPdfHrefSafe });
+  if (!hasImage && promo.assetImageHrefSafe) {
+    primary = primary ?? { kind: "image", href: promo.assetImageHrefSafe };
+  }
+  return { primary, secondary };
 }
 
 function OfferHeadline({ text, premiumLeonixTone }: { text: string; premiumLeonixTone?: boolean }) {
@@ -27,7 +43,7 @@ function OfferHeadline({ text, premiumLeonixTone }: { text: string; premiumLeoni
     <h3
       className={
         premiumLeonixTone
-          ? "font-serif text-lg font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-xl"
+          ? "font-serif text-xl font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-2xl"
           : "text-lg font-bold leading-snug tracking-tight text-[#2C2214] sm:text-xl"
       }
     >
@@ -77,15 +93,16 @@ function PromoCtaButton({
   premiumLeonixTone?: boolean;
   onImageOpen: (src: string) => void;
 }) {
-  const label = promoActionLabel(kind, variant, lang, L, Boolean(premiumLeonixTone));
-  const base = premiumLeonixTone
+  const premium = Boolean(premiumLeonixTone);
+  const label = promoActionLabel(kind, variant, lang, L, premium);
+  const base = premium
     ? variant === "primary"
-      ? "inline-flex min-h-[40px] items-center justify-center rounded-lg border-0 px-3.5 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.05]"
-      : "inline-flex min-h-[40px] items-center justify-center rounded-lg border-2 border-[#D4C4A8] bg-[#FFFCF7] px-3 py-2 text-xs font-bold text-[#1E1814] transition hover:border-[#C9A84A] hover:bg-[#FFFDF9]"
+      ? "inline-flex min-h-[44px] items-center justify-center rounded-lg border-0 px-4 py-2.5 text-sm font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.05]"
+      : "inline-flex min-h-[44px] items-center justify-center rounded-lg border-2 border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-bold text-[#1E1814] transition hover:border-[#C9A84A] hover:bg-[#FFFDF9]"
     : variant === "primary"
       ? "inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#B8935A]/55 bg-gradient-to-b from-[#F3E6C8] to-[#E8D4A8] px-3.5 py-2 text-xs font-bold text-[#2C2214] shadow-sm transition hover:border-[#9A7329]/70 hover:shadow"
       : "inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#C4A574]/45 bg-[#FFFAF0]/90 px-3 py-2 text-xs font-semibold text-[#3D2C12] transition hover:border-[#9A7329]/55 hover:bg-white";
-  const primaryStyle = premiumLeonixTone && variant === "primary" ? { backgroundColor: LX.burgundy } : undefined;
+  const primaryStyle = premium && variant === "primary" ? { backgroundColor: LX.burgundy } : undefined;
 
   if (kind === "image") {
     return (
@@ -116,13 +133,25 @@ function PromoInnerCard({
   onImageOpen: (src: string) => void;
 }) {
   const L = getServiciosProfileLabels(lang);
-  const { primary, secondary } = buildPromoActions(promo);
   const hasImage = Boolean(promo.assetImageHrefSafe);
   const thumb = promo.assetImageHrefSafe;
-  const showThumbCol = hasImage || !premiumLeonixTone;
+  const footnote = promo.footnote?.trim() ?? "";
+  const headline = promo.headline?.trim() ?? "";
+
+  const { primary, secondary } = useMemo(
+    () =>
+      premiumLeonixTone
+        ? buildPremiumPromoActions(promo, hasImage)
+        : buildPromoActions(promo),
+    [promo, premiumLeonixTone, hasImage],
+  );
+
+  const showImageCol = hasImage || !premiumLeonixTone;
+  const showActions = Boolean(primary || secondary.length > 0);
+
   const cardClass = premiumLeonixTone
-    ? `relative overflow-hidden rounded-lg border border-[#E8D9C4] bg-[#FFFDF7] shadow-sm transition hover:border-[#D4C4A8] ${
-        compact ? "px-4 py-4 sm:px-5 sm:py-5" : "px-5 py-5 sm:px-6 sm:py-6"
+    ? `relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFDF7] shadow-sm transition hover:border-[#D4C4A8] hover:shadow-md ${
+        compact ? "p-4 sm:p-5" : "p-5 sm:p-6"
       }`
     : `relative overflow-hidden rounded-2xl border border-[#D4A574]/45 shadow-[0_8px_28px_-12px_rgba(61,44,18,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-md ${
         compact ? "px-3 py-3.5 sm:px-4 sm:py-4" : "px-4 py-5 sm:px-6 sm:py-6"
@@ -133,26 +162,40 @@ function PromoInnerCard({
 
   return (
     <article className={cardClass} style={cardStyle}>
-      <div
-        className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#D4A574]/12"
-        aria-hidden
-      />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-16 rounded-tr-[100%] bg-[#C9A84A]/[0.07]" aria-hidden />
+      {!premiumLeonixTone ? (
+        <>
+          <div
+            className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#D4A574]/12"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 h-16 w-16 rounded-tr-[100%] bg-[#C9A84A]/[0.07]"
+            aria-hidden
+          />
+        </>
+      ) : null}
 
-      <div className={`relative flex flex-col gap-2.5 ${showThumbCol ? "sm:flex-row sm:gap-3" : ""}`}>
-        {showThumbCol ? (
-        <div className="flex shrink-0 flex-col gap-1.5 sm:w-[min(100%,6.75rem)]">
-          {hasImage && thumb ? (
+      <div
+        className={`relative flex flex-col gap-4 ${showImageCol && hasImage ? "sm:flex-row sm:items-start sm:gap-5" : ""}`}
+      >
+        {showImageCol && hasImage && thumb ? (
+          <div className="w-full shrink-0 sm:max-w-[44%] sm:min-w-[10.5rem] lg:min-w-[12.5rem]">
             <button
               type="button"
               onClick={() => onImageOpen(thumb)}
-              className="group relative aspect-[4/3] w-full max-w-[180px] overflow-hidden rounded-xl border border-[#D4A574]/40 bg-[#F5EFE3] shadow-inner sm:max-w-none"
+              className="group relative aspect-[5/4] w-full min-h-[140px] overflow-hidden rounded-lg border-2 border-[#D4C4A8] bg-[#F5F0E8] shadow-inner sm:min-h-[160px]"
               aria-label={L.promoViewImage}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumb} alt="" className="h-full w-full object-cover transition group-hover:opacity-95" />
+              <img
+                src={thumb}
+                alt=""
+                className="h-full w-full object-cover transition group-hover:scale-[1.02] group-hover:opacity-95"
+              />
             </button>
-          ) : (
+          </div>
+        ) : showImageCol && !premiumLeonixTone ? (
+          <div className="flex shrink-0 flex-col gap-1.5 sm:w-[min(100%,6.75rem)]">
             <div
               className={`flex aspect-[4/3] w-full max-w-[200px] items-center justify-center rounded-xl border border-dashed border-[#C4A574]/50 bg-[#FAF4EA] sm:max-w-none ${
                 compact ? "max-h-[82px]" : ""
@@ -160,37 +203,51 @@ function PromoInnerCard({
             >
               <FaTicketAlt className={`text-[#9A7329]/85 ${compact ? "h-7 w-7" : "h-9 w-9"}`} aria-hidden />
             </div>
-          )}
-          <span
-            className={`inline-flex w-fit max-w-full items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
-              premiumLeonixTone
-                ? "border-[#D4C4A8] bg-[#F5F0E8] text-[#1E1814]"
-                : "rounded-full border-[#C9A84A]/35 bg-[#FFF3DC] text-[#6B5420]"
-            }`}
-          >
-            {L.promoCouponBadge}
-          </span>
-        </div>
+            <span className="inline-flex w-fit max-w-full items-center rounded-full border border-[#C9A84A]/35 bg-[#FFF3DC] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B5420]">
+              {L.promoCouponBadge}
+            </span>
+          </div>
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <OfferHeadline text={promo.headline} premiumLeonixTone={premiumLeonixTone} />
-          {promo.footnote ? (
+          {premiumLeonixTone ? (
+            <span className="mb-2 inline-flex w-fit items-center rounded-md border border-[#D4C4A8] bg-[#F5F0E8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E1814]">
+              {L.promoCouponBadge}
+            </span>
+          ) : null}
+
+          {headline ? <OfferHeadline text={headline} premiumLeonixTone={premiumLeonixTone} /> : null}
+
+          {footnote ? (
             <p
-              className="mt-1.5 text-sm leading-relaxed text-[#5D4A38]/95"
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: compact ? 2 : 4,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
+              className={
+                premiumLeonixTone
+                  ? "mt-2.5 text-sm leading-relaxed text-[#4A4A4A] sm:text-base"
+                  : "mt-1.5 text-sm leading-relaxed text-[#5D4A38]/95"
+              }
+              style={
+                premiumLeonixTone
+                  ? undefined
+                  : {
+                      display: "-webkit-box",
+                      WebkitLineClamp: compact ? 2 : 4,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }
+              }
             >
-              {promo.footnote}
+              {footnote}
             </p>
           ) : null}
 
-          {primary || secondary.length > 0 ? (
-            <div className="mt-2.5 flex flex-wrap gap-2 border-t border-[#D4A574]/25 pt-2.5">
+          {showActions ? (
+            <div
+              className={
+                premiumLeonixTone
+                  ? "mt-4 flex flex-wrap gap-2.5 border-t border-[#E8D9C4] pt-4"
+                  : "mt-2.5 flex flex-wrap gap-2 border-t border-[#D4A574]/25 pt-2.5"
+              }
+            >
               {primary ? (
                 <PromoCtaButton
                   key={`p-${primary.kind}`}
@@ -230,7 +287,6 @@ export function ServiciosPromocionesCard({
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
-  /** Leonix professional profile/preview polish (Gate 14). */
   premiumLeonixTone?: boolean;
 }) {
   const copy = getServiciosPromocionesSectionCopy(lang);
@@ -242,8 +298,9 @@ export function ServiciosPromocionesCard({
   if (!hasOfferSectionResolved(profile)) return null;
 
   const n = profile.promotions.length;
-  const listClass =
-    n > 1
+  const listClass = premiumLeonixTone
+    ? "mt-5 flex flex-col gap-4"
+    : n > 1
       ? "mt-4 flex flex-row flex-nowrap gap-3 overflow-x-auto pb-2 pt-0.5 [scrollbar-width:thin] snap-x snap-mandatory sm:mt-5 md:flex-col md:gap-3.5 md:overflow-visible md:pb-0 md:snap-none"
       : "mt-4 flex flex-col gap-3 sm:mt-5 sm:gap-3.5";
 
@@ -256,7 +313,7 @@ export function ServiciosPromocionesCard({
         dialogLabel={L.promoImageLightboxAria}
       />
       <section
-        className={premiumLeonixTone ? `${LX_SECTION_CARD} p-4 sm:p-6` : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}
+        className={premiumLeonixTone ? `${LX_SECTION_CARD} p-4 sm:p-6 lg:p-7` : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}
         style={
           premiumLeonixTone
             ? undefined
@@ -267,20 +324,20 @@ export function ServiciosPromocionesCard({
         <h2
           id="servicios-promociones-heading"
           className={
-        premiumLeonixTone
-          ? "font-serif text-xl font-semibold tracking-tight text-[#1E1814] sm:text-2xl"
-          : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+            premiumLeonixTone
+              ? "font-serif text-xl font-semibold tracking-tight text-[#1E1814] sm:text-2xl"
+              : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
           }
         >
           {copy.sectionTitle}
         </h2>
         <div className={listClass}>
           {profile.promotions.map((p) => (
-            <div key={p.id} className={n > 1 ? "w-[min(100%,340px)] shrink-0 snap-start md:w-auto md:shrink" : ""}>
+            <div key={p.id} className={premiumLeonixTone ? "w-full min-w-0" : n > 1 ? "w-[min(100%,340px)] shrink-0 snap-start md:w-auto md:shrink" : ""}>
               <PromoInnerCard
                 promo={p}
                 lang={lang}
-                compact={true}
+                compact={!premiumLeonixTone}
                 premiumLeonixTone={premiumLeonixTone}
                 onImageOpen={openLightbox}
               />
