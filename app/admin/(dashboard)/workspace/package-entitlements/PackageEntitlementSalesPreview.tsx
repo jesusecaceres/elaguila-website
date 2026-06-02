@@ -17,7 +17,7 @@ function readFormSnapshot(form: HTMLFormElement) {
 }
 
 function boolLabel(v: boolean): string {
-  return v ? "Sí" : "No";
+  return v ? "Yes" : "No";
 }
 
 export function PackageEntitlementSalesPreview() {
@@ -58,12 +58,12 @@ export function PackageEntitlementSalesPreview() {
 
   return (
     <div className="space-y-3 rounded-xl border border-[#E8DFD0]/90 bg-[#F8F4EC]/60 p-3">
-      <p className="text-xs font-bold text-[#1E1810]">Vista previa — precio, promo y comisión (modelo G1.6D)</p>
-      <p className="text-[10px] text-[#7A7164]">No cobra ni activa Stripe. Comisión es estimación informativa.</p>
+      <p className="text-xs font-bold text-[#1E1810]">Preview — price, promo & commission (G1.6D)</p>
+      <p className="text-[10px] text-[#7A7164]">Does not charge or activate Stripe. Commission is informational estimate only.</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-[#E8DFD0]/70 bg-[#FFFCF7] p-2.5 text-xs">
-          <p className="font-bold text-[#1E1810]">Precio</p>
+          <p className="font-bold text-[#1E1810]">Price</p>
           <ul className="mt-1.5 space-y-0.5 text-[#5C5346]">
             <li>Base monthly: {formatMoneyCents(pricing.base_monthly_price_cents)}</li>
             <li>Discount: {pricing.discount_percent}%</li>
@@ -75,9 +75,9 @@ export function PackageEntitlementSalesPreview() {
         </div>
 
         <div className="rounded-lg border border-[#E8DFD0]/70 bg-[#FFFCF7] p-2.5 text-xs">
-          <p className="font-bold text-[#1E1810]">Promo / código</p>
+          <p className="font-bold text-[#1E1810]">Promo / code</p>
           <ul className="mt-1.5 space-y-0.5 text-[#5C5346]">
-            <li>Tipo: {promo.promo_code_type}</li>
+            <li>Type: {promo.promo_code_type}</li>
             <li>Non-stackable: {boolLabel(promo.non_stackable)}</li>
             <li>One-time use: {boolLabel(promo.one_time_use)}</li>
             <li>Owner approval: {boolLabel(promo.requires_owner_approval)}</li>

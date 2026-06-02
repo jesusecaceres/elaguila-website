@@ -20,7 +20,7 @@ export function MagazineIssueEditAssets({ year, monthSlug, coverDefault, pdfDefa
     <>
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">URL portada</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Cover URL</label>
           <input ref={coverRef} name="cover_url" className={adminInputClass} defaultValue={coverDefault} />
         </div>
         <div>

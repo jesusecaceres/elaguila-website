@@ -51,8 +51,12 @@ function correo(row: ProfileRow): string {
 }
 
 function membresia(tier: string | null): string {
-  const t = (tier ?? "").trim();
-  return t || "Gratis";
+  const t = (tier ?? "").trim().toLowerCase();
+  if (t === "gratis") return "Free";
+  if (t === "pro") return "Pro";
+  if (t === "business_lite") return "Standard";
+  if (t === "business_premium") return "Plus";
+  return t || "Free";
 }
 
 function newsletterLabel(optIn: boolean | null): string {

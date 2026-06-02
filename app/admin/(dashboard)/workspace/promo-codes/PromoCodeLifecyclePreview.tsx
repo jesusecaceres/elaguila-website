@@ -6,7 +6,7 @@ import { buildPromoCodeRulePreview, promoCodeRuleBadges } from "@/app/lib/listin
 const PREVIEW_FORM_ID = "promo-code-create-form";
 
 function boolLabel(v: boolean): string {
-  return v ? "Sí" : "No";
+  return v ? "Yes" : "No";
 }
 
 export function PromoCodeLifecyclePreview() {
@@ -43,8 +43,8 @@ export function PromoCodeLifecyclePreview() {
 
   return (
     <div className="space-y-3 rounded-xl border border-[#E8DFD0]/90 bg-[#F8F4EC]/60 p-3">
-      <p className="text-xs font-bold text-[#1E1810]">Vista previa — reglas de promo (G1.6D/F)</p>
-      <p className="text-[10px] text-[#7A7164]">Desde packagePricingRules / promoCodeLifecycle. Sin redención pública ni Stripe.</p>
+      <p className="text-xs font-bold text-[#1E1810]">Preview — promo rules (G1.6D/F)</p>
+      <p className="text-[10px] text-[#7A7164]">From packagePricingRules / promoCodeLifecycle. No public redemption or Stripe.</p>
 
       <ul className="grid gap-1 text-xs text-[#5C5346] sm:grid-cols-2">
         <li>Non-stackable: {boolLabel(rule.nonStackable)}</li>
@@ -52,14 +52,10 @@ export function PromoCodeLifecyclePreview() {
         <li>Requires owner approval: {boolLabel(rule.requiresOwnerApproval)}</li>
         <li>Can discount payment: {boolLabel(rule.canDiscountPayment)}</li>
         <li>Can create package entitlement: {boolLabel(rule.canCreatePackageEntitlement)}</li>
-        <li>
-          Subscriber identity (newsletter/SMS): {boolLabel(rule.requiresSubscriberIdentity)}
-        </li>
+        <li>Subscriber identity (newsletter/SMS): {boolLabel(rule.requiresSubscriberIdentity)}</li>
       </ul>
 
-      {badges.length ? (
-        <p className="text-[10px] text-[#7A7164]">Badges: {badges.join(" · ")}</p>
-      ) : null}
+      {badges.length ? <p className="text-[10px] text-[#7A7164]">Badges: {badges.join(" · ")}</p> : null}
 
       {rule.warnings.length ? (
         <ul className="list-disc pl-4 text-[10px] text-amber-900">

@@ -135,7 +135,7 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
         </AdminCtaRoutingCallout>
 
         <button type="submit" className={`${adminBtnPrimary} mt-4`}>
-          Save contact
+          Save
         </button>
       </form>
     </div>

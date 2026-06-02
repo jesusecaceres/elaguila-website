@@ -15,7 +15,7 @@ export function MagazineAssetUpload({ year, monthSlug, onUploaded }: Props) {
   async function upload(kind: "cover" | "pdf", file: File | null) {
     setMsg(null);
     if (!file || !year.trim() || !monthSlug.trim()) {
-      setMsg("Elige año, mes y archivo.");
+      setMsg("Choose year, month, and a file.");
       return;
     }
     setBusy(true);
@@ -33,26 +33,26 @@ export function MagazineAssetUpload({ year, monthSlug, onUploaded }: Props) {
       });
       const j = (await res.json()) as { ok?: boolean; publicUrl?: string; error?: string; code?: string };
       if (!res.ok || !j.ok || !j.publicUrl) {
-        setMsg(j.error ?? j.code ?? "Error de subida");
+        setMsg(j.error ?? j.code ?? "Upload failed");
         return;
       }
       onUploaded(j.publicUrl, kind);
-      setMsg(kind === "cover" ? "Portada subida — URL aplicada abajo." : "PDF subido — URL aplicada abajo.");
+      setMsg(kind === "cover" ? "Cover uploaded — URL applied below." : "PDF uploaded — URL applied below.");
     } catch {
-      setMsg("Error de red al subir.");
+      setMsg("Network error while uploading.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-4 text-sm text-[#5C5346]">
-      <p className="text-xs font-bold uppercase text-[#7A7164]">Subida Vercel Blob (admin)</p>
+    <div className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-4 text-sm text-[#5C5346]">
+      <p className="text-xs font-bold uppercase text-[#7A7164]">Vercel Blob upload (admin)</p>
       <p className="mt-1 text-xs text-[#7A7164]">
-        Requiere <code className="rounded bg-white/90 px-1">BLOB_READ_WRITE_TOKEN</code>. Usa el mismo año/mes que el número (slug en inglés: january, february…).
+        Requires <code className="rounded bg-white/90 px-1">BLOB_READ_WRITE_TOKEN</code>. Use the same year/month as the issue (slug in English: january, february…).
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <label className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold">
+        <label className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold">
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -64,9 +64,9 @@ export function MagazineAssetUpload({ year, monthSlug, onUploaded }: Props) {
               void upload("cover", f);
             }}
           />
-          {busy ? "…" : "Subir portada"}
+          {busy ? "…" : "Upload cover"}
         </label>
-        <label className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold">
+        <label className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold">
           <input
             type="file"
             accept="application/pdf"
@@ -78,7 +78,7 @@ export function MagazineAssetUpload({ year, monthSlug, onUploaded }: Props) {
               void upload("pdf", f);
             }}
           />
-          {busy ? "…" : "Subir PDF"}
+          {busy ? "…" : "Upload PDF"}
         </label>
       </div>
       {msg ? <p className="mt-2 text-xs font-semibold text-[#1E1810]">{msg}</p> : null}

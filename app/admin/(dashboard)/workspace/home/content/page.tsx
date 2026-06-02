@@ -13,14 +13,14 @@ function homeFeaturedCalloutHint(href: string): { effectiveLine: string; whenBla
   const t = href.trim();
   if (!t) {
     return {
-      effectiveLine: "— no aparece en público",
-      whenBlank: "Hace falta una URL que empiece por / o https:// para que el chip se liste en /home.",
+      effectiveLine: "— not shown on the public site",
+      whenBlank: "A URL starting with / or https:// is required for the chip to appear on /home.",
     };
   }
   if (!(t.startsWith("/") || t.startsWith("https://"))) {
     return {
-      effectiveLine: "— no aparece en público",
-      whenBlank: "Solo se publican chips cuyo href empiece por / o https:// (mergeHomeMarketing).",
+      effectiveLine: "— not shown on the public site",
+      whenBlank: "Only chips whose href starts with / or https:// are published (mergeHomeMarketing).",
     };
   }
   return { effectiveLine: t };
@@ -105,8 +105,8 @@ export default async function AdminHomeContentPage(props: { searchParams?: Promi
             hrefStored={patch.ctaPrimaryHref ?? ""}
             effectiveLine={
               patch.ctaPrimaryHref?.trim()
-                ? `${patch.ctaPrimaryHref.trim()} (se usa tal cual; no se añade ?lang automáticamente en /home).`
-                : "`/magazine?lang={es|en}` según el idioma activo en `/home` (mismo enlace para la imagen y el botón)."
+                ? `${patch.ctaPrimaryHref.trim()} (used as-is; ?lang is not auto-appended on /home).`
+                : "`/magazine?lang={es|en}` follows active language on `/home` (same link for image and button)."
             }
             whenBlank={
               !patch.ctaPrimaryHref?.trim()

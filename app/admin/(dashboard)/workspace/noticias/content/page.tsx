@@ -19,37 +19,36 @@ export default async function AdminNoticiasContentPage(props: { searchParams?: P
     <div className="max-w-3xl space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Noticias"
-        title="Portada `/noticias` — titular y franja"
-        subtitle="Edita solo el marco de la página (título, subtítulo, etiqueta “última hora”). El listado sigue viniendo del API RSS; no es un CMS de artículos todavía."
-        helperText="Guardado en site_section_content → noticias_page. Campos vacíos restauran el texto base del código."
+        title="`/noticias` shell — headline & strip"
+        subtitle="Edit only the page frame (title, subtitle, breaking label). The listing still comes from the RSS API; not a full article CMS yet."
+        helperText="Saved in site_section_content → noticias_page. Empty fields restore code defaults."
         rightSlot={
           <Link href="/admin/workspace/noticias" className={adminBtnSecondary}>
-            ← Vista workspace
+            ← Workspace overview
           </Link>
         }
       />
 
       {sp.saved === "1" ? (
-        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Guardado.</div>
+        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Saved.</div>
       ) : null}
 
-      <p className="text-xs text-[#7A7164]">Última actualización: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
+      <p className="text-xs text-[#7A7164]">Last updated: {updatedAt ? new Date(updatedAt).toLocaleString("en-US") : "—"}</p>
 
       <p className="text-xs text-[#5C5346]">
-        Vista previa:{" "}
+        Public preview:{" "}
         <a href="/noticias" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
           /noticias
         </a>
       </p>
 
       <form action={saveNoticiasPageAction} className={`${adminCardBase} space-y-4 p-6`}>
-        <AdminCtaRoutingCallout title="CTAs con URL">
+        <AdminCtaRoutingCallout title="CTAs with URL">
           <p>
-            Esta pantalla solo ajusta el marco textual de <code className="rounded bg-white/80 px-1">/noticias</code>. No hay campos de
-            botón ni URL: el listado enlaza a fuentes RSS/API según el código de la página.
+            This screen only adjusts the text frame for <code className="rounded bg-white/80 px-1">/noticias</code>. There are no button or URL fields: the listing links to RSS/API sources per page code.
           </p>
         </AdminCtaRoutingCallout>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Titulares</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Headlines</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Título página ES" name="page_title_es" defaultValue={patch.pageTitle?.es ?? ""} placeholder={m.es.pageTitle} />
           <Field label="Título página EN" name="page_title_en" defaultValue={patch.pageTitle?.en ?? ""} placeholder={m.en.pageTitle} />
@@ -63,7 +62,7 @@ export default async function AdminNoticiasContentPage(props: { searchParams?: P
           <textarea name="subtitle_en" className={adminInputClass} rows={3} defaultValue={patch.subtitle?.en ?? ""} placeholder={m.en.subtitle} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Etiqueta “última hora” ES" name="breaking_es" defaultValue={patch.breakingLabel?.es ?? ""} placeholder={m.es.breakingLabel} />
+          <Field label="Breaking label ES" name="breaking_es" defaultValue={patch.breakingLabel?.es ?? ""} placeholder={m.es.breakingLabel} />
           <Field label="Breaking label EN" name="breaking_en" defaultValue={patch.breakingLabel?.en ?? ""} placeholder={m.en.breakingLabel} />
         </div>
         <button type="submit" className={adminBtnPrimary}>

@@ -79,11 +79,11 @@ function displayName(row: ProfileRow): string {
 
 function membershipTierLabel(tier: string | null): string {
   const t = (tier ?? "").trim().toLowerCase();
-  if (t === "gratis") return "Gratis";
+  if (t === "gratis") return "Free";
   if (t === "pro") return "Pro";
   if (t === "business_lite") return "Standard";
   if (t === "business_premium") return "Plus";
-  return t || "Gratis";
+  return t || "Free";
 }
 
 function accountTypeLabel(accountType: string | null): string {
@@ -648,7 +648,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             <select id="membership_tier" name="membership_tier" defaultValue={selectedMembershipTier} className={inputClass}>
               {isPersonal ? (
                 <>
-                  <option value="gratis">Gratis</option>
+                  <option value="gratis">Free</option>
                   <option value="pro">Pro</option>
                 </>
               ) : (
