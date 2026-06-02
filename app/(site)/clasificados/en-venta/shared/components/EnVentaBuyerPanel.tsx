@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
 import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
+import { EnVentaLocationFauxMap } from "./EnVentaLocationFauxMap";
 
 type Props = {
   lang: "es" | "en";
@@ -82,6 +83,7 @@ export function EnVentaBuyerPanel({
             <span className="min-w-0 break-words">{locationLine}</span>
           </p>
           <p className="mt-1.5 text-[11px] leading-snug text-[#7A7164]/95">{locationNote || defaultLocationNote}</p>
+          <EnVentaLocationFauxMap />
           {mapHref || onOpenMap ? (
             <button
               type="button"
