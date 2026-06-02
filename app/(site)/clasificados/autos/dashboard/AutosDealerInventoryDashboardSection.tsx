@@ -17,11 +17,13 @@ import { autosDealerInventoryAddVehicleCta } from "@/app/lib/clasificados/autos/
 import { summarizeDealerInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
   autosDealerInventoryLimitMessage,
-  autosDealerInventoryUpgradeContactHref,
-  autosDealerInventoryUpgradeCtaLabel,
   autosDealerInventoryUpgradePitch,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
-import { autosDealerInventoryValueBullets } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
+import {
+  autosDealerInventoryAddTenSlotsCta,
+  autosDealerInventoryValueBullets,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
+import { AutosNegociosInventoryBoostTrigger } from "@/app/publicar/autos/negocios/components/AutosNegociosInventoryBoostTrigger";
 import {
   autosDealerInventoryActiveCountLine,
   autosDealerInventoryRemainingSlotsLine,
@@ -212,12 +214,18 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       {atLimit ? (
         <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
           <p>{autosDealerInventoryLimitMessage(lang)}</p>
-          <a
-            href={autosDealerInventoryUpgradeContactHref(lang)}
-            className="mt-3 inline-flex min-h-[40px] items-center justify-center rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-950"
-          >
-            {autosDealerInventoryUpgradeCtaLabel(lang)}
-          </a>
+          <div className="mt-3">
+            <AutosNegociosInventoryBoostTrigger
+              lang={lang}
+              label={autosDealerInventoryAddTenSlotsCta(lang)}
+              editorContext={{
+                editorPath: typeof window !== "undefined" ? window.location.pathname : "/dashboard/mis-anuncios",
+                editorSearch: typeof window !== "undefined" ? window.location.search : "",
+              }}
+              className="!min-h-[40px] !rounded-lg !px-3 !text-xs"
+              variant="primary"
+            />
+          </div>
         </div>
       ) : (
         <p className="mt-3 text-xs text-[#5C5346]">{autosDealerInventoryUpgradePitch(lang)}</p>

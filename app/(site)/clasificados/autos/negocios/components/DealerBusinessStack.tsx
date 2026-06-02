@@ -16,6 +16,7 @@ import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
 import { DealerFinanceContact } from "./DealerFinanceContact";
+import { hasDealerFinanceContact } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
 import { mapAutosDealerToBusinessHubContact } from "../lib/mapAutosDealerToBusinessHubContact";
 import {
   AutosBusinessHubSocialBrandIcon,
@@ -96,14 +97,7 @@ export function DealerBusinessStack({
   const showReviews = hub.reviews.length > 0;
   const showMoreLinks = hub.moreLinks.length > 0;
   const showLocation = Boolean(hub.location?.addressDisplay?.trim() || hub.location?.mapsHref);
-  const showFinance = Boolean(
-    data.financeContactName?.trim() ||
-      data.financeContactPhone?.trim() ||
-      data.financeContactWhatsapp?.trim() ||
-      data.financeContactEmail?.trim() ||
-      data.financeApplicationUrl?.trim() ||
-      data.financeNotes?.trim(),
-  );
+  const showFinance = hasDealerFinanceContact(data);
 
   let sectionBorder = false;
   const nextSection = () => {
