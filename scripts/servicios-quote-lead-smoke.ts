@@ -12,8 +12,10 @@ import {
   resolveServiciosWhatsAppContactHref,
   resolveServiciosProfileDirectWhatsAppHref,
   resolveServiciosWhatsAppSocialRowHref,
+  resolveServiciosWhatsAppSocialRowHrefForDisplay,
   isServiciosGenericWhatsAppHomepage,
   isServiciosWhatsAppProfileSocialUrl,
+  isServiciosWhatsAppSocialDuplicateOfContact,
 } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
 import {
   buildServiciosLanguageLabels,
@@ -149,6 +151,25 @@ const mail = "mailto:hi@example.com";
   const hero = formatServiciosHeroLanguageDisplay(labels, "es", 3);
   assert.deepEqual(hero.visible, ["Español", "Inglés", "Portuguese"]);
   assert.equal(hero.overflowLabel, "+1 idioma");
+}
+
+// 2f) Social row de-dupe — same wa.me as contact number hidden from “Síguenos”
+{
+  const contact = "https://wa.me/14088021531";
+  assert.ok(isServiciosWhatsAppSocialDuplicateOfContact("https://wa.me/14088021531", contact));
+  assert.equal(
+    resolveServiciosWhatsAppSocialRowHrefForDisplay("https://wa.me/14088021531", contact),
+    null,
+  );
+  assert.equal(
+    resolveServiciosWhatsAppSocialRowHrefForDisplay("https://wa.me/message/TESTVALUE", contact),
+    "https://wa.me/message/TESTVALUE",
+  );
+  assert.equal(
+    resolveServiciosWhatsAppSocialRowHrefForDisplay("https://whatsapp.com/channel/TESTVALUE", contact),
+    "https://whatsapp.com/channel/TESTVALUE",
+  );
+  assert.equal(resolveServiciosWhatsAppSocialRowHrefForDisplay("https://wa.me/14088021531", null), "https://wa.me/14088021531");
 }
 
 // 3) Email when no phone / WA

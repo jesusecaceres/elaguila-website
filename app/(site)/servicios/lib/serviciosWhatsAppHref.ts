@@ -166,6 +166,36 @@ export function resolveServiciosWhatsAppProfileHref(raw: string | undefined | nu
   return resolveServiciosWhatsAppSocialRowHref(raw);
 }
 
+/**
+ * True when optional social URL is only the same direct-chat number as the contact CTA
+ * (e.g. wa.me/14088021531 in profile field + same number in WhatsApp field).
+ * Profile/channel/message links are never treated as duplicates.
+ */
+export function isServiciosWhatsAppSocialDuplicateOfContact(
+  socialUrl: string | undefined | null,
+  contactHref: string | undefined | null,
+): boolean {
+  const social = trimText(socialUrl ?? "");
+  const contact = trimText(contactHref ?? "");
+  if (!social || !contact) return false;
+  if (isServiciosWhatsAppProfileSocialUrl(social)) return false;
+  const socialDigits = extractServiciosWhatsAppDigits(social);
+  const contactDigits = extractServiciosWhatsAppDigits(contact);
+  if (socialDigits.length < 8 || contactDigits.length < 8) return false;
+  return socialDigits === contactDigits;
+}
+
+/** Social row href — hides numeric wa.me/api links that duplicate the direct contact CTA. */
+export function resolveServiciosWhatsAppSocialRowHrefForDisplay(
+  socialRaw: string | undefined | null,
+  contactHref: string | undefined | null,
+): string | null {
+  const href = resolveServiciosWhatsAppSocialRowHref(socialRaw);
+  if (!href) return null;
+  if (isServiciosWhatsAppSocialDuplicateOfContact(href, contactHref)) return null;
+  return href;
+}
+
 export function buildServiciosWhatsAppWaMeHrefFromDigits(digits: string): string | null {
   const d = normalizeServiciosWhatsAppDigits(digits);
   if (!d) return null;

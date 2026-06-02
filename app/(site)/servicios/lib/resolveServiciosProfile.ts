@@ -39,6 +39,7 @@ import {
   resolveServiciosWhatsAppContactHref,
   resolveServiciosWhatsAppSocialRowHref,
   isServiciosWhatsAppProfileSocialUrl,
+  isServiciosWhatsAppSocialDuplicateOfContact,
 } from "./serviciosWhatsAppHref";
 
 /**
@@ -117,7 +118,12 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     }
 
     if (waContact) out.whatsapp = waContact;
-    if (waProfile) out.whatsappProfile = waProfile;
+    if (
+      waProfile &&
+      (!waContact || !isServiciosWhatsAppSocialDuplicateOfContact(waProfile, waContact))
+    ) {
+      out.whatsappProfile = waProfile;
+    }
     const xUrl = safeExternalWebsiteHref(rawSocial.xUrl);
     if (xUrl) out.x = xUrl;
     const snap = safeExternalWebsiteHref(rawSocial.snapchatUrl);
