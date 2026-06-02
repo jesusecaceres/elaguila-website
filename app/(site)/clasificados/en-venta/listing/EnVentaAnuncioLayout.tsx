@@ -69,6 +69,7 @@ import { buildEnVentaContentStackFromLiveListing } from "../shared/utils/buildEn
 import { EnVentaContactButtons } from "../shared/components/EnVentaContactButtons";
 import { EnVentaListingHero } from "../shared/components/EnVentaListingHero";
 import { enVentaLiveContactPrefs, buildEnVentaLiveContactActions } from "../shared/utils/enVentaContactActions";
+import { enVentaWhatsappFromDetailPairs } from "../shared/utils/enVentaPhoneDisplay";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
 import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
 
@@ -476,15 +477,14 @@ export function EnVentaAnuncioLayout({
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
   const contactPrefs = enVentaLiveContactPrefs(contactChannel);
   const phoneTel = resolvedContact.phoneForTel ? normalizePhoneForTel(String(resolvedContact.phoneForTel)) : "";
+  const whatsappTelRaw = enVentaWhatsappFromDetailPairs(rows);
   const waDigits =
-    contactPrefs.allowsWhatsApp && phoneTel ? digitsForWhatsAppLink(phoneTel) : null;
+    digitsForWhatsAppLink(whatsappTelRaw) ??
+    (contactPrefs.allowsWhatsApp && phoneTel ? digitsForWhatsAppLink(phoneTel) : null);
   const ch12 = resolvedContact.contactChannels;
   const gateAllowCall = ch12?.allowCall !== false;
   const gateAllowSms = ch12?.allowSms !== false;
-  const showWhatsAppCta =
-    contactChannel.trim().toLowerCase() === "whatsapp" &&
-    Boolean(waDigits) &&
-    (ch12?.whatsappEnabled !== false);
+  const showWhatsAppCta = Boolean(waDigits) && ch12?.whatsappEnabled !== false;
   const showPhoneCall = contactPrefs.allowsPhone && Boolean(phoneTel) && gateAllowCall;
   const showPhoneSms = contactPrefs.allowsPhone && Boolean(phoneTel) && gateAllowSms;
   const showEmailCta = contactPrefs.allowsEmail;
@@ -507,7 +507,14 @@ export function EnVentaAnuncioLayout({
   const openCallSheet = () => openSheet(buildCallIntent({ phone: phoneTel, contactShareExtras }));
   const openSmsSheet = () => openSheet(buildSendMessageIntent({ message: contactMessage, phone: phoneTel, contactShareExtras }));
   const openWhatsAppSheet = () =>
-    openSheet(buildWhatsAppMessageIntent({ message: contactMessage, phone: phoneTel, whatsappDigits: waDigits, contactShareExtras }));
+    openSheet(
+      buildWhatsAppMessageIntent({
+        message: contactMessage,
+        phone: whatsappTelRaw || phoneTel,
+        whatsappDigits: waDigits,
+        contactShareExtras,
+      })
+    );
   const openEmailSheet = () => openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
 
   const evLiveContactActions = useMemo(
@@ -516,12 +523,22 @@ export function EnVentaAnuncioLayout({
         lang,
         contactChannel,
         phoneTel,
+        whatsappTel: whatsappTelRaw || (contactChannel.trim().toLowerCase() === "whatsapp" ? phoneTel : ""),
         email,
         gateAllowCall,
         gateAllowSms,
         whatsappEnabled: ch12?.whatsappEnabled,
       }),
-    [lang, contactChannel, phoneTel, email, gateAllowCall, gateAllowSms, ch12?.whatsappEnabled]
+    [
+      lang,
+      contactChannel,
+      phoneTel,
+      whatsappTelRaw,
+      email,
+      gateAllowCall,
+      gateAllowSms,
+      ch12?.whatsappEnabled,
+    ]
   );
 
   const openLiveContactAction = (action: { id: string }) => {

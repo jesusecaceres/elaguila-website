@@ -23,6 +23,7 @@ import {
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
+import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import {
   isServiciosProfessionalTemplate,
   readServiciosProfileBusinessTypeId,
@@ -76,7 +77,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const hasSnippet = Boolean(snippet && snippet.length > 0);
   const phone = profile.contact.phoneDisplay;
   const tel = profile.contact.phoneTelHref;
-  const wa = profile.contact.socialLinks?.whatsapp;
+  const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const promo = profile.promotions[0]?.headline?.trim();
   const qf = profile.quickFacts[0]?.label;
   const groupDiscovery = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
@@ -112,7 +113,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
     [row.slug],
   );
 
-  const waHref = (wa ?? "").trim();
+  const waHrefNormalized = waHref;
 
   const onCallClick = useCallback(() => {
     const raw = (tel ?? "").replace(/^tel:/i, "").trim();

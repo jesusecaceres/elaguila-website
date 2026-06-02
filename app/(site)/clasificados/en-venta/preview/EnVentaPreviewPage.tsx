@@ -63,7 +63,7 @@ const BUYER = {
     share: "Share",
     save: "Save",
     report: "Report",
-    reportHint: "Available once the listing is published.",
+    reportHint: "Available when the listing is published.",
     toastShare: "Link copied",
     saveDraftHint:
       "Saved listings use your account: publish the ad and save from the live listing page, or open an already published ad.",
@@ -180,7 +180,7 @@ export function EnVentaPreviewPage() {
     }
     if (action.id === "whatsapp") {
       const waDigits = state.whatsapp.replace(/\D/g, "");
-      if (state.contactMethod !== "whatsapp" || waDigits.length < 8) return;
+      if (waDigits.length < 8) return;
       openSheet(
         buildWhatsAppMessageIntent({
           message: previewContactMessage,

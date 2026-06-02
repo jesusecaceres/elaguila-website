@@ -16,13 +16,76 @@ export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
 export const EN_VENTA_PREVIEW_DRAFT_META_KEY = "en-venta-preview-draft-meta";
 
+/** Per-tab session id — survives reload; new browser tab gets its own id. */
+export const EN_VENTA_PUBLISH_TAB_SESSION_KEY = "en-venta-publish-tab-session";
+
 /** Single sessionStorage payload for returning from preview → edit (one-shot; not a resume system). */
 export const EN_VENTA_PREVIEW_RETURN_DRAFT = "EN_VENTA_PREVIEW_RETURN_DRAFT";
 
 type EnVentaPreviewDraftMeta = {
   plan: "free" | "pro";
   updatedAt: number;
+  tabSessionId?: string;
 };
+
+function getOrCreateEnVentaPublishTabSessionId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let id = sessionStorage.getItem(EN_VENTA_PUBLISH_TAB_SESSION_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(EN_VENTA_PUBLISH_TAB_SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+/** True when the current navigation is a same-tab reload (F5 / refresh). */
+export function isEnVentaSameTabReload(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (nav?.type === "reload") return true;
+    const legacy = performance as Performance & { navigation?: { type?: number } };
+    return legacy.navigation?.type === 1;
+  } catch {
+    return false;
+  }
+}
+
+function draftMetaMatchesCurrentTab(meta: EnVentaPreviewDraftMeta | null): boolean {
+  if (!meta?.tabSessionId) return false;
+  const current = getOrCreateEnVentaPublishTabSessionId();
+  return Boolean(current && meta.tabSessionId === current);
+}
+
+async function loadEnVentaPublishDraftForRestore(plan: "free" | "pro"): Promise<EnVentaFreeApplicationState | null> {
+  const fromSession = loadEnVentaPreviewDraft(plan);
+  if (fromSession) {
+    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, fromSession);
+    const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, hydrated);
+    return restored ?? hydrated;
+  }
+
+  const fromAsync = await loadEnVentaPreviewDraftAsync(plan);
+  if (fromAsync) {
+    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, fromAsync);
+    const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, hydrated);
+    return restored ?? hydrated;
+  }
+
+  const meta = loadEnVentaPreviewDraftMeta();
+  if (draftMetaMatchesCurrentTab(meta)) {
+    return restoreEnVentaFormFromIdbIfEmpty(plan, createEmptyEnVentaFreeState());
+  }
+
+  return null;
+}
 
 export type EnVentaPreviewReturnPayload = {
   plan: "free" | "pro";
@@ -164,6 +227,7 @@ export function clearEnVentaPublishTempState(): void {
     sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_KEY_PRO);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
+    sessionStorage.removeItem(EN_VENTA_PUBLISH_TAB_SESSION_KEY);
   } catch {
     /* ignore */
   }
@@ -193,7 +257,11 @@ export function saveEnVentaPreviewDraft(
     sessionStorage.setItem(keyForPlan(plan), json);
     sessionStorage.setItem(
       EN_VENTA_PREVIEW_DRAFT_META_KEY,
-      JSON.stringify({ plan, updatedAt: Date.now() } satisfies EnVentaPreviewDraftMeta)
+      JSON.stringify({
+        plan,
+        updatedAt: Date.now(),
+        tabSessionId: getOrCreateEnVentaPublishTabSessionId(),
+      } satisfies EnVentaPreviewDraftMeta)
     );
   } catch {
     /* Quota — IndexedDB fallback below */
@@ -216,7 +284,11 @@ export function saveEnVentaPreviewReturnDraft(plan: "free" | "pro", state: EnVen
     sessionStorage.setItem(keyForPlan(plan), json);
     sessionStorage.setItem(
       EN_VENTA_PREVIEW_DRAFT_META_KEY,
-      JSON.stringify({ plan, updatedAt: Date.now() } satisfies EnVentaPreviewDraftMeta)
+      JSON.stringify({
+        plan,
+        updatedAt: Date.now(),
+        tabSessionId: getOrCreateEnVentaPublishTabSessionId(),
+      } satisfies EnVentaPreviewDraftMeta)
     );
   } catch {
     /* Quota — IndexedDB fallback below */
@@ -383,7 +455,11 @@ export function isEnVentaPublishResumeRequested(resumeParam: string | null | und
 }
 
 /**
- * Publish form mount: fresh route starts empty; resume=1 or preview-return restores draft.
+ * Publish form mount:
+ * - Preview return payload → restore (Volver a editar).
+ * - `resume=1` → intentional resume (sessionStorage + IndexedDB).
+ * - Same-tab reload → restore autosaved draft without `resume=1`.
+ * - Normal `/pro?lang=es` navigation → empty form (new tab or in-tab link).
  */
 export async function resolveEnVentaPublishFormInitialState(
   plan: "free" | "pro",
@@ -394,19 +470,18 @@ export async function resolveEnVentaPublishFormInitialState(
     return hydrateEnVentaDraftMediaIfMissing(plan, fromReturn);
   }
 
-  if (!resumeRequested) {
-    return createEmptyEnVentaFreeState();
+  if (resumeRequested) {
+    const restored = await loadEnVentaPublishDraftForRestore(plan);
+    return restored ?? createEmptyEnVentaFreeState();
   }
 
-  const fromDraft = await loadEnVentaPreviewDraftAsync(plan);
-  if (fromDraft) {
-    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, fromDraft);
-    const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, hydrated);
-    return restored ?? hydrated;
+  if (isEnVentaSameTabReload()) {
+    const restored = await loadEnVentaPublishDraftForRestore(plan);
+    if (restored) return restored;
   }
 
-  const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, createEmptyEnVentaFreeState());
-  return restored ?? createEmptyEnVentaFreeState();
+  getOrCreateEnVentaPublishTabSessionId();
+  return createEmptyEnVentaFreeState();
 }
 
 /** @deprecated Prefer resolveEnVentaPublishFormInitialState — return payload only, no main-draft fallback. */

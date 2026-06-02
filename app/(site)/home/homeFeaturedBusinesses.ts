@@ -1,6 +1,6 @@
 /**
- * Gate HOME-4 — Home-only featured business slots (no DB/admin in this gate).
- * Populate entries only with real confirmed advertisers.
+ * Gate HOME-5 — Home-only featured business slots (no DB/admin).
+ * Core package: 5 premium slots; up to 7 when populated. Real advertisers only.
  */
 
 export type HomeFeaturedBusiness = {
@@ -13,6 +13,10 @@ export type HomeFeaturedBusiness = {
   featured: boolean;
 };
 
+/** Intended premium package size */
+export const CORE_HOME_FEATURED_SLOTS = 5;
+
+/** Hard cap when more advertisers are confirmed */
 export const MAX_HOME_FEATURED_BUSINESSES = 7;
 
 /** Default empty — render only populated rows. */

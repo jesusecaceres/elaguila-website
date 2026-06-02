@@ -3,7 +3,7 @@ import {
   buildQuoteSmsHref,
   resolveServiciosQuoteDestination,
 } from "./serviciosContactActions";
-import { resolveServiciosWhatsAppContactHref } from "./serviciosWhatsAppHref";
+import { resolveServiciosProfileDirectWhatsAppHref } from "./serviciosWhatsAppHref";
 import type {
   ServiciosBusinessHubContactViewModel,
   ServiciosBusinessHubCustomLink,
@@ -42,10 +42,7 @@ export function mapServiciosProfileToBusinessHubContact(
   const contactActions: ServiciosBusinessHubContactViewModel["contact"] = {};
   if (c.phoneTelHref) contactActions.hasCall = true;
   if (smsHref && (quote?.kind === "sms" || c.messageEnabled)) contactActions.messageSmsHref = smsHref;
-  const waHref = resolveServiciosWhatsAppContactHref({
-    whatsappRaw: social?.whatsapp,
-    websiteUrl: c.websiteHref,
-  });
+  const waHref = resolveServiciosProfileDirectWhatsAppHref(c);
   if (waHref) contactActions.whatsappHref = waHref;
   if (c.emailMailtoHref) {
     contactActions.emailMailto = c.emailMailtoHref;

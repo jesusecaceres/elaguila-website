@@ -1,4 +1,9 @@
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import {
+  enVentaContactDigits,
+  enVentaWhatsappDigitsValid,
+  formatEnVentaPhoneDisplay,
+} from "./enVentaPhoneDisplay";
 
 export type EnVentaContactActionId = "call" | "sms" | "email" | "whatsapp";
 
@@ -6,6 +11,8 @@ export type EnVentaContactAction = {
   id: EnVentaContactActionId;
   label: string;
   href: string;
+  /** Formatted visible number when shown alongside the CTA (display only). */
+  displayNumber?: string;
 };
 
 const SMS_PREFILL_ES = "Hola, ¿sigue disponible este artículo?";
@@ -14,40 +21,69 @@ const EMAIL_SUBJ_ES = "Interés en tu anuncio Leonix";
 const EMAIL_SUBJ_EN = "Question about your Leonix listing";
 
 function whatsappDigitsOnly(state: EnVentaFreeApplicationState): string {
-  return state.whatsapp.replace(/\D/g, "");
+  return enVentaContactDigits(state.whatsapp);
+}
+
+function preferredContactRank(id: EnVentaContactActionId, pref: EnVentaFreeApplicationState["contactMethod"]): number {
+  const base: Record<EnVentaContactActionId, number> = {
+    whatsapp: 0,
+    call: 1,
+    sms: 2,
+    email: 3,
+  };
+  let rank = base[id];
+  if (pref === "whatsapp" && id === "whatsapp") rank -= 10;
+  if (pref === "phone" && (id === "call" || id === "sms")) rank -= 10;
+  if (pref === "email" && id === "email") rank -= 10;
+  if (pref === "both" && (id === "call" || id === "sms" || id === "email")) rank -= 5;
+  return rank;
 }
 
 /**
- * Build buyer-facing contact actions respecting seller `contactMethod`.
- * WhatsApp only when method is `whatsapp` and a WhatsApp number exists — never phone fallback.
+ * Build buyer-facing contact actions from draft/preview fields.
+ * WhatsApp appears when the seller entered a WhatsApp number — not only when preferred method is WhatsApp.
  */
 export function buildEnVentaContactActions(
   state: EnVentaFreeApplicationState,
   lang: "es" | "en"
 ): EnVentaContactAction[] {
   const pref = state.contactMethod;
-  const phone = state.phone.replace(/\s/g, "");
+  const phoneDigits = enVentaContactDigits(state.phone);
+  const phoneDisplay = formatEnVentaPhoneDisplay(state.phone);
   const email = state.email.trim();
   const waDigits = whatsappDigitsOnly(state);
-  const waValid = waDigits.length >= 8;
+  const waValid = enVentaWhatsappDigitsValid(waDigits);
+  const waDisplay = formatEnVentaPhoneDisplay(state.whatsapp);
 
-  const showPhone = (pref === "phone" || pref === "both") && Boolean(phone);
+  const showPhone = (pref === "phone" || pref === "both") && Boolean(phoneDigits);
   const showEmail = (pref === "email" || pref === "both") && Boolean(email);
-  const showWa = pref === "whatsapp" && waValid;
+  const showWa = waValid;
 
   const actions: EnVentaContactAction[] = [];
+
+  if (showWa) {
+    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    actions.push({
+      id: "whatsapp",
+      label: "WhatsApp",
+      href: `https://wa.me/${waDigits}?text=${text}`,
+      displayNumber: waDisplay || undefined,
+    });
+  }
 
   if (showPhone) {
     actions.push({
       id: "call",
       label: lang === "es" ? "Llamar" : "Call",
-      href: `tel:${phone}`,
+      href: `tel:${phoneDigits}`,
+      displayNumber: phoneDisplay || undefined,
     });
     const smsBody = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     actions.push({
       id: "sms",
       label: "SMS",
-      href: `sms:${phone}?body=${smsBody}`,
+      href: `sms:${phoneDigits}?body=${smsBody}`,
+      displayNumber: phoneDisplay || undefined,
     });
   }
 
@@ -61,26 +97,7 @@ export function buildEnVentaContactActions(
     });
   }
 
-  if (showWa) {
-    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    actions.push({
-      id: "whatsapp",
-      label: lang === "es" ? "WhatsApp" : "WhatsApp",
-      href: `https://wa.me/${waDigits}?text=${text}`,
-    });
-  }
-
-  const rank = (id: EnVentaContactActionId): number => {
-    const order: Record<EnVentaContactActionId, number> = {
-      whatsapp: 0,
-      call: 1,
-      sms: 2,
-      email: 3,
-    };
-    return order[id];
-  };
-
-  actions.sort((a, b) => rank(a.id) - rank(b.id));
+  actions.sort((a, b) => preferredContactRank(a.id, pref) - preferredContactRank(b.id, pref));
   return actions;
 }
 
@@ -88,50 +105,60 @@ export type EnVentaLiveContactInput = {
   lang: "es" | "en";
   contactChannel: string;
   phoneTel: string;
+  /** Dedicated WhatsApp digits (Leonix:whatsapp pair or legacy channel=whatsapp on phone). */
+  whatsappTel?: string;
   email: string;
   gateAllowCall?: boolean;
   gateAllowSms?: boolean;
   whatsappEnabled?: boolean;
 };
 
-/** Live detail / anuncio contact CTAs — WhatsApp only when channel is explicitly whatsapp. */
+/** Live detail / anuncio contact CTAs — WhatsApp when seller provided a number, regardless of preferred channel. */
 export function buildEnVentaLiveContactActions(input: EnVentaLiveContactInput): EnVentaContactAction[] {
   const prefs = enVentaLiveContactPrefs(input.contactChannel);
-  const phone = input.phoneTel.trim();
+  const phoneDigits = enVentaContactDigits(input.phoneTel);
+  const phoneDisplay = formatEnVentaPhoneDisplay(input.phoneTel);
   const email = input.email.trim();
-  const waDigits =
-    prefs.allowsWhatsApp && phone ? phone.replace(/\D/g, "").slice(0, 15) : "";
-  const waValid = waDigits.length >= 8;
+  const dedicatedWa = enVentaContactDigits(input.whatsappTel ?? "");
+  const legacyWa =
+    prefs.allowsWhatsApp && !dedicatedWa && phoneDigits ? phoneDigits : "";
+  const waDigits = dedicatedWa || legacyWa;
+  const waValid = enVentaWhatsappDigitsValid(waDigits);
+  const waDisplay = formatEnVentaPhoneDisplay(input.whatsappTel ?? (legacyWa ? input.phoneTel : ""));
   const allowCall = input.gateAllowCall !== false;
   const allowSms = input.gateAllowSms !== false;
   const waOk = input.whatsappEnabled !== false;
 
   const actions: EnVentaContactAction[] = [];
   const lang = input.lang;
+  const pref = input.contactChannel.trim().toLowerCase();
 
-  if (prefs.allowsWhatsApp && waValid && waOk) {
+  if (waValid && waOk) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     actions.push({
       id: "whatsapp",
       label: "WhatsApp",
       href: `https://wa.me/${waDigits}?text=${text}`,
+      displayNumber: waDisplay || undefined,
     });
   }
 
-  if (prefs.allowsPhone && phone && allowCall) {
+  if (prefs.allowsPhone && phoneDigits && allowCall) {
     actions.push({
       id: "call",
       label: lang === "es" ? "Llamar" : "Call",
-      href: `tel:${phone}`,
+      href: `tel:${phoneDigits}`,
+      displayNumber: phoneDisplay || undefined,
     });
   }
 
-  if (prefs.allowsPhone && phone && allowSms) {
+  if (prefs.allowsPhone && phoneDigits && allowSms) {
     const smsBody = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     actions.push({
       id: "sms",
       label: "SMS",
-      href: `sms:${phone}?body=${smsBody}`,
+      href: `sms:${phoneDigits}?body=${smsBody}`,
+      displayNumber: phoneDisplay || undefined,
     });
   }
 
@@ -146,13 +173,18 @@ export function buildEnVentaLiveContactActions(input: EnVentaLiveContactInput): 
   }
 
   const rank = (id: EnVentaContactActionId): number => {
-    const order: Record<EnVentaContactActionId, number> = {
+    const base: Record<EnVentaContactActionId, number> = {
       whatsapp: 0,
       call: 1,
       sms: 2,
       email: 3,
     };
-    return order[id];
+    let r = base[id];
+    if (pref === "whatsapp" && id === "whatsapp") r -= 10;
+    if (pref === "phone" && (id === "call" || id === "sms")) r -= 10;
+    if (pref === "email" && id === "email") r -= 10;
+    if (pref === "both" && (id === "call" || id === "sms" || id === "email")) r -= 5;
+    return r;
   };
 
   actions.sort((a, b) => rank(a.id) - rank(b.id));
@@ -164,22 +196,26 @@ export function buildEnVentaPrimaryContactHref(
   lang: "es" | "en"
 ): string {
   const method = state.contactMethod;
-  const phone = state.phone.replace(/\s/g, "");
+  const phoneDigits = enVentaContactDigits(state.phone);
   const email = state.email.trim();
   const waDigits = whatsappDigitsOnly(state);
   const smsBody = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
   const sub = encodeURIComponent(lang === "es" ? EMAIL_SUBJ_ES : EMAIL_SUBJ_EN);
 
-  if (method === "phone" && phone) return `tel:${phone}`;
+  if (method === "phone" && phoneDigits) return `tel:${phoneDigits}`;
   if (method === "email" && email) {
     return `mailto:${email}?subject=${sub}&body=${smsBody}`;
   }
-  if (method === "whatsapp" && waDigits.length >= 8) {
+  if (method === "whatsapp" && enVentaWhatsappDigitsValid(waDigits)) {
+    const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    return `https://wa.me/${waDigits}?text=${text}`;
+  }
+  if (enVentaWhatsappDigitsValid(waDigits)) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
     return `https://wa.me/${waDigits}?text=${text}`;
   }
   if (method === "both") {
-    if (phone) return `tel:${phone}`;
+    if (phoneDigits) return `tel:${phoneDigits}`;
     if (email) return `mailto:${email}?subject=${sub}&body=${smsBody}`;
   }
   return "#";

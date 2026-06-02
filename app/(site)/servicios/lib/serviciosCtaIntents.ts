@@ -2,7 +2,7 @@ import type { CtaContactShareExtras, CtaSheetIntent } from "@/app/components/cta
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { serviciosUniversalQuoteMessage, buildQuoteSmsHref } from "./serviciosContactActions";
-import { extractServiciosWhatsAppDigits } from "./serviciosWhatsAppHref";
+import { extractServiciosWhatsAppDigits, resolveServiciosProfileDirectWhatsAppHref } from "./serviciosWhatsAppHref";
 
 /** Match analytics payload shape used by `ServiciosTrackedLink`. */
 export function trackServiciosListingCta(
@@ -66,7 +66,7 @@ export function buildServiciosGetQuoteIntent(
   const qm = (opts.quoteMessage?.trim() || serviciosUniversalQuoteMessage(lang)).trim();
   const quotePhone = profile.contact.quoteMessagePhone?.trim();
   const smsOk = Boolean(buildQuoteSmsHref(quotePhone, lang));
-  const waHref = profile.contact.socialLinks?.whatsapp?.trim();
+  const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const waDigits = waHref ? extractWaMeDigitsFromHref(waHref) : "";
   const waOk = waDigits.replace(/\D/g, "").length >= 8;
   const email = profile.contact.email?.trim() ?? "";

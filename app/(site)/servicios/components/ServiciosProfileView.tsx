@@ -31,6 +31,7 @@ import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
 import { SV } from "./serviciosDesignTokens";
 import { LX_LINK_ACCENT } from "./serviciosLeonixBrand";
+import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 
 export function ServiciosProfileView({
   profile,
@@ -124,6 +125,13 @@ export function ServiciosProfileView({
                   <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} />
                 </div>
               ) : null}
+
+              <ServiciosLanguageChipRow
+                profile={profile.hero}
+                lang={lang}
+                chipClassName="inline-flex shrink-0 items-center rounded-full border border-[#E8D7B8] bg-[#FCF9F2] px-3 py-1 text-[11px] font-medium text-[#2F2A23]"
+                className="mt-4 flex flex-wrap gap-2 md:mt-6"
+              />
 
               {/*
                 NEW LAYOUT: Two-column desktop with reorganized sections

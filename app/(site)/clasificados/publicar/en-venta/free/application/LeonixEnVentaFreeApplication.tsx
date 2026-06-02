@@ -21,8 +21,12 @@ import {
   collectMuxAssetIdsFromEnVentaState,
   confirmLeavePublishFlow,
   enVentaFormHasProgress,
-  useLeonixPublishLeaveGuard,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  EN_VENTA_AUTOSAVE_COPY,
+  useEnVentaFormAutosave,
+} from "@/app/clasificados/en-venta/publish/useEnVentaFormAutosave";
+import { useEnVentaPublishLeaveGuard } from "@/app/clasificados/en-venta/publish/useEnVentaPublishLeaveGuard";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
 import EnVentaPreviewBeforePublishCta from "@/app/clasificados/en-venta/publish/EnVentaPublishWizard";
 import { EnVentaPublishSubmitBar } from "@/app/clasificados/en-venta/publish/EnVentaPublishSubmitBar";
@@ -86,11 +90,8 @@ export default function LeonixEnVentaFreeApplication() {
   const isDirty = enVentaFormHasProgress(state);
   const muxIds = collectMuxAssetIdsFromEnVentaState(state);
 
-  useLeonixPublishLeaveGuard({
-    lang,
-    isDirty,
-    muxAssetIds: muxIds,
-  });
+  useEnVentaFormAutosave("free", state, lang);
+  useEnVentaPublishLeaveGuard({ lang, plan: "free", isDirty, state });
 
   const leaveAndGo = useCallback(
     (href: string) => {

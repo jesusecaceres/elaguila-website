@@ -2,6 +2,7 @@ import {
   createEmptyEnVentaFreeState,
   type EnVentaFreeApplicationState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import { formatEnVentaPhoneInput } from "./enVentaPhoneDisplay";
 
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -67,9 +68,9 @@ export function normalizeEnVentaFreeApplicationState(
     seller_kind:
       input.seller_kind === "business" ? "business" : input.seller_kind === "individual" ? "individual" : "",
     displayName: str(input.displayName),
-    phone: str(input.phone),
+    phone: input.phone ? formatEnVentaPhoneInput(str(input.phone)) : "",
     email: str(input.email),
-    whatsapp: str(input.whatsapp),
+    whatsapp: input.whatsapp ? formatEnVentaPhoneInput(str(input.whatsapp)) : "",
     contactMethod,
     listingVideoUrl: str(input.listingVideoUrl),
     listingVideoSlots,

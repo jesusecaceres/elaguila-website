@@ -35,6 +35,7 @@ import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
 import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
+import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 import { ServiciosAbout } from "./ServiciosAbout";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
@@ -279,6 +280,12 @@ export function ServiciosProfessionalProfileShell({
                   {hasQuickFactsResolved(profile) ? (
                     <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
                   ) : null}
+                  <ServiciosLanguageChipRow
+                    profile={profile.hero}
+                    lang={lang}
+                    chipClassName={`${LX_CHIP} shrink-0`}
+                    className="mt-3 flex flex-wrap gap-1.5"
+                  />
                   {hasTrustSectionResolved(profile) ? (
                     <div className="mt-4">
                       <ServiciosTrustSection profile={profile} lang={lang} template={template} />

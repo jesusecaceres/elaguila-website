@@ -7,7 +7,7 @@ import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { serviciosQuickFactKindFromPresetChip } from "./serviciosQuickFactKindFromChip";
 import { isJunkServiciosQuickFactLabel } from "./serviciosContactVisibility";
 import { isValidEmail } from "./leonixContactCtaPriority";
-import { parseLanguageOtherLines } from "./languageOtherLines";
+import { buildServiciosLanguageLabels } from "@/app/servicios/lib/serviciosLanguageChips";
 import { digitsOnly } from "./serviciosPhoneUi";
 import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import {
@@ -85,27 +85,10 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const coverAlt = lang === "en" ? "Cover image" : "Imagen de portada";
 
   const heroBadges: ServiciosApplicationDraft["hero"]["badges"] = [];
-  const es = state.languageIds.includes("lang_es");
-  const en = state.languageIds.includes("lang_en");
-  const otro = state.languageIds.includes("lang_otro");
-  if (es) {
-    heroBadges.push({ kind: "spanish", label: lang === "en" ? "Spanish" : "Español" });
-  }
-  if (en) {
-    heroBadges.push({ kind: "custom", label: lang === "en" ? "English" : "Inglés" });
-  }
-  if (otro) {
-    const extra = parseLanguageOtherLines(state.languageOtherLines);
-    if (extra.length === 0) {
-      heroBadges.push({
-        kind: "custom",
-        label: lang === "en" ? "Other language" : "Otro idioma",
-      });
-    } else {
-      for (const lab of extra) {
-        heroBadges.push({ kind: "custom", label: lab.slice(0, 48) });
-      }
-    }
+  for (const lab of buildServiciosLanguageLabels(state, lang)) {
+    const isSpanish =
+      lab === "Español" || lab === "Spanish" || lab.toLowerCase() === "español" || lab.toLowerCase() === "spanish";
+    heroBadges.push({ kind: isSpanish ? "spanish" : "custom", label: lab });
   }
   /* Leonix “Verificado” is not granted from advertiser interest — see resolver + published listings. */
 
@@ -332,18 +315,16 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     if (extraLinks.length >= 2) break;
   }
   if (extraLinks.length > 0) contact.extraLinks = extraLinks;
-  if (state.enableWhatsapp) {
-    const wa = waMeUrl(state.whatsapp);
-    const biz = trimUrl(state.whatsappBusinessUrl);
-    if (wa) {
-      contact.socialWhatsappUrl = wa;
-    }
-    if (biz && isProbablyValidWebUrl(biz)) {
-      const normalized = normalizeHttpUrl(biz);
-      const socialHref = resolveServiciosWhatsAppSocialRowHref(normalized);
-      if (socialHref) {
-        contact.socialWhatsappProfileUrl = socialHref;
-      }
+  const wa = waMeUrl(state.whatsapp);
+  if (wa) {
+    contact.socialWhatsappUrl = wa;
+  }
+  const biz = trimUrl(state.whatsappBusinessUrl);
+  if (biz && isProbablyValidWebUrl(biz)) {
+    const normalized = normalizeHttpUrl(biz);
+    const socialHref = resolveServiciosWhatsAppSocialRowHref(normalized);
+    if (socialHref) {
+      contact.socialWhatsappProfileUrl = socialHref;
     }
   }
 

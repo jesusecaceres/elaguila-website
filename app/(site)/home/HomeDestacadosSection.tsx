@@ -27,11 +27,13 @@ type Props = {
 export function HomeDestacadosSection({ lang, businesses, advertiseHref }: Props) {
   const copy = HOME_PAGE_COPY[lang].destacados;
   const hasBusinesses = businesses.length > 0;
-  const useSixCol = businesses.length === 5 || businesses.length === 7;
+  const count = businesses.length;
+  const useSixCol = count === 5 || count === 7;
+  const useFiveCol = count === 5;
 
   return (
     <section
-      className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/60 py-14 sm:py-16"
+      className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/80 py-12 sm:py-14"
       aria-labelledby="home-destacados-title"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -47,10 +49,10 @@ export function HomeDestacadosSection({ lang, businesses, advertiseHref }: Props
         {hasBusinesses ? (
           <ul
             className={cx(
-              "mt-8 grid gap-5",
-              useSixCol
-                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6"
-                : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+              "mx-auto mt-8 grid w-full gap-5",
+              useFiveCol && "max-w-5xl sm:grid-cols-2 lg:grid-cols-6",
+              !useFiveCol && useSixCol && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6",
+              !useFiveCol && !useSixCol && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
             )}
           >
             {businesses.map((business, index) => (

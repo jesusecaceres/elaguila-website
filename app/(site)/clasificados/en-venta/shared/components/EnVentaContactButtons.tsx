@@ -95,7 +95,12 @@ export function EnVentaContactButtons({ actions, lang, onAction, layout = "stack
             className={layout === "wrap" ? actionClass(action.id).replace("w-full", "") : actionClass(action.id)}
           >
             <Icon className="shrink-0" />
-            <span>{label}</span>
+            <span className="flex flex-col items-start text-left leading-tight">
+              <span>{label}</span>
+              {action.displayNumber ? (
+                <span className="text-[10px] font-normal opacity-85">{action.displayNumber}</span>
+              ) : null}
+            </span>
           </button>
         );
       })}

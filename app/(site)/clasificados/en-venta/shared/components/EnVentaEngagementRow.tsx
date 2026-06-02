@@ -12,17 +12,13 @@ const PREVIEW_COPY = {
     save: "Guardar",
     share: "Compartir",
     report: "Reportar",
-    saveHint:
-      "Los guardados reales usan tu cuenta: publica el anuncio y guárdalo desde la página del anuncio.",
-    reportHint: "Disponible cuando el anuncio esté publicado.",
+    unpublishedHint: "Disponible cuando el anuncio esté publicado.",
   },
   en: {
     save: "Save",
     share: "Share",
     report: "Report",
-    saveHint:
-      "Saved listings use your account: publish the ad and save from the live listing page.",
-    reportHint: "Available once the listing is published.",
+    unpublishedHint: "Available when the listing is published.",
   },
 } as const;
 
@@ -69,10 +65,10 @@ export function EnVentaEngagementRow({
   if (mode === "preview") {
     return (
       <div className={EN_VENTA_TYPO.engagementWrap}>
-        <button type="button" disabled title={PREVIEW_COPY[lang].saveHint} className={previewBtn}>
+        <button type="button" disabled title={PREVIEW_COPY[lang].unpublishedHint} className={previewBtn}>
           <FiHeart className="h-4 w-4 shrink-0 text-[#7A1E2C]/70" aria-hidden />
           {PREVIEW_COPY[lang].save}
-          <span className="sr-only"> — {PREVIEW_COPY[lang].saveHint}</span>
+          <span className="sr-only"> — {PREVIEW_COPY[lang].unpublishedHint}</span>
         </button>
         <LeonixShareButton
           listingId={null}
@@ -84,7 +80,7 @@ export function EnVentaEngagementRow({
           category="en-venta"
           className={leonixBtnShell}
         />
-        <button type="button" disabled title={PREVIEW_COPY[lang].reportHint} className={reportBtnClass}>
+        <button type="button" disabled title={PREVIEW_COPY[lang].unpublishedHint} className={reportBtnClass}>
           {PREVIEW_COPY[lang].report}
         </button>
       </div>

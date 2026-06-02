@@ -6,19 +6,8 @@ import { useEnVentaDetailField } from "@/app/clasificados/en-venta/publish/EnVen
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
+import { formatEnVentaPhoneInput } from "@/app/clasificados/en-venta/shared/utils/enVentaPhoneDisplay";
 import { inputClass, labelClass } from "../helpers/fieldCx";
-
-function phoneDigits(raw: string): string {
-  return (raw || "").replace(/\D/g, "");
-}
-
-/** Same shaping as dashboard perfil — US-style display, max 10 digits */
-function formatPhoneInput(raw: string): string {
-  const d = phoneDigits(raw).slice(0, 10);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-}
 
 const COPY = {
   es: {
@@ -121,7 +110,7 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
           /* ignore */
         }
 
-        const phoneFmt = phoneRaw ? formatPhoneInput(phoneRaw) : "";
+        const phoneFmt = phoneRaw ? formatEnVentaPhoneInput(phoneRaw) : "";
         const hadPhoneOrEmailFromAccount = Boolean(phoneFmt || emailVal);
 
         if (!cancelled) {
@@ -191,8 +180,9 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
           <input
             className={`${inputClass} mt-2`}
             inputMode="tel"
+            autoComplete="tel"
             value={state.phone}
-            onChange={(e) => setState((s) => ({ ...s, phone: e.target.value }))}
+            onChange={(e) => setState((s) => ({ ...s, phone: formatEnVentaPhoneInput(e.target.value) }))}
           />
         </div>
         <div>
@@ -212,8 +202,9 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
         <input
           className={`${inputClass} mt-2`}
           inputMode="tel"
+          autoComplete="tel"
           value={state.whatsapp}
-          onChange={(e) => setState((s) => ({ ...s, whatsapp: e.target.value }))}
+          onChange={(e) => setState((s) => ({ ...s, whatsapp: formatEnVentaPhoneInput(e.target.value) }))}
         />
       </div>
       <div>

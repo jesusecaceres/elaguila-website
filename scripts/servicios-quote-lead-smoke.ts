@@ -10,10 +10,15 @@ import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/ser
 import { resolveServiciosQuoteDestination } from "../app/(site)/servicios/lib/serviciosContactActions";
 import {
   resolveServiciosWhatsAppContactHref,
+  resolveServiciosProfileDirectWhatsAppHref,
   resolveServiciosWhatsAppSocialRowHref,
   isServiciosGenericWhatsAppHomepage,
   isServiciosWhatsAppProfileSocialUrl,
 } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
+import {
+  buildServiciosLanguageLabels,
+  formatServiciosHeroLanguageDisplay,
+} from "../app/(site)/servicios/lib/serviciosLanguageChips";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
 import {
   parseEmailFromMailtoHref,
@@ -116,6 +121,34 @@ const mail = "mailto:hi@example.com";
   assert.equal(resolveServiciosWhatsAppSocialRowHref("https://whatsapp.com"), null);
   assert.ok(isServiciosGenericWhatsAppHomepage("https://www.whatsapp.com"));
   assert.ok(isServiciosWhatsAppProfileSocialUrl("https://wa.me/message/ABC123"));
+}
+
+// 2d) Shared profile direct WhatsApp helper — (408) 802-1531 → wa.me/14088021531
+{
+  const href = resolveServiciosProfileDirectWhatsAppHref({
+    socialLinks: { whatsapp: "https://wa.me/14088021531" },
+    websiteHref: "https://example.com",
+  });
+  assert.equal(href, "https://wa.me/14088021531");
+  assert.equal(
+    resolveServiciosWhatsAppContactHref({ whatsappRaw: "(408) 802-1531" }),
+    "https://wa.me/14088021531",
+  );
+}
+
+// 2e) Language chips — Español, Inglés, Otro + Portuguese/Tagalog
+{
+  const labels = buildServiciosLanguageLabels(
+    {
+      languageIds: ["lang_es", "lang_en", "lang_otro"],
+      languageOtherLines: "Portuguese\nTagalog",
+    },
+    "es",
+  );
+  assert.deepEqual(labels, ["Español", "Inglés", "Portuguese", "Tagalog"]);
+  const hero = formatServiciosHeroLanguageDisplay(labels, "es", 3);
+  assert.deepEqual(hero.visible, ["Español", "Inglés", "Portuguese"]);
+  assert.equal(hero.overflowLabel, "+1 idioma");
 }
 
 // 3) Email when no phone / WA

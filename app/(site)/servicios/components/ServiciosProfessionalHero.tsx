@@ -7,6 +7,7 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
 import {
   LX,
   LX_CTA_MAP,
@@ -22,6 +23,7 @@ import {
   getPrimaryCtaLabel,
   hasPhysicalAddress,
 } from "./serviciosLeonixBrand";
+import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 
 function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
   const aria =
@@ -77,12 +79,9 @@ export function ServiciosProfessionalHero({
       ? profile.hero.reviewCount
       : undefined;
   const isLeonixVerified = profile.hero.badges.some((b) => b.kind === "verified");
-  const languageBadges = profile.hero.badges
-    .filter((b) => b.kind === "spanish" || b.kind === "custom")
-    .slice(0, 2);
   const showDirections = hasPhysicalAddress(profile);
   const tel = profile.contact.phoneTelHref?.trim();
-  const waHref = profile.contact.socialLinks?.whatsapp?.trim();
+  const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact);
   const primaryLabel = getPrimaryCtaLabel(template, lang);
 
   const scrollToContact = () => {
@@ -198,14 +197,13 @@ export function ServiciosProfessionalHero({
                   {lang === "en" ? "Leonix Verified" : "Leonix Verificado"}
                 </span>
               ) : null}
-              {languageBadges.map((b) => (
-                <span
-                  key={`${b.kind}-${b.label}`}
-                  className="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/92"
-                >
-                  {b.label}
-                </span>
-              ))}
+              <ServiciosLanguageChipRow
+                profile={profile.hero}
+                lang={lang}
+                maxVisible={3}
+                chipClassName="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/92"
+                className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start"
+              />
               {ratingValue != null ? (
                 <div className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2 py-0.5">
                   <StarRow rating={ratingValue} lang={lang} />

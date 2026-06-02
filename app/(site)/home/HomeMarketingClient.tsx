@@ -156,6 +156,8 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
         </div>
       </section>
 
+      <HomeDestacadosSection lang={lang} businesses={featuredBusinesses} advertiseHref={advertiseHref} />
+
       {/* Ecosystem */}
       <section className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/50 py-12 sm:py-14" aria-labelledby="home-ecosystem-title">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -210,8 +212,6 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
           </ul>
         </div>
       </section>
-
-      <HomeDestacadosSection lang={lang} businesses={featuredBusinesses} advertiseHref={advertiseHref} />
 
       {/* Newsletter / advertise conversion */}
       <section className="py-14 sm:py-16" aria-labelledby="home-convert-title">

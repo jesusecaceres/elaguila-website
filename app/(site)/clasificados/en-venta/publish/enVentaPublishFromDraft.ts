@@ -93,6 +93,10 @@ function buildDetailPairs(
   }
   pairs.push({ label: "Leonix:plan", value: plan });
   pairs.push({ label: "Leonix:contactChannel", value: state.contactMethod });
+  const waDigits = state.whatsapp.replace(/\D/g, "").slice(0, 15);
+  if (waDigits.length >= 8) {
+    pairs.push({ label: "Leonix:whatsapp", value: waDigits });
+  }
   if (plan === "pro") {
     const slot = state.listingVideoSlots?.[0];
     const external = state.listingVideoUrl.trim();

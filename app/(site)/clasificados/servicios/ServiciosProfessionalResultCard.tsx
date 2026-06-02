@@ -23,6 +23,7 @@ import {
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
+import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import {
   LX,
   LX_CHIP,
@@ -109,7 +110,7 @@ export function ServiciosProfessionalResultCard({
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || row.city?.trim();
   const tel = profile.contact.phoneTelHref;
-  const wa = profile.contact.socialLinks?.whatsapp;
+  const waHrefNormalized = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const promoted = isServiciosListingPromoted(row);
   const showDirections = hasPhysicalAddress(profile);
   const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 4), [profile]);
@@ -149,8 +150,6 @@ export function ServiciosProfessionalResultCard({
     },
     [row.slug],
   );
-
-  const waHrefNormalized = (wa ?? "").trim();
 
   const onCallClick = useCallback(() => {
     const raw = (tel ?? "").replace(/^tel:/i, "").trim();

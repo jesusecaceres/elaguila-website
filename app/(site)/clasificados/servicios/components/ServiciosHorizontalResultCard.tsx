@@ -25,6 +25,7 @@ import {
   readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
+import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { ServiciosProfessionalResultCard } from "../ServiciosProfessionalResultCard";
 import {
   LX,
@@ -336,7 +337,7 @@ export function ServiciosHorizontalResultCard({
     if (tel && phoneDisplay && tel !== officeTel) {
       out.push({ key: "call", href: tel, label: L.call });
     }
-    const wa = (profile.contact.socialLinks?.whatsapp || "").trim();
+    const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
     if (wa) {
       out.push({ key: "whatsapp", href: wa, label: L.whatsapp });
     }
@@ -375,7 +376,7 @@ export function ServiciosHorizontalResultCard({
     }
     const web = (profile.contact.websiteHref || "").trim();
     if (web) rail.push({ key: "website", href: web, label: L.visitWebsite });
-    const wa = (profile.contact.socialLinks?.whatsapp || "").trim();
+    const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
     if (wa) rail.push({ key: "whatsapp", href: wa, label: L.whatsapp });
     const mail = (profile.contact.emailMailtoHref || "").trim();
     if (rail.length === 0 && mail) {

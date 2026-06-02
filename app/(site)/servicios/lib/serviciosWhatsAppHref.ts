@@ -1,4 +1,5 @@
 import { trimText } from "./serviciosProfileSanitize";
+import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 
 /** Strip spaces, parentheses, dashes, dots; keep digits only. */
 export function stripServiciosWhatsAppDigits(raw: string): string {
@@ -174,6 +175,16 @@ export function buildServiciosWhatsAppWaMeHrefFromDigits(digits: string): string
 /** @deprecated Use resolveServiciosWhatsAppContactHref — kept for imports that expect contact-only behavior. */
 export function resolveServiciosWhatsAppHref(input: ResolveServiciosWhatsAppContactInput): string | null {
   return resolveServiciosWhatsAppContactHref(input);
+}
+
+/** Single source for all direct WhatsApp contact CTAs (number → wa.me; never profile/channel/homepage). */
+export function resolveServiciosProfileDirectWhatsAppHref(
+  contact: Pick<ServiciosProfileResolved["contact"], "socialLinks" | "websiteHref">,
+): string | null {
+  return resolveServiciosWhatsAppContactHref({
+    whatsappRaw: contact.socialLinks?.whatsapp,
+    websiteUrl: contact.websiteHref,
+  });
 }
 
 /** Digits for wa.me / CTA sheet from a resolved WhatsApp contact href or bare number. */

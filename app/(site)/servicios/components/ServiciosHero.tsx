@@ -11,6 +11,7 @@ import {
   cleanProfessionalChipLabel,
   isWeakProfessionalChipLabel,
 } from "./serviciosLeonixBrand";
+import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 
 function buildHeroMetadataLine(profile: ServiciosProfileResolved): string | null {
   const { hero } = profile;
@@ -106,6 +107,14 @@ export function ServiciosHero({
                 {metadataLine}
               </p>
             ) : null}
+
+            <ServiciosLanguageChipRow
+              profile={hero}
+              lang={lang}
+              maxVisible={3}
+              chipClassName={`${LX_STANDARD_HERO_CHIP} shrink-0`}
+              className="flex max-w-xl flex-wrap justify-center gap-1 sm:gap-1.5 md:gap-2"
+            />
 
             {featuredChips.length > 0 ? (
               <div className="flex max-w-xl flex-wrap justify-center gap-1 sm:gap-1.5 md:gap-2">
