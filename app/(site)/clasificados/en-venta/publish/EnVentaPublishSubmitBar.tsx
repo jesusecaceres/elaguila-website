@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import {
@@ -16,6 +16,7 @@ import { getEnVentaSupabaseBrowserEnvIssues } from "@/app/lib/supabase/enVentaCl
 import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
 import { collectEnVentaPublishBlockers } from "./enVentaPublishValidation";
 import { publishEnVentaFromDraft, type EnVentaGalleryUploadOutcome } from "./enVentaPublishFromDraft";
+import { setEnVentaPublishInFlight } from "./enVentaPublishLeaveUnsafe";
 
 const COPY = {
   es: {
@@ -61,6 +62,11 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
   const blockers = collectEnVentaPublishBlockers(lang, state);
   const ready = blockers.length === 0;
   const { generalUrl, scopedUrl } = buildEnVentaPublishSuccessUrls(lang, state);
+
+  useEffect(() => {
+    setEnVentaPublishInFlight(busy);
+    return () => setEnVentaPublishInFlight(false);
+  }, [busy]);
 
   const onPublish = async () => {
     if (!ready || busy) return;

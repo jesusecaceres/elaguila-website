@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { setEnVentaMediaUploadInFlight } from "@/app/clasificados/en-venta/publish/enVentaPublishLeaveUnsafe";
 import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionShell";
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaPhotosSectionProps } from "../types/sectionProps";
@@ -399,6 +400,11 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
     videoSlot.status === "requesting_upload" ||
     videoSlot.status === "uploading" ||
     videoSlot.status === "preparing";
+
+  useEffect(() => {
+    setEnVentaMediaUploadInFlight(videoUploadInProgress);
+    return () => setEnVentaMediaUploadInFlight(false);
+  }, [videoUploadInProgress]);
 
   function onVideoFile(files: FileList | null) {
     const f = files?.[0];

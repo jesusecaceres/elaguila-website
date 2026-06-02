@@ -7,9 +7,11 @@ import {
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import {
+  hasEnVentaPreviewDraft,
   saveEnVentaPreviewDraft,
   saveEnVentaPreviewReturnDraft,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import { enVentaHasUnsafeLeaveState } from "./enVentaPublishLeaveUnsafe";
 
 function isInFlowPublishNavigation(): boolean {
   try {
@@ -22,7 +24,34 @@ function isInFlowPublishNavigation(): boolean {
 }
 
 /**
- * Varios publish leave guard: persist draft on tab close/refresh instead of wiping storage.
+ * Sync-save draft; returns whether a restorable copy exists (memory or sessionStorage).
+ */
+function persistAndHasRestorableDraft(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState,
+  lang: "es" | "en"
+): boolean {
+  saveEnVentaPreviewDraft(plan, state, lang);
+  saveEnVentaPreviewReturnDraft(plan, state);
+  return hasEnVentaPreviewDraft(plan);
+}
+
+/**
+ * Native reload warning only when publish/video upload is active, or progress cannot be persisted.
+ */
+function shouldWarnBeforeUnload(
+  plan: "free" | "pro",
+  isDirty: boolean,
+  state: EnVentaFreeApplicationState,
+  lang: "es" | "en"
+): boolean {
+  if (!isDirty) return false;
+  if (enVentaHasUnsafeLeaveState()) return true;
+  return !persistAndHasRestorableDraft(plan, state, lang);
+}
+
+/**
+ * Varios publish leave guard: persist draft on tab close/refresh; no scary warning when autosaved.
  */
 export function useEnVentaPublishLeaveGuard(p: {
   lang: "es" | "en";
@@ -36,9 +65,7 @@ export function useEnVentaPublishLeaveGuard(p: {
   useEffect(() => {
     const persist = () => {
       if (!p.isDirty) return;
-      const s = stateRef.current;
-      saveEnVentaPreviewDraft(p.plan, s, p.lang);
-      saveEnVentaPreviewReturnDraft(p.plan, s);
+      persistAndHasRestorableDraft(p.plan, stateRef.current, p.lang);
     };
 
     const onPageHide = () => {
@@ -47,9 +74,8 @@ export function useEnVentaPublishLeaveGuard(p: {
     };
 
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!p.isDirty) return;
       if (isInFlowPublishNavigation()) return;
-      persist();
+      if (!shouldWarnBeforeUnload(p.plan, p.isDirty, stateRef.current, p.lang)) return;
       e.preventDefault();
       e.returnValue = "";
     };
