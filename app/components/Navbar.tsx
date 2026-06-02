@@ -405,12 +405,12 @@ function NavbarContent() {
 
       <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:gap-x-6 sm:py-2 lg:gap-x-8 xl:gap-x-10">
-            {/* ZONE 1 — brand (protected, no overlap into center) */}
-            <div className="col-start-1 flex min-w-0 shrink-0 items-center lg:pe-1 xl:pe-1.5">
+          <div className="flex flex-nowrap items-center justify-between gap-x-3 py-1.5 sm:gap-x-4 sm:py-2 lg:gap-x-5 xl:gap-x-6">
+            {/* ZONE 1 — brand (left, no wrap) */}
+            <div className="flex shrink-0 items-center lg:pe-2 xl:pe-3 2xl:pe-4">
               <Link
                 href={buildLink("/home")}
-                className="flex min-w-0 max-w-[10.5rem] items-center gap-2.5 sm:max-w-[11.5rem] sm:gap-3 lg:max-w-none lg:gap-3"
+                className="flex shrink-0 items-center gap-2.5 sm:gap-3 lg:gap-3"
                 aria-label={L.brandName}
               >
                 <span className="inline-flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 lg:h-10 lg:w-10">
@@ -430,12 +430,12 @@ function NavbarContent() {
               </Link>
             </div>
 
-            {/* ZONE 2 — priority desktop nav (lg+); compact lg–xl moves mid-tier into Más */}
+            {/* ZONE 2 — center nav (lg+); flex-nowrap — overflow goes to Más, never a second row */}
             <nav
-              className="col-start-2 hidden min-w-0 max-w-full justify-self-start ps-2 lg:flex xl:ps-3"
+              className="hidden min-w-0 flex-1 items-center justify-center overflow-hidden px-2 lg:flex xl:px-3 2xl:px-4"
               aria-label={L.navAria}
             >
-              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-4 text-[0.8125rem] font-medium text-[#3D3428] lg:gap-x-5 xl:gap-x-6 xl:text-[0.875rem]">
+              <div className="flex max-w-full flex-nowrap items-center justify-center gap-x-3 text-[0.8125rem] font-medium text-[#3D3428] xl:gap-x-4 xl:text-[0.875rem] 2xl:gap-x-5">
                 {PUBLIC_NAV_PRIORITY_HIGH.map((item) => (
                   <Link
                     key={item.id}
@@ -451,7 +451,7 @@ function NavbarContent() {
                   <Link
                     key={item.id}
                     href={buildLink(item.href)}
-                    className={cx(navLinkClass(isActive(item.href)), "hidden xl:inline")}
+                    className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 2xl:inline")}
                     aria-current={isActive(item.href) ? "page" : undefined}
                   >
                     {publicNavLabel(item, lang)}
@@ -466,8 +466,8 @@ function NavbarContent() {
                       navLinkClass(masActiveSecondary || masActiveMidOverflow),
                       masActiveMidOverflow &&
                         !masActiveSecondary &&
-                        "xl:!text-[#3D3428] xl:!no-underline xl:hover:!text-[#7A1E2C]",
-                      "inline-flex items-center gap-0.5"
+                        "2xl:!text-[#3D3428] 2xl:!no-underline 2xl:hover:!text-[#7A1E2C]",
+                      "inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap"
                     )}
                     aria-expanded={masOpen}
                     aria-haspopup="true"
@@ -476,18 +476,18 @@ function NavbarContent() {
                     <span className="text-[0.6rem] leading-none">{masOpen ? "▲" : "▼"}</span>
                   </button>
                   {masOpen && (
-                    <div className="absolute left-0 top-full z-50 mt-1 min-w-[12.5rem] overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)] xl:left-1/2 xl:min-w-[12rem] xl:-translate-x-1/2">
+                    <div className="absolute left-1/2 top-full z-50 mt-1 min-w-[12.5rem] -translate-x-1/2 overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.15)]">
                       {PUBLIC_NAV_PRIORITY_MID.map((item) => (
                         <Link
                           key={`mas-mid-${item.id}`}
                           href={buildLink(item.href)}
-                          className="block px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C] xl:hidden"
+                          className="block px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C] 2xl:hidden"
                           onClick={() => setMasOpen(false)}
                         >
                           {publicNavLabel(item, lang)}
                         </Link>
                       ))}
-                      <div className="my-1 border-t border-[#D6C7AD]/70 xl:hidden" aria-hidden />
+                      <div className="my-1 border-t border-[#D6C7AD]/70 2xl:hidden" aria-hidden />
                       {PUBLIC_NAV_MAS_ITEMS.map((item) => (
                         <Link
                           key={item.id}
@@ -504,8 +504,8 @@ function NavbarContent() {
               </div>
             </nav>
 
-            {/* ZONE 3 — right controls (protected, no overlap into center) */}
-            <div className="col-start-3 flex w-max shrink-0 items-center justify-end gap-2.5 sm:gap-3.5">
+            {/* ZONE 3 — right controls (no wrap) */}
+            <div className="flex shrink-0 flex-nowrap items-center justify-end gap-2 sm:gap-2.5 lg:gap-3">
               {langToggle(true)}
               {accountControl("desktop")}
               {advertiseCta}

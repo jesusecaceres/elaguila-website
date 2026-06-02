@@ -1,6 +1,6 @@
 /**
  * Normal site public nav — priority tiers for responsive desktop (Gate HOME-5).
- * lg–xl: high inline + Más (mid + secondary). xl+: high + mid inline + Más (secondary only).
+ * lg–2xl: high inline + Más (mid + secondary). 2xl+: high + mid inline + Más (secondary only).
  */
 
 export type PublicNavLang = "es" | "en";
