@@ -40,7 +40,7 @@ export function parseImageUrlsFromListingsJsonb(images: unknown): string[] {
 
 /** Human-readable publish appendix: `— Fotos —` / `— Photos —` URL lines. */
 export function parseLeonixPhotoAppendixUrls(description: unknown): string[] {
-  const d = typeof description === "string" ? description : "";
+  const d = (typeof description === "string" ? description : "").replace(/\r\n/g, "\n");
   const idx = d.search(/\n{2,}—\s*(?:Fotos|Photos)\s*—\n/i);
   if (idx === -1) return [];
   const tail = d.slice(idx);
@@ -90,7 +90,7 @@ function dedupeUrls(urls: string[]): string[] {
  * Merges jsonb column, listing_json, LEONIX marker, and legacy photo appendix.
  */
 export function resolveEnVentaListingImageUrls(row: Record<string, unknown>): string[] {
-  const rawDesc = String(row.description ?? "");
+  const rawDesc = String(row.description ?? "").replace(/\r\n/g, "\n");
   return dedupeUrls([
     ...parseImageUrlsFromListingsJsonb(row.images),
     ...parseImagesFromListingJson(row.listing_json),

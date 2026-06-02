@@ -79,6 +79,7 @@ export function EnVentaResultsListingSections({
                   lang,
                   effectiveDeptKey: p.effectiveDept,
                   featuredHighlight: p.featuredHighlight,
+                  row: p.row,
                 })}
                 lang={lang}
                 isFav={isFav(p.dto.id)}
@@ -146,6 +147,7 @@ export function EnVentaResultsListingSections({
                 lang,
                 effectiveDeptKey: p.effectiveDept,
                 featuredHighlight: featuredOnly ? p.featuredHighlight : false,
+                row: p.row,
               })}
               lang={lang}
               isFav={isFav(p.dto.id)}

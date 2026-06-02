@@ -83,6 +83,7 @@ export function EnVentaHubRecentListings({
               lang,
               effectiveDeptKey: effectiveDept,
               featuredHighlight: isFeaturedPlacement(row),
+              row,
             });
             return (
               <li key={dto.id}>

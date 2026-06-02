@@ -13,7 +13,10 @@ import {
 } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 import { isEnVentaListingPubliclyVisible } from "@/app/clasificados/en-venta/lib/enVentaListingVisibility";
-import { missingListingsColumnName } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
+import {
+  missingListingsColumnName,
+  updateListingsRowResilient,
+} from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -366,7 +369,12 @@ export async function publishEnVentaFromDraft(
           ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
           : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
       const descriptionForUpdate = `${descriptionBase}${appendix}`.trim();
-      await supabase.from("listings").update({ description: descriptionForUpdate, images: photoUrls }).eq("id", listingId);
+      const galleryPatch = { description: descriptionForUpdate, images: photoUrls };
+      const galleryUp = await updateListingsRowResilient(supabase, listingId, galleryPatch);
+      if (galleryUp.error) {
+        await markPublishFailedNonPublic();
+        return { ok: false, error: galleryUp.error.message };
+      }
     }
 
     if (plan === "pro" && state.listingVideoUrl.trim() && !state.listingVideoSlots?.[0]?.playbackId) {

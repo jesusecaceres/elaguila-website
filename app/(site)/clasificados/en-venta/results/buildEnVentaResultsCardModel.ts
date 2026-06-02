@@ -10,6 +10,7 @@ import {
   getOrderedEnVentaImageUrls,
 } from "../preview/buildEnVentaPreviewModel";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
+import { normalizeEnVentaCardMedia } from "../shared/utils/normalizeEnVentaCardMedia";
 import { resolveEnVentaHeroImageUrl } from "../shared/utils/resolveEnVentaListingImageUrls";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 
@@ -41,15 +42,30 @@ export type EnVentaResultsCardModel = {
  */
 export function buildEnVentaResultsCardModel(
   dto: EnVentaAnuncioDTO,
-  opts: { lang: "es" | "en"; effectiveDeptKey: string | null; featuredHighlight: boolean }
+  opts: {
+    lang: "es" | "en";
+    effectiveDeptKey: string | null;
+    featuredHighlight: boolean;
+    /** Published listings row — re-resolve card media from canonical sources (images jsonb + description marker). */
+    row?: Record<string, unknown>;
+  }
 ): EnVentaResultsCardModel {
-  const { lang, effectiveDeptKey, featuredHighlight } = opts;
+  const { lang, effectiveDeptKey, featuredHighlight, row } = opts;
   const plan = dto.planTier;
-  const images = Array.isArray(dto.images) ? dto.images.filter((u) => typeof u === "string" && u.trim()) : [];
-  const heroImage = resolveEnVentaHeroImageUrl(images, {
-    muxPlaybackId: dto.muxPlaybackId,
-    videoUrl: dto.listingVideoUrl,
-  });
+  const media = row
+    ? normalizeEnVentaCardMedia(row, dto)
+    : normalizeEnVentaCardMedia(
+        {
+          description: "",
+          images: dto.images,
+          listing_json: null,
+          mux_playback_id: dto.muxPlaybackId,
+          detail_pairs: null,
+        },
+        dto
+      );
+  const images = media.photoUrls;
+  const heroImage = media.primaryImageUrl;
   const extras = images.slice(1);
   const stripCap = 3;
   const extraThumbOverflow = extras.length > stripCap ? extras.length - stripCap : 0;
@@ -89,7 +105,7 @@ export function buildEnVentaResultsCardModel(
     heroImage,
     extraImageUrls,
     extraThumbOverflow,
-    showVideoBadge: plan === "pro" && dto.hasListingVideo,
+    showVideoBadge: plan === "pro" && (row ? media.hasVideo : dto.hasListingVideo),
     showViews: plan === "pro" && dto.views > 0,
     views: dto.views,
     sellerKindLabel,
