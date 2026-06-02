@@ -4,19 +4,20 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
 import { appendLangToPath, buildHubCategoryPageUrl, buildHubPostEntryHref } from "./lib/hubUrl";
 
-/** Gate C1 — hub landing display order (routes unchanged). */
+/** Gate C1.1 — hub landing display order (browse routes unchanged). */
 const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "en-venta",
   "rentas",
   "empleos",
-  "autos",
   "bienes-raices",
   "servicios",
+  "autos",
   "restaurantes",
   "travel",
   "comunidad",
@@ -24,6 +25,22 @@ const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "busco",
   "mascotas-y-perdidos",
 ];
+
+/** Canonical category publish entry paths (dispatcher / redirect pages). */
+const CATEGORY_PUBLISH_PATH: Record<HubCategoryKey, string> = {
+  "en-venta": "/clasificados/publicar/en-venta",
+  rentas: RENTAS_PUBLICAR_HUB,
+  empleos: "/clasificados/publicar/empleos",
+  "bienes-raices": BR_PUBLICAR_HUB,
+  servicios: "/clasificados/publicar/servicios",
+  autos: "/publicar/autos",
+  restaurantes: "/publicar/restaurantes",
+  travel: "/publicar/viajes",
+  comunidad: "/clasificados/publicar/comunidad",
+  clases: "/clasificados/publicar/clases",
+  busco: "/clasificados/publicar/busco",
+  "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
+};
 
 type CategoryCardCopy = {
   labelEs: string;
@@ -111,6 +128,15 @@ const C1_CATEGORY_COPY: Record<HubCategoryKey, CategoryCardCopy> = {
   },
 };
 
+function buildCategoryPublishHref(category: HubCategoryKey, lang: Lang): string {
+  return appendLangToPath(CATEGORY_PUBLISH_PATH[category], lang);
+}
+
+function postInCategoryLabel(lang: Lang, category: HubCategoryKey): string {
+  const label = lang === "es" ? C1_CATEGORY_COPY[category].labelEs : C1_CATEGORY_COPY[category].labelEn;
+  return lang === "es" ? `Publicar en ${label}` : `Post in ${label}`;
+}
+
 const PAGE_COPY = {
   es: {
     eyebrow: "LEONIX CLASIFICADOS",
@@ -121,8 +147,7 @@ const PAGE_COPY = {
     ctaPost: "Publicar anuncio",
     ctaExplore: "Explorar categorías",
     sectionBrowse: "Explorar por categoría",
-    explore: "Explorar",
-    postInBr: "Publicar en Bienes Raíces",
+    explore: "EXPLORAR",
     trustLine:
       "Un espacio confiable, familiar y comunitario. Los anuncios gratis siempre permanecen visibles en la búsqueda.",
   },
@@ -135,8 +160,7 @@ const PAGE_COPY = {
     ctaPost: "Post listing",
     ctaExplore: "Explore categories",
     sectionBrowse: "Browse by category",
-    explore: "Explore",
-    postInBr: "Post in Real Estate",
+    explore: "EXPLORE",
     trustLine:
       "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
   },
@@ -146,7 +170,15 @@ const PRIORITY_KEYS = new Set<HubCategoryKey>(["en-venta", "rentas", "empleos"])
 
 function CategoryMark({ category }: { category: HubCategoryKey }) {
   const stroke = "#2A4536";
-  const common = { viewBox: "0 0 24 24", fill: "none", stroke, strokeWidth: 1.75, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className: "h-6 w-6" };
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke,
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className: "h-7 w-7",
+  };
 
   switch (category) {
     case "en-venta":
@@ -163,6 +195,8 @@ function CategoryMark({ category }: { category: HubCategoryKey }) {
         <svg {...common} aria-hidden>
           <path d="M4 10l8-6 8 6v10H4z" />
           <path d="M10 20v-6h4v6" />
+          <circle cx="17" cy="7" r="2.5" />
+          <path d="M17 9.5v3.5" />
         </svg>
       );
     case "empleos":
@@ -191,7 +225,9 @@ function CategoryMark({ category }: { category: HubCategoryKey }) {
     case "servicios":
       return (
         <svg {...common} aria-hidden>
-          <path d="M14.7 6.3a4 4 0 00-5.4 5.4L5 16l3 3 4.3-4.3a4 4 0 005.4-5.4z" />
+          <path d="M14 4l2 2-8 8-2-2 8-8z" />
+          <path d="M16 6l2 2" />
+          <path d="M6 18l-2 2" />
         </svg>
       );
     case "restaurantes":
@@ -235,10 +271,13 @@ function CategoryMark({ category }: { category: HubCategoryKey }) {
     case "mascotas-y-perdidos":
       return (
         <svg {...common} aria-hidden>
-          <circle cx="8" cy="8" r="2" />
-          <circle cx="15" cy="7" r="1.75" />
-          <path d="M5 14c2-2 4-3 7-3s5 1 7 3" />
-          <path d="M17 17l2 2" />
+          <ellipse cx="8" cy="14" rx="2.5" ry="3" />
+          <ellipse cx="12" cy="11" rx="2" ry="2.5" />
+          <ellipse cx="16" cy="14" rx="2.5" ry="3" />
+          <ellipse cx="10" cy="7" rx="2" ry="2.5" />
+          <ellipse cx="14" cy="7" rx="2" ry="2.5" />
+          <path d="M18 18l3 3" />
+          <circle cx="19.5" cy="16.5" r="2.5" />
         </svg>
       );
     default:
@@ -250,16 +289,18 @@ function CategoryMark({ category }: { category: HubCategoryKey }) {
   }
 }
 
-function CategoryCardBody({
+function CategoryCard({
   category,
   lang,
   browseHref,
+  publishHref,
   exploreLabel,
   priority,
 }: {
   category: HubCategoryKey;
   lang: Lang;
   browseHref: string;
+  publishHref: string;
   exploreLabel: string;
   priority?: boolean;
 }) {
@@ -267,26 +308,37 @@ function CategoryCardBody({
   const label = lang === "es" ? copy.labelEs : copy.labelEn;
   const desc = lang === "es" ? copy.descEs : copy.descEn;
   const note = lang === "es" ? copy.noteEs : copy.noteEn;
+  const postLabel = postInCategoryLabel(lang, category);
 
   return (
-    <Link
-      href={browseHref}
-      className={`group flex h-full flex-col rounded-xl border bg-[#FFFDF7] p-5 transition hover:border-[#C9A84A]/55 hover:shadow-[0_12px_28px_-14px_rgba(31,36,28,0.22)] ${
+    <article
+      className={`flex h-full min-h-[17.5rem] flex-col rounded-xl border bg-[#FFFDF7] p-5 ${
         priority
-          ? "border-[#C9A84A]/45 ring-1 ring-[#C9A84A]/20"
+          ? "border-[#C9A84A]/45 border-t-[3px] border-t-[#C9A84A] shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)]"
           : "border-[#D6C7AD] shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)]"
       }`}
     >
-      <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#D6C7AD]/80 bg-[#FAF6EE] text-[#2A4536]">
+      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536]">
         <CategoryMark category={category} />
       </span>
-      <h3 className="mt-4 text-base font-bold text-[#1F241C] group-hover:text-[#7A1E2C]">{label}</h3>
-      {note ? (
-        <p className="mt-1 text-xs font-medium text-[#556B3E]">{note}</p>
-      ) : null}
+      <h3 className="mt-4 text-base font-bold text-[#1F241C]">{label}</h3>
+      {note ? <p className="mt-1 text-xs font-medium text-[#556B3E]">{note}</p> : null}
       <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{desc}</p>
-      <span className="mt-4 text-xs font-bold uppercase tracking-[0.1em] text-[#7A1E2C]">{exploreLabel} →</span>
-    </Link>
+      <div className="mt-auto flex flex-col gap-3 pt-5">
+        <Link
+          href={browseHref}
+          className="text-xs font-bold uppercase tracking-[0.1em] text-[#7A1E2C] transition hover:text-[#5e1721]"
+        >
+          {exploreLabel} →
+        </Link>
+        <Link
+          href={publishHref}
+          className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]"
+        >
+          {postLabel}
+        </Link>
+      </div>
+    </article>
   );
 }
 
@@ -298,7 +350,6 @@ export default function ClasificadosPage() {
   const t = PAGE_COPY[lang];
 
   const postEntryHref = buildHubPostEntryHref(lang);
-  const withLang = (path: string) => appendLangToPath(path, lang);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -352,39 +403,19 @@ export default function ClasificadosPage() {
             {t.sectionBrowse}
           </h2>
 
-          <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {C1_CATEGORY_ORDER.map((k) => {
               const browseHref = buildHubCategoryPageUrl(k, lang);
+              const publishHref = buildCategoryPublishHref(k, lang);
               const priority = PRIORITY_KEYS.has(k);
 
-              if (k === "bienes-raices") {
-                return (
-                  <li key={k} className="flex flex-col">
-                    <CategoryCardBody
-                      category={k}
-                      lang={lang}
-                      browseHref={browseHref}
-                      exploreLabel={t.explore}
-                      priority={priority}
-                    />
-                    <div className="mt-2 rounded-xl border border-[#D6C7AD] bg-[#FAF6EE] px-4 py-3">
-                      <Link
-                        href={withLang(BR_PUBLICAR_HUB)}
-                        className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]"
-                      >
-                        {t.postInBr}
-                      </Link>
-                    </div>
-                  </li>
-                );
-              }
-
               return (
-                <li key={k} className="flex">
-                  <CategoryCardBody
+                <li key={k} className="flex h-full">
+                  <CategoryCard
                     category={k}
                     lang={lang}
                     browseHref={browseHref}
+                    publishHref={publishHref}
                     exploreLabel={t.explore}
                     priority={priority}
                   />
