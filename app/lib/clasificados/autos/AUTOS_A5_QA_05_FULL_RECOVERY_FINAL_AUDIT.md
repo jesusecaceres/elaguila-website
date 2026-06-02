@@ -3,7 +3,7 @@
 **Gate:** A5.QA-05  
 **Platform:** Cursor  
 **Date:** 2026-06-02  
-**HEAD at audit:** `6281bc784d1f25717cd3db46fcdd80a43acf1cdb` (production redeploy trigger)  
+**HEAD at audit:** `fbe3abe6baee72de42a36007acdebd9dc5aa3efb` (includes Q1–Q3 + QA-05 fixes; production may lag until redeploy)  
 **Repo:** `C:/projects/elaguila-website` · `main` · `origin` → `jesusecaceres/elaguila-website`
 
 ## 1. Repo/source confirmation
