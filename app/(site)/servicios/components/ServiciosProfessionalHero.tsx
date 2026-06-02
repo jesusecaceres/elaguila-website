@@ -200,9 +200,9 @@ export function ServiciosProfessionalHero({
               <ServiciosLanguageChipRow
                 profile={profile.hero}
                 lang={lang}
-                maxVisible={3}
-                chipClassName="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/92"
-                className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start"
+                heroCap
+                chipClassName="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/92 shrink-0"
+                className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1.5 sm:justify-start"
               />
               {ratingValue != null ? (
                 <div className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2 py-0.5">

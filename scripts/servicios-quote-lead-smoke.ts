@@ -20,6 +20,8 @@ import {
 import {
   buildServiciosLanguageLabels,
   formatServiciosHeroLanguageDisplay,
+  SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP,
+  SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_MOBILE,
 } from "../app/(site)/servicios/lib/serviciosLanguageChips";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
 import {
@@ -148,9 +150,27 @@ const mail = "mailto:hi@example.com";
     "es",
   );
   assert.deepEqual(labels, ["Español", "Inglés", "Portuguese", "Tagalog"]);
-  const hero = formatServiciosHeroLanguageDisplay(labels, "es", 3);
-  assert.deepEqual(hero.visible, ["Español", "Inglés", "Portuguese"]);
-  assert.equal(hero.overflowLabel, "+1 idioma");
+  const heroDesktop = formatServiciosHeroLanguageDisplay(
+    labels,
+    "es",
+    SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP,
+  );
+  assert.deepEqual(heroDesktop.visible, ["Español", "Inglés", "Portuguese", "Tagalog"]);
+  assert.equal(heroDesktop.overflowLabel, null);
+  const heroMobile = formatServiciosHeroLanguageDisplay(
+    labels,
+    "es",
+    SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_MOBILE,
+  );
+  assert.deepEqual(heroMobile.visible, ["Español", "Inglés", "Portuguese", "Tagalog"]);
+  assert.equal(heroMobile.overflowLabel, null);
+  const crowded = formatServiciosHeroLanguageDisplay(
+    [...labels, "French", "German", "Italian"],
+    "es",
+    SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP,
+  );
+  assert.equal(crowded.visible.length, SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP);
+  assert.ok(crowded.overflowLabel?.includes("idioma"));
 }
 
 // 2f) Social row de-dupe — same wa.me as contact number hidden from “Síguenos”

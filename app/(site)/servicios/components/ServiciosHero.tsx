@@ -111,9 +111,9 @@ export function ServiciosHero({
             <ServiciosLanguageChipRow
               profile={hero}
               lang={lang}
-              maxVisible={3}
+              heroCap
               chipClassName={`${LX_STANDARD_HERO_CHIP} shrink-0`}
-              className="flex max-w-xl flex-wrap justify-center gap-1 sm:gap-1.5 md:gap-2"
+              className="flex min-w-0 max-w-full flex-wrap justify-center gap-1 sm:max-w-xl sm:gap-1.5 md:gap-2"
             />
 
             {featuredChips.length > 0 ? (

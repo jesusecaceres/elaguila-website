@@ -58,11 +58,17 @@ export type ServiciosHeroLanguageDisplay = {
   overflowLabel: string | null;
 };
 
+/** Hero language chips — mobile (wrap); collapse only above this count. */
+export const SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_MOBILE = 4;
+
+/** Hero language chips — desktop; collapse only above this count. */
+export const SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP = 6;
+
 /** Hero: cap visible chips; summarize overflow as +N idiomas / +N languages. */
 export function formatServiciosHeroLanguageDisplay(
   labels: string[],
   lang: ServiciosLang,
-  maxVisible = 3,
+  maxVisible: number = SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP,
 ): ServiciosHeroLanguageDisplay {
   if (labels.length <= maxVisible) {
     return { visible: labels, overflowCount: 0, overflowLabel: null };
