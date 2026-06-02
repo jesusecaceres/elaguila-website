@@ -113,6 +113,7 @@
     "varios:r8-fresh-media-pipeline-audit": "tsx scripts/varios-r8-fresh-application-published-media-pipeline-audit.ts",
     "varios:p4g-contact-whatsapp-engagement-audit": "tsx scripts/varios-p4g-contact-whatsapp-engagement-audit.ts",
     "varios:p4h-whatsapp-input-cta-audit": "tsx scripts/varios-p4h-whatsapp-input-cta-audit.ts",
+    "varios:p4i-publish-success-moderation-engagement-audit": "tsx scripts/varios-p4i-publish-success-moderation-engagement-audit.ts",
     "varios:r9-draft-lifecycle-audit": "tsx scripts/varios-r9-draft-lifecycle-refresh-audit.ts",
     "varios:r9b-refresh-safe-draft-warning-audit": "tsx scripts/varios-r9b-refresh-safe-draft-warning-audit.ts",
     "website:h1d-copy-coming-soon-header-layout-audit": "tsx scripts/website-h1d-copy-coming-soon-header-layout-audit.ts",
