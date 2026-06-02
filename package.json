@@ -122,6 +122,7 @@
     "varios:r9b-refresh-safe-draft-warning-audit": "tsx scripts/varios-r9b-refresh-safe-draft-warning-audit.ts",
     "varios:r10-card-images-smoke-test": "tsx scripts/varios-r10-card-images-smoke-test.ts",
     "varios:r11-unify-preview-public-shells-smoke-test": "tsx scripts/varios-r11-unify-preview-public-shells-smoke-test.ts",
+    "en-venta:r12-public-detail-shell-smoke-test": "tsx scripts/en-venta-r12-public-detail-shell-smoke-test.ts",
     "website:h1d-copy-coming-soon-header-layout-audit": "tsx scripts/website-h1d-copy-coming-soon-header-layout-audit.ts",
     "website:h1e-header-spacing-fix-audit": "tsx scripts/website-h1e-header-spacing-fix-audit.ts",
     "website:h1f-header-collision-fix-audit": "tsx scripts/website-h1f-header-collision-fix-audit.ts",

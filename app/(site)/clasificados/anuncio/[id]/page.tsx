@@ -51,6 +51,10 @@ import { RentasSameCompanyListingsSection } from "../../rentas/listing/component
 import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/RentasAnuncioMetaGridCards";
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
+import {
+  isEnVentaCategorySlug,
+  shouldUseEnVentaPublishedDetailShell,
+} from "../../en-venta/contracts/enVentaAnuncioRoute";
 import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
 import { resolveEnVentaListingImageUrls } from "../../en-venta/shared/utils/resolveEnVentaListingImageUrls";
 import { EV_LISTING_PARAM } from "../../en-venta/results/contracts/enVentaResultsUrlParams";
@@ -176,8 +180,9 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
 ];
 
 function coerceCategoryKey(raw: unknown): CategoryKey {
-  const s = typeof raw === "string" ? raw : "";
+  const s = String(raw ?? "").trim();
   if (s === "bienes-raices") return "bienes-raices";
+  if (isEnVentaCategorySlug(s)) return "en-venta";
   return (CATEGORY_KEYS as readonly string[]).includes(s) ? (s as CategoryKey) : "en-venta";
 }
 
@@ -216,7 +221,14 @@ function extractLeonixImageUrlsFromDescription(description: string | null | unde
 function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   const rawDesc = String(row.description ?? "");
   const blurbText = stripLeonixPublishedDescriptionBody(rawDesc) || rawDesc.trim();
-  const category = coerceCategoryKey(row.category);
+  const category = shouldUseEnVentaPublishedDetailShell({
+    category: row.category,
+    leonixAdId: row.leonix_ad_id,
+    detailPairs: row.detail_pairs,
+    publishedRow: row,
+  })
+    ? "en-venta"
+    : coerceCategoryKey(row.category);
   const merged =
     category === "en-venta"
       ? resolveEnVentaListingImageUrls(row)
@@ -519,6 +531,20 @@ export default function AnuncioDetallePage() {
 
   const anuncioTx = useAnuncioListingTranslation(listing, lang, listingKey);
   const proseListing = anuncioTx.displayListing ?? listing;
+
+  const useEnVentaPublishedDetail = useMemo(
+    () =>
+      Boolean(
+        listing &&
+          shouldUseEnVentaPublishedDetailShell({
+            category: listing.category,
+            leonixAdId: listing.leonix_ad_id,
+            detailPairs: listing.detailPairs,
+            publishedRow: publishedSourceRow,
+          })
+      ),
+    [listing, publishedSourceRow]
+  );
 
   const translateControl =
     listing && anuncioTx.offerTranslate ? (
@@ -1201,17 +1227,17 @@ export default function AnuncioDetallePage() {
     );
   }
 
-  if (listing.category === "en-venta" || listing.category === "bienes-raices") {
+  if (useEnVentaPublishedDetail || listing.category === "bienes-raices") {
     const ev = listing as Listing & {
       detailPairs?: unknown;
       contact_phone?: string | null;
       contact_email?: string | null;
       business_meta?: string | null;
     };
-    const backHref =
-      listing.category === "bienes-raices"
-        ? `/clasificados/bienes-raices/resultados?lang=${lang}`
-        : enVentaBackHref;
+    const premiumBr = !useEnVentaPublishedDetail && listing.category === "bienes-raices";
+    const backHref = premiumBr
+      ? `/clasificados/bienes-raices/resultados?lang=${lang}`
+      : enVentaBackHref;
     return (
       <>
         {brPublishBanner ? (
@@ -1252,14 +1278,14 @@ export default function AnuncioDetallePage() {
           }}
           lang={lang}
           backHref={backHref}
-          surface={listing.category === "bienes-raices" ? "bienes-raices" : "en-venta"}
+          surface={premiumBr ? "bienes-raices" : "en-venta"}
           moreInCategoryHref={
-            listing.category === "bienes-raices"
+            premiumBr
               ? `/clasificados/bienes-raices/resultados?lang=${lang}`
               : `/clasificados/en-venta/results?lang=${lang}`
           }
           moreInCategoryLabel={
-            listing.category === "bienes-raices"
+            premiumBr
               ? lang === "es"
                 ? "Más en Bienes Raíces"
                 : "More in Real estate"
@@ -1268,7 +1294,7 @@ export default function AnuncioDetallePage() {
                 : "More in For Sale"
           }
           showListingReport
-          publishedSourceRow={listing.category === "en-venta" ? publishedSourceRow : null}
+          publishedSourceRow={useEnVentaPublishedDetail ? publishedSourceRow : null}
         />
       </>
     );

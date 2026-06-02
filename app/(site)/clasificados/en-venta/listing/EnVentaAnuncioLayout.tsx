@@ -665,7 +665,7 @@ export function EnVentaAnuncioLayout({
           premiumBr
             ? `${brLuxuryInnerMaxClass} pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-24 sm:pt-28 lg:pb-10`
             : surface === "en-venta" && !premiumBr
-              ? `${EN_VENTA_SURFACE.detailViewport} pt-28`
+              ? `${EN_VENTA_SURFACE.detailViewport} py-6 pt-20 sm:py-8 lg:pt-24`
               : "mx-auto max-w-6xl px-4 pt-28"
         }
       >
