@@ -181,7 +181,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
                   value={value}
                   checked={preferredContactMethod === value}
                   onChange={() => setPreferredContactMethod(value)}
-                  className="h-4 w-4 accent-[#3B66AD]"
+                  className="h-4 w-4 accent-[#7A1E2C]"
                 />
                 {label}
               </label>
@@ -203,7 +203,7 @@ export function ServiciosLeadInquiryForm({ listingSlug, lang }: { listingSlug: s
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md disabled:opacity-60"
+          className="inline-flex min-h-[48px] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.06] disabled:opacity-60"
         >
           {busy ? "…" : t.submit}
         </button>

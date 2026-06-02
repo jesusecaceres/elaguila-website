@@ -26,6 +26,16 @@ import {
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
 import { ServiciosProfessionalResultCard } from "../ServiciosProfessionalResultCard";
+import {
+  LX,
+  LX_CHIP,
+  LX_COMPACT_CARD_TITLE,
+  LX_CTA_CARD_PRIMARY,
+  LX_CTA_CARD_SECONDARY,
+  LX_CTA_CARD_WHATSAPP,
+  cleanProfessionalChipLabel,
+  isWeakProfessionalChipLabel,
+} from "@/app/(site)/servicios/components/serviciosLeonixBrand";
 
 /** Marketplace result row — low profile, warm Phase 9D palette (not tall preview canvas). */
 const CARD =
@@ -46,16 +56,10 @@ const MEDIA_FRAME =
 const CONTENT =
   "flex min-w-0 flex-col gap-1.5 px-3 pb-3 pt-2 md:gap-3 md:px-5 md:pb-4 md:pt-4 md:pr-4";
 
-const TITLE =
-  "text-base font-bold leading-snug tracking-tight text-[#2A2620] sm:text-lg md:text-xl";
 /** Business type / category — scan-friendly, slightly bolder than body. */
 const CATEGORY =
   "text-[13px] font-extrabold uppercase leading-snug tracking-[0.06em] text-[#3d352c] md:text-[14px]";
 const BODY = "text-[13px] leading-snug text-[#6F6254]";
-
-/** Service chips — warm sand surface, espresso text (premium, readable). */
-const CHIP =
-  "inline-flex h-7 max-w-full shrink-0 items-center rounded-full border border-[#D4C4A8]/90 bg-[#EBDCC4] px-2.5 text-[12px] font-semibold leading-none text-[#1E1814] md:h-8 md:px-3 md:text-[13px]";
 
 const META_PILL =
   "inline-flex min-h-[30px] max-w-full items-center gap-1.5 rounded-full border border-[#E0D0B8] bg-[#F9F4EC] px-2.5 text-[12px] font-bold leading-none text-[#4a4036] md:h-9 md:px-3 md:text-[14px]";
@@ -71,10 +75,11 @@ const LOCATION_LINE =
 
 
 const CTA_ROW = "mt-auto flex flex-wrap gap-1.5 pt-0.5 md:gap-2";
-const CTA_PRIMARY =
-  "inline-flex min-h-[42px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#6F7A3A] to-[#5a6a2f] px-4 text-[14px] font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50 md:min-h-[44px] md:text-[13px]";
-const CTA_SECONDARY =
-  "inline-flex min-h-[38px] flex-1 min-w-[6.75rem] items-center justify-center gap-1.5 rounded-lg border border-[#E0D0B8] bg-white px-2.5 text-[12px] font-bold text-[#2A2620] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFCF7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:flex-none md:min-h-[40px] md:gap-2 md:rounded-xl md:px-3 md:text-[13px]";
+
+function contactCtaClass(key: string): string {
+  if (key === "whatsapp") return LX_CTA_CARD_WHATSAPP;
+  return LX_CTA_CARD_SECONDARY;
+}
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -89,20 +94,6 @@ function cleanOtherLabel(raw: string): string {
   return t;
 }
 
-/** Exclude filler / trust-style labels from “Nuestros servicios” chip row. */
-function isWeakServiceChipLabel(label: string): boolean {
-  const low = label.trim().toLowerCase();
-  if (!low) return true;
-  const weak = new Set([
-    "innovación constante",
-    "innovacion constante",
-    "etiqueta breve",
-    "constant innovation",
-    "brief tag",
-    "brief label",
-  ]);
-  return weak.has(low);
-}
 
 function mapsSearchHref(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
@@ -312,8 +303,8 @@ export function ServiciosHorizontalResultCard({
     const out: string[] = [];
     const seen = new Set<string>();
     for (const s of profile.services) {
-      const c = cleanOtherLabel(s.title);
-      if (!c || isWeakServiceChipLabel(c)) continue;
+      const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
+      if (!c || isWeakProfessionalChipLabel(c)) continue;
       const dedupeKey = c.toLowerCase();
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
@@ -528,7 +519,7 @@ export function ServiciosHorizontalResultCard({
                 ) : null}
               </div>
             ) : null}
-            <h2 className={TITLE}>{profile.identity.businessName}</h2>
+            <h2 className={LX_COMPACT_CARD_TITLE}>{profile.identity.businessName}</h2>
             {categoryChip ? <p className={`${CATEGORY} line-clamp-2`}>{categoryChip}</p> : null}
             {slogan ? <p className={`${BODY} line-clamp-2 text-[13px] font-semibold text-[#4a4036] md:text-[14px]`}>{slogan}</p> : null}
           </div>
@@ -538,21 +529,21 @@ export function ServiciosHorizontalResultCard({
               {serviceChipsVisible.map((f, idx) => (
                 <span
                   key={f}
-                  className={`${CHIP} ${idx >= 3 && serviceChipList.length > 3 ? "hidden md:inline-flex" : ""}`.trim()}
+                  className={`${LX_CHIP} ${idx >= 3 && serviceChipList.length > 3 ? "hidden md:inline-flex" : ""}`.trim()}
                 >
                   {f}
                 </span>
               ))}
               {serviceChipsMobileHidden > 0 ? (
-                <span className={`${CHIP} md:hidden`}>+{serviceChipsMobileHidden}</span>
+                <span className={`${LX_CHIP} md:hidden`}>+{serviceChipsMobileHidden}</span>
               ) : null}
-              {serviceChipsMore > 0 ? <span className={`${CHIP} hidden md:inline-flex`}>+{serviceChipsMore}</span> : null}
+              {serviceChipsMore > 0 ? <span className={`${LX_CHIP} hidden md:inline-flex`}>+{serviceChipsMore}</span> : null}
             </div>
           ) : null}
 
           {showLocationServiceRow ? (
             <div className={LOCATION_LINE}>
-              <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
+              <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
               <span className="min-w-0 flex-1 leading-snug">{locationLine}</span>
             </div>
           ) : null}
@@ -573,7 +564,7 @@ export function ServiciosHorizontalResultCard({
               aria-label={lang === "en" ? "Open address in maps" : "Abrir dirección en mapas"}
               onClick={() => openContactKey("maps", mapsHref)}
             >
-              <FiMapPin className="h-4 w-4 shrink-0 text-[#6F7A3A]" aria-hidden />
+              <FiMapPin className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
               <span className="min-w-0 flex-1 leading-snug">{addressQuery}</span>
               <span className="ml-auto text-[12px] font-bold text-[#8A7E6E] group-hover:text-[#9A7329]">›</span>
             </button>
@@ -582,7 +573,11 @@ export function ServiciosHorizontalResultCard({
           {summary ? <p className={`${BODY} line-clamp-2`}>{summary}</p> : null}
 
           <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
-            <Link href={vitrinaHref} className={CTA_PRIMARY}>
+            <Link
+              href={vitrinaHref}
+              className={LX_CTA_CARD_PRIMARY}
+              style={{ backgroundColor: LX.burgundy, boxShadow: "0 6px 16px rgba(92, 22, 34, 0.22)" }}
+            >
               {vitrinaLabel}
             </Link>
             {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
@@ -615,7 +610,8 @@ export function ServiciosHorizontalResultCard({
                   <button
                     key={key}
                     type="button"
-                    className={`${CTA_SECONDARY} !max-w-[min(34vw,9.5rem)] shrink-0 snap-start !flex-none md:!max-w-none`}
+                    className={`${contactCtaClass(key)} !max-w-[min(34vw,9.5rem)] shrink-0 snap-start !flex-none md:!max-w-none`}
+                    style={key === "whatsapp" ? { backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow } : undefined}
                     onClick={() => openContactKey(key, href)}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -643,7 +639,8 @@ export function ServiciosHorizontalResultCard({
                   <button
                     key={key}
                     type="button"
-                    className={CTA_SECONDARY}
+                    className={contactCtaClass(key)}
+                    style={key === "whatsapp" ? { backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow } : undefined}
                     onClick={() => openContactKey(key, href)}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />

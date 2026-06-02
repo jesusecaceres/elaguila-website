@@ -29,6 +29,13 @@ import {
   resolveServiciosListingTemplate,
 } from "./lib/serviciosTemplateRouting";
 import { ServiciosProfessionalResultCard } from "./ServiciosProfessionalResultCard";
+import {
+  LX,
+  LX_COMPACT_CARD_TITLE,
+  LX_CTA_INLINE_PRIMARY,
+  LX_CTA_INLINE_SECONDARY,
+  LX_CTA_INLINE_WHATSAPP,
+} from "@/app/(site)/servicios/components/serviciosLeonixBrand";
 
 /**
  * Discovery card — only fields that exist on the resolved profile; empty data hides cleanly.
@@ -105,14 +112,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
     [row.slug],
   );
 
-  const waHrefNormalized = useMemo(() => {
-    const raw = (wa ?? "").trim();
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    const d = raw.replace(/\D/g, "");
-    if (d.length < 8) return "";
-    return `https://wa.me/${d}`;
-  }, [wa]);
+  const waHref = (wa ?? "").trim();
 
   const onCallClick = useCallback(() => {
     const raw = (tel ?? "").replace(/^tel:/i, "").trim();
@@ -121,8 +121,8 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   }, [contactExtras, openOutbound, tel]);
 
   const onWhatsAppClick = useCallback(() => {
-    if (!waHrefNormalized) return;
-    const prefilled = appendWhatsAppPrefill(waHrefNormalized, serviciosUniversalQuoteMessage(lang));
+    if (!waHref) return;
+    const prefilled = appendWhatsAppPrefill(waHref, serviciosUniversalQuoteMessage(lang));
     const d = extractWaMeDigitsFromHref(prefilled);
     if (d.replace(/\D/g, "").length < 8) return;
     let message = "";
@@ -143,7 +143,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
       { kind: "send_message", message, phone: d, whatsappDigits: d, contactShareExtras: contactExtras },
       "cta_whatsapp_click",
     );
-  }, [contactExtras, lang, openOutbound, waHrefNormalized]);
+  }, [contactExtras, lang, openOutbound, waHref]);
 
   const cardSurface = promoted
     ? "border-[#D4A574]/45 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] ring-2 ring-[#D4A574]/20 transition hover:border-[#D4A574]/55 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]"
@@ -160,7 +160,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
               {thumb ? (
                 <Image src={thumb} alt="" fill className="object-cover" unoptimized sizes="(max-width:640px) 100vw, (max-width:1280px) 50vw, 33vw" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-wide text-[#3B66AD]/40">
+                <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-wide text-[#C9A84A]/50">
                   Leonix
                 </div>
               )}
@@ -207,7 +207,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
               {category ? (
                 <span className="text-sm font-medium text-[#7A7A7A] uppercase tracking-wide">{category}</span>
               ) : null}
-              <span className="text-xl font-bold text-[#1A1A1A] leading-tight sm:text-2xl">{profile.identity.businessName}</span>
+              <span className={LX_COMPACT_CARD_TITLE}>{profile.identity.businessName}</span>
               {row.city?.trim() ? (
                 <span className="text-[11px] font-medium uppercase tracking-wide text-[#7A7A7A]">
                   {lang === "en" ? "Listing base:" : "Base del anuncio:"}{" "}
@@ -227,44 +227,42 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
 
           <div className="flex min-h-0 flex-col gap-4 px-6 pb-6">
             {/* CTA Section */}
-            <div className="mt-auto flex flex-wrap gap-3">
+            <div className="mt-auto flex flex-wrap gap-2.5">
               <Link
                 href={href}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]"
+                className={LX_CTA_INLINE_PRIMARY}
+                style={{ backgroundColor: LX.burgundy, boxShadow: "0 6px 16px rgba(92, 22, 34, 0.22)" }}
               >
                 {lang === "en" ? "View showcase" : "Ver vitrina"}
               </Link>
               {phone && tel ? (
-                <button
-                  type="button"
-                  onClick={onCallClick}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574]"
-                >
-                  <FiPhone className="w-4 h-4" />
+                <button type="button" onClick={onCallClick} className={LX_CTA_INLINE_SECONDARY}>
+                  <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
                   {L.call}
                 </button>
               ) : null}
-              {waHrefNormalized ? (
+              {waHref ? (
                 <button
                   type="button"
                   onClick={onWhatsAppClick}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574]"
+                  className={LX_CTA_INLINE_WHATSAPP}
+                  style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
                 >
-                  <FaWhatsapp className="w-4 h-4" />
+                  <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
                   WhatsApp
                 </button>
               ) : null}
             </div>
 
             {/* Engagement Section */}
-            <div className="mt-6 pt-6 border-t border-[#E5E5E5]/50">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
+            <div className="mt-6 border-t border-[#E8D9C4]/80 pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h4 className="text-sm font-bold uppercase tracking-wide text-[#1E1814]">
                   {lang === "en" ? "Engagement" : "Interacción"}
                 </h4>
               </div>
 
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3">
                 <LeonixLikeButton
                   listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
                   ownerUserId={row.owner_user_id ?? undefined}
@@ -291,12 +289,6 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                   category="servicios"
                   persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
                 />
-              </div>
-
-              <div className="text-xs text-[#7A7A7A] italic">
-                {lang === "en"
-                  ? "Engagement metrics will appear when available."
-                  : "Las métricas de engagement se mostrarán cuando estén disponibles."}
               </div>
             </div>
           </div>

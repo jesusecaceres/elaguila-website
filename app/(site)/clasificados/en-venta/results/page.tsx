@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { EnVentaResultsClient } from "./EnVentaResultsClient";
 
+export const dynamic = "force-dynamic";
+
 export default function EnVentaResultsPage() {
   return (
     <Suspense

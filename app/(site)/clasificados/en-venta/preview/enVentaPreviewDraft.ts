@@ -91,6 +91,23 @@ function pickDraftMediaFields(source: EnVentaFreeApplicationState): Partial<EnVe
   };
 }
 
+/** Same-tab memory recovery before async IndexedDB (sessionStorage quota drops photos). */
+function syncHydrateEnVentaDraftMediaFromMemory(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): EnVentaFreeApplicationState {
+  if (getOrderedEnVentaImageUrls(state).length > 0) return state;
+  const fromMemory = previewDraftMemory[plan];
+  if (fromMemory && getOrderedEnVentaImageUrls(fromMemory).length > 0) {
+    return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(fromMemory) });
+  }
+  const fromReturn = previewReturnMemory[plan];
+  if (fromReturn && getOrderedEnVentaImageUrls(fromReturn).length > 0) {
+    return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(fromReturn) });
+  }
+  return state;
+}
+
 /**
  * When sessionStorage quota drops photo payloads, recover images from in-tab memory or IndexedDB.
  */
@@ -215,8 +232,10 @@ export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplic
     const raw = sessionStorage.getItem(keyForPlan(plan));
     if (!raw) return null;
     const merged = parseDraftJson(raw);
-    if (merged) cacheDraftInMemory(plan, merged);
-    return merged;
+    if (!merged) return null;
+    const hydrated = syncHydrateEnVentaDraftMediaFromMemory(plan, merged);
+    cacheDraftInMemory(plan, hydrated);
+    return hydrated;
   } catch {
     return null;
   }
@@ -319,31 +338,39 @@ export async function restoreEnVentaFormFromIdbIfEmpty(
  * Initial state for Free/Pro edit routes: reads the preview-return payload once, clears sessionStorage,
  * and returns merged state only when `plan` matches. Does not touch other draft keys or resume flows.
  */
+function finalizeEnVentaEditReturnState(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): EnVentaFreeApplicationState {
+  const hydrated = syncHydrateEnVentaDraftMediaFromMemory(plan, state);
+  cacheDraftInMemory(plan, hydrated);
+  return hydrated;
+}
+
 export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVentaFreeApplicationState {
   if (typeof window === "undefined") {
     return createEmptyEnVentaFreeState();
   }
   if (previewReturnMemory[plan]) {
     scheduleClearPreviewReturnMemory();
-    return previewReturnMemory[plan]!;
+    return finalizeEnVentaEditReturnState(plan, previewReturnMemory[plan]!);
   }
   try {
     const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     if (!raw) {
       const d0 = loadEnVentaPreviewDraft(plan);
-      return d0 ?? createEmptyEnVentaFreeState();
+      return d0 ? finalizeEnVentaEditReturnState(plan, d0) : createEmptyEnVentaFreeState();
     }
     const data = JSON.parse(raw) as Partial<EnVentaPreviewReturnPayload>;
     if (data.plan !== plan || !data.state || typeof data.state !== "object") {
       const d1 = loadEnVentaPreviewDraft(plan);
-      return d1 ?? createEmptyEnVentaFreeState();
+      return d1 ? finalizeEnVentaEditReturnState(plan, d1) : createEmptyEnVentaFreeState();
     }
     const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     previewReturnMemory[plan] = merged;
-    cacheDraftInMemory(plan, merged);
     scheduleClearPreviewReturnMemory();
-    return merged;
+    return finalizeEnVentaEditReturnState(plan, merged);
   } catch {
     try {
       sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
@@ -352,7 +379,7 @@ export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVe
     }
   }
   const fromDraft = loadEnVentaPreviewDraft(plan);
-  if (fromDraft) return fromDraft;
+  if (fromDraft) return finalizeEnVentaEditReturnState(plan, fromDraft);
   return createEmptyEnVentaFreeState();
 }
 

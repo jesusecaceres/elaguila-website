@@ -52,6 +52,7 @@ import { RentasAnuncioMetaGridCards } from "../../rentas/listing/components/Rent
 import { RentasNegocioDesktopBusinessRail } from "../../rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import type { RentasAnuncioListingLike } from "../../rentas/listing/types/rentasAnuncioLiveTypes";
 import { EnVentaAnuncioLayout } from "../../en-venta/listing/EnVentaAnuncioLayout";
+import { resolveEnVentaListingImageUrls } from "../../en-venta/shared/utils/resolveEnVentaListingImageUrls";
 import { EV_LISTING_PARAM } from "../../en-venta/results/contracts/enVentaResultsUrlParams";
 import { parseEnVentaResultsReturnUrl } from "../../en-venta/results/utils/enVentaListingLinks";
 import { EN_VENTA_VISIBILITY_WINDOW_MS } from "../../en-venta/boosts/enVentaVisibilityRenewal";
@@ -215,9 +216,16 @@ function extractLeonixImageUrlsFromDescription(description: string | null | unde
 function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   const rawDesc = String(row.description ?? "");
   const blurbText = stripLeonixPublishedDescriptionBody(rawDesc) || rawDesc.trim();
-  const fromJson = imageUrlsFromJsonb(row.images);
-  const fromMarker = extractLeonixImageUrlsFromDescription(rawDesc);
-  const merged = [...new Set([...fromJson, ...fromMarker])];
+  const category = coerceCategoryKey(row.category);
+  const merged =
+    category === "en-venta"
+      ? resolveEnVentaListingImageUrls(row)
+      : [
+          ...new Set([
+            ...imageUrlsFromJsonb(row.images),
+            ...extractLeonixImageUrlsFromDescription(rawDesc),
+          ]),
+        ];
   const images = merged.length > 0 ? merged : null;
 
   const isFree = Boolean(row.is_free);
@@ -249,7 +257,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
 
   const base: Listing = {
     id: String(row.id ?? ""),
-    category: coerceCategoryKey(row.category),
+    category,
     title: { es: String(row.title ?? "").trim(), en: String(row.title ?? "").trim() },
     priceLabel,
     city: String(row.city ?? "").trim(),

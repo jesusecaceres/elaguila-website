@@ -30,6 +30,7 @@ import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
 import { SV } from "./serviciosDesignTokens";
+import { LX_LINK_ACCENT } from "./serviciosLeonixBrand";
 
 export function ServiciosProfileView({
   profile,
@@ -104,7 +105,7 @@ export function ServiciosProfileView({
           <div className="mb-3 flex justify-end sm:mb-4">
             <Link
               href={serviciosDiscoveryResultsHref.trim()}
-              className="text-sm font-bold text-[#3B66AD] underline-offset-4 hover:underline"
+              className={LX_LINK_ACCENT}
               data-servicios-results-cta="1"
             >
               {lang === "en" ? "View service results" : "Ver resultados de Servicios"}
@@ -135,7 +136,7 @@ export function ServiciosProfileView({
 
                   {hasAboutSectionResolved(profile) ? (
                     <div className="order-1 lg:order-2">
-                      <ServiciosAbout profile={displayProfile} lang={lang} />
+                      <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
                     </div>
                   ) : null}
 
@@ -168,7 +169,7 @@ export function ServiciosProfileView({
                   </div>
 
                   <div className="order-5 lg:hidden">
-                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
+                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
                   </div>
 
                   {hasCredentialsResolved(profile) ? (
@@ -184,6 +185,7 @@ export function ServiciosProfileView({
                       profileForQuote={profile}
                       listingSlug={analyticsListingSlug}
                       listingShareUrl={listingShareUrl}
+                      premiumLeonixTone
                     />
                   </div>
 
@@ -243,7 +245,7 @@ export function ServiciosProfileView({
               showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
             />
             <div className="mt-5 lg:mt-6">
-              <ServiciosPromocionesCard profile={displayProfile} lang={lang} />
+              <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
             </div>
           </aside>
         </div>

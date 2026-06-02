@@ -45,6 +45,24 @@ export const LX_CTA_MAP =
 export const LX_HERO_BG =
   "relative overflow-hidden bg-gradient-to-br from-[#1E1814] via-[#3B2117] to-[#2A2620] text-[#FFFCF7]";
 
+/** Premium editorial titles — `font-serif` (project-safe, no new font imports). */
+export const LX_TYPE_SERIF_DISPLAY = "font-serif font-semibold tracking-tight text-balance";
+
+/** Hero business name — large, ivory, authoritative (Gate 18). */
+export const LX_HERO_TITLE = `${LX_TYPE_SERIF_DISPLAY} mt-1.5 leading-[1.08] text-[#FFFCF7] text-[clamp(1.75rem,4.2vw+0.55rem,3.15rem)] sm:leading-[1.06]`;
+
+/** Major section headings (trust, services, offers). */
+export const LX_SECTION_HEADING =
+  "font-serif text-xl font-semibold tracking-tight text-[#1E1814] sm:text-[1.35rem] md:text-2xl";
+
+/** Compact discovery/preview card business name. */
+export const LX_COMPACT_CARD_TITLE =
+  "font-serif text-base font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-lg md:text-xl";
+
+/** Logo/headshot on dark hero — cream field + gold border (Gate 18). */
+export const LX_HERO_LOGO_FRAME =
+  "relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/80 bg-[#FFFCF7] p-2 shadow-[0_8px_28px_rgba(201,168,74,0.24),0_4px_16px_rgba(0,0,0,0.38)] sm:mx-0 sm:h-[6.75rem] sm:w-[6.75rem] sm:p-2.5 lg:h-28 lg:w-28";
+
 export const LX_HERO_CHIP =
   "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/40 bg-[#FFFCF7]/10 px-2.5 py-1 text-[10px] font-semibold leading-tight text-[#FFFCF7] sm:text-[11px]";
 
@@ -74,6 +92,33 @@ export const LX_CTA_HUB_SECONDARY =
 
 export const LX_CTA_PRIMARY_LG =
   "sm:min-h-[48px] sm:px-5 sm:py-3 sm:text-base";
+
+/** Standard cover-hero business name (serif on photo overlay). */
+export const LX_STANDARD_HERO_TITLE = `${LX_TYPE_SERIF_DISPLAY} text-balance text-2xl leading-tight text-white drop-shadow-md sm:text-3xl md:text-4xl lg:text-5xl`;
+
+/** Leonix text link accent (e.g. back to results) — burgundy, not discovery blue. */
+export const LX_LINK_ACCENT = "text-sm font-bold text-[#7A1E2C] underline-offset-4 hover:underline";
+
+/** Discovery / horizontal card CTAs (sharper radius, shared both pipelines). */
+export const LX_CTA_CARD_PRIMARY = `${LX_CTA_PRIMARY} min-h-[42px] w-full rounded-lg px-4 py-2.5 text-sm sm:min-h-[44px]`;
+
+export const LX_CTA_CARD_SECONDARY = `${LX_CTA_SECONDARY} min-h-[38px] flex-1 min-w-[6.75rem] rounded-lg px-2.5 py-2 text-xs sm:flex-none sm:min-h-[40px] sm:px-3 sm:text-sm`;
+
+export const LX_CTA_CARD_WHATSAPP = `${LX_CTA_WHATSAPP} min-h-[38px] flex-1 min-w-[6.75rem] rounded-lg px-2.5 py-2 text-xs sm:flex-none sm:min-h-[40px] sm:px-3 sm:text-sm`;
+
+/** Inline CTA row (listing card footer). */
+export const LX_CTA_INLINE_PRIMARY = `${LX_CTA_PRIMARY} inline-flex min-h-[42px] items-center gap-2 rounded-lg px-4 py-2.5 text-sm`;
+
+export const LX_CTA_INLINE_SECONDARY = `${LX_CTA_SECONDARY} inline-flex min-h-[42px] items-center gap-2 rounded-lg px-4 py-2.5 text-sm`;
+
+export const LX_CTA_INLINE_WHATSAPP = `${LX_CTA_WHATSAPP} inline-flex min-h-[42px] items-center gap-2 rounded-lg px-4 py-2.5 text-sm`;
+
+/** Standard hero logo frame on dark cover. */
+export const LX_STANDARD_HERO_LOGO_WRAP =
+  "rounded-xl border-2 border-[#C9A84A]/75 bg-[#FFFCF7]/95 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:rounded-2xl sm:p-2.5";
+
+export const LX_STANDARD_HERO_CHIP =
+  "inline-flex max-w-[10.5rem] shrink-0 items-center rounded-md border border-[#C9A84A]/45 bg-black/35 px-2 py-0.5 text-[10px] font-semibold leading-tight text-[#FFFCF7] backdrop-blur-sm sm:max-w-[12rem] sm:px-2.5 sm:py-1 sm:text-xs";
 
 export function cleanProfessionalChipLabel(raw: string): string {
   const t = String(raw ?? "").trim();

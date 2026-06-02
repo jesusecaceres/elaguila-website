@@ -97,7 +97,9 @@ export function ServiciosProfessionalPreviewShell({
               <ServiciosTrustSection profile={profile} lang={lang} template={template} />
             ) : null}
 
-            {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={profile} lang={lang} /> : null}
+            {hasAboutSectionResolved(profile) ? (
+              <ServiciosAbout profile={profile} lang={lang} premiumLeonixTone />
+            ) : null}
 
             <div id="servicios-preview-contact" className="scroll-mt-20 lg:hidden">
               <ServiciosBusinessHubContactCard
@@ -118,7 +120,12 @@ export function ServiciosProfessionalPreviewShell({
             </div>
 
             {hasServicesSectionResolved(profile) ? (
-              <ServiciosOfferedSection services={profile.services} lang={lang} profileForQuote={profile} />
+              <ServiciosOfferedSection
+                services={profile.services}
+                lang={lang}
+                profileForQuote={profile}
+                premiumLeonixTone
+              />
             ) : null}
 
             {hasBusinessHighlightsResolved(profile) ? (

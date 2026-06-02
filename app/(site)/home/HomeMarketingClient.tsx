@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import type { HomeMarketingResolved } from "@/app/lib/siteSectionContent/homeMarketingMerge";
@@ -31,139 +32,103 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   };
 
   const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
-  const secondaryHref = injectLang(content.ctaSecondaryHref);
+  const advertiseHref =
+    injectLang(content.ctaSecondaryHref) ||
+    `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
 
   const announcementText = L.announcement.trim();
   const showAnnouncement = content.modules.showAnnouncement && announcementText.length > 0;
 
-  const showPromo = content.modules.showSecondaryLine && L.promoStrip.trim() !== "";
-
-  const calloutsBlock =
-    content.modules.showCallouts && content.callouts.length > 0 ? (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
-        className="mt-6 flex flex-wrap justify-center gap-2"
-      >
-        {content.callouts.map((c) => {
-          const label = lang === "en" ? (c.labelEn || c.labelEs) : (c.labelEs || c.labelEn);
-          if (!label) return null;
-          const chipHref = injectLang(c.href) || c.href;
-          return (
-            <a
-              key={`${c.href}-${label}`}
-              href={chipHref}
-              className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:opacity-95"
-            >
-              {label}
-            </a>
-          );
-        })}
-      </motion.div>
-    ) : null;
-
   return (
-    <main
-      className="relative min-h-screen w-full overflow-hidden text-[color:var(--lx-text)]"
-      style={{
-        backgroundColor: "var(--lx-page)",
-        backgroundImage: `
-          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.22), transparent 55%),
-          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.55), transparent 52%),
-          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.10), transparent 50%)
-        `,
-      }}
-    >
+    <main className="relative min-h-screen w-full overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.03]"
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundImage: `
+            radial-gradient(ellipse 120% 70% at 50% -10%, rgba(201, 168, 74, 0.14), transparent 55%),
+            radial-gradient(ellipse 50% 40% at 100% 20%, rgba(255, 255, 255, 0.45), transparent 50%)
+          `,
         }}
         aria-hidden
       />
 
-      {showAnnouncement && announcementText ? (
-        <div className="relative z-20 border-b border-amber-200/60 bg-amber-50/95 px-4 py-2 text-center text-sm font-medium text-amber-950">
+      {showAnnouncement ? (
+        <div className="relative z-20 border-b border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-2 text-center text-sm font-medium text-[#3D3428]">
           {announcementText}
         </div>
       ) : null}
 
-      <div className="relative z-10 mx-auto max-w-5xl px-6 pt-16 pb-14 text-center">
-        <motion.h1
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.05 }}
-          className="text-4xl md:text-6xl font-extrabold tracking-tight text-[color:var(--lx-text)] drop-shadow-[0_10px_28px_rgba(42,36,22,0.10)]"
-        >
-          {L.title}
-        </motion.h1>
+      <section className="relative z-10 mx-auto max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pb-20 sm:pt-24">
+        <div className="grid items-center gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,22rem)] lg:gap-14">
+          {/* Copy column — serif title, sans body */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75 }}
+            className="order-2 text-center md:order-1 md:text-left"
+          >
+            <h1 className="font-serif text-4xl font-bold tracking-tight text-[#2A4536] sm:text-5xl lg:text-[3.25rem] lg:leading-none">
+              {L.title}
+            </h1>
 
-        {content.calloutsPlacement === "below_title" ? calloutsBlock : null}
+            <p className="mt-3 text-base font-semibold text-[#1F241C] sm:text-lg">{L.identity}</p>
 
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, duration: 0.9 }}
-          className="mt-3 text-base md:text-lg font-medium text-[color:var(--lx-text-2)]/90"
-        >
-          {L.identity}
-        </motion.p>
+            <p className="mt-1.5 text-sm font-medium text-[#3D3428] sm:text-base">{L.precedent}</p>
 
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28, duration: 0.9 }}
-          className="mt-2 text-sm md:text-base text-[color:var(--lx-muted)]"
-        >
-          {L.precedent}
-        </motion.p>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem] md:mx-0 md:max-w-none">
+              {L.valuePrimary}
+            </p>
 
-        {content.calloutsPlacement === "below_precedent" ? calloutsBlock : null}
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#3D3428]/90 sm:text-[0.9375rem] md:mx-0 md:max-w-none">
+              {L.valueSecondary}
+            </p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.22, duration: 0.9 }}
-          className="mt-7 md:mt-8 flex flex-col items-center"
-        >
-          {content.modules.showHeroImage ? (
-            <a href={primaryHref} className="block">
-              <div className="rounded-2xl border border-[color:var(--lx-nav-border)] overflow-hidden shadow-[0_18px_48px_rgba(42,36,22,0.12)] hover:shadow-[0_22px_60px_rgba(42,36,22,0.14)] transition-all duration-300 bg-[color:var(--lx-card)]">
-                <div className="w-72 sm:w-80 md:w-[22rem]">
-                  <img src={content.coverImageSrc} alt={L.coverAlt} className="w-full h-auto object-contain" />
-                </div>
-              </div>
-            </a>
-          ) : null}
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center md:justify-start">
+              <a
+                href={primaryHref}
+                className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-full bg-[#7A1E2C] px-7 py-2.5 text-sm font-semibold text-[#FFFDF7] shadow-[0_8px_24px_-8px_rgba(122,30,44,0.55)] transition hover:bg-[#5e1721] sm:w-auto sm:text-base"
+              >
+                {L.ctaPrimary}
+              </a>
 
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <a
-              href={primaryHref}
-              className="inline-flex items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-7 py-3 text-sm md:text-base font-semibold text-[color:var(--lx-cta-primary-fg)] shadow-[0_10px_28px_rgba(201,120,47,0.22)] hover:opacity-90 transition-all duration-300"
-            >
-              {L.ctaPrimary}
-            </a>
-
-            {content.modules.showSecondaryLine ? (
-              secondaryHref ? (
+              {content.modules.showSecondaryLine ? (
                 <a
-                  href={secondaryHref}
-                  className="text-xs md:text-sm font-medium text-[color:var(--lx-muted)] underline underline-offset-2 hover:opacity-90"
+                  href={advertiseHref}
+                  className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-full border border-[#7A1E2C] bg-[#FFFDF7] px-7 py-2.5 text-sm font-semibold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:w-auto sm:text-base"
                 >
                   {L.ctaSecondary}
                 </a>
-              ) : (
-                <p className="text-xs md:text-sm text-[color:var(--lx-muted)]">{L.ctaSecondary}</p>
-              )
-            ) : null}
+              ) : null}
+            </div>
 
-            {showPromo ? (
-              <p className="mt-2 max-w-xl text-xs md:text-sm text-[color:var(--lx-text-2)]/90">{L.promoStrip}</p>
-            ) : null}
-          </div>
-        </motion.div>
-      </div>
+            <p className="mt-4 text-xs font-medium tracking-wide text-[#3D3428]/75 sm:text-sm">{L.microcopy}</p>
+          </motion.div>
+
+          {/* Magazine cover — clean standalone asset */}
+          {content.modules.showHeroImage ? (
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.12, duration: 0.8 }}
+              className="order-1 flex justify-center md:order-2 md:justify-end"
+            >
+              <a href={primaryHref} className="block max-w-[17rem] sm:max-w-[19rem] md:max-w-full">
+                <div className="overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_20px_48px_-16px_rgba(31,36,28,0.22)] ring-1 ring-[#C9A84A]/15">
+                  <Image
+                    src={content.coverImageSrc}
+                    alt={L.coverAlt}
+                    width={640}
+                    height={820}
+                    className="h-auto w-full object-contain"
+                    priority
+                    sizes="(max-width: 768px) 304px, 352px"
+                  />
+                </div>
+              </a>
+            </motion.div>
+          ) : null}
+        </div>
+      </section>
     </main>
   );
 }

@@ -6,7 +6,7 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels, getServiciosPromocionesSectionCopy } from "../copy/serviciosProfileCopy";
 import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
 import { SV } from "./serviciosDesignTokens";
-import { LX, LX_SECTION_CARD } from "./serviciosLeonixBrand";
+import { LX, LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
 import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
@@ -43,7 +43,7 @@ function OfferHeadline({ text, premiumLeonixTone }: { text: string; premiumLeoni
     <h3
       className={
         premiumLeonixTone
-          ? "font-serif text-xl font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-2xl"
+          ? `${LX_SECTION_HEADING} leading-snug`
           : "text-lg font-bold leading-snug tracking-tight text-[#2C2214] sm:text-xl"
       }
     >
@@ -325,7 +325,7 @@ export function ServiciosPromocionesCard({
           id="servicios-promociones-heading"
           className={
             premiumLeonixTone
-              ? "font-serif text-xl font-semibold tracking-tight text-[#1E1814] sm:text-2xl"
+              ? LX_SECTION_HEADING
               : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
           }
         >

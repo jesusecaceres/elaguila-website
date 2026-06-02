@@ -26,6 +26,7 @@ import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(si
 import {
   LX,
   LX_CHIP,
+  LX_COMPACT_CARD_TITLE,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
   LX_CTA_PRIMARY_LG,
@@ -243,9 +244,7 @@ export function ServiciosProfessionalResultCard({
               ) : null}
             </div>
 
-            <h3 className="font-serif text-xl font-semibold leading-snug text-[#1E1814] sm:text-2xl">
-              {profile.identity.businessName}
-            </h3>
+            <h3 className={LX_COMPACT_CARD_TITLE}>{profile.identity.businessName}</h3>
 
             {category ? (
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-xs">{category}</p>

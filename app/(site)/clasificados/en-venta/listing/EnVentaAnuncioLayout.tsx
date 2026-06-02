@@ -657,7 +657,7 @@ export function EnVentaAnuncioLayout({
         <div
           className={
             surface === "en-venta" && !premiumBr
-              ? "grid gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-4"
+              ? "grid gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-2"
               : "grid gap-8 lg:grid-cols-12 lg:gap-10"
           }
         >

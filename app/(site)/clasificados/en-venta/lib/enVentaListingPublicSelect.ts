@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 
 export const EN_VENTA_LISTING_PUBLIC_ROW_BASE =
-  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, seller_type, business_name, status, is_published, created_at, images, views, rentas_tier, published_at, republished_at, republish_sort_at, admin_promoted, leonix_ad_id, mux_playback_id";
+  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, seller_type, business_name, status, is_published, created_at, images, views, rentas_tier, published_at, republished_at, republish_sort_at, admin_promoted, leonix_ad_id, mux_playback_id";
 
 const BROWSE_LIMIT = 800;
 

@@ -15,6 +15,9 @@ import {
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
   LX_HERO_CHIP,
+  LX_HERO_LOGO_FRAME,
+  LX_HERO_TITLE,
+  LX_TYPE_SERIF_DISPLAY,
   collectHeroDisplayChips,
   getPrimaryCtaLabel,
   hasPhysicalAddress,
@@ -140,8 +143,16 @@ export function ServiciosProfessionalHero({
       />
 
       <div className="relative px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6 lg:gap-8">
-          <div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-2 shadow-lg sm:mx-0 sm:h-[6.75rem] sm:w-[6.75rem] lg:h-28 lg:w-28 lg:p-2.5">
+        <div
+          className="pointer-events-none absolute left-1/2 top-8 z-0 h-[min(22rem,72%)] w-[min(100%,42rem)] -translate-x-1/2 rounded-[2rem] opacity-80 sm:left-[18%] sm:top-6 sm:w-[min(92%,36rem)] sm:translate-x-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 78% 68% at 38% 42%, rgba(255, 252, 247, 0.16) 0%, rgba(201, 168, 74, 0.14) 32%, transparent 72%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative z-[1] flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6 lg:gap-8">
+          <div className={LX_HERO_LOGO_FRAME}>
             {thumb ? (
               <Image
                 src={thumb}
@@ -152,7 +163,9 @@ export function ServiciosProfessionalHero({
                 unoptimized={serviciosImageUnoptimized(thumb)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center font-serif text-xl font-semibold uppercase tracking-wide text-[#3B2117]">
+              <div
+                className={`flex h-full w-full items-center justify-center ${LX_TYPE_SERIF_DISPLAY} text-xl uppercase tracking-wide text-[#3B2117]`}
+              >
                 {profile.identity.businessName.slice(0, 2)}
               </div>
             )}
@@ -164,9 +177,7 @@ export function ServiciosProfessionalHero({
                 {category}
               </p>
             ) : null}
-            <h1 className="mt-1.5 font-serif text-[1.9rem] font-semibold leading-[1.06] tracking-tight text-[#FFFCF7] sm:text-4xl md:text-[2.85rem] lg:text-[3.15rem]">
-              {profile.identity.businessName}
-            </h1>
+            <h1 className={LX_HERO_TITLE}>{profile.identity.businessName}</h1>
             {location ? (
               <p className="mt-2.5 flex items-center justify-center gap-1.5 text-xs text-[#FFFCF7]/88 sm:justify-start sm:text-sm lg:mt-3">
                 <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />

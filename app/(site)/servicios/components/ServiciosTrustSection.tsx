@@ -1,7 +1,7 @@
 import { FaCheck, FaClock, FaHeart, FaShieldAlt, FaStar } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
-import { LX_SECTION_CARD, getTrustSectionHeading, getTrustSectionKicker } from "./serviciosLeonixBrand";
+import { LX_SECTION_CARD, LX_SECTION_HEADING, getTrustSectionHeading, getTrustSectionKicker } from "./serviciosLeonixBrand";
 
 function TrustIcon({ icon }: { icon: string }) {
   const c = "h-5 w-5 text-[#7A1E2C]";
@@ -46,7 +46,7 @@ export function ServiciosTrustSection({
   return (
     <section className={`${LX_SECTION_CARD} px-3 py-4 sm:px-6 sm:py-6`}>
       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F6254]">{kicker}</p>
-      <h2 className="mt-1 font-serif text-xl font-semibold tracking-tight text-[#1E1814] md:text-2xl">{heading}</h2>
+      <h2 className={`mt-1 ${LX_SECTION_HEADING}`}>{heading}</h2>
       <div className="mt-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 md:mt-5 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3">
         {items.map((t) => (
           <div

@@ -96,7 +96,7 @@ function socialHeadline(platform: ServiciosBusinessHubSocialLink["platform"]): s
 
 function HubSectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="border-b border-[#E8D9C4]/80 pb-2 font-serif text-base font-semibold tracking-tight text-[#1E1814] sm:text-lg">
+    <h3 className="border-b border-[#E8D9C4]/80 pb-2 text-sm font-bold tracking-tight text-[#1E1814] sm:text-base">
       {children}
     </h3>
   );

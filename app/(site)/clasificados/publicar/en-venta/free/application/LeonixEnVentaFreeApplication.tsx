@@ -4,9 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   hydrateEnVentaDraftMediaIfMissing,
+  persistEnVentaPreviewHandoffAsync,
   restoreEnVentaFormFromIdbIfEmpty,
-  saveEnVentaPreviewDraft,
-  saveEnVentaPreviewReturnDraft,
   takeEnVentaPreviewReturnInitialState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 import {
@@ -109,15 +108,17 @@ export default function LeonixEnVentaFreeApplication() {
 
   /** Persist handoff for whichever preview button the seller chose (Free vs Pro preview). */
   const onBeforePreview = useCallback(
-    (clickedPlan: "free" | "pro") => {
+    async (clickedPlan: "free" | "pro") => {
       const safety = evaluateEnVentaFamilySafetyFromState(state, lang);
       if (safety.status !== "safe") {
         setFamilySafetyMsg(safety.userMessage);
         throw new Error("en-venta-family-safety-block");
       }
       setFamilySafetyMsg(null);
-      saveEnVentaPreviewDraft(clickedPlan, state);
-      saveEnVentaPreviewReturnDraft(clickedPlan, state);
+      const saved = await persistEnVentaPreviewHandoffAsync(clickedPlan, state);
+      if (!saved) {
+        throw new Error("en-venta-preview-draft-save-failed");
+      }
     },
     [state, lang]
   );

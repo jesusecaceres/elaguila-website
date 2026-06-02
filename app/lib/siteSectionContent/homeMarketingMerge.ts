@@ -1,26 +1,22 @@
 import type { HomeFeaturedCallout, HomeMarketingPayload } from "./payloadTypes";
 
+export type HomeMarketingLangBlock = {
+  title: string;
+  identity: string;
+  precedent: string;
+  valuePrimary: string;
+  valueSecondary: string;
+  ctaPrimary: string;
+  ctaSecondary: string;
+  microcopy: string;
+  coverAlt: string;
+  announcement: string;
+  promoStrip: string;
+};
+
 export type HomeMarketingResolved = {
-  es: {
-    title: string;
-    identity: string;
-    precedent: string;
-    ctaPrimary: string;
-    ctaSecondary: string;
-    coverAlt: string;
-    announcement: string;
-    promoStrip: string;
-  };
-  en: {
-    title: string;
-    identity: string;
-    precedent: string;
-    ctaPrimary: string;
-    ctaSecondary: string;
-    coverAlt: string;
-    announcement: string;
-    promoStrip: string;
-  };
+  es: HomeMarketingLangBlock;
+  en: HomeMarketingLangBlock;
   coverImageSrc: string;
   ctaPrimaryHref: string | null;
   ctaSecondaryHref: string | null;
@@ -34,38 +30,52 @@ export type HomeMarketingResolved = {
   callouts: HomeFeaturedCallout[];
 };
 
-const APPROVED_HOME_MAGAZINE_COVER = "/magazine/leonix-media-magazine-mockup-es.png";
-const LEGACY_HOME_COVER_SRCS = new Set(["/home_thumbnail.png", "/magazine/leonix-media-launch-es.png"]);
+const APPROVED_HOME_MAGAZINE_COVER = "/magazine/leonix-media-cover-sample.png";
+const LEGACY_HOME_COVER_SRCS = new Set([
+  "/home_thumbnail.png",
+  "/magazine/leonix-media-launch-es.png",
+  "/magazine/leonix-media-magazine-mockup-es.png",
+]);
 
 const BASE: HomeMarketingResolved = {
   es: {
-    title: "Leonix Media",
-    identity: "Visibilidad empresarial, clasificados y comunidad — en español e inglés",
-    precedent: "Una plataforma bajo Leonix Global LLC para descubrir negocios y oportunidades locales",
+    title: "LEONIX",
+    identity: "Comunidad, Cultura y Fe",
+    precedent: "Revista de comunidad, cultura y negocios.",
+    valuePrimary:
+      "Encuentra rentas, empleos, autos, artículos en venta, eventos y oportunidades locales en un solo espacio creado para nuestra comunidad.",
+    valueSecondary:
+      "Conectamos negocios locales, familias y organizaciones con una audiencia activa a través de una revista premium, presencia digital bilingüe y herramientas que generan acción.",
     ctaPrimary: "Explorar la revista",
-    ctaSecondary: "Edición digital",
+    ctaSecondary: "Anúnciate con nosotros",
+    microcopy: "Edición digital + presencia impresa",
     coverAlt: "Portada de la revista Leonix Media",
     announcement: "",
-    promoStrip: "Que Ruja El León — Let The Lion Roar",
+    promoStrip: "",
   },
   en: {
-    title: "Leonix Media",
-    identity: "Business visibility, classifieds & community — in English and Spanish",
-    precedent: "A Leonix Global LLC platform to discover local businesses and opportunities",
+    title: "LEONIX",
+    identity: "Community, Culture, and Faith",
+    precedent: "A magazine for community, culture, and business.",
+    valuePrimary:
+      "Find rentals, jobs, autos, items for sale, events, and local opportunities in one place built for our community.",
+    valueSecondary:
+      "We connect local businesses, families, and organizations with an active audience through a premium magazine, bilingual digital presence, and tools that drive action.",
     ctaPrimary: "Explore the magazine",
-    ctaSecondary: "Digital edition",
+    ctaSecondary: "Advertise with us",
+    microcopy: "Digital edition + print presence",
     coverAlt: "Leonix Media magazine cover",
     announcement: "",
-    promoStrip: "Que Ruja El León — Let The Lion Roar",
+    promoStrip: "",
   },
   coverImageSrc: APPROVED_HOME_MAGAZINE_COVER,
   ctaPrimaryHref: null,
   ctaSecondaryHref: null,
   modules: {
-    showAnnouncement: true,
+    showAnnouncement: false,
     showHeroImage: true,
     showSecondaryLine: true,
-    showCallouts: true,
+    showCallouts: false,
   },
   calloutsPlacement: "below_precedent",
   callouts: [],
@@ -75,7 +85,7 @@ function s(v: string | undefined, fallback: string): string {
   return v !== undefined && v.trim() !== "" ? v.trim() : fallback;
 }
 
-/** Gate HOME-HERO-IMAGE-SWAP — always show approved magazine mockup unless CMS sets another path. */
+/** Gate HOME-2 — clean magazine cover; remap legacy hero images. */
 function resolveHomeCoverImageSrc(patchSrc: string | undefined): string {
   const trimmed = patchSrc?.trim() ?? "";
   if (!trimmed || LEGACY_HOME_COVER_SRCS.has(trimmed)) return APPROVED_HOME_MAGAZINE_COVER;
@@ -100,9 +110,7 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
   const mod = patch.modules ?? {};
   return {
     es: {
-      title: s(patch.title?.es, BASE.es.title),
-      identity: s(patch.identity?.es, BASE.es.identity),
-      precedent: s(patch.precedent?.es, BASE.es.precedent),
+      ...BASE.es,
       ctaPrimary: s(patch.ctaPrimary?.es, BASE.es.ctaPrimary),
       ctaSecondary: s(patch.ctaSecondary?.es, BASE.es.ctaSecondary),
       coverAlt: s(patch.coverAlt?.es, BASE.es.coverAlt),
@@ -110,9 +118,7 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
       promoStrip: s(patch.promoStrip?.es, ""),
     },
     en: {
-      title: s(patch.title?.en, BASE.en.title),
-      identity: s(patch.identity?.en, BASE.en.identity),
-      precedent: s(patch.precedent?.en, BASE.en.precedent),
+      ...BASE.en,
       ctaPrimary: s(patch.ctaPrimary?.en, BASE.en.ctaPrimary),
       ctaSecondary: s(patch.ctaSecondary?.en, BASE.en.ctaSecondary),
       coverAlt: s(patch.coverAlt?.en, BASE.en.coverAlt),
@@ -123,10 +129,10 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
     ctaPrimaryHref: patch.ctaPrimaryHref?.trim() || null,
     ctaSecondaryHref: patch.ctaSecondaryHref?.trim() || null,
     modules: {
-      showAnnouncement: mod.showAnnouncement !== false,
+      showAnnouncement: mod.showAnnouncement === true,
       showHeroImage: mod.showHeroImage !== false,
       showSecondaryLine: mod.showSecondaryLine !== false,
-      showCallouts: mod.showCallouts !== false,
+      showCallouts: mod.showCallouts === true,
     },
     calloutsPlacement: patch.calloutsPlacement === "below_title" ? "below_title" : "below_precedent",
     callouts: parseCallouts(patch.featuredCallouts),

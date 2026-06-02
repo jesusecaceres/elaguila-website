@@ -287,7 +287,9 @@ export function ServiciosProfessionalProfileShell({
                 </div>
               )}
 
-              {hasAboutSectionResolved(profile) ? <ServiciosAbout profile={displayProfile} lang={lang} /> : null}
+              {hasAboutSectionResolved(profile) ? (
+                <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+              ) : null}
 
               {hasGallerySectionResolved(profile) ? (
                 <ServiciosGalleryWithTabs
@@ -336,6 +338,7 @@ export function ServiciosProfessionalProfileShell({
                         profileForQuote={profile}
                         listingSlug={analyticsListingSlug}
                         listingShareUrl={listingShareUrl}
+                        premiumLeonixTone
                       />
                     </section>
                   ) : (
@@ -356,6 +359,7 @@ export function ServiciosProfessionalProfileShell({
                     profileForQuote={profile}
                     listingSlug={analyticsListingSlug}
                     listingShareUrl={listingShareUrl}
+                    premiumLeonixTone
                   />
                 ) : null}
 
