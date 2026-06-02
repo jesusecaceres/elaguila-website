@@ -34,6 +34,17 @@ function whatsAppHost(u: URL): string {
   return u.hostname.toLowerCase().replace(/^www\./, "");
 }
 
+/** Bare whatsapp.com / www.whatsapp.com homepage — never contact or social row. */
+export function isServiciosGenericWhatsAppHomepage(raw: string): boolean {
+  const u = tryParseWhatsAppUrl(raw);
+  if (!u) return false;
+  const host = whatsAppHost(u);
+  const path = u.pathname.replace(/\/+$/, "") || "/";
+  if (host === "whatsapp.com") return path === "/";
+  if (host === "wa.me" && path === "/") return true;
+  return false;
+}
+
 /** wa.me/message, chat.whatsapp.com, whatsapp.com/channel — not direct chat by number. */
 export function isServiciosWhatsAppProfileSocialUrl(raw: string): boolean {
   const u = tryParseWhatsAppUrl(raw);
@@ -128,13 +139,30 @@ export function resolveServiciosWhatsAppContactHref(
   return null;
 }
 
-/** Social row: WhatsApp Business / channel / profile links only. */
-export function resolveServiciosWhatsAppProfileHref(raw: string | undefined | null): string | null {
+/**
+ * Valid for “Síguenos” social row (profile/channel field only at map time).
+ * Allows wa.me/message, wa.me/digits, api.whatsapp.com/send, whatsapp.com/channel — not generic homepages.
+ */
+export function isServiciosWhatsAppSocialRowUrl(raw: string): boolean {
+  const t = trimText(raw);
+  if (!t || isServiciosGenericWhatsAppHomepage(t)) return false;
+  return isServiciosWhatsAppProfileSocialUrl(t) || isServiciosWhatsAppDirectMessageUrl(t);
+}
+
+/** Social row href from profile/channel field — opens in new tab from Contact Hub. */
+export function resolveServiciosWhatsAppSocialRowHref(raw: string | undefined | null): string | null {
   const t = trimText(raw ?? "");
-  if (!t || !isServiciosWhatsAppProfileSocialUrl(t)) return null;
+  if (!t || !isServiciosWhatsAppSocialRowUrl(t)) return null;
   const u = tryParseWhatsAppUrl(t);
-  if (!u || u.protocol !== "http:" && u.protocol !== "https:") return null;
-  return u.toString();
+  if (!u) return null;
+  if (u.protocol === "whatsapp:") return u.toString();
+  if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+  return null;
+}
+
+/** @deprecated Prefer resolveServiciosWhatsAppSocialRowHref */
+export function resolveServiciosWhatsAppProfileHref(raw: string | undefined | null): string | null {
+  return resolveServiciosWhatsAppSocialRowHref(raw);
 }
 
 export function buildServiciosWhatsAppWaMeHrefFromDigits(digits: string): string | null {

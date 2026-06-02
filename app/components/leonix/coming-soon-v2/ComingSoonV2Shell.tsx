@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 /** Square emblem — no baked-in checkerboard (logo-clean.png has transparency grid in file). */
 const HEADER_LOGO_SRC = "/logo.png";
@@ -1679,7 +1680,38 @@ function LaunchCtaLink({ lang, label }: { lang: Lang; label: string }) {
 }
 
 export function ComingSoonV2Shell() {
-  const [lang, setLang] = useState<Lang>("es");
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="flex min-h-screen items-center justify-center bg-[#F5F0E6] text-[#3D3428]"
+          aria-busy="true"
+        />
+      }
+    >
+      <ComingSoonV2ShellContent />
+    </Suspense>
+  );
+}
+
+function ComingSoonV2ShellContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlLang = searchParams?.get("lang");
+  const [lang, setLang] = useState<Lang>(() => (urlLang === "en" ? "en" : "es"));
+
+  useEffect(() => {
+    if (urlLang === "es" || urlLang === "en") setLang(urlLang);
+  }, [urlLang]);
+
+  const selectLang = (code: Lang) => {
+    setLang(code);
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("lang", code);
+    const qs = params.toString();
+    router.replace(qs ? `/coming-soon-v2?${qs}` : "/coming-soon-v2", { scroll: false });
+  };
+
   const t = COPY[lang];
   const h = t.hero;
   const mp = t.marketplace;
@@ -1746,7 +1778,7 @@ export function ComingSoonV2Shell() {
                   <button
                     key={code}
                     type="button"
-                    onClick={() => setLang(code)}
+                    onClick={() => selectLang(code)}
                     aria-pressed={lang === code}
                     className={`min-h-[1.875rem] min-w-[3.25rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2rem] sm:min-w-[3.5rem] sm:px-2.5 ${
                       lang === code

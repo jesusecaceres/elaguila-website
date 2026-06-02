@@ -37,7 +37,7 @@ import {
 } from "./serviciosProfileSanitize";
 import {
   resolveServiciosWhatsAppContactHref,
-  resolveServiciosWhatsAppProfileHref,
+  resolveServiciosWhatsAppSocialRowHref,
   isServiciosWhatsAppProfileSocialUrl,
 } from "./serviciosWhatsAppHref";
 
@@ -102,12 +102,12 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     const waContactRaw = trimText(rawSocial.whatsappUrl);
     const waProfileRaw = trimText(rawSocial.whatsappProfileUrl);
 
-    let waProfile = waProfileRaw ? resolveServiciosWhatsAppProfileHref(waProfileRaw) : null;
+    let waProfile = waProfileRaw ? resolveServiciosWhatsAppSocialRowHref(waProfileRaw) : null;
     let waContact: string | null = null;
 
     if (waContactRaw) {
       if (isServiciosWhatsAppProfileSocialUrl(waContactRaw)) {
-        waProfile = waProfile ?? resolveServiciosWhatsAppProfileHref(waContactRaw);
+        waProfile = waProfile ?? resolveServiciosWhatsAppSocialRowHref(waContactRaw);
       } else {
         waContact = resolveServiciosWhatsAppContactHref({
           whatsappRaw: waContactRaw,

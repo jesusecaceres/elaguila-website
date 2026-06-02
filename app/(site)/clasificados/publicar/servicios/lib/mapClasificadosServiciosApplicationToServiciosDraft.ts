@@ -11,9 +11,8 @@ import { parseLanguageOtherLines } from "./languageOtherLines";
 import { digitsOnly } from "./serviciosPhoneUi";
 import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
 import {
-  isServiciosWhatsAppDirectMessageUrl,
-  isServiciosWhatsAppProfileSocialUrl,
   buildServiciosWhatsAppWaMeHrefFromDigits,
+  resolveServiciosWhatsAppSocialRowHref,
 } from "@/app/servicios/lib/serviciosWhatsAppHref";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
 import { clasificadosPromoRowIsActive } from "./clasificadosServiciosPromo";
@@ -341,10 +340,9 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     }
     if (biz && isProbablyValidWebUrl(biz)) {
       const normalized = normalizeHttpUrl(biz);
-      if (isServiciosWhatsAppProfileSocialUrl(normalized)) {
-        contact.socialWhatsappProfileUrl = normalized;
-      } else if (isServiciosWhatsAppDirectMessageUrl(normalized) && !wa) {
-        contact.socialWhatsappUrl = normalized;
+      const socialHref = resolveServiciosWhatsAppSocialRowHref(normalized);
+      if (socialHref) {
+        contact.socialWhatsappProfileUrl = socialHref;
       }
     }
   }

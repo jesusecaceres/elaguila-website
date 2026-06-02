@@ -350,7 +350,7 @@ const es: ClasificadosServiciosCopy = {
     whatsappHelp: "Para que clientes te escriban directo por WhatsApp.",
     whatsappBusinessUrl: "Enlace de WhatsApp Business o canal (opcional)",
     whatsappBusinessUrlHelp:
-      "Opcional. Pega solo un enlace directo de WhatsApp Business, wa.me, mensaje o canal. Para mensajes directos usa el número de WhatsApp.",
+      "Opcional. Solo pega un enlace real de WhatsApp Business, wa.me, mensaje o canal. No uses www.whatsapp.com. Para que clientes te escriban directo, usa el número de WhatsApp.",
     quoteMessagePhone: "Número para mensajes/cotizaciones",
     quoteMessagePhoneHelp:
       "Este número recibirá mensajes de clientes interesados en pedir información o una cotización.",
@@ -632,7 +632,7 @@ const en: ClasificadosServiciosCopy = {
     whatsappHelp: "So customers can message you directly on WhatsApp.",
     whatsappBusinessUrl: "WhatsApp Business or channel link (optional)",
     whatsappBusinessUrlHelp:
-      "Optional. Paste a direct WhatsApp Business, wa.me, message, or channel link only. For direct messages, use the WhatsApp number field.",
+      "Optional. Use a real WhatsApp Business, wa.me, message, or channel link. Do not use www.whatsapp.com. For direct customer messages, use the WhatsApp number.",
     quoteMessagePhone: "Number for messages / quotes",
     quoteMessagePhoneHelp:
       "This number receives messages from customers who want information or a quote.",

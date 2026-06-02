@@ -10,10 +10,10 @@ import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/ser
 import { resolveServiciosQuoteDestination } from "../app/(site)/servicios/lib/serviciosContactActions";
 import {
   resolveServiciosWhatsAppContactHref,
-  resolveServiciosWhatsAppProfileHref,
+  resolveServiciosWhatsAppSocialRowHref,
+  isServiciosGenericWhatsAppHomepage,
   isServiciosWhatsAppProfileSocialUrl,
 } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
-import { safePromoPdfHref } from "../app/(site)/servicios/lib/serviciosProfileSanitize";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
 import {
   parseEmailFromMailtoHref,
@@ -100,24 +100,22 @@ const mail = "mailto:hi@example.com";
   );
 }
 
-// 2c) WhatsApp profile/channel → social row only
+// 2c) WhatsApp profile/channel field → “Síguenos” social row only
 {
   const channel = "https://whatsapp.com/channel/0029VaExample";
-  assert.equal(resolveServiciosWhatsAppProfileHref(channel), channel);
+  assert.equal(resolveServiciosWhatsAppSocialRowHref(channel), channel);
   assert.equal(
-    resolveServiciosWhatsAppProfileHref("https://wa.me/message/ABC123"),
+    resolveServiciosWhatsAppSocialRowHref("https://wa.me/message/ABC123"),
     "https://wa.me/message/ABC123",
   );
-  assert.equal(resolveServiciosWhatsAppProfileHref("https://www.whatsapp.com"), null);
+  assert.equal(
+    resolveServiciosWhatsAppSocialRowHref("https://wa.me/5215512345678"),
+    "https://wa.me/5215512345678",
+  );
+  assert.equal(resolveServiciosWhatsAppSocialRowHref("https://www.whatsapp.com"), null);
+  assert.equal(resolveServiciosWhatsAppSocialRowHref("https://whatsapp.com"), null);
+  assert.ok(isServiciosGenericWhatsAppHomepage("https://www.whatsapp.com"));
   assert.ok(isServiciosWhatsAppProfileSocialUrl("https://wa.me/message/ABC123"));
-}
-
-// 2d) Promo PDF href safety
-{
-  assert.equal(safePromoPdfHref("https://cdn.example.com/coupon.pdf"), "https://cdn.example.com/coupon.pdf");
-  assert.equal(safePromoPdfHref("javascript:alert(1)"), null);
-  assert.equal(safePromoPdfHref("blob:https://local"), null);
-  assert.ok(safePromoPdfHref("data:application/pdf;base64,abc"));
 }
 
 // 3) Email when no phone / WA
