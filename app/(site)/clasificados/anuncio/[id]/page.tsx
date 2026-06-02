@@ -1268,6 +1268,10 @@ export default function AnuncioDetallePage() {
             leonix_ad_id: listing.leonix_ad_id ?? null,
             business_meta: listing.business_meta ?? ev.business_meta ?? null,
             mux_playback_id: (listing as Listing).mux_playback_id ?? null,
+            rawPublishedDescription:
+              useEnVentaPublishedDetail && publishedSourceRow
+                ? String(publishedSourceRow.description ?? "")
+                : null,
             zip: (listing as Listing).zip ?? null,
             br_inventory_group_id:
               (listing as Listing & { br_inventory_group_id?: string | null }).br_inventory_group_id ?? null,

@@ -34,11 +34,12 @@ import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaPreviewGallery } from "@/app/clasificados/en-venta/preview/EnVentaPreviewGallery";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
 import {
-  buildVariosGalleryViewProps,
-  normalizeVariosDisplayMediaFromRow,
-  resolveVariosPlanFromDetailPairs,
-  resolveVariosPlanFromRow,
-} from "@/app/lib/clasificados/en-venta/varios-display-normalizer";
+  buildEnVentaGalleryViewProps,
+  buildEnVentaPublishedMediaRow,
+  normalizeEnVentaPublishedMedia,
+  resolveEnVentaPlanFromDetailPairs,
+  resolveEnVentaPlanFromRow,
+} from "../shared/utils/enVentaPublishedMedia";
 import { EnVentaSellerCard } from "./EnVentaSellerCard";
 import { EnVentaSellerPublicStats } from "./EnVentaSellerPublicStats";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
@@ -105,6 +106,8 @@ type AnuncioListingLike = {
   inventory_role?: string | null;
   mux_playback_id?: string | null;
   zip?: string | null;
+  /** Full published description (includes photo appendix) — not the stripped blurb. */
+  rawPublishedDescription?: string | null;
 };
 
 function pairsFromListing(l: AnuncioListingLike): Array<{ label: string; value: string }> {
@@ -226,27 +229,35 @@ export function EnVentaAnuncioLayout({
 
   const variosPlan = useMemo((): "free" | "pro" => {
     if (publishedSourceRow && surface === "en-venta") {
-      return resolveVariosPlanFromRow(publishedSourceRow);
+      return resolveEnVentaPlanFromRow(publishedSourceRow);
     }
-    return resolveVariosPlanFromDetailPairs(rows, {
+    return resolveEnVentaPlanFromDetailPairs(rows, {
       muxPlaybackId: listing.mux_playback_id,
-      description: listing.blurb[lang],
+      description: listing.rawPublishedDescription ?? listing.blurb[lang],
     });
-  }, [publishedSourceRow, surface, rows, listing.mux_playback_id, listing.blurb, lang]);
+  }, [publishedSourceRow, surface, rows, listing.mux_playback_id, listing.rawPublishedDescription, listing.blurb, lang]);
 
   const variosGalleryProps = useMemo(() => {
     if (surface !== "en-venta") return null;
-    const media = publishedSourceRow
-      ? normalizeVariosDisplayMediaFromRow(publishedSourceRow)
-      : normalizeVariosDisplayMediaFromRow({
-          description: listing.blurb[lang],
-          images: listing.images ?? null,
-          listing_json: null,
-          mux_playback_id: listing.mux_playback_id,
-          detail_pairs: rows,
-        });
-    return buildVariosGalleryViewProps(media, lang, variosPlan);
-  }, [surface, publishedSourceRow, listing.images, listing.blurb, listing.mux_playback_id, rows, lang, variosPlan]);
+    const mediaRow = buildEnVentaPublishedMediaRow(publishedSourceRow, {
+      description: listing.rawPublishedDescription ?? listing.blurb[lang],
+      images: listing.images ?? null,
+      muxPlaybackId: listing.mux_playback_id,
+      detailPairs: rows,
+    });
+    const media = normalizeEnVentaPublishedMedia(mediaRow);
+    return buildEnVentaGalleryViewProps(media, lang, variosPlan);
+  }, [
+    surface,
+    publishedSourceRow,
+    listing.images,
+    listing.rawPublishedDescription,
+    listing.blurb,
+    listing.mux_playback_id,
+    rows,
+    lang,
+    variosPlan,
+  ]);
 
   const images = variosGalleryProps?.orderedImages ?? listing.images ?? [];
   const specRows = useMemo(
@@ -720,7 +731,7 @@ export function EnVentaAnuncioLayout({
               : "grid gap-8 lg:grid-cols-12 lg:gap-10"
           }
         >
-          <div className="lg:col-span-7">
+          <div className="order-1 lg:col-span-7">
             {surface === "en-venta" && !premiumBr && variosGalleryProps ? (
               <EnVentaPreviewGallery {...variosGalleryProps} />
             ) : (
@@ -740,7 +751,13 @@ export function EnVentaAnuncioLayout({
               </div>
             )}
           </div>
-          <div className={premiumBr ? "space-y-4 lg:col-span-5 lg:sticky lg:top-24 lg:self-start" : "space-y-4 lg:col-span-5"}>
+          <div
+            className={
+              premiumBr
+                ? "order-2 space-y-4 lg:col-span-5 lg:sticky lg:top-24 lg:self-start"
+                : "order-2 space-y-4 lg:col-span-5"
+            }
+          >
             <div
               className={
                 premiumBr
@@ -1153,7 +1170,7 @@ export function EnVentaAnuncioLayout({
           {surface === "en-venta" && !premiumBr ? (
             <>
               {evContentStack ? (
-                <div className="lg:col-span-12">
+                <div className="order-3 lg:col-span-12">
                   <EnVentaDetailContentStack
                     lang={lang}
                     model={evContentStack}

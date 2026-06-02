@@ -10,6 +10,7 @@ import {
   getOrderedEnVentaImageUrls,
 } from "../preview/buildEnVentaPreviewModel";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
+import { buildEnVentaPublishedMediaRow } from "../shared/utils/enVentaPublishedMedia";
 import { normalizeEnVentaCardMedia } from "../shared/utils/normalizeEnVentaCardMedia";
 import { resolveEnVentaHeroImageUrl } from "../shared/utils/resolveEnVentaListingImageUrls";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
@@ -52,18 +53,14 @@ export function buildEnVentaResultsCardModel(
 ): EnVentaResultsCardModel {
   const { lang, effectiveDeptKey, featuredHighlight, row } = opts;
   const plan = dto.planTier;
-  const media = row
-    ? normalizeEnVentaCardMedia(row, dto)
-    : normalizeEnVentaCardMedia(
-        {
-          description: "",
-          images: dto.images,
-          listing_json: null,
-          mux_playback_id: dto.muxPlaybackId,
-          detail_pairs: null,
-        },
-        dto
-      );
+  const mediaRow = buildEnVentaPublishedMediaRow(row, {
+    description: dto.description,
+    images: dto.images,
+    muxPlaybackId: dto.muxPlaybackId,
+    listingVideoUrl: dto.listingVideoUrl,
+    hasListingVideo: dto.hasListingVideo,
+  });
+  const media = normalizeEnVentaCardMedia(mediaRow, dto);
   const images = media.photoUrls;
   const heroImage = media.primaryImageUrl ?? null;
   const extras = images.slice(1);
@@ -105,7 +102,7 @@ export function buildEnVentaResultsCardModel(
     heroImage,
     extraImageUrls,
     extraThumbOverflow,
-    showVideoBadge: plan === "pro" && (row ? media.hasVideo : dto.hasListingVideo),
+    showVideoBadge: plan === "pro" && media.hasVideo,
     showViews: plan === "pro" && dto.views > 0,
     views: dto.views,
     sellerKindLabel,
