@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
+  hydrateEnVentaDraftMediaIfMissing,
   persistEnVentaPreviewHandoffAsync,
   restoreEnVentaFormFromIdbIfEmpty,
   takeEnVentaPreviewReturnInitialState,
@@ -55,11 +56,13 @@ export default function LeonixEnVentaProApplication() {
 
   useLayoutEffect(() => {
     let cancelled = false;
-    void restoreEnVentaFormFromIdbIfEmpty("pro", state).then((restored) => {
-      if (!cancelled && restored) {
-        setState(restored);
-      }
-    });
+    void (async () => {
+      let next = takeEnVentaPreviewReturnInitialState("pro");
+      next = await hydrateEnVentaDraftMediaIfMissing("pro", next);
+      const restored = await restoreEnVentaFormFromIdbIfEmpty("pro", next);
+      if (restored) next = restored;
+      if (!cancelled) setState(next);
+    })();
     return () => {
       cancelled = true;
     };

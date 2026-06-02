@@ -10,6 +10,7 @@ import {
   idbPutEnVentaPreviewReturnDraft,
 } from "./enVentaPreviewDraftIdb";
 import { normalizeEnVentaFreeApplicationState } from "../shared/utils/normalizeEnVentaApplicationState";
+import { getOrderedEnVentaImageUrls } from "../preview/buildEnVentaPreviewModel";
 
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
@@ -79,6 +80,53 @@ function parseDraftJson(raw: string): EnVentaFreeApplicationState | null {
   } catch {
     return null;
   }
+}
+
+function pickDraftMediaFields(source: EnVentaFreeApplicationState): Partial<EnVentaFreeApplicationState> {
+  return {
+    images: source.images,
+    primaryImageIndex: source.primaryImageIndex,
+    listingVideoUrl: source.listingVideoUrl,
+    listingVideoSlots: source.listingVideoSlots,
+  };
+}
+
+/**
+ * When sessionStorage quota drops photo payloads, recover images from in-tab memory or IndexedDB.
+ */
+export async function hydrateEnVentaDraftMediaIfMissing(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): Promise<EnVentaFreeApplicationState> {
+  if (getOrderedEnVentaImageUrls(state).length > 0) return state;
+
+  const fromMemory = previewDraftMemory[plan];
+  if (fromMemory && getOrderedEnVentaImageUrls(fromMemory).length > 0) {
+    return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(fromMemory) });
+  }
+
+  try {
+    const returnRaw = await idbGetEnVentaPreviewReturnDraft(plan);
+    if (returnRaw) {
+      const data = JSON.parse(returnRaw) as Partial<EnVentaPreviewReturnPayload>;
+      if (data.plan === plan && data.state && typeof data.state === "object") {
+        const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
+        if (getOrderedEnVentaImageUrls(merged).length > 0) {
+          return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(merged) });
+        }
+      }
+    }
+    const mainRaw = await idbGetEnVentaPreviewDraft(plan);
+    if (mainRaw) {
+      const merged = parseDraftJson(mainRaw);
+      if (merged && getOrderedEnVentaImageUrls(merged).length > 0) {
+        return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(merged) });
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return state;
 }
 
 function cacheDraftInMemory(plan: "free" | "pro", merged: EnVentaFreeApplicationState): void {
@@ -179,12 +227,20 @@ export async function loadEnVentaPreviewDraftAsync(
   plan: "free" | "pro"
 ): Promise<EnVentaFreeApplicationState | null> {
   const sync = loadEnVentaPreviewDraft(plan);
-  if (sync) return sync;
+  if (sync) {
+    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, sync);
+    if (hydrated !== sync) cacheDraftInMemory(plan, hydrated);
+    return hydrated;
+  }
   try {
     const raw = await idbGetEnVentaPreviewDraft(plan);
     if (!raw) return null;
     const merged = parseDraftJson(raw);
-    if (merged) cacheDraftInMemory(plan, merged);
+    if (merged) {
+      const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, merged);
+      cacheDraftInMemory(plan, hydrated);
+      return hydrated;
+    }
     return merged;
   } catch {
     return null;
@@ -197,18 +253,25 @@ export async function loadLatestEnVentaPreviewDraftAsync(
   const preferred = await loadEnVentaPreviewDraftAsync(preferredPlan);
   const otherPlan: "free" | "pro" = preferredPlan === "free" ? "pro" : "free";
   const other = await loadEnVentaPreviewDraftAsync(otherPlan);
-  if (preferred && !other) return { plan: preferredPlan, draft: preferred };
-  if (!preferred && other) return { plan: otherPlan, draft: other };
-  if (!preferred && !other) return null;
-
-  try {
-    const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
-    const meta = raw ? (JSON.parse(raw) as { plan?: "free" | "pro" }) : null;
-    if (meta?.plan === otherPlan && other) return { plan: otherPlan, draft: other };
-  } catch {
-    /* ignore */
+  let picked: { plan: "free" | "pro"; draft: EnVentaFreeApplicationState } | null = null;
+  if (preferred && !other) picked = { plan: preferredPlan, draft: preferred };
+  else if (!preferred && other) picked = { plan: otherPlan, draft: other };
+  else if (!preferred && !other) return null;
+  else {
+    try {
+      const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
+      const meta = raw ? (JSON.parse(raw) as { plan?: "free" | "pro" }) : null;
+      if (meta?.plan === otherPlan && other) picked = { plan: otherPlan, draft: other };
+      else if (preferred) picked = { plan: preferredPlan, draft: preferred };
+      else if (other) picked = { plan: otherPlan, draft: other };
+    } catch {
+      picked = preferred ? { plan: preferredPlan, draft: preferred } : other ? { plan: otherPlan, draft: other } : null;
+    }
   }
-  return preferred ? { plan: preferredPlan, draft: preferred } : other ? { plan: otherPlan, draft: other } : null;
+  if (!picked) return null;
+  const hydrated = await hydrateEnVentaDraftMediaIfMissing(picked.plan, picked.draft);
+  cacheDraftInMemory(picked.plan, hydrated);
+  return { plan: picked.plan, draft: hydrated };
 }
 
 /**
@@ -219,6 +282,12 @@ export async function restoreEnVentaFormFromIdbIfEmpty(
   plan: "free" | "pro",
   current: EnVentaFreeApplicationState
 ): Promise<EnVentaFreeApplicationState | null> {
+  const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, current);
+  if (getOrderedEnVentaImageUrls(hydrated).length > getOrderedEnVentaImageUrls(current).length) {
+    cacheDraftInMemory(plan, hydrated);
+    return hydrated;
+  }
+
   const hasProgress = Boolean(
     current.title.trim() ||
       current.rama.trim() ||

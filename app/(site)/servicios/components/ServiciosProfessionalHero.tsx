@@ -79,7 +79,7 @@ export function ServiciosProfessionalHero({
     .slice(0, 2);
   const showDirections = hasPhysicalAddress(profile);
   const tel = profile.contact.phoneTelHref?.trim();
-  const wa = profile.contact.socialLinks?.whatsapp?.trim();
+  const waHref = profile.contact.socialLinks?.whatsapp?.trim();
   const primaryLabel = getPrimaryCtaLabel(template, lang);
 
   const scrollToContact = () => {
@@ -103,10 +103,9 @@ export function ServiciosProfessionalHero({
   };
 
   const openWhatsApp = () => {
-    if (!wa) return;
+    if (!waHref) return;
     trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { source: "professional_hero" });
-    const href = /^https?:\/\//i.test(wa) ? wa : `https://wa.me/${wa.replace(/\D/g, "")}`;
-    window.open(href, "_blank", "noopener,noreferrer");
+    window.open(waHref, "_blank", "noopener,noreferrer");
   };
 
   const openDirections = () => {
@@ -240,7 +239,7 @@ export function ServiciosProfessionalHero({
               {primaryLabel}
             </button>
           ) : null}
-          {wa ? (
+          {waHref ? (
             <button
               type="button"
               onClick={openWhatsApp}
@@ -257,7 +256,7 @@ export function ServiciosProfessionalHero({
               {lang === "en" ? "Directions" : "Cómo llegar"}
             </button>
           ) : null}
-          {!tel && !wa ? (
+          {!tel && !waHref ? (
             <button
               type="button"
               onClick={scrollToContact}

@@ -1,5 +1,6 @@
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { trimText } from "./serviciosProfileSanitize";
+import { resolveServiciosWhatsAppHref } from "./serviciosWhatsAppHref";
 
 export type ServiciosQuoteDestinationKind = "sms" | "whatsapp" | "tel" | "mailto" | "website";
 
@@ -74,7 +75,10 @@ export function resolveServiciosQuoteDestination(
     const href = buildQuoteSmsHref(c.quoteMessagePhone, lang);
     if (href) return { kind: "sms", href };
   }
-  const wa = c.socialLinks?.whatsapp;
+  const wa = resolveServiciosWhatsAppHref({
+    whatsappRaw: c.socialLinks?.whatsapp,
+    websiteUrl: c.websiteHref,
+  });
   if (wa) return { kind: "whatsapp", href: wa };
   if (c.emailMailtoHref) {
     return { kind: "mailto", href: buildMailtoQuoteHref(c.emailMailtoHref, lang) };
@@ -169,8 +173,12 @@ export function buildServiciosSecondaryActions(
     out.push(a);
   };
 
-  if (c.socialLinks?.whatsapp) {
-    push({ id: "whatsapp", href: c.socialLinks.whatsapp, labelKey: "whatsapp" });
+  const waSecondary = resolveServiciosWhatsAppHref({
+    whatsappRaw: c.socialLinks?.whatsapp,
+    websiteUrl: c.websiteHref,
+  });
+  if (waSecondary) {
+    push({ id: "whatsapp", href: waSecondary, labelKey: "whatsapp" });
   }
   if (c.phoneTelHref) {
     push({ id: "call", href: c.phoneTelHref, labelKey: "call" });

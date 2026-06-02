@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
+  hydrateEnVentaDraftMediaIfMissing,
+  restoreEnVentaFormFromIdbIfEmpty,
   saveEnVentaPreviewDraft,
   saveEnVentaPreviewReturnDraft,
   takeEnVentaPreviewReturnInitialState,
@@ -51,8 +53,18 @@ export default function LeonixEnVentaFreeApplication() {
   const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    setState(takeEnVentaPreviewReturnInitialState("free"));
+    let cancelled = false;
+    void (async () => {
+      let next = takeEnVentaPreviewReturnInitialState("free");
+      next = await hydrateEnVentaDraftMediaIfMissing("free", next);
+      const restored = await restoreEnVentaFormFromIdbIfEmpty("free", next);
+      if (restored) next = restored;
+      if (!cancelled) setState(next);
+    })();
     clearLeonixReturningToEditSessionFlag();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const copy = useMemo(

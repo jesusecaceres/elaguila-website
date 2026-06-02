@@ -23,7 +23,6 @@ import {
 import {
   buildServiciosGetQuoteIntent,
   buildServiciosSendEmailIntentFromMailto,
-  extractWaMeDigitsFromHref,
   serviciosContactShareExtras,
   trackServiciosListingCta,
 } from "../lib/serviciosCtaIntents";
@@ -253,10 +252,8 @@ export function ServiciosBusinessHubContactCard({
   const openWhatsApp = () => {
     const href = vm.contact.whatsappHref;
     if (!href) return;
-    const digits = extractWaMeDigitsFromHref(href);
-    if (digits.replace(/\D/g, "").length < 8) return;
     trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { source: "business_hub" });
-    window.open(`https://wa.me/${digits.replace(/\D/g, "")}`, "_blank", "noopener,noreferrer");
+    window.open(href, "_blank", "noopener,noreferrer");
   };
 
   const openEmail = () => {

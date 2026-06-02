@@ -8,6 +8,7 @@ import { join } from "node:path";
 import type { ServiciosProfileResolved } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 import { resolveServiciosQuoteDestination } from "../app/(site)/servicios/lib/serviciosContactActions";
+import { resolveServiciosWhatsAppHref } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
 import {
   parseEmailFromMailtoHref,
@@ -70,6 +71,23 @@ const mail = "mailto:hi@example.com";
   );
   assert.equal(q?.kind, "whatsapp");
   assert.equal(q?.href, wa);
+}
+
+// 2b) WhatsApp href: wa.me from number, reject website mistaken for WA
+{
+  assert.equal(resolveServiciosWhatsAppHref({ whatsappRaw: "(555) 123-4567" }), "https://wa.me/15551234567");
+  assert.equal(
+    resolveServiciosWhatsAppHref({ whatsappRaw: "https://wa.me/5215512345678" }),
+    "https://wa.me/5215512345678",
+  );
+  assert.equal(
+    resolveServiciosWhatsAppHref({
+      whatsappRaw: "https://example.com",
+      websiteUrl: "https://example.com",
+    }),
+    null,
+  );
+  assert.equal(resolveServiciosWhatsAppHref({ whatsappRaw: "https://mybiz.com" }), null);
 }
 
 // 3) Email when no phone / WA

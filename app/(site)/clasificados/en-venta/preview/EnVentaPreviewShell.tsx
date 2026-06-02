@@ -7,6 +7,7 @@ import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFl
 import {
   buildEnVentaEditResumeHref,
   enVentaDraftHasAllPublishCheckboxes,
+  hydrateEnVentaDraftMediaIfMissing,
   saveEnVentaPreviewReturnDraft,
 } from "./enVentaPreviewDraft";
 import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
@@ -63,10 +64,11 @@ export function EnVentaPreviewShell({
   const editPublishFocusHref = hrefWithListingPublishFocus(resumeHref);
   const canPublishFromPreview = returnDraft ? enVentaDraftHasAllPublishCheckboxes(returnDraft) : false;
 
-  function goBackToEdit(href: string) {
+  async function goBackToEdit(href: string) {
     markPublishFlowReturningToEdit();
     if (returnDraft) {
-      saveEnVentaPreviewReturnDraft(plan, returnDraft);
+      const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, returnDraft);
+      saveEnVentaPreviewReturnDraft(plan, hydrated);
     }
     router.push(href);
   }

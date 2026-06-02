@@ -2,6 +2,7 @@ import type { CtaContactShareExtras, CtaSheetIntent } from "@/app/components/cta
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { serviciosUniversalQuoteMessage, buildQuoteSmsHref } from "./serviciosContactActions";
+import { extractServiciosWhatsAppDigits } from "./serviciosWhatsAppHref";
 
 /** Match analytics payload shape used by `ServiciosTrackedLink`. */
 export function trackServiciosListingCta(
@@ -19,9 +20,7 @@ export function trackServiciosListingCta(
 }
 
 export function extractWaMeDigitsFromHref(href: string): string {
-  const t = href.trim().toLowerCase();
-  const m = /wa\.me\/(\d+)/.exec(t) || /api\.whatsapp\.com\/send\?phone=(\d+)/.exec(t);
-  return (m?.[1] ?? "").replace(/\D/g, "");
+  return extractServiciosWhatsAppDigits(href);
 }
 
 export function serviciosBuildListingPublicUrl(

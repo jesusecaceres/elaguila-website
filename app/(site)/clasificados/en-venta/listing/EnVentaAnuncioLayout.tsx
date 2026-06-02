@@ -654,7 +654,13 @@ export function EnVentaAnuncioLayout({
           </nav>
         ) : null}
 
-        <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
+        <div
+          className={
+            surface === "en-venta" && !premiumBr
+              ? "grid gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-4"
+              : "grid gap-8 lg:grid-cols-12 lg:gap-10"
+          }
+        >
           <div className="lg:col-span-7">
             <div className={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.galleryFrame : premiumBr ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]" : ""}>
               <EnVentaMediaGallery
@@ -1074,20 +1080,26 @@ export function EnVentaAnuncioLayout({
               </>
             )}
           </div>
+
+          {surface === "en-venta" && !premiumBr ? (
+            <>
+              {evContentStack ? (
+                <div className="lg:col-span-12">
+                  <EnVentaDetailContentStack
+                    lang={lang}
+                    model={evContentStack}
+                    descriptionAnchorId="leonix-listing-description"
+                  />
+                </div>
+              ) : null}
+              <div className="lg:col-span-12">
+                <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
+              </div>
+            </>
+          ) : null}
         </div>
 
-        {surface === "en-venta" && !premiumBr ? (
-          <div className="mt-10 space-y-8">
-            {evContentStack ? (
-              <EnVentaDetailContentStack
-                lang={lang}
-                model={evContentStack}
-                descriptionAnchorId="leonix-listing-description"
-              />
-            ) : null}
-            <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
-          </div>
-        ) : (
+        {surface !== "en-venta" || premiumBr ? (
         <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:gap-10">
           <div className="space-y-6 lg:col-span-8">
             {surface === "bienes-raices" ? <BrLiveFactsStrip detailPairs={listing.detailPairs} lang={lang} /> : null}
@@ -1192,7 +1204,7 @@ export function EnVentaAnuncioLayout({
             <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
           </div>
         </div>
-        )}
+        ) : null}
       </section>
 
       {premiumBr && phoneTel && gateAllowCall ? (

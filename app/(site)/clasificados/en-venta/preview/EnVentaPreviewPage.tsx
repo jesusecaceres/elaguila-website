@@ -341,7 +341,7 @@ export function EnVentaPreviewPage() {
           <div className={`${EN_VENTA_SURFACE.detailViewport} py-6 lg:py-8`}>
             <EnVentaPreviewResultsCardSample state={state} lang={lang} plan={plan} />
             <div className={EN_VENTA_SURFACE.listingCanvas}>
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-8">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-4">
                 <div className="order-1 lg:col-span-7">
                   <EnVentaPreviewGallery
                     orderedImages={vm.gallery.orderedImages}

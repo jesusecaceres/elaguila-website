@@ -34,6 +34,7 @@ import {
   buildGoogleMapsSearchHrefFromPhysical,
   resolveServiciosCredentials,
 } from "./serviciosProfileSanitize";
+import { resolveServiciosWhatsAppHref } from "./serviciosWhatsAppHref";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -93,7 +94,10 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     if (tk) out.tiktok = tk;
     const li = safeExternalWebsiteHref(rawSocial.linkedinUrl);
     if (li) out.linkedin = li;
-    const wa = safeExternalWebsiteHref(rawSocial.whatsappUrl);
+    const wa = resolveServiciosWhatsAppHref({
+      whatsappRaw: rawSocial.whatsappUrl,
+      websiteUrl: contactIn.websiteUrl,
+    });
     if (wa) out.whatsapp = wa;
     const xUrl = safeExternalWebsiteHref(rawSocial.xUrl);
     if (xUrl) out.x = xUrl;

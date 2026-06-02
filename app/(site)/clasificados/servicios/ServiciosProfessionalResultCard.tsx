@@ -149,14 +149,7 @@ export function ServiciosProfessionalResultCard({
     [row.slug],
   );
 
-  const waHrefNormalized = useMemo(() => {
-    const raw = (wa ?? "").trim();
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw;
-    const d = raw.replace(/\D/g, "");
-    if (d.length < 8) return "";
-    return `https://wa.me/${d}`;
-  }, [wa]);
+  const waHrefNormalized = (wa ?? "").trim();
 
   const onCallClick = useCallback(() => {
     const raw = (tel ?? "").replace(/^tel:/i, "").trim();
