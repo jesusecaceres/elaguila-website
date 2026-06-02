@@ -25,6 +25,7 @@ import {
   readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
+import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/publicar/servicios/components/ServiciosJustPublishedSuccessBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     const justPublished = sp.justPublished === "1";
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center gap-4 px-4 py-16 text-center text-[#1E1810]">
-        <h1 className="text-xl font-bold">{lang === "en" ? "Listing under review" : "Anuncio en revisión"}</h1>
+        <h1 className="text-xl font-bold">{lang === "en" ? "Profile under review" : "Perfil en revisión"}</h1>
         <p className="text-sm text-[#5C5346]">
           {justPublished
             ? lang === "en"
@@ -100,49 +101,33 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const wireMerged = mergeServiciosProfileWithApprovedDbReviews({ ...row.profile_json }, dbApproved);
   wireMerged.identity = { ...wireMerged.identity, leonixVerified: row.leonix_verified === true };
   const profile = resolveServiciosProfile(wireMerged, lang);
+  const leonixAdIdFooter = serviciosPublicFooterLeonixAdId(row.leonix_ad_id);
   const justPublished = sp.justPublished === "1";
   const persistence = typeof sp.persistence === "string" ? sp.persistence : "";
-  const publishLines: string[] = [];
-  if (justPublished) {
-    if (persistence === "database") {
-      publishLines.push(
-        lang === "en"
-          ? "Listing saved to Leonix. It should appear in Servicios results and search."
-          : "Listado guardado en Leonix. Debería aparecer en resultados y búsqueda de Servicios.",
-      );
-    } else if (persistence === "dev_workspace") {
-      publishLines.push(
-        lang === "en"
-          ? "Test mode: saved to the local dev file (.servicios-dev-publishes.json). Visible in results while `next dev` runs on this machine."
-          : "Modo prueba: guardado en archivo local de desarrollo (.servicios-dev-publishes.json). Visible en resultados mientras corre `next dev` en esta máquina.",
-      );
-    } else if (persistence === "none") {
-      publishLines.push(
-        lang === "en"
-          ? "Saved in this browser only (no database or dev file). Open this profile from the same browser; configure Supabase or run `next dev` with dev publish for shared discovery."
-          : "Guardado solo en este navegador (sin base ni archivo dev). Abre este perfil desde el mismo navegador; configura Supabase o usa `next dev` con publicación dev para descubrimiento compartido.",
-      );
-    } else {
-      publishLines.push(lang === "en" ? "Your listing was published." : "Tu listado se publicó.");
-    }
-  }
-  if (videoSkipped) {
-    publishLines.push(videoSkippedNotice);
-  }
   const pausedMsg =
     paused
       ? lang === "en"
-        ? "This listing is paused and may not appear in public search results."
-        : "Este anuncio está en pausa y puede no aparecer en los resultados públicos."
+        ? "This profile is paused and may not appear in public search results."
+        : "Este perfil está en pausa y puede no aparecer en los resultados públicos."
       : "";
-  const noticeBanner = [pausedMsg, publishLines.join(" ")].filter(Boolean).join("\n\n") || undefined;
+  const noticeBanner = pausedMsg || undefined;
+  const justPublishedPanel =
+    justPublished && isPublishedLive ? (
+      <ServiciosJustPublishedSuccessBanner
+        lang={lang}
+        slug={slug}
+        leonixAdId={leonixAdIdFooter}
+        persistence={persistence || undefined}
+        videoSkippedNotice={videoSkipped ? videoSkippedNotice : null}
+        discoveryResultsHref={`/clasificados/servicios/resultados?lang=${lang}`}
+      />
+    ) : null;
   const listingShareUrl = await buildServiciosClasificadosListingShareUrl(slug, lang);
   const engagementKey = serviciosEngagementListingKey(row);
   const persistListingEngagement = Boolean(engagementKey.trim());
   const likeKeys = serviciosLikeCountAliasKeys(row);
   const likeCountMap = await fetchServiciosNetLikeCountsByEngagementKeys(likeKeys);
   const publicLikeCount = serviciosNetLikeCountForPublicRow(row, likeCountMap);
-  const leonixAdIdFooter = serviciosPublicFooterLeonixAdId(row.leonix_ad_id);
   const showPublicLeadInquiryForm =
     isPublishedLive &&
     (await shouldShowServiciosPublicLeadInquiryForm(row.profile_json as ServiciosBusinessProfile, row.owner_user_id ?? null));
@@ -158,6 +143,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     profile,
     lang,
     editBackHref: justPublished ? `/clasificados/publicar/servicios?lang=${lang}` : undefined,
+    justPublishedPanel,
     noticeBanner,
     analyticsListingSlug: slug,
     engagementListingId: engagementKey,

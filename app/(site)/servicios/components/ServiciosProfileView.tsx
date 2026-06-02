@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import {
   hasAboutSectionResolved,
@@ -39,6 +40,7 @@ export function ServiciosProfileView({
   editBackHref,
   beforeEditBackNavigate,
   noticeBanner,
+  justPublishedPanel,
   showTopBar = true,
   analyticsListingSlug,
   engagementListingId = null,
@@ -60,6 +62,8 @@ export function ServiciosProfileView({
   beforeEditBackNavigate?: () => void;
   /** Optional system notice (e.g. paused listing) — premium, non-alarming */
   noticeBanner?: string;
+  /** Gate 20F — success panel after publish (`?justPublished=1`). */
+  justPublishedPanel?: ReactNode;
   /** When false, the global Servicios chrome bar is omitted (e.g. Clasificados preview uses an outer wrapper). */
   showTopBar?: boolean;
   /** Public Clasificados slug — enables analytics + tracked outbound CTAs on the action panel. */
@@ -94,6 +98,7 @@ export function ServiciosProfileView({
         className="rounded-2xl border px-3 py-4 shadow-sm sm:px-6 sm:py-6"
         style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
       >
+        {justPublishedPanel ?? null}
         {noticeBanner ? (
           <p
             className="mb-4 rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-center text-sm font-medium text-amber-950 shadow-sm"
@@ -101,17 +106,6 @@ export function ServiciosProfileView({
           >
             {noticeBanner}
           </p>
-        ) : null}
-        {serviciosDiscoveryResultsHref?.trim() ? (
-          <div className="mb-3 flex justify-end sm:mb-4">
-            <Link
-              href={serviciosDiscoveryResultsHref.trim()}
-              className={LX_LINK_ACCENT}
-              data-servicios-results-cta="1"
-            >
-              {lang === "en" ? "View service results" : "Ver resultados de Servicios"}
-            </Link>
-          </div>
         ) : null}
         <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
           {(displayProfile, translateControl) => (

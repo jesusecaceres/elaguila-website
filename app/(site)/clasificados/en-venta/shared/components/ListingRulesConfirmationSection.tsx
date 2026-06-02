@@ -27,17 +27,17 @@ const COPY_SERVICIOS = {
   es: {
     title: "Confirmación antes de publicar",
     desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
-    a: "Confirmo que la información de mi negocio es veraz y actualizada.",
-    b: "Confirmo que las fotos y videos representan mi negocio y el trabajo que ofrezco.",
-    c: "Confirmo que mi anuncio respeta las reglas de la comunidad y del marketplace.",
+    a: "Confirmo que la información de mi servicio o negocio es veraz y actualizada.",
+    b: "Confirmo que las imágenes, videos o documentos que subí pertenecen a mi servicio o negocio.",
+    c: "Confirmo que mi perfil de servicio cumple con las reglas de Leonix y que soy responsable por la información publicada.",
     rulesLink: "Ver reglas de Leonix",
   },
   en: {
     title: "Confirmation before posting",
     desc: "These checks help keep Leonix clear and trustworthy for everyone.",
-    a: "I confirm my business information is accurate and up to date.",
-    b: "I confirm the photos and videos represent my business and the work I offer.",
-    c: "I confirm this listing follows community and marketplace rules.",
+    a: "I confirm that my service or business information is accurate and up to date.",
+    b: "I confirm that the images, videos, or documents I uploaded belong to my service or business.",
+    c: "I confirm that my service profile follows Leonix rules and that I am responsible for the information published.",
     rulesLink: "View Leonix rules",
   },
 } as const;

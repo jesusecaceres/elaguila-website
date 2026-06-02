@@ -11,6 +11,8 @@ export function evaluateServiciosPreviewReadiness(
   lang: "es" | "en",
 ): ServiciosPublishReadinessResult {
   const full = evaluateServiciosPublishReadiness(state, lang);
-  const missing = full.missing.filter((m) => m.id !== "legal_attest");
+  const missing = full.missing.filter(
+    (m) => m.id !== "confirm_accurate" && m.id !== "confirm_photos" && m.id !== "confirm_rules",
+  );
   return { ok: missing.length === 0, missing };
 }

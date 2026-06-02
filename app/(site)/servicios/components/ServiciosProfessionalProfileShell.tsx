@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "./serviciosDesignTokens";
@@ -112,6 +112,8 @@ export type ServiciosProfessionalProfileShellProps = {
   editBackHref?: string;
   beforeEditBackNavigate?: () => void;
   noticeBanner?: string;
+  /** Gate 20F — success panel after publish (`?justPublished=1`). */
+  justPublishedPanel?: ReactNode;
   analyticsListingSlug?: string;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
@@ -131,6 +133,7 @@ export function ServiciosProfessionalProfileShell({
   editBackHref,
   beforeEditBackNavigate,
   noticeBanner,
+  justPublishedPanel,
   analyticsListingSlug,
   engagementListingId = null,
   engagementOwnerUserId = null,
@@ -187,6 +190,7 @@ export function ServiciosProfessionalProfileShell({
           className="overflow-hidden rounded-xl border shadow-sm sm:rounded-2xl"
           style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
         >
+          {justPublishedPanel ?? null}
           {noticeBanner ? (
             <p
               className="border-b border-amber-200/80 bg-amber-50/95 px-4 py-3 text-center text-sm font-medium text-amber-950"
@@ -194,18 +198,6 @@ export function ServiciosProfessionalProfileShell({
             >
               {noticeBanner}
             </p>
-          ) : null}
-
-          {serviciosDiscoveryResultsHref?.trim() ? (
-            <div className="flex justify-end border-b border-[#E8D9C4]/60 px-4 py-2 sm:px-6">
-              <Link
-                href={serviciosDiscoveryResultsHref.trim()}
-                className="text-sm font-bold text-[#7A1E2C] underline-offset-4 hover:underline"
-                data-servicios-results-cta="1"
-              >
-                {lang === "en" ? "View service results" : "Ver resultados de Servicios"}
-              </Link>
-            </div>
           ) : null}
 
           <ServiciosProfessionalHero

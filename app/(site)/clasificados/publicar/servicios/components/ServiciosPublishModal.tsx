@@ -115,7 +115,7 @@ export function ServiciosPublishModal({
           (data.message as string | undefined)?.trim() ||
             (lang === "en"
               ? "Could not save the listing to Leonix. Check Supabase configuration or try again later."
-              : "No se pudo guardar el anuncio en Leonix. Revisa la configuración de Supabase o inténtalo más tarde."),
+              : "No se pudo guardar el perfil en Leonix. Revisa la configuración de Supabase o inténtalo más tarde."),
         );
         setBusy(false);
         return;

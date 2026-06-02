@@ -38,23 +38,34 @@ function hasFeaturedVisual(state: ClasificadosServiciosApplicationState): boolea
 }
 
 const LABELS = {
-  businessType: { es: "Tipo de negocio", en: "Business type" },
-  customBusinessType: { es: "Categoría personalizada (escribe tu servicio)", en: "Custom category (type your service)" },
-  businessName: { es: "Nombre del negocio", en: "Business name" },
-  city: { es: "Ciudad principal", en: "Main city" },
+  businessType: { es: "Completa la categoría o tipo de servicio.", en: "Add your service category or type." },
+  customBusinessType: {
+    es: "Describe tu tipo de servicio (categoría personalizada).",
+    en: "Describe your service type (custom category).",
+  },
+  businessName: { es: "Agrega el nombre de tu negocio o servicio.", en: "Add your business or service name." },
+  city: { es: "Agrega una ciudad, ZIP o área de servicio.", en: "Add a city, ZIP, or service area." },
   contact: {
-    es: "Al menos un método de contacto válido (teléfono, sitio, WhatsApp o correo)",
-    en: "At least one valid contact method (phone, website, WhatsApp, or email)",
+    es: "Agrega al menos un método de contacto válido.",
+    en: "Add at least one valid contact method.",
   },
-  about: { es: "Texto “Sobre el negocio”", en: "“About the business” text" },
-  services: { es: "Al menos un servicio", en: "At least one service" },
+  about: { es: "Agrega el texto “Sobre el negocio”.", en: "Add your “About the business” text." },
+  services: { es: "Agrega al menos un servicio.", en: "Add at least one service." },
   media: {
-    es: "Portada o al menos una imagen destacada en la galería principal",
-    en: "Cover image or at least one image in the main gallery strip",
+    es: "Agrega portada o al menos una imagen destacada en la galería.",
+    en: "Add a cover image or at least one featured gallery image.",
   },
-  legal: {
-    es: "Confirmaciones legales de publicación (exactitud, fotos y reglas)",
-    en: "Legal publish confirmations (accuracy, photos, and community rules)",
+  confirmAccurate: {
+    es: "Confirma que la información del perfil es correcta.",
+    en: "Confirm that your profile information is accurate.",
+  },
+  confirmPhotos: {
+    es: "Confirma que las imágenes, videos o documentos representan tu servicio o negocio.",
+    en: "Confirm that your images, videos, or documents represent your service or business.",
+  },
+  confirmRules: {
+    es: "Confirma que el perfil cumple con las reglas de Leonix.",
+    en: "Confirm that your profile follows Leonix rules.",
   },
 } as const;
 
@@ -67,8 +78,9 @@ const STEP = {
   services: 4,
   /** Contact source fields live on step 2 (index 1) */
   contact: 1,
-  /** Attestations live on final publish step (index 8) */
-  legal_attest: 8,
+  confirm_accurate: 8,
+  confirm_photos: 8,
+  confirm_rules: 8,
 } as const;
 
 type ReadinessId = keyof typeof STEP;
@@ -113,12 +125,14 @@ export function evaluateServiciosPublishReadiness(
   if (!hasFeaturedVisual(normalized)) {
     push("media", L("media"));
   }
-  if (
-    !normalized.confirmListingAccurate ||
-    !normalized.confirmPhotosRepresentBusiness ||
-    !normalized.confirmCommunityRules
-  ) {
-    push("legal_attest", L("legal"));
+  if (!normalized.confirmListingAccurate) {
+    push("confirm_accurate", L("confirmAccurate"));
+  }
+  if (!normalized.confirmPhotosRepresentBusiness) {
+    push("confirm_photos", L("confirmPhotos"));
+  }
+  if (!normalized.confirmCommunityRules) {
+    push("confirm_rules", L("confirmRules"));
   }
 
   return { ok: missing.length === 0, missing };

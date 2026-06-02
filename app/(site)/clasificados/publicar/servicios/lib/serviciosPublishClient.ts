@@ -91,7 +91,7 @@ export async function postServiciosPublishApi(args: {
   devLogTransport(body as unknown as Record<string, unknown>, byteSize);
 
   if (byteSize > MAX_TRANSPORT_BYTES) {
-    const detail = `El cuerpo del anuncio supera 1 MB (${(byteSize / 1024).toFixed(0)} KB). Reduce imágenes o texto.`;
+    const detail = `El envío del perfil supera 1 MB (${(byteSize / 1024).toFixed(0)} KB). Reduce imágenes o texto.`;
     const res = new Response(
       JSON.stringify({
         ok: false,

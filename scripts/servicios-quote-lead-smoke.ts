@@ -23,6 +23,11 @@ import {
   SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP,
   SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_MOBILE,
 } from "../app/(site)/servicios/lib/serviciosLanguageChips";
+import {
+  buildServiciosPublishedProfileHref,
+  buildServiciosSellerDashboardHref,
+  getServiciosPublishSuccessCopy,
+} from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPublishSuccessCopy";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
 import {
   parseEmailFromMailtoHref,
@@ -171,6 +176,15 @@ const mail = "mailto:hi@example.com";
   );
   assert.equal(crowded.visible.length, SERVICIOS_HERO_LANGUAGE_MAX_VISIBLE_DESKTOP);
   assert.ok(crowded.overflowLabel?.includes("idioma"));
+}
+
+// 2f2) Publish success copy — Servicios profile language (Gate 20F)
+{
+  const t = getServiciosPublishSuccessCopy("es", "database");
+  assert.match(t.title, /perfil fue publicado/i);
+  assert.ok(!/varios|artículo|vendido/i.test(`${t.title} ${t.body} ${t.termsReminder}`));
+  assert.equal(buildServiciosPublishedProfileHref("mi-negocio", "es"), "/clasificados/servicios/mi-negocio?lang=es");
+  assert.equal(buildServiciosSellerDashboardHref("es"), "/dashboard/servicios?lang=es");
 }
 
 // 2f) Social row de-dupe — same wa.me as contact number hidden from “Síguenos”
