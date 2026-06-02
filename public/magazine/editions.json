@@ -1,32 +1,24 @@
 {
   "featured": {
     "year": "2026",
-    "month": "february",
+    "month": "june",
     "title": {
-      "es": "Edición Febrero 2026",
-      "en": "February 2026 Edition"
+      "es": "Leonix Media — Junio 2026",
+      "en": "Leonix Media — June 2026"
     },
-    "updated": "20260110-1"
+    "updated": "20260602-1"
   },
 
   "years": {
     "2026": {
       "months": [
         {
-          "month": "february",
+          "month": "june",
           "title": {
-            "es": "Febrero 2026",
-            "en": "February 2026"
+            "es": "Leonix Media — Junio 2026",
+            "en": "Leonix Media — June 2026"
           },
-          "updated": "20260110-1"
-        },
-        {
-          "month": "january",
-          "title": {
-            "es": "Enero 2026",
-            "en": "January 2026"
-          },
-          "updated": "20260105-1"
+          "updated": "20260602-1"
         }
       ]
     }

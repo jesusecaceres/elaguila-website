@@ -20,33 +20,21 @@ type MagazineEdition = {
   flipbookUrl: string | null;
 };
 
-const DEFAULT_FLIPBOOK = "https://online.fliphtml5.com/LEONIXMedia/magazine/";
+const DEFAULT_FLIPBOOK = "https://flip.leonixmedia.com/books/leonix-media-june-2026/";
 
 const CURRENT_EDITION: MagazineEdition = {
-  titleEs: "Edición Febrero 2026",
-  titleEn: "February 2026 Edition",
-  monthEs: "Febrero",
-  monthEn: "February",
+  titleEs: "Leonix Media — Junio 2026",
+  titleEn: "Leonix Media — June 2026",
+  monthEs: "Junio",
+  monthEn: "June",
   year: "2026",
-  monthKey: "february",
-  coverImage: "/magazine/2026/february/cover.png",
-  pdfUrl: "/magazine/2026/february/magazine.pdf",
-  flipbookUrl: null,
+  monthKey: "june",
+  coverImage: "/magazine/2026/june/cover.png",
+  pdfUrl: "/magazine/2026/june/leonix-media-june-2026.pdf",
+  flipbookUrl: "https://flip.leonixmedia.com/books/leonix-media-june-2026/",
 };
 
-const PAST_EDITIONS: MagazineEdition[] = [
-  {
-    titleEs: "Enero 2026",
-    titleEn: "January 2026",
-    monthEs: "Enero",
-    monthEn: "January",
-    year: "2026",
-    monthKey: "january",
-    coverImage: "/magazine/2026/january/cover.png",
-    pdfUrl: "/magazine/2026/january/magazine.pdf",
-    flipbookUrl: null,
-  },
-];
+const PAST_EDITIONS: MagazineEdition[] = [];
 
 const COPY = {
   es: {
@@ -56,9 +44,9 @@ const COPY = {
     heroDescription:
       "Explora la edición actual, consulta publicaciones anteriores y mantente conectado con historias, negocios y oportunidades de nuestra comunidad.",
     currentEyebrow: "EDICIÓN ACTUAL",
-    currentTitle: "Edición Febrero 2026",
+    currentTitle: "Leonix Media — Junio 2026",
     currentBody:
-      "Lee la edición más reciente de Leonix Media y explora contenido de comunidad, cultura, negocios y oportunidades locales.",
+      "La nueva edición de Leonix Media conecta negocios locales, comunidad, cultura, deportes, recetas, inspiración y oportunidades para crecer con nuestra comunidad.",
     readMagazine: "Leer la revista",
     downloadPdf: "Descargar PDF",
     archiveEyebrow: "ARCHIVO",
@@ -86,9 +74,9 @@ const COPY = {
     heroDescription:
       "Explore the current edition, browse past publications, and stay connected with stories, businesses, and opportunities from our community.",
     currentEyebrow: "CURRENT EDITION",
-    currentTitle: "February 2026 Edition",
+    currentTitle: "Leonix Media — June 2026",
     currentBody:
-      "Read the latest Leonix Media edition and explore community, culture, business, and local opportunity content.",
+      "The new Leonix Media edition connects local businesses, community, culture, sports, recipes, inspiration, and opportunities to grow with our community.",
     readMagazine: "Read the magazine",
     downloadPdf: "Download PDF",
     archiveEyebrow: "ARCHIVE",
@@ -218,17 +206,19 @@ function EditionActions({
       >
         {readLabel}
       </button>
-      <a
-        href={edition.pdfUrl}
-        download
-        className={
-          compact
-            ? "inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-4 py-2 text-xs font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:text-sm"
-            : "inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-7 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF]"
-        }
-      >
-        {downloadLabel}
-      </a>
+      {edition.pdfUrl ? (
+        <a
+          href={edition.pdfUrl}
+          download
+          className={
+            compact
+              ? "inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-4 py-2 text-xs font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:text-sm"
+              : "inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-7 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF]"
+          }
+        >
+          {downloadLabel}
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -365,55 +355,56 @@ export default function MagazineHubPage() {
               </div>
             </section>
 
-            {/* 3 — Past editions archive */}
-            <section aria-labelledby="magazine-archive-title">
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{t.archiveEyebrow}</p>
-              <h2
-                id="magazine-archive-title"
-                className="mt-2 font-serif text-2xl font-bold leading-snug text-[#2A4536] sm:text-[1.75rem]"
-              >
-                {t.archiveTitle}
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.archiveIntro}</p>
+            {pastEditions.length > 0 ? (
+              <section aria-labelledby="magazine-archive-title">
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{t.archiveEyebrow}</p>
+                <h2
+                  id="magazine-archive-title"
+                  className="mt-2 font-serif text-2xl font-bold leading-snug text-[#2A4536] sm:text-[1.75rem]"
+                >
+                  {t.archiveTitle}
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.archiveIntro}</p>
 
-              <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:max-w-2xl">
-                {pastEditions.map((edition) => (
-                  <li
-                    key={edition.monthKey}
-                    className="flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)]"
-                  >
-                    <div className="border-b border-[#D6C7AD]/70 bg-[#FAF6EE] p-4">
-                      <div className="mx-auto max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-white p-0.5">
-                        <Image
-                          src={edition.coverImage}
-                          alt={lang === "es" ? edition.titleEs : edition.titleEn}
-                          width={280}
-                          height={360}
-                          className="h-auto w-full object-contain"
-                          sizes="200px"
+                <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:max-w-2xl">
+                  {pastEditions.map((edition) => (
+                    <li
+                      key={edition.monthKey}
+                      className="flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)]"
+                    >
+                      <div className="border-b border-[#D6C7AD]/70 bg-[#FAF6EE] p-4">
+                        <div className="mx-auto max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-white p-0.5">
+                          <Image
+                            src={edition.coverImage}
+                            alt={lang === "es" ? edition.titleEs : edition.titleEn}
+                            width={280}
+                            height={360}
+                            className="h-auto w-full object-contain"
+                            sizes="200px"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-1 flex-col p-5">
+                        <h3 className="text-base font-bold text-[#1F241C]">
+                          {lang === "es" ? edition.monthEs : edition.monthEn} {edition.year}
+                        </h3>
+                        <p className="mt-1 text-sm text-[#3D3428]/80">
+                          {lang === "es" ? edition.titleEs : edition.titleEn}
+                        </p>
+                        <EditionActions
+                          edition={edition}
+                          lang={lang}
+                          readLabel={t.readMagazine}
+                          downloadLabel={t.downloadPdf}
+                          onRead={openFlipbook}
+                          compact
                         />
                       </div>
-                    </div>
-                    <div className="flex flex-1 flex-col p-5">
-                      <h3 className="text-base font-bold text-[#1F241C]">
-                        {lang === "es" ? edition.monthEs : edition.monthEn} {edition.year}
-                      </h3>
-                      <p className="mt-1 text-sm text-[#3D3428]/80">
-                        {lang === "es" ? edition.titleEs : edition.titleEn}
-                      </p>
-                      <EditionActions
-                        edition={edition}
-                        lang={lang}
-                        readLabel={t.readMagazine}
-                        downloadLabel={t.downloadPdf}
-                        onRead={openFlipbook}
-                        compact
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             {/* 4 — Newsletter */}
             <section
