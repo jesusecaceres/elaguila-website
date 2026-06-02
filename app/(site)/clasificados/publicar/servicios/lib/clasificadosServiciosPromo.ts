@@ -12,6 +12,8 @@ export function createEmptyClasificadosPromoRow(): ClasificadosServiciosPromoRow
     link: "",
     imageUrl: "",
     pdfUrl: "",
+    pdfFileName: "",
+    pdfFileSizeBytes: 0,
     primaryAsset: "none",
     qrLater: false,
   };

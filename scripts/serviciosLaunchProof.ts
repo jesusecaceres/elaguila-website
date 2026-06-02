@@ -91,6 +91,8 @@ function baseState(): ClasificadosServiciosApplicationState {
         link: "",
         imageUrl: "",
         pdfUrl: "",
+        pdfFileName: "",
+        pdfFileSizeBytes: 0,
         primaryAsset: "none",
         qrLater: false,
       },

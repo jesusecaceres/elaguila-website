@@ -250,6 +250,8 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
         link: "https://leonix.global/",
         imageUrl: GALLERY_IMGS[0]!,
         pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        pdfFileName: "dummy.pdf",
+        pdfFileSizeBytes: 0,
         primaryAsset: "image",
         qrLater: true,
       },

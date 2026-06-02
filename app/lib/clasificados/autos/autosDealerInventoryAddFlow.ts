@@ -111,6 +111,7 @@ export function prefillDealerListingForInventoryAdd(parent: AutoDealerListing): 
     financeContactWhatsapp: parent.financeContactWhatsapp,
     financeContactEmail: parent.financeContactEmail,
     financeApplicationUrl: parent.financeApplicationUrl,
+    financeContactImageUrl: parent.financeContactImageUrl,
     financeNotes: parent.financeNotes,
     city: parent.city,
     state: parent.state,

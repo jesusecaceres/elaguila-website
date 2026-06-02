@@ -928,7 +928,16 @@ export function AutosNegociosApplication() {
               <AutosNegociosInventoryValueModule
                 lang={lang}
                 parentListingId={inventoryAddContext?.parentListingId ?? null}
-                dealerInventoryGroupId={null}
+                dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
+                flushDraft={flushDraft}
+                boostEditorContext={{
+                  editorPath: pathname ?? "",
+                  editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",
+                  activeStep: ctx.activeStep,
+                  parentListingId: inventoryAddContext?.parentListingId ?? null,
+                  returnToListingId: inventoryAddContext?.returnToListingId ?? null,
+                  dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
+                }}
               />
             ) : null}
             <AutosApplicationReviewStep lane="negocios" listing={listing} copy={t} lang={lang} />

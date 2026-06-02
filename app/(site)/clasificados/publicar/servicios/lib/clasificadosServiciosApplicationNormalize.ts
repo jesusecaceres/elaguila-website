@@ -79,6 +79,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
         link: typeof r.link === "string" ? r.link : "",
         imageUrl: typeof r.imageUrl === "string" ? r.imageUrl : "",
         pdfUrl: typeof r.pdfUrl === "string" ? r.pdfUrl : "",
+        pdfFileName: typeof r.pdfFileName === "string" ? r.pdfFileName : "",
+        pdfFileSizeBytes: typeof r.pdfFileSizeBytes === "number" && r.pdfFileSizeBytes >= 0 ? r.pdfFileSizeBytes : 0,
         primaryAsset: parsePromoPrimary(r.primaryAsset),
         qrLater: r.qrLater === true,
       });
@@ -99,6 +101,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
         link: str("offerLink", ""),
         imageUrl: str("offerImageUrl", ""),
         pdfUrl: str("offerPdfUrl", ""),
+        pdfFileName: "",
+        pdfFileSizeBytes: 0,
         primaryAsset: legacyOfferPrimary,
         qrLater: bool("offerQrLater", false),
       },

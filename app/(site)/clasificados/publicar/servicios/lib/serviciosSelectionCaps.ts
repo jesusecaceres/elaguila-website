@@ -165,6 +165,11 @@ export function enforceServiciosSelectionCaps(
     link: typeof row.link === "string" ? row.link.trim().slice(0, CLASIFICADOS_PROMO_LINK_MAX) : "",
     imageUrl: typeof row.imageUrl === "string" ? row.imageUrl.trim() : "",
     pdfUrl: typeof row.pdfUrl === "string" ? row.pdfUrl.trim() : "",
+    pdfFileName: typeof row.pdfFileName === "string" ? row.pdfFileName.trim().slice(0, 120) : "",
+    pdfFileSizeBytes:
+      typeof row.pdfFileSizeBytes === "number" && row.pdfFileSizeBytes >= 0
+        ? Math.floor(row.pdfFileSizeBytes)
+        : 0,
     primaryAsset: normalizePromoPrimaryAsset(row.primaryAsset),
     qrLater: row.qrLater === true,
   }));

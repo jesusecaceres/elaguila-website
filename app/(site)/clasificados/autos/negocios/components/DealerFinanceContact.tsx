@@ -7,6 +7,7 @@ import {
   hasDealerFinanceContact,
   resolveFinanceApplicationHref,
   resolveFinanceEmailHref,
+  resolveFinanceImageHref,
   resolveFinancePhoneTel,
   resolveFinanceWhatsappHref,
 } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
@@ -35,11 +36,24 @@ export function DealerFinanceContact({
   const wa = resolveFinanceWhatsappHref(data);
   const email = resolveFinanceEmailHref(data);
   const appHref = resolveFinanceApplicationHref(data);
+  const imageHref = resolveFinanceImageHref(data);
 
   return (
     <div className={embedded ? "" : "mt-6 border-t border-[color:var(--lx-nav-border)] pt-6"}>
       <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-text)]">{f.heading}</p>
       <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{f.intro}</p>
+      {imageHref ? (
+        <div className="mt-4 flex justify-center sm:justify-start">
+          <img
+            src={imageHref}
+            alt=""
+            className="max-h-24 max-w-[200px] rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] object-contain p-2"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        </div>
+      ) : null}
       {name || title ? (
         <div className="mt-4 flex gap-3 rounded-xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-nav-hover)]/60 px-3 py-3">
           <FiUser className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />

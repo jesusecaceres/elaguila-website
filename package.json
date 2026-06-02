@@ -66,6 +66,7 @@
     "autos:a5-9-negocio-inventory-completion-audit": "tsx scripts/autos-a5-9-negocio-full-inventory-completion-audit.ts",
     "autos:a5-qa-01-business-hub-parity-audit": "tsx scripts/autos-a5-qa-01-business-hub-parity-audit.ts",
     "autos:a5-qa-02-input-media-draft-audit": "tsx scripts/autos-a5-qa-02-input-media-draft-audit.ts",
+    "autos:a5-qa-03-business-hub-and-boost-pipeline-audit": "tsx scripts/autos-a5-qa-03-business-hub-and-boost-pipeline-audit.ts",
     "autos:a4-0-inventory-sql-audit": "tsx scripts/autos-a4-0-dealer-inventory-sql-contract-audit.ts",
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",

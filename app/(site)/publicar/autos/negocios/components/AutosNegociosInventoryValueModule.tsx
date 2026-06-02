@@ -12,13 +12,13 @@ import {
   autosDealerInventoryValueLead,
   autosDealerInventoryValueTitle,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
-import {
-  autosDealerInventoryUpgradeContactHref,
-  autosDealerInventoryUpgradeCtaLabel,
-} from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
 import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { summarizeDealerInventory, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
+import { AutosNegociosInventoryBoostTrigger } from "./AutosNegociosInventoryBoostTrigger";
+import type { AutosInventoryBoostEditorContext } from "./AutosNegociosInventoryBoostPanel";
+
+const INVENTORY_BOOST_APPROACHING_SLOTS = 2;
 
 export function AutosNegociosInventoryValueModule({
   lang,
@@ -27,6 +27,8 @@ export function AutosNegociosInventoryValueModule({
   atLimit = false,
   showAddCta = true,
   dealerInventoryCounts = null,
+  flushDraft,
+  boostEditorContext,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
@@ -34,6 +36,8 @@ export function AutosNegociosInventoryValueModule({
   atLimit?: boolean;
   showAddCta?: boolean;
   dealerInventoryCounts?: AutosDealerInventoryCount | null;
+  flushDraft?: () => Promise<void>;
+  boostEditorContext?: AutosInventoryBoostEditorContext;
 }) {
   const bullets = autosDealerInventoryValueBullets(lang);
   const [fetchedCounts, setFetchedCounts] = useState<AutosDealerInventoryCount | null>(dealerInventoryCounts);
@@ -67,6 +71,7 @@ export function AutosNegociosInventoryValueModule({
 
   const counts = fetchedCounts ?? summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
   const limitReached = atLimit || !counts.canAddActiveVehicle;
+  const showBoostCta = limitReached || counts.remainingSlots <= INVENTORY_BOOST_APPROACHING_SLOTS;
 
   const addCtx = useMemo(() => {
     if (!parentListingId?.trim()) return null;
@@ -76,6 +81,11 @@ export function AutosNegociosInventoryValueModule({
       dealerInventoryGroupId: dealerInventoryGroupId ?? null,
     };
   }, [parentListingId, dealerInventoryGroupId]);
+
+  const boostContext: AutosInventoryBoostEditorContext = boostEditorContext ?? {
+    editorPath: typeof window !== "undefined" ? window.location.pathname : "",
+    editorSearch: typeof window !== "undefined" ? window.location.search : "",
+  };
 
   return (
     <section className="mt-6 rounded-2xl border border-[color:var(--lx-gold-border)]/50 bg-gradient-to-br from-[color:var(--lx-section)] to-[#FFFCF7] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.12)]">
@@ -98,29 +108,24 @@ export function AutosNegociosInventoryValueModule({
         ))}
       </ul>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {addCtx && showAddCta ? (
+        {addCtx && showAddCta && counts.canAddActiveVehicle ? (
           <AutosNegociosInventoryValueDrawerTrigger
             lang={lang}
             addCtx={addCtx}
             counts={counts}
             label={autosDealerInventoryAddVehicleCta(lang)}
+            flushDraft={flushDraft}
+            boostEditorContext={boostContext}
           />
         ) : null}
-        {limitReached ? (
-          <>
-            <a
-              href={autosDealerInventoryUpgradeContactHref(lang)}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-5 text-sm font-bold text-[color:var(--lx-text)]"
-            >
-              {autosDealerInventoryUpgradeCtaLabel(lang)}
-            </a>
-            <a
-              href={autosDealerInventoryUpgradeContactHref(lang)}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
-            >
-              {autosDealerInventoryAddTenSlotsCta(lang)}
-            </a>
-          </>
+        {showBoostCta ? (
+          <AutosNegociosInventoryBoostTrigger
+            lang={lang}
+            label={autosDealerInventoryAddTenSlotsCta(lang)}
+            flushDraft={flushDraft}
+            editorContext={boostContext}
+            variant={limitReached ? "primary" : "secondary"}
+          />
         ) : null}
       </div>
     </section>

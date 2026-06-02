@@ -2,7 +2,7 @@ import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import {
   INVENTORY_BOOST_ADDITIONAL_VEHICLES,
   INVENTORY_BOOST_MONTHLY_USD,
-  autosDealerInventoryBasePackageLine,
+  autosDealerInventoryBaseMonthlyLine,
   autosDealerInventoryTotalWithBoostLine,
 } from "./autosDealerInventoryCopy";
 import { autosDealerInventoryDrawerUpgradeLine } from "./autosDealerInventoryDrawerCopy";
@@ -12,7 +12,7 @@ export function autosDealerInventoryValueTitle(lang: AutosClassifiedsLang): stri
 }
 
 export function autosDealerInventoryValueLead(lang: AutosClassifiedsLang): string {
-  return autosDealerInventoryBasePackageLine(lang);
+  return autosDealerInventoryBaseMonthlyLine(lang);
 }
 
 export function autosDealerInventoryValueDetail(lang: AutosClassifiedsLang): string {
@@ -52,5 +52,5 @@ export function autosDealerInventoryAddVehicleCta(lang: AutosClassifiedsLang): s
 }
 
 export function autosDealerInventoryAddTenSlotsCta(lang: AutosClassifiedsLang): string {
-  return lang === "es" ? "Agregar 10 espacios" : "Add 10 slots";
+  return lang === "es" ? "Agregar 10 espacios por $129/mes" : "Add 10 slots for $129/month";
 }

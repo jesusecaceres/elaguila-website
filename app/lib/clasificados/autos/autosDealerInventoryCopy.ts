@@ -5,13 +5,12 @@ import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPoli
 /** Autos Negocio base plan (copy only — no payment in this gate). */
 export const BASE_AUTOS_NEGOCIO_MONTHLY_USD = 399;
 
-/** Inventory Boost: +10 active vehicles for $129.99/month (copy only — no Stripe in this gate). */
+/** Inventory Boost: +10 active vehicles for $129/month (copy only — no Stripe in this gate). */
 export const INVENTORY_BOOST_ADDITIONAL_VEHICLES = 10;
-export const INVENTORY_BOOST_MONTHLY_USD = 129.99;
+export const INVENTORY_BOOST_MONTHLY_USD = 129;
 
-/** Base + Inventory Boost monthly total with up to 20 active vehicles. */
-export const AUTOS_NEGOCIO_TOTAL_WITH_BOOST_MONTHLY_USD =
-  BASE_AUTOS_NEGOCIO_MONTHLY_USD + INVENTORY_BOOST_MONTHLY_USD;
+/** Base + Inventory Boost monthly total with up to 20 active vehicles ($399 + $129 = $528). */
+export const AUTOS_NEGOCIO_TOTAL_WITH_BOOST_MONTHLY_USD = 528;
 
 export const AUTOS_NEGOCIO_TOTAL_WITH_BOOST_ACTIVE_LIMIT =
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT + INVENTORY_BOOST_ADDITIONAL_VEHICLES;
@@ -20,6 +19,12 @@ export function autosDealerInventoryBasePackageLine(lang: AutosClassifiedsLang):
   return lang === "es"
     ? `Tu paquete Autos Negocio incluye hasta ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehículos activos.`
     : `Your Autos Negocio package includes up to ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} active vehicles.`;
+}
+
+export function autosDealerInventoryBaseMonthlyLine(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? `Plan Autos Negocio: $${BASE_AUTOS_NEGOCIO_MONTHLY_USD}/mes · ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehículos activos incluidos.`
+    : `Autos Negocio plan: $${BASE_AUTOS_NEGOCIO_MONTHLY_USD}/month · ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} active vehicles included.`;
 }
 
 export function autosDealerInventoryUpgradePitch(lang: AutosClassifiedsLang): string {

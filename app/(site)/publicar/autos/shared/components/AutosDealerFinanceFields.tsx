@@ -85,6 +85,16 @@ export function AutosDealerFinanceFields({
           />
         </div>
         <div className="sm:col-span-2">
+          <label className={LABEL}>{f.imageUrl}</label>
+          <input
+            className={INPUT}
+            placeholder={copy.app.placeholders.https}
+            value={listing.financeContactImageUrl ?? ""}
+            onChange={(e) => setListingPatch({ financeContactImageUrl: autosDraftUrlValue(e.target.value) })}
+          />
+          <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{f.imageHelper}</p>
+        </div>
+        <div className="sm:col-span-2">
           <label className={LABEL}>{f.notes}</label>
           <textarea
             className={`${INPUT} min-h-[80px]`}

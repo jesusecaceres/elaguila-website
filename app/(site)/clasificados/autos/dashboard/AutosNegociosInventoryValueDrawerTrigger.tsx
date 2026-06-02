@@ -5,6 +5,7 @@ import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/aut
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { AutosNegociosInventoryValueDrawer } from "./AutosNegociosInventoryValueDrawer";
+import type { AutosInventoryBoostEditorContext } from "@/app/publicar/autos/negocios/components/AutosNegociosInventoryBoostPanel";
 
 type Props = {
   lang: AutosNegociosLang;
@@ -13,6 +14,8 @@ type Props = {
   label: string;
   className?: string;
   variant?: "primary" | "secondary";
+  flushDraft?: () => Promise<void>;
+  boostEditorContext?: AutosInventoryBoostEditorContext;
 };
 
 export function AutosNegociosInventoryValueDrawerTrigger({
@@ -22,6 +25,8 @@ export function AutosNegociosInventoryValueDrawerTrigger({
   label,
   className = "",
   variant = "primary",
+  flushDraft,
+  boostEditorContext,
 }: Props) {
   const [open, setOpen] = useState(false);
   const base =
@@ -40,6 +45,8 @@ export function AutosNegociosInventoryValueDrawerTrigger({
         lang={lang}
         addCtx={addCtx}
         counts={counts}
+        flushDraft={flushDraft}
+        boostEditorContext={boostEditorContext}
       />
     </>
   );

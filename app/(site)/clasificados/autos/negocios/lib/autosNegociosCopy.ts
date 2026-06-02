@@ -97,6 +97,8 @@ export type AutosNegociosCopy = {
       whatsapp: string;
       email: string;
       preApprovalUrl: string;
+      imageUrl: string;
+      imageHelper: string;
       notes: string;
       disclaimer: string;
     };
@@ -431,6 +433,9 @@ const ES: AutosNegociosCopy = {
       whatsapp: "WhatsApp",
       email: "Correo",
       preApprovalUrl: "Enlace para pre-aprobación",
+      imageUrl: "Imagen o logo de financiamiento",
+      imageHelper:
+        "Opcional. Puedes agregar una foto del asesor, logo del banco, cooperativa de crédito o área de financiamiento.",
       notes: "Notas de financiamiento",
       disclaimer:
         "Leonix no aprueba ni garantiza financiamiento. Los datos son proporcionados por el concesionario.",
@@ -831,6 +836,9 @@ const EN: AutosNegociosCopy = {
       whatsapp: "WhatsApp",
       email: "Email",
       preApprovalUrl: "Pre-approval link",
+      imageUrl: "Finance image or logo",
+      imageHelper:
+        "Optional. Add an advisor photo, bank logo, credit-union logo, or finance department image.",
       notes: "Financing notes",
       disclaimer: "Leonix does not approve or guarantee financing. Information is provided by the dealership.",
     },

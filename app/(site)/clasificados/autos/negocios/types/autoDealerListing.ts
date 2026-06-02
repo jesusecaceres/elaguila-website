@@ -205,6 +205,8 @@ export type AutoDealerListing = {
   financeContactWhatsapp?: string;
   financeContactEmail?: string;
   financeApplicationUrl?: string;
+  /** Optional https image URL — advisor headshot or bank/finance logo (Negocios only). */
+  financeContactImageUrl?: string;
   financeNotes?: string;
   /** Engagement snapshot for preview / live analytics strip. */
   listingAnalytics?: AutosListingAnalyticsSnapshot;

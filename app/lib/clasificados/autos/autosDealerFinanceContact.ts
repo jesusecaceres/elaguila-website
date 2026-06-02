@@ -15,8 +15,13 @@ export function hasDealerFinanceContact(data: AutoDealerListing): boolean {
     nonEmpty(data.financeContactWhatsapp) ||
     nonEmpty(data.financeContactEmail) ||
     nonEmpty(data.financeApplicationUrl) ||
+    nonEmpty(data.financeContactImageUrl) ||
     nonEmpty(data.financeNotes)
   );
+}
+
+export function resolveFinanceImageHref(data: AutoDealerListing): string | undefined {
+  return safeExternalHref(data.financeContactImageUrl ?? undefined);
 }
 
 export function resolveFinanceApplicationHref(data: AutoDealerListing): string | undefined {

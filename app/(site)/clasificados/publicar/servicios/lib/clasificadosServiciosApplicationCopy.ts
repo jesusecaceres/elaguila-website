@@ -135,6 +135,8 @@ export type ClasificadosServiciosCopy = {
     offerLinkHelp: string;
     offerImageHelp: string;
     offerPdfHelp: string;
+    promoPdfUploadedTitle: string;
+    promoPdfView: string;
     dropzone: string;
     upload: string;
     urlFallback: string;
@@ -474,6 +476,8 @@ const es: ClasificadosServiciosCopy = {
     offerLinkHelp: "Opcional. Úsalo si la promoción vive en tu web, formulario o calendario.",
     offerImageHelp: "Opcional. Sube un gráfico o foto si ya tienes material promocional.",
     offerPdfHelp: "Opcional. PDF o volante si quieres que el cliente pueda abrir un archivo.",
+    promoPdfUploadedTitle: "PDF cargado",
+    promoPdfView: "Ver PDF",
     moveUp: "Arriba",
     moveDown: "Abajo",
     featuredToggle: "Principal en anuncio",
@@ -756,6 +760,8 @@ const en: ClasificadosServiciosCopy = {
     offerLinkHelp: "Optional. Use when the promo lives on your site, booking page, or form.",
     offerImageHelp: "Optional. Upload a graphic if you already have promo artwork.",
     offerPdfHelp: "Optional. Add a PDF or flyer if clients should open a file.",
+    promoPdfUploadedTitle: "PDF uploaded",
+    promoPdfView: "View PDF",
     moveUp: "Up",
     moveDown: "Down",
     featuredToggle: "Featured on listing",

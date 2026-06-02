@@ -71,7 +71,11 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import { isValidEmail } from "../lib/leonixContactCtaPriority";
+import {
+  formatPromoPdfFileSize,
+  isPromoPdfPreviewHref,
+  promoPdfDisplayFileName,
+} from "../lib/serviciosPromoPdfUi";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
@@ -108,6 +112,7 @@ import {
   createEmptyClasificadosPromoRow,
 } from "../lib/clasificadosServiciosPromo";
 import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
+import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import {
   MAX_SERVICIOS_CERTIFICATIONS,
   SERVICIOS_CERTIFICATION_LABEL_MAX,
@@ -2706,7 +2711,12 @@ export function ClasificadosServiciosApplication() {
                       setState((s) => {
                         const next = [...s.promotions];
                         const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                        next[i] = { ...cur, pdfUrl: url };
+                        next[i] = {
+                          ...cur,
+                          pdfUrl: url,
+                          pdfFileName: f.name,
+                          pdfFileSizeBytes: f.size,
+                        };
                         return enforceServiciosSelectionCaps({ ...s, promotions: next });
                       }),
                     );
@@ -2718,28 +2728,60 @@ export function ClasificadosServiciosApplication() {
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
                     onClick={() => promoPdfInputRefs.current[i]?.click()}
                   >
-                    {copy.labels.upload}
+                    {row.pdfUrl ? copy.labels.replace : copy.labels.upload}
                   </button>
                   {row.pdfUrl ? (
-                    <>
-                      <span className="inline-flex items-center rounded-full bg-[#3B66AD]/10 px-2.5 py-1 text-[11px] font-semibold text-[#2d528d]">
-                        PDF
-                      </span>
-                      <button
-                        type="button"
-                        className="min-h-[44px] text-xs font-semibold text-red-700 underline"
-                        onClick={() =>
-                          setState((s) => {
-                            const next = [...s.promotions];
-                            const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                            next[i] = { ...cur, pdfUrl: "" };
-                            return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                          })
-                        }
-                      >
-                        {copy.labels.remove}
-                      </button>
-                    </>
+                    <div className="mt-1 w-full max-w-md rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] p-3">
+                      <p className="text-xs font-bold text-[#3D2C12]">{copy.labels.promoPdfUploadedTitle}</p>
+                      <p className="mt-1 break-all text-sm font-medium text-[#2d528d]">
+                        {promoPdfDisplayFileName(row, lang)}
+                      </p>
+                      {row.pdfFileSizeBytes > 0 ? (
+                        <p className="mt-0.5 text-[11px] text-[#6b5c42]">
+                          {formatPromoPdfFileSize(row.pdfFileSizeBytes, lang)}
+                        </p>
+                      ) : null}
+                      <div className="mt-2.5 flex flex-wrap gap-2">
+                        {isPromoPdfPreviewHref(row.pdfUrl) ? (
+                          <a
+                            href={row.pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-[44px] items-center rounded-lg border border-[#3B66AD]/35 bg-[#3B66AD]/10 px-3 py-2 text-xs font-semibold text-[#1e3a5f]"
+                          >
+                            {copy.labels.promoPdfView}
+                          </a>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="inline-flex min-h-[44px] items-center rounded-lg border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
+                          onClick={() => promoPdfInputRefs.current[i]?.click()}
+                        >
+                          {copy.labels.replace}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex min-h-[44px] items-center rounded-lg px-3 py-2 text-xs font-semibold text-red-700 underline"
+                          onClick={() => {
+                            const input = promoPdfInputRefs.current[i];
+                            if (input) input.value = "";
+                            setState((s) => {
+                              const next = [...s.promotions];
+                              const cur = next[i] ?? createEmptyClasificadosPromoRow();
+                              next[i] = {
+                                ...cur,
+                                pdfUrl: "",
+                                pdfFileName: "",
+                                pdfFileSizeBytes: 0,
+                              };
+                              return enforceServiciosSelectionCaps({ ...s, promotions: next });
+                            });
+                          }}
+                        >
+                          {copy.labels.remove}
+                        </button>
+                      </div>
+                    </div>
                   ) : null}
                 </div>
 

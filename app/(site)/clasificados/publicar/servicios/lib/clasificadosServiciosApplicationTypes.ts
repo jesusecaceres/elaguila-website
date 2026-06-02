@@ -86,6 +86,10 @@ export type ClasificadosServiciosPromoRow = {
   link: string;
   imageUrl: string;
   pdfUrl: string;
+  /** Original filename when uploaded from device (display only). */
+  pdfFileName: string;
+  /** Byte size when uploaded from device (display only). */
+  pdfFileSizeBytes: number;
   primaryAsset: "none" | "link" | "image" | "pdf";
   qrLater: boolean;
 };
