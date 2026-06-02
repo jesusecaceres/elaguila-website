@@ -2,7 +2,7 @@ import type { TiendaOrderOpsStatus } from "@/app/lib/tienda/tiendaOrderOperation
 import { tiendaOrderStatusLabel } from "@/app/lib/tienda/tiendaOrderOperations";
 
 const ACCENT: Record<TiendaOrderOpsStatus, string> = {
-  new: "bg-sky-100 text-sky-900 border-sky-200",
+  new: "bg-amber-100 text-amber-950 border-amber-200",
   reviewing: "bg-amber-100 text-amber-950 border-amber-200",
   ready_to_fulfill: "bg-emerald-100 text-emerald-950 border-emerald-200",
   ordered: "bg-violet-100 text-violet-950 border-violet-200",

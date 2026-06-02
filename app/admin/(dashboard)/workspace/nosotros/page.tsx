@@ -4,20 +4,20 @@ import { adminCardBase, adminBtnSecondary } from "../../../_components/adminThem
 
 const TOPICS = [
   {
-    title: "Historia y posicionamiento",
-    body: "Titular, lead, misión, visión y valores — todo se guarda en el editor y se muestra en `/about`.",
+    title: "Story & positioning",
+    body: "Headline, lead, mission, vision, and values — all saved in the editor and shown on `/about`.",
   },
   {
-    title: "Equipo y liderazgo",
-    body: "Galería de equipo o biografías extensas aún no tienen campos dedicados; el texto largo puede ir en lead/valores hasta que exista sección propia.",
+    title: "Team & leadership",
+    body: "Team gallery or long bios do not have dedicated fields yet; long copy can go in lead/values until a dedicated section exists.",
   },
   {
-    title: "Medios y credibilidad",
-    body: "Imagen opcional (URL) en el editor; logos de partners en bloque adicional siguen siendo decisión de diseño (no hay carrusel persistido aún).",
+    title: "Media & credibility",
+    body: "Optional image (URL) in the editor; partner logos in an extra block are still a design decision (no persisted carousel yet).",
   },
   {
-    title: "Llamadas a la acción",
-    body: "Dos CTAs con URL (p. ej. contacto y tienda). Alinea mensajes con Contacto y con la barra global si aplica.",
+    title: "Calls to action",
+    body: "Two CTAs with URL (e.g. contact and tienda). Align messaging with Contacto and the global bar when applicable.",
   },
 ] as const;
 
@@ -25,23 +25,23 @@ export default function AdminWorkspaceNosotrosPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Nosotros — quiénes somos"
-        subtitle="La página pública es `/about` (textos bilingües desde la base). El mapa de bloques de abajo es guía de capacitación; el editor real está en Contenido."
+        title="Nosotros — who we are"
+        subtitle="The public page is `/about` (bilingual copy from the database). The block map below is training guidance; the real editor is under Content."
         eyebrow="Workspace · Nosotros"
-        helperText="Usuarios, pagos y soporte siguen en la barra lateral global. No uses esta página para pedidos de Tienda."
+        helperText="Users, payments, and support stay in the global sidebar. Do not use this page for Tienda orders."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
-        <strong>Contenido reservado (BD):</strong>{" "}
+        <strong>Reserved content (DB):</strong>{" "}
         <Link href="/admin/workspace/nosotros/content" className={`${adminBtnSecondary} ml-2 inline-flex`}>
-          Editor de contenido (`/about`)
+          Content editor (`/about`)
         </Link>
       </div>
 
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">
-        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página pública `/about`, no operaciones globales. Para datos transversales del sitio, usa{" "}
+        <strong className="text-[#1E1810]">What this workspace controls:</strong> the public `/about` page, not global operations. For cross-site data, use{" "}
         <Link href="/admin/site-settings" className="font-bold text-[#6B5B2E] underline">
-          ajustes globales
+          global settings
         </Link>
         .
       </p>
@@ -57,11 +57,11 @@ export default function AdminWorkspaceNosotrosPage() {
 
       <div className={`${adminCardBase} mt-8 border-[#7A9E6F]/30 bg-[#F8FCF6] p-4`}>
         <p className="text-sm text-[#2C4A22]">
-          <strong>Coordinación:</strong> revisa el workspace{" "}
+          <strong>Coordination:</strong> review the{" "}
           <Link href="/admin/workspace/contacto" className="font-bold underline">
             Contacto
           </Link>{" "}
-          para que teléfonos, horarios y formularios no contradigan los botones de esta página.
+          workspace so phones, hours, and forms do not contradict buttons on this page.
         </p>
       </div>
     </div>

@@ -19,26 +19,26 @@ export default async function AdminNosotrosContentPage(props: { searchParams?: P
     <div className="max-w-3xl space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Nosotros"
-        title="Contenido público — `/about`"
-        subtitle="Esta copia alimenta la página “Sobre…” en el sitio. CTAs usan rutas internas salvo que indiques otra URL."
-        helperText="Vacío = texto base del código. Imagen opcional (https o /ruta)."
+        title="Public content — `/about`"
+        subtitle="This copy feeds the “About…” page on the site. CTAs use internal routes unless you specify another URL."
+        helperText="Empty = base text from code. Optional image (https or /path)."
         rightSlot={
           <Link href="/admin/workspace/nosotros" className={adminBtnSecondary}>
-            ← Vista workspace
+            ← Workspace view
           </Link>
         }
       />
 
       {sp.saved === "1" ? (
-        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Guardado.</div>
+        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Saved.</div>
       ) : null}
 
-      <p className="text-xs text-[#7A7164]">Última actualización: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
+      <p className="text-xs text-[#7A7164]">Last updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
 
       <p className="text-xs text-[#5C5346]">
-        Vista previa ES: <strong>{m.es.heroTitle}</strong> —{" "}
+        ES preview: <strong>{m.es.heroTitle}</strong> —{" "}
         <a href="/about?lang=es" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
-          Abrir /about
+          Open /about
         </a>
       </p>
 
@@ -57,14 +57,14 @@ export default async function AdminNosotrosContentPage(props: { searchParams?: P
           <textarea name="lead_en" className={adminInputClass} rows={4} defaultValue={patch.lead?.en ?? ""} />
         </div>
 
-        <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Imagen (opcional)</h2>
-        <Field label="URL imagen" name="media_src" defaultValue={patch.mediaImageSrc ?? ""} />
+        <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Image (optional)</h2>
+        <Field label="Image URL" name="media_src" defaultValue={patch.mediaImageSrc ?? ""} />
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Alt ES" name="media_alt_es" defaultValue={patch.mediaImageAlt?.es ?? ""} />
           <Field label="Alt EN" name="media_alt_en" defaultValue={patch.mediaImageAlt?.en ?? ""} />
         </div>
 
-        <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Misión / visión / valores</h2>
+        <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Mission / vision / values</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="text-xs font-semibold text-[#5C5346]">Misión ES</label>
@@ -84,7 +84,7 @@ export default async function AdminNosotrosContentPage(props: { searchParams?: P
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Valores ES (puede ser varias líneas)</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Valores ES (multiple lines OK)</label>
           <textarea name="values_es" className={adminInputClass} rows={4} defaultValue={patch.values?.es ?? ""} />
         </div>
         <div>
@@ -92,41 +92,41 @@ export default async function AdminNosotrosContentPage(props: { searchParams?: P
           <textarea name="values_en" className={adminInputClass} rows={4} defaultValue={patch.values?.en ?? ""} />
         </div>
 
-        <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Botones</h2>
+        <h2 className="pt-4 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Buttons</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="CTA primario ES" name="cta_primary_es" defaultValue={patch.ctaPrimary?.es ?? ""} />
           <Field label="CTA primario EN" name="cta_primary_en" defaultValue={patch.ctaPrimary?.en ?? ""} />
           <Field label="CTA secundario ES" name="cta_secondary_es" defaultValue={patch.ctaSecondary?.es ?? ""} />
           <Field label="CTA secundario EN" name="cta_secondary_en" defaultValue={patch.ctaSecondary?.en ?? ""} />
-          <Field label="URL CTA primario" name="cta_primary_href" defaultValue={patch.ctaPrimaryHref ?? "/contacto"} />
-          <Field label="URL CTA secundario" name="cta_secondary_href" defaultValue={patch.ctaSecondaryHref ?? "/tienda"} />
+          <Field label="Primary CTA URL" name="cta_primary_href" defaultValue={patch.ctaPrimaryHref ?? "/contacto"} />
+          <Field label="Secondary CTA URL" name="cta_secondary_href" defaultValue={patch.ctaSecondaryHref ?? "/tienda"} />
         </div>
 
         <div className="space-y-2">
           <AdminCtaDestinationHint
-            label="CTA primario"
+            label="Primary CTA"
             hrefStored={patch.ctaPrimaryHref ?? ""}
-            effectiveLine={`Resuelto a «${m.ctaPrimaryHref}» en /about. Rutas internas reciben ?lang= según el visitante (salvo https o ?lang= ya en la URL).`}
+            effectiveLine={`Resolves to «${m.ctaPrimaryHref}» on /about. Internal routes get ?lang= from the visitor (except https or ?lang= already in the URL).`}
             whenBlank={
               !patch.ctaPrimaryHref?.trim()
-                ? "Si el campo queda vacío al guardar, mergeNosotrosCopy sigue aplicando /contacto desde el código base."
+                ? "If the field is empty on save, mergeNosotrosCopy still applies /contacto from base code."
                 : undefined
             }
           />
           <AdminCtaDestinationHint
-            label="CTA secundario"
+            label="Secondary CTA"
             hrefStored={patch.ctaSecondaryHref ?? ""}
-            effectiveLine={`Resuelto a «${m.ctaSecondaryHref}» en /about (mismas reglas de ?lang= que el primario).`}
+            effectiveLine={`Resolves to «${m.ctaSecondaryHref}» on /about (same ?lang= rules as primary).`}
             whenBlank={
               !patch.ctaSecondaryHref?.trim()
-                ? "Si el campo queda vacío al guardar, el merge aplica /tienda por defecto."
+                ? "If the field is empty on save, merge defaults to /tienda."
                 : undefined
             }
           />
         </div>
 
         <button type="submit" className={adminBtnPrimary}>
-          Guardar
+          Save
         </button>
       </form>
     </div>

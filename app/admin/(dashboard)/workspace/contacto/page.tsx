@@ -4,16 +4,16 @@ import { adminCardBase } from "../../../_components/adminTheme";
 
 const TOPICS = [
   {
-    title: "Canales y horario",
-    body: "Teléfono, correo, horario y dirección viven en el editor persistente (Supabase). No hay campos duplicados en esta página de resumen.",
+    title: "Channels & hours",
+    body: "Phone, email, hours, and address live in the persistent editor (Supabase). No duplicate fields on this summary page.",
   },
   {
-    title: "Mapa y avisos",
-    body: "URL de mapa y aviso superior opcional — también en el editor. El envío del formulario sigue el mismo componente global (lógica de API no se edita aquí).",
+    title: "Map & notices",
+    body: "Map URL and optional top notice — also in the editor. Form submission still uses the global component (API logic is not edited here).",
   },
   {
-    title: "Tarjeta Tienda",
-    body: "Título, cuerpo y CTA del recuadro que enlaza a ayuda Tienda — editables en el editor; vacío = texto por defecto del código.",
+    title: "Tienda card",
+    body: "Title, body, and CTA for the block linking to Tienda help — editable in the editor; empty = code defaults.",
   },
 ] as const;
 
@@ -21,29 +21,29 @@ export default function AdminWorkspaceContactoPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Contacto — cómo te encuentran"
-        subtitle="El único formulario guardado para `/contacto` está en el editor enlazado abajo. Esta tarjeta resume alcance; no hay campos guardados aquí."
+        title="Contact — how people reach you"
+        subtitle="The only saved form for `/contacto` is in the linked editor below. This card summarizes scope; there are no saved fields here."
         eyebrow="Workspace · Contacto"
-        helperText="Pedidos de Tienda (inbox) siguen en Pedidos globales. Incidencias internas en Support. Coordinar CTAs con Nosotros (`/about`)."
+        helperText="Tienda orders (inbox) stay in global Orders. Internal issues in Support. Coordinate CTAs with Nosotros (`/about`)."
       />
 
       <div className={`${adminCardBase} mb-6 border-[#7A9E6F]/35 bg-[#F8FCF6] p-4 text-sm text-[#2C4A22]`}>
-        <strong>Editor persistente (BD):</strong>{" "}
+        <strong>Persistent editor (DB):</strong>{" "}
         <Link href="/admin/workspace/contacto/content" className="font-bold underline">
-          Abrir formulario de `/contacto`
+          Open `/contacto` form
         </Link>
       </div>
 
       <p className="mb-6 max-w-3xl text-sm text-[#5C5346]">
-        <strong className="text-[#1E1810]">Qué controla este workspace:</strong> la página pública Contacto y el bloque de texto alrededor del formulario. Para{" "}
+        <strong className="text-[#1E1810]">What this workspace controls:</strong> the public Contact page and copy around the form. For{" "}
         <Link href="/admin/support" className="font-bold text-[#6B5B2E] underline">
           Support
         </Link>{" "}
-        (cola operativa) y{" "}
+        (ops queue) and{" "}
         <Link href="/admin/workspace/nosotros" className="font-bold text-[#6B5B2E] underline">
           Nosotros
         </Link>{" "}
-        usa los enlaces de la barra lateral.
+        use the sidebar links.
       </p>
 
       <div className="grid gap-4">

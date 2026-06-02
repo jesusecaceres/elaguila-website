@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { adminActionProofErr, adminActionProofOk } from "./adminTheme";
 
 /**
  * Short-lived toast-style feedback for real server redirects (?saved=1, ?error=1, etc.).
@@ -24,27 +25,27 @@ export function AdminQueryFlash() {
 
   useEffect(() => {
     if (saved === "1") {
-      setOpen({ tone: "ok", message: "Guardado correctamente." });
+      setOpen({ tone: "ok", message: "Saved successfully." });
     } else if (registrySaved === "1") {
-      setOpen({ tone: "ok", message: "Registro de revista actualizado." });
+      setOpen({ tone: "ok", message: "Magazine registry updated." });
     } else if (issueSaved === "1") {
-      setOpen({ tone: "ok", message: "Número de revista guardado (Supabase)." });
+      setOpen({ tone: "ok", message: "Magazine issue saved (Supabase)." });
     } else if (catSaved === "1") {
-      setOpen({ tone: "ok", message: "Postura de categoría guardada en Supabase." });
+      setOpen({ tone: "ok", message: "Category posture saved in Supabase." });
     } else if (inviteSaved === "1") {
-      setOpen({ tone: "ok", message: "Intención de invitación guardada en Supabase (Auth por separado)." });
+      setOpen({ tone: "ok", message: "Invite intent saved in Supabase (Auth is separate)." });
     } else if (registryError === "1") {
-      setOpen({ tone: "err", message: "No se pudo guardar el borrador (falta título o error de servidor)." });
+      setOpen({ tone: "err", message: "Could not save draft (missing title or server error)." });
     } else if (issueError === "1") {
-      setOpen({ tone: "err", message: "No se pudo completar la acción del número de revista." });
+      setOpen({ tone: "err", message: "Could not complete the magazine issue action." });
     } else if (catError === "1") {
-      setOpen({ tone: "err", message: "No se pudo guardar la categoría (datos inválidos o error de servidor)." });
+      setOpen({ tone: "err", message: "Could not save category (invalid data or server error)." });
     } else if (inviteError === "duplicate") {
-      setOpen({ tone: "err", message: "Ese correo ya tiene una invitación pendiente." });
+      setOpen({ tone: "err", message: "That email already has a pending invite." });
     } else if (inviteError === "1") {
-      setOpen({ tone: "err", message: "No se pudo guardar la invitación (datos o permisos)." });
+      setOpen({ tone: "err", message: "Could not save invite (data or permissions)." });
     } else if (err === "1") {
-      setOpen({ tone: "err", message: "La acción falló. Revisa permisos o vuelve a intentar." });
+      setOpen({ tone: "err", message: "Action failed. Check permissions or try again." });
     } else {
       setOpen(null);
       return;
@@ -55,23 +56,20 @@ export function AdminQueryFlash() {
 
   if (!open) return null;
 
-  const bg =
-    open.tone === "ok"
-      ? "border-emerald-200 bg-emerald-950 text-emerald-50"
-      : "border-rose-300 bg-rose-950 text-rose-50";
+  const bg = open.tone === "ok" ? adminActionProofOk : adminActionProofErr;
 
   return (
     <div
-      className={`pointer-events-none fixed bottom-4 left-1/2 z-[200] w-[min(100%,22rem)] -translate-x-1/2 px-3 sm:left-auto sm:right-6 sm:translate-x-0`}
+      className="pointer-events-none fixed bottom-4 left-1/2 z-[200] w-[min(100%,22rem)] -translate-x-1/2 px-3 sm:left-auto sm:right-6 sm:translate-x-0"
       role="status"
     >
-      <div className={`pointer-events-auto rounded-2xl border px-4 py-3 text-sm font-semibold shadow-lg ${bg}`}>
+      <div className={`pointer-events-auto shadow-lg ${bg}`}>
         <div className="flex items-start justify-between gap-3">
           <span>{open.message}</span>
           <button
             type="button"
             onClick={() => setOpen(null)}
-            className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-bold opacity-80 hover:opacity-100"
+            className="shrink-0 rounded-md px-2 py-0.5 text-xs font-bold opacity-80 hover:opacity-100"
           >
             ✕
           </button>

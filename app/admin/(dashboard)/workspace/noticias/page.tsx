@@ -10,49 +10,49 @@ export default function AdminWorkspaceNoticiasPage() {
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-          Shell persistido
+          Persisted shell
         </span>
-        <span className={adminPartialBadgeClass}>Feed RSS · no CMS</span>
+        <span className={adminPartialBadgeClass}>RSS feed · not a CMS</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Noticias"
         title="Noticias"
-        subtitle="Dueño de `/noticias`. El marco (título, subtítulo, etiqueta de última hora) se guarda en Supabase; los artículos siguen viniendo del API RSS y categorías de la plantilla."
-        helperText="Para chips que enlazan a esta sección desde la portada, usa Home → contenido."
+        subtitle="Owns `/noticias`. Frame (title, subtitle, breaking label) is stored in Supabase; articles still come from the RSS API and template categories."
+        helperText="For chips linking to this section from the homepage, use Home → content."
       />
 
       <AdminSectionOwnershipCallout
         sectionTitle="Noticias"
         publicPath="/noticias"
-        sourceOfTruth="Shell: `site_section_content.noticias_page`. Contenido dinámico: `/api/rss` + plantilla React (categorías y tarjetas)."
+        sourceOfTruth="Shell: `site_section_content.noticias_page`. Dynamic content: `/api/rss` + React template (categories and cards)."
         siteSectionKey="noticias_page"
         adminEditors={[
-          { label: "Editor shell (título / subtítulo / última hora)", href: "/admin/workspace/noticias/content" },
-          { label: "Home — contenido (chips / enlaces manuales)", href: "/admin/workspace/home/content" },
-          { label: "Ajustes globales del sitio", href: "/admin/site-settings" },
+          { label: "Shell editor (title / subtitle / breaking)", href: "/admin/workspace/noticias/content" },
+          { label: "Home — content (chips / manual links)", href: "/admin/workspace/home/content" },
+          { label: "Global site settings", href: "/admin/site-settings" },
           { label: "Customer ops", href: "/admin/ops" },
         ]}
         notYet={[
-          "Modelo editorial completo: artículos propios en Postgres, markdown en git, o integración externa.",
-          "Edición de taxonomía de pestañas (Últimas, Deportes…) sin deploy.",
-          "Siguiente paso mínimo viable: tabla `news_articles` + campos slug/body/published_at + lectura en `/noticias` con fallback RSS.",
+          "Full editorial model: owned articles in Postgres, markdown in git, or external integration.",
+          "Editing tab taxonomy (Latest, Sports…) without deploy.",
+          "Next minimal step: `news_articles` table + slug/body/published_at + `/noticias` read with RSS fallback.",
         ]}
       />
 
       <div className={`${adminCardBase} p-6`}>
         <p className="text-sm text-[#5C5346]">
-          <Link href="/noticias" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer" title="Vista pública">
-            Abrir /noticias en el sitio
+          <Link href="/noticias" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer" title="Public view">
+            Open /noticias on site
           </Link>
         </p>
         <p className="mt-3 text-xs text-[#7A7164]">
           <Link href="/admin/workspace/noticias/content" className="font-bold text-[#6B5B2E] underline">
-            Ir al editor de shell →
+            Go to shell editor →
           </Link>
         </p>
       </div>
-      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Volver al mapa de secciones">
-        ← Resumen de workspaces
+      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Back to section map">
+        ← Workspace overview
       </Link>
     </div>
   );

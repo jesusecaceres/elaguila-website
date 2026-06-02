@@ -18,7 +18,7 @@ function statusChip(status: string) {
   if (s === "pending" || s === "unpaid" || s === "requires_action") return "bg-amber-100 text-amber-900";
   if (s === "failed") return "bg-red-100 text-red-900";
   if (s === "canceled") return "bg-stone-100 text-stone-800";
-  if (s === "refunded") return "bg-sky-100 text-sky-900";
+  if (s === "refunded") return "bg-amber-100 text-amber-900";
   if (s === "disputed") return "bg-orange-100 text-orange-900";
   return "bg-stone-100 text-stone-800";
 }
@@ -42,7 +42,6 @@ export default async function AdminPaymentTrackerPage({
 
   const lang = resolveAdminLangFromCookieJar(c);
   const t = (key: string, vars?: Record<string, string | number>) => adminTr(lang, key, vars);
-  const isEn = lang === "en";
 
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : "";
@@ -64,18 +63,14 @@ export default async function AdminPaymentTrackerPage({
       <div className="space-y-8">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
-            {isEn ? "Payment Tracker" : "Seguimiento de Pagos"}
+            Payment Tracker
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-[#5C5346]/95">
-            {isEn
-              ? "Global payment tracker for package entitlements, promo codes, sales reps, and future Stripe Checkout. This does not collect payments yet."
-              : "Seguimiento global de pagos para paquetes, códigos promo, representantes de ventas y futuro Stripe Checkout. Aún no se cobran pagos aquí."}
+            Global payment tracker for package entitlements, promo codes, sales reps, and future Stripe Checkout. This does not collect payments yet.
           </p>
           <div className="mt-3 rounded-xl border border-amber-200/90 bg-amber-50/80 p-3 text-sm text-amber-950">
-            <strong>{isEn ? "Important:" : "Importante:"}</strong>{" "}
-            {isEn
-              ? "No payment is collected here yet. Stripe Checkout will create and update these records later. Commission payout is a later gate."
-              : "Aún no se cobran pagos aquí. Stripe Checkout creará y actualizará estos registros después. El pago de comisión es una etapa posterior."}
+            <strong>Important:</strong>{" "}
+            No payment is collected here yet. Stripe Checkout will create and update these records later. Commission payout is a later gate.
           </div>
         </header>
 
@@ -84,18 +79,18 @@ export default async function AdminPaymentTrackerPage({
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[160px] flex-1">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Search" : "Buscar"}
+                Search
               </label>
               <input
                 name="q"
                 defaultValue={q}
-                placeholder={isEn ? "Code, business, session ID…" : "Código, negocio, session ID…"}
+                placeholder="Code, business, session ID…"
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               />
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Status" : "Estado"}
+                Status
               </label>
               <select
                 name="status"
@@ -110,7 +105,7 @@ export default async function AdminPaymentTrackerPage({
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Sales rep" : "Rep ventas"}
+                Sales rep
               </label>
               <input
                 name="sales_rep_id"
@@ -121,7 +116,7 @@ export default async function AdminPaymentTrackerPage({
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Category" : "Categoría"}
+                Category
               </label>
               <select
                 name="category"
@@ -136,7 +131,7 @@ export default async function AdminPaymentTrackerPage({
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Promo code" : "Código promo"}
+                Promo code
               </label>
               <input
                 name="promo_code"
@@ -156,24 +151,22 @@ export default async function AdminPaymentTrackerPage({
 
         {snapshot.unavailable ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-900">
-            <p className="font-semibold">{isEn ? "Table not available yet" : "Tabla aún no disponible"}</p>
-            <p className="mt-1 text-xs">{snapshot.note ?? (isEn ? "Apply the leonix_payment_records migration in Supabase." : "Aplica la migración leonix_payment_records en Supabase.")}</p>
+            <p className="font-semibold">Table not available yet</p>
+            <p className="mt-1 text-xs">{snapshot.note ?? "Apply the leonix_payment_records migration in Supabase."}</p>
             <p className="mt-2 text-xs text-amber-800">
-              {isEn
-                ? "This is expected before the migration is applied. Stripe Checkout will populate this table in a later gate."
-                : "Esto es esperado antes de aplicar la migración. Stripe Checkout poblará esta tabla en una etapa posterior."}
+              This is expected before the migration is applied. Stripe Checkout will populate this table in a later gate.
             </p>
           </div>
         ) : (
           <>
             {/* Summary cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <SummaryCard label={isEn ? "Pending" : "Pendientes"} value={snapshot.pendingCount} tone="warn" />
-              <SummaryCard label={isEn ? "Paid / succeeded" : "Pagados"} value={snapshot.paidCount} />
-              <SummaryCard label={isEn ? "Failed / canceled / refunded" : "Fallidos / cancelados"} value={snapshot.failedCanceledRefundedCount} tone="muted" />
-              <SummaryCard label={isEn ? "Commission eligible" : "Elegibles comisión"} value={snapshot.commissionEligibleCount} tone="info" />
+              <SummaryCard label="Pending" value={snapshot.pendingCount} tone="warn" />
+              <SummaryCard label="Paid / succeeded" value={snapshot.paidCount} />
+              <SummaryCard label="Failed / canceled / refunded" value={snapshot.failedCanceledRefundedCount} tone="muted" />
+              <SummaryCard label="Commission eligible" value={snapshot.commissionEligibleCount} tone="info" />
               <SummaryCard
-                label={isEn ? "Est. paid total" : "Total pagado est."}
+                label="Est. paid total"
                 value={snapshot.estimatedPaidTotalCents > 0 ? formatMoneyCents(snapshot.estimatedPaidTotalCents) : "—"}
               />
             </div>
@@ -182,27 +175,27 @@ export default async function AdminPaymentTrackerPage({
             {snapshot.rows.length > 0 ? (
               <section>
                 <h2 className="text-lg font-bold text-[#1E1810]">
-                  {isEn ? "Payment records" : "Registros de pago"} ({snapshot.rows.length})
+                  Payment records ({snapshot.rows.length})
                 </h2>
                 <div className="mt-3 overflow-x-auto rounded-2xl border border-[#E8DFD0]/90">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs uppercase text-[#7A7164]">
                       <tr>
-                        <th className="px-4 py-3">{isEn ? "Customer" : "Cliente"}</th>
-                        <th className="px-4 py-3">{isEn ? "Package" : "Paquete"}</th>
-                        <th className="px-4 py-3">{isEn ? "Promo" : "Promo"}</th>
-                        <th className="px-4 py-3">{isEn ? "Sales rep" : "Rep"}</th>
-                        <th className="px-4 py-3">{isEn ? "Status" : "Estado"}</th>
-                        <th className="px-4 py-3">{isEn ? "Amount" : "Monto"}</th>
-                        <th className="px-4 py-3">{isEn ? "Commission" : "Comisión"}</th>
-                        <th className="px-4 py-3">{isEn ? "Source" : "Fuente"}</th>
-                        <th className="px-4 py-3">{isEn ? "Stripe" : "Stripe"}</th>
-                        <th className="px-4 py-3">{isEn ? "Paid" : "Pagado"}</th>
+                        <th className="px-4 py-3">Customer</th>
+                        <th className="px-4 py-3">Package</th>
+                        <th className="px-4 py-3">Promo</th>
+                        <th className="px-4 py-3">Sales rep</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Commission</th>
+                        <th className="px-4 py-3">Source</th>
+                        <th className="px-4 py-3">Stripe</th>
+                        <th className="px-4 py-3">Paid</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E8DFD0]/60">
                       {snapshot.rows.map((row) => (
-                        <PaymentRow key={row.id} row={row} isEn={isEn} />
+                        <PaymentRow key={row.id} row={row} />
                       ))}
                     </tbody>
                   </table>
@@ -210,22 +203,20 @@ export default async function AdminPaymentTrackerPage({
               </section>
             ) : (
               <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center text-sm text-[#5C5346]">
-                {isEn
-                  ? "No payment records yet. Stripe Checkout will create records when payments are processed."
-                  : "Aún no hay registros de pago. Stripe Checkout creará registros cuando se procesen pagos."}
+                No payment records yet. Stripe Checkout will create records when payments are processed.
               </div>
             )}
 
             {/* Cross-links */}
             <div className="flex flex-wrap gap-3">
               <Link href="/admin/workspace/promo-codes" className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]">
-                {isEn ? "Promo Codes →" : "Códigos promo →"}
+                Promo Codes →
               </Link>
               <Link href="/admin/workspace/package-entitlements" className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]">
-                {isEn ? "Package Entitlements →" : "Paquetes →"}
+                Package Entitlements →
               </Link>
               <Link href="/admin/workspace/sales-tracker" className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]">
-                {isEn ? "Sales Tracker →" : "Seguimiento ventas →"}
+                Sales Tracker →
               </Link>
             </div>
           </>
@@ -236,7 +227,7 @@ export default async function AdminPaymentTrackerPage({
 }
 
 function SummaryCard({ label, value, tone }: { label: string; value: string | number; tone?: "warn" | "muted" | "info" }) {
-  const border = tone === "warn" ? "border-amber-200/80" : tone === "muted" ? "border-stone-200/80" : tone === "info" ? "border-sky-200/80" : "border-[#C9B46A]/30";
+  const border = tone === "warn" ? "border-amber-200/80" : tone === "muted" ? "border-stone-200/80" : tone === "info" ? "border-amber-200/80" : "border-[#C9B46A]/30";
   return (
     <div className={`rounded-2xl border ${border} bg-[#FFFCF7]/95 p-4 shadow-sm`}>
       <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
@@ -245,13 +236,13 @@ function SummaryCard({ label, value, tone }: { label: string; value: string | nu
   );
 }
 
-function PaymentRow({ row, isEn }: { row: LeonixPaymentRecordRow; isEn: boolean }) {
+function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
   const customerLine = row.business_name?.trim() || row.customer_name?.trim() || row.customer_email?.trim() || "—";
   const amountLine = row.amount_paid_cents != null ? formatMoneyCents(row.amount_paid_cents) : row.amount_total_cents != null ? `${formatMoneyCents(row.amount_total_cents)}` : "—";
   const repLine = row.sales_rep_name ? `${row.sales_rep_name}${row.sales_rep_id ? ` (${row.sales_rep_id})` : ""}` : row.sales_rep_id || "—";
   const commissionLine = row.commission_eligible
-    ? row.estimated_commission_cents != null ? `≈ ${formatMoneyCents(row.estimated_commission_cents)}` : (isEn ? "Eligible" : "Elegible")
-    : row.commission_status === "pending_payment" ? (isEn ? "Pending" : "Pendiente")
+    ? row.estimated_commission_cents != null ? `≈ ${formatMoneyCents(row.estimated_commission_cents)}` : "Eligible"
+    : row.commission_status === "pending_payment" ? "Pending"
     : "—";
   const stripeLine = row.stripe_checkout_session_id
     ? row.stripe_checkout_session_id.slice(0, 16) + "…"

@@ -21,24 +21,24 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
     <div className="max-w-3xl space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Contacto"
-        title="Página `/contacto`"
-        subtitle="Titular, introducción, datos y aviso. El formulario de envío sigue siendo el componente global (webhook/API no se edita aquí)."
-        helperText="Vacío = texto por defecto del código. El bloque Tienda puede personalizarse abajo."
+        title="`/contacto` page"
+        subtitle="Headline, intro, contact details, and notice. Submission still uses the global component (webhook/API not edited here)."
+        helperText="Empty = code default text. The Tienda block can be customized below."
         rightSlot={
           <Link href="/admin/workspace/contacto" className={adminBtnSecondary}>
-            ← Vista workspace
+            ← Workspace view
           </Link>
         }
       />
 
       {sp.saved === "1" ? (
-        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Guardado.</div>
+        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Saved.</div>
       ) : null}
 
-      <p className="text-xs text-[#7A7164]">Última actualización: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
+      <p className="text-xs text-[#7A7164]">Last updated: {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
 
       <form action={saveContactoSectionAction} className={`${adminCardBase} space-y-4 p-6`}>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Titular</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Headline</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="H1 ES" name="headline_es" defaultValue={patch.headline?.es ?? ""} placeholder={es.h1} />
           <Field label="H1 EN" name="headline_en" defaultValue={patch.headline?.en ?? ""} placeholder={en.h1} />
@@ -54,7 +54,7 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
           </div>
         </div>
 
-        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Introducción</h2>
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Introduction</h2>
         <div className="grid gap-3">
           <div>
             <label className="text-xs font-semibold text-[#5C5346]">Intro ES</label>
@@ -65,15 +65,15 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
             <textarea name="intro_en" className={adminInputClass} rows={3} defaultValue={patch.intro?.en ?? ""} placeholder={en.intro} />
           </div>
         </div>
-        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Horario</h2>
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Hours</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Horario ES" name="hours_es" defaultValue={patch.hours?.es ?? ""} placeholder={es.hours} />
           <Field label="Horario EN" name="hours_en" defaultValue={patch.hours?.en ?? ""} placeholder={en.hours} />
         </div>
-        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Datos</h2>
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Contact details</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Email visible" name="email" defaultValue={patch.email ?? ""} placeholder={es.email} />
-          <Field label="Teléfono (línea libre)" name="phone" defaultValue={patch.phone ?? ""} />
+          <Field label="Phone (freeform line)" name="phone" defaultValue={patch.phone ?? ""} />
         </div>
         <div className="grid gap-3">
           <div>
@@ -84,30 +84,30 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
             <label className="text-xs font-semibold text-[#5C5346]">Dirección EN</label>
             <textarea name="address_en" className={adminInputClass} rows={2} defaultValue={patch.address?.en ?? ""} />
           </div>
-          <Field label="URL de mapa (Maps u otra)" name="map_url" defaultValue={patch.mapUrl ?? ""} />
+          <Field label="Map URL (Maps or other)" name="map_url" defaultValue={patch.mapUrl ?? ""} />
           <div className="sm:col-span-2">
             <AdminCtaDestinationHint
-              label="Enlace «Abrir mapa» (bloque datos)"
+              label="“Open map” link (contact block)"
               hrefStored={patch.mapUrl ?? ""}
               effectiveLine={
                 patch.mapUrl?.trim()
-                  ? `${patch.mapUrl.trim()} — se abre en pestaña nueva.`
-                  : "— no se muestra el enlace «Abrir mapa» / «Open map»."
+                  ? `${patch.mapUrl.trim()} — opens in a new tab.`
+                  : "— “Open map” link is not shown."
               }
               whenBlank={
-                !patch.mapUrl?.trim() ? "Vacío = sin enlace a mapas; el resto del bloque (email, teléfono, etc.) sigue visible." : undefined
+                !patch.mapUrl?.trim() ? "Empty = no map link; the rest of the block (email, phone, etc.) stays visible." : undefined
               }
             />
           </div>
         </div>
-        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Aviso superior (opcional)</h2>
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Top notice (optional)</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Aviso ES" name="notice_es" defaultValue={patch.noticeBanner?.es ?? ""} />
           <Field label="Aviso EN" name="notice_en" defaultValue={patch.noticeBanner?.en ?? ""} />
         </div>
 
-        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Tarjeta Tienda (bloque medio)</h2>
-        <p className="text-xs text-[#7A7164]">Textos del recuadro que enlaza a la ayuda de Tienda. Vacío = valores por defecto.</p>
+        <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-[#5C5346]">Tienda card (middle block)</h2>
+        <p className="text-xs text-[#7A7164]">Copy for the box linking to Tienda help. Empty = defaults.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Título ES" name="tienda_title_es" defaultValue={patch.tiendaCard?.title?.es ?? ""} placeholder={es.tiendaTitle} />
           <Field label="Título EN" name="tienda_title_en" defaultValue={patch.tiendaCard?.title?.en ?? ""} placeholder={en.tiendaTitle} />
@@ -126,16 +126,16 @@ export default async function AdminContactoContentPage(props: { searchParams?: P
           <Field label="CTA ES" name="tienda_cta_es" defaultValue={patch.tiendaCard?.cta?.es ?? ""} placeholder={es.tiendaCta} />
           <Field label="CTA EN" name="tienda_cta_en" defaultValue={patch.tiendaCard?.cta?.en ?? ""} placeholder={en.tiendaCta} />
         </div>
-        <AdminCtaRoutingCallout title="Tarjeta Tienda — URL del botón (no editable aquí)">
+        <AdminCtaRoutingCallout title="Tienda card — button URL (not editable here)">
           <p>
-            El texto del CTA se edita arriba; el destino está fijado en código:{" "}
-            <code className="rounded bg-white/80 px-1">{LEONIX_TIENDA_CONTACT_PATH}</code> con{" "}
-            <code className="rounded bg-white/80 px-1">?lang=</code> (misma ruta que usa la página pública de contacto Tienda).
+            CTA text is edited above; destination is fixed in code:{" "}
+            <code className="rounded bg-white/80 px-1">{LEONIX_TIENDA_CONTACT_PATH}</code> with{" "}
+            <code className="rounded bg-white/80 px-1">?lang=</code> (same route as the public Tienda contact page).
           </p>
         </AdminCtaRoutingCallout>
 
         <button type="submit" className={`${adminBtnPrimary} mt-4`}>
-          Guardar contacto
+          Save contact
         </button>
       </form>
     </div>

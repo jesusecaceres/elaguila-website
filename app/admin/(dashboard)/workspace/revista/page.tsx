@@ -44,12 +44,12 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
             {row.year} / {row.month_slug}
             {row.is_featured ? (
               <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-900">
-                Actual en portada
+                Actual on cover
               </span>
             ) : null}
           </p>
           <p className="text-xs text-[#7A7164]">
-            Estado: <span className="font-mono">{row.status}</span> · id <span className="font-mono">{row.id.slice(0, 8)}…</span>
+            Status: <span className="font-mono">{row.status}</span> · id <span className="font-mono">{row.id.slice(0, 8)}…</span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -59,9 +59,9 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
               <button
                 type="submit"
                 className={`${adminBtnSecondary} text-sm`}
-                title="Pasa el borrador a published y entra al manifiesto público (según reglas del hub)"
+                title="Move draft to published and include in public manifest (per hub rules)"
               >
-                Publicar número
+                Publish issue
               </button>
             </form>
           ) : null}
@@ -71,9 +71,9 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
               <button
                 type="submit"
                 className={`${adminBtnSecondary} text-sm`}
-                title="Pone este publicado como actual en portada; archiva automáticamente el anterior destacado"
+                title="Sets this published issue as current on cover; automatically archives the previous featured issue"
               >
-                Marcar como número actual
+                Mark as current issue
               </button>
             </form>
           ) : null}
@@ -83,9 +83,9 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
               <button
                 type="submit"
                 className={`${adminBtnSecondary} text-sm text-amber-950`}
-                title="Marca el número como archivado (sale de portada si aplicaba)"
+                title="Marks issue as archived (removed from cover if applicable)"
               >
-                Archivar número
+                Archive issue
               </button>
             </form>
           ) : null}
@@ -95,9 +95,9 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
               <button
                 type="submit"
                 className={`${adminBtnSecondary} text-sm text-rose-900`}
-                title="Elimina solo borradores (draft) de magazine_issues"
+                title="Deletes draft issues only from magazine_issues"
               >
-                Borrar borrador
+                Delete draft
               </button>
             </form>
           ) : null}
@@ -108,11 +108,11 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
         <input type="hidden" name="id" value={row.id} />
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Año</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Year</label>
             <input name="year" className={adminInputClass} defaultValue={row.year} required />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Mes</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Month</label>
             <select name="month_slug" className={adminInputClass} defaultValue={row.month_slug} required>
               {MONTHS.map((m) => (
                 <option key={m} value={m}>
@@ -124,26 +124,26 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Título ES</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Title ES</label>
             <input name="title_es" className={adminInputClass} defaultValue={row.title_es} required />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Título EN</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Title EN</label>
             <input name="title_en" className={adminInputClass} defaultValue={row.title_en} />
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Estado</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Status</label>
           <select name="status" className={adminInputClass} defaultValue={row.status}>
             {row.status === "draft" ? <option value="draft">draft</option> : null}
             <option value="published">published</option>
             <option value="archived">archived</option>
             {row.status === "draft" ? null : (
-              <option value="draft">draft (oculta del hub — solo si necesitas retirarlo)</option>
+              <option value="draft">draft (hidden from hub — only if you need to withdraw it)</option>
             )}
           </select>
           <p className="mt-1 text-[11px] text-[#7A7164]">
-            Borradores no salen en /magazine. Pasar un publicado a draft lo quita del manifiesto público.
+            Drafts do not appear on /magazine. Moving a published issue to draft removes it from the public manifest.
           </p>
         </div>
         <MagazineIssueEditAssets
@@ -155,7 +155,7 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
         />
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Publicado (ISO)</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Published (ISO)</label>
             <input
               name="published_at"
               className={adminInputClass}
@@ -163,20 +163,20 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Orden</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Order</label>
             <input name="display_order" type="number" className={adminInputClass} defaultValue={row.display_order} />
           </div>
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Notas internas</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Internal notes</label>
           <textarea name="internal_notes" className={adminInputClass} rows={2} defaultValue={row.internal_notes ?? ""} />
         </div>
         <button
           type="submit"
           className={adminBtnSecondary}
-          title="Actualiza metadatos y URLs del número en magazine_issues (upsert por id)"
+          title="Updates issue metadata and URLs in magazine_issues (upsert by id)"
         >
-          Guardar datos del número
+          Save issue data
         </button>
       </form>
       <Link
@@ -184,9 +184,9 @@ function IssueEditCard({ row }: { row: MagazineIssueRow }) {
         className="inline-block text-xs font-bold text-[#6B5B2E] underline"
         target="_blank"
         rel="noopener noreferrer"
-        title="Vista pública de plantilla (puede diferir del manifiesto si la ruta no está generada)"
+        title="Public template preview (may differ from manifest if route is not generated)"
       >
-        Vista plantilla pública →
+        Public template preview →
       </Link>
     </div>
   );
@@ -205,33 +205,33 @@ export default async function AdminWorkspaceRevistaPage(props: {
   return (
     <div>
       <AdminPageHeader
-        title="Revista — gestor de números"
-        subtitle="La portada `/magazine` y el manifiesto público salen de Supabase cuando hay números publicados o archivados; si la tabla está vacía o falla, se usa `public/magazine/editions.json` como respaldo."
-        eyebrow="Workspace · Revista"
-        helperText="Sube portada/PDF a Blob (requiere BLOB_READ_WRITE_TOKEN) o pega URLs. Un solo publicado es “actual”; al marcar otro, el anterior en portada se archiva automáticamente."
+        title="Magazine — issue manager"
+        subtitle="The `/magazine` cover and public manifest come from Supabase when published or archived issues exist; if the table is empty or fails, `public/magazine/editions.json` is used as fallback."
+        eyebrow="Workspace · Magazine"
+        helperText="Upload cover/PDF to Blob (requires BLOB_READ_WRITE_TOKEN) or paste URLs. Only one published issue is “current”; marking another automatically archives the previous cover issue."
       />
 
       <div className={`${adminCardBase} mb-6 max-w-3xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-4 text-xs text-[#5C5346]`}>
-        <strong className="text-[#1E1810]">Resolver público:</strong> el hub efectivo es{" "}
-        <code className="rounded bg-white/80 px-1">/api/magazine/manifest</code> + rutas bajo{" "}
-        <code className="rounded bg-white/80 px-1">/magazine</code>. Si un número está publicado en{" "}
-        <code className="rounded bg-white/80 px-1">magazine_issues</code> pero la URL aún no coincide con el manifiesto, revisa
-        estado <span className="font-mono">published</span>, <span className="font-mono">is_featured</span> y el enlace{" "}
-        <span className="font-mono">Vista plantilla pública</span> en cada tarjeta.
+        <strong className="text-[#1E1810]">Public resolver:</strong> effective hub is{" "}
+        <code className="rounded bg-white/80 px-1">/api/magazine/manifest</code> + routes under{" "}
+        <code className="rounded bg-white/80 px-1">/magazine</code>. If an issue is published in{" "}
+        <code className="rounded bg-white/80 px-1">magazine_issues</code> but the URL does not match the manifest yet, check
+        <span className="font-mono"> published</span>, <span className="font-mono">is_featured</span>, and the{" "}
+        <span className="font-mono">Public template preview</span> link on each card.
       </div>
 
       <AdminSectionOwnershipCallout
-        sectionTitle="Revista"
+        sectionTitle="Magazine"
         publicPath="/magazine"
-        sourceOfTruth={`Manifiesto efectivo: ${manifest.publicSource === "database" ? "tabla magazine_issues (API /api/magazine/manifest)" : "archivo public/magazine/editions.json"}. Notas internas: revista_spotlight.`}
+        sourceOfTruth={`Effective manifest: ${manifest.publicSource === "database" ? "magazine_issues table (API /api/magazine/manifest)" : "public/magazine/editions.json file"}. Internal notes: revista_spotlight.`}
         siteSectionKey="revista_spotlight"
         adminEditors={[
-          { label: "Notas internas (formulario abajo)", href: "#revista-spotlight-form" },
-          { label: "Home — contenido", href: "/admin/workspace/home/content" },
+          { label: "Internal notes (form below)", href: "#revista-spotlight-form" },
+          { label: "Home — content", href: "/admin/workspace/home/content" },
         ]}
         notYet={[
-          "Regenerar automáticamente rutas estáticas /magazine/[year]/[month] desde BD (hoy siguen siendo páginas en repo).",
-          "Lectura pública de archive blurbs desde revista_spotlight si producto lo pide.",
+          "Automatically regenerate static /magazine/[year]/[month] routes from DB (today they remain repo pages).",
+          "Public reading of archive blurbs from revista_spotlight if product requests it.",
         ]}
       />
 
@@ -240,32 +240,32 @@ export default async function AdminWorkspaceRevistaPage(props: {
           className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
             manifest.publicSource === "database"
               ? "border border-emerald-200 bg-emerald-50 text-emerald-900"
-              : "border border-sky-200 bg-sky-50 text-sky-900"
+              : "border border-amber-200 bg-amber-50 text-amber-900"
           }`}
         >
-          Público: {manifest.publicSource === "database" ? "Supabase" : "editions.json"}
+          Public: {manifest.publicSource === "database" ? "Supabase" : "editions.json"}
         </span>
       </div>
 
       {sp.saved === "1" ? (
         <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
-          Notas del workspace guardadas.
+          Workspace notes saved.
         </div>
       ) : null}
       {sp.issue_saved === "1" ? (
         <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
-          Cambios de número guardados (manifiesto revalidado).
+          Issue changes saved (manifest revalidated).
         </div>
       ) : null}
       {sp.issue_error === "1" ? (
         <div className={`${adminCardBase} mb-6 border-rose-200 bg-rose-50/90 p-4 text-sm text-rose-950`}>
-          No se pudo completar la acción (revisa estado del número o permisos Supabase).
+          Could not complete action (check issue status or Supabase permissions).
         </div>
       ) : null}
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <div className={`${adminCardBase} p-6`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Vista previa — número destacado</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">Preview — featured issue</p>
           {featured ? (
             <>
               <h2 className="mt-2 text-xl font-bold text-[#1E1810]">{featured.titleEs}</h2>
@@ -278,21 +278,21 @@ export default async function AdminWorkspaceRevistaPage(props: {
                   className={adminBtnSecondary}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="Hub público de la revista (sitio)"
+                  title="Public magazine hub (site)"
                 >
-                  Abrir hub /magazine
+                  Open hub /magazine
                 </Link>
               </div>
             </>
           ) : (
-            <p className="mt-2 text-sm text-[#7A7164]">Sin datos de destacado.</p>
+            <p className="mt-2 text-sm text-[#7A7164]">No featured data.</p>
           )}
         </div>
 
         <div className={`${adminCardBase} p-6`}>
-          <p className="text-xs font-bold uppercase text-[#7A7164]">Nuevo número</p>
+          <p className="text-xs font-bold uppercase text-[#7A7164]">New issue</p>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Tras crear, publica y marca como actual. Las URLs pueden venir de Blob o rutas bajo /public.
+            After creating, publish and mark as current. URLs can come from Blob or paths under /public.
           </p>
           <div className="mt-4">
             <MagazineIssueCreateCard />
@@ -302,17 +302,17 @@ export default async function AdminWorkspaceRevistaPage(props: {
 
       {issuesErr ? (
         <div className={`${adminCardBase} mb-6 border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
-          <strong>magazine_issues:</strong> {issuesErr} — aplica la migración{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260408140000_magazine_issues.sql</code> o revisa Supabase.
+          <strong>magazine_issues:</strong> {issuesErr} — apply migration{" "}
+          <code className="rounded bg-white/80 px-1 text-[11px]">20260408140000_magazine_issues.sql</code> or check Supabase.
         </div>
       ) : null}
 
       <div className={`${adminCardBase} mb-8 p-6`}>
-        <h2 className="text-lg font-bold text-[#1E1810]">Números en base de datos</h2>
+        <h2 className="text-lg font-bold text-[#1E1810]">Issues in database</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
           {issues.length === 0
-            ? "Sin filas — el sitio público seguirá el JSON hasta que publiques un número."
-            : `${issues.length} fila(s). Borradores no aparecen en /magazine.`}
+            ? "No rows — public site will follow JSON until you publish an issue."
+            : `${issues.length} row(s). Drafts do not appear on /magazine.`}
         </p>
         <div className="mt-4 space-y-4 lg:hidden">
           {issues.map((row) => (
@@ -324,9 +324,9 @@ export default async function AdminWorkspaceRevistaPage(props: {
             <table className="w-full text-left text-sm">
               <thead className="text-xs font-bold uppercase text-[#7A7164]">
                 <tr>
-                  <th className="p-2">Año/Mes</th>
-                  <th className="p-2">Título ES</th>
-                  <th className="p-2">Estado</th>
+                  <th className="p-2">Year/Month</th>
+                  <th className="p-2">Title ES</th>
+                  <th className="p-2">Status</th>
                   <th className="p-2">Featured</th>
                 </tr>
               </thead>
@@ -338,7 +338,7 @@ export default async function AdminWorkspaceRevistaPage(props: {
                     </td>
                     <td className="p-2">{row.title_es}</td>
                     <td className="p-2">{row.status}</td>
-                    <td className="p-2">{row.is_featured ? "sí" : "—"}</td>
+                    <td className="p-2">{row.is_featured ? "yes" : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -357,50 +357,50 @@ export default async function AdminWorkspaceRevistaPage(props: {
         action={saveRevistaSpotlightAction}
         className={`${adminCardBase} mb-8 space-y-3 p-6`}
       >
-        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Notas internas (revista_spotlight)</h2>
-        <p className="text-xs text-[#7A7164]">Opcional; no sustituye títulos del manifiesto público.</p>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Internal notes (revista_spotlight)</h2>
+        <p className="text-xs text-[#7A7164]">Optional; does not replace public manifest titles.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Nota workspace ES</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Workspace note ES</label>
             <textarea name="note_es" className={adminInputClass} rows={3} defaultValue={spot.workspaceNoteEs ?? ""} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Nota workspace EN</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Workspace note EN</label>
             <textarea name="note_en" className={adminInputClass} rows={3} defaultValue={spot.workspaceNoteEn ?? ""} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Texto archivo (ES)</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Archive text (ES)</label>
             <textarea name="archive_es" className={adminInputClass} rows={2} defaultValue={spot.archiveBlurbEs ?? ""} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#5C5346]">Texto archivo (EN)</label>
+            <label className="text-xs font-semibold text-[#5C5346]">Archive text (EN)</label>
             <textarea name="archive_en" className={adminInputClass} rows={2} defaultValue={spot.archiveBlurbEn ?? ""} />
           </div>
         </div>
         <button type="submit" className={adminBtnSecondary}>
-          Guardar notas
+          Save notes
         </button>
       </form>
 
       <div className={`${adminCardBase} p-6`}>
-        <h2 className="text-lg font-bold text-[#1E1810]">Archivo (vista efectiva pública)</h2>
-        <p className="text-xs text-[#7A7164]">Misma fuente que el hub; duplicado para verificación rápida.</p>
+        <h2 className="text-lg font-bold text-[#1E1810]">Archive (effective public view)</h2>
+        <p className="text-xs text-[#7A7164]">Same source as the hub; duplicated for quick verification.</p>
         <div className={`mt-4 ${adminTableWrap}`}>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead className="text-left text-xs font-bold uppercase text-[#7A7164]">
                 <tr>
-                  <th className="p-2">Año</th>
-                  <th className="p-2">Mes</th>
-                  <th className="p-2">Título (ES)</th>
-                  <th className="p-2">Actualizado</th>
+                  <th className="p-2">Year</th>
+                  <th className="p-2">Month</th>
+                  <th className="p-2">Title (ES)</th>
+                  <th className="p-2">Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {manifest.archive.length === 0 ? (
                   <tr>
                     <td className="p-3 text-[#7A7164]" colSpan={4}>
-                      Sin entradas en el manifiesto efectivo.
+                      No entries in the effective manifest.
                     </td>
                   </tr>
                 ) : (

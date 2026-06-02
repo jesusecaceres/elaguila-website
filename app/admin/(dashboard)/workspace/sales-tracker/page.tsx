@@ -19,8 +19,8 @@ function statusChip(status: string) {
   if (s === "active") return "bg-emerald-100 text-emerald-900";
   if (s === "expired") return "bg-amber-100 text-amber-900";
   if (s === "revoked") return "bg-red-100 text-red-900";
-  if (s === "redeemed") return "bg-sky-100 text-sky-900";
-  if (s === "scheduled") return "bg-blue-100 text-blue-900";
+  if (s === "redeemed") return "bg-amber-100 text-amber-900";
+  if (s === "scheduled") return "bg-stone-100 text-stone-800";
   return "bg-stone-100 text-stone-800";
 }
 
@@ -67,35 +67,21 @@ export default async function AdminSalesTrackerPage({
     code_type: codeTypeFilter || undefined,
   });
 
-  const isEn = lang === "en";
-
   return (
     <AdminI18nProvider lang={lang}>
       <div className="space-y-8">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
-            {salesRepLocked
-              ? isEn
-                ? "Your sales tracker"
-                : "Tu seguimiento de ventas"
-              : isEn
-                ? "Sales Tracker"
-                : "Seguimiento de Ventas"}
+            {salesRepLocked ? "Your sales tracker" : "Sales Tracker"}
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-[#5C5346]/95">
             {salesRepLocked
-              ? isEn
-                ? "Your promo codes and package entitlements only. Commission is preview-only until payment clears."
-                : "Solo tus códigos promo y paquetes. La comisión es vista previa hasta que el pago se liquide."
-              : isEn
-                ? "Track promo codes and package entitlements by sales rep. Commission is preview-only until payment clears."
-                : "Seguimiento de códigos promo y paquetes por representante de ventas. Comisión es solo vista previa hasta que el pago se liquide."}
+              ? "Your promo codes and package entitlements only. Commission is preview-only until payment clears."
+              : "Track promo codes and package entitlements by sales rep. Commission is preview-only until payment clears."}
           </p>
           <div className="mt-3 rounded-xl border border-amber-200/90 bg-amber-50/80 p-3 text-sm text-amber-950">
-            <strong>{isEn ? "Important:" : "Importante:"}</strong>{" "}
-            {isEn
-              ? "No payments are collected here. No commission is payable until payment clears. Stripe Checkout comes later."
-              : "No se cobran pagos aquí. La comisión no es pagable hasta que el pago se confirme. Stripe Checkout viene después."}
+            <strong>Important:</strong>{" "}
+            No payments are collected here. No commission is payable until payment clears. Stripe Checkout comes later.
           </div>
         </header>
 
@@ -104,12 +90,12 @@ export default async function AdminSalesTrackerPage({
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-[160px] flex-1">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Search" : "Buscar"}
+                Search
               </label>
               <input
                 name="q"
                 defaultValue={q}
-                placeholder={isEn ? "Code, business, customer…" : "Código, negocio, cliente…"}
+                placeholder="Code, business, customer…"
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               />
             </div>
@@ -118,7 +104,7 @@ export default async function AdminSalesTrackerPage({
             ) : (
               <div className="min-w-[140px]">
                 <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                  {isEn ? "Sales rep ID" : "ID representante"}
+                  Sales rep ID
                 </label>
                 <input
                   name="sales_rep_id"
@@ -130,7 +116,7 @@ export default async function AdminSalesTrackerPage({
             )}
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Status" : "Estado"}
+                Status
               </label>
               <select
                 name="status"
@@ -138,15 +124,15 @@ export default async function AdminSalesTrackerPage({
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               >
                 <option value="">{t("common.allStatuses")}</option>
-                <option value="active">{isEn ? "Active" : "Activo"}</option>
-                <option value="expired">{isEn ? "Expired" : "Expirado"}</option>
-                <option value="revoked">{isEn ? "Revoked" : "Revocado"}</option>
-                <option value="redeemed">{isEn ? "Redeemed" : "Redimido"}</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="revoked">Revoked</option>
+                <option value="redeemed">Redeemed</option>
               </select>
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Category" : "Categoría"}
+                Category
               </label>
               <select
                 name="category"
@@ -161,14 +147,14 @@ export default async function AdminSalesTrackerPage({
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Package tier" : "Paquete"}
+                Package tier
               </label>
               <select
                 name="package_tier"
                 defaultValue={packageTierFilter}
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               >
-                <option value="">{isEn ? "All tiers" : "Todos"}</option>
+                <option value="">All tiers</option>
                 {["premium", "full_page", "half_page", "quarter_page", "classified_print", "digital_only"].map((t) => (
                   <option key={t} value={t}>{t.replace(/_/g, " ")}</option>
                 ))}
@@ -176,14 +162,14 @@ export default async function AdminSalesTrackerPage({
             </div>
             <div className="min-w-[120px]">
               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {isEn ? "Code type" : "Tipo código"}
+                Code type
               </label>
               <select
                 name="code_type"
                 defaultValue={codeTypeFilter}
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               >
-                <option value="">{isEn ? "All types" : "Todos"}</option>
+                <option value="">All types</option>
                 {["entitlement", "discount", "sales_rep", "contract", "founding_partner", "owner_override"].map((t) => (
                   <option key={t} value={t}>{t.replace(/_/g, " ")}</option>
                 ))}
@@ -200,45 +186,24 @@ export default async function AdminSalesTrackerPage({
 
         {snapshot.unavailable ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-900">
-            {isEn ? "Data unavailable." : "Datos no disponibles."}{" "}
-            {snapshot.note ?? ""}
+            Data unavailable. {snapshot.note ?? ""}
           </div>
         ) : (
           <>
             {/* Summary cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <SummaryCard
-                label={isEn ? "Active codes" : "Códigos activos"}
-                value={snapshot.totalActiveCodes}
-              />
-              <SummaryCard
-                label={isEn ? "Active entitlements" : "Entitlements activos"}
-                value={snapshot.totalActiveEntitlements}
-              />
-              <SummaryCard
-                label={isEn ? "Expiring soon" : "Por vencer"}
-                value={snapshot.totalExpiringSoon}
-                tone="warn"
-              />
-              <SummaryCard
-                label={isEn ? "Revoked / expired" : "Revocados / vencidos"}
-                value={snapshot.totalRevokedOrExpired}
-                tone="muted"
-              />
+              <SummaryCard label="Active codes" value={snapshot.totalActiveCodes} />
+              <SummaryCard label="Active entitlements" value={snapshot.totalActiveEntitlements} />
+              <SummaryCard label="Expiring soon" value={snapshot.totalExpiringSoon} tone="warn" />
+              <SummaryCard label="Revoked / expired" value={snapshot.totalRevokedOrExpired} tone="muted" />
             </div>
 
             {snapshot.totalEstimatedContractCents > 0 || snapshot.totalCommissionEligibleCount > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <SummaryCard label="Est. contract total" value={formatMoneyCents(snapshot.totalEstimatedContractCents)} />
+                <SummaryCard label="Commission eligible" value={snapshot.totalCommissionEligibleCount} />
                 <SummaryCard
-                  label={isEn ? "Est. contract total" : "Total contrato est."}
-                  value={formatMoneyCents(snapshot.totalEstimatedContractCents)}
-                />
-                <SummaryCard
-                  label={isEn ? "Commission eligible" : "Elegibles comisión"}
-                  value={snapshot.totalCommissionEligibleCount}
-                />
-                <SummaryCard
-                  label={isEn ? "Est. commission (preview)" : "Comisión est. (preview)"}
+                  label="Est. commission (preview)"
                   value={formatMoneyCents(snapshot.totalEstimatedCommissionCents)}
                   tone="info"
                 />
@@ -249,24 +214,24 @@ export default async function AdminSalesTrackerPage({
             {!salesRepLocked && snapshot.reps.length > 0 ? (
               <section>
                 <h2 className="text-lg font-bold text-[#1E1810]">
-                  {isEn ? "Sales reps" : "Representantes de ventas"} ({snapshot.reps.length})
+                  Sales reps ({snapshot.reps.length})
                 </h2>
                 <div className="mt-3 overflow-x-auto rounded-2xl border border-[#E8DFD0]/90">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs uppercase text-[#7A7164]">
                       <tr>
-                        <th className="px-4 py-3">{isEn ? "Rep" : "Rep"}</th>
-                        <th className="px-4 py-3">{isEn ? "Active codes" : "Códigos"}</th>
-                        <th className="px-4 py-3">{isEn ? "Active entitlements" : "Entitlements"}</th>
-                        <th className="px-4 py-3">{isEn ? "Expiring" : "Por vencer"}</th>
-                        <th className="px-4 py-3">{isEn ? "Revoked/Exp" : "Rev/Exp"}</th>
-                        <th className="px-4 py-3">{isEn ? "Est. total" : "Total est."}</th>
-                        <th className="px-4 py-3">{isEn ? "Commission (preview)" : "Comisión (preview)"}</th>
+                        <th className="px-4 py-3">Rep</th>
+                        <th className="px-4 py-3">Active codes</th>
+                        <th className="px-4 py-3">Active entitlements</th>
+                        <th className="px-4 py-3">Expiring</th>
+                        <th className="px-4 py-3">Revoked/Exp</th>
+                        <th className="px-4 py-3">Est. total</th>
+                        <th className="px-4 py-3">Commission (preview)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E8DFD0]/60">
                       {snapshot.reps.map((rep) => (
-                        <RepRow key={rep.salesRepId} rep={rep} isEn={isEn} />
+                        <RepRow key={rep.salesRepId} rep={rep} />
                       ))}
                     </tbody>
                   </table>
@@ -274,9 +239,7 @@ export default async function AdminSalesTrackerPage({
               </section>
             ) : !salesRepLocked ? (
               <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center text-sm text-[#5C5346]">
-                {isEn
-                  ? "No sales reps found with codes or entitlements matching filters."
-                  : "No se encontraron representantes con códigos o paquetes que coincidan."}
+                No sales reps found with codes or entitlements matching filters.
               </div>
             ) : null}
 
@@ -284,25 +247,25 @@ export default async function AdminSalesTrackerPage({
             {snapshot.recentActivity.length > 0 ? (
               <section>
                 <h2 className="text-lg font-bold text-[#1E1810]">
-                  {isEn ? "Recent activity" : "Actividad reciente"} ({snapshot.recentActivity.length})
+                  Recent activity ({snapshot.recentActivity.length})
                 </h2>
                 <div className="mt-3 overflow-x-auto rounded-2xl border border-[#E8DFD0]/90">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs uppercase text-[#7A7164]">
                       <tr>
-                        <th className="px-4 py-3">{isEn ? "Code" : "Código"}</th>
-                        <th className="px-4 py-3">{isEn ? "Source" : "Fuente"}</th>
-                        <th className="px-4 py-3">{isEn ? "Customer" : "Cliente"}</th>
-                        <th className="px-4 py-3">{isEn ? "Sales rep" : "Rep ventas"}</th>
-                        <th className="px-4 py-3">{isEn ? "Package / category" : "Paquete / categoría"}</th>
-                        <th className="px-4 py-3">{isEn ? "Status" : "Estado"}</th>
-                        <th className="px-4 py-3">{isEn ? "Ends" : "Fin"}</th>
-                        <th className="px-4 py-3">{isEn ? "Est. total" : "Total est."}</th>
+                        <th className="px-4 py-3">Code</th>
+                        <th className="px-4 py-3">Source</th>
+                        <th className="px-4 py-3">Customer</th>
+                        <th className="px-4 py-3">Sales rep</th>
+                        <th className="px-4 py-3">Package / category</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Ends</th>
+                        <th className="px-4 py-3">Est. total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E8DFD0]/60">
                       {snapshot.recentActivity.map((a) => (
-                        <ActivityRow key={`${a.source}-${a.id}`} activity={a} isEn={isEn} />
+                        <ActivityRow key={`${a.source}-${a.id}`} activity={a} />
                       ))}
                     </tbody>
                   </table>
@@ -316,13 +279,13 @@ export default async function AdminSalesTrackerPage({
                 href="/admin/workspace/promo-codes"
                 className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
               >
-                {isEn ? "Promo Codes →" : "Códigos promo →"}
+                Promo Codes →
               </Link>
               <Link
                 href="/admin/workspace/package-entitlements"
                 className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
               >
-                {isEn ? "Package Entitlements →" : "Paquetes →"}
+                Package Entitlements →
               </Link>
             </div>
           </>
@@ -347,7 +310,7 @@ function SummaryCard({
       : tone === "muted"
         ? "border-stone-200/80"
         : tone === "info"
-          ? "border-sky-200/80"
+          ? "border-amber-200/80"
           : "border-[#C9B46A]/30";
   return (
     <div className={`rounded-2xl border ${border} bg-[#FFFCF7]/95 p-4 shadow-sm`}>
@@ -357,7 +320,7 @@ function SummaryCard({
   );
 }
 
-function RepRow({ rep, isEn }: { rep: SalesRepSummary; isEn: boolean }) {
+function RepRow({ rep }: { rep: SalesRepSummary }) {
   return (
     <tr className="bg-white/80 hover:bg-[#FAF7F2]">
       <td className="px-4 py-3 font-semibold text-[#1E1810]">
@@ -378,14 +341,14 @@ function RepRow({ rep, isEn }: { rep: SalesRepSummary; isEn: boolean }) {
       </td>
       <td className="px-4 py-3 text-xs text-[#5C5346]">
         {rep.commissionEligibleCount > 0
-          ? `${rep.commissionEligibleCount} ${isEn ? "eligible" : "elegibles"} · ≈ ${formatMoneyCents(rep.estimatedCommissionCents)}`
-          : isEn ? "pending" : "pendiente"}
+          ? `${rep.commissionEligibleCount} eligible · ≈ ${formatMoneyCents(rep.estimatedCommissionCents)}`
+          : "pending"}
       </td>
     </tr>
   );
 }
 
-function ActivityRow({ activity: a, isEn }: { activity: SalesTrackerActivity; isEn: boolean }) {
+function ActivityRow({ activity: a }: { activity: SalesTrackerActivity }) {
   return (
     <tr className="bg-white/80 hover:bg-[#FAF7F2]">
       <td className="px-4 py-3 font-mono text-xs font-semibold text-[#1E1810]">{a.code || "—"}</td>

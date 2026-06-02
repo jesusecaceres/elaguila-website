@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
-import { adminBtnPrimary, adminCardBase, adminInputClass, adminTableWrap } from "@/app/admin/_components/adminTheme";
+import { adminBtnPrimary, adminCardBase, adminInputClass, adminTableWrap, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
 import { AdminTiendaOrderStatusBadge } from "@/app/admin/_components/tienda/AdminTiendaOrderStatusBadge";
 import { getAdminTiendaDashboardCounts, listTiendaOrdersForAdmin } from "@/app/admin/_lib/tiendaOrdersData";
 import {
@@ -26,7 +26,7 @@ function formatWhen(iso: string): string {
   try {
     const d = new Date(iso);
     if (!Number.isFinite(d.getTime())) return "—";
-    return d.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+    return d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
   } catch {
     return "—";
   }
@@ -56,9 +56,9 @@ export default async function AdminTiendaOrdersPage({
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="Pedidos de Tienda"
-        subtitle="Bandeja de cumplimiento: datos en Supabase (no por correo). Busca por referencia, cliente, producto o UUID."
-        helperText="Esto es la cola de impresión / self-serve de la tienda. Dudas generales de usuarios siguen en Support en el menú global."
+        title="Tienda Orders"
+        subtitle="Fulfillment inbox: data in Supabase (not email). Search by reference, customer, product, or UUID."
+        helperText="This is the print shop / self-serve store queue. General user questions remain in Support in the global menu."
       />
 
       {counts.dataUnavailable ? (
@@ -102,7 +102,7 @@ export default async function AdminTiendaOrdersPage({
         </Link>
         <Link
           href={inboxHref({ q, status: statusFilter, page: 1, unreadOnly: true })}
-          className={`rounded-full border px-3 py-1 ${unreadOnly ? "border-sky-600 bg-sky-50 text-sky-950" : "border-[#E8DFD0] text-[#5C5346]"}`}
+          className={`rounded-full border px-3 py-1 ${unreadOnly ? "border-amber-600 bg-amber-50 text-amber-950" : "border-[#E8DFD0] text-[#5C5346]"}`}
         >
           Unread only
         </Link>
@@ -165,11 +165,11 @@ export default async function AdminTiendaOrdersPage({
               list.rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-[#F0E8D8]/90 ${row.unread_admin ? "bg-sky-50/50" : "bg-white/60"}`}
+                  className={`${adminTableZebraRow} ${row.unread_admin ? "bg-amber-50/40" : ""}`}
                 >
                   <td className="px-4 py-3 font-mono text-xs font-semibold text-[#1E1810]">
                     {row.unread_admin ? (
-                      <span className="mr-1 inline-block h-2 w-2 rounded-full bg-sky-500 align-middle" title="Unread" />
+                      <span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500 align-middle" title="Unread" />
                     ) : null}
                     {row.order_ref}
                   </td>

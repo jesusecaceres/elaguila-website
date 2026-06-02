@@ -12,14 +12,13 @@ import type { AutosClassifiedsListingRow } from "@/app/lib/clasificados/autos/au
 import {
   autosListingAdminVisibilityBucket,
   autosListingStatusLabelEn,
-  autosListingStatusLabelEs,
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
-import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary, adminTableZebraRow } from "../../../../_components/adminTheme";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
@@ -72,14 +71,14 @@ function visLabel(bucket: string, m: ReturnType<typeof adminMessages>): string {
   return m("autosQueue.visibilityInactive");
 }
 
-function statusLabel(status: AutosClassifiedsListingRow["status"], lang: AdminLang): string {
-  return lang === "es" ? autosListingStatusLabelEs(status) : autosListingStatusLabelEn(status);
+function statusLabel(status: AutosClassifiedsListingRow["status"]): string {
+  return autosListingStatusLabelEn(status);
 }
 
 export default async function AdminAutosClassifiedsPage(props: AutosAdminPageProps) {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
-  const locale = lang === "es" ? "es-MX" : "en-US";
+  const locale = "en-US";
 
   const sp = (props.searchParams ? await props.searchParams : {}) as Record<string, string | string[] | undefined>;
   const scope = parseAdminScope(sp);
@@ -241,7 +240,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
                     : null;
                 return (
-                  <tr key={r.id} className="border-b border-[#E8DFD0]/80">
+                  <tr key={r.id} className={adminTableZebraRow}>
                     <td className="max-w-[7rem] truncate px-3 py-2 font-mono text-[10px]" title={r.id}>
                       {r.id.slice(0, 8)}…
                     </td>
@@ -271,7 +270,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     </td>
                     <td className="px-3 py-2">{r.lane}</td>
                     <td className="px-3 py-2">{r.featured ? m("autosQueue.yes") : m("autosQueue.no")}</td>
-                    <td className="px-3 py-2">{statusLabel(r.status, lang)}</td>
+                    <td className="px-3 py-2">{statusLabel(r.status)}</td>
                     <td className="px-3 py-2">{vis}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{pub}</td>
                     <td

@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import newLogo from "../../../public/logo.png";
 import { ADMIN_GLOBAL_NAV, isAdminGlobalNavItemActive } from "../_lib/adminGlobalNav";
-import { AdminLangToggle } from "./AdminLangToggle";
 import { useAdminT } from "./AdminI18nProvider";
 
 function cx(...p: Array<string | false | undefined>) {
@@ -15,12 +14,10 @@ function cx(...p: Array<string | false | undefined>) {
 
 export function AdminMobileNavDrawer({
   tiendaInboxUnread = 0,
-  adminLang,
   allowedGlobalNavHrefs,
   salesRepLimited = false,
 }: {
   tiendaInboxUnread?: number;
-  adminLang: "en" | "es";
   allowedGlobalNavHrefs?: string[];
   salesRepLimited?: boolean;
 }) {
@@ -52,7 +49,7 @@ export function AdminMobileNavDrawer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-11 min-w-[44px] items-center justify-center rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-3 text-sm font-bold text-[color:var(--lx-text)] shadow-sm"
+        className="flex h-11 min-w-[44px] items-center justify-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-3 text-sm font-bold text-[color:var(--lx-text)] shadow-sm"
         aria-expanded={open}
         aria-controls="admin-mobile-nav-panel"
         aria-label={t("mobile.openMenu")}
@@ -78,17 +75,14 @@ export function AdminMobileNavDrawer({
                   <p className="truncate text-sm font-bold text-[color:var(--lx-text)]">{t("shell.globalAdmin")}</p>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <AdminLangToggle active={adminLang} />
-                <button
-                  type="button"
-                  onClick={close}
-                  className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-sm font-bold text-[color:var(--lx-muted)]"
-                  aria-label={t("mobile.close")}
-                >
-                  ✕
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={close}
+                className="flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-sm font-bold text-[color:var(--lx-muted)]"
+                aria-label={t("mobile.close")}
+              >
+                ✕
+              </button>
             </div>
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2 py-3" aria-label={t("mobile.globalNav")}>
@@ -100,7 +94,7 @@ export function AdminMobileNavDrawer({
                     href={item.href}
                     onClick={close}
                     className={cx(
-                      "flex min-h-[44px] items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+                      "flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition",
                       active
                         ? "bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.80)] ring-1 ring-[color:var(--lx-border)]/40"
                         : "text-[color:var(--lx-text-2)]/90 active:bg-[color:var(--lx-card)]",
@@ -121,22 +115,22 @@ export function AdminMobileNavDrawer({
             </nav>
 
             <div className="border-t border-[color:var(--lx-border)]/70 p-3">
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-3 text-[11px] font-semibold text-[color:var(--lx-muted)]">
+              <div className="rounded-lg border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-3 text-[11px] font-semibold text-[color:var(--lx-muted)]">
                 {!salesRepLimited ? (
                   <>
-                    <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                    <Link href="/admin/workspace" onClick={close} className="block min-h-[44px] py-2 text-[#7A1E2C] underline">
                       {t("shell.websiteSectionsLink")}
                     </Link>
-                    <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                    <Link href="/admin/site-settings" onClick={close} className="block min-h-[44px] py-2 text-[#7A1E2C] underline">
                       {t("shell.globalSiteSettingsLink")}
                     </Link>
                   </>
                 ) : (
                   <>
-                    <Link href="/admin/workspace/promo-codes" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                    <Link href="/admin/workspace/promo-codes" onClick={close} className="block min-h-[44px] py-2 text-[#7A1E2C] underline">
                       Promo codes
                     </Link>
-                    <Link href="/admin/workspace/package-entitlements" onClick={close} className="block min-h-[44px] py-2 text-[color:var(--lx-lion)] underline">
+                    <Link href="/admin/workspace/package-entitlements" onClick={close} className="block min-h-[44px] py-2 text-[#7A1E2C] underline">
                       Package entitlements
                     </Link>
                   </>
@@ -144,7 +138,7 @@ export function AdminMobileNavDrawer({
                 <Link
                   href="/"
                   onClick={close}
-                  className="mt-1 block min-h-[44px] py-2 text-center text-xs font-bold text-[color:var(--lx-lion)] underline"
+                  className="mt-1 block min-h-[44px] py-2 text-center text-xs font-bold text-[#7A1E2C] underline"
                 >
                   {t("shell.viewSite")}
                 </Link>

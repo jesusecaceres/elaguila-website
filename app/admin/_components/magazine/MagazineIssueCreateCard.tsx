@@ -28,14 +28,14 @@ export function MagazineIssueCreateCard() {
 
   return (
     <form action={upsertMagazineIssueAction} className="space-y-4">
-      <h3 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Crear / reemplazar número (upsert por año + mes)</h3>
+      <h3 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Create / replace issue (upsert by year + month)</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Año</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Year</label>
           <input name="year" className={adminInputClass} required value={year} onChange={(e) => setYear(e.target.value)} />
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Mes (slug)</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Month (slug)</label>
           <select name="month_slug" className={adminInputClass} required value={monthSlug} onChange={(e) => setMonthSlug(e.target.value)}>
             {MONTHS.map((m) => (
               <option key={m} value={m}>
@@ -56,39 +56,39 @@ export function MagazineIssueCreateCard() {
         </div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-[#5C5346]">Estado</label>
+        <label className="text-xs font-semibold text-[#5C5346]">Status</label>
         <select name="status" className={adminInputClass} defaultValue="draft">
-          <option value="draft">Borrador (no público)</option>
-          <option value="published">Publicado (hub + archivo)</option>
-          <option value="archived">Archivado (sigue en archivo)</option>
+          <option value="draft">Draft (not public)</option>
+          <option value="published">Published (hub + archive)</option>
+          <option value="archived">Archived (still in archive)</option>
         </select>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">URL portada</label>
-          <input ref={coverRef} name="cover_url" className={adminInputClass} placeholder="https://… o /magazine/…" />
+          <label className="text-xs font-semibold text-[#5C5346]">Cover URL</label>
+          <input ref={coverRef} name="cover_url" className={adminInputClass} placeholder="https://… or /magazine/…" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">URL PDF</label>
-          <input ref={pdfRef} name="pdf_url" className={adminInputClass} placeholder="https://… o /magazine/…/magazine.pdf" />
+          <label className="text-xs font-semibold text-[#5C5346]">PDF URL</label>
+          <input ref={pdfRef} name="pdf_url" className={adminInputClass} placeholder="https://… or /magazine/…/magazine.pdf" />
         </div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-[#5C5346]">Flipbook (opcional, por número)</label>
+        <label className="text-xs font-semibold text-[#5C5346]">Flipbook (optional, per issue)</label>
         <input name="flipbook_url" className={adminInputClass} placeholder="https://online.fliphtml5.com/…" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Publicado en (ISO, opcional)</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Published at (ISO, optional)</label>
           <input name="published_at" className={adminInputClass} placeholder="2026-02-01T12:00:00Z" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#5C5346]">Orden en año (mayor = primero)</label>
+          <label className="text-xs font-semibold text-[#5C5346]">Order within year (higher = first)</label>
           <input name="display_order" className={adminInputClass} type="number" defaultValue="0" />
         </div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-[#5C5346]">Notas internas</label>
+        <label className="text-xs font-semibold text-[#5C5346]">Internal notes</label>
         <textarea name="internal_notes" className={adminInputClass} rows={2} />
       </div>
 
@@ -104,9 +104,9 @@ export function MagazineIssueCreateCard() {
       <button
         type="submit"
         className={adminBtnPrimary}
-        title="Crea o reemplaza número por año+mes en magazine_issues (upsert)"
+        title="Create or replace issue by year+month in magazine_issues (upsert)"
       >
-        Crear o actualizar número
+        Create or update issue
       </button>
     </form>
   );

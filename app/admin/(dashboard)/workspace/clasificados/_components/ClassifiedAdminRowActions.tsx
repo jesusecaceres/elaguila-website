@@ -91,7 +91,7 @@ export function ClassifiedAdminRowActions({
 
   const runArchive = useCallback(() => {
     if (!canArchive) return;
-    const ok = window.confirm("¿Archivar este anuncio? Dejará de mostrarse al público.");
+    const ok = window.confirm("Archive this listing? It will stop showing publicly.");
     if (!ok) return;
     void run("archive");
   }, [canArchive, run]);
@@ -108,7 +108,7 @@ export function ClassifiedAdminRowActions({
           href={staffEditBoardHref}
           className="inline-flex rounded-lg border border-[#C9B46A]/60 bg-[#FFF7ED] px-2 py-1 text-[10px] font-bold text-[#92400E] underline-offset-2 hover:underline"
         >
-          Editar
+          Edit
         </Link>
       ) : null}
       <div className="flex flex-wrap gap-1.5">
@@ -121,7 +121,7 @@ export function ClassifiedAdminRowActions({
               if (republish.disabled) return;
               void run("republish");
             }}
-            className="rounded-lg border border-slate-300/90 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-900 disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-[10px] font-bold text-[#3D3428] disabled:cursor-not-allowed disabled:opacity-45"
           >
             {busy ? "…" : republish.label}
           </button>
@@ -133,17 +133,17 @@ export function ClassifiedAdminRowActions({
             onClick={() => void run("suspend")}
             className="rounded-lg border border-red-300/90 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-900 disabled:opacity-50"
           >
-            Suspender
+            Suspend
           </button>
         ) : (
           <button
             type="button"
             disabled={busy}
             onClick={() => void run("unsuspend")}
-            title="Restaurar / Reactivar: quita la suspensión de staff. No es Republicar ni Subir al inicio. / Restore (unsuspend). Not Republish or Move to top."
-            className="rounded-lg border border-emerald-300/90 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-900 disabled:opacity-50"
+            title="Restore (unsuspend). Not Republish or Move to top."
+            className="rounded-lg border border-amber-300/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-950 disabled:opacity-50"
           >
-            Restaurar
+            Restore
           </button>
         )}
         {promoted ? (
@@ -153,7 +153,7 @@ export function ClassifiedAdminRowActions({
             onClick={() => void run("promote_off")}
             className="rounded-lg border border-amber-300/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-950 disabled:opacity-50"
           >
-            Quitar destacado
+            Remove featured
           </button>
         ) : (
           <button
@@ -162,7 +162,7 @@ export function ClassifiedAdminRowActions({
             onClick={() => void run("promote_on")}
             className="rounded-lg border border-amber-300/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-950 disabled:opacity-50"
           >
-            Destacar
+            Feature
           </button>
         )}
         {verified ? (
@@ -170,18 +170,18 @@ export function ClassifiedAdminRowActions({
             type="button"
             disabled={busy}
             onClick={() => void run("verify_off")}
-            className="rounded-lg border border-sky-300/80 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-950 disabled:opacity-50"
+            className="rounded-lg border border-[#C9B46A]/70 bg-[#FBF7EF] px-2 py-1 text-[10px] font-bold text-[#5C5346] disabled:opacity-50"
           >
-            Quitar verificado
+            Remove verified
           </button>
         ) : (
           <button
             type="button"
             disabled={busy}
             onClick={() => void run("verify_on")}
-            className="rounded-lg border border-sky-300/80 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-950 disabled:opacity-50"
+            className="rounded-lg border border-[#C9B46A]/70 bg-[#FBF7EF] px-2 py-1 text-[10px] font-bold text-[#5C5346] disabled:opacity-50"
           >
-            Verificar Leonix
+            Verify Leonix
           </button>
         )}
         {canArchive ? (
@@ -191,7 +191,7 @@ export function ClassifiedAdminRowActions({
             onClick={() => void runArchive()}
             className="rounded-lg border border-stone-400/80 bg-stone-100 px-2 py-1 text-[10px] font-bold text-stone-900 disabled:opacity-50"
           >
-            Archivar
+            Archive
           </button>
         ) : null}
       </div>

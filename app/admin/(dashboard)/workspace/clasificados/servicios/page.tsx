@@ -189,11 +189,11 @@ export default async function AdminServiciosWorkspacePage(props: {
       />
 
       <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>
-        <p className="font-semibold text-[#1E1810]">Cola real (Supabase)</p>
+        <p className="font-semibold text-[#1E1810]">Live queue (Supabase)</p>
         <p className="mt-1 text-xs text-[#14532d]">
-          Los anuncios publicados en el flujo Servicios viven en{" "}
-          <code className="rounded bg-white/80 px-1">servicios_public_listings</code>. Moderación y borrado siguen modelados en
-          producto; aquí ves el directorio público tal como lo sirve la API.
+          Listings published through the Servicios flow live in{" "}
+          <code className="rounded bg-white/80 px-1">servicios_public_listings</code>. Moderation and removal follow product rules; here you
+          see the public directory as served by the API.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
@@ -209,8 +209,8 @@ export default async function AdminServiciosWorkspacePage(props: {
         <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
           <p className="font-bold text-[#1E1810]">{msg("listingsCategoryOps.searchTitle")}</p>
           <p className="text-[10px] text-[#7A7164]">
-            Leonix Ad ID (si existe columna), UUID interno o de usuario, slug, URL pública /clasificados/servicios/…, nombre del
-            negocio, y coincidencia por nombre / correo / teléfono del perfil propietario.
+            Leonix Ad ID (when column exists), internal or user UUID, slug, public URL /clasificados/servicios/…, business name, and
+            match on owner profile name / email / phone.
           </p>
           <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={serviciosBase}>
             {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
@@ -220,7 +220,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                 name="q"
                 defaultValue={queueFilters.q ?? ""}
                 className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
-                placeholder="UUID, URL, negocio, email…"
+                placeholder="UUID, URL, business, email…"
                 autoComplete="off"
               />
             </label>
@@ -261,10 +261,10 @@ export default async function AdminServiciosWorkspacePage(props: {
               />
             </label>
             <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
-              Aplicar
+              Apply
             </button>
             <Link href={queueHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
-              Limpiar
+              Clear
             </Link>
           </form>
         </div>
@@ -273,10 +273,10 @@ export default async function AdminServiciosWorkspacePage(props: {
       {!unavailable ? (
         <div className={`${adminCardBase} overflow-hidden p-0`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
-            servicios_public_listings (operaciones)
+            servicios_public_listings (operations)
             {!fullSchema ? (
               <span className="ml-2 text-amber-900">
-                — modo reducido (faltan columnas recientes; aplica migraciones Servicios)
+                — reduced mode (recent columns missing; apply Servicios migrations)
               </span>
             ) : null}
           </div>
@@ -290,24 +290,24 @@ export default async function AdminServiciosWorkspacePage(props: {
               <table className="min-w-full border-collapse text-sm">
                 <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
                   <tr>
-                    <th className="p-3">Negocio</th>
-                    <th className="p-3">Ciudad</th>
+                    <th className="p-3">Business</th>
+                    <th className="p-3">City</th>
                     <th className="p-3">Slug</th>
                     <th className="p-3">Leonix Ad ID</th>
-                    <th className="p-3 text-right tabular-nums" title="Filas en user_liked_listings (clave listing_id, rollup alias)">
+                    <th className="p-3 text-right tabular-nums" title="Rows in user_liked_listings (listing_id key, rollup alias)">
                       MG
                     </th>
-                    <th className="p-3 text-right tabular-nums" title="Filas en saved_listings">
-                      Guard.
+                    <th className="p-3 text-right tabular-nums" title="Rows in saved_listings">
+                      Saved
                     </th>
-                    <th className="p-3">Propietario</th>
-                    <th className="p-3">Estado</th>
-                    <th className="p-3">Verif. Leonix</th>
-                    <th className="p-3">Interés verif.</th>
-                    <th className="p-3">Actualizado</th>
+                    <th className="p-3">Owner</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Leonix verified</th>
+                    <th className="p-3">Verify interest</th>
+                    <th className="p-3">Updated</th>
                     <th className="p-3">Staff (Leonix)</th>
                     <th className="p-3">Monetization</th>
-                    <th className="p-3" title="Vista pública. Estado y notas: moderación staff en esta fila (sin editor de perfil completo).">
+                    <th className="p-3" title="Public view. Status and notes: staff moderation on this row (no full profile editor).">
                       &nbsp;
                     </th>
                   </tr>
@@ -342,20 +342,20 @@ export default async function AdminServiciosWorkspacePage(props: {
                             <option value="draft">draft</option>
                           </select>
                           <label className="text-[10px] font-semibold text-[#7A7164]">
-                            Notas moderación
+                            Moderation notes
                             <textarea
                               name="moderation_notes"
                               rows={2}
                               defaultValue={r.moderation_notes ?? ""}
                               className="mt-0.5 w-full resize-y rounded border border-[#E8DFD0] bg-white px-1 py-0.5 text-[10px]"
-                              placeholder="Interno"
+                              placeholder="Internal"
                             />
                           </label>
                           <button
                             type="submit"
-                            className="rounded border border-[#3B66AD]/40 bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold text-[#2f5699]"
+                            className="rounded-lg border border-[#7A1E2C]/40 bg-[#7A1E2C]/10 px-2 py-0.5 text-[10px] font-bold text-[#7A1E2C]"
                           >
-                            Guardar estado
+                            Save status
                           </button>
                         </form>
                       </td>
@@ -368,17 +368,17 @@ export default async function AdminServiciosWorkspacePage(props: {
                             className="max-w-[6rem] rounded border border-[#E8DFD0] bg-white px-1 py-1 text-[11px]"
                           >
                             <option value="0">no</option>
-                            <option value="1">sí</option>
+                            <option value="1">yes</option>
                           </select>
                           <button
                             type="submit"
                             className="rounded border border-[#E8DFD0] bg-white px-2 py-0.5 text-[10px] font-semibold"
                           >
-                            Guardar verif.
+                            Save verify
                           </button>
                         </form>
                       </td>
-                      <td className="p-3 text-xs">{r.profile_json?.opsMeta?.leonixVerifiedInterest ? "sí" : "—"}</td>
+                      <td className="p-3 text-xs">{r.profile_json?.opsMeta?.leonixVerifiedInterest ? "yes" : "—"}</td>
                       <td className="p-3 text-xs text-[#7A7164]">
                         {r.updated_at
                           ? new Date(r.updated_at).toLocaleString()
@@ -420,9 +420,9 @@ export default async function AdminServiciosWorkspacePage(props: {
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs font-bold text-[#6B5B2E] underline"
-                          title="Sitio público. Cambios de copy/imágenes: flujo del anunciante."
+                          title="Public site. Copy/image changes: advertiser flow."
                         >
-                          Ver público ↗
+                          View public ↗
                         </Link>
                       </td>
                     </tr>
@@ -434,25 +434,24 @@ export default async function AdminServiciosWorkspacePage(props: {
         </div>
       ) : (
         <div className={`${adminCardBase} border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
-          No se pudo leer <code className="rounded bg-white/80 px-1">servicios_public_listings</code> (revisa migraciones y
-          credenciales).
+          Could not read <code className="rounded bg-white/80 px-1">servicios_public_listings</code> (check migrations and credentials).
         </div>
       )}
 
       {devAdminRows.length > 0 ? (
-        <div className={`${adminCardBase} overflow-hidden border-sky-200 bg-sky-50/90 p-0`}>
-          <div className="border-b border-sky-200/80 bg-sky-100/90 px-4 py-2 text-xs font-semibold text-sky-950">
-            Publicaciones de prueba (archivo local <code className="rounded bg-white/80 px-1">.servicios-dev-publishes.json</code>)
-            — solo desarrollo / <code className="rounded bg-white/80 px-1">SERVICIOS_DEV_PUBLISH=1</code>
+        <div className={`${adminCardBase} overflow-hidden border-amber-200/80 bg-amber-50/90 p-0`}>
+          <div className="border-b border-amber-200/80 bg-amber-100/90 px-4 py-2 text-xs font-semibold text-amber-950">
+            Test publishes (local file <code className="rounded bg-white/80 px-1">.servicios-dev-publishes.json</code>) — development only /{" "}
+            <code className="rounded bg-white/80 px-1">SERVICIOS_DEV_PUBLISH=1</code>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
                 <tr>
-                  <th className="p-3">Negocio</th>
-                  <th className="p-3">Ciudad</th>
+                  <th className="p-3">Business</th>
+                  <th className="p-3">City</th>
                   <th className="p-3">Slug</th>
-                  <th className="p-3" title="Solo vista pública de prueba">
+                  <th className="p-3" title="Test public view only">
                     &nbsp;
                   </th>
                 </tr>
@@ -469,9 +468,9 @@ export default async function AdminServiciosWorkspacePage(props: {
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs font-bold text-[#6B5B2E] underline"
-                        title="Vista pública (dev)"
+                        title="Public view (dev)"
                       >
-                        Ver público ↗
+                        View public ↗
                       </Link>
                     </td>
                   </tr>
@@ -485,16 +484,16 @@ export default async function AdminServiciosWorkspacePage(props: {
       {!unavailable && pendingReviews.length > 0 ? (
         <div className={`${adminCardBase} overflow-hidden p-0`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
-            Reseñas pendientes ({pendingReviews.length})
+            Pending reviews ({pendingReviews.length})
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
                 <tr>
                   <th className="p-3">Slug</th>
-                  <th className="p-3">Autor</th>
-                  <th className="p-3">Estrellas</th>
-                  <th className="p-3">Texto</th>
+                  <th className="p-3">Author</th>
+                  <th className="p-3">Stars</th>
+                  <th className="p-3">Text</th>
                   <th className="p-3"> </th>
                 </tr>
               </thead>
@@ -517,7 +516,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                             type="submit"
                             className="rounded border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-900"
                           >
-                            Aprobar
+                            Approve
                           </button>
                         </form>
                         <form action={setServiciosReviewModerationStatusAction}>
@@ -528,7 +527,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                             type="submit"
                             className="rounded border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-900"
                           >
-                            Rechazar
+                            Reject
                           </button>
                         </form>
                       </div>
@@ -544,17 +543,17 @@ export default async function AdminServiciosWorkspacePage(props: {
       {!unavailable && recentLeads.length > 0 ? (
         <div className={`${adminCardBase} overflow-hidden p-0`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
-            Solicitudes recientes (servicios_public_leads)
+            Recent inquiries (servicios_public_leads)
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
                 <tr>
                   <th className="p-3">Slug</th>
-                  <th className="p-3">Remitente</th>
-                  <th className="p-3">Tipo</th>
-                  <th className="p-3">Mensaje</th>
-                  <th className="p-3">Fecha</th>
+                  <th className="p-3">Sender</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Message</th>
+                  <th className="p-3">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -580,15 +579,15 @@ export default async function AdminServiciosWorkspacePage(props: {
       ) : null}
 
       <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FFFCF7]/90 p-4 text-sm text-[#5C5346]`}>
-        <p className="font-semibold text-[#1E1810]">Sandbox de tiers (localStorage)</p>
+        <p className="font-semibold text-[#1E1810]">Tier sandbox (localStorage)</p>
         <p className="mt-1 text-xs">
-          Herramienta de diseño histórica — no escribe en Supabase. Para pruebas de visibilidad/tiers usa la pantalla aislada.
+          Legacy design tool — does not write to Supabase. For visibility/tier tests use the isolated screen.
         </p>
         <Link
           href="/admin/workspace/clasificados/servicios/sandbox"
           className={`${adminCtaChipSecondary} mt-3 inline-flex justify-center text-xs`}
         >
-          Abrir sandbox tiers →
+          Open tier sandbox →
         </Link>
       </div>
     </div>

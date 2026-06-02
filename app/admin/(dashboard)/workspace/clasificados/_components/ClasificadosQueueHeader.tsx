@@ -26,20 +26,20 @@ export function ClasificadosQueueHeader({
   subtitle,
   hubHref = "/admin/workspace/clasificados",
   publicHref,
-  publicLabel = "Vista pública",
+  publicLabel = "Public view",
   publishHref,
-  publishLabel = "Publicar",
+  publishLabel = "Publish",
   rightSlot,
 }: ClasificadosQueueHeaderProps) {
   return (
     <div className="mb-6 flex flex-col gap-3 border-b border-[#E8DFD0] pb-5 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-2">
         <Link href={hubHref} className={`${adminBtnSecondary} inline-flex text-xs`}>
-          ← Hub Clasificados
+          ← Clasificados hub
         </Link>
         <h1 className="text-xl font-bold leading-tight text-[#1E1810] sm:text-2xl">{title}</h1>
         <p className="font-mono text-[11px] font-semibold text-[#7A7164]">
-          Fuente: <span className="text-[#3D3428]">{sourceTable}</span>
+          Source: <span className="text-[#3D3428]">{sourceTable}</span>
         </p>
         {subtitle ? <p className="max-w-3xl text-sm text-[#5C5346]">{subtitle}</p> : null}
         {publicHref || publishHref ? (
@@ -50,7 +50,7 @@ export function ClasificadosQueueHeader({
               </Link>
             ) : null}
             {publishHref ? (
-              <Link href={publishHref} className="text-[#4A6680] underline" target="_blank" rel="noreferrer">
+              <Link href={publishHref} className="text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
                 {publishLabel} ↗
               </Link>
             ) : null}

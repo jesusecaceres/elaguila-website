@@ -22,14 +22,14 @@ export function AdminQuickActionsRail() {
             autoComplete="off"
           />
           <p id="rail-user-hint" className="text-[10px] leading-snug text-[#7A7164]">
-            Abre la lista de usuarios con tu texto en <span className="font-mono">?q=</span> (email, nombre, UUID…).
+            Opens the user list with your text in <span className="font-mono">?q=</span> (email, name, UUID…).
           </p>
           <button
             type="submit"
             className={`${adminBtnSecondary} flex min-h-[44px] w-full items-center justify-center text-xs sm:min-h-0`}
-            title="Navega a /admin/usuarios con el parámetro de búsqueda"
+            title="Go to /admin/usuarios with search parameter"
           >
-            Ir a lista de usuarios →
+            Go to user list →
           </button>
         </form>
         <form className="mt-3 space-y-2" action="/admin/workspace/clasificados" method="get">
@@ -39,61 +39,61 @@ export function AdminQuickActionsRail() {
           <input
             id="rail-ad-q"
             name="q"
-            placeholder="Fragmento de título, ciudad o ID…"
+            placeholder="Title fragment, city, or ID…"
             className={`${adminInputClass} min-h-[44px] text-base sm:min-h-0 sm:text-sm`}
-            title="Abre Clasificados con ?q=; el filtrado ocurre en la página del workspace"
+            title="Opens Classifieds with ?q=; filtering happens on the workspace page"
           />
           <p className="text-[10px] text-[#7A7164]">
-            Solo navega a la cola con el texto en la URL; no ejecuta búsqueda aparte. Filtra en la página de Clasificados.
+            Only navigates to the queue with text in the URL; does not run a separate search. Filter on the Classifieds page.
           </p>
           <button
             type="submit"
             className={`${adminBtnSecondary} flex min-h-[44px] w-full items-center justify-center text-xs sm:min-h-0`}
-            title="Ir a /admin/workspace/clasificados con parámetro q"
+            title="Go to /admin/workspace/clasificados with q parameter"
           >
-            Ir a cola Clasificados →
+            Go to Classifieds queue →
           </button>
         </form>
       </div>
 
       <div className="space-y-2 border-t border-[#E8DFD0]/80 pt-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Auth (no en esta barra)</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">Auth (not in this rail)</p>
         <p className="text-[10px] leading-snug text-[#7A7164]">
-          Contraseña y magic link:{" "}
+          Password and magic link:{" "}
           <Link href="/admin/support" className="font-bold text-[#6B5B2E] underline">
             Support
           </Link>{" "}
-          → enlace a Supabase Auth. Sin suplantación de usuario.
+          → link to Supabase Auth. No user impersonation.
         </p>
         <button
           type="button"
           disabled
           className="flex min-h-[44px] w-full cursor-not-allowed items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
-          title="Usa Supabase Dashboard → Authentication → Users para enviar recuperación"
+          title="Use Supabase Dashboard → Authentication → Users to send recovery"
         >
-          🔑 Reset user password (solo vía Supabase)
+          🔑 Reset user password (Supabase only)
         </button>
         <button
           type="button"
           disabled
           className="flex min-h-[44px] w-full cursor-not-allowed items-center gap-2 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFFCF7]/80 px-3 py-2 text-left text-xs font-semibold text-[#5C5346]/80 sm:min-h-0"
-          title="Réplica de sesión de usuario no está disponible por seguridad"
+          title="User session replica is not available for security"
         >
-          🪞 Switch to user dashboard (no disponible)
+          🪞 Switch to user dashboard (not available)
         </button>
         <Link
           href="/admin/workspace/clasificados"
           className={`${adminBtnSecondary} w-full justify-center text-xs`}
-          title="Abre la cola de anuncios; no abre un anuncio concreto"
+          title="Opens the listings queue; does not open a specific ad"
         >
-          Abrir cola Clasificados
+          Open Classifieds queue
         </Link>
         <Link
           href="/admin/team"
           className={`${adminBtnDark} w-full justify-center text-xs`}
-          title="Team: intención de invitación puede guardarse en admin_team_invites"
+          title="Team: invite intent may be saved in admin_team_invites"
         >
-          Ir a Team
+          Go to Team
         </Link>
       </div>
 

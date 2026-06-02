@@ -50,7 +50,7 @@ function fmt(iso: string | null) {
   try {
     const d = new Date(iso);
     return Number.isFinite(d.getTime())
-      ? d.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })
+      ? d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
       : iso;
   } catch {
     return iso;
@@ -62,7 +62,7 @@ function statusBadgeClass(status: string): string {
     case "active":
       return "bg-emerald-100 text-emerald-950";
     case "draft":
-      return "bg-sky-100 text-sky-950";
+      return "bg-amber-100 text-amber-950";
     case "expired":
       return "bg-stone-200 text-stone-800";
     case "revoked":
@@ -76,14 +76,14 @@ function statusBadgeClass(status: string): string {
 
 function alertFromSearch(sp: Record<string, string | undefined>) {
   if (sp.created === "1") {
-    return { kind: "ok" as const, text: `Código promo creado: ${sp.code ?? "—"}` };
+    return { kind: "ok" as const, text: `Promo code created: ${sp.code ?? "—"}` };
   }
-  if (sp.revoked === "1") return { kind: "ok" as const, text: "Código revocado (sin eliminar el registro)." };
+  if (sp.revoked === "1") return { kind: "ok" as const, text: "Code revoked (record not deleted)." };
   if (sp.error === "duplicate_code") {
-    return { kind: "err" as const, text: "El código ya existe. Usa otro o deja el campo vacío para generar uno." };
+    return { kind: "err" as const, text: "Code already exists. Use another or leave the field empty to generate one." };
   }
   if (sp.error) {
-    return { kind: "err" as const, text: `No se pudo completar (${sp.error}${sp.detail ? `: ${sp.detail}` : ""}).` };
+    return { kind: "err" as const, text: `Could not complete (${sp.error}${sp.detail ? `: ${sp.detail}` : ""}).` };
   }
   return null;
 }
@@ -118,14 +118,14 @@ export default async function AdminPromoCodesPage(props: {
   return (
     <div className="max-w-5xl space-y-6">
       <AdminPageHeader
-        eyebrow="Workspace · Monetización · Promo lifecycle"
-        title="Promo Codes / Códigos Promocionales"
+        eyebrow="Workspace · Monetization · Promo lifecycle"
+        title="Promo codes"
         subtitle={
           salesRepLocked
-            ? "Vista limitada: solo tus códigos promo atribuidos a tu ID de representante."
+            ? "Limited view: only your promo codes attributed to your sales rep ID."
             : "Admin-only promo-code lifecycle manager. This is not the public Cupones CMS."
         }
-        helperText="Reglas desde packagePricingRules y promoCodeLifecycle. Sin redención pública ni Stripe Checkout."
+        helperText="Rules from packagePricingRules and promoCodeLifecycle. No public redemption or Stripe Checkout."
         rightSlot={
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/workspace/package-entitlements" className={adminBtnSecondary}>
@@ -139,12 +139,12 @@ export default async function AdminPromoCodesPage(props: {
       />
 
       <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
-        <p className="font-bold">Importante</p>
+        <p className="font-bold">Important</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed">
           <li>Admin-only promo-code lifecycle manager. This is not the public Cupones CMS.</li>
-          <li>Promo code = descuento/atribución; package entitlement = visibilidad/acceso (pueden vincularse).</li>
-          <li>Códigos newsletter/SMS son placeholders para generación única futura.</li>
-          <li>Sin redención pública, Stripe Checkout, comisiones pagadas, ni ordenamiento Servicios en este gate.</li>
+          <li>Promo code = discount/attribution; package entitlement = visibility/access (may be linked).</li>
+          <li>Newsletter/SMS codes are placeholders for future unique generation.</li>
+          <li>No public redemption, Stripe Checkout, paid commissions, or Servicios sorting in this gate.</li>
         </ul>
       </div>
 
@@ -162,27 +162,27 @@ export default async function AdminPromoCodesPage(props: {
 
       {unavailable ? (
         <div className={`${adminCardBase} border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-950`}>
-          <p className="font-bold">Tabla no disponible</p>
-          <p className="mt-1 text-xs">{note ?? "Aplica la migración leonix_promo_codes en Supabase."}</p>
+          <p className="font-bold">Table unavailable</p>
+          <p className="mt-1 text-xs">{note ?? "Apply the leonix_promo_codes migration in Supabase."}</p>
         </div>
       ) : null}
 
       <section className={`${adminCardBase} p-4 sm:p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Buscar y filtrar</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Search & filter</h2>
         <form method="get" className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
-            Buscar
+            Search
             <input
               name="q"
               defaultValue={filterQ}
-              placeholder="código, negocio, cliente, email, sales rep, entitlement ID…"
+              placeholder="code, business, customer, email, sales rep, entitlement ID…"
               className={`${adminInputClass} mt-1`}
             />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Categoría
+            Category
             <select name="category" defaultValue={filterCategory} className={`${adminInputClass} mt-1`}>
-              <option value="">Todas</option>
+              <option value="">All</option>
               {PROMO_CODE_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
@@ -191,9 +191,9 @@ export default async function AdminPromoCodesPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Tipo de código
+            Code type
             <select name="code_type" defaultValue={filterType} className={`${adminInputClass} mt-1`}>
-              <option value="">Todos</option>
+              <option value="">All</option>
               {PROMO_CODE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -202,7 +202,7 @@ export default async function AdminPromoCodesPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Estado
+            Status
             <select name="status" defaultValue={filterStatus} className={`${adminInputClass} mt-1`}>
               {PROMO_CODE_STATUSES.map((s) => (
                 <option key={s.value || "all"} value={s.value}>
@@ -213,27 +213,27 @@ export default async function AdminPromoCodesPage(props: {
           </label>
           <div className="flex flex-wrap items-end gap-2 sm:col-span-2">
             <button type="submit" className={adminBtnPrimary}>
-              Aplicar filtros
+              Apply filters
             </button>
             <Link href="/admin/workspace/promo-codes" className={adminBtnSecondary}>
-              Limpiar
+              Clear
             </Link>
           </div>
         </form>
         <p className="mt-2 text-[10px] text-[#7A7164]">
-          Mostrando {rows.length} de {totalFetched} filas recientes (máx. {PROMO_CODE_TRACKER_FETCH_LIMIT}).
+          Showing {rows.length} of {totalFetched} recent rows (max {PROMO_CODE_TRACKER_FETCH_LIMIT}).
         </p>
       </section>
 
       <section className={`${adminCardBase} p-4 sm:p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Crear código promo</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Create promo code</h2>
         <form id="promo-code-create-form" action={createPromoCodeAction} className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
-            Código (vacío = generar)
+            Code (empty = generate)
             <input name="code" placeholder="LX-PROMO-…" className={`${adminInputClass} mt-1 font-mono uppercase`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Tipo
+            Type
             <select name="code_type" defaultValue="entitlement" className={`${adminInputClass} mt-1`}>
               {PROMO_CODE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -243,14 +243,14 @@ export default async function AdminPromoCodesPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Estado inicial
+            Initial status
             <select name="status" defaultValue="active" className={`${adminInputClass} mt-1`}>
               <option value="draft">Draft</option>
               <option value="active">Active</option>
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Categoría
+            Category
             <select name="category" className={`${adminInputClass} mt-1`}>
               <option value="">—</option>
               {PROMO_CODE_CATEGORIES.map((c) => (
@@ -282,19 +282,19 @@ export default async function AdminPromoCodesPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Inicio
+            Start
             <input type="datetime-local" name="starts_at" defaultValue={defaultStartLocal()} className={`${adminInputClass} mt-1`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Fin
+            End
             <input type="datetime-local" name="ends_at" defaultValue={defaultEndLocal()} className={`${adminInputClass} mt-1`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Cliente
+            Customer
             <input name="customer_name" className={`${adminInputClass} mt-1`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Negocio
+            Business
             <input name="business_name" className={`${adminInputClass} mt-1`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
@@ -302,12 +302,12 @@ export default async function AdminPromoCodesPage(props: {
             <input name="customer_email" type="email" className={`${adminInputClass} mt-1`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Teléfono
+            Phone
             <input name="customer_phone" className={`${adminInputClass} mt-1`} />
           </label>
           {salesRepLocked && salesScope ? (
-            <div className="sm:col-span-2 rounded-xl border border-sky-200/80 bg-sky-50/80 p-3 text-sm text-sky-950">
-              <p className="font-semibold">Tu atribución de ventas (automática)</p>
+            <div className="sm:col-span-2 rounded-xl border border-amber-200/80 bg-amber-50/80 p-3 text-sm text-amber-950">
+              <p className="font-semibold">Your sales attribution (automatic)</p>
               <p className="mt-1 text-xs">
                 {salesScope.salesRepName} · <span className="font-mono">{salesScope.salesRepId}</span>
               </p>
@@ -327,7 +327,7 @@ export default async function AdminPromoCodesPage(props: {
             </>
           )}
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
-            Package entitlement ID (opcional)
+            Package entitlement ID (optional)
             <input
               name="package_entitlement_id"
               placeholder="uuid del entitlement vinculado"
@@ -343,16 +343,16 @@ export default async function AdminPromoCodesPage(props: {
           </div>
           <div className="sm:col-span-2">
             <button type="submit" className={adminBtnPrimary} disabled={unavailable}>
-              Crear código promo
+              Create promo code
             </button>
           </div>
         </form>
       </section>
 
       <section className={`${adminCardBase} p-4 sm:p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Códigos recientes</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Recent codes</h2>
         {rows.length === 0 ? (
-          <p className="mt-3 text-sm text-[#5C5346]/90">No hay códigos que coincidan con los filtros.</p>
+          <p className="mt-3 text-sm text-[#5C5346]/90">No codes match the filters.</p>
         ) : (
           <ul className="mt-4 space-y-4">
             {rows.map((row) => {
@@ -403,7 +403,7 @@ export default async function AdminPromoCodesPage(props: {
                       <input type="hidden" name="code_type" value={filterType} />
                       <input type="hidden" name="status" value={filterStatus} />
                       <button type="submit" className={adminBtnSecondary}>
-                        Revocar
+                        Revoke
                       </button>
                     </form>
                   ) : null}

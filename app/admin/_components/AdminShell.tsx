@@ -44,7 +44,6 @@ export function AdminShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopbar
             alertCount={tiendaInboxUnread}
-            adminLang={adminLang}
             allowedGlobalNavHrefs={allowedGlobalNavHrefs}
             salesRepLimited={salesRepLimited}
           />

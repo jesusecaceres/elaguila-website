@@ -7,7 +7,7 @@ import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader"
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
-import { adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminCardBase, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
 import { fetchAllViajesStagedForAdmin } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import type { ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -78,35 +78,35 @@ export default async function AdminTravelViajesQueuePage(props: {
         <form method="get" action={basePath} className={`${adminCardBase} flex flex-wrap items-center gap-2 p-3`}>
           {scope === "live" && <input type="hidden" name="scope" value="live" />}
           <label className="flex items-center gap-2 text-xs text-[#5C5346]">
-            <span className="font-semibold">Buscar</span>
+            <span className="font-semibold">Search</span>
             <input
               type="search"
               name="q"
               defaultValue={qRaw}
-              placeholder="Título, Leonix ID o slug…"
+              placeholder="Title, Leonix ID or slug…"
               className="min-w-[18rem] rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
               autoComplete="off"
             />
           </label>
           <button type="submit" className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs text-[#5C5346] hover:bg-[#F3EBDD]">
-            Buscar
+            Search
           </button>
           {qRaw && (
             <a
               href={scope === "live" ? `${basePath}?scope=live` : basePath}
               className="text-xs text-[#7A7164] underline"
             >
-              Limpiar
+              Clear
             </a>
           )}
         </form>
       )}
 
       {!configured ? (
-        <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>Supabase admin no configurado.</p>
+        <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>Supabase admin not configured.</p>
       ) : displayRows.length === 0 ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
-          {qRaw ? `Sin resultados para "${qRaw}".` : "Sin filas en viajes_staged_listings."}
+          {qRaw ? `No results for "${qRaw}".` : "No rows in viajes_staged_listings."}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
@@ -114,16 +114,16 @@ export default async function AdminTravelViajesQueuePage(props: {
             <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Leonix Ad ID</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Título</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Title</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Slug</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Público</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Dest.</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Status</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Public</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Feat.</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Verif.</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Publicado</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Enlaces</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Acciones</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Published</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Links</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Actions</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Monetization</th>
               </tr>
             </thead>
@@ -136,14 +136,14 @@ export default async function AdminTravelViajesQueuePage(props: {
                 const isPublic = r.is_public;
                 const publicLive = lifecycle === "approved" && isPublic;
                 return (
-                  <tr key={r.id} className="border-b border-[#F0E8DA] odd:bg-white/60">
+                  <tr key={r.id} className={adminTableZebraRow}>
                     <td className="px-3 py-2 font-mono text-[10px]">{lx ?? "—"}</td>
                     <td className="max-w-[200px] px-3 py-2 font-semibold">{r.title ?? "—"}</td>
                     <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
                     <td className="px-3 py-2">{lifecycle}</td>
-                    <td className="px-3 py-2">{isPublic ? "sí" : "no"}</td>
-                    <td className="px-3 py-2">{promoted ? "sí" : "no"}</td>
-                    <td className="px-3 py-2">{verified ? "sí" : "no"}</td>
+                    <td className="px-3 py-2">{isPublic ? "yes" : "no"}</td>
+                    <td className="px-3 py-2">{promoted ? "yes" : "no"}</td>
+                    <td className="px-3 py-2">{verified ? "yes" : "no"}</td>
                     <td className="max-w-[120px] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id ?? ""}>
                       {r.owner_user_id?.slice(0, 8) ?? "—"}…
                     </td>
@@ -156,7 +156,7 @@ export default async function AdminTravelViajesQueuePage(props: {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          Ver público
+                          View public
                         </Link>
                       ) : (
                         <span className="text-[#7A7164]">—</span>

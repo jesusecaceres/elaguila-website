@@ -16,7 +16,7 @@ export default async function AdminGlobalSiteSettingsPage(props: { searchParams?
   const { payload, updatedAt, error } = await getSiteSectionPayload("global_site");
   const patch = payload as unknown as GlobalSitePayload;
   const g = mergeGlobalSite(patch);
-  const locale = lang === "es" ? "es-MX" : "en-US";
+  const locale = "en-US";
 
   return (
     <div>
@@ -46,7 +46,7 @@ export default async function AdminGlobalSiteSettingsPage(props: { searchParams?
 
       <div className={`${adminCardBase} mb-6 border-[#D8C79A]/60 bg-[#FFFCF4] p-4 text-xs text-[#5C5346]`}>
         <strong className="font-semibold text-[#3D3428]">{m("globalSitePage.clasificadosLead")}</strong>{" "}
-        <Link href="/admin/workspace/clasificados" className="font-semibold text-[#2F4A65] underline underline-offset-2">
+        <Link href="/admin/workspace/clasificados" className="font-semibold text-[#6B5B2E] underline underline-offset-2">
           /admin/workspace/clasificados
         </Link>
         {m("globalSitePage.clasificadosTail")}

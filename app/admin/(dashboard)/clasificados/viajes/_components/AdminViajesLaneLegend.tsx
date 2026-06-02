@@ -9,7 +9,7 @@ const LANES: { title: string; body: string; tone: string }[] = [
   {
     title: "Business offers",
     body: "Agency/operator submissions from the approved business branch. Moderation, trust signals, and profile linkage live here — separate tooling from affiliate authoring.",
-    tone: "border-sky-200/90 bg-sky-50/70",
+    tone: "border-[#E8DFD0]/90 bg-[#FAF7F2]/90",
   },
   {
     title: "Editorial / guides",

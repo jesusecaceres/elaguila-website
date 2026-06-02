@@ -118,7 +118,7 @@ export default async function AdminCuponesContentPage(props: { searchParams?: Pr
         })}
 
         <button type="submit" className={adminBtnPrimary}>
-          Guardar
+          Save
         </button>
       </form>
     </div>

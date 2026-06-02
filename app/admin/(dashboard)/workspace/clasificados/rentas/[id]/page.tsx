@@ -41,9 +41,9 @@ export default async function AdminRentasListingInspectorPage(props: PageProps) 
     <>
       <AdminPageHeader
         title={`Rentas — inspector · ${String(row.id).slice(0, 8)}…`}
-        subtitle="Carga completa de la fila + pares Leonix/Rentas + proyección pública (mapListingRowToRentasPublicListing). Staff only."
+        subtitle="Full row load + Leonix/Rentas pairs + public projection (mapListingRowToRentasPublicListing). Staff only."
         eyebrow="Workspace · Clasificados · Rentas"
-        helperText="Usa esta vista para moderar contenido antes de aprobar; el detalle público solo muestra lo que esta proyección marca como visible en catálogo."
+        helperText="Use this view to moderate content before approval; the public detail only shows what this projection marks as catalog-visible."
       />
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -51,7 +51,7 @@ export default async function AdminRentasListingInspectorPage(props: PageProps) 
           href="/admin/workspace/clasificados"
           className="text-sm font-semibold text-[#6B5B2E] underline"
         >
-          ← Volver a cola Clasificados
+          ← Back to Classifieds queue
         </Link>
         <Link
           href={rentasListingPublicPath(String(row.id))}
@@ -59,7 +59,7 @@ export default async function AdminRentasListingInspectorPage(props: PageProps) 
           rel="noopener noreferrer"
           className="text-sm font-semibold text-[#6B5B2E] underline"
         >
-          Abrir detalle público Rentas
+          Open public Rentas detail
         </Link>
       </div>
 

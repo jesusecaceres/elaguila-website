@@ -33,13 +33,13 @@ export default function AdminUserActions({
       type="button"
       disabled={loading}
       onClick={handleToggle}
-      className={`text-xs font-semibold px-3 py-1.5 rounded-xl ${
+      className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${
         isDisabled
           ? "bg-emerald-100 text-emerald-900 hover:bg-emerald-200"
           : "bg-rose-100 text-rose-900 hover:bg-rose-200"
       } disabled:opacity-50`}
     >
-      {loading ? "…" : isDisabled ? "Habilitar" : "Deshabilitar"}
+      {loading ? "…" : isDisabled ? "Enable" : "Disable"}
     </button>
   );
 

@@ -8,6 +8,7 @@ import {
   adminReadOnlyBadgeClass,
   adminBtnDark,
   adminCtaChipCompact,
+  adminTableZebraRow,
 } from "../../_components/adminTheme";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListingStats";
@@ -32,7 +33,7 @@ function statusStyle(s: string) {
     case "staged":
       return "bg-amber-100 text-amber-900";
     case "coming_soon":
-      return "bg-sky-100 text-sky-900";
+      return "bg-amber-100 text-amber-900";
     case "hidden":
       return "bg-neutral-200 text-neutral-800";
     default:
@@ -200,7 +201,7 @@ export default async function AdminCategoriesPage(props: CategoriesPageProps) {
                 };
                 return (
                   <Fragment key={c.slug}>
-                    <tr className="border-t border-[#E8DFD0]/80 align-top">
+                    <tr className={`${adminTableZebraRow} align-top`}>
                       <td className="p-3 text-xl">{c.emoji}</td>
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{c.slug}</td>
                       <td className="p-3 font-semibold text-[#1E1810]">
@@ -316,7 +317,7 @@ export default async function AdminCategoriesPage(props: CategoriesPageProps) {
                       </td>
                       <td className="max-w-xs p-3 text-xs text-[#5C5346]/95">{c.notes}</td>
                     </tr>
-                    <tr className="border-t border-dashed border-[#E8DFD0]/90 bg-[#FAF7F2]/50 align-top">
+                    <tr className={`${adminTableZebraRow} border-dashed border-[#E8DFD0]/90 align-top`}>
                       <td colSpan={COL_COUNT} className="p-4">
                         <form action={saveSiteCategoryConfigRowAction} className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
                           <input type="hidden" name="slug" value={c.slug} />

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAdminLang } from "@/app/admin/_components/AdminI18nProvider";
-import { adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
+import { adminCardBase, adminInputClass, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
@@ -135,27 +135,27 @@ export default function AdminEmpleosListingsPage() {
 
       {err ? (
         <div className={`${adminCardBase} p-4 text-sm text-red-900`}>
-          {err === "supabase_not_configured" ? "Supabase no configurado en el entorno." : err}
+          {err === "supabase_not_configured" ? "Supabase not configured in this environment." : err}
         </div>
       ) : null}
 
       {!err && displayRows.length === 0 ? (
         <div className={`${adminCardBase} border-amber-200/80 bg-amber-50/90 p-4 text-sm text-amber-950`} role="status">
           <p className="font-semibold text-[#1E1810]">
-            {scope === "live" ? "No hay listados en vivo (publicados) con los filtros actuales." : "No published listings found for this category."}
+            {scope === "live" ? "No live (published) listings with current filters." : "No published listings found for this category."}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
             {scope === "live" && rows.length > 0 ? (
               <>
-                Hay {rows.length} fila(s) cargadas; ninguna está en estado <code className="rounded bg-white/80 px-1">published</code>. Cambia a
-                la cola completa o revisa el estado en Staff.
+                {rows.length} row(s) loaded; none are in <code className="rounded bg-white/80 px-1">published</code> status. Switch to
+                the full queue or check status in Staff.
               </>
             ) : (
               <>
-                La API <span className="font-mono">/api/admin/empleos/listings</span> respondió sin filas desde{" "}
+                API <span className="font-mono">/api/admin/empleos/listings</span> returned no rows from{" "}
                 <span className="font-mono">empleos_public_listings</span>
-                {needle.trim() ? " para el término de búsqueda actual." : " (sin término de búsqueda)."}{" "}
-                Si esperabas anuncios, confirma migraciones y datos en Supabase.
+                {needle.trim() ? " for the current search term." : " (no search term)."}{" "}
+                If you expected listings, confirm migrations and data in Supabase.
               </>
             )}
           </p>
@@ -163,10 +163,10 @@ export default function AdminEmpleosListingsPage() {
       ) : null}
 
       <div className={`${adminCardBase} p-4`}>
-        <label className="text-xs font-bold uppercase text-[#7A7164]">Buscar</label>
+        <label className="text-xs font-bold uppercase text-[#7A7164]">Search</label>
         <p className="mt-1 max-w-3xl text-[10px] leading-snug text-[#7A7164]">
-          Leonix Ad ID (si existe columna), UUID interno, slug o URL /clasificados/empleos/…, user ID del propietario, título o empresa,
-          ciudad/estado, y coincidencia por nombre / correo / teléfono del perfil.
+          Leonix Ad ID (if column exists), internal UUID, slug or URL /clasificados/empleos/…, owner user ID, title or company,
+          city/state, and match by profile name / email / phone.
         </p>
         <input className={`${adminInputClass} mt-1 max-w-md`} value={needle} onChange={(e) => setNeedle(e.target.value)} />
       </div>
@@ -176,28 +176,28 @@ export default function AdminEmpleosListingsPage() {
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
             <tr>
-              <th className="px-4 py-3">Título</th>
+              <th className="px-4 py-3">Title</th>
               <th className="px-4 py-3">Leonix Ad ID</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Carril</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Lane</th>
               <th className="px-4 py-3">Owner</th>
-              <th className="px-4 py-3">Apps / salud</th>
-              <th className="px-4 py-3">Métricas</th>
-              <th className="px-4 py-3">Acciones</th>
+              <th className="px-4 py-3">Apps / health</th>
+              <th className="px-4 py-3">Metrics</th>
+              <th className="px-4 py-3">Actions</th>
               <th className="px-4 py-3">Staff (Leonix)</th>
               <th className="px-4 py-3">Monetization</th>
-              <th className="px-4 py-3">Enlaces</th>
+              <th className="px-4 py-3">Links</th>
             </tr>
           </thead>
           <tbody>
             {displayRows.map((r) => (
-              <tr key={r.id} className="border-b border-[#E8DFD0]/70 last:border-0">
+              <tr key={r.id} className={adminTableZebraRow}>
                 <td className="px-4 py-3">
                   <div className="max-w-[200px] truncate font-semibold">{r.title}</div>
                   <div className="text-xs text-[#7A7164]">{r.company_name}</div>
                   <code className="text-[11px] text-[#9A9084]">{r.slug}</code>
                   {r.moderation_reason ? (
-                    <div className="mt-1 max-w-[220px] text-[11px] text-amber-900">Moderación: {r.moderation_reason}</div>
+                    <div className="mt-1 max-w-[220px] text-[11px] text-amber-900">Moderation: {r.moderation_reason}</div>
                   ) : null}
                 </td>
                 <td className="px-4 py-3 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id ?? "—"}</td>
@@ -209,7 +209,7 @@ export default function AdminEmpleosListingsPage() {
                     <>
                       <br />
                       <Link href={`/admin/usuarios/${encodeURIComponent(r.owner_user_id)}`} className="text-[10px] font-semibold text-[#6B5B2E] underline">
-                        Admin perfil
+                        Admin profile
                       </Link>
                     </>
                   ) : null}
@@ -217,16 +217,16 @@ export default function AdminEmpleosListingsPage() {
                 <td className="px-4 py-3 text-[11px] leading-snug text-[#4A4744]">
                   <div>Total: {r.application_health?.total ?? 0}</div>
                   <div className="text-[#7A7164]">
-                    Nuevo {r.application_health?.submitted ?? 0} · Visto {r.application_health?.viewed ?? 0} · Corta{" "}
-                    {r.application_health?.shortlisted ?? 0} · Rech {r.application_health?.rejected ?? 0}
+                    New {r.application_health?.submitted ?? 0} · Viewed {r.application_health?.viewed ?? 0} · Short{" "}
+                    {r.application_health?.shortlisted ?? 0} · Rej {r.application_health?.rejected ?? 0}
                     {typeof r.application_health?.hired === "number" && r.application_health.hired > 0 ? (
-                      <> · Contratados {r.application_health.hired}</>
+                      <> · Hired {r.application_health.hired}</>
                     ) : null}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-[11px]">
-                  <div>Aplicaciones (col): {r.apply_count ?? 0}</div>
-                  <div>Vistas: {r.view_count ?? 0}</div>
+                  <div>Applications (col): {r.apply_count ?? 0}</div>
+                  <div>Views: {r.view_count ?? 0}</div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex max-w-[240px] flex-wrap gap-1">
@@ -275,17 +275,17 @@ export default function AdminEmpleosListingsPage() {
                   <Link
                     href={appendLangToPath(`/clasificados/empleos/${r.slug}`, lang)}
                     className="text-[#6B5B2E] underline"
-                    title="Vista pública del puesto"
+                    title="Public job view"
                   >
-                    Ver público
+                    View public
                   </Link>
                   <br />
                   <Link
                     href={`/dashboard/empleos/${r.id}?lang=${lang}`}
                     className="text-[#6B5B2E] underline"
-                    title="Panel del anunciante: API valida propietario; sesión staff no edita en su nombre"
+                    title="Advertiser panel: API validates owner; staff session does not edit on their behalf"
                   >
-                    Panel anunciante (su sesión)
+                    Advertiser panel (their session)
                   </Link>
                 </td>
               </tr>

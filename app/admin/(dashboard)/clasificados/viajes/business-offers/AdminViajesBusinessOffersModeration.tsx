@@ -22,7 +22,7 @@ function statusBadge(s: ViajesStagedLifecycleStatus) {
   const map: Record<ViajesStagedLifecycleStatus, string> = {
     draft: "bg-slate-100 text-slate-900 ring-slate-200",
     submitted: "bg-amber-100 text-amber-950 ring-amber-200",
-    in_review: "bg-sky-100 text-sky-950 ring-sky-200",
+    in_review: "bg-amber-100 text-amber-950 ring-amber-200",
     approved: "bg-emerald-100 text-emerald-900 ring-emerald-200",
     rejected: "bg-rose-100 text-rose-900 ring-rose-200",
     changes_requested: "bg-violet-100 text-violet-950 ring-violet-200",

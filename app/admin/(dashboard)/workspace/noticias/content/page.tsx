@@ -67,7 +67,7 @@ export default async function AdminNoticiasContentPage(props: { searchParams?: P
           <Field label="Breaking label EN" name="breaking_en" defaultValue={patch.breakingLabel?.en ?? ""} placeholder={m.en.breakingLabel} />
         </div>
         <button type="submit" className={adminBtnPrimary}>
-          Guardar
+          Save
         </button>
       </form>
     </div>

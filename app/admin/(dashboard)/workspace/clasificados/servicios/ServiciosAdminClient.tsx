@@ -340,14 +340,14 @@ export default function ServiciosAdminClient() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50/90 p-3 text-sm text-violet-950">
-        <span className={adminLocalSimBadgeClass}>Simulación local</span>
+        <span className={adminLocalSimBadgeClass}>Local simulation</span>
         <span className="text-xs">
-          Los datos viven en <code className="rounded bg-white/80 px-1">localStorage</code> del navegador — no son filas en{" "}
-          <code className="rounded bg-white/80 px-1">listings</code>. Cola real Servicios (misma categoría):{" "}
+          Data lives in browser <code className="rounded bg-white/80 px-1">localStorage</code> — not rows in{" "}
+          <code className="rounded bg-white/80 px-1">listings</code>. Live Servicios queue (same category):{" "}
           <Link href="/admin/workspace/clasificados?category=servicios" className="font-bold underline">
             Clasificados → category=servicios
           </Link>
-          . Operaciones reales:{" "}
+          . Real operations:{" "}
           <Link href="/admin/workspace/clasificados/servicios" className="font-bold underline">
             Workspace → Servicios
           </Link>
@@ -400,7 +400,7 @@ export default function ServiciosAdminClient() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">Ciudad / City *</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">City *</label>
             <input
               type="text"
               value={city}
@@ -424,7 +424,7 @@ export default function ServiciosAdminClient() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">ZIP (opcional)</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">ZIP (optional)</label>
             <input
               type="text"
               value={zip}
@@ -433,7 +433,7 @@ export default function ServiciosAdminClient() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#111111] mb-1">Teléfono / Phone</label>
+            <label className="block text-xs font-semibold text-[#111111] mb-1">Phone</label>
             <input
               type="text"
               value={phone}
@@ -546,7 +546,7 @@ export default function ServiciosAdminClient() {
                         <span className="text-[#111111]">Refreshes: {used}/{credits}</span>
                         {hasActiveSpotWindow && (
                           <div className="text-xs text-[#1F7A3A] mt-0.5">
-                            Visibilidad renovada hasta {untilStr}
+                            Visibility boost until {untilStr}
                           </div>
                         )}
                       </td>
@@ -569,21 +569,21 @@ export default function ServiciosAdminClient() {
                           title={
                             !canApplySpotRefresh
                               ? hasActiveSpotWindow
-                                ? `Visibilidad activa hasta ${untilStr}`
-                                : "Sin renovaciones disponibles en este ciclo"
-                              : "Renovar visibilidad 5 días (sandbox)"
+                                ? `Active visibility until ${untilStr}`
+                                : "No refreshes left this cycle"
+                              : "Refresh visibility 5 days (sandbox)"
                           }
                           className="rounded border border-black/10 bg-[#F5F5F5] px-2 py-1 text-xs text-[#111111] hover:bg-[#EFEFEF] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Renovar 5 días
+                          Refresh 5 days
                         </button>
                         <button
                           type="button"
                           onClick={() => resetCycle(l.id)}
-                          title="Reset ciclo (testing)"
+                          title="Reset cycle (testing)"
                           className="rounded border border-black/10 bg-[#F5F5F5] px-2 py-1 text-xs text-[#666] hover:bg-[#EFEFEF]"
                         >
-                          Reset ciclo
+                          Reset cycle
                         </button>
                         <button
                           type="button"

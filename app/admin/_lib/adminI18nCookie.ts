@@ -1,15 +1,16 @@
-/** Persisted UI language for /admin (non-httpOnly so middleware + Server Actions can align). */
+/** Persisted UI language for /admin — English-only chrome (Phase 13B). */
 export const ADMIN_UI_LANG_COOKIE = "leonix_admin_ui_lang";
 
 export type AdminLang = "en" | "es";
 
-export function parseAdminLang(v: string | undefined | null): AdminLang {
-  return v === "es" ? "es" : "en";
+/** Admin UI is English-only; legacy cookie values are ignored. */
+export function parseAdminLang(_v: string | undefined | null): AdminLang {
+  return "en";
 }
 
 type CookieGet = { get(name: string): { value: string } | undefined };
 
-/** Read language from cookie jar (middleware syncs `?lang=` into this cookie on /admin requests). */
-export function resolveAdminLangFromCookieJar(cookieStore: CookieGet): AdminLang {
-  return parseAdminLang(cookieStore.get(ADMIN_UI_LANG_COOKIE)?.value);
+/** Admin chrome always resolves to English. */
+export function resolveAdminLangFromCookieJar(_cookieStore: CookieGet): AdminLang {
+  return "en";
 }

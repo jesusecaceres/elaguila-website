@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/admin/tienda", label: "Inicio Tienda", hint: "Centro de comando y mapa de rutas" },
-  { href: "/admin/workspace/tienda", label: "Mapa del workspace", hint: "Resumen y enlaces de la vitrina" },
-  { href: "/admin/tienda/orders", label: "Pedidos", hint: "Bandeja e inbox de órdenes" },
-  { href: "/admin/tienda/catalog", label: "Catálogo", hint: "Lista y edición de artículos" },
-  { href: "/admin/tienda/catalog/new", label: "Nuevo artículo", hint: "Alta de un producto en el catálogo" },
+  { href: "/admin/tienda", label: "Tienda home", hint: "Command center and route map" },
+  { href: "/admin/workspace/tienda", label: "Workspace map", hint: "Storefront summary and links" },
+  { href: "/admin/tienda/orders", label: "Orders", hint: "Order inbox and queue" },
+  { href: "/admin/tienda/catalog", label: "Catalog", hint: "List and edit catalog items" },
+  { href: "/admin/tienda/catalog/new", label: "New item", hint: "Add a product to the catalog" },
 ] as const;
 
 function cx(...p: Array<string | false | undefined>) {
@@ -37,11 +37,11 @@ export function AdminTiendaWorkspaceSubnav() {
 
   return (
     <div
-      className="mb-6 rounded-2xl border border-[#C9B46A]/25 bg-[#FFFCF7]/95 px-3 py-2.5 shadow-sm sm:px-4"
+      className="mb-6 rounded-lg border border-[#C9B46A]/25 bg-[#FFFCF7]/95 px-3 py-2.5 shadow-sm sm:px-4"
       role="navigation"
-      aria-label="Áreas de administración de Tienda"
+      aria-label="Tienda admin areas"
     >
-      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">Dentro de Tienda</p>
+      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">Inside Tienda</p>
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {LINKS.map((item) => {
           const active = tiendaSubnavActive(pathname, item.href);
@@ -52,7 +52,7 @@ export function AdminTiendaWorkspaceSubnav() {
               title={item.hint}
               aria-current={active ? "page" : undefined}
               className={cx(
-                "inline-flex min-h-[2rem] items-center rounded-xl border px-2.5 py-1 text-xs font-semibold transition sm:px-3 sm:text-sm",
+                "inline-flex min-h-[2rem] items-center rounded-lg border px-2.5 py-1 text-xs font-semibold transition sm:px-3 sm:text-sm",
                 active
                   ? "border-[#C9B46A]/45 bg-[#FBF7EF] text-[#1E1810]"
                   : "border-transparent bg-white/70 text-[#3D3428]/90 hover:border-[#E8DFD0] hover:bg-white"

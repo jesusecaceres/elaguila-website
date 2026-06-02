@@ -1,10 +1,8 @@
-import { cookies } from "next/headers";
-import { resolveAdminLangFromCookieJar, type AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 
-/** Server-side: read persisted admin UI language (middleware syncs `?lang=` into the cookie). */
+/** Server-side admin UI language — English-only (Phase 13B). */
 export async function getAdminLang(): Promise<AdminLang> {
-  const jar = await cookies();
-  return resolveAdminLangFromCookieJar(jar);
+  return "en";
 }
 
 export type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";

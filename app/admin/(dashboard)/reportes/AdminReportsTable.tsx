@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { updateListingReportStatusAction, type ListingReportStatus } from "../../actions";
 import { useState } from "react";
-import { adminTableWrap } from "../../_components/adminTheme";
+import { adminTableWrap, adminTableZebraRow } from "../../_components/adminTheme";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
 
 type ReportRow = {
@@ -47,7 +47,7 @@ export default function AdminReportsTable({
     try {
       const d = new Date(iso);
       return Number.isFinite(d.getTime())
-        ? d.toLocaleDateString(lang === "es" ? "es-MX" : "en-US", {
+        ? d.toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
             day: "numeric",
@@ -87,7 +87,7 @@ export default function AdminReportsTable({
             {reports.map((row) => (
               <tr
                 key={row.id}
-                className={`border-b border-[#E8DFD0]/60 ${
+                className={`${adminTableZebraRow} ${
                   highlightReportId && row.id === highlightReportId ? "bg-amber-50/90 ring-2 ring-inset ring-amber-300/90" : ""
                 }`}
               >

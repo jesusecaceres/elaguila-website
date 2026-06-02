@@ -7,7 +7,7 @@ import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { getSupabaseAuthUsersDashboardUrl } from "@/app/admin/_lib/supabaseDashboardLinks";
 import AdminUserActions from "../AdminUserActions";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { adminBtnDark, adminBtnSecondary, adminCardBase } from "../../../_components/adminTheme";
+import { adminBtnDark, adminBtnSecondary, adminCardBase, adminActionProofOk } from "../../../_components/adminTheme";
 import { fetchAdminUserAdsForUser } from "../../../_lib/adminUserAds";
 import {
   fetchAdminUserAnalyticsRollup,
@@ -66,7 +66,7 @@ function formatDate(iso: string | null): string {
   try {
     const d = new Date(iso);
     return Number.isFinite(d.getTime())
-      ? d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" })
+      ? d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
       : "—";
   } catch {
     return "—";
@@ -74,7 +74,7 @@ function formatDate(iso: string | null): string {
 }
 
 function displayName(row: ProfileRow): string {
-  return (row.display_name ?? "").trim() || "(sin nombre)";
+  return (row.display_name ?? "").trim() || "(no name)";
 }
 
 function membershipTierLabel(tier: string | null): string {
@@ -94,7 +94,7 @@ function accountTypeLabel(accountType: string | null): string {
 }
 
 function newsletterStatus(optIn: boolean | null): string {
-  return optIn === true ? "Suscrito" : "No suscrito";
+  return optIn === true ? "Subscribed" : "Not subscribed";
 }
 
 function isPersonalTier(tier: string): boolean {
@@ -373,10 +373,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
 
   // Get language preference from search params, default to 'en'
   const searchParams = props.searchParams ? await props.searchParams : {};
-  const langParam = typeof searchParams.lang === "string" && (searchParams.lang === "es" || searchParams.lang === "en") 
-    ? searchParams.lang as "en" | "es" 
-    : "en";
-  const t = getLabels(langParam);
+  const t = getLabels("en");
 
   const authUsersDashboardUrl = getSupabaseAuthUsersDashboardUrl();
 
@@ -405,7 +402,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       row = data as ProfileRow;
     }
   } catch (e) {
-    queryError = e instanceof Error ? e.message : "Error al cargar cliente.";
+    queryError = e instanceof Error ? e.message : "Error loading user.";
   }
 
   if (queryError) {
@@ -414,7 +411,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">{queryError}</div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/admin/usuarios" className={adminBtnSecondary}>
-            ← Volver a clientes
+            ← Back to users
           </Link>
           <Link href="/admin" className={adminBtnDark}>
             Dashboard
@@ -490,12 +487,12 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       }
     }
   } catch {
-    crossEntityError = "No se pudieron cargar pedidos Tienda o reportes.";
+    crossEntityError = "Could not load Tienda orders or reports.";
   }
 
   const name = displayName(row);
   const emailRaw = (row.email ?? "").trim();
-  const emailDisplay = emailRaw || "(sin correo)";
+  const emailDisplay = emailRaw || "(no email)";
   const hasEmail = emailRaw.length > 0;
   const phoneRaw = (row.phone ?? "").trim();
   const phoneDisplay = phoneRaw || "—";
@@ -517,15 +514,15 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
 
   const errorMessage =
     errorValue === "invalid-account-type"
-      ? "Tipo de cuenta no válido."
+      ? "Invalid account type."
       : errorValue === "invalid-membership"
-        ? "Membresía no válida."
+        ? "Invalid membership."
         : errorValue === "membership-mismatch"
-          ? "La membresía no corresponde al tipo de cuenta. Elige una opción válida para el tipo seleccionado."
+          ? "Membership does not match account type. Choose a valid option for the selected type."
           : errorValue === "update-failed"
-            ? "No se pudo guardar. Intenta de nuevo."
+            ? "Could not save. Try again."
             : errorValue
-              ? "Error al actualizar."
+              ? "Update error."
               : null;
 
   const inputClass =
@@ -546,36 +543,12 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <Link href="/admin" className={adminBtnDark} title={t.dashboard}>
           {t.dashboard}
         </Link>
-        
-        {/* Language Toggle */}
-        <div className="ml-auto flex items-center gap-1 rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] p-1">
-          <Link
-            href={`/admin/usuarios/${row.id}?lang=en`}
-            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-              langParam === "en" 
-                ? "bg-[#C9B46A] text-white" 
-                : "text-[#5C5346] hover:bg-[#E8DFD0]"
-            }`}
-          >
-            EN
-          </Link>
-          <Link
-            href={`/admin/usuarios/${row.id}?lang=es`}
-            className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-              langParam === "es" 
-                ? "bg-[#C9B46A] text-white" 
-                : "text-[#5C5346] hover:bg-[#E8DFD0]"
-            }`}
-          >
-            ES
-          </Link>
-        </div>
       </div>
 
       <p className="mb-6 font-mono text-xs text-[#7A7164] break-all">{t.idLabel}: {row.id}</p>
 
       {isUpdated && (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className={`mb-4 ${adminActionProofOk}`}>
           {t.changesSaved}
         </div>
       )}
@@ -824,7 +797,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
               <h3 className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
                 {g.labelEs} — {g.ads.length}
                 {g.loadStatus === "error" ? (
-                  <span className="ml-2 normal-case font-semibold text-red-700">(error al cargar)</span>
+                  <span className="ml-2 normal-case font-semibold text-red-700">(load error)</span>
                 ) : null}
               </h3>
               {g.loadStatus === "error" && g.errorMessage ? (
@@ -843,11 +816,11 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                         <p className="mt-1 font-mono text-sm font-bold text-[#6B5B2E]">{ad.displayId}</p>
                         {ad.publishedId && ad.publishedId !== ad.displayId ? (
                           <p className="text-[11px] text-[#5C5346]">
-                            ID público: <span className="font-mono">{ad.publishedId}</span>
+                            Public ID: <span className="font-mono">{ad.publishedId}</span>
                           </p>
                         ) : null}
                         <p className="text-[10px] text-[#9A9084] break-all">
-                          Interno: <span className="font-mono">{ad.internalId}</span>
+                          Internal: <span className="font-mono">{ad.internalId}</span>
                         </p>
                         <p className="mt-1 text-[10px] text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{t.supportEdit}</span> {adminEditSupportStatusLabelEs(actions.editSupportStatus)} —{" "}
@@ -860,7 +833,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
                         </p>
                         <p className="mt-1 text-xs text-[#5C5346]">
                           <span className="font-semibold text-[#1E1810]">{t.listingAdPlan}:</span>{" "}
-                          {categoryAdPlanDisplayLabel(listingAdPlan, langParam)}
+                          {categoryAdPlanDisplayLabel(listingAdPlan, "en")}
                         </p>
                         {listingAdPlan.warning ? (
                           <p className="mt-0.5 text-[10px] leading-snug text-amber-900/90">{listingAdPlan.warning}</p>

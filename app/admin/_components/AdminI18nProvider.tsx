@@ -6,8 +6,8 @@ import { adminMessages } from "@/app/admin/_lib/adminStrings";
 
 const LangCtx = createContext<AdminLang>("en");
 
-export function AdminI18nProvider({ lang, children }: { lang: AdminLang; children: ReactNode }) {
-  return <LangCtx.Provider value={lang}>{children}</LangCtx.Provider>;
+export function AdminI18nProvider({ children }: { lang?: AdminLang; children: ReactNode }) {
+  return <LangCtx.Provider value="en">{children}</LangCtx.Provider>;
 }
 
 export function useAdminLang(): AdminLang {

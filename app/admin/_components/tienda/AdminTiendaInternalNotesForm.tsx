@@ -24,9 +24,9 @@ export function AdminTiendaInternalNotesForm(props: { orderId: string; initialNo
       <button
         type="submit"
         className={adminBtnPrimary}
-        title="Guarda notas internas en tienda_orders (solo staff; visible en auditoría como actualización de notas)"
+        title="Save internal notes on tienda_orders (staff only; visible in audit as notes update)"
       >
-        Guardar notas internas
+        Save internal notes
       </button>
     </form>
   );

@@ -13,12 +13,12 @@ export default function AdminTiendaCatalogNewPage() {
   return (
     <div className="space-y-8 max-w-4xl">
       <AdminPageHeader
-        title="Nuevo artículo en catálogo"
-        subtitle="Producto administrado para la vitrina. El slug debe ser único (minúsculas, guiones)."
-        helperText="Después de guardar podrás añadir más imágenes y marcar la principal en la ficha del artículo."
+        title="New catalog item"
+        subtitle="Admin-managed product for the storefront. Slug must be unique (lowercase, hyphens)."
+        helperText="After saving you can add more images and set the primary image on the item page."
         rightSlot={
           <Link href="/admin/tienda/catalog" className={adminBtnSecondary}>
-            ← Volver al listado
+            ← Back to list
           </Link>
         }
       />

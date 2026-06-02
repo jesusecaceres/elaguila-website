@@ -14,9 +14,8 @@ import {
   type WebsiteEditingTruthStatus,
 } from "../../_lib/websiteEditingTruthMatrix";
 
-function workspaceHubQuery(lang: AdminLang, filter?: string): string {
+function workspaceHubQuery(_lang: AdminLang, filter?: string): string {
   const p = new URLSearchParams();
-  if (lang === "es") p.set("lang", "es");
   if (filter && filter !== "all") p.set("filter", filter);
   const s = p.toString();
   return s ? `?${s}` : "";
@@ -76,7 +75,7 @@ const WORKSPACE_CARDS = [
   },
   {
     href: "/admin/workspace/contacto",
-    title: "Contacto",
+    title: "Contact",
     body: "Phone, email, hours, map and copy from public form.",
     teach: "Data that visitors see; internal support continues in sidebar.",
   },
@@ -436,7 +435,7 @@ export default async function AdminWorkspaceHubPage(props: {
           </div>
           <div className="mt-4">
             <Link
-              href={`/admin/workspace?focus=block-editor${lang === "es" ? "&lang=es" : ""}`}
+              href={`/admin/workspace?focus=block-editor`}
               className={`${adminCtaChip} text-sm`}
             >
               {t.planBlockEditor}

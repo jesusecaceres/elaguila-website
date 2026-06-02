@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteListingAction, setListingPublishedAction } from "../../../actions";
 import { useState } from "react";
-import { adminTableWrap } from "../../../_components/adminTheme";
+import { adminTableWrap, adminTableZebraRow } from "../../../_components/adminTheme";
 import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import {
   computeEnVentaVisibilityRenewalVm,
@@ -122,9 +122,9 @@ function adminDisplayLeonixAdId(row: Row): string {
   return "—";
 }
 
-function adminListingsCategoryLabel(category: string | null, lang: "es" | "en"): string {
+function adminListingsCategoryLabel(category: string | null): string {
   const c = (category ?? "").trim().toLowerCase();
-  if (c === "busco") return lang === "es" ? "Busco / Se busca" : "Looking for / Wanted";
+  if (c === "busco") return "Looking for / Wanted";
   return (category ?? "").trim() || "—";
 }
 
@@ -187,7 +187,7 @@ export default function AdminListingsTable({
   const router = useRouter();
   const t = useAdminT();
   const lang = useAdminLang();
-  const locale = lang === "es" ? "es-MX" : "en-US";
+  const locale = "en-US";
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -326,7 +326,7 @@ export default function AdminListingsTable({
             {listings.map((row) => {
               const displayLeonixAdId = adminDisplayLeonixAdId(row);
               return (
-              <tr key={row.id} className="border-b border-[#E8DFD0]/60">
+              <tr key={row.id} className={adminTableZebraRow}>
                 <td className="p-3 font-mono text-xs text-[#3D3428]">{row.id.slice(0, 8)}…</td>
                 <td className="max-w-[10rem] truncate p-3 font-mono text-[10px] text-[#3D3428]" title={displayLeonixAdId}>
                   {displayLeonixAdId}
@@ -336,7 +336,7 @@ export default function AdminListingsTable({
                 </td>
                 <td className="p-3">
                   <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-xs font-semibold text-[#5C4E2E]">
-                    {adminListingsCategoryLabel(row.category, lang)}
+                    {adminListingsCategoryLabel(row.category)}
                   </span>
                 </td>
                 <td className="p-3 text-[#3D3428]">{row.city ?? "—"}</td>
@@ -395,7 +395,7 @@ export default function AdminListingsTable({
                     {(row.category ?? "").toLowerCase() === "rentas" ? (
                       <Link
                         href={`/admin/workspace/clasificados/rentas/${row.id}`}
-                        className="inline-flex min-h-[44px] items-center font-semibold text-[#4A6680] underline sm:min-h-0"
+                        className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
                         title={t("listings.inspectorRentas")}
                       >
                         {t("listings.inspectorRentas")}

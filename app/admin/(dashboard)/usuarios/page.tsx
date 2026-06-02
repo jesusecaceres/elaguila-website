@@ -6,7 +6,7 @@ import { fetchProfilesForAdminList } from "../../_lib/adminProfilesQuery";
 import { fetchAdminUserListCountsBatch } from "../../_lib/adminUserRollups";
 import AdminUserActions from "./AdminUserActions";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminTableWrap, adminCtaChipCompact } from "../../_components/adminTheme";
+import { adminCardBase, adminTableWrap, adminCtaChipCompact, adminTableZebraRow } from "../../_components/adminTheme";
 
 type ProfileRow = {
   id: string;
@@ -35,7 +35,7 @@ function formatDate(iso: string | null): string {
   try {
     const d = new Date(iso);
     return Number.isFinite(d.getTime())
-      ? d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" })
+      ? d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
       : "—";
   } catch {
     return "—";
@@ -43,11 +43,11 @@ function formatDate(iso: string | null): string {
 }
 
 function displayName(row: ProfileRow): string {
-  return (row.display_name ?? "").trim() || "(sin nombre)";
+  return (row.display_name ?? "").trim() || "(no name)";
 }
 
 function correo(row: ProfileRow): string {
-  return (row.email ?? "").trim() || "(sin correo)";
+  return (row.email ?? "").trim() || "(no email)";
 }
 
 function membresia(tier: string | null): string {
@@ -56,7 +56,7 @@ function membresia(tier: string | null): string {
 }
 
 function newsletterLabel(optIn: boolean | null): string {
-  return optIn === true ? "Sí" : "No";
+  return optIn === true ? "Yes" : "No";
 }
 
 function matchesSearch(row: ProfileRow, q: string): boolean {
@@ -116,7 +116,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
         } else {
           queryError = null;
           rows = (fb.rows as ProfileRow[]).filter((r) => matchesSearch(r, searchQuery));
-          searchNote = "La búsqueda en base falló; se filtraron las ~400 cuentas más recientes en memoria.";
+          searchNote = "Database search failed; filtered the ~400 most recent accounts in memory.";
         }
       } else if (res.strategy === "server_search") {
         const seen = new Set(rows.map((r) => r.id));
@@ -130,11 +130,11 @@ export default async function AdminUsuariosPage(props: PageProps) {
           }
         }
         searchNote =
-          "Búsqueda en Postgres + referencias cortas contra las ~400 cuentas más recientes (p. ej. XXXX-YYYY).";
+          "Postgres search + short refs against the ~400 most recent accounts (e.g. XXXX-YYYY).";
       }
     }
   } catch (e) {
-    queryError = e instanceof Error ? e.message : "Error al cargar clientes.";
+    queryError = e instanceof Error ? e.message : "Error loading users.";
   }
 
   const filteredRows = rows;
@@ -144,7 +144,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
       : new Map<string, { totalListings: number | null; activeListings: number | null; activeEntitlements: number | null; unavailable: boolean }>();
   const countsNote =
     filteredRows.length > 80
-      ? "Conteos de anuncios/paquetes solo se calculan con ≤80 filas visibles (evita sobrecarga)."
+      ? "Listing/package counts are only calculated with ≤80 visible rows (avoids overload)."
       : null;
   const disabledCount = filteredRows.filter((r) => r.is_disabled === true).length;
   const newsletterCount = filteredRows.filter((r) => r.newsletter_opt_in === true).length;
@@ -190,24 +190,24 @@ export default async function AdminUsuariosPage(props: PageProps) {
           </div>
           <form method="get" action="/admin/usuarios" className="mb-4">
             <label htmlFor="admin-user-search" className="sr-only">
-              Buscar clientes
+              Search users
             </label>
             <input
               id="admin-user-search"
               type="search"
               name="q"
               defaultValue={searchQuery}
-              placeholder="Buscar por nombre, correo, teléfono o referencia…"
+              placeholder="Search by name, email, phone, or reference…"
               className="w-full rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm text-[#1E1810] placeholder:text-[#9A9084] focus:border-[#C9B46A] focus:outline-none focus:ring-2 focus:ring-[#D4BC6A]/50"
             />
             <p className="mt-1.5 text-xs text-[#7A7164]">
-              Mostrando {filteredRows.length} cuenta{filteredRows.length !== 1 ? "s" : ""}.
+              Showing {filteredRows.length} account{filteredRows.length !== 1 ? "s" : ""}.
             </p>
           </form>
 
           {filteredRows.length === 0 ? (
             <div className="rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-sm text-[#5C5346]">
-              {searchQuery ? "Ningún cliente coincide con la búsqueda." : "Aún no hay clientes."}
+              {searchQuery ? "No users match this search." : "No users yet."}
             </div>
           ) : (
             <>
@@ -215,25 +215,25 @@ export default async function AdminUsuariosPage(props: PageProps) {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
-                      <th className="p-2.5 pr-3 font-semibold text-[#5C4E2E] whitespace-nowrap">Cuenta #</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] min-w-[120px]">Nombre</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] min-w-[140px]">Correo</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Teléfono</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E]">Ciudad</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Tipo</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Membresía</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Inventario total (todas las tablas)">
-                        Anuncios
+                      <th className="p-2.5 pr-3 font-semibold text-[#5C4E2E] whitespace-nowrap">Account #</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] min-w-[120px]">Name</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] min-w-[140px]">Email</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Phone</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E]">City</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Type</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Membership</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Total inventory (all tables)">
+                        Listings
                       </th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Activos/publicados cuando aplica">
-                        Activos
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Active/published when applicable">
+                        Active
                       </th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Entitlements activos (listing_package_entitlements)">
-                        Paquetes
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap" title="Active entitlements (listing_package_entitlements)">
+                        Packages
                       </th>
                       <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Newsletter</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Fecha</th>
-                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Estado</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Date</th>
+                      <th className="p-2.5 font-semibold text-[#5C4E2E] whitespace-nowrap">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -242,7 +242,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
                       const fmtCount = (n: number | null | undefined) =>
                         counts?.unavailable ? "—" : n == null ? "—" : String(n);
                       return (
-                      <tr key={row.id} className={`border-b border-[#E8DFD0]/50 ${row.is_disabled ? "opacity-60" : ""}`}>
+                      <tr key={row.id} className={`${adminTableZebraRow} ${row.is_disabled ? "opacity-60" : ""}`}>
                         <td className="p-2.5 pr-3 font-mono text-xs text-[#6B5B2E] whitespace-nowrap">
                           {accountRefFromId(row.id)}
                         </td>
@@ -285,16 +285,16 @@ export default async function AdminUsuariosPage(props: PageProps) {
                       <span className="font-mono text-xs text-[#6B5B2E] flex-shrink-0">#{accountRefFromId(row.id)}</span>
                     </div>
                     <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-[#5C5346]">
-                      <span>Correo: {correo(row)}</span>
-                      <span>Teléfono: {row.phone ?? "—"}</span>
-                      <span>Ciudad: {row.home_city ?? "—"}</span>
-                      <span>Membresía: {membresia(row.membership_tier)}</span>
+                      <span>Email: {correo(row)}</span>
+                      <span>Phone: {row.phone ?? "—"}</span>
+                      <span>City: {row.home_city ?? "—"}</span>
+                      <span>Membership: {membresia(row.membership_tier)}</span>
                       {countsByUser.get(row.id) ? (
                         <span>
-                          Anuncios:{" "}
+                          Listings:{" "}
                           {countsByUser.get(row.id)?.unavailable
                             ? "—"
-                            : `${countsByUser.get(row.id)?.totalListings ?? "—"} total · ${countsByUser.get(row.id)?.activeListings ?? "—"} activos · ${countsByUser.get(row.id)?.activeEntitlements ?? "—"} paquetes`}
+                            : `${countsByUser.get(row.id)?.totalListings ?? "—"} total · ${countsByUser.get(row.id)?.activeListings ?? "—"} active · ${countsByUser.get(row.id)?.activeEntitlements ?? "—"} packages`}
                         </span>
                       ) : null}
                     </div>
@@ -303,7 +303,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
                         href={`/admin/usuarios/${row.id}`}
                         className="inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]"
                       >
-                        Ver cliente
+                        View user
                       </Link>
                     </div>
                   </div>

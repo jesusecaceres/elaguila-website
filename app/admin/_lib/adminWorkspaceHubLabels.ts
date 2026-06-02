@@ -225,6 +225,7 @@ export const WORKSPACE_HUB_LABELS: Record<
   },
 };
 
-export function workspaceHubT(lang: AdminLang) {
-  return WORKSPACE_HUB_LABELS[lang];
+/** Admin workspace hub copy — English-only. */
+export function workspaceHubT(_lang?: AdminLang) {
+  return WORKSPACE_HUB_LABELS.en;
 }

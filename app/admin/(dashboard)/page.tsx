@@ -43,7 +43,7 @@ function fmt(iso: string, locale: string) {
 export default async function AdminHomePage() {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
-  const locale: string = lang === "es" ? "es-MX" : "en-US";
+  const locale = "en-US";
   const access = await getCurrentAdminAccessContext();
   const salesRepLocked = isSalesRepRole(access.normalizedRole);
 
@@ -51,41 +51,33 @@ export default async function AdminHomePage() {
     return (
       <div className="max-w-3xl space-y-6">
         <AdminPageHeader
-          title={lang === "es" ? "Panel de ventas" : "Sales workspace"}
-          subtitle={
-            lang === "es"
-              ? "Acceso limitado: solo tus códigos promo, paquetes y seguimiento de ventas."
-              : "Limited access: your promo codes, package entitlements, and sales tracker only."
-          }
-          helperText={
-            lang === "es"
-              ? "Sin acceso a pagos globales, equipo, CMS ni configuración del sitio."
-              : "No global payments, team, CMS, or site settings."
-          }
+          title="Sales workspace"
+          subtitle="Limited access: your promo codes, package entitlements, and sales tracker only."
+          helperText="No global payments, team, CMS, or site settings."
         />
         <div className="grid gap-4 sm:grid-cols-3">
           <AdminStatCard
-            title={lang === "es" ? "Códigos promo" : "Promo codes"}
+            title="Promo codes"
             value="→"
-            hint={lang === "es" ? "Crear y administrar tus códigos" : "Create and manage your codes"}
+            hint="Create and manage your codes"
             icon="🏷️"
-            actionLabel={lang === "es" ? "Abrir" : "Open"}
+            actionLabel="Open"
             actionHref="/admin/workspace/promo-codes"
           />
           <AdminStatCard
-            title={lang === "es" ? "Paquetes" : "Package entitlements"}
+            title="Package entitlements"
             value="→"
-            hint={lang === "es" ? "Tus paquetes Print-to-Digital" : "Your Print-to-Digital packages"}
+            hint="Your Print-to-Digital packages"
             icon="📦"
-            actionLabel={lang === "es" ? "Abrir" : "Open"}
+            actionLabel="Open"
             actionHref="/admin/workspace/package-entitlements"
           />
           <AdminStatCard
-            title={lang === "es" ? "Seguimiento" : "Sales tracker"}
+            title="Sales tracker"
             value="→"
-            hint={lang === "es" ? "Resumen y comisión (preview)" : "Summary and commission preview"}
+            hint="Summary and commission preview"
             icon="📊"
-            actionLabel={lang === "es" ? "Abrir" : "Open"}
+            actionLabel="Open"
             actionHref="/admin/workspace/sales-tracker"
           />
         </div>
@@ -390,7 +382,7 @@ export default async function AdminHomePage() {
                             Expiring soon
                           </span>
                         ) : (
-                          <span className="rounded-full bg-[#EEF6FF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2F4A65]">
+                          <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C5346]">
                             Active window
                           </span>
                         )}

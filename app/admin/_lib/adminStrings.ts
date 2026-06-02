@@ -1319,8 +1319,8 @@ const ES: Record<string, string> = {
     "PASS — El chrome visible de esta área se resuelve con el diccionario admin compartido (EN por defecto; ES al elegirlo).",
 };
 
-export function adminTr(lang: AdminLang, key: string, vars?: Record<string, string | number>): string {
-  const raw = (lang === "es" ? ES[key] : undefined) ?? EN[key] ?? key;
+export function adminTr(_lang: AdminLang, key: string, vars?: Record<string, string | number>): string {
+  const raw = EN[key] ?? key;
   if (!vars) return raw;
   return raw.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ""));
 }

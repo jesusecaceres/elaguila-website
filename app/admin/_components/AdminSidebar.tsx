@@ -72,10 +72,10 @@ export function AdminSidebar({
           <p className="text-[11px] text-[color:var(--lx-muted)]">{t("shell.signedInCookie")}</p>
           {!salesRepLimited ? (
             <div className="mt-2 space-y-1.5 text-[11px] font-semibold text-[color:var(--lx-muted)]">
-              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/workspace">
+              <Link className="block text-[#7A1E2C] underline underline-offset-2" href="/admin/workspace">
                 {t("shell.websiteSectionsLink")}
               </Link>
-              <Link className="block text-[color:var(--lx-lion)] underline underline-offset-2" href="/admin/site-settings">
+              <Link className="block text-[#7A1E2C] underline underline-offset-2" href="/admin/site-settings">
                 {t("shell.globalSiteSettingsLink")}
               </Link>
             </div>
@@ -92,7 +92,7 @@ export function AdminSidebar({
               </Link>
             </div>
           )}
-          <Link className="mt-2 block text-center text-xs font-bold text-[color:var(--lx-lion)] underline" href="/">
+          <Link className="mt-2 block text-center text-xs font-bold text-[#7A1E2C] underline" href="/">
             {t("shell.viewSite")}
           </Link>
         </div>

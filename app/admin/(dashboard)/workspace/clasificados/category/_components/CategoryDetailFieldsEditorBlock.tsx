@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminCtaChipSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
+import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminCtaChipSecondary, adminInputClass, adminActionProofOk, adminInfoCallout } from "@/app/admin/_components/adminTheme";
 import { saveCategoryDetailFieldsContentAction } from "@/app/admin/clasificadosCategoryContentActions";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type {
@@ -58,46 +58,46 @@ export async function CategoryDetailFieldsEditorBlock(props: {
   return (
     <div className="space-y-6">
       {sp.saved === "1" ? (
-        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 p-4 text-sm text-emerald-950`}>Guardado.</div>
+        <div className={`${adminCardBase} ${adminActionProofOk} p-4`}>Saved.</div>
       ) : null}
 
-      <p className="text-xs text-[#7A7164]">Última actualización (sección): {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}</p>
+      <p className="text-xs text-[#7A7164]">Last section update: {updatedAt ? new Date(updatedAt).toLocaleString("en-US") : "—"}</p>
 
       <div className={`${adminCardBase} flex flex-wrap gap-3 p-4`}>
         <Link href={queueHref} className={`${adminCtaChipSecondary} justify-center text-xs font-bold`}>
-          Cola de anuncios →
+          Ad queue →
         </Link>
         <Link href="/admin/reportes" className={`${adminCtaChipSecondary} justify-center text-xs`}>
-          Reportes →
+          Reports →
         </Link>
       </div>
 
       {slug === "rentas" || slug === "bienes-raices" ? (
         <div className={`${adminCardBase} border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
           {slug === "rentas"
-            ? "Rentas usa filas dinámicas según subcategoría y tipo — DETAIL_FIELDS.rentas está vacío en código. Aquí puedes guardar notas internas hasta que definamos claves estables para overrides."
-            : "Bienes raíces usa formularios BR dinámicos — DETAIL_FIELDS está vacío salvo que alineemos claves con el orquestador. Puedes guardar notas de moderación."}
+            ? "Rentas uses dynamic rows by subcategory and type — DETAIL_FIELDS.rentas is empty in code. You can save internal notes until stable override keys are defined."
+            : "Real estate uses dynamic BR forms — DETAIL_FIELDS is empty unless keys align with the orchestrator. You can save moderation notes."}
         </div>
       ) : null}
 
       {slug === "clases" || slug === "comunidad" || slug === "mascotas-y-perdidos" ? (
-        <div className={`${adminCardBase} border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-950`}>
-          Esta categoría aún no tiene filas en <code className="rounded bg-white/80 px-1">DETAIL_FIELDS</code>. Puedes dejar notas de staff;
-          cuando existan campos en código, aparecerán aquí automáticamente.
+        <div className={`${adminCardBase} ${adminInfoCallout}`}>
+          This category has no rows in <code className="rounded bg-white/80 px-1">DETAIL_FIELDS</code> yet. You can leave staff notes;
+          when fields exist in code, they will appear here automatically.
         </div>
       ) : null}
 
       <form action={saveCategoryDetailFieldsContentAction} className={`${adminCardBase} space-y-6 p-6`}>
         <input type="hidden" name="category_slug" value={slug} />
         <p className="text-xs text-[#7A7164]">
-          Editor de contenido — <strong>{title}</strong>. Persistido en{" "}
+          Content editor — <strong>{title}</strong>. Persisted in{" "}
           <code className="rounded bg-[#FBF7EF] px-1">site_section_content.clasificados_category_content</code> →{" "}
           <code className="rounded bg-[#FBF7EF] px-1">categories[&quot;{slug}&quot;]</code>.
         </p>
 
         {rows.length ? (
           <section>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Campos (DETAIL_FIELDS)</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Fields (DETAIL_FIELDS)</h2>
             <div className="mt-4 space-y-6">
               {rows.map((row) => {
                 const mEs = mergeDetailFieldPatch(row.label, row.placeholder, patch.detailFields?.[row.key], "es");
@@ -108,12 +108,12 @@ export async function CategoryDetailFieldsEditorBlock(props: {
                       {row.key} · {row.type}
                     </p>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      <Field label="Etiqueta ES" name={`df_${row.key}_label_es`} defaultValue={mEs.label} />
-                      <Field label="Etiqueta EN" name={`df_${row.key}_label_en`} defaultValue={mEn.label} />
+                      <Field label="Label ES" name={`df_${row.key}_label_es`} defaultValue={mEs.label} />
+                      <Field label="Label EN" name={`df_${row.key}_label_en`} defaultValue={mEn.label} />
                       <Field label="Placeholder ES" name={`df_${row.key}_ph_es`} defaultValue={mEs.placeholder ?? ""} />
                       <Field label="Placeholder EN" name={`df_${row.key}_ph_en`} defaultValue={mEn.placeholder ?? ""} />
-                      <Field label="Ayuda ES" name={`df_${row.key}_help_es`} defaultValue={mEs.help ?? ""} />
-                      <Field label="Ayuda EN" name={`df_${row.key}_help_en`} defaultValue={mEn.help ?? ""} />
+                      <Field label="Help ES" name={`df_${row.key}_help_es`} defaultValue={mEs.help ?? ""} />
+                      <Field label="Help EN" name={`df_${row.key}_help_en`} defaultValue={mEn.help ?? ""} />
                     </div>
                   </div>
                 );
@@ -123,7 +123,7 @@ export async function CategoryDetailFieldsEditorBlock(props: {
         ) : null}
 
         <section>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Notas internas (moderación)</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Internal notes (moderation)</h2>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs font-semibold text-[#5C5346]">ES</label>
@@ -147,12 +147,12 @@ export async function CategoryDetailFieldsEditorBlock(props: {
         </section>
 
         <button type="submit" className={adminBtnPrimary}>
-          Guardar
+          Save
         </button>
       </form>
 
       <Link href="/admin/workspace/clasificados" className={adminBtnSecondary}>
-        ← Hub Clasificados
+        ← Clasificados hub
       </Link>
     </div>
   );

@@ -9,7 +9,7 @@ type Truth = "TRUE" | "PARTIAL" | "MISSING" | "HONESTLY_DISABLED";
 type HubCard = {
   title: string;
   purpose: string;
-  /** Shown as «Ruta» (may be a pattern, not always a single clickable path). */
+  /** Shown as «Route» (may be a pattern, not always a single clickable path). */
   routeLabel: string;
   /** When set, primary CTA uses this href; omit when no sensible link. */
   ctaHref?: string;
@@ -20,84 +20,84 @@ type HubCard = {
 
 const CARDS: HubCard[] = [
   {
-    title: "Pedidos (inbox)",
-    purpose: "Bandeja de órdenes self-serve: buscar, filtrar, marcar leído y abrir detalle.",
+    title: "Orders (inbox)",
+    purpose: "Self-serve order inbox: search, filter, mark read, and open detail.",
     routeLabel: "/admin/tienda/orders",
     ctaHref: "/admin/tienda/orders",
-    ctaLabel: "Abrir pedidos →",
+    ctaLabel: "Open orders →",
     status: "TRUE",
   },
   {
-    title: "Detalle de pedido",
-    purpose: "Ficha por UUID: estado operativo, notas internas, archivos del cliente (si aplica).",
+    title: "Order detail",
+    purpose: "Per-UUID record: ops status, internal notes, customer files (when applicable).",
     routeLabel: "/admin/tienda/orders/[id]",
     ctaHref: "/admin/tienda/orders",
-    ctaLabel: "Ir a lista de pedidos →",
+    ctaLabel: "Go to order list →",
     status: "TRUE",
-    statusNote: "Elige una fila en la bandeja; no hay índice aparte del listado.",
+    statusNote: "Pick a row in the inbox; there is no separate index beyond the list.",
   },
   {
-    title: "Catálogo",
-    purpose: "Listado de artículos Tienda: visibilidad, destacados, enlaces a edición.",
+    title: "Catalog",
+    purpose: "Tienda item list: visibility, featured flags, links to edit.",
     routeLabel: "/admin/tienda/catalog",
     ctaHref: "/admin/tienda/catalog",
-    ctaLabel: "Abrir catálogo →",
+    ctaLabel: "Open catalog →",
     status: "TRUE",
   },
   {
-    title: "Nuevo artículo",
-    purpose: "Alta de un ítem en el catálogo (mismo modelo de datos que la edición).",
+    title: "New item",
+    purpose: "Create a catalog item (same data model as edit).",
     routeLabel: "/admin/tienda/catalog/new",
     ctaHref: "/admin/tienda/catalog/new",
-    ctaLabel: "Nuevo artículo →",
+    ctaLabel: "New item →",
     status: "TRUE",
   },
   {
-    title: "Artículos / productos",
-    purpose: "CRUD por ítem vive en el catálogo; no existe una ruta separada solo «productos».",
-    routeLabel: "/admin/tienda/catalog y /admin/tienda/catalog/[id]",
+    title: "Items / products",
+    purpose: "Per-item CRUD lives in the catalog; there is no separate products-only route.",
+    routeLabel: "/admin/tienda/catalog and /admin/tienda/catalog/[id]",
     ctaHref: "/admin/tienda/catalog",
-    ctaLabel: "Abrir catálogo →",
+    ctaLabel: "Open catalog →",
     status: "PARTIAL",
-    statusNote: "Edición por UUID bajo el catálogo.",
+    statusNote: "Edit by UUID under the catalog.",
   },
   {
-    title: "Inventario (SKU / stock)",
-    purpose: "Panel dedicado solo a inventario agregado.",
-    routeLabel: "(no existe en repo)",
+    title: "Inventory (SKU / stock)",
+    purpose: "Dedicated panel for aggregate inventory only.",
+    routeLabel: "(not in repo)",
     status: "MISSING",
-    statusNote: "No hay ruta `/admin/tienda/inventory` en este repo.",
+    statusNote: "No `/admin/tienda/inventory` route in this repo.",
   },
   {
-    title: "Fulfillment y estados",
-    purpose: "Transiciones y preparación se gestionan en la bandeja y en cada pedido.",
-    routeLabel: "/admin/tienda/orders y detalle",
+    title: "Fulfillment & statuses",
+    purpose: "Transitions and prep are managed in the inbox and on each order.",
+    routeLabel: "/admin/tienda/orders and detail",
     ctaHref: "/admin/tienda/orders",
-    ctaLabel: "Abrir pedidos →",
+    ctaLabel: "Open orders →",
     status: "PARTIAL",
-    statusNote: "Sin módulo fulfillment aparte.",
+    statusNote: "No separate fulfillment module.",
   },
   {
-    title: "Ajustes solo Tienda",
-    purpose: "Página de settings bajo `/admin/tienda/settings`.",
-    routeLabel: "(no existe en repo)",
+    title: "Tienda-only settings",
+    purpose: "Settings page under `/admin/tienda/settings`.",
+    routeLabel: "(not in repo)",
     status: "MISSING",
-    statusNote: "Ajustes globales del sitio siguen en otras rutas admin.",
+    statusNote: "Global site settings remain on other admin routes.",
   },
   {
-    title: "Mapa workspace Tienda",
-    purpose: "Resumen operativo y enlaces (orientación al equipo; no sustituye formularios).",
+    title: "Tienda workspace map",
+    purpose: "Ops summary and links (team orientation; does not replace forms).",
     routeLabel: "/admin/workspace/tienda",
     ctaHref: "/admin/workspace/tienda",
-    ctaLabel: "Abrir mapa →",
+    ctaLabel: "Open map →",
     status: "TRUE",
   },
   {
-    title: "Editor vitrina (copy e imágenes)",
-    purpose: "Hero, categorías y textos de la vitrina pública guardados en `site_section_content`.",
+    title: "Storefront editor (copy & images)",
+    purpose: "Hero, categories, and public storefront copy stored in `site_section_content`.",
     routeLabel: "/admin/workspace/tienda/storefront",
     ctaHref: "/admin/workspace/tienda/storefront",
-    ctaLabel: "Abrir editor →",
+    ctaLabel: "Open editor →",
     status: "TRUE",
   },
 ];
@@ -122,12 +122,12 @@ export default function AdminTiendaHubPage() {
     <div className="max-w-5xl space-y-6 pb-12">
       <AdminPageHeader
         eyebrow="Tienda"
-        title="Centro de comando — Tienda"
-        subtitle="Punto de entrada único: pedidos, catálogo y enlaces al workspace de vitrina. Las rutas listadas son las que existen hoy en el admin."
-        helperText="Estado TRUE = ruta operativa. PARTIAL = cubierto dentro de otra pantalla. MISSING = no implementado en este repo. Sin contadores inventados."
+        title="Command center — Tienda"
+        subtitle="Single entry point: orders, catalog, and links to the storefront workspace. Listed routes are what exist in admin today."
+        helperText="TRUE = operational route. PARTIAL = covered inside another screen. MISSING = not implemented in this repo. No invented counters."
         rightSlot={
           <Link href="/tienda" className={adminBtnSecondary} target="_blank" rel="noreferrer">
-            Ver vitrina pública ↗
+            View public storefront ↗
           </Link>
         }
       />
@@ -145,13 +145,13 @@ export default function AdminTiendaHubPage() {
             </div>
             <p className="text-sm leading-relaxed text-[#5C5346]">{c.purpose}</p>
             <p className="font-mono text-[11px] text-[#3D3428]">
-              <span className="font-sans font-semibold text-[#7A7164]">Ruta: </span>
+              <span className="font-sans font-semibold text-[#7A7164]">Route: </span>
               {c.routeLabel}
             </p>
             {c.statusNote ? <p className="text-[11px] text-[#7A7164]">{c.statusNote}</p> : null}
             {c.ctaHref ? (
               <Link href={c.ctaHref} className="mt-1 text-sm font-bold text-[#6B5B2E] underline">
-                {c.ctaLabel ?? "Abrir →"}
+                {c.ctaLabel ?? "Open →"}
               </Link>
             ) : null}
           </div>

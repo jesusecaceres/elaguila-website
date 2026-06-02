@@ -313,7 +313,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
               defaultValue={lxProp}
               className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[10rem] sm:py-2 sm:text-sm"
             >
-              <option value="">Tipo propiedad (todas)</option>
+              <option value="">{m("clasificados.propTypeAll")}</option>
               <option value="residencial">residencial</option>
               <option value="comercial">comercial</option>
               <option value="terreno_lote">terreno_lote</option>

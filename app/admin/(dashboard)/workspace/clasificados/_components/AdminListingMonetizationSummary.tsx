@@ -30,9 +30,8 @@ const TOOL_ORDER: Array<{
   { key: "expirationRenewal", label: { es: "Expira/renueva", en: "Expire/renew" } },
 ];
 
-function boolText(value: boolean | null | undefined, lang: Lang): string | null {
+function boolText(value: boolean | null | undefined): string | null {
   if (value == null) return null;
-  if (lang === "es") return value ? "si" : "no";
   return value ? "yes" : "no";
 }
 
@@ -64,7 +63,7 @@ export function AdminListingMonetizationSummary({
   source = "listings",
   listing,
   detailPairs,
-  lang = "es",
+  lang = "en",
 }: Props) {
   const summary = resolveCategoryListingMonetization({
     category,
@@ -80,36 +79,36 @@ export function AdminListingMonetizationSummary({
     meta.republishedAt ? `ref ${compactDate(meta.republishedAt)}` : null,
     meta.republishCount != null ? `ref# ${meta.republishCount}` : null,
     meta.expiresAt ? `exp ${compactDate(meta.expiresAt)}` : null,
-    boolText(meta.promoted, lang) ? `${lang === "es" ? "promovido" : "promoted"} ${boolText(meta.promoted, lang)}` : null,
-    boolText(meta.featured, lang) ? `${lang === "es" ? "featured" : "featured"} ${boolText(meta.featured, lang)}` : null,
-    boolText(meta.verified, lang) ? `${lang === "es" ? "verif" : "verified"} ${boolText(meta.verified, lang)}` : null,
+    boolText(meta.promoted) ? `promoted ${boolText(meta.promoted)}` : null,
+    boolText(meta.featured) ? `featured ${boolText(meta.featured)}` : null,
+    boolText(meta.verified) ? `verified ${boolText(meta.verified)}` : null,
   ].filter((bit): bit is string => Boolean(bit));
 
   return (
     <div
       className="min-w-[16rem] max-w-[24rem] rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/90 p-2 text-[10px] leading-snug text-[#5C5346]"
-      title={lang === "es" ? "Solo lectura: no activa monetizacion ni herramientas." : "Read-only: does not activate monetization or tools."}
+      title="Read-only: does not activate monetization or tools."
     >
       <div className="flex flex-wrap items-center gap-1">
         <span className="rounded-full bg-[#2A2620] px-2 py-0.5 font-bold text-[#FAF7F2]">
-          {summary.planLabel || (lang === "es" ? "Plan no especificado" : "Unspecified plan")}
+          {summary.planLabel || "Unspecified plan"}
         </span>
         <span className="rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 font-semibold text-[#5C5346]">
           {summary.category}
         </span>
       </div>
       <p className="mt-1 text-[10px] text-[#7A7164]">
-        {lang === "es" ? "Fuente" : "Source"}: {summary.planSource}
+        Source: {summary.planSource}
       </p>
       {summary.accountTierIgnored ? (
         <p className="mt-1 font-semibold text-[#7A7164]">
-          {lang === "es" ? "Cuenta ignorada: usa metadata del anuncio." : "Account tier ignored: listing metadata only."}
+          Account tier ignored: listing metadata only.
         </p>
       ) : null}
       {metadataBits.length ? (
         <p className="mt-1 text-[#5C5346]">{metadataBits.join(" · ")}</p>
       ) : (
-        <p className="mt-1 text-[#9A9084]">{lang === "es" ? "Sin metadata segura en la fila." : "No safe row metadata."}</p>
+        <p className="mt-1 text-[#9A9084]">No safe row metadata.</p>
       )}
       <div className="mt-2 flex flex-wrap gap-1">
         {TOOL_ORDER.map(({ key, label }) => {
@@ -120,7 +119,7 @@ export function AdminListingMonetizationSummary({
               className={`rounded-full border px-1.5 py-0.5 font-semibold ${statusClass(state.status)}`}
               title={state.reason ? `${state.label}: ${state.reason}` : state.label}
             >
-              {label[lang]}: {state.status}
+              {label.en}: {state.status}
             </span>
           );
         })}

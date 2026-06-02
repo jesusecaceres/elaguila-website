@@ -88,7 +88,7 @@ export function ClasificadosCategoryHub({
                           ? "bg-amber-100 text-amber-900"
                           : entry.operationalStatus === "hidden"
                             ? "bg-neutral-200 text-neutral-800"
-                            : "bg-sky-100 text-sky-900"
+                            : "bg-amber-100 text-amber-900"
                     }`}
                   >
                     {adminCategoryOperationalStatusLabel(entry.operationalStatus)}

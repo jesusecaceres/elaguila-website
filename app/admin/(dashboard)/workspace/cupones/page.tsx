@@ -10,32 +10,32 @@ export default function AdminWorkspaceCuponesPage() {
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-          Tarjetas persistidas
+          Persisted cards
         </span>
-        <span className={adminPartialBadgeClass}>Sin cupos / escaneos aún</span>
+        <span className={adminPartialBadgeClass}>No quotas / scans yet</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Cupones"
         title="Cupones"
-        subtitle="Un solo payload (`cupones_page`) alimenta `/cupones` y `/coupons` con copy bilingüe y hasta 8 tarjetas. No hay redención, QR ni límites por usuario todavía."
-        helperText="Imágenes deben existir bajo /public (p. ej. /coupons/…)."
+        subtitle="A single payload (`cupones_page`) feeds `/cupones` and `/coupons` with bilingual copy and up to 8 cards. No redemption, QR, or per-user limits yet."
+        helperText="Images must exist under /public (e.g. /coupons/…)."
       />
 
       <AdminSectionOwnershipCallout
         sectionTitle="Cupones"
         publicPath="/cupones · /coupons"
-        sourceOfTruth="Marketing de cupones: `site_section_content.cupones_page`. Sin tabla transaccional todavía."
+        sourceOfTruth="Coupon marketing: `site_section_content.cupones_page`. No transactional table yet."
         siteSectionKey="cupones_page"
         adminEditors={[
-          { label: "Editor de página y tarjetas", href: "/admin/workspace/cupones/content" },
-          { label: "Tienda — vitrina", href: "/admin/workspace/tienda/storefront" },
-          { label: "Home — contenido", href: "/admin/workspace/home/content" },
-          { label: "Ajustes globales", href: "/admin/site-settings" },
+          { label: "Page & card editor", href: "/admin/workspace/cupones/content" },
+          { label: "Tienda — storefront", href: "/admin/workspace/tienda/storefront" },
+          { label: "Home — content", href: "/admin/workspace/home/content" },
+          { label: "Global settings", href: "/admin/site-settings" },
         ]}
         notYet={[
-          "Tabla `coupons` con caducidad real, cupos, códigos y auditoría si el negocio lo exige.",
-          "Flujo de canje o integración con POS.",
-          "Esquema mínimo viable: código único, max_redemptions, valid_from/until, revocación y tabla `coupon_redemptions` (user_id opcional, timestamp).",
+          "`coupons` table with real expiry, quotas, codes, and audit if the business requires it.",
+          "Redemption flow or POS integration.",
+          "Minimal viable schema: unique code, max_redemptions, valid_from/until, revocation, and `coupon_redemptions` (optional user_id, timestamp).",
         ]}
       />
 
@@ -51,12 +51,12 @@ export default function AdminWorkspaceCuponesPage() {
         </p>
         <p className="text-xs text-[#7A7164]">
           <Link href="/admin/workspace/cupones/content" className="font-bold text-[#6B5B2E] underline">
-            Ir al editor →
+            Go to editor →
           </Link>
         </p>
       </div>
-      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Volver al mapa de secciones">
-        ← Resumen de workspaces
+      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Back to section map">
+        ← Workspace overview
       </Link>
     </div>
   );

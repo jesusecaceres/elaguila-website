@@ -51,7 +51,7 @@ export default async function AdminActivityLogPage() {
             {m("activityLog.badgeLive")}
           </span>
         ) : showEmptyLive ? (
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-900">
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-900">
             {m("activityLog.badgeEmptyTable")}
           </span>
         ) : showUnavailable ? (

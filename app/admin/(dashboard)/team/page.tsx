@@ -4,15 +4,16 @@ import {
   adminBtnPrimary,
   adminInputClass,
   adminStubBadgeClass,
+  adminTableZebraRow,
   adminCtaChipSecondary,
 } from "../../_components/adminTheme";
-import { AdminEmptyState } from "../../_components/AdminEmptyState";
 import {
   ALL_ADMIN_PERMISSION_KEYS,
   ROLE_LABELS,
   type AdminTeamRole,
   type AdminPermissionKey,
 } from "../../_lib/teamTypes";
+import { AdminEmptyState } from "../../_components/AdminEmptyState";
 import { getCurrentAdminAccessContext, requireAdminTeamAccess } from "@/app/admin/_lib/adminAccessControl";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
@@ -115,40 +116,40 @@ export default async function AdminTeamPage(props: {
     <div>
       <div className="mb-3 flex flex-wrap gap-2">
         {membersUnavailable ? (
-          <span className={adminStubBadgeClass}>Roster: tabla no disponible</span>
+          <span className={adminStubBadgeClass}>Roster: table unavailable</span>
         ) : (
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
             Roster: admin_team_members
           </span>
         )}
         {invitesUnavailable ? (
-          <span className={adminStubBadgeClass}>Invitaciones: tabla no disponible</span>
+          <span className={adminStubBadgeClass}>Invites: table unavailable</span>
         ) : (
-          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-900">
-            Invitaciones: admin_team_invites
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-900">
+            Invites: admin_team_invites
           </span>
         )}
       </div>
       {sp.member_saved === "1" ? (
         <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
-          Miembro actualizado.
+          Member updated.
         </div>
       ) : null}
       {sp.member_error === "1" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          No se pudo guardar el miembro (revisa datos o migración <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>).
+          Could not save member (check data or migration <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>).
         </div>
       ) : null}
       {sp.member_error === "duplicate" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          Ese email ya está en el roster.
+          That email is already in the roster.
         </div>
       ) : null}
 
       <AdminPageHeader
         title="Team"
-        subtitle="Roster operativo en `admin_team_members` (no es Supabase Auth). Las invitaciones en `admin_team_invites` son intención — completar alta en Auth por separado."
-        helperText="Opcional en servidor: `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` + `ADMIN_OPERATOR_EMAIL` (email en roster) activa comprobación de permisos en mutaciones críticas; sin eso solo aplica la cookie compartida. Contraseñas: panel Supabase Auth."
+        subtitle="Operational roster in `admin_team_members` (not Supabase Auth). Invites in `admin_team_invites` are intent — complete signup in Auth separately."
+        helperText="Optional on server: `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` + `ADMIN_OPERATOR_EMAIL` (email in roster) enables permission checks on critical mutations; otherwise only the shared cookie applies. Passwords: Supabase Auth panel."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -164,33 +165,33 @@ export default async function AdminTeamPage(props: {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[#5C5346]/95">
-          La cookie `leonix_admin` no sustituye roles en base — estas filas son metadatos para coordinación interna.
+          The `leonix_admin` cookie does not replace database roles — these rows are metadata for internal coordination.
         </p>
       </div>
 
       {!invitesUnavailable && invites.length > 0 ? (
         <div className={`${adminCardBase} mb-8 overflow-hidden`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
-            Invitaciones registradas (intención). Completar alta en Supabase Auth o tu IdP.
+            Registered invites (intent). Complete signup in Supabase Auth or your IdP.
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
                 <tr>
                   <th className="p-3">Email</th>
-                  <th className="p-3">Rol</th>
-                  <th className="p-3">Estado</th>
-                  <th className="p-3">Fecha</th>
+                  <th className="p-3">Role</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Date</th>
                 </tr>
               </thead>
               <tbody>
-                {invites.map((inv) => (
-                  <tr key={inv.id} className="border-t border-[#E8DFD0]/80">
+                {invites.map((inv, i) => (
+                  <tr key={inv.id} className={`border-t border-[#E8DFD0]/80 ${adminTableZebraRow}`}>
                     <td className="p-3 font-mono text-xs">{inv.email}</td>
                     <td className="p-3 text-xs">{ROLE_LABELS[inv.role as AdminTeamRole] ?? inv.role}</td>
                     <td className="p-3 text-xs font-semibold">{inv.status}</td>
                     <td className="p-3 text-xs text-[#7A7164]">
-                      {inv.created_at ? new Date(inv.created_at).toLocaleString() : "—"}
+                      {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
                     </td>
                   </tr>
                 ))}
@@ -202,13 +203,13 @@ export default async function AdminTeamPage(props: {
 
       {membersUnavailable ? (
         <div className={`${adminCardBase} mb-8 p-4 text-sm text-amber-950`}>
-          <strong>admin_team_members</strong> no disponible — aplica la migración{" "}
+          <strong>admin_team_members</strong> unavailable — apply migration{" "}
           <code className="rounded bg-white/80 px-1 text-[11px]">20260408183000_control_center_extensions.sql</code>.
         </div>
       ) : members.length === 0 ? (
         <AdminEmptyState
-          title="Sin miembros en roster"
-          description="Añade una fila con el formulario inferior (registro operativo, no crea usuario Auth)."
+          title="No members in roster"
+          description="Add a row with the form below (operational record only — does not create an Auth user)."
         />
       ) : (
         <div className={`${adminCardBase} mb-8 overflow-hidden`}>
@@ -218,18 +219,18 @@ export default async function AdminTeamPage(props: {
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
-                <th className="p-4">Miembro</th>
-                <th className="p-4">Rol</th>
-                <th className="p-4">Estado</th>
-                <th className="p-4">Permisos</th>
-                <th className="p-4 text-right">Acciones</th>
+                <th className="p-4">Member</th>
+                <th className="p-4">Role</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Permissions</th>
+                <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => {
+              {members.map((m, i) => {
                 const perms = parsePermissions(m.permissions);
                 return (
-                  <tr key={m.id} className="border-t border-[#E8DFD0]/80">
+                  <tr key={m.id} className={`border-t border-[#E8DFD0]/80 ${adminTableZebraRow}`}>
                     <td className="p-4">
                       <p className="font-semibold text-[#1E1810]">{m.display_name?.trim() || m.email}</p>
                       <p className="text-xs text-[#7A7164]">{m.email}</p>
@@ -245,12 +246,12 @@ export default async function AdminTeamPage(props: {
                           m.is_active ? "bg-emerald-100 text-emerald-900" : "bg-neutral-200 text-neutral-700"
                         }`}
                       >
-                        {m.is_active ? "Activo" : "Inactivo"}
+                        {m.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="p-4 align-top">
                       {perms.length === 0 ? (
-                        <span className="text-xs text-[#7A7164]">Ninguno (solo rol)</span>
+                        <span className="text-xs text-[#7A7164]">None (role only)</span>
                       ) : (
                         <div className="flex max-w-md flex-wrap gap-1">
                           {perms.slice(0, 6).map((p) => (
@@ -268,7 +269,7 @@ export default async function AdminTeamPage(props: {
                       )}
                       <details className="mt-2 max-w-md">
                         <summary className="cursor-pointer select-none text-xs font-semibold text-[#8B4513] hover:underline">
-                          Editar permisos (Supabase + auditoría)
+                          Edit permissions (Supabase + audit)
                         </summary>
                         <form
                           action={updateTeamMemberPermissionsAction}
@@ -276,7 +277,7 @@ export default async function AdminTeamPage(props: {
                         >
                           <input type="hidden" name="member_id" value={m.id} />
                           <p className="text-[10px] leading-snug text-[#7A7164]">
-                            Marca las capacidades Leonix para esta fila de roster. No modifica Supabase Auth.
+                            Check Leonix capabilities for this roster row. Does not modify Supabase Auth.
                           </p>
                           <ul className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                             {ALL_ADMIN_PERMISSION_KEYS.map((key) => (
@@ -301,7 +302,7 @@ export default async function AdminTeamPage(props: {
                             type="submit"
                             className="min-h-[40px] w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#5C5346] hover:bg-white sm:min-h-0 sm:w-auto"
                           >
-                            Guardar permisos
+                            Save permissions
                           </button>
                         </form>
                       </details>
@@ -315,12 +316,12 @@ export default async function AdminTeamPage(props: {
                           className="min-h-[40px] rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
                           title={
                             m.is_active
-                              ? "Desactiva la fila en admin_team_members (no borra usuario Auth)"
-                              : "Reactiva la fila en el roster operativo"
+                              ? "Deactivate row in admin_team_members (does not delete Auth user)"
+                              : "Reactivate row in operational roster"
                           }
-                          aria-label={m.is_active ? "Desactivar miembro en roster" : "Activar miembro en roster"}
+                          aria-label={m.is_active ? "Deactivate member in roster" : "Activate member in roster"}
                         >
-                          {m.is_active ? "Desactivar" : "Activar"}
+                          {m.is_active ? "Deactivate" : "Activate"}
                         </button>
                       </form>
                     </td>
@@ -333,12 +334,12 @@ export default async function AdminTeamPage(props: {
       )}
 
       <div className={`${adminCardBase} mb-8 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Añadir miembro al roster</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Add member to roster</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Registro interno únicamente. Tras crear la fila, provisiona el usuario en Supabase Auth por el flujo habitual.
+          Internal record only. After creating the row, provision the user in Supabase Auth through your usual flow.
         </p>
         {membersUnavailable ? (
-          <p className="mt-3 text-sm text-amber-900">Tabla no disponible.</p>
+          <p className="mt-3 text-sm text-amber-900">Table unavailable.</p>
         ) : (
           <form action={createTeamMemberRecordAction} className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
@@ -356,13 +357,13 @@ export default async function AdminTeamPage(props: {
             </div>
             <div>
               <label htmlFor="member-name" className="text-xs font-semibold text-[#5C5346]">
-                Nombre visible
+                Display name
               </label>
-              <input id="member-name" name="display_name" className={`${adminInputClass} mt-1`} placeholder="Opcional" />
+              <input id="member-name" name="display_name" className={`${adminInputClass} mt-1`} placeholder="Optional" />
             </div>
             <div>
               <label htmlFor="member-role" className="text-xs font-semibold text-[#5C5346]">
-                Rol
+                Role
               </label>
               <select id="member-role" name="role" required className={`${adminInputClass} mt-1`} defaultValue="read_only">
                 {(Object.keys(ROLE_LABELS) as AdminTeamRole[]).map((k) => (
@@ -374,17 +375,17 @@ export default async function AdminTeamPage(props: {
             </div>
             <div>
               <label htmlFor="member-notes" className="text-xs font-semibold text-[#5C5346]">
-                Nota interna
+                Internal note
               </label>
-              <input id="member-notes" name="notes" className={`${adminInputClass} mt-1`} placeholder="Opcional" />
+              <input id="member-notes" name="notes" className={`${adminInputClass} mt-1`} placeholder="Optional" />
             </div>
             <div className="sm:col-span-2">
               <button
                 type="submit"
                 className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
-                title="Inserta fila en admin_team_members; no crea usuario en Supabase Auth"
+                title="Inserts row in admin_team_members; does not create Supabase Auth user"
               >
-                Guardar en admin_team_members
+                Save to admin_team_members
               </button>
             </div>
           </form>
@@ -392,13 +393,13 @@ export default async function AdminTeamPage(props: {
       </div>
 
       <div className={`${adminCardBase} p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Registrar intención de invitación</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Register invite intent</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Guarda email + rol en <code className="rounded bg-white/80 px-1">admin_team_invites</code>. No envía correo ni crea usuario en Auth.
+          Saves email + role in <code className="rounded bg-white/80 px-1">admin_team_invites</code>. Does not send email or create Auth user.
         </p>
         {invitesUnavailable ? (
           <p className="mt-3 text-sm font-semibold text-amber-900">
-            Tabla no disponible: aplica la migración <code className="rounded bg-white/80 px-1">20260410120000_admin_audit_log_and_team_invites.sql</code>.
+            Table unavailable: apply migration <code className="rounded bg-white/80 px-1">20260410120000_admin_audit_log_and_team_invites.sql</code>.
           </p>
         ) : (
           <form action={createTeamInviteIntentAction} className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -418,7 +419,7 @@ export default async function AdminTeamPage(props: {
             </div>
             <div>
               <label htmlFor="team-invite-role" className="text-xs font-semibold text-[#5C5346]">
-                Rol pretendido
+                Intended role
               </label>
               <select id="team-invite-role" name="role" required className={`${adminInputClass} mt-1`} defaultValue="read_only">
                 {(Object.keys(ROLE_LABELS) as AdminTeamRole[]).map((k) => (
@@ -430,17 +431,17 @@ export default async function AdminTeamPage(props: {
             </div>
             <div>
               <label htmlFor="team-invite-note" className="text-xs font-semibold text-[#5C5346]">
-                Nota interna (opcional)
+                Internal note (optional)
               </label>
-              <input id="team-invite-note" name="note" className={`${adminInputClass} mt-1`} placeholder="Ticket / contexto" />
+              <input id="team-invite-note" name="note" className={`${adminInputClass} mt-1`} placeholder="Ticket / context" />
             </div>
             <div className="sm:col-span-2">
               <button
                 type="submit"
                 className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
-                title="Registra intención en admin_team_invites; no envía email ni crea Auth"
+                title="Records intent in admin_team_invites; does not send email or create Auth"
               >
-                Guardar intención de invitación
+                Save invite intent
               </button>
             </div>
           </form>

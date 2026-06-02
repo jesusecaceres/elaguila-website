@@ -74,7 +74,7 @@ export default async function AdminIglesiasContentPage(props: { searchParams?: P
           </p>
         </AdminCtaRoutingCallout>
         <button type="submit" className={adminBtnPrimary}>
-          Guardar
+          Save
         </button>
       </form>
     </div>

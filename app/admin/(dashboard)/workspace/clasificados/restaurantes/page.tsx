@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { restauranteRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminBtnSecondary, adminCardBase, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -142,10 +142,10 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
               type="submit"
               className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]"
             >
-              Aplicar
+              Apply
             </button>
             <Link href={queueHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
-              Limpiar filtros
+              Clear filters
             </Link>
           </form>
         </div>
@@ -153,12 +153,12 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
 
       {!configured ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
-          Supabase admin no está configurado en este entorno (<code className="rounded bg-[#FBF7EF] px-1">SUPABASE_SERVICE_ROLE_KEY</code>
-          ). No hay filas que mostrar.
+          Supabase admin is not configured in this environment (<code className="rounded bg-[#FBF7EF] px-1">SUPABASE_SERVICE_ROLE_KEY</code>
+          ). No rows to show.
         </p>
       ) : rows.length === 0 ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
-          {hasFilters ? "Sin resultados para estos filtros." : "La tabla existe pero no hay filas todavía."}
+          {hasFilters ? "No results for these filters." : "Table exists but has no rows yet."}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
@@ -166,24 +166,24 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
             <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Leonix Ad ID</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Negocio</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Business</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Slug</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Dest.</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Status</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Feat.</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Verif.</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Plan</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Ciudad</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Cocinas / tipo</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Publicado</th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Actualizado</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">City</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Cuisine / type</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Published</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Updated</th>
                 <th
                   className="border-b border-[#E8DFD0] px-3 py-2"
-                  title="Público + resultados. Moderación de estado en columna Acciones (misma fila; sin editor de contenido staff)."
+                  title="Public + results. Status moderation in Actions column (same row; no staff content editor)."
                 >
-                  Enlaces
+                  Links
                 </th>
-                <th className="border-b border-[#E8DFD0] px-3 py-2">Acciones</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">Actions</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">Monetization</th>
               </tr>
             </thead>
@@ -193,15 +193,15 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                 const summary = [cuisineBits || "—", r.business_type || ""].filter(Boolean).join(" · ");
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=es&q=${encodeURIComponent(r.business_name)}`;
                 return (
-                  <tr key={r.id} className="border-b border-[#F0E8DA] odd:bg-white/60">
+                  <tr key={r.id} className={adminTableZebraRow}>
                     <td className="max-w-[140px] whitespace-nowrap px-3 py-2 font-mono text-[10px] font-bold text-[#5C4E2E]">
                       {r.leonix_ad_id ?? "—"}
                     </td>
                     <td className="max-w-[200px] px-3 py-2 font-semibold">{r.business_name}</td>
                     <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
                     <td className="px-3 py-2">{r.status}</td>
-                    <td className="px-3 py-2">{r.promoted ? "sí" : "no"}</td>
-                    <td className="px-3 py-2">{r.leonix_verified ? "sí" : "no"}</td>
+                    <td className="px-3 py-2">{r.promoted ? "yes" : "no"}</td>
+                    <td className="px-3 py-2">{r.leonix_verified ? "yes" : "no"}</td>
                     <td className="max-w-[120px] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id ?? ""}>
                       {r.owner_user_id ?? "—"}
                     </td>
@@ -216,12 +216,12 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                         className="block font-semibold text-[#6B5B2E] underline"
                         target="_blank"
                         rel="noreferrer"
-                        title="Vista pública. Edición de negocio: flujo del anunciante, no Leonix staff."
+                        title="Public view. Business edit: advertiser flow, not Leonix staff."
                       >
-                        Ver público
+                        View public
                       </Link>
                       <Link href={resultsHref} className="block text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
-                        Resultados
+                        Results
                       </Link>
                     </td>
                     <td className="min-w-[200px] px-3 py-2 align-top">

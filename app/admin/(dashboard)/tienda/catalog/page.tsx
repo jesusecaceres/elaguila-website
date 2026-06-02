@@ -93,12 +93,12 @@ export default async function AdminTiendaCatalogListPage({
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="Catálogo de Tienda"
-        subtitle="Artículos que alimentan la vitrina: textos, precios, CTAs, visibilidad e imágenes. La fuente de verdad está en Supabase."
-        helperText="Abre un artículo para subir fotos, elegir la imagen principal y ajustar precios. Los destacados en vitrina se controlan desde los mismos registros."
+        title="Tienda catalog"
+        subtitle="Items that feed the storefront: copy, prices, CTAs, visibility, and images. Source of truth is in Supabase."
+        helperText="Open an item to upload photos, set the primary image, and adjust prices. Storefront featured items are controlled from the same records."
         rightSlot={
           <Link href="/admin/tienda/catalog/new" className={adminBtnPrimary}>
-            + Nuevo artículo
+            + New catalog item
           </Link>
         }
       />
@@ -260,7 +260,7 @@ export default async function AdminTiendaCatalogListPage({
                         {row.is_live && !row.is_hidden ? (
                           <Link
                             href={`/tienda/catalog/${row.slug}`}
-                            className="text-xs font-bold text-sky-800 underline"
+                            className="text-xs font-bold text-[#6B5B2E] underline"
                             target="_blank"
                             rel="noopener noreferrer"
                           >

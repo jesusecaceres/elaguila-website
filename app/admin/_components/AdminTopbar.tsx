@@ -6,22 +6,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import newLogo from "../../../public/logo.png";
 import { adminBtnPrimary, adminInputClass } from "./adminTheme";
-import { AdminLangToggle } from "./AdminLangToggle";
 import { AdminMobileNavDrawer } from "./AdminMobileNavDrawer";
-import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
-import { adminTr } from "@/app/admin/_lib/adminStrings";
 import { useAdminT } from "./AdminI18nProvider";
 
 export function AdminTopbar({
   showCreate = true,
   alertCount = 0,
-  adminLang,
   allowedGlobalNavHrefs,
   salesRepLimited = false,
 }: {
   showCreate?: boolean;
   alertCount?: number;
-  adminLang: AdminLang;
   allowedGlobalNavHrefs?: string[];
   salesRepLimited?: boolean;
 }) {
@@ -31,7 +26,7 @@ export function AdminTopbar({
 
   const tiendaTitle = alertCount > 0 ? t("shell.tiendaTitleUnread") : t("shell.tiendaTitle");
   const tiendaAria =
-    alertCount > 0 ? adminTr(adminLang, "shell.tiendaAriaUnread", { n: alertCount }) : t("shell.tiendaTitle");
+    alertCount > 0 ? t("shell.tiendaAriaUnread", { n: alertCount }) : t("shell.tiendaTitle");
 
   return (
     <header className="sticky top-0 z-30 border-b border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 backdrop-blur-md">
@@ -39,7 +34,6 @@ export function AdminTopbar({
         <div className="flex w-full min-w-0 items-center gap-2 lg:hidden">
           <AdminMobileNavDrawer
             tiendaInboxUnread={alertCount}
-            adminLang={adminLang}
             allowedGlobalNavHrefs={allowedGlobalNavHrefs}
             salesRepLimited={salesRepLimited}
           />
@@ -50,7 +44,6 @@ export function AdminTopbar({
             {t("shell.leonixAdmin")}
           </span>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <AdminLangToggle active={adminLang} />
             <Link
               href="/admin/tienda"
               className="relative flex h-11 min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-2 text-[color:var(--lx-muted)] shadow-sm"
@@ -101,8 +94,7 @@ export function AdminTopbar({
         </form>
 
         <div className="order-3 hidden items-center gap-2 lg:ml-auto lg:flex lg:flex-nowrap">
-          <AdminLangToggle active={adminLang} />
-          <span className="inline-flex max-w-[10rem] items-center gap-1 truncate rounded-full border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)] px-3 py-1.5 text-xs font-bold text-[color:var(--lx-text-2)] xl:max-w-none">
+          <span className="inline-flex max-w-[10rem] items-center gap-1 truncate rounded-lg border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)] px-3 py-1.5 text-xs font-bold text-[color:var(--lx-text-2)] xl:max-w-none">
             {t("shell.plusBadge")}
           </span>
           <Link
@@ -118,7 +110,7 @@ export function AdminTopbar({
               </span>
             ) : null}
           </Link>
-          <div className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-lion)] text-xs font-bold text-white sm:flex">
+          <div className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--lx-border)] bg-[#7A1E2C] text-xs font-bold text-white sm:flex">
             LX
           </div>
           {showCreate ? (

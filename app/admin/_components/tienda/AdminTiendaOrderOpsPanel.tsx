@@ -39,8 +39,8 @@ export function AdminTiendaOrderOpsPanel(props: {
                   ? `${adminBtnSecondary} opacity-50 cursor-not-allowed`
                   : adminBtnSecondary
               }
-              title={`Establecer estado operativo «${status}» en tienda_orders (sin email automático al cliente)`}
-              aria-label={`Cambiar estado del pedido a ${status}`}
+              title={`Set ops status «${status}» on tienda_orders (no automatic customer email)`}
+              aria-label={`Change order status to ${status}`}
             >
               Set: {status.replace(/_/g, " ")}
             </button>
@@ -58,7 +58,7 @@ export function AdminTiendaOrderOpsPanel(props: {
                 className={`text-xs font-semibold rounded-xl border px-2 py-1 border-[#E8DFD0] ${
                   status === currentStatus ? "opacity-40" : "hover:bg-[#FAF7F2]"
                 }`}
-                title={`Estado ${status} en base (staff)`}
+                title={`Status ${status} in database (staff)`}
               >
                 {status}
               </button>
@@ -72,11 +72,11 @@ export function AdminTiendaOrderOpsPanel(props: {
           className={adminBtnDark}
           title={
             unread
-              ? "Marca el pedido como leído en la bandeja del equipo"
-              : "Marca como no leído para volver a destacarlo en la bandeja"
+              ? "Mark order as read in team inbox"
+              : "Mark as unread to highlight again in inbox"
           }
         >
-          {unread ? "Marcar leído" : "Marcar no leído"}
+          {unread ? "Mark read" : "Mark unread"}
         </button>
       </form>
     </div>

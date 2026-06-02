@@ -10,35 +10,35 @@ export default function AdminWorkspaceAnunciatePage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className={adminReadOnlyBadgeClass}>Solo lectura</span>
-        <span className={adminStubBadgeClass}>Sin CRM</span>
+        <span className={adminReadOnlyBadgeClass}>Read-only</span>
+        <span className={adminStubBadgeClass}>No CRM</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Anúnciate"
-        title="Anúnciate / publicar"
-        subtitle="El menú público “Anúnciate” envía al flujo de login y publicación (p. ej. En venta). No hay formulario guardado aquí: la operación vive en Clasificados + auth."
-        helperText="Usa esta página como mapa: enlaces rápidos al hub público y a la cola admin de anuncios. Leads/CRM no están modelados."
+        title="Anúnciate / publish"
+        subtitle='The public “Anúnciate” menu sends users to login and publish flows (e.g. En venta). No form is saved here — operations live in Clasificados + auth.'
+        helperText="Use this page as a map: quick links to the public hub and the admin ad queue. Leads/CRM are not modeled."
       />
 
       <AdminSectionOwnershipCallout
-        sectionTitle="Anúnciate / publicar"
-        publicPath="/clasificados/publicar (+ ramas)"
-        sourceOfTruth="Auth + tablas `listings` (Clasificados) y flujos específicos por vertical — no hay entidad “anunciate_page” en BD."
+        sectionTitle="Anúnciate / publish"
+        publicPath="/clasificados/publicar (+ branches)"
+        sourceOfTruth="Auth + `listings` tables (Clasificados) and vertical-specific flows — no `anunciate_page` entity in DB."
         siteSectionKey={null}
         adminEditors={[
-          { label: "Clasificados hub (cola, listados, tarjetas)", href: "/admin/workspace/clasificados" },
-          { label: "Customer ops (dueño, email, listing id)", href: "/admin/ops" },
-          { label: "Registro avanzado (conteos + Supabase)", href: ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF },
-          { label: "Reportes", href: "/admin/reportes" },
+          { label: "Clasificados hub (queue, listings, cards)", href: "/admin/workspace/clasificados" },
+          { label: "Customer ops (owner, email, listing id)", href: "/admin/ops" },
+          { label: "Advanced registry (counts + Supabase)", href: ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF },
+          { label: "Reports", href: "/admin/reportes" },
         ]}
         notYet={[
-          "CRM / pipeline de leads si producto lo requiere.",
-          "Unificar métricas de embudo publicar → listing activo.",
+          "CRM / leads pipeline if product requires it.",
+          "Unify publish → active listing funnel metrics.",
         ]}
       />
 
       <div className={`${adminCardBase} space-y-4 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Flujo público</h2>
+        <h2 className="text-sm font-bold text-[#1E1810]">Public flow</h2>
         <ul className="list-inside list-disc space-y-2 text-sm text-[#5C5346]">
           <li>
             <Link
@@ -46,7 +46,7 @@ export default function AdminWorkspaceAnunciatePage() {
               className="font-bold text-[#6B5B2E] underline"
               target="_blank"
               rel="noreferrer"
-              title="Hub de publicación en Clasificados"
+              title="Clasificados publish hub"
             >
               /clasificados/publicar
             </Link>
@@ -65,37 +65,37 @@ export default function AdminWorkspaceAnunciatePage() {
             <Link href="/publicar/autos" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
               /publicar/autos
             </Link>{" "}
-            (y ramas negocio/privado)
+            (and business/private branches)
           </li>
         </ul>
       </div>
 
       <div className={`${adminCardBase} space-y-3 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Operación admin</h2>
-        <p className="text-xs text-[#7A7164]">Moderación y anuncios en base:</p>
+        <h2 className="text-sm font-bold text-[#1E1810]">Admin operations</h2>
+        <p className="text-xs text-[#7A7164]">Moderation and database-backed ads:</p>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/workspace/clasificados"
-            className="rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]"
-            title="Cola Supabase de listings"
+            className="rounded-lg border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]"
+            title="Supabase listings queue"
           >
-            Workspace Clasificados
+            Clasificados workspace
           </Link>
           <Link
             href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF}
-            className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
-            title="Tabla densa: site_category_config y conteos"
+            className="rounded-lg border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+            title="Dense table: site_category_config and counts"
           >
-            Registro avanzado
+            Advanced registry
           </Link>
-          <Link href="/admin/reportes" className="rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
-            Reportes
+          <Link href="/admin/reportes" className="rounded-lg border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
+            Reports
           </Link>
         </div>
       </div>
 
-      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Volver al mapa de secciones">
-        ← Resumen de workspaces
+      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Back to section map">
+        ← Workspace overview
       </Link>
     </div>
   );
