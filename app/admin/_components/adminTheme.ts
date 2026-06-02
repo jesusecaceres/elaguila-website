@@ -41,7 +41,9 @@ export const adminTableWrap =
   "max-w-full min-w-0 overflow-x-auto rounded-lg border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] [-webkit-overflow-scrolling:touch]";
 
 /** Zebra striping for admin tracking tables. */
-export const adminTableZebraRow = "border-b border-[#E8DFD0]/60 odd:bg-[#FFFCF7]/90 even:bg-white/50";
+/** Obvious warm zebra for admin queue tables (Phase 15). */
+export const adminTableZebraRow =
+  "border-b border-[#E8DFD0]/70 odd:bg-[#FFFCF7] even:bg-[#F8F0E3] hover:bg-[#F3E6D2]";
 
 export const adminLinkAccent = "font-semibold text-[#6B5B2E] underline decoration-[#C9B46A]/50 underline-offset-2";
 

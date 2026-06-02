@@ -77,7 +77,7 @@ export async function fetchListingsForAdminWorkspace(
       .from("listings")
       .select(tier.cols)
       .order("created_at", { ascending: false })
-      .limit(300);
+      .limit(100);
 
     if (!res.error) {
       return {
@@ -149,7 +149,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   supabase: SupabaseClient,
   filters: ListingsAdminWorkspaceFilters,
 ): Promise<ListingsAdminFetchResult<Record<string, unknown>>> {
-  const limit = Math.min(Math.max(filters.limit ?? 300, 1), 500);
+  const limit = Math.min(Math.max(filters.limit ?? 100, 1), 500);
   const cat = (filters.category ?? "").trim();
   const status = (filters.status ?? "").trim();
   const ownerFrag = (filters.ownerFrag ?? "").trim().toLowerCase();

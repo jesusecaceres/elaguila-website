@@ -1,7 +1,16 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { restauranteRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { adminBtnSecondary, adminCardBase, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
+import {
+  ADMIN_QUEUE_DEFAULT_LIMIT,
+  adminQueueRowAnchorId,
+  adminQueueRowClass,
+  normalizeAdminQueueLimit,
+  parseAdminActionResultFromRecord,
+} from "@/app/admin/_lib/adminQueueActionFlow";
+import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
+import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -52,9 +61,11 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
     firstParam(sp.leonix_ad_id) ||
     firstParam(sp.owner_user_id)
   );
+  const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
+  const actionProof = parseAdminActionResultFromRecord(sp);
   const rowsRaw = configured
     ? await listRestaurantesPublicListingsAdminFromDb({
-        limit: 500,
+        limit: queueLimit,
         q: firstParam(sp.q),
         slug: firstParam(sp.slug),
         id: firstParam(sp.id),
@@ -162,6 +173,9 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
+          <Suspense fallback={null}>
+            <ClasificadosQueueActionChrome />
+          </Suspense>
           <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
             <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
@@ -192,8 +206,9 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                 const cuisineBits = [r.primary_cuisine, r.secondary_cuisine].filter(Boolean).join(" · ");
                 const summary = [cuisineBits || "—", r.business_type || ""].filter(Boolean).join(" · ");
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=es&q=${encodeURIComponent(r.business_name)}`;
+                const highlighted = actionProof?.target === r.id;
                 return (
-                  <tr key={r.id} className={adminTableZebraRow}>
+                  <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
                     <td className="max-w-[140px] whitespace-nowrap px-3 py-2 font-mono text-[10px] font-bold text-[#5C4E2E]">
                       {r.leonix_ad_id ?? "—"}
                     </td>
@@ -228,6 +243,8 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                       <ClassifiedAdminRowActions
                         variant="restaurante"
                         rowId={r.id}
+                        leonixAdId={r.leonix_ad_id}
+                        displayLabel={r.business_name}
                         publicLive={r.status === "published"}
                         promoted={r.promoted}
                         verified={r.leonix_verified}

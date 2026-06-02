@@ -31,7 +31,14 @@ import {
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa6";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
+import { EnVentaPreviewGallery } from "@/app/clasificados/en-venta/preview/EnVentaPreviewGallery";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
+import {
+  buildVariosGalleryViewProps,
+  normalizeVariosDisplayMediaFromRow,
+  resolveVariosPlanFromDetailPairs,
+  resolveVariosPlanFromRow,
+} from "@/app/lib/clasificados/en-venta/varios-display-normalizer";
 import { EnVentaSellerCard } from "./EnVentaSellerCard";
 import { EnVentaSellerPublicStats } from "./EnVentaSellerPublicStats";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
@@ -192,6 +199,7 @@ export function EnVentaAnuncioLayout({
   moreInCategoryHref,
   moreInCategoryLabel,
   showListingReport = false,
+  publishedSourceRow = null,
 }: {
   listing: AnuncioListingLike;
   lang: Lang;
@@ -203,6 +211,8 @@ export function EnVentaAnuncioLayout({
   moreInCategoryLabel?: string;
   /** Inline moderation report (Leonix `submitListingReportAction`). */
   showListingReport?: boolean;
+  /** Raw published `listings` row — re-resolve gallery media to match preview/cards. */
+  publishedSourceRow?: Record<string, unknown> | null;
 }) {
   const variosLabel = enVentaPublicLabel(lang);
   const moreInCategory =
@@ -212,8 +222,33 @@ export function EnVentaAnuncioLayout({
         : `More in ${variosLabel}`
       : (moreInCategoryLabel ?? (lang === "es" ? "Más en Varios" : "More in For Sale"));
 
-  const images = listing.images ?? [];
   const rows = useMemo(() => pairsFromListing(listing), [listing]);
+
+  const variosPlan = useMemo((): "free" | "pro" => {
+    if (publishedSourceRow && surface === "en-venta") {
+      return resolveVariosPlanFromRow(publishedSourceRow);
+    }
+    return resolveVariosPlanFromDetailPairs(rows, {
+      muxPlaybackId: listing.mux_playback_id,
+      description: listing.blurb[lang],
+    });
+  }, [publishedSourceRow, surface, rows, listing.mux_playback_id, listing.blurb, lang]);
+
+  const variosGalleryProps = useMemo(() => {
+    if (surface !== "en-venta") return null;
+    const media = publishedSourceRow
+      ? normalizeVariosDisplayMediaFromRow(publishedSourceRow)
+      : normalizeVariosDisplayMediaFromRow({
+          description: listing.blurb[lang],
+          images: listing.images ?? null,
+          listing_json: null,
+          mux_playback_id: listing.mux_playback_id,
+          detail_pairs: rows,
+        });
+    return buildVariosGalleryViewProps(media, lang, variosPlan);
+  }, [surface, publishedSourceRow, listing.images, listing.blurb, listing.mux_playback_id, rows, lang, variosPlan]);
+
+  const images = variosGalleryProps?.orderedImages ?? listing.images ?? [];
   const specRows = useMemo(
     () => (surface === "en-venta" ? buildEnVentaSpecsRows(rows, lang) : rows),
     [surface, rows, lang]
@@ -674,19 +709,36 @@ export function EnVentaAnuncioLayout({
         <div
           className={
             surface === "en-venta" && !premiumBr
+              ? EN_VENTA_SURFACE.listingCanvas
+              : undefined
+          }
+        >
+        <div
+          className={
+            surface === "en-venta" && !premiumBr
               ? "grid gap-6 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-2"
               : "grid gap-8 lg:grid-cols-12 lg:gap-10"
           }
         >
           <div className="lg:col-span-7">
-            <div className={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.galleryFrame : premiumBr ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]" : ""}>
-              <EnVentaMediaGallery
-                urls={images}
-                title={listing.title[lang]}
-                videoUrl={surface === "en-venta" ? listingVideoUrl : null}
-                lang={lang}
-              />
-            </div>
+            {surface === "en-venta" && !premiumBr && variosGalleryProps ? (
+              <EnVentaPreviewGallery {...variosGalleryProps} />
+            ) : (
+              <div
+                className={
+                  premiumBr
+                    ? "overflow-hidden rounded-[22px] border border-[#E8DFD0]/80 shadow-[0_24px_64px_-32px_rgba(42,36,22,0.22)]"
+                    : ""
+                }
+              >
+                <EnVentaMediaGallery
+                  urls={images}
+                  title={listing.title[lang]}
+                  videoUrl={null}
+                  lang={lang}
+                />
+              </div>
+            )}
           </div>
           <div className={premiumBr ? "space-y-4 lg:col-span-5 lg:sticky lg:top-24 lg:self-start" : "space-y-4 lg:col-span-5"}>
             <div
@@ -818,7 +870,7 @@ export function EnVentaAnuncioLayout({
               )}
             </div>
 
-            {sellerKind === "business" && negocioDisplay ? (
+            {surface !== "en-venta" && sellerKind === "business" && negocioDisplay ? (
               <RentasNegocioDesktopBusinessRail
                 lang={lang}
                 display={negocioDisplay}
@@ -1114,6 +1166,7 @@ export function EnVentaAnuncioLayout({
               </div>
             </>
           ) : null}
+        </div>
         </div>
 
         {surface !== "en-venta" || premiumBr ? (

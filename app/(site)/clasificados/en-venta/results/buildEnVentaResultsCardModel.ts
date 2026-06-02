@@ -65,7 +65,7 @@ export function buildEnVentaResultsCardModel(
         dto
       );
   const images = media.photoUrls;
-  const heroImage = media.primaryImageUrl;
+  const heroImage = media.primaryImageUrl ?? null;
   const extras = images.slice(1);
   const stripCap = 3;
   const extraThumbOverflow = extras.length > stripCap ? extras.length - stripCap : 0;

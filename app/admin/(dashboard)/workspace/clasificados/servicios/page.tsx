@@ -1,4 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import {
+  ADMIN_QUEUE_DEFAULT_LIMIT,
+  adminQueueRowAnchorId,
+  adminQueueRowClass,
+  normalizeAdminQueueLimit,
+  parseAdminActionResultFromRecord,
+} from "@/app/admin/_lib/adminQueueActionFlow";
+import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { adminBtnSecondary, adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
 import {
@@ -116,12 +125,14 @@ export default async function AdminServiciosWorkspacePage(props: {
   const lang = await getAdminLang();
   const msg = adminMessages(lang);
   const sp = props.searchParams ? await props.searchParams : {};
+  const actionProof = parseAdminActionResultFromRecord(sp);
+  const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
   const scope = parseAdminScope(sp);
   const serviciosBase = "/admin/workspace/clasificados/servicios";
   const queueHref = appendPreservedSearchParams(serviciosBase, sp, null);
   const liveHref = appendPreservedSearchParams(serviciosBase, sp, "live");
   const queueFilters = {
-    limit: 500,
+    limit: queueLimit,
     q: firstParam(sp.q),
     slug: firstParam(sp.slug),
     id: firstParam(sp.id),
@@ -287,6 +298,9 @@ export default async function AdminServiciosWorkspacePage(props: {
             </p>
           ) : (
             <div className="overflow-x-auto">
+              <Suspense fallback={null}>
+                <ClasificadosQueueActionChrome />
+              </Suspense>
               <table className="min-w-full border-collapse text-sm">
                 <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase text-[#7A7164]">
                   <tr>
@@ -313,8 +327,10 @@ export default async function AdminServiciosWorkspacePage(props: {
                   </tr>
                 </thead>
                 <tbody>
-                  {rowsFiltered.map((r) => (
-                    <tr key={r.id} className="border-t border-[#E8DFD0]/80">
+                  {rowsFiltered.map((r) => {
+                    const highlighted = actionProof?.target === r.id;
+                    return (
+                    <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
                       <td className="p-3 font-semibold text-[#1E1810]">{r.business_name}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
                       <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
@@ -390,6 +406,8 @@ export default async function AdminServiciosWorkspacePage(props: {
                         <ClassifiedAdminRowActions
                           variant="servicios"
                           rowId={r.id}
+                          leonixAdId={r.leonix_ad_id}
+                          displayLabel={r.business_name}
                           publicLive={(r.listing_status ?? "") === "published"}
                           promoted={Boolean(r.promoted)}
                           verified={r.leonix_verified}
@@ -426,7 +444,8 @@ export default async function AdminServiciosWorkspacePage(props: {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>

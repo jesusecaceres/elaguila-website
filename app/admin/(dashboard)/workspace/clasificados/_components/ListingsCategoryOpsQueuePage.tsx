@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
 import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import {
   fetchListingsForAdminWorkspaceFiltered,
@@ -39,8 +40,7 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
   const qInput = firstParam(sp.q) ?? "";
   const statusFilter = (firstParam(sp.status) ?? "").trim().toLowerCase();
   const ownerFrag = (firstParam(sp.owner) ?? "").trim().toLowerCase();
-  const limitRaw = Number(firstParam(sp.limit) ?? "400");
-  const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 400;
+  const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
   const scope = parseAdminScope(sp);
 
   const surface = clasificadosQueueSurfaceForSlug(categorySlug);

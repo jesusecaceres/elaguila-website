@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 
+import {
+  buildAdminActionReturnUrl,
+  stripAdminQueueActionParams,
+} from "@/app/admin/_lib/adminQueueActionFlow";
 import { republishActionLabel } from "@/app/admin/_lib/classifiedsRepublishCapability";
 
 export type ClassifiedStaffOpsVariant =
@@ -27,6 +32,8 @@ type Props = {
   /** When set with `republishRow`, shows Move to top / Republish / No republish (listings + verticals). */
   republishCategory?: string;
   republishRow?: Record<string, unknown>;
+  leonixAdId?: string | null;
+  displayLabel?: string | null;
 };
 
 function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
@@ -49,6 +56,11 @@ function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
   }
 }
 
+function safeErrorMessage(j: { error?: string }, status: number): string {
+  const raw = (j.error ?? `HTTP ${status}`).trim();
+  return raw.slice(0, 200);
+}
+
 export function ClassifiedAdminRowActions({
   variant,
   rowId,
@@ -59,14 +71,24 @@ export function ClassifiedAdminRowActions({
   staffEditBoardHref,
   republishCategory,
   republishRow,
+  leonixAdId,
+  displayLabel,
 }: Props) {
+  const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+
+  const returnTo = useMemo(() => {
+    const sp = new URLSearchParams(searchParams?.toString() ?? "");
+    stripAdminQueueActionParams(sp);
+    const q = sp.toString();
+    return q ? `${pathname}?${q}` : pathname;
+  }, [pathname, searchParams]);
 
   const run = useCallback(
-    async (action: string) => {
+    async (action: string, proofAction?: string) => {
+      const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
       setBusy(true);
-      setMsg(null);
       try {
         const res = await fetch(patchUrl(variant, rowId), {
           method: "PATCH",
@@ -76,17 +98,49 @@ export function ClassifiedAdminRowActions({
         });
         const j = (await res.json()) as { ok?: boolean; error?: string };
         if (!res.ok || !j.ok) {
-          setMsg(j.error ?? `HTTP ${res.status}`);
+          const url = buildAdminActionReturnUrl({
+            returnTo,
+            action_status: "error",
+            action,
+            proof_action: proofAction,
+            target: rowId,
+            target_label: displayLabel,
+            target_ad_id: leonixAdId,
+            scroll_y: scrollY,
+            action_error: safeErrorMessage(j, res.status),
+          });
+          window.location.assign(url);
           return;
         }
-        window.location.reload();
+        const url = buildAdminActionReturnUrl({
+          returnTo,
+          action_status: "success",
+          action,
+          proof_action: proofAction,
+          target: rowId,
+          target_label: displayLabel,
+          target_ad_id: leonixAdId,
+          scroll_y: scrollY,
+        });
+        window.location.assign(url);
       } catch {
-        setMsg("network");
+        const url = buildAdminActionReturnUrl({
+          returnTo,
+          action_status: "error",
+          action,
+          proof_action: proofAction,
+          target: rowId,
+          target_label: displayLabel,
+          target_ad_id: leonixAdId,
+          scroll_y: scrollY,
+          action_error: "network",
+        });
+        window.location.assign(url);
       } finally {
         setBusy(false);
       }
     },
-    [rowId, variant],
+    [displayLabel, leonixAdId, returnTo, rowId, variant],
   );
 
   const runArchive = useCallback(() => {
@@ -119,7 +173,7 @@ export function ClassifiedAdminRowActions({
             title={republish.disabled ? republish.reason : undefined}
             onClick={() => {
               if (republish.disabled) return;
-              void run("republish");
+              void run("republish", "republish");
             }}
             className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-[10px] font-bold text-[#3D3428] disabled:cursor-not-allowed disabled:opacity-45"
           >
@@ -195,7 +249,6 @@ export function ClassifiedAdminRowActions({
           </button>
         ) : null}
       </div>
-      {msg ? <p className="text-[10px] font-semibold text-red-700">{msg}</p> : null}
     </div>
   );
 }

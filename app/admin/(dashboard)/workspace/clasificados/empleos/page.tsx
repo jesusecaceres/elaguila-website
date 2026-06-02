@@ -5,7 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAdminLang } from "@/app/admin/_components/AdminI18nProvider";
-import { adminCardBase, adminInputClass, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
+import {
+  adminQueueRowAnchorId,
+  adminQueueRowClass,
+  parseAdminActionResultParams,
+} from "@/app/admin/_lib/adminQueueActionFlow";
+import { adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
+import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
@@ -43,6 +49,7 @@ type Row = {
 
 export default function AdminEmpleosListingsPage() {
   const sp = useSearchParams();
+  const actionProof = useMemo(() => (sp ? parseAdminActionResultParams(sp) : null), [sp]);
   const adminLang = useAdminLang();
   const m = adminMessages(adminLang);
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
@@ -173,6 +180,9 @@ export default function AdminEmpleosListingsPage() {
 
       {!err && displayRows.length > 0 ? (
       <div className={`${adminCardBase} overflow-x-auto p-0`}>
+        <div className="p-4 pb-0">
+          <ClasificadosQueueActionChrome />
+        </div>
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
             <tr>
@@ -190,8 +200,10 @@ export default function AdminEmpleosListingsPage() {
             </tr>
           </thead>
           <tbody>
-            {displayRows.map((r) => (
-              <tr key={r.id} className={adminTableZebraRow}>
+            {displayRows.map((r) => {
+              const highlighted = actionProof?.target === r.id;
+              return (
+              <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
                 <td className="px-4 py-3">
                   <div className="max-w-[200px] truncate font-semibold">{r.title}</div>
                   <div className="text-xs text-[#7A7164]">{r.company_name}</div>
@@ -251,6 +263,8 @@ export default function AdminEmpleosListingsPage() {
                   <ClassifiedAdminRowActions
                     variant="empleos"
                     rowId={r.id}
+                    leonixAdId={r.leonix_ad_id}
+                    displayLabel={r.title}
                     publicLive={r.lifecycle_status === "published"}
                     promoted={Boolean(r.admin_promoted)}
                     verified={Boolean(r.leonix_verified)}
@@ -289,7 +303,8 @@ export default function AdminEmpleosListingsPage() {
                   </Link>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>

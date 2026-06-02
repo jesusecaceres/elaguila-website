@@ -1,13 +1,20 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { viajesRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
+import {
+  adminQueueRowAnchorId,
+  adminQueueRowClass,
+  parseAdminActionResultFromRecord,
+} from "@/app/admin/_lib/adminQueueActionFlow";
+import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
-import { adminCardBase, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
+import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import { fetchAllViajesStagedForAdmin } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import type { ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -31,6 +38,7 @@ export default async function AdminTravelViajesQueuePage(props: {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const sp = props.searchParams ? await props.searchParams : {};
+  const actionProof = parseAdminActionResultFromRecord(sp);
   const scope = parseAdminScope(sp);
   const basePath = "/admin/workspace/clasificados/travel";
   const queueHref = appendPreservedSearchParams(basePath, sp, null);
@@ -110,6 +118,9 @@ export default async function AdminTravelViajesQueuePage(props: {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
+          <Suspense fallback={null}>
+            <ClasificadosQueueActionChrome />
+          </Suspense>
           <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
             <thead className="bg-[#F3EBDD] text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
@@ -135,8 +146,9 @@ export default async function AdminTravelViajesQueuePage(props: {
                 const lifecycle = r.lifecycle_status;
                 const isPublic = r.is_public;
                 const publicLive = lifecycle === "approved" && isPublic;
+                const highlighted = actionProof?.target === r.id;
                 return (
-                  <tr key={r.id} className={adminTableZebraRow}>
+                  <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
                     <td className="px-3 py-2 font-mono text-[10px]">{lx ?? "—"}</td>
                     <td className="max-w-[200px] px-3 py-2 font-semibold">{r.title ?? "—"}</td>
                     <td className="px-3 py-2 font-mono text-[10px]">{r.slug}</td>
@@ -166,6 +178,8 @@ export default async function AdminTravelViajesQueuePage(props: {
                       <ClassifiedAdminRowActions
                         variant="viajes"
                         rowId={r.id}
+                        leonixAdId={lx}
+                        displayLabel={r.title}
                         publicLive={publicLive}
                         promoted={promoted}
                         verified={verified}

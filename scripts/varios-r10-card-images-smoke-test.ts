@@ -26,6 +26,9 @@ const auditPath = "app/lib/clasificados/en-venta/VARIOS_R10_PUBLISHED_CARD_IMAGE
 const audit = exists(auditPath) ? read(auditPath) : "";
 const cardModel = read("app/(site)/clasificados/en-venta/results/buildEnVentaResultsCardModel.ts");
 const normalizer = read("app/(site)/clasificados/en-venta/shared/utils/normalizeEnVentaCardMedia.ts");
+const normalizerLib = exists("app/lib/clasificados/en-venta/varios-display-normalizer.ts")
+  ? read("app/lib/clasificados/en-venta/varios-display-normalizer.ts")
+  : "";
 const resolver = read("app/(site)/clasificados/en-venta/shared/utils/resolveEnVentaListingImageUrls.ts");
 const select = read("app/(site)/clasificados/en-venta/lib/enVentaListingPublicSelect.ts");
 const publish = read("app/(site)/clasificados/en-venta/publish/enVentaPublishFromDraft.ts");
@@ -52,8 +55,16 @@ add(
 add("Hub passes row to card model", hub.includes("row,") || hub.includes("row }"), "EnVentaHubRecentListings.tsx");
 add("Results sections pass row to card model", sections.includes("row: p.row"), "EnVentaResultsListingSections.tsx");
 
-add("Primary photo via hero resolver", normalizer.includes("resolveEnVentaHeroImageUrl"), "normalizeEnVentaCardMedia.ts");
-add("Photo URLs from canonical resolver", normalizer.includes("resolveEnVentaListingImageUrls"), "normalizeEnVentaCardMedia.ts");
+add(
+  "Primary photo via hero resolver",
+  normalizer.includes("normalizeVariosDisplayMediaFromRow") || normalizerLib.includes("resolveEnVentaHeroImageUrl"),
+  "normalizeEnVentaCardMedia.ts + lib"
+);
+add(
+  "Photo URLs from canonical resolver",
+  normalizerLib.includes("resolveEnVentaListingImageUrls"),
+  "varios-display-normalizer.ts"
+);
 add("Appendix CRLF normalized", resolver.includes('replace(/\\r\\n/g, "\\n")'), "resolveEnVentaListingImageUrls.ts");
 add("Hero prefers photos over video", resolver.includes("imageUrls.find") || /first.*imageUrls/.test(resolver), "resolveEnVentaListingImageUrls.ts");
 

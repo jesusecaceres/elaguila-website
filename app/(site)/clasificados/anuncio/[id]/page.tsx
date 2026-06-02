@@ -424,6 +424,7 @@ export default function AnuncioDetallePage() {
   }, [params?.id]);
 
   const [fetchedListing, setFetchedListing] = useState<Listing | undefined>(undefined);
+  const [publishedSourceRow, setPublishedSourceRow] = useState<Record<string, unknown> | null>(null);
   const [remoteState, setRemoteState] = useState<"uninitialized" | "loading" | "ready" | "error">("uninitialized");
   const [remoteError, setRemoteError] = useState<string | null>(null);
   const [brPublishBanner, setBrPublishBanner] = useState<string | null>(null);
@@ -433,18 +434,21 @@ export default function AnuncioDetallePage() {
     setRemoteError(null);
     if (!id) {
       setFetchedListing(undefined);
+      setPublishedSourceRow(null);
       setRemoteState("ready");
       return;
     }
     const sample = (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
     if (sample) {
       setFetchedListing(undefined);
+      setPublishedSourceRow(null);
       setRemoteState("ready");
       return;
     }
     let cancelled = false;
     setRemoteState("loading");
     setFetchedListing(undefined);
+    setPublishedSourceRow(null);
     void (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
@@ -491,6 +495,7 @@ export default function AnuncioDetallePage() {
           setRemoteState("ready");
           return;
         }
+        setPublishedSourceRow(row);
         setFetchedListing(mapDbListingRowToListing(row));
         setRemoteState("ready");
       } catch (e: unknown) {
@@ -1263,6 +1268,7 @@ export default function AnuncioDetallePage() {
                 : "More in For Sale"
           }
           showListingReport
+          publishedSourceRow={listing.category === "en-venta" ? publishedSourceRow : null}
         />
       </>
     );

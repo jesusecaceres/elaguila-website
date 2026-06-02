@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { deleteListingAction, setListingPublishedAction } from "../../../actions";
-import { useState } from "react";
-import { adminTableWrap, adminTableZebraRow } from "../../../_components/adminTheme";
+import { Suspense, useMemo, useState } from "react";
+import { adminTableWrap } from "../../../_components/adminTheme";
+import {
+  adminQueueRowAnchorId,
+  adminQueueRowClass,
+  buildAdminActionReturnUrl,
+  parseAdminActionResultParams,
+  stripAdminQueueActionParams,
+} from "@/app/admin/_lib/adminQueueActionFlow";
+import { ClasificadosQueueActionChrome } from "./_components/ClasificadosQueueActionChrome";
 import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import {
   computeEnVentaVisibilityRenewalVm,
@@ -184,7 +192,8 @@ export default function AdminListingsTable({
   /** Restaurante-style staff PATCH actions (Leonix ops). */
   staffQueueMode?: boolean;
 }) {
-  const router = useRouter();
+  const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
   const t = useAdminT();
   const lang = useAdminLang();
   const locale = "en-US";
@@ -192,30 +201,85 @@ export default function AdminListingsTable({
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleDelete(id: string) {
+  const highlightTargetId = useMemo(() => {
+    if (!searchParams) return "";
+    const proof = parseAdminActionResultParams(searchParams);
+    return proof?.target ?? "";
+  }, [searchParams]);
+
+  const returnTo = useMemo(() => {
+    const sp = new URLSearchParams(searchParams?.toString() ?? "");
+    stripAdminQueueActionParams(sp);
+    const q = sp.toString();
+    return q ? `${pathname}?${q}` : pathname;
+  }, [pathname, searchParams]);
+
+  function rowProofMeta(row: Row) {
+    return {
+      leonixAdId: adminDisplayLeonixAdId(row),
+      displayLabel: row.title ?? row.id,
+    };
+  }
+
+  function redirectAfterStaffAction(
+    row: Row,
+    action: string,
+    status: "success" | "error",
+    actionError?: string,
+  ) {
+    const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    const meta = rowProofMeta(row);
+    const url = buildAdminActionReturnUrl({
+      returnTo,
+      action_status: status,
+      action,
+      target: row.id,
+      target_label: meta.displayLabel,
+      target_ad_id: meta.leonixAdId !== "—" ? meta.leonixAdId : undefined,
+      scroll_y: scrollY,
+      action_error: actionError,
+    });
+    window.location.assign(url);
+  }
+
+  async function handleDelete(row: Row) {
     if (!confirm(t("listings.confirmDelete"))) return;
-    setDeletingId(id);
+    setDeletingId(row.id);
     setError(null);
+    const scrollY = window.scrollY;
     try {
-      await deleteListingAction(id);
-      router.refresh();
+      await deleteListingAction(row.id);
+      const meta = rowProofMeta(row);
+      const url = buildAdminActionReturnUrl({
+        returnTo,
+        action_status: "success",
+        action: "delete",
+        target: row.id,
+        target_label: meta.displayLabel,
+        target_ad_id: meta.leonixAdId !== "—" ? meta.leonixAdId : undefined,
+        scroll_y: scrollY,
+      });
+      window.location.assign(url);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("listings.errDelete"));
+      const msg = e instanceof Error ? e.message : t("listings.errDelete");
+      redirectAfterStaffAction(row, "delete", "error", msg);
     } finally {
       setDeletingId(null);
     }
   }
 
-  async function handleSetPublished(id: string, published: boolean) {
+  async function handleSetPublished(row: Row, published: boolean) {
     const msg = published ? t("listings.confirmShow") : t("listings.confirmHide");
     if (!confirm(msg)) return;
-    setPublishBusyId(id);
+    setPublishBusyId(row.id);
     setError(null);
+    const action = published ? "show_public" : "hide_public";
     try {
-      await setListingPublishedAction(id, published);
-      router.refresh();
+      await setListingPublishedAction(row.id, published);
+      redirectAfterStaffAction(row, action, "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("listings.errPublish"));
+      const errMsg = e instanceof Error ? e.message : t("listings.errPublish");
+      redirectAfterStaffAction(row, action, "error", errMsg);
     } finally {
       setPublishBusyId(null);
     }
@@ -267,6 +331,9 @@ export default function AdminListingsTable({
 
   return (
     <div className={adminTableWrap}>
+      <Suspense fallback={null}>
+        <ClasificadosQueueActionChrome />
+      </Suspense>
       {error && <div className="border-b border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -325,8 +392,13 @@ export default function AdminListingsTable({
           <tbody>
             {listings.map((row) => {
               const displayLeonixAdId = adminDisplayLeonixAdId(row);
+              const highlighted = highlightTargetId === row.id;
               return (
-              <tr key={row.id} className={adminTableZebraRow}>
+              <tr
+                key={row.id}
+                id={adminQueueRowAnchorId(row.id)}
+                className={adminQueueRowClass(highlighted)}
+              >
                 <td className="p-3 font-mono text-xs text-[#3D3428]">{row.id.slice(0, 8)}…</td>
                 <td className="max-w-[10rem] truncate p-3 font-mono text-[10px] text-[#3D3428]" title={displayLeonixAdId}>
                   {displayLeonixAdId}
@@ -413,6 +485,8 @@ export default function AdminListingsTable({
                       <ClassifiedAdminRowActions
                         variant="listings"
                         rowId={row.id}
+                        leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+                        displayLabel={row.title}
                         publicLive={
                           row.is_published === true && (row.status ?? "active").toLowerCase() === "active"
                         }
@@ -437,7 +511,7 @@ export default function AdminListingsTable({
                           <button
                             type="button"
                             disabled={publishBusyId === row.id}
-                            onClick={() => void handleSetPublished(row.id, false)}
+                            onClick={() => void handleSetPublished(row, false)}
                             className="min-h-[44px] text-left text-sm font-semibold text-amber-900 hover:underline disabled:opacity-50 sm:min-h-0"
                             title={t("listings.hidePublicTitle")}
                           >
@@ -448,7 +522,7 @@ export default function AdminListingsTable({
                           <button
                             type="button"
                             disabled={publishBusyId === row.id}
-                            onClick={() => void handleSetPublished(row.id, true)}
+                            onClick={() => void handleSetPublished(row, true)}
                             className="min-h-[44px] text-left text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-50 sm:min-h-0"
                             title={t("listings.republishTitle")}
                           >
@@ -459,7 +533,7 @@ export default function AdminListingsTable({
                           <button
                             type="button"
                             disabled={deletingId === row.id}
-                            onClick={() => handleDelete(row.id)}
+                            onClick={() => void handleDelete(row)}
                             className="min-h-[44px] text-left text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
                             title={t("listings.deleteTitle")}
                             aria-label={t("listings.deleteAria")}

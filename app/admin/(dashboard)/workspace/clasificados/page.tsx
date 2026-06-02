@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
@@ -98,8 +99,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const lxBranch = spStr(sp.leonix_branch).trim();
   const lxOp = spStr(sp.leonix_operation).trim().toLowerCase();
   const lxProp = spStr(sp.leonix_propiedad).trim().toLowerCase();
-  const limitRaw = Number(spStr(sp.limit) || "300");
-  const queueLimit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 50), 500) : 300;
+  const queueLimit = normalizeAdminQueueLimit(spStr(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
 
   const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registry] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {

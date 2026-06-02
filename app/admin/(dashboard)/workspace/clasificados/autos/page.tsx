@@ -1,5 +1,14 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { autosRowMatchesAdminQueueSearch } from "@/app/admin/_lib/adminAdSearch";
+import {
+  ADMIN_QUEUE_DEFAULT_LIMIT,
+  adminQueueRowAnchorId,
+  adminQueueRowClass,
+  normalizeAdminQueueLimit,
+  parseAdminActionResultFromRecord,
+} from "@/app/admin/_lib/adminQueueActionFlow";
+import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { autosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
@@ -18,7 +27,7 @@ import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader"
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
-import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary, adminTableZebraRow } from "../../../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
@@ -81,12 +90,17 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   const locale = "en-US";
 
   const sp = (props.searchParams ? await props.searchParams : {}) as Record<string, string | string[] | undefined>;
+  const actionProof = parseAdminActionResultFromRecord(sp);
+  const queueLimit = normalizeAdminQueueLimit(
+    typeof sp.limit === "string" ? sp.limit : undefined,
+    ADMIN_QUEUE_DEFAULT_LIMIT,
+  );
   const scope = parseAdminScope(sp);
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
   const autosBase = "/admin/workspace/clasificados/autos";
   const queueNavHref = appendPreservedSearchParams(autosBase, sp, null);
   const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live");
-  let rows = await listAllAutosClassifiedsRowsForAdmin(400);
+  let rows = await listAllAutosClassifiedsRowsForAdmin(queueLimit);
   if (qRaw) {
     const profileSet = new Set<string>();
     if (isSupabaseAdminConfigured() && qRaw.length >= 2) {
@@ -192,6 +206,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         </div>
       ) : (
         <div className={`${adminCardBase} overflow-x-auto p-0`}>
+          <Suspense fallback={null}>
+            <ClasificadosQueueActionChrome />
+          </Suspense>
           <table className="min-w-full border-collapse text-left text-xs text-[#2C2416]">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
@@ -239,8 +256,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
                     : null;
+                const highlighted = actionProof?.target === r.id;
                 return (
-                  <tr key={r.id} className={adminTableZebraRow}>
+                  <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
                     <td className="max-w-[7rem] truncate px-3 py-2 font-mono text-[10px]" title={r.id}>
                       {r.id.slice(0, 8)}…
                     </td>
@@ -302,6 +320,8 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                         <ClassifiedAdminRowActions
                           variant="autos"
                           rowId={r.id}
+                          leonixAdId={r.leonix_ad_id}
+                          displayLabel={dash.title}
                           publicLive={r.status === "active"}
                           promoted={r.featured}
                           verified={Boolean(r.leonix_verified)}
