@@ -23,7 +23,7 @@ import {
   AUTOS_NEGOCIOS_EDITOR_SESSION_KEY,
   shouldResetAutosDraftForFreshEditorTab,
 } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
-import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
+import { useAutosDraftPersistEffects } from "@/app/lib/clasificados/autos/useAutosDraftPersistEffects";
 import {
   prefillDealerListingForInventoryAdd,
   resolveAutosInventoryAddContextForEditor,
@@ -274,15 +274,7 @@ export function useAutoDealerDraft() {
     });
   }, []);
 
-  /** Debounced autosave so preview / same-tab navigation never relies on in-memory state alone. */
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!isMeaningfulAutoDealerDraft(listing)) return;
-    const timer = window.setTimeout(() => {
-      void flushDraft();
-    }, 800);
-    return () => window.clearTimeout(timer);
-  }, [hydrated, listing, vehicleTitleOverride, flushDraft]);
+  useAutosDraftPersistEffects(hydrated, flushDraft, [listing, vehicleTitleOverride]);
 
   const inventoryAdd = inventoryAddFromLocation();
 

@@ -31,6 +31,7 @@ import {
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
@@ -473,7 +474,7 @@ export function AutosPrivadoApplication() {
                   inputMode="email"
                   autoComplete="email"
                   value={listing.dealerEmail ?? ""}
-                  onChange={(e) => setListingPatch({ dealerEmail: e.target.value.trim() ? e.target.value : undefined })}
+                  onChange={(e) => setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })}
                 />
               </div>
               <div className="sm:col-span-2 border-t border-[color:var(--lx-nav-border)]/80 pt-5">
@@ -502,12 +503,11 @@ export function AutosPrivadoApplication() {
                         inputMode="url"
                         placeholder={t.app.placeholders.https}
                         value={listing.dealerSocials?.[key] ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value.trim();
+                        onChange={(e) =>
                           setListingPatch({
-                            dealerSocials: { ...listing.dealerSocials, [key]: v || undefined },
-                          });
-                        }}
+                            dealerSocials: { ...listing.dealerSocials, [key]: autosDraftUrlValue(e.target.value) },
+                          })
+                        }
                       />
                     </div>
                   ))}

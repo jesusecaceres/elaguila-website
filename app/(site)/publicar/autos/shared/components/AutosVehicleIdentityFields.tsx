@@ -10,6 +10,7 @@ import {
   resolveMakeToCanonical,
   resolveModelToCanonical,
 } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
+import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -157,10 +158,7 @@ export function AutosVehicleIdentityFields({
             <input
               className={INPUT}
               value={make ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                onPatch({ make: v.trim() ? v : undefined });
-              }}
+              onChange={(e) => onPatch({ make: autosDraftTextValue(e.target.value) })}
               placeholder={lang === "es" ? "Escribe la marca" : "Enter make"}
               autoComplete="off"
             />
@@ -213,7 +211,7 @@ export function AutosVehicleIdentityFields({
           <input
             className={INPUT}
             value={model ?? ""}
-            onChange={(e) => onPatch({ model: e.target.value.trim() ? e.target.value : undefined })}
+            onChange={(e) => onPatch({ model: autosDraftTextValue(e.target.value) })}
             placeholder={lang === "es" ? "Escribe el modelo" : "Enter model"}
             autoComplete="off"
           />
@@ -253,7 +251,7 @@ export function AutosVehicleIdentityFields({
             <input
               className={INPUT}
               value={trim ?? ""}
-              onChange={(e) => onPatch({ trim: e.target.value.trim() ? e.target.value : undefined })}
+              onChange={(e) => onPatch({ trim: autosDraftTextValue(e.target.value) })}
               placeholder={trimPlaceholder}
               autoComplete="off"
             />

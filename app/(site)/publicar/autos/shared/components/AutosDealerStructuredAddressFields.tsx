@@ -1,6 +1,7 @@
 "use client";
 
 import type { DealerStructuredAddressPatch } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
+import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -38,7 +39,7 @@ export function AutosDealerStructuredAddressFields({
           <input
             className={INPUT}
             value={values.dealerStreetNumber ?? ""}
-            onChange={(e) => onPatch({ dealerStreetNumber: e.target.value.trim() || undefined })}
+            onChange={(e) => onPatch({ dealerStreetNumber: autosDraftTextValue(e.target.value) })}
             autoComplete="off"
           />
         </div>
@@ -47,7 +48,7 @@ export function AutosDealerStructuredAddressFields({
           <input
             className={INPUT}
             value={values.dealerStreetName ?? ""}
-            onChange={(e) => onPatch({ dealerStreetName: e.target.value.trim() || undefined })}
+            onChange={(e) => onPatch({ dealerStreetName: autosDraftTextValue(e.target.value) })}
             autoComplete="street-address"
           />
         </div>
@@ -56,7 +57,7 @@ export function AutosDealerStructuredAddressFields({
           <input
             className={INPUT}
             value={values.dealerUnitOrSuite ?? ""}
-            onChange={(e) => onPatch({ dealerUnitOrSuite: e.target.value.trim() || undefined })}
+            onChange={(e) => onPatch({ dealerUnitOrSuite: autosDraftTextValue(e.target.value) })}
             autoComplete="off"
           />
         </div>
@@ -65,7 +66,7 @@ export function AutosDealerStructuredAddressFields({
           <input
             className={INPUT}
             value={values.dealerAddressCity ?? ""}
-            onChange={(e) => onPatch({ dealerAddressCity: e.target.value.trim() || undefined })}
+            onChange={(e) => onPatch({ dealerAddressCity: autosDraftTextValue(e.target.value) })}
             autoComplete="address-level2"
           />
         </div>
@@ -74,7 +75,7 @@ export function AutosDealerStructuredAddressFields({
           <input
             className={INPUT}
             value={values.dealerAddressState ?? ""}
-            onChange={(e) => onPatch({ dealerAddressState: e.target.value.trim() || undefined })}
+            onChange={(e) => onPatch({ dealerAddressState: autosDraftTextValue(e.target.value) })}
             autoComplete="address-level1"
           />
         </div>
@@ -84,7 +85,10 @@ export function AutosDealerStructuredAddressFields({
             className={INPUT}
             inputMode="numeric"
             value={values.dealerAddressZip ?? ""}
-            onChange={(e) => onPatch({ dealerAddressZip: e.target.value.trim() || undefined })}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 5);
+              onPatch({ dealerAddressZip: digits.length > 0 ? digits : undefined });
+            }}
             autoComplete="postal-code"
           />
         </div>

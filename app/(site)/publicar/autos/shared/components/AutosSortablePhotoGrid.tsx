@@ -1,10 +1,12 @@
 "use client";
 
+import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -26,6 +28,10 @@ export type AutosSortablePhotoGridCopy = {
   principal: string;
   dragHandle: string;
 };
+
+function stopDragPointer(e: ReactPointerEvent) {
+  e.stopPropagation();
+}
 
 function SortablePhotoTile({
   img,
@@ -59,26 +65,26 @@ function SortablePhotoTile({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col gap-3 rounded-xl border bg-[#FFFCF7] p-2 shadow-sm sm:flex-row sm:items-stretch ${
+      className={`flex touch-manipulation cursor-grab flex-col gap-3 rounded-xl border bg-[#FFFCF7] p-2 shadow-sm active:cursor-grabbing sm:flex-row sm:items-stretch ${
         isDragging ? "border-[color:var(--lx-gold)] ring-2 ring-[color:var(--lx-gold-border)]/40" : "border-[color:var(--lx-nav-border)]"
       }`}
+      {...attributes}
+      {...listeners}
     >
       <div className="relative shrink-0 sm:w-28">
         <img
           src={img.url}
           alt=""
           loading="lazy"
-          className="aspect-[4/3] w-full rounded-lg object-cover sm:h-20 sm:aspect-auto"
+          draggable={false}
+          className="pointer-events-none aspect-[4/3] w-full rounded-lg object-cover sm:h-20 sm:aspect-auto"
         />
-        <button
-          type="button"
-          className="absolute left-1.5 top-1.5 inline-flex min-h-[36px] min-w-[36px] cursor-grab items-center justify-center rounded-lg border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]/95 text-[color:var(--lx-text-2)] shadow-sm active:cursor-grabbing"
-          aria-label={copy.dragHandle}
-          {...attributes}
-          {...listeners}
+        <span
+          className="pointer-events-none absolute left-1.5 top-1.5 inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]/95 text-[color:var(--lx-text-2)] shadow-sm"
+          aria-hidden
         >
-          <FiMoreVertical className="h-4 w-4" aria-hidden />
-        </button>
+          <FiMoreVertical className="h-4 w-4" />
+        </span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
         <div className="flex flex-wrap gap-2">
@@ -90,6 +96,7 @@ function SortablePhotoTile({
                 : "border-[color:var(--lx-nav-border)] text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
             }`}
             onClick={onSetPrimary}
+            onPointerDown={stopDragPointer}
           >
             <FiStar className="h-3 w-3" aria-hidden />
             {img.isPrimary ? copy.activeCover : copy.useAsCover}
@@ -97,8 +104,9 @@ function SortablePhotoTile({
           <button
             type="button"
             disabled={!canMoveLeft}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)] disabled:opacity-35"
+            className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)] disabled:opacity-35"
             onClick={() => onMove(-1)}
+            onPointerDown={stopDragPointer}
             aria-label={copy.before}
           >
             <FiChevronLeft className="h-4 w-4" />
@@ -106,24 +114,27 @@ function SortablePhotoTile({
           <button
             type="button"
             disabled={!canMoveRight}
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)] disabled:opacity-35"
+            className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] px-2 text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)] disabled:opacity-35"
             onClick={() => onMove(1)}
+            onPointerDown={stopDragPointer}
             aria-label={copy.after}
           >
             <FiChevronRight className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="ml-auto inline-flex min-h-[44px] items-center gap-0.5 rounded-full border border-red-200 px-3 py-1.5 text-[10px] font-bold text-red-800 hover:bg-red-50"
+            className="ml-auto inline-flex min-h-[44px] cursor-pointer items-center gap-0.5 rounded-full border border-red-200 px-3 py-1.5 text-[10px] font-bold text-red-800 hover:bg-red-50"
             onClick={onRemove}
+            onPointerDown={stopDragPointer}
           >
             <FiTrash2 className="h-3 w-3" aria-hidden />
             {copy.remove}
           </button>
         </div>
-        <p className="truncate text-[10px] text-[color:var(--lx-muted)]">
+        <p className="pointer-events-none truncate text-[10px] text-[color:var(--lx-muted)]">
           {img.sourceType === "file" ? copy.sourceFile : copy.sourceUrl} · {img.isPrimary ? copy.principal : copy.secondary}
         </p>
+        <p className="sr-only">{copy.dragHandle}</p>
       </div>
     </li>
   );
@@ -145,7 +156,8 @@ export function AutosSortablePhotoGrid({
   copy: AutosSortablePhotoGridCopy;
 }) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
     useSensor(KeyboardSensor),
   );
 

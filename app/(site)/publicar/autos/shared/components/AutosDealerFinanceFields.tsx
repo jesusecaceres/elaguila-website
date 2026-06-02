@@ -2,6 +2,7 @@
 
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
+import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 const INPUT =
@@ -29,7 +30,7 @@ export function AutosDealerFinanceFields({
           <input
             className={INPUT}
             value={listing.financeContactName ?? ""}
-            onChange={(e) => setListingPatch({ financeContactName: e.target.value.trim() || undefined })}
+            onChange={(e) => setListingPatch({ financeContactName: autosDraftTextValue(e.target.value) })}
           />
         </div>
         <div>
@@ -37,7 +38,7 @@ export function AutosDealerFinanceFields({
           <input
             className={INPUT}
             value={listing.financeContactTitle ?? ""}
-            onChange={(e) => setListingPatch({ financeContactTitle: e.target.value.trim() || undefined })}
+            onChange={(e) => setListingPatch({ financeContactTitle: autosDraftTextValue(e.target.value) })}
           />
         </div>
         <div>
@@ -71,7 +72,7 @@ export function AutosDealerFinanceFields({
             type="email"
             autoComplete="email"
             value={listing.financeContactEmail ?? ""}
-            onChange={(e) => setListingPatch({ financeContactEmail: e.target.value.trim() || undefined })}
+            onChange={(e) => setListingPatch({ financeContactEmail: autosDraftTextValue(e.target.value) })}
           />
         </div>
         <div>
@@ -80,7 +81,7 @@ export function AutosDealerFinanceFields({
             className={INPUT}
             placeholder={copy.app.placeholders.https}
             value={listing.financeApplicationUrl ?? ""}
-            onChange={(e) => setListingPatch({ financeApplicationUrl: e.target.value.trim() || undefined })}
+            onChange={(e) => setListingPatch({ financeApplicationUrl: autosDraftUrlValue(e.target.value) })}
           />
         </div>
         <div className="sm:col-span-2">
@@ -88,7 +89,7 @@ export function AutosDealerFinanceFields({
           <textarea
             className={`${INPUT} min-h-[80px]`}
             value={listing.financeNotes ?? ""}
-            onChange={(e) => setListingPatch({ financeNotes: e.target.value.trim() || undefined })}
+            onChange={(e) => setListingPatch({ financeNotes: autosDraftTextValue(e.target.value) })}
           />
         </div>
       </div>

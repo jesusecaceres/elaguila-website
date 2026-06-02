@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { getEngineOptionsForVehicle } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
+import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -52,8 +53,7 @@ export function AutosVehicleEngineField({
           className={INPUT}
           value={engine ?? ""}
           onChange={(e) => {
-            const v = e.target.value.trim();
-            onPatch({ engine: v || undefined, engineNormalized: undefined });
+            onPatch({ engine: autosDraftTextValue(e.target.value), engineNormalized: undefined });
           }}
           placeholder={labels.customPlaceholder}
           autoComplete="off"
@@ -99,8 +99,7 @@ export function AutosVehicleEngineField({
             className={`${INPUT} mt-2`}
             value={engine ?? ""}
             onChange={(e) => {
-              const v = e.target.value.trim();
-              onPatch({ engine: v || undefined, engineNormalized: undefined });
+              onPatch({ engine: autosDraftTextValue(e.target.value), engineNormalized: undefined });
             }}
             placeholder={labels.customPlaceholder}
             autoComplete="off"

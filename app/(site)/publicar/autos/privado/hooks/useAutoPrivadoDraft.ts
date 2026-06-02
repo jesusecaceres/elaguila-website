@@ -16,7 +16,11 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
-import { AUTOS_PRIVADO_EDITOR_SESSION_KEY } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import {
+  AUTOS_PRIVADO_EDITOR_SESSION_KEY,
+  shouldResetAutosDraftForFreshEditorTab,
+} from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
+import { useAutosDraftPersistEffects } from "@/app/lib/clasificados/autos/useAutosDraftPersistEffects";
 import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 
 /** Privado: canonical public title always follows structured year / make / model / trim. */
@@ -79,9 +83,17 @@ export function useAutoPrivadoDraft() {
         return;
       }
 
-      clearAutosDraftNamespaceHint("privado");
-      await clearAutosPrivadoDraft(ns);
-      emptyPrivado();
+      const freshTab = shouldResetAutosDraftForFreshEditorTab(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
+
+      if (freshTab) {
+        clearAutosDraftNamespaceHint("privado");
+        await clearAutosPrivadoDraft(ns);
+        emptyPrivado();
+        if (!cancelled) setHydrated(true);
+        return;
+      }
+
+      await hydrateFromNamespace(ns);
       if (!cancelled) setHydrated(true);
     };
 
@@ -145,6 +157,8 @@ export function useAutoPrivadoDraft() {
       listing: normalized,
     });
   }, []);
+
+  useAutosDraftPersistEffects(hydrated, flushDraft, [listing]);
 
   return {
     hydrated,

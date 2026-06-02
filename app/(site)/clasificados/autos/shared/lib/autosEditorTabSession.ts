@@ -1,7 +1,7 @@
 /**
  * Session-scoped editor tabs: `sessionStorage` is empty when a browser tab is new.
- * First mount of the Autos application in that tab treats persisted localStorage/IDB drafts
- * as a previous session and clears them so a full tab close → new tab starts clean.
+ * First mount in a **new tab** clears persisted localStorage/IDB drafts so a full tab close → new tab starts clean.
+ * **Page refresh (F5) keeps `sessionStorage`**, so drafts are restored on reload in the same tab.
  *
  * Limitation: opening the same application in two tabs can clear shared localStorage
  * when the second tab mounts (both share one draft namespace).

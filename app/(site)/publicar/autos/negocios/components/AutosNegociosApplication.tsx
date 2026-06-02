@@ -48,6 +48,7 @@ import {
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -276,7 +277,7 @@ export function AutosNegociosApplication() {
                   className={INPUT}
                   placeholder={t.app.placeholders.monthly}
                   value={listing.monthlyEstimate ?? ""}
-                  onChange={(e) => setListingPatch({ monthlyEstimate: e.target.value.trim() ? e.target.value : undefined })}
+                  onChange={(e) => setListingPatch({ monthlyEstimate: autosDraftTextValue(e.target.value) })}
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.monthlyOptional}</p>
               </div>
@@ -661,7 +662,7 @@ export function AutosNegociosApplication() {
                   className={INPUT}
                   placeholder={t.app.placeholders.https}
                   value={listing.dealerWebsite ?? ""}
-                  onChange={(e) => setListingPatch({ dealerWebsite: e.target.value.trim() || undefined })}
+                  onChange={(e) => setListingPatch({ dealerWebsite: autosDraftUrlValue(e.target.value) })}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -671,7 +672,7 @@ export function AutosNegociosApplication() {
                   placeholder={t.app.placeholders.https}
                   value={listing.dealerBookingUrl ?? ""}
                   onChange={(e) =>
-                    setListingPatch({ dealerBookingUrl: e.target.value.trim() ? e.target.value : undefined })
+                    setListingPatch({ dealerBookingUrl: autosDraftUrlValue(e.target.value) })
                   }
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.bookingUrl}</p>
@@ -717,7 +718,7 @@ export function AutosNegociosApplication() {
                     value={listing.dealerSocials?.[k] ?? ""}
                     onChange={(e) =>
                       setListingPatch({
-                        dealerSocials: { ...listing.dealerSocials, [k]: e.target.value.trim() || undefined },
+                        dealerSocials: { ...listing.dealerSocials, [k]: autosDraftUrlValue(e.target.value) },
                       })
                     }
                   />
@@ -732,7 +733,7 @@ export function AutosNegociosApplication() {
                   className={INPUT}
                   placeholder={t.app.placeholders.https}
                   value={listing.googleReviewsUrl ?? ""}
-                  onChange={(e) => setListingPatch({ googleReviewsUrl: e.target.value.trim() || undefined })}
+                  onChange={(e) => setListingPatch({ googleReviewsUrl: autosDraftUrlValue(e.target.value) })}
                 />
               </div>
               <div>
@@ -741,7 +742,7 @@ export function AutosNegociosApplication() {
                   className={INPUT}
                   placeholder={t.app.placeholders.https}
                   value={listing.yelpReviewsUrl ?? ""}
-                  onChange={(e) => setListingPatch({ yelpReviewsUrl: e.target.value.trim() || undefined })}
+                  onChange={(e) => setListingPatch({ yelpReviewsUrl: autosDraftUrlValue(e.target.value) })}
                 />
               </div>
             </div>
@@ -767,7 +768,7 @@ export function AutosNegociosApplication() {
                           const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
                           setListingPatch({
                             dealerCustomLinks: rows.map((r) =>
-                              r.id === row.id ? { ...r, label: e.target.value || undefined } : r,
+                              r.id === row.id ? { ...r, label: autosDraftTextValue(e.target.value) } : r,
                             ),
                           });
                         }}
@@ -783,7 +784,7 @@ export function AutosNegociosApplication() {
                           const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
                           setListingPatch({
                             dealerCustomLinks: rows.map((r) =>
-                              r.id === row.id ? { ...r, url: e.target.value.trim() || undefined } : r,
+                              r.id === row.id ? { ...r, url: autosDraftUrlValue(e.target.value) } : r,
                             ),
                           });
                         }}
