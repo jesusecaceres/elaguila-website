@@ -86,6 +86,7 @@ export function prefillDealerListingForInventoryAdd(parent: AutoDealerListing): 
     dealerPhoneOffice: parent.dealerPhoneOffice ?? parent.dealerPhone,
     dealerPhone: undefined,
     dealerPhoneMobile: parent.dealerPhoneMobile,
+    dealerSmsPhone: parent.dealerSmsPhone,
     dealerWhatsapp: parent.dealerWhatsapp,
     dealerEmail: parent.dealerEmail,
     dealerAddress: parent.dealerAddress,
@@ -99,6 +100,11 @@ export function prefillDealerListingForInventoryAdd(parent: AutoDealerListing): 
     dealerWebsite: parent.dealerWebsite,
     dealerBookingUrl: parent.dealerBookingUrl,
     dealerSocials: parent.dealerSocials ? { ...parent.dealerSocials } : {},
+    googleReviewsUrl: parent.googleReviewsUrl,
+    yelpReviewsUrl: parent.yelpReviewsUrl,
+    dealerCustomLinks: Array.isArray(parent.dealerCustomLinks)
+      ? parent.dealerCustomLinks.map((r, i) => ({ ...r, id: r.id ?? `prefill-link-${i}` }))
+      : [],
     financeContactName: parent.financeContactName,
     financeContactTitle: parent.financeContactTitle,
     financeContactPhone: parent.financeContactPhone,

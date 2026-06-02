@@ -14,3 +14,9 @@ export function resolveDealerOfficePhone(data: AutoDealerListing): string | unde
 export function resolveDealerBookingHref(data: AutoDealerListing): string | undefined {
   return safeExternalHref(data.dealerBookingUrl ?? undefined);
 }
+
+/** Dedicated SMS/text number — only `dealerSmsPhone` (intentional opt-in). */
+export function resolveDealerSmsPhone(data: AutoDealerListing): string | undefined {
+  const sms = data.dealerSmsPhone?.trim();
+  return sms || undefined;
+}

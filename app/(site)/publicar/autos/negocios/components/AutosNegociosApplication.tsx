@@ -5,7 +5,12 @@ import { useEffect, useMemo } from "react";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
-import type { AutoDealerListing, VehicleBadge } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import type {
+  AutoDealerListing,
+  DealerCustomLink,
+  VehicleBadge,
+} from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { normalizeDealerCustomLinks } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
 import { useAutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/useAutosNegociosLang";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { useAutoDealerDraft } from "../hooks/useAutoDealerDraft";
@@ -180,6 +185,9 @@ export function AutosNegociosApplication() {
           <section className={`${CARD} ${activeStep === 0 ? "" : "hidden"}`} aria-hidden={activeStep !== 0}>
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.main}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{t.app.sections.mainSub}</p>
+            <p className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/70 bg-[color:var(--lx-section)] px-4 py-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+              {inventoryAddMode ? t.app.dealer.inventoryAddHelper : t.app.dealer.inventoryMainHelper}
+            </p>
             <div className={`${GRID2} mt-5`}>
               <AutosVehicleIdentityFields
                 lang={lang}
@@ -634,6 +642,20 @@ export function AutosNegociosApplication() {
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.whatsapp}</p>
               </div>
               <div>
+                <label className={LABEL}>{t.app.dealer.smsPhone}</label>
+                <input
+                  className={`${INPUT} tabular-nums`}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={formatPhoneInputDisplay(listing.dealerSmsPhone ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerSmsPhone: v.trim() ? v : undefined });
+                  }}
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.smsPhoneHint}</p>
+              </div>
+              <div>
                 <label className={LABEL}>{t.app.labels.website}</label>
                 <input
                   className={INPUT}
@@ -678,9 +700,13 @@ export function AutosNegociosApplication() {
                 [
                   ["instagram", t.app.dealer.socialLabels.instagram],
                   ["facebook", t.app.dealer.socialLabels.facebook],
-                  ["youtube", t.app.dealer.socialLabels.youtube],
                   ["tiktok", t.app.dealer.socialLabels.tiktok],
-                  ["website", t.app.dealer.socialLabels.website],
+                  ["youtube", t.app.dealer.socialLabels.youtube],
+                  ["linkedin", t.app.dealer.socialLabels.linkedin],
+                  ["x", t.app.dealer.socialLabels.x],
+                  ["snapchat", t.app.dealer.socialLabels.snapchat],
+                  ["pinterest", t.app.dealer.socialLabels.pinterest],
+                  ["whatsappProfile", t.app.dealer.socialLabels.whatsappProfile],
                 ] as const
               ).map(([k, lab]) => (
                 <div key={k}>
@@ -698,6 +724,100 @@ export function AutosNegociosApplication() {
                 </div>
               ))}
             </div>
+
+            <div className={`${GRID2} mt-6`}>
+              <div>
+                <label className={LABEL}>{t.app.dealer.googleReviews}</label>
+                <input
+                  className={INPUT}
+                  placeholder={t.app.placeholders.https}
+                  value={listing.googleReviewsUrl ?? ""}
+                  onChange={(e) => setListingPatch({ googleReviewsUrl: e.target.value.trim() || undefined })}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>{t.app.dealer.yelpReviews}</label>
+                <input
+                  className={INPUT}
+                  placeholder={t.app.placeholders.https}
+                  value={listing.yelpReviewsUrl ?? ""}
+                  onChange={(e) => setListingPatch({ yelpReviewsUrl: e.target.value.trim() || undefined })}
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.reviewsHelper}</p>
+
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
+              {t.app.dealer.customLinksHeading}
+            </p>
+            <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.customLinksHelper}</p>
+            <div className="mt-4 space-y-3">
+              {normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3"
+                >
+                  <div className={`${GRID2}`}>
+                    <div>
+                      <label className={LABEL}>{t.app.dealer.customLinkTitle}</label>
+                      <input
+                        className={INPUT}
+                        value={row.label ?? ""}
+                        onChange={(e) => {
+                          const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
+                          setListingPatch({
+                            dealerCustomLinks: rows.map((r) =>
+                              r.id === row.id ? { ...r, label: e.target.value || undefined } : r,
+                            ),
+                          });
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className={LABEL}>{t.app.dealer.customLinkUrl}</label>
+                      <input
+                        className={INPUT}
+                        placeholder={t.app.placeholders.https}
+                        value={row.url ?? ""}
+                        onChange={(e) => {
+                          const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
+                          setListingPatch({
+                            dealerCustomLinks: rows.map((r) =>
+                              r.id === row.id ? { ...r, url: e.target.value.trim() || undefined } : r,
+                            ),
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-3 min-h-[44px] text-xs font-bold text-red-700 hover:underline"
+                    onClick={() => {
+                      const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).filter(
+                        (r) => r.id !== row.id,
+                      );
+                      setListingPatch({ dealerCustomLinks: rows });
+                    }}
+                  >
+                    {t.app.dealer.removeCustomLink}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).length >= 3}
+              className="mt-3 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => {
+                const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
+                if (rows.length >= 3) return;
+                const next: DealerCustomLink = { id: newHourRowId(), label: undefined, url: undefined };
+                setListingPatch({ dealerCustomLinks: [...rows, next] });
+              }}
+            >
+              {t.app.dealer.addCustomLink}
+            </button>
 
             <div className="mt-6 flex flex-wrap gap-2">
               <button

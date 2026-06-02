@@ -1,28 +1,29 @@
 "use client";
 
-import { FiCalendar, FiClock, FiGlobe, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
+import { useMemo, type ReactNode } from "react";
+import { FiCalendar, FiClock, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
-import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-icons/si";
-import type { AutoDealerListing, DealerSocialKey } from "../types/autoDealerListing";
+import { SiWhatsapp } from "react-icons/si";
+import type { AutoDealerListing } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import {
   filterDealerHoursForDisplay,
   formatDealerHoursTimeRange,
   formatTodaysDealerHoursLine,
 } from "../lib/dealerHoursDisplay";
-import { safeExternalHref } from "../lib/dealerDraftSanitize";
-import { resolveDealerBookingHref, resolveDealerOfficePhone } from "../lib/dealerContactResolve";
-import { whatsAppHrefFromDisplay } from "../lib/dealerWhatsappHref";
-import {
-  formatCityStateLabel,
-  hrefForUserWebsiteUrl,
-  phoneDigitsForTel,
-} from "./autoDealerFormatters";
-import { buildDealerDisplayAddress, buildDealerMapsHref } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
+import { formatCityStateLabel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
 import { DealerFinanceContact } from "./DealerFinanceContact";
+import { mapAutosDealerToBusinessHubContact } from "../lib/mapAutosDealerToBusinessHubContact";
+import {
+  AutosBusinessHubSocialBrandIcon,
+  autosBusinessHubSocialBrandStyle,
+} from "../lib/autosNegociosBusinessHubSocialBrand";
+import { AutosNegociosBusinessHubFauxMap } from "./AutosNegociosBusinessHubFauxMap";
+import { AutosNegociosHubReviewLinkButton } from "./AutosNegociosHubReviewLinkButton";
+import type { AutosNegociosBusinessHubSocialPlatform } from "../lib/autosNegociosBusinessHubContactTypes";
 
 const BTN_PRIMARY =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99] max-lg:min-h-[54px]";
@@ -33,28 +34,29 @@ const BTN_SECONDARY =
 const SECTION_HEAD =
   "text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-text)]";
 
-const SOCIAL_ORDER: DealerSocialKey[] = ["instagram", "facebook", "youtube", "tiktok", "website"];
-
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
-function SocialIcon({ kind }: { kind: DealerSocialKey }) {
-  const className = "h-[18px] w-[18px]";
-  switch (kind) {
-    case "instagram":
-      return <SiInstagram className={className} />;
-    case "facebook":
-      return <SiFacebook className={className} />;
-    case "youtube":
-      return <SiYoutube className={className} />;
-    case "tiktok":
-      return <SiTiktok className={className} />;
-    case "website":
-      return <FiGlobe className={className} />;
-    default:
-      return <FiGlobe className={className} />;
-  }
+function socialHeadline(platform: AutosNegociosBusinessHubSocialPlatform): string {
+  const map: Record<AutosNegociosBusinessHubSocialPlatform, string> = {
+    facebook: "Facebook",
+    instagram: "Instagram",
+    tiktok: "TikTok",
+    x: "X",
+    youtube: "YouTube",
+    linkedin: "LinkedIn",
+    snapchat: "Snapchat",
+    pinterest: "Pinterest",
+    whatsapp: "WhatsApp",
+  };
+  return map[platform];
+}
+
+function SectionBlock({ children, showTopBorder }: { children: ReactNode; showTopBorder: boolean }) {
+  return (
+    <div className={showTopBorder ? "mt-6 border-t border-[color:var(--lx-nav-border)] pt-6" : ""}>{children}</div>
+  );
 }
 
 /**
@@ -73,47 +75,99 @@ export function DealerBusinessStack({
   const { t, lang } = useAutosNegociosPreviewCopy();
   const sb = t.preview.sidebar;
   const d = t.preview.dealer;
-  const socialLabels = t.app.dealer.socialLabels;
+  const hub = useMemo(() => mapAutosDealerToBusinessHubContact(data, lang), [data, lang]);
 
   const showIdentity = hasDealerCard(data);
   const serviceArea = formatCityStateLabel(data.city, data.state);
-
-  const socials = SOCIAL_ORDER.filter((k) => {
-    const u = data.dealerSocials?.[k]?.trim();
-    return Boolean(u && safeExternalHref(u));
-  });
-
   const hours = filterDealerHoursForDisplay(data.dealerHours);
-
-  const officePhoneRaw = resolveDealerOfficePhone(data);
-  const phoneForTel = phoneDigitsForTel(officePhoneRaw);
-  const validTelForCta = phoneForTel.length >= 10;
-  const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
-  const showWhatsapp = Boolean(waHref);
-
-  const emailRaw = data.dealerEmail?.trim();
-  const emailHref = emailRaw ? `mailto:${encodeURIComponent(emailRaw)}` : undefined;
-  const showEmail = Boolean(emailHref);
-
-  const addressLine = buildDealerDisplayAddress(data);
-  const mapsHref = buildDealerMapsHref(data);
-
-  const initials = (data.dealerName ?? "NA").slice(0, 2).toUpperCase();
-
-  const webRaw = data.dealerWebsite?.trim();
-  const websiteClickHref = hrefForUserWebsiteUrl(data.dealerWebsite) ?? (webRaw ? safeExternalHref(data.dealerWebsite) : undefined);
-  const showWebsiteCta = Boolean(websiteClickHref);
-
-  const bookingHref = resolveDealerBookingHref(data);
-  const showSchedule = Boolean(bookingHref);
-  const showCallCta = validTelForCta;
-  const showContactGrid = showWhatsapp || showCallCta || showSchedule || showEmail;
-  const showSocialCluster = socials.length > 0;
   const showBuyerInventory = Boolean(buyerInventoryHref?.trim());
-
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
-
   const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
+
+  const c = hub.contact;
+  const showWhatsapp = Boolean(c.whatsappHref);
+  const showCall = Boolean(c.callTelHref);
+  const showSms = Boolean(c.smsHref);
+  const showSchedule = Boolean(c.bookingHref);
+  const showWebsite = Boolean(c.websiteHref);
+  const showEmail = Boolean(c.emailMailto);
+  const showContactGrid = showWhatsapp || showCall || showSms || showSchedule || showWebsite || showEmail;
+  const showSocial = hub.social.length > 0;
+  const showReviews = hub.reviews.length > 0;
+  const showMoreLinks = hub.moreLinks.length > 0;
+  const showLocation = Boolean(hub.location?.addressDisplay?.trim() || hub.location?.mapsHref);
+  const showFinance = Boolean(
+    data.financeContactName?.trim() ||
+      data.financeContactPhone?.trim() ||
+      data.financeContactWhatsapp?.trim() ||
+      data.financeContactEmail?.trim() ||
+      data.financeApplicationUrl?.trim() ||
+      data.financeNotes?.trim(),
+  );
+
+  let sectionBorder = false;
+  const nextSection = () => {
+    const had = sectionBorder;
+    sectionBorder = true;
+    return had;
+  };
+
+  const secondaryCtas: Array<{ key: string; node: ReactNode }> = [];
+  if (showCall && c.callTelHref) {
+    secondaryCtas.push({
+      key: "call",
+      node: (
+        <AutosSheetCtaLink href={c.callTelHref} className={BTN_SECONDARY}>
+          <FiPhone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          {sb.call}
+        </AutosSheetCtaLink>
+      ),
+    });
+  }
+  if (showSms && c.smsHref) {
+    secondaryCtas.push({
+      key: "sms",
+      node: (
+        <AutosSheetCtaLink href={c.smsHref} className={BTN_SECONDARY}>
+          <FiMessageSquare className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          {sb.textMessageCta}
+        </AutosSheetCtaLink>
+      ),
+    });
+  }
+  if (showSchedule && c.bookingHref) {
+    secondaryCtas.push({
+      key: "schedule",
+      node: (
+        <a href={c.bookingHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
+          <FiCalendar className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          <span className="text-center leading-tight">{sb.scheduleAppointment}</span>
+        </a>
+      ),
+    });
+  }
+  if (showWebsite && c.websiteHref) {
+    secondaryCtas.push({
+      key: "website",
+      node: (
+        <a href={c.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
+          <TbWorldWww className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          {sb.viewWebsite}
+        </a>
+      ),
+    });
+  }
+  if (showEmail && c.emailMailto) {
+    secondaryCtas.push({
+      key: "email",
+      node: (
+        <AutosSheetCtaLink href={c.emailMailto} lang={lang} className={BTN_SECONDARY}>
+          <FiMail className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+          {sb.emailSeller}
+        </AutosSheetCtaLink>
+      ),
+    });
+  }
 
   return (
     <div
@@ -130,7 +184,7 @@ export function DealerBusinessStack({
               )
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xl font-bold text-[color:var(--lx-muted)]">
-                {initials}
+                {(data.dealerName ?? "NA").slice(0, 2).toUpperCase()}
               </div>
             )}
           </div>
@@ -146,104 +200,103 @@ export function DealerBusinessStack({
       ) : null}
 
       {showContactGrid ? (
-        <div
-          className={`${showIdentity ? "mt-6 border-t border-[color:var(--lx-nav-border)] pt-6" : ""}`}
-        >
+        <SectionBlock showTopBorder={showIdentity ? true : nextSection()}>
           <p className={SECTION_HEAD}>{sb.contactHeading}</p>
           <div className="mt-4 flex flex-col gap-3">
-            {showWhatsapp && waHref ? (
-              <AutosSheetCtaLink href={waHref} className={BTN_PRIMARY}>
+            {showWhatsapp && c.whatsappHref ? (
+              <AutosSheetCtaLink href={c.whatsappHref} className={BTN_PRIMARY}>
                 <SiWhatsapp className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
                 {sb.whatsappCta}
               </AutosSheetCtaLink>
             ) : null}
-            {showCallCta || (showSchedule && bookingHref) ? (
+            {secondaryCtas.length > 0 ? (
               <div
-                className={`grid gap-3 ${showCallCta && showSchedule && bookingHref ? "grid-cols-2" : "grid-cols-1"}`}
+                className={`grid gap-3 ${
+                  secondaryCtas.length >= 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                }`}
               >
-                {showCallCta ? (
-                  <AutosSheetCtaLink href={`tel:${phoneForTel}`} className={BTN_SECONDARY}>
-                    <FiPhone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                    {sb.call}
-                  </AutosSheetCtaLink>
-                ) : null}
-                {showSchedule && bookingHref ? (
-                  <a href={bookingHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
-                    <FiCalendar className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                    <span className="text-center leading-tight">{sb.scheduleAppointment}</span>
-                  </a>
-                ) : null}
+                {secondaryCtas.map((item) => (
+                  <div key={item.key} className="min-w-0">
+                    {item.node}
+                  </div>
+                ))}
               </div>
             ) : null}
-            {showEmail && emailHref ? (
-              <AutosSheetCtaLink href={emailHref} lang={lang} className={BTN_SECONDARY}>
-                <FiMail className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                {sb.emailSeller}
-              </AutosSheetCtaLink>
-            ) : null}
-            {showWebsiteCta && websiteClickHref ? (
-              <a href={websiteClickHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
-                <TbWorldWww className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                {sb.viewWebsite}
-              </a>
-            ) : null}
           </div>
-        </div>
+        </SectionBlock>
       ) : null}
 
-      {nonEmpty(addressLine) || mapsHref ? (
-        <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
-          <p className={SECTION_HEAD}>{lang === "es" ? "Nuestra ubicación" : "Our location"}</p>
-          {nonEmpty(addressLine) ? (
-            <p className="mt-3 flex gap-2 text-left text-sm leading-relaxed text-[color:var(--lx-text-2)] lg:text-[15px]">
-              <FiMapPin className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-              <span className="font-medium text-[color:var(--lx-text)]">{addressLine}</span>
-            </p>
-          ) : null}
-          {mapsHref ? (
-            <a
-              href={mapsHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${BTN_SECONDARY} mt-4 gap-2 border-[color:var(--lx-gold-border)]`}
-            >
-              <FiMapPin className="h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-              {sb.openInMaps}
-            </a>
-          ) : null}
-        </div>
+      {showReviews ? (
+        <SectionBlock showTopBorder={nextSection()}>
+          <p className={SECTION_HEAD}>{sb.reviewsHeading}</p>
+          <div className="mt-4 flex flex-col gap-3">
+            {hub.reviews.map((link) => (
+              <AutosNegociosHubReviewLinkButton key={link.id} link={link} lang={lang} />
+            ))}
+          </div>
+        </SectionBlock>
       ) : null}
 
-      {showSocialCluster ? (
-        <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
+      {showMoreLinks ? (
+        <SectionBlock showTopBorder={nextSection()}>
+          <p className={SECTION_HEAD}>{sb.moreLinksHeading}</p>
+          <div
+            className={`mt-4 grid gap-3 ${
+              hub.moreLinks.length >= 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+            }`}
+          >
+            {hub.moreLinks.map((link, i) => (
+              <a
+                key={`${link.url}-${i}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${BTN_SECONDARY} min-h-[48px] px-4`}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </SectionBlock>
+      ) : null}
+
+      {showSocial ? (
+        <SectionBlock showTopBorder={nextSection()}>
           <p className={SECTION_HEAD}>{sb.followHeading}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-2.5 lg:justify-start">
-            {socials.map((key) => {
-              const raw = data.dealerSocials?.[key]?.trim();
-              if (!raw) return null;
-              const resolved = safeExternalHref(raw);
-              if (!resolved) return null;
+            {hub.social.map((item) => {
+              const brand = autosBusinessHubSocialBrandStyle(item.platform);
               return (
                 <a
-                  key={key}
-                  href={resolved}
+                  key={item.platform}
+                  href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
-                  aria-label={socialLabels[key]}
+                  title={socialHeadline(item.platform)}
+                  className="inline-flex h-12 min-w-[3rem] items-center justify-center rounded-full px-3 shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--lx-gold)]/50"
+                  style={{
+                    background: brand.background,
+                    color: brand.color,
+                    border: brand.border,
+                  }}
+                  aria-label={socialHeadline(item.platform)}
                 >
-                  <SocialIcon kind={key} />
+                  <AutosBusinessHubSocialBrandIcon platform={item.platform} />
                 </a>
               );
             })}
           </div>
-        </div>
+        </SectionBlock>
       ) : null}
 
-      <DealerFinanceContact data={data} />
+      {showFinance ? (
+        <SectionBlock showTopBorder={nextSection()}>
+          <DealerFinanceContact data={data} embedded />
+        </SectionBlock>
+      ) : null}
 
       {hours.length > 0 ? (
-        <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
+        <SectionBlock showTopBorder={nextSection()}>
           <p className={SECTION_HEAD}>{d.hoursHeading}</p>
           {todaysHoursLine ? (
             <p className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-nav-hover)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)]">
@@ -261,15 +314,41 @@ export function DealerBusinessStack({
               ))}
             </div>
           </div>
-        </div>
+        </SectionBlock>
+      ) : null}
+
+      {showLocation ? (
+        <SectionBlock showTopBorder={nextSection()}>
+          <p className={SECTION_HEAD}>{sb.locationHeading}</p>
+          <div className="mt-4 space-y-4">
+            <AutosNegociosBusinessHubFauxMap />
+            {nonEmpty(hub.location?.addressDisplay) ? (
+              <p className="flex gap-2 text-left text-sm leading-relaxed text-[color:var(--lx-text-2)] lg:text-[15px]">
+                <FiMapPin className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                <span className="font-medium text-[color:var(--lx-text)]">{hub.location?.addressDisplay}</span>
+              </p>
+            ) : null}
+            {hub.location?.mapsHref ? (
+              <a
+                href={hub.location.mapsHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${BTN_SECONDARY} gap-2 border-[color:var(--lx-gold-border)]`}
+              >
+                <FiMapPin className="h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
+                {sb.openInMaps}
+              </a>
+            ) : null}
+          </div>
+        </SectionBlock>
       ) : null}
 
       {showBuyerInventory && buyerInventoryHref ? (
-        <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
+        <SectionBlock showTopBorder={nextSection()}>
           <a href={buyerInventoryHref} className={BTN_PRIMARY}>
             {sb.viewDealerInventory}
           </a>
-        </div>
+        </SectionBlock>
       ) : null}
     </div>
   );

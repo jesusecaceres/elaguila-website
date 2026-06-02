@@ -14,9 +14,26 @@ export type VehicleBadge =
   | "low_miles"
   | "dealer_maintained";
 
-export type DealerSocialKey = "instagram" | "facebook" | "youtube" | "tiktok" | "website";
+export type DealerSocialKey =
+  | "instagram"
+  | "facebook"
+  | "youtube"
+  | "tiktok"
+  | "website"
+  | "linkedin"
+  | "x"
+  | "snapchat"
+  | "pinterest"
+  | "whatsappProfile";
 
 export type DealerSocials = Partial<Record<DealerSocialKey, string>>;
+
+/** Up to 3 dealership links with custom titles (Negocios Business Hub). */
+export type DealerCustomLink = {
+  id: string;
+  label?: string;
+  url?: string;
+};
 
 /** Structured business hours (form + preview). */
 export type DealerHoursEntry = {
@@ -150,6 +167,8 @@ export type AutoDealerListing = {
   dealerPhone?: string;
   /** Optional direct/mobile line — persisted only; not shown as a second call CTA on preview. */
   dealerPhoneMobile?: string;
+  /** Optional SMS/text line — shown only when valid; separate from call/WhatsApp. */
+  dealerSmsPhone?: string;
   /** Business WhatsApp (display as typed; normalized for wa.me links in preview). */
   dealerWhatsapp?: string | null;
   /** Private-seller / optional email for “Email” CTA (Privado); omitted in Negocios UI today. */
@@ -173,6 +192,12 @@ export type AutoDealerListing = {
   /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
   dealerBookingUrl?: string | null;
   dealerSocials?: DealerSocials;
+  /** Google Business / Maps review URL — no invented ratings. */
+  googleReviewsUrl?: string;
+  /** Yelp review URL — no invented ratings. */
+  yelpReviewsUrl?: string;
+  /** Up to 3 titled dealership links (financing, trade-in, service, etc.). */
+  dealerCustomLinks?: DealerCustomLink[];
   /** Optional financing / pre-approval contact (Negocios only). */
   financeContactName?: string;
   financeContactTitle?: string;

@@ -16,7 +16,14 @@ import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/Au
 const TILE =
   "flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 text-center text-xs font-bold text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]";
 
-export function DealerFinanceContact({ data }: { data: AutoDealerListing }) {
+export function DealerFinanceContact({
+  data,
+  embedded = false,
+}: {
+  data: AutoDealerListing;
+  /** When nested inside `DealerBusinessStack`, omit duplicate top divider. */
+  embedded?: boolean;
+}) {
   const { lang, t } = useAutosNegociosPreviewCopy();
   const f = t.preview.finance;
   if (!hasDealerFinanceContact(data)) return null;
@@ -30,7 +37,7 @@ export function DealerFinanceContact({ data }: { data: AutoDealerListing }) {
   const appHref = resolveFinanceApplicationHref(data);
 
   return (
-    <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
+    <div className={embedded ? "" : "mt-6 border-t border-[color:var(--lx-nav-border)] pt-6"}>
       <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-text)]">{f.heading}</p>
       <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{f.intro}</p>
       {name || title ? (

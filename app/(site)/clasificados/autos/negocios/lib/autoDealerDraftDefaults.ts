@@ -4,6 +4,7 @@ import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDeale
 import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { coerceEngineFromCatalog } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
+import { normalizeDealerCustomLinks } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
 
 /**
  * NorCal canonical city when possible; preserves in-progress typing.
@@ -95,6 +96,7 @@ export function createEmptyListing(): AutoDealerListing {
     dealerPhoneOffice: undefined,
     dealerPhone: undefined,
     dealerPhoneMobile: undefined,
+    dealerSmsPhone: undefined,
     dealerWhatsapp: undefined,
     dealerEmail: undefined,
     privadoSiteMessageEnabled: undefined,
@@ -110,6 +112,9 @@ export function createEmptyListing(): AutoDealerListing {
     dealerWebsite: undefined,
     dealerBookingUrl: undefined,
     dealerSocials: {},
+    googleReviewsUrl: undefined,
+    yelpReviewsUrl: undefined,
+    dealerCustomLinks: [],
     listingAnalytics: undefined,
     relatedDealerListings: [],
   };
@@ -163,6 +168,9 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     mediaImages: mediaImages ?? [],
     dealerHours,
     dealerSocials: raw.dealerSocials && typeof raw.dealerSocials === "object" ? raw.dealerSocials : base.dealerSocials,
+    googleReviewsUrl: raw.googleReviewsUrl?.trim() || undefined,
+    yelpReviewsUrl: raw.yelpReviewsUrl?.trim() || undefined,
+    dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks),
     relatedDealerListings: Array.isArray(raw.relatedDealerListings) ? raw.relatedDealerListings : base.relatedDealerListings,
   };
 

@@ -89,7 +89,11 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
     nonEmpty(buildDealerDisplayAddress(data)) ||
     hasHours ||
     nonEmpty(data.dealerWebsite ?? undefined) ||
-    Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u)))
+    Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u))) ||
+    nonEmpty(data.dealerSmsPhone) ||
+    nonEmpty(data.googleReviewsUrl) ||
+    nonEmpty(data.yelpReviewsUrl) ||
+    (data.dealerCustomLinks ?? []).some((r) => nonEmpty(r.url) && Boolean(safeExternalHref(r.url)))
   );
 }
 

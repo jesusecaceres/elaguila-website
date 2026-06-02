@@ -55,7 +55,31 @@ export type AutosNegociosCopy = {
       closed: string;
       remove: string;
       newDayPlaceholder: string;
-      socialLabels: { instagram: string; facebook: string; youtube: string; tiktok: string; website: string };
+      socialLabels: {
+        instagram: string;
+        facebook: string;
+        youtube: string;
+        tiktok: string;
+        linkedin: string;
+        x: string;
+        snapchat: string;
+        pinterest: string;
+        whatsappProfile: string;
+        website: string;
+      };
+      smsPhone: string;
+      smsPhoneHint: string;
+      googleReviews: string;
+      yelpReviews: string;
+      reviewsHelper: string;
+      customLinksHeading: string;
+      customLinkTitle: string;
+      customLinkUrl: string;
+      customLinksHelper: string;
+      addCustomLink: string;
+      removeCustomLink: string;
+      inventoryMainHelper: string;
+      inventoryAddHelper: string;
     };
     engine: {
       customHint: string;
@@ -172,6 +196,10 @@ export type AutosNegociosCopy = {
       contactHeading: string;
       followHeading: string;
       viewDealerInventory: string;
+      textMessageCta: string;
+      reviewsHeading: string;
+      moreLinksHeading: string;
+      locationHeading: string;
     };
     specs: { title: string; subtitle: string; rows: Record<string, string> };
     highlights: { title: string; subtitle: string };
@@ -354,8 +382,31 @@ const ES: AutosNegociosCopy = {
         facebook: "Facebook",
         youtube: "YouTube",
         tiktok: "TikTok",
+        linkedin: "LinkedIn",
+        x: "X",
+        snapchat: "Snapchat",
+        pinterest: "Pinterest",
+        whatsappProfile: "Perfil de WhatsApp",
         website: "Sitio / globo",
       },
+      smsPhone: "Número para mensajes de texto",
+      smsPhoneHint:
+        "Opcional. Solo se mostrará si deseas recibir mensajes de texto de compradores.",
+      googleReviews: "Opiniones en Google",
+      yelpReviews: "Opiniones en Yelp",
+      reviewsHelper:
+        "Agrega enlaces reales de reseñas. No mostraremos calificaciones inventadas.",
+      customLinksHeading: "Encuentra más sobre nosotros",
+      customLinkTitle: "Título del enlace",
+      customLinkUrl: "URL",
+      customLinksHelper:
+        "Agrega hasta 3 enlaces importantes para tu dealer, como financiamiento, trade-in, promociones, garantías o servicio.",
+      addCustomLink: "Añadir enlace",
+      removeCustomLink: "Eliminar",
+      inventoryMainHelper:
+        "Este será el vehículo principal de tu inventario. Será la ficha principal del dealer y podrá mostrar otros vehículos activos del mismo inventario.",
+      inventoryAddHelper:
+        "Estás agregando un vehículo adicional al inventario. Este vehículo tendrá su propia ficha, su propio Leonix Ad ID y aparecerá en búsqueda/resultados. También se mostrará como parte del inventario del dealer.",
     },
     engine: {
       customHint: "Si no ves el motor, escríbelo manualmente.",
@@ -481,6 +532,10 @@ const ES: AutosNegociosCopy = {
       contactHeading: "Contáctanos",
       followHeading: "Síguenos",
       viewDealerInventory: "Ver inventario del dealer",
+      textMessageCta: "Enviar texto",
+      reviewsHeading: "Reseñas del dealer",
+      moreLinksHeading: "Encuentra más sobre nosotros",
+      locationHeading: "Nuestra ubicación",
     },
     specs: {
       title: "Especificaciones",
@@ -730,8 +785,29 @@ const EN: AutosNegociosCopy = {
         facebook: "Facebook",
         youtube: "YouTube",
         tiktok: "TikTok",
+        linkedin: "LinkedIn",
+        x: "X",
+        snapchat: "Snapchat",
+        pinterest: "Pinterest",
+        whatsappProfile: "WhatsApp profile",
         website: "Website / link",
       },
+      smsPhone: "Text message number",
+      smsPhoneHint: "Optional. Shown only if you want buyers to text you.",
+      googleReviews: "Google Reviews",
+      yelpReviews: "Yelp Reviews",
+      reviewsHelper: "Add real review links only. We will not show invented ratings.",
+      customLinksHeading: "Find more about us",
+      customLinkTitle: "Link title",
+      customLinkUrl: "URL",
+      customLinksHelper:
+        "Add up to 3 important dealership links, such as financing, trade-in, specials, warranties, or service.",
+      addCustomLink: "Add link",
+      removeCustomLink: "Remove",
+      inventoryMainHelper:
+        "This will be the main vehicle for your inventory. It becomes the dealer’s main listing and can show other active vehicles from the same inventory.",
+      inventoryAddHelper:
+        "You are adding an additional inventory vehicle. This vehicle gets its own listing, its own Leonix Ad ID, and appears in search/results. It will also show as part of the dealer inventory.",
     },
     engine: {
       customHint: "If you do not see the engine, enter it manually.",
@@ -850,10 +926,14 @@ const EN: AutosNegociosCopy = {
       emailSeller: "Email",
       scheduleAppointment: "Schedule test drive",
       viewWebsite: "Visit website",
-      openInMaps: "Open in map",
+      openInMaps: "Open in maps",
       contactHeading: "Contact us",
       followHeading: "Follow us",
       viewDealerInventory: "View dealer inventory",
+      textMessageCta: "Text dealer",
+      reviewsHeading: "Dealer reviews",
+      moreLinksHeading: "Find more about us",
+      locationHeading: "Our location",
     },
     specs: {
       title: "Specifications",
