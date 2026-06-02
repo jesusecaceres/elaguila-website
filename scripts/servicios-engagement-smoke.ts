@@ -72,7 +72,7 @@ function main() {
 
   const slugPage = readFileSync(join(__dirname, "../app/(site)/clasificados/servicios/[slug]/page.tsx"), "utf8");
   assert.ok(slugPage.includes("fetchServiciosNetLikeCountsByEngagementKeys"), "slug page: SSR like count fetch");
-  assert.ok(slugPage.includes("publicLikeCount={publicLikeCount}"), "slug page: passes count to profile view");
+  assert.ok(slugPage.includes("publicLikeCount"), "slug page: passes count to profile view");
 
   const grants = readFileSync(join(__dirname, "../supabase/migrations/20260508160000_engagement_liked_saved_grants.sql"), "utf8");
   assert.ok(

@@ -401,7 +401,8 @@ export function ServiciosHorizontalResultCard({
       ? Math.floor(row.public_like_net_count)
       : 0;
   const likeCueHasCount = likeBadgeCount > 0;
-  const showSocialProofRow = Boolean((ratingValue != null && ratingValue > 0) || likeCueHasCount);
+  const showLikeZeroCue = !likeCueHasCount;
+  const showSocialProofRow = Boolean((ratingValue != null && ratingValue > 0) || likeCueHasCount || showLikeZeroCue);
 
   const hoursLine = profile.contact?.hours?.todayHoursLine?.trim() || "";
   const openLbl = profile.contact?.hours?.openNowLabel?.trim() || "";
@@ -516,6 +517,13 @@ export function ServiciosHorizontalResultCard({
                         ? `${likeBadgeCount} ${likeBadgeCount === 1 ? "like" : "likes"}`
                         : `${likeBadgeCount} me gusta`}
                     </span>
+                  </span>
+                ) : showLikeZeroCue ? (
+                  <span
+                    className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[#8a7a72] md:text-[12px]"
+                    data-servicios-like-badge="1"
+                  >
+                    {lang === "en" ? "♡ Like" : "♡ Me gusta"}
                   </span>
                 ) : null}
               </div>

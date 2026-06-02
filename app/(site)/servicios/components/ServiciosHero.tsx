@@ -30,9 +30,12 @@ function buildHeroMetadataLine(profile: ServiciosProfileResolved): string | null
 export function ServiciosHero({
   profile,
   lang,
+  publicLikeCount,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** SSR net like count for social proof (live profiles only). */
+  publicLikeCount?: number;
 }) {
   const { identity, hero } = profile;
   const about = profile.about;
@@ -42,6 +45,8 @@ export function ServiciosHero({
     .map((s) => cleanProfessionalChipLabel(s.title))
     .filter((c) => c && !isWeakProfessionalChipLabel(c))
     .slice(0, 3);
+  const likeCueN =
+    typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
 
   return (
     <section className="relative w-full rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
@@ -158,6 +163,22 @@ export function ServiciosHero({
                 {hoursPill.text}
               </span>
             ) : null}
+
+            <p
+              className="text-[11px] font-semibold text-white/90 sm:text-xs"
+              data-servicios-hero-like-cue="1"
+            >
+              {likeCueN > 0 ? (
+                <>
+                  <span aria-hidden>❤️</span>{" "}
+                  {lang === "en"
+                    ? `${likeCueN} ${likeCueN === 1 ? "like" : "likes"}`
+                    : `${likeCueN} me gusta`}
+                </>
+              ) : (
+                <span>{lang === "en" ? "♡ Like" : "♡ Me gusta"}</span>
+              )}
+            </p>
           </div>
         </div>
       </div>

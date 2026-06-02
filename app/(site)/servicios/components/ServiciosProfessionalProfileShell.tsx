@@ -182,7 +182,13 @@ export function ServiciosProfessionalProfileShell({
       className="min-h-screen overflow-x-hidden pb-[5.5rem] sm:pb-[5rem] lg:pb-16"
       style={{ backgroundColor: SV.bg }}
     >
-      {analyticsListingSlug ? <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} /> : null}
+      {analyticsListingSlug ? (
+        <ServiciosProfileViewAnalytics
+          listingSlug={analyticsListingSlug}
+          listingEngagementId={engagementListingId}
+          engagementOwnerUserId={engagementOwnerUserId}
+        />
+      ) : null}
       <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
 
       <main className={`${LX_PRO_MAIN_MAX} px-3 py-4 sm:px-6 sm:py-6 lg:px-8`} style={{ backgroundColor: SV.bg }}>
@@ -376,13 +382,17 @@ export function ServiciosProfessionalProfileShell({
                     listingTemplate={template}
                     listingSlug={analyticsListingSlug}
                     listingShareUrl={listingShareUrl}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                    persistListingEngagement={persistListingEngagement}
+                    publicLikeCount={publicLikeCount}
                     directContactFasterResponseHint={directContactFasterResponseHint}
                     showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
                   />
                 </div>
 
                 <div className="lg:hidden">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
+                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
                 </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
@@ -402,12 +412,16 @@ export function ServiciosProfessionalProfileShell({
                     listingTemplate={template}
                     listingSlug={analyticsListingSlug}
                     listingShareUrl={listingShareUrl}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                    persistListingEngagement={persistListingEngagement}
+                    publicLikeCount={publicLikeCount}
                     directContactFasterResponseHint={directContactFasterResponseHint}
                     showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
                   />
                 </div>
                 <div className="mt-5 lg:mt-6">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
+                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
                 </div>
               </aside>
             </div>
@@ -416,6 +430,17 @@ export function ServiciosProfessionalProfileShell({
               <p className="mx-auto mt-8 max-w-3xl border-t border-black/[0.06] pt-4 text-center text-[11px] leading-relaxed text-[#7A7164]">
                 {lang === "en" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdIdFooter}
               </p>
+            ) : null}
+            {serviciosDiscoveryResultsHref?.trim() ? (
+              <div className="mx-auto mt-4 flex max-w-3xl justify-center pb-2">
+                <Link
+                  href={serviciosDiscoveryResultsHref.trim()}
+                  className="text-sm font-bold text-[#7A1E2C] underline-offset-4 hover:underline"
+                  data-servicios-results-cta="1"
+                >
+                  {lang === "en" ? "View Servicios results" : "Ver resultados de Servicios"}
+                </Link>
+              </div>
             ) : null}
           </div>
               );

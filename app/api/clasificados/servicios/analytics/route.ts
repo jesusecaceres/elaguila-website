@@ -12,6 +12,8 @@ const ALLOWED = new Set([
   "cta_email_click",
   "cta_website_click",
   "cta_maps_click",
+  "cta_quote_sms_click",
+  "cta_review_click",
   "profile_view",
   "search_results_view",
   "filter_change",

@@ -89,7 +89,13 @@ export function ServiciosProfileView({
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
-      {analyticsListingSlug ? <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} /> : null}
+      {analyticsListingSlug ? (
+        <ServiciosProfileViewAnalytics
+          listingSlug={analyticsListingSlug}
+          listingEngagementId={engagementListingId}
+          engagementOwnerUserId={engagementOwnerUserId}
+        />
+      ) : null}
       {showTopBar ? (
         <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
       ) : null}
@@ -111,7 +117,7 @@ export function ServiciosProfileView({
           {(displayProfile, translateControl) => (
             <>
               {hasHeroIdentityResolved(profile) ? (
-                <ServiciosHero profile={displayProfile} lang={lang} />
+                <ServiciosHero profile={displayProfile} lang={lang} publicLikeCount={publicLikeCount} />
               ) : null}
 
               {hasQuickFactsResolved(profile) ? (
@@ -171,7 +177,7 @@ export function ServiciosProfileView({
                   </div>
 
                   <div className="order-5 lg:hidden">
-                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
+                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
                   </div>
 
                   {hasCredentialsResolved(profile) ? (
@@ -247,7 +253,7 @@ export function ServiciosProfileView({
               showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
             />
             <div className="mt-5 lg:mt-6">
-              <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone />
+              <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
             </div>
           </aside>
         </div>
@@ -259,6 +265,17 @@ export function ServiciosProfileView({
           <p className="mx-auto mt-8 max-w-3xl border-t border-black/[0.06] pt-4 text-center text-[11px] leading-relaxed text-[#7A7164]">
             {lang === "en" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdIdFooter}
           </p>
+        ) : null}
+        {serviciosDiscoveryResultsHref?.trim() ? (
+          <div className="mx-auto mt-4 flex max-w-3xl justify-center">
+            <Link
+              href={serviciosDiscoveryResultsHref.trim()}
+              className={LX_LINK_ACCENT}
+              data-servicios-results-cta="1"
+            >
+              {lang === "en" ? "View Servicios results" : "Ver resultados de Servicios"}
+            </Link>
+          </div>
         ) : null}
       </main>
     </div>

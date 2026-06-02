@@ -1,5 +1,6 @@
-import type { CtaContactShareExtras, CtaSheetIntent } from "@/app/components/cta/types";
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
+import type { CtaContactShareExtras, CtaSheetIntent } from "@/app/components/cta/types";
+import { trackCtaClick } from "@/app/lib/clasificadosAnalytics";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { serviciosUniversalQuoteMessage, buildQuoteSmsHref } from "./serviciosContactActions";
 import { extractServiciosWhatsAppDigits, resolveServiciosProfileDirectWhatsAppHref } from "./serviciosWhatsAppHref";
@@ -17,6 +18,29 @@ export function trackServiciosListingCta(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ listingSlug: slug, eventType, meta: meta ?? {} }),
   }).catch(() => {});
+
+  const listingId = String(meta?.engagementId ?? slug).trim() || slug;
+  const ownerUserId = typeof meta?.ownerUserId === "string" ? meta.ownerUserId : undefined;
+  const ctaMap: Record<string, "phone" | "whatsapp" | "website" | "directions" | "general"> = {
+    cta_call_click: "phone",
+    cta_whatsapp_click: "whatsapp",
+    cta_email_click: "general",
+    cta_website_click: "website",
+    cta_maps_click: "directions",
+    cta_quote_sms_click: "general",
+    cta_review_click: "website",
+    cta_primary_click: "general",
+    cta_secondary_click: "general",
+  };
+  const ctaType = ctaMap[eventType];
+  if (ctaType) {
+    void trackCtaClick(listingId, ctaType, {
+      category: "servicios",
+      ownerUserId,
+      eventSource: "detail",
+      metadata: { serviciosEventType: eventType, ...meta },
+    });
+  }
 }
 
 export function extractWaMeDigitsFromHref(href: string): string {

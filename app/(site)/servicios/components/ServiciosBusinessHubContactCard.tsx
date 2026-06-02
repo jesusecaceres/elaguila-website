@@ -276,7 +276,7 @@ export function ServiciosBusinessHubContactCard({
   };
 
   const openReviewLink = (link: ServiciosBusinessHubReviewLink) => {
-    trackServiciosListingCta(listingSlug, "cta_website_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_review_click", { source: "business_hub", reviewId: link.id });
     window.open(link.url, "_blank", "noopener,noreferrer");
   };
 

@@ -8,6 +8,7 @@ import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
 import { SV } from "./serviciosDesignTokens";
 import { LX, LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
 import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
+import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
 type ResourceKind = "image" | "pdf" | "link";
@@ -84,6 +85,7 @@ function PromoCtaButton({
   lang,
   premiumLeonixTone,
   onImageOpen,
+  listingSlug,
 }: {
   kind: ResourceKind;
   href: string;
@@ -92,6 +94,7 @@ function PromoCtaButton({
   lang: ServiciosLang;
   premiumLeonixTone?: boolean;
   onImageOpen: (src: string) => void;
+  listingSlug?: string;
 }) {
   const premium = Boolean(premiumLeonixTone);
   const label = promoActionLabel(kind, variant, lang, L, premium);
@@ -104,16 +107,38 @@ function PromoCtaButton({
       : "inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#C4A574]/45 bg-[#FFFAF0]/90 px-3 py-2 text-xs font-semibold text-[#3D2C12] transition hover:border-[#9A7329]/55 hover:bg-white";
   const primaryStyle = premium && variant === "primary" ? { backgroundColor: LX.burgundy } : undefined;
 
+  const trackPromo = () => {
+    if (!listingSlug) return;
+    const eventType =
+      kind === "pdf" ? "cta_secondary_click" : variant === "primary" ? "cta_primary_click" : "cta_secondary_click";
+    trackServiciosListingCta(listingSlug, eventType, { source: "promo_card", promoKind: kind });
+  };
+
   if (kind === "image") {
     return (
-      <button type="button" className={base} style={primaryStyle} onClick={() => onImageOpen(href)}>
+      <button
+        type="button"
+        className={base}
+        style={primaryStyle}
+        onClick={() => {
+          trackPromo();
+          onImageOpen(href);
+        }}
+      >
         {label}
       </button>
     );
   }
 
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={base} style={primaryStyle}>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={base}
+      style={primaryStyle}
+      onClick={() => trackPromo()}
+    >
       {label}
     </a>
   );
@@ -125,12 +150,14 @@ function PromoInnerCard({
   compact,
   premiumLeonixTone,
   onImageOpen,
+  listingSlug,
 }: {
   promo: PromoRow;
   lang: ServiciosLang;
   compact?: boolean;
   premiumLeonixTone?: boolean;
   onImageOpen: (src: string) => void;
+  listingSlug?: string;
 }) {
   const L = getServiciosProfileLabels(lang);
   const hasImage = Boolean(promo.assetImageHrefSafe);
@@ -258,6 +285,7 @@ function PromoInnerCard({
                   lang={lang}
                   premiumLeonixTone={premiumLeonixTone}
                   onImageOpen={onImageOpen}
+                  listingSlug={listingSlug}
                 />
               ) : null}
               {secondary.map((s) => (
@@ -270,6 +298,7 @@ function PromoInnerCard({
                   lang={lang}
                   premiumLeonixTone={premiumLeonixTone}
                   onImageOpen={onImageOpen}
+                  listingSlug={listingSlug}
                 />
               ))}
             </div>
@@ -284,10 +313,12 @@ export function ServiciosPromocionesCard({
   profile,
   lang,
   premiumLeonixTone = false,
+  listingSlug,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   premiumLeonixTone?: boolean;
+  listingSlug?: string;
 }) {
   const copy = getServiciosPromocionesSectionCopy(lang);
   const L = getServiciosProfileLabels(lang);
@@ -340,6 +371,7 @@ export function ServiciosPromocionesCard({
                 compact={!premiumLeonixTone}
                 premiumLeonixTone={premiumLeonixTone}
                 onImageOpen={openLightbox}
+                listingSlug={listingSlug}
               />
             </div>
           ))}

@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { fetchOwnerAnalyticsTotals, type OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -65,6 +66,14 @@ export default function DashboardServiciosPage() {
             colManage: "Visibilidad",
             devHint:
               "Las filas «Leonix» vienen de tu publicación autenticada. «Archivo dev» solo aparece en desarrollo con publicación dev activa.",
+            engagementTitle: "Resumen de interacción (Servicios)",
+            engagementViews: "Vistas de perfil",
+            engagementLikes: "Me gusta",
+            engagementSaves: "Guardados",
+            engagementShares: "Compartidos",
+            engagementCtas: "Clics en contacto",
+            engagementLink: "Ver analítica completa",
+            engagementUnavailable: "La analítica detallada no está disponible en este entorno.",
           }
         : {
             title: "My Servicios showcases",
@@ -89,6 +98,14 @@ export default function DashboardServiciosPage() {
             colLinks: "Links",
             colManage: "Visibility",
             devHint: "“Leonix” rows come from authenticated publish. “Dev file” only appears in development when dev publish is on.",
+            engagementTitle: "Engagement summary (Servicios)",
+            engagementViews: "Profile views",
+            engagementLikes: "Likes",
+            engagementSaves: "Saves",
+            engagementShares: "Shares",
+            engagementCtas: "Contact clicks",
+            engagementLink: "View full analytics",
+            engagementUnavailable: "Detailed analytics are not available in this environment.",
           },
     [lang],
   );
@@ -103,6 +120,8 @@ export default function DashboardServiciosPage() {
     { id: string; listing_slug: string; sender_name: string; sender_email: string; message: string; request_kind: string; created_at: string }[]
   >([]);
   const [manageBusy, setManageBusy] = useState<string | null>(null);
+  const [engagementTotals, setEngagementTotals] = useState<OwnerAnalyticsTotals | null>(null);
+  const [engagementUnavailable, setEngagementUnavailable] = useState(false);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -128,6 +147,16 @@ export default function DashboardServiciosPage() {
         setPlan(normalizePlanFromMembershipTier(row?.membership_tier));
       } catch {
         /* ignore */
+      }
+
+      try {
+        const agg = await fetchOwnerAnalyticsTotals(sb, u.id);
+        if (mounted) {
+          setEngagementTotals(agg.totals);
+          setEngagementUnavailable(agg.listingAnalyticsUnavailable);
+        }
+      } catch {
+        if (mounted) setEngagementUnavailable(true);
       }
 
       const bySlug = new Map<string, MergedRow>();
@@ -283,6 +312,50 @@ export default function DashboardServiciosPage() {
               </Link>
             </div>
           </header>
+
+          {engagementUnavailable ? (
+            <p className="mt-4 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+              {t.engagementUnavailable}
+            </p>
+          ) : engagementTotals ? (
+            <section
+              className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 sm:p-5"
+              aria-labelledby="servicios-dashboard-engagement"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="servicios-dashboard-engagement" className="text-sm font-bold text-[#1E1810]">
+                  {t.engagementTitle}
+                </h2>
+                <Link href={`/dashboard/analytics?${q}`} className="text-xs font-semibold text-[#3B66AD] underline">
+                  {t.engagementLink}
+                </Link>
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementViews}</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">
+                    {engagementTotals.profileViews + engagementTotals.listingViews}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementLikes}</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.likes}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementSaves}</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.saves}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementShares}</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.shares}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementCtas}</dt>
+                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.ctaClicks}</dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
 
           {rows.length === 0 ? (
             <div className="mt-8 rounded-3xl border border-dashed border-[#E8DFD0] bg-[#FAF7F2]/90 p-10 text-center text-sm text-[#5C5346]">
