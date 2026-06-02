@@ -39,6 +39,8 @@ type QrBenefitCard = { title: string; body: string };
 
 type MediaKitPreviewCard = { title: string; body: string };
 
+type MarketplaceCategoryCard = { title: string; body: string };
+
 const COPY: Record<
   Lang,
   {
@@ -63,6 +65,23 @@ const COPY: Record<
         qrOverlay: string;
         magazineAlt: string;
       };
+    };
+    marketplace: {
+      eyebrow: string;
+      headline: string;
+      intro: string;
+      bridge: string;
+      cards: [
+        MarketplaceCategoryCard,
+        MarketplaceCategoryCard,
+        MarketplaceCategoryCard,
+        MarketplaceCategoryCard,
+        MarketplaceCategoryCard,
+        MarketplaceCategoryCard,
+      ];
+      cardsAria: string;
+      closing: string;
+      exploreCta: { label: string; href: string };
     };
     whatYouGet: {
       eyebrow: string;
@@ -211,6 +230,44 @@ const COPY: Record<
         qrOverlay: "Escanea. Traduce. Conecta.",
         magazineAlt: "Vista previa decorativa de la revista Leonix Media",
       },
+    },
+    marketplace: {
+      eyebrow: "CLASIFICADOS + MARKETPLACE LOCAL",
+      headline: "La comunidad viene por lo útil. Los negocios ganan visibilidad.",
+      intro:
+        "Leonix no es solo publicidad. También estamos construyendo un marketplace local donde la comunidad puede buscar, publicar y compartir oportunidades reales: rentas, empleos, autos privados, cosas en venta, eventos, comida, mascotas y más.",
+      bridge:
+        "Más razones para visitar Leonix significa más oportunidades para que los negocios sean vistos.",
+      cardsAria: "Categorías del marketplace local",
+      cards: [
+        {
+          title: "Varios gratis",
+          body: "Cosas en venta, artículos del hogar, herramientas, ropa y más. Publicaciones pensadas para atraer tráfico local y compartir oportunidades entre vecinos.",
+        },
+        {
+          title: "Rentas",
+          body: "Cuartos, apartamentos, espacios y oportunidades de vivienda con fotos, descripción, ubicación, precio y contacto.",
+        },
+        {
+          title: "Empleos",
+          body: "Negocios que están contratando pueden conectar con personas de la comunidad que buscan trabajo y nuevas oportunidades.",
+        },
+        {
+          title: "Autos privados",
+          body: "Publicaciones de autos con fotos, descripción, precio y contacto para compradores locales.",
+        },
+        {
+          title: "Comida + eventos",
+          body: "Pop-ups, comida local, actividades, eventos comunitarios y momentos que hacen que la gente regrese.",
+        },
+        {
+          title: "Busco + mascotas",
+          body: "La comunidad también puede buscar, compartir necesidades, conectar por mascotas, objetos perdidos, adopciones o apoyo local.",
+        },
+      ],
+      closing:
+        "Clasificados trae tráfico. Negocios Locales convierte esa atención en llamadas, visitas y clientes.",
+      exploreCta: { label: "Explorar Clasificados", href: "/clasificados" },
     },
     whatYouGet: {
       eyebrow: "QUÉ OBTIENES",
@@ -459,6 +516,44 @@ const COPY: Record<
         qrOverlay: "Scan. Translate. Connect.",
         magazineAlt: "Decorative Leonix Media magazine preview",
       },
+    },
+    marketplace: {
+      eyebrow: "CLASSIFIEDS + LOCAL MARKETPLACE",
+      headline: "The community comes for what they need. Businesses gain visibility.",
+      intro:
+        "Leonix is not only advertising. We are also building a local marketplace where the community can search, post, and share real opportunities: rentals, jobs, private autos, items for sale, events, food, pets, and more.",
+      bridge:
+        "More reasons to visit Leonix means more opportunities for businesses to be seen.",
+      cardsAria: "Local marketplace categories",
+      cards: [
+        {
+          title: "Free stuff for sale",
+          body: "Items for sale, home goods, tools, clothing, and more. Listings designed to bring local traffic and help neighbors share opportunities.",
+        },
+        {
+          title: "Rentals",
+          body: "Rooms, apartments, spaces, and housing opportunities with photos, description, location, price, and contact.",
+        },
+        {
+          title: "Jobs",
+          body: "Businesses that are hiring can connect with people in the community looking for work and new opportunities.",
+        },
+        {
+          title: "Private autos",
+          body: "Car listings with photos, description, price, and contact for local buyers.",
+        },
+        {
+          title: "Food + events",
+          body: "Pop-ups, local food, activities, community events, and moments that keep people coming back.",
+        },
+        {
+          title: "Wanted + pets",
+          body: "The community can also search, share needs, connect around pets, lost items, adoptions, or local support.",
+        },
+      ],
+      closing:
+        "Classifieds bring traffic. Local Businesses turn that attention into calls, visits, and customers.",
+      exploreCta: { label: "Explore Classifieds", href: "/clasificados" },
     },
     whatYouGet: {
       eyebrow: "WHAT YOU GET",
@@ -877,6 +972,134 @@ function WhatYouGetCardArticle({
         </div>
       </div>
     </article>
+  );
+}
+
+const marketplaceCardAccents = [
+  {
+    ring: "border-[#7A1E2C]/35",
+    bg: "bg-[#7A1E2C]/10",
+    text: "text-[#7A1E2C]",
+    dot: "bg-[#7A1E2C]",
+  },
+  {
+    ring: "border-[#2A4536]/35",
+    bg: "bg-[#2A4536]/10",
+    text: "text-[#2A4536]",
+    dot: "bg-[#2A4536]",
+  },
+  {
+    ring: "border-[#C9A84A]/55",
+    bg: "bg-[#C9A84A]/12",
+    text: "text-[#8A6B1F]",
+    dot: "bg-[#C9A84A]",
+  },
+  {
+    ring: "border-[#7A1E2C]/35",
+    bg: "bg-gradient-to-br from-[#7A1E2C]/10 to-[#C9A84A]/12",
+    text: "text-[#7A1E2C]",
+    dot: "bg-[#7A1E2C]",
+  },
+  {
+    ring: "border-[#2A4536]/35",
+    bg: "bg-[#2A4536]/10",
+    text: "text-[#2A4536]",
+    dot: "bg-[#2A4536]",
+  },
+  {
+    ring: "border-[#C9A84A]/55",
+    bg: "bg-[#C9A84A]/12",
+    text: "text-[#8A6B1F]",
+    dot: "bg-[#C9A84A]",
+  },
+] as const;
+
+function MarketplaceCategoryIcon({ index }: { index: number }) {
+  const accent = marketplaceCardAccents[index];
+  return (
+    <span
+      className={`mb-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${accent.ring} ${accent.bg}`}
+      aria-hidden
+    >
+      <span className={`h-2.5 w-2.5 rounded-full ${accent.dot}`} />
+    </span>
+  );
+}
+
+function MarketplaceSection({
+  eyebrow,
+  headline,
+  intro,
+  bridge,
+  cards,
+  cardsAria,
+  closing,
+  exploreCta,
+}: {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  bridge: string;
+  cards: [
+    MarketplaceCategoryCard,
+    MarketplaceCategoryCard,
+    MarketplaceCategoryCard,
+    MarketplaceCategoryCard,
+    MarketplaceCategoryCard,
+    MarketplaceCategoryCard,
+  ];
+  cardsAria: string;
+  closing: string;
+  exploreCta: { label: string; href: string };
+}) {
+  return (
+    <section
+      id="marketplace"
+      className={sectionShellClass}
+      aria-labelledby="marketplace-title"
+    >
+      <p className={sectionEyebrowClass}>{eyebrow}</p>
+      <h2 id="marketplace-title" className={sectionTitleClass}>
+        {headline}
+      </h2>
+      <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
+      <p className="mt-4 max-w-2xl text-sm font-semibold leading-relaxed text-[#2A4536] sm:text-[0.9375rem]">
+        {bridge}
+      </p>
+
+      <ul
+        className="mt-8 grid min-w-0 list-none gap-4 p-0 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
+        aria-label={cardsAria}
+      >
+        {cards.map((card, index) => (
+          <li key={index} className="flex min-w-0">
+            <article
+              className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} border-l-[3px] border-l-[#C9A84A]/45 p-4 sm:p-5`}
+            >
+              <MarketplaceCategoryIcon index={index} />
+              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
+                {card.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.875rem]">
+                {card.body}
+              </p>
+            </article>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-8 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-5 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:p-6">
+        <p className="max-w-3xl font-serif text-lg font-bold leading-snug text-[#F8F4EA] sm:text-xl">
+          {closing}
+        </p>
+        <Link
+          href={exploreCta.href}
+          className="mt-4 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/50 underline-offset-[0.25em] transition-colors hover:text-[#EDE6D6] hover:decoration-[#EDE6D6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:text-[0.9375rem]"
+        >
+          {exploreCta.label}
+        </Link>
+      </div>
+    </section>
   );
 }
 
@@ -1459,6 +1682,7 @@ export function ComingSoonV2Shell() {
   const [lang, setLang] = useState<Lang>("es");
   const t = COPY[lang];
   const h = t.hero;
+  const mp = t.marketplace;
   const wyg = t.whatYouGet;
   const hiw = t.howItWorks;
   const qr = t.qrAccess;
@@ -1633,6 +1857,17 @@ export function ComingSoonV2Shell() {
             />
           </div>
         </section>
+
+        <MarketplaceSection
+          eyebrow={mp.eyebrow}
+          headline={mp.headline}
+          intro={mp.intro}
+          bridge={mp.bridge}
+          cards={mp.cards}
+          cardsAria={mp.cardsAria}
+          closing={mp.closing}
+          exploreCta={mp.exploreCta}
+        />
 
         <WhatYouGetSection
           eyebrow={wyg.eyebrow}
