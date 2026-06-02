@@ -10,6 +10,11 @@ import { isValidEmail } from "./leonixContactCtaPriority";
 import { parseLanguageOtherLines } from "./languageOtherLines";
 import { digitsOnly } from "./serviciosPhoneUi";
 import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
+import {
+  isServiciosWhatsAppDirectMessageUrl,
+  isServiciosWhatsAppProfileSocialUrl,
+  buildServiciosWhatsAppWaMeHrefFromDigits,
+} from "@/app/servicios/lib/serviciosWhatsAppHref";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
 import { clasificadosPromoRowIsActive } from "./clasificadosServiciosPromo";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
@@ -48,9 +53,7 @@ function serviciosHasQuoteDestination(state: ClasificadosServiciosApplicationSta
 }
 
 function waMeUrl(raw: string): string | undefined {
-  const d = raw.replace(/\D/g, "");
-  if (d.length < 8) return undefined;
-  return `https://wa.me/${d}`;
+  return buildServiciosWhatsAppWaMeHrefFromDigits(raw) ?? undefined;
 }
 
 function trimUrl(raw: string): string {
@@ -335,8 +338,14 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     const biz = trimUrl(state.whatsappBusinessUrl);
     if (wa) {
       contact.socialWhatsappUrl = wa;
-    } else if (biz && isProbablyValidWebUrl(biz)) {
-      contact.socialWhatsappUrl = normalizeHttpUrl(biz);
+    }
+    if (biz && isProbablyValidWebUrl(biz)) {
+      const normalized = normalizeHttpUrl(biz);
+      if (isServiciosWhatsAppProfileSocialUrl(normalized)) {
+        contact.socialWhatsappProfileUrl = normalized;
+      } else if (isServiciosWhatsAppDirectMessageUrl(normalized) && !wa) {
+        contact.socialWhatsappUrl = normalized;
+      }
     }
   }
 

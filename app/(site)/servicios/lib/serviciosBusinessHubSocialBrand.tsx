@@ -7,6 +7,7 @@ import {
   SiPinterest,
   SiSnapchat,
   SiTiktok,
+  SiWhatsapp,
   SiX,
   SiYoutube,
 } from "react-icons/si";
@@ -35,6 +36,7 @@ export const BUSINESS_HUB_SOCIAL_BRAND: Record<ServiciosBusinessHubSocialPlatfor
     border: "1px solid rgba(0, 0, 0, 0.1)",
   },
   pinterest: { background: "#E60023", color: "#FFFFFF" },
+  whatsapp: { background: "#25D366", color: "#FFFFFF" },
 };
 
 export function businessHubSocialBrandStyle(
@@ -76,6 +78,9 @@ export function BusinessHubSocialBrandIcon({
       break;
     case "pinterest":
       icon = <SiPinterest {...iconProps} />;
+      break;
+    case "whatsapp":
+      icon = <SiWhatsapp {...iconProps} />;
       break;
     default:
       icon = <FiGlobe {...iconProps} />;

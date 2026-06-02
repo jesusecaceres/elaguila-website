@@ -351,7 +351,7 @@ export function ServiciosActionPanel({
             social.youtube ||
             social.tiktok ||
             social.linkedin ||
-            (!whatsappInConversionRail && social.whatsapp)) ? (
+            social.whatsappProfile) ? (
             <div
               className={`flex flex-wrap gap-2 sm:gap-2.5 ${quote || secondary.length > 0 ? "mt-5 border-t border-black/[0.06] pt-4" : "mt-4"}`}
             >
@@ -430,10 +430,10 @@ export function ServiciosActionPanel({
                   <FaLinkedin className="h-4 w-4" aria-hidden />
                 </button>
               ) : null}
-              {!whatsappInConversionRail && social.whatsapp ? (
+              {social.whatsappProfile ? (
                 <button
                   type="button"
-                  onClick={() => openSocialOutbound(social.whatsapp!, "WhatsApp")}
+                  onClick={() => openSocialOutbound(social.whatsappProfile!, "WhatsApp")}
                   className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border shadow-sm transition hover:shadow-md sm:h-10 sm:w-10 sm:min-h-0 sm:min-w-0"
                   style={{
                     backgroundColor: LEONIX_ELEVATED_CHIP,

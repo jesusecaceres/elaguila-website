@@ -68,7 +68,9 @@ export type ClasificadosServiciosCopy = {
     email: string;
     website: string;
     whatsapp: string;
+    whatsappHelp: string;
     whatsappBusinessUrl: string;
+    whatsappBusinessUrlHelp: string;
     quoteMessagePhone: string;
     quoteMessagePhoneHelp: string;
     contactPhonesHeading: string;
@@ -345,7 +347,10 @@ const es: ClasificadosServiciosCopy = {
     email: "Correo electrónico",
     website: "Sitio web",
     whatsapp: "WhatsApp (número)",
-    whatsappBusinessUrl: "WhatsApp — enlace de perfil o negocio (opcional)",
+    whatsappHelp: "Para que clientes te escriban directo por WhatsApp.",
+    whatsappBusinessUrl: "Enlace de WhatsApp Business o canal (opcional)",
+    whatsappBusinessUrlHelp:
+      "Opcional. Pega solo un enlace directo de WhatsApp Business, wa.me, mensaje o canal. Para mensajes directos usa el número de WhatsApp.",
     quoteMessagePhone: "Número para mensajes/cotizaciones",
     quoteMessagePhoneHelp:
       "Este número recibirá mensajes de clientes interesados en pedir información o una cotización.",
@@ -624,7 +629,10 @@ const en: ClasificadosServiciosCopy = {
     email: "Email",
     website: "Website",
     whatsapp: "WhatsApp (number)",
-    whatsappBusinessUrl: "WhatsApp — business or profile link (optional)",
+    whatsappHelp: "So customers can message you directly on WhatsApp.",
+    whatsappBusinessUrl: "WhatsApp Business or channel link (optional)",
+    whatsappBusinessUrlHelp:
+      "Optional. Paste a direct WhatsApp Business, wa.me, message, or channel link only. For direct messages, use the WhatsApp number field.",
     quoteMessagePhone: "Number for messages / quotes",
     quoteMessagePhoneHelp:
       "This number receives messages from customers who want information or a quote.",

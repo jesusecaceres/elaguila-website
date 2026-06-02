@@ -3,7 +3,7 @@ import {
   buildQuoteSmsHref,
   resolveServiciosQuoteDestination,
 } from "./serviciosContactActions";
-import { resolveServiciosWhatsAppHref } from "./serviciosWhatsAppHref";
+import { resolveServiciosWhatsAppContactHref } from "./serviciosWhatsAppHref";
 import type {
   ServiciosBusinessHubContactViewModel,
   ServiciosBusinessHubCustomLink,
@@ -42,7 +42,7 @@ export function mapServiciosProfileToBusinessHubContact(
   const contactActions: ServiciosBusinessHubContactViewModel["contact"] = {};
   if (c.phoneTelHref) contactActions.hasCall = true;
   if (smsHref && (quote?.kind === "sms" || c.messageEnabled)) contactActions.messageSmsHref = smsHref;
-  const waHref = resolveServiciosWhatsAppHref({
+  const waHref = resolveServiciosWhatsAppContactHref({
     whatsappRaw: social?.whatsapp,
     websiteUrl: c.websiteHref,
   });
@@ -60,6 +60,7 @@ export function mapServiciosProfileToBusinessHubContact(
   pushSocial(socialLinks, "linkedin", social?.linkedin);
   pushSocial(socialLinks, "x", social?.x);
   pushSocial(socialLinks, "snapchat", social?.snapchat);
+  pushSocial(socialLinks, "whatsapp", social?.whatsappProfile);
 
   const reviews: ServiciosBusinessHubContactViewModel["reviews"] = [];
   const googleRev = profile.contact.externalReviewLinks?.google?.trim();

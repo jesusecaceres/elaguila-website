@@ -30,45 +30,48 @@ function tryParseWhatsAppUrl(raw: string): URL | null {
   }
 }
 
-/** True when the URL is a WhatsApp deep link or wa.me / api.whatsapp.com handoff (not a generic website). */
-export function isRecognizedServiciosWhatsAppUrl(raw: string): boolean {
+function whatsAppHost(u: URL): string {
+  return u.hostname.toLowerCase().replace(/^www\./, "");
+}
+
+/** wa.me/message, chat.whatsapp.com, whatsapp.com/channel — not direct chat by number. */
+export function isServiciosWhatsAppProfileSocialUrl(raw: string): boolean {
   const u = tryParseWhatsAppUrl(raw);
   if (!u) return false;
-  if (u.protocol === "whatsapp:") return true;
-  const host = u.hostname.toLowerCase().replace(/^www\./, "");
-  if (host === "wa.me") return true;
-  if (host === "api.whatsapp.com") return true;
+  const host = whatsAppHost(u);
+  const path = u.pathname.replace(/\/+$/, "") || "/";
+
+  if (host === "wa.me" && /^\/message\//i.test(path)) return true;
   if (host === "chat.whatsapp.com") return true;
   if (host === "whatsapp.com" || host.endsWith(".whatsapp.com")) {
-    const path = u.pathname.replace(/\/+$/, "") || "/";
-    return path !== "/" && path.length > 1;
+    if (path === "/") return false;
+    if (path.startsWith("/channel")) return true;
+    return path.length > 1;
   }
   return false;
 }
 
-/** Sanitize a stored WhatsApp URL; rejects regular http(s) websites. */
-export function sanitizeServiciosWhatsAppUrl(raw: string | undefined | null): string | null {
-  const t = trimText(raw ?? "");
-  if (!t || !isRecognizedServiciosWhatsAppUrl(t)) return null;
-  const u = tryParseWhatsAppUrl(t);
-  if (!u) return null;
-  if (u.protocol === "whatsapp:") return u.toString();
-  if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
-  return null;
-}
+/** Direct chat: wa.me/<digits>, api.whatsapp.com/send, whatsapp://send?phone= */
+export function isServiciosWhatsAppDirectMessageUrl(raw: string): boolean {
+  const u = tryParseWhatsAppUrl(raw);
+  if (!u) return false;
+  if (isServiciosWhatsAppProfileSocialUrl(raw)) return false;
 
-export function buildServiciosWhatsAppWaMeHrefFromDigits(digits: string): string | null {
-  const d = normalizeServiciosWhatsAppDigits(digits);
-  if (!d) return null;
-  return `https://wa.me/${d}`;
-}
+  if (u.protocol === "whatsapp:") {
+    return /send|phone/i.test(u.toString());
+  }
 
-export type ResolveServiciosWhatsAppInput = {
-  /** Wire `whatsappUrl`, draft `socialWhatsappUrl`, or resolved `socialLinks.whatsapp`. */
-  whatsappRaw?: string | null;
-  /** Used to reject accidental duplicate of the business website. */
-  websiteUrl?: string | null;
-};
+  const host = whatsAppHost(u);
+  if (host === "wa.me") {
+    const seg = u.pathname.replace(/^\/+/, "").split("/")[0] ?? "";
+    if (!seg || seg.toLowerCase() === "message") return false;
+    return /^\d+$/.test(seg);
+  }
+  if (host === "api.whatsapp.com") {
+    return u.pathname.includes("send") || u.searchParams.has("phone");
+  }
+  return false;
+}
 
 function normUrlForCompare(href: string): string {
   try {
@@ -78,43 +81,74 @@ function normUrlForCompare(href: string): string {
   }
 }
 
-/**
- * Priority: valid WhatsApp URL → wa.me from number → null (never website).
- */
-export function resolveServiciosWhatsAppHref(input: ResolveServiciosWhatsAppInput): string | null {
+export type ResolveServiciosWhatsAppContactInput = {
+  /** WhatsApp number, wa.me digits, or direct-message URL — never profile/channel links. */
+  whatsappRaw?: string | null;
+  websiteUrl?: string | null;
+};
+
+function rejectIfWebsite(href: string, websiteUrl?: string | null): string | null {
+  const websiteNorm = websiteUrl?.trim()
+    ? normUrlForCompare(
+        /^https?:\/\//i.test(websiteUrl.trim())
+          ? websiteUrl.trim()
+          : `https://${websiteUrl.trim().replace(/^\/+/, "")}`,
+      )
+    : "";
+  if (!websiteNorm) return href;
+  try {
+    if (normUrlForCompare(href) === websiteNorm) return null;
+  } catch {
+    /* keep href */
+  }
+  return href;
+}
+
+/** Contact CTA: number → wa.me; else valid direct-message URL only. */
+export function resolveServiciosWhatsAppContactHref(
+  input: ResolveServiciosWhatsAppContactInput,
+): string | null {
   const raw = trimText(input.whatsappRaw ?? "");
   if (!raw) return null;
 
-  const websiteNorm = input.websiteUrl?.trim()
-    ? normUrlForCompare(
-        /^https?:\/\//i.test(input.websiteUrl!.trim())
-          ? input.websiteUrl!.trim()
-          : `https://${input.websiteUrl!.trim().replace(/^\/+/, "")}`,
-      )
-    : "";
+  if (isServiciosWhatsAppProfileSocialUrl(raw)) return null;
 
-  const rejectIfWebsite = (href: string): string | null => {
-    if (!websiteNorm) return href;
-    try {
-      if (normUrlForCompare(href) === websiteNorm) return null;
-    } catch {
-      /* keep href */
-    }
-    return href;
-  };
-
-  const waUrl = sanitizeServiciosWhatsAppUrl(raw);
-  if (waUrl) return rejectIfWebsite(waUrl);
+  if (isServiciosWhatsAppDirectMessageUrl(raw)) {
+    const u = tryParseWhatsAppUrl(raw);
+    if (!u) return null;
+    const href = u.protocol === "whatsapp:" ? u.toString() : u.toString();
+    return rejectIfWebsite(href, input.websiteUrl);
+  }
 
   if (/^https?:\/\//i.test(raw) || /^www\./i.test(raw)) return null;
 
   const fromDigits = buildServiciosWhatsAppWaMeHrefFromDigits(raw);
-  if (fromDigits) return rejectIfWebsite(fromDigits);
+  if (fromDigits) return rejectIfWebsite(fromDigits, input.websiteUrl);
 
   return null;
 }
 
-/** Digits for wa.me / CTA sheet from a resolved WhatsApp href or bare number. */
+/** Social row: WhatsApp Business / channel / profile links only. */
+export function resolveServiciosWhatsAppProfileHref(raw: string | undefined | null): string | null {
+  const t = trimText(raw ?? "");
+  if (!t || !isServiciosWhatsAppProfileSocialUrl(t)) return null;
+  const u = tryParseWhatsAppUrl(t);
+  if (!u || u.protocol !== "http:" && u.protocol !== "https:") return null;
+  return u.toString();
+}
+
+export function buildServiciosWhatsAppWaMeHrefFromDigits(digits: string): string | null {
+  const d = normalizeServiciosWhatsAppDigits(digits);
+  if (!d) return null;
+  return `https://wa.me/${d}`;
+}
+
+/** @deprecated Use resolveServiciosWhatsAppContactHref — kept for imports that expect contact-only behavior. */
+export function resolveServiciosWhatsAppHref(input: ResolveServiciosWhatsAppContactInput): string | null {
+  return resolveServiciosWhatsAppContactHref(input);
+}
+
+/** Digits for wa.me / CTA sheet from a resolved WhatsApp contact href or bare number. */
 export function extractServiciosWhatsAppDigits(href: string): string {
   const t = href.trim();
   if (!t) return "";

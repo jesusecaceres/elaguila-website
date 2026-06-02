@@ -71,6 +71,7 @@ export type ServiciosApplicationContactDraft = {
   socialTiktokUrl?: string;
   socialLinkedinUrl?: string;
   socialWhatsappUrl?: string;
+  socialWhatsappProfileUrl?: string;
   socialXUrl?: string;
   socialSnapchatUrl?: string;
   googleReviewsUrl?: string;

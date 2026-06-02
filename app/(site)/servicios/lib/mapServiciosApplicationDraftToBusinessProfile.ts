@@ -144,6 +144,8 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (sLi) socialLinks.linkedinUrl = sLi;
   const sWa = trim(c?.socialWhatsappUrl);
   if (sWa) socialLinks.whatsappUrl = sWa;
+  const sWaProfile = trim(c?.socialWhatsappProfileUrl);
+  if (sWaProfile) socialLinks.whatsappProfileUrl = sWaProfile;
   const sX = trim(c?.socialXUrl);
   if (sX) socialLinks.xUrl = sX;
   const sSc = trim(c?.socialSnapchatUrl);

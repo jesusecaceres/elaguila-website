@@ -90,6 +90,7 @@ function socialHeadline(platform: ServiciosBusinessHubSocialLink["platform"]): s
     linkedin: "LinkedIn",
     snapchat: "Snapchat",
     pinterest: "Pinterest",
+    whatsapp: "WhatsApp",
   };
   return map[platform];
 }

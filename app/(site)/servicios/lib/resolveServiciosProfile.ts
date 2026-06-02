@@ -27,6 +27,7 @@ import {
   safeExternalWebsiteHref,
   safePromoAssetHref,
   safePromoHref,
+  safePromoPdfHref,
   sanitizePhoneDisplay,
   sanitizeTelHref,
   trimText,
@@ -34,7 +35,11 @@ import {
   buildGoogleMapsSearchHrefFromPhysical,
   resolveServiciosCredentials,
 } from "./serviciosProfileSanitize";
-import { resolveServiciosWhatsAppHref } from "./serviciosWhatsAppHref";
+import {
+  resolveServiciosWhatsAppContactHref,
+  resolveServiciosWhatsAppProfileHref,
+  isServiciosWhatsAppProfileSocialUrl,
+} from "./serviciosWhatsAppHref";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -94,11 +99,25 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     if (tk) out.tiktok = tk;
     const li = safeExternalWebsiteHref(rawSocial.linkedinUrl);
     if (li) out.linkedin = li;
-    const wa = resolveServiciosWhatsAppHref({
-      whatsappRaw: rawSocial.whatsappUrl,
-      websiteUrl: contactIn.websiteUrl,
-    });
-    if (wa) out.whatsapp = wa;
+    const waContactRaw = trimText(rawSocial.whatsappUrl);
+    const waProfileRaw = trimText(rawSocial.whatsappProfileUrl);
+
+    let waProfile = waProfileRaw ? resolveServiciosWhatsAppProfileHref(waProfileRaw) : null;
+    let waContact: string | null = null;
+
+    if (waContactRaw) {
+      if (isServiciosWhatsAppProfileSocialUrl(waContactRaw)) {
+        waProfile = waProfile ?? resolveServiciosWhatsAppProfileHref(waContactRaw);
+      } else {
+        waContact = resolveServiciosWhatsAppContactHref({
+          whatsappRaw: waContactRaw,
+          websiteUrl: contactIn.websiteUrl,
+        });
+      }
+    }
+
+    if (waContact) out.whatsapp = waContact;
+    if (waProfile) out.whatsappProfile = waProfile;
     const xUrl = safeExternalWebsiteHref(rawSocial.xUrl);
     if (xUrl) out.x = xUrl;
     const snap = safeExternalWebsiteHref(rawSocial.snapchatUrl);
@@ -246,7 +265,7 @@ function resolveOnePromoWire(
   const headlineRaw = trimText(promoIn.headline);
   const hrefSafe = safePromoHref(promoIn.href) ?? undefined;
   const assetImageHrefSafe = safePromoAssetHref(promoIn.assetImageUrl) ?? undefined;
-  const assetPdfHrefSafe = safePromoAssetHref(promoIn.assetPdfUrl) ?? undefined;
+  const assetPdfHrefSafe = safePromoPdfHref(promoIn.assetPdfUrl) ?? undefined;
   const hasWire =
     headlineRaw ||
     footnote ||

@@ -91,6 +91,21 @@ export function safePromoHref(raw: string | undefined | null): string | null {
   return safeExternalWebsiteHref(t);
 }
 
+/** Promo PDF/flyer: https only (or data: for local preview); never blob/file/javascript. */
+export function safePromoPdfHref(raw: string | undefined | null): string | null {
+  let t = trimText(raw);
+  if (!t) return null;
+  const lower = t.toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("file:") || lower.startsWith("blob:")) {
+    return null;
+  }
+  if (t.startsWith("data:application/pdf")) return t;
+  if (!/^https?:\/\//i.test(t)) {
+    t = `https://${t.replace(/^\/+/, "")}`;
+  }
+  return safeExternalWebsiteHref(t);
+}
+
 /** Promo attachments: https or local-first data URLs (image / PDF) */
 export function safePromoAssetHref(raw: string | undefined | null): string | null {
   const t = trimText(raw);

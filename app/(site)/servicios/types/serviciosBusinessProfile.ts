@@ -163,7 +163,10 @@ export type ServiciosContactSocialLinks = {
   youtubeUrl?: string;
   tiktokUrl?: string;
   linkedinUrl?: string;
+  /** Direct-message WhatsApp (number → wa.me or send URL). */
   whatsappUrl?: string;
+  /** WhatsApp Business / channel / profile link — social row only. */
+  whatsappProfileUrl?: string;
   xUrl?: string;
   snapchatUrl?: string;
 };
@@ -342,7 +345,10 @@ export type ServiciosProfileResolved = {
       youtube?: string;
       tiktok?: string;
       linkedin?: string;
+      /** Direct-message contact CTA. */
       whatsapp?: string;
+      /** WhatsApp Business / channel profile — social row only. */
+      whatsappProfile?: string;
       x?: string;
       snapchat?: string;
     };

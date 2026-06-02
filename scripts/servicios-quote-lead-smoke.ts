@@ -8,7 +8,12 @@ import { join } from "node:path";
 import type { ServiciosProfileResolved } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 import { resolveServiciosQuoteDestination } from "../app/(site)/servicios/lib/serviciosContactActions";
-import { resolveServiciosWhatsAppHref } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
+import {
+  resolveServiciosWhatsAppContactHref,
+  resolveServiciosWhatsAppProfileHref,
+  isServiciosWhatsAppProfileSocialUrl,
+} from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
+import { safePromoPdfHref } from "../app/(site)/servicios/lib/serviciosProfileSanitize";
 import { composeServiciosPublicLeadStoredMessage } from "../app/(site)/clasificados/servicios/lib/serviciosLeadStoredMessage";
 import {
   parseEmailFromMailtoHref,
@@ -73,21 +78,46 @@ const mail = "mailto:hi@example.com";
   assert.equal(q?.href, wa);
 }
 
-// 2b) WhatsApp href: wa.me from number, reject website mistaken for WA
+// 2b) WhatsApp contact href: wa.me from number, reject website mistaken for WA
 {
-  assert.equal(resolveServiciosWhatsAppHref({ whatsappRaw: "(555) 123-4567" }), "https://wa.me/15551234567");
+  assert.equal(resolveServiciosWhatsAppContactHref({ whatsappRaw: "(555) 123-4567" }), "https://wa.me/15551234567");
   assert.equal(
-    resolveServiciosWhatsAppHref({ whatsappRaw: "https://wa.me/5215512345678" }),
+    resolveServiciosWhatsAppContactHref({ whatsappRaw: "https://wa.me/5215512345678" }),
     "https://wa.me/5215512345678",
   );
   assert.equal(
-    resolveServiciosWhatsAppHref({
+    resolveServiciosWhatsAppContactHref({
       whatsappRaw: "https://example.com",
       websiteUrl: "https://example.com",
     }),
     null,
   );
-  assert.equal(resolveServiciosWhatsAppHref({ whatsappRaw: "https://mybiz.com" }), null);
+  assert.equal(resolveServiciosWhatsAppContactHref({ whatsappRaw: "https://mybiz.com" }), null);
+  assert.equal(resolveServiciosWhatsAppContactHref({ whatsappRaw: "https://www.whatsapp.com" }), null);
+  assert.equal(
+    resolveServiciosWhatsAppContactHref({ whatsappRaw: "https://wa.me/message/ABC123" }),
+    null,
+  );
+}
+
+// 2c) WhatsApp profile/channel → social row only
+{
+  const channel = "https://whatsapp.com/channel/0029VaExample";
+  assert.equal(resolveServiciosWhatsAppProfileHref(channel), channel);
+  assert.equal(
+    resolveServiciosWhatsAppProfileHref("https://wa.me/message/ABC123"),
+    "https://wa.me/message/ABC123",
+  );
+  assert.equal(resolveServiciosWhatsAppProfileHref("https://www.whatsapp.com"), null);
+  assert.ok(isServiciosWhatsAppProfileSocialUrl("https://wa.me/message/ABC123"));
+}
+
+// 2d) Promo PDF href safety
+{
+  assert.equal(safePromoPdfHref("https://cdn.example.com/coupon.pdf"), "https://cdn.example.com/coupon.pdf");
+  assert.equal(safePromoPdfHref("javascript:alert(1)"), null);
+  assert.equal(safePromoPdfHref("blob:https://local"), null);
+  assert.ok(safePromoPdfHref("data:application/pdf;base64,abc"));
 }
 
 // 3) Email when no phone / WA

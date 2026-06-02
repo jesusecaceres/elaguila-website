@@ -933,8 +933,9 @@ export function ClasificadosServiciosApplication() {
                 </div>
                 <div>
                   <label className={labelClass}>{copy.labels.whatsapp}</label>
+                  <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.whatsappHelp}</p>
                   <input
-                    className={inputClass}
+                    className={`${inputClass} mt-2`}
                     type="tel"
                     inputMode="numeric"
                     placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
@@ -944,11 +945,12 @@ export function ClasificadosServiciosApplication() {
                 </div>
                 <div>
                   <label className={labelClass}>{copy.labels.whatsappBusinessUrl}</label>
+                  <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.whatsappBusinessUrlHelp}</p>
                   <input
-                    className={`${inputClass} ${whatsappBizInvalid ? inputWarn : ""}`}
+                    className={`${inputClass} mt-2 ${whatsappBizInvalid ? inputWarn : ""}`}
                     type="url"
                     inputMode="url"
-                    placeholder={lang === "es" ? "https://wa.me/… o https://api.whatsapp.com/…" : "https://wa.me/…"}
+                    placeholder={lang === "es" ? "https://wa.me/message/… o https://whatsapp.com/channel/…" : "https://wa.me/message/… or https://whatsapp.com/channel/…"}
                     value={state.whatsappBusinessUrl}
                     onChange={(e) => setState((s) => ({ ...s, whatsappBusinessUrl: e.target.value }))}
                   />

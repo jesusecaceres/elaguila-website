@@ -23,7 +23,8 @@ export type ServiciosBusinessHubSocialPlatform =
   | "youtube"
   | "linkedin"
   | "snapchat"
-  | "pinterest";
+  | "pinterest"
+  | "whatsapp";
 
 export type ServiciosBusinessHubSocialLink = {
   platform: ServiciosBusinessHubSocialPlatform;
