@@ -3,10 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
-  hydrateEnVentaDraftMediaIfMissing,
+  isEnVentaPublishResumeRequested,
   persistEnVentaPreviewHandoffAsync,
-  restoreEnVentaFormFromIdbIfEmpty,
-  takeEnVentaPreviewReturnInitialState,
+  resolveEnVentaPublishFormInitialState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
 const EN_VENTA_LANDING = "/clasificados/en-venta";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
@@ -45,28 +44,20 @@ export default function LeonixEnVentaProApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const [state, setState] = useState(() =>
-    typeof window !== "undefined" ? takeEnVentaPreviewReturnInitialState("pro") : createEmptyEnVentaFreeState()
-  );
+  const resumeRequested = isEnVentaPublishResumeRequested(searchParams?.get("resume"));
+  const [state, setState] = useState(createEmptyEnVentaFreeState);
   const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     clearLeonixReturningToEditSessionFlag();
-  }, []);
-
-  useLayoutEffect(() => {
     let cancelled = false;
-    void (async () => {
-      let next = takeEnVentaPreviewReturnInitialState("pro");
-      next = await hydrateEnVentaDraftMediaIfMissing("pro", next);
-      const restored = await restoreEnVentaFormFromIdbIfEmpty("pro", next);
-      if (restored) next = restored;
+    void resolveEnVentaPublishFormInitialState("pro", resumeRequested).then((next) => {
       if (!cancelled) setState(next);
-    })();
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [resumeRequested]);
 
   const previewBlockers = useMemo(() => collectEnVentaCoreBlockers(lang, state), [lang, state]);
 

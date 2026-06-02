@@ -347,25 +347,22 @@ function finalizeEnVentaEditReturnState(
   return hydrated;
 }
 
-export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVentaFreeApplicationState {
-  if (typeof window === "undefined") {
-    return createEmptyEnVentaFreeState();
-  }
+/**
+ * One-shot preview → edit return payload (EN_VENTA_PREVIEW_RETURN_DRAFT / previewReturnMemory).
+ * Does not load the main preview draft key — use resolveEnVentaPublishFormInitialState for mount.
+ */
+export function consumeEnVentaPreviewReturnDraft(plan: "free" | "pro"): EnVentaFreeApplicationState | null {
+  if (typeof window === "undefined") return null;
   if (previewReturnMemory[plan]) {
+    const merged = previewReturnMemory[plan]!;
     scheduleClearPreviewReturnMemory();
-    return finalizeEnVentaEditReturnState(plan, previewReturnMemory[plan]!);
+    return finalizeEnVentaEditReturnState(plan, merged);
   }
   try {
     const raw = sessionStorage.getItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
-    if (!raw) {
-      const d0 = loadEnVentaPreviewDraft(plan);
-      return d0 ? finalizeEnVentaEditReturnState(plan, d0) : createEmptyEnVentaFreeState();
-    }
+    if (!raw) return null;
     const data = JSON.parse(raw) as Partial<EnVentaPreviewReturnPayload>;
-    if (data.plan !== plan || !data.state || typeof data.state !== "object") {
-      const d1 = loadEnVentaPreviewDraft(plan);
-      return d1 ? finalizeEnVentaEditReturnState(plan, d1) : createEmptyEnVentaFreeState();
-    }
+    if (data.plan !== plan || !data.state || typeof data.state !== "object") return null;
     const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     previewReturnMemory[plan] = merged;
@@ -377,10 +374,47 @@ export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVe
     } catch {
       /* ignore */
     }
+    return null;
   }
-  const fromDraft = loadEnVentaPreviewDraft(plan);
-  if (fromDraft) return finalizeEnVentaEditReturnState(plan, fromDraft);
-  return createEmptyEnVentaFreeState();
+}
+
+export function isEnVentaPublishResumeRequested(resumeParam: string | null | undefined): boolean {
+  return resumeParam === "1";
+}
+
+/**
+ * Publish form mount: fresh route starts empty; resume=1 or preview-return restores draft.
+ */
+export async function resolveEnVentaPublishFormInitialState(
+  plan: "free" | "pro",
+  resumeRequested: boolean
+): Promise<EnVentaFreeApplicationState> {
+  const fromReturn = consumeEnVentaPreviewReturnDraft(plan);
+  if (fromReturn) {
+    return hydrateEnVentaDraftMediaIfMissing(plan, fromReturn);
+  }
+
+  if (!resumeRequested) {
+    return createEmptyEnVentaFreeState();
+  }
+
+  const fromDraft = await loadEnVentaPreviewDraftAsync(plan);
+  if (fromDraft) {
+    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, fromDraft);
+    const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, hydrated);
+    return restored ?? hydrated;
+  }
+
+  const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, createEmptyEnVentaFreeState());
+  return restored ?? createEmptyEnVentaFreeState();
+}
+
+/** @deprecated Prefer resolveEnVentaPublishFormInitialState — return payload only, no main-draft fallback. */
+export function takeEnVentaPreviewReturnInitialState(plan: "free" | "pro"): EnVentaFreeApplicationState {
+  if (typeof window === "undefined") {
+    return createEmptyEnVentaFreeState();
+  }
+  return consumeEnVentaPreviewReturnDraft(plan) ?? createEmptyEnVentaFreeState();
 }
 
 export function loadLatestEnVentaPreviewDraft(

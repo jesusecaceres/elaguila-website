@@ -6,6 +6,7 @@ export type HomeMarketingLangBlock = {
   precedent: string;
   valuePrimary: string;
   valueSecondary: string;
+  valueLabels: [string, string, string];
   ctaPrimary: string;
   ctaSecondary: string;
   microcopy: string;
@@ -46,6 +47,7 @@ const BASE: HomeMarketingResolved = {
       "Encuentra rentas, empleos, autos, artículos en venta, eventos y oportunidades locales en un solo espacio creado para nuestra comunidad.",
     valueSecondary:
       "Conectamos negocios locales, familias y organizaciones con una audiencia activa a través de una revista premium, presencia digital bilingüe y herramientas que generan acción.",
+    valueLabels: ["Revista premium", "Comunidad activa", "Presencia digital bilingüe"],
     ctaPrimary: "Explorar la revista",
     ctaSecondary: "Anúnciate con nosotros",
     microcopy: "Edición digital + presencia impresa",
@@ -61,6 +63,7 @@ const BASE: HomeMarketingResolved = {
       "Find rentals, jobs, autos, items for sale, events, and local opportunities in one place built for our community.",
     valueSecondary:
       "We connect local businesses, families, and organizations with an active audience through a premium magazine, bilingual digital presence, and tools that drive action.",
+    valueLabels: ["Premium magazine", "Active community", "Bilingual digital presence"],
     ctaPrimary: "Explore the magazine",
     ctaSecondary: "Advertise with us",
     microcopy: "Digital edition + print presence",
@@ -83,6 +86,13 @@ const BASE: HomeMarketingResolved = {
 
 function s(v: string | undefined, fallback: string): string {
   return v !== undefined && v.trim() !== "" ? v.trim() : fallback;
+}
+
+/** Gate HOME-3 — keep business-action secondary CTA; reject legacy label-only text. */
+function resolveSecondaryCta(patchVal: string | undefined, base: string): string {
+  const trimmed = patchVal?.trim() ?? "";
+  if (!trimmed || trimmed === "Edición digital" || trimmed === "Digital edition") return base;
+  return trimmed;
 }
 
 /** Gate HOME-2 — clean magazine cover; remap legacy hero images. */
@@ -112,7 +122,7 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
     es: {
       ...BASE.es,
       ctaPrimary: s(patch.ctaPrimary?.es, BASE.es.ctaPrimary),
-      ctaSecondary: s(patch.ctaSecondary?.es, BASE.es.ctaSecondary),
+      ctaSecondary: resolveSecondaryCta(patch.ctaSecondary?.es, BASE.es.ctaSecondary),
       coverAlt: s(patch.coverAlt?.es, BASE.es.coverAlt),
       announcement: s(patch.announcementBar?.es, ""),
       promoStrip: s(patch.promoStrip?.es, ""),
@@ -120,7 +130,7 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
     en: {
       ...BASE.en,
       ctaPrimary: s(patch.ctaPrimary?.en, BASE.en.ctaPrimary),
-      ctaSecondary: s(patch.ctaSecondary?.en, BASE.en.ctaSecondary),
+      ctaSecondary: resolveSecondaryCta(patch.ctaSecondary?.en, BASE.en.ctaSecondary),
       coverAlt: s(patch.coverAlt?.en, BASE.en.coverAlt),
       announcement: s(patch.announcementBar?.en, ""),
       promoStrip: s(patch.promoStrip?.en, ""),
