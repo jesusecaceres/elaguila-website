@@ -402,12 +402,12 @@ function NavbarContent() {
 
       <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:gap-x-6 sm:py-2">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:gap-x-6 sm:py-2 2xl:gap-x-10">
             {/* ZONE 1 — brand (protected, no overlap into center) */}
-            <div className="col-start-1 flex min-w-0 shrink-0 items-center">
+            <div className="col-start-1 flex min-w-0 shrink-0 items-center 2xl:pe-1">
               <Link
                 href={buildLink("/home")}
-                className="flex min-w-0 max-w-[10.5rem] items-center gap-2.5 sm:max-w-[11.5rem] sm:gap-3 2xl:max-w-none"
+                className="flex min-w-0 max-w-[10.5rem] items-center gap-2.5 sm:max-w-[11.5rem] sm:gap-3 2xl:max-w-none 2xl:gap-3"
                 aria-label={L.brandName}
               >
                 <span className="inline-flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 2xl:h-10 2xl:w-10">
@@ -429,7 +429,7 @@ function NavbarContent() {
 
             {/* ZONE 2 — center nav (2xl+ only; isolated column with protected gaps) */}
             <nav
-              className="col-start-2 hidden min-w-0 max-w-full justify-self-center 2xl:flex 2xl:px-2"
+              className="col-start-2 hidden min-w-0 max-w-full justify-self-center 2xl:flex 2xl:justify-self-start 2xl:ps-1"
               aria-label={L.navAria}
             >
               <div className="flex min-w-0 max-w-full items-center justify-center gap-x-[1.375rem] text-[0.8125rem] font-medium text-[#3D3428] 2xl:gap-x-6 2xl:text-[0.875rem]">
