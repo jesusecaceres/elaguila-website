@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -67,6 +67,7 @@ export function CommunityListingsResultsClient({
   backLandingLabelEn,
 }: Props) {
   const sp = useSearchParams();
+  const pathname = usePathname();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const [rows, setRows] = useState<CommunityListingBrowseRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -211,8 +212,8 @@ export function CommunityListingsResultsClient({
   const pageTitle = L ? pageTitleEs : pageTitleEn;
   const backLandingLabel = L ? backLandingLabelEs : backLandingLabelEn;
   const ui = categoryStandardUi(lang);
-  const resultsAction =
-    category === "clases" ? "/clasificados/clases/resultados" : "/clasificados/comunidad/resultados";
+  const resultsSegment = pathname?.includes("/results") ? "results" : "resultados";
+  const resultsAction = `/clasificados/${category}/${resultsSegment}`;
   const clearHref = appendLangToPath(resultsAction, lang);
   const publishHref = appendLangToPath(
     category === "clases" ? "/clasificados/publicar/clases" : "/clasificados/publicar/comunidad",
