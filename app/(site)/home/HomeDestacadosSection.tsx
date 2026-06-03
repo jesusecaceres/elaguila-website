@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { HomeFeaturedBusiness } from "./homeFeaturedBusinesses";
 import { HOME_PAGE_COPY, type HomePageLang } from "./homePageCopy";
 
@@ -21,10 +22,9 @@ function featuredCardColClass(index: number, count: number): string {
 type Props = {
   lang: HomePageLang;
   businesses: HomeFeaturedBusiness[];
-  advertiseHref: string;
 };
 
-export function HomeDestacadosSection({ lang, businesses, advertiseHref }: Props) {
+export function HomeDestacadosSection({ lang, businesses }: Props) {
   const copy = HOME_PAGE_COPY[lang].destacados;
   const hasBusinesses = businesses.length > 0;
   const count = businesses.length;
@@ -69,12 +69,12 @@ export function HomeDestacadosSection({ lang, businesses, advertiseHref }: Props
             <p className="mx-auto max-w-lg text-sm font-medium leading-relaxed text-[#3D3428] sm:text-base">
               {copy.reserved}
             </p>
-            <a
-              href={advertiseHref}
-              className="mt-6 inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-7 py-2 text-sm font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF]"
-            >
-              {copy.advertiseCta}
-            </a>
+            <AdvertiseDropdown
+              lang={lang}
+              variant="outline"
+              className="mt-6"
+              buttonLabel={copy.advertiseCta}
+            />
           </div>
         )}
       </div>

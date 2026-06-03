@@ -7,6 +7,7 @@ import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/au
 import { newMediaImageId } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
 import { AutosSortablePhotoGrid } from "@/app/publicar/autos/shared/components/AutosSortablePhotoGrid";
+import { classifyAutosImageUrlInput } from "@/app/lib/clasificados/autos/autosImageUrlInput";
 
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
@@ -76,6 +77,8 @@ export function AutosNegociosMediaManager({
   const images = sortByOrder(listing.mediaImages ?? []);
   const [urlBatch, setUrlBatch] = useState("");
   const [singleImageUrlDraft, setSingleImageUrlDraft] = useState("");
+  const [singleUrlError, setSingleUrlError] = useState<string | null>(null);
+  const [batchUrlError, setBatchUrlError] = useState<string | null>(null);
   const [dragOverPhotos, setDragOverPhotos] = useState(false);
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
@@ -112,14 +115,32 @@ export function AutosNegociosMediaManager({
     [listing.mediaImages, commitImages],
   );
 
-  const addUrlsFromText = (lines: string, clearBatchField: boolean) => {
-    const urls = lines
-      .split(/\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!urls.length) return;
+  const addUrlsFromText = (lines: string, clearBatchField: boolean): boolean => {
+    const rawLines = lines.split(/\n/).map((s) => s.trim()).filter(Boolean);
+    if (!rawLines.length) {
+      setBatchUrlError(m.invalidImageUrl);
+      return false;
+    }
+    const accepted: string[] = [];
+    let sawVideo = false;
+    let sawInvalid = false;
+    for (const line of rawLines) {
+      const result = classifyAutosImageUrlInput(line);
+      if (result.ok) {
+        accepted.push(result.url);
+      } else if (result.reason === "video") {
+        sawVideo = true;
+      } else if (result.reason !== "empty") {
+        sawInvalid = true;
+      }
+    }
+    if (!accepted.length) {
+      setBatchUrlError(sawVideo ? m.videoUrlRejected : m.invalidImageUrl);
+      return false;
+    }
+    setBatchUrlError(sawVideo || sawInvalid ? m.invalidImageUrl : null);
     const base = sortByOrder(listing.mediaImages ?? []);
-    const additions: MediaImageEntry[] = urls.map((url, i) => ({
+    const additions: MediaImageEntry[] = accepted.map((url, i) => ({
       id: newMediaImageId(),
       url,
       sourceType: "url" as const,
@@ -129,13 +150,21 @@ export function AutosNegociosMediaManager({
     const merged = reindex([...base, ...additions]);
     commitImages(ensureOnePrimary(merged));
     if (clearBatchField) setUrlBatch("");
+    return true;
   };
 
-  const addSingleImageUrl = () => {
-    const u = singleImageUrlDraft.trim();
-    if (!u) return;
-    addUrlsFromText(u, false);
+  const addSingleImageUrl = (): boolean => {
+    const result = classifyAutosImageUrlInput(singleImageUrlDraft);
+    if (!result.ok) {
+      setSingleUrlError(
+        result.reason === "video" ? m.videoUrlRejected : result.reason === "empty" ? m.invalidImageUrl : m.invalidImageUrl,
+      );
+      return false;
+    }
+    setSingleUrlError(null);
+    addUrlsFromText(result.url, false);
     setSingleImageUrlDraft("");
+    return true;
   };
 
   const remove = (id: string) => {
@@ -311,25 +340,37 @@ export function AutosNegociosMediaManager({
         <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{m.pickerMultiNote}</p>
       </div>
 
-      <div className="mt-5">
+      <h3 className={`${SUBHEAD} mt-6`}>{m.urlSectionHeading}</h3>
+      <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{m.urlHelper}</p>
+
+      <div className="mt-4">
         <label className={LABEL}>{m.singleUrl}</label>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
           <input
             className={`${INPUT} sm:min-w-0 sm:flex-1`}
             placeholder={copy.app.placeholders.https}
             value={singleImageUrlDraft}
-            onChange={(e) => setSingleImageUrlDraft(e.target.value)}
+            onChange={(e) => {
+              setSingleImageUrlDraft(e.target.value);
+              if (singleUrlError) setSingleUrlError(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
                 addSingleImageUrl();
               }
             }}
+            aria-invalid={Boolean(singleUrlError)}
           />
           <button type="button" className={BTN_SECONDARY} onClick={addSingleImageUrl}>
-            {m.useLink}
+            {m.addImage}
           </button>
         </div>
+        {singleUrlError ? (
+          <p className="mt-2 text-xs font-medium text-red-800" role="alert">
+            {singleUrlError}
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-4">
@@ -338,12 +379,24 @@ export function AutosNegociosMediaManager({
           className={`${INPUT} min-h-[72px] font-mono text-xs`}
           placeholder={copy.app.placeholders.https}
           value={urlBatch}
-          onChange={(e) => setUrlBatch(e.target.value)}
+          onChange={(e) => {
+            setUrlBatch(e.target.value);
+            if (batchUrlError) setBatchUrlError(null);
+          }}
         />
-        <button type="button" className={`${BTN_SECONDARY} mt-2`} onClick={() => addUrlsFromText(urlBatch, true)}>
+        <button
+          type="button"
+          className={`${BTN_SECONDARY} mt-2`}
+          onClick={() => addUrlsFromText(urlBatch, true)}
+        >
           <FiPlus className="h-3.5 w-3.5" aria-hidden />
-          {m.addUrls}
+          {m.addImages}
         </button>
+        {batchUrlError ? (
+          <p className="mt-2 text-xs font-medium text-red-800" role="alert">
+            {batchUrlError}
+          </p>
+        ) : null}
       </div>
 
       {images.length > 0 ? (

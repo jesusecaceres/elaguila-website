@@ -32,6 +32,7 @@ import {
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
@@ -66,6 +67,9 @@ export function AutosPrivadoApplication() {
     setListingPatch,
     resetDraft,
     flushDraft,
+    editorStep,
+    editorMaxReached,
+    setEditorProgress,
   } = useAutoPrivadoDraft();
 
   const autoTitlePreview = useMemo(
@@ -109,6 +113,9 @@ export function AutosPrivadoApplication() {
       lane="privado"
       stepLabels={stepLabels}
       stepBlockWarnings={stepBlockWarnings}
+      initialStep={editorStep}
+      initialMaxReached={editorMaxReached}
+      onStepChange={setEditorProgress}
       header={
         <header className="mb-6 sm:mb-7">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
@@ -537,7 +544,12 @@ export function AutosPrivadoApplication() {
               stepCtx={ctx}
               flushDraft={flushDraft}
               onPreview={async () => {
-                await flushDraft();
+                const finalStep = AUTOS_PUBLISH_FINAL_STEP_INDEX;
+                setEditorProgress(finalStep, Math.max(editorMaxReached, finalStep));
+                await flushDraft({
+                  editorStep: finalStep,
+                  editorMaxReached: Math.max(editorMaxReached, finalStep),
+                });
                 router.push(previewHref);
               }}
               onDeleteApplication={resetDraft}

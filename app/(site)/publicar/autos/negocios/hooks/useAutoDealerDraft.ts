@@ -29,6 +29,12 @@ import {
   resolveAutosInventoryAddContextForEditor,
   writeInventoryAddContextToSession,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import {
+  clampAutosEditorMaxReached,
+  clampAutosEditorStep,
+  AUTOS_PUBLISH_FINAL_STEP_INDEX,
+} from "@/app/lib/clasificados/autos/autosEditorDraftStep";
+import type { AutosNegociosDraftV1 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -60,26 +66,50 @@ export function useAutoDealerDraft() {
 
   const namespaceRef = useRef<string | null>(null);
   const listingRef = useRef(listing);
+  const editorStepRef = useRef(0);
+  const editorMaxReachedRef = useRef(0);
+  const [editorStep, setEditorStep] = useState(0);
+  const [editorMaxReached, setEditorMaxReached] = useState(0);
+
   useLayoutEffect(() => {
     listingRef.current = listing;
   }, [listing]);
+
+  const applyEditorProgress = useCallback((step: number, maxReached: number) => {
+    const s = clampAutosEditorStep(step);
+    const m = clampAutosEditorMaxReached(maxReached, s);
+    editorStepRef.current = s;
+    editorMaxReachedRef.current = m;
+    setEditorStep(s);
+    setEditorMaxReached(m);
+  }, []);
+
+  const applyDraftPayload = useCallback(
+    (d: AutosNegociosDraftV1) => {
+      setVehicleTitleOverride(d.vehicleTitleOverride);
+      setListing(safeNormalizeAutosDraftListing(d.listing, "negocios"));
+      applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
+    },
+    [applyEditorProgress],
+  );
 
   const hydrateFromNamespace = useCallback(async (namespace: string) => {
     migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
     const d = await loadAutosNegociosDraftResolved(namespace);
     if (d) {
-      setVehicleTitleOverride(d.vehicleTitleOverride);
-      setListing(safeNormalizeAutosDraftListing(d.listing, "negocios"));
+      applyDraftPayload(d);
     } else {
       setVehicleTitleOverride(false);
       setListing(createEmptyListing());
+      applyEditorProgress(0, 0);
     }
-  }, []);
+  }, [applyDraftPayload, applyEditorProgress]);
 
   const emptyListing = useCallback(() => {
     setVehicleTitleOverride(false);
     setListing(createEmptyListing());
-  }, []);
+    applyEditorProgress(0, 0);
+  }, [applyEditorProgress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +130,12 @@ export function useAutoDealerDraft() {
       /** Preview return or publish confirm — always restore persisted draft. */
       if (confirmRoute || resume) {
         await hydrateFromNamespace(ns);
+        if (resume) {
+          const d = await loadAutosNegociosDraftResolved(ns);
+          if (d && d.editorStep === undefined) {
+            applyEditorProgress(AUTOS_PUBLISH_FINAL_STEP_INDEX, AUTOS_PUBLISH_FINAL_STEP_INDEX);
+          }
+        }
         if (!cancelled) setHydrated(true);
         return;
       }
@@ -109,8 +145,7 @@ export function useAutoDealerDraft() {
         writeInventoryAddContextToSession(inventoryAdd.context);
         const existing = await loadAutosNegociosDraftResolved(ns);
         if (existing) {
-          setVehicleTitleOverride(existing.vehicleTitleOverride);
-          setListing(safeNormalizeAutosDraftListing(existing.listing, "negocios"));
+          applyDraftPayload(existing);
           if (!cancelled) setHydrated(true);
           return;
         }
@@ -191,7 +226,7 @@ export function useAutoDealerDraft() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [pathname, hydrateFromNamespace, emptyListing]);
+  }, [pathname, hydrateFromNamespace, emptyListing, applyDraftPayload, applyEditorProgress]);
 
   const setListingPatch = useCallback(
     (patch: Partial<AutoDealerListing>) => {
@@ -260,21 +295,31 @@ export function useAutoDealerDraft() {
     }
   }, []);
 
-  const flushDraft = useCallback(async () => {
+  const flushDraft = useCallback(async (opts?: { editorStep?: number; editorMaxReached?: number }) => {
     const ns = namespaceRef.current;
     if (!ns) return;
     rememberAutosDraftNamespaceHint("negocios", ns);
     const merged = normalizeLoadedListing(listingRef.current);
     const withTitle = applyAutoTitle(merged, overrideRef.current);
     const normalized = normalizeLoadedListing(withTitle);
+    const step =
+      opts?.editorStep !== undefined ? clampAutosEditorStep(opts.editorStep) : editorStepRef.current;
+    const max =
+      opts?.editorMaxReached !== undefined
+        ? clampAutosEditorMaxReached(opts.editorMaxReached, step)
+        : editorMaxReachedRef.current;
+    editorStepRef.current = step;
+    editorMaxReachedRef.current = max;
     await saveAutosNegociosDraftResolved(ns, {
       v: 1,
       vehicleTitleOverride: overrideRef.current,
       listing: normalized,
+      editorStep: step,
+      editorMaxReached: max,
     });
   }, []);
 
-  useAutosDraftPersistEffects(hydrated, flushDraft, [listing, vehicleTitleOverride]);
+  useAutosDraftPersistEffects(hydrated, flushDraft, [listing, vehicleTitleOverride, editorStep, editorMaxReached]);
 
   const inventoryAdd = inventoryAddFromLocation();
 
@@ -291,5 +336,8 @@ export function useAutoDealerDraft() {
     removeDealerHourRow,
     inventoryAddMode: inventoryAdd.inventoryModeAdd,
     inventoryAddContext: inventoryAdd.context,
+    editorStep,
+    editorMaxReached,
+    setEditorProgress: applyEditorProgress,
   };
 }

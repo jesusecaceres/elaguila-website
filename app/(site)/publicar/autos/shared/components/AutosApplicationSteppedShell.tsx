@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutosPreviewLane } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import {
+  clampAutosEditorMaxReached,
+  clampAutosEditorStep,
+} from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { getAutosApplicationStepShellCopy } from "../lib/autosApplicationStepShellCopy";
 
 const BTN_NAV =
@@ -30,6 +34,10 @@ type Props = {
   topActions: (ctx: AutosApplicationStepContext) => ReactNode;
   /** Step indices that still have blocking completeness gaps (for subtle nav hints). */
   stepBlockWarnings?: readonly number[];
+  /** Restored from draft on hydrate / preview return. */
+  initialStep?: number;
+  initialMaxReached?: number;
+  onStepChange?: (activeStep: number, maxReached: number) => void;
   children: (ctx: AutosApplicationStepContext) => ReactNode;
 };
 
@@ -40,37 +48,63 @@ export function AutosApplicationSteppedShell({
   header,
   topActions,
   stepBlockWarnings,
+  initialStep = 0,
+  initialMaxReached,
+  onStepChange,
   children,
 }: Props) {
   const stepSelectId = useId();
   const copy = useMemo(() => getAutosApplicationStepShellCopy(lang), [lang]);
   const stepCount = stepLabels.length;
-  const [activeStep, setActiveStep] = useState(0);
-  const [maxReached, setMaxReached] = useState(0);
+  const [activeStep, setActiveStep] = useState(() => clampAutosEditorStep(initialStep, stepCount));
+  const [maxReached, setMaxReached] = useState(() =>
+    clampAutosEditorMaxReached(initialMaxReached ?? initialStep, initialStep, stepCount),
+  );
+
+  useEffect(() => {
+    const s = clampAutosEditorStep(initialStep, stepCount);
+    const m = clampAutosEditorMaxReached(initialMaxReached ?? s, s, stepCount);
+    setActiveStep(s);
+    setMaxReached((prev) => Math.max(prev, m));
+  }, [initialStep, initialMaxReached, stepCount]);
+
+  const notifyStep = useCallback(
+    (step: number, max: number) => {
+      onStepChange?.(step, max);
+    },
+    [onStepChange],
+  );
 
   const goNext = useCallback(() => {
-    setActiveStep((s) => {
-      const n = Math.min(s + 1, stepCount - 1);
-      setMaxReached((m) => Math.max(m, n));
-      return n;
-    });
-  }, [stepCount]);
+    const n = Math.min(activeStep + 1, stepCount - 1);
+    const mx = Math.max(maxReached, n);
+    setActiveStep(n);
+    setMaxReached(mx);
+    notifyStep(n, mx);
+  }, [activeStep, maxReached, stepCount, notifyStep]);
 
   const goPrev = useCallback(() => {
-    setActiveStep((s) => Math.max(0, s - 1));
-  }, []);
+    const n = Math.max(0, activeStep - 1);
+    setActiveStep(n);
+    notifyStep(n, maxReached);
+  }, [activeStep, maxReached, notifyStep]);
 
   const goToStep = useCallback(
     (index: number, opts?: AutosGoToStepOptions) => {
       if (index < 0 || index >= stepCount) return;
       if (opts?.bypassMax) {
-        setMaxReached((m) => Math.max(m, index));
+        const mx = Math.max(maxReached, index);
+        setMaxReached(mx);
         setActiveStep(index);
+        notifyStep(index, mx);
         return;
       }
-      if (index <= maxReached) setActiveStep(index);
+      if (index <= maxReached) {
+        setActiveStep(index);
+        notifyStep(index, maxReached);
+      }
     },
-    [maxReached, stepCount],
+    [maxReached, stepCount, notifyStep],
   );
 
   const ctx = useMemo<AutosApplicationStepContext>(
@@ -205,9 +239,11 @@ export function AutosApplicationSteppedShell({
               <button type="button" className={BTN_NAV} onClick={goPrev} disabled={activeStep === 0}>
                 {copy.previous}
               </button>
-              <button type="button" className={BTN_NAV_PRIMARY} onClick={goNext} disabled={activeStep >= stepCount - 1}>
-                {copy.next}
-              </button>
+              {activeStep < stepCount - 1 ? (
+                <button type="button" className={BTN_NAV_PRIMARY} onClick={goNext}>
+                  {copy.next}
+                </button>
+              ) : null}
             </footer>
           </div>
         </div>

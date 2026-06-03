@@ -112,9 +112,17 @@ export type AutosNegociosCopy = {
     pickerHint: string;
     /** Explains multi-select in picker; some mobile OSes only return one file per action. */
     pickerMultiNote: string;
+    urlSectionHeading: string;
     singleUrl: string;
     batchUrls: string;
+    addImage: string;
+    addImages: string;
+    urlHelper: string;
+    videoUrlRejected: string;
+    invalidImageUrl: string;
+    /** @deprecated use addImage */
     addUrls: string;
+    /** @deprecated use addImage */
     useLink: string;
     emptyPhotos: string;
     emptyPhotosHint: string;
@@ -307,9 +315,10 @@ const ES: AutosNegociosCopy = {
     },
     placeholders: {
       monthly: "Ej. Desde $450/mes",
-      whatsapp: "+1 408 555 0100",
+      whatsapp: "+1 XXX XXX XXXX",
       https: "https://…",
-      description: "Describe el vehículo con el tono de tu concesionario.",
+      description:
+        "Describe el vehículo, su condición, historial, mejoras o detalles importantes para el comprador.",
       city: "Escribe y elige una ciudad",
       zip: "Ej. 95112",
     },
@@ -456,10 +465,16 @@ const ES: AutosNegociosCopy = {
     pickerHint: "Se abrirá el selector de archivos del sistema.",
     pickerMultiNote:
       "En escritorio puedes elegir varias fotos a la vez. En algunos teléfonos el selector solo permite una por vez: vuelve a pulsar «Añadir fotos» para más.",
-    singleUrl: "Enlace de una imagen",
-    batchUrls: "Varias URLs (una por línea)",
-    addUrls: "Agregar URLs",
-    useLink: "Usar este enlace",
+    singleUrl: "Enlace directo de una imagen",
+    batchUrls: "Varias URLs de imágenes, una por línea",
+    urlSectionHeading: "Agregar fotos por URL",
+    addImage: "Agregar imagen",
+    addImages: "Agregar imágenes",
+    urlHelper: "Usa enlaces directos a imágenes. Para videos, usa la sección Video / recorrido.",
+    videoUrlRejected: "Este enlace parece ser de video. Agrégalo en la sección Video / recorrido.",
+    invalidImageUrl: "No pudimos agregar esta imagen. Usa un enlace directo a una imagen válida.",
+    addUrls: "Agregar imágenes",
+    useLink: "Agregar imagen",
     emptyPhotos: "Aún no hay fotos en el borrador",
     emptyPhotosHint: "Usa «Añadir fotos» o suelta archivos en el área de arriba.",
     principal: "Principal",
@@ -714,9 +729,10 @@ const EN: AutosNegociosCopy = {
     },
     placeholders: {
       monthly: "e.g. From $450/mo",
-      whatsapp: "+1 408 555 0100",
+      whatsapp: "+1 XXX XXX XXXX",
       https: "https://…",
-      description: "Describe the vehicle in your dealership’s voice.",
+      description:
+        "Describe the vehicle, its condition, history, upgrades, or other important details for the buyer.",
       city: "Type and pick a city",
       zip: "e.g. 95112",
     },
@@ -858,10 +874,16 @@ const EN: AutosNegociosCopy = {
     pickerHint: "Your system file picker will open.",
     pickerMultiNote:
       "On desktop you can pick several photos at once. Some phones only allow one file per pick—tap “Add photos” again to add more.",
-    singleUrl: "Image URL",
-    batchUrls: "Multiple URLs (one per line)",
-    addUrls: "Add URLs",
-    useLink: "Use this link",
+    singleUrl: "Direct image URL",
+    batchUrls: "Multiple image URLs, one per line",
+    urlSectionHeading: "Add photos by URL",
+    addImage: "Add image",
+    addImages: "Add images",
+    urlHelper: "Use direct image links. For videos, use the Video / walkthrough section.",
+    videoUrlRejected: "This looks like a video link. Add it in the Video / walkthrough section.",
+    invalidImageUrl: "We could not add this image. Use a direct link to a valid image.",
+    addUrls: "Add images",
+    useLink: "Add image",
     emptyPhotos: "No photos in the draft yet",
     emptyPhotosHint: "Use “Add photos” or drop files in the area above.",
     principal: "Primary",

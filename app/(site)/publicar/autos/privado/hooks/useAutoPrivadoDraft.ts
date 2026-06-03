@@ -22,6 +22,12 @@ import {
 } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 import { useAutosDraftPersistEffects } from "@/app/lib/clasificados/autos/useAutosDraftPersistEffects";
 import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import {
+  clampAutosEditorMaxReached,
+  clampAutosEditorStep,
+  AUTOS_PUBLISH_FINAL_STEP_INDEX,
+} from "@/app/lib/clasificados/autos/autosEditorDraftStep";
+import type { AutosPrivadoDraftV1 } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftStorage";
 
 /** Privado: canonical public title always follows structured year / make / model / trim. */
 function applyPrivadoCanonicalTitle(listing: AutoDealerListing): AutoDealerListing {
@@ -48,22 +54,46 @@ export function useAutoPrivadoDraft() {
 
   const namespaceRef = useRef<string | null>(null);
   const listingRef = useRef(listing);
+  const editorStepRef = useRef(0);
+  const editorMaxReachedRef = useRef(0);
+  const [editorStep, setEditorStep] = useState(0);
+  const [editorMaxReached, setEditorMaxReached] = useState(0);
+
   useLayoutEffect(() => {
     listingRef.current = listing;
   }, [listing]);
 
+  const applyEditorProgress = useCallback((step: number, maxReached: number) => {
+    const s = clampAutosEditorStep(step);
+    const m = clampAutosEditorMaxReached(maxReached, s);
+    editorStepRef.current = s;
+    editorMaxReachedRef.current = m;
+    setEditorStep(s);
+    setEditorMaxReached(m);
+  }, []);
+
+  const applyDraftPayload = useCallback(
+    (d: AutosPrivadoDraftV1) => {
+      setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
+      applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
+    },
+    [applyEditorProgress],
+  );
+
   const hydrateFromNamespace = useCallback(async (namespace: string) => {
     const d = await loadAutosPrivadoDraftResolved(namespace);
     if (d) {
-      setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
+      applyDraftPayload(d);
     } else {
       setListing({ ...createEmptyListing(), autosLane: "privado" });
+      applyEditorProgress(0, 0);
     }
-  }, []);
+  }, [applyDraftPayload, applyEditorProgress]);
 
   const emptyPrivado = useCallback(() => {
     setListing({ ...createEmptyListing(), autosLane: "privado" });
-  }, []);
+    applyEditorProgress(0, 0);
+  }, [applyEditorProgress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +109,12 @@ export function useAutoPrivadoDraft() {
 
       if (confirmRoute || resume) {
         await hydrateFromNamespace(ns);
+        if (resume) {
+          const d = await loadAutosPrivadoDraftResolved(ns);
+          if (d && d.editorStep === undefined) {
+            applyEditorProgress(AUTOS_PUBLISH_FINAL_STEP_INDEX, AUTOS_PUBLISH_FINAL_STEP_INDEX);
+          }
+        }
         if (!cancelled) setHydrated(true);
         return;
       }
@@ -117,7 +153,7 @@ export function useAutoPrivadoDraft() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [pathname, hydrateFromNamespace, emptyPrivado]);
+  }, [pathname, hydrateFromNamespace, emptyPrivado, applyEditorProgress]);
 
   const setListingPatch = useCallback((patch: Partial<AutoDealerListing>) => {
     setListing((prev) => {
@@ -142,23 +178,34 @@ export function useAutoPrivadoDraft() {
     const empty = { ...createEmptyListing(), autosLane: "privado" as const };
     listingRef.current = empty;
     setListing(empty);
-  }, []);
+    applyEditorProgress(0, 0);
+  }, [applyEditorProgress]);
 
-  const flushDraft = useCallback(async () => {
+  const flushDraft = useCallback(async (opts?: { editorStep?: number; editorMaxReached?: number }) => {
     const ns = namespaceRef.current;
     if (!ns) return;
     rememberAutosDraftNamespaceHint("privado", ns);
     const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
     const withTitle = applyPrivadoCanonicalTitle(merged);
     const normalized = normalizeLoadedListing(withTitle);
+    const step =
+      opts?.editorStep !== undefined ? clampAutosEditorStep(opts.editorStep) : editorStepRef.current;
+    const max =
+      opts?.editorMaxReached !== undefined
+        ? clampAutosEditorMaxReached(opts.editorMaxReached, step)
+        : editorMaxReachedRef.current;
+    editorStepRef.current = step;
+    editorMaxReachedRef.current = max;
     await saveAutosPrivadoDraftResolved(ns, {
       v: 1,
       vehicleTitleOverride: false,
       listing: normalized,
+      editorStep: step,
+      editorMaxReached: max,
     });
   }, []);
 
-  useAutosDraftPersistEffects(hydrated, flushDraft, [listing]);
+  useAutosDraftPersistEffects(hydrated, flushDraft, [listing, editorStep, editorMaxReached]);
 
   return {
     hydrated,
@@ -166,5 +213,8 @@ export function useAutoPrivadoDraft() {
     setListingPatch,
     resetDraft,
     flushDraft,
+    editorStep,
+    editorMaxReached,
+    setEditorProgress: applyEditorProgress,
   };
 }

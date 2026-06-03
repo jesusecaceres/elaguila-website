@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import type { HomeMarketingResolved } from "@/app/lib/siteSectionContent/homeMarketingMerge";
+import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import { HomeDestacadosSection } from "./HomeDestacadosSection";
 import { getPopulatedFeaturedBusinesses } from "./homeFeaturedBusinesses";
 import { HOME_PAGE_COPY, type HomePageLang } from "./homePageCopy";
@@ -38,9 +39,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   const withLang = (href: string) => injectLang(href) || `${href.split("?")[0]}?lang=${lang}`;
 
   const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
-  const advertiseHref =
-    injectLang(content.ctaSecondaryHref) ||
-    `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
+  const advertiseOverrideHref = injectLang(content.ctaSecondaryHref);
 
   const announcementText = L.announcement.trim();
   const showAnnouncement = content.modules.showAnnouncement && announcementText.length > 0;
@@ -96,12 +95,16 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
               </a>
 
               {content.modules.showSecondaryLine ? (
-                <a
-                  href={advertiseHref}
-                  className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] sm:text-[0.9375rem]"
-                >
-                  {L.ctaSecondary}
-                </a>
+                advertiseOverrideHref ? (
+                  <a
+                    href={advertiseOverrideHref}
+                    className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] sm:text-[0.9375rem]"
+                  >
+                    {L.ctaSecondary}
+                  </a>
+                ) : (
+                  <AdvertiseDropdown lang={lang} variant="outline" buttonLabel={L.ctaSecondary} />
+                )
               ) : null}
             </div>
 
@@ -156,7 +159,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
         </div>
       </section>
 
-      <HomeDestacadosSection lang={lang} businesses={featuredBusinesses} advertiseHref={advertiseHref} />
+      <HomeDestacadosSection lang={lang} businesses={featuredBusinesses} />
 
       {/* Ecosystem */}
       <section className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/50 py-12 sm:py-14" aria-labelledby="home-ecosystem-title">
@@ -254,12 +257,20 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
             </form>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <a
-                href={advertiseHref}
-                className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/60 bg-transparent px-6 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#C9A84A]/15"
-              >
-                {pageCopy.convert.advertiseCta}
-              </a>
+              {advertiseOverrideHref ? (
+                <a
+                  href={advertiseOverrideHref}
+                  className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/60 bg-transparent px-6 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#C9A84A]/15"
+                >
+                  {pageCopy.convert.advertiseCta}
+                </a>
+              ) : (
+                <AdvertiseDropdown
+                  lang={lang}
+                  variant="onDark"
+                  buttonLabel={pageCopy.convert.advertiseCta}
+                />
+              )}
               <a
                 href={withLang("/contacto")}
                 className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[#FFFDF7]/10 px-6 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#FFFDF7]/20"

@@ -22,6 +22,9 @@ export type AutosNegociosDraftV1 = {
   /** When true, auto title from Y/M/M/T is disabled. */
   vehicleTitleOverride: boolean;
   listing: AutoDealerListing;
+  /** Stepped shell index (0-based). Paso 7 = 6. */
+  editorStep?: number;
+  editorMaxReached?: number;
 };
 
 export function isAutosNegociosDraftV1(x: unknown): x is AutosNegociosDraftV1 {
@@ -40,6 +43,8 @@ function coerceLooseAutosNegociosDraftV1(parsed: unknown): AutosNegociosDraftV1 
     v: 1,
     vehicleTitleOverride,
     listing: safeNormalizeAutosDraftListing(o.listing, "negocios"),
+    editorStep: typeof o.editorStep === "number" ? o.editorStep : undefined,
+    editorMaxReached: typeof o.editorMaxReached === "number" ? o.editorMaxReached : undefined,
   };
 }
 

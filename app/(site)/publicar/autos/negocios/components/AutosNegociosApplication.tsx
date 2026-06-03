@@ -49,6 +49,7 @@ import {
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -99,6 +100,9 @@ export function AutosNegociosApplication() {
     removeDealerHourRow,
     inventoryAddMode,
     inventoryAddContext,
+    editorStep,
+    editorMaxReached,
+    setEditorProgress,
   } = useAutoDealerDraft();
 
   const autoTitlePreview = useMemo(
@@ -131,8 +135,8 @@ export function AutosNegociosApplication() {
   const inventoryBanner =
     inventoryAddMode && inventoryAddContext
       ? lang === "es"
-        ? "Estás agregando un vehículo al inventario del dealer. Los datos del negocio se precargaron; completa la información del vehículo."
-        : "You are adding a vehicle to the dealer inventory. Business details were prefilled; complete the vehicle information."
+        ? "Vehículo adicional del inventario — Estás agregando un vehículo adicional al inventario. Este vehículo tendrá su propia ficha, su propio Leonix Ad ID y aparecerá en búsqueda/resultados. También se mostrará como parte del inventario del dealer."
+        : "Additional inventory vehicle — You are adding an additional inventory vehicle. This vehicle gets its own listing, its own Leonix Ad ID, and appears in search/results. It will also show as part of the dealer inventory."
       : null;
 
   function toggleBadge(key: VehicleBadge) {
@@ -155,6 +159,9 @@ export function AutosNegociosApplication() {
       lane="negocios"
       stepLabels={stepLabels}
       stepBlockWarnings={stepBlockWarnings}
+      initialStep={editorStep}
+      initialMaxReached={editorMaxReached}
+      onStepChange={setEditorProgress}
       header={
         <header className="mb-6 sm:mb-7">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
@@ -927,6 +934,7 @@ export function AutosNegociosApplication() {
             {!inventoryAddMode ? (
               <AutosNegociosInventoryValueModule
                 lang={lang}
+                prePublishMode
                 parentListingId={inventoryAddContext?.parentListingId ?? null}
                 dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
                 flushDraft={flushDraft}
@@ -951,8 +959,12 @@ export function AutosNegociosApplication() {
               inventoryAddMode={inventoryAddMode}
               inventoryAddContext={inventoryAddContext}
               onPreview={async () => {
-                // A5.1: explicit save-before-preview — preview hydrates from localStorage/IDB, not React state.
-                await flushDraft();
+                const finalStep = AUTOS_PUBLISH_FINAL_STEP_INDEX;
+                setEditorProgress(finalStep, Math.max(editorMaxReached, finalStep));
+                await flushDraft({
+                  editorStep: finalStep,
+                  editorMaxReached: Math.max(editorMaxReached, finalStep),
+                });
                 router.push(previewHref);
               }}
               onDeleteApplication={resetDraft}

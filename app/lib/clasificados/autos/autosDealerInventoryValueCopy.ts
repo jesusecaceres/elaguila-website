@@ -8,7 +8,19 @@ import {
 import { autosDealerInventoryDrawerUpgradeLine } from "./autosDealerInventoryDrawerCopy";
 
 export function autosDealerInventoryValueTitle(lang: AutosClassifiedsLang): string {
-  return lang === "es" ? "Inventario Autos Negocio" : "Autos Negocio inventory";
+  return lang === "es" ? "Inventario Autos Negocio" : "Autos Business Inventory";
+}
+
+export function autosDealerInventoryValueMainVehicleLine(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Este vehículo será el vehículo principal del dealer."
+    : "This vehicle will be the dealer's main vehicle.";
+}
+
+export function autosDealerInventoryValueAfterPublishLine(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Después de publicar el anuncio principal, podrás agregar vehículos adicionales al inventario del dealer."
+    : "After publishing the main listing, you can add more vehicles to the dealer inventory.";
 }
 
 export function autosDealerInventoryValueLead(lang: AutosClassifiedsLang): string {

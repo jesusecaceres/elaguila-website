@@ -19,6 +19,7 @@ import {
   publicNavLabel,
   type PublicNavLang,
 } from "../lib/publicNavConfig";
+import { AdvertiseDropdown } from "./AdvertiseDropdown";
 
 type Lang = PublicNavLang;
 
@@ -173,8 +174,6 @@ function NavbarContent() {
     const q = next.toString();
     router.push(q ? `${pathname}?${q}` : pathname);
   };
-
-  const advertiseHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
 
   const currentPathWithQuery = useMemo(() => {
     const q = searchParams?.toString() ?? "";
@@ -395,12 +394,14 @@ function NavbarContent() {
   };
 
   const advertiseCta = (
-    <Link
-      href={advertiseHref}
-      className="hidden shrink-0 min-h-[2rem] items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-[#FFFDF7] shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs lg:inline-flex"
-    >
-      {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
-    </Link>
+    <AdvertiseDropdown
+      lang={lang}
+      variant="navbar"
+      align="right"
+      buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
+      className="hidden lg:block"
+      onNavigate={() => setMobileOpen(false)}
+    />
   );
 
   return (
@@ -641,13 +642,13 @@ function NavbarContent() {
             </div>
 
             <div className="shrink-0 space-y-3 border-t border-[#D6C7AD]/60 px-4 py-4">
-              <Link
-                href={advertiseHref}
-                onClick={() => setMobileOpen(false)}
-                className="flex w-full items-center justify-center rounded-full bg-[#7A1E2C] px-4 py-3 text-sm font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)]"
-              >
-                {publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
-              </Link>
+              <AdvertiseDropdown
+                lang={lang}
+                variant="primary"
+                fullWidth
+                buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
+                onNavigate={() => setMobileOpen(false)}
+              />
 
               {authLoading ? (
                 <div className="h-10 animate-pulse rounded-xl bg-[#D6C7AD]/30" />

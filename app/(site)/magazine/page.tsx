@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { PublicMagazineManifest } from "@/app/lib/magazine/magazineManifestTypes";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -246,8 +247,6 @@ export default function MagazineHubPage() {
     [manifest]
   );
 
-  const advertiseHref = `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar/en-venta?lang=${lang}`)}`;
-
   const openFlipbook = useCallback((url?: string | null) => {
     setFlipSrc((url && url.trim()) || DEFAULT_FLIPBOOK);
     setFlipOpen(true);
@@ -453,12 +452,7 @@ export default function MagazineHubPage() {
                 {t.advertiseTitle}
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#EDE6D6] sm:text-base">{t.advertiseBody}</p>
-              <Link
-                href={advertiseHref}
-                className="mt-6 inline-flex min-h-[2.875rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.5)] transition hover:bg-[#5e1721]"
-              >
-                {t.advertiseCta}
-              </Link>
+              <AdvertiseDropdown lang={lang} variant="primary" buttonLabel={t.advertiseCta} className="mt-6" />
             </section>
           </div>
         )}

@@ -15,6 +15,8 @@ export type AutosPrivadoDraftV1 = {
   v: 1;
   vehicleTitleOverride: boolean;
   listing: AutoDealerListing;
+  editorStep?: number;
+  editorMaxReached?: number;
 };
 
 export function isAutosPrivadoDraftV1(x: unknown): x is AutosPrivadoDraftV1 {
@@ -38,6 +40,8 @@ function coerceLooseAutosPrivadoDraftV1(parsed: unknown): AutosPrivadoDraftV1 | 
     v: 1,
     vehicleTitleOverride,
     listing: safeNormalizePrivadoListing(o.listing),
+    editorStep: typeof o.editorStep === "number" ? o.editorStep : undefined,
+    editorMaxReached: typeof o.editorMaxReached === "number" ? o.editorMaxReached : undefined,
   };
 }
 

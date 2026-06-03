@@ -6,16 +6,19 @@ import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/au
 import {
   autosDealerInventoryAddTenSlotsCta,
   autosDealerInventoryAddVehicleCta,
+  autosDealerInventoryValueAfterPublishLine,
   autosDealerInventoryValueBoost,
   autosDealerInventoryValueBullets,
   autosDealerInventoryValueDetail,
   autosDealerInventoryValueLead,
+  autosDealerInventoryValueMainVehicleLine,
   autosDealerInventoryValueTitle,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
 import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { summarizeDealerInventory, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
 import { AutosNegociosInventoryBoostTrigger } from "./AutosNegociosInventoryBoostTrigger";
+import { AutosNegociosPrePublishInventoryTrigger } from "./AutosNegociosPrePublishInventoryTrigger";
 import type { AutosInventoryBoostEditorContext } from "./AutosNegociosInventoryBoostPanel";
 
 const INVENTORY_BOOST_APPROACHING_SLOTS = 2;
@@ -26,6 +29,7 @@ export function AutosNegociosInventoryValueModule({
   dealerInventoryGroupId,
   atLimit = false,
   showAddCta = true,
+  prePublishMode = false,
   dealerInventoryCounts = null,
   flushDraft,
   boostEditorContext,
@@ -35,6 +39,8 @@ export function AutosNegociosInventoryValueModule({
   dealerInventoryGroupId?: string | null;
   atLimit?: boolean;
   showAddCta?: boolean;
+  /** Paso 7 before main listing exists — show inventory card + safe pre-publish drawer. */
+  prePublishMode?: boolean;
   dealerInventoryCounts?: AutosDealerInventoryCount | null;
   flushDraft?: () => Promise<void>;
   boostEditorContext?: AutosInventoryBoostEditorContext;
@@ -71,7 +77,8 @@ export function AutosNegociosInventoryValueModule({
 
   const counts = fetchedCounts ?? summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
   const limitReached = atLimit || !counts.canAddActiveVehicle;
-  const showBoostCta = limitReached || counts.remainingSlots <= INVENTORY_BOOST_APPROACHING_SLOTS;
+  const showBoostCta =
+    prePublishMode || limitReached || counts.remainingSlots <= INVENTORY_BOOST_APPROACHING_SLOTS;
 
   const addCtx = useMemo(() => {
     if (!parentListingId?.trim()) return null;
@@ -95,7 +102,13 @@ export function AutosNegociosInventoryValueModule({
       <p className="mt-2 text-sm font-semibold leading-relaxed text-[color:var(--lx-text)]">
         {autosDealerInventoryValueLead(lang)}
       </p>
+      <p className="mt-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+        {autosDealerInventoryValueMainVehicleLine(lang)}
+      </p>
       <p className="mt-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{autosDealerInventoryValueDetail(lang)}</p>
+      <p className="mt-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+        {autosDealerInventoryValueAfterPublishLine(lang)}
+      </p>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{autosDealerInventoryValueBoost(lang)}</p>
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {bullets.map((line) => (
@@ -108,15 +121,22 @@ export function AutosNegociosInventoryValueModule({
         ))}
       </ul>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {addCtx && showAddCta && counts.canAddActiveVehicle ? (
-          <AutosNegociosInventoryValueDrawerTrigger
-            lang={lang}
-            addCtx={addCtx}
-            counts={counts}
-            label={autosDealerInventoryAddVehicleCta(lang)}
-            flushDraft={flushDraft}
-            boostEditorContext={boostContext}
-          />
+        {showAddCta ? (
+          addCtx && counts.canAddActiveVehicle ? (
+            <AutosNegociosInventoryValueDrawerTrigger
+              lang={lang}
+              addCtx={addCtx}
+              counts={counts}
+              label={autosDealerInventoryAddVehicleCta(lang)}
+              flushDraft={flushDraft}
+              boostEditorContext={boostContext}
+            />
+          ) : prePublishMode ? (
+            <AutosNegociosPrePublishInventoryTrigger
+              lang={lang}
+              label={autosDealerInventoryAddVehicleCta(lang)}
+            />
+          ) : null
         ) : null}
         {showBoostCta ? (
           <AutosNegociosInventoryBoostTrigger
