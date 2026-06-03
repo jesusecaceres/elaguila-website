@@ -5,6 +5,7 @@ import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/au
 import {
   autosInventoryBoostCheckoutSoonMessage,
   autosInventoryBoostNoPaymentNote,
+  autosInventoryBoostStripeReturnNote,
   autosInventoryBoostPanelIntro,
   autosInventoryBoostPanelTitle,
   autosInventoryBoostPrepareCta,
@@ -84,6 +85,7 @@ export function AutosNegociosInventoryBoostPanel({ open, onClose, lang, flushDra
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
           <p className="text-sm leading-relaxed text-[#2C2416]">{autosInventoryBoostPanelIntro(lang)}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[#2C2416]">{autosInventoryBoostStripeReturnNote(lang)}</p>
           <ul className="mt-4 space-y-2.5">
             {bullets.map((line) => (
               <li key={line} className="flex gap-2 text-sm text-[#2C2416]">

@@ -18,7 +18,8 @@ import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/aut
 import { summarizeDealerInventory, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
 import { AutosNegociosInventoryBoostTrigger } from "./AutosNegociosInventoryBoostTrigger";
-import { AutosNegociosPrePublishInventoryTrigger } from "./AutosNegociosPrePublishInventoryTrigger";
+import { AutosNegociosAddInventoryTrigger } from "./AutosNegociosAddInventoryTrigger";
+import type { AutosAdditionalInventoryVehicleInput } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutosInventoryBoostEditorContext } from "./AutosNegociosInventoryBoostPanel";
 
 const INVENTORY_BOOST_APPROACHING_SLOTS = 2;
@@ -33,6 +34,8 @@ export function AutosNegociosInventoryValueModule({
   dealerInventoryCounts = null,
   flushDraft,
   boostEditorContext,
+  additionalInventoryCount = 0,
+  onSaveAdditionalVehicle,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
@@ -44,6 +47,8 @@ export function AutosNegociosInventoryValueModule({
   dealerInventoryCounts?: AutosDealerInventoryCount | null;
   flushDraft?: () => Promise<void>;
   boostEditorContext?: AutosInventoryBoostEditorContext;
+  additionalInventoryCount?: number;
+  onSaveAdditionalVehicle?: (input: AutosAdditionalInventoryVehicleInput) => boolean;
 }) {
   const bullets = autosDealerInventoryValueBullets(lang);
   const [fetchedCounts, setFetchedCounts] = useState<AutosDealerInventoryCount | null>(dealerInventoryCounts);
@@ -131,10 +136,13 @@ export function AutosNegociosInventoryValueModule({
               flushDraft={flushDraft}
               boostEditorContext={boostContext}
             />
-          ) : prePublishMode ? (
-            <AutosNegociosPrePublishInventoryTrigger
+          ) : prePublishMode && onSaveAdditionalVehicle ? (
+            <AutosNegociosAddInventoryTrigger
               lang={lang}
               label={autosDealerInventoryAddVehicleCta(lang)}
+              additionalCount={additionalInventoryCount}
+              onSave={onSaveAdditionalVehicle}
+              flushDraft={flushDraft}
             />
           ) : null
         ) : null}

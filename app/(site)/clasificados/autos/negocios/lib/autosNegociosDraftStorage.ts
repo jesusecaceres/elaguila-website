@@ -10,6 +10,10 @@ import {
   stripUnresolvedIdbRefsFromListing,
 } from "./autosNegociosDraftIdbRefs";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import {
+  normalizeAdditionalInventoryVehicles,
+  type AutosAdditionalInventoryVehicleDraft,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 /** @deprecated Use `LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY` or `storageEventAffectsAutosNegociosDraft`. */
 export const AUTOS_NEGOCIOS_DRAFT_KEY = LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY;
@@ -25,6 +29,8 @@ export type AutosNegociosDraftV1 = {
   /** Stepped shell index (0-based). Paso 7 = 6. */
   editorStep?: number;
   editorMaxReached?: number;
+  /** Additional vehicles bundled with the same application (not published alone). */
+  additionalInventoryVehicles?: AutosAdditionalInventoryVehicleDraft[];
 };
 
 export function isAutosNegociosDraftV1(x: unknown): x is AutosNegociosDraftV1 {
@@ -45,6 +51,7 @@ function coerceLooseAutosNegociosDraftV1(parsed: unknown): AutosNegociosDraftV1 
     listing: safeNormalizeAutosDraftListing(o.listing, "negocios"),
     editorStep: typeof o.editorStep === "number" ? o.editorStep : undefined,
     editorMaxReached: typeof o.editorMaxReached === "number" ? o.editorMaxReached : undefined,
+    additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(o.additionalInventoryVehicles),
   };
 }
 
@@ -73,6 +80,9 @@ export function loadAutosNegociosDraft(namespace: string): AutosNegociosDraftV1 
         v: 1,
         vehicleTitleOverride: parsed.vehicleTitleOverride,
         listing: safeNormalizeAutosDraftListing(parsed.listing, "negocios"),
+        editorStep: parsed.editorStep,
+        editorMaxReached: parsed.editorMaxReached,
+        additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(parsed.additionalInventoryVehicles),
       };
     }
     return coerceLooseAutosNegociosDraftV1(parsed);

@@ -160,7 +160,7 @@ function run() {
   assert.ok(mediaManager.includes("classifyAutosImageUrlInput"), "Media manager must validate image URLs");
   assert.ok(copy.includes("Agregar fotos por URL"), "ES image URL section heading");
   assert.ok(copy.includes("Add photos by URL"), "EN image URL section heading");
-  assert.ok(fs.existsSync(path.join(ROOT, "app/(site)/publicar/autos/negocios/components/AutosNegociosPrePublishInventoryDrawer.tsx")));
+  assert.ok(fs.existsSync(path.join(ROOT, "app/(site)/publicar/autos/negocios/components/AutosNegociosAddInventoryDrawer.tsx")));
 
   assert.ok(read("app/lib/clasificados/autos/autosDealerInventoryCopy.ts").includes("BASE_AUTOS_NEGOCIO_MONTHLY_USD = 399"));
   assert.ok(read("app/lib/clasificados/autos/autosDealerInventoryCopy.ts").includes("INVENTORY_BOOST_MONTHLY_USD = 129"));

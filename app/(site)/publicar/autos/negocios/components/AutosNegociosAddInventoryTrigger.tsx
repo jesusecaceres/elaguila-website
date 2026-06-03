@@ -2,18 +2,25 @@
 
 import { useState } from "react";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
-import { AutosNegociosPrePublishInventoryDrawer } from "./AutosNegociosPrePublishInventoryDrawer";
+import type { AutosAdditionalInventoryVehicleInput } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import { AutosNegociosAddInventoryDrawer } from "./AutosNegociosAddInventoryDrawer";
 
-export function AutosNegociosPrePublishInventoryTrigger({
+export function AutosNegociosAddInventoryTrigger({
   lang,
   label,
   className = "",
   variant = "primary",
+  additionalCount,
+  onSave,
+  flushDraft,
 }: {
   lang: AutosNegociosLang;
   label: string;
   className?: string;
   variant?: "primary" | "secondary";
+  additionalCount: number;
+  onSave: (input: AutosAdditionalInventoryVehicleInput) => boolean;
+  flushDraft?: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const base =
@@ -26,7 +33,14 @@ export function AutosNegociosPrePublishInventoryTrigger({
       <button type="button" className={`${base} ${className}`.trim()} onClick={() => setOpen(true)}>
         {label}
       </button>
-      <AutosNegociosPrePublishInventoryDrawer open={open} onClose={() => setOpen(false)} lang={lang} />
+      <AutosNegociosAddInventoryDrawer
+        open={open}
+        onClose={() => setOpen(false)}
+        lang={lang}
+        additionalCount={additionalCount}
+        onSave={onSave}
+        flushDraft={flushDraft}
+      />
     </>
   );
 }

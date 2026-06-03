@@ -64,6 +64,8 @@ export function autosInventoryBoostNoPaymentNote(lang: AutosClassifiedsLang): st
     : "No payment is processed and no extra slots are unlocked on this screen.";
 }
 
+export { autosInventoryBoostStripeReturnNote } from "./autosNegociosInventoryBundleCopy";
+
 export function writeAutosInventoryBoostReturnContext(ctx: AutosInventoryBoostReturnContext): void {
   if (typeof window === "undefined") return;
   try {

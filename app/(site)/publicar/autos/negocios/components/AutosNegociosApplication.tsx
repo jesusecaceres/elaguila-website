@@ -32,6 +32,8 @@ import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { AutosNegociosInventoryValueModule } from "./AutosNegociosInventoryValueModule";
+import { AutosNegociosInventoryBundlePreview } from "./AutosNegociosInventoryBundlePreview";
+import { AutosNegociosResultsCardPreview } from "./AutosNegociosResultsCardPreview";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
@@ -103,6 +105,8 @@ export function AutosNegociosApplication() {
     editorStep,
     editorMaxReached,
     setEditorProgress,
+    additionalInventoryVehicles,
+    addAdditionalInventoryVehicle,
   } = useAutoDealerDraft();
 
   const autoTitlePreview = useMemo(
@@ -932,21 +936,39 @@ export function AutosNegociosApplication() {
 
           <div className={activeStep === 6 ? "" : "hidden"} aria-hidden={activeStep !== 6}>
             {!inventoryAddMode ? (
-              <AutosNegociosInventoryValueModule
-                lang={lang}
-                prePublishMode
-                parentListingId={inventoryAddContext?.parentListingId ?? null}
-                dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
-                flushDraft={flushDraft}
-                boostEditorContext={{
-                  editorPath: pathname ?? "",
-                  editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",
-                  activeStep: ctx.activeStep,
-                  parentListingId: inventoryAddContext?.parentListingId ?? null,
-                  returnToListingId: inventoryAddContext?.returnToListingId ?? null,
-                  dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
-                }}
-              />
+              <>
+                <AutosNegociosResultsCardPreview
+                  lang={lang}
+                  listing={listing}
+                  additionalCount={additionalInventoryVehicles.length}
+                />
+                <AutosNegociosInventoryBundlePreview
+                  lang={lang}
+                  listing={listing}
+                  additionalVehicles={additionalInventoryVehicles}
+                />
+                <AutosNegociosInventoryValueModule
+                  lang={lang}
+                  prePublishMode
+                  parentListingId={inventoryAddContext?.parentListingId ?? null}
+                  dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
+                  flushDraft={flushDraft}
+                  additionalInventoryCount={additionalInventoryVehicles.length}
+                  onSaveAdditionalVehicle={(input) => {
+                    const ok = addAdditionalInventoryVehicle(input);
+                    if (ok) void flushDraft();
+                    return ok;
+                  }}
+                  boostEditorContext={{
+                    editorPath: pathname ?? "",
+                    editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",
+                    activeStep: ctx.activeStep,
+                    parentListingId: inventoryAddContext?.parentListingId ?? null,
+                    returnToListingId: inventoryAddContext?.returnToListingId ?? null,
+                    dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
+                  }}
+                />
+              </>
             ) : null}
             <AutosApplicationReviewStep lane="negocios" listing={listing} copy={t} lang={lang} />
             <AutosApplicationFinalActions

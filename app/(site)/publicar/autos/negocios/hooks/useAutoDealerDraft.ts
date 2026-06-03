@@ -35,6 +35,14 @@ import {
   AUTOS_PUBLISH_FINAL_STEP_INDEX,
 } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import type { AutosNegociosDraftV1 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
+import type {
+  AutosAdditionalInventoryVehicleDraft,
+  AutosAdditionalInventoryVehicleInput,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  buildAdditionalInventoryVehicle,
+  normalizeAdditionalInventoryVehicles,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
   if (override) return listing;
@@ -70,6 +78,10 @@ export function useAutoDealerDraft() {
   const editorMaxReachedRef = useRef(0);
   const [editorStep, setEditorStep] = useState(0);
   const [editorMaxReached, setEditorMaxReached] = useState(0);
+  const additionalInventoryRef = useRef<AutosAdditionalInventoryVehicleDraft[]>([]);
+  const [additionalInventoryVehicles, setAdditionalInventoryVehicles] = useState<AutosAdditionalInventoryVehicleDraft[]>(
+    [],
+  );
 
   useLayoutEffect(() => {
     listingRef.current = listing;
@@ -88,6 +100,9 @@ export function useAutoDealerDraft() {
     (d: AutosNegociosDraftV1) => {
       setVehicleTitleOverride(d.vehicleTitleOverride);
       setListing(safeNormalizeAutosDraftListing(d.listing, "negocios"));
+      const additional = normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles);
+      additionalInventoryRef.current = additional;
+      setAdditionalInventoryVehicles(additional);
       applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
     },
     [applyEditorProgress],
@@ -108,6 +123,8 @@ export function useAutoDealerDraft() {
   const emptyListing = useCallback(() => {
     setVehicleTitleOverride(false);
     setListing(createEmptyListing());
+    additionalInventoryRef.current = [];
+    setAdditionalInventoryVehicles([]);
     applyEditorProgress(0, 0);
   }, [applyEditorProgress]);
 
@@ -316,10 +333,36 @@ export function useAutoDealerDraft() {
       listing: normalized,
       editorStep: step,
       editorMaxReached: max,
+      additionalInventoryVehicles: additionalInventoryRef.current,
     });
   }, []);
 
-  useAutosDraftPersistEffects(hydrated, flushDraft, [listing, vehicleTitleOverride, editorStep, editorMaxReached]);
+  const addAdditionalInventoryVehicle = useCallback((input: AutosAdditionalInventoryVehicleInput) => {
+    const built = buildAdditionalInventoryVehicle(input);
+    if (!built) return false;
+    setAdditionalInventoryVehicles((prev) => {
+      const next = [...prev, built];
+      additionalInventoryRef.current = next;
+      return next;
+    });
+    return true;
+  }, []);
+
+  const removeAdditionalInventoryVehicle = useCallback((id: string) => {
+    setAdditionalInventoryVehicles((prev) => {
+      const next = prev.filter((v) => v.id !== id);
+      additionalInventoryRef.current = next;
+      return next;
+    });
+  }, []);
+
+  useAutosDraftPersistEffects(hydrated, flushDraft, [
+    listing,
+    vehicleTitleOverride,
+    editorStep,
+    editorMaxReached,
+    additionalInventoryVehicles,
+  ]);
 
   const inventoryAdd = inventoryAddFromLocation();
 
@@ -339,5 +382,8 @@ export function useAutoDealerDraft() {
     editorStep,
     editorMaxReached,
     setEditorProgress: applyEditorProgress,
+    additionalInventoryVehicles,
+    addAdditionalInventoryVehicle,
+    removeAdditionalInventoryVehicle,
   };
 }

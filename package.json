@@ -70,6 +70,7 @@
     "autos:a5-qa-05-full-recovery-final-audit": "tsx scripts/autos-a5-qa-05-full-recovery-final-audit.ts",
     "autos:a5-qa-06-spacebar-draft-emergency-audit": "tsx scripts/autos-a5-qa-06-spacebar-draft-emergency-audit.ts",
     "autos:a5-qa-07-application-persistence-inventory-truth-audit": "tsx scripts/autos-a5-qa-07-application-persistence-inventory-truth-audit.ts",
+    "autos:a5-qa-08a1-open-inventory-cta-drawer-audit": "tsx scripts/autos-a5-qa-08a1-open-inventory-cta-drawer-audit.ts",
     "autos:a4-0-inventory-sql-audit": "tsx scripts/autos-a4-0-dealer-inventory-sql-contract-audit.ts",
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",
