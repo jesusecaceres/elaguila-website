@@ -201,7 +201,7 @@ export function useAutoDealerDraft() {
           merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
         }
         const next = applyAutoTitle(merged, overrideRef.current);
-        return normalizeLoadedListing(next);
+        return normalizeLoadedListing(next, { liveDraft: true });
       });
     },
     [],
@@ -218,7 +218,7 @@ export function useAutoDealerDraft() {
     setVehicleTitleOverride(v);
     setListing((prev) => {
       const next = applyAutoTitle(prev, v);
-      return normalizeLoadedListing(next);
+      return normalizeLoadedListing(next, { liveDraft: true });
     });
   }, []);
 
@@ -229,7 +229,7 @@ export function useAutoDealerDraft() {
       if (i < 0) return prev;
       rows[i] = { ...rows[i]!, ...patch };
       const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
-      return normalizeLoadedListing(next);
+      return normalizeLoadedListing(next, { liveDraft: true });
     });
   }, []);
 
@@ -239,7 +239,7 @@ export function useAutoDealerDraft() {
       const rows = before.filter((r) => r.rowId !== rowId);
       if (rows.length === before.length) return prev;
       const next = applyAutoTitle({ ...prev, dealerHours: rows }, overrideRef.current);
-      return normalizeLoadedListing(next);
+      return normalizeLoadedListing(next, { liveDraft: true });
     });
   }, []);
 

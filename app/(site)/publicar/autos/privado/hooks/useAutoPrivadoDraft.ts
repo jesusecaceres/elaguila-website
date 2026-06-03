@@ -126,7 +126,7 @@ export function useAutoPrivadoDraft() {
         merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
       }
       const withTitle = applyPrivadoCanonicalTitle(merged);
-      return normalizeLoadedListing(withTitle);
+      return normalizeLoadedListing(withTitle, { liveDraft: true });
     });
   }, []);
 

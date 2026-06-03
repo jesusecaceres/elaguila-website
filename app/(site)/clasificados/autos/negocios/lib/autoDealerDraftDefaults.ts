@@ -139,7 +139,11 @@ function migrateLegacyVideo(raw: Partial<AutoDealerListing>): Partial<AutoDealer
   };
 }
 
-export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefined): AutoDealerListing {
+export function normalizeLoadedListing(
+  raw: Partial<AutoDealerListing> | undefined,
+  opts?: { liveDraft?: boolean },
+): AutoDealerListing {
+  const liveDraft = opts?.liveDraft ?? false;
   const base = createEmptyListing();
   if (!raw) {
     return { ...base, heroImages: deriveHeroImageUrls(base) };
@@ -168,9 +172,9 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     mediaImages: mediaImages ?? [],
     dealerHours,
     dealerSocials: raw.dealerSocials && typeof raw.dealerSocials === "object" ? raw.dealerSocials : base.dealerSocials,
-    googleReviewsUrl: raw.googleReviewsUrl?.trim() || undefined,
-    yelpReviewsUrl: raw.yelpReviewsUrl?.trim() || undefined,
-    dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks),
+    googleReviewsUrl: liveDraft ? raw.googleReviewsUrl || undefined : raw.googleReviewsUrl?.trim() || undefined,
+    yelpReviewsUrl: liveDraft ? raw.yelpReviewsUrl || undefined : raw.yelpReviewsUrl?.trim() || undefined,
+    dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks, { liveDraft }),
     relatedDealerListings: Array.isArray(raw.relatedDealerListings) ? raw.relatedDealerListings : base.relatedDealerListings,
   };
 
@@ -188,12 +192,12 @@ export function normalizeLoadedListing(raw: Partial<AutoDealerListing> | undefin
     merged.dealerPhone = undefined;
   }
 
-  const coerced = coerceVehicleIdentityFromTaxonomy(merged);
+  const coerced = coerceVehicleIdentityFromTaxonomy(merged, { liveDraft });
   merged.make = coerced.make;
   merged.model = coerced.model;
   merged.trim = coerced.trim;
 
-  const engineCoerced = coerceEngineFromCatalog(merged);
+  const engineCoerced = coerceEngineFromCatalog(merged, { liveDraft });
   merged.engine = engineCoerced.engine;
   merged.engineNormalized = engineCoerced.engineNormalized;
 

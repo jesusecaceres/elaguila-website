@@ -1,5 +1,9 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import {
+  autosHasDraftTrailingSpace,
+  autosPreserveDraftTypingValue,
+} from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 /**
  * Curated Autos vehicle taxonomy (US marketplace oriented). Expand by editing `MODELS_BY_MAKE`.
@@ -155,31 +159,50 @@ export function resolveModelToCanonical(make: string | undefined, raw: string | 
  * When load/save normalization: upgrade obvious typos/casing to catalog make/model when unambiguous.
  * Unknown values are preserved (only light trim casing via normalizeVehicleSegment).
  */
-export function coerceVehicleIdentityFromTaxonomy(listing: AutoDealerListing): AutoDealerListing {
-  const makeRaw = listing.make?.trim();
-  const modelRaw = listing.model?.trim();
-  const trimRaw = listing.trim?.trim();
+export function coerceVehicleIdentityFromTaxonomy(
+  listing: AutoDealerListing,
+  opts?: { liveDraft?: boolean },
+): AutoDealerListing {
+  const makeRaw = listing.make;
+  const modelRaw = listing.model;
+  const trimRaw = listing.trim;
 
-  const makeCanon = resolveMakeToCanonical(makeRaw) ?? (makeRaw ? normalizeVehicleSegment(makeRaw) ?? makeRaw : undefined);
-
-  const catalogModels = getModelsForMake(makeCanon ?? makeRaw);
-  let modelOut: string | undefined;
-  if (modelRaw) {
-    if (catalogModels.length > 0) {
-      modelOut =
-        resolveModelToCanonical(makeCanon ?? makeRaw, modelRaw) ??
-        (normalizeVehicleSegment(modelRaw) ?? modelRaw);
-    } else {
-      modelOut = normalizeVehicleSegment(modelRaw) ?? modelRaw;
+  if (opts?.liveDraft) {
+    if (
+      autosHasDraftTrailingSpace(makeRaw) ||
+      autosHasDraftTrailingSpace(modelRaw) ||
+      autosHasDraftTrailingSpace(trimRaw)
+    ) {
+      return listing;
     }
   }
 
-  const trimOut = trimRaw ? normalizeVehicleSegment(trimRaw) ?? trimRaw : undefined;
+  const makeTrimmed = makeRaw?.trim();
+  const modelTrimmed = modelRaw?.trim();
+  const trimTrimmed = trimRaw?.trim();
+
+  const makeCanon =
+    resolveMakeToCanonical(makeTrimmed) ??
+    (makeTrimmed ? normalizeVehicleSegment(makeTrimmed) ?? makeTrimmed : undefined);
+
+  const catalogModels = getModelsForMake(makeCanon ?? makeTrimmed);
+  let modelOut: string | undefined;
+  if (modelTrimmed) {
+    if (catalogModels.length > 0) {
+      modelOut =
+        resolveModelToCanonical(makeCanon ?? makeTrimmed, modelTrimmed) ??
+        (normalizeVehicleSegment(modelTrimmed) ?? modelTrimmed);
+    } else {
+      modelOut = normalizeVehicleSegment(modelTrimmed) ?? modelTrimmed;
+    }
+  }
+
+  const trimOut = trimTrimmed ? normalizeVehicleSegment(trimTrimmed) ?? trimTrimmed : undefined;
 
   return {
     ...listing,
-    make: makeCanon ?? listing.make,
-    model: modelOut ?? listing.model,
-    trim: trimOut ?? listing.trim,
+    make: autosPreserveDraftTypingValue(makeRaw, makeCanon ?? makeTrimmed),
+    model: autosPreserveDraftTypingValue(modelRaw, modelOut ?? modelTrimmed),
+    trim: autosPreserveDraftTypingValue(trimRaw, trimOut ?? trimTrimmed),
   };
 }

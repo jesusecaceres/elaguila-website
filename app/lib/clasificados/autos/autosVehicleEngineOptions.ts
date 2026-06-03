@@ -1,6 +1,10 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { resolveMakeToCanonical, resolveModelToCanonical } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
+import {
+  autosHasDraftTrailingSpace,
+  autosPreserveDraftTypingValue,
+} from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 /** Curated engines (make → model → trim[] → engines). Expand as taxonomy grows. */
 const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, readonly string[]>>> = {
@@ -103,16 +107,36 @@ export function resolveEngineForDisplay(listing: Pick<AutoDealerListing, "engine
 
 export function coerceEngineFromCatalog(
   listing: Pick<AutoDealerListing, "make" | "model" | "trim" | "engine" | "engineNormalized">,
+  opts?: { liveDraft?: boolean },
 ): Pick<AutoDealerListing, "engine" | "engineNormalized"> {
-  const raw = listing.engine?.trim();
-  if (!raw) return { engine: undefined, engineNormalized: undefined };
+  const raw = listing.engine;
+  if (!raw?.trim()) return { engine: undefined, engineNormalized: undefined };
 
-  const catalog = resolveEngineToCatalog(raw);
-  if (catalog) return { engine: catalog, engineNormalized: catalog };
+  if (opts?.liveDraft && autosHasDraftTrailingSpace(raw)) {
+    return { engine: raw, engineNormalized: listing.engineNormalized };
+  }
+
+  const trimmed = raw.trim();
+  const catalog = resolveEngineToCatalog(trimmed);
+  if (catalog) {
+    return {
+      engine: autosPreserveDraftTypingValue(raw, catalog),
+      engineNormalized: catalog,
+    };
+  }
 
   const options = getEngineOptionsForVehicle(listing.make, listing.model, listing.trim);
-  const match = options.find((o) => o.toLowerCase() === raw.toLowerCase());
-  if (match) return { engine: match, engineNormalized: match };
+  const match = options.find((o) => o.toLowerCase() === trimmed.toLowerCase());
+  if (match) {
+    return {
+      engine: autosPreserveDraftTypingValue(raw, match),
+      engineNormalized: match,
+    };
+  }
 
-  return { engine: normalizeVehicleSegment(raw) ?? raw, engineNormalized: undefined };
+  const normalized = normalizeVehicleSegment(trimmed) ?? trimmed;
+  return {
+    engine: autosPreserveDraftTypingValue(raw, normalized),
+    engineNormalized: undefined,
+  };
 }

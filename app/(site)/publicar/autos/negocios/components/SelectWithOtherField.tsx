@@ -1,6 +1,7 @@
 "use client";
 
 import { isOtroIncomplete, SELECT_OTHER_VALUE } from "@/app/clasificados/autos/negocios/lib/autoDealerSelectResolve";
+import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
@@ -59,7 +60,7 @@ export function SelectWithOtherField({
             className={`${INPUT} mt-2`}
             placeholder={customPlaceholder}
             value={customValue ?? ""}
-            onChange={(e) => onChange({ value: SELECT_OTHER_VALUE, custom: e.target.value || undefined })}
+            onChange={(e) => onChange({ value: SELECT_OTHER_VALUE, custom: autosDraftTextValue(e.target.value) })}
           />
           {incomplete ? <p className="mt-1 text-xs text-amber-900/90">{incompleteHint}</p> : null}
         </>
