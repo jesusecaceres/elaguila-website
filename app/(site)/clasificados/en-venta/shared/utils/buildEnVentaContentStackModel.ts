@@ -86,6 +86,36 @@ function assignDeliveryNotesToItems(items: EnVentaDeliveryItem[], notes: string[
   }));
 }
 
+/** Delivery detail notes from publish `detail_pairs` (not merged into `listings.description`). */
+function enrichDeliveryItemsWithLeonixNotePairs(
+  items: EnVentaDeliveryItem[],
+  rows: Array<{ label: string; value: string }>,
+  lang: Lang,
+): EnVentaDeliveryItem[] {
+  const noteKeyByChipLabel: Record<string, string> =
+    lang === "es"
+      ? {
+          "Envío disponible": "Leonix:shippingNotes",
+          "Recogida local": "Leonix:pickupDetailNotes",
+          "Punto de encuentro": "Leonix:meetupDetailNotes",
+          "Entrega local": "Leonix:localDeliveryDetailNotes",
+        }
+      : {
+          "Shipping available": "Leonix:shippingNotes",
+          "Local pickup": "Leonix:pickupDetailNotes",
+          Meetup: "Leonix:meetupDetailNotes",
+          "Local delivery": "Leonix:localDeliveryDetailNotes",
+        };
+
+  return items.map((item) => {
+    const key = noteKeyByChipLabel[item.label];
+    if (!key) return item;
+    const fromPair = machinePairValue(rows, key);
+    if (!fromPair) return item;
+    return { ...item, note: item.note || fromPair };
+  });
+}
+
 export function buildEnVentaContentStackFromDraftState(
   state: EnVentaFreeApplicationState,
   lang: Lang
@@ -168,6 +198,7 @@ export function buildEnVentaContentStackFromLiveListing(input: {
 
   let deliveryItems: EnVentaDeliveryItem[] = deliveryChipLabels.map((label) => ({ label, note: null }));
   deliveryItems = assignDeliveryNotesToItems(deliveryItems, deliveryNotes);
+  deliveryItems = enrichDeliveryItemsWithLeonixNotePairs(deliveryItems, rows, lang);
 
   const conditionAndUse = pairValueByLabelMatch(rows, /condición y uso|condition and use|condition & wear/i) || null;
   const accessories = pairValueByLabelMatch(rows, /accesorios|accessories/i) || null;

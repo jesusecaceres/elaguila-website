@@ -17,6 +17,16 @@ import {
   missingListingsColumnName,
   updateListingsRowResilient,
 } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
+import {
+  mapLeonixListingsDescriptionConstraintToUserMessage,
+  toLeonixListingsDescriptionForDb,
+} from "@/app/clasificados/lib/leonixPublishPublicDescription";
+import {
+  appendEnVentaPhotoDescriptionAppendix,
+  enVentaCanonicalMainDescription,
+  resolveEnVentaPublishDescriptionForDb,
+} from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
+import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -107,30 +117,31 @@ function buildDetailPairs(
       pairs.push({ label: "Leonix:videoUrl", value: external });
     }
   }
+
+  const stackCopy = EN_VENTA_CONTENT_STACK_COPY[lang === "es" ? "es" : "en"];
+  if (state.wearNotes.trim()) {
+    pairs.push({ label: stackCopy.conditionUse, value: state.wearNotes.trim() });
+  }
+  if (state.accessoriesNotes.trim()) {
+    pairs.push({ label: stackCopy.accessories, value: state.accessoriesNotes.trim() });
+  }
+  if (state.itemExtraDetails.trim()) {
+    pairs.push({ label: stackCopy.technical, value: state.itemExtraDetails.trim() });
+  }
+  if (state.shipping && state.shippingNotes.trim()) {
+    pairs.push({ label: "Leonix:shippingNotes", value: state.shippingNotes.trim() });
+  }
+  if (state.pickup && state.pickupDetailNotes.trim()) {
+    pairs.push({ label: "Leonix:pickupDetailNotes", value: state.pickupDetailNotes.trim() });
+  }
+  if (state.meetup && state.meetupDetailNotes.trim()) {
+    pairs.push({ label: "Leonix:meetupDetailNotes", value: state.meetupDetailNotes.trim() });
+  }
+  if (state.localDelivery && state.localDeliveryDetailNotes.trim()) {
+    pairs.push({ label: "Leonix:localDeliveryDetailNotes", value: state.localDeliveryDetailNotes.trim() });
+  }
+
   return pairs;
-}
-
-function buildDescriptionBody(state: EnVentaFreeApplicationState, lang: PublishLang): string {
-  let d = state.description.trim();
-  const extras: string[] = [];
-  if (state.wearNotes.trim()) extras.push(state.wearNotes.trim());
-  if (state.accessoriesNotes.trim()) extras.push(state.accessoriesNotes.trim());
-  if (state.itemExtraDetails.trim()) extras.push(state.itemExtraDetails.trim());
-  if (extras.length) {
-    d = [d, ...extras].filter(Boolean).join("\n\n");
-  }
-
-  const deliveryLines: string[] = [];
-  if (state.shipping && state.shippingNotes.trim()) deliveryLines.push(state.shippingNotes.trim());
-  if (state.pickup && state.pickupDetailNotes.trim()) deliveryLines.push(state.pickupDetailNotes.trim());
-  if (state.meetup && state.meetupDetailNotes.trim()) deliveryLines.push(state.meetupDetailNotes.trim());
-  if (state.localDelivery && state.localDeliveryDetailNotes.trim()) deliveryLines.push(state.localDeliveryDetailNotes.trim());
-  if (deliveryLines.length) {
-    const h = lang === "es" ? "Entrega / logística" : "Delivery / logistics";
-    d = `${d}\n\n${h}:\n${deliveryLines.join("\n")}`.trim();
-  }
-
-  return d.trim();
 }
 
 function resolveMuxVideoCols(state: EnVentaFreeApplicationState) {
@@ -280,7 +291,11 @@ export async function publishEnVentaFromDraft(
   const userId = auth.user.id;
 
   const pairs = buildDetailPairs(state, lang, plan);
-  const descriptionBase = buildDescriptionBody(state, lang);
+  const descResolved = resolveEnVentaPublishDescriptionForDb(enVentaCanonicalMainDescription(state), lang);
+  if (!descResolved.ok) {
+    return { ok: false, error: descResolved.error };
+  }
+  const descriptionForDb = descResolved.descriptionForDb;
   const contact = resolveContactForInsert(state);
 
   const sellerType = mapEnVentaSellerKindToDb(state.seller_kind);
@@ -288,7 +303,7 @@ export async function publishEnVentaFromDraft(
   const insertPayload: Record<string, unknown> = {
     owner_id: userId,
     title: state.title.trim(),
-    description: descriptionBase,
+    description: descriptionForDb,
     city: loc.canonicalCity,
     category: "en-venta",
     price: state.priceIsFree ? 0 : Number(String(state.price).replace(/[^0-9.]/g, "")) || 0,
@@ -326,7 +341,8 @@ export async function publishEnVentaFromDraft(
   }
 
   if (insErr) {
-    return { ok: false, error: insErr.message };
+    const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(insErr, lang);
+    return { ok: false, error: friendly ?? insErr.message };
   }
 
   const listingId = (row as { id?: string } | null)?.id;
@@ -363,25 +379,28 @@ export async function publishEnVentaFromDraft(
     }
 
     if (photoUrls.length) {
-      const marker = `[LEONIX_IMAGES]\n` + photoUrls.map((u) => `url=${u}`).join("\n") + `\n[/LEONIX_IMAGES]`;
-      const appendix =
-        lang === "es"
-          ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n`
-          : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
-      const descriptionForUpdate = `${descriptionBase}${appendix}`.trim();
-      const galleryPatch = { description: descriptionForUpdate, images: photoUrls };
+      const descriptionWithPhotos = appendEnVentaPhotoDescriptionAppendix(descriptionForDb, photoUrls, lang);
+      const galleryPatch: Record<string, unknown> = { images: photoUrls };
+      if (descriptionWithPhotos != null) {
+        galleryPatch.description = descriptionWithPhotos;
+      }
       const galleryUp = await updateListingsRowResilient(supabase, listingId, galleryPatch);
       if (galleryUp.error) {
         await markPublishFailedNonPublic();
-        return { ok: false, error: galleryUp.error.message };
+        const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(galleryUp.error, lang);
+        return { ok: false, error: friendly ?? galleryUp.error.message };
       }
     }
 
     if (plan === "pro" && state.listingVideoUrl.trim() && !state.listingVideoSlots?.[0]?.playbackId) {
       const note = lang === "es" ? `\n\nVideo: ${state.listingVideoUrl.trim()}` : `\n\nVideo: ${state.listingVideoUrl.trim()}`;
       const { data: cur } = await supabase.from("listings").select("description").eq("id", listingId).maybeSingle();
-      const prev = String((cur as { description?: string } | null)?.description ?? "");
-      await supabase.from("listings").update({ description: `${prev}${note}`.trim() }).eq("id", listingId);
+      const prev = String((cur as { description?: string | null } | null)?.description ?? "");
+      const merged = `${prev}${note}`.trim();
+      await supabase
+        .from("listings")
+        .update({ description: toLeonixListingsDescriptionForDb(merged) })
+        .eq("id", listingId);
     }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);

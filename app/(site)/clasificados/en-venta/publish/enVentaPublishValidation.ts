@@ -1,6 +1,15 @@
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
+import {
+  enVentaCanonicalMainDescription,
+  EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_EN,
+  EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_ES,
+} from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
+import {
+  LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS,
+  prepareLeonixListingDescriptionForPublish,
+} from "@/app/clasificados/lib/leonixPublishPublicDescription";
 
 const COPY = {
   es: {
@@ -22,6 +31,21 @@ const COPY = {
     blockerRules: "Confirm you follow Varios rules.",
   },
 } as const;
+
+/** Blocks publish when main description is present but below DB minimum after sanitize. */
+export function collectEnVentaPublishDescriptionBlockers(
+  lang: "es" | "en",
+  state: EnVentaFreeApplicationState,
+): string[] {
+  const raw = enVentaCanonicalMainDescription(state);
+  if (!raw) return [];
+  const prep = prepareLeonixListingDescriptionForPublish(raw, lang);
+  if (!prep.ok) return [prep.error];
+  if (prep.sanitized.length > 0 && prep.sanitized.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) {
+    return [lang === "es" ? EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_ES : EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_EN];
+  }
+  return [];
+}
 
 /** Core fields required for preview and publish (excludes confirmation checkboxes). */
 export function collectEnVentaCoreBlockers(
@@ -49,6 +73,8 @@ export function collectEnVentaCoreBlockers(
   if (safety.status !== "safe") {
     reasons.push(safety.userMessage);
   }
+
+  reasons.push(...collectEnVentaPublishDescriptionBlockers(lang, state));
 
   return reasons;
 }
