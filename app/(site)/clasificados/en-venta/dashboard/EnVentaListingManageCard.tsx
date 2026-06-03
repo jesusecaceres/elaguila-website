@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
   expiresInDaysLabel,
   listingUiStatusChipClass,
@@ -186,8 +187,14 @@ export function EnVentaListingManageCard({
           refreshCount: "Veces refrescado",
           archive: "Archivar",
           dup: "Duplicar",
+          soldConfirmTitle: "¿Finalizar este anuncio?",
+          soldConfirmBody:
+            "Se marcará como vendido y dejará de aparecer como disponible para compradores.",
+          soldConfirmUndo: "Podrás seguir viendo este anuncio en tu panel.",
+          soldConfirmCancel: "Cancelar",
+          soldConfirmOk: "Sí, marcar como vendido",
           perf: "Rendimiento",
-          insights: "Revisa vistas y mensajes para afinar precio o fotos.",
+          insights: "Revisa vistas y guardados para afinar precio o fotos.",
           visH: "Visibilidad tras refrescar",
           leonixAd: "ID Leonix",
           visActive: "Ventana de visibilidad hasta",
@@ -232,8 +239,13 @@ export function EnVentaListingManageCard({
           refreshCount: "Times refreshed",
           archive: "Archive",
           dup: "Duplicate",
+          soldConfirmTitle: "Finish this listing?",
+          soldConfirmBody: "It will be marked as sold and will no longer appear as available to buyers.",
+          soldConfirmUndo: "You can still view this listing in your dashboard.",
+          soldConfirmCancel: "Cancel",
+          soldConfirmOk: "Yes, mark as sold",
           perf: "Performance",
-          insights: "Compare views and messages to tune price or photos.",
+          insights: "Compare views and saves to tune price or photos.",
           visH: "Visibility window (Pro)",
           leonixAd: "Leonix Ad ID",
           visActive: "Visibility window until",
@@ -251,6 +263,12 @@ export function EnVentaListingManageCard({
 
   const v = analytics.views;
   const expireLbl = expiresIso ? expiresInDaysLabel(expiresIso, lang) : null;
+  const [soldConfirmOpen, setSoldConfirmOpen] = useState(false);
+
+  const confirmMarkSold = () => {
+    setSoldConfirmOpen(false);
+    onMarkSold();
+  };
 
   return (
     <div className={`${frame} p-4 sm:p-5`}>
@@ -409,9 +427,6 @@ export function EnVentaListingManageCard({
                 {L.views}: {v}
               </span>
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
-                {L.msg}: {analytics.messages}
-              </span>
-              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
                 {L.saves}: {analytics.saves}
               </span>
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
@@ -437,26 +452,9 @@ export function EnVentaListingManageCard({
             >
               {L.details} →
             </Link>
-            {workspaceHref ? (
-              <Link
-                href={workspaceHref}
-                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
-              >
-                {L.workspace} →
-              </Link>
-            ) : null}
             {canEdit ? (
               <Link href={editHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
                 {L.edit}
-              </Link>
-            ) : (
-              <span className="inline-flex rounded-xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 px-4 py-2 text-sm font-semibold text-[#7A7164]" title={L.editLocked}>
-                {L.editLocked}
-              </span>
-            )}
-            {messagesHref ? (
-              <Link href={messagesHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]">
-                {L.msgs}
               </Link>
             ) : null}
             {analyticsHref ? (
@@ -464,12 +462,14 @@ export function EnVentaListingManageCard({
                 {L.analytics}
               </Link>
             ) : null}
-            <Link
-              href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
-              className="inline-flex rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#6B5B2E]"
-            >
-              {L.proUpgradeCta}
-            </Link>
+            {!isPro ? (
+              <Link
+                href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
+                className="inline-flex rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#6B5B2E]"
+              >
+                {L.proUpgradeCta}
+              </Link>
+            ) : null}
             {isSold ? (
               <button
                 type="button"
@@ -483,7 +483,7 @@ export function EnVentaListingManageCard({
               <button
                 type="button"
                 disabled={busy}
-                onClick={onMarkSold}
+                onClick={() => setSoldConfirmOpen(true)}
                 className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] disabled:opacity-50"
               >
                 {L.sold}
@@ -519,19 +519,43 @@ export function EnVentaListingManageCard({
                 {L.archive}
               </button>
             ) : null}
-            {onDuplicate ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onDuplicate}
-                className="rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#2C2416] disabled:opacity-50"
-              >
-                {L.dup}
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
+
+      {soldConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#1E1810]/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="enventa-sold-confirm-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 shadow-xl">
+            <h4 id="enventa-sold-confirm-title" className="text-lg font-bold text-[#1E1810]">
+              {L.soldConfirmTitle}
+            </h4>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">{L.soldConfirmBody}</p>
+            <p className="mt-2 text-sm text-[#5C5346]/90">{L.soldConfirmUndo}</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSoldConfirmOpen(false)}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+              >
+                {L.soldConfirmCancel}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={confirmMarkSold}
+                className="rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] disabled:opacity-50"
+              >
+                {L.soldConfirmOk}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

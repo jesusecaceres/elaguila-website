@@ -1677,13 +1677,8 @@ export default function MyListingsPage() {
                             : null
                       }
                       updatedLine={formatUpdatedLine(x, lang)}
-                      workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
-                      messagesHref={`/dashboard/mensajes?${q}`}
                       analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}&tab=analytics`}
                       onArchive={() => void softArchiveListing(x.id)}
-                      onDuplicate={() => {
-                        void navigator.clipboard.writeText(x.id);
-                      }}
                     />
                   );
                 }
