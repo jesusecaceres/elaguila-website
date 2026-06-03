@@ -1,12 +1,12 @@
 /**
  * Runtime reads/writes for Clasificados saves (Guardar).
- * Prefers canonical `saved_listings`; falls back to legacy `user_saved_listings` when the
- * canonical table is missing in an environment (migration not yet applied).
+ * Uses `saved_listings` only; legacy `user_saved_listings` is touched only when the canonical table is missing.
  *
- * Gate S2: avoid PostgREST upsert `on_conflict=user_id,listing_id` — production returned 400
- * when the conflict target was not exposed to PostgREST. Uses idempotent insert-if-absent instead.
+ * Gate A2-SAVE-GLOBAL: select-then-insert (no PostgREST upsert / on_conflict).
+ * Default payload: `{ user_id, listing_id }` only — optional G2A columns when explicitly provided.
  */
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { isLeonixDisplayAdId } from "@/app/lib/listingSaveDbKey";
 
 const PRIMARY = "saved_listings" as const;
 const LEGACY = "user_saved_listings" as const;
@@ -32,6 +32,20 @@ function isMissingSavedTableError(err: PostgrestError | null | undefined): boole
   );
 }
 
+function isLegacyTableUnavailable(err: PostgrestError | null | undefined): boolean {
+  if (!err) return false;
+  const code = err.code ?? "";
+  const msg = (err.message ?? "").toLowerCase();
+  return (
+    code === "42P01" ||
+    code === "PGRST205" ||
+    code === "PGRST204" ||
+    code === "22P02" ||
+    (msg.includes("user_saved_listings") &&
+      (msg.includes("does not exist") || msg.includes("could not find") || msg.includes("invalid input syntax")))
+  );
+}
+
 function isUniqueViolation(err: PostgrestError | null | undefined): boolean {
   return err?.code === "23505";
 }
@@ -42,10 +56,12 @@ function buildSavedRow(userId: string, listingId: string, extras?: Partial<Saved
     user_id: userId,
     listing_id: id,
   };
-  const category = extras?.category?.trim();
-  const sourceTable = extras?.source_table?.trim();
-  const sourceId = extras?.source_id?.trim();
-  const canonical = extras?.canonical_ad_id?.trim() || id;
+  if (!extras) return row;
+
+  const category = extras.category?.trim();
+  const sourceTable = extras.source_table?.trim();
+  const sourceId = extras.source_id?.trim();
+  const canonical = extras.canonical_ad_id?.trim();
   if (category) row.category = category;
   if (sourceTable) row.source_table = sourceTable;
   if (sourceId) row.source_id = sourceId;
@@ -103,12 +119,11 @@ export async function readSavedListingForUser(
 
   const primary = await readSavedFromTable(sb, PRIMARY, userId, id);
   if (!primary.error) {
-    if (primary.saved) return { saved: true, table: PRIMARY };
-    const legacy = await readSavedFromTable(sb, LEGACY, userId, id);
-    if (!legacy.error && legacy.saved) return { saved: true, table: LEGACY };
+    return { saved: primary.saved, table: PRIMARY };
+  }
+  if (!isMissingSavedTableError(primary.error)) {
     return { saved: false, table: PRIMARY };
   }
-  if (!isMissingSavedTableError(primary.error)) return { saved: false, table: PRIMARY };
 
   const legacyOnly = await readSavedFromTable(sb, LEGACY, userId, id);
   if (legacyOnly.error) return { saved: false, table: LEGACY };
@@ -121,7 +136,20 @@ export async function upsertSavedListingForUser(
   listingId: string,
   extras?: Partial<SavedListingWriteRow>,
 ): Promise<{ error: PostgrestError | null; table: typeof PRIMARY | typeof LEGACY }> {
-  const row = buildSavedRow(userId, listingId, extras);
+  const id = listingId.trim();
+  if (!extras?.source_table && isLeonixDisplayAdId(id)) {
+    return {
+      error: {
+        message: "Leonix display id cannot be used as saved_listings.listing_id",
+        details: "",
+        hint: "",
+        code: "PGRST116",
+      } as PostgrestError,
+      table: PRIMARY,
+    };
+  }
+
+  const row = buildSavedRow(userId, id, extras);
 
   const primary = await insertSavedListingIfAbsent(sb, PRIMARY, row);
   if (!primary.error) return { error: null, table: PRIMARY };
@@ -131,7 +159,7 @@ export async function upsertSavedListingForUser(
   return { error: legacy.error, table: LEGACY };
 }
 
-/** All saved listing ids for dashboard Guardados (canonical + legacy, deduped). */
+/** All saved listing ids for dashboard Guardados (canonical table only when available). */
 export async function listSavedListingIdsForUser(sb: SupabaseClient, userId: string): Promise<string[]> {
   const ids = new Set<string>();
 
@@ -150,9 +178,9 @@ export async function listSavedListingIdsForUser(sb: SupabaseClient, userId: str
 
   if (!primary.error) {
     mergeRows(primary.data as Array<{ listing_id?: string }>);
-  } else if (!isMissingSavedTableError(primary.error)) {
     return [...ids];
   }
+  if (!isMissingSavedTableError(primary.error)) return [...ids];
 
   const legacy = await sb
     .from(LEGACY)
@@ -172,12 +200,12 @@ export async function deleteSavedListingForUser(
   const id = listingId.trim();
 
   const primary = await sb.from(PRIMARY).delete().eq("user_id", userId).eq("listing_id", id);
-  if (!primary.error) {
-    await sb.from(LEGACY).delete().eq("user_id", userId).eq("listing_id", id);
-    return { error: null, table: PRIMARY };
-  }
+  if (!primary.error) return { error: null, table: PRIMARY };
   if (!isMissingSavedTableError(primary.error)) return { error: primary.error, table: PRIMARY };
 
   const legacy = await sb.from(LEGACY).delete().eq("user_id", userId).eq("listing_id", id);
+  if (legacy.error && isLegacyTableUnavailable(legacy.error)) {
+    return { error: primary.error, table: PRIMARY };
+  }
   return { error: legacy.error, table: LEGACY };
 }

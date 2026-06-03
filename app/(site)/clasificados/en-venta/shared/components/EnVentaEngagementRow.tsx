@@ -4,6 +4,7 @@ import { FiHeart } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { resolveListingsTableSavedListingKey } from "@/app/lib/listingSaveDbKey";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
 import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
@@ -39,6 +40,8 @@ type Props = {
   listingId?: string | null;
   /** UUID for `saved_listings.listing_id` — must not be the human Leonix id. */
   saveListingId?: string | null;
+  /** Internal listing UUID (authoritative save key). */
+  listingUuid?: string | null;
   listingUrl?: string;
   listingTitle?: string;
   ownerUserId?: string | null;
@@ -57,6 +60,7 @@ export function EnVentaEngagementRow({
   mode,
   listingId,
   saveListingId,
+  listingUuid,
   listingUrl,
   listingTitle,
   ownerUserId,
@@ -64,7 +68,7 @@ export function EnVentaEngagementRow({
   showLike = true,
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
-  const saveKey = (saveListingId ?? listingId ?? "").trim();
+  const saveKey = resolveListingsTableSavedListingKey(listingUuid ?? saveListingId, saveListingId ?? listingId);
   const persist = mode === "live" && Boolean(effectiveId);
   const persistSave = mode === "live" && Boolean(saveKey);
 
@@ -107,7 +111,8 @@ export function EnVentaEngagementRow({
         />
       ) : null}
       <LeonixSaveButton
-        listingId={saveKey}
+        listingId={effectiveId}
+        savedListingKey={saveKey}
         ownerUserId={ownerUserId}
         variant="small"
         lang={lang}
