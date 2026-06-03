@@ -14,6 +14,7 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
 import { fetchDashboardListingAnalytics } from "../../lib/fetchDashboardAnalyticsApi";
+import { fetchOwnerListingForWorkspace } from "../../lib/resolveOwnerListingForWorkspace";
 import {
   isListingRepublishWindowActive,
   listingPlanFromDetailPairs,
@@ -225,7 +226,20 @@ export default function ListingWorkspacePage() {
     [lang]
   );
 
-  const [tab, setTab] = useState<Tab>("overview");
+  const tabFromQuery = searchParams?.get("tab");
+  const initialTab: Tab =
+    tabFromQuery === "analytics" ||
+    tabFromQuery === "messages" ||
+    tabFromQuery === "edit" ||
+    tabFromQuery === "promotion" ||
+    tabFromQuery === "status"
+      ? tabFromQuery
+      : "overview";
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
@@ -290,27 +304,15 @@ export default function ListingWorkspacePage() {
     const selBase =
       "id,leonix_ad_id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,republished_at,is_published,original_price,current_price,price_last_updated";
 
-    let listing: ListingRow | null = null;
-    let q = await sb.from("listings").select(selFull).eq("id", id).maybeSingle();
-    if (q.error) {
-      q = await sb.from("listings").select(selBase).eq("id", id).maybeSingle();
-    }
-    if (q.error || !q.data) {
+    const resolved = await fetchOwnerListingForWorkspace(sb, user.id, id, selFull, selBase);
+    if (resolved.access !== "ok" || !resolved.data) {
       setRow(null);
-      setAccess("missing");
+      setAccess(resolved.access === "forbidden" ? "forbidden" : "missing");
       setListingMessages([]);
       setLoading(false);
       return;
     }
-    listing = q.data as ListingRow;
-
-    if (listing.owner_id !== user.id) {
-      setRow(null);
-      setAccess("forbidden");
-      setListingMessages([]);
-      setLoading(false);
-      return;
-    }
+    const listing = resolved.data as ListingRow;
 
     setRow(listing);
     setAccess("ok");
@@ -357,14 +359,20 @@ export default function ListingWorkspacePage() {
 
     const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
     const selMsgLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
-    const mq = await sb.from("messages").select(selMsg).eq("listing_id", id).order("created_at", { ascending: false }).limit(40);
+    const listingIdForMsgs = listing.id;
+    const mq = await sb
+      .from("messages")
+      .select(selMsg)
+      .eq("listing_id", listingIdForMsgs)
+      .order("created_at", { ascending: false })
+      .limit(40);
     const rawMsgs = (
       mq.error
         ? (
             await sb
               .from("messages")
               .select(selMsgLegacy)
-              .eq("listing_id", id)
+              .eq("listing_id", listingIdForMsgs)
               .order("created_at", { ascending: false })
               .limit(40)
           ).data

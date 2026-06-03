@@ -1611,6 +1611,7 @@ export default function MyListingsPage() {
                         ? "Refrescar anuncio"
                         : "Refresh listing"
                       : null;
+                  const evViewsFromAnalytics = stats?.views ?? 0;
                   return (
                     <EnVentaListingManageCard
                       key={x.id}
@@ -1623,7 +1624,7 @@ export default function MyListingsPage() {
                         created_at: x.created_at,
                         is_published: x.is_published,
                         thumbUrl,
-                        views: viewsTotal,
+                        views: evViewsFromAnalytics,
                         messages: stats?.messages,
                         saves: stats?.saves,
                       }}
@@ -1678,7 +1679,7 @@ export default function MyListingsPage() {
                       updatedLine={formatUpdatedLine(x, lang)}
                       workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
                       messagesHref={`/dashboard/mensajes?${q}`}
-                      analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                      analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}&tab=analytics`}
                       onArchive={() => void softArchiveListing(x.id)}
                       onDuplicate={() => {
                         void navigator.clipboard.writeText(x.id);

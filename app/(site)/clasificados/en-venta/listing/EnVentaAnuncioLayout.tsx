@@ -61,6 +61,15 @@ import {
   buildBrPublicLocationForLiveDetail,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
+import {
+  trackEnVentaEmailClickGlobal,
+  trackEnVentaDirectionsClickGlobal,
+  trackEnVentaListingShareGlobal,
+  trackEnVentaListingViewGlobal,
+  trackEnVentaMessageClickGlobal,
+  trackEnVentaPhoneClickGlobal,
+  trackEnVentaWhatsAppClickGlobal,
+} from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
 import {
@@ -422,6 +431,9 @@ export function EnVentaAnuncioLayout({
         ? "Particular"
         : "Private seller";
 
+  const ownerId = listing.owner_id?.trim() || null;
+  const evLeonixAdId = (listing as { leonix_ad_id?: string | null }).leonix_ad_id?.trim() || null;
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -431,8 +443,12 @@ export function EnVentaAnuncioLayout({
       } = await supabase.auth.getUser();
       if (cancelled) return;
       const uid = user?.id ?? null;
-      trackEnVentaListingView(listing.id, uid);
-      trackEnVentaListingOpen(listing.id, uid);
+      if (surface === "en-venta") {
+        trackEnVentaListingViewGlobal({ listingUuid: listing.id, leonixAdId: evLeonixAdId });
+      } else {
+        trackEnVentaListingView(listing.id, uid);
+        trackEnVentaListingOpen(listing.id, uid);
+      }
       if (uid) {
         const { saved } = await readSavedListingForUser(supabase, uid, listing.id);
         if (!cancelled) setSaved(saved);
@@ -444,9 +460,7 @@ export function EnVentaAnuncioLayout({
     return () => {
       cancelled = true;
     };
-  }, [listing.id]);
-
-  const ownerId = listing.owner_id?.trim() || null;
+  }, [listing.id, surface, evLeonixAdId]);
 
   const onToggleSave = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -496,14 +510,18 @@ export function EnVentaAnuncioLayout({
         /* ignore */
       }
     }
-    void trackListingShare(listing.id, {
-      ownerUserId: ownerId ?? undefined,
-      eventSource: "detail",
-      shareMethod,
-      category: surface === "en-venta" ? "en-venta" : "bienes-raices",
-      metadata: { actorHint: user?.id ?? null },
-    });
-  }, [lang, listing.id, listing.title, ownerId, surface]);
+    if (surface === "en-venta") {
+      trackEnVentaListingShareGlobal({ listingUuid: listing.id, leonixAdId: evLeonixAdId }, shareMethod);
+    } else {
+      void trackListingShare(listing.id, {
+        ownerUserId: ownerId ?? undefined,
+        eventSource: "detail",
+        shareMethod,
+        category: "bienes-raices",
+        metadata: { actorHint: user?.id ?? null },
+      });
+    }
+  }, [lang, listing.id, listing.title, ownerId, surface, evLeonixAdId]);
 
   const publicListingPath = useMemo(
     () => `/clasificados/anuncio/${encodeURIComponent(listing.id)}?lang=${encodeURIComponent(lang)}`,
@@ -547,21 +565,37 @@ export function EnVentaAnuncioLayout({
   const contactMessage = lang === "es" ? "Hola, ¿sigue disponible este artículo?" : "Hi — is this item still available?";
   const emailSubject = lang === "es" ? "Interés en tu anuncio Leonix" : "Question about your Leonix listing";
 
+  const evAnalyticsCtx = useMemo(
+    () => ({ listingUuid: listing.id, leonixAdId: evLeonixAdId }),
+    [listing.id, evLeonixAdId],
+  );
+
   const openSheet = (intent: CtaSheetIntent | null) => {
     if (intent) setCtaIntent(intent);
   };
-  const openCallSheet = () => openSheet(buildCallIntent({ phone: phoneTel, contactShareExtras }));
-  const openSmsSheet = () => openSheet(buildSendMessageIntent({ message: contactMessage, phone: phoneTel, contactShareExtras }));
-  const openWhatsAppSheet = () =>
+  const openCallSheet = () => {
+    if (surface === "en-venta") trackEnVentaPhoneClickGlobal(evAnalyticsCtx);
+    openSheet(buildCallIntent({ phone: phoneTel, contactShareExtras }));
+  };
+  const openSmsSheet = () => {
+    if (surface === "en-venta") trackEnVentaMessageClickGlobal(evAnalyticsCtx);
+    openSheet(buildSendMessageIntent({ message: contactMessage, phone: phoneTel, contactShareExtras }));
+  };
+  const openWhatsAppSheet = () => {
+    if (surface === "en-venta") trackEnVentaWhatsAppClickGlobal(evAnalyticsCtx);
     openSheet(
       buildWhatsAppMessageIntent({
         message: contactMessage,
         phone: whatsappTelRaw || phoneTel,
         whatsappDigits: waDigits,
         contactShareExtras,
-      })
+      }),
     );
-  const openEmailSheet = () => openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
+  };
+  const openEmailSheet = () => {
+    if (surface === "en-venta") trackEnVentaEmailClickGlobal(evAnalyticsCtx);
+    openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
+  };
 
   const evLiveContactActions = useMemo(
     () =>
@@ -920,14 +954,16 @@ export function EnVentaAnuncioLayout({
                   mapHref={evLocationMapHref}
                   onOpenMap={
                     evLocationMapHref
-                      ? () =>
+                      ? () => {
+                          trackEnVentaDirectionsClickGlobal(evAnalyticsCtx);
                           openSheet(
                             buildDirectionsIntent({
                               addressOrUrl: evLocationMapHref,
                               isMapsUrl: true,
                               contactShareExtras,
-                            })
-                          )
+                            }),
+                          );
+                        }
                       : undefined
                   }
                   fulfillmentLabels={evContentStack?.deliveryChipLabels ?? evFulfillmentLabels}

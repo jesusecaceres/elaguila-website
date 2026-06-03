@@ -26,6 +26,8 @@ type Props = {
   ownerUserId?: string | null;
   /** When false, no analytics or `saved_listings` writes. */
   persistEngagement?: boolean;
+  /** When set, replaces default clasificados analytics insert. */
+  recordSaveEvent?: (isSave: boolean) => void | Promise<void>;
   /** Optional G2A identity fields (Servicios: source_table + source_id for Guardados). */
   saveExtras?: {
     category?: string;
@@ -73,6 +75,7 @@ export function LeonixSaveButton({
   category,
   ownerUserId,
   persistEngagement,
+  recordSaveEvent,
   saveExtras,
   iconStyle = "bookmark",
 }: Props) {
@@ -218,22 +221,26 @@ export function LeonixSaveButton({
         }
       }
 
-      const analyticsKey = effectiveId || dbListingId;
-      const ar = await trackListingSave(analyticsKey, nextState, {
-        category,
-        ownerUserId: ownerUserId ?? undefined,
-        eventSource: "cta_card",
-        metadata: {},
-      });
-      if (!ar.ok && process.env.NODE_ENV === "development") {
-        console.warn("[lx-engagement] listing_analytics after save toggle failed", ar);
+      if (recordSaveEvent) {
+        await recordSaveEvent(nextState);
+      } else {
+        const analyticsKey = effectiveId || dbListingId;
+        const ar = await trackListingSave(analyticsKey, nextState, {
+          category,
+          ownerUserId: ownerUserId ?? undefined,
+          eventSource: "cta_card",
+          metadata: {},
+        });
+        if (!ar.ok && process.env.NODE_ENV === "development") {
+          console.warn("[lx-engagement] listing_analytics after save toggle failed", ar);
+        }
       }
 
       onToggle?.(nextState);
     } finally {
       setIsSaving(false);
     }
-  }, [allowEngage, dbListingId, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang, saveExtras]);
+  }, [allowEngage, dbListingId, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang, saveExtras, recordSaveEvent]);
 
   const inert = !allowEngage || !dbListingId;
 

@@ -20,6 +20,8 @@ type Props = {
   ownerUserId?: string | null;
   /** When false, share UI works but analytics are not recorded. */
   persistEngagement?: boolean;
+  /** When set, replaces default clasificados analytics insert. */
+  recordShareEvent?: (shareMethod: string, extraMeta?: Record<string, unknown>) => void | Promise<void>;
   /**
    * @deprecated The main Compartir control always opens the Leonix share hub (`share_ad`).
    * Native share and per-network actions live inside the sheet.
@@ -48,6 +50,7 @@ export function LeonixShareButton({
   category,
   ownerUserId,
   persistEngagement,
+  recordShareEvent,
   preferNativeShareOnNarrowViewports: _legacyPreferNative,
   directNativeShare = false,
 }: Props) {
@@ -57,6 +60,10 @@ export function LeonixShareButton({
   const trackShare = useCallback(
     async (shareMethod: string, extraMeta?: Record<string, unknown>) => {
       if (!allowTrack || !effectiveId) return;
+      if (recordShareEvent) {
+        await recordShareEvent(shareMethod, extraMeta);
+        return;
+      }
       await trackListingShare(effectiveId, {
         category,
         ownerUserId: ownerUserId ?? undefined,
@@ -65,7 +72,7 @@ export function LeonixShareButton({
         metadata: { listingTitle: listingTitle || "", ...extraMeta },
       });
     },
-    [allowTrack, effectiveId, category, ownerUserId, listingTitle],
+    [allowTrack, effectiveId, recordShareEvent, category, ownerUserId, listingTitle],
   );
 
   const handleSheetAction = useCallback<CtaActionCallback>(

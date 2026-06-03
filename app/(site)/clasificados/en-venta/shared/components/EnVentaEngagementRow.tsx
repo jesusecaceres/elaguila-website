@@ -5,6 +5,11 @@ import { LeonixLikeButton } from "@/app/components/clasificados/analytics/Leonix
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { resolveListingsTableSavedListingKey } from "@/app/lib/listingSaveDbKey";
+import {
+  trackEnVentaLikeGlobal,
+  trackEnVentaListingShareGlobal,
+  trackEnVentaSaveGlobal,
+} from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
 import { EN_VENTA_TYPO } from "../styles/enVentaTypography";
 import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
@@ -69,6 +74,10 @@ export function EnVentaEngagementRow({
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const saveKey = resolveListingsTableSavedListingKey(listingUuid ?? saveListingId, saveListingId ?? listingId);
+  const analyticsUuid = resolveListingsTableSavedListingKey(listingUuid, saveListingId ?? listingId);
+  const analyticsLeonixId =
+    effectiveId && effectiveId !== analyticsUuid ? effectiveId : undefined;
+  const globalAnalyticsCtx = { listingUuid: analyticsUuid, leonixAdId: analyticsLeonixId };
   const persist = mode === "live" && Boolean(effectiveId);
   const persistSave = mode === "live" && Boolean(saveKey);
 
@@ -107,6 +116,7 @@ export function EnVentaEngagementRow({
           lang={lang}
           category="en-venta"
           persistEngagement={persist}
+          recordLikeEvent={(isLike) => trackEnVentaLikeGlobal(globalAnalyticsCtx, isLike)}
           className={leonixBtnShell}
         />
       ) : null}
@@ -118,6 +128,7 @@ export function EnVentaEngagementRow({
         lang={lang}
         category="en-venta"
         persistEngagement={persistSave}
+        recordSaveEvent={(isSave) => trackEnVentaSaveGlobal(globalAnalyticsCtx, isSave)}
         iconStyle="heart"
         className={leonixSaveShell}
       />
@@ -130,6 +141,9 @@ export function EnVentaEngagementRow({
         category="en-venta"
         ownerUserId={ownerUserId}
         persistEngagement={persist}
+        recordShareEvent={(shareMethod) =>
+          trackEnVentaListingShareGlobal(globalAnalyticsCtx, shareMethod)
+        }
         className={leonixBtnShell}
       />
       {showReport ? (

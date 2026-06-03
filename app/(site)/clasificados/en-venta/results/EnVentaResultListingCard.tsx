@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { EnVentaResultsCardModel } from "./buildEnVentaResultsCardModel";
 import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
+import { trackEnVentaResultCardClickGlobal } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
 
 type Lang = "es" | "en";
 type CardMode = "live" | "preview";
@@ -318,16 +319,20 @@ export function EnVentaResultListingCard({
     return <div className={frame}>{inner}</div>;
   }
 
+  const onCardNavigate = () => {
+    trackEnVentaResultCardClickGlobal({ listingUuid: model.id });
+  };
+
   if (layout === "list") {
     return (
-      <Link href={href} className={frame}>
+      <Link href={href} className={frame} onClick={onCardNavigate}>
         {inner}
       </Link>
     );
   }
 
   return (
-    <Link href={href} className={frame}>
+    <Link href={href} className={frame} onClick={onCardNavigate}>
       {inner}
     </Link>
   );
