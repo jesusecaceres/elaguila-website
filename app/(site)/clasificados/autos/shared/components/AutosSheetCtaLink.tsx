@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { CtaActionSheet, type CtaSheetIntent } from "@/app/components/cta";
 import { buildAutosIntentFromHref, isAutosContactHref } from "../lib/autosCtaSheet";
+import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
+import { autosAnalyticsTrackMeta } from "../../lib/autosAnalyticsIdentity";
 
 type Props = {
   href: string;
@@ -13,6 +15,10 @@ type Props = {
   /** When true, http(s) booking/website links open in a new tab on first tap. */
   allowDirectExternal?: boolean;
   onOpen?: () => void;
+  /** autos_classifieds_listings.id — global analytics (AUTO1). */
+  listingSourceId?: string;
+  leonixAdId?: string | null;
+  lane?: string;
 };
 
 export function AutosSheetCtaLink({
@@ -22,9 +28,25 @@ export function AutosSheetCtaLink({
   lang = "es",
   allowDirectExternal = true,
   onOpen,
+  listingSourceId,
+  leonixAdId,
+  lane,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const trimmed = href.trim();
+  const analyticsMeta = listingSourceId?.trim()
+    ? autosAnalyticsTrackMeta({
+        sourceId: listingSourceId.trim(),
+        leonixAdId,
+        lane,
+        source: "detail_contact",
+      })
+    : undefined;
+
+  const trackOpen = () => {
+    if (analyticsMeta) trackAutosContactFromHref(trimmed, analyticsMeta);
+    onOpen?.();
+  };
 
   if (!trimmed) {
     return <span className={className}>{children}</span>;
@@ -37,7 +59,7 @@ export function AutosSheetCtaLink({
           type="button"
           className={className}
           onClick={() => {
-            onOpen?.();
+            trackOpen();
             const intent = buildAutosIntentFromHref(trimmed, {
               headline: typeof children === "string" ? children : undefined,
             });
@@ -53,7 +75,7 @@ export function AutosSheetCtaLink({
 
   if (trimmed.startsWith("/")) {
     return (
-      <Link href={trimmed} className={className} onClick={() => onOpen?.()}>
+      <Link href={trimmed} className={className} onClick={() => trackOpen()}>
         {children}
       </Link>
     );
@@ -66,7 +88,7 @@ export function AutosSheetCtaLink({
         target="_blank"
         rel="noopener noreferrer"
         className={className}
-        onClick={() => onOpen?.()}
+        onClick={() => trackOpen()}
       >
         {children}
       </a>

@@ -12,10 +12,10 @@ import { AutosPrivadoPreviewLocaleProvider } from "../../privado/lib/AutosPrivad
 import { serializeAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
-import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
-import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
+import { AutosVehicleProfileViewAnalytics } from "../../components/AutosVehicleProfileViewAnalytics";
+import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import { AutosLiveVehicleOwnerInventoryBar } from "./AutosLiveVehicleOwnerInventoryBar";
 import { AutosListingTranslationLayer } from "./AutosListingTranslationLayer";
 
@@ -79,11 +79,6 @@ export function AutosLiveVehicleClient({
   }, [listingId, lang]);
 
   useEffect(() => {
-    if (!data || !lane) return;
-    trackAutosListingEvent(listingId, AUTOS_CLASSIFIEDS_EVENT.listingOpen, { lane, leonixAdId });
-  }, [listingId, data, lane, leonixAdId]);
-
-  useEffect(() => {
     if (!data) return;
     const t =
       data.vehicleTitle?.trim() || [data.year, data.make, data.model].filter(Boolean).join(" ");
@@ -126,10 +121,16 @@ export function AutosLiveVehicleClient({
   }
 
   const listingKey = leonixAdId || listingId;
+  const publicAnalytics: AutosPublicListingAnalyticsProps = {
+    listingSourceId: listingId,
+    leonixAdId,
+    lane,
+  };
 
   if (lane === "privado") {
     return (
       <AutosPrivadoPreviewLocaleProvider lang={lang}>
+        <AutosVehicleProfileViewAnalytics listingSourceId={listingId} leonixAdId={leonixAdId} lane={lane} />
         <AutosListingTranslationLayer
           listing={data}
           siteLocale={lang}
@@ -139,7 +140,12 @@ export function AutosLiveVehicleClient({
           {(displayListing, translateControl) => (
             <>
               {translateControl}
-              <AutoPrivadoPreviewPage data={displayListing} editBackHref={undefined} publicPlaybackOnly />
+              <AutoPrivadoPreviewPage
+                data={displayListing}
+                editBackHref={undefined}
+                publicPlaybackOnly
+                publicAnalytics={publicAnalytics}
+              />
             </>
           )}
         </AutosListingTranslationLayer>
@@ -162,6 +168,7 @@ export function AutosLiveVehicleClient({
 
   return (
     <AutosNegociosPreviewLocaleProvider lang={lang}>
+      <AutosVehicleProfileViewAnalytics listingSourceId={listingId} leonixAdId={leonixAdId} lane={lane} />
       <AutosLiveVehicleOwnerInventoryBar listingId={listingId} lang={lang} />
       <AutosListingTranslationLayer
         listing={data}
@@ -172,7 +179,12 @@ export function AutosLiveVehicleClient({
         {(displayListing, translateControl) => (
           <>
             {translateControl}
-            <AutoDealerPreviewPage data={displayListing} editBackHref={undefined} publicPlaybackOnly />
+            <AutoDealerPreviewPage
+              data={displayListing}
+              editBackHref={undefined}
+              publicPlaybackOnly
+              publicAnalytics={publicAnalytics}
+            />
           </>
         )}
       </AutosListingTranslationLayer>

@@ -6,8 +6,15 @@ import { FiMapPin } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
-import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
+import { autosSavedListingExtras } from "@/app/lib/autosSavedListingIdentity";
+import {
+  autosEngagementListingKey,
+  autosGlobalLikeRecorder,
+  autosGlobalListingFromRow,
+  autosGlobalSaveRecorder,
+  autosGlobalShareRecorder,
+} from "../../lib/recordAutosGlobalAnalytics";
 import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
 import { formatAutosLocation, formatAutosMiles, formatAutosUsd } from "./autosPublicFormatters";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
@@ -34,6 +41,20 @@ export function AutosPublicStandardCard({
 
   const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
   const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
+  const globalListing = autosGlobalListingFromRow({
+    id: listing.id,
+    leonix_ad_id: listing.leonixAdId,
+  });
+  const engagementKey = autosEngagementListingKey({
+    id: listing.id,
+    leonix_ad_id: listing.leonixAdId,
+  });
+  const saveExtras = autosSavedListingExtras({
+    id: listing.id,
+    leonix_ad_id: listing.leonixAdId,
+  });
+  const listingShareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${href}` : "";
 
   const isDealer = listing.sellerType === "dealer";
   const laneClass = isDealer
@@ -58,19 +79,9 @@ export function AutosPublicStandardCard({
     <Link
       href={href}
       onClick={() => {
-        trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane });
-        // Also track with shared analytics
-        void trackClasificadosEvent({
-          listing_id: (listing.leonixAdId ?? "").trim() || listing.id,
-          category: "autos",
-          event_type: "listing_open",
-          event_source: "search_results",
-          owner_user_id: listing.ownerUserId ?? null,
-          metadata: { 
-            sellerType: listing.sellerType,
-            vehicleType: listing.condition,
-            price: listing.price
-          }
+        trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, {
+          lane: trackLane,
+          leonixAdId: listing.leonixAdId,
         });
       }}
       className={`${RESULT_CARD} ${laneClass} ${compact ? "max-w-full" : ""}`}
@@ -125,27 +136,36 @@ export function AutosPublicStandardCard({
         {/* Engagement Metrics */}
         <div className={ENGAGEMENT_ROW}>
           <LeonixLikeButton
-            listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+            listingId={engagementKey}
             ownerUserId={listing.ownerUserId ?? undefined}
             variant="small"
             lang={lang as "es" | "en"}
             category="autos"
+            persistEngagement={Boolean(engagementKey)}
+            recordLikeEvent={globalListing ? autosGlobalLikeRecorder(globalListing) : undefined}
           />
           <LeonixSaveButton
-            listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+            listingId={engagementKey}
             ownerUserId={listing.ownerUserId ?? undefined}
             variant="small"
             lang={lang as "es" | "en"}
             category="autos"
+            persistEngagement={Boolean(engagementKey)}
+            saveExtras={saveExtras}
+            recordSaveEvent={globalListing ? autosGlobalSaveRecorder(globalListing) : undefined}
           />
           <LeonixShareButton
-            listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+            listingId={engagementKey}
             ownerUserId={listing.ownerUserId ?? undefined}
             listingTitle={listing.vehicleTitle}
-            listingUrl={typeof window !== "undefined" ? `${window.location.origin}${href}` : ""}
+            listingUrl={listingShareUrl}
             variant="small"
             lang={lang as "es" | "en"}
             category="autos"
+            persistEngagement={Boolean(engagementKey)}
+            recordShareEvent={
+              globalListing ? autosGlobalShareRecorder(globalListing, "results_card_share") : undefined
+            }
           />
         </div>
       </div>

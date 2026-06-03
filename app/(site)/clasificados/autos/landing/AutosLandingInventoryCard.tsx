@@ -38,7 +38,12 @@ export function AutosLandingInventoryCard({
   return (
     <Link
       href={href}
-      onClick={() => trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane })}
+      onClick={() =>
+        trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, {
+          lane: trackLane,
+          leonixAdId: listing.leonixAdId,
+        })
+      }
       className="group flex min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_10px_36px_-14px_rgba(42,36,22,0.2)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_14px_44px_-12px_rgba(42,36,22,0.24)] active:opacity-95"
     >
       <div

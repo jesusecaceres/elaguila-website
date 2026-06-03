@@ -6,7 +6,8 @@ import { FiMapPin } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
-import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
+import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
+import { trackAutosListingEvent } from "../lib/autosListingAnalyticsClient";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicListing } from "../data/autosPublicSampleTypes";
 import { autosLiveVehiclePath } from "../filters/autosBrowseFilterContract";
@@ -63,18 +64,11 @@ export function AutosResultCard({
   compact = false
 }: AutosResultCardProps) {
   // Track click when card is clicked
+  const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
   const handleCardClick = () => {
-    void trackClasificadosEvent({
-      listing_id: (listing.leonixAdId ?? "").trim() || listing.id,
-      category: "autos",
-      event_type: "listing_open",
-      event_source: "search_results",
-      owner_user_id: listing.ownerUserId ?? null,
-      metadata: { 
-        sellerType: listing.sellerType,
-        vehicleType: listing.condition,
-        price: listing.price
-      }
+    trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, {
+      lane: trackLane,
+      leonixAdId: listing.leonixAdId,
     });
   };
 

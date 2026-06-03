@@ -26,6 +26,7 @@ import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
+import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 
 const MAIN_CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
@@ -42,12 +43,14 @@ export function AutoDealerPreviewPage({
   data,
   editBackHref,
   publicPlaybackOnly = false,
+  publicAnalytics,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
   editBackHref?: string;
   /** Live published detail: gallery video uses durable URLs only. */
   publicPlaybackOnly?: boolean;
+  publicAnalytics?: AutosPublicListingAnalyticsProps;
 }) {
   const { t } = useAutosNegociosPreviewCopy();
   const pt = t.preview.title;
@@ -215,6 +218,7 @@ export function AutoDealerPreviewPage({
               <DealerBusinessStack
                 data={data}
                 buyerInventoryHref={publicPlaybackOnly ? data.relatedDealerInventoryHref : undefined}
+                publicAnalytics={publicAnalytics}
                 className="!rounded-none !border-0 !shadow-none bg-transparent p-5 sm:p-6 max-lg:!bg-transparent"
               />
             </div>

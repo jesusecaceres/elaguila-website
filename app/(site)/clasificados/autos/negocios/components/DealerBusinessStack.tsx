@@ -25,6 +25,12 @@ import {
 import { AutosNegociosBusinessHubFauxMap } from "./AutosNegociosBusinessHubFauxMap";
 import { AutosNegociosHubReviewLinkButton } from "./AutosNegociosHubReviewLinkButton";
 import type { AutosNegociosBusinessHubSocialPlatform } from "../lib/autosNegociosBusinessHubContactTypes";
+import {
+  autosAnalyticsTrackMeta,
+  autosSheetCtaAnalyticsProps,
+  type AutosPublicListingAnalyticsProps,
+} from "../../lib/autosAnalyticsIdentity";
+import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
 
 const BTN_PRIMARY =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99] max-lg:min-h-[54px]";
@@ -67,11 +73,13 @@ export function DealerBusinessStack({
   data,
   className,
   buyerInventoryHref,
+  publicAnalytics,
 }: {
   data: AutoDealerListing;
   className?: string;
   /** Public buyer context only — never owner dashboard inventory management. */
   buyerInventoryHref?: string | null;
+  publicAnalytics?: AutosPublicListingAnalyticsProps;
 }) {
   const { t, lang } = useAutosNegociosPreviewCopy();
   const sb = t.preview.sidebar;
@@ -86,6 +94,19 @@ export function DealerBusinessStack({
   const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
 
   const c = hub.contact;
+  const sheetProps = autosSheetCtaAnalyticsProps(publicAnalytics);
+  const contactMeta =
+    publicAnalytics?.listingSourceId?.trim()
+      ? autosAnalyticsTrackMeta({
+          sourceId: publicAnalytics.listingSourceId,
+          leonixAdId: publicAnalytics.leonixAdId,
+          lane: publicAnalytics.lane,
+          source: "detail_contact",
+        })
+      : undefined;
+  const trackHref = (href: string) => {
+    if (contactMeta) trackAutosContactFromHref(href, contactMeta);
+  };
   const showWhatsapp = Boolean(c.whatsappHref);
   const showCall = Boolean(c.callTelHref);
   const showSms = Boolean(c.smsHref);
@@ -111,7 +132,7 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "call",
       node: (
-        <AutosSheetCtaLink href={c.callTelHref} className={BTN_SECONDARY}>
+        <AutosSheetCtaLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
           <FiPhone className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
           {sb.call}
         </AutosSheetCtaLink>
@@ -122,7 +143,7 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "sms",
       node: (
-        <AutosSheetCtaLink href={c.smsHref} className={BTN_SECONDARY}>
+        <AutosSheetCtaLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
           <FiMessageSquare className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
           {sb.textMessageCta}
         </AutosSheetCtaLink>
@@ -133,7 +154,13 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "schedule",
       node: (
-        <a href={c.bookingHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
+        <a
+          href={c.bookingHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={BTN_SECONDARY}
+          onClick={() => trackHref(c.bookingHref!)}
+        >
           <FiCalendar className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
           <span className="text-center leading-tight">{sb.scheduleAppointment}</span>
         </a>
@@ -144,7 +171,13 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "website",
       node: (
-        <a href={c.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN_SECONDARY}>
+        <a
+          href={c.websiteHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={BTN_SECONDARY}
+          onClick={() => trackHref(c.websiteHref!)}
+        >
           <TbWorldWww className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
           {sb.viewWebsite}
         </a>
@@ -155,7 +188,7 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "email",
       node: (
-        <AutosSheetCtaLink href={c.emailMailto} lang={lang} className={BTN_SECONDARY}>
+        <AutosSheetCtaLink href={c.emailMailto} lang={lang} className={BTN_SECONDARY} {...sheetProps}>
           <FiMail className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
           {sb.emailSeller}
         </AutosSheetCtaLink>
@@ -198,7 +231,7 @@ export function DealerBusinessStack({
           <p className={SECTION_HEAD}>{sb.contactHeading}</p>
           <div className="mt-4 flex flex-col gap-3">
             {showWhatsapp && c.whatsappHref ? (
-              <AutosSheetCtaLink href={c.whatsappHref} className={BTN_PRIMARY}>
+              <AutosSheetCtaLink href={c.whatsappHref} className={BTN_PRIMARY} {...sheetProps}>
                 <SiWhatsapp className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
                 {sb.whatsappCta}
               </AutosSheetCtaLink>
@@ -245,6 +278,7 @@ export function DealerBusinessStack({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackHref(link.url)}
                 className={`${BTN_SECONDARY} min-h-[48px] px-4`}
               >
                 {link.label}
@@ -266,6 +300,7 @@ export function DealerBusinessStack({
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackHref(item.url)}
                   title={socialHeadline(item.platform)}
                   className="inline-flex h-12 min-w-[3rem] items-center justify-center rounded-full px-3 shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--lx-gold)]/50"
                   style={{
@@ -285,7 +320,7 @@ export function DealerBusinessStack({
 
       {showFinance ? (
         <SectionBlock showTopBorder={nextSection()}>
-          <DealerFinanceContact data={data} embedded />
+          <DealerFinanceContact data={data} embedded publicAnalytics={publicAnalytics} />
         </SectionBlock>
       ) : null}
 
@@ -327,6 +362,7 @@ export function DealerBusinessStack({
                 href={hub.location.mapsHref}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackHref(hub.location!.mapsHref!)}
                 className={`${BTN_SECONDARY} gap-2 border-[color:var(--lx-gold-border)]`}
               >
                 <FiMapPin className="h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />

@@ -10,6 +10,12 @@ import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/au
 import { buildPrivadoSellerMailtoHref, buildPrivadoWhatsappInterestHref } from "../lib/privadoContactIntent";
 import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
 import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
+import {
+  autosAnalyticsTrackMeta,
+  autosSheetCtaAnalyticsProps,
+  type AutosPublicListingAnalyticsProps,
+} from "../../lib/autosAnalyticsIdentity";
+import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
 
 const BTN_PRIMARY =
   "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
@@ -22,9 +28,11 @@ export function PrivadoContactStrip({
   data,
   lang,
   labels,
+  publicAnalytics,
 }: {
   data: AutoDealerListing;
   lang: AutosNegociosLang;
+  publicAnalytics?: AutosPublicListingAnalyticsProps;
   labels: {
     call: string;
     whatsapp: string;
@@ -67,6 +75,17 @@ export function PrivadoContactStrip({
   const hasAnyCta = showCall || showWa || showEmail || showSms;
   if (!seller && !hasAnyCta && socialRows.length === 0) return null;
 
+  const sheetProps = autosSheetCtaAnalyticsProps(publicAnalytics);
+  const contactMeta =
+    publicAnalytics?.listingSourceId?.trim()
+      ? autosAnalyticsTrackMeta({
+          sourceId: publicAnalytics.listingSourceId,
+          leonixAdId: publicAnalytics.leonixAdId,
+          lane: publicAnalytics.lane,
+          source: "detail_contact",
+        })
+      : undefined;
+
   return (
     <section className="min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-6">
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{labels.seller}</p>
@@ -76,7 +95,12 @@ export function PrivadoContactStrip({
       {seller ? <p className="mt-2 break-words text-base font-semibold text-[color:var(--lx-text-2)]">{seller}</p> : null}
       <div className={`flex flex-col gap-2.5 sm:gap-3 ${seller ? "mt-5" : "mt-4"}`}>
         {showCall && phoneForTel ? (
-          <AutosSheetCtaLink href={`tel:${phoneForTel}`} lang={lang} className={`${BTN_PRIMARY} flex-col gap-0.5 py-3`}>
+          <AutosSheetCtaLink
+            href={`tel:${phoneForTel}`}
+            lang={lang}
+            className={`${BTN_PRIMARY} flex-col gap-0.5 py-3`}
+            {...sheetProps}
+          >
             <span className="inline-flex items-center gap-2">
               <FiPhone className="h-5 w-5 shrink-0" aria-hidden />
               {labels.call}
@@ -89,19 +113,19 @@ export function PrivadoContactStrip({
           </AutosSheetCtaLink>
         ) : null}
         {showWa && waHref ? (
-          <AutosSheetCtaLink href={waHref} lang={lang} className={`${BTN_SECONDARY} gap-2`}>
+          <AutosSheetCtaLink href={waHref} lang={lang} className={`${BTN_SECONDARY} gap-2`} {...sheetProps}>
             <SiWhatsapp className="h-5 w-5 shrink-0 text-[#25D366]" aria-hidden />
             {labels.whatsapp}
           </AutosSheetCtaLink>
         ) : null}
         {showEmail && mailtoHref ? (
-          <AutosSheetCtaLink href={mailtoHref} lang={lang} className={`${BTN_SECONDARY} gap-2`}>
+          <AutosSheetCtaLink href={mailtoHref} lang={lang} className={`${BTN_SECONDARY} gap-2`} {...sheetProps}>
             <FiMail className="h-5 w-5 shrink-0" aria-hidden />
             {labels.emailSeller}
           </AutosSheetCtaLink>
         ) : null}
         {showSms && smsHref ? (
-          <AutosSheetCtaLink href={smsHref} lang={lang} className={`${BTN_SECONDARY} gap-2`}>
+          <AutosSheetCtaLink href={smsHref} lang={lang} className={`${BTN_SECONDARY} gap-2`} {...sheetProps}>
             <FiMessageCircle className="h-5 w-5 shrink-0 text-[color:var(--lx-text)]" aria-hidden />
             {labels.sms}
           </AutosSheetCtaLink>
@@ -117,6 +141,9 @@ export function PrivadoContactStrip({
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    if (contactMeta) trackAutosContactFromHref(href, contactMeta);
+                  }}
                   className="inline-flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)]"
                 >
                   <Icon className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />

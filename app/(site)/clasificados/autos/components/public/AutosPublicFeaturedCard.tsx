@@ -26,7 +26,12 @@ export function AutosPublicFeaturedCard({
   return (
     <Link
       href={href}
-      onClick={() => trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, { lane: trackLane })}
+      onClick={() =>
+        trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, {
+          lane: trackLane,
+          leonixAdId: listing.leonixAdId,
+        })
+      }
       className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/55 bg-[color:var(--lx-card)] shadow-[0_16px_48px_-18px_rgba(42,36,22,0.22)] ring-1 ring-[color:var(--lx-gold-border)]/25 transition hover:shadow-[0_20px_56px_-16px_rgba(42,36,22,0.26)] active:opacity-95"
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-[color:var(--lx-section)]">

@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import Image from "next/image";
 import { FiMapPin, FiPhone, FiCalendar, FiGlobe, FiTrendingUp } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
-import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
 import type { AutoDealerListing } from "../negocios/types/autoDealerListing";
+import { autosAnalyticsTrackMeta, autosSheetCtaAnalyticsProps } from "../lib/autosAnalyticsIdentity";
+import { trackAutosContactFromHref } from "../lib/autosCtaTracking";
 import { AutosSheetCtaLink } from "../shared/components/AutosSheetCtaLink";
 
 const PREVIEW_CARD =
@@ -71,17 +72,15 @@ export function AutosPreviewCard({
   listingId,
   persistEngagement = false,
 }: AutosPreviewCardProps) {
-  useEffect(() => {
-    if (!listingId || !persistEngagement) return;
-    void trackClasificadosEvent({
-      listing_id: listingId,
-      category: "autos",
-      event_type: "listing_view",
-      event_source: "card",
-      owner_user_id: null,
-      metadata: { cardType: "preview", vehicleType: data.condition },
-    });
-  }, [listingId, persistEngagement, data.condition]);
+  const sheetAnalytics =
+    listingId && persistEngagement ? autosSheetCtaAnalyticsProps({ listingSourceId: listingId }) : {};
+  const contactMeta =
+    listingId && persistEngagement
+      ? autosAnalyticsTrackMeta({ sourceId: listingId, source: "detail_contact" })
+      : undefined;
+  const trackExternalHref = (href: string) => {
+    if (contactMeta) trackAutosContactFromHref(href, contactMeta);
+  };
 
   const hasHeroImage = data.mediaImages && data.mediaImages.length > 0;
   const hasLocation = data.city && data.state;
@@ -228,18 +227,7 @@ export function AutosPreviewCard({
                 href={`tel:${data.dealerPhoneOffice.replace(/\D/g, "")}`}
                 lang={lang}
                 className={`${CTA_BUTTON} ${CTA_PRIMARY}`}
-                onOpen={() => {
-                  if (listingId && persistEngagement) {
-                    void trackClasificadosEvent({
-                      listing_id: listingId,
-                      category: "autos",
-                      event_type: "phone_click",
-                      event_source: "card",
-                      owner_user_id: null,
-                      metadata: { contactType: "office" },
-                    });
-                  }
-                }}
+                {...sheetAnalytics}
               >
                 <FiPhone className="w-4 h-4" />
                 Llamar
@@ -250,18 +238,7 @@ export function AutosPreviewCard({
                 href={`https://wa.me/${data.dealerWhatsapp.replace(/\D/g, "")}`}
                 lang={lang}
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-                onOpen={() => {
-                  if (listingId && persistEngagement) {
-                    void trackClasificadosEvent({
-                      listing_id: listingId,
-                      category: "autos",
-                      event_type: "whatsapp_click",
-                      event_source: "card",
-                      owner_user_id: null,
-                      metadata: { contactType: "whatsapp" },
-                    });
-                  }
-                }}
+                {...sheetAnalytics}
               >
                 <FaWhatsapp className="w-4 h-4" />
                 WhatsApp
@@ -273,18 +250,7 @@ export function AutosPreviewCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-                onClick={() => {
-                  if (listingId && persistEngagement) {
-                    void trackClasificadosEvent({
-                      listing_id: listingId,
-                      category: "autos",
-                      event_type: "website_click",
-                      event_source: "card",
-                      owner_user_id: null,
-                      metadata: { contactType: "website" },
-                    });
-                  }
-                }}
+                onClick={() => trackExternalHref(data.dealerWebsite!)}
               >
                 <FiGlobe className="w-4 h-4" />
                 Sitio web
@@ -296,18 +262,7 @@ export function AutosPreviewCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
-                onClick={() => {
-                  if (listingId && persistEngagement) {
-                    void trackClasificadosEvent({
-                      listing_id: listingId,
-                      category: "autos",
-                      event_type: "cta_click",
-                      event_source: "card",
-                      owner_user_id: null,
-                      metadata: { contactType: "booking" },
-                    });
-                  }
-                }}
+                onClick={() => trackExternalHref(data.dealerBookingUrl!)}
               >
                 <FiCalendar className="w-4 h-4" />
                 Agendar cita
