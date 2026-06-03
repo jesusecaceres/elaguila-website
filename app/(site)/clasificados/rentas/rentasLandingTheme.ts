@@ -18,16 +18,16 @@ export const rentasLandingHeroImageSrc =
 
 /** Scenic hero card — En Venta–style containment, Rentas-owned atmosphere. */
 export const rentasLandingHeroSectionClass = [
-  "relative isolate min-h-[min(52vh,620px)] w-full min-w-0 overflow-hidden",
-  "rounded-[1.65rem] border border-white/55 sm:rounded-[2rem]",
-  "shadow-[0_28px_90px_-36px_rgba(47,74,101,0.42)] ring-1 ring-white/35",
-  "max-lg:min-h-[min(48vh,520px)] max-sm:min-h-[440px]",
+  "relative isolate min-h-[min(32vh,320px)] w-full min-w-0 overflow-hidden",
+  "rounded-xl border border-[#D6C7AD]/45 sm:rounded-2xl",
+  "shadow-[0_16px_48px_-24px_rgba(47,74,101,0.28)] ring-1 ring-white/35",
+  "max-lg:min-h-[min(30vh,280px)] max-sm:min-h-[240px]",
 ].join(" ");
 
 /** Immersive hero band — legacy absolute strip (results shell only). */
 export const rentasLandingHeroBandClass = [
   "pointer-events-none absolute inset-x-0 top-0 z-0 w-full overflow-hidden",
-  "min-h-[200px] sm:min-h-[min(36vh,400px)] lg:min-h-[min(50vh,560px)]",
+  "min-h-[140px] sm:min-h-[min(24vh,220px)] lg:min-h-[min(28vh,260px)]",
   "rounded-b-[2rem] sm:rounded-b-[2.25rem] border-b border-[#C4B8A8]/28",
   "shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
 ].join(" ");

@@ -6,7 +6,7 @@ export function AutosLandingShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#FFFEF7] text-[#1A1A1A]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(50vh,440px)] w-full overflow-hidden rounded-b-[22px] border-b border-[#E5E5E5] shadow-[inset_0_1px_0_rgba(255,250,240,0.55)] sm:min-h-[min(54vh,520px)] lg:min-h-[min(58vh,600px)]"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(28vh,240px)] w-full overflow-hidden rounded-b-xl border-b border-[#D6C7AD]/35 shadow-[inset_0_1px_0_rgba(255,250,240,0.55)] sm:min-h-[min(30vh,280px)] lg:min-h-[min(32vh,320px)]"
         aria-hidden
       >
         <div className="absolute inset-0">

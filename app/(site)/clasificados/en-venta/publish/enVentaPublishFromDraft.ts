@@ -17,13 +17,12 @@ import {
   missingListingsColumnName,
   updateListingsRowResilient,
 } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
-import {
-  mapLeonixListingsDescriptionConstraintToUserMessage,
-  toLeonixListingsDescriptionForDb,
-} from "@/app/clasificados/lib/leonixPublishPublicDescription";
+import { mapLeonixListingsDescriptionConstraintToUserMessage } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 import {
   appendEnVentaPhotoDescriptionAppendix,
   enVentaCanonicalMainDescription,
+  guardEnVentaDescriptionColumnForDb,
+  prepareEnVentaStateForPublish,
   resolveEnVentaPublishDescriptionForDb,
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
@@ -254,7 +253,8 @@ export async function publishEnVentaFromDraft(
   lang: PublishLang,
   plan: "free" | "pro"
 ): Promise<EnVentaPublishFromDraftResult> {
-  const familySafety = evaluateEnVentaFamilySafetyFromState(state, lang);
+  const draft = prepareEnVentaStateForPublish(state);
+  const familySafety = evaluateEnVentaFamilySafetyFromState(draft, lang);
   if (familySafety.status !== "safe") {
     return {
       ok: false,
@@ -262,14 +262,14 @@ export async function publishEnVentaFromDraft(
     };
   }
 
-  if (!state.title.trim()) {
+  if (!draft.title.trim()) {
     return { ok: false, error: lang === "es" ? "Añade un título." : "Add a title." };
   }
-  if (!state.priceIsFree && !String(state.price).trim()) {
+  if (!draft.priceIsFree && !String(draft.price).trim()) {
     return { ok: false, error: lang === "es" ? "Indica un precio o marca gratis." : "Set a price or mark as free." };
   }
 
-  const loc = validateEnVentaLocation(state.city, state.zip);
+  const loc = validateEnVentaLocation(draft.city, draft.zip);
   if (!loc.ok) {
     return { ok: false, error: lang === "es" ? loc.messageEs : loc.messageEn };
   }
@@ -290,24 +290,24 @@ export async function publishEnVentaFromDraft(
   }
   const userId = auth.user.id;
 
-  const pairs = buildDetailPairs(state, lang, plan);
-  const descResolved = resolveEnVentaPublishDescriptionForDb(enVentaCanonicalMainDescription(state), lang);
+  const pairs = buildDetailPairs(draft, lang, plan);
+  const descResolved = resolveEnVentaPublishDescriptionForDb(enVentaCanonicalMainDescription(draft), lang);
   if (!descResolved.ok) {
     return { ok: false, error: descResolved.error };
   }
   const descriptionForDb = descResolved.descriptionForDb;
-  const contact = resolveContactForInsert(state);
+  const contact = resolveContactForInsert(draft);
 
-  const sellerType = mapEnVentaSellerKindToDb(state.seller_kind);
-  const muxCols = resolveMuxVideoCols(state);
+  const sellerType = mapEnVentaSellerKindToDb(draft.seller_kind);
+  const muxCols = resolveMuxVideoCols(draft);
   const insertPayload: Record<string, unknown> = {
     owner_id: userId,
-    title: state.title.trim(),
+    title: draft.title.trim(),
     description: descriptionForDb,
     city: loc.canonicalCity,
     category: "en-venta",
-    price: state.priceIsFree ? 0 : Number(String(state.price).replace(/[^0-9.]/g, "")) || 0,
-    is_free: state.priceIsFree,
+    price: draft.priceIsFree ? 0 : Number(String(draft.price).replace(/[^0-9.]/g, "")) || 0,
+    is_free: draft.priceIsFree,
     contact_phone: contact.contact_phone,
     contact_email: contact.contact_email,
     status: "draft",
@@ -321,8 +321,8 @@ export async function publishEnVentaFromDraft(
     insertPayload.zip = loc.zipNormalized;
   }
 
-  if (state.seller_kind === "business" && state.displayName.trim()) {
-    insertPayload.business_name = state.displayName.trim();
+  if (draft.seller_kind === "business" && draft.displayName.trim()) {
+    insertPayload.business_name = draft.displayName.trim();
   }
 
   // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
@@ -350,7 +350,7 @@ export async function publishEnVentaFromDraft(
     return { ok: false, error: lang === "es" ? "No se recibió el ID del anuncio." : "No listing id returned." };
   }
 
-  const ordered = getOrderedEnVentaImageUrls(state);
+  const ordered = getOrderedEnVentaImageUrls(draft);
   const photoUrls: string[] = [];
   const basePath = `${userId}/${listingId}/photos`;
 
@@ -382,7 +382,14 @@ export async function publishEnVentaFromDraft(
       const descriptionWithPhotos = appendEnVentaPhotoDescriptionAppendix(descriptionForDb, photoUrls, lang);
       const galleryPatch: Record<string, unknown> = { images: photoUrls };
       if (descriptionWithPhotos != null) {
-        galleryPatch.description = descriptionWithPhotos;
+        const guarded = guardEnVentaDescriptionColumnForDb(descriptionWithPhotos, lang);
+        if (!guarded.ok) {
+          await markPublishFailedNonPublic();
+          return { ok: false, error: guarded.error };
+        }
+        if (guarded.value != null) {
+          galleryPatch.description = guarded.value;
+        }
       }
       const galleryUp = await updateListingsRowResilient(supabase, listingId, galleryPatch);
       if (galleryUp.error) {
@@ -392,15 +399,17 @@ export async function publishEnVentaFromDraft(
       }
     }
 
-    if (plan === "pro" && state.listingVideoUrl.trim() && !state.listingVideoSlots?.[0]?.playbackId) {
-      const note = lang === "es" ? `\n\nVideo: ${state.listingVideoUrl.trim()}` : `\n\nVideo: ${state.listingVideoUrl.trim()}`;
+    if (plan === "pro" && draft.listingVideoUrl.trim() && !draft.listingVideoSlots?.[0]?.playbackId) {
+      const note = lang === "es" ? `\n\nVideo: ${draft.listingVideoUrl.trim()}` : `\n\nVideo: ${draft.listingVideoUrl.trim()}`;
       const { data: cur } = await supabase.from("listings").select("description").eq("id", listingId).maybeSingle();
       const prev = String((cur as { description?: string | null } | null)?.description ?? "");
       const merged = `${prev}${note}`.trim();
-      await supabase
-        .from("listings")
-        .update({ description: toLeonixListingsDescriptionForDb(merged) })
-        .eq("id", listingId);
+      const guarded = guardEnVentaDescriptionColumnForDb(merged, lang);
+      if (!guarded.ok) {
+        await markPublishFailedNonPublic();
+        return { ok: false, error: guarded.error };
+      }
+      await supabase.from("listings").update({ description: guarded.value }).eq("id", listingId);
     }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);

@@ -404,7 +404,7 @@ export function BienesRaicesLandingView() {
         ) : null}
 
         <ImmersiveBand>
-          <header className="relative isolate flex min-h-[min(26rem,92svh)] flex-col overflow-hidden rounded-b-[2rem] border-b border-[#E8DFD0]/50 shadow-[0_32px_100px_-48px_rgba(42,36,22,0.55)] sm:min-h-[min(30rem,88svh)] sm:rounded-[2rem] sm:border sm:border-[#E8DFD0]/40 md:min-h-[min(34rem,86svh)] lg:min-h-[min(38rem,84svh)]">
+          <header className="relative isolate flex min-h-[min(18rem,42svh)] flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/45 shadow-[0_16px_48px_-24px_rgba(42,36,22,0.35)] sm:min-h-[min(20rem,44svh)] md:min-h-[min(22rem,46svh)]">
             <div className="absolute inset-0">
               <Image
                 src={BR_LANDING_HERO_IMAGE.src}

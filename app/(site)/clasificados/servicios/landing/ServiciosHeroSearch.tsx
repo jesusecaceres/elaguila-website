@@ -63,7 +63,7 @@ export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
   }, []);
 
   return (
-    <div className="relative min-h-[min(30vh,320px)] overflow-hidden sm:min-h-[min(42vh,480px)] md:min-h-[min(52vh,620px)] lg:min-h-[min(54vh,680px)]">
+    <div className="relative min-h-[min(24vh,220px)] overflow-hidden sm:min-h-[min(26vh,260px)] md:min-h-[min(28vh,300px)] lg:min-h-[min(30vh,320px)]">
       <div className="absolute inset-0">
         <Image
           src={HERO_BACKDROP}

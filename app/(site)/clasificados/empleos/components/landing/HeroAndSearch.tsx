@@ -130,7 +130,7 @@ export function HeroAndSearch({ lang }: Props) {
 
           {/* Framed category visual — md+ only; mobile uses full-width bg for identity */}
           <div className="relative mx-auto hidden w-full max-w-md md:mx-0 md:block md:max-w-none">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/80 bg-[#EDE8E0] shadow-[0_24px_56px_rgba(42,40,38,0.14)] ring-1 ring-[#E8DFD0]/70 lg:aspect-[5/4] lg:max-h-[min(360px,36vh)] xl:max-h-[380px]">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-[#EDE8E0] shadow-[0_12px_32px_rgba(42,40,38,0.1)] ring-1 ring-[#E8DFD0]/70 lg:aspect-[5/4] lg:max-h-[min(220px,28vh)] xl:max-h-[240px]">
               <Image
                 src={HERO_PANEL_IMG}
                 alt=""

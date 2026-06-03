@@ -8,6 +8,8 @@ import { FaWhatsapp } from "react-icons/fa";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
+import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
+import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import {
@@ -20,7 +22,6 @@ import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   extractWaMeDigitsFromHref,
   serviciosContactShareExtras,
-  trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
@@ -106,6 +107,13 @@ export function ServiciosProfessionalResultCard({
   const secondaryLabel = getProfileCtaSecondary(template, lang);
 
   const href = `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
+  const ctaAnalyticsKey = serviciosEngagementListingKey(row);
+  const ctaTrackMeta = serviciosAnalyticsTrackMeta({
+    listingSlug: row.slug,
+    engagementListingId: ctaAnalyticsKey,
+    ownerUserId: row.owner_user_id ?? null,
+    source: "servicios_professional_card",
+  });
   const thumb = profile.hero.logoUrl || null;
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || row.city?.trim();
@@ -149,7 +157,7 @@ export function ServiciosProfessionalResultCard({
 
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(row.slug, eventType, { source: "servicios_professional_card" });
+      trackServiciosListingCta(row.slug, eventType, ctaTrackMeta);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
@@ -190,7 +198,7 @@ export function ServiciosProfessionalResultCard({
   const onDirectionsClick = useCallback(() => {
     const mapsHref = profile.contact.mapsSearchHref?.trim();
     const addr = profile.contact.physicalAddressDisplay?.trim();
-    trackServiciosListingCta(row.slug, "cta_maps_click", { source: "servicios_professional_card" });
+    trackServiciosListingCta(row.slug, "cta_maps_click", ctaTrackMeta);
     if (mapsHref && /^https?:\/\//i.test(mapsHref)) {
       window.open(mapsHref, "_blank", "noopener,noreferrer");
     } else if (addr) {

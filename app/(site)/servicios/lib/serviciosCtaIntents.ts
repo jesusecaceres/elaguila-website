@@ -1,26 +1,48 @@
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
 import type { CtaContactShareExtras, CtaSheetIntent } from "@/app/components/cta/types";
-import { trackCtaClick } from "@/app/lib/clasificadosAnalytics";
+import { trackClasificadosEvent, trackCtaClick } from "@/app/lib/clasificadosAnalytics";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import {
+  serviciosListingAnalyticsMetadata,
+  type ServiciosAnalyticsTrackMeta,
+} from "./serviciosAnalyticsIdentity";
 import { serviciosUniversalQuoteMessage, buildQuoteSmsHref } from "./serviciosContactActions";
 import { extractServiciosWhatsAppDigits, resolveServiciosProfileDirectWhatsAppHref } from "./serviciosWhatsAppHref";
 
-/** Match analytics payload shape used by `ServiciosTrackedLink`. */
+export type { ServiciosAnalyticsTrackMeta } from "./serviciosAnalyticsIdentity";
+export { serviciosAnalyticsTrackMeta } from "./serviciosAnalyticsIdentity";
+
+function resolveListingId(slug: string, meta?: ServiciosAnalyticsTrackMeta): string {
+  const fromMeta = String(meta?.engagementId ?? meta?.engagementListingId ?? "").trim();
+  return fromMeta || slug.trim();
+}
+
+/**
+ * Servicios CTA / contact tracking — ops log + `listing_analytics` (global seller source of truth).
+ * Pass `serviciosAnalyticsTrackMeta()` so `listing_id` matches like/save/share and dashboard rollups.
+ */
 export function trackServiciosListingCta(
   listingSlug: string | undefined,
   eventType: string,
-  meta?: Record<string, unknown>,
+  meta?: ServiciosAnalyticsTrackMeta,
 ): void {
-  const slug = (listingSlug ?? "").trim();
+  const slug = (listingSlug ?? meta?.listingSlug ?? "").trim();
   if (!slug || !eventType) return;
+
+  const listingId = resolveListingId(slug, meta);
+  const ownerUserId = typeof meta?.ownerUserId === "string" ? meta.ownerUserId.trim() : undefined;
+  const analyticsMeta = serviciosListingAnalyticsMetadata(slug, meta);
+
   void fetch("/api/clasificados/servicios/analytics", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ listingSlug: slug, eventType, meta: meta ?? {} }),
+    body: JSON.stringify({
+      listingSlug: slug,
+      eventType,
+      meta: { ...meta, engagementId: listingId, clientListingAnalytics: true },
+    }),
   }).catch(() => {});
 
-  const listingId = String(meta?.engagementId ?? slug).trim() || slug;
-  const ownerUserId = typeof meta?.ownerUserId === "string" ? meta.ownerUserId : undefined;
   const ctaMap: Record<string, "phone" | "whatsapp" | "website" | "directions" | "general"> = {
     cta_call_click: "phone",
     cta_whatsapp_click: "whatsapp",
@@ -38,7 +60,19 @@ export function trackServiciosListingCta(
       category: "servicios",
       ownerUserId,
       eventSource: "detail",
-      metadata: { serviciosEventType: eventType, ...meta },
+      metadata: { serviciosEventType: eventType, ...analyticsMeta },
+    });
+  }
+
+  const source = String(meta?.source ?? "");
+  if (source.includes("card") || source.includes("result")) {
+    void trackClasificadosEvent({
+      listing_id: listingId,
+      category: "servicios",
+      event_type: "listing_open",
+      event_source: "card",
+      owner_user_id: ownerUserId ?? null,
+      metadata: { serviciosEventType: eventType, ...analyticsMeta },
     });
   }
 }
@@ -83,7 +117,6 @@ export function buildServiciosGetQuoteIntent(
   opts: {
     listingSlug?: string;
     listingShareUrl?: string | null;
-    /** Gallery / service-card specific preface (still ends with actionable quote ask). */
     quoteMessage?: string;
   } = {},
 ): Extract<CtaSheetIntent, { kind: "get_quote" }> | null {

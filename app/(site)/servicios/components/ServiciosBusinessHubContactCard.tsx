@@ -24,6 +24,7 @@ import {
   buildServiciosGetQuoteIntent,
   buildServiciosSendEmailIntentFromMailto,
   serviciosContactShareExtras,
+  serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
 } from "../lib/serviciosCtaIntents";
 import {
@@ -172,13 +173,24 @@ export function ServiciosBusinessHubContactCard({
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
 
+  const analyticsBase = useMemo(
+    () =>
+      serviciosAnalyticsTrackMeta({
+        listingSlug,
+        engagementListingId,
+        ownerUserId: engagementOwnerUserId,
+        source: "business_hub",
+      }),
+    [listingSlug, engagementListingId, engagementOwnerUserId],
+  );
+
   const openCtaSheet = useCallback(
     (intent: CtaSheetIntent, trackEvent?: string) => {
-      if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { source: "business_hub" });
+      if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { ...analyticsBase, source: "business_hub" });
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [listingSlug],
+    [analyticsBase, listingSlug],
   );
 
   const closeCtaSheet = useCallback(() => {
@@ -239,21 +251,21 @@ export function ServiciosBusinessHubContactCard({
   const openCall = () => {
     const href = profile.contact.phoneTelHref?.trim();
     if (!href) return;
-    trackServiciosListingCta(listingSlug, "cta_call_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_call_click", { ...analyticsBase, source: "business_hub" });
     window.location.href = href.startsWith("tel:") ? href : `tel:${href}`;
   };
 
   const openMessage = () => {
     const href = vm.contact.messageSmsHref;
     if (!href) return;
-    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", { ...analyticsBase, source: "business_hub" });
     window.location.href = href;
   };
 
   const openWhatsApp = () => {
     const href = vm.contact.whatsappHref;
     if (!href) return;
-    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { ...analyticsBase, source: "business_hub" });
     window.open(href, "_blank", "noopener,noreferrer");
   };
 
@@ -266,22 +278,22 @@ export function ServiciosBusinessHubContactCard({
   };
 
   const openSocialOutbound = (url: string, _headline: string) => {
-    trackServiciosListingCta(listingSlug, "cta_website_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_website_click", { ...analyticsBase, source: "business_hub" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const openLink = (url: string) => {
-    trackServiciosListingCta(listingSlug, "cta_website_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_website_click", { ...analyticsBase, source: "business_hub" });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const openReviewLink = (link: ServiciosBusinessHubReviewLink) => {
-    trackServiciosListingCta(listingSlug, "cta_review_click", { source: "business_hub", reviewId: link.id });
+    trackServiciosListingCta(listingSlug, "cta_review_click", { ...analyticsBase, source: "business_hub", reviewId: link.id });
     window.open(link.url, "_blank", "noopener,noreferrer");
   };
 
   const openDirections = (addressOrUrl: string, isMapsUrl: boolean) => {
-    trackServiciosListingCta(listingSlug, "cta_maps_click", { source: "business_hub" });
+    trackServiciosListingCta(listingSlug, "cta_maps_click", { ...analyticsBase, source: "business_hub" });
     if (isMapsUrl) {
       window.open(addressOrUrl, "_blank", "noopener,noreferrer");
     } else {
@@ -407,6 +419,8 @@ export function ServiciosBusinessHubContactCard({
             messagePlain={quoteMsgText}
             lang={lang}
             listingSlug={listingSlug}
+            engagementListingId={engagementListingId}
+            ownerUserId={engagementOwnerUserId}
             analyticsEventType={analyticsForQuoteKind("mailto")}
             triggerClassName={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} justify-between`}
             triggerStyle={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}

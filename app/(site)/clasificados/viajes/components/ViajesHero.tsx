@@ -20,7 +20,7 @@ export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
       <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/45 shadow-[0_28px_80px_-36px_rgba(15,50,70,0.42)] sm:rounded-3xl">
         <div className="relative w-full overflow-hidden">
           <div
-            className="relative aspect-[10/11] w-full max-h-[min(76svh,24rem)] sm:aspect-[16/11] sm:max-h-[min(70svh,26rem)] md:aspect-[2.05/1] md:max-h-[min(58svh,26rem)] lg:aspect-[21/9] lg:max-h-none lg:min-h-[16.5rem] xl:min-h-[18rem] 2xl:min-h-[19.5rem]"
+            className="relative aspect-[16/9] w-full max-h-[min(42svh,14rem)] sm:max-h-[min(40svh,15rem)] md:aspect-[2.05/1] md:max-h-[min(36svh,16rem)] lg:max-h-[min(32svh,17rem)] lg:min-h-[12rem]"
           >
             <Image
               src={VIAJES_HERO_IMAGE.src}

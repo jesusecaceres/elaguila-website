@@ -17,8 +17,10 @@ import { inferServiciosSellerPresentation } from "./lib/serviciosSellerKind";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
 import {
   extractWaMeDigitsFromHref,
+  serviciosAnalyticsTrackMeta,
   serviciosContactShareExtras,
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
@@ -85,6 +87,12 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const showGroupChip = Boolean(groupLabel) && (!category || groupLabel !== category.trim());
   const sellerKind = inferServiciosSellerPresentation(row.profile_json);
   const promoted = isServiciosListingPromoted(row);
+  const ctaTrackMeta = serviciosAnalyticsTrackMeta({
+    listingSlug: row.slug,
+    engagementListingId: serviciosEngagementListingKey(row),
+    ownerUserId: row.owner_user_id ?? null,
+    source: "servicios_listing_card",
+  });
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
@@ -106,11 +114,11 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
 
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(row.slug, eventType, { source: "servicios_listing_card" });
+      trackServiciosListingCta(row.slug, eventType, ctaTrackMeta);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [row.slug],
+    [ctaTrackMeta, row.slug],
   );
 
   const waHrefNormalized = waHref;

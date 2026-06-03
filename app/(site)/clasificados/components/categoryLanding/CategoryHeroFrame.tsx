@@ -87,7 +87,7 @@ export function CategoryHeroFrame({
   priority = true,
   objectClassName = "object-cover object-[center_34%] min-[480px]:object-[center_36%] md:object-[center_38%] lg:object-[center_40%]",
   overlay = "leonix-warm",
-  minHeightClass = "min-h-[min(38vh,320px)] sm:min-h-[min(42vh,380px)] md:min-h-[min(46vh,440px)] lg:min-h-[min(48vh,480px)]",
+  minHeightClass = "min-h-[min(28vh,220px)] sm:min-h-[min(30vh,260px)] md:min-h-[min(32vh,300px)]",
   roundedClass = "rounded-2xl border border-[#E8DFD0]/45 sm:rounded-3xl",
   className = "",
   contentJustify = "end",

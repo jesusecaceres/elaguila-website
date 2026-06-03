@@ -18,6 +18,7 @@ import {
   buildServiciosSendEmailIntentFromMailto,
   extractWaMeDigitsFromHref,
   serviciosContactShareExtras,
+  serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import {
@@ -188,13 +189,24 @@ export function ServiciosHorizontalResultCard({
     setCtaIntent(null);
   }, []);
 
+  const ctaTrackMeta = useMemo(
+    () =>
+      serviciosAnalyticsTrackMeta({
+        listingSlug: listingSlug || ctaAnalyticsListingKey,
+        engagementListingId: ctaAnalyticsListingKey,
+        ownerUserId: row?.owner_user_id ?? null,
+        source: "servicios_horizontal_card",
+      }),
+    [ctaAnalyticsListingKey, listingSlug, row?.owner_user_id],
+  );
+
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(ctaAnalyticsListingKey, eventType, { source: "servicios_horizontal_card" });
+      trackServiciosListingCta(listingSlug || ctaAnalyticsListingKey, eventType, ctaTrackMeta);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [ctaAnalyticsListingKey],
+    [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug],
   );
 
   const contactExtras = useMemo(() => {

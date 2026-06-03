@@ -167,7 +167,7 @@ export function EnVentaHubPageClient({
       <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-24 sm:pt-9 md:px-6 lg:px-10 lg:pt-10 xl:px-14">
         {/* Hero */}
         <section className="relative isolate overflow-hidden rounded-[24px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[28px] md:rounded-[32px]">
-          <div className="absolute inset-0 min-h-[240px] sm:min-h-[260px] md:min-h-[280px] lg:min-h-[300px]">
+          <div className="absolute inset-0 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[240px]">
             <HeroBackdrop src={backdropSrc} />
             <div
               className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/86 via-[#F5EFE3]/74 to-[#F3EBDD]/92 max-md:from-[#F8F1E4]/88"

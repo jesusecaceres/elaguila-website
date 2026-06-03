@@ -34,6 +34,12 @@ import {
   resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import Navbar from "@/app/components/Navbar";
+import { CategoryCompactHero } from "@/app/(site)/clasificados/components/categoryStandard/CategoryCompactHero";
+import {
+  CATEGORY_STANDARD_MAIN,
+  CATEGORY_STANDARD_PAGE_BG,
+  categoryStandardUi,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
 import { CommunityDiscoveryListingCard } from "./CommunityDiscoveryListingCard";
 
@@ -203,55 +209,103 @@ export function CommunityListingsResultsClient({
   const L = lang === "es";
   const pageTitle = L ? pageTitleEs : pageTitleEn;
   const backLandingLabel = L ? backLandingLabelEs : backLandingLabelEn;
+  const ui = categoryStandardUi(lang);
+  const resultsAction =
+    category === "clases" ? "/clasificados/clases/resultados" : "/clasificados/comunidad/resultados";
+  const clearHref = appendLangToPath(resultsAction, lang);
+  const publishHref = appendLangToPath(
+    category === "clases" ? "/clasificados/publicar/clases" : "/clasificados/publicar/comunidad",
+    lang,
+  );
+  const publishLabel = L
+    ? category === "clases"
+      ? "Publicar en Clases"
+      : "Publicar en Comunidad y Eventos"
+    : category === "clases"
+      ? "Post in Classes"
+      : "Post in Community & Events";
+
+  const filterLabelClass = "block text-xs font-semibold text-[#556B3E]";
+  const filterInputClass =
+    "mt-1 w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/70 focus:ring-2 focus:ring-[#C9A84A]/20";
 
   return (
-    <div className="min-h-screen bg-[#ECEAE7] pb-20 text-[#111111]">
+    <div className={CATEGORY_STANDARD_PAGE_BG}>
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 pb-10 pt-24 sm:px-5">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">{pageTitle}</h1>
-            <p className="mt-1 text-sm text-[#5C564E]">
-              {L ? "Anuncios publicados en Leonix Clasificados." : "Listings published on Leonix Clasificados."}
-            </p>
-          </div>
+      <main className={`${CATEGORY_STANDARD_MAIN} pb-10`}>
+        <div className="mb-4">
           <Link
             href={appendLangToPath(backLandingHref, lang)}
-            className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#F5F5F5]"
+            className="text-sm font-semibold text-[#556B3E] transition hover:text-[#7A1E2C]"
           >
             ← {backLandingLabel}
           </Link>
         </div>
 
-        <div className="mb-6 rounded-2xl border border-black/10 bg-white/95 p-4 shadow-sm">
+        <CategoryCompactHero category={category} lang={lang} title={pageTitle} />
+
+        <div className="mt-4 space-y-4">
+          <p className="text-sm font-semibold text-[#2A4536]">
+            {ui.count(filtered.length)}
+            {!loading && filtered.length === 0 ? (
+              <span className="ml-2 font-normal text-[#3D3428]/80">
+                {L ? "— prueba otros filtros" : "— try other filters"}
+              </span>
+            ) : null}
+          </p>
+
           <form
-            className="space-y-3"
-            action={category === "clases" ? "/clasificados/clases/resultados" : "/clasificados/comunidad/resultados"}
+            action={resultsAction}
             method="get"
+            className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)] sm:p-5"
           >
             <input type="hidden" name="lang" value={lang} />
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">{L ? "Buscar" : "Search"}</span>
+                <input
+                  className="min-h-[2.75rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 text-sm"
+                  name="q"
+                  defaultValue={q}
+                  placeholder={L ? "Buscar…" : "Search…"}
+                />
+              </label>
+              <label className="min-w-0 lg:w-40">
+                <span className="sr-only">{ui.cityZip}</span>
+                <input
+                  className="min-h-[2.75rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 text-sm"
+                  name="city"
+                  defaultValue={city}
+                  placeholder={ui.cityZip}
+                />
+              </label>
+              <button
+                type="submit"
+                className="inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-lg bg-[#7A1E2C] px-6 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
+              >
+                {ui.search}
+              </button>
+            </div>
+
+            <details className="group mt-3 rounded-lg border border-[#D6C7AD]/60 bg-[#FAF6EE]/80">
+              <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-bold uppercase tracking-[0.08em] text-[#556B3E] marker:content-none [&::-webkit-details-marker]:hidden">
+                {ui.moreFilters}
+              </summary>
+              <div className="space-y-3 border-t border-[#D6C7AD]/50 px-3 py-3">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="block text-xs font-semibold text-[#5C564E]">
-                {L ? "Buscar" : "Search"}
-                <input className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="q" defaultValue={q} />
-              </label>
-              <label className="block text-xs font-semibold text-[#5C564E]">
-                {L ? "Ciudad (contiene)" : "City (contains)"}
-                <input className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="city" defaultValue={city} />
-              </label>
               {category === "clases" ? (
                 <>
-                  <label className="block text-xs font-semibold text-[#5C564E]">
+                  <label className={filterLabelClass}>
                     {L ? "Costo" : "Cost"}
-                    <select className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="cost" defaultValue={cost}>
+                    <select className={filterInputClass} name="cost" defaultValue={cost}>
                       <option value="all">{L ? "Todos" : "All"}</option>
                       <option value="gratis">{L ? "Gratis" : "Free"}</option>
                       <option value="pagada">{L ? "Pagada" : "Paid"}</option>
                     </select>
                   </label>
-                  <label className="block text-xs font-semibold text-[#5C564E]">
+                  <label className={filterLabelClass}>
                     {L ? "Modalidad" : "Mode"}
-                    <select className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="mode" defaultValue={mode}>
+                    <select className={filterInputClass} name="mode" defaultValue={mode}>
                       <option value="all">{L ? "Todas" : "All"}</option>
                       <option value="presencial">{L ? "Presencial" : "In person"}</option>
                       <option value="enLinea">{L ? "En línea" : "Online"}</option>
@@ -260,13 +314,9 @@ export function CommunityListingsResultsClient({
                   </label>
                 </>
               ) : (
-                <label className="block text-xs font-semibold text-[#5C564E] sm:col-span-2">
+                <label className={`${filterLabelClass} sm:col-span-2`}>
                   {L ? "Costo del evento" : "Event cost"}
-                  <select
-                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
-                    name="eventCost"
-                    defaultValue={eventCost}
-                  >
+                  <select className={filterInputClass} name="eventCost" defaultValue={eventCost}>
                     <option value="all">{L ? "Todos" : "All"}</option>
                     <option value="gratis">{L ? "Gratis" : "Free"}</option>
                     <option value="pagado">{L ? "Pagado" : "Paid"}</option>
@@ -376,18 +426,27 @@ export function CommunityListingsResultsClient({
                 </label>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" className="rounded-lg bg-[#111111] px-4 py-2 text-sm font-semibold text-white">
+              </div>
+            </details>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="submit"
+                className="rounded-lg bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
+              >
                 {L ? "Aplicar filtros" : "Apply filters"}
               </button>
               <Link
-                href={appendLangToPath(
-                  category === "clases" ? "/clasificados/clases/resultados" : "/clasificados/comunidad/resultados",
-                  lang,
-                )}
-                className="rounded-lg border border-black/15 px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[#F5F5F5]"
+                href={clearHref}
+                className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-2 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
               >
-                {L ? "Limpiar" : "Clear"}
+                {ui.clearFilters}
+              </Link>
+              <Link
+                href={publishHref}
+                className="rounded-lg border border-[#C9A84A]/50 bg-[#FAF6EE] px-4 py-2 text-sm font-semibold text-[#2A4536] hover:bg-[#FBF7EF]"
+              >
+                {publishLabel}
               </Link>
             </div>
           </form>

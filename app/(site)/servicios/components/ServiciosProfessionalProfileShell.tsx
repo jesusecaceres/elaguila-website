@@ -212,6 +212,8 @@ export function ServiciosProfessionalProfileShell({
             template={template}
             contactScrollTargetId="servicios-pro-contact"
             listingSlug={analyticsListingSlug}
+            engagementListingId={engagementListingId}
+            engagementOwnerUserId={engagementOwnerUserId}
             engagementSlot={
               persistListingEngagement ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -388,7 +390,14 @@ export function ServiciosProfessionalProfileShell({
                 </div>
 
                 <div className="lg:hidden">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
+                  <ServiciosPromocionesCard
+                    profile={displayProfile}
+                    lang={lang}
+                    premiumLeonixTone
+                    listingSlug={analyticsListingSlug}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                  />
                 </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
@@ -417,7 +426,14 @@ export function ServiciosProfessionalProfileShell({
                   />
                 </div>
                 <div className="mt-5 lg:mt-6">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
+                  <ServiciosPromocionesCard
+                    profile={displayProfile}
+                    lang={lang}
+                    premiumLeonixTone
+                    listingSlug={analyticsListingSlug}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                  />
                 </div>
               </aside>
             </div>

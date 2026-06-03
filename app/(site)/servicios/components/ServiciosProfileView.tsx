@@ -177,7 +177,14 @@ export function ServiciosProfileView({
                   </div>
 
                   <div className="order-5 lg:hidden">
-                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
+                    <ServiciosPromocionesCard
+                      profile={displayProfile}
+                      lang={lang}
+                      premiumLeonixTone
+                      listingSlug={analyticsListingSlug}
+                      engagementListingId={engagementListingId}
+                      engagementOwnerUserId={engagementOwnerUserId}
+                    />
                   </div>
 
                   {hasCredentialsResolved(profile) ? (
@@ -253,7 +260,14 @@ export function ServiciosProfileView({
               showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
             />
             <div className="mt-5 lg:mt-6">
-              <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
+              <ServiciosPromocionesCard
+                profile={displayProfile}
+                lang={lang}
+                premiumLeonixTone
+                listingSlug={analyticsListingSlug}
+                engagementListingId={engagementListingId}
+                engagementOwnerUserId={engagementOwnerUserId}
+              />
             </div>
           </aside>
         </div>

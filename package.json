@@ -125,6 +125,7 @@
     "varios:r9b-refresh-safe-draft-warning-audit": "tsx scripts/varios-r9b-refresh-safe-draft-warning-audit.ts",
     "varios:r10-card-images-smoke-test": "tsx scripts/varios-r10-card-images-smoke-test.ts",
     "varios:r10-publish-description-constraint-audit": "tsx scripts/varios-r10-publish-description-constraint-audit.ts",
+    "varios:r11b-category-publish-description-audit": "tsx scripts/varios-r11b-category-publish-description-audit.ts",
     "varios:r11-unify-preview-public-shells-smoke-test": "tsx scripts/varios-r11-unify-preview-public-shells-smoke-test.ts",
     "en-venta:r12-public-detail-shell-smoke-test": "tsx scripts/en-venta-r12-public-detail-shell-smoke-test.ts",
     "enventa:r14-draft-persistence-smoke": "tsx scripts/en-venta-r14-draft-persistence-smoke.ts",

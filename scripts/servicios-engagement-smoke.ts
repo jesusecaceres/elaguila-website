@@ -123,6 +123,27 @@ function main() {
   const ownerEngagementApi = readFileSync(join(__dirname, "../app/api/dashboard/owner-engagement/route.ts"), "utf8");
   assert.ok(ownerEngagementApi.includes("fetchOwnerEngagementRollupsServer"), "dashboard API: server engagement rollups");
 
+  const identitySrc = readFileSync(join(__dirname, "../app/(site)/servicios/lib/serviciosAnalyticsIdentity.ts"), "utf8");
+  assert.ok(identitySrc.includes("serviciosCanonicalListingAnalyticsId"), "S1: canonical listing_analytics id");
+  assert.ok(identitySrc.includes("listing_analytics"), "S1: documents listing_analytics source of truth");
+
+  const mirrorSrc = readFileSync(
+    join(__dirname, "../app/(site)/clasificados/servicios/lib/serviciosListingAnalyticsMirror.ts"),
+    "utf8",
+  );
+  assert.ok(mirrorSrc.includes("clientListingAnalytics"), "S1: ops mirror skips client-duplicated events");
+  assert.ok(mirrorSrc.includes("listing_analytics"), "S1: server mirror writes listing_analytics");
+
+  const ctaSrc = readFileSync(join(__dirname, "../app/(site)/servicios/lib/serviciosCtaIntents.ts"), "utf8");
+  assert.ok(ctaSrc.includes("clientListingAnalytics: true"), "S1: CTA path marks client listing_analytics write");
+  assert.ok(ctaSrc.includes("listing_open"), "S1: result card listing_open when source includes card");
+
+  const profileEng = readFileSync(
+    join(__dirname, "../app/(site)/servicios/lib/serviciosProfileEngagementAnalytics.ts"),
+    "utf8",
+  );
+  assert.ok(profileEng.includes("listing_view"), "S1: profile writes listing_view to listing_analytics");
+
   const likeCluster = readFileSync(
     join(__dirname, "../app/(site)/servicios/components/ServiciosLikeEngagementCluster.tsx"),
     "utf8",

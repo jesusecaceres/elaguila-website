@@ -8,7 +8,7 @@ import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
 import { SV } from "./serviciosDesignTokens";
 import { LX, LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
 import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
-import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
 type ResourceKind = "image" | "pdf" | "link";
@@ -86,6 +86,7 @@ function PromoCtaButton({
   premiumLeonixTone,
   onImageOpen,
   listingSlug,
+  analyticsMeta,
 }: {
   kind: ResourceKind;
   href: string;
@@ -95,6 +96,7 @@ function PromoCtaButton({
   premiumLeonixTone?: boolean;
   onImageOpen: (src: string) => void;
   listingSlug?: string;
+  analyticsMeta?: ReturnType<typeof serviciosAnalyticsTrackMeta>;
 }) {
   const premium = Boolean(premiumLeonixTone);
   const label = promoActionLabel(kind, variant, lang, L, premium);
@@ -111,7 +113,7 @@ function PromoCtaButton({
     if (!listingSlug) return;
     const eventType =
       kind === "pdf" ? "cta_secondary_click" : variant === "primary" ? "cta_primary_click" : "cta_secondary_click";
-    trackServiciosListingCta(listingSlug, eventType, { source: "promo_card", promoKind: kind });
+    trackServiciosListingCta(listingSlug, eventType, { ...analyticsMeta, source: "promo_card", promoKind: kind });
   };
 
   if (kind === "image") {
@@ -151,6 +153,7 @@ function PromoInnerCard({
   premiumLeonixTone,
   onImageOpen,
   listingSlug,
+  analyticsMeta,
 }: {
   promo: PromoRow;
   lang: ServiciosLang;
@@ -158,6 +161,7 @@ function PromoInnerCard({
   premiumLeonixTone?: boolean;
   onImageOpen: (src: string) => void;
   listingSlug?: string;
+  analyticsMeta?: ReturnType<typeof serviciosAnalyticsTrackMeta>;
 }) {
   const L = getServiciosProfileLabels(lang);
   const hasImage = Boolean(promo.assetImageHrefSafe);
@@ -286,6 +290,7 @@ function PromoInnerCard({
                   premiumLeonixTone={premiumLeonixTone}
                   onImageOpen={onImageOpen}
                   listingSlug={listingSlug}
+                  analyticsMeta={analyticsMeta}
                 />
               ) : null}
               {secondary.map((s) => (
@@ -299,6 +304,7 @@ function PromoInnerCard({
                   premiumLeonixTone={premiumLeonixTone}
                   onImageOpen={onImageOpen}
                   listingSlug={listingSlug}
+                  analyticsMeta={analyticsMeta}
                 />
               ))}
             </div>
@@ -314,17 +320,27 @@ export function ServiciosPromocionesCard({
   lang,
   premiumLeonixTone = false,
   listingSlug,
+  engagementListingId,
+  engagementOwnerUserId,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   premiumLeonixTone?: boolean;
   listingSlug?: string;
+  engagementListingId?: string | null;
+  engagementOwnerUserId?: string | null;
 }) {
   const copy = getServiciosPromocionesSectionCopy(lang);
   const L = getServiciosProfileLabels(lang);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const openLightbox = useCallback((src: string) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
+  const analyticsMeta = serviciosAnalyticsTrackMeta({
+    listingSlug,
+    engagementListingId,
+    ownerUserId: engagementOwnerUserId,
+    source: "promo_card",
+  });
 
   if (!hasOfferSectionResolved(profile)) return null;
 
@@ -372,6 +388,7 @@ export function ServiciosPromocionesCard({
                 premiumLeonixTone={premiumLeonixTone}
                 onImageOpen={openLightbox}
                 listingSlug={listingSlug}
+                analyticsMeta={analyticsMeta}
               />
             </div>
           ))}

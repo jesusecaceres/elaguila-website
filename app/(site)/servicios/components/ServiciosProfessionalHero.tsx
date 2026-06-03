@@ -6,7 +6,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
-import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
 import {
   LX,
@@ -56,6 +56,8 @@ export function ServiciosProfessionalHero({
   cityFallback,
   contactScrollTargetId,
   listingSlug,
+  engagementListingId,
+  engagementOwnerUserId,
   engagementSlot,
 }: {
   profile: ServiciosProfileResolved;
@@ -64,6 +66,8 @@ export function ServiciosProfessionalHero({
   cityFallback?: string;
   contactScrollTargetId?: string;
   listingSlug?: string;
+  engagementListingId?: string | null;
+  engagementOwnerUserId?: string | null;
   engagementSlot?: React.ReactNode;
 }) {
   const category = profile.hero.categoryLine?.trim();
@@ -83,6 +87,12 @@ export function ServiciosProfessionalHero({
   const tel = profile.contact.phoneTelHref?.trim();
   const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact);
   const primaryLabel = getPrimaryCtaLabel(template, lang);
+  const analyticsBase = serviciosAnalyticsTrackMeta({
+    listingSlug,
+    engagementListingId,
+    ownerUserId: engagementOwnerUserId,
+    source: "professional_hero",
+  });
 
   const scrollToContact = () => {
     if (!contactScrollTargetId) return;
@@ -100,20 +110,20 @@ export function ServiciosProfessionalHero({
       scrollToContact();
       return;
     }
-    trackServiciosListingCta(listingSlug, "cta_call_click", { source: "professional_hero" });
+    trackServiciosListingCta(listingSlug, "cta_call_click", analyticsBase);
     window.location.href = tel.startsWith("tel:") ? tel : `tel:${tel}`;
   };
 
   const openWhatsApp = () => {
     if (!waHref) return;
-    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { source: "professional_hero" });
+    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", analyticsBase);
     window.open(waHref, "_blank", "noopener,noreferrer");
   };
 
   const openDirections = () => {
     const href = profile.contact.mapsSearchHref?.trim();
     const addr = profile.contact.physicalAddressDisplay?.trim();
-    trackServiciosListingCta(listingSlug, "cta_maps_click", { source: "professional_hero" });
+    trackServiciosListingCta(listingSlug, "cta_maps_click", analyticsBase);
     if (href && /^https?:\/\//i.test(href)) {
       window.open(href, "_blank", "noopener,noreferrer");
     } else if (addr) {

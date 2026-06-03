@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
-import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
+import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
+import { CATEGORY_STANDARD_MAIN, CATEGORY_STANDARD_PAGE_BG } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { COMUNIDAD_LANDING_CATEGORY_PILLS, COMUNIDAD_QUICK_CHIPS } from "./shared/fields/comunidadTaxonomy";
 import { buildComunidadListaUrl } from "./shared/utils/comunidadListaUrl";
@@ -15,37 +16,20 @@ type Lang = "es" | "en";
 
 const CATEGORY = "comunidad";
 
-/** Local hero asset (reliable in CI; remote Unsplash URLs can 404 upstream). */
-const COMUNIDAD_HERO_IMAGE = "/logo.png";
-
 const COPY = {
   es: {
     eyebrow: "Comunidad y Eventos · Leonix",
-    title: "Comunidad y Eventos",
-    subtitle: "Eventos, avisos, recursos y conexión local.",
     searchPlaceholder: "Buscar: eventos, ayuda, avisos…",
-    locationPlaceholder: "Ciudad o ZIP",
-    buttonView: "Ver anuncios",
-    buttonPost: "Publicar anuncio",
     exploreCategory: "Explorar por categoría",
-    hint: "Usa el botón para ver resultados con filtros.",
-    ctaPost: "Publicar anuncio",
-    ctaView: "Ver anuncios",
-    heroImageAlt: "Personas reunidas en la comunidad",
+    ctaPost: "Publicar en Comunidad y Eventos",
+    ctaView: "Ver todos los anuncios",
   },
   en: {
     eyebrow: "Community & Events · Leonix",
-    title: "Community & Events",
-    subtitle: "Events, notices, resources and local connection.",
     searchPlaceholder: "Search: events, help, notices…",
-    locationPlaceholder: "City or ZIP",
-    buttonView: "View listings",
-    buttonPost: "Post listing",
     exploreCategory: "Browse by category",
-    hint: "Use the button below to see results with filters.",
-    ctaPost: "Post listing",
-    ctaView: "View listings",
-    heroImageAlt: "People gathering as a community",
+    ctaPost: "Post in Community & Events",
+    ctaView: "View all listings",
   },
 } as const;
 
@@ -57,145 +41,70 @@ export default function Page() {
 
   const listaHref = useMemo(() => buildComunidadListaUrl(CATEGORY, lang), [lang]);
   const postHref = useMemo(
-    () =>
-      `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?cat=${CATEGORY}&lang=${lang}`)}`,
+    () => appendLangToPath("/clasificados/publicar/comunidad", lang),
     [lang],
   );
 
+  const searchChips = (
+    <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>
+      {chips.map((label) => (
+        <Link
+          key={label}
+          href={buildComunidadListaUrl(CATEGORY, lang, label)}
+          className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-1.5 text-xs font-medium text-[#1F241C] transition hover:bg-[#FBF7EF] sm:shrink"
+        >
+          {label}
+        </Link>
+      ))}
+    </CategoryLandingChipsRail>
+  );
+
   return (
-    <div className="min-h-screen pb-20 text-[#111111] [background:radial-gradient(ellipse_at_top,rgba(169,140,42,0.12),transparent_58%),#F4EFE6]">
+    <div className={CATEGORY_STANDARD_PAGE_BG}>
       <Navbar />
-
-      <div className="sticky top-14 z-30 border-b border-[#C9B46A]/20 bg-[#F4EFE6]/92 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 py-2.5">
-          <Link
-            href={postHref}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95"
-          >
-            {t.ctaPost}
-          </Link>
-          <Link
-            href={listaHref}
-            className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-[#F5F0E6]"
-          >
-            {t.ctaView}
-          </Link>
-        </div>
-      </div>
-
-      <main className="mx-auto w-full max-w-[min(100%,960px)] min-w-0 space-y-5 px-4 pb-12 pt-4 sm:space-y-6 sm:px-5 sm:pt-5 md:space-y-7 md:pt-6">
-        <CategoryHeroFrame
-          imageSrc={COMUNIDAD_HERO_IMAGE}
-          imageAlt={t.heroImageAlt}
-          overlay="leonix-slate"
-          contentJustify="end"
-          minHeightClass="min-h-[min(36vh,300px)] sm:min-h-[min(40vh,360px)] md:min-h-[min(44vh,400px)]"
-          objectClassName="object-cover object-[center_40%] sm:object-[center_38%] md:object-[center_36%]"
-          contentClassName="sm:max-w-[46rem]"
-        >
-          <div className="w-full max-w-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#4e5c52]/95 sm:text-[11px] sm:tracking-[0.24em]">{t.eyebrow}</p>
-            <h1 className="mt-2.5 text-balance font-serif text-[clamp(1.6rem,3.8vw+0.45rem,2.6rem)] font-semibold leading-[1.08] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,252,247,0.85)] sm:mt-3">
-              {t.title}
-            </h1>
-            <p className="mt-2.5 max-w-xl text-[0.9375rem] leading-relaxed text-[#2a241c]/90 sm:mt-3 sm:text-base">{t.subtitle}</p>
-          </div>
-        </CategoryHeroFrame>
-
-        <section className="rounded-2xl border border-[#C9B46A]/20 bg-[#FFFCF7]/96 px-4 py-4 shadow-[0_10px_36px_-24px_rgba(42,36,22,0.22)] ring-1 ring-[#C9B46A]/08 sm:px-5 sm:py-4.5">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#3d5a73]/80 sm:text-left">{t.exploreCategory}</p>
-          <div className="mt-3">
-            <CategoryLandingChipsRail label={t.exploreCategory}>
-              {COMUNIDAD_LANDING_CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
-                <Link
-                  key={key}
-                  href={appendLangToPath(`/clasificados/${key}`, lang)}
-                  className="inline-flex min-h-[40px] shrink-0 snap-start items-center rounded-full border border-[#C9B46A]/45 bg-[#F8F6F0] px-3.5 py-2 text-xs font-medium text-[#111111] transition hover:bg-[#EFEFEF] sm:shrink"
-                >
-                  {lang === "es" ? labelEs : labelEn}
-                </Link>
-              ))}
-            </CategoryLandingChipsRail>
-          </div>
-        </section>
-
-        <form
-          className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 p-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:p-5"
-          action="/clasificados/comunidad/resultados"
-          method="get"
-        >
-          <input type="hidden" name="lang" value={lang} />
-          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch sm:gap-3">
-            <div className="relative min-w-0">
-              <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#111111]/50 text-sm" aria-hidden>
-                ⌕
-              </span>
-              <input
-                type="text"
-                name="q"
-                placeholder={t.searchPlaceholder}
-                className="min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white py-2.5 pl-8 pr-3 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-2 focus:ring-[#A98C2A]/18"
-                aria-label={t.searchPlaceholder}
-              />
-            </div>
-            <label className="flex min-h-[44px] min-w-0 flex-col justify-center sm:w-40">
-              <span className="sr-only">{t.locationPlaceholder}</span>
-              <input
-                type="text"
-                name="city"
-                placeholder={t.locationPlaceholder}
-                className="min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none placeholder:text-[#111111]/70 focus:border-[#A98C2A]/60 focus:ring-2 focus:ring-[#A98C2A]/18"
-              />
-            </label>
-          </div>
-          <button
-            type="submit"
-            className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5] sm:w-auto"
-          >
-            {t.buttonView}
-          </button>
-          <div className="mt-3">
-            <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>
-              {chips.map((label) => (
-                <Link
-                  key={label}
-                  href={buildComunidadListaUrl(CATEGORY, lang, label)}
-                  className="inline-flex min-h-[40px] shrink-0 snap-start items-center rounded-full border border-[#111111]/14 bg-white px-3 py-2 text-xs font-medium text-[#111111] transition hover:bg-[#EFEFEF] sm:shrink"
-                >
-                  {label}
-                </Link>
-              ))}
-            </CategoryLandingChipsRail>
-          </div>
-          <p className="mt-2 text-[11px] leading-snug text-[#111111]/68">{t.hint}</p>
-        </form>
-
-        <CategoryRecentListings
+      <main className={`${CATEGORY_STANDARD_MAIN} pb-12`}>
+        <CategoryStandardLandingBlock
           category="comunidad"
           lang={lang}
-          title={lang === "es" ? "Anuncios recientes" : "Recent listings"}
-          emptyNote={
-            lang === "es"
-              ? "Aún no hay eventos de Comunidad y Eventos publicados en Leonix Clasificados."
-              : "No Community & Events listings published on Leonix Clasificados yet."
+          eyebrow={t.eyebrow}
+          searchAction="/clasificados/comunidad/resultados"
+          searchPlaceholder={t.searchPlaceholder}
+          publishHref={postHref}
+          browseHref={listaHref}
+          publishLabel={t.ctaPost}
+          browseLabel={t.ctaView}
+          searchChips={searchChips}
+          belowHero={
+            <section className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 sm:px-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#556B3E]">{t.exploreCategory}</p>
+              <div className="mt-3">
+                <CategoryLandingChipsRail label={t.exploreCategory}>
+                  {COMUNIDAD_LANDING_CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
+                    <Link
+                      key={key}
+                      href={appendLangToPath(`/clasificados/${key}`, lang)}
+                      className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:bg-[#FBF7EF] sm:shrink"
+                    >
+                      {lang === "es" ? labelEs : labelEn}
+                    </Link>
+                  ))}
+                </CategoryLandingChipsRail>
+              </div>
+            </section>
           }
-          errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
-        />
-
-        <div className="flex min-w-0 flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
-          <Link
-            href={listaHref}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95 sm:w-auto sm:min-w-[11rem]"
-          >
-            {t.buttonView}
-          </Link>
-          <Link
-            href={postHref}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#C9B46A]/55 bg-[#FFFCF7] px-5 py-3 text-sm font-medium text-[#111111] transition hover:bg-[#F5F0E6] sm:w-auto sm:min-w-[11rem]"
-          >
-            {t.buttonPost}
-          </Link>
-        </div>
+        >
+          <CategoryRecentListings
+            category="comunidad"
+            lang={lang}
+            title={lang === "es" ? "Anuncios recientes" : "Recent listings"}
+            emptyNote={
+              lang === "es"
+                ? "Aún no hay eventos de Comunidad y Eventos publicados en Leonix Clasificados."
+                : "No Community & Events listings published on Leonix Clasificados yet."
+            }
+            errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
+          />
+        </CategoryStandardLandingBlock>
       </main>
     </div>
   );
