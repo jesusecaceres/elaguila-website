@@ -13,8 +13,7 @@ import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLa
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
-import { rollupListingAnalyticsEvents } from "../../lib/listingAnalyticsAggregate";
-import { listingAnalyticsReadIsDegraded } from "../../lib/listingAnalyticsReadErrors";
+import { fetchDashboardListingAnalytics } from "../../lib/fetchDashboardAnalyticsApi";
 import {
   isListingRepublishWindowActive,
   listingPlanFromDetailPairs,
@@ -316,14 +315,28 @@ export default function ListingWorkspacePage() {
     setRow(listing);
     setAccess("ok");
 
-    const listingKeys = [listing.id, (listing.leonix_ad_id ?? "").trim()].filter(Boolean) as string[];
-    const { data: events, error: evErr } = await sb
-      .from("listing_analytics")
-      .select("listing_id, event_type, user_id, created_at")
-      .in("listing_id", listingKeys);
+    const { data: sess } = await sb.auth.getSession();
+    const token = sess.session?.access_token ?? "";
+    const category = (listing.category ?? "").trim() || undefined;
+    const analytics =
+      token
+        ? await fetchDashboardListingAnalytics(token, {
+            source_table: "listings",
+            source_id: listing.id,
+            category,
+            canonical_ad_id: (listing.leonix_ad_id ?? "").trim() || undefined,
+          })
+        : null;
 
-    if (evErr) {
-      setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(evErr));
+    if (!analytics || analytics.forbidden) {
+      if (analytics?.forbidden) {
+        setRow(null);
+        setAccess("forbidden");
+        setListingMessages([]);
+        setLoading(false);
+        return;
+      }
+      setListingAnalyticsDegraded(true);
       setStats({
         views: 0,
         uniqueViews: 0,
@@ -338,22 +351,8 @@ export default function ListingWorkspacePage() {
         applications: 0,
       });
     } else {
-      setListingAnalyticsDegraded(false);
-      const rolled = rollupListingAnalyticsEvents(events ?? [], listingKeys);
-      setStats({
-        views: rolled.views,
-        uniqueViews: rolled.uniqueViews,
-        messages: rolled.messages,
-        saves: rolled.saves,
-        shares: rolled.shares,
-        profileClicks: rolled.profileClicks,
-        listingOpens: rolled.listingOpens,
-        likes: rolled.likes,
-        ctaClicks: rolled.ctaClicks,
-        leads: rolled.leads,
-        applications: rolled.applications,
-        lastEngagement: rolled.lastEngagement,
-      });
+      setListingAnalyticsDegraded(analytics.degraded);
+      setStats(analytics.stats);
     }
 
     const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";

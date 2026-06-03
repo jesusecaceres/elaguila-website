@@ -9,7 +9,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
-import { fetchOwnerAnalyticsTotals } from "./lib/dashboardAnalyticsSummary";
+import { fetchDashboardAnalyticsSummary } from "./lib/fetchDashboardAnalyticsApi";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -262,12 +262,16 @@ export default function DashboardPage() {
         }
 
         try {
-          const agg = await fetchOwnerAnalyticsTotals(supabase, u.id);
+          const { data: sess } = await supabase.auth.getSession();
+          const token = sess.session?.access_token ?? "";
+          const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
           if (mounted) {
-            setListingAnalyticsDegraded(agg.listingAnalyticsUnavailable);
-            setTotalViews(agg.totals.listingViews);
-            setTotalSaves(agg.totals.saves);
-            setTotalMessages(agg.totals.messages + agg.totals.leads);
+            setListingAnalyticsDegraded(summary?.listingAnalyticsUnavailable ?? true);
+            setTotalViews(summary?.totals.listingViews ?? null);
+            setTotalSaves(summary?.totals.saves ?? null);
+            setTotalMessages(
+              summary ? summary.totals.messages + summary.totals.leads : null,
+            );
           }
         } catch {
           if (mounted) {
@@ -320,7 +324,9 @@ export default function DashboardPage() {
         }
 
         try {
-          const feed = await fetchDerivedDashboardFeed(supabase, u.id, lang);
+          const { data: feedSess } = await supabase.auth.getSession();
+          const feedToken = feedSess.session?.access_token ?? null;
+          const feed = await fetchDerivedDashboardFeed(supabase, u.id, lang, feedToken);
           if (mounted) setDerivedFeed(feed);
         } catch {
           if (mounted) setDerivedFeed([]);

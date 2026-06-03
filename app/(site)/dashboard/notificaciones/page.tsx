@@ -180,7 +180,9 @@ export default function NotificacionesPage() {
         /* ignore */
       }
       try {
-        const items = await fetchDerivedDashboardFeed(sb, u.id, lang);
+        const { data: sess } = await sb.auth.getSession();
+        const feedToken = sess.session?.access_token ?? null;
+        const items = await fetchDerivedDashboardFeed(sb, u.id, lang, feedToken);
         setFeedItems(items);
       } catch {
         setFeedItems([]);

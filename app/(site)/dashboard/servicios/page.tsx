@@ -6,7 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { fetchOwnerAnalyticsTotals, type OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import {
   fetchOwnerEngagementDashboard,
   type ServiciosListingEngagementMetricsClient,
@@ -199,10 +200,26 @@ export default function DashboardServiciosPage() {
             setEngagementUnavailable(engagementPayload.listingAnalyticsUnavailable);
           }
         } else {
-          const agg = await fetchOwnerAnalyticsTotals(sb, u.id);
+          const { data: sess } = await sb.auth.getSession();
+          const token = sess.session?.access_token ?? "";
+          const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
           if (mounted) {
-            setEngagementTotals(agg.totals);
-            setEngagementUnavailable(agg.listingAnalyticsUnavailable);
+            setEngagementTotals(
+              summary?.totals ?? {
+                listingViews: 0,
+                uniqueListingViewsEstimate: 0,
+                saves: 0,
+                shares: 0,
+                messages: 0,
+                profileViews: 0,
+                listingOpens: 0,
+                likes: 0,
+                ctaClicks: 0,
+                leads: 0,
+                applications: 0,
+              },
+            );
+            setEngagementUnavailable(summary?.listingAnalyticsUnavailable ?? true);
           }
         }
       } catch {

@@ -4,6 +4,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingRepublishVisibilityWindowEndIso } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
+import { fetchDashboardAnalyticsSummary } from "@/app/(site)/dashboard/lib/fetchDashboardAnalyticsApi";
 
 export type DerivedFeedKind =
   | "expire_visibility"
@@ -49,7 +50,8 @@ type ListingFeedRow = {
 export async function fetchDerivedDashboardFeed(
   sb: SupabaseClient,
   userId: string,
-  lang: "es" | "en"
+  lang: "es" | "en",
+  accessToken?: string | null,
 ): Promise<DerivedFeedItem[]> {
   const items: DerivedFeedItem[] = [];
   const now = new Date();
@@ -164,21 +166,11 @@ export async function fetchDerivedDashboardFeed(
     .filter((r) => String(r.status ?? "").toLowerCase() === "active" && r.is_published !== false)
     .map((r) => r.id);
 
-  if (activeIds.length > 0 && activeIds.length <= 40) {
-    const res = await sb
-      .from("listing_analytics")
-      .select("listing_id")
-      .in("listing_id", activeIds)
-      .eq("event_type", "listing_view");
-    if (!res.error) {
-      const viewCount = new Map<string, number>();
-      for (const row of res.data ?? []) {
-        const id = (row as { listing_id?: string }).listing_id;
-        if (!id) continue;
-        viewCount.set(id, (viewCount.get(id) ?? 0) + 1);
-      }
+  if (activeIds.length > 0 && activeIds.length <= 40 && accessToken?.trim()) {
+    const summary = await fetchDashboardAnalyticsSummary(accessToken.trim());
+    if (summary && !summary.listingAnalyticsUnavailable) {
       for (const id of activeIds) {
-        const v = viewCount.get(id) ?? 0;
+        const v = summary.byListing[id]?.views ?? 0;
         if (v === 0) {
           const row = listings.find((x) => x.id === id);
           const title = (row?.title ?? "").trim() || (isEs ? "Anuncio" : "Listing");

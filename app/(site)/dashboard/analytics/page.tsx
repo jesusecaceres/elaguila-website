@@ -5,9 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { fetchOwnerAnalyticsTotals, type OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
-import { fetchOwnerEngagementDashboard } from "../lib/fetchOwnerEngagementDashboard";
-import { fetchOwnerListingViewLeaders, type ListingViewRow } from "../lib/ownerListingAnalyticsInsights";
+import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
+import type { ListingViewRow } from "../lib/ownerListingAnalyticsInsights";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -166,24 +166,37 @@ export default function DashboardAnalyticsPage() {
         /* ignore */
       }
 
-      const engagementPayload = await fetchOwnerEngagementDashboard(sb);
-      const agg = engagementPayload?.ok
-        ? {
-            totals: engagementPayload.totals,
-            listingCount: engagementPayload.listingCount,
-            listingAnalyticsUnavailable: engagementPayload.listingAnalyticsUnavailable,
-          }
-        : await fetchOwnerAnalyticsTotals(sb, u.id);
+      const { data: sess } = await sb.auth.getSession();
+      const token = sess.session?.access_token ?? "";
+      const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
       if (!mounted) return;
-      setTotals(agg.totals);
-      setListingCount(agg.listingCount);
-
-      const ins = await fetchOwnerListingViewLeaders(sb, u.id);
-      if (!mounted) return;
-      setLeaders(ins.leaders);
-      setLaggards(ins.laggards);
-      setListingAnalyticsUnavailable(agg.listingAnalyticsUnavailable || ins.listingAnalyticsUnavailable);
-      setListingsQueryFailed(ins.listingsQueryFailed);
+      if (summary) {
+        setTotals(summary.totals);
+        setListingCount(summary.listingCount);
+        setLeaders(summary.leaders);
+        setLaggards(summary.laggards);
+        setListingAnalyticsUnavailable(summary.listingAnalyticsUnavailable);
+        setListingsQueryFailed(summary.listingsQueryFailed);
+      } else {
+        setTotals({
+          listingViews: 0,
+          uniqueListingViewsEstimate: 0,
+          saves: 0,
+          shares: 0,
+          messages: 0,
+          profileViews: 0,
+          listingOpens: 0,
+          likes: 0,
+          ctaClicks: 0,
+          leads: 0,
+          applications: 0,
+        });
+        setListingCount(0);
+        setLeaders([]);
+        setLaggards([]);
+        setListingAnalyticsUnavailable(true);
+        setListingsQueryFailed(false);
+      }
 
       setLoading(false);
     }

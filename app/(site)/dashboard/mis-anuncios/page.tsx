@@ -26,7 +26,11 @@ import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstat
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
-import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
+import type { ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
+import {
+  fetchDashboardAnalyticsSummary,
+  hubListingMetricsFromSummary,
+} from "../lib/fetchDashboardAnalyticsApi";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   buildAutosClassifiedsInventoryItems,
@@ -69,7 +73,6 @@ import {
   EN_VENTA_VISIBILITY_WINDOW_MS,
   mergeDetailPairValue,
 } from "@/app/clasificados/en-venta/republish/enVentaRepublishVisibility";
-import { listingAnalyticsReadIsDegraded } from "../lib/listingAnalyticsReadErrors";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import {
@@ -550,23 +553,19 @@ export default function MyListingsPage() {
 
       setListingsLoading(false);
 
-      if (list.length > 0) {
+      if (!mounted) return;
+      if (list.length > 0 && accessToken) {
         const ids = list.map((x) => x.id);
-        const { data: events, error: analyticsErr } = await supabase
-          .from("listing_analytics")
-          .select("listing_id, event_type, user_id")
-          .in("listing_id", ids);
-
+        const summary = await fetchDashboardAnalyticsSummary(accessToken);
         if (!mounted) return;
-        if (analyticsErr) {
-          setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(analyticsErr));
-          setAnalyticsByListing(aggregateListingAnalyticsEvents([], ids));
+        if (summary) {
+          setListingAnalyticsDegraded(summary.listingAnalyticsUnavailable);
+          setAnalyticsByListing(hubListingMetricsFromSummary(summary.byListing, ids));
         } else {
-          setListingAnalyticsDegraded(false);
-          setAnalyticsByListing(aggregateListingAnalyticsEvents(events ?? [], ids));
+          setListingAnalyticsDegraded(true);
+          setAnalyticsByListing(hubListingMetricsFromSummary({}, ids));
         }
       } else {
-        if (!mounted) return;
         setListingAnalyticsDegraded(false);
         setAnalyticsByListing({});
       }

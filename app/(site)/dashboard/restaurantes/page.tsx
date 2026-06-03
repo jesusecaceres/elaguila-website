@@ -8,7 +8,7 @@ import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/applicati
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { fetchOwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
@@ -201,8 +201,10 @@ export default function DashboardRestaurantesPage() {
     // Load analytics
     setAnalyticsLoading(true);
     try {
-      const { totals } = await fetchOwnerAnalyticsTotals(supabase, user.id);
-      setAnalytics(totals);
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token ?? "";
+      const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
+      setAnalytics(summary?.totals ?? null);
     } catch (error) {
       console.warn('Failed to load analytics:', error);
       setAnalytics(null);
