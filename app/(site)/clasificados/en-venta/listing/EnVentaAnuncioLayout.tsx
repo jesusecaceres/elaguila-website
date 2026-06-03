@@ -645,6 +645,15 @@ export function EnVentaAnuncioLayout({
     ? `${brLuxuryBtnPrimaryClass} min-h-[42px] px-4 py-2 text-sm`
     : "bg-yellow-500 text-black hover:bg-yellow-400";
 
+  const leonixAdId = listing.leonix_ad_id?.trim() ?? "";
+  const buyerFacingIdLabel = leonixAdId
+    ? lang === "es"
+      ? "ID Leonix"
+      : "Leonix ID"
+    : lang === "es"
+      ? "ID del anuncio"
+      : "Ad ID";
+  const buyerFacingIdValue = leonixAdId || listing.id;
   const listingIdLabel = lang === "es" ? "ID del anuncio" : "Listing ID";
   const saveLabel =
     lang === "es" ? (saved ? "★ Guardado" : "☆ Guardar") : saved ? "★ Saved" : "☆ Save";
@@ -797,8 +806,8 @@ export function EnVentaAnuncioLayout({
                     }
                   />
                   <p className="mt-4 rounded-lg border border-[#C9A84A]/40 bg-[#FBF7EF]/90 px-3 py-2 font-mono text-[11px] text-[#3D3428]">
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">{listingIdLabel}</span>
-                    <span className="ml-2 select-all">{listing.id}</span>
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">{buyerFacingIdLabel}</span>
+                    <span className="ml-2 select-all">{buyerFacingIdValue}</span>
                   </p>
                 </>
               ) : (

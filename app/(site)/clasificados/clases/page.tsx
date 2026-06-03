@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
 import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
-import { CATEGORY_STANDARD_MAIN, CATEGORY_STANDARD_PAGE_BG } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import { CategoryStandardLandingPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPageShell";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { CLASES_LANDING_CATEGORY_PILLS, CLASES_QUICK_CHIPS } from "./shared/fields/clasesTaxonomy";
 import { buildClasesListaUrl } from "./shared/utils/clasesListaUrl";
@@ -57,9 +56,7 @@ export default function Page() {
   );
 
   return (
-    <div className={CATEGORY_STANDARD_PAGE_BG}>
-      <Navbar />
-      <main className={`${CATEGORY_STANDARD_MAIN} pb-12`}>
+    <CategoryStandardLandingPageShell>
         <CategoryStandardLandingBlock
           category="clases"
           lang={lang}
@@ -102,7 +99,6 @@ export default function Page() {
             errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
           />
         </CategoryStandardLandingBlock>
-      </main>
-    </div>
+    </CategoryStandardLandingPageShell>
   );
 }

@@ -33,13 +33,14 @@ import {
   resolveClasesCategoryPublicLabel,
   resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
-import Navbar from "@/app/components/Navbar";
-import { CategoryCompactHero } from "@/app/(site)/clasificados/components/categoryStandard/CategoryCompactHero";
+import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
+import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import {
-  CATEGORY_STANDARD_MAIN,
-  CATEGORY_STANDARD_PAGE_BG,
-  categoryStandardUi,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+  CAT_STD_FILTER_INPUT,
+  CAT_STD_FILTER_LABEL,
+  CAT_STD_FORM_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
+import { categoryStandardUi } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
 import { CommunityDiscoveryListingCard } from "./CommunityDiscoveryListingCard";
 
@@ -225,40 +226,21 @@ export function CommunityListingsResultsClient({
       ? "Post in Classes"
       : "Post in Community & Events";
 
-  const filterLabelClass = "block text-xs font-semibold text-[#556B3E]";
-  const filterInputClass =
-    "mt-1 w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/70 focus:ring-2 focus:ring-[#C9A84A]/20";
-
   return (
-    <div className={CATEGORY_STANDARD_PAGE_BG}>
-      <Navbar />
-      <main className={`${CATEGORY_STANDARD_MAIN} pb-10`}>
-        <div className="mb-4">
-          <Link
-            href={appendLangToPath(backLandingHref, lang)}
-            className="text-sm font-semibold text-[#556B3E] transition hover:text-[#7A1E2C]"
-          >
-            ← {backLandingLabel}
-          </Link>
-        </div>
+    <CategoryStandardResultsPageShell>
+      <div className="space-y-4">
+        <CategoryStandardResultsHeader
+          lang={lang}
+          title={pageTitle}
+          backHref={appendLangToPath(backLandingHref, lang)}
+          backLabel={backLandingLabel}
+          publishHref={publishHref}
+          publishLabel={publishLabel}
+          clearHref={clearHref}
+          resultCount={loading ? undefined : filtered.length}
+        />
 
-        <CategoryCompactHero category={category} lang={lang} title={pageTitle} />
-
-        <div className="mt-4 space-y-4">
-          <p className="text-sm font-semibold text-[#2A4536]">
-            {ui.count(filtered.length)}
-            {!loading && filtered.length === 0 ? (
-              <span className="ml-2 font-normal text-[#3D3428]/80">
-                {L ? "— prueba otros filtros" : "— try other filters"}
-              </span>
-            ) : null}
-          </p>
-
-          <form
-            action={resultsAction}
-            method="get"
-            className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)] sm:p-5"
-          >
+          <form action={resultsAction} method="get" className={CAT_STD_FORM_PANEL}>
             <input type="hidden" name="lang" value={lang} />
             <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
               <label className="min-w-0 flex-1">
@@ -295,17 +277,17 @@ export function CommunityListingsResultsClient({
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {category === "clases" ? (
                 <>
-                  <label className={filterLabelClass}>
+                  <label className={CAT_STD_FILTER_LABEL}>
                     {L ? "Costo" : "Cost"}
-                    <select className={filterInputClass} name="cost" defaultValue={cost}>
+                    <select className={CAT_STD_FILTER_INPUT} name="cost" defaultValue={cost}>
                       <option value="all">{L ? "Todos" : "All"}</option>
                       <option value="gratis">{L ? "Gratis" : "Free"}</option>
                       <option value="pagada">{L ? "Pagada" : "Paid"}</option>
                     </select>
                   </label>
-                  <label className={filterLabelClass}>
+                  <label className={CAT_STD_FILTER_LABEL}>
                     {L ? "Modalidad" : "Mode"}
-                    <select className={filterInputClass} name="mode" defaultValue={mode}>
+                    <select className={CAT_STD_FILTER_INPUT} name="mode" defaultValue={mode}>
                       <option value="all">{L ? "Todas" : "All"}</option>
                       <option value="presencial">{L ? "Presencial" : "In person"}</option>
                       <option value="enLinea">{L ? "En línea" : "Online"}</option>
@@ -314,9 +296,9 @@ export function CommunityListingsResultsClient({
                   </label>
                 </>
               ) : (
-                <label className={`${filterLabelClass} sm:col-span-2`}>
+                <label className={`${CAT_STD_FILTER_LABEL} sm:col-span-2`}>
                   {L ? "Costo del evento" : "Event cost"}
-                  <select className={filterInputClass} name="eventCost" defaultValue={eventCost}>
+                  <select className={CAT_STD_FILTER_INPUT} name="eventCost" defaultValue={eventCost}>
                     <option value="all">{L ? "Todos" : "All"}</option>
                     <option value="gratis">{L ? "Gratis" : "Free"}</option>
                     <option value="pagado">{L ? "Pagado" : "Paid"}</option>
@@ -328,10 +310,10 @@ export function CommunityListingsResultsClient({
             </div>
             <div className="grid gap-3 border-t border-black/5 pt-3 sm:grid-cols-2 lg:grid-cols-4">
               {category === "clases" ? (
-                <label className="block text-xs font-semibold text-[#5C564E] sm:col-span-2">
+                <label className={`${CAT_STD_FILTER_LABEL} sm:col-span-2`}>
                   {L ? "Tipo de clase (contiene)" : "Class type (contains)"}
                   <input
-                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                    className={CAT_STD_FILTER_INPUT}
                     name="classType"
                     defaultValue={classType}
                     placeholder={L ? "ej. música, boxeo" : "e.g. music, boxing"}
@@ -339,29 +321,29 @@ export function CommunityListingsResultsClient({
                 </label>
               ) : (
                 <>
-                  <label className="block text-xs font-semibold text-[#5C564E] sm:col-span-2">
+                  <label className={`${CAT_STD_FILTER_LABEL} sm:col-span-2`}>
                     {L ? "Tipo de evento (contiene)" : "Event type (contains)"}
                     <input
-                      className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                      className={CAT_STD_FILTER_INPUT}
                       name="eventType"
                       defaultValue={eventType}
                       placeholder={L ? "ej. voluntariado" : "e.g. volunteer"}
                     />
                   </label>
-                  <label className="block text-xs font-semibold text-[#5C564E]">
+                  <label className={CAT_STD_FILTER_LABEL}>
                     {L ? "Desde (fecha)" : "From (date)"}
                     <input
                       type="date"
-                      className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                      className={CAT_STD_FILTER_INPUT}
                       name="dateFrom"
                       defaultValue={dateFrom}
                     />
                   </label>
-                  <label className="block text-xs font-semibold text-[#5C564E]">
+                  <label className={CAT_STD_FILTER_LABEL}>
                     {L ? "Hasta (fecha)" : "To (date)"}
                     <input
                       type="date"
-                      className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                      className={CAT_STD_FILTER_INPUT}
                       name="dateTo"
                       defaultValue={dateTo}
                     />
@@ -372,7 +354,7 @@ export function CommunityListingsResultsClient({
             <div className="grid gap-3 border-t border-black/5 pt-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="block text-xs font-semibold text-[#5C564E]">
                 {L ? "Para quién" : "Audience"}
-                <select className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="audience" defaultValue={audienceF}>
+                <select className={CAT_STD_FILTER_INPUT} name="audience" defaultValue={audienceF}>
                   <option value="all">{L ? "Todos" : "All"}</option>
                   {COMMUNITY_AUDIENCE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -384,7 +366,7 @@ export function CommunityListingsResultsClient({
               <label className="block text-xs font-semibold text-[#5C564E]">
                 {L ? "¿Requiere registro?" : "Registration?"}
                 <select
-                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                  className={CAT_STD_FILTER_INPUT}
                   name="registration"
                   defaultValue={registrationF}
                 >
@@ -399,7 +381,7 @@ export function CommunityListingsResultsClient({
               {category === "clases" ? (
                 <label className="block text-xs font-semibold text-[#5C564E]">
                   {L ? "Nivel" : "Level"}
-                  <select className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm" name="level" defaultValue={levelF}>
+                  <select className={CAT_STD_FILTER_INPUT} name="level" defaultValue={levelF}>
                     <option value="all">{L ? "Todos" : "All"}</option>
                     {CLASES_SKILL_LEVEL_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value}>
@@ -409,10 +391,10 @@ export function CommunityListingsResultsClient({
                   </select>
                 </label>
               ) : (
-                <label className="block text-xs font-semibold text-[#5C564E]">
+                <label className={CAT_STD_FILTER_LABEL}>
                   {L ? "Acceso" : "Access"}
                   <select
-                    className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
+                    className={CAT_STD_FILTER_INPUT}
                     name="accessibility"
                     defaultValue={accessibilityF}
                   >
@@ -450,7 +432,6 @@ export function CommunityListingsResultsClient({
               </Link>
             </div>
           </form>
-        </div>
 
         {loadErr ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert">
@@ -479,7 +460,7 @@ export function CommunityListingsResultsClient({
             })}
           </ul>
         )}
-      </main>
-    </div>
+      </div>
+    </CategoryStandardResultsPageShell>
   );
 }

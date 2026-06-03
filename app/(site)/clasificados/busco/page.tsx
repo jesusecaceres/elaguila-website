@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
-import Navbar from "@/app/components/Navbar";
 import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
-import { CATEGORY_STANDARD_MAIN, CATEGORY_STANDARD_PAGE_BG } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import { CategoryStandardLandingPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPageShell";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { BuscoLandingRecentListings } from "./BuscoLandingRecentListings";
@@ -48,9 +47,7 @@ export default function BuscoLandingPage() {
   const hubHref = useMemo(() => appendLangToPath("/clasificados", lang), [lang]);
 
   return (
-    <div className={CATEGORY_STANDARD_PAGE_BG}>
-      <Navbar />
-      <main className={`${CATEGORY_STANDARD_MAIN} pb-12`}>
+    <CategoryStandardLandingPageShell>
         <CategoryStandardLandingBlock
           category="busco"
           lang={lang}
@@ -84,7 +81,6 @@ export default function BuscoLandingPage() {
             </Link>
           </p>
         </CategoryStandardLandingBlock>
-      </main>
-    </div>
+    </CategoryStandardLandingPageShell>
   );
 }

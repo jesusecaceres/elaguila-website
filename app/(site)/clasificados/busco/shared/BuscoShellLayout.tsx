@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import Navbar from "@/app/components/Navbar";
+import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { BUSCO_PRODUCT, type BuscoShellLang } from "./buscoShellCopy";
@@ -19,35 +19,28 @@ export function BuscoShellLayout({ lang, children, backHref, backLabel }: Props)
   const landingHref = appendLangToPath("/clasificados/busco", lang);
 
   return (
-    <div className="min-h-screen pb-16 text-[#111111] [background:radial-gradient(ellipse_at_top,rgba(120,150,200,0.12),transparent_58%),#F4EFE6]">
-      <Navbar />
-      <header className="border-b border-[#B8C8EA]/20 bg-[#F4EFE6]/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4 py-4 sm:px-5">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#3d5a73]">
-            <Link href={hubHref} className="hover:underline">
-              {lang === "es" ? "Clasificados" : "Classifieds"}
-            </Link>
-            <span aria-hidden>/</span>
-            <Link href={landingHref} className="hover:underline">
-              {BUSCO_PRODUCT.title[lang]}
-            </Link>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-[#1E1810] sm:text-2xl">{BUSCO_PRODUCT.title[lang]}</h1>
-            <p className="mt-1 text-sm leading-relaxed text-[#5C5346]/90">{BUSCO_PRODUCT.description[lang]}</p>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-[#3d4a5c]">{BUSCO_PRODUCT.helper[lang]}</p>
-          </div>
-          {backHref && backLabel ? (
-            <Link
-              href={backHref}
-              className="inline-flex min-h-[40px] w-fit items-center text-sm font-semibold text-[#3d5a73] underline-offset-2 hover:underline"
-            >
-              ← {backLabel}
-            </Link>
-          ) : null}
-        </div>
+    <CategoryStandardResultsPageShell maxWidthClass="max-w-3xl">
+      <header className="mb-5 space-y-2 border-b border-[#D6C7AD]/50 pb-4">
+        <nav className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#556B3E]" aria-label="Breadcrumb">
+          <Link href={hubHref} className="hover:text-[#7A1E2C]">
+            {lang === "es" ? "Clasificados" : "Classifieds"}
+          </Link>
+          <span aria-hidden>/</span>
+          <Link href={landingHref} className="hover:text-[#7A1E2C]">
+            {BUSCO_PRODUCT.title[lang]}
+          </Link>
+        </nav>
+        {backHref && backLabel ? (
+          <Link
+            href={backHref}
+            className="inline-flex text-sm font-semibold text-[#556B3E] hover:text-[#7A1E2C]"
+          >
+            ← {backLabel}
+          </Link>
+        ) : null}
+        <h1 className="font-serif text-xl font-bold text-[#2A4536]">{BUSCO_PRODUCT.title[lang]}</h1>
       </header>
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-5">{children}</div>
-    </div>
+      {children}
+    </CategoryStandardResultsPageShell>
   );
 }

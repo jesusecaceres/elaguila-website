@@ -183,7 +183,7 @@ export function EnVentaHubPageClient({
             />
           </div>
 
-          <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center px-3 pb-7 pt-5 text-center sm:max-w-none sm:px-6 sm:pb-11 sm:pt-9 md:px-8 md:pb-12 md:pt-11 lg:pb-14 lg:pt-12">
+          <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center px-3 pb-6 pt-4 text-center sm:max-w-none sm:px-6 sm:pb-8 sm:pt-6 md:px-8 md:pb-9 md:pt-7 lg:pb-10 lg:pt-8">
             <span
               className={cx(
                 "mb-4 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:mb-5",
@@ -193,12 +193,7 @@ export function EnVentaHubPageClient({
               {t.badge}
             </span>
 
-            <h1 className="max-w-[min(100%,18ch)] font-serif text-[clamp(1.7rem,4.2vw+0.65rem,3.35rem)] font-bold leading-[1.08] tracking-tight text-[#1E1810] min-[400px]:max-w-none md:text-[3.1rem] lg:text-[3.35rem]">
-              {t.heroEmoji ? (
-                <span className="mr-2 inline-block" aria-hidden>
-                  {t.heroEmoji}
-                </span>
-              ) : null}
+            <h1 className="max-w-[min(100%,18ch)] font-serif text-[clamp(1.5rem,3.5vw+0.5rem,2.5rem)] font-bold leading-[1.1] tracking-tight text-[#1E1810] min-[400px]:max-w-none md:text-[2.35rem] lg:text-[2.5rem]">
               {t.hero}
             </h1>
             <p className="mt-3 max-w-[min(100%,36rem)] text-pretty text-[15px] leading-relaxed text-[#3D3428]/95 sm:mt-4 sm:text-lg">

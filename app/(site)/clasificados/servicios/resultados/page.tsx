@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { ServiciosResultsPageShell } from "../ServiciosResultsPageShell";
 import { ServiciosHorizontalResultCard } from "../components/ServiciosHorizontalResultCard";
 import { ServiciosResultsActiveSummary } from "../ServiciosResultsActiveSummary";
 import { ServiciosResultsFilters } from "../ServiciosResultsFilters";
@@ -147,61 +147,10 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#f3ede4] text-[#142a42]">
-      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
-        <Image
-          src={RESULTS_ATMOSPHERE}
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover object-[center_42%] opacity-[0.07] blur-[1.5px] saturate-[0.72]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#f5efe6] via-[#f3ebe2]/[0.98] to-[#efe6db]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-10%,rgba(255,255,255,0.55),transparent_55%)]" />
-      </div>
-
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-6 pb-10 sm:px-6 sm:py-10 lg:px-10 xl:px-12 2xl:max-w-[1440px]">
+    <ServiciosResultsPageShell lang={lang} resultCount={displayRows.length}>
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
-        <header
-          className={`mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-7 ${contentShell}`}
-        >
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/75">
-              {lang === "en" ? "Services · Leonix" : "Servicios · Leonix"}
-            </p>
-            <Link
-              href={landingHref}
-              className="mt-2 inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-[#3B66AD] underline-offset-4 hover:underline"
-            >
-              <span aria-hidden>←</span>
-              {lang === "en" ? "Back to Servicios home" : "Volver al inicio de Servicios"}
-            </Link>
-            <h1 className="mt-2 font-serif text-2xl font-bold tracking-tight text-[#142a42] sm:text-3xl">
-              {lang === "en" ? "Discover local services" : "Descubre servicios locales"}
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#4a5d6e]">
-              {lang === "en"
-                ? "Same search power as home page — refine by area, trade, trust signals, and how providers want to be reached."
-                : "La misma lógica que en inicio: afinar por zona, giro, señales de confianza y formas de contacto publicadas."}
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:items-end">
-            <Link
-              href={publishHref}
-              className="inline-flex min-h-[48px] w-full min-w-[44px] items-center justify-center rounded-full border-2 border-[#EA580C]/30 bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-6 text-sm font-bold text-white shadow-[0_14px_36px_-12px_rgba(194,65,12,0.45)] transition hover:brightness-[1.03] sm:w-auto"
-            >
-              {lang === "en" ? "Publish your service" : "Publica tu servicio"}
-            </Link>
-            <Link
-              href={`/clasificados/servicios/resultados?lang=${lang}`}
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#1a3352]/20 bg-white px-5 text-sm font-bold text-[#1a3352] shadow-sm transition hover:bg-[#fafcff] sm:w-auto"
-            >
-              {lang === "en" ? "View all listings" : "Ver todos los anuncios"}
-            </Link>
-          </div>
-        </header>
 
-        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] lg:items-start lg:gap-9 xl:gap-11">
+        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] lg:items-start lg:gap-6 xl:gap-8">
           <aside className="hidden lg:sticky lg:top-4 lg:block">
             <ServiciosResultsFilters lang={lang} current={filterQuery} variant="desktop" />
           </aside>
@@ -319,7 +268,6 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </ServiciosResultsPageShell>
   );
 }

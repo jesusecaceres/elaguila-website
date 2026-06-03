@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import { withRentasLandingLang, type RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
@@ -15,21 +14,18 @@ export function RentasResultsTopBar({ copy, lang }: Props) {
   const loginHref = withRentasLandingLang("/login", lang);
 
   return (
-    <header className="mb-6 flex flex-col gap-4 border-b border-[#D4A574]/20 pb-5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-        <Link href={clasificadosHref} className="shrink-0 rounded-full ring-2 ring-[#D4A574]/30 ring-offset-2 ring-offset-[#FFFAF0]">
-          <Image src="/logo.png" alt="Leonix" width={40} height={40} className="h-10 w-10 rounded-full object-cover" priority />
+    <header className="mb-4 flex flex-col gap-3 border-b border-[#D6C7AD]/50 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <nav className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#556B3E]" aria-label="Breadcrumb">
+        <Link href={clasificadosHref} className="hover:text-[#7A1E2C]">
+          {lang === "es" ? "Clasificados" : "Classifieds"}
         </Link>
-        <nav className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#7A7A7A]">
-          <Link href={rentasHref} className="hover:text-[#D4A574] transition-colors">
-            {copy.breadcrumbRentas}
-          </Link>
-          <span className="text-[#D4A574]" aria-hidden>
-            ›
-          </span>
-          <span className="text-[#7A7A7A]">{copy.results.topBarResults}</span>
-        </nav>
-      </div>
+        <span aria-hidden>/</span>
+        <Link href={rentasHref} className="hover:text-[#7A1E2C]">
+          {copy.breadcrumbRentas}
+        </Link>
+        <span aria-hidden>/</span>
+        <span className="text-[#3D3428]">{copy.results.topBarResults}</span>
+      </nav>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Link
           href={loginHref}

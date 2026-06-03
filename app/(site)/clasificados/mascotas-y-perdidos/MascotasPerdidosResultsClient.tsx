@@ -9,6 +9,13 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
 
 import { MascotasPerdidosNoticeCard } from "./MascotasPerdidosNoticeCard";
+import {
+  CAT_STD_BTN_PRIMARY,
+  CAT_STD_FILTER_INPUT,
+  CAT_STD_FILTER_LABEL,
+  CAT_STD_FILTER_SELECT,
+  CategoryStandardResultsFilterPanel,
+} from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsFilterPanel";
 import { MascotasPerdidosShellLayout } from "./shared/MascotasPerdidosShellLayout";
 import { buildMascotasPerdidosNoticeCardModel } from "./shared/mascotasPerdidosCardModel";
 import { detailPairsToMap } from "./shared/mascotasPerdidosListingDetailPairs";
@@ -108,35 +115,33 @@ export function MascotasPerdidosResultsClient() {
   return (
     <MascotasPerdidosShellLayout lang={lang} backHref={landingHref} backLabel={backLabel}>
       <div className="space-y-5">
-        <div>
-          <h2 className="text-lg font-bold text-[#1E1810] sm:text-xl">{t.pageTitle}</h2>
-          <p className="mt-1 text-sm text-[#5C5346]">{t.subtitle}</p>
-        </div>
+        <p className="text-sm text-[#5C5346]">{t.subtitle}</p>
 
-        <form
-          className="space-y-3 rounded-2xl border border-[#C9B46A]/30 bg-[#FFFCF7] p-4"
+        <CategoryStandardResultsFilterPanel
+          lang={lang}
           action="/clasificados/mascotas-y-perdidos/resultados"
-          method="get"
-          aria-label={lang === "es" ? "Filtros de avisos" : "Notice filters"}
-        >
-          <input type="hidden" name="lang" value={lang} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
-              {t.search}
-              <input
-                className="mt-1 min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2 text-sm"
-                name="q"
-                defaultValue={q}
-                placeholder={lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…"}
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#5C5346]">
+          clearHref={appendLangToPath("/clasificados/mascotas-y-perdidos/resultados", lang)}
+          applyLabel={t.apply}
+          primaryRow={
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">{t.search}</span>
+                <input
+                  className={CAT_STD_FILTER_INPUT}
+                  name="q"
+                  defaultValue={q}
+                  placeholder={lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…"}
+                />
+              </label>
+              <div className="min-w-0 lg:w-48">
+                <MascotasResultsCityFilter lang={lang} label={t.city} defaultValue={city} />
+              </div>
+            </div>
+          }
+          advancedFilters={
+            <label className={CAT_STD_FILTER_LABEL}>
               {t.type}
-              <select
-                className="mt-1 min-h-[44px] w-full rounded-xl border border-[#C9B46A]/35 bg-white px-3 py-2 text-sm"
-                name="tipo"
-                defaultValue={tipo}
-              >
+              <select className={CAT_STD_FILTER_SELECT} name="tipo" defaultValue={tipo}>
                 <option value="all">{t.allTypes}</option>
                 {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -145,23 +150,8 @@ export function MascotasPerdidosResultsClient() {
                 ))}
               </select>
             </label>
-            <MascotasResultsCityFilter lang={lang} label={t.city} defaultValue={city} />
-          </div>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="submit"
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5]"
-            >
-              {t.apply}
-            </button>
-            <Link
-              href={appendLangToPath("/clasificados/mascotas-y-perdidos/resultados", lang)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#C9B46A]/55 bg-white px-4 py-2 text-sm font-semibold text-[#111111]"
-            >
-              {t.clear}
-            </Link>
-          </div>
-        </form>
+          }
+        />
 
         {loading ? (
           <p className="text-sm text-[#5C5346]" aria-busy="true">
@@ -180,10 +170,7 @@ export function MascotasPerdidosResultsClient() {
               <section className="rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFF9ED]/90 px-4 py-10 text-center">
                 <p className="text-sm font-semibold text-[#1E1810]">{t.emptyTitle}</p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]/90">{t.emptyBody}</p>
-                <Link
-                  href={postHref}
-                  className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95"
-                >
+                <Link href={postHref} className={`mt-5 ${CAT_STD_BTN_PRIMARY}`}>
                   {t.ctaPost}
                 </Link>
               </section>

@@ -12,7 +12,6 @@ import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/
 import {
   rentasCtaPrimaryClass,
   rentasCtaSecondaryClass,
-  rentasLandingHeroPanelClass,
   rentasResultsFilterCardClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
@@ -340,13 +339,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     <RentasResultsShell>
       <RentasResultsTopBar copy={copy} lang={lang} />
 
-      <div className={rentasLandingHeroPanelClass}>
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+      <div className="space-y-4 border-b border-[#D6C7AD]/50 pb-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
           <div className="min-w-0 max-w-3xl">
-            <h1 className="font-serif text-[2.1rem] font-semibold leading-tight tracking-tight text-[#1E1810] sm:text-[2.65rem]">
+            <h1 className="font-serif text-xl font-bold leading-tight text-[#2A4536] sm:text-2xl">
               {copy.title}
             </h1>
-            <p className="mt-3 text-base text-[#3D3830]/92 sm:text-lg">
+            <p className="mt-2 text-sm text-[#3D3428]/90">
               {copy.results.introPart1}
               {copy.results.introPart2}
               <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
@@ -398,14 +397,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             ) : null}
           </div>
           <aside
-            className="flex w-full min-w-0 flex-shrink-0 flex-col gap-3 rounded-[1.25rem] border border-[#C9D4E0]/55 bg-gradient-to-br from-white/95 via-[#FFFCF7]/92 to-[#EEF3F7]/55 p-4 shadow-[0_18px_48px_-34px_rgba(44,36,28,0.22)] ring-1 ring-white/80 sm:p-5 lg:max-w-[min(100%,26rem)]"
+            className="flex w-full min-w-0 flex-shrink-0 flex-col gap-2 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 sm:p-4 lg:max-w-[min(100%,22rem)]"
             aria-label={copy.publishEyebrow}
           >
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#5B7C99]/90">{copy.publishEyebrow}</p>
-              <p className="mt-1.5 text-sm leading-snug text-[#4A4338]/92">{copy.publishHint}</p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{copy.publishEyebrow}</p>
+            <p className="text-xs leading-snug text-[#3D3428]/85">{copy.publishHint}</p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)} className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}>
                 {copy.publishPrivado}
               </Link>

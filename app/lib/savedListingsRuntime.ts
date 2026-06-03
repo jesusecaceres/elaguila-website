@@ -20,6 +20,36 @@ function isMissingSavedTableError(err: PostgrestError | null | undefined): boole
   );
 }
 
+function isOnConflictTargetMissing(err: PostgrestError | null | undefined): boolean {
+  return err?.code === "42P10";
+}
+
+function isUniqueViolation(err: PostgrestError | null | undefined): boolean {
+  return err?.code === "23505";
+}
+
+/** Insert when upsert conflict target is missing (PostgREST 42P10). */
+async function insertSavedListingRow(
+  sb: SupabaseClient,
+  table: typeof PRIMARY | typeof LEGACY,
+  userId: string,
+  listingId: string,
+): Promise<{ error: PostgrestError | null }> {
+  const existing = await sb
+    .from(table)
+    .select("listing_id")
+    .eq("user_id", userId)
+    .eq("listing_id", listingId)
+    .maybeSingle();
+  if (existing.error) return { error: existing.error };
+  if (existing.data) return { error: null };
+
+  const inserted = await sb.from(table).insert({ user_id: userId, listing_id: listingId });
+  if (!inserted.error) return { error: null };
+  if (isUniqueViolation(inserted.error)) return { error: null };
+  return { error: inserted.error };
+}
+
 export async function readSavedListingForUser(
   sb: SupabaseClient,
   userId: string,
@@ -47,9 +77,19 @@ export async function upsertSavedListingForUser(
 
   const primary = await sb.from(PRIMARY).upsert(row, { onConflict: "user_id,listing_id" });
   if (!primary.error) return { error: null, table: PRIMARY };
+  if (isOnConflictTargetMissing(primary.error)) {
+    const fallback = await insertSavedListingRow(sb, PRIMARY, userId, id);
+    if (!fallback.error) return { error: null, table: PRIMARY };
+    return { error: fallback.error, table: PRIMARY };
+  }
   if (!isMissingSavedTableError(primary.error)) return { error: primary.error, table: PRIMARY };
 
   const legacy = await sb.from(LEGACY).upsert(row, { onConflict: "user_id,listing_id" });
+  if (!legacy.error) return { error: null, table: LEGACY };
+  if (isOnConflictTargetMissing(legacy.error)) {
+    const fallback = await insertSavedListingRow(sb, LEGACY, userId, id);
+    return { error: fallback.error, table: LEGACY };
+  }
   return { error: legacy.error, table: LEGACY };
 }
 

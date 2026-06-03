@@ -46,7 +46,7 @@ export function RentasLandingHero({ children }: { children: ReactNode }) {
         />
       </div>
 
-      <div className="relative z-10 flex w-full min-w-0 flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 md:px-8 md:py-11 lg:gap-10 lg:px-10 lg:py-12">
+      <div className="relative z-10 flex w-full min-w-0 flex-col gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-7 md:px-8 md:py-8 lg:gap-7 lg:px-10 lg:py-9">
         {children}
       </div>
     </section>

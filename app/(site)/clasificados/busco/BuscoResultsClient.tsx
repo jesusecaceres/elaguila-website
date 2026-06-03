@@ -7,6 +7,13 @@ import { useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { BUSCO_TYPE_OPTIONS } from "@/app/(site)/publicar/busco/shared/buscoTaxonomy";
+import {
+  CAT_STD_BTN_PRIMARY,
+  CAT_STD_FILTER_INPUT,
+  CAT_STD_FILTER_LABEL,
+  CAT_STD_FILTER_SELECT,
+  CategoryStandardResultsFilterPanel,
+} from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsFilterPanel";
 import { BuscoShellLayout } from "./shared/BuscoShellLayout";
 import { BuscoRequestCard } from "./BuscoRequestCard";
 import { buildBuscoRequestCardModel } from "./shared/buscoCardModel";
@@ -163,85 +170,54 @@ function BuscoResultsInner(props: {
 }) {
   const { t, lang, loading, loadErr, filtered, q, tipo, city, zone, budget, contact, postHref } = props;
 
+  const clearHref = appendLangToPath("/clasificados/busco/resultados", lang);
+  const searchPh = lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…";
+
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-bold text-[#1E1810] sm:text-xl">{t.pageTitle}</h2>
-        <p className="mt-1 text-sm text-[#5C5346]">{t.subtitle}</p>
-      </div>
+      <p className="text-sm text-[#5C5346]">{t.subtitle}</p>
 
-      <form
-        className="space-y-3 rounded-2xl border border-[#B8C8EA]/30 bg-[#FFFCF7] p-4"
+      <CategoryStandardResultsFilterPanel
+        lang={lang}
         action="/clasificados/busco/resultados"
-        method="get"
-        aria-label={lang === "es" ? "Filtros de solicitudes" : "Request filters"}
-      >
-        <input type="hidden" name="lang" value={lang} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
-            {t.search}
-            <input
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#B8C8EA]/35 bg-white px-3 py-2 text-sm"
-              name="q"
-              defaultValue={q}
-              placeholder={lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…"}
-            />
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            {t.type}
-            <select
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#B8C8EA]/35 bg-white px-3 py-2 text-sm"
-              name="tipo"
-              defaultValue={tipo}
-            >
-              <option value="all">{t.allTypes}</option>
-              {BUSCO_TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {lang === "es" ? o.labelEs : o.labelEn}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            {t.contact}
-            <select
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#B8C8EA]/35 bg-white px-3 py-2 text-sm"
-              name="contact"
-              defaultValue={contact}
-            >
-              <option value="all">{t.contactAll}</option>
-              <option value="phone">{t.contactPhone}</option>
-              <option value="email">{t.contactEmail}</option>
-              <option value="any">{t.contactAny}</option>
-            </select>
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            {t.city}
-            <input
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#B8C8EA]/35 bg-white px-3 py-2 text-sm"
-              name="city"
-              defaultValue={city}
-            />
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346]">
-            {t.zone}
-            <input
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#B8C8EA]/35 bg-white px-3 py-2 text-sm"
-              name="zone"
-              defaultValue={zone}
-            />
-          </label>
-          <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
-            {t.budget}
-            <input
-              className="mt-1 min-h-[44px] w-full rounded-xl border border-[#B8C8EA]/35 bg-white px-3 py-2 text-sm"
-              name="budget"
-              defaultValue={budget}
-            />
-          </label>
-        </div>
-        <BuscoFilterActions t={t} lang={lang} />
-      </form>
+        defaultQ={q}
+        defaultCity={city}
+        searchPlaceholder={searchPh}
+        clearHref={clearHref}
+        applyLabel={t.apply}
+        advancedFilters={
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className={CAT_STD_FILTER_LABEL}>
+              {t.type}
+              <select className={CAT_STD_FILTER_SELECT} name="tipo" defaultValue={tipo}>
+                <option value="all">{t.allTypes}</option>
+                {BUSCO_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "es" ? o.labelEs : o.labelEn}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={CAT_STD_FILTER_LABEL}>
+              {t.contact}
+              <select className={CAT_STD_FILTER_SELECT} name="contact" defaultValue={contact}>
+                <option value="all">{t.contactAll}</option>
+                <option value="phone">{t.contactPhone}</option>
+                <option value="email">{t.contactEmail}</option>
+                <option value="any">{t.contactAny}</option>
+              </select>
+            </label>
+            <label className={CAT_STD_FILTER_LABEL}>
+              {t.zone}
+              <input className={CAT_STD_FILTER_INPUT} name="zone" defaultValue={zone} />
+            </label>
+            <label className={CAT_STD_FILTER_LABEL}>
+              {t.budget}
+              <input className={CAT_STD_FILTER_INPUT} name="budget" defaultValue={budget} />
+            </label>
+          </div>
+        }
+      />
 
       {loading ? (
         <p className="text-sm text-[#5C5346]" aria-busy="true">
@@ -260,10 +236,7 @@ function BuscoResultsInner(props: {
             <section className="rounded-2xl border border-dashed border-[#B8C8EA]/45 bg-[#F8FAFF]/90 px-4 py-10 text-center">
               <p className="text-sm font-semibold text-[#1E1810]">{t.emptyTitle}</p>
               <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]/90">{t.emptyBody}</p>
-              <Link
-                href={postHref}
-                className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95"
-              >
+              <Link href={postHref} className={`mt-5 ${CAT_STD_BTN_PRIMARY}`}>
                 {t.ctaPost}
               </Link>
             </section>
@@ -286,22 +259,3 @@ function BuscoResultsInner(props: {
   );
 }
 
-function BuscoFilterActions({ t, lang }: { t: (typeof COPY)[Lang]; lang: Lang }) {
-  const clearHref = appendLangToPath("/clasificados/busco/resultados", lang);
-  return (
-    <div className="flex flex-wrap gap-2 pt-1">
-      <button
-        type="submit"
-        className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#111111] px-4 py-2 text-sm font-semibold text-[#F5F5F5]"
-      >
-        {t.apply}
-      </button>
-      <Link
-        href={clearHref}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#B8C8EA]/55 bg-white px-4 py-2 text-sm font-semibold text-[#111111]"
-      >
-        {t.clear}
-      </Link>
-    </div>
-  );
-}

@@ -33,7 +33,6 @@ import { getCityZips } from "@/app/data/locations/californiaLocationHelpers";
 import { listingMatchesCityFilter, listingMatchesZipFilter } from "./utils/enVentaLocationMatch";
 import { nearestCanonicalCityFromLatLng } from "./utils/enVentaNearestCity";
 import { EV_RESULTS_PARAM } from "./contracts/enVentaResultsUrlParams";
-import newLogo from "../../../../../public/logo.png";
 import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
 import { EnVentaResultsChipsRow } from "./components/EnVentaResultsChipsRow";
 import { EnVentaResultsListingSections } from "./components/EnVentaResultsListingSections";
@@ -642,51 +641,19 @@ export function EnVentaResultsClient() {
   );
 
   return (
-    <div
-      className="relative min-h-screen text-[#2C2416]"
-      style={{
-        backgroundColor: "#F3EBDD",
-        backgroundImage: `
-          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.2), transparent 55%),
-          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.45), transparent 52%),
-          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.1), transparent 50%)
-        `,
-      }}
-    >
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.035]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }}
-        aria-hidden
-      />
-      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] overflow-x-hidden px-4 pb-28 pt-14 sm:px-6 sm:pt-16 lg:px-10 lg:pt-16 xl:px-14">
-        <header className="w-full border-b border-[#E8DFD0]/70 pb-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
-            <div className="flex min-w-0 flex-1 gap-4 sm:gap-5">
-              <Image
-                src={newLogo}
-                alt="Leonix"
-                width={88}
-                height={88}
-                className="h-[72px] w-[72px] shrink-0 sm:h-[88px] sm:w-[88px]"
-                priority
-              />
-              <div className="min-w-0 flex-1 text-left">
-                <Link
-                  href={`/clasificados/en-venta?lang=${lang}`}
-                  className="inline-flex text-[13px] font-semibold text-[#2F4A65] underline-offset-4 hover:underline"
-                >
-                  {lang === "es" ? `← Inicio ${enVentaPublicLabel("es")}` : `← ${enVentaPublicLabel("en")} home`}
-                </Link>
-                <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl lg:text-4xl">{t.title}</h1>
-                <p className="mt-2 text-sm font-semibold text-[#3D3428]">{loading ? t.loading : countLine}</p>
-                {searchSummaryLine ? <p className="mt-1 text-sm text-[#5C5346]">{searchSummaryLine}</p> : null}
-                {locationSummaryLine ? <p className="mt-0.5 text-sm text-[#5C5346]">{locationSummaryLine}</p> : null}
-                <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-[#5C5346]/90">{t.trust}</p>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-4 pb-20 pt-20 sm:px-6 lg:px-8">
+        <header className="space-y-2 border-b border-[#D6C7AD]/50 pb-4">
+          <Link
+            href={`/clasificados/en-venta?lang=${lang}`}
+            className="inline-flex text-sm font-semibold text-[#556B3E] hover:text-[#7A1E2C]"
+          >
+            {lang === "es" ? `← ${enVentaPublicLabel("es")}` : `← ${enVentaPublicLabel("en")}`}
+          </Link>
+          <h1 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">{t.title}</h1>
+          <p className="text-sm font-semibold text-[#556B3E]">{loading ? t.loading : countLine}</p>
+          {searchSummaryLine ? <p className="text-sm text-[#3D3428]/85">{searchSummaryLine}</p> : null}
+          {locationSummaryLine ? <p className="text-sm text-[#3D3428]/85">{locationSummaryLine}</p> : null}
         </header>
 
         {activeChips.length > 0 ? (
@@ -703,7 +670,7 @@ export function EnVentaResultsClient() {
         <form
           id="ev-results-form"
           onSubmit={onSubmitSearch}
-          className="mt-6 w-full rounded-[28px] border border-[#E8DFD0] bg-[#FFFCF7]/95 p-4 shadow-[0_16px_56px_-20px_rgba(42,36,22,0.18)] backdrop-blur-sm sm:mt-8 sm:p-6 lg:p-8"
+          className="mt-4 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)] sm:mt-5 sm:p-5"
         >
           <input type="hidden" name="lang" value={lang} />
 
@@ -711,7 +678,7 @@ export function EnVentaResultsClient() {
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupSearchLoc}</p>
             <p className="mt-1 text-[11px] leading-relaxed text-[#5C5346]/90">{t.cityZipHelp}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
-              <label className="flex min-h-[48px] min-w-0 flex-col justify-center rounded-2xl border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner sm:col-span-2 lg:col-span-5">
+              <label className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 sm:col-span-2 lg:col-span-5">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.searchPh}</span>
                 <span className="mt-1 flex items-center gap-2">
                   <span className="text-[#5C5346]" aria-hidden>
@@ -728,7 +695,7 @@ export function EnVentaResultsClient() {
                   />
                 </span>
               </label>
-              <label className="flex min-h-[48px] min-w-0 flex-col justify-center rounded-2xl border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner lg:col-span-4">
+              <label className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 lg:col-span-4">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.cityPh}</span>
                 <span className="mt-1 flex items-center gap-2">
                   <span aria-hidden>📍</span>
@@ -740,7 +707,7 @@ export function EnVentaResultsClient() {
                   />
                 </span>
               </label>
-              <label className="flex min-h-[48px] min-w-0 flex-col justify-center rounded-2xl border border-[#E8DFD0] bg-white/95 px-3 py-2 shadow-inner lg:col-span-3">
+              <label className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 lg:col-span-3">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.zip}</span>
                 <span className="mt-1 flex items-center gap-2">
                   <span className="text-[#4A6678]" aria-hidden>
