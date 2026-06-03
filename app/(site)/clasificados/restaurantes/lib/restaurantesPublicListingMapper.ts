@@ -11,6 +11,7 @@ import { isRestauranteOpenNowFromWeeklyHours } from "@/app/clasificados/restaura
 import type { RestauranteAmenityGroupId } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import type { RestaurantesPublicListingDbRow } from "./restaurantesPublicListingsServer";
 import { mapRestauranteDraftToShellData } from "@/app/clasificados/restaurantes/application/mapRestauranteDraftToShell";
+import { resolveRestauranteCardSummaryFromDraft } from "./restauranteCardSummary";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -130,7 +131,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
   const priceLevel = pr.priceLevel ?? "$$";
   const rating =
     typeof pr.externalRatingValue === "number" && Number.isFinite(pr.externalRatingValue) ? pr.externalRatingValue : 0;
-  const summaryLine = (draft.shortSummary ?? "").trim() || pr.summaryShort?.trim() || pr.businessName;
+  const summaryLine = resolveRestauranteCardSummaryFromDraft(draft) || pr.businessName;
   const longDescription = (draft.longDescription ?? "").trim() || undefined;
   const addCuisines = Array.isArray(draft.additionalCuisines)
     ? draft.additionalCuisines.filter((x): x is string => typeof x === "string" && x.trim().length > 0)

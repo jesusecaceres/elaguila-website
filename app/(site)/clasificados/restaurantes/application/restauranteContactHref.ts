@@ -80,17 +80,30 @@ export function shouldShowRestaurantStreetAddress(d: RestauranteListingDraft): b
   return true;
 }
 
-/** Maps handoff: explicit override URL, else search from public address, else service area link. */
+/** Public address string for maps search (street when allowed, else city/area). */
+export function buildRestaurantPublicAddressQuery(
+  d: RestauranteListingDraft,
+  allowStreetAddress: boolean,
+): string | undefined {
+  const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
+  if (allowStreetAddress) {
+    const parts = [d.addressLine1?.trim(), d.addressLine2?.trim(), cityLine].filter(nonEmpty);
+    const q = parts.join(", ");
+    if (nonEmpty(q)) return q;
+  }
+  if (nonEmpty(d.cityCanonical) && nonEmpty(cityLine)) return cityLine.trim();
+  if (nonEmpty(d.serviceAreaText)) return d.serviceAreaText!.trim();
+  return undefined;
+}
+
+/** Maps handoff: explicit override URL, else encoded Google search from public address, else service area URL. */
 export function resolveRestaurantMapsHref(d: RestauranteListingDraft, allowStreetAddress: boolean): string | undefined {
   if (nonEmpty(d.verUbicacionUrl)) {
     const normalized = normalizeActionableUrl(d.verUbicacionUrl!.trim()) ?? normalizeRestaurantUrl(d.verUbicacionUrl!);
     if (isValidExternalHttpUrl(normalized)) return normalized;
   }
-  if (allowStreetAddress) {
-    const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
-    const mapsQ = [d.addressLine1, cityLine].filter(nonEmpty).join(", ");
-    if (nonEmpty(mapsQ)) return mapsSearchHref(mapsQ);
-  }
+  const mapsQ = buildRestaurantPublicAddressQuery(d, allowStreetAddress);
+  if (mapsQ) return mapsSearchHref(mapsQ);
   if (nonEmpty(d.serviceAreaText) && !allowStreetAddress) {
     const area = normalizeActionableUrl(d.serviceAreaText!.trim());
     if (area && isValidExternalHttpUrl(area)) return area;

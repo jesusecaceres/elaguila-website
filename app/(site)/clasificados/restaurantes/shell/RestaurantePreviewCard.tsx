@@ -176,7 +176,7 @@ export function RestaurantePreviewCard({
   const addressQuery = (data.contact?.mapsSearchQuery || data.contact?.addressLine1 || "").trim();
   const addressHref = addressQuery ? mapsSearchHref(addressQuery) : "";
 
-  const summary = (data.summaryShort || data.aboutBody || "").trim();
+  const summary = (data.aboutBody || data.cuisineTypeLine || "").trim();
 
   const ctasDesktop = useMemo(() => {
     const want = new Set(["call", "website", "directions", "whatsapp"]);

@@ -252,7 +252,7 @@ export default function RestaurantePreviewClient() {
                     Falta: {readiness.missingFields.join(", ")}.
                   </p>
                 ) : (
-                  <p>Revisa nombre, tipo, cocina, resumen, ciudad, imagen, contacto y horario.</p>
+                  <p>Revisa nombre, tipo, cocina, ciudad, imagen, contacto y horario.</p>
                 )}
               </div>
             ) : (

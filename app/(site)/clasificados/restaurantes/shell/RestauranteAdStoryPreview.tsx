@@ -14,6 +14,7 @@ import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesS
 import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
 import { RestaurantContactHub } from "./RestaurantContactHub";
+import { RestauranteProfileHeader } from "./RestauranteProfileHeader";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRestauranteShellTranslation } from "@/app/clasificados/restaurantes/lib/useRestauranteShellTranslation";
@@ -102,33 +103,12 @@ export function RestauranteAdStoryPreview({
   const [shareAbs, setShareAbs] = useState("");
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [hoursFull, setHoursFull] = useState(false);
-  const [chipsExpanded, setChipsExpanded] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const p = pathname || "";
     setShareAbs(p ? `${window.location.origin}${p}` : window.location.href);
   }, [pathname]);
-
-  const mobileIdentityChips = useMemo(() => {
-    const chips: string[] = [];
-    if (data.cuisineTypeLine) {
-      for (const raw of data.cuisineTypeLine.split(" · ")) {
-        const t = raw.trim();
-        if (t) chips.push(t);
-      }
-    }
-    if (data.taxonomyChips?.length) {
-      for (const tc of data.taxonomyChips) {
-        const t = tc.label?.trim();
-        if (t) chips.push(t);
-      }
-    }
-    return Array.from(new Set(chips));
-  }, [data.cuisineTypeLine, data.taxonomyChips]);
-
-  // Helper functions
-  const hasHeroImage = data.heroImageUrl;
 
   // Convert 24-hour time string to 12-hour format
   const convertTo12Hour = (timeString: string): string => {
@@ -145,38 +125,6 @@ export function RestauranteAdStoryPreview({
   const hasHoursSection = Boolean(data.hoursPreview);
   const hasTrustInfo = data.trustRating || data.trustLight;
   const hasStackSections = proseData.stackSections && proseData.stackSections.length > 0;
-
-  const primaryCtas = data.primaryCtas || [];
-  const hubHandlesContact = Boolean(data.contactHub?.hasAny);
-
-  /** Mobile hero quick actions — omitted when contact hub owns contact CTAs. */
-  const mobileHeroPrimaryCtas = useMemo(() => {
-    if (hubHandlesContact) return [];
-    const want = new Set(["call", "website", "directions", "whatsapp"]);
-    const filtered = primaryCtas.filter(
-      (c) => want.has(c.key) && c.href?.trim() && c.enabled !== false,
-    );
-    const byKey = new Map<string, (typeof filtered)[number]>();
-    for (const c of filtered) {
-      if (!byKey.has(c.key)) byKey.set(c.key, c);
-    }
-    const order = ["call", "website", "directions", "whatsapp"] as const;
-    return order.map((k) => byKey.get(k)).filter(Boolean) as (typeof filtered)[number][];
-  }, [primaryCtas, hubHandlesContact]);
-
-  const desktopHeroPrimaryCtas = useMemo(() => {
-    if (hubHandlesContact) return [];
-    return primaryCtas
-      .filter(
-        (cta) =>
-          ["call", "website", "directions", "whatsapp", "order", "reserve"].includes(cta.key) &&
-          cta.href?.trim() &&
-          cta.enabled !== false,
-      )
-      .slice(0, 6);
-  }, [primaryCtas, hubHandlesContact]);
-
-  const neighborhoodDisplay = data.quickInfo?.find((item) => item.key === "neighborhood")?.value || "";
 
   const todayHoursRow = useMemo(() => {
     const rows = data.hoursDetail?.rows;
@@ -217,482 +165,41 @@ export function RestauranteAdStoryPreview({
   return (
     <div className="space-y-4 md:space-y-8" style={{ background: LEONIX_PAGE_BG }}>
       
-      {/* A. Cover / Hero Zone */}
-      <section className={SECTION_CARD}>
-        {hasHeroImage ? (
-          <>
-            {/* Mobile: image only + compacted content below */}
-            <div className="md:hidden">
-              <div className="relative aspect-[5/4] w-full overflow-hidden bg-[#EFE7DA]">
-                <Image
-                  src={data.heroImageUrl!}
-                  alt={data.heroImageAlt || data.businessName}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="100vw"
-                />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" aria-hidden />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 px-2.5 pb-2.5 pt-10">
-                  {neighborhoodDisplay ? (
-                    <div className="min-w-0 max-w-[58%] rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[10px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm">
-                      <span className="block truncate">{neighborhoodDisplay}</span>
-                    </div>
-                  ) : (
-                    <span className="min-w-0 max-w-[58%]" aria-hidden />
-                  )}
-                  <span
-                    className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-sm backdrop-blur-sm ${
-                      data.hoursPreview.status === "open"
-                        ? "border-emerald-300/40 bg-emerald-950/75 text-emerald-50"
-                        : "border-rose-300/40 bg-rose-950/80 text-rose-50"
-                    }`}
-                  >
-                    {data.hoursPreview.status === "open" ? "Abierto" : "Cerrado"}
-                  </span>
-                </div>
-              </div>
-              <div className="border-t border-[#D8C2A0] bg-[#FFFAF3] px-4 pb-3 pt-2.5">
-                <h1 className="text-center text-2xl font-bold leading-[1.15] tracking-tight text-[#1F1A17]">
-                  {data.businessName}
-                </h1>
-
-                {data.contactHub?.location?.addressLine1 ? (
-                  <p className="mx-auto mt-1.5 max-w-full truncate text-center text-[13px] font-semibold leading-snug text-[color:var(--lx-text-2)]">
-                    {data.contactHub.location.addressLine1}
-                  </p>
-                ) : null}
-
-                {mobileIdentityChips.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex flex-wrap justify-center gap-1">
-                      {mobileIdentityChips.slice(0, chipsExpanded ? undefined : 3).map((chip) => (
-                        <span
-                          key={chip}
-                          className="shrink-0 whitespace-nowrap rounded-full border border-[#D8C2A0]/90 bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]"
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                      {!chipsExpanded && mobileIdentityChips.length > 3 && (
-                        <button
-                          type="button"
-                          onClick={() => setChipsExpanded(true)}
-                          className="shrink-0 rounded-full border border-[#D8C2A0]/90 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#5A5148] hover:bg-[#F6EBDD]"
-                        >
-                          +{mobileIdentityChips.length - 3}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-                  {mobileHeroPrimaryCtas.map((cta, index) => {
-                    const n = mobileHeroPrimaryCtas.length;
-                    const aloneLast = n % 2 === 1 && index === n - 1;
-                    const aloneFirst = n === 1;
-                    const wrapClass =
-                      aloneFirst || aloneLast ? "col-span-2 flex justify-center" : undefined;
-                    return (
-                      <div key={`m-${cta.key}`} className={wrapClass}>
-                        <a
-                          href={cta.href}
-                          className={`inline-flex min-h-[36px] items-center justify-center gap-1 rounded-lg border border-[#D8C2A0] bg-white px-2 text-center text-[11px] font-semibold leading-tight text-[#1F1A17] shadow-sm ${
-                            aloneFirst || aloneLast
-                              ? "w-[calc((100%-0.375rem)/2)] max-w-[200px]"
-                              : "w-full"
-                          }`}
-                          {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                        >
-                          {cta.key === "call" && <FiPhone className="h-3 w-3 shrink-0" aria-hidden />}
-                          {cta.key === "website" && <FiExternalLink className="h-3 w-3 shrink-0" aria-hidden />}
-                          {cta.key === "directions" && <FiMapPin className="h-3 w-3 shrink-0" aria-hidden />}
-                          {cta.key === "whatsapp" && <FaWhatsapp className="h-3 w-3 shrink-0 text-emerald-700" aria-hidden />}
-                          <span className="min-w-0 truncate">{cta.label}</span>
-                        </a>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
-                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.instagramHref ? (
-                    <a
-                      href={data.contact.instagramHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
-                      aria-label="Instagram"
-                    >
-                      <FiInstagram className="h-3 w-3" />
-                    </a>
-                  ) : null}
-                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.facebookHref ? (
-                    <a
-                      href={data.contact.facebookHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
-                      aria-label="Facebook"
-                    >
-                      <FiFacebook className="h-3 w-3" />
-                    </a>
-                  ) : null}
-                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.tiktokHref ? (
-                    <a
-                      href={data.contact.tiktokHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
-                      aria-label="TikTok"
-                    >
-                      <FaTiktok className="h-3 w-3" />
-                    </a>
-                  ) : null}
-                  {(data.contactHub?.social?.length ?? 0) === 0 && data.contact?.youtubeHref ? (
-                    <a
-                      href={data.contact.youtubeHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D8C2A0] bg-white text-[#1F1A17] shadow-sm"
-                      aria-label="YouTube"
-                    >
-                      <FiYoutube className="h-3 w-3" />
-                    </a>
-                  ) : null}
-                </div>
-
-                {listingId ? (
-                  <div className="mt-2.5 flex flex-nowrap items-stretch gap-1 border-t border-[#D8C2A0]/40 pt-2">
-                    <LeonixLikeButton
-                      listingId={listingId}
-                      ownerUserId={ownerUid}
-                      variant="small"
-                      lang={lang}
-                      category="restaurantes"
-                      persistEngagement={persistListingEngagement}
-                      className="min-h-0 flex-1 min-w-0 basis-0 !px-2 !py-1 text-[11px] font-medium opacity-90 [&>span]:min-w-0 [&>span]:truncate"
-                    />
-                    <LeonixSaveButton
-                      listingId={listingId}
-                      ownerUserId={ownerUid}
-                      variant="small"
-                      lang={lang}
-                      category="restaurantes"
-                      persistEngagement={persistListingEngagement}
-                      className="min-h-0 flex-1 min-w-0 basis-0 !px-2 !py-1 text-[11px] font-medium opacity-90 [&>span]:min-w-0 [&>span]:truncate"
-                    />
-                    <LeonixShareButton
-                      listingId={listingId}
-                      ownerUserId={ownerUid}
-                      listingTitle={data.businessName}
-                      listingUrl={shareAbs || undefined}
-                      variant="small"
-                      lang={lang}
-                      category="restaurantes"
-                      directNativeShare
-                      persistEngagement={persistListingEngagement}
-                      className="flex-1 min-w-0 basis-0 [&>button]:flex [&>button]:h-full [&>button]:w-full [&>button]:min-h-0 [&>button]:min-w-0 [&>button]:justify-center [&>button]:gap-1 [&>button]:!px-2 [&>button]:!py-1 [&>button]:text-[11px] [&>button]:font-medium [&>button]:opacity-90 [&>button>span]:min-w-0 [&>button>span]:truncate"
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Desktop: existing hero overlay */}
-            <div className="relative hidden aspect-[16/10] overflow-hidden md:block">
-            <Image
-              src={data.heroImageUrl!}
-              alt={data.heroImageAlt || data.businessName}
-              fill
-              className="object-cover"
-              priority
-            />
-            {/* Premium dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-            
-            {/* Hero content - centered */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 text-white text-center">
-              <div className="max-w-4xl mx-auto space-y-4">
-                {/* Business logo */}
-                {data.businessLogo && (
-                  <div className="mb-8 flex justify-center">
-                    <Image
-                      src={data.businessLogo}
-                      alt={`${data.businessName} logo`}
-                      width={320}
-                      height={320}
-                      className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/20 p-6 object-contain shadow-xl"
-                    />
-                  </div>
-                )}
-                
-                {/* Business name */}
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight drop-shadow-2xl">
-                  {data.businessName}
-                </h1>
-                
-                {/* Cuisine and type */}
-                {data.cuisineTypeLine && (
-                  <div className="flex flex-wrap justify-center gap-2 text-lg sm:text-xl font-medium drop-shadow">
-                    {data.cuisineTypeLine.split(' · ').map((cuisine, index) => (
-                      <span key={index} className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-                        {cuisine.trim()}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Status, hours, neighborhood row */}
-                <div className="flex flex-wrap justify-center items-center gap-3 text-sm sm:text-base">
-                  {/* Hours status */}
-                  <span className={`px-4 py-2 rounded-full font-semibold backdrop-blur-sm ${
-                    data.hoursPreview.status === 'open' 
-                      ? 'bg-green-500/30 text-white border border-green-400/50' 
-                      : 'bg-red-500/30 text-white border border-red-400/50'
-                  }`}>
-                    {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
-                  </span>
-                  
-                  {/* Neighborhood/Zone */}
-                  {(() => {
-                    // Get neighborhood from quickInfo (priority: neighborhood -> nothing)
-                    const neighborhoodItem = data.quickInfo?.find(item => item.key === 'neighborhood');
-                    const locationDisplay = neighborhoodItem?.value || '';
-                    
-                    if (!locationDisplay) return null;
-                    
-                    return (
-                      <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
-                        <FiMapPin className="w-4 h-4" />
-                        {locationDisplay}
-                      </span>
-                    );
-                  })()}
-                  
-                  {/* Rating */}
-                  {data.trustRating && (
-                    <span className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-1">
-                      <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span>{data.trustRating.average.toFixed(1)}</span>
-                      <span className="text-white/80">({data.trustRating.count})</span>
-                    </span>
-                  )}
-                </div>
-                
-                {/* Public address only (hub privacy rules) */}
-                {data.contactHub?.location?.addressLine1 ? (
-                  <div className="text-base sm:text-lg drop-shadow">
-                    <span className="px-4 py-2 bg-white/10 rounded-lg backdrop-blur-sm inline-block">
-                      {data.contactHub.location.addressLine1}
-                      {data.contactHub.location.addressLine2 ? `, ${data.contactHub.location.addressLine2}` : ""}
-                    </span>
-                  </div>
-                ) : null}
-                
-                {desktopHeroPrimaryCtas.length > 0 ? (
-                <div className="flex flex-wrap justify-center gap-3 pt-4">
-                  {desktopHeroPrimaryCtas.map((cta, index) => {
-                      const isPrimary = index === 0;
-                      const buttonClass = isPrimary 
-                        ? "bg-white text-[#1F1A17] border-white hover:bg-gray-100 shadow-lg" 
-                        : "bg-white/20 text-white border-white/50 hover:bg-white/30 backdrop-blur-sm";
-                      
-                      return (
-                        <a
-                          key={cta.key}
-                          href={cta.href}
-                          className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 border min-h-[44px] ${buttonClass}`}
-                          {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                        >
-                          {cta.key === "call" && <FiPhone className="w-4 h-4" />}
-                          {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
-                          {cta.key === "directions" && <FiMapPin className="w-4 h-4" />}
-                          {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
-                          {cta.key === "order" && <span>🛒</span>}
-                          {cta.key === "reserve" && <span>📅</span>}
-                          {cta.label}
-                        </a>
-                      );
-                    })}
-                </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="absolute top-4 right-4 z-20 hidden md:block">
-              <div className="flex flex-col gap-2">
-                <div className="rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm">
-                  <LeonixLikeButton
-                    listingId={listingId}
-                    ownerUserId={ownerUid}
-                    variant="small"
-                    lang={lang}
-                    category="restaurantes"
-                    persistEngagement={persistListingEngagement}
-                    className="border-0"
-                  />
-                </div>
-                <div className="rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm">
-                  <LeonixSaveButton
-                    listingId={listingId}
-                    ownerUserId={ownerUid}
-                    variant="small"
-                    lang={lang}
-                    category="restaurantes"
-                    persistEngagement={persistListingEngagement}
-                    className="border-0"
-                  />
-                </div>
-                <div className="rounded-full bg-white/90 p-1 shadow-lg backdrop-blur-sm">
-                  <LeonixShareButton
-                    listingId={listingId}
-                    ownerUserId={ownerUid}
-                    listingTitle={data.businessName}
-                    listingUrl={shareAbs || undefined}
-                    variant="small"
-                    lang={lang}
-                    category="restaurantes"
-                    directNativeShare
-                    persistEngagement={persistListingEngagement}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          </>
-        ) : (
-          // Fallback hero without image
-          <div className={`${SECTION_PADDING} text-center`}>
-            <div className="max-w-4xl mx-auto space-y-6">
-                            
-              {/* Business name */}
-              <h1 className="text-4xl sm:text-5xl font-bold text-[#1F1A17] leading-tight">
-                {data.businessName}
-              </h1>
-              
-              {/* Cuisine and type */}
-              {data.cuisineTypeLine && (
-                <div className="flex flex-wrap justify-center gap-2 text-lg sm:text-xl font-medium">
-                  {data.cuisineTypeLine.split(' · ').map((cuisine, index) => (
-                    <span key={index} className="px-3 py-1 bg-[#F6EBDD] rounded-full text-[#1F1A17]">
-                      {cuisine.trim()}
-                    </span>
-                  ))}
-                </div>
-              )}
-              
-              {/* Status, hours, neighborhood row */}
-              <div className="flex flex-wrap justify-center items-center gap-3 text-sm sm:text-base">
-                {/* Hours status */}
-                <span className={`px-4 py-2 rounded-full font-semibold ${
-                  data.hoursPreview.status === 'open' 
-                    ? 'bg-[#1A4D2E] text-white' 
-                    : 'bg-[#BEA98E] text-[#1F1A17]'
-                }`}>
-                  {data.hoursPreview.status === 'open' ? '🟢 Abierto ahora' : '🔴 Cerrado'}
-                </span>
-                
-                {/* Neighborhood */}
-                {(() => {
-                  // Get neighborhood from quickInfo (priority: neighborhood -> nothing)
-                  const neighborhoodItem = data.quickInfo?.find(item => item.key === 'neighborhood');
-                  const locationDisplay = neighborhoodItem?.value || '';
-                  
-                  if (!locationDisplay) return null;
-                  
-                  return (
-                    <span className="px-4 py-2 bg-[#F6EBDD] rounded-full text-[#1F1A17] flex items-center gap-1">
-                      <FiMapPin className="w-4 h-4" />
-                      {locationDisplay}
-                    </span>
-                  );
-                })()}
-                
-                {/* Rating */}
-                {data.trustRating && (
-                  <span className="px-4 py-2 bg-[#F6EBDD] rounded-full text-[#1F1A17] flex items-center gap-1">
-                    <FiStar className="w-4 h-4 text-yellow-600 fill-current" />
-                    <span>{data.trustRating.average.toFixed(1)}</span>
-                    <span className="text-[#5A5148]">({data.trustRating.count})</span>
-                  </span>
-                )}
-              </div>
-              
-              {data.contactHub?.location?.addressLine1 ? (
-                <div className="text-base sm:text-lg">
-                  <span className="px-4 py-2 bg-[#F6EBDD] rounded-lg text-[#1F1A17] inline-block">
-                    {data.contactHub.location.addressLine1}
-                    {data.contactHub.location.addressLine2 ? `, ${data.contactHub.location.addressLine2}` : ""}
-                  </span>
-                </div>
-              ) : null}
-              
-              {desktopHeroPrimaryCtas.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-3 pt-4">
-                {desktopHeroPrimaryCtas.map((cta, index) => {
-                    const isPrimary = index === 0;
-                    const buttonClass = isPrimary 
-                      ? "bg-[#2C1810] text-white border-[#2C1810] hover:bg-[#1A1412] shadow-md" 
-                      : "bg-white text-[#1F1A17] border-[#D8C2A0] hover:bg-[#FFFAF3] hover:border-[#BEA98E] shadow-sm";
-                    
-                    return (
-                      <a
-                        key={cta.key}
-                        href={cta.href}
-                        className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-200 border min-h-[44px] ${buttonClass}`}
-                        {...(cta.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        {cta.key === "call" && <FiPhone className="w-4 h-4" />}
-                        {cta.key === "website" && <FiExternalLink className="w-4 h-4" />}
-                        {cta.key === "directions" && <FiMapPin className="w-4 h-4" />}
-                        {cta.key === "whatsapp" && <FaWhatsapp className="w-4 h-4" />}
-                        {cta.key === "order" && <span>🛒</span>}
-                        {cta.key === "reserve" && <span>📅</span>}
-                        {cta.label}
-                      </a>
-                    );
-                  })}
-              </div>
-              ) : null}
-            </div>
-          </div>
-        )}
-      </section>
-
+      <RestauranteProfileHeader
+        data={data}
+        lang={lang}
+        listingId={listingId}
+        listingShareUrl={shareAbs || undefined}
+        analyticsOwnerUserId={analyticsOwnerUserId}
+        persistListingEngagement={persistListingEngagement}
+      />
       {/* B. Story / About Zone */}
-      {(proseData.aboutBody || proseData.summaryShort) && (
+      {proseData.aboutBody ? (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             {translateControl}
-            <h2 className={SECTION_TITLE}>Sobre el Negocio</h2>
+            <h2 className={SECTION_TITLE}>{lang === "en" ? "About us" : "Sobre nosotros"}</h2>
             <div className="prose prose-lg max-w-none">
-              {proseData.aboutBody ? (
-                <>
-                  <div
-                    className={`text-sm leading-relaxed text-[color:var(--lx-text)] whitespace-pre-wrap md:text-base ${
-                      aboutExpanded ? "" : "line-clamp-5 md:line-clamp-none"
-                    }`}
-                  >
-                    {proseData.aboutBody}
-                  </div>
-                  {proseData.aboutBody.length > 220 ? (
-                    <button
-                      type="button"
-                      onClick={() => setAboutExpanded((e) => !e)}
-                      className="mt-2 text-sm font-semibold text-[color:var(--lx-olive)] underline underline-offset-2 md:hidden"
-                    >
-                      {aboutExpanded ? ui.readLess : ui.readMore}
-                    </button>
-                  ) : null}
-                </>
-              ) : (
-                <p className="text-base text-[color:var(--lx-text)] leading-relaxed">{proseData.summaryShort}</p>
-              )}
+              <div
+                className={`text-sm leading-relaxed text-[color:var(--lx-text)] whitespace-pre-wrap md:text-base ${
+                  aboutExpanded ? "" : "line-clamp-5 md:line-clamp-none"
+                }`}
+              >
+                {proseData.aboutBody}
+              </div>
+              {proseData.aboutBody.length > 220 ? (
+                <button
+                  type="button"
+                  onClick={() => setAboutExpanded((e) => !e)}
+                  className="mt-2 text-sm font-semibold text-[color:var(--lx-olive)] underline underline-offset-2 md:hidden"
+                >
+                  {aboutExpanded ? ui.readLess : ui.readMore}
+                </button>
+              ) : null}
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* C. Contact and Location Zone */}
       {hasContactInfo && (
@@ -731,7 +238,7 @@ export function RestauranteAdStoryPreview({
       {hasMenuHighlights && (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
-            {!(proseData.aboutBody || proseData.summaryShort) ? translateControl : null}
+            {!proseData.aboutBody ? translateControl : null}
             <h2 className={SECTION_TITLE}>Especialidades de la Casa</h2>
             {/* Mobile: horizontal snap carousel */}
             <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">

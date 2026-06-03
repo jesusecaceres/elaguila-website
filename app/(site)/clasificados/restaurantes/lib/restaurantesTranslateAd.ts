@@ -117,7 +117,6 @@ export function buildRestaurantesTranslatableContent(
 
   return {
     description: data.aboutBody?.trim() || undefined,
-    body: data.summaryShort?.trim() || undefined,
     details: encodeMenuSupportingLines(data.menuHighlights ?? []),
     highlights: notes.length ? notes.join("\n") : undefined,
     shareText: data.trustLight?.summaryLine?.trim() || undefined,
@@ -145,10 +144,6 @@ export function applyRestaurantesTranslation(
 
   if (translated.description?.trim()) {
     next = { ...next, aboutBody: translated.description.trim() };
-  }
-
-  if (translated.body?.trim()) {
-    next = { ...next, summaryShort: translated.body.trim() };
   }
 
   if (translated.details?.trim() && data.menuHighlights?.length) {

@@ -32,7 +32,7 @@ function trimDraftStrings(d: RestauranteListingDraft): RestauranteListingDraft {
     additionalCuisineOtherCustom: t(d.additionalCuisineOtherCustom),
     languageOtherCustom: t(d.languageOtherCustom),
     serviceModeOtherCustom: t(d.serviceModeOtherCustom),
-    shortSummary: d.shortSummary.trim(),
+    shortSummary: d.shortSummary?.trim() || undefined,
     longDescription: t(d.longDescription),
     cityCanonical: d.cityCanonical.trim(),
     neighborhood: t(d.neighborhood),

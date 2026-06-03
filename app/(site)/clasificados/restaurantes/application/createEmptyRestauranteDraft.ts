@@ -54,7 +54,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     additionalCuisineOtherCustom: undefined,
     languageOtherCustom: undefined,
     serviceModeOtherCustom: undefined,
-    shortSummary: "",
+    shortSummary: undefined,
     longDescription: undefined,
     cityCanonical: "",
     neighborhood: undefined,

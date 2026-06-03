@@ -2,6 +2,10 @@
  * CTA-R2 gate checks for `buildRestaurantContactHub` (run: npx tsx scripts/restaurant-contact-hub-qa.ts)
  */
 import { buildRestaurantContactHub } from "../app/(site)/clasificados/restaurantes/application/buildRestaurantContactHub";
+import {
+  buildRestaurantPublicAddressQuery,
+  resolveRestaurantMapsHref,
+} from "../app/(site)/clasificados/restaurantes/application/restauranteContactHref";
 import type { RestauranteListingDraft } from "../app/(site)/clasificados/restaurantes/application/restauranteDraftTypes";
 import { createEmptyRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 
@@ -106,6 +110,23 @@ const base = (): RestauranteListingDraft => ({
   });
   assert(hub!.orderReserve.length === 4, "orderReserve has menu, reserve, order, website");
   assert(hub!.findUs.length === 0, "no stray website in findUs");
+}
+
+// Address-driven maps (Gate R-C2)
+{
+  const d = {
+    ...createEmptyRestauranteDraft(),
+    addressLine1: "87 N King Rd",
+    addressLine2: "Suite 2",
+    cityCanonical: "San Jose",
+    state: "CA",
+    zipCode: "95116",
+    showExactAddress: true,
+  };
+  const q = buildRestaurantPublicAddressQuery(d, true);
+  assert(Boolean(q?.includes("San Jose")), "address query includes city");
+  const href = resolveRestaurantMapsHref(d, true);
+  assert(Boolean(href?.includes(encodeURIComponent("87"))), "maps href is encoded");
 }
 
 console.log("OK: restaurant-contact-hub-qa passed");

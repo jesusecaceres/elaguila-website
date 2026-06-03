@@ -222,7 +222,8 @@ export type RestauranteBusinessIdentity = {
   primaryCuisine: RestauranteCuisineKey;
   secondaryCuisine?: RestauranteCuisineKey;
   additionalCuisines?: RestauranteCuisineKey[];
-  shortSummary: string;
+  /** Legacy optional field — hidden from UI (Gate R-C2); tolerated in old drafts only. */
+  shortSummary?: string;
   longDescription?: string;
   /**
    * Canonical NorCal city string — single source of truth for discovery, results, and cards.
@@ -329,7 +330,6 @@ export type RestauranteMinimumValidPreview = Pick<
   | "businessName"
   | "businessType"
   | "primaryCuisine"
-  | "shortSummary"
   | "cityCanonical"
   | "heroImage"
 > & {
@@ -588,7 +588,6 @@ export function auditRestaurantePublishReadiness(
   const hasBusinessName = nonEmpty(row.businessName);
   const hasBusinessType = nonEmpty(row.businessType);
   const hasPrimaryCuisine = nonEmpty(row.primaryCuisine);
-  const hasSummary = nonEmpty(row.shortSummary);
   const hasCity = nonEmpty(row.cityCanonical);
   const hasHeroImage = nonEmpty(row.heroImage);
   const seq = computePublishGallerySequence(row);
@@ -606,7 +605,6 @@ export function auditRestaurantePublishReadiness(
   if (!hasBusinessName) missingFields.push("nombre");
   if (!hasBusinessType) missingFields.push("tipo");
   if (!hasPrimaryCuisine) missingFields.push("cocina");
-  if (!hasSummary) missingFields.push("resumen");
   if (!hasCity) missingFields.push("ciudad");
   if (!hasRestauranteMinimumPublishImage(row, imageMode)) missingFields.push("imagen principal o primera de galería");
   if (!hasContactPath) missingFields.push("al menos un contacto");
@@ -616,7 +614,6 @@ export function auditRestaurantePublishReadiness(
     hasBusinessName &&
     hasBusinessType &&
     hasPrimaryCuisine &&
-    hasSummary &&
     hasCity &&
     hasAnyPublishImage &&
     hasContactPath &&
@@ -626,7 +623,7 @@ export function auditRestaurantePublishReadiness(
     hasBusinessName,
     hasBusinessType,
     hasPrimaryCuisine,
-    hasSummary,
+    hasSummary: true,
     hasCity,
     hasHeroImage,
     hasFirstGalleryImage,

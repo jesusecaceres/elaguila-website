@@ -25,6 +25,7 @@ import type {
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { computeHoursStatus, normalizeWeeklyHours } from "@/app/clasificados/restaurantes/lib/restauranteHoursLogic";
+import { resolveRestauranteCardSummaryLine } from "@/app/clasificados/restaurantes/lib/restauranteCardSummary";
 
 /**
  * Normalized row for cards, filters, and sorting.
@@ -55,7 +56,7 @@ export function applicationToRestauranteDiscoveryRow(
     slug: app.slug,
     primaryCuisineKey: primary,
     secondaryCuisineKey: secondary,
-    cuisineLine: app.shortSummary,
+    cuisineLine: resolveRestauranteCardSummaryLine(app),
     city: app.cityCanonical,
     zip: app.zipCode,
     rating: app.externalRatingValue ?? 0,
@@ -104,7 +105,7 @@ export function applicationToRestauranteDiscoveryRow(
     // Mobile location URL for today's location CTA
     currentLocationUrl: app.movingVendorStack?.currentLocationUrl,
     // Business description
-    description: app.shortSummary,
+    description: resolveRestauranteCardSummaryLine(app),
     // Business logo
     logoUrl: app.businessLogo,
     // Real hours status computed from application hours

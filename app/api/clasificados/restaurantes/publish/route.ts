@@ -164,7 +164,6 @@ export async function POST(req: Request) {
     if (!draft.businessName) missingFields.push("nombre");
     if (!draft.businessType) missingFields.push("tipo");
     if (!draft.primaryCuisine) missingFields.push("cocina");
-    if (!draft.shortSummary) missingFields.push("resumen");
     if (!draft.cityCanonical) missingFields.push("ciudad");
     if (!hasRestauranteMinimumPublishImage(draft, "transport")) missingFields.push("imagen principal o primera de galería");
     if (!hasPrimaryContactPath(draft)) missingFields.push("al menos un contacto");

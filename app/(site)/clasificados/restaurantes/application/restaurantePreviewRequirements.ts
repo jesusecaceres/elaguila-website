@@ -9,7 +9,6 @@ export const RESTAURANTE_PREVIEW_REQUIRED_FOR_SHELL = [
   "businessName",
   "businessType",
   "primaryCuisine",
-  "shortSummary",
   "cityCanonical",
   "heroOrFirstGalleryImage",
   "atLeastOneContactChannel",

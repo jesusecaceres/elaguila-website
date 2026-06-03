@@ -398,14 +398,14 @@ export default function RestauranteApplicationClient() {
         >
           <p className="font-semibold">No se puede usar &quot;Vista previa&quot; todavía</p>
           <p className="mt-1">
-            Completa los campos mínimos requeridos para una vista previa publicable: nombre, tipo, cocina, resumen, ciudad, foto principal, al menos un contacto y señal de horario.
+            Completa los campos mínimos requeridos para una vista previa publicable: nombre, tipo, cocina, ciudad, foto principal, al menos un contacto y señal de horario.
           </p>
         </div>
       ) : null}
       {!minPreviewOk ? (
         <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-          Para una vista previa publicable completa: nombre, tipo, cocina, resumen, ciudad, foto principal, al menos un
-          contacto y señal de horario.
+          Para una vista previa publicable completa: nombre, tipo, cocina, ciudad, foto principal, al menos un contacto y
+          señal de horario.
         </p>
       ) : null}
 
@@ -435,8 +435,8 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-a" className={stepPanel}>
           <SectionTitle>A · Identidad del negocio</SectionTitle>
           <HelperText>
-            Esta sección define cómo te reconocen en resultados y en la ficha: nombre, cocinas, resumen y ciudad canónica son
-            la base del anuncio.
+            Esta sección define cómo te reconocen en resultados y en la ficha: nombre, cocinas y ciudad canónica son la base
+            del anuncio.
           </HelperText>
           <div className="mt-4 grid gap-4">
             <div>
@@ -614,20 +614,12 @@ export default function RestauranteApplicationClient() {
               ) : null}
             </div>
             <div>
-              <FieldLabel required>Resumen corto</FieldLabel>
+              <FieldLabel optional>
+                Sobre nosotros <span className="font-normal text-[color:var(--lx-muted)]">(recomendado)</span>
+              </FieldLabel>
               <HelperText>
-                <strong className="text-[color:var(--lx-text-2)]">Resumen rápido para la tarjeta:</strong> quién eres y qué ofreces en una o dos frases. Es lo primero que ve el cliente en resultados y en la cabecera de la ficha.
-              </HelperText>
-              <textarea
-                className="mt-1 min-h-[88px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.shortSummary}
-                onChange={(e) => setDraftPatch({ shortSummary: e.target.value })}
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Descripción larga</FieldLabel>
-              <HelperText>
-                <strong className="text-[color:var(--lx-text-2)]">Sobre el negocio:</strong> historia, estilo, ambiente, detalles del local. Aparece más abajo en la ficha como sección descriptiva; no sustituye al resumen corto de la tarjeta.
+                Cuéntales a los clientes la historia, ambiente, especialidades o experiencia del restaurante. Aparece más abajo
+                en la ficha, no en la cabecera.
               </HelperText>
               <textarea
                 className="mt-1 min-h-[120px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -1364,10 +1356,14 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div className="sm:col-span-2">
-              <FieldLabel optional>Ver en el mapa (URL)</FieldLabel>
+              <FieldLabel optional>Ver en el mapa (URL personalizada)</FieldLabel>
               <HelperText>
-                Enlace directo a Google Maps u otro mapa. Si lo dejas vacío, generamos búsqueda desde la dirección pública o el área de servicio.
+                Opcional. Usa este campo solo si quieres controlar el pin exacto de Google Maps, food truck, pop-up o ubicación
+                especial. Si lo dejas vacío, generaremos el enlace desde la dirección pública.
               </HelperText>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                Si ocultas la dirección exacta, el mapa puede mostrar una zona aproximada en lugar del número exacto.
+              </p>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.verUbicacionUrl}

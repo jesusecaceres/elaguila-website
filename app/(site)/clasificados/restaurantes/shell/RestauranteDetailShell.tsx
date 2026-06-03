@@ -13,6 +13,7 @@ import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosS
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
 import { RestaurantContactHub } from "./RestaurantContactHub";
+import { RestauranteProfileHeader } from "./RestauranteProfileHeader";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
@@ -123,7 +124,6 @@ export function RestauranteDetailShell({
   data: RestaurantDetailShellData;
   lang?: ShellLang;
 }) {
-  const open = data.hoursPreview.status === "open";
   const showQuick = (data.quickInfo?.length ?? 0) > 0;
   const showPlatillos = (data.menuHighlights?.length ?? 0) > 0;
   const showMenuOnly = Boolean(data.fullMenuCta) && !showPlatillos;
@@ -137,7 +137,6 @@ export function RestauranteDetailShell({
   const showContact = Boolean(data.contactHub?.hasAny);
   const showStacks = (data.stackSections?.length ?? 0) > 0;
   const showCtas = !data.contactHub?.hasAny && (data.primaryCtas?.length ?? 0) > 0;
-  const hasHeroImg = Boolean(data.heroImageUrl?.trim());
   const showHoursDetail = Boolean(
     data.hoursDetail &&
       ((data.hoursDetail.rows?.length ?? 0) > 0 ||
@@ -147,96 +146,21 @@ export function RestauranteDetailShell({
 
   return (
     <main className="min-h-screen bg-[color:var(--lx-bg)]">
-      {/* PREMIUM HERO SECTION */}
-      <section className="relative">
-        <div className="relative h-[60vh] min-h-[400px] max-h-[600px] w-full overflow-hidden">
-          {data.heroImageUrl ? (
-            <Image
-              src={data.heroImageUrl}
-              alt={data.heroImageAlt ?? "Foto principal del restaurante"}
-              fill
-              className="object-cover"
-              priority
-              sizes="100vw"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-100 via-amber-50 to-orange-50" aria-hidden />
-          )}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" aria-hidden />
-        </div>
-        
-        {/* Hero Content Overlay */}
-        <div className="absolute inset-0 flex items-end">
-          <div className="w-full bg-gradient-to-t from-black/80 via-black/50 to-transparent px-6 py-12 sm:px-8 lg:px-12">
-            <div className="mx-auto max-w-7xl">
-              <div className="max-w-3xl">
-                <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-white/60">
-                  Restaurante
-                </p>
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
-                  {data.businessName}
-                </h1>
-                
-                {/* Trust Rating */}
-                {data.trustRating ? (
-                  <div className="mb-4 flex flex-wrap items-center gap-3 text-white">
-                    <StarRow rating={Math.min(5, data.trustRating.average)} />
-                    <span className="text-lg font-semibold">{data.trustRating.average.toFixed(1)}</span>
-                    <span className="text-white/80">
-                      ({data.trustRating.count.toLocaleString("es-US")} valoraciones)
-                    </span>
-                  </div>
-                ) : null}
-                
-                {/* Cuisine Line */}
-                {data.cuisineTypeLine ? (
-                  <p className="mb-4 text-lg font-medium text-white/90 sm:text-xl">
-                    {data.cuisineTypeLine}
-                  </p>
-                ) : null}
-                
-                {/* Short Summary */}
-                {data.summaryShort ? (
-                  <p className="mb-6 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
-                    {data.summaryShort}
-                  </p>
-                ) : null}
-                
-                {/* Taxonomy Chips */}
-                {data.taxonomyChips?.length ? (
-                  <HeroTaxonomyLine chips={data.taxonomyChips} maxVisible={4} light />
-                ) : null}
-                
-                {/* Hours Status */}
-                <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                  <p className="min-w-0 text-sm">
-                    <span className={`font-semibold ${open ? "text-green-400" : "text-red-400"}`}>
-                      {data.hoursPreview.statusLine}
-                    </span>
-                    <span className="text-white/60"> · </span>
-                    <span className="text-white/85">{data.hoursPreview.scheduleSummary}</span>
-                  </p>
-                  {showHoursDetail ? (
-                    <a
-                      href={data.seeHoursHref}
-                      className="w-fit shrink-0 text-sm font-semibold text-white/90 underline underline-offset-4 hover:text-white"
-                    >
-                      {data.seeHoursLabel}
-                    </a>
-                  ) : null}
-                </div>
-              </div>
-              
-              {/* Primary CTAs in Hero */}
-              {showCtas ? (
-                <div className="mt-8">
-                  <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" />
-                </div>
-              ) : null}
-            </div>
+      <div className="mx-auto max-w-7xl px-6 py-6 sm:px-8 lg:px-12">
+        <RestauranteProfileHeader data={data} lang={lang} listingId={data.id} persistListingEngagement={false} />
+        {showCtas ? (
+          <div className="mt-4">
+            <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" />
           </div>
-        </div>
-      </section>
+        ) : null}
+        {showHoursDetail ? (
+          <p className="mt-3 text-sm text-[color:var(--lx-text-2)]">
+            <a href={data.seeHoursHref} className="font-semibold text-[#7A1E2C] underline underline-offset-2">
+              {data.seeHoursLabel}
+            </a>
+          </p>
+        ) : null}
+      </div>
 
       {/* TOP INFORMATION BAND - QUICK FACTS */}
       {showQuick ? (
@@ -303,7 +227,7 @@ export function RestauranteDetailShell({
               <section aria-labelledby="about-heading" className="scroll-mt-24">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">Historia</p>
                 <h2 id="about-heading" className="mt-2 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">
-                  {data.aboutTitle ?? "Sobre el negocio"}
+                  {data.aboutTitle ?? "Sobre nosotros"}
                 </h2>
                 <p className="mt-6 text-lg leading-[1.8] text-[color:var(--lx-text-2)]">{data.aboutBody}</p>
               </section>
