@@ -56,7 +56,7 @@ export type ViajesBrowseState = {
 };
 
 /** Public results route — single source for links and `next/router` base. */
-export const VIAJES_PUBLIC_RESULTS_PATH = "/clasificados/viajes/resultados";
+export const VIAJES_PUBLIC_RESULTS_PATH = "/clasificados/viajes/results";
 
 const DEFAULT_BASE = VIAJES_PUBLIC_RESULTS_PATH;
 

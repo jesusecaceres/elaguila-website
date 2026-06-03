@@ -51,8 +51,8 @@ const FORM_ID = "servicios-hero-search-form";
 
 export function ServiciosHeroSearch({ lang }: { lang: Lang }) {
   const t = copy[lang];
-  const resultsAction = "/clasificados/servicios/resultados";
-  const resultsBrowseHref = `/clasificados/servicios/resultados?lang=${lang}`;
+  const resultsAction = "/clasificados/servicios/results";
+  const resultsBrowseHref = `/clasificados/servicios/results?lang=${lang}`;
   const qRef = useRef<HTMLInputElement>(null);
   const cityRef = useRef<HTMLInputElement>(null);
 

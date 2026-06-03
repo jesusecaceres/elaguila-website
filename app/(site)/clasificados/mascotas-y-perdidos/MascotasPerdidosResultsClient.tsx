@@ -119,8 +119,8 @@ export function MascotasPerdidosResultsClient() {
 
         <CategoryStandardResultsFilterPanel
           lang={lang}
-          action="/clasificados/mascotas-y-perdidos/resultados"
-          clearHref={appendLangToPath("/clasificados/mascotas-y-perdidos/resultados", lang)}
+          action="/clasificados/mascotas-y-perdidos/results"
+          clearHref={appendLangToPath("/clasificados/mascotas-y-perdidos/results", lang)}
           applyLabel={t.apply}
           primaryRow={
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">

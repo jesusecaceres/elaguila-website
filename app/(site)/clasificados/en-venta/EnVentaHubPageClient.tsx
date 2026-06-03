@@ -11,6 +11,14 @@ import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClas
 import type { EnVentaPublicBrowseListing } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
 import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
 import { DEFAULT_CITY } from "@/app/data/locations/norcal";
+import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
+import { CategoryStandardQuickFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardQuickFilterChips";
+import {
+  categoryStandardSearchPlaceholder,
+  categoryStandardTitle,
+  categoryStandardDescription,
+  CATEGORY_STANDARD_PAGE_BG,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { EnVentaHubRecentListings } from "./hub/EnVentaHubRecentListings";
 
 /** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
@@ -144,18 +152,59 @@ export function EnVentaHubPageClient({
   const chipFeaturedCls =
     "inline-flex min-h-[44px] max-w-full items-center gap-1.5 justify-center text-balance rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3 py-2 text-center text-[12px] font-semibold leading-tight text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
 
+  const enVentaSearchForm = (
+    <form className="w-full min-w-0 text-left" action="/clasificados/en-venta/results" method="get" role="search">
+      <input type="hidden" name="lang" value={lang} />
+      <div
+        className={cx(
+          "flex flex-col gap-0 overflow-hidden rounded-xl border border-[#D6C7AD] bg-white shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)]",
+          "lg:flex-row lg:items-stretch",
+        )}
+      >
+        <label className="flex min-h-[2.75rem] min-w-0 flex-1 items-center gap-2 px-3">
+          <span className="shrink-0 text-[#556B3E]" aria-hidden>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3-3" strokeLinecap="round" />
+            </svg>
+          </span>
+          <input
+            name="q"
+            type="search"
+            autoComplete="off"
+            placeholder={categoryStandardSearchPlaceholder("en-venta", lang)}
+            className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
+          />
+        </label>
+        <label className="flex min-h-[2.75rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 lg:w-44 lg:border-l lg:border-t-0">
+          <select
+            name="city"
+            defaultValue=""
+            aria-label={t.cityPh}
+            className="w-full cursor-pointer rounded-lg border border-[#D6C7AD] bg-white px-2 py-2 text-sm"
+          >
+            <option value="">{t.cityPh}</option>
+            {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="border-t border-[#D6C7AD] p-2 lg:border-l lg:border-t-0">
+          <button
+            type="submit"
+            className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] lg:min-w-[7.5rem]"
+          >
+            {t.search}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+
   return (
-    <div
-      className="relative min-h-screen overflow-x-hidden text-[#2C2416]"
-      style={{
-        backgroundColor: "#F3EBDD",
-        backgroundImage: `
-          radial-gradient(ellipse 120% 70% at 50% -15%, rgba(201, 180, 106, 0.16), transparent 55%),
-          radial-gradient(ellipse 50% 40% at 100% 20%, rgba(255, 255, 255, 0.4), transparent 50%),
-          radial-gradient(ellipse 45% 35% at 0% 80%, rgba(61, 90, 115, 0.06), transparent 52%)
-        `,
-      }}
-    >
+    <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.028]"
         style={{
@@ -165,128 +214,21 @@ export function EnVentaHubPageClient({
       />
 
       <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-24 sm:pt-9 md:px-6 lg:px-10 lg:pt-10 xl:px-14">
-        {/* Hero */}
-        <section className="relative isolate overflow-hidden rounded-[24px] border border-white/50 bg-[#E8E0D4]/40 shadow-[0_24px_80px_-32px_rgba(47,74,101,0.35)] sm:rounded-[28px] md:rounded-[32px]">
-          <div className="absolute inset-0 min-h-[180px] sm:min-h-[200px] md:min-h-[220px] lg:min-h-[240px]">
-            <HeroBackdrop src={backdropSrc} />
-            <div
-              className="absolute inset-0 bg-gradient-to-b from-[#F8F1E4]/86 via-[#F5EFE3]/74 to-[#F3EBDD]/92 max-md:from-[#F8F1E4]/88"
-              aria-hidden
-            />
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-[#3D5A73]/[0.07] via-transparent to-[#3D5A73]/[0.05]"
-              aria-hidden
-            />
-            <div
-              className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#F3EBDD] via-[#F3EBDD]/94 to-transparent sm:h-32 md:h-40"
-              aria-hidden
-            />
-          </div>
-
-          <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center px-3 pb-6 pt-4 text-center sm:max-w-none sm:px-6 sm:pb-8 sm:pt-6 md:px-8 md:pb-9 md:pt-7 lg:pb-10 lg:pt-8">
-            <span
-              className={cx(
-                "mb-4 inline-flex min-h-[36px] items-center rounded-full px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:mb-5",
-                "bg-gradient-to-r from-[#E09A2D] to-[#C97A1E] shadow-[0_8px_24px_-6px_rgba(200,120,30,0.45)]"
-              )}
-            >
-              {t.badge}
-            </span>
-
-            <h1 className="max-w-[min(100%,18ch)] font-serif text-[clamp(1.5rem,3.5vw+0.5rem,2.5rem)] font-bold leading-[1.1] tracking-tight text-[#1E1810] min-[400px]:max-w-none md:text-[2.35rem] lg:text-[2.5rem]">
-              {t.hero}
-            </h1>
-            <p className="mt-3 max-w-[min(100%,36rem)] text-pretty text-[15px] leading-relaxed text-[#3D3428]/95 sm:mt-4 sm:text-lg">
-              {t.sub}
-            </p>
-            <p className="mt-2.5 max-w-[min(100%,28rem)] text-pretty text-[11px] font-semibold uppercase leading-snug tracking-[0.12em] text-[#4A6678] sm:mt-3 sm:text-[12px] sm:tracking-[0.16em]">
-              {t.premiumTagline}
-            </p>
-
-            <form
-              className="mt-6 w-full min-w-0 max-w-3xl text-left sm:mt-8 lg:mt-9"
-              action="/clasificados/en-venta/results"
-              method="get"
-              role="search"
-            >
-              <input type="hidden" name="lang" value={lang} />
-                <div
-                className={cx(
-                  "flex flex-col gap-0 overflow-hidden rounded-[22px] border border-white/80 bg-white/[0.94] shadow-[0_14px_48px_-22px_rgba(47,74,101,0.22),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-md",
-                  "md:rounded-[24px]",
-                  "xl:flex-row xl:items-stretch xl:rounded-full"
-                )}
-              >
-                <label className="flex min-h-[52px] min-w-0 flex-1 cursor-text items-center gap-2.5 px-3 sm:gap-3 sm:px-4 xl:min-w-[120px] xl:flex-1 xl:pl-6 xl:pr-4">
-                  <span className="shrink-0 text-[#4A6678]" aria-hidden>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="M20 20l-3-3" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  <input
-                    name="q"
-                    type="search"
-                    autoComplete="off"
-                    placeholder={t.searchPh}
-                    className="min-h-[48px] min-w-0 flex-1 bg-transparent py-2 text-[15px] text-[#1E1810] placeholder:text-[#7A7164] outline-none sm:min-h-[44px]"
-                  />
-                </label>
-
-                <div className="hidden w-px shrink-0 self-stretch bg-[#E5DDD0] xl:my-3 xl:block" aria-hidden />
-
-                <div className="grid min-w-0 grid-cols-1 border-t border-[#EDE6DA] sm:grid-cols-2 xl:contents xl:border-0">
-                  <div className="flex min-h-[52px] min-w-0 items-center gap-2 px-3 sm:px-4 xl:w-[min(100%,240px)] xl:max-w-[240px] xl:shrink-0 xl:px-3">
-                    <span className="shrink-0 text-[#4A6678]" aria-hidden>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 21s7-4.5 7-11a7 7 0 10-14 0c0 6.5 7 11 7 11z" strokeLinejoin="round" />
-                        <circle cx="12" cy="10" r="2.5" />
-                      </svg>
-                    </span>
-                    <select
-                      name="city"
-                      defaultValue=""
-                      aria-label={t.cityPh}
-                      className="min-h-[48px] w-full min-w-0 cursor-pointer appearance-none rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] py-2 pl-3 pr-8 text-[14px] font-medium text-[#2C2416] outline-none transition focus:border-[#C9B46A]/60 sm:min-h-[44px]"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234A6678' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                        backgroundRepeat: "no-repeat",
-                        backgroundPosition: "right 10px center",
-                      }}
-                    >
-                      <option value="">{t.cityPh}</option>
-                      {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex min-w-0 border-t border-[#EDE6DA] p-2 sm:border-l sm:border-t-0 sm:border-[#EDE6DA] xl:flex xl:items-stretch xl:p-2">
-                    <button type="submit" className={cx(goldBtn, "h-[48px] w-full min-w-0 xl:w-auto xl:min-w-[112px] xl:px-7")}>
-                      {t.search}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </form>
-
-            <p className="mt-4 max-w-lg text-pretty text-[12px] font-medium leading-snug text-[#4A6678] sm:mt-5 sm:text-sm">{t.socialProof}</p>
-
-            <div className="mx-auto mt-6 flex w-full min-w-0 max-w-[min(100%,36rem)] flex-col gap-3 sm:mt-8 sm:max-w-2xl sm:flex-row sm:justify-center sm:gap-4">
-              <Link href={publishHref} className={cx(goldBtn, "w-full min-w-0 sm:w-[min(100%,280px)]")}>
-                <span aria-hidden className="text-lg font-light">
-                  +
-                </span>
-                {t.publish}
-              </Link>
-              <Link href={allListingsHref} className={cx(ivoryBtn, "w-full min-w-0 sm:w-[min(100%,280px)]")}>
-                {t.lista}
-              </Link>
-            </div>
-          </div>
-        </section>
+        <CategoryStandardLandingBlock
+          category="en-venta"
+          lang={lang}
+          eyebrow={t.badge}
+          title={categoryStandardTitle("en-venta", lang)}
+          description={categoryStandardDescription("en-venta", lang)}
+          searchAction="/clasificados/en-venta/results"
+          searchPlaceholder={categoryStandardSearchPlaceholder("en-venta", lang)}
+          publishHref={publishHref}
+          browseHref={allListingsHref}
+          publishLabel={t.publish}
+          browseLabel={t.lista}
+          searchChips={<CategoryStandardQuickFilterChips category="en-venta" lang={lang} />}
+          searchSlot={enVentaSearchForm}
+        />
 
         {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
         <section

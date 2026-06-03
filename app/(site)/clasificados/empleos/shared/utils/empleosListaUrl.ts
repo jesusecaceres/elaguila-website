@@ -47,7 +47,7 @@ export type EmpleosResultadosParams = {
  * Public job results listing. Merges filters into the URL alongside `lang`.
  */
 export function buildEmpleosResultadosUrl(lang: Lang, extra?: EmpleosResultadosParams): string {
-  const base = appendLangToPath("/clasificados/empleos/resultados", lang);
+  const base = appendLangToPath("/clasificados/empleos/results", lang);
   const url = new URL(base, "https://leonix.local");
   if (extra) {
     for (const [k, v] of Object.entries(extra)) {

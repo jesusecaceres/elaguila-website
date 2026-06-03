@@ -15,7 +15,7 @@ type Props = {
 export function ServiciosResultsPageShell({ lang, children, resultCount }: Props) {
   const landingHref = `/clasificados/servicios?lang=${lang}`;
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
-  const clearHref = `/clasificados/servicios/resultados?lang=${lang}`;
+  const clearHref = `/clasificados/servicios/results?lang=${lang}`;
 
   return (
     <CategoryStandardResultsPageShell>

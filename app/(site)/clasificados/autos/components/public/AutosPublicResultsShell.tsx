@@ -25,7 +25,7 @@ import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
 import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
 
-const RESULTADOS_PATH = "/clasificados/autos/resultados";
+const RESULTADOS_PATH = "/clasificados/autos/results";
 const PAGE_SIZE = 12;
 
 function uniqSort(values: string[]): string[] {

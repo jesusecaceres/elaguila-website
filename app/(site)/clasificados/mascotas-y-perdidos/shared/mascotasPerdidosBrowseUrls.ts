@@ -12,7 +12,7 @@ export function mascotasPerdidosResultsUrl(
   lang: MascotasPerdidosShellLang,
   filters?: { q?: string; city?: string; tipo?: string },
 ): string {
-  const base = "/clasificados/mascotas-y-perdidos/resultados";
+  const base = "/clasificados/mascotas-y-perdidos/results";
   const params = new URLSearchParams();
   params.set("lang", lang);
   if (filters?.q?.trim()) params.set("q", filters.q.trim());

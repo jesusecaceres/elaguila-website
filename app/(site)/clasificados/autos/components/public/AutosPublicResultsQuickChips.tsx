@@ -6,7 +6,7 @@ import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCop
 import { serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
 import type { AutosPublicFilterState } from "../../filters/autosPublicFilterTypes";
 
-const RESULTADOS_PATH = "/clasificados/autos/resultados";
+const RESULTADOS_PATH = "/clasificados/autos/results";
 
 type ChipDef = { key: string; label: string; patch: Partial<AutosPublicFilterState> };
 

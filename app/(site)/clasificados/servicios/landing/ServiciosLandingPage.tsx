@@ -11,6 +11,9 @@ import { ServiciosHeroSearch } from "./ServiciosHeroSearch";
 import { ServiciosLandingQuickFilterLinks } from "./ServiciosLandingQuickFilterLinks";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { TrustValueStrip } from "./TrustValueStrip";
+import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import { CATEGORY_STANDARD_PAGE_BG } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } from "./serviciosLandingSampleData";
 
 type Lang = "es" | "en";
@@ -34,49 +37,22 @@ export function ServiciosLandingPage({
   const hasDestacados = destacadosRows.length > 0;
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden text-[#142a42]">
-      {/* Quiet service-world atmosphere (global); stays behind content */}
-      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
-        <Image
-          src={PAGE_ATMOSPHERE}
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover object-[center_42%] opacity-[0.07] blur-[2px] saturate-[0.72] sm:opacity-[0.08]"
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-b from-[#f5efe6] via-[#f3ebe2]/[0.97] to-[#efe6db]"
-          aria-hidden
-        />
-        <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-10%,rgba(255,255,255,0.55),transparent_55%)]"
-          aria-hidden
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#ebe3d6]/95"
-          aria-hidden
-        />
-      </div>
-
-      <main className="relative mx-auto w-full max-w-[min(100%,1440px)] px-3 pb-16 pt-5 sm:px-6 sm:pb-24 sm:pt-10 lg:px-10 lg:pb-28 xl:px-12 2xl:px-14">
-        {/* Hero + chips: one composed entry block */}
-        <section
-          id="servicios-hero"
-          className={`overflow-hidden ${sectionShell} shadow-[0_22px_72px_-44px_rgba(20,38,58,0.32)]`}
-          aria-label={lang === "en" ? "Search services" : "Buscar servicios"}
-        >
-          <ServiciosHeroSearch lang={lang} />
-          <div className="relative border-t border-[#e8e0d4]/70 bg-gradient-to-b from-[#faf6f0]/96 to-[#f4ebe3]/97 px-3 py-4 sm:px-8 sm:py-7 md:px-10 md:py-8">
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
-              aria-hidden
-            />
-            <ServiciosQuickChips lang={lang} chips={SERVICIOS_LANDING_QUICK_CHIPS} />
-            <div className="mt-4 border-t border-[#e8e0d4]/80 pt-4 sm:mt-6 sm:pt-6">
-              <ServiciosLandingQuickFilterLinks lang={lang} />
+    <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
+      <main className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:px-8">
+        <CategoryStandardLandingPage
+          category="servicios"
+          lang={lang}
+          searchAction={buildCategoryResultsUrl("servicios", lang)}
+          searchSlot={<ServiciosHeroSearch lang={lang} />}
+          belowHero={
+            <div className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 sm:px-5">
+              <ServiciosQuickChips lang={lang} chips={SERVICIOS_LANDING_QUICK_CHIPS} />
+              <div className="mt-4 border-t border-[#D6C7AD]/60 pt-4">
+                <ServiciosLandingQuickFilterLinks lang={lang} />
+              </div>
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <div className="mt-5 sm:mt-9 md:mt-11">
           <ServiciosLandingBrowseRow lang={lang} />

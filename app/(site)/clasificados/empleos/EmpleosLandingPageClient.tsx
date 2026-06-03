@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 
 import { FeaturedJobsLandingSection } from "./components/landing/FeaturedJobsLandingSection";
 import { HeroAndSearch } from "./components/landing/HeroAndSearch";
@@ -17,7 +19,6 @@ import { TrustSignalsRow } from "./components/landing/TrustSignalsRow";
 import type { SampleFeaturedJob, SampleRecentJob } from "./data/empleosLandingSampleData";
 
 export type EmpleosLandingPageProps = {
-  /** When true, featured/recent strips use server-fed live rows only (no marketing catalog). */
   liveInventory?: boolean;
   featuredJobsOverride?: SampleFeaturedJob[];
   recentJobsByLang?: { es: SampleRecentJob[]; en: SampleRecentJob[] };
@@ -33,33 +34,30 @@ export function EmpleosLandingPage({
   const recentOverride = recentJobsByLang?.[lang];
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] text-[#2A2826]">
-      <div className="relative">
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_15%_-10%,rgba(232,165,75,0.2),transparent_55%),radial-gradient(ellipse_at_90%_0%,rgba(91,111,130,0.07),transparent_45%)]"
-          aria-hidden
+    <>
+      <CategoryStandardLandingPage
+        category="empleos"
+        lang={lang}
+        searchAction={buildCategoryResultsUrl("empleos", lang)}
+        searchSlot={<HeroAndSearch lang={lang} />}
+      />
+      <div className="mx-auto w-full max-w-6xl space-y-14 px-4 pb-24 sm:space-y-16 sm:px-6 lg:px-8 md:space-y-20">
+        <QuickSearchTiles lang={lang} />
+        <FeaturedJobsLandingSection
+          lang={lang}
+          jobs={liveInventory ? featuredJobsOverride : undefined}
+          liveInventory={liveInventory}
         />
-        <main className="relative mx-auto w-full max-w-[min(100rem,calc(100%-1rem))] px-4 pb-24 pt-[calc(6.5rem+env(safe-area-inset-top,0px))] sm:px-6 sm:pt-[calc(7.25rem+env(safe-area-inset-top,0px))] lg:px-10">
-          <div className="flex flex-col gap-14 sm:gap-16 md:gap-[4.25rem] lg:gap-24">
-            <HeroAndSearch lang={lang} />
-            <QuickSearchTiles lang={lang} />
-            <FeaturedJobsLandingSection
-              lang={lang}
-              jobs={liveInventory ? featuredJobsOverride : undefined}
-              liveInventory={liveInventory}
-            />
-            <RefineSearchBand lang={lang} />
-            <JobCategoryGrid lang={lang} liveInventory={liveInventory} />
-            <LatestJobsAndEmployer
-              lang={lang}
-              jobs={liveInventory ? recentOverride : undefined}
-              liveInventory={liveInventory}
-            />
-            <JobFairLandingBanner lang={lang} />
-            <TrustSignalsRow lang={lang} />
-          </div>
-        </main>
+        <RefineSearchBand lang={lang} />
+        <JobCategoryGrid lang={lang} liveInventory={liveInventory} />
+        <LatestJobsAndEmployer
+          lang={lang}
+          jobs={liveInventory ? recentOverride : undefined}
+          liveInventory={liveInventory}
+        />
+        <JobFairLandingBanner lang={lang} />
+        <TrustSignalsRow lang={lang} />
       </div>
-    </div>
+    </>
   );
 }

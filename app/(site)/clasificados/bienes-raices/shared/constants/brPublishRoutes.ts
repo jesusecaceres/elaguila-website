@@ -25,4 +25,4 @@ export const BR_PREVIEW_NEGOCIO = "/clasificados/bienes-raices/preview/negocio";
 export const BR_PREVIEW_PRIVADO = "/clasificados/bienes-raices/preview/privado";
 export const BR_CATEGORY_HOME = "/clasificados/bienes-raices";
 /** Category results: filtered browse (owned by Bienes Raíces, Spanish slug). */
-export const BR_RESULTS = "/clasificados/bienes-raices/resultados";
+export const BR_RESULTS = "/clasificados/bienes-raices/results";

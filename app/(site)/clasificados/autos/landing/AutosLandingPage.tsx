@@ -32,7 +32,7 @@ import { AutosLandingPublishCTA } from "./AutosLandingPublishCTA";
 import { autosLandingSectionClass } from "./autosLandingLayout";
 import { AutosPublicInventoryNotice } from "../components/public/AutosPublicInventoryNotice";
 
-const RESULTADOS_PATH = "/clasificados/autos/resultados";
+const RESULTADOS_PATH = "/clasificados/autos/results";
 
 export function AutosLandingPage() {
   const sp = useSearchParams();

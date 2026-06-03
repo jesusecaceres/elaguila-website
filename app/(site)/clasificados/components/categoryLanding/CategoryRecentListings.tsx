@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
 import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
@@ -81,10 +82,7 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
     );
   }
 
-  const resultsHref = appendLangToPath(
-    category === "clases" ? "/clasificados/clases/resultados" : "/clasificados/comunidad/resultados",
-    lang,
-  );
+  const resultsHref = buildCategoryResultsUrl(category, lang);
 
   return (
     <section

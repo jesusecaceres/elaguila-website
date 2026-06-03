@@ -170,7 +170,7 @@ function BuscoResultsInner(props: {
 }) {
   const { t, lang, loading, loadErr, filtered, q, tipo, city, zone, budget, contact, postHref } = props;
 
-  const clearHref = appendLangToPath("/clasificados/busco/resultados", lang);
+  const clearHref = appendLangToPath("/clasificados/busco/results", lang);
   const searchPh = lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…";
 
   return (
@@ -179,7 +179,7 @@ function BuscoResultsInner(props: {
 
       <CategoryStandardResultsFilterPanel
         lang={lang}
-        action="/clasificados/busco/resultados"
+        action="/clasificados/busco/results"
         defaultQ={q}
         defaultCity={city}
         searchPlaceholder={searchPh}

@@ -58,7 +58,7 @@
 
 import type { RestauranteBusinessTypeKey } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 
-export const RESTAURANTES_RESULTADOS_PATH = "/clasificados/restaurantes/resultados" as const;
+export const RESTAURANTES_RESULTADOS_PATH = "/clasificados/restaurantes/results" as const;
 
 export type RestaurantesDiscoveryLang = "es" | "en";
 

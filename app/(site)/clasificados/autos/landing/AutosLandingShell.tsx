@@ -1,32 +1,13 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
-import { AUTOS_LANDING_HERO_BACKDROP } from "./autosLandingBrowseAssets";
+import { CATEGORY_STANDARD_PAGE_BG } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
+/** Autos landing — cream Leonix shell without full-bleed scenic band (CAT-STD-ALL). */
 export function AutosLandingShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#FFFEF7] text-[#1A1A1A]">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(28vh,240px)] w-full overflow-hidden rounded-b-xl border-b border-[#D6C7AD]/35 shadow-[inset_0_1px_0_rgba(255,250,240,0.55)] sm:min-h-[min(30vh,280px)] lg:min-h-[min(32vh,320px)]"
-        aria-hidden
-      >
-        <div className="absolute inset-0">
-          <Image
-            src={AUTOS_LANDING_HERO_BACKDROP}
-            alt=""
-            fill
-            priority
-            className="object-cover object-[center_30%] min-[480px]:object-[center_34%] md:object-[center_36%] lg:object-[center_38%] xl:object-[center_40%]"
-            sizes="100vw"
-          />
-        </div>
-        {/* Warm cream wash — keeps Leonix palette and text legible */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FFFAF0]/72 via-[#F5F0E8]/86 to-[#FFFEF7]" />
-        {/* Soft vignette + gold lift (category presence, not loud) */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_115%_90%_at_50%_-8%,rgba(212,165,116,0.16),transparent_58%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_55%_at_50%_108%,rgba(245,240,232,0.96),transparent_62%)]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(26,26,26,0.06)] via-transparent to-[rgba(245,240,232,0.88)]" />
+    <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
+      <div className="relative z-[1] mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+        {children}
       </div>
-      <div className="relative z-[1]">{children}</div>
     </div>
   );
 }

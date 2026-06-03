@@ -106,6 +106,8 @@ export type CategoryStandardLandingBlockProps = {
   searchChips?: ReactNode;
   belowHero?: ReactNode;
   children?: ReactNode;
+  /** Replaces default GET search row (e.g. Rentas client-side search bar). */
+  searchSlot?: ReactNode;
 };
 
 export function CategoryStandardLandingBlock({
@@ -123,6 +125,7 @@ export function CategoryStandardLandingBlock({
   browseLabel,
   searchChips,
   belowHero,
+  searchSlot,
   children,
 }: CategoryStandardLandingBlockProps) {
   return (
@@ -135,13 +138,15 @@ export function CategoryStandardLandingBlock({
         description={description}
         imageSrc={imageSrc}
       >
-        <CategoryStandardSearchRow
-          lang={lang}
-          action={searchAction}
-          searchPlaceholder={searchPlaceholder}
-          chips={searchChips}
-          className="!border-0 !bg-transparent !p-0 !shadow-none"
-        />
+        {searchSlot ?? (
+          <CategoryStandardSearchRow
+            lang={lang}
+            action={searchAction}
+            searchPlaceholder={searchPlaceholder}
+            chips={searchChips}
+            className="!border-0 !bg-transparent !p-0 !shadow-none"
+          />
+        )}
         <div className="mt-3">
           <CategoryStandardCtaRow
             lang={lang}

@@ -1,14 +1,8 @@
-/**
- * Clases landing → published listings browse (`/clasificados/clases/resultados`).
- * `cat` kept for backward-compatible call sites (ignored; category is always Clases).
- */
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 
 type Lang = "es" | "en";
 
+/** Clases landing → results browse (`/clasificados/clases/results`). */
 export function buildClasesListaUrl(_cat: string, lang: Lang, q?: string, city?: string): string {
-  const sp = new URLSearchParams();
-  sp.set("lang", lang);
-  if (q?.trim()) sp.set("q", q.trim());
-  if (city?.trim()) sp.set("city", city.trim());
-  return `/clasificados/clases/resultados?${sp.toString()}`;
+  return buildCategoryResultsUrl("clases", lang, { q, city });
 }

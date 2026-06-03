@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Navbar from "@/app/components/Navbar";
 import { CATEGORY_STANDARD_MAIN, CATEGORY_STANDARD_PAGE_BG } from "./categoryStandardTheme";
 
 type Props = {
@@ -9,15 +8,14 @@ type Props = {
   maxWidthClass?: string;
 };
 
-/** Category landing pages — cream Leonix shell with navbar. */
+/** Category landing pages — cream Leonix shell (site layout provides global Navbar). */
 export function CategoryStandardLandingPageShell({
   children,
   maxWidthClass = "max-w-6xl",
 }: Props) {
   return (
     <div className={CATEGORY_STANDARD_PAGE_BG}>
-      <Navbar />
-      <main className={`${CATEGORY_STANDARD_MAIN} pb-12 ${maxWidthClass}`}>{children}</main>
+      <main className={`${CATEGORY_STANDARD_MAIN} ${maxWidthClass}`}>{children}</main>
     </div>
   );
 }

@@ -1,13 +1,8 @@
-/**
- * Comunidad landing → published listings browse (`/clasificados/comunidad/resultados`).
- */
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 
 type Lang = "es" | "en";
 
+/** Comunidad landing → results browse (`/clasificados/comunidad/results`). */
 export function buildComunidadListaUrl(_cat: string, lang: Lang, q?: string, city?: string): string {
-  const sp = new URLSearchParams();
-  sp.set("lang", lang);
-  if (q?.trim()) sp.set("q", q.trim());
-  if (city?.trim()) sp.set("city", city.trim());
-  return `/clasificados/comunidad/resultados?${sp.toString()}`;
+  return buildCategoryResultsUrl("comunidad", lang, { q, city });
 }

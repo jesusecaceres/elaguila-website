@@ -17,9 +17,15 @@ import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasL
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
-import { RentasLandingCategoryHeader } from "@/app/clasificados/rentas/landing/RentasLandingCategoryHeader";
 import { RentasLandingFeatured } from "@/app/clasificados/rentas/landing/RentasLandingFeatured";
-import { RentasLandingHero } from "@/app/clasificados/rentas/landing/RentasLandingHero";
+import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
+import { CategoryStandardQuickFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardQuickFilterChips";
+import {
+  categoryStandardDescription,
+  categoryStandardSearchPlaceholder,
+  categoryStandardTitle,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { RentasLandingQuickChips } from "@/app/clasificados/rentas/landing/RentasLandingQuickChips";
 import { RentasLandingSectionBand } from "@/app/clasificados/rentas/landing/RentasLandingSectionBand";
 import { RentasLandingShell } from "@/app/clasificados/rentas/landing/RentasLandingShell";
@@ -36,7 +42,7 @@ import {
   RENTAS_QUERY_ZIP,
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
 import { splitLocationIntent } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
-import { RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { RENTAS_PUBLICAR_PRIVADO, RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasLandingHeroPanelClass, rentasSectionHeaderActionClass } from "@/app/clasificados/rentas/rentasLandingTheme";
@@ -123,14 +129,24 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
       : "Ordered by publish time, interleaving private and business listings for a balanced homepage.";
   }, [copy.sections.recientes.description, includeDemoPool, lang]);
 
+  const publishHref = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang);
+
   return (
     <RentasLandingShell>
-      <RentasLandingHero>
-        <div className={rentasLandingHeroPanelClass}>
-          <RentasLandingCategoryHeader copy={copy} lang={lang} />
-        </div>
-
-        <div className="w-full min-w-0 max-w-[min(100%,1280px)]">
+      <CategoryStandardLandingBlock
+        category="rentas"
+        lang={lang}
+        title={categoryStandardTitle("rentas", lang)}
+        description={categoryStandardDescription("rentas", lang)}
+        searchAction={buildCategoryResultsUrl("rentas", lang)}
+        searchPlaceholder={categoryStandardSearchPlaceholder("rentas", lang)}
+        publishHref={publishHref}
+        browseHref={resultsBase}
+        publishLabel={copy.publishPrivado}
+        browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
+        searchChips={<CategoryStandardQuickFilterChips category="rentas" lang={lang} />}
+        searchSlot={
+          <div className="w-full min-w-0">
           {includeDemoPool ? (
             stagedFromDb.length > 0 ? (
               <p className="mb-3 rounded-xl border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-center text-xs font-medium text-amber-950 sm:text-left">
@@ -184,8 +200,9 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
               {copy.searchHelperLink}
             </Link>
           </p>
-        </div>
-      </RentasLandingHero>
+          </div>
+        }
+      />
 
       <RentasLandingQuickChips
         copy={copy.quickExplore}

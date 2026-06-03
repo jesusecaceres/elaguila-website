@@ -3,7 +3,7 @@
  */
 
 /** Job seeker results (filters via query string). */
-export const EMPLEOS_RESULTS_PATH = "/clasificados/empleos/resultados";
+export const EMPLEOS_RESULTS_PATH = "/clasificados/empleos/results";
 
 /** Category-owned publish chooser (quick / premium / feria lanes). */
 export const EMPLEOS_PUBLISH_HUB_PATH = "/clasificados/publicar/empleos";
