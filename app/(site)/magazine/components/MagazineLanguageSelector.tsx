@@ -29,7 +29,7 @@ export function MagazineLanguageSelector({ basePath, className }: MagazineLangua
   };
 
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className ?? ""}`}>
       <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">
         {ui.languageEyebrow}
       </p>
@@ -54,8 +54,8 @@ export function MagazineLanguageSelector({ basePath, className }: MagazineLangua
               aria-pressed={active}
               className={
                 active
-                  ? "inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[#7A1E2C] px-5 py-2 text-sm font-bold text-[#FFFDF7] shadow-[0_8px_20px_-8px_rgba(122,30,44,0.45)]"
-                  : "inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#D6C7AD] bg-[#FFFDF7] px-5 py-2 text-sm font-bold text-[#1F241C] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
+                  ? "inline-flex min-h-[2.75rem] min-w-0 flex-1 items-center justify-center rounded-full bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-[#FFFDF7] shadow-[0_8px_20px_-8px_rgba(122,30,44,0.45)] sm:flex-none sm:px-5"
+                  : "inline-flex min-h-[2.75rem] min-w-0 flex-1 items-center justify-center rounded-full border-2 border-[#D6C7AD] bg-[#FFFDF7] px-4 py-2 text-sm font-bold text-[#1F241C] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:flex-none sm:px-5"
               }
             >
               {ui.langLabels[code]}

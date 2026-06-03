@@ -413,6 +413,20 @@ export default function MagazineHubPage() {
                     downloadLabel={t.downloadPdf}
                     onRead={openFlipbook}
                   />
+                  <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <Link
+                      href={`/magazine/2026/june?lang=${lang}`}
+                      className="inline-flex min-h-[2.5rem] min-w-0 items-center justify-center rounded-full border-2 border-[#2A4536]/40 bg-[#FAF6EE] px-5 py-2 text-xs font-bold text-[#2A4536] transition hover:bg-[#F0EBE0] sm:text-sm"
+                    >
+                      {ui.issuePageTitle}
+                    </Link>
+                    <Link
+                      href={readMoreHref}
+                      className="inline-flex min-h-[2.5rem] min-w-0 items-center justify-center rounded-full border-2 border-[#7A1E2C]/60 bg-[#FFFDF7] px-5 py-2 text-xs font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:text-sm"
+                    >
+                      {ui.openFullReader}
+                    </Link>
+                  </div>
                 </div>
               </div>
             </section>
