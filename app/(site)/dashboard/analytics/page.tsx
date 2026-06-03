@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchOwnerAnalyticsTotals, type OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import { fetchOwnerEngagementDashboard } from "../lib/fetchOwnerEngagementDashboard";
 import { fetchOwnerListingViewLeaders, type ListingViewRow } from "../lib/ownerListingAnalyticsInsights";
 
 type Lang = "es" | "en";
@@ -165,7 +166,14 @@ export default function DashboardAnalyticsPage() {
         /* ignore */
       }
 
-      const agg = await fetchOwnerAnalyticsTotals(sb, u.id);
+      const engagementPayload = await fetchOwnerEngagementDashboard(sb);
+      const agg = engagementPayload?.ok
+        ? {
+            totals: engagementPayload.totals,
+            listingCount: engagementPayload.listingCount,
+            listingAnalyticsUnavailable: engagementPayload.listingAnalyticsUnavailable,
+          }
+        : await fetchOwnerAnalyticsTotals(sb, u.id);
       if (!mounted) return;
       setTotals(agg.totals);
       setListingCount(agg.listingCount);

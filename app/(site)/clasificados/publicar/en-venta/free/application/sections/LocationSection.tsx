@@ -17,7 +17,7 @@ const COPY = {
     desc: "Usa ciudad o ZIP para ubicar tu anuncio. Puedes escribir ciudad, ZIP o ambos. Si agregas ambos, deben coincidir. Esto ayuda a resultados cercanos y distancia aproximada más adelante.",
     city: "Ciudad",
     zip: "ZIP",
-    zipHint: "Puedes agregar un ZIP para mejorar la ubicación. Si lo agregas, debe coincidir con la ciudad.",
+    zipHint: "Opcional. Si agregas un ZIP, debe coincidir con la ciudad.",
     publishLocHint: "Agrega la ciudad o ubicación donde está el artículo.",
   },
   en: {
@@ -25,7 +25,7 @@ const COPY = {
     desc: "Use city or ZIP to place your listing. You can enter city, ZIP, or both. If you enter both, they must match. This helps nearby results and approximate distance later.",
     city: "City",
     zip: "ZIP",
-    zipHint: "You can add a ZIP to improve the location. If provided, it must match the city.",
+    zipHint: "Optional. If you add a ZIP, it must match the city.",
     publishLocHint: "Add the city or location where the item is available.",
   },
 } as const;

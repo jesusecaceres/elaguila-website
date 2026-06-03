@@ -166,20 +166,27 @@ function syncHydrateEnVentaDraftFromMemory(
 }
 
 async function loadFullEnVentaDraftFromIdb(plan: "free" | "pro"): Promise<EnVentaFreeApplicationState | null> {
+  const candidates: EnVentaFreeApplicationState[] = [];
   try {
     const returnRaw = await idbGetEnVentaPreviewReturnDraft(plan);
     if (returnRaw) {
       const data = JSON.parse(returnRaw) as Partial<EnVentaPreviewReturnPayload>;
       if (data.plan === plan && data.state && typeof data.state === "object") {
-        return mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
+        candidates.push(mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>));
       }
     }
     const mainRaw = await idbGetEnVentaPreviewDraft(plan);
-    if (mainRaw) return parseDraftJson(mainRaw);
+    if (mainRaw) {
+      const parsed = parseDraftJson(mainRaw);
+      if (parsed) candidates.push(parsed);
+    }
   } catch {
     /* ignore */
   }
-  return null;
+  if (candidates.length === 0) return null;
+  return candidates.reduce((best, cur) =>
+    mergeEnVentaDraftPreferComplete(best, cur)
+  );
 }
 
 async function hydrateEnVentaDraftFromIdbIfIncomplete(
@@ -439,9 +446,10 @@ export function consumeEnVentaPreviewReturnDraft(plan: "free" | "pro"): EnVentaF
     if (data.plan !== plan || !data.state || typeof data.state !== "object") return null;
     const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
-    previewReturnMemory[plan] = merged;
+    const hydrated = finalizeEnVentaEditReturnState(plan, merged);
+    previewReturnMemory[plan] = hydrated;
     scheduleClearPreviewReturnMemory();
-    return finalizeEnVentaEditReturnState(plan, merged);
+    return hydrated;
   } catch {
     try {
       sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
@@ -577,4 +585,31 @@ export async function persistEnVentaPreviewHandoffAsync(
     /* memory + best-effort sessionStorage may still suffice for same-tab nav */
   }
   return hasEnVentaPreviewDraft(plan);
+}
+
+/** Durable return draft before client navigation preview → edit (awaits IndexedDB). */
+export async function persistEnVentaPreviewReturnDraftAsync(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): Promise<void> {
+  const merged = mergePartialEnVentaState(state);
+  cacheDraftInMemory(plan, merged);
+  if (typeof window === "undefined") return;
+  delete previewReturnMemory[plan];
+  persistReturnDraftToSession(plan, merged);
+  persistMainDraftToSession(plan, merged);
+  const json = JSON.stringify(merged);
+  const returnJson = JSON.stringify({
+    plan,
+    state: merged,
+    savedAt: Date.now(),
+  } satisfies EnVentaPreviewReturnPayload);
+  try {
+    await Promise.all([
+      idbPutEnVentaPreviewDraft(plan, json),
+      idbPutEnVentaPreviewReturnDraft(plan, returnJson),
+    ]);
+  } catch {
+    /* memory + sessionStorage may still suffice for same-tab nav */
+  }
 }

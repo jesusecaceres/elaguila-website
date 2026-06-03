@@ -107,15 +107,27 @@ function main() {
   assert.ok(saveBtn.includes("savedDashboard"), "save: dashboard confirmation copy");
   assert.ok(saveBtn.includes("data-leonix-save-dashboard-hint"), "save: hint marker for QA");
   assert.ok(saveBtn.includes("FaBookmark"), "save: solid bookmark when active");
-  assert.ok(saveBtn.includes('.from("saved_listings")'), "save: reads/writes saved_listings");
+  assert.ok(saveBtn.includes("upsertSavedListingForUser"), "save: runtime upsert helper");
+  assert.ok(saveBtn.includes("readSavedListingForUser"), "save: runtime read helper");
 
   const heroSrc = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosHero.tsx"), "utf8");
   assert.ok(heroSrc.includes("data-servicios-hero-like-cue"), "hero: like social-proof marker");
   assert.ok(heroSrc.includes("♡ Me gusta") && heroSrc.includes("♡ Like"), "hero: zero-state copy ES/EN");
 
   const guardados = readFileSync(join(__dirname, "../app/(site)/dashboard/guardados/page.tsx"), "utf8");
-  assert.ok(guardados.includes("saved_listings"), "guardados: reads saved_listings only");
-  assert.ok(!guardados.includes("user_saved_listings"), "guardados: no legacy user_saved_listings merge");
+  assert.ok(guardados.includes("listSavedListingIdsForUser"), "guardados: reads saved listings via runtime helper");
+
+  const saveRuntime = readFileSync(join(__dirname, "../app/lib/savedListingsRuntime.ts"), "utf8");
+  assert.ok(saveRuntime.includes("saved_listings") && saveRuntime.includes("user_saved_listings"), "save runtime: canonical + legacy fallback");
+
+  const ownerEngagementApi = readFileSync(join(__dirname, "../app/api/dashboard/owner-engagement/route.ts"), "utf8");
+  assert.ok(ownerEngagementApi.includes("fetchOwnerEngagementRollupsServer"), "dashboard API: server engagement rollups");
+
+  const likeCluster = readFileSync(
+    join(__dirname, "../app/(site)/servicios/components/ServiciosLikeEngagementCluster.tsx"),
+    "utf8",
+  );
+  assert.ok(likeCluster.includes("data-servicios-like-cluster"), "profile: connected like + count cluster");
 
   const adminServicios = readFileSync(
     join(__dirname, "../app/admin/(dashboard)/workspace/clasificados/servicios/page.tsx"),
@@ -136,6 +148,17 @@ function main() {
   assert.ok(resultCard.includes("data-servicios-like-badge"), "card: like badge marker");
   assert.ok(resultCard.includes("public_like_net_count"));
   assert.ok(resultCard.includes("♡ Me gusta") && resultCard.includes("♡ Like"), "card: zero-state copy ES/EN");
+
+  const proResultCard = readFileSync(
+    join(__dirname, "../app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx"),
+    "utf8",
+  );
+  assert.ok(proResultCard.includes("data-servicios-like-badge"), "professional card: like badge");
+  assert.ok(proResultCard.includes("public_like_net_count"), "professional card: persisted like count");
+
+  const dashServicios = readFileSync(join(__dirname, "../app/(site)/dashboard/servicios/page.tsx"), "utf8");
+  assert.ok(dashServicios.includes("ServiciosListingMetricsPills"), "dashboard servicios: per-ad metrics pills");
+  assert.ok(dashServicios.includes("fetchOwnerEngagementDashboard"), "dashboard servicios: owner engagement API");
 
   console.log("servicios-engagement-smoke: OK");
 }

@@ -125,6 +125,11 @@ export function ServiciosProfessionalResultCard({
       ? profile.hero.reviewCount
       : undefined;
 
+  const likeBadgeCount =
+    typeof row.public_like_net_count === "number" && row.public_like_net_count > 0
+      ? Math.floor(row.public_like_net_count)
+      : 0;
+
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [listingShareUrl, setListingShareUrl] = useState("");
@@ -256,9 +261,22 @@ export function ServiciosProfessionalResultCard({
               </p>
             ) : null}
 
-            {ratingValue != null ? (
+            {ratingValue != null || likeBadgeCount > 0 ? (
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <StarRow rating={ratingValue} lang={lang} />
+                {ratingValue != null ? <StarRow rating={ratingValue} lang={lang} /> : null}
+                {likeBadgeCount > 0 ? (
+                  <span
+                    className="inline-flex items-center gap-0.5 rounded-full border border-rose-200/80 bg-rose-50/90 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-rose-900"
+                    data-servicios-like-badge="1"
+                  >
+                    <span aria-hidden>❤️</span>
+                    <span>
+                      {lang === "en"
+                        ? `${likeBadgeCount} ${likeBadgeCount === 1 ? "like" : "likes"}`
+                        : `${likeBadgeCount} me gusta`}
+                    </span>
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </div>

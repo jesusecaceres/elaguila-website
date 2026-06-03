@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublishAuthGateLayout } from "@/app/components/auth/PublishAuthGateLayout";
 
 export const metadata: Metadata = {
   title: "Publicar",
@@ -18,5 +19,5 @@ export const metadata: Metadata = {
 };
 
 export default function PublicarLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <PublishAuthGateLayout>{children}</PublishAuthGateLayout>;
 }

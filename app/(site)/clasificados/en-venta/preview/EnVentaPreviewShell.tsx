@@ -8,7 +8,7 @@ import {
   buildEnVentaEditResumeHref,
   enVentaDraftHasAllPublishCheckboxes,
   hydrateEnVentaDraftMediaIfMissing,
-  saveEnVentaPreviewReturnDraft,
+  persistEnVentaPreviewReturnDraftAsync,
 } from "./enVentaPreviewDraft";
 import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
 
@@ -68,7 +68,7 @@ export function EnVentaPreviewShell({
     markPublishFlowReturningToEdit();
     if (returnDraft) {
       const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, returnDraft);
-      saveEnVentaPreviewReturnDraft(plan, hydrated);
+      await persistEnVentaPreviewReturnDraftAsync(plan, hydrated);
     }
     router.push(href);
   }

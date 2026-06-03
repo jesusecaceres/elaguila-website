@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { resolveSavedListingsForDashboard } from "@/app/lib/savedListingsDashboardResolve";
+import { listSavedListingIdsForUser } from "@/app/lib/savedListingsRuntime";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
@@ -104,19 +105,7 @@ export default function GuardadosPage() {
       /* ignore */
     }
 
-    type SavedRow = { listing_id: string; created_at?: string | null };
-
-    const { data: savedRows, error: savedErr } = await supabase
-      .from("saved_listings")
-      .select("listing_id, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (savedErr) {
-      console.warn("[guardados] saved_listings read failed:", savedErr.message ?? savedErr);
-    }
-    const ids = (!savedErr ? ((savedRows ?? []) as SavedRow[]) : [])
-      .map((r) => String(r.listing_id ?? "").trim())
-      .filter(Boolean);
+    const ids = await listSavedListingIdsForUser(supabase, user.id);
     if (ids.length === 0) {
       setSaved([]);
       setLoading(false);

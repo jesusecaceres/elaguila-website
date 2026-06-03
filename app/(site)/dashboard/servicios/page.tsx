@@ -7,6 +7,10 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchOwnerAnalyticsTotals, type OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import {
+  fetchOwnerEngagementDashboard,
+  type ServiciosListingEngagementMetricsClient,
+} from "../lib/fetchOwnerEngagementDashboard";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -18,7 +22,41 @@ type MergedRow = {
   publishedAt: string;
   source: "browser" | "dev_server" | "cloud";
   listingStatus?: string | null;
+  metrics?: ServiciosListingEngagementMetricsClient;
 };
+
+function ServiciosListingMetricsPills({
+  metrics,
+  lang,
+}: {
+  metrics: ServiciosListingEngagementMetricsClient;
+  lang: Lang;
+}) {
+  const labels =
+    lang === "es"
+      ? { views: "Vistas", likes: "Me gusta", saves: "Guardados", shares: "Compartidos", ctas: "Clics CTA" }
+      : { views: "Views", likes: "Likes", saves: "Saves", shares: "Shares", ctas: "CTA clicks" };
+  const items = [
+    { k: labels.views, v: metrics.views },
+    { k: labels.likes, v: metrics.likes },
+    { k: labels.saves, v: metrics.saves },
+    { k: labels.shares, v: metrics.shares },
+    { k: labels.ctas, v: metrics.ctaClicks },
+  ];
+  return (
+    <dl className="mt-2 flex flex-wrap gap-1.5" data-servicios-dashboard-listing-metrics="1">
+      {items.map((item) => (
+        <div
+          key={item.k}
+          className="inline-flex items-center gap-1 rounded-full border border-[#E8DFD0]/90 bg-[#FAF7F2]/95 px-2 py-0.5 text-[10px] font-semibold text-[#5C5346]"
+        >
+          <dt className="text-[#7A7164]">{item.k}</dt>
+          <dd className="tabular-nums text-[#1E1810]">{item.v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
@@ -64,6 +102,7 @@ export default function DashboardServiciosPage() {
             resume: "Reactivar",
             colLinks: "Enlaces",
             colManage: "Visibilidad",
+            colMetrics: "Analítica",
             devHint:
               "Las filas «Leonix» vienen de tu publicación autenticada. «Archivo dev» solo aparece en desarrollo con publicación dev activa.",
             engagementTitle: "Resumen de interacción (Servicios)",
@@ -97,6 +136,7 @@ export default function DashboardServiciosPage() {
             resume: "Resume listing",
             colLinks: "Links",
             colManage: "Visibility",
+            colMetrics: "Analytics",
             devHint: "“Leonix” rows come from authenticated publish. “Dev file” only appears in development when dev publish is on.",
             engagementTitle: "Engagement summary (Servicios)",
             engagementViews: "Profile views",
@@ -149,11 +189,21 @@ export default function DashboardServiciosPage() {
         /* ignore */
       }
 
+      let serviciosMetricsBySlug: Record<string, ServiciosListingEngagementMetricsClient> = {};
       try {
-        const agg = await fetchOwnerAnalyticsTotals(sb, u.id);
-        if (mounted) {
-          setEngagementTotals(agg.totals);
-          setEngagementUnavailable(agg.listingAnalyticsUnavailable);
+        const engagementPayload = await fetchOwnerEngagementDashboard(sb);
+        if (engagementPayload?.ok) {
+          serviciosMetricsBySlug = engagementPayload.serviciosBySlug ?? {};
+          if (mounted) {
+            setEngagementTotals(engagementPayload.totals);
+            setEngagementUnavailable(engagementPayload.listingAnalyticsUnavailable);
+          }
+        } else {
+          const agg = await fetchOwnerAnalyticsTotals(sb, u.id);
+          if (mounted) {
+            setEngagementTotals(agg.totals);
+            setEngagementUnavailable(agg.listingAnalyticsUnavailable);
+          }
         }
       } catch {
         if (mounted) setEngagementUnavailable(true);
@@ -188,6 +238,7 @@ export default function DashboardServiciosPage() {
                 publishedAt: r.published_at,
                 source: "cloud",
                 listingStatus: r.listing_status ?? null,
+                metrics: serviciosMetricsBySlug[r.slug],
               });
             }
           }
@@ -374,6 +425,7 @@ export default function DashboardServiciosPage() {
                     <p className="mt-1 text-xs text-[#5C5346]">
                       {t.source}: {sourceLabel(r)}
                     </p>
+                    {r.metrics ? <ServiciosListingMetricsPills metrics={r.metrics} lang={lang} /> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link href={`/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`} className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
                         {t.view}
@@ -416,6 +468,7 @@ export default function DashboardServiciosPage() {
                     <th className="p-3">{t.city}</th>
                     <th className="p-3">{t.status}</th>
                     <th className="p-3">{t.source}</th>
+                    <th className="p-3">{t.colMetrics}</th>
                     <th className="p-3">{t.colLinks}</th>
                     <th className="p-3">{t.colManage}</th>
                   </tr>
@@ -428,6 +481,9 @@ export default function DashboardServiciosPage() {
                       <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{r.listingStatus ?? "—"}</td>
                       <td className="p-3 text-xs text-[#5C5346]">{sourceLabel(r)}</td>
+                      <td className="p-3 text-xs text-[#5C5346]">
+                        {r.metrics ? <ServiciosListingMetricsPills metrics={r.metrics} lang={lang} /> : "—"}
+                      </td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
                           <Link

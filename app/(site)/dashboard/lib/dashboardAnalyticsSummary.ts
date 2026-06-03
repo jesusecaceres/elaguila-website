@@ -57,8 +57,36 @@ export async function fetchOwnerAnalyticsTotals(
 
   const { data: events, error: e2 } = await sb
     .from("listing_analytics")
-    .select("listing_id, event_type, user_id, created_at")
+    .select("id, listing_id, event_type, user_id, created_at")
     .in("listing_id", ids);
+
+  let mergedEvents = (events ?? []) as Array<{
+    id?: string;
+    listing_id?: string | null;
+    event_type?: string;
+    user_id?: string | null;
+    created_at?: string;
+  }>;
+
+  if (!e2) {
+    const { data: ownerScoped } = await sb
+      .from("listing_analytics")
+      .select("id, listing_id, event_type, user_id, created_at")
+      .eq("owner_user_id", ownerId)
+      .limit(4000);
+    if (ownerScoped?.length) {
+      const seen = new Set<string>();
+      const combined = [...mergedEvents, ...(ownerScoped as typeof mergedEvents)];
+      mergedEvents = combined.filter((row) => {
+        const key =
+          row.id?.trim() ||
+          `${row.listing_id ?? ""}|${row.event_type ?? ""}|${row.created_at ?? ""}|${row.user_id ?? ""}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+  }
 
   if (e2) {
     const technical = e2.message ?? String(e2);
@@ -85,7 +113,7 @@ export async function fetchOwnerAnalyticsTotals(
   let applications = 0;
   let lastEngagement: string | undefined;
 
-  for (const row of events ?? []) {
+  for (const row of mergedEvents) {
     const t = (row as { event_type?: string; user_id?: string | null; created_at?: string }).event_type;
     const uid = (row as { user_id?: string | null; created_at?: string }).user_id;
     const createdAt = (row as { created_at?: string }).created_at;

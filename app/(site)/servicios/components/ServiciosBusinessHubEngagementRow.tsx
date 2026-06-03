@@ -1,8 +1,8 @@
 "use client";
 
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 const utilityCellClass =
   "flex min-h-[44px] min-w-0 items-stretch justify-center [&_button]:!w-full [&_button]:!max-w-none";
@@ -81,14 +81,15 @@ export function ServiciosBusinessHubEngagementRow({
             <div className="min-h-[44px] min-w-0" aria-hidden />
           )}
           <div className={utilityCellClass}>
-            <LeonixLikeButton
+            <ServiciosLikeEngagementCluster
               listingId={lxListingId}
               ownerUserId={lxOwner}
-              variant="default"
               lang={lang}
-              category="servicios"
+              publicLikeCount={likeCueN}
               persistEngagement
-              className="!shadow-sm"
+              variant="default"
+              tone="hub"
+              className="w-full [&_button]:!w-full"
             />
           </div>
         </div>
@@ -107,23 +108,6 @@ export function ServiciosBusinessHubEngagementRow({
             directNativeShare
           />
         </div>
-      ) : null}
-      {showSaveLike && likeCueN > 0 ? (
-        <p
-          className="mt-2 text-center text-[11px] font-semibold leading-snug text-[color:var(--lx-text-2)]"
-          data-servicios-hub-like-cue="1"
-        >
-          {lang === "en" ? (
-            <>
-              <span aria-hidden>❤️</span> <span className="tabular-nums">{likeCueN}</span>{" "}
-              {likeCueN === 1 ? "like" : "likes"}
-            </>
-          ) : (
-            <>
-              <span aria-hidden>❤️</span> <span className="tabular-nums">{likeCueN}</span> me gusta
-            </>
-          )}
-        </p>
       ) : null}
     </section>
   );

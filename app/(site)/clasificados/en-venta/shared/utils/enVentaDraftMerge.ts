@@ -39,6 +39,10 @@ export const EN_VENTA_DRAFT_TEXT_FIELD_KEYS = [
   "itemExtraDetails",
 ] as const satisfies ReadonlyArray<keyof EnVentaFreeApplicationState>;
 
+export function enVentaDraftPhotoCount(state: EnVentaFreeApplicationState): number {
+  return getOrderedEnVentaImageUrls(state).length;
+}
+
 export function enVentaDraftHasTextProgress(state: EnVentaFreeApplicationState): boolean {
   return Boolean(
     state.title.trim() ||
@@ -63,13 +67,22 @@ export function enVentaDraftHasTextProgress(state: EnVentaFreeApplicationState):
   );
 }
 
-export function enVentaDraftHasMediaProgress(state: EnVentaFreeApplicationState): boolean {
-  if (getOrderedEnVentaImageUrls(state).length > 0) return true;
+function slotHasVideoProgress(slot: EnVentaFreeApplicationState["listingVideoSlots"][number]): boolean {
+  return (
+    slot.status !== "idle" ||
+    Boolean(slot.assetId.trim()) ||
+    Boolean(slot.playbackUrl.trim()) ||
+    Boolean(slot.playbackId.trim())
+  );
+}
+
+export function enVentaDraftHasVideoProgress(state: EnVentaFreeApplicationState): boolean {
   if (state.listingVideoUrl.trim()) return true;
-  for (const sl of state.listingVideoSlots) {
-    if (sl.status !== "idle" || sl.assetId.trim() || sl.playbackUrl.trim()) return true;
-  }
-  return false;
+  return state.listingVideoSlots.some(slotHasVideoProgress);
+}
+
+export function enVentaDraftHasMediaProgress(state: EnVentaFreeApplicationState): boolean {
+  return enVentaDraftPhotoCount(state) > 0 || enVentaDraftHasVideoProgress(state);
 }
 
 export function pickEnVentaDraftMediaFields(
@@ -97,7 +110,8 @@ export function buildEnVentaSlimSessionDraft(
 }
 
 /**
- * Merge two draft snapshots — prefer populated text from `preferred`, media from whichever has photos/video.
+ * Merge two draft snapshots — text from the richer text source; photos/video independently
+ * so a slim session payload with video does not suppress photo recovery from IDB/memory.
  */
 export function mergeEnVentaDraftPreferComplete(
   base: EnVentaFreeApplicationState,
@@ -107,13 +121,27 @@ export function mergeEnVentaDraftPreferComplete(
   const overlayHasText = enVentaDraftHasTextProgress(overlay);
   const textSource = overlayHasText && !baseHasText ? overlay : baseHasText ? base : overlay;
 
-  const baseHasMedia = enVentaDraftHasMediaProgress(base);
-  const overlayHasMedia = enVentaDraftHasMediaProgress(overlay);
-  const mediaSource = overlayHasMedia && !baseHasMedia ? overlay : baseHasMedia ? base : overlay;
+  const basePhotos = enVentaDraftPhotoCount(base);
+  const overlayPhotos = enVentaDraftPhotoCount(overlay);
+  const photoSource =
+    overlayPhotos > basePhotos
+      ? overlay
+      : basePhotos > overlayPhotos
+        ? base
+        : basePhotos > 0
+          ? base
+          : overlay;
+
+  const baseHasVideo = enVentaDraftHasVideoProgress(base);
+  const overlayHasVideo = enVentaDraftHasVideoProgress(overlay);
+  const videoSource =
+    overlayHasVideo && !baseHasVideo ? overlay : baseHasVideo && !overlayHasVideo ? base : overlay;
 
   return {
     ...textSource,
-    ...pickEnVentaDraftMediaFields(mediaSource),
-    primaryImageIndex: mediaSource.primaryImageIndex,
+    images: photoSource.images,
+    primaryImageIndex: photoSource.primaryImageIndex,
+    listingVideoUrl: videoSource.listingVideoUrl,
+    listingVideoSlots: videoSource.listingVideoSlots,
   };
 }

@@ -6,6 +6,11 @@ import { FiBookmark, FiHeart } from "react-icons/fi";
 import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
 import { formatEngagementWriteErrorForDev, logEngagementWriteFailure } from "@/app/lib/leonixEngagementClientDiagnostics";
+import {
+  deleteSavedListingForUser,
+  readSavedListingForUser,
+  upsertSavedListingForUser,
+} from "@/app/lib/savedListingsRuntime";
 
 type Props = {
   listingId: string | null | undefined;
@@ -109,13 +114,8 @@ export function LeonixSaveButton({
         return;
       }
       if (user) {
-        const { data } = await sb
-          .from("saved_listings")
-          .select("listing_id")
-          .eq("user_id", user.id)
-          .eq("listing_id", effectiveId)
-          .maybeSingle();
-        if (!cancelled && !userToggledRef.current) setIsSaved(!!data);
+        const { saved } = await readSavedListingForUser(sb, user.id, effectiveId);
+        if (!cancelled && !userToggledRef.current) setIsSaved(saved);
       } else if (!cancelled && !userToggledRef.current) {
         setIsSaved(false);
       }
@@ -135,13 +135,8 @@ export function LeonixSaveButton({
         const user = await getBrowserAuthUserForEngagement();
         if (userToggledRef.current) return;
         if (user) {
-          const { data: row } = await sb
-            .from("saved_listings")
-            .select("listing_id")
-            .eq("user_id", user.id)
-            .eq("listing_id", effectiveId)
-            .maybeSingle();
-          if (!userToggledRef.current) setIsSaved(!!row);
+          const { saved } = await readSavedListingForUser(sb, user.id, effectiveId);
+          if (!userToggledRef.current) setIsSaved(saved);
         } else if (!userToggledRef.current) {
           setIsSaved(false);
         }
@@ -177,14 +172,12 @@ export function LeonixSaveButton({
 
     try {
       if (nextState) {
-        const { error } = await sb
-          .from("saved_listings")
-          .upsert({ user_id: user.id, listing_id: effectiveId }, { onConflict: "user_id,listing_id" });
+        const { error, table } = await upsertSavedListingForUser(sb, user.id, effectiveId);
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
           logEngagementWriteFailure({
-            table: "saved_listings",
+            table,
             op: "upsert",
             listingKeyLen: effectiveId.length,
             hasUser: true,
@@ -196,12 +189,12 @@ export function LeonixSaveButton({
         setPostSaveDashboardHint(true);
         hintClearRef.current = setTimeout(() => setPostSaveDashboardHint(false), 8000);
       } else {
-        const { error } = await sb.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", effectiveId);
+        const { error, table } = await deleteSavedListingForUser(sb, user.id, effectiveId);
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
           logEngagementWriteFailure({
-            table: "saved_listings",
+            table,
             op: "delete",
             listingKeyLen: effectiveId.length,
             hasUser: true,

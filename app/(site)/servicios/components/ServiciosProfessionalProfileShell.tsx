@@ -50,9 +50,9 @@ import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 
 const SECTION_SCROLL =
   "scroll-mt-[4.5rem] scroll-mb-24 sm:scroll-mt-20 lg:scroll-mb-0";
@@ -215,13 +215,14 @@ export function ServiciosProfessionalProfileShell({
             engagementSlot={
               persistListingEngagement ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  <LeonixLikeButton
+                  <ServiciosLikeEngagementCluster
                     listingId={lxListingId}
                     ownerUserId={lxOwner}
-                    variant="small"
                     lang={lang}
-                    category="servicios"
+                    publicLikeCount={likeCueN}
                     persistEngagement
+                    variant="small"
+                    tone="hero"
                   />
                   <LeonixSaveButton
                     listingId={lxListingId}
@@ -241,11 +242,6 @@ export function ServiciosProfessionalProfileShell({
                     category="servicios"
                     persistEngagement
                   />
-                  {likeCueN > 0 ? (
-                    <span className="text-[11px] font-semibold text-white/90">
-                      {lang === "en" ? `${likeCueN} likes` : `${likeCueN} me gusta`}
-                    </span>
-                  ) : null}
                 </div>
               ) : undefined
             }
