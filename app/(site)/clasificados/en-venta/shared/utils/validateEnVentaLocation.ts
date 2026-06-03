@@ -98,8 +98,8 @@ export function validateEnVentaLocation(cityRaw: string, zipRaw: string): EnVent
     return {
       ok: false,
       code: "mismatch",
-      messageEs: "Ese ZIP no coincide con la ciudad seleccionada. Revisa uno de los dos.",
-      messageEn: "That ZIP doesn’t match the selected city. Fix one of them.",
+      messageEs: "La ciudad y el ZIP no coinciden. Revisa la ubicación antes de publicar.",
+      messageEn: "City and ZIP do not match. Review the location before publishing.",
     };
   }
 

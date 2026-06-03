@@ -10,7 +10,12 @@ import {
   idbPutEnVentaPreviewReturnDraft,
 } from "./enVentaPreviewDraftIdb";
 import { normalizeEnVentaFreeApplicationState } from "../shared/utils/normalizeEnVentaApplicationState";
-import { getOrderedEnVentaImageUrls } from "../preview/buildEnVentaPreviewModel";
+import {
+  buildEnVentaSlimSessionDraft,
+  enVentaDraftHasMediaProgress,
+  enVentaDraftHasTextProgress,
+  mergeEnVentaDraftPreferComplete,
+} from "../shared/utils/enVentaDraftMerge";
 
 export const EN_VENTA_PREVIEW_DRAFT_KEY_FREE = "en-venta-preview-draft-free";
 export const EN_VENTA_PREVIEW_DRAFT_KEY_PRO = "en-venta-preview-draft-pro";
@@ -67,16 +72,12 @@ function draftMetaMatchesCurrentTab(meta: EnVentaPreviewDraftMeta | null): boole
 async function loadEnVentaPublishDraftForRestore(plan: "free" | "pro"): Promise<EnVentaFreeApplicationState | null> {
   const fromSession = loadEnVentaPreviewDraft(plan);
   if (fromSession) {
-    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, fromSession);
-    const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, hydrated);
-    return restored ?? hydrated;
+    return restoreEnVentaFormFromIdbIfEmpty(plan, fromSession);
   }
 
   const fromAsync = await loadEnVentaPreviewDraftAsync(plan);
   if (fromAsync) {
-    const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, fromAsync);
-    const restored = await restoreEnVentaFormFromIdbIfEmpty(plan, hydrated);
-    return restored ?? hydrated;
+    return restoreEnVentaFormFromIdbIfEmpty(plan, fromAsync);
   }
 
   const meta = loadEnVentaPreviewDraftMeta();
@@ -145,68 +146,113 @@ function parseDraftJson(raw: string): EnVentaFreeApplicationState | null {
   }
 }
 
-function pickDraftMediaFields(source: EnVentaFreeApplicationState): Partial<EnVentaFreeApplicationState> {
-  return {
-    images: source.images,
-    primaryImageIndex: source.primaryImageIndex,
-    listingVideoUrl: source.listingVideoUrl,
-    listingVideoSlots: source.listingVideoSlots,
-  };
+function draftSourcesFromMemory(plan: "free" | "pro"): EnVentaFreeApplicationState[] {
+  const out: EnVentaFreeApplicationState[] = [];
+  if (previewDraftMemory[plan]) out.push(previewDraftMemory[plan]!);
+  if (previewReturnMemory[plan]) out.push(previewReturnMemory[plan]!);
+  return out;
 }
 
-/** Same-tab memory recovery before async IndexedDB (sessionStorage quota drops photos). */
-function syncHydrateEnVentaDraftMediaFromMemory(
+/** Same-tab memory recovery — merge missing text OR media (never bail when only photos exist). */
+function syncHydrateEnVentaDraftFromMemory(
   plan: "free" | "pro",
   state: EnVentaFreeApplicationState
 ): EnVentaFreeApplicationState {
-  if (getOrderedEnVentaImageUrls(state).length > 0) return state;
-  const fromMemory = previewDraftMemory[plan];
-  if (fromMemory && getOrderedEnVentaImageUrls(fromMemory).length > 0) {
-    return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(fromMemory) });
+  let next = state;
+  for (const source of draftSourcesFromMemory(plan)) {
+    next = mergeEnVentaDraftPreferComplete(next, source);
   }
-  const fromReturn = previewReturnMemory[plan];
-  if (fromReturn && getOrderedEnVentaImageUrls(fromReturn).length > 0) {
-    return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(fromReturn) });
-  }
-  return state;
+  return next;
 }
 
-/**
- * When sessionStorage quota drops photo payloads, recover images from in-tab memory or IndexedDB.
- */
-export async function hydrateEnVentaDraftMediaIfMissing(
-  plan: "free" | "pro",
-  state: EnVentaFreeApplicationState
-): Promise<EnVentaFreeApplicationState> {
-  if (getOrderedEnVentaImageUrls(state).length > 0) return state;
-
-  const fromMemory = previewDraftMemory[plan];
-  if (fromMemory && getOrderedEnVentaImageUrls(fromMemory).length > 0) {
-    return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(fromMemory) });
-  }
-
+async function loadFullEnVentaDraftFromIdb(plan: "free" | "pro"): Promise<EnVentaFreeApplicationState | null> {
   try {
     const returnRaw = await idbGetEnVentaPreviewReturnDraft(plan);
     if (returnRaw) {
       const data = JSON.parse(returnRaw) as Partial<EnVentaPreviewReturnPayload>;
       if (data.plan === plan && data.state && typeof data.state === "object") {
-        const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
-        if (getOrderedEnVentaImageUrls(merged).length > 0) {
-          return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(merged) });
-        }
+        return mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
       }
     }
     const mainRaw = await idbGetEnVentaPreviewDraft(plan);
-    if (mainRaw) {
-      const merged = parseDraftJson(mainRaw);
-      if (merged && getOrderedEnVentaImageUrls(merged).length > 0) {
-        return mergePartialEnVentaState({ ...state, ...pickDraftMediaFields(merged) });
-      }
-    }
+    if (mainRaw) return parseDraftJson(mainRaw);
   } catch {
     /* ignore */
   }
-  return state;
+  return null;
+}
+
+async function hydrateEnVentaDraftFromIdbIfIncomplete(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): Promise<EnVentaFreeApplicationState> {
+  const full = await loadFullEnVentaDraftFromIdb(plan);
+  if (!full) return state;
+  return mergeEnVentaDraftPreferComplete(state, full);
+}
+
+/**
+ * Recover missing text and/or media from in-tab memory and IndexedDB (sessionStorage quota safe).
+ */
+export async function hydrateEnVentaDraftMediaIfMissing(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState
+): Promise<EnVentaFreeApplicationState> {
+  let next = syncHydrateEnVentaDraftFromMemory(plan, state);
+  next = await hydrateEnVentaDraftFromIdbIfIncomplete(plan, next);
+  return syncHydrateEnVentaDraftFromMemory(plan, next);
+}
+
+function writeDraftMetaToSession(plan: "free" | "pro"): void {
+  sessionStorage.setItem(
+    EN_VENTA_PREVIEW_DRAFT_META_KEY,
+    JSON.stringify({
+      plan,
+      updatedAt: Date.now(),
+      tabSessionId: getOrCreateEnVentaPublishTabSessionId(),
+    } satisfies EnVentaPreviewDraftMeta)
+  );
+}
+
+function tryWriteSessionItem(key: string, value: string): boolean {
+  try {
+    sessionStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Full draft first; slim text-only payload when quota blocks base64 photos. */
+function persistMainDraftToSession(plan: "free" | "pro", merged: EnVentaFreeApplicationState): void {
+  if (typeof window === "undefined") return;
+  const fullJson = JSON.stringify(merged);
+  if (tryWriteSessionItem(keyForPlan(plan), fullJson)) {
+    writeDraftMetaToSession(plan);
+    return;
+  }
+  const slimJson = JSON.stringify(buildEnVentaSlimSessionDraft(merged));
+  if (tryWriteSessionItem(keyForPlan(plan), slimJson)) {
+    writeDraftMetaToSession(plan);
+  }
+}
+
+function persistReturnDraftToSession(plan: "free" | "pro", merged: EnVentaFreeApplicationState): void {
+  if (typeof window === "undefined") return;
+  const payload: EnVentaPreviewReturnPayload = { plan, state: merged, savedAt: Date.now() };
+  const fullJson = JSON.stringify(payload);
+  if (tryWriteSessionItem(EN_VENTA_PREVIEW_RETURN_DRAFT, fullJson)) {
+    writeDraftMetaToSession(plan);
+    return;
+  }
+  const slimPayload: EnVentaPreviewReturnPayload = {
+    plan,
+    state: buildEnVentaSlimSessionDraft(merged),
+    savedAt: Date.now(),
+  };
+  if (tryWriteSessionItem(EN_VENTA_PREVIEW_RETURN_DRAFT, JSON.stringify(slimPayload))) {
+    writeDraftMetaToSession(plan);
+  }
 }
 
 function cacheDraftInMemory(plan: "free" | "pro", merged: EnVentaFreeApplicationState): void {
@@ -253,19 +299,7 @@ export function saveEnVentaPreviewDraft(
   cacheDraftInMemory(plan, merged);
   if (typeof window === "undefined") return true;
   const json = JSON.stringify(merged);
-  try {
-    sessionStorage.setItem(keyForPlan(plan), json);
-    sessionStorage.setItem(
-      EN_VENTA_PREVIEW_DRAFT_META_KEY,
-      JSON.stringify({
-        plan,
-        updatedAt: Date.now(),
-        tabSessionId: getOrCreateEnVentaPublishTabSessionId(),
-      } satisfies EnVentaPreviewDraftMeta)
-    );
-  } catch {
-    /* Quota — IndexedDB fallback below */
-  }
+  persistMainDraftToSession(plan, merged);
   void idbPutEnVentaPreviewDraft(plan, json);
   return true;
 }
@@ -279,20 +313,8 @@ export function saveEnVentaPreviewReturnDraft(plan: "free" | "pro", state: EnVen
   const json = JSON.stringify(merged);
   const payload: EnVentaPreviewReturnPayload = { plan, state: merged, savedAt: Date.now() };
   const returnJson = JSON.stringify(payload);
-  try {
-    sessionStorage.setItem(EN_VENTA_PREVIEW_RETURN_DRAFT, returnJson);
-    sessionStorage.setItem(keyForPlan(plan), json);
-    sessionStorage.setItem(
-      EN_VENTA_PREVIEW_DRAFT_META_KEY,
-      JSON.stringify({
-        plan,
-        updatedAt: Date.now(),
-        tabSessionId: getOrCreateEnVentaPublishTabSessionId(),
-      } satisfies EnVentaPreviewDraftMeta)
-    );
-  } catch {
-    /* Quota — IndexedDB fallback below */
-  }
+  persistReturnDraftToSession(plan, merged);
+  persistMainDraftToSession(plan, merged);
   void idbPutEnVentaPreviewReturnDraft(plan, returnJson);
   void idbPutEnVentaPreviewDraft(plan, json);
 }
@@ -305,7 +327,7 @@ export function loadEnVentaPreviewDraft(plan: "free" | "pro"): EnVentaFreeApplic
     if (!raw) return null;
     const merged = parseDraftJson(raw);
     if (!merged) return null;
-    const hydrated = syncHydrateEnVentaDraftMediaFromMemory(plan, merged);
+    const hydrated = syncHydrateEnVentaDraftFromMemory(plan, merged);
     cacheDraftInMemory(plan, hydrated);
     return hydrated;
   } catch {
@@ -373,37 +395,17 @@ export async function restoreEnVentaFormFromIdbIfEmpty(
   plan: "free" | "pro",
   current: EnVentaFreeApplicationState
 ): Promise<EnVentaFreeApplicationState | null> {
-  const hydrated = await hydrateEnVentaDraftMediaIfMissing(plan, current);
-  if (getOrderedEnVentaImageUrls(hydrated).length > getOrderedEnVentaImageUrls(current).length) {
-    cacheDraftInMemory(plan, hydrated);
-    return hydrated;
+  let next = await hydrateEnVentaDraftMediaIfMissing(plan, current);
+  if (!enVentaDraftHasTextProgress(next) && !enVentaDraftHasMediaProgress(next)) {
+    const full = await loadFullEnVentaDraftFromIdb(plan);
+    if (!full) return null;
+    next = mergeEnVentaDraftPreferComplete(createEmptyEnVentaFreeState(), full);
   }
-
-  const hasProgress = Boolean(
-    current.title.trim() ||
-      current.rama.trim() ||
-      current.images.length > 0 ||
-      current.description.trim()
-  );
-  if (hasProgress) return null;
-
-  try {
-    const returnRaw = await idbGetEnVentaPreviewReturnDraft(plan);
-    if (returnRaw) {
-      const data = JSON.parse(returnRaw) as Partial<EnVentaPreviewReturnPayload>;
-      if (data.plan === plan && data.state && typeof data.state === "object") {
-        const merged = mergePartialEnVentaState(data.state as Partial<EnVentaFreeApplicationState>);
-        cacheDraftInMemory(plan, merged);
-        previewReturnMemory[plan] = merged;
-        scheduleClearPreviewReturnMemory();
-        return merged;
-      }
-    }
-    const main = await loadEnVentaPreviewDraftAsync(plan);
-    return main;
-  } catch {
-    return null;
+  if (enVentaDraftHasTextProgress(next) || enVentaDraftHasMediaProgress(next)) {
+    cacheDraftInMemory(plan, next);
+    return next;
   }
+  return null;
 }
 
 /**
@@ -414,7 +416,7 @@ function finalizeEnVentaEditReturnState(
   plan: "free" | "pro",
   state: EnVentaFreeApplicationState
 ): EnVentaFreeApplicationState {
-  const hydrated = syncHydrateEnVentaDraftMediaFromMemory(plan, state);
+  const hydrated = syncHydrateEnVentaDraftFromMemory(plan, state);
   cacheDraftInMemory(plan, hydrated);
   return hydrated;
 }
