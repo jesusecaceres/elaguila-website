@@ -798,6 +798,7 @@ export function EnVentaAnuncioLayout({
                           listing.id,
                           (listing as { leonix_ad_id?: string | null }).leonix_ad_id
                         )}
+                        saveListingId={listing.id}
                         listingUrl={publicListingUrl}
                         listingTitle={listing.title[lang]}
                         ownerUserId={ownerId}
@@ -805,10 +806,6 @@ export function EnVentaAnuncioLayout({
                       />
                     }
                   />
-                  <p className="mt-4 rounded-lg border border-[#C9A84A]/40 bg-[#FBF7EF]/90 px-3 py-2 font-mono text-[11px] text-[#3D3428]">
-                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">{buyerFacingIdLabel}</span>
-                    <span className="ml-2 select-all">{buyerFacingIdValue}</span>
-                  </p>
                 </>
               ) : (
                 <>
@@ -1185,6 +1182,10 @@ export function EnVentaAnuncioLayout({
                     model={evContentStack}
                     descriptionAnchorId="leonix-listing-description"
                   />
+                  <p className="mt-4 rounded-lg border border-[#C9A84A]/40 bg-[#FBF7EF]/90 px-3 py-2 font-mono text-[11px] text-[#3D3428]">
+                    <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">{buyerFacingIdLabel}</span>
+                    <span className="ml-2 select-all">{buyerFacingIdValue}</span>
+                  </p>
                 </div>
               ) : null}
               <div className="lg:col-span-12">

@@ -35,7 +35,10 @@ const reportBtnClass = `inline-flex min-h-[40px] items-center rounded-lg border 
 type Props = {
   lang: "es" | "en";
   mode: "live" | "preview";
+  /** Like/share/analytics key (may be Leonix ad id when available). */
   listingId?: string | null;
+  /** UUID for `saved_listings.listing_id` — must not be the human Leonix id. */
+  saveListingId?: string | null;
   listingUrl?: string;
   listingTitle?: string;
   ownerUserId?: string | null;
@@ -53,6 +56,7 @@ export function EnVentaEngagementRow({
   lang,
   mode,
   listingId,
+  saveListingId,
   listingUrl,
   listingTitle,
   ownerUserId,
@@ -60,7 +64,9 @@ export function EnVentaEngagementRow({
   showLike = true,
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
+  const saveKey = (saveListingId ?? listingId ?? "").trim();
   const persist = mode === "live" && Boolean(effectiveId);
+  const persistSave = mode === "live" && Boolean(saveKey);
 
   if (mode === "preview") {
     return (
@@ -101,12 +107,12 @@ export function EnVentaEngagementRow({
         />
       ) : null}
       <LeonixSaveButton
-        listingId={effectiveId}
+        listingId={saveKey}
         ownerUserId={ownerUserId}
         variant="small"
         lang={lang}
         category="en-venta"
-        persistEngagement={persist}
+        persistEngagement={persistSave}
         iconStyle="heart"
         className={leonixSaveShell}
       />

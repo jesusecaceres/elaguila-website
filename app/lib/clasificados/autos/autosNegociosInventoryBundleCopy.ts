@@ -6,8 +6,72 @@ export function autosAddInventoryDrawerTitle(lang: AutosClassifiedsLang): string
 
 export function autosAddInventoryDrawerHelper(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? "Este vehículo se guardará como parte de esta solicitud. No se publicará todavía. Aparecerá en la vista previa del inventario y se publicará junto con el anuncio principal cuando completes la solicitud."
-    : "This vehicle will be saved as part of this application. It will not publish yet. It will appear in the inventory preview and publish with the main listing when you complete the application.";
+    ? "Este vehículo se guardará como parte de esta solicitud. No se publicará todavía. Usará la información del negocio ya capturada y aparecerá en la vista previa del inventario."
+    : "This vehicle will be saved as part of this application. It will not publish yet. It will use the business information already captured and appear in the inventory preview.";
+}
+
+export function autosInventoryInheritedBusinessNotice(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "La información del negocio, contacto, ubicación, redes, reseñas, horarios y financiamiento se tomará de la solicitud principal."
+    : "Business, contact, location, social, review, hours, and financing information will be inherited from the main application.";
+}
+
+export function autosInventoryDrawerSectionMain(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Información principal del vehículo" : "Vehicle main information";
+}
+
+export function autosInventoryDrawerSectionSpecs(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Especificaciones" : "Specifications";
+}
+
+export function autosInventoryDrawerSectionHighlights(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Destacados y equipamiento" : "Highlights and equipment";
+}
+
+export function autosInventoryDrawerSectionMedia(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Fotos y medios" : "Photos and media";
+}
+
+export function autosInventoryDrawerSectionDescription(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Descripción" : "Description";
+}
+
+export function autosInventoryDrawerSectionReview(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Resumen antes de guardar" : "Review before saving";
+}
+
+export function autosPreviewInventorySectionTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Vista previa del inventario del dealer" : "Dealer inventory preview";
+}
+
+export function autosPreviewInventorySectionHelper(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Estos vehículos se publicarán junto con el anuncio principal cuando completes la solicitud."
+    : "These vehicles will publish with the main listing when you complete the application.";
+}
+
+export function autosInventoryBundleEdit(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Editar" : "Edit";
+}
+
+export function autosInventoryBundleRemove(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Quitar" : "Remove";
+}
+
+export function autosInventoryRemoveConfirm(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "¿Quitar este vehículo adicional del inventario de esta solicitud?"
+    : "Remove this additional vehicle from this application inventory?";
+}
+
+export function autosInventoryBundlePhotoCount(lang: AutosClassifiedsLang, n: number): string {
+  return lang === "es" ? `${n} foto${n === 1 ? "" : "s"}` : `${n} photo${n === 1 ? "" : "s"}`;
+}
+
+export function autosInventoryDrawerLocationInheritHint(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Opcional. Si lo dejas vacío, se usará la ubicación del anuncio principal."
+    : "Optional. If left empty, the main listing location will be used.";
 }
 
 export function autosAddInventorySaveCta(lang: AutosClassifiedsLang): string {

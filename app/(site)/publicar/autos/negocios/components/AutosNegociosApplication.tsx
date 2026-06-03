@@ -106,7 +106,8 @@ export function AutosNegociosApplication() {
     editorMaxReached,
     setEditorProgress,
     additionalInventoryVehicles,
-    addAdditionalInventoryVehicle,
+    upsertAdditionalInventoryVehicle,
+    removeAdditionalInventoryVehicle,
   } = useAutoDealerDraft();
 
   const autoTitlePreview = useMemo(
@@ -944,18 +945,31 @@ export function AutosNegociosApplication() {
                 />
                 <AutosNegociosInventoryBundlePreview
                   lang={lang}
+                  copy={t}
                   listing={listing}
                   additionalVehicles={additionalInventoryVehicles}
+                  additionalCount={additionalInventoryVehicles.length}
+                  onSaveVehicle={(vehicle) => {
+                    const ok = upsertAdditionalInventoryVehicle(vehicle);
+                    if (ok) void flushDraft();
+                    return ok;
+                  }}
+                  onRemoveVehicle={(id) => {
+                    removeAdditionalInventoryVehicle(id);
+                  }}
+                  flushDraft={flushDraft}
                 />
                 <AutosNegociosInventoryValueModule
                   lang={lang}
                   prePublishMode
+                  copy={t}
                   parentListingId={inventoryAddContext?.parentListingId ?? null}
                   dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
                   flushDraft={flushDraft}
                   additionalInventoryCount={additionalInventoryVehicles.length}
-                  onSaveAdditionalVehicle={(input) => {
-                    const ok = addAdditionalInventoryVehicle(input);
+                  additionalVehicles={additionalInventoryVehicles}
+                  onSaveAdditionalVehicle={(vehicle) => {
+                    const ok = upsertAdditionalInventoryVehicle(vehicle);
                     if (ok) void flushDraft();
                     return ok;
                   }}

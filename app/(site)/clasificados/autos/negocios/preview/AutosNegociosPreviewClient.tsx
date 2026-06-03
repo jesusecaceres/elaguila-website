@@ -15,6 +15,9 @@ import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from 
 import { buildAutosNegociosEditorResumeHref } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import { AutosNegociosPreviewInventorySection } from "../components/AutosNegociosPreviewInventorySection";
+import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import { normalizeAdditionalInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 
 const EDIT_BASE = "/publicar/autos/negocios";
@@ -31,6 +34,7 @@ function isDemoQuery(): boolean {
 async function resolvePreviewState(): Promise<{
   mode: AutosNegociosPreviewMode;
   listing: AutoDealerListing;
+  additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
 }> {
   try {
     const demo = isDemoQuery();
@@ -41,6 +45,7 @@ async function resolvePreviewState(): Promise<{
       return {
         mode: "mock",
         listing: safeNormalizeAutosDraftListing({ ...base, relatedDealerListings }, "negocios"),
+        additionalInventoryVehicles: [],
       };
     }
 
@@ -59,13 +64,17 @@ async function resolvePreviewState(): Promise<{
     }
 
     if (!d) {
-      return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios") };
+      return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios"), additionalInventoryVehicles: [] };
     }
 
     const normalized = safeNormalizeAutosDraftListing(d.listing, "negocios");
-    return { mode: "draft", listing: normalized };
+    return {
+      mode: "draft",
+      listing: normalized,
+      additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles),
+    };
   } catch {
-    return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios") };
+    return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios"), additionalInventoryVehicles: [] };
   }
 }
 
@@ -73,10 +82,12 @@ function AutosNegociosPreviewInner({
   ready,
   mode,
   listing,
+  additionalInventoryVehicles,
 }: {
   ready: boolean;
   mode: AutosNegociosPreviewMode;
   listing: AutoDealerListing;
+  additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
   const editBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
@@ -91,6 +102,11 @@ function AutosNegociosPreviewInner({
 
   return (
     <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
+      <AutosNegociosPreviewInventorySection
+        lang={lang}
+        parentListing={listing}
+        additionalVehicles={additionalInventoryVehicles}
+      />
       <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />
     </AutosDraftPreviewErrorBoundary>
   );
@@ -100,6 +116,7 @@ export function AutosNegociosPreviewClient() {
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<AutosNegociosPreviewMode>("empty");
   const [listing, setListing] = useState<AutoDealerListing>(() => safeNormalizeAutosDraftListing(undefined, "negocios"));
+  const [additionalInventoryVehicles, setAdditionalInventoryVehicles] = useState<AutosAdditionalInventoryVehicleDraft[]>([]);
   const [recoverHint, setRecoverHint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -108,9 +125,11 @@ export function AutosNegociosPreviewClient() {
       setRecoverHint(null);
       setMode(next.mode);
       setListing(next.listing);
+      setAdditionalInventoryVehicles(next.additionalInventoryVehicles);
     } catch {
       setMode("empty");
       setListing(safeNormalizeAutosDraftListing(undefined, "negocios"));
+      setAdditionalInventoryVehicles([]);
       if (process.env.NODE_ENV === "development") {
         setRecoverHint("Preview fell back to empty state after an unexpected error");
       }
@@ -155,7 +174,12 @@ export function AutosNegociosPreviewClient() {
           {recoverHint}
         </p>
       ) : null}
-      <AutosNegociosPreviewInner ready={ready} mode={mode} listing={listing} />
+      <AutosNegociosPreviewInner
+        ready={ready}
+        mode={mode}
+        listing={listing}
+        additionalInventoryVehicles={additionalInventoryVehicles}
+      />
     </AutosNegociosPreviewLocaleProvider>
   );
 }

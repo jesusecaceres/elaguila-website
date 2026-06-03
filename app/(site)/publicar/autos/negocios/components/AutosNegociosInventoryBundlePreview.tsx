@@ -1,22 +1,34 @@
 "use client";
 
+import { useState } from "react";
+import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { buildVehicleTitle } from "../lib/autoDealerTitle";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
-import { additionalInventoryVehicleTitle } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  additionalInventoryVehicleTitle,
+  computeInventoryVehicleStatus,
+  inventoryVehicleCoverUrl,
+  inventoryVehiclePhotoCount,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
   autosInventoryBundleAdditionalLabel,
+  autosInventoryBundleEdit,
   autosInventoryBundleEmptyState,
   autosInventoryBundleMainLabel,
+  autosInventoryBundlePhotoCount,
+  autosInventoryBundleRemove,
   autosInventoryBundleSectionTitle,
   autosInventoryBundleStatusDraft,
   autosInventoryBundleStatusReady,
+  autosInventoryRemoveConfirm,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import {
   formatMileageInputDisplay,
   formatUsdIntegerInputDisplay,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
+import { AutosNegociosAddInventoryDrawer } from "./AutosNegociosAddInventoryDrawer";
 
 function formatPrice(n?: number): string | null {
   if (n === undefined || !Number.isFinite(n)) return null;
@@ -26,15 +38,13 @@ function formatPrice(n?: number): string | null {
 
 function formatMiles(n?: number): string | null {
   if (n === undefined || !Number.isFinite(n)) return null;
-  const s = formatMileageInputDisplay(n);
-  return s || null;
+  return formatMileageInputDisplay(n) || null;
 }
 
 function mainCoverUrl(listing: AutoDealerListing): string | null {
   const primary = listing.mediaImages?.find((m) => m.isPrimary)?.url ?? listing.mediaImages?.[0]?.url;
   if (primary?.trim()) return primary.trim();
-  const hero = listing.heroImages?.[0];
-  return hero?.trim() || null;
+  return listing.heroImages?.[0]?.trim() || null;
 }
 
 function VehicleCard({
@@ -45,6 +55,9 @@ function VehicleCard({
   mileage,
   imageUrl,
   statusLabel,
+  photoLabel,
+  onEdit,
+  onRemove,
 }: {
   lang: AutosNegociosLang;
   label: string;
@@ -53,6 +66,9 @@ function VehicleCard({
   mileage: string | null;
   imageUrl: string | null;
   statusLabel: string;
+  photoLabel?: string | null;
+  onEdit?: () => void;
+  onRemove?: () => void;
 }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
@@ -71,13 +87,24 @@ function VehicleCard({
         <h4 className="mt-1 text-sm font-bold text-[#1E1810]">{title}</h4>
         <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#5C5346]">
           {price ? <span>{price}</span> : null}
-          {mileage ? (
-            <span>
-              {mileage} {lang === "es" ? "mi" : "mi"}
-            </span>
-          ) : null}
+          {mileage ? <span>{mileage} mi</span> : null}
+          {photoLabel ? <span>{photoLabel}</span> : null}
         </div>
-        <p className="mt-auto pt-3 text-[11px] font-semibold text-[#6E5418]">{statusLabel}</p>
+        <p className="mt-2 text-[11px] font-semibold text-[#6E5418]">{statusLabel}</p>
+        {onEdit || onRemove ? (
+          <div className="mt-auto flex flex-wrap gap-2 pt-3">
+            {onEdit ? (
+              <button type="button" className="text-xs font-bold text-[#6E5418] hover:underline" onClick={onEdit}>
+                {autosInventoryBundleEdit(lang)}
+              </button>
+            ) : null}
+            {onRemove ? (
+              <button type="button" className="text-xs font-bold text-red-800 hover:underline" onClick={onRemove}>
+                {autosInventoryBundleRemove(lang)}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -85,57 +112,103 @@ function VehicleCard({
 
 export function AutosNegociosInventoryBundlePreview({
   lang,
+  copy,
   listing,
   additionalVehicles,
+  additionalCount,
+  onSaveVehicle,
+  onRemoveVehicle,
+  flushDraft,
 }: {
   lang: AutosNegociosLang;
+  copy: AutosNegociosCopy;
   listing: AutoDealerListing;
   additionalVehicles: AutosAdditionalInventoryVehicleDraft[];
+  additionalCount: number;
+  onSaveVehicle: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
+  onRemoveVehicle: (id: string) => void;
+  flushDraft?: () => Promise<void>;
 }) {
+  const [editId, setEditId] = useState<string | null>(null);
+  const editingVehicle = editId ? (additionalVehicles.find((v) => v.id === editId) ?? null) : null;
+
   const mainTitle =
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
     listing.vehicleTitle ||
     (lang === "es" ? "Vehículo principal" : "Main vehicle");
   const mainReady = Boolean(listing.year && listing.make && listing.model);
   const mainStatus = mainReady ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang);
+  const mainPhotos = listing.mediaImages?.length ?? 0;
+
+  const gridClass =
+    additionalVehicles.length >= 4
+      ? "sm:grid-cols-2 lg:grid-cols-3"
+      : additionalVehicles.length >= 2
+        ? "sm:grid-cols-2"
+        : additionalVehicles.length === 1
+          ? "sm:grid-cols-2 max-w-3xl"
+          : "max-w-md";
 
   return (
-    <section className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[color:var(--lx-section)]/60 p-5">
-      <h3 className="text-base font-extrabold text-[color:var(--lx-text)]">{autosInventoryBundleSectionTitle(lang)}</h3>
-      {additionalVehicles.length === 0 ? (
-        <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{autosInventoryBundleEmptyState(lang)}</p>
-      ) : null}
-      <div
-        className={`mt-4 grid gap-4 ${
-          additionalVehicles.length >= 3
-            ? "sm:grid-cols-2 lg:grid-cols-3"
-            : additionalVehicles.length === 1
-              ? "max-w-md"
-              : "sm:grid-cols-2"
-        }`}
-      >
-        <VehicleCard
-          lang={lang}
-          label={autosInventoryBundleMainLabel(lang)}
-          title={mainTitle}
-          price={formatPrice(listing.price)}
-          mileage={formatMiles(listing.mileage)}
-          imageUrl={mainCoverUrl(listing)}
-          statusLabel={mainStatus}
-        />
-        {additionalVehicles.map((v) => (
+    <>
+      <section className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[color:var(--lx-section)]/60 p-5">
+        <h3 className="text-base font-extrabold text-[color:var(--lx-text)]">{autosInventoryBundleSectionTitle(lang)}</h3>
+        {additionalVehicles.length === 0 ? (
+          <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{autosInventoryBundleEmptyState(lang)}</p>
+        ) : null}
+        <div className={`mt-4 grid gap-4 ${gridClass}`}>
           <VehicleCard
-            key={v.id}
             lang={lang}
-            label={autosInventoryBundleAdditionalLabel(lang)}
-            title={additionalInventoryVehicleTitle(v)}
-            price={formatPrice(v.price)}
-            mileage={formatMiles(v.mileage)}
-            imageUrl={v.imageUrl ?? null}
-            statusLabel={autosInventoryBundleStatusDraft(lang)}
+            label={autosInventoryBundleMainLabel(lang)}
+            title={mainTitle}
+            price={formatPrice(listing.price)}
+            mileage={formatMiles(listing.mileage)}
+            imageUrl={mainCoverUrl(listing)}
+            statusLabel={mainStatus}
+            photoLabel={mainPhotos > 0 ? autosInventoryBundlePhotoCount(lang, mainPhotos) : null}
           />
-        ))}
-      </div>
-    </section>
+          {additionalVehicles.map((v) => {
+            const ready = computeInventoryVehicleStatus(v) === "ready_for_preview";
+            const photos = inventoryVehiclePhotoCount(v);
+            return (
+              <VehicleCard
+                key={v.id}
+                lang={lang}
+                label={autosInventoryBundleAdditionalLabel(lang)}
+                title={additionalInventoryVehicleTitle(v)}
+                price={formatPrice(v.price)}
+                mileage={formatMiles(v.mileage)}
+                imageUrl={inventoryVehicleCoverUrl(v)}
+                statusLabel={ready ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang)}
+                photoLabel={photos > 0 ? autosInventoryBundlePhotoCount(lang, photos) : null}
+                onEdit={() => setEditId(v.id)}
+                onRemove={() => {
+                  if (typeof window !== "undefined" && !window.confirm(autosInventoryRemoveConfirm(lang))) return;
+                  onRemoveVehicle(v.id);
+                  void flushDraft?.();
+                }}
+              />
+            );
+          })}
+        </div>
+      </section>
+      <AutosNegociosAddInventoryDrawer
+        open={editId !== null}
+        onClose={() => setEditId(null)}
+        lang={lang}
+        copy={copy}
+        additionalCount={additionalCount}
+        editingVehicle={editingVehicle}
+        onSave={(vehicle) => {
+          const ok = onSaveVehicle(vehicle);
+          if (ok) {
+            setEditId(null);
+            void flushDraft?.();
+          }
+          return ok;
+        }}
+        flushDraft={flushDraft}
+      />
+    </>
   );
 }

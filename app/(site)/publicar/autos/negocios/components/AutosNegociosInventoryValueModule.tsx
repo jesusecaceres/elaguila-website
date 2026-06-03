@@ -17,9 +17,10 @@ import {
 import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { summarizeDealerInventory, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
-import { AutosNegociosInventoryBoostTrigger } from "./AutosNegociosInventoryBoostTrigger";
 import { AutosNegociosAddInventoryTrigger } from "./AutosNegociosAddInventoryTrigger";
-import type { AutosAdditionalInventoryVehicleInput } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import { AutosNegociosInventoryBoostPanel } from "./AutosNegociosInventoryBoostPanel";
+import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosInventoryBoostEditorContext } from "./AutosNegociosInventoryBoostPanel";
 
 const INVENTORY_BOOST_APPROACHING_SLOTS = 2;
@@ -35,7 +36,10 @@ export function AutosNegociosInventoryValueModule({
   flushDraft,
   boostEditorContext,
   additionalInventoryCount = 0,
+  additionalVehicles = [],
+  copy,
   onSaveAdditionalVehicle,
+  onAtLimitOpenBoost,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
@@ -48,8 +52,12 @@ export function AutosNegociosInventoryValueModule({
   flushDraft?: () => Promise<void>;
   boostEditorContext?: AutosInventoryBoostEditorContext;
   additionalInventoryCount?: number;
-  onSaveAdditionalVehicle?: (input: AutosAdditionalInventoryVehicleInput) => boolean;
+  additionalVehicles?: AutosAdditionalInventoryVehicleDraft[];
+  copy?: AutosNegociosCopy;
+  onSaveAdditionalVehicle?: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
+  onAtLimitOpenBoost?: () => void;
 }) {
+  const [boostOpen, setBoostOpen] = useState(false);
   const bullets = autosDealerInventoryValueBullets(lang);
   const [fetchedCounts, setFetchedCounts] = useState<AutosDealerInventoryCount | null>(dealerInventoryCounts);
 
@@ -136,24 +144,43 @@ export function AutosNegociosInventoryValueModule({
               flushDraft={flushDraft}
               boostEditorContext={boostContext}
             />
-          ) : prePublishMode && onSaveAdditionalVehicle ? (
+          ) : prePublishMode && onSaveAdditionalVehicle && copy ? (
             <AutosNegociosAddInventoryTrigger
               lang={lang}
+              copy={copy}
               label={autosDealerInventoryAddVehicleCta(lang)}
               additionalCount={additionalInventoryCount}
+              additionalVehicles={additionalVehicles}
               onSave={onSaveAdditionalVehicle}
               flushDraft={flushDraft}
+              onAtLimit={() => {
+                setBoostOpen(true);
+                onAtLimitOpenBoost?.();
+              }}
             />
           ) : null
         ) : null}
         {showBoostCta ? (
-          <AutosNegociosInventoryBoostTrigger
-            lang={lang}
-            label={autosDealerInventoryAddTenSlotsCta(lang)}
-            flushDraft={flushDraft}
-            editorContext={boostContext}
-            variant={limitReached ? "primary" : "secondary"}
-          />
+          <>
+            <button
+              type="button"
+              className={
+                limitReached
+                  ? "inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#2A2620] px-5 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1E1810]"
+                  : "inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
+              }
+              onClick={() => setBoostOpen(true)}
+            >
+              {autosDealerInventoryAddTenSlotsCta(lang)}
+            </button>
+            <AutosNegociosInventoryBoostPanel
+              open={boostOpen}
+              onClose={() => setBoostOpen(false)}
+              lang={lang}
+              flushDraft={flushDraft}
+              editorContext={boostContext}
+            />
+          </>
         ) : null}
       </div>
     </section>

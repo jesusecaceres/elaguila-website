@@ -143,7 +143,7 @@ function run() {
   assert.ok(!drawer.includes("Publicar anuncio") && !drawer.includes("Publish listing"), "Drawer must not use main publish CTA labels");
   assert.ok(drawer.includes("role=\"dialog\""), "Drawer is in-page modal");
   assert.ok(draftStorage.includes("additionalInventoryVehicles"));
-  assert.ok(hook.includes("addAdditionalInventoryVehicle"));
+  assert.ok(hook.includes("upsertAdditionalInventoryVehicle"));
   assert.ok(app.includes("AutosNegociosInventoryBundlePreview"));
   assert.ok(app.includes("AutosNegociosResultsCardPreview"));
   assert.ok(boostPanel.includes("autosInventoryBoostStripeReturnNote"));

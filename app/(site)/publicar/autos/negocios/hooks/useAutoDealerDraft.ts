@@ -37,11 +37,12 @@ import {
 import type { AutosNegociosDraftV1 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import type {
   AutosAdditionalInventoryVehicleDraft,
-  AutosAdditionalInventoryVehicleInput,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
-  buildAdditionalInventoryVehicle,
+  applicationCanAddInventoryVehicle,
   normalizeAdditionalInventoryVehicles,
+  prepareInventoryVehicleForSave,
+  validateInventoryVehicleDraftForSave,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
@@ -337,14 +338,15 @@ export function useAutoDealerDraft() {
     });
   }, []);
 
-  const addAdditionalInventoryVehicle = useCallback((input: AutosAdditionalInventoryVehicleInput) => {
-    const built = buildAdditionalInventoryVehicle(input);
-    if (!built) return false;
-    setAdditionalInventoryVehicles((prev) => {
-      const next = [...prev, built];
-      additionalInventoryRef.current = next;
-      return next;
-    });
+  const upsertAdditionalInventoryVehicle = useCallback((vehicle: AutosAdditionalInventoryVehicleDraft) => {
+    if (!validateInventoryVehicleDraftForSave(vehicle)) return false;
+    const prepared = prepareInventoryVehicleForSave(vehicle);
+    const prev = additionalInventoryRef.current;
+    const i = prev.findIndex((v) => v.id === prepared.id);
+    if (i < 0 && !applicationCanAddInventoryVehicle(prev.length)) return false;
+    const next = i >= 0 ? prev.map((v, j) => (j === i ? prepared : v)) : [...prev, prepared];
+    additionalInventoryRef.current = next;
+    setAdditionalInventoryVehicles(next);
     return true;
   }, []);
 
@@ -383,7 +385,7 @@ export function useAutoDealerDraft() {
     editorMaxReached,
     setEditorProgress: applyEditorProgress,
     additionalInventoryVehicles,
-    addAdditionalInventoryVehicle,
+    upsertAdditionalInventoryVehicle,
     removeAdditionalInventoryVehicle,
   };
 }
