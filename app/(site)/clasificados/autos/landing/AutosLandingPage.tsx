@@ -18,6 +18,7 @@ import {
 import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
 import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
 import { buildAutosLandingDealersFromInventory } from "./buildAutosLandingDealersFromInventory";
+import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { AutosLandingShell } from "./AutosLandingShell";
 import { AutosHeroSearch } from "./AutosHeroSearch";
 import { AutosLandingLangSwitch } from "./AutosLandingLangSwitch";
@@ -189,20 +190,28 @@ export function AutosLandingPage() {
         </div>
       </div>
 
-      <main className="flex w-full min-w-0 flex-col gap-7 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-6 sm:gap-9 sm:pt-8 md:gap-10 md:pt-9 lg:gap-11 lg:pt-10 2xl:gap-12">
-        <AutosHeroSearch
-          copy={copy}
-          searchQ={searchQ}
-          setSearchQ={setSearchQ}
-          city={city}
-          setCity={setCity}
-          zip={zip}
-          setZip={setZip}
-          searchHref={searchHref}
-          browseAllHref={browseAllHref}
+      <main className="flex w-full min-w-0 flex-col gap-7 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-4 sm:gap-9 sm:pt-6 md:gap-10 lg:gap-11 2xl:gap-12">
+        <CategoryStandardLandingPage
+          category="autos"
+          lang={lang as Lang}
+          publishHref={publishAutosHref}
+          browseHref={browseAllHref}
+          searchSlot={
+            <AutosHeroSearch
+              mode="fields"
+              copy={copy}
+              searchQ={searchQ}
+              setSearchQ={setSearchQ}
+              city={city}
+              setCity={setCity}
+              zip={zip}
+              setZip={setZip}
+              searchHref={searchHref}
+              browseAllHref={browseAllHref}
+            />
+          }
+          searchChips={<AutosQuickChips copy={copy} items={quickChipItems} />}
         />
-
-        <AutosQuickChips copy={copy} items={quickChipItems} />
 
         <AutosPrimaryDiscoveryCta copy={copy} browseAllHref={browseAllHref} />
 

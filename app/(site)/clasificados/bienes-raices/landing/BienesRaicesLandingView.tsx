@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
@@ -17,7 +17,7 @@ import { BienesRaicesNegocioCard } from "@/app/clasificados/bienes-raices/result
 import { BienesRaicesNegocioFeaturedCard } from "@/app/clasificados/bienes-raices/resultados/cards/BienesRaicesNegocioFeaturedCard";
 import { BienesRaicesMapPreview } from "@/app/clasificados/bienes-raices/resultados/map/BienesRaicesMapPreview";
 import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
-import { BR_LANDING_HERO_IMAGE, BR_LANDING_QUICK_CHIPS } from "./bienesRaicesLandingSample";
+import { BR_LANDING_QUICK_CHIPS } from "./bienesRaicesLandingSample";
 import { buildBrLandingInventorySections } from "./buildBrLandingInventorySections";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
@@ -38,15 +38,6 @@ const BTN_SECONDARY = "min-h-[50px] w-full min-w-0 px-7 py-3.5 text-center text-
 
 const INPUT_CLASS =
   "w-full min-h-[3.25rem] rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] py-3 text-sm text-[#1A1A1A] shadow-[inset_0_2px_4px_rgba(212,165,116,0.04)] outline-none transition placeholder:text-[#7A7A7A]/36 focus:border-[#D4A574]/70 focus:bg-white focus:shadow-[inset_0_0_0_1px_rgba(212,165,116,0.25)] focus:ring-2 focus:ring-[#D4A574]/22";
-
-/** Break out of shell horizontal padding for an immersive band (no horizontal scroll). */
-function ImmersiveBand({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative -mx-4 w-[calc(100%+2rem)] max-w-[100vw] overflow-x-clip overscroll-x-none sm:-mx-5 sm:w-[calc(100%+2.5rem)]">
-      {children}
-    </div>
-  );
-}
 
 function SectionHeading({
   id,
@@ -403,99 +394,37 @@ export function BienesRaicesLandingView() {
           </p>
         ) : null}
 
-        <ImmersiveBand>
-          <header className="relative isolate flex min-h-[min(18rem,42svh)] flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/45 shadow-[0_16px_48px_-24px_rgba(42,36,22,0.35)] sm:min-h-[min(20rem,44svh)] md:min-h-[min(22rem,46svh)]">
-            <div className="absolute inset-0">
-              <Image
-                src={BR_LANDING_HERO_IMAGE.src}
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover object-[center_44%] sm:object-[center_40%] lg:object-[center_38%]"
-              />
+        <CategoryStandardLandingPage
+          category="bienes-raices"
+          lang={lang}
+          publishHref={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)}
+          browseHref={withLang(BR_RESULTS)}
+          publishLabel={copy.publishNegocio}
+          searchSlot={<LandingSearchForm withLang={withLang} copy={copy} />}
+          belowHero={
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+              <Link href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)} className={BTN_SECONDARY + " sm:min-w-[12rem]"}>
+                {copy.publishPrivado}
+              </Link>
+              <Link href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)} className={BTN_PRIMARY + " sm:min-w-[12rem]"}>
+                {copy.publishNegocio}
+              </Link>
             </div>
-            {/* Stronger scenic read: warm scrim on copy side, lighter veil on the right so the neighborhood stays visible */}
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#FCF9F4]/[0.94] via-[#F6EFE6]/[0.66] to-[#e6d8c8]/[0.26] sm:via-[#F3EBE2]/[0.54]"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FDFBF7]/45 via-transparent to-[#F1E9DE]/[0.94]"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-[#fffdf9]/20 to-[#c5d4e3]/28 mix-blend-soft-light"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_18%_12%,rgba(255,252,247,0.72),transparent_58%)]"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_45%,rgba(42,36,22,0.07),transparent_52%)]"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0 shadow-[inset_0_0_120px_rgba(42,36,22,0.07)]"
-              aria-hidden
-            />
-
-            <div className="relative z-10 flex w-full min-w-0 flex-1 flex-col px-4 pb-10 pt-8 sm:px-6 sm:pb-12 sm:pt-10 md:px-8 md:pb-14 lg:px-10 lg:pt-12">
-              <div className="flex w-full min-w-0 flex-col gap-8 md:gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12 xl:gap-14">
-                <div className="min-w-0 max-w-2xl flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#8A6F3A]">{copy.categoryEyebrow}</p>
-                  <h1 className="mt-4 font-serif font-semibold leading-[1.06] tracking-tight text-[#1E1810] drop-shadow-[0_1px_0_rgba(255,255,255,0.72)] [text-wrap:balance] text-[clamp(1.85rem,4.2vw+0.6rem,3.35rem)]">
-                    {copy.pageTitle}
-                  </h1>
-                  <p className="mt-5 max-w-xl text-base leading-[1.75] text-[#3a342f]/92 sm:text-lg">{copy.heroSubtitle}</p>
-                </div>
-                <div className="w-full min-w-0 shrink-0 lg:max-w-[22rem] xl:max-w-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#5C5346]/75">{copy.publishEyebrow}</p>
-                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
-                    <Link
-                      href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)}
-                      className={BTN_SECONDARY + " w-full min-w-0 sm:w-auto sm:min-w-[12rem]"}
-                    >
-                      {copy.publishPrivado}
-                    </Link>
-                    <Link
-                      href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)}
-                      className={BTN_PRIMARY + " w-full min-w-0 sm:w-auto sm:min-w-[12rem]"}
-                    >
-                      {copy.publishNegocio}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-10 w-full min-w-0 sm:mt-12 lg:mt-14">
-                <LandingSearchForm withLang={withLang} copy={copy} />
-              </div>
-            </div>
-          </header>
-        </ImmersiveBand>
-
-        <section className="mt-12 sm:mt-14" aria-labelledby="br-quick-chips">
-          <div className="min-w-0 rounded-[1.5rem] border border-[#E8DFD0]/70 bg-gradient-to-r from-[#FFFCF7]/95 via-white/90 to-[#f5f0e8]/90 px-4 py-7 shadow-[0_16px_48px_-32px_rgba(42,36,22,0.28)] ring-1 ring-[#C9B46A]/[0.08] sm:px-8">
-            <p className="text-center font-serif text-lg text-[#1E1810]/92 sm:text-left">{copy.quickChipsLead}</p>
-            <h2 id="br-quick-chips" className="sr-only">
-              {copy.quickFiltersHeading}
-            </h2>
-            <div className="mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto overflow-y-visible scroll-pl-3 scroll-pr-3 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-start sm:overflow-visible sm:scroll-pl-0 sm:scroll-pr-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+          }
+          searchChips={
+            <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
               {BR_LANDING_QUICK_CHIPS.map((chip) => (
                 <Link
                   key={chip.id}
                   href={withLang(buildBrResultsUrl(chip.params))}
-                  className="group/chip inline-flex min-h-[44px] shrink-0 snap-start items-center rounded-full border border-[#E8DFD0]/80 bg-gradient-to-b from-[#FFFCF7] to-[#f0e8dc]/90 px-4 py-2.5 text-[13px] font-semibold text-[#3D3630] shadow-[0_8px_24px_-12px_rgba(42,36,22,0.22)] ring-1 ring-white/60 transition hover:border-[#C9B46A]/5 hover:shadow-[0_12px_32px_-14px_rgba(194,84,45,0.2)] hover:ring-[#C9B46A]/25 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9B46A]/45 sm:shrink"
+                  className="inline-flex min-h-[36px] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#2A4536] hover:border-[#7A1E2C]/40"
                 >
-                  <span className="mr-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-br from-[#C9B46A] to-[#C2542D] opacity-80 group-hover/chip:opacity-100" aria-hidden />
-                  <span className="truncate">{copy.chipLabel[chip.id]}</span>
+                  {copy.chipLabel[chip.id]}
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="mt-16 sm:mt-[4.5rem]" aria-labelledby="br-featured-hero">
           <div className="relative overflow-hidden rounded-[1.75rem] border-2 border-[#C9B46A]/35 bg-gradient-to-b from-[#FFF9F0]/95 via-[#FDFBF7] to-[#eef3f9]/25 p-5 shadow-[0_32px_90px_-40px_rgba(42,36,22,0.45)] ring-1 ring-[#C9B46A]/15 sm:rounded-[2rem] sm:p-8 lg:p-10">

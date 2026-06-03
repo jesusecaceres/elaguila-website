@@ -24,6 +24,12 @@ import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilte
 import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
 import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
+import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
+import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
+import {
+  categoryStandardDescription,
+  categoryStandardTitle,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
 const RESULTADOS_PATH = "/clasificados/autos/results";
 const PAGE_SIZE = 12;
@@ -211,61 +217,32 @@ export function AutosPublicResultsShell() {
     [applied, pushBundle],
   );
 
+  const clearResultsHref = `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
+    filters: emptyAutosPublicFilters(),
+    q: "",
+    sort: applied.sort,
+    page: 1,
+    lang,
+  })}`;
+
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#FFFEF7] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[#1A1A1A]">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(38vh,420px)] bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,rgba(212,165,116,0.12),transparent_55%),linear-gradient(to_bottom,rgba(255,250,240,0.75),transparent)] sm:min-h-[min(42vh,480px)]"
-        aria-hidden
-      />
-      <div className="relative z-[1]">
-      <div className="border-b border-[#E5E5E5] bg-[#FFFAF0]/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[min(100%,90rem)] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <nav className="text-[11px] font-medium text-[#7A7A7A]">
-            <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[#1A1A1A]">
-              {copy.breadcrumb}
-            </Link>
-            <span className="mx-1.5 opacity-50">/</span>
-            <Link href={autosHome} className="hover:text-[#1A1A1A]">
-              Autos
-            </Link>
-            <span className="mx-1.5 opacity-50">/</span>
-            <span className="text-[#1A1A1A]">{copy.resultsTitle}</span>
-          </nav>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={publicar}
-              className="rounded-full bg-[#D4A574] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#C19A6B]"
-            >
-              {copy.postAd}
-            </Link>
-            <Link
-              href={autosHome}
-              className="rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-xs font-semibold transition hover:bg-[#FFFAF0]"
-            >
-              {copy.hubNote}
-            </Link>
-          </div>
-        </div>
-      </div>
+    <CategoryStandardResultsPageShell>
+      <div className="pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[#1A1A1A]">
+      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-6 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-8">
+        <CategoryStandardResultsHeader
+          lang={L}
+          title={categoryStandardTitle("autos", L)}
+          subtitle={categoryStandardDescription("autos", L)}
+          backHref={autosHome}
+          backLabel={copy.title}
+          publishHref={publicar}
+          publishLabel={copy.postAd}
+          clearHref={clearResultsHref}
+          resultCount={loaded ? resultCount : undefined}
+        />
+        <p className="mt-2 text-sm text-[#5C5346]">{nearLine}</p>
 
-      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-7 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-10">
-        <div className="mb-6 rounded-[22px] border border-[#D4A574]/35 bg-[linear-gradient(165deg,rgba(255,250,240,0.96),rgba(255,252,247,0.98))] px-5 py-6 shadow-[0_18px_52px_-26px_rgba(212,165,116,0.28)] sm:px-7 sm:py-7">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#D4A574]">{copy.heroEyebrow}</p>
-          <h1 className="mt-2 font-serif text-[1.75rem] font-bold tracking-tight text-[#1A1A1A] sm:text-[2rem] lg:text-[2.2rem]">
-            {copy.resultsTitle}
-          </h1>
-          <p className="mt-2 text-base leading-relaxed text-[#5C5346]">{nearLine}</p>
-          <p className="mt-3 text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsIntroGuidance}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#E5E5E5]/80 pt-4">
-            <p className="text-sm font-bold text-[#1A1A1A]">
-              {!loaded ? copy.resultsStatusLoading : copy.resultsStatusShowing.replace("{n}", String(resultCount))}
-            </p>
-            <span className="hidden h-4 w-px bg-[#E5E5E5] sm:block" aria-hidden />
-            <p className="text-xs text-[#7A7A7A]">{copy.resultsControlHint}</p>
-          </div>
-        </div>
-
-        <div className="mb-5 rounded-[20px] border border-[#D4A574]/30 bg-[#FFFAF0]/95 p-4 shadow-[0_14px_40px_-24px_rgba(212,165,116,0.22)] backdrop-blur-[2px] sm:p-5 lg:p-6">
+        <div className="mb-5 mt-4 rounded-[20px] border border-[#D4A574]/30 bg-[#FFFAF0]/95 p-4 shadow-[0_14px_40px_-24px_rgba(212,165,116,0.22)] backdrop-blur-[2px] sm:p-5 lg:p-6">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-4">
             <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="min-w-0 sm:col-span-2 lg:col-span-1">
@@ -562,7 +539,7 @@ export function AutosPublicResultsShell() {
         </div>
       ) : null}
       </div>
-    </div>
+    </CategoryStandardResultsPageShell>
   );
 }
 

@@ -40,6 +40,9 @@ import {
   EMPLEOS_RESULTS_GROUP,
 } from "../lib/empleosPremiumUi";
 import { EMPLEOS_RESULTS_FEATURED_STRIP_MAX } from "../lib/empleosPublicRankingPolicy";
+import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
+import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
+import { categoryStandardTitle } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { EmpleosFunctionalPrefsNotice } from "./EmpleosFunctionalPrefsNotice";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
 import { EmpleosUseLocationButton } from "./EmpleosUseLocationButton";
@@ -490,7 +493,6 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     pushFromFields({});
   };
 
-  const hubHref = appendLangToPath("/clasificados", lang);
   const landingHref = appendLangToPath("/clasificados/empleos", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
 
@@ -553,49 +555,29 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     return filtered.filter((j) => !stripIds.has(j.id));
   }, [filtered, featuredStripRows, parsed.featuredOnly]);
 
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-24 text-[#2A2826]">
-      <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[min(100rem,calc(100%-1rem))] flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
-          <nav className="text-xs font-semibold text-[#4A4744] sm:text-sm" aria-label="Breadcrumb">
-            <Link href={hubHref} className="hover:text-[#2A2826] hover:underline">
-              {t.hub}
-            </Link>
-            <span className="mx-1.5 text-[#9A948C]">&gt;</span>
-            <Link href={landingHref} className="hover:text-[#2A2826] hover:underline">
-              {t.landing}
-            </Link>
-            <span className="mx-1.5 text-[#9A948C]">&gt;</span>
-            <span className="text-[#2A2826]">{t.resultsTitle}</span>
-          </nav>
-          <Link
-            href={publishHref}
-            className="rounded-full bg-gradient-to-r from-[#E8A54B] to-[#D9A23A] px-4 py-2.5 text-xs font-bold text-[#2A2826] shadow-[0_6px_18px_rgba(201,148,46,0.28)] transition hover:brightness-105 active:scale-[0.99] sm:text-sm"
-          >
-            {lang === "es" ? "Publicar vacante" : "Post a job"}
-          </Link>
-        </div>
-      </header>
+  const clearResultsHref = buildEmpleosResultadosUrl(lang, {});
 
-      <main className="mx-auto max-w-[min(100rem,calc(100%-1rem))] px-4 pt-[calc(6.5rem+env(safe-area-inset-top,0px))] sm:px-6 sm:pt-[calc(7.25rem+env(safe-area-inset-top,0px))] lg:px-10">
+  return (
+    <CategoryStandardResultsPageShell>
+      <div className="pb-24 text-[#2A2826]">
+        <div className="mx-auto max-w-[min(100rem,calc(100%-1rem))] px-4 pt-4 sm:px-6 lg:px-10">
+          <CategoryStandardResultsHeader
+            lang={lang}
+            title={categoryStandardTitle("empleos", lang)}
+            subtitle={t.resultsSubtitle}
+            backHref={landingHref}
+            backLabel={lang === "es" ? "Empleos" : "Jobs"}
+            publishHref={publishHref}
+            publishLabel={lang === "es" ? "Publicar vacante" : "Post a job"}
+            clearHref={clearResultsHref}
+            resultCount={filtered.length}
+          />
+        </div>
+
+      <main className="mx-auto max-w-[min(100rem,calc(100%-1rem))] px-4 sm:px-6 lg:px-10">
         <EmpleosFunctionalPrefsNotice lang={lang} />
 
-        <div className="relative mt-2 border-b border-[#E8DFD0]/80 pb-8">
-          <div className="absolute left-0 top-0 h-1 w-24 rounded-full bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E]/40 sm:w-32" aria-hidden />
-          <div className="flex flex-col gap-5 pt-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0 max-w-3xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5B6F82]">{t.landing}</p>
-              <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-[#2A2826] sm:text-4xl">{t.resultsTitle}</h1>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#4A4744]/95">{t.resultsSubtitle}</p>
-            </div>
-            <div className="shrink-0 rounded-2xl border border-[#F0E8DC] bg-[#FFFBF7]/90 px-6 py-4 text-right shadow-[0_8px_24px_rgba(42,40,38,0.05)]">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#7A756E]">{lang === "es" ? "Coincidencias" : "Matches"}</p>
-              <p className="mt-2 text-2xl font-bold leading-tight tracking-tight text-[#2A2826] sm:text-3xl">{countLine(lang, filtered.length)}</p>
-            </div>
-          </div>
-        </div>
-
-        <form aria-label={t.formAria} onSubmit={submitSearch} className={`${EMPLEOS_RESULTS_FILTER_PANEL} mt-9`}>
+        <form aria-label={t.formAria} onSubmit={submitSearch} className={`${EMPLEOS_RESULTS_FILTER_PANEL} mt-6`}>
           <div className="mb-8">
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#5B6F82]">{lang === "es" ? "Palabra clave" : "Keyword"}</span>
@@ -1129,6 +1111,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
           </>
         )}
       </main>
-    </div>
+      </div>
+    </CategoryStandardResultsPageShell>
   );
 }

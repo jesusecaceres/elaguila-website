@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
-import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLangSwitch";
@@ -27,21 +27,15 @@ import {
 } from "./restaurantesBlueprintSampleData";
 import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
 import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
-import { CategoryHeroFrame } from "@/app/(site)/clasificados/components/categoryLanding/CategoryHeroFrame";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
 import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
 
 const ACCENT = "#D4A574";
 
-/** Editorial dining atmosphere — strong hero presence without competing with search module */
-const RESTAURANTES_HERO_IMAGE =
-  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=2400&q=82";
-
 function RestaurantesLandingPageFallback() {
   return (
     <RestaurantesLandingShell>
-      <Navbar />
       <main className="mx-auto max-w-[1280px] px-4 py-10">
         <h1 className="font-serif text-2xl font-semibold text-[color:var(--lx-text)]">Restaurantes</h1>
         <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Cargando…</p>
@@ -149,57 +143,7 @@ function RestaurantesLandingPageInner({
     };
   }, [lang]);
 
-  return (
-    <RestaurantesLandingShell>
-      <Navbar />
-
-      <div className="sticky top-0 z-30 border-b border-[color:var(--lx-border)]/25 bg-[color:var(--lx-card)]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1280px] min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-5 lg:px-6">
-          <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]" aria-label="Breadcrumb">
-            <Link href={clasificadosHref} className="transition hover:text-[color:var(--lx-text)] hover:underline">
-              {copy.breadcrumbParent}
-            </Link>
-            <span className="mx-1.5 opacity-45">/</span>
-            <span className="font-semibold text-[color:var(--lx-text)]">{copy.breadcrumbCurrent}</span>
-          </nav>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <ViajesLangSwitch compact />
-            <Link
-              href={publishHref}
-              className="inline-flex min-h-[40px] items-center rounded-full border border-[color:var(--lx-border)]/50 bg-[color:var(--lx-card)] px-4 text-[11px] font-bold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/60 focus-visible:ring-offset-2"
-            >
-              {lang === "es" ? "Anunciar" : "Advertise"}
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <header className="mx-auto max-w-[1280px] space-y-5 px-4 pb-8 pt-5 sm:space-y-6 sm:px-5 sm:pb-11 sm:pt-7 md:space-y-7 md:pb-12 md:pt-8 lg:px-6 lg:space-y-8 lg:pb-14">
-        <CategoryHeroFrame
-          imageSrc={RESTAURANTES_HERO_IMAGE}
-          overlay="leonix-cream"
-          contentJustify="center"
-          minHeightClass="min-h-[min(32vh,260px)] sm:min-h-[min(36vh,320px)] md:min-h-[min(38vh,360px)] lg:min-h-[min(40vh,400px)]"
-          objectClassName="object-cover object-[center_44%] sm:object-[center_40%] md:object-[center_38%]"
-          contentClassName="text-center"
-        >
-          <div className="mx-auto w-full max-w-3xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5c4a3d]/80 sm:text-[11px]">
-              {lang === "en" ? "Dining · Leonix" : "Restaurantes · Leonix"}
-            </p>
-            <h1 className="mt-2 text-balance font-serif text-[clamp(1.55rem,3.5vw+0.5rem,2.55rem)] font-semibold leading-[1.12] tracking-tight text-[color:var(--lx-text)] drop-shadow-[0_1px_0_rgba(255,252,247,0.88)] sm:mt-2.5">
-              {copy.heroLead}
-              <span className="font-serif font-semibold" style={{ color: ACCENT }}>
-                {copy.heroAccent}
-              </span>
-            </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-[color:var(--lx-text)]/80 sm:mt-3.5 sm:text-base">
-              {copy.heroSub}
-            </p>
-          </div>
-        </CategoryHeroFrame>
-
-        <div className="mx-auto max-w-[960px] rounded-[20px] border border-[color:var(--lx-border)]/25 bg-[color:var(--lx-card)]/97 p-4 shadow-[0_14px_44px_-26px_rgba(45,36,30,0.28)] ring-1 ring-[#D97706]/18 backdrop-blur-sm sm:rounded-[22px] sm:p-5 md:p-6 lg:rounded-[24px]">
+  const landingSearchForm = (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -268,51 +212,59 @@ function RestaurantesLandingPageInner({
               </button>
             </div>
           </form>
-          <p className="mt-3 border-t border-[color:var(--lx-border)]/20 pt-3 text-center text-[11px] leading-relaxed text-[color:var(--lx-muted)] sm:text-xs">
-            {copy.continuityHint}
-          </p>
-          {landingNote ? (
-            <p
-              className="mt-3 rounded-[12px] border border-amber-300/70 bg-amber-50/90 px-3 py-2.5 text-left text-[11px] leading-relaxed text-amber-950 sm:text-xs"
-              role="note"
-            >
-              {landingNote}
-            </p>
-          ) : null}
+  );
 
-          <CategoryLandingChipsRail
-            className="mt-4 sm:mt-5"
-            label={lang === "en" ? "Quick restaurant filters" : "Filtros rápidos de restaurantes"}
+  const restaurantesLandingChips = (
+    <>
+      {landingNote ? (
+        <p
+          className="rounded-[12px] border border-amber-300/70 bg-amber-50/90 px-3 py-2.5 text-left text-[11px] leading-relaxed text-amber-950 sm:text-xs"
+          role="note"
+        >
+          {landingNote}
+        </p>
+      ) : null}
+      <CategoryLandingChipsRail
+        className="mt-2"
+        label={lang === "en" ? "Quick restaurant filters" : "Filtros rápidos de restaurantes"}
+      >
+        {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.map((f) => (
+          <Link
+            key={f.id}
+            href={buildRestaurantesResultsHref(lang, f.resultParams)}
+            className="inline-flex min-h-[36px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#2A4536] hover:border-[#7A1E2C]/40"
           >
-            {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.map((f) => (
-              <Link
-                key={f.id}
-                href={buildRestaurantesResultsHref(lang, f.resultParams)}
-                className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D97706]/35 bg-[color:var(--lx-card)] px-4 py-2 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-[#D97706]/60 hover:bg-[color:var(--lx-section)] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--lx-card)] touch-manipulation sm:shrink"
-              >
-                {lang === "es" ? f.labelEs : f.labelEn}
-              </Link>
-            ))}
-          </CategoryLandingChipsRail>
+            {lang === "es" ? f.labelEs : f.labelEn}
+          </Link>
+        ))}
+        {RESTAURANTES_BLUEPRINT_CUISINE_CHIPS.map((c) => (
+          <Link
+            key={c.id}
+            href={buildRestaurantesResultsHref(lang, { cuisine: c.cuisineKey })}
+            className="inline-flex min-h-[36px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#2A4536] hover:border-[#7A1E2C]/40"
+          >
+            {lang === "es" ? c.labelEs : c.labelEn}
+          </Link>
+        ))}
+      </CategoryLandingChipsRail>
+    </>
+  );
 
-          <div
-            className="mt-4 overflow-x-auto overflow-y-hidden rounded-[20px] border border-white/10 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-5 sm:overflow-visible [&::-webkit-scrollbar]:hidden"
-            style={{ background: "rgba(45,36,30,0.88)" }}
-          >
-            <div className="flex w-max min-w-full flex-nowrap gap-2 scroll-pl-3 scroll-pr-3 px-3 py-3 sm:w-auto sm:flex-wrap sm:scroll-pl-0 sm:scroll-pr-0 sm:px-4">
-              {RESTAURANTES_BLUEPRINT_CUISINE_CHIPS.map((c) => (
-                <Link
-                  key={c.id}
-                  href={buildRestaurantesResultsHref(lang, { cuisine: c.cuisineKey })}
-                  className="inline-flex min-h-[40px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold text-[#FFFCF7] backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-amber-300/45 hover:bg-white/[0.18] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FBBF24]/85 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D241E] touch-manipulation"
-                >
-                  {lang === "es" ? c.labelEs : c.labelEn}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </header>
+  return (
+    <RestaurantesLandingShell>
+      <div className="mx-auto flex max-w-[1280px] justify-end px-4 pt-3 md:px-5 lg:px-6">
+        <ViajesLangSwitch compact />
+      </div>
+
+      <CategoryStandardLandingPage
+        category="restaurantes"
+        lang={lang}
+        publishHref={publishHref}
+        browseHref={allResultsHref}
+        publishLabel={lang === "es" ? "Anunciar restaurante" : "Advertise restaurant"}
+        searchSlot={landingSearchForm}
+        searchChips={restaurantesLandingChips}
+      />
 
       <main className="mx-auto max-w-[1280px] space-y-10 overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-14 text-[color:var(--lx-text)] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
         <section

@@ -1,9 +1,7 @@
-import { brLuxuryPageClass } from "../../shared/brResultsTheme";
+import type { ReactNode } from "react";
+import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 
-export function BienesRaicesResultsShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className={brLuxuryPageClass}>
-      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-24 sm:px-6 sm:pb-20 sm:pt-28">{children}</div>
-    </div>
-  );
+/** Bienes Raíces results — listings-first Leonix cream shell (CAT-STD-ALL). */
+export function BienesRaicesResultsShell({ children }: { children: ReactNode }) {
+  return <CategoryStandardResultsPageShell>{children}</CategoryStandardResultsPageShell>;
 }

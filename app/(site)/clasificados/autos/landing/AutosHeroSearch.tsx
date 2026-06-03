@@ -18,6 +18,7 @@ export function AutosHeroSearch({
   setZip,
   searchHref,
   browseAllHref,
+  mode = "full",
 }: {
   copy: AutosPublicBlueprintCopy;
   searchQ: string;
@@ -28,33 +29,11 @@ export function AutosHeroSearch({
   setZip: (v: string) => void;
   searchHref: string;
   browseAllHref: string;
+  /** `fields` — search panel only (CAT-STD-ALL landing slot). */
+  mode?: "full" | "fields";
 }) {
-  return (
-    <section className={`${autosLandingSectionClass} pb-5 sm:pb-7 md:pb-8`}>
-      <div className="relative overflow-hidden rounded-[24px] border border-[#D4A574]/35 bg-[linear-gradient(165deg,rgba(255,250,240,0.98)_0%,rgba(255,252,247,0.92)_45%,rgba(245,240,232,0.88)_100%)] px-4 py-8 shadow-[0_22px_64px_-28px_rgba(212,165,116,0.45)] sm:px-6 sm:py-10 md:px-8 md:py-11">
-        <div
-          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(212,165,116,0.22),transparent_68%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 -left-12 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(193,154,107,0.14),transparent_70%)]"
-          aria-hidden
-        />
-
-        <header className="relative mx-auto max-w-[min(100%,44rem)] text-center">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#D4A574]">{copy.heroEyebrow}</p>
-          <h1 className="mt-3 text-balance font-serif text-[1.85rem] font-bold leading-[1.08] tracking-tight text-[#1A1A1A] sm:text-[2.25rem] md:text-[2.5rem] lg:text-[2.65rem]">
-            {copy.heroHeading}
-          </h1>
-          <p className="mx-auto mt-3 max-w-[min(100%,38rem)] text-sm leading-relaxed text-[#4A4A4A] sm:mt-4 sm:text-base md:leading-relaxed">
-            {copy.heroSubhead}
-          </p>
-          <p className="mx-auto mt-4 max-w-[min(100%,40rem)] text-xs leading-relaxed text-[#5C5346] sm:text-[13px]">
-            {copy.heroSearchGuidance}
-          </p>
-        </header>
-
-        <div className="relative mx-auto mt-7 w-full min-w-0 sm:mt-8 md:max-w-[min(100%,56rem)] lg:max-w-[min(100%,64rem)]">
+  const searchFields = (
+        <div className="relative mx-auto w-full min-w-0 md:max-w-[min(100%,56rem)] lg:max-w-[min(100%,64rem)]">
           <p className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A7A7A] sm:text-left">
             {copy.heroSearchPanelTitle}
           </p>
@@ -170,6 +149,26 @@ export function AutosHeroSearch({
             </p>
           </div>
         </div>
+  );
+
+  if (mode === "fields") return searchFields;
+
+  return (
+    <section className={`${autosLandingSectionClass} pb-5 sm:pb-7 md:pb-8`}>
+      <div className="relative overflow-hidden rounded-[24px] border border-[#D4A574]/35 bg-[linear-gradient(165deg,rgba(255,250,240,0.98)_0%,rgba(255,252,247,0.92)_45%,rgba(245,240,232,0.88)_100%)] px-4 py-8 shadow-[0_22px_64px_-28px_rgba(212,165,116,0.45)] sm:px-6 sm:py-10 md:px-8 md:py-11">
+        <header className="relative mx-auto max-w-[min(100%,44rem)] text-center">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#D4A574]">{copy.heroEyebrow}</p>
+          <h1 className="mt-3 text-balance font-serif text-[1.85rem] font-bold leading-[1.08] tracking-tight text-[#1A1A1A] sm:text-[2.25rem] md:text-[2.5rem] lg:text-[2.65rem]">
+            {copy.heroHeading}
+          </h1>
+          <p className="mx-auto mt-3 max-w-[min(100%,38rem)] text-sm leading-relaxed text-[#4A4A4A] sm:mt-4 sm:text-base md:leading-relaxed">
+            {copy.heroSubhead}
+          </p>
+          <p className="mx-auto mt-4 max-w-[min(100%,40rem)] text-xs leading-relaxed text-[#5C5346] sm:text-[13px]">
+            {copy.heroSearchGuidance}
+          </p>
+        </header>
+        <div className="relative mt-7 sm:mt-8">{searchFields}</div>
       </div>
     </section>
   );
