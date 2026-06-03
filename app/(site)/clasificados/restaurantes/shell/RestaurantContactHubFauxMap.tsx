@@ -1,110 +1,88 @@
+"use client";
+
+import { useId } from "react";
 import { FiMapPin } from "react-icons/fi";
 
+const PIN_BURGUNDY = "#7A1E2C";
+const PIN_GOLD = "#C9A84A";
+
 /**
- * Decorative faux map panel — no external APIs, tiles, or geolocation claims.
+ * Compact decorative faux map — Leonix burgundy/gold/charcoal (Gate R-C1).
+ * No external APIs, tiles, or geolocation claims.
  */
 export function RestaurantContactHubFauxMap() {
+  const uid = useId().replace(/:/g, "");
+  const gridId = `rest-hub-map-grid-${uid}`;
+  const washId = `rest-hub-map-wash-${uid}`;
+  const vignetteId = `rest-hub-map-vig-${uid}`;
+
   return (
     <div
-      className="relative mt-3 aspect-[16/9] w-full max-w-full overflow-hidden rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-inner"
+      className="relative aspect-[2.1/1] max-h-[148px] w-full max-w-full overflow-hidden rounded-lg sm:max-h-[156px]"
+      style={{
+        background: "linear-gradient(160deg, #2A2620 0%, #1E1814 38%, #2F241F 72%, #1A1612 100%)",
+      }}
       aria-hidden
     >
       <svg
-        className="absolute inset-0 h-full w-full text-[color:var(--lx-muted)]"
-        viewBox="0 0 400 225"
+        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 400 190"
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <pattern id="rest-hub-map-grid" width="28" height="28" patternUnits="userSpaceOnUse">
-            <path
-              d="M 28 0 L 0 0 0 28"
-              fill="none"
-              stroke="currentColor"
-              strokeOpacity="0.12"
-              strokeWidth="1"
-            />
+          <pattern id={gridId} width="22" height="22" patternUnits="userSpaceOnUse">
+            <path d="M 22 0 L 0 0 0 22" fill="none" stroke="rgba(201, 168, 74, 0.14)" strokeWidth="0.75" />
           </pattern>
+          <linearGradient id={washId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(122, 30, 44, 0.22)" />
+            <stop offset="55%" stopColor="rgba(30, 24, 20, 0.08)" />
+            <stop offset="100%" stopColor="rgba(201, 168, 74, 0.12)" />
+          </linearGradient>
+          <radialGradient id={vignetteId} cx="50%" cy="50%" r="68%">
+            <stop offset="55%" stopColor="rgba(0,0,0,0)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,0.45)" />
+          </radialGradient>
         </defs>
-        <rect width="400" height="225" fill="url(#rest-hub-map-grid)" />
-        <rect
-          x="24"
-          y="52"
-          width="88"
-          height="56"
-          rx="6"
-          fill="var(--lx-card)"
-          fillOpacity="0.55"
-          stroke="var(--lx-gold-border)"
-          strokeOpacity="0.7"
-          strokeWidth="1"
-        />
-        <rect
-          x="128"
-          y="36"
-          width="64"
-          height="72"
-          rx="5"
-          fill="var(--lx-card)"
-          fillOpacity="0.45"
-          stroke="var(--lx-gold-border)"
-          strokeOpacity="0.65"
-          strokeWidth="1"
-        />
-        <rect
-          x="208"
-          y="88"
-          width="96"
-          height="48"
-          rx="6"
-          fill="var(--lx-card)"
-          fillOpacity="0.5"
-          stroke="var(--lx-gold-border)"
-          strokeOpacity="0.7"
-          strokeWidth="1"
-        />
-        <rect
-          x="48"
-          y="128"
-          width="112"
-          height="64"
-          rx="7"
-          fill="var(--lx-card)"
-          fillOpacity="0.4"
-          stroke="var(--lx-gold-border)"
-          strokeOpacity="0.6"
-          strokeWidth="1"
-        />
-        <rect
-          x="272"
-          y="120"
-          width="80"
-          height="72"
-          rx="6"
-          fill="var(--lx-card)"
-          fillOpacity="0.48"
-          stroke="var(--lx-gold-border)"
-          strokeOpacity="0.65"
-          strokeWidth="1"
-        />
+        <rect width="400" height="190" fill={`url(#${gridId})`} />
+        <rect width="400" height="190" fill={`url(#${washId})`} />
         <path
-          d="M 0 112 Q 80 96 160 112 T 320 108 T 400 118"
+          d="M 0 96 Q 100 82 200 96 T 400 92"
           fill="none"
-          stroke="var(--lx-muted)"
-          strokeOpacity="0.2"
-          strokeWidth="10"
+          stroke="rgba(255, 252, 247, 0.22)"
+          strokeWidth="12"
           strokeLinecap="round"
         />
+        <path
+          d="M 0 96 Q 100 82 200 96 T 400 92"
+          fill="none"
+          stroke="rgba(201, 168, 74, 0.35)"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <rect x="20" y="40" width="58" height="44" rx="4" fill="rgba(255, 252, 247, 0.08)" stroke="rgba(201, 168, 74, 0.28)" strokeWidth="1" />
+        <rect x="98" y="28" width="72" height="56" rx="5" fill="rgba(122, 30, 44, 0.18)" stroke="rgba(201, 168, 74, 0.32)" strokeWidth="1" />
+        <rect x="188" y="68" width="88" height="40" rx="4" fill="rgba(255, 252, 247, 0.07)" stroke="rgba(201, 168, 74, 0.25)" strokeWidth="1" />
+        <rect width="400" height="190" fill={`url(#${vignetteId})`} />
       </svg>
 
       <div
-        className="pointer-events-none absolute left-1/2 top-[44%] z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center"
+        className="pointer-events-none absolute left-1/2 top-[40%] z-10 flex -translate-x-1/2 flex-col items-center"
         aria-hidden
       >
-        <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[color:var(--lx-card)] bg-[color:var(--lx-gold)] shadow-lg sm:h-12 sm:w-12">
-          <FiMapPin className="h-5 w-5 text-[color:var(--lx-cta-dark)] sm:h-6 sm:w-6" aria-hidden />
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-[#FFFCF7] shadow-lg sm:h-11 sm:w-11"
+          style={{
+            backgroundColor: PIN_BURGUNDY,
+            boxShadow: `0 8px 22px rgba(30, 24, 16, 0.45), 0 0 0 4px rgba(201, 168, 74, 0.35)`,
+          }}
+        >
+          <FiMapPin className="h-5 w-5 text-white sm:h-[1.35rem] sm:w-[1.35rem]" aria-hidden />
         </div>
-        <div className="mt-0.5 h-2 w-2 rotate-45 bg-[color:var(--lx-gold)]" />
+        <span
+          className="mt-0.5 h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: PIN_GOLD, boxShadow: "0 0 6px rgba(201, 168, 74, 0.6)" }}
+        />
       </div>
     </div>
   );

@@ -312,10 +312,10 @@ export function filterHeroPrimaryCtas(
     hub.contactUs.some((b) => b.id === "call") || hub.catering.some((b) => b.id === "catering-call");
   const hubHasWa =
     hub.contactUs.some((b) => b.id === "whatsapp") || hub.catering.some((b) => b.id === "catering-wa");
-  const hubHasWebsite = hub.findUs.some((b) => b.id === "website");
-  const hubHasOrder = hub.findUs.some((b) => b.id === "order");
-  const hubHasReserve = hub.findUs.some((b) => b.id === "reserve");
-  const hubHasMenu = hub.findUs.some((b) => b.id === "menu-url" || b.id === "menu-file");
+  const hubHasWebsite = hub.orderReserve.some((b) => b.id === "website");
+  const hubHasOrder = hub.orderReserve.some((b) => b.id === "order");
+  const hubHasReserve = hub.orderReserve.some((b) => b.id === "reserve");
+  const hubHasMenu = hub.orderReserve.some((b) => b.id === "menu-url" || b.id === "menu-file");
   const hubHasDirections = Boolean(hub.location?.mapsHref);
   const hubHasSms = hub.contactUs.some((b) => b.id === "sms");
   const hubHasEmail = hub.contactUs.some((b) => b.id === "email");

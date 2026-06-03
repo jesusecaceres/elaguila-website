@@ -1,6 +1,8 @@
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
 import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
+import { computeShellHoursPreview } from "./restauranteHoursPreview";
 import {
   buildCateringInquiryPrefill,
   isValidExternalHttpUrl,
@@ -42,10 +44,18 @@ export type RestaurantHubSocialLink = {
   url: string;
 };
 
+export type RestaurantContactHubHours = {
+  openNowLabel?: string;
+  todayHoursLine?: string;
+  weeklyRows: { dayLabel: string; line: string; isToday?: boolean }[];
+  specialNote?: string;
+};
+
 export type RestaurantContactHubData = {
   hasAny: boolean;
   businessName: string;
   contactUs: RestaurantHubButton[];
+  orderReserve: RestaurantHubButton[];
   social: RestaurantHubSocialLink[];
   reviews: RestaurantHubButton[];
   findUs: RestaurantHubButton[];
@@ -57,12 +67,96 @@ export type RestaurantContactHubData = {
     mapsHref?: string;
     mapsLabel: string;
   };
+  hours?: RestaurantContactHubHours;
 };
+
+const HOURS_DAY_ORDER: {
+  key: keyof Pick<
+    RestauranteListingDraft,
+    "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+  >;
+  label: string;
+}[] = [
+  { key: "monday", label: "Lunes" },
+  { key: "tuesday", label: "Martes" },
+  { key: "wednesday", label: "Miércoles" },
+  { key: "thursday", label: "Jueves" },
+  { key: "friday", label: "Viernes" },
+  { key: "saturday", label: "Sábado" },
+  { key: "sunday", label: "Domingo" },
+];
+
+const TODAY_KEY = (() => {
+  const keys = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+  return keys[new Date().getDay()];
+})();
 
 function pushUniqueButton(list: RestaurantHubButton[], btn: RestaurantHubButton | null | undefined) {
   if (!btn?.href?.trim()) return;
   if (list.some((b) => b.id === btn.id)) return;
   list.push(btn);
+}
+
+function dayHasConfiguredHours(s: RestauranteDaySchedule | undefined): boolean {
+  if (!s) return false;
+  return !s.closed && Boolean(s.openTime?.trim() && s.closeTime?.trim());
+}
+
+function buildHubHours(d: RestauranteListingDraft, lang: "es" | "en"): RestaurantContactHubHours | undefined {
+  const weeklyHours = {
+    monday: d.monday,
+    tuesday: d.tuesday,
+    wednesday: d.wednesday,
+    thursday: d.thursday,
+    friday: d.friday,
+    saturday: d.saturday,
+    sunday: d.sunday,
+  };
+
+  const specialNote = d.specialHoursNote?.trim() || undefined;
+  const hasConfigured =
+    Boolean(specialNote) ||
+    Boolean(d.temporaryHoursActive && d.temporaryHoursNote?.trim()) ||
+    HOURS_DAY_ORDER.some(({ key }) => dayHasConfiguredHours(d[key] as RestauranteDaySchedule | undefined));
+
+  if (!hasConfigured) return undefined;
+
+  const weeklyRows: RestaurantContactHubHours["weeklyRows"] = [];
+  for (const { key, label } of HOURS_DAY_ORDER) {
+    const s = d[key] as RestauranteDaySchedule | undefined;
+    if (!s) continue;
+    const line = s.closed
+      ? lang === "en"
+        ? "Closed"
+        : "Cerrado"
+      : s.openTime?.trim() && s.closeTime?.trim()
+        ? `${s.openTime} – ${s.closeTime}`
+        : lang === "en"
+          ? "Hours TBD"
+          : "Horario por confirmar";
+    weeklyRows.push({ dayLabel: label, line, isToday: key === TODAY_KEY });
+  }
+
+  const preview = computeShellHoursPreview({
+    ...weeklyHours,
+    temporaryHoursActive: d.temporaryHoursActive,
+    temporaryHoursNote: d.temporaryHoursNote,
+    specialHoursNote: d.specialHoursNote,
+  });
+  let openNowLabel: string | undefined;
+  let todayHoursLine: string | undefined;
+  if (preview.status === "open") {
+    openNowLabel = lang === "en" ? "Open now" : "Abierto ahora";
+    todayHoursLine = preview.statusLine;
+  } else if (preview.status === "closed") {
+    openNowLabel = lang === "en" ? "Closed" : "Cerrado";
+    todayHoursLine = preview.statusLine;
+  } else if (preview.statusLine?.trim()) {
+    openNowLabel = lang === "en" ? "Today" : "Hoy";
+    todayHoursLine = preview.statusLine;
+  }
+
+  return { openNowLabel, todayHoursLine, weeklyRows, specialNote };
 }
 
 export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es" | "en" = "es"): RestaurantContactHubData | undefined {
@@ -76,6 +170,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       label: lang === "en" ? "Call" : "Llamar",
       href: telHref(phone),
       action: "call",
+      fullWidth: true,
     });
     const sms = smsHref(phone);
     if (sms) {
@@ -111,6 +206,59 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     });
   }
 
+  const orderReserve: RestaurantHubButton[] = [];
+  const menuUrl = nonEmpty(d.menuUrl) ? normalizeRestaurantUrl(d.menuUrl!) : "";
+  const menuFile = nonEmpty(d.menuFile) ? d.menuFile!.trim() : "";
+  if (menuUrl && isValidExternalHttpUrl(menuUrl)) {
+    pushUniqueButton(orderReserve, {
+      id: "menu-url",
+      label: lang === "en" ? "Menu" : "Menú",
+      href: menuUrl,
+      action: "menu",
+    });
+  } else if (menuFile) {
+    pushUniqueButton(orderReserve, {
+      id: "menu-file",
+      label: lang === "en" ? "Menu" : "Menú",
+      href: menuFile,
+      action: "menu",
+    });
+  }
+  if (nonEmpty(d.reservationUrl)) {
+    const url = normalizeRestaurantUrl(d.reservationUrl!);
+    if (isValidExternalHttpUrl(url)) {
+      pushUniqueButton(orderReserve, {
+        id: "reserve",
+        label: lang === "en" ? "Reserve" : "Reservar",
+        href: url,
+        action: "booking",
+      });
+    }
+  }
+  if (nonEmpty(d.orderUrl)) {
+    const url = normalizeRestaurantUrl(d.orderUrl!);
+    if (isValidExternalHttpUrl(url)) {
+      pushUniqueButton(orderReserve, {
+        id: "order",
+        label: lang === "en" ? "Order now" : "Pedir ahora",
+        href: url,
+        action: "order",
+        fullWidth: Boolean(d.homeBasedBusiness),
+      });
+    }
+  }
+  if (nonEmpty(d.websiteUrl)) {
+    const url = normalizeRestaurantUrl(d.websiteUrl!);
+    if (isValidExternalHttpUrl(url)) {
+      pushUniqueButton(orderReserve, {
+        id: "website",
+        label: lang === "en" ? "Website" : "Sitio web",
+        href: url,
+        action: "website",
+      });
+    }
+  }
+
   const social: RestaurantHubSocialLink[] = [];
   const addSocial = (id: string, label: string, raw?: string) => {
     if (!nonEmpty(raw)) return;
@@ -129,7 +277,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     if (isValidExternalHttpUrl(url)) {
       pushUniqueButton(reviews, {
         id: "google-reviews",
-        label: lang === "en" ? "Google reviews" : "Reseñas en Google",
+        label: lang === "en" ? "Reviews on Google" : "Opiniones en Google",
         href: url,
         action: "review",
       });
@@ -140,7 +288,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     if (isValidExternalHttpUrl(url)) {
       pushUniqueButton(reviews, {
         id: "yelp",
-        label: "Yelp",
+        label: lang === "en" ? "Reviews on Yelp" : "Opiniones en Yelp",
         href: url,
         action: "review",
       });
@@ -148,57 +296,6 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
   }
 
   const findUs: RestaurantHubButton[] = [];
-  if (nonEmpty(d.websiteUrl)) {
-    const url = normalizeRestaurantUrl(d.websiteUrl!);
-    if (isValidExternalHttpUrl(url)) {
-      pushUniqueButton(findUs, {
-        id: "website",
-        label: lang === "en" ? "Website" : "Sitio web",
-        href: url,
-        action: "website",
-      });
-    }
-  }
-  const menuUrl = nonEmpty(d.menuUrl) ? normalizeRestaurantUrl(d.menuUrl!) : "";
-  const menuFile = nonEmpty(d.menuFile) ? d.menuFile!.trim() : "";
-  if (menuUrl && isValidExternalHttpUrl(menuUrl)) {
-    pushUniqueButton(findUs, {
-      id: "menu-url",
-      label: lang === "en" ? "Menu / catalog" : "Catálogo / menú",
-      href: menuUrl,
-      action: "menu",
-    });
-  } else if (menuFile) {
-    pushUniqueButton(findUs, {
-      id: "menu-file",
-      label: lang === "en" ? "Menu / catalog" : "Catálogo / menú",
-      href: menuFile,
-      action: "menu",
-    });
-  }
-  if (nonEmpty(d.orderUrl)) {
-    const url = normalizeRestaurantUrl(d.orderUrl!);
-    if (isValidExternalHttpUrl(url)) {
-      pushUniqueButton(findUs, {
-        id: "order",
-        label: d.homeBasedBusiness ? (lang === "en" ? "Order now" : "Pedir ahora") : lang === "en" ? "Order online" : "Ordenar en línea",
-        href: url,
-        action: "order",
-        fullWidth: Boolean(d.homeBasedBusiness),
-      });
-    }
-  }
-  if (nonEmpty(d.reservationUrl)) {
-    const url = normalizeRestaurantUrl(d.reservationUrl!);
-    if (isValidExternalHttpUrl(url)) {
-      pushUniqueButton(findUs, {
-        id: "reserve",
-        label: lang === "en" ? "Reserve" : "Reservar",
-        href: url,
-        action: "booking",
-      });
-    }
-  }
   if (d.movingVendor) {
     const locUrl = d.movingVendorStack?.currentLocationUrl?.trim();
     if (locUrl) {
@@ -209,7 +306,6 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
           label: lang === "en" ? "See where we are today" : "Ver dónde está hoy",
           href: url,
           action: "website",
-          fullWidth: true,
         });
       }
     }
@@ -224,7 +320,6 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
         label: lang === "en" ? "Request a quote" : "Pedir cotización",
         href: telHref(d.phoneNumber!),
         action: "call",
-        fullWidth: true,
       });
     }
     if (nonEmpty(d.whatsAppNumber)) {
@@ -287,7 +382,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
         : serviceArea,
       supportingText: pickupNote,
       mapsHref,
-      mapsLabel: lang === "en" ? "View on map" : "Ver en el mapa",
+      mapsLabel: lang === "en" ? "Get directions" : "Cómo llegar",
     };
   }
 
@@ -295,13 +390,18 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     Boolean(location?.addressLine1 || location?.mapsHref || location?.supportingText) ||
     Boolean(location?.addressLine2 && (showStreet || nonEmpty(d.cityCanonical) || nonEmpty(d.serviceAreaText)));
 
+  const hours = buildHubHours(d, lang);
+  const hasHours = Boolean(hours?.weeklyRows.length || hours?.specialNote || hours?.todayHoursLine);
+
   const hasAny =
     contactUs.length > 0 ||
+    orderReserve.length > 0 ||
     social.length > 0 ||
     reviews.length > 0 ||
     findUs.length > 0 ||
     catering.length > 0 ||
-    hasLocation;
+    hasLocation ||
+    hasHours;
 
   if (!hasAny) return undefined;
 
@@ -309,10 +409,12 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
     hasAny,
     businessName,
     contactUs,
+    orderReserve,
     social,
     reviews,
     findUs,
     catering,
     location,
+    hours: hasHours ? hours : undefined,
   };
 }

@@ -47,6 +47,7 @@ const base = (): RestauranteListingDraft => ({
     },
   });
   assert(hub!.findUs.some((b) => b.id === "current-location"), "moving vendor shows Ver dónde está hoy");
+  assert(!hub!.orderReserve.some((b) => b.id === "current-location"), "current location not in orderReserve");
 }
 
 // Mobile vendor without URL
@@ -70,7 +71,7 @@ const base = (): RestauranteListingDraft => ({
     homeBasedStack: { pickupInstructions: "Ring bell" },
   });
   assert(!hub!.location?.addressLine1, "home private hides street");
-  assert(hub!.findUs.some((b) => b.id === "order"), "home shows order CTA");
+  assert(hub!.orderReserve.some((b) => b.id === "order"), "home shows order CTA in orderReserve");
   assert(Boolean(hub!.location?.supportingText?.includes("Ring")), "pickup instructions as text");
 }
 
@@ -92,6 +93,19 @@ const base = (): RestauranteListingDraft => ({
     yelpReviewUrl: "https://www.yelp.com/biz/example",
   });
   assert(hub!.reviews.length === 2, "both review links");
+}
+
+// Order / menu / website grouping
+{
+  const hub = buildRestaurantContactHub({
+    ...base(),
+    menuUrl: "https://menu.example.com",
+    reservationUrl: "https://reserve.example.com",
+    orderUrl: "https://order.example.com",
+    websiteUrl: "https://www.example.com",
+  });
+  assert(hub!.orderReserve.length === 4, "orderReserve has menu, reserve, order, website");
+  assert(hub!.findUs.length === 0, "no stray website in findUs");
 }
 
 console.log("OK: restaurant-contact-hub-qa passed");
