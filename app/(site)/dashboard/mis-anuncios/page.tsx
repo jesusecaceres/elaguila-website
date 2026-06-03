@@ -24,7 +24,6 @@ import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLa
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { DashboardMobilePreview } from "../components/DashboardMobilePreview";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
 import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
@@ -87,6 +86,16 @@ type Lang = "es" | "en";
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
+const DASH_EM_DASH = "—";
+
+function publicResultsActionLabel(lang: Lang): string {
+  return lang === "es" ? "Ver en resultados públicos" : "View in public results";
+}
+
+function analyticsActionLabel(lang: Lang): string {
+  return lang === "es" ? "Analíticas" : "Analytics";
+}
+
 type ListingRow = {
   id: string;
   title?: string | null;
@@ -106,12 +115,12 @@ type ListingRow = {
   republished_at?: string | null;
   republish_count?: number | null;
   views?: number | null;
-  /** When set and lower than original, UI may show â€œprice reducedâ€ (contract-ready). */
+  /** When set and lower than original, UI may show "price reduced" (contract-ready). */
   original_price?: number | string | null;
   current_price?: number | string | null;
   price_last_updated?: string | null;
   is_published?: boolean | null;
-  /** Permanent directory id when column exists â€” display only. */
+  /** Permanent directory id when column exists — display only. */
   leonix_ad_id?: string | null;
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
@@ -158,7 +167,7 @@ function formatDateIso(iso?: string | null) {
 
 function formatDateTimeMs(ms: number, lang: Lang) {
   const d = new Date(ms);
-  if (Number.isNaN(d.getTime())) return "â€”";
+  if (Number.isNaN(d.getTime())) return DASH_EM_DASH;
   return d.toLocaleString(lang === "es" ? "es-US" : "en-US", {
     year: "numeric",
     month: "short",
@@ -202,7 +211,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
 
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
-  if (s.length < 8) return "â€”";
+  if (s.length < 8) return DASH_EM_DASH;
   return `${s.slice(0, 4).toUpperCase()}-${s.slice(-4).toUpperCase()}`;
 }
 
@@ -212,7 +221,7 @@ function normalizeStatus(s: string | null | undefined): string {
 
 function passesTab(row: ListingRow, tab: Tab): boolean {
   const st = normalizeStatus(row.status);
-  /** Keep removed rows in â€œAllâ€ so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
+  /** Keep removed rows in "All" so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
   if (st === "removed") return tab === "all";
   const isDraft = row.is_published === false || st === "draft";
   if (tab === "all") return true;
@@ -222,7 +231,7 @@ function passesTab(row: ListingRow, tab: Tab): boolean {
   return true;
 }
 
-/** Category chips / filters â€” aligns inventory sections with one key per lane. */
+/** Category chips / filters — aligns inventory sections with one key per lane. */
 type MisAnunciosCategoryFilter =
   | "all"
   | "en-venta"
@@ -300,27 +309,26 @@ export default function MyListingsPage() {
       lang === "es"
         ? {
             title: "Mis anuncios",
-            subtitle: "Gestiona tus anuncios por categorÃ­a y revisa solo lo que te pertenece.",
-            searchPh: "Buscar por tÃ­tuloâ€¦",
+            subtitle: "Gestiona tus anuncios, filtros y acciones por anuncio.",
+            searchPh: "Buscar por título…",
             tabAll: "Todos",
             tabActive: "Activos",
             tabExpired: "Expirados",
-            tabMod: "ModeraciÃ³n",
+            tabMod: "Moderación",
             statActive: "Activos",
             statViews: "Vistas",
             statMsg: "Mensajes",
             statSaves: "Guardados",
             statShares: "Compartidos",
-            loading: "Cargandoâ€¦",
+            loading: "Cargando…",
             empty: "No hay anuncios en esta vista.",
-            emptyAll: "AÃºn no tienes anuncios.",
+            emptyAll: "Aún no tienes anuncios.",
             restaurantSectionTitle: "Restaurantes",
             restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
             cta: "Publicar anuncio",
             yourListings: "Tus anuncios",
-            categoryMgmt: "GestiÃ³n de categorÃ­as",
-            categoryMgmtHint:
-              "Publica en categorÃ­as nuevas o abre la gestiÃ³n cuando ya tengas anuncios.",
+            categoryMgmt: "Categorías",
+            categoryMgmtHint: "Publica en una categoría nueva o abre la gestión de la que ya usas.",
             activeCountNote:
               "Los activos usan el mismo conteo que el resumen (todas las fuentes Leonix conectadas a tu cuenta).",
             chipAll: "Todos",
@@ -328,13 +336,13 @@ export default function MyListingsPage() {
             publish: "Publicar",
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
-            analyticsDegraded:
-              "Las analÃ­ticas por anuncio no estÃ¡n disponibles en la base aÃºn (tabla de eventos). Los conteos aquÃ­ aparecen en cero; no indica un problema con tu cuenta.",
+            analyticsNotice:
+              "Las analíticas de Leonix se actualizan cuando tus anuncios reciben actividad. Si un conteo aparece en cero, aún no hay interacciones registradas para ese anuncio.",
           }
         : {
             title: "My listings",
-            subtitle: "Manage your listings by category and review only what you own.",
-            searchPh: "Search by titleâ€¦",
+            subtitle: "Manage your ads, filters, and per-listing actions.",
+            searchPh: "Search by title…",
             tabAll: "All",
             tabActive: "Active",
             tabExpired: "Ended",
@@ -344,15 +352,15 @@ export default function MyListingsPage() {
             statMsg: "Messages",
             statSaves: "Saves",
             statShares: "Shares",
-            loading: "Loadingâ€¦",
+            loading: "Loading…",
             empty: "No listings in this view.",
             emptyAll: "You don't have any listings yet.",
             restaurantSectionTitle: "Restaurants",
             restaurantSectionHint: "Manage your published restaurants from dashboard.",
             cta: "Publish listing",
             yourListings: "Your listings",
-            categoryMgmt: "Category Management",
-            categoryMgmtHint: "Publish into new categories or open manage when you already have listings.",
+            categoryMgmt: "Categories",
+            categoryMgmtHint: "Publish in a new category or open management for one you already use.",
             activeCountNote:
               "Active count matches Overview (all Leonix channels tied to your account).",
             chipAll: "All",
@@ -360,8 +368,8 @@ export default function MyListingsPage() {
             publish: "Publish",
             errorTitle: "We couldn't load your listings",
             back: "Back to overview",
-            analyticsDegraded:
-              "Per-listing analytics are not available in the database yet (events table). Counts here show as zero; that does not mean your account is broken.",
+            analyticsNotice:
+              "Leonix analytics update as your ads receive activity. If a count shows zero, that ad may not have recorded interactions yet.",
           },
     [lang]
   );
@@ -395,7 +403,6 @@ export default function MyListingsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
-  const [previewListingId, setPreviewListingId] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = searchParams?.get("cat");
@@ -745,7 +752,7 @@ export default function MyListingsPage() {
 
   /** Soft archive (Admin-aligned): row stays in DB; Leonix Ad ID and history preserved. */
   async function softArchiveListing(id: string) {
-    if (!confirm(lang === "es" ? "Â¿Archivar este anuncio? DejarÃ¡ de mostrarse al pÃºblico." : "Archive this listing? It will stop showing publicly.")) return;
+    if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
 
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
@@ -782,28 +789,6 @@ export default function MyListingsPage() {
     if (!needle) return categoryFilteredListings;
     return categoryFilteredListings.filter((x) => (x.title ?? "").toLowerCase().includes(needle));
   }, [categoryFilteredListings, needle]);
-
-  useEffect(() => {
-    if (visible.length === 0) {
-      setPreviewListingId(null);
-      return;
-    }
-    if (visible.length === 1) {
-      setPreviewListingId(visible[0]!.id);
-      return;
-    }
-    setPreviewListingId((prev) => (prev && visible.some((x) => x.id === prev) ? prev : null));
-  }, [visible]);
-
-  const previewRow = useMemo(() => {
-    if (visible.length === 0) return null;
-    if (visible.length > 1 && !previewListingId) return null;
-    if (previewListingId) {
-      const hit = visible.find((x) => x.id === previewListingId);
-      if (hit) return hit;
-    }
-    return visible.length === 1 ? visible[0]! : null;
-  }, [visible, previewListingId]);
 
   function resolveViews(x: ListingRow, stats?: ListingAnalyticsBucket) {
     const fromEvents = stats?.views ?? 0;
@@ -845,14 +830,6 @@ export default function MyListingsPage() {
     for (const x of listings) s += analyticsByListing[x.id]?.shares ?? 0;
     return s;
   }, [listings, analyticsByListing]);
-
-  const previewStats = previewRow ? analyticsByListing[previewRow.id] : undefined;
-  const previewTitle = previewRow?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
-  const previewPrice = previewRow ? formatPrice(previewRow.price, lang) : "â€”";
-  const previewCity = (previewRow?.city ?? "").trim() || "â€”";
-  const pv = previewRow ? resolveViews(previewRow, previewStats) : 0;
-  const ps = previewStats?.saves ?? 0;
-  const pm = previewStats?.messages ?? 0;
 
   const showLoading = authLoading || listingsLoading;
   const hasAnyInventory =
@@ -986,21 +963,6 @@ export default function MyListingsPage() {
       userName={name}
       email={email}
       accountRef={accountRef}
-      rightPanel={
-        previewRow ? (
-          <DashboardMobilePreview
-            lang={lang}
-            title={previewTitle}
-            priceLine={previewPrice}
-            city={previewCity}
-            views={pv}
-            saves={ps}
-            messages={pm}
-          />
-        ) : (
-          <DashboardMobilePreview lang={lang} mode="placeholder" />
-        )
-      }
     >
       {showLoading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
@@ -1010,14 +972,19 @@ export default function MyListingsPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
               <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
-              {listingAnalyticsDegraded ? (
-                <p
-                  className="mt-3 max-w-3xl rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950"
-                  role="status"
-                >
-                  {t.analyticsDegraded}
-                </p>
-              ) : null}
+              <p
+                className="mt-3 max-w-3xl rounded-xl border border-sky-200/90 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-950"
+                role="status"
+              >
+                {t.analyticsNotice}
+                {listingAnalyticsDegraded ? (
+                  <span className="mt-2 block text-xs text-sky-900/85">
+                    {lang === "es"
+                      ? "Los eventos detallados aún no están en la base; los totales pueden mostrarse en cero."
+                      : "Detailed events are not in the database yet; totals may show as zero."}
+                  </span>
+                ) : null}
+              </p>
             </div>
             <Link
               href={`/clasificados/publicar?${q}`}
@@ -1027,8 +994,8 @@ export default function MyListingsPage() {
             </Link>
           </header>
 
-          <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
-            <h2 className="text-lg font-bold text-[#1E1810]">{t.categoryMgmt}</h2>
+          <div className="mt-5 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-[0_8px_28px_-14px_rgba(42,36,22,0.08)]">
+            <h2 className="text-base font-bold text-[#1E1810]">{t.categoryMgmt}</h2>
             <p className="mt-2 text-sm text-[#5C5346]/95">{t.categoryMgmtHint}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
@@ -1076,7 +1043,7 @@ export default function MyListingsPage() {
                 },
                 {
                   key: "bienes-raices" as const,
-                  title: lang === "es" ? "Bienes raÃ­ces" : "Real estate",
+                  title: lang === "es" ? "Bienes raíces" : "Real estate",
                   owned: categoryCounts["bienes-raices"],
                   manage: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
                   publish: `/publicar/bienes-raices?${q}`,
@@ -1130,15 +1097,15 @@ export default function MyListingsPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             {[
-              { label: t.statActive, value: totalActive, icon: "ðŸ“£" },
-              { label: t.statViews, value: totalViewsSum, icon: "ðŸ‘" },
-              { label: t.statMsg, value: totalMessages, icon: "ðŸ’¬" },
-              { label: t.statSaves, value: totalSavesSum, icon: "ðŸ”–" },
-              { label: t.statShares, value: totalSharesSum, icon: "â†—" },
+              { label: t.statActive, value: totalActive },
+              { label: t.statViews, value: totalViewsSum },
+              { label: t.statMsg, value: totalMessages },
+              { label: t.statSaves, value: totalSavesSum },
+              { label: t.statShares, value: totalSharesSum },
             ].map((c) => (
-              <DashboardStatsCard key={c.label} label={c.label} value={c.value} icon={c.icon} />
+              <DashboardStatsCard key={c.label} label={c.label} value={c.value} />
             ))}
           </div>
           <p className="mt-3 max-w-3xl text-xs leading-relaxed text-[#7A7164]/95">{t.activeCountNote}</p>
@@ -1146,7 +1113,7 @@ export default function MyListingsPage() {
           {filterChips.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {lang === "es" ? "CategorÃ­a" : "Category"}
+                {lang === "es" ? "Categoría" : "Category"}
               </span>
               <button
                 type="button"
@@ -1221,42 +1188,22 @@ export default function MyListingsPage() {
             </div>
           ) : null}
 
-          <div className="mt-6 flex flex-col gap-4 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
               {tabBtn("all", t.tabAll)}
               {tabBtn("active", t.tabActive)}
               {tabBtn("expired", t.tabExpired)}
               {tabBtn("moderation", t.tabMod)}
             </div>
-            <div className="flex w-full flex-col gap-3 sm:max-w-none sm:flex-row sm:items-end sm:justify-end">
-              <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t.searchPh}
-                  className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-10 text-sm text-[#1E1810] outline-none"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7164]">âŒ•</span>
-              </div>
-              {visible.length > 1 ? (
-                <div className="min-w-[220px] w-full sm:w-auto">
-                  <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                    {lang === "es" ? "Vista previa mÃ³vil" : "Mobile preview"}
-                  </label>
-                  <select
-                    value={previewListingId ?? ""}
-                    onChange={(e) => setPreviewListingId(e.target.value ? e.target.value : null)}
-                    className="mt-1 w-full rounded-2xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/60"
-                  >
-                    <option value="">{lang === "es" ? "â€” Elegir anuncio â€”" : "â€” Choose listing â€”"}</option>
-                    {visible.map((x) => (
-                      <option key={x.id} value={x.id}>
-                        {(x.title ?? "").trim() || shortListingRef(x.id)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
+            <div className="relative w-full min-w-[200px] flex-1 sm:max-w-sm">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t.searchPh}
+                className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-4 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/60"
+                type="search"
+                aria-label={t.searchPh}
+              />
             </div>
           </div>
 
@@ -1307,17 +1254,21 @@ export default function MyListingsPage() {
                     ].filter(Boolean)}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: "Slug", value: item.slug ?? "â€”" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "â€”" },
+                      { label: "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver publico" : "View public", tone: "primary" as const },
-                      { href: "/dashboard/restaurantes?" + q, label: lang === "es" ? "Gestionar restaurante" : "Manage restaurant" },
-                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Ver en resultados" : "View in results", tone: "subtle" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
+                      { href: "/dashboard/restaurantes?" + q, label: lang === "es" ? "Gestionar" : "Manage" },
+                      ...(item.previewHref
+                        ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
+                        : []),
+                      { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
+                      { href: item.analyticsHref ?? undefined, label: analyticsActionLabel(lang), tone: "subtle" as const },
                       { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
                     ].filter((action) => Boolean(action.href))}
                   />
@@ -1349,15 +1300,15 @@ export default function MyListingsPage() {
                     subtitle={item.slug}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: "Slug", value: item.slug ?? "â€”" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "â€”" },
+                      { label: "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver pÃºblico" : "View public", tone: "primary" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
                       {
                         href: item.editHref,
                         label: lang === "es" ? "Gestionar vacante" : "Manage listing",
@@ -1373,7 +1324,12 @@ export default function MyListingsPage() {
                         : []),
                       {
                         href: item.resultsHref ?? undefined,
-                        label: lang === "es" ? "Ver resultados" : "View results",
+                        label: publicResultsActionLabel(lang),
+                        tone: "subtle" as const,
+                      },
+                      {
+                        href: item.analyticsHref ?? undefined,
+                        label: analyticsActionLabel(lang),
                         tone: "subtle" as const,
                       },
                     ].filter((action) => Boolean(action.href))}
@@ -1391,7 +1347,7 @@ export default function MyListingsPage() {
                 </h2>
                 <p className="mt-1 text-sm text-[#5C5346]/90">
                   {lang === "es"
-                    ? "Tus ofertas de viaje publicadas. Gestiona estado y moderaciÃ³n."
+                    ? "Tus ofertas de viaje publicadas. Gestiona estado y moderación."
                     : "Your published travel offers. Manage status and moderation."}
                 </p>
               </div>
@@ -1406,18 +1362,18 @@ export default function MyListingsPage() {
                     subtitle={item.slug}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: "Slug", value: item.slug ?? "â€”" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
-                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "â€”" },
+                      { label: "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
+                      { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver pÃºblico" : "View public", tone: "primary" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
                       {
                         href: item.editHref,
-                        label: lang === "es" ? "Gestionar envÃ­o" : "Manage submission",
+                        label: lang === "es" ? "Gestionar envío" : "Manage submission",
                       },
                       ...(item.previewHref
                         ? [
@@ -1430,7 +1386,12 @@ export default function MyListingsPage() {
                         : []),
                       {
                         href: item.resultsHref ?? undefined,
-                        label: lang === "es" ? "Ver resultados" : "View results",
+                        label: publicResultsActionLabel(lang),
+                        tone: "subtle" as const,
+                      },
+                      {
+                        href: item.analyticsHref ?? undefined,
+                        label: analyticsActionLabel(lang),
                         tone: "subtle" as const,
                       },
                     ].filter((action) => Boolean(action.href))}
@@ -1482,19 +1443,20 @@ export default function MyListingsPage() {
                     ].filter(Boolean)}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
-                      { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "â€”" },
-                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "â€”" },
+                      { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "—" },
+                      { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       ...(item.leonixAdId?.trim()
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
                     actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver pÃºblico" : "View public", tone: "primary" as const },
+                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
                       { href: item.editHref, label: lang === "es" ? "Gestionar" : "Manage" },
                       ...(item.previewHref
                         ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
                         : []),
-                      { href: item.resultsHref ?? undefined, label: lang === "es" ? "Resultados" : "Results", tone: "subtle" as const },
+                      { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
+                      { href: item.analyticsHref ?? undefined, label: analyticsActionLabel(lang), tone: "subtle" as const },
                     ].filter((action) => Boolean(action.href))}
                   />
                 ))}
@@ -1770,7 +1732,7 @@ export default function MyListingsPage() {
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-lg font-bold text-[#1E1810]">{x.title || "â€”"}</span>
+                          <span className="text-lg font-bold text-[#1E1810]">{x.title || "—"}</span>
                           {categoryChip ? (
                             <span className="rounded-full bg-[#E8F0FA] px-2.5 py-0.5 text-[11px] font-bold text-[#1E3A5F]">
                               {categoryChip}
@@ -1812,7 +1774,7 @@ export default function MyListingsPage() {
                         ) : null}
                         {stats ? (
                           <p className="mt-2 text-sm text-[#7A7164]">
-                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} Â· {lang === "es" ? "Mensajes" : "Messages"}:{" "}
+                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}:{" "}
                             {stats.messages}
                           </p>
                         ) : null}
@@ -1826,14 +1788,26 @@ export default function MyListingsPage() {
                           }
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
-                          {lang === "es" ? "Ver" : "View"}
+                          {lang === "es" ? "Ver público" : "View public"}
+                        </Link>
+                        <Link
+                          href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                          className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                        >
+                          {lang === "es" ? "Gestionar" : "Manage"}
+                        </Link>
+                        <Link
+                          href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                          className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                        >
+                          {analyticsActionLabel(lang)}
                         </Link>
                         {catLower === "clases" ? (
                           <Link
                             href={appendLangToPath("/clasificados/clases/resultados", lang)}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
-                            {lang === "es" ? "Lista pÃºblica" : "Public list"}
+                            {publicResultsActionLabel(lang)}
                           </Link>
                         ) : null}
                         {catLower === "comunidad" ? (
@@ -1841,7 +1815,7 @@ export default function MyListingsPage() {
                             href={appendLangToPath("/clasificados/comunidad/resultados", lang)}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
-                            {lang === "es" ? "Lista pÃºblica" : "Public list"}
+                            {publicResultsActionLabel(lang)}
                           </Link>
                         ) : null}
                         {catLower === "busco" ? (
@@ -1869,7 +1843,7 @@ export default function MyListingsPage() {
           ) : null}
 
           <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
-            â† {t.back}
+            ← {t.back}
           </Link>
         </>
       )}
