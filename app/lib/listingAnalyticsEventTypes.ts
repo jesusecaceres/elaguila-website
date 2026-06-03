@@ -23,6 +23,11 @@ export const LISTING_ANALYTICS_EVENT_TYPES = [
   /** Legacy BR / rentas helpers — still accepted by DB */
   "contact_click",
   "outbound_click",
+  /** Gate G2A — global dashboard pipeline */
+  "listing_impression",
+  "result_card_click",
+  "email_click",
+  "message_click",
 ] as const;
 
 export type ListingAnalyticsEventType = (typeof LISTING_ANALYTICS_EVENT_TYPES)[number];
