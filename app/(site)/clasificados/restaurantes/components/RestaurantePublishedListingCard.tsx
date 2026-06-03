@@ -109,6 +109,9 @@ export function RestaurantePublishedListingCard({
         publicDetailLabel={cta}
         discoveryRefineHref={slug ? narrowHref : undefined}
         discoveryRefineLabel={slug ? narrowLabel : undefined}
+        listingSourceId={row.id}
+        listingSlug={row.slug}
+        leonixAdId={row.leonixAdId}
         className={displayBadge || monetizationBadges.length || row.promoted ? "pt-9" : ""}
       />
     </article>

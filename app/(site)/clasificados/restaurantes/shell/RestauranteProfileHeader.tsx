@@ -5,6 +5,16 @@ import { FiClock, FiMapPin, FiStar } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import {
+  restaurantesGlobalLikeRecorder,
+  restaurantesGlobalListingFromRow,
+  restaurantesGlobalSaveRecorder,
+  restaurantesGlobalShareRecorder,
+} from "../lib/recordRestaurantesGlobalAnalytics";
+import {
+  restaurantesSavedListingExtras,
+  restaurantesSavedListingExtrasFromClient,
+} from "@/app/lib/restaurantesSavedListingIdentity";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
 const HEADER_SHELL =
@@ -20,6 +30,8 @@ export function RestauranteProfileHeader({
   data,
   lang = "es",
   listingId = "",
+  listingSourceId,
+  listingSlug,
   listingShareUrl,
   analyticsOwnerUserId,
   persistListingEngagement = true,
@@ -27,12 +39,33 @@ export function RestauranteProfileHeader({
   data: RestaurantDetailShellData;
   lang?: "es" | "en";
   listingId?: string;
+  listingSourceId?: string;
+  listingSlug?: string;
   listingShareUrl?: string;
   analyticsOwnerUserId?: string | null;
   persistListingEngagement?: boolean;
 }) {
   const ownerUid = (analyticsOwnerUserId ?? "").trim() || undefined;
   const listingKey = (listingId ?? "").trim() || data.id;
+  const sourceId = (listingSourceId ?? "").trim();
+  const slug = (listingSlug ?? "").trim();
+  const saveExtras = sourceId
+    ? restaurantesSavedListingExtras({
+        slug: slug || data.id,
+        id: sourceId,
+        leonix_ad_id: /^REST-/i.test(listingKey) ? listingKey : null,
+      })
+    : restaurantesSavedListingExtrasFromClient({
+        slug: slug || data.id,
+        engagementListingId: listingKey,
+        listingSourceId: sourceId || null,
+      });
+  const globalListing =
+    sourceId && restaurantesGlobalListingFromRow({
+      id: sourceId,
+      slug: slug || undefined,
+      leonix_ad_id: /^REST-/i.test(listingKey) ? listingKey : null,
+    });
   const open = data.hoursPreview.status === "open";
 
   const chips: string[] = [];
@@ -152,15 +185,23 @@ export function RestauranteProfileHeader({
                 lang={lang}
                 category="restaurantes"
                 persistEngagement={persistListingEngagement}
+                recordLikeEvent={
+                  globalListing ? restaurantesGlobalLikeRecorder(globalListing) : undefined
+                }
                 className="!border-[#C9A84A]/40 !bg-[#FFFCF7]/95 !text-[#1E1814]"
               />
               <LeonixSaveButton
                 listingId={listingKey}
+                savedListingKey={sourceId || listingKey}
                 ownerUserId={ownerUid}
                 variant="small"
                 lang={lang}
                 category="restaurantes"
                 persistEngagement={persistListingEngagement}
+                saveExtras={saveExtras}
+                recordSaveEvent={
+                  globalListing ? restaurantesGlobalSaveRecorder(globalListing) : undefined
+                }
                 className="!border-[#C9A84A]/40 !bg-[#FFFCF7]/95 !text-[#1E1814]"
               />
               <LeonixShareButton
@@ -173,6 +214,9 @@ export function RestauranteProfileHeader({
                 category="restaurantes"
                 directNativeShare
                 persistEngagement={persistListingEngagement}
+                recordShareEvent={
+                  globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
+                }
                 className="[&>button]:!border-[#C9A84A]/40 [&>button]:!bg-[#FFFCF7]/95 [&>button]:!text-[#1E1814]"
               />
             </div>

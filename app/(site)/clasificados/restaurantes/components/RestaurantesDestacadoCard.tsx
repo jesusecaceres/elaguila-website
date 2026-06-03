@@ -61,6 +61,9 @@ export function RestaurantesDestacadoCard({
         likesCount={row.likesCount}
         publicDetailHref={href}
         publicDetailLabel={lang === "en" ? "View restaurant" : "Ver restaurante"}
+        listingSourceId={row.id}
+        listingSlug={row.slug}
+        leonixAdId={row.leonixAdId}
         className={badges.length ? "pt-9" : ""}
       />
     </article>

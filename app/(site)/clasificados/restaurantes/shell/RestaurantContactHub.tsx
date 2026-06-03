@@ -22,7 +22,10 @@ import {
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import type { RestaurantContactHubData, RestaurantHubButton } from "../application/buildRestaurantContactHub";
-import { trackRestaurantesCtaClick } from "../analytics/restaurantesAnalytics";
+import {
+  restaurantesAnalyticsTrackMeta,
+  trackRestaurantesListingCta,
+} from "../lib/restaurantesCtaTracking";
 import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 import { RestaurantHubReviewLinkButton } from "./RestaurantHubReviewLinkButton";
@@ -120,12 +123,16 @@ function CopyChip({ value }: { value: string }) {
 
 function hubButtonToCtaType(
   action: RestaurantHubButton["action"],
-): "phone" | "whatsapp" | "website" | "directions" | "order" | "reserve" | "general" {
+): "phone" | "whatsapp" | "email" | "website" | "directions" | "order" | "reserve" | "message" | "general" {
   switch (action) {
     case "call":
       return "phone";
     case "whatsapp":
       return "whatsapp";
+    case "email":
+      return "email";
+    case "sms":
+      return "message";
     case "directions":
       return "directions";
     case "website":
@@ -145,12 +152,16 @@ export function RestaurantContactHub({
   lang = "es",
   contactShareExtras,
   listingId,
+  listingSourceId,
+  listingSlug,
   ownerUserId,
 }: {
   hub: RestaurantContactHubData;
   lang?: "es" | "en";
   contactShareExtras?: CtaContactShareExtras | null;
   listingId?: string;
+  listingSourceId?: string;
+  listingSlug?: string;
   ownerUserId?: string | null;
 }) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
@@ -175,13 +186,18 @@ export function RestaurantContactHub({
     if (intent) setCtaIntent(intent);
   };
 
+  const analyticsBase = restaurantesAnalyticsTrackMeta({
+    listingSlug,
+    sourceId: listingSourceId,
+    engagementListingId: listingId,
+    source: "contact_hub",
+  });
+
   const emitCtaAnalytics = (btn: RestaurantHubButton) => {
-    const lid = (listingId ?? "").trim();
-    if (!lid) return;
-    void trackRestaurantesCtaClick(lid, hubButtonToCtaType(btn.action), {
-      ownerUserId: ownerUserId ?? undefined,
-      eventSource: "detail",
-      metadata: { hubButtonId: btn.id },
+    if (!(listingSourceId ?? "").trim()) return;
+    trackRestaurantesListingCta(hubButtonToCtaType(btn.action), {
+      ...analyticsBase,
+      hubButtonId: btn.id,
     });
   };
 

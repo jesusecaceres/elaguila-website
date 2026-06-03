@@ -13,8 +13,8 @@ import {
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import {
-  FiBookmark,
   FiCalendar,
   FiFileText,
   FiGlobe,
@@ -27,8 +27,17 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
-
-const STORAGE_KEY = "leonix.clasificados.restaurantes.shell.demo.saved";
+import {
+  restaurantesGlobalListingFromRow,
+  restaurantesGlobalSaveRecorder,
+  restaurantesGlobalShareRecorder,
+} from "../lib/recordRestaurantesGlobalAnalytics";
+import {
+  restaurantesAnalyticsTrackMeta,
+  trackRestaurantesListingCta,
+  type RestaurantesCtaType,
+} from "../lib/restaurantesCtaTracking";
+import { restaurantesSavedListingExtras } from "@/app/lib/restaurantesSavedListingIdentity";
 
 function iconFor(key: ShellPrimaryCta["key"]): IconType {
   switch (key) {
@@ -48,8 +57,6 @@ function iconFor(key: ShellPrimaryCta["key"]): IconType {
       return FiCalendar;
     case "order":
       return FiShoppingBag;
-    case "save":
-      return FiBookmark;
     case "share":
       return FiShare2;
     default:
@@ -57,56 +64,94 @@ function iconFor(key: ShellPrimaryCta["key"]): IconType {
   }
 }
 
+function shellCtaKeyToAnalyticsType(key: ShellPrimaryCta["key"]): RestaurantesCtaType | null {
+  switch (key) {
+    case "call":
+      return "phone";
+    case "whatsapp":
+      return "whatsapp";
+    case "message":
+      return "message";
+    case "directions":
+      return "directions";
+    case "website":
+    case "menu":
+    case "menuAsset":
+      return "website";
+    case "order":
+      return "order";
+    case "reserve":
+      return "reserve";
+    default:
+      return null;
+  }
+}
+
 type CtaLayout = "wrap" | "scrollRail";
 
 export function RestauranteShellInteractiveCtas({
   listingId,
+  listingSourceId,
+  listingSlug,
+  leonixAdId,
+  ownerUserId,
+  persistListingEngagement = true,
   ctas,
-  /** `scrollRail`: horizontal thumb rail (mobile hero). `wrap`: centered wrap (desktop hero overlay). */
   layout = "wrap",
 }: {
   listingId: string;
+  listingSourceId?: string | null;
+  listingSlug?: string;
+  leonixAdId?: string | null;
+  ownerUserId?: string | null;
+  persistListingEngagement?: boolean;
   ctas: ShellPrimaryCta[];
   layout?: CtaLayout;
 }) {
-  const [saved, setSaved] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [dataModal, setDataModal] = useState<{ href: string; title: string } | null>(null);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Record<string, boolean>;
-      setSaved(Boolean(parsed[listingId]));
-    } catch {
-      /* ignore */
-    }
-  }, [listingId]);
+  const sourceId = (listingSourceId ?? "").trim();
+  const engagementKey = (listingId ?? "").trim();
+  const globalListing = sourceId
+    ? restaurantesGlobalListingFromRow({
+        id: sourceId,
+        slug: listingSlug,
+        leonix_ad_id: leonixAdId,
+      })
+    : null;
+  const analyticsMeta = restaurantesAnalyticsTrackMeta({
+    listingSlug,
+    sourceId,
+    engagementListingId: engagementKey,
+    source: "shell_cta",
+  });
+  const saveExtras =
+    sourceId && listingSlug
+      ? restaurantesSavedListingExtras({
+          slug: listingSlug,
+          id: sourceId,
+          leonix_ad_id: leonixAdId,
+        })
+      : undefined;
 
   useEffect(() => {
     setShareUrl(window.location.href);
   }, []);
 
-  const persistSaved = useCallback(
-    (next: boolean) => {
-      setSaved(next);
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-        parsed[listingId] = next;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      } catch {
-        /* ignore */
-      }
+  const emitCta = useCallback(
+    (cta: ShellPrimaryCta) => {
+      const t = shellCtaKeyToAnalyticsType(cta.key);
+      if (t) trackRestaurantesListingCta(t, analyticsMeta);
     },
-    [listingId]
+    [analyticsMeta],
   );
 
   const openSheetForCta = (cta: ShellPrimaryCta) => {
     const href = cta.href.trim();
     if (!href) return;
+    emitCta(cta);
     if (cta.key === "call") {
       setCtaIntent(buildCallIntent({ phone: href.replace(/^tel:/i, "") }));
       return;
@@ -174,30 +219,41 @@ export function RestauranteShellInteractiveCtas({
         const rowKey = `${cta.key}-${idx}`;
 
         if (cta.key === "save") {
-          return (
-            <button
-              key={rowKey}
-              type="button"
-              onClick={() => persistSaved(!saved)}
-              className={pillClass}
-            >
-              <Icon className="h-[1.1rem] w-[1.1rem] shrink-0 text-[color:var(--lx-olive)]" aria-hidden />
-              {saved ? "Guardado" : cta.label}
-            </button>
-          );
+          if (sourceId && globalListing) {
+            return (
+              <LeonixSaveButton
+                key={rowKey}
+                listingId={engagementKey || sourceId}
+                savedListingKey={sourceId}
+                ownerUserId={ownerUserId ?? undefined}
+                variant="default"
+                lang="es"
+                category="restaurantes"
+                persistEngagement={persistListingEngagement}
+                saveExtras={saveExtras}
+                recordSaveEvent={restaurantesGlobalSaveRecorder(globalListing)}
+                className={`${pillClass} !border-white/25 !bg-white/95`}
+              />
+            );
+          }
+          return null;
         }
 
         if (cta.key === "share") {
           return (
             <LeonixShareButton
               key={rowKey}
-              listingId={listingId}
+              listingId={engagementKey || sourceId}
               listingUrl={shareUrl}
               listingTitle={typeof document !== "undefined" ? document.title : cta.label}
               category="restaurantes"
               lang="es"
               variant="default"
               directNativeShare
+              persistEngagement={persistListingEngagement && Boolean(sourceId)}
+              recordShareEvent={
+                globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
+              }
               className="[&>button]:min-h-[44px] [&>button]:shrink-0 [&>button]:snap-start [&>button]:rounded-full [&>button]:border-white/25 [&>button]:bg-white/95 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-semibold [&>button]:text-[color:var(--lx-text)] [&>button]:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)] [&>button]:backdrop-blur [&>button]:hover:bg-white"
             />
           );

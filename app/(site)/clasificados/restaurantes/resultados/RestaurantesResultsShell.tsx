@@ -29,10 +29,8 @@ import {
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
 import { requestCoarsePlaceFromBrowserGeolocation } from "@/app/clasificados/restaurantes/lib/restaurantesCoarseGeolocation";
 import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
-import {
-  readRestaurantesSavedIds,
-  rememberRestaurantesDiscoveryFromState,
-} from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
+import { loadRestaurantesBuyerSavedIdSet } from "@/app/clasificados/restaurantes/lib/restaurantesBuyerSavedIds";
+import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
 import { getRestaurantesDestacadosRows } from "@/app/clasificados/restaurantes/lib/restaurantesDestacados";
 import { applyRestaurantesVisibilityRanking } from "@/app/clasificados/restaurantes/lib/restaurantesVisibilityRanking";
@@ -123,7 +121,13 @@ export function RestaurantesResultsShell({
   }, [spStr]);
 
   useEffect(() => {
-    setSavedIds(readRestaurantesSavedIds());
+    let cancelled = false;
+    void loadRestaurantesBuyerSavedIdSet().then((ids) => {
+      if (!cancelled) setSavedIds(ids);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [spStr, parsed.saved]);
 
   const effectiveSort = useMemo(() => {

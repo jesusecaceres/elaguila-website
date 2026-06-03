@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
+import { trackRestaurantesResultCardClick } from "../lib/restaurantesCtaTracking";
 import { FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
@@ -103,6 +104,10 @@ interface RestaurantePreviewCardProps {
   publicDetailLabel?: string;
   discoveryRefineHref?: string;
   discoveryRefineLabel?: string;
+  /** restaurantes_public_listings.id for global analytics (REST1). */
+  listingSourceId?: string | null;
+  listingSlug?: string;
+  leonixAdId?: string | null;
 }
 
 /**
@@ -121,6 +126,9 @@ export function RestaurantePreviewCard({
   publicDetailLabel,
   discoveryRefineHref,
   discoveryRefineLabel,
+  listingSourceId = null,
+  listingSlug,
+  leonixAdId = null,
 }: RestaurantePreviewCardProps) {
   const heroImage = data.heroImageUrl?.trim() || "";
   const logoCandidate = (data.businessLogo ?? "").trim();
@@ -406,7 +414,19 @@ export function RestaurantePreviewCard({
 
           {publicDetailHref?.trim() ? (
             <div className="flex min-w-0 flex-col gap-1 md:gap-1.5">
-              <Link href={publicDetailHref} className={RESULT_PRIMARY_CTA}>
+              <Link
+                href={publicDetailHref}
+                onClick={() => {
+                  const id = (listingSourceId ?? data.id ?? "").trim();
+                  if (!id) return;
+                  trackRestaurantesResultCardClick({
+                    id,
+                    slug: listingSlug ?? data.id,
+                    leonix_ad_id: leonixAdId,
+                  });
+                }}
+                className={RESULT_PRIMARY_CTA}
+              >
                 {publicDetailLabel?.trim() || (lang === "en" ? "View full listing" : "Ver anuncio completo")}
               </Link>
               {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (

@@ -62,6 +62,9 @@ const SHELL_UI = {
 interface RestauranteAdStoryPreviewProps {
   data: RestaurantDetailShellData;
   listingId?: string;
+  /** restaurantes_public_listings.id for global analytics (REST1). */
+  listingSourceId?: string | null;
+  listingSlug?: string;
   lang?: "es" | "en";
   /** Supabase listing owner — prefer over `data.id` (draft id) for analytics. */
   analyticsOwnerUserId?: string | null;
@@ -72,12 +75,15 @@ interface RestauranteAdStoryPreviewProps {
 export function RestauranteAdStoryPreview({
   data,
   listingId = "",
+  listingSourceId = null,
+  listingSlug = "",
   lang = "es",
   analyticsOwnerUserId,
   persistListingEngagement = true,
 }: RestauranteAdStoryPreviewProps) {
   const ownerUid = (analyticsOwnerUserId ?? "").trim() || undefined;
   const listingKeyResolved = (listingId ?? "").trim() || data.id;
+  const sourceId = (listingSourceId ?? data.id ?? "").trim();
   const shellTx = useRestauranteShellTranslation(data, lang, listingKeyResolved);
   const proseData = shellTx.displayData;
   const ui = SHELL_UI[lang];
@@ -169,6 +175,8 @@ export function RestauranteAdStoryPreview({
         data={data}
         lang={lang}
         listingId={listingId}
+        listingSourceId={sourceId || undefined}
+        listingSlug={listingSlug || undefined}
         listingShareUrl={shareAbs || undefined}
         analyticsOwnerUserId={analyticsOwnerUserId}
         persistListingEngagement={persistListingEngagement}
@@ -213,6 +221,8 @@ export function RestauranteAdStoryPreview({
                 hub={data.contactHub}
                 lang={lang}
                 listingId={listingId}
+                listingSourceId={sourceId || undefined}
+                listingSlug={listingSlug || undefined}
                 ownerUserId={analyticsOwnerUserId}
                 contactShareExtras={{
                   email: data.contact?.email,

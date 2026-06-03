@@ -6,6 +6,7 @@ import { listingJsonToDraft } from "@/app/clasificados/restaurantes/lib/restaura
 import { getRestaurantePublicListingBySlugFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
+import { RestauranteProfileViewAnalytics } from "@/app/clasificados/restaurantes/components/RestauranteProfileViewAnalytics";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 
 type Lang = "es" | "en";
@@ -63,9 +64,16 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
           </Link>
         </p>
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
+          <RestauranteProfileViewAnalytics
+            listingSlug={slug}
+            listingSourceId={row.id}
+            leonixAdId={row.leonix_ad_id}
+          />
           <RestauranteAdStoryPreview
             data={shellForPublic}
             listingId={(row.leonix_ad_id ?? "").trim() || row.id}
+            listingSourceId={row.id}
+            listingSlug={slug}
             lang={lang}
             analyticsOwnerUserId={row.owner_user_id}
             persistListingEngagement
