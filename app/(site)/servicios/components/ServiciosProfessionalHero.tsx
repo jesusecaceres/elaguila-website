@@ -56,6 +56,7 @@ export function ServiciosProfessionalHero({
   cityFallback,
   contactScrollTargetId,
   listingSlug,
+  listingSourceId,
   engagementListingId,
   engagementOwnerUserId,
   engagementSlot,
@@ -66,6 +67,7 @@ export function ServiciosProfessionalHero({
   cityFallback?: string;
   contactScrollTargetId?: string;
   listingSlug?: string;
+  listingSourceId?: string;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
   engagementSlot?: React.ReactNode;
@@ -89,6 +91,7 @@ export function ServiciosProfessionalHero({
   const primaryLabel = getPrimaryCtaLabel(template, lang);
   const analyticsBase = serviciosAnalyticsTrackMeta({
     listingSlug,
+    sourceId: listingSourceId,
     engagementListingId,
     ownerUserId: engagementOwnerUserId,
     source: "professional_hero",

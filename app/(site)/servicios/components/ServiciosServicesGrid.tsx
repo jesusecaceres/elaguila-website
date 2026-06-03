@@ -55,6 +55,7 @@ export type ServiciosOfferedSectionProps = {
   /** Used only for quote destination resolution — does not read hero/contact UI. */
   profileForQuote: ServiciosProfileResolved;
   listingSlug?: string;
+  listingSourceId?: string | null;
   listingShareUrl?: string;
   /** Leonix professional templates — editorial section title (Gate 18). */
   premiumLeonixTone?: boolean;
@@ -69,6 +70,7 @@ export function ServiciosOfferedSection({
   lang,
   profileForQuote,
   listingSlug,
+  listingSourceId = null,
   listingShareUrl,
   premiumLeonixTone = false,
 }: ServiciosOfferedSectionProps) {
@@ -108,7 +110,11 @@ export function ServiciosOfferedSection({
         quoteMessage: message,
       });
       if (!intent) return;
-      trackServiciosListingCta(listingSlug, "cta_quote_sms_click", { source: "services_grid", href: "sheet" });
+      trackServiciosListingCta(listingSlug, "cta_quote_sms_click", {
+        sourceId: listingSourceId,
+        source: "services_grid",
+        href: "sheet",
+      });
       setCtaIntent(intent);
       setCtaOpen(true);
     },

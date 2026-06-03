@@ -1,6 +1,11 @@
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
 import type { CtaContactShareExtras, CtaSheetIntent } from "@/app/components/cta/types";
-import { trackClasificadosEvent, trackCtaClick } from "@/app/lib/clasificadosAnalytics";
+import {
+  mapServiciosOpsEventToGlobal,
+  recordServiciosGlobalAnalyticsEvent,
+  serviciosGlobalListingFromRow,
+  type ServiciosGlobalAnalyticsListing,
+} from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import {
   serviciosListingAnalyticsMetadata,
@@ -12,14 +17,34 @@ import { extractServiciosWhatsAppDigits, resolveServiciosProfileDirectWhatsAppHr
 export type { ServiciosAnalyticsTrackMeta } from "./serviciosAnalyticsIdentity";
 export { serviciosAnalyticsTrackMeta } from "./serviciosAnalyticsIdentity";
 
-function resolveListingId(slug: string, meta?: ServiciosAnalyticsTrackMeta): string {
-  const fromMeta = String(meta?.engagementId ?? meta?.engagementListingId ?? "").trim();
-  return fromMeta || slug.trim();
+function resolveListingFromMeta(
+  slug: string,
+  meta?: ServiciosAnalyticsTrackMeta,
+): ServiciosGlobalAnalyticsListing | null {
+  const sourceId = (meta?.sourceId ?? "").trim();
+  if (sourceId) {
+    return {
+      id: sourceId,
+      slug,
+      leonix_ad_id: typeof meta?.leonixAdId === "string" ? meta.leonixAdId : null,
+    };
+  }
+  return null;
+}
+
+function eventSourceForMeta(meta?: ServiciosAnalyticsTrackMeta): string {
+  const source = String(meta?.source ?? "");
+  if (source.includes("card") || source.includes("result")) return "results_card";
+  if (source.includes("business_hub")) return "detail_contact";
+  if (source.includes("action_panel")) return "detail_contact";
+  if (source.includes("promo")) return "detail_contact";
+  if (source.includes("gallery")) return "detail_contact";
+  return "detail_contact";
 }
 
 /**
- * Servicios CTA / contact tracking — ops log + `listing_analytics` (global seller source of truth).
- * Pass `serviciosAnalyticsTrackMeta()` so `listing_id` matches like/save/share and dashboard rollups.
+ * Servicios CTA / contact tracking — legacy ops log + global /api/analytics/events (SVC1).
+ * Pass `serviciosAnalyticsTrackMeta()` with `sourceId: row.id` for server-resolved owner analytics.
  */
 export function trackServiciosListingCta(
   listingSlug: string | undefined,
@@ -29,9 +54,10 @@ export function trackServiciosListingCta(
   const slug = (listingSlug ?? meta?.listingSlug ?? "").trim();
   if (!slug || !eventType) return;
 
-  const listingId = resolveListingId(slug, meta);
-  const ownerUserId = typeof meta?.ownerUserId === "string" ? meta.ownerUserId.trim() : undefined;
+  const listing = resolveListingFromMeta(slug, meta);
   const analyticsMeta = serviciosListingAnalyticsMetadata(slug, meta);
+  const globalType = mapServiciosOpsEventToGlobal(eventType);
+  const eventSource = eventSourceForMeta(meta);
 
   void fetch("/api/clasificados/servicios/analytics", {
     method: "POST",
@@ -39,42 +65,38 @@ export function trackServiciosListingCta(
     body: JSON.stringify({
       listingSlug: slug,
       eventType,
-      meta: { ...meta, engagementId: listingId, clientListingAnalytics: true },
+      meta: {
+        ...meta,
+        engagementId: listing?.id ?? meta?.sourceId ?? slug,
+        clientListingAnalytics: true,
+      },
     }),
   }).catch(() => {});
 
-  const ctaMap: Record<string, "phone" | "whatsapp" | "website" | "directions" | "general"> = {
-    cta_call_click: "phone",
-    cta_whatsapp_click: "whatsapp",
-    cta_email_click: "general",
-    cta_website_click: "website",
-    cta_maps_click: "directions",
-    cta_quote_sms_click: "general",
-    cta_review_click: "website",
-    cta_primary_click: "general",
-    cta_secondary_click: "general",
-  };
-  const ctaType = ctaMap[eventType];
-  if (ctaType) {
-    void trackCtaClick(listingId, ctaType, {
-      category: "servicios",
-      ownerUserId,
-      eventSource: "detail",
-      metadata: { serviciosEventType: eventType, ...analyticsMeta },
+  if (listing && globalType) {
+    recordServiciosGlobalAnalyticsEvent(listing, globalType, {
+      event_source: eventSource,
+      metadata: {
+        serviciosOpsEventType: eventType,
+        contact_method: eventType.replace(/^cta_/, "").replace(/_click$/, ""),
+        ...analyticsMeta,
+      },
     });
   }
+}
 
-  const source = String(meta?.source ?? "");
-  if (source.includes("card") || source.includes("result")) {
-    void trackClasificadosEvent({
-      listing_id: listingId,
-      category: "servicios",
-      event_type: "listing_open",
-      event_source: "card",
-      owner_user_id: ownerUserId ?? null,
-      metadata: { serviciosEventType: eventType, ...analyticsMeta },
-    });
-  }
+/** Result card / profile CTA navigation — user click only. */
+export function trackServiciosResultCardClick(row: {
+  id?: string | null;
+  slug: string;
+  leonix_ad_id?: string | null;
+}): void {
+  const listing = serviciosGlobalListingFromRow(row);
+  if (!listing) return;
+  recordServiciosGlobalAnalyticsEvent(listing, "result_card_click", {
+    event_source: "results_card",
+    metadata: serviciosListingAnalyticsMetadata(row.slug),
+  });
 }
 
 export function extractWaMeDigitsFromHref(href: string): string {

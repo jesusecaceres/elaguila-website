@@ -46,11 +46,15 @@ export async function mirrorServiciosOpsEventToListingAnalytics(args: {
   if (!row) return false;
 
   const listingId = serviciosCanonicalListingAnalyticsId(row);
-  if (!listingId) return false;
+  const sourceId = (row.id ?? "").trim();
+  if (!listingId || !sourceId) return false;
 
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("listing_analytics").insert({
     listing_id: listingId,
+    canonical_ad_id: listingId,
+    source_table: "servicios_public_listings",
+    source_id: sourceId,
     event_type: mapped,
     event_source: "unknown",
     user_id: null,

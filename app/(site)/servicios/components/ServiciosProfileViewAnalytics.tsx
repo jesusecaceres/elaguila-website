@@ -3,27 +3,25 @@
 import { useEffect, useRef } from "react";
 import { trackServiciosPublicProfileView } from "../lib/serviciosProfileEngagementAnalytics";
 
-/** One profile view per page load — ops analytics + listing_analytics rollup. */
+/** One profile view per page load — global API + legacy ops log (no browser listing_analytics insert). */
 export function ServiciosProfileViewAnalytics({
   listingSlug,
-  listingEngagementId,
-  engagementOwnerUserId,
+  listingSourceId,
 }: {
   listingSlug: string;
-  listingEngagementId?: string | null;
-  engagementOwnerUserId?: string | null;
+  listingSourceId: string;
 }) {
   const sent = useRef(false);
   useEffect(() => {
     if (sent.current) return;
     const slug = listingSlug.trim();
-    if (!slug) return;
+    const id = listingSourceId.trim();
+    if (!slug || !id) return;
     sent.current = true;
     trackServiciosPublicProfileView({
       listingSlug: slug,
-      listingEngagementId: (listingEngagementId ?? slug).trim(),
-      ownerUserId: engagementOwnerUserId,
+      listing: { id, slug },
     });
-  }, [listingSlug, listingEngagementId, engagementOwnerUserId]);
+  }, [listingSlug, listingSourceId]);
   return null;
 }

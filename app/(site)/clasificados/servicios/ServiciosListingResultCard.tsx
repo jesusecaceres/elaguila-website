@@ -24,7 +24,14 @@ import {
   serviciosAnalyticsTrackMeta,
   serviciosContactShareExtras,
   trackServiciosListingCta,
+  trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import {
+  serviciosGlobalListingFromRow,
+  serviciosGlobalLikeRecorder,
+  serviciosGlobalSaveRecorder,
+  serviciosGlobalShareRecorder,
+} from "./lib/recordServiciosGlobalAnalytics";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import {
@@ -90,10 +97,12 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const promoted = isServiciosListingPromoted(row);
   const ctaTrackMeta = serviciosAnalyticsTrackMeta({
     listingSlug: row.slug,
+    sourceId: row.id,
     engagementListingId: serviciosEngagementListingKey(row),
     ownerUserId: row.owner_user_id ?? null,
     source: "servicios_listing_card",
   });
+  const globalListing = serviciosGlobalListingFromRow(row);
   const engagementKey = serviciosEngagementListingKey(row);
   const saveExtras = serviciosSavedListingExtras({
     slug: row.slug,
@@ -170,6 +179,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
       <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border ${cardSurface}`}>
           <Link
             href={href}
+            onClick={() => trackServiciosResultCardClick(row)}
             className="flex min-h-0 flex-1 flex-col overflow-hidden text-left text-inherit no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A574]/40 focus-visible:ring-offset-2"
           >
             <div className="relative aspect-[16/10] w-full bg-[#F5F0E8]">
@@ -286,6 +296,9 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                   lang={lang}
                   category="servicios"
                   persistEngagement={Boolean(engagementKey)}
+                  recordLikeEvent={
+                    globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined
+                  }
                 />
                 <LeonixSaveButton
                   listingId={engagementKey}
@@ -295,6 +308,9 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                   category="servicios"
                   persistEngagement={Boolean(engagementKey)}
                   saveExtras={saveExtras}
+                  recordSaveEvent={
+                    globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined
+                  }
                 />
                 <LeonixShareButton
                   listingId={engagementKey}
@@ -305,6 +321,9 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                   lang={lang}
                   category="servicios"
                   persistEngagement={Boolean(engagementKey)}
+                  recordShareEvent={
+                    globalListing ? serviciosGlobalShareRecorder(globalListing, "results_card_share") : undefined
+                  }
                 />
               </div>
             </div>

@@ -9,7 +9,11 @@ import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosPro
 import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
-import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import {
+  serviciosAnalyticsTrackMeta,
+  trackServiciosListingCta,
+  trackServiciosResultCardClick,
+} from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import {
@@ -110,6 +114,7 @@ export function ServiciosProfessionalResultCard({
   const ctaAnalyticsKey = serviciosEngagementListingKey(row);
   const ctaTrackMeta = serviciosAnalyticsTrackMeta({
     listingSlug: row.slug,
+    sourceId: row.id,
     engagementListingId: ctaAnalyticsKey,
     ownerUserId: row.owner_user_id ?? null,
     source: "servicios_professional_card",
@@ -355,7 +360,11 @@ export function ServiciosProfessionalResultCard({
               </button>
             ) : null}
           </div>
-          <Link href={href} className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} mt-2.5 w-full`}>
+          <Link
+            href={href}
+            onClick={() => trackServiciosResultCardClick(row)}
+            className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} mt-2.5 w-full`}
+          >
             {secondaryLabel}
           </Link>
         </div>

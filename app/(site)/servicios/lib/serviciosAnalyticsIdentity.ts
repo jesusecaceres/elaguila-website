@@ -36,10 +36,12 @@ export function serviciosAnalyticsAliasKeys(
 
 export type ServiciosAnalyticsTrackMeta = {
   listingSlug?: string;
+  /** servicios_public_listings.id — required for global /api/analytics/events writes (SVC1). */
+  sourceId?: string | null;
   engagementListingId?: string | null;
   ownerUserId?: string | null;
   source?: string;
-  /** Set on ops API payloads when listing_analytics was already written client-side (prevents server double-count). */
+  /** Set on ops API payloads when listing_analytics was already written client-side (prevents server mirror double-count). */
   clientListingAnalytics?: boolean;
   [key: string]: unknown;
 };
@@ -47,6 +49,7 @@ export type ServiciosAnalyticsTrackMeta = {
 /** Build meta for `trackServiciosListingCta` / ops analytics API. */
 export function serviciosAnalyticsTrackMeta(args: {
   listingSlug?: string | null;
+  sourceId?: string | null;
   engagementListingId?: string | null;
   ownerUserId?: string | null;
   source: string;
@@ -54,9 +57,11 @@ export function serviciosAnalyticsTrackMeta(args: {
 }): ServiciosAnalyticsTrackMeta {
   const slug = (args.listingSlug ?? "").trim();
   const engagementId = (args.engagementListingId ?? slug).trim() || slug;
+  const sourceId = (args.sourceId ?? "").trim() || undefined;
   return {
     listingSlug: slug,
     slug,
+    sourceId,
     engagementId,
     ownerUserId: args.ownerUserId?.trim() || undefined,
     source: args.source,

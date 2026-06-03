@@ -320,6 +320,7 @@ export function ServiciosPromocionesCard({
   lang,
   premiumLeonixTone = false,
   listingSlug,
+  listingSourceId = null,
   engagementListingId,
   engagementOwnerUserId,
 }: {
@@ -327,6 +328,7 @@ export function ServiciosPromocionesCard({
   lang: ServiciosLang;
   premiumLeonixTone?: boolean;
   listingSlug?: string;
+  listingSourceId?: string | null;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
 }) {
@@ -337,6 +339,7 @@ export function ServiciosPromocionesCard({
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
   const analyticsMeta = serviciosAnalyticsTrackMeta({
     listingSlug,
+    sourceId: listingSourceId,
     engagementListingId,
     ownerUserId: engagementOwnerUserId,
     source: "promo_card",

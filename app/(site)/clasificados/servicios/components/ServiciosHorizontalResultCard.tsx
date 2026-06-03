@@ -20,6 +20,7 @@ import {
   serviciosContactShareExtras,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
+  trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import {
   isServiciosProfessionalTemplate,
@@ -193,11 +194,12 @@ export function ServiciosHorizontalResultCard({
     () =>
       serviciosAnalyticsTrackMeta({
         listingSlug: listingSlug || ctaAnalyticsListingKey,
+        sourceId: row?.id ?? null,
         engagementListingId: ctaAnalyticsListingKey,
         ownerUserId: row?.owner_user_id ?? null,
         source: "servicios_horizontal_card",
       }),
-    [ctaAnalyticsListingKey, listingSlug, row?.owner_user_id],
+    [ctaAnalyticsListingKey, listingSlug, row?.id, row?.owner_user_id],
   );
 
   const openOutbound = useCallback(
@@ -596,6 +598,9 @@ export function ServiciosHorizontalResultCard({
           <div className="flex min-w-0 flex-col gap-1.5 md:gap-2">
             <Link
               href={vitrinaHref}
+              onClick={() => {
+                if (row) trackServiciosResultCardClick(row);
+              }}
               className={LX_CTA_CARD_PRIMARY}
               style={{ backgroundColor: LX.burgundy, boxShadow: "0 6px 16px rgba(92, 22, 34, 0.22)" }}
             >

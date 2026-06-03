@@ -15,6 +15,7 @@ export function ServiciosLikeEngagementCluster({
   variant = "small",
   tone = "hero",
   className = "",
+  recordLikeEvent,
 }: {
   listingId: string;
   ownerUserId?: string | null;
@@ -24,6 +25,7 @@ export function ServiciosLikeEngagementCluster({
   variant?: "default" | "small" | "large";
   tone?: "hero" | "hub";
   className?: string;
+  recordLikeEvent?: (isLike: boolean) => void | Promise<void>;
 }) {
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount)
@@ -58,6 +60,7 @@ export function ServiciosLikeEngagementCluster({
         lang={lang}
         category="servicios"
         persistEngagement={persistEngagement}
+        recordLikeEvent={recordLikeEvent}
         className="!rounded-none !rounded-l-full !shadow-none"
       />
       {likeCueN > 0 ? (

@@ -146,6 +146,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     justPublishedPanel,
     noticeBanner,
     analyticsListingSlug: slug,
+    listingSourceId: row.id,
     engagementListingId: engagementKey,
     engagementOwnerUserId: row.owner_user_id ?? null,
     persistListingEngagement,

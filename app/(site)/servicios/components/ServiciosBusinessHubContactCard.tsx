@@ -146,6 +146,7 @@ export function ServiciosBusinessHubContactCard({
   profile,
   lang,
   listingSlug,
+  listingSourceId = null,
   listingShareUrl,
   engagementListingId = null,
   engagementOwnerUserId = null,
@@ -160,6 +161,8 @@ export function ServiciosBusinessHubContactCard({
   /** When set (professional preview/profile), hub quote CTA uses template-aware copy. */
   listingTemplate?: ServiciosListingTemplate;
   listingSlug?: string;
+  /** `servicios_public_listings.id` for global analytics (SVC1). */
+  listingSourceId?: string | null;
   listingShareUrl?: string;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
@@ -177,11 +180,12 @@ export function ServiciosBusinessHubContactCard({
     () =>
       serviciosAnalyticsTrackMeta({
         listingSlug,
+        sourceId: listingSourceId,
         engagementListingId,
         ownerUserId: engagementOwnerUserId,
         source: "business_hub",
       }),
-    [listingSlug, engagementListingId, engagementOwnerUserId],
+    [listingSlug, listingSourceId, engagementListingId, engagementOwnerUserId],
   );
 
   const openCtaSheet = useCallback(
