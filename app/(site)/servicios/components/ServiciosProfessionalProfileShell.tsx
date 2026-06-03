@@ -51,6 +51,7 @@ import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
+import { serviciosSavedListingExtrasFromClient } from "@/app/lib/serviciosSavedListingIdentity";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 
@@ -161,6 +162,10 @@ export function ServiciosProfessionalProfileShell({
 
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
+  const saveExtras = serviciosSavedListingExtrasFromClient({
+    slug: profile.identity.slug,
+    engagementListingId: lxListingId,
+  });
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount)
       ? Math.max(0, Math.floor(publicLikeCount))
@@ -233,6 +238,7 @@ export function ServiciosProfessionalProfileShell({
                     lang={lang}
                     category="servicios"
                     persistEngagement
+                    saveExtras={saveExtras}
                   />
                   <LeonixShareButton
                     listingId={lxListingId}

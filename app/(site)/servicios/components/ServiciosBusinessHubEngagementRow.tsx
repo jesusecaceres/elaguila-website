@@ -1,5 +1,6 @@
 "use client";
 
+import { serviciosSavedListingExtrasFromClient } from "@/app/lib/serviciosSavedListingIdentity";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
@@ -30,6 +31,10 @@ export function ServiciosBusinessHubEngagementRow({
 }) {
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
+  const saveExtras = serviciosSavedListingExtrasFromClient({
+    slug: profile.identity.slug,
+    engagementListingId: lxListingId,
+  });
   const persistEngagement = persistListingEngagement;
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
@@ -59,6 +64,7 @@ export function ServiciosBusinessHubEngagementRow({
               lang={lang}
               category="servicios"
               persistEngagement
+              saveExtras={saveExtras}
               className="!shadow-sm"
             />
           </div>

@@ -119,6 +119,24 @@ function main() {
 
   const saveRuntime = readFileSync(join(__dirname, "../app/lib/savedListingsRuntime.ts"), "utf8");
   assert.ok(saveRuntime.includes("saved_listings") && saveRuntime.includes("user_saved_listings"), "save runtime: canonical + legacy fallback");
+  assert.ok(saveRuntime.includes("insertSavedListingIfAbsent"), "S2: idempotent insert-if-absent (no PostgREST upsert)");
+  assert.ok(!saveRuntime.includes("onConflict"), "S2: no on_conflict upsert in save runtime");
+
+  const serviciosSaveId = readFileSync(join(__dirname, "../app/lib/serviciosSavedListingIdentity.ts"), "utf8");
+  assert.ok(serviciosSaveId.includes("serviciosSavedListingExtras"), "S2: Servicios saved_listings identity helper");
+  assert.ok(serviciosSaveId.includes("servicios_public_listings"), "S2: source_table for Guardados resolve");
+
+  const hubEng = readFileSync(
+    join(__dirname, "../app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx"),
+    "utf8",
+  );
+  assert.ok(hubEng.includes("saveExtras"), "S2: standard profile hub passes saveExtras");
+
+  const proShell = readFileSync(
+    join(__dirname, "../app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx"),
+    "utf8",
+  );
+  assert.ok(proShell.includes("saveExtras"), "S2: professional profile passes saveExtras");
 
   const ownerEngagementApi = readFileSync(join(__dirname, "../app/api/dashboard/owner-engagement/route.ts"), "utf8");
   assert.ok(ownerEngagementApi.includes("fetchOwnerEngagementRollupsServer"), "dashboard API: server engagement rollups");

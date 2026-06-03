@@ -18,6 +18,7 @@ import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
+import { serviciosSavedListingExtras } from "@/app/lib/serviciosSavedListingIdentity";
 import {
   extractWaMeDigitsFromHref,
   serviciosAnalyticsTrackMeta,
@@ -92,6 +93,12 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
     engagementListingId: serviciosEngagementListingKey(row),
     ownerUserId: row.owner_user_id ?? null,
     source: "servicios_listing_card",
+  });
+  const engagementKey = serviciosEngagementListingKey(row);
+  const saveExtras = serviciosSavedListingExtras({
+    slug: row.slug,
+    id: row.id,
+    leonix_ad_id: row.leonix_ad_id,
   });
 
   const [ctaOpen, setCtaOpen] = useState(false);
@@ -273,30 +280,31 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
 
               <div className="flex items-center gap-3">
                 <LeonixLikeButton
-                  listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
+                  listingId={engagementKey}
                   ownerUserId={row.owner_user_id ?? undefined}
                   variant="small"
                   lang={lang}
                   category="servicios"
-                  persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
+                  persistEngagement={Boolean(engagementKey)}
                 />
                 <LeonixSaveButton
-                  listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
+                  listingId={engagementKey}
                   ownerUserId={row.owner_user_id ?? undefined}
                   variant="small"
                   lang={lang}
                   category="servicios"
-                  persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
+                  persistEngagement={Boolean(engagementKey)}
+                  saveExtras={saveExtras}
                 />
                 <LeonixShareButton
-                  listingId={(row.leonix_ad_id ?? "").trim() || row.slug}
+                  listingId={engagementKey}
                   ownerUserId={row.owner_user_id ?? undefined}
                   listingTitle={profile.identity.businessName}
                   listingUrl={listingShareUrl}
                   variant="small"
                   lang={lang}
                   category="servicios"
-                  persistEngagement={Boolean((row.leonix_ad_id ?? "").trim())}
+                  persistEngagement={Boolean(engagementKey)}
                 />
               </div>
             </div>

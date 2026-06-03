@@ -23,6 +23,13 @@ type Props = {
   ownerUserId?: string | null;
   /** When false, no analytics or `saved_listings` writes. */
   persistEngagement?: boolean;
+  /** Optional G2A identity fields (Servicios: source_table + source_id for Guardados). */
+  saveExtras?: {
+    category?: string;
+    source_table?: string;
+    source_id?: string;
+    canonical_ad_id?: string;
+  };
   /** Visual icon for save — default bookmark; Varios uses heart. */
   iconStyle?: "bookmark" | "heart";
 };
@@ -62,6 +69,7 @@ export function LeonixSaveButton({
   category,
   ownerUserId,
   persistEngagement,
+  saveExtras,
   iconStyle = "bookmark",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
@@ -172,7 +180,7 @@ export function LeonixSaveButton({
 
     try {
       if (nextState) {
-        const { error, table } = await upsertSavedListingForUser(sb, user.id, effectiveId);
+        const { error, table } = await upsertSavedListingForUser(sb, user.id, effectiveId, saveExtras);
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
@@ -219,7 +227,7 @@ export function LeonixSaveButton({
     } finally {
       setIsSaving(false);
     }
-  }, [allowEngage, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang]);
+  }, [allowEngage, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang, saveExtras]);
 
   const inert = !allowEngage || !effectiveId;
 
