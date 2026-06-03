@@ -148,6 +148,7 @@
     "verify:en-venta:e2e": "npx playwright test e2e/en-venta-smoke.spec.ts e2e/en-venta-seeded-trace.spec.ts e2e/en-venta-auth-smoke.spec.ts",
     "restaurantes:r-c1-contact-hub-audit": "tsx scripts/restaurantes-r-c1-contact-hub-audit.ts",
     "restaurantes:r-c2-header-location-audit": "tsx scripts/restaurantes-r-c2-header-location-audit.ts",
+    "comida-local:food-l2-scaffold-audit": "tsx scripts/comida-local-food-l2-scaffold-audit.ts",
     "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest:logic",
     "verify:restaurantes:launch:full": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:manual-qa-seed": "npx tsx scripts/servicios-manual-qa-catalog-seed.ts",
