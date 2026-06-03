@@ -66,6 +66,8 @@ const COPY: Record<
         qrOverlay: string;
         magazineAlt: string;
       };
+      magazineCta: string;
+      magazineCtaHint: string;
     };
     marketplace: {
       eyebrow: string;
@@ -231,6 +233,8 @@ const COPY: Record<
         qrOverlay: "Escanea. Traduce. Conecta.",
         magazineAlt: "Vista previa decorativa de la revista Leonix Media",
       },
+      magazineCta: "Leer la revista",
+      magazineCtaHint: "Lea la revista en su idioma",
     },
     marketplace: {
       eyebrow: "CLASIFICADOS + MARKETPLACE LOCAL",
@@ -517,6 +521,8 @@ const COPY: Record<
         qrOverlay: "Scan. Translate. Connect.",
         magazineAlt: "Decorative Leonix Media magazine preview",
       },
+      magazineCta: "Read the magazine",
+      magazineCtaHint: "Read the magazine in your language",
     },
     marketplace: {
       eyebrow: "CLASSIFIEDS + LOCAL MARKETPLACE",
@@ -1722,6 +1728,7 @@ function ComingSoonV2ShellContent() {
   const final = t.finalCta;
   const contact = t.contact;
   const newsletter = t.newsletter;
+  const magazineHref = `/magazine?lang=${lang}`;
 
   return (
     <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
@@ -1864,7 +1871,32 @@ function ComingSoonV2ShellContent() {
                 {h.ctas.map((cta) => (
                   <HeroCtaLink key={cta.label} cta={cta} />
                 ))}
+                <HeroCtaLink
+                  cta={{
+                    label: h.magazineCta,
+                    href: magazineHref,
+                    variant: "secondary",
+                  }}
+                />
               </div>
+
+              <p className="mt-3 text-sm font-semibold text-[#3D3428]">
+                <Link
+                  href={magazineHref}
+                  className="text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-[0.2em] hover:text-[#5e1721]"
+                >
+                  {h.magazineCtaHint}
+                </Link>
+                <span className="mx-2 font-normal text-[#3D3428]/50" aria-hidden>
+                  ·
+                </span>
+                <Link
+                  href={magazineHref}
+                  className="font-medium text-[#556B3E] hover:text-[#2A4536] hover:underline"
+                >
+                  {lang === "en" ? "View digital edition" : "Ver edición digital"}
+                </Link>
+              </p>
 
               <ul
                 className="mt-8 flex flex-col gap-2.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"

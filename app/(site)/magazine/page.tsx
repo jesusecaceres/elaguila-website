@@ -3,11 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
+import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import type { PublicMagazineManifest } from "@/app/lib/magazine/magazineManifestTypes";
+import {
+  JUNE_2026,
+  MAGAZINE_UI,
+  resolveMagazineLang,
+  type MagazineLang,
+} from "@/app/(site)/magazine/2026/june/issueContent";
+import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
+import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-type Lang = "es" | "en";
 
 type MagazineEdition = {
   titleEs: string;
@@ -98,6 +105,36 @@ const COPY = {
     flipModalTitle: "Leonix Media — Digital magazine",
     loading: "Loading editions…",
   },
+  vi: {
+    heroEyebrow: "LEONIX MEDIA",
+    heroTitle: "Tạp chí",
+    heroSubtitle: "Cộng đồng, văn hóa và kinh doanh trong phiên bản kỹ thuật số và in.",
+    heroDescription:
+      "Khám phá số hiện tại, xem các ấn phẩm trước và giữ kết nối với câu chuyện, doanh nghiệp và cơ hội từ cộng đồng của chúng ta.",
+    currentEyebrow: "SỐ HIỆN TẠI",
+    currentTitle: "Leonix Media — Tháng 6 năm 2026",
+    currentBody:
+      "Số Leonix Media mới kết nối doanh nghiệp địa phương, cộng đồng, văn hóa, thể thao, công thức, cảm hứng và cơ hội phát triển cùng cộng đồng.",
+    readMagazine: "Đọc tạp chí (flipbook tiếng Tây Ban Nha)",
+    downloadPdf: "Tải PDF",
+    archiveEyebrow: "LƯU TRỮ",
+    archiveTitle: "Các số trước",
+    archiveIntro: "Xem các ấn phẩm Leonix Media trước đây ở một nơi.",
+    newsletterTitle: "Nhận tạp chí và tin từ Leonix",
+    newsletterBody:
+      "Hãy là người đầu tiên nhận số mới, thông báo quan trọng, cơ hội địa phương và cập nhật cộng đồng.",
+    newsletterPlaceholder: "Email của bạn",
+    newsletterButton: "Đăng ký",
+    newsletterMicro: "Nhận cập nhật Leonix Media. Không spam.",
+    newsletterAria: "Đăng ký bản tin tạp chí",
+    emailLabel: "Email",
+    advertiseTitle: "Bạn muốn xuất hiện trong số tới?",
+    advertiseBody:
+      "Kết nối doanh nghiệp với độc giả địa phương qua tạp chí in, phiên bản kỹ thuật số và hiện diện song ngữ.",
+    advertiseCta: "Quảng cáo cùng chúng tôi",
+    flipModalTitle: "Leonix Media — Tạp chí kỹ thuật số",
+    loading: "Đang tải các số…",
+  },
 } as const;
 
 function mergeEditionFromManifest(
@@ -136,11 +173,13 @@ function FullscreenFlipbookModal({
   onClose,
   src,
   title,
+  closeLabel,
 }: {
   open: boolean;
   onClose: () => void;
   src: string;
   title: string;
+  closeLabel: string;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -162,7 +201,7 @@ function FullscreenFlipbookModal({
           onClick={onClose}
           className="shrink-0 rounded-full border border-[#C9A84A]/60 px-4 py-2 text-sm font-semibold text-[#C9A84A] transition hover:bg-[#C9A84A]/10"
         >
-          Close
+          {closeLabel}
         </button>
       </div>
       <div className="absolute bottom-0 left-0 right-0 top-16">
@@ -188,7 +227,7 @@ function EditionActions({
   compact,
 }: {
   edition: MagazineEdition;
-  lang: Lang;
+  lang: MagazineLang;
   readLabel: string;
   downloadLabel: string;
   onRead: (flipbookUrl: string | null) => void;
@@ -224,10 +263,25 @@ function EditionActions({
   );
 }
 
+function editionDisplayTitle(edition: MagazineEdition, lang: MagazineLang): string {
+  if (lang === "vi") return JUNE_2026.title.vi;
+  if (lang === "en") return edition.titleEn;
+  return edition.titleEs;
+}
+
+function editionMonthLabel(edition: MagazineEdition, lang: MagazineLang): string {
+  if (lang === "vi") return JUNE_2026.monthLabel.vi;
+  if (lang === "en") return edition.monthEn;
+  return edition.monthEs;
+}
+
 export default function MagazineHubPage() {
   const params = useSearchParams()!;
-  const lang = (params.get("lang") || "es") as Lang;
+  const lang = resolveMagazineLang(params.get("lang"));
   const t = COPY[lang];
+  const ui = MAGAZINE_UI[lang];
+  const advertiseLang: AdvertiseLang = lang === "en" ? "en" : "es";
+  const readMoreHref = `/magazine/2026/june/read?lang=${lang}`;
 
   const [manifest, setManifest] = useState<PublicMagazineManifest | null>(null);
   const [status, setStatus] = useState<"loading" | "ready">("loading");
@@ -275,7 +329,7 @@ export default function MagazineHubPage() {
   }, []);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
+    <main lang={lang} className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
       <div
         className="pointer-events-none fixed inset-0"
         aria-hidden
@@ -287,7 +341,13 @@ export default function MagazineHubPage() {
         }}
       />
 
-      <FullscreenFlipbookModal open={flipOpen} onClose={closeFlipbook} src={flipSrc} title={t.flipModalTitle} />
+      <FullscreenFlipbookModal
+        open={flipOpen}
+        onClose={closeFlipbook}
+        src={flipSrc}
+        title={t.flipModalTitle}
+        closeLabel={ui.closeFlipbook}
+      />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:px-8">
         {status !== "ready" ? (
@@ -319,7 +379,7 @@ export default function MagazineHubPage() {
                   <div className="overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FAF6EE] p-1 shadow-[0_16px_40px_-18px_rgba(31,36,28,0.25)]">
                     <Image
                       src={currentEdition.coverImage}
-                      alt={lang === "es" ? currentEdition.titleEs : currentEdition.titleEn}
+                      alt={editionDisplayTitle(currentEdition, lang)}
                       width={480}
                       height={620}
                       className="h-auto w-full object-contain"
@@ -340,9 +400,12 @@ export default function MagazineHubPage() {
                     {t.currentTitle}
                   </h2>
                   <p className="mt-1 text-sm font-medium text-[#3D3428]/75">
-                    {lang === "es" ? currentEdition.monthEs : currentEdition.monthEn} {currentEdition.year}
+                    {editionMonthLabel(currentEdition, lang)} {currentEdition.year}
                   </p>
                   <p className="mt-4 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.currentBody}</p>
+                  <p className="mt-3 rounded-lg border border-[#D6C7AD]/80 bg-[#FAF6EE] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
+                    {ui.originalEditionNote}
+                  </p>
                   <EditionActions
                     edition={currentEdition}
                     lang={lang}
@@ -351,6 +414,21 @@ export default function MagazineHubPage() {
                     onRead={openFlipbook}
                   />
                 </div>
+              </div>
+            </section>
+
+            {/* 3 — Language entry + translated reader preview */}
+            <section
+              className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8"
+              aria-labelledby="magazine-language-title"
+            >
+              <MagazineLanguageSelector basePath="/magazine" />
+              <div className="mt-8 border-t border-[#D6C7AD]/70 pt-8">
+                <MagazineTranslatedReader
+                  lang={lang}
+                  variant="preview"
+                  readMoreHref={readMoreHref}
+                />
               </div>
             </section>
 
@@ -375,7 +453,7 @@ export default function MagazineHubPage() {
                         <div className="mx-auto max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-white p-0.5">
                           <Image
                             src={edition.coverImage}
-                            alt={lang === "es" ? edition.titleEs : edition.titleEn}
+                            alt={editionDisplayTitle(edition, lang)}
                             width={280}
                             height={360}
                             className="h-auto w-full object-contain"
@@ -385,10 +463,10 @@ export default function MagazineHubPage() {
                       </div>
                       <div className="flex flex-1 flex-col p-5">
                         <h3 className="text-base font-bold text-[#1F241C]">
-                          {lang === "es" ? edition.monthEs : edition.monthEn} {edition.year}
+                          {editionMonthLabel(edition, lang)} {edition.year}
                         </h3>
                         <p className="mt-1 text-sm text-[#3D3428]/80">
-                          {lang === "es" ? edition.titleEs : edition.titleEn}
+                          {editionDisplayTitle(edition, lang)}
                         </p>
                         <EditionActions
                           edition={edition}
@@ -452,7 +530,7 @@ export default function MagazineHubPage() {
                 {t.advertiseTitle}
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#EDE6D6] sm:text-base">{t.advertiseBody}</p>
-              <AdvertiseDropdown lang={lang} variant="primary" buttonLabel={t.advertiseCta} className="mt-6" />
+              <AdvertiseDropdown lang={advertiseLang} variant="primary" buttonLabel={t.advertiseCta} className="mt-6" />
             </section>
           </div>
         )}
