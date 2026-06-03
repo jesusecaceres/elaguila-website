@@ -284,7 +284,6 @@ export default function MagazineHubPage() {
   const readMoreHref = `/magazine/2026/june/read?lang=${lang}`;
 
   const [manifest, setManifest] = useState<PublicMagazineManifest | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [flipOpen, setFlipOpen] = useState(false);
   const [flipSrc, setFlipSrc] = useState(DEFAULT_FLIPBOOK);
 
@@ -318,8 +317,6 @@ export default function MagazineHubPage() {
         if (alive) setManifest(json);
       } catch {
         if (alive) setManifest(null);
-      } finally {
-        if (alive) setStatus("ready");
       }
     }
     load();
@@ -350,10 +347,7 @@ export default function MagazineHubPage() {
       />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:px-8">
-        {status !== "ready" ? (
-          <p className="text-sm text-[#3D3428]/70">{t.loading}</p>
-        ) : (
-          <div className="space-y-14 sm:space-y-16 lg:space-y-20">
+        <div className="space-y-14 sm:space-y-16 lg:space-y-20">
             {/* 1 — Editorial hero */}
             <section className="max-w-3xl" aria-labelledby="magazine-hero-title">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{t.heroEyebrow}</p>
@@ -547,7 +541,6 @@ export default function MagazineHubPage() {
               <AdvertiseDropdown lang={advertiseLang} variant="primary" buttonLabel={t.advertiseCta} className="mt-6" />
             </section>
           </div>
-        )}
       </div>
     </main>
   );
