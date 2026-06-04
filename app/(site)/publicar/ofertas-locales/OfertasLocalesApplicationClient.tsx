@@ -31,6 +31,7 @@ import {
   validateOfertaLocalDraftForPreview,
 } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OFERTAS_LOCALES_SHELL_COPY } from "./ofertasLocalesApplicationCopy";
+import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
 
 const PAGE_BG = "bg-[#FFFCF7]";
@@ -532,10 +533,20 @@ export default function OfertasLocalesApplicationClient() {
             </div>
           </SectionCard>
 
-          {/* 9. Future upload placeholder */}
-          <SectionCard title="Archivos (próximamente)">
-            <div className={PLACEHOLDER_BOX}>{OFERTAS_LOCALES_SHELL_COPY.uploadFlyerPlaceholder}</div>
-            <div className={PLACEHOLDER_BOX}>{OFERTAS_LOCALES_SHELL_COPY.uploadCouponPlaceholder}</div>
+          {/* 9. Draft asset metadata */}
+          <SectionCard title="Archivos (borrador)">
+            <OfertasLocalesDraftAssetSection
+              bucket="flyerAssets"
+              draft={draft}
+              updateDraft={updateDraft}
+            />
+            <div className="border-t border-[#D4C4A8]/50 pt-4">
+              <OfertasLocalesDraftAssetSection
+                bucket="couponAssets"
+                draft={draft}
+                updateDraft={updateDraft}
+              />
+            </div>
           </SectionCard>
 
           {/* 10. Validation and actions */}
@@ -561,7 +572,11 @@ export default function OfertasLocalesApplicationClient() {
               >
                 {OFERTAS_LOCALES_SHELL_COPY.resetDraft}
               </button>
-              <Link href="/publicar/ofertas-locales/preview" className={BTN_PRIMARY}>
+              <Link
+                href="/publicar/ofertas-locales/preview"
+                className={BTN_PRIMARY}
+                title={OFERTAS_LOCALES_SHELL_COPY.previewDisabled}
+              >
                 {OFERTAS_LOCALES_SHELL_COPY.previewLink}
               </Link>
               <button type="button" className={BTN_PRIMARY} disabled title="Gate futuro">

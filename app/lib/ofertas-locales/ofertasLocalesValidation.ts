@@ -4,7 +4,12 @@ import {
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "./ofertasLocalesFormatting";
-import type { OfertaLocalDraft, OfertaLocalValidationIssue } from "./ofertasLocalesTypes";
+import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
+import type {
+  OfertaLocalDraft,
+  OfertaLocalDraftAsset,
+  OfertaLocalValidationIssue,
+} from "./ofertasLocalesTypes";
 
 const LIMITS = OFERTAS_LOCALES_VALIDATION_LIMITS;
 
@@ -29,7 +34,41 @@ function hasContactChannel(draft: OfertaLocalDraft): boolean {
 }
 
 function hasFlyerAsset(draft: OfertaLocalDraft): boolean {
-  return draft.flyerAssets.some((a) => Boolean(a.previewUrl.trim() || a.storageKey.trim()));
+  return activeOfertaLocalDraftAssets(draft.flyerAssets).length > 0;
+}
+
+function validateDraftAssetIssues(
+  issues: OfertaLocalValidationIssue[],
+  asset: OfertaLocalDraftAsset,
+  fieldPrefix: string
+) {
+  if (asset.title.trim().length > LIMITS.draftAssetTitleMax) {
+    pushIssue(
+      issues,
+      `${fieldPrefix}.${asset.id}.title`,
+      `El título del archivo es demasiado largo (máx. ${LIMITS.draftAssetTitleMax}).`,
+      "warning"
+    );
+  }
+  if (asset.assetType === "external_url" && asset.url.trim()) {
+    if (!normalizeOfertaLocalUrlInput(asset.url)) {
+      pushIssue(
+        issues,
+        `${fieldPrefix}.${asset.id}.url`,
+        "La URL externa del archivo debe ser válida (http o https).",
+        "error"
+      );
+    }
+  }
+}
+
+function appendDraftAssetValidation(issues: OfertaLocalValidationIssue[], draft: OfertaLocalDraft) {
+  for (const asset of activeOfertaLocalDraftAssets(draft.flyerAssets)) {
+    validateDraftAssetIssues(issues, asset, "flyerAssets");
+  }
+  for (const asset of activeOfertaLocalDraftAssets(draft.couponAssets)) {
+    validateDraftAssetIssues(issues, asset, "couponAssets");
+  }
 }
 
 function hasCouponContent(draft: OfertaLocalDraft): boolean {
@@ -75,6 +114,7 @@ export function validateOfertaLocalDraftForPreview(draft: OfertaLocalDraft): Ofe
   }
 
   appendOptionalUrlValidation(issues, draft);
+  appendDraftAssetValidation(issues, draft);
 
   return issues;
 }
@@ -150,6 +190,7 @@ export function validateOfertaLocalDraftForFuturePublish(
   }
 
   appendOptionalUrlValidation(issues, draft);
+  appendDraftAssetValidation(issues, draft);
 
   return issues;
 }

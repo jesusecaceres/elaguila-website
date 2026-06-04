@@ -5,6 +5,7 @@ import {
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
 } from "./ofertasLocalesConstants";
+import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 
@@ -87,11 +88,11 @@ export function resolveOfertaLocalDirectionsHref(draft: OfertaLocalDraft): strin
 }
 
 export function hasOfertaLocalFlyerAsset(draft: OfertaLocalDraft): boolean {
-  return draft.flyerAssets.some((a) => Boolean(a.previewUrl.trim() || a.storageKey.trim()));
+  return activeOfertaLocalDraftAssets(draft.flyerAssets).length > 0;
 }
 
 export function hasOfertaLocalCouponAsset(draft: OfertaLocalDraft): boolean {
-  return draft.couponAssets.some((a) => Boolean(a.previewUrl.trim() || a.storageKey.trim()));
+  return activeOfertaLocalDraftAssets(draft.couponAssets).length > 0;
 }
 
 export function shouldShowMembershipBlock(draft: OfertaLocalDraft): boolean {

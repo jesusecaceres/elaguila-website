@@ -30,4 +30,19 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   notYetActiveEs: "Esta oferta aún no está activa según la fecha de inicio.",
   partnerBadge: "Leonix pickup partner",
   publishDisabled: "Publish — not available yet",
+  uploadPending: "Upload pending",
+  uploadPendingEs: "Carga pendiente",
+  assetsSectionFlyer: "Volantes",
+  assetsSectionCoupon: "Cupones",
+  openExternal: "Open link",
+  openExternalEs: "Abrir enlace",
+  openExternalFlyer: "Open external flyer",
+  openExternalFlyerEs: "Abrir volante externo",
+  openExternalCoupon: "Open external coupon",
+  openExternalCouponEs: "Abrir cupón externo",
+  selectedFileBadge: "Selected file — upload pending",
+  selectedFilePendingMessage:
+    "Este archivo se seleccionó para el borrador pero aún no se ha subido.",
+  selectedFilePendingMessageEn:
+    "This file has been selected for the draft but is not uploaded yet.",
 } as const;

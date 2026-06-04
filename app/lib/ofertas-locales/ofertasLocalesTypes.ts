@@ -61,14 +61,27 @@ export type OfertaLocalPricingPackage = {
   isAddOn?: boolean;
 };
 
-/** Placeholder asset slot — upload wired in a future gate. */
-export type OfertaLocalAssetDraft = {
-  /** Local preview URL or empty until upload exists. */
-  previewUrl: string;
-  /** Future storage key; empty in scaffold. */
-  storageKey: string;
-  /** Optional MIME hint for flyer PDF/image/coupon assets. */
+/** Draft asset kinds — metadata only until real upload/storage exists. */
+export type OfertaLocalDraftAssetType =
+  | "flyer_pdf"
+  | "flyer_image"
+  | "coupon_pdf"
+  | "coupon_image"
+  | "external_url";
+
+export type OfertaLocalDraftAssetStatus = "draft" | "ready" | "needs_upload" | "removed";
+
+export type OfertaLocalDraftAsset = {
+  id: string;
+  assetType: OfertaLocalDraftAssetType;
+  title: string;
+  note: string;
+  url: string;
+  fileName: string;
   mimeType: string;
+  pageNumber: number | null;
+  sortOrder: number;
+  status: OfertaLocalDraftAssetStatus;
 };
 
 export type OfertaLocalValidationIssue = {
@@ -97,8 +110,8 @@ export type OfertaLocalDraft = {
   whatsapp: string;
   websiteUrl: string;
   directionsUrl: string;
-  flyerAssets: OfertaLocalAssetDraft[];
-  couponAssets: OfertaLocalAssetDraft[];
+  flyerAssets: OfertaLocalDraftAsset[];
+  couponAssets: OfertaLocalDraftAsset[];
   isFeaturedRequested: boolean;
   languageTags: OfertaLocalLanguageTag[];
   /** Optional rewards / membership program link and CTA copy. */

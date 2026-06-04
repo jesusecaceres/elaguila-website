@@ -10,6 +10,8 @@ const CHIP =
 
 type Props = {
   vm: ComidaLocalPreviewVm;
+  /** Public listing only — real ID from DB when present. */
+  leonixAdId?: string | null;
 };
 
 function ImagePlaceholder({ label }: { label: string }) {
@@ -38,7 +40,7 @@ function SafeListingImage({
   );
 }
 
-export function ComidaLocalDetailShell({ vm }: Props) {
+export function ComidaLocalDetailShell({ vm, leonixAdId }: Props) {
   const headerImage = vm.mainImage ?? vm.logoImage;
 
   return (
@@ -174,6 +176,12 @@ export function ComidaLocalDetailShell({ vm }: Props) {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {leonixAdId ? (
+        <p className="text-center text-[11px] text-[#1E1814]/45">
+          ID Leonix: <span className="font-mono">{leonixAdId}</span>
+        </p>
       ) : null}
     </article>
   );

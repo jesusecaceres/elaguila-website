@@ -1,5 +1,7 @@
 import type {
   OfertaLocalBusinessCategory,
+  OfertaLocalDraftAssetStatus,
+  OfertaLocalDraftAssetType,
   OfertaLocalLanguageTag,
   OfertaLocalMagazineDistributionStatus,
   OfertaLocalMarketType,
@@ -221,6 +223,70 @@ export const OFERTAS_LOCALES_DEFAULT_FILTERS = {
   includeExpired: false,
 } as const;
 
+export const OFERTAS_LOCALES_DRAFT_ASSET_TYPE_OPTIONS: ReadonlyArray<{
+  value: OfertaLocalDraftAssetType;
+  labelEs: string;
+  labelEn: string;
+}> = [
+  { value: "flyer_pdf", labelEs: "Volante PDF", labelEn: "Flyer PDF" },
+  { value: "flyer_image", labelEs: "Imagen de volante", labelEn: "Flyer image" },
+  { value: "coupon_pdf", labelEs: "Cupón PDF", labelEn: "Coupon PDF" },
+  { value: "coupon_image", labelEs: "Imagen de cupón", labelEn: "Coupon image" },
+  { value: "external_url", labelEs: "URL externa", labelEn: "External URL" },
+];
+
+export const OFERTAS_LOCALES_FLYER_DRAFT_ASSET_TYPES: ReadonlyArray<OfertaLocalDraftAssetType> = [
+  "flyer_pdf",
+  "flyer_image",
+  "external_url",
+];
+
+export const OFERTAS_LOCALES_COUPON_DRAFT_ASSET_TYPES: ReadonlyArray<OfertaLocalDraftAssetType> = [
+  "coupon_pdf",
+  "coupon_image",
+  "external_url",
+];
+
+/** Future accepted MIME families when upload is wired (metadata reference only). */
+export const OFERTAS_LOCALES_ACCEPTED_FUTURE_ASSET_MIMES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export const OFERTAS_LOCALES_DRAFT_ASSET_STATUS_OPTIONS: ReadonlyArray<{
+  value: OfertaLocalDraftAssetStatus;
+  labelEs: string;
+  labelEn: string;
+}> = [
+  { value: "draft", labelEs: "Borrador", labelEn: "Draft" },
+  { value: "ready", labelEs: "Listo", labelEn: "Ready" },
+  { value: "needs_upload", labelEs: "Pendiente de carga", labelEn: "Needs upload" },
+  { value: "removed", labelEs: "Eliminado", labelEn: "Removed" },
+];
+
+export const OFERTAS_LOCALES_MAX_FLYER_ASSETS = 12;
+export const OFERTAS_LOCALES_MAX_COUPON_ASSETS = 6;
+
+/** Client-side file picker limits (Stack 5 — no upload yet). */
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_FLYER_MB = 15;
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_COUPON_MB = 10;
+
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_FLYER_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_COUPON_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
 /** Validation limits — aligned with future publish forms. */
 export const OFERTAS_LOCALES_VALIDATION_LIMITS = {
   businessNameMin: 2,
@@ -247,4 +313,8 @@ export const OFERTAS_LOCALES_VALIDATION_LIMITS = {
   digitalCouponNoteMax: 500,
   magazinePickupNotesMax: 1000,
   magazineMonthlyDropEstimateMax: 40,
+  draftAssetTitleMax: 120,
+  draftAssetNoteMax: 500,
+  draftAssetUrlMax: 500,
+  draftAssetFileNameMax: 160,
 } as const;

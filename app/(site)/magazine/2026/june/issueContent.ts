@@ -1,8 +1,9 @@
-export type MagazineLang = import("@/app/lib/lang").LeonixSiteLang;
+import { normalizeLang, type SupportedLang } from "@/app/lib/language";
+
+export type MagazineLang = SupportedLang;
 
 export function resolveMagazineLang(raw: string | null | undefined): MagazineLang {
-  if (raw === "en" || raw === "vi") return raw;
-  return "es";
+  return normalizeLang(raw);
 }
 
 /** Hub preview shows this many reader sections before linking to full reader. */

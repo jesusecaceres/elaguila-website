@@ -37,10 +37,10 @@ export function MagazineLanguageSelector({
       {showControls ? (
         <p className="mt-3 text-xs text-[#3D3428]/70">
           {lang === "en"
-            ? "Use the language selector in the site header."
+            ? "Use Español / English or More languages in the site header."
             : lang === "vi"
-              ? "Dùng bộ chọn ngôn ngữ trên đầu trang."
-              : "Use el selector de idioma en el encabezado del sitio."}
+              ? "Dùng Español / English hoặc Thêm ngôn ngữ trên đầu trang."
+              : "Use Español / English o Más idiomas en el encabezado del sitio."}
         </p>
       ) : null}
     </div>

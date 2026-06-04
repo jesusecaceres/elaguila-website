@@ -29,6 +29,7 @@ import {
   shouldShowMembershipBlock,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import { OfertasLocalesPreviewAssetCards } from "./OfertasLocalesPreviewAssetCards";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const PAGE_BG = "bg-[#FFFCF7]";
@@ -180,9 +181,19 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
                 {draft.flyerTitle}
               </p>
             ) : null}
+            <OfertasLocalesPreviewAssetCards
+              draft={draft}
+              bucket="flyerAssets"
+              title={OFERTAS_LOCALES_PREVIEW_COPY.assetsSectionFlyer}
+            />
             {!hasOfertaLocalFlyerAsset(draft) ? (
               <div className={cx(PLACEHOLDER, "mt-4")}>{OFERTAS_LOCALES_PREVIEW_COPY.flyerPlaceholderEs}</div>
             ) : null}
+            <OfertasLocalesPreviewAssetCards
+              draft={draft}
+              bucket="couponAssets"
+              title={OFERTAS_LOCALES_PREVIEW_COPY.assetsSectionCoupon}
+            />
             {!hasOfertaLocalCouponAsset(draft) && draft.couponText.trim() ? (
               <div className={cx(PLACEHOLDER, "mt-3")}>
                 {OFERTAS_LOCALES_PREVIEW_COPY.couponAssetPlaceholder}
