@@ -48,8 +48,8 @@ export function ServiciosLikeEngagementCluster({
 
   const countClass =
     tone === "hero"
-      ? "flex min-h-[44px] items-center border-l border-white/25 bg-white/10 px-2.5 text-[11px] font-semibold tabular-nums text-white/95"
-      : "flex min-h-[44px] items-center border-l border-[color:var(--lx-border,#E8D7B8)] bg-[color:var(--lx-surface-2,#FAF7F2)] px-2.5 text-[11px] font-semibold tabular-nums text-[color:var(--lx-text-2)]";
+      ? "flex min-h-[44px] items-center gap-1 border-l border-white/25 bg-white/10 px-2.5 text-[11px] font-semibold tabular-nums text-white/95"
+      : "flex min-h-[44px] items-center gap-1 border-l border-[color:var(--lx-border,#E8D7B8)] bg-[color:var(--lx-surface-2,#FAF7F2)] px-2.5 text-[11px] font-semibold tabular-nums text-[color:var(--lx-text-2)]";
 
   return (
     <div className={`${shellClass} ${className}`.trim()} data-servicios-like-cluster="1">
@@ -65,10 +65,8 @@ export function ServiciosLikeEngagementCluster({
       />
       {likeCueN > 0 ? (
         <span className={countClass} data-servicios-like-cluster-count="1">
-          <span aria-hidden className="mr-0.5">
-            ·
-          </span>
-          <span aria-hidden>❤️</span> {countLabel}
+          <span aria-hidden>♥</span>
+          {countLabel}
         </span>
       ) : null}
     </div>

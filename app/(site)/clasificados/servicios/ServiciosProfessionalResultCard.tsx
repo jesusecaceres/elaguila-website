@@ -1,12 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
-import { serviciosImageUnoptimized } from "@/app/servicios/lib/serviciosMediaUrl";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
 import {
@@ -29,28 +27,25 @@ import {
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
+import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/ServiciosAdaptiveLogoPlate";
+import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
+import { ServiciosServiceChipsRow } from "@/app/servicios/components/ServiciosServiceChipsRow";
 import {
   LX,
-  LX_CHIP,
   LX_COMPACT_CARD_TITLE,
-  LX_CTA_MAP,
-  LX_CTA_PRIMARY,
-  LX_CTA_PRIMARY_LG,
-  LX_CTA_SECONDARY,
-  LX_CTA_WHATSAPP,
+  LX_CTA_CARD_MAP,
+  LX_CTA_CARD_OUTLINE,
+  LX_CTA_CARD_PRIMARY,
+  LX_CTA_CARD_WHATSAPP,
+  LX_IVORY_CARD,
   collectHeroTrustChips,
   collectProfessionalServiceChips,
   getPrimaryCtaLabel,
+  getServicesTitle,
   hasPhysicalAddress,
 } from "@/app/servicios/components/serviciosLeonixBrand";
 
-const CARD =
-  "flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#E4D4BC] bg-[#FFFDF9] shadow-sm transition hover:border-[#D4C4A8] hover:shadow-md sm:rounded-2xl";
-
-function getProfileCtaSecondary(template: ServiciosListingTemplate, lang: ServiciosLang): string {
-  if (template === "legal_provider") {
-    return lang === "en" ? "View profile" : "Ver perfil";
-  }
+function getProfileCtaSecondary(_template: ServiciosListingTemplate, lang: ServiciosLang): string {
   return lang === "en" ? "View profile" : "Ver perfil";
 }
 
@@ -109,6 +104,7 @@ export function ServiciosProfessionalResultCard({
   });
   const primaryLabel = getPrimaryCtaLabel(template, lang);
   const secondaryLabel = getProfileCtaSecondary(template, lang);
+  const servicesLabel = getServicesTitle(template, lang);
 
   const href = `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
   const ctaAnalyticsKey = serviciosEngagementListingKey(row);
@@ -126,8 +122,9 @@ export function ServiciosProfessionalResultCard({
   const waHrefNormalized = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const promoted = isServiciosListingPromoted(row);
   const showDirections = hasPhysicalAddress(profile);
-  const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 4), [profile]);
-  const trustChips = useMemo(() => collectHeroTrustChips(profile, 2), [profile]);
+  const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 12), [profile]);
+  const trustChips = useMemo(() => collectHeroTrustChips(profile, 3), [profile]);
+  const allChips = useMemo(() => [...serviceChips, ...trustChips], [serviceChips, trustChips]);
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -166,7 +163,7 @@ export function ServiciosProfessionalResultCard({
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [row.slug],
+    [ctaTrackMeta, row.slug],
   );
 
   const onCallClick = useCallback(() => {
@@ -213,35 +210,25 @@ export function ServiciosProfessionalResultCard({
         "noopener,noreferrer",
       );
     }
-  }, [profile.contact.mapsSearchHref, profile.contact.physicalAddressDisplay, row.slug]);
+  }, [ctaTrackMeta, profile.contact.mapsSearchHref, profile.contact.physicalAddressDisplay, row.slug]);
 
   const cardSurface = promoted
-    ? `${CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
-    : CARD;
+    ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
+    : LX_IVORY_CARD;
 
   const body = (
     <>
       <article className={cardSurface}>
-        <div className="flex gap-4 p-5 pb-3 sm:gap-5 sm:p-6 sm:pb-4">
-          <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg border-2 border-[#E8D9C4] bg-[#FFFCF7] p-1.5 sm:h-20 sm:w-20">
-            {thumb ? (
-              <Image
-                src={thumb}
-                alt={profile.hero.logoAlt || profile.identity.businessName}
-                fill
-                className="object-contain"
-                sizes="72px"
-                unoptimized={serviciosImageUnoptimized(thumb)}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center font-serif text-sm font-semibold uppercase tracking-wide text-[#3B2117]">
-                {profile.identity.businessName.slice(0, 2)}
-              </div>
-            )}
-          </div>
+        <div className="flex gap-3 p-4 sm:gap-4 sm:p-5">
+          <ServiciosAdaptiveLogoPlate
+            src={thumb}
+            alt={profile.hero.logoAlt || profile.identity.businessName}
+            fallbackMonogram={profile.identity.businessName}
+            variant="card"
+          />
 
           <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               {promoted ? (
                 <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
                   {lang === "en" ? "Featured" : "Destacado"}
@@ -259,6 +246,7 @@ export function ServiciosProfessionalResultCard({
                   {lang === "en" ? "Verified" : "Verificado"}
                 </span>
               ) : null}
+              <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
             </div>
 
             <h3 className={LX_COMPACT_CARD_TITLE}>{profile.identity.businessName}</h3>
@@ -274,20 +262,12 @@ export function ServiciosProfessionalResultCard({
               </p>
             ) : null}
 
-            {ratingValue != null || likeBadgeCount > 0 ? (
+            {ratingValue != null ? (
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                {ratingValue != null ? <StarRow rating={ratingValue} lang={lang} /> : null}
-                {likeBadgeCount > 0 ? (
-                  <span
-                    className="inline-flex items-center gap-0.5 rounded-full border border-rose-200/80 bg-rose-50/90 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-rose-900"
-                    data-servicios-like-badge="1"
-                  >
-                    <span aria-hidden>❤️</span>
-                    <span>
-                      {lang === "en"
-                        ? `${likeBadgeCount} ${likeBadgeCount === 1 ? "like" : "likes"}`
-                        : `${likeBadgeCount} me gusta`}
-                    </span>
+                <StarRow rating={ratingValue} lang={lang} />
+                {reviewCount != null ? (
+                  <span className="text-[11px] font-semibold text-[#6F6254]">
+                    ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
                   </span>
                 ) : null}
               </div>
@@ -295,78 +275,57 @@ export function ServiciosProfessionalResultCard({
           </div>
         </div>
 
-        {(serviceChips.length > 0 || trustChips.length > 0) && (
-          <div className="flex flex-wrap gap-1.5 px-4 pb-2 sm:px-5">
-            {serviceChips.map((chip) => (
-              <span key={`s-${chip}`} className={LX_CHIP}>
-                {chip}
-              </span>
-            ))}
-            {trustChips.map((chip) => (
-              <span key={`t-${chip}`} className={LX_CHIP}>
-                {chip}
-              </span>
-            ))}
+        {allChips.length > 0 ? (
+          <div className="px-4 pb-3 sm:px-5">
+            <ServiciosServiceChipsRow
+              chips={allChips}
+              lang={lang}
+              profileHref={href}
+              servicesLabel={servicesLabel}
+            />
           </div>
-        )}
+        ) : null}
 
-        <div className="mt-auto border-t border-[#E8D9C4]/80 px-5 py-4 sm:px-6 sm:py-5">
-          <div className="grid grid-cols-2 gap-2.5">
+        <div className="border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="flex flex-col gap-2">
             {tel ? (
               <button
                 type="button"
                 onClick={onCallClick}
-                className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} col-span-2 w-full`}
-                style={{ backgroundColor: LX.burgundy }}
+                className={LX_CTA_CARD_PRIMARY}
+                style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
               >
-                <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+                <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {primaryLabel}
               </button>
-            ) : waHrefNormalized ? (
-              <button
-                type="button"
-                onClick={onWhatsAppClick}
-                className={`${LX_CTA_WHATSAPP} ${LX_CTA_PRIMARY_LG} col-span-2 w-full`}
-                style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
-              >
-                <FaWhatsapp className="h-5 w-5 shrink-0" aria-hidden />
-                WhatsApp
-              </button>
-            ) : showDirections ? (
-              <button
-                type="button"
-                onClick={onDirectionsClick}
-                className={`${LX_CTA_MAP} ${LX_CTA_PRIMARY_LG} col-span-2 w-full`}
-              >
-                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                {lang === "en" ? "Directions" : "Cómo llegar"}
-              </button>
             ) : null}
-            {tel && waHrefNormalized ? (
-              <button
-                type="button"
-                onClick={onWhatsAppClick}
-                className={`${LX_CTA_WHATSAPP} w-full`}
-                style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
-              >
-                <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
-                WhatsApp
-              </button>
-            ) : null}
-            {showDirections && (tel || waHrefNormalized) ? (
-              <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_MAP} w-full`}>
-                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                {lang === "en" ? "Directions" : "Cómo llegar"}
-              </button>
-            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {waHrefNormalized ? (
+                <button
+                  type="button"
+                  onClick={onWhatsAppClick}
+                  className={LX_CTA_CARD_WHATSAPP}
+                  style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                >
+                  <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  WhatsApp
+                </button>
+              ) : null}
+              {showDirections ? (
+                <button type="button" onClick={onDirectionsClick} className={LX_CTA_CARD_MAP}>
+                  <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {lang === "en" ? "Directions" : "Cómo llegar"}
+                </button>
+              ) : null}
+            </div>
+            <Link
+              href={href}
+              onClick={() => trackServiciosResultCardClick(row)}
+              className={LX_CTA_CARD_OUTLINE}
+            >
+              {secondaryLabel}
+            </Link>
           </div>
-          <Link
-            href={href}
-            onClick={() => trackServiciosResultCardClick(row)}
-            className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} mt-2.5 w-full`}
-          >
-            {secondaryLabel}
-          </Link>
         </div>
       </article>
       <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />

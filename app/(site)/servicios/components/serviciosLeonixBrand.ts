@@ -25,7 +25,19 @@ export const LX = {
 } as const;
 
 export const LX_CHIP =
-  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#D4C4A8]/90 bg-[#F5F0E8] px-2.5 py-1 text-[11px] font-semibold leading-tight text-[#1E1814] sm:text-xs";
+  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#D4C4A8]/80 bg-[#F5F0E8] px-2 py-0.5 text-[10px] font-semibold leading-tight text-[#1E1814] sm:text-[11px]";
+
+/** Small public like count on ivory discovery cards. */
+export const LX_LIKE_BADGE =
+  "inline-flex items-center gap-0.5 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[#7A1E2C] sm:text-[11px]";
+
+/** Ivory discovery / preview card shell (Gate S3). */
+export const LX_IVORY_CARD =
+  "overflow-hidden rounded-xl border border-[#D4C4A8]/85 bg-[#FFFDF7] shadow-sm transition duration-200 hover:border-[#C9A84A]/55 hover:shadow-md sm:rounded-2xl";
+
+/** Adaptive logo plate — ivory field + lion gold border. */
+export const LX_LOGO_PLATE_BASE =
+  "overflow-hidden rounded-lg border-2 border-[#C9A84A]/75 bg-[#FFFCF7] shadow-[0_4px_16px_rgba(201,168,74,0.18),0_2px_8px_rgba(30,24,16,0.06)]";
 
 export const LX_SECTION_CARD =
   "rounded-xl border border-[#E8D9C4]/90 bg-[#FFFDF7] shadow-sm sm:rounded-2xl";
@@ -43,7 +55,19 @@ export const LX_CTA_MAP =
   "inline-flex min-h-[44px] min-w-0 touch-manipulation items-center justify-center gap-2 rounded-lg border-2 border-[#3B2117] bg-[#1E1814] px-4 py-2.5 text-sm font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[#2A2620] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
 
 export const LX_HERO_BG =
-  "relative overflow-hidden bg-gradient-to-br from-[#1E1814] via-[#3B2117] to-[#2A2620] text-[#FFFCF7]";
+  "relative overflow-hidden text-[#FFFCF7]";
+
+/** Royal Night Sky + Lion Gold — live professional hero (Gate S3). */
+export const LX_HERO_BG_STYLE = {
+  background:
+    "radial-gradient(circle at 78% 18%, rgba(214, 166, 58, 0.22), transparent 34%), linear-gradient(135deg, #050B14 0%, #071A33 45%, #102E57 100%)",
+} as const;
+
+/** Standard hero fallback when no cover image. */
+export const LX_STANDARD_HERO_FALLBACK_STYLE = {
+  background:
+    "radial-gradient(circle at 78% 18%, rgba(214, 166, 58, 0.18), transparent 34%), linear-gradient(135deg, #050B14 0%, #071A33 45%, #102E57 100%)",
+} as const;
 
 /** Premium editorial titles — `font-serif` (project-safe, no new font imports). */
 export const LX_TYPE_SERIF_DISPLAY = "font-serif font-semibold tracking-tight text-balance";
@@ -59,12 +83,12 @@ export const LX_SECTION_HEADING =
 export const LX_COMPACT_CARD_TITLE =
   "font-serif text-base font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-lg md:text-xl";
 
-/** Logo/headshot on dark hero — cream field + gold border (Gate 18). */
+/** Logo/headshot on dark hero — prefer ServiciosAdaptiveLogoPlate; kept for legacy refs. */
 export const LX_HERO_LOGO_FRAME =
-  "relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/80 bg-[#FFFCF7] p-2 shadow-[0_8px_28px_rgba(201,168,74,0.24),0_4px_16px_rgba(0,0,0,0.38)] sm:mx-0 sm:h-[6.75rem] sm:w-[6.75rem] sm:p-2.5 lg:h-28 lg:w-28";
+  "relative mx-auto h-28 w-28 shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/80 bg-[#FFFCF7] p-2 shadow-[0_8px_28px_rgba(201,168,74,0.24),0_4px_16px_rgba(0,0,0,0.38)] sm:mx-0 sm:h-32 sm:w-32 lg:h-32 lg:w-32";
 
 export const LX_HERO_CHIP =
-  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/40 bg-[#FFFCF7]/10 px-2.5 py-1 text-[10px] font-semibold leading-tight text-[#FFFCF7] sm:text-[11px]";
+  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/45 bg-[#FFFCF7]/12 px-2 py-0.5 text-[10px] font-semibold leading-tight text-[#FFFCF7] backdrop-blur-[2px] sm:text-[11px]";
 
 export const LX_HUB_CARD =
   "overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFCF7] p-4 shadow-lg sm:rounded-2xl sm:p-6";
@@ -99,12 +123,16 @@ export const LX_STANDARD_HERO_TITLE = `${LX_TYPE_SERIF_DISPLAY} text-balance tex
 /** Leonix text link accent (e.g. back to results) — burgundy, not discovery blue. */
 export const LX_LINK_ACCENT = "text-sm font-bold text-[#7A1E2C] underline-offset-4 hover:underline";
 
-/** Discovery / horizontal card CTAs (sharper radius, shared both pipelines). */
-export const LX_CTA_CARD_PRIMARY = `${LX_CTA_PRIMARY} min-h-[42px] w-full rounded-lg px-4 py-2.5 text-sm sm:min-h-[44px]`;
+/** Discovery / horizontal card CTAs — compact (Gate S3). */
+export const LX_CTA_CARD_PRIMARY = `${LX_CTA_PRIMARY} min-h-[36px] w-full rounded-lg px-3 py-2 text-xs font-bold sm:min-h-[38px] sm:px-3.5 sm:text-sm`;
 
-export const LX_CTA_CARD_SECONDARY = `${LX_CTA_SECONDARY} min-h-[38px] flex-1 min-w-[6.75rem] rounded-lg px-2.5 py-2 text-xs sm:flex-none sm:min-h-[40px] sm:px-3 sm:text-sm`;
+export const LX_CTA_CARD_SECONDARY = `${LX_CTA_SECONDARY} min-h-[34px] flex-1 min-w-[5.5rem] rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:min-h-[36px] sm:min-w-[6.5rem] sm:px-3 sm:text-sm`;
 
-export const LX_CTA_CARD_WHATSAPP = `${LX_CTA_WHATSAPP} min-h-[38px] flex-1 min-w-[6.75rem] rounded-lg px-2.5 py-2 text-xs sm:flex-none sm:min-h-[40px] sm:px-3 sm:text-sm`;
+export const LX_CTA_CARD_WHATSAPP = `${LX_CTA_WHATSAPP} min-h-[34px] flex-1 min-w-[5.5rem] rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:min-h-[36px] sm:min-w-[6.5rem] sm:px-3 sm:text-sm`;
+
+export const LX_CTA_CARD_MAP = `${LX_CTA_MAP} min-h-[34px] flex-1 min-w-[5.5rem] rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:min-h-[36px] sm:min-w-[6.5rem] sm:px-3 sm:text-sm`;
+
+export const LX_CTA_CARD_OUTLINE = `${LX_CTA_SECONDARY} min-h-[34px] w-full rounded-lg px-3 py-1.5 text-xs font-semibold sm:min-h-[36px] sm:text-sm`;
 
 /** Inline CTA row (listing card footer). */
 export const LX_CTA_INLINE_PRIMARY = `${LX_CTA_PRIMARY} inline-flex min-h-[42px] items-center gap-2 rounded-lg px-4 py-2.5 text-sm`;
@@ -118,7 +146,7 @@ export const LX_STANDARD_HERO_LOGO_WRAP =
   "rounded-xl border-2 border-[#C9A84A]/75 bg-[#FFFCF7]/95 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:rounded-2xl sm:p-2.5";
 
 export const LX_STANDARD_HERO_CHIP =
-  "inline-flex max-w-[10.5rem] shrink-0 items-center rounded-md border border-[#C9A84A]/45 bg-black/35 px-2 py-0.5 text-[10px] font-semibold leading-tight text-[#FFFCF7] backdrop-blur-sm sm:max-w-[12rem] sm:px-2.5 sm:py-1 sm:text-xs";
+  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/45 bg-[#FFFCF7]/12 px-2 py-0.5 text-[10px] font-semibold leading-tight text-[#FFFCF7] backdrop-blur-[2px] sm:px-2.5 sm:py-1 sm:text-[11px]";
 
 export function cleanProfessionalChipLabel(raw: string): string {
   const t = String(raw ?? "").trim();
