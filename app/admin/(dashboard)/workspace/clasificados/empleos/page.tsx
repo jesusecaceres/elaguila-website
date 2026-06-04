@@ -86,7 +86,8 @@ export default function AdminEmpleosListingsPage() {
     const url = new URL("/api/admin/empleos/listings", window.location.origin);
     const qt = q.trim();
     if (qt) url.searchParams.set("q", qt);
-    const res = await fetch(url.toString(), { credentials: "same-origin", signal });
+    if (scope === "live") url.searchParams.set("scope", "live");
+    const res = await fetch(url.toString(), { credentials: "same-origin", signal, cache: "no-store" });
     const json = (await res.json()) as { ok?: boolean; rows?: Row[]; error?: string };
     if (!res.ok || !json.ok) {
       setErr(json.error ?? "load_failed");
@@ -94,7 +95,7 @@ export default function AdminEmpleosListingsPage() {
       return;
     }
     setRows(json.rows ?? []);
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -105,7 +106,7 @@ export default function AdminEmpleosListingsPage() {
       window.clearTimeout(t);
       ac.abort();
     };
-  }, [needle, load]);
+  }, [needle, load, scope]);
 
   const displayRows = useMemo(() => {
     if (scope === "live") return rows.filter((r) => r.lifecycle_status === "published");

@@ -21,7 +21,11 @@ import {
   EMPLEOS_LINK_MUTED,
 } from "./lib/empleosPremiumUi";
 import { EmpleosClasificadosEngagementRow } from "./components/EmpleosClasificadosEngagementRow";
+import { EmpleosJobProfileViewAnalytics } from "./components/EmpleosJobProfileViewAnalytics";
 import { EmpleosJobTranslationLayer } from "./components/EmpleosJobTranslationLayer";
+import { empleosAnalyticsTrackMeta } from "./lib/empleosAnalyticsIdentity";
+import { trackEmpleosApplyStarted, trackEmpleosContactFromHref } from "./lib/empleosCtaTracking";
+import { empleosGlobalListingFromRow } from "./lib/recordEmpleosGlobalAnalytics";
 
 type Props = {
   slug: string;
@@ -31,6 +35,8 @@ type Props = {
   relatedExtra?: EmpleosJobRecord[];
   /** When true, “related” excludes `EMPLEOS_JOB_CATALOG` (must match `empleosOmitMarketingSeedCatalog()` on the server). */
   omitMarketingSeedCatalog?: boolean;
+  /** empleos_public_listings.id — global analytics (EMP1). */
+  listingSourceId?: string | null;
   /** When set, increments persisted `view_count` once per browser session load (published slug only). */
   trackPublicViewsForSlug?: string | null;
   engagementListingKey?: string | null;
@@ -46,6 +52,7 @@ export function EmpleoPublicDetailClient({
   initialJob,
   relatedExtra = [],
   omitMarketingSeedCatalog = false,
+  listingSourceId = null,
   trackPublicViewsForSlug = null,
   engagementListingKey = null,
   engagementOwnerUserId = null,
@@ -110,11 +117,39 @@ export function EmpleoPublicDetailClient({
   }
 
   const listingKey = engagementListingKey?.trim() || slug;
+  const globalListing = listingSourceId?.trim()
+    ? empleosGlobalListingFromRow({
+        id: listingSourceId.trim(),
+        slug,
+        leonix_ad_id: leonixAdId,
+      })
+    : null;
+  const applyAnalyticsMeta = globalListing
+    ? empleosAnalyticsTrackMeta({
+        sourceId: globalListing.id,
+        slug: globalListing.slug,
+        leonixAdId: globalListing.leonix_ad_id,
+        source: "detail_apply",
+      })
+    : undefined;
+
+  const trackExternalApply = (href: string) => {
+    if (!globalListing) return;
+    trackEmpleosApplyStarted(globalListing, "external_url");
+    if (applyAnalyticsMeta) trackEmpleosContactFromHref(href, applyAnalyticsMeta);
+  };
 
   return (
     <EmpleosJobTranslationLayer job={job} siteLocale={lang} listingLang={listingLang} listingKey={listingKey}>
       {(displayJob, translateControl) => (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
+      {listingSourceId?.trim() ? (
+        <EmpleosJobProfileViewAnalytics
+          listingSourceId={listingSourceId.trim()}
+          slug={slug}
+          leonixAdId={leonixAdId}
+        />
+      ) : null}
       <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <nav className="text-xs font-semibold text-[#4A4744] sm:text-sm" aria-label="Breadcrumb">
@@ -236,6 +271,9 @@ export function EmpleoPublicDetailClient({
                   listingTitle={displayJob.title}
                   shareUrl={shareAbs || (typeof window !== "undefined" ? window.location.href : "")}
                   persistEngagement={persistListingEngagement}
+                  listingSourceId={listingSourceId}
+                  slug={slug}
+                  leonixAdId={leonixAdId}
                 />
               ) : null}
 
@@ -297,13 +335,19 @@ export function EmpleoPublicDetailClient({
                   href={job.externalApplyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackExternalApply(job.externalApplyUrl!)}
                   className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}
                 >
                   {lang === "es" ? "Sitio del empleador (aplicar)" : "Employer site (apply)"}
                 </a>
               ) : null}
               {job && isLiveListingId(job.id) ? (
-                <EmpleosApplyForm listingId={job.id} lang={lang} screenerQuestions={job.screenerQuestions} />
+                <EmpleosApplyForm
+                  listingId={job.id}
+                  lang={lang}
+                  screenerQuestions={job.screenerQuestions}
+                  analyticsListing={globalListing}
+                />
               ) : (
                 <>
                   <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} w-full px-4 text-center`}>

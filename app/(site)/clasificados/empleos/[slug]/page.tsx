@@ -88,6 +88,7 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
   const useLaneShell = Boolean(row && job && (job.publicationLane || envelope?.lane));
   const engagementListingKey = row ? ((row.leonix_ad_id ?? "").trim() || row.id) : null;
   const persistListingEngagement = Boolean(row);
+  const listingSourceId = row?.id ?? null;
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FAF7F2] pt-24" aria-busy="true" />}>
@@ -96,6 +97,7 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
         <EmpleosPublicLaneDetailClient
           slug={slug}
           leonixAdId={row?.leonix_ad_id ?? null}
+          listingSourceId={listingSourceId}
           listingLang={row?.lang ?? null}
           job={job}
           envelope={envelope}
@@ -110,6 +112,7 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
         <EmpleoPublicDetailClient
           slug={slug}
           leonixAdId={row?.leonix_ad_id ?? null}
+          listingSourceId={listingSourceId}
           listingLang={row?.lang ?? null}
           initialJob={job}
           relatedExtra={relatedExtra}

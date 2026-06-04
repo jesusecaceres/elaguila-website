@@ -47,11 +47,35 @@ export async function fetchViajesStagedRowBySlugPublic(slug: string): Promise<Vi
 }
 
 export async function fetchAllViajesStagedForAdmin(): Promise<ViajesStagedListingRow[]> {
+  return fetchViajesStagedAdminQueue({ limit: 500 });
+}
+
+const VIAJES_ADMIN_QUEUE_SELECT =
+  "id, slug, title, lifecycle_status, is_public, admin_promoted, leonix_verified, leonix_ad_id, owner_user_id, published_at, updated_at, republish_override, republish_count";
+
+export type ViajesAdminQueueFilters = {
+  limit?: number;
+  scope?: "live";
+};
+
+/** Admin workspace queue — bounded select, optional live scope at SQL level. */
+export async function fetchViajesStagedAdminQueue(
+  opts: ViajesAdminQueueFilters = {},
+): Promise<ViajesStagedListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase.from("viajes_staged_listings").select("*").order("republish_sort_at", { ascending: false, nullsFirst: true });
+  const cap = Math.min(Math.max(Math.floor(opts.limit ?? 100), 1), 500);
+  let q = supabase
+    .from("viajes_staged_listings")
+    .select(VIAJES_ADMIN_QUEUE_SELECT)
+    .order("republish_sort_at", { ascending: false, nullsFirst: true })
+    .limit(cap);
+  if (opts.scope === "live") {
+    q = q.eq("lifecycle_status", "approved").eq("is_public", true);
+  }
+  const { data, error } = await q;
   if (error || !data) return [];
-  return data as ViajesStagedListingRow[];
+  return data as unknown as ViajesStagedListingRow[];
 }
 
 export async function updateViajesStagedListingModeration(input: {

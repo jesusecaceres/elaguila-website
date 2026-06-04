@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { empleosRowMatchesAdminQueueSearch } from "@/app/admin/_lib/adminAdSearch";
+import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
+import { empleosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
   fetchAllEmpleosListingsForAdmin,
   fetchEmpleosApplicationHealthByListingIds,
@@ -10,7 +13,10 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 
 export const runtime = "nodejs";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  noStore();
   if (req.cookies.get("leonix_admin")?.value !== "1") {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -18,7 +24,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
   }
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
-  let rows = await fetchAllEmpleosListingsForAdmin();
+  const scopeRaw = req.nextUrl.searchParams.get("scope")?.trim().toLowerCase();
+  const scope = scopeRaw === "live" ? ("live" as const) : undefined;
+  const limit = normalizeAdminQueueLimit(req.nextUrl.searchParams.get("limit") ?? undefined, ADMIN_QUEUE_DEFAULT_LIMIT);
+  let rows = await fetchAllEmpleosListingsForAdmin({ limit, scope });
   if (q) {
     const supabase = getAdminSupabase();
     const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, q);
@@ -39,6 +48,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         profileSet,
       ),
     );
+  }
+  if (scope === "live") {
+    rows = rows.filter((r) => empleosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
   const ids = rows.map((r) => r.id);
   const health = await fetchEmpleosApplicationHealthByListingIds(ids);

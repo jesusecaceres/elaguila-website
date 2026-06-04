@@ -24,6 +24,11 @@ import {
   rentasRentalFlowGroupForTipo,
   type RentasRentalFlowGroup,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import {
+  formatDetailCountDisplay,
+  formatIntegerWithCommas,
+  formatSqftDisplay,
+} from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 const CONDICION_COMERCIAL_LABEL: Record<string, string> = {
   excelente: "Excelente",
@@ -87,20 +92,11 @@ function row(label: string, value: string): BienesRaicesPreviewFact | null {
   return { label, value: v };
 }
 
-function prettifyPlainNumber(raw: string): string {
+function formatStorageSizeDisplay(raw: string): string {
   const t = trim(raw);
   if (!t) return "";
-  const c = t.replace(/,/g, "");
-  if (!/^\d+(\.\d+)?$/.test(c)) return t;
-  const [intPart, frac] = c.split(".");
-  const pretty = intPart!.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return frac !== undefined ? `${pretty}.${frac}` : pretty;
-}
-
-function prettifySqft(raw: string): string {
-  const t = trim(raw);
-  if (!t) return "";
-  return `${prettifyPlainNumber(t)} ft²`;
+  if (/^\d+$/.test(t.replace(/,/g, ""))) return formatIntegerWithCommas(t) || t;
+  return t;
 }
 
 function labelTerrenoSubtipo(codigo: (typeof TERRENO_TIPO_OPCIONES)[number]["value"], subvalor: string): string {
@@ -224,7 +220,7 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
     if (prefs) out.push({ label: "Preferencias del espacio compartido", value: prefs });
   }
   if (g === "storage_parking") {
-    const r1 = row("Tamaño aproximado", s.rentasAlmacenTamanoAprox);
+    const r1 = row("Tamaño aproximado", formatStorageSizeDisplay(s.rentasAlmacenTamanoAprox) || s.rentasAlmacenTamanoAprox);
     if (r1) out.push(r1);
     const a24 = siNoLabel(s.rentasAlmacenAcceso24h);
     if (a24) out.push({ label: "Acceso 24/7", value: a24 });
@@ -321,10 +317,10 @@ function buildComercialPropertyRows(s: RentasFlowFormSlice): BienesRaicesPreview
     row("Tipo comercial", tipoLabel),
     row("Subtipo", subLbl),
     row("Uso", c.uso),
-    row("Tamaño interior", c.interiorSqft ? prettifySqft(c.interiorSqft) : ""),
-    row("Oficinas", prettifyPlainNumber(c.oficinas)),
-    row("Baños", prettifyPlainNumber(c.banos)),
-    row("Niveles / pisos", prettifyPlainNumber(c.niveles)),
+    row("Tamaño interior", c.interiorSqft ? formatSqftDisplay(c.interiorSqft) : ""),
+    row("Oficinas", formatDetailCountDisplay(c.oficinas) || trim(c.oficinas)),
+    row("Baños", formatDetailCountDisplay(c.banos) || trim(c.banos)),
+    row("Niveles / pisos", formatDetailCountDisplay(c.niveles) || trim(c.niveles)),
     row("Estacionamiento", c.estacionamiento),
     row("Zonificación", c.zonificacion),
     row("Condición", c.condicion ? CONDICION_COMERCIAL_LABEL[c.condicion] ?? c.condicion : ""),
@@ -340,7 +336,7 @@ function buildTerrenoPropertyRows(s: RentasFlowFormSlice): BienesRaicesPreviewFa
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo de terreno", tipoLabel),
     row("Subtipo", subLbl),
-    row("Tamaño del lote", t.loteSqft ? prettifySqft(t.loteSqft) : ""),
+    row("Tamaño del lote", t.loteSqft ? formatSqftDisplay(t.loteSqft) : ""),
     row("Uso / zonificación", t.usoZonificacion),
     row("Acceso", t.acceso),
     row("Servicios disponibles", t.servicios),

@@ -320,6 +320,8 @@ export type ServiciosAdminQueueFilters = {
   id?: string;
   leonix_ad_id?: string;
   owner_user_id?: string;
+  /** `live` — only publicly published rows (listing_status=published). */
+  scope?: "live";
 };
 
 /**
@@ -336,7 +338,11 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
   const leonixParam = opts.leonix_ad_id?.trim();
   const qRaw = opts.q?.trim() ?? "";
   const supabase = getAdminSupabase();
-  const qb = () => supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
+  const qb = () => {
+    let q = supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
+    if (opts.scope === "live") q = q.eq("listing_status", "published");
+    return q;
+  };
 
   try {
     if (slug || id || owner || leonixParam) {

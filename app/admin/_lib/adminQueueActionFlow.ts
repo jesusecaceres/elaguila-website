@@ -170,11 +170,11 @@ export function buildAdminActionReturnUrl(input: BuildAdminActionReturnUrlInput)
   return qs ? `${path}?${qs}${hash}` : `${path}${hash}`;
 }
 
-/** Default row cap for admin classified queues (Phase 15 perf). */
-export const ADMIN_QUEUE_DEFAULT_LIMIT = 100;
+/** Default row cap for admin classified queues (Phase 15/16 perf). */
+export const ADMIN_QUEUE_DEFAULT_LIMIT = 50;
 
 export function normalizeAdminQueueLimit(raw: number | string | undefined, fallback = ADMIN_QUEUE_DEFAULT_LIMIT): number {
   const n = typeof raw === "number" ? raw : parseInt(String(raw ?? ""), 10);
   if (!Number.isFinite(n)) return fallback;
-  return Math.min(Math.max(Math.floor(n), 50), 500);
+  return Math.min(Math.max(Math.floor(n), 25), 500);
 }

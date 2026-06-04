@@ -18,6 +18,13 @@ import {
   labelDestacadoForPublishStep,
   labelDestacadoTerrenoForPublishStep,
 } from "../lib/agenteResidencialPreviewFormat";
+import { formatSqftDisplay } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
+
+function BrSqftPreview({ value }: { value: string }) {
+  const shown = formatSqftDisplay(value);
+  if (!shown) return null;
+  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
+}
 
 export function Step04DetallesEsenciales({
   state,
@@ -83,6 +90,7 @@ export function Step04DetallesEsenciales({
               onChange={(e) => setState((s) => ({ ...s, tamanoInteriorSqft: e.target.value }))}
               autoComplete="off"
             />
+            <BrSqftPreview value={state.tamanoInteriorSqft} />
           </AiField>
           <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
             <input
@@ -91,6 +99,7 @@ export function Step04DetallesEsenciales({
               onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
               autoComplete="off"
             />
+            <BrSqftPreview value={state.tamanoLoteSqft} />
           </AiField>
           <AiField label={t.step04.estacionamientos}>
             <input
@@ -121,6 +130,7 @@ export function Step04DetallesEsenciales({
               onChange={(e) => setState((s) => ({ ...s, tamanoInteriorSqft: e.target.value }))}
               autoComplete="off"
             />
+            <BrSqftPreview value={state.tamanoInteriorSqft} />
           </AiField>
           <AiField label={t.step04.tamanoLote} hint={t.step04.tamanoLoteHint}>
             <input
@@ -129,6 +139,7 @@ export function Step04DetallesEsenciales({
               onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
               autoComplete="off"
             />
+            <BrSqftPreview value={state.tamanoLoteSqft} />
           </AiField>
           <div className="sm:col-span-2">
             <AiField label={t.step04.usoComercial} hint={t.step04.usoComercialHint}>
@@ -205,6 +216,7 @@ export function Step04DetallesEsenciales({
                 onChange={(e) => setState((s) => ({ ...s, tamanoLoteSqft: e.target.value }))}
                 autoComplete="off"
               />
+              <BrSqftPreview value={state.tamanoLoteSqft} />
             </AiField>
           </div>
           <div className="sm:col-span-2">

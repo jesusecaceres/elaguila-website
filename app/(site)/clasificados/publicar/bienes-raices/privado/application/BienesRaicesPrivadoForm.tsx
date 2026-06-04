@@ -58,22 +58,21 @@ import {
   loadBienesRaicesPrivadoDraft,
   saveBienesRaicesPrivadoDraft,
 } from "./utils/bienesRaicesPrivadoDraft";
+import { formatSqftDisplay, formatUsdWhole, priceDigitsUnbounded } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 const MAX_PHOTOS = 8;
 /** Soft cap for draft video data URLs (sessionStorage); no Mux upload in this flow. */
 const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 
-function precioDigitsUnbounded(raw: string): string {
-  return String(raw ?? "").replace(/\D/g, "");
-}
-
 /** Live preview of how price will render in the ad (USD, commas). */
 function formatPricePreviewUsd(digitsRaw: string): string {
-  const d = precioDigitsUnbounded(digitsRaw);
-  if (!d) return "";
-  const n = Number(d);
-  if (!Number.isFinite(n) || n <= 0) return "";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  return formatUsdWhole(digitsRaw);
+}
+
+function BrSqftPreview({ value }: { value: string }) {
+  const shown = formatSqftDisplay(value);
+  if (!shown) return null;
+  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
 }
 
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
@@ -333,7 +332,7 @@ export function BienesRaicesPrivadoForm() {
                 className={fieldClass}
                 inputMode="numeric"
                 value={state.precio}
-                onChange={(e) => setState((s) => ({ ...s, precio: precioDigitsUnbounded(e.target.value) }))}
+                onChange={(e) => setState((s) => ({ ...s, precio: priceDigitsUnbounded(e.target.value) }))}
                 autoComplete="off"
               />
               {pricePreview ? (
@@ -971,21 +970,23 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Interior (ftÂ²)">
+              <AiField label="Interior (ft²)">
                 <input
                   className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
                 />
+                <BrSqftPreview value={state.residencial.interiorSqft} />
               </AiField>
-              <AiField label="Lote (ftÂ²)">
+              <AiField label="Lote (ft²)">
                 <input
                   className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, loteSqft: e.target.value } }))}
                 />
+                <BrSqftPreview value={state.residencial.loteSqft} />
               </AiField>
               <AiField label="Estacionamiento">
                 <input
@@ -1099,6 +1100,7 @@ export function BienesRaicesPrivadoForm() {
                   value={state.comercial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, interiorSqft: e.target.value } }))}
                 />
+                <BrSqftPreview value={state.comercial.interiorSqft} />
               </AiField>
               <AiField label="Oficinas">
                 <input
@@ -1231,6 +1233,7 @@ export function BienesRaicesPrivadoForm() {
                   value={state.terreno.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, loteSqft: e.target.value } }))}
                 />
+                <BrSqftPreview value={state.terreno.loteSqft} />
               </AiField>
               <AiField label="Uso / zonificaciÃ³n">
                 <input

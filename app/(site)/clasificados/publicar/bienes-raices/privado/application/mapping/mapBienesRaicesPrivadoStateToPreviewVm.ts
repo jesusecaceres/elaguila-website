@@ -63,26 +63,21 @@ const CONDICION_LABEL: Record<string, string> = {
 
 import {
   formatCityStateZip,
+  formatDetailCountDisplay,
   formatFullAddress,
+  formatIntegerWithCommas,
+  formatSqftDisplay,
   formatStreetUnitLine,
   formatUsdWhole,
+  formatYearBuiltDisplay,
 } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
-/** Thousands separators for plain numeric input (counts, sqft, etc.). */
 function prettifyPlainNumber(raw: string): string {
-  const t = trim(raw);
-  if (!t) return "";
-  const c = t.replace(/,/g, "");
-  if (!/^\d+(\.\d+)?$/.test(c)) return t;
-  const [intPart, frac] = c.split(".");
-  const pretty = intPart!.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return frac !== undefined ? `${pretty}.${frac}` : pretty;
+  return formatDetailCountDisplay(raw) || formatIntegerWithCommas(raw) || trim(raw);
 }
 
 function prettifySqft(raw: string): string {
-  const t = trim(raw);
-  if (!t) return "";
-  return `${prettifyPlainNumber(t)} ft²`;
+  return formatSqftDisplay(raw) || trim(raw);
 }
 
 function buildMailto(to: string, subject: string): string | null {
@@ -177,7 +172,7 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
     row("Tamaño interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : ""),
     row("Tamaño del lote", r.loteSqft ? prettifySqft(r.loteSqft) : ""),
     row("Estacionamiento", r.estacionamiento),
-    row("Año de construcción", prettifyPlainNumber(r.ano)),
+    row("Año de construcción", formatYearBuiltDisplay(r.ano)),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
@@ -197,7 +192,7 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
   push("Interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : "", "ruler");
   push("Lote", r.loteSqft ? prettifySqft(r.loteSqft) : "", "pin");
   push("Estacionamiento", r.estacionamiento, "car");
-  push("Año", prettifyPlainNumber(r.ano), "calendar");
+  push("Año", formatYearBuiltDisplay(r.ano), "calendar");
   return out;
 }
 

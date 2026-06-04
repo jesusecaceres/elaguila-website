@@ -281,6 +281,7 @@ export function clearEnVentaPublishTempState(): void {
     sessionStorage.removeItem(EN_VENTA_PREVIEW_DRAFT_META_KEY);
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     sessionStorage.removeItem(EN_VENTA_PUBLISH_TAB_SESSION_KEY);
+    sessionStorage.removeItem(EN_VENTA_REPUBLISH_SEED_FLAG);
   } catch {
     /* ignore */
   }
@@ -464,6 +465,28 @@ export function isEnVentaPublishResumeRequested(resumeParam: string | null | und
   return resumeParam === "1";
 }
 
+/** Set when dashboard republicar seeds the publish form; consumed on first mount with `republish=1`. */
+export const EN_VENTA_REPUBLISH_SEED_FLAG = "en-venta-republish-seed-pending";
+
+export function isEnVentaRepublishFromListingRequested(republishParam: string | null | undefined): boolean {
+  return republishParam === "1";
+}
+
+/** Gate D2 — seed publish form from an inactive listing without touching the source row. */
+export function seedEnVentaDashboardRepublishDraft(
+  plan: "free" | "pro",
+  state: EnVentaFreeApplicationState,
+): void {
+  clearEnVentaPublishTempState();
+  saveEnVentaPreviewDraft(plan, state);
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(EN_VENTA_REPUBLISH_SEED_FLAG, plan);
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Publish form mount:
  * - Preview return payload → restore (Volver a editar).
@@ -471,13 +494,39 @@ export function isEnVentaPublishResumeRequested(resumeParam: string | null | und
  * - Same-tab reload → restore autosaved draft without `resume=1`.
  * - Normal `/pro?lang=es` navigation → empty form (new tab or in-tab link).
  */
+export type EnVentaPublishFormMountOpts = {
+  resume?: boolean;
+  republish?: boolean;
+};
+
 export async function resolveEnVentaPublishFormInitialState(
   plan: "free" | "pro",
-  resumeRequested: boolean
+  resumeOrOpts: boolean | EnVentaPublishFormMountOpts = false
 ): Promise<EnVentaFreeApplicationState> {
+  const opts: EnVentaPublishFormMountOpts =
+    typeof resumeOrOpts === "boolean" ? { resume: resumeOrOpts } : resumeOrOpts;
+  const resumeRequested = Boolean(opts.resume);
+  const republishRequested = Boolean(opts.republish);
+
   const fromReturn = consumeEnVentaPreviewReturnDraft(plan);
   if (fromReturn) {
     return hydrateEnVentaDraftMediaIfMissing(plan, fromReturn);
+  }
+
+  if (republishRequested && typeof window !== "undefined") {
+    try {
+      const pending = sessionStorage.getItem(EN_VENTA_REPUBLISH_SEED_FLAG);
+      if (pending === plan) {
+        sessionStorage.removeItem(EN_VENTA_REPUBLISH_SEED_FLAG);
+        const restored = await loadEnVentaPublishDraftForRestore(plan);
+        if (restored) {
+          getOrCreateEnVentaPublishTabSessionId();
+          return hydrateEnVentaDraftMediaIfMissing(plan, restored);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   if (resumeRequested) {

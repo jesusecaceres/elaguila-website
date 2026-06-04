@@ -26,11 +26,16 @@ import {
 } from "./lib/empleosPublishedLaneShell";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EmpleosClasificadosEngagementRow } from "./components/EmpleosClasificadosEngagementRow";
+import { EmpleosJobProfileViewAnalytics } from "./components/EmpleosJobProfileViewAnalytics";
 import { EmpleosJobTranslationLayer } from "./components/EmpleosJobTranslationLayer";
+import { empleosAnalyticsTrackMeta, type EmpleosPublicListingAnalyticsProps } from "./lib/empleosAnalyticsIdentity";
+import { trackEmpleosApplyStarted, trackEmpleosContactFromHref } from "./lib/empleosCtaTracking";
+import { empleosGlobalListingFromRow } from "./lib/recordEmpleosGlobalAnalytics";
 
 type Props = {
   slug: string;
   leonixAdId?: string | null;
+  listingSourceId?: string | null;
   job: EmpleosJobRecord;
   envelope: EmpleosPublishEnvelope | null;
   relatedExtra?: EmpleosJobRecord[];
@@ -46,11 +51,20 @@ function PublicApplyFooter({
   job,
   lang,
   engagement,
+  publicAnalytics,
 }: {
   job: EmpleosJobRecord;
   lang: Lang;
   engagement?: { listingId: string; ownerUserId?: string | null; persist: boolean; shareUrl: string } | null;
+  publicAnalytics?: EmpleosPublicListingAnalyticsProps;
 }) {
+  const globalListing = publicAnalytics?.listingSourceId?.trim()
+    ? empleosGlobalListingFromRow({
+        id: publicAnalytics.listingSourceId.trim(),
+        slug: publicAnalytics.slug,
+        leonix_ad_id: publicAnalytics.leonixAdId,
+      })
+    : null;
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
   return (
@@ -64,6 +78,9 @@ function PublicApplyFooter({
             listingTitle={job.title}
             shareUrl={engagement.shareUrl}
             persistEngagement={engagement.persist}
+            listingSourceId={publicAnalytics?.listingSourceId}
+            slug={publicAnalytics?.slug}
+            leonixAdId={publicAnalytics?.leonixAdId}
           />
         </div>
       ) : null}
@@ -80,6 +97,20 @@ function PublicApplyFooter({
           href={job.externalApplyUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => {
+            if (globalListing) {
+              trackEmpleosApplyStarted(globalListing, "external_url");
+              trackEmpleosContactFromHref(
+                job.externalApplyUrl!,
+                empleosAnalyticsTrackMeta({
+                  sourceId: globalListing.id,
+                  slug: globalListing.slug,
+                  leonixAdId: globalListing.leonix_ad_id,
+                  source: "detail_apply",
+                }),
+              );
+            }
+          }}
           className={`${EMPLEOS_CTA_PRIMARY} mt-4 inline-flex w-full justify-center px-4 text-center sm:w-auto`}
         >
           {lang === "es" ? "Abrir página para postular" : "Open apply page"}
@@ -87,7 +118,12 @@ function PublicApplyFooter({
       ) : null}
       {isLiveListingId(job.id) ? (
         <div className="mt-4">
-          <EmpleosApplyForm listingId={job.id} lang={lang} screenerQuestions={job.screenerQuestions} />
+          <EmpleosApplyForm
+            listingId={job.id}
+            lang={lang}
+            screenerQuestions={job.screenerQuestions}
+            analyticsListing={globalListing}
+          />
         </div>
       ) : (
         <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} mt-4 inline-flex w-full justify-center px-4 text-center`}>
@@ -112,6 +148,7 @@ function PublicApplyFooter({
 export function EmpleosPublicLaneDetailClient({
   slug,
   leonixAdId = null,
+  listingSourceId = null,
   job,
   envelope,
   relatedExtra = [],
@@ -162,7 +199,18 @@ export function EmpleosPublicLaneDetailClient({
         shareUrl: shareAbs || (typeof window !== "undefined" ? window.location.href : ""),
       }
     : null;
-  const footer = <PublicApplyFooter job={job} lang={lang} engagement={engagement} />;
+  const publicAnalytics: EmpleosPublicListingAnalyticsProps | undefined = listingSourceId?.trim()
+    ? { listingSourceId: listingSourceId.trim(), slug, leonixAdId }
+    : undefined;
+  const contactAnalyticsMeta = publicAnalytics?.listingSourceId
+    ? empleosAnalyticsTrackMeta({
+        sourceId: publicAnalytics.listingSourceId,
+        slug: publicAnalytics.slug,
+        leonixAdId: publicAnalytics.leonixAdId,
+        source: "detail_contact",
+      })
+    : undefined;
+  const footer = <PublicApplyFooter job={job} lang={lang} engagement={engagement} publicAnalytics={publicAnalytics} />;
   const leonixBanner = leonixAdId?.trim() ? (
     <div className="border-b border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-center text-xs text-[#5C5346]">
       {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId.trim()}
@@ -184,15 +232,30 @@ export function EmpleosPublicLaneDetailClient({
             </section>
           ) : null;
 
+        const profileAnalytics =
+          listingSourceId?.trim() ? (
+            <EmpleosJobProfileViewAnalytics
+              listingSourceId={listingSourceId.trim()}
+              slug={slug}
+              leonixAdId={leonixAdId}
+            />
+          ) : null;
+
         if (lane === "premium") {
           const data = mapPublishedPremiumToShell(displayJob, envelope);
           return (
             <>
+              {profileAnalytics}
               {leonixBanner}
               {translateControl ? (
                 <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-5 lg:px-8">{translateControl}</div>
               ) : null}
-              <EmpleoPremiumDetailPage data={data} withSiteChrome={false} publicFooterSlot={footer} />
+              <EmpleoPremiumDetailPage
+                data={data}
+                withSiteChrome={false}
+                publicFooterSlot={footer}
+                contactAnalyticsMeta={contactAnalyticsMeta}
+              />
               {relatedSection}
             </>
           );
@@ -202,6 +265,7 @@ export function EmpleosPublicLaneDetailClient({
           const data = mapPublishedFeriaToShell(displayJob, envelope);
           return (
             <>
+              {profileAnalytics}
               {leonixBanner}
               {translateControl ? (
                 <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-5 lg:px-8">{translateControl}</div>
@@ -215,11 +279,17 @@ export function EmpleosPublicLaneDetailClient({
         const quickData = mapPublishedQuickToShell(displayJob, envelope);
         return (
           <>
+            {profileAnalytics}
             {leonixBanner}
             {translateControl ? (
               <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-5 lg:px-8">{translateControl}</div>
             ) : null}
-            <EmpleoQuickDetailPage data={quickData} withSiteChrome={false} publicFooterSlot={footer} />
+            <EmpleoQuickDetailPage
+              data={quickData}
+              withSiteChrome={false}
+              publicFooterSlot={footer}
+              contactAnalyticsMeta={contactAnalyticsMeta}
+            />
             {relatedSection}
           </>
         );

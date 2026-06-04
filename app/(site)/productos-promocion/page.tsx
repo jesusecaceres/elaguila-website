@@ -18,11 +18,11 @@ export async function generateMetadata(props: {
     title:
       lang === "en"
         ? "Promotional Products | Leonix Media"
-        : "Productos para Promoción | Leonix Media",
+        : "Productos Promocionales | Leonix Media",
     description:
       lang === "en"
-        ? "Business cards, flyers, banners, promotional products and more. Request a quote from Leonix Media."
-        : "Tarjetas de presentación, volantes, banners, productos promocionales y más. Solicita una cotización con Leonix Media.",
+        ? "Custom apparel, calendars, event materials, and branded promotional products for local businesses. Request information from Leonix Media."
+        : "Ropa personalizada, calendarios, material para eventos y productos con tu marca para negocios locales. Solicita información con Leonix Media.",
   };
 }
 

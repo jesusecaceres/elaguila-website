@@ -14,6 +14,7 @@ import {
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { ClasificadosQueueActionChrome } from "./_components/ClasificadosQueueActionChrome";
 import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
+import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
   computeEnVentaVisibilityRenewalVm,
   EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
@@ -487,9 +488,7 @@ export default function AdminListingsTable({
                         rowId={row.id}
                         leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
                         displayLabel={row.title}
-                        publicLive={
-                          row.is_published === true && (row.status ?? "active").toLowerCase() === "active"
-                        }
+                        publicLive={listingsRowIsPublicLive(row as Record<string, unknown>)}
                         promoted={Boolean(row.admin_promoted)}
                         verified={Boolean(row.leonix_verified)}
                         canArchive={(row.status ?? "").toLowerCase() !== "removed"}

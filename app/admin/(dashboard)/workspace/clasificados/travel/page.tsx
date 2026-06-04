@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { viajesRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
+  ADMIN_QUEUE_DEFAULT_LIMIT,
   adminQueueRowAnchorId,
   adminQueueRowClass,
+  normalizeAdminQueueLimit,
   parseAdminActionResultFromRecord,
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
@@ -15,7 +16,7 @@ import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
-import { fetchAllViajesStagedForAdmin } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
+import { fetchViajesStagedAdminQueue } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import type { ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
@@ -39,17 +40,23 @@ export default async function AdminTravelViajesQueuePage(props: {
   const m = adminMessages(lang);
   const sp = props.searchParams ? await props.searchParams : {};
   const actionProof = parseAdminActionResultFromRecord(sp);
+  const queueLimit = normalizeAdminQueueLimit(
+    typeof sp.limit === "string" ? sp.limit : undefined,
+    ADMIN_QUEUE_DEFAULT_LIMIT,
+  );
   const scope = parseAdminScope(sp);
   const basePath = "/admin/workspace/clasificados/travel";
   const queueHref = appendPreservedSearchParams(basePath, sp, null);
   const liveHref = appendPreservedSearchParams(basePath, sp, "live");
 
   const configured = isSupabaseAdminConfigured();
-  const allRows: ViajesStagedListingRow[] = configured ? await fetchAllViajesStagedForAdmin() : [];
-  const rows =
-    scope === "live"
-      ? allRows.filter((r) => viajesRowIsPublicLive(r as unknown as Record<string, unknown>))
-      : allRows;
+  const allRows: ViajesStagedListingRow[] = configured
+    ? await fetchViajesStagedAdminQueue({
+        limit: queueLimit,
+        ...(scope === "live" ? { scope: "live" as const } : {}),
+      })
+    : [];
+  const rows = allRows;
 
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
   const displayRows = qRaw

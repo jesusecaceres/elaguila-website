@@ -1,3 +1,4 @@
+import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
 import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 
 export type RepublishActionLabelResult = {
@@ -61,10 +62,13 @@ export function canRepublishListingsRow(row: Record<string, unknown>, categoryRa
   return republishCapabilityReasonListings(row, categoryRaw) === null;
 }
 
+/** Matches public browse eligibility for generic `listings` rows (En Venta, Rentas, Clases, Comunidad, …). */
 export function listingsRowIsPublicLive(row: Record<string, unknown>): boolean {
-  const st = lc(row.status);
-  if (st === "removed") return false;
-  return row.is_published === true && st === "active";
+  if (lc(row.status) === "removed") return false;
+  return isListingRowActiveAndPublishedForBrowse({
+    status: row.status as string | null | undefined,
+    is_published: row.is_published as boolean | null | undefined,
+  });
 }
 
 export function republishCapabilityReasonRestaurantes(_row: Record<string, unknown>): string | null {

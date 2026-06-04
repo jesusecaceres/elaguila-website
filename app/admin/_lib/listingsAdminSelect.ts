@@ -1,12 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 
+/** Queue table columns — omit heavy `description` / `images` payloads (still searchable server-side). */
 const LISTINGS_ADMIN_CORE =
-  "id, leonix_ad_id, title, description, city, category, price, is_free, status, owner_id, created_at, images, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role";
+  "id, leonix_ad_id, title, city, category, price, is_free, status, owner_id, created_at, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role";
 
 const LISTINGS_REPUBLISH = ", republished_at, republish_count, republish_override";
 
@@ -77,7 +79,7 @@ export async function fetchListingsForAdminWorkspace(
       .from("listings")
       .select(tier.cols)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(50);
 
     if (!res.error) {
       return {
@@ -111,6 +113,13 @@ export function isUuidString(s: string): boolean {
 
 function escapeIlike(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+/** Server-side live scope for generic `listings` admin queues (matches `listingsRowIsPublicLive`). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyListingsLiveScopeSql(qb: any, scope?: "live"): any {
+  if (scope !== "live") return qb;
+  return qb.eq("is_published", true).eq("status", "active");
 }
 
 export type ListingsAdminWorkspaceFilters = {
@@ -149,7 +158,8 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   supabase: SupabaseClient,
   filters: ListingsAdminWorkspaceFilters,
 ): Promise<ListingsAdminFetchResult<Record<string, unknown>>> {
-  const limit = Math.min(Math.max(filters.limit ?? 100, 1), 500);
+  noStore();
+  const limit = Math.min(Math.max(filters.limit ?? 50, 1), 500);
   const cat = (filters.category ?? "").trim();
   const status = (filters.status ?? "").trim();
   const ownerFrag = (filters.ownerFrag ?? "").trim().toLowerCase();
@@ -164,7 +174,11 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST builder chain (or/filter/in) is wider than a narrow helper type.
   const applyNonCategoryListingFilters = (qb: any): any => {
     let q = qb;
-    if (status) q = q.ilike("status", escapeIlike(status));
+    if (filters.scope === "live") {
+      q = applyListingsLiveScopeSql(q, "live");
+    } else if (status) {
+      q = q.ilike("status", escapeIlike(status));
+    }
     if (ownerFrag && isUuid(ownerFrag)) {
       q = q.eq("owner_id", ownerFrag);
     }
@@ -336,7 +350,6 @@ export function listingRowMatchesAdminQuery(
   const title = (row.title ?? "").toLowerCase();
   const city = (row.city ?? "").toLowerCase();
   const oid = (row.owner_id ?? "").toLowerCase();
-  const desc = (row.description ?? "").toLowerCase();
   const lx = String((row as { leonix_ad_id?: string | null }).leonix_ad_id ?? "")
     .trim()
     .toLowerCase();
@@ -345,7 +358,6 @@ export function listingRowMatchesAdminQuery(
     title.includes(qLower) ||
     city.includes(qLower) ||
     oid.includes(qLower) ||
-    desc.includes(qLower) ||
     (lx.length > 0 && lx.includes(qLower))
   );
 }

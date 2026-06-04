@@ -339,16 +339,25 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }
 
-/** Admin workspace: all paid Autos rows (any status), newest first. */
-export async function listAllAutosClassifiedsRowsForAdmin(limit = 300): Promise<AutosClassifiedsListingRow[]> {
+/** Admin workspace: paid Autos rows (any status), newest first. */
+export async function listAllAutosClassifiedsRowsForAdmin(
+  limit = 100,
+  opts?: { scope?: "live" },
+): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(limit), 1), 500);
-  const { data, error } = await supabase
+  let q = supabase
     .from("autos_classifieds_listings")
-    .select("*")
+    .select(
+      "id, leonix_ad_id, lane, status, featured, leonix_verified, owner_user_id, published_at, updated_at, listing_payload, stripe_checkout_session_id, stripe_payment_intent_id, republish_override, dealer_inventory_parent_listing_id, dealer_inventory_group_id, inventory_role, lang",
+    )
     .order("updated_at", { ascending: false })
     .limit(cap);
+  if (opts?.scope === "live") {
+    q = q.eq("status", "active");
+  }
+  const { data, error } = await q;
   if (error || !data?.length) return [];
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }

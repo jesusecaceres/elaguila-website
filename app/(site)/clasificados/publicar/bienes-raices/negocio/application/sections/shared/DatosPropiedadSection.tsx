@@ -1,7 +1,14 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
+import { formatSqftDisplay } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
+
+function BrSqftPreview({ value }: { value: string }) {
+  const shown = formatSqftDisplay(value);
+  if (!shown) return null;
+  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
+}
 
 function SubtypeSelect({
   label,
@@ -129,6 +136,7 @@ export function DatosPropiedadSection({
               value={state.piesCuadrados}
               onChange={(e) => setState((s) => ({ ...s, piesCuadrados: e.target.value }))}
             />
+            <BrSqftPreview value={state.piesCuadrados} />
           </BrField>
         ) : null}
         <BrField label="Tamaño del lote" hint={isTerreno ? "Principal métrica del listado de terreno." : undefined}>
@@ -137,6 +145,7 @@ export function DatosPropiedadSection({
             value={state.tamanoLote}
             onChange={(e) => setState((s) => ({ ...s, tamanoLote: e.target.value }))}
           />
+          <BrSqftPreview value={state.tamanoLote} />
         </BrField>
         {!isTerreno ? (
           <BrField label="Estacionamientos">

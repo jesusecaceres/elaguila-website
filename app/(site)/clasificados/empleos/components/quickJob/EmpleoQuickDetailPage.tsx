@@ -21,6 +21,7 @@ import { QuickJobHeaderCard } from "./QuickJobHeaderCard";
 import { QuickJobLocationCard } from "./QuickJobLocationCard";
 import { QuickJobLocationToast } from "./QuickJobLocationToast";
 import { QuickJobMoreJobsSection } from "./QuickJobMoreJobsSection";
+import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 
 const COPY = {
   es: {
@@ -64,12 +65,14 @@ type Props = {
   withSiteChrome?: boolean;
   /** Optional slot below main content (e.g. published apply form). */
   publicFooterSlot?: ReactNode;
+  contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
 };
 
 export function EmpleoQuickDetailPage({
   data = EMPLEO_QUICK_JOB_SAMPLE,
   withSiteChrome = true,
   publicFooterSlot = null,
+  contactAnalyticsMeta,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -161,6 +164,7 @@ export function EmpleoQuickDetailPage({
               websiteLabel={t.websiteRow}
               labels={t.labels}
               showContactRow={hasAnyContact}
+              contactAnalyticsMeta={contactAnalyticsMeta}
             />
           </div>
         </div>

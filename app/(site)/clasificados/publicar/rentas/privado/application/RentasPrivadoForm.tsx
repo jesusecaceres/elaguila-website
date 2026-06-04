@@ -71,9 +71,16 @@ import {
   loadRentasPrivadoDraft,
   saveRentasPrivadoDraft,
 } from "./utils/rentasPrivadoDraft";
+import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
+
+function RentasSqftPreview({ value }: { value: string }) {
+  const shown = formatRentasSqftPreview(value);
+  if (!shown) return null;
+  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
+}
 
 const RENTAS_PREVIEW_ACTION_LABELS = {
   preview: "Validar y ver vista previa",
@@ -878,6 +885,7 @@ export function RentasPrivadoForm() {
                   value={state.residencial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
                 />
+                <RentasSqftPreview value={state.residencial.interiorSqft} />
               </AiField>
               <AiField label="Lote (ft²)">
                 <input
@@ -886,6 +894,7 @@ export function RentasPrivadoForm() {
                   value={state.residencial.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, loteSqft: e.target.value } }))}
                 />
+                <RentasSqftPreview value={state.residencial.loteSqft} />
               </AiField>
               <AiField label="Estacionamiento">
                 <input
@@ -946,6 +955,7 @@ export function RentasPrivadoForm() {
                     value={state.residencial.interiorSqft}
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
                   />
+                  <RentasSqftPreview value={state.residencial.interiorSqft} />
                 </AiField>
                 <AiField label="Estacionamiento">
                   <input
@@ -1042,6 +1052,7 @@ export function RentasPrivadoForm() {
                   value={state.comercial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, interiorSqft: e.target.value } }))}
                 />
+                <RentasSqftPreview value={state.comercial.interiorSqft} />
               </AiField>
               <AiField label="Oficinas">
                 <input
@@ -1174,6 +1185,7 @@ export function RentasPrivadoForm() {
                   value={state.terreno.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, loteSqft: e.target.value } }))}
                 />
+                <RentasSqftPreview value={state.terreno.loteSqft} />
               </AiField>
               <AiField label="Uso / zonificación">
                 <input

@@ -66,6 +66,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
   const rowsRaw = configured
     ? await listRestaurantesPublicListingsAdminFromDb({
         limit: queueLimit,
+        ...(scope === "live" ? { scope: "live" as const } : {}),
         q: firstParam(sp.q),
         slug: firstParam(sp.slug),
         id: firstParam(sp.id),

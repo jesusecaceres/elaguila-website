@@ -30,10 +30,15 @@ import {
 import {
   buildRealEstateMapQuery,
   formatApproxAddressDisplay,
+  formatBrOptionalCurrencyDisplay,
+  formatBrSizeFieldDisplay,
   formatCityStateZip,
+  formatDetailCountDisplay,
   formatFullAddress,
+  formatSqftDisplay,
   formatStreetUnitLine,
   formatUsdWhole,
+  formatYearBuiltDisplay,
 } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { syncNegocioListingFieldsFromPublication } from "../schema/bienesRaicesNegocioFormState";
 import { resolveNegocioGate12dHoaSlice } from "@/app/clasificados/lib/leonixBrGate12d";
@@ -180,6 +185,11 @@ function formatPrice(raw: string): string {
   return formatUsdWhole(raw) || "—";
 }
 
+function formatSqftOrSize(raw: string): string {
+  const f = formatSqftDisplay(raw) || formatBrSizeFieldDisplay(raw);
+  return f || trim(raw) || "—";
+}
+
 function bathLine(complete: string, half: string): string {
   const c = trim(complete);
   const h = trim(half);
@@ -241,7 +251,7 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
 
   if (pub === "terreno") {
     rows.push(
-      { label: "Tamaño del lote", value: trim(s.tamanoLote) || "—" },
+      { label: "Tamaño del lote", value: formatSqftOrSize(s.tamanoLote) },
       { label: "Dimensiones / frente", value: trim(s.deepDetails.loteTerreno.dimensiones) || "—" },
       { label: "Zonificación", value: trim(s.deepDetails.loteTerreno.zonificacion) || "—" },
       { label: "Uso de suelo", value: trim(s.deepDetails.loteTerreno.usoSuelo) || "—" },
@@ -258,7 +268,7 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
 
   if (pub === "comercial") {
     rows.push(
-      { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
+      { label: "Pies cuadrados", value: formatSqftOrSize(s.piesCuadrados) },
       { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos) },
       { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
       { label: "Uso", value: trim(s.deepDetails.tipoYEstilo.uso) || "—" },
@@ -267,7 +277,7 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
     );
     if (trim(s.amueblado)) rows.push({ label: "Amueblado", value: trim(s.amueblado) });
     if (trim(s.hoaSiNo)) rows.push({ label: "HOA", value: trim(s.hoaSiNo) });
-    if (trim(s.cuotaHoa)) rows.push({ label: "Cuota HOA", value: trim(s.cuotaHoa) });
+    if (trim(s.cuotaHoa)) rows.push({ label: "Cuota HOA", value: formatBrOptionalCurrencyDisplay(s.cuotaHoa) || trim(s.cuotaHoa) });
     return rows;
   }
 
@@ -275,10 +285,10 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
     rows.push(
       { label: "Unidades", value: trim(s.invNumUnidades) || "—" },
       { label: "Ocupación", value: trim(s.invOcupacion) || "—" },
-      { label: "Renta actual", value: trim(s.invRentaActual) || "—" },
+      { label: "Renta actual", value: formatBrOptionalCurrencyDisplay(s.invRentaActual) || "—" },
       { label: "Cap rate", value: trim(s.invCapRate) || "—" },
-      { label: "Ingreso estimado", value: trim(s.invIngresoEstimado) || "—" },
-      { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
+      { label: "Ingreso estimado", value: formatBrOptionalCurrencyDisplay(s.invIngresoEstimado) || "—" },
+      { label: "Pies cuadrados", value: formatSqftOrSize(s.piesCuadrados) },
       { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" }
     );
     return rows;
@@ -288,7 +298,7 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
     rows.push(
       { label: "Recámaras", value: trim(s.recamaras) || "—" },
       { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos) },
-      { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
+      { label: "Pies cuadrados", value: formatSqftOrSize(s.piesCuadrados) },
       { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
       { label: "Comunidad", value: trim(s.proyectoComunidad) || "—" },
       {
@@ -304,13 +314,13 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
   rows.push(
     { label: "Recámaras", value: trim(s.recamaras) || "—" },
     { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos) },
-    { label: "Pies cuadrados", value: trim(s.piesCuadrados) || "—" },
-    { label: "Lote", value: trim(s.tamanoLote) || "—" },
+    { label: "Pies cuadrados", value: formatSqftOrSize(s.piesCuadrados) },
+    { label: "Lote", value: formatSqftOrSize(s.tamanoLote) },
     { label: "Estacionamientos", value: trim(s.estacionamientos) || "—" },
     { label: "Condición", value: trim(s.condicion) || "—" },
     { label: "HOA", value: trim(s.hoaSiNo) || "—" }
   );
-  if (trim(s.cuotaHoa)) rows.push({ label: "Cuota HOA", value: trim(s.cuotaHoa) });
+  if (trim(s.cuotaHoa)) rows.push({ label: "Cuota HOA", value: formatBrOptionalCurrencyDisplay(s.cuotaHoa) || trim(s.cuotaHoa) });
   return rows;
 }
 
@@ -332,7 +342,7 @@ function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQu
   if (pub === "terreno") {
     return withNegocioPetsRow(
       [
-        { label: "Lote", value: trim(s.tamanoLote) || "—", icon: "ruler" },
+        { label: "Lote", value: formatSqftOrSize(s.tamanoLote), icon: "ruler" },
         {
           label: "Zona",
           value: trim(s.deepDetails.loteTerreno.zonificacion) || trim(s.propertySubtype) || "—",
@@ -354,7 +364,7 @@ function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQu
   if (pub === "comercial") {
     return withNegocioPetsRow(
       [
-        { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+        { label: "Superficie", value: formatSqftOrSize(s.piesCuadrados), icon: "ruler" },
         { label: "Uso", value: trim(s.deepDetails.tipoYEstilo.uso) || "—", icon: "home" },
         { label: "Estacionamientos", value: trim(s.estacionamientos) || "—", icon: "car" },
         { label: "Niveles", value: trim(s.niveles) || "—", icon: "calendar" },
@@ -368,9 +378,9 @@ function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQu
       [
         { label: "Unidades", value: trim(s.invNumUnidades) || "—", icon: "home" },
         { label: "Ocupación", value: trim(s.invOcupacion) || "—", icon: "sparkle" },
-        { label: "Renta actual", value: trim(s.invRentaActual) || "—", icon: "calendar" },
+        { label: "Renta actual", value: formatBrOptionalCurrencyDisplay(s.invRentaActual) || "—", icon: "calendar" },
         { label: "Cap rate", value: trim(s.invCapRate) || "—", icon: "ruler" },
-        { label: "Área", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+        { label: "Área", value: formatSqftOrSize(s.piesCuadrados), icon: "ruler" },
       ],
       s,
     );
@@ -381,7 +391,7 @@ function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQu
         { label: "Modelo", value: trim(s.proyectoModelo) || "—", icon: "home" },
         { label: "Fase", value: trim(s.proyectoEtapa) || "—", icon: "calendar" },
         { label: "Entrega", value: trim(s.proyectoEntregaEstimada) || "—", icon: "calendar" },
-        { label: "Desde (pies²)", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
+        { label: "Desde (pies²)", value: formatSqftOrSize(s.piesCuadrados), icon: "ruler" },
         { label: "Disponibles", value: trim(s.proyectoUnidadesDisponibles) || "—", icon: "sparkle" },
       ],
       s,
@@ -391,9 +401,9 @@ function buildQuickFacts(s: BienesRaicesNegocioFormState): BienesRaicesPreviewQu
     [
       { label: "Habitaciones", value: trim(s.recamaras) || "—", icon: "bed" },
       { label: "Baños", value: bathLine(s.banosCompletos, s.mediosBanos), icon: "bath" },
-      { label: "Superficie", value: trim(s.piesCuadrados) || "—", icon: "ruler" },
-      { label: "Garajes", value: trim(s.estacionamientos) || "—", icon: "car" },
-      { label: "Construido", value: trim(s.anioConstruccion) || "—", icon: "calendar" },
+      { label: "Superficie", value: formatSqftOrSize(s.piesCuadrados), icon: "ruler" },
+      { label: "Garajes", value: formatDetailCountDisplay(s.estacionamientos) || trim(s.estacionamientos) || "—", icon: "car" },
+      { label: "Construido", value: formatYearBuiltDisplay(s.anioConstruccion) || "—", icon: "calendar" },
     ],
     s,
   );

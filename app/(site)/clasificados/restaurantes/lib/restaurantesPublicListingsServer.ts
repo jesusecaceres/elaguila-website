@@ -81,6 +81,8 @@ export type RestaurantesAdminQueueFilters = {
   id?: string;
   leonix_ad_id?: string;
   owner_user_id?: string;
+  /** `live` — only publicly published rows (status=published). */
+  scope?: "live";
 };
 
 export type ListRestaurantesPublicListingsOutcome =
@@ -188,7 +190,11 @@ export async function listRestaurantesPublicListingsAdminFromDb(
 
   try {
     const supabase = getAdminSupabase();
-    const qb = () => supabase.from("restaurantes_public_listings").select(LIST_SELECT);
+    const qb = () => {
+      let q = supabase.from("restaurantes_public_listings").select(LIST_SELECT);
+      if (opts.scope === "live") q = q.eq("status", "published");
+      return q;
+    };
 
     if (slug || id || leonixAd || owner) {
       let rowQuery = qb();

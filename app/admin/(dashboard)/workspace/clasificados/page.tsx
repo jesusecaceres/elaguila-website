@@ -100,6 +100,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const lxOp = spStr(sp.leonix_operation).trim().toLowerCase();
   const lxProp = spStr(sp.leonix_propiedad).trim().toLowerCase();
   const queueLimit = normalizeAdminQueueLimit(spStr(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
+  const showOverviewSections = !catFilter && !qInput && !statusFilter && !ownerFrag && !lxBranch && !lxOp && !lxProp;
 
   const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registry] = await Promise.all([
     fetchListingsForAdminWorkspaceFiltered(supabase, {
@@ -111,7 +112,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       ...(scopeParam === "live" ? { scope: "live" as const } : {}),
     }),
     fetchListingCategoriesDistinct(supabase),
-    getClasificadosCategoryRegistryMerged(),
+    showOverviewSections ? getClasificadosCategoryRegistryMerged() : Promise.resolve([]),
   ]);
 
   let rows = (listings ?? []) as Row[];
@@ -151,9 +152,12 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         />
       </div>
 
-      <ClasificadosCategoryHub registry={registry} lang={lang} />
-
-      <ClasificadosCategoryOpsAudit registry={registry} lang={lang} />
+      {showOverviewSections ? (
+        <>
+          <ClasificadosCategoryHub registry={registry} lang={lang} />
+          <ClasificadosCategoryOpsAudit registry={registry} lang={lang} />
+        </>
+      ) : null}
 
       {!detailPairsAvailable ? (
         <div
@@ -341,9 +345,11 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         />
       )}
 
-      <AdminSectionCard title={m("clasificados.envSectionTitle")} subtitle={m("clasificados.envSectionSubtitle")}>
-        <EnVentaModerationFields lang={lang} />
-      </AdminSectionCard>
+      {showOverviewSections ? (
+        <AdminSectionCard title={m("clasificados.envSectionTitle")} subtitle={m("clasificados.envSectionSubtitle")}>
+          <EnVentaModerationFields lang={lang} />
+        </AdminSectionCard>
+      ) : null}
 
       <div className="mt-8">
         <Link href="/admin/workspace" className={`${adminCtaChipCompact} inline-flex text-sm`}>

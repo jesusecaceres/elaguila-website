@@ -3,6 +3,7 @@ import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-rai
 import type { BienesRaicesNegocioPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import type { RentasFlowFormSlice } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatSqftDisplay } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { formatRentasServiciosIncluidosOutputMultiline } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   coerceRentasTipoDeRentaId,
@@ -76,11 +77,7 @@ function roomKitchenPublic(code: string): string | undefined {
 }
 
 function prettifySqftFromDigits(raw: string): string {
-  const d = raw.replace(/\D/g, "");
-  if (!d) return "";
-  const n = Number(d);
-  if (!Number.isFinite(n) || n <= 0) return "";
-  return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n)} ft²`;
+  return formatSqftDisplay(raw) || "";
 }
 
 /**

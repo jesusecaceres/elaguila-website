@@ -10,6 +10,7 @@ import {
   type LeonixClasificadosBranch,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { isBrBienesRaicesSaleListing } from "@/app/clasificados/lib/leonixBrGate12d";
+import { formatBrFacetSqftForCard } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 export type BrFacetSlice = {
   branch: LeonixClasificadosBranch | null;
@@ -84,7 +85,7 @@ export function extractBrFacetsFromDetailPairs(detailPairs: unknown): BrFacetSli
 
   let sqft = firstMatchingValue(rows, /pies\s*cuadrados|tamaño\s*interior|^interior$/i);
   if (!sqft) sqft = firstMatchingValue(rows, /\bsqft\b|superficie\s*interior/i);
-  const sqftCard = sqft ? digitsOrDash(sqft) : "—";
+  const sqftCard = sqft ? formatBrFacetSqftForCard(sqft) : "—";
 
   const metaHints: string[] = [];
   const hideSalePets = isBrBienesRaicesSaleListing(detailPairs);

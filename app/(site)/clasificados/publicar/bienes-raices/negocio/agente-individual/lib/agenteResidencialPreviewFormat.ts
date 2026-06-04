@@ -34,8 +34,11 @@ import {
 import {
   buildRealEstateMapQuery,
   formatApproxAddressDisplay,
+  formatDetailCountDisplay,
   formatFullAddress,
+  formatSqftDisplay,
   formatUsdWhole,
+  formatYearBuiltDisplay,
 } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { digitsOnly, formatUsPhoneDisplay } from "../application/utils/phoneMask";
 
@@ -309,13 +312,13 @@ function buildResidencialPropertyDetailRows(
         };
   const all: PropertyDetailRow[] = [
     { label: L.tipo, value: formatTipoPropiedadLine(s, locale) },
-    { label: L.rec, value: trim(s.recamaras) || "—" },
-    { label: L.ban, value: trim(s.banos) || "—" },
-    { label: L.med, value: trim(s.mediosBanos) || "—" },
-    { label: L.interior, value: trim(s.tamanoInteriorSqft) || "—" },
-    { label: L.lote, value: trim(s.tamanoLoteSqft) || "—" },
-    { label: L.est, value: trim(s.estacionamientos) || "—" },
-    { label: L.ano, value: trim(s.anoConstruccion) || "—" },
+    { label: L.rec, value: formatDetailCountDisplay(s.recamaras) || trim(s.recamaras) || "—" },
+    { label: L.ban, value: formatDetailCountDisplay(s.banos) || trim(s.banos) || "—" },
+    { label: L.med, value: formatDetailCountDisplay(s.mediosBanos) || trim(s.mediosBanos) || "—" },
+    { label: L.interior, value: formatSqftDetailValue(s.tamanoInteriorSqft) },
+    { label: L.lote, value: formatSqftDetailValue(s.tamanoLoteSqft) },
+    { label: L.est, value: formatDetailCountDisplay(s.estacionamientos) || trim(s.estacionamientos) || "—" },
+    { label: L.ano, value: formatYearBuiltDisplay(s.anoConstruccion) || "—" },
     { label: L.cond, value: condLab ?? "—" },
   ];
   return all.filter((r) => trim(r.value) !== "" && r.value !== "—");
@@ -359,8 +362,8 @@ function buildCommercialPropertyDetailRows(
     { label: L.tipo, value: formatComercialTipoLine(s, locale) },
   ];
   if (trim(s.comercialUso)) rows.push({ label: L.uso, value: trim(s.comercialUso) });
-  if (trim(s.tamanoInteriorSqft)) rows.push({ label: L.interior, value: trim(s.tamanoInteriorSqft) });
-  if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: trim(s.tamanoLoteSqft) });
+  if (trim(s.tamanoInteriorSqft)) rows.push({ label: L.interior, value: formatSqftDetailValue(s.tamanoInteriorSqft) });
+  if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: formatSqftDetailValue(s.tamanoLoteSqft) });
   if (trim(s.comercialOficinas)) rows.push({ label: L.oficinas, value: trim(s.comercialOficinas) });
   if (trim(s.banos)) rows.push({ label: L.ban, value: trim(s.banos) });
   if (trim(s.comercialNiveles)) rows.push({ label: L.niveles, value: trim(s.comercialNiveles) });
@@ -399,7 +402,7 @@ function buildTerrenoPropertyDetailRows(
           cercado: "Cercado",
         };
   const rows: PropertyDetailRow[] = [{ label: L.tipo, value: formatTerrenoTipoLine(s, locale) }];
-  if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: trim(s.tamanoLoteSqft) });
+  if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: formatSqftDetailValue(s.tamanoLoteSqft) });
   if (trim(s.terrenoUsoZonificacion)) rows.push({ label: L.uso, value: trim(s.terrenoUsoZonificacion) });
   if (trim(s.terrenoAcceso)) rows.push({ label: L.acceso, value: trim(s.terrenoAcceso) });
   if (trim(s.terrenoServicios)) rows.push({ label: L.servicios, value: trim(s.terrenoServicios) });
@@ -522,11 +525,28 @@ export type QuickFactKey =
 
 export type QuickFactItem = { key: QuickFactKey; label: string; value: string };
 
+function formatQuickFactValue(key: QuickFactKey, raw: string): string {
+  const v = trim(raw);
+  if (!v) return "";
+  if (key === "ano_construccion") return formatYearBuiltDisplay(v);
+  if (key === "tamano_interior" || key === "tamano_lote") return formatSqftDisplay(v) || v;
+  if (key === "recamaras" || key === "banos" || key === "oficinas" || key === "niveles" || key === "estacionamientos") {
+    return formatDetailCountDisplay(v) || v;
+  }
+  return v;
+}
+
+function formatSqftDetailValue(raw: string): string {
+  const v = trim(raw);
+  if (!v) return "—";
+  return formatSqftDisplay(v) || v;
+}
+
 export function buildQuickFacts(s: AgenteIndividualResidencialFormState, locale: AgenteResPreviewLocale = "es"): QuickFactItem[] {
   const out: QuickFactItem[] = [];
   const pushRows = (rows: Array<[QuickFactKey, string, string]>) => {
     for (const [key, label, raw] of rows) {
-      const v = trim(raw);
+      const v = formatQuickFactValue(key, raw);
       if (v) out.push({ key, label, value: v });
     }
   };

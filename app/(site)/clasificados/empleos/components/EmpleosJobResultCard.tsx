@@ -8,6 +8,8 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import { empleosJobRecordListLocationLine } from "../lib/empleosJobRecordListLocation";
+import { isLiveListingId } from "./EmpleosApplyForm";
+import { trackEmpleosResultCardClick } from "../lib/empleosCtaTracking";
 import {
   EMPLEOS_BADGE_PREMIUM,
   EMPLEOS_BADGE_QUICK,
@@ -43,6 +45,10 @@ function jobTypeEs(t: EmpleosJobRecord["jobType"]) {
 export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRibbon = false }: Props) {
   const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
   const locationLine = empleosJobRecordListLocationLine(job);
+  const onResultNavigate = () => {
+    if (!isLiveListingId(job.id)) return;
+    trackEmpleosResultCardClick({ id: job.id, slug: job.slug });
+  };
 
   const isWide = variant === "grid";
 
@@ -64,7 +70,11 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
         isWide ? "flex h-full flex-col" : "flex flex-col gap-4 sm:flex-row sm:items-stretch"
       }`}
     >
-      <Link href={detailHref} className={`relative shrink-0 bg-[#EDE8E0] ${isWide ? "aspect-[16/9] w-full" : "aspect-[16/10] w-full sm:aspect-auto sm:h-auto sm:w-52 lg:w-60"}`}>
+      <Link
+        href={detailHref}
+        onClick={onResultNavigate}
+        className={`relative shrink-0 bg-[#EDE8E0] ${isWide ? "aspect-[16/9] w-full" : "aspect-[16/10] w-full sm:aspect-auto sm:h-auto sm:w-52 lg:w-60"}`}
+      >
         <Image src={job.imageSrc} alt={job.imageAlt} fill className="object-cover" sizes={isWide ? "(max-width:768px)100vw,33vw" : "200px"} />
         {job.listingTier !== "standard" ? (
           <span
@@ -81,7 +91,7 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
 
       <div className={`flex min-w-0 flex-1 flex-col p-4 sm:p-5 ${isWide ? "" : "sm:py-5 sm:pr-5"}`}>
         <div className="flex flex-wrap items-start gap-2">
-          <Link href={detailHref} className="min-w-0 flex-1">
+          <Link href={detailHref} onClick={onResultNavigate} className="min-w-0 flex-1">
             <h2 className={`font-bold leading-snug text-[#2A2826] group-hover:underline ${isWide ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"}`}>{job.title}</h2>
           </Link>
           {job.quickApply ? (
@@ -107,7 +117,7 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
         </div>
         <p className="mt-2 line-clamp-2 text-sm text-[#5C564E]">{job.summary}</p>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <Link href={detailHref} className={`${EMPLEOS_CTA_PRIMARY} min-w-[7.5rem] px-4`}>
+          <Link href={detailHref} onClick={onResultNavigate} className={`${EMPLEOS_CTA_PRIMARY} min-w-[7.5rem] px-4`}>
             {lang === "es" ? "Ver vacante" : "View job"}
           </Link>
         </div>

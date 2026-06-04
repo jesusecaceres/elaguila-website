@@ -133,6 +133,7 @@ export default async function AdminServiciosWorkspacePage(props: {
   const liveHref = appendPreservedSearchParams(serviciosBase, sp, "live");
   const queueFilters = {
     limit: queueLimit,
+    ...(scope === "live" ? { scope: "live" as const } : {}),
     q: firstParam(sp.q),
     slug: firstParam(sp.slug),
     id: firstParam(sp.id),

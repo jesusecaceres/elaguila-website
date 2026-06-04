@@ -100,7 +100,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   const autosBase = "/admin/workspace/clasificados/autos";
   const queueNavHref = appendPreservedSearchParams(autosBase, sp, null);
   const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live");
-  let rows = await listAllAutosClassifiedsRowsForAdmin(queueLimit);
+  let rows = await listAllAutosClassifiedsRowsForAdmin(queueLimit, scope === "live" ? { scope: "live" } : undefined);
   if (qRaw) {
     const profileSet = new Set<string>();
     if (isSupabaseAdminConfigured() && qRaw.length >= 2) {

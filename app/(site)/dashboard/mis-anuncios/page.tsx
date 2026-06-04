@@ -11,6 +11,13 @@ import {
   ownerListingResumeFromPausePatch,
 } from "../lib/ownerListingsLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
+import { seedEnVentaDashboardRepublishDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
+import {
+  buildEnVentaRepublishPublishHref,
+  enVentaShowsRepublicarListing,
+  resolveEnVentaDashboardListingLifecycle,
+} from "@/app/lib/clasificados/en-venta/dashboard/enVentaDashboardListingActions";
+import { mapListingRowToEnVentaRepublishDraft } from "@/app/lib/clasificados/en-venta/dashboard/mapListingRowToEnVentaRepublishDraft";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
 import { AutosDealerInventoryDashboardSection } from "@/app/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection";
@@ -1596,6 +1603,7 @@ export default function MyListingsPage() {
 
                 if (x.category === "en-venta") {
                   const uiSt = normalizeUiStatus(resolveListingUiStatus(x), x);
+                  const evLifecycle = resolveEnVentaDashboardListingLifecycle(uiSt, x);
                   const enVentaPlanLabel = categoryAdPlanDisplayLabel(
                     resolveCategoryAdPlan({ category: "en-venta", detailPairs: x.detail_pairs }),
                     lang,
@@ -1612,6 +1620,12 @@ export default function MyListingsPage() {
                         : "Refresh listing"
                       : null;
                   const evViewsFromAnalytics = stats?.views ?? 0;
+                  const republicarPlan: "free" | "pro" = listingPlan === "pro" ? "pro" : "free";
+                  const beginEnVentaRepublicar = () => {
+                    const draft = mapListingRowToEnVentaRepublishDraft(rowRecEv, republicarPlan);
+                    seedEnVentaDashboardRepublishDraft(republicarPlan, draft);
+                    router.push(buildEnVentaRepublishPublishHref(republicarPlan, lang));
+                  };
                   return (
                     <EnVentaListingManageCard
                       key={x.id}
@@ -1652,8 +1666,12 @@ export default function MyListingsPage() {
                       maxViews={maxViews}
                       priceDropLabel={listingPriceDropLabel(x, lang)}
                       showDraftBadge={x.is_published === false}
-                      visibilityRenewal={visibilityRenewal}
-                      republishButtonLabel={republishButtonLabel}
+                      listingLifecycle={evLifecycle}
+                      onRepublicarListing={
+                        enVentaShowsRepublicarListing(evLifecycle) ? beginEnVentaRepublicar : undefined
+                      }
+                      visibilityRenewal={evLifecycle === "active" ? visibilityRenewal : null}
+                      republishButtonLabel={evLifecycle === "active" ? republishButtonLabel : null}
                       republishCount={x.republish_count ?? null}
                       republishedAtIso={
                         x.republished_at != null && String(x.republished_at).trim()

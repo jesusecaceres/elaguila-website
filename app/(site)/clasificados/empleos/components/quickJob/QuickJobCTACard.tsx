@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { FaCalendarAlt, FaClock, FaEnvelope, FaGlobe, FaPhone } from "react-icons/fa";
 import { SiWhatsapp } from "react-icons/si";
+import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
+import { trackEmpleosSidebarContactCta } from "../../lib/empleosCtaTracking";
 import {
   buildCallIntent,
   buildSendEmailIntent,
@@ -34,6 +36,7 @@ type Props = {
   };
   /** When false, omit the entire contact button stack (pay/description still show). */
   showContactRow: boolean;
+  contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
 };
 
 const GOLD_BTN = "bg-[#B8943F] hover:bg-[#9A7A32]";
@@ -58,6 +61,7 @@ export function QuickJobCTACard({
   websiteLabel,
   labels,
   showContactRow,
+  contactAnalyticsMeta,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const primary = primaryCta ?? "phone";
@@ -70,16 +74,19 @@ export function QuickJobCTACard({
 
   const openCallSheet = () => {
     if (!phone) return;
+    trackEmpleosSidebarContactCta("phone", contactAnalyticsMeta);
     openSheet(buildCallIntent({ phone: digits(phone), contactShareExtras }));
   };
 
   const openWhatsAppSheet = () => {
     if (!whatsapp) return;
+    trackEmpleosSidebarContactCta("whatsapp", contactAnalyticsMeta);
     openSheet(buildWhatsAppMessageIntent({ whatsappDigits: digits(whatsapp), message: "", contactShareExtras }));
   };
 
   const openEmailSheet = () => {
     if (!email) return;
+    trackEmpleosSidebarContactCta("email", contactAnalyticsMeta);
     openSheet(
       buildSendEmailIntent({
         email,
@@ -92,6 +99,7 @@ export function QuickJobCTACard({
 
   const openWebsiteSheet = () => {
     if (!site.startsWith("http")) return;
+    trackEmpleosSidebarContactCta("website", contactAnalyticsMeta);
     openSheet(buildWebsiteIntent({ url: site, headline: websiteLabel, kind: "website" }));
   };
 

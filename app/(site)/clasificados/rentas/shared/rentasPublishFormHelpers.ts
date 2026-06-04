@@ -88,9 +88,19 @@ export function formatRentasDepositUsdPreview(digitsRaw: string): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-/** Plain large numbers with thousands separators (sqft, counts, etc.). */
+/** Plain large numbers with thousands separators (sqft, counts, etc.). Preserves decimals (e.g. 2.5 baths). */
 export function formatRentasPlainNumberPreview(digitsRaw: string): string {
-  const d = String(digitsRaw ?? "").replace(/\D/g, "");
+  const t = trim(digitsRaw);
+  if (!t) return "";
+  const c = t.replace(/,/g, "");
+  if (/^\d+\.\d+$/.test(c)) {
+    const [intPart, frac] = c.split(".");
+    const n = Number(intPart);
+    if (!Number.isFinite(n) || n <= 0) return t;
+    const pretty = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
+    return `${pretty}.${frac}`;
+  }
+  const d = c.replace(/\D/g, "");
   if (!d) return "";
   const n = Number(d);
   if (!Number.isFinite(n) || n <= 0) return "";

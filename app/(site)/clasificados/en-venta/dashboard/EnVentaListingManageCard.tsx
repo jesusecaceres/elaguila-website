@@ -9,6 +9,7 @@ import {
   type ListingUiStatus,
 } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 import { EN_VENTA_REFRESH_HELPER } from "../moderation/enVentaPolicyCopy";
+import type { EnVentaDashboardListingLifecycle } from "@/app/lib/clasificados/en-venta/dashboard/enVentaDashboardListingActions";
 
 type Lang = "es" | "en";
 type ListingPlan = "free" | "pro";
@@ -94,6 +95,8 @@ export function EnVentaListingManageCard({
   analyticsHref,
   onArchive,
   onDuplicate,
+  listingLifecycle = "active",
+  onRepublicarListing,
 }: {
   row: EnVentaManageRow;
   lang: Lang;
@@ -138,12 +141,20 @@ export function EnVentaListingManageCard({
   analyticsHref?: string | null;
   onArchive?: () => void;
   onDuplicate?: () => void;
+  /** Gate D2 — active vs paused (resume) vs inactive (republicar as new listing). */
+  listingLifecycle?: EnVentaDashboardListingLifecycle;
+  /** Opens prefilled publish flow after confirmation (inactive listings only). */
+  onRepublicarListing?: () => void;
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
   const rowSt = String(row.status || "active").toLowerCase();
-  const canOwnerPause = !isSold && rowSt === "active" && row.is_published !== false;
-  const canOwnerResume = rowSt === "paused" || rowSt === "unpublished";
+  const isActiveLifecycle = listingLifecycle === "active";
+  const isPausedLifecycle = listingLifecycle === "paused";
+  const isInactiveLifecycle = listingLifecycle === "inactive";
+  const canOwnerPause = isActiveLifecycle && !isSold && rowSt === "active" && row.is_published !== false;
+  const canOwnerResume = isPausedLifecycle && (rowSt === "paused" || rowSt === "unpublished");
+  const showRepublicar = isInactiveLifecycle && Boolean(onRepublicarListing);
   const resolvedUi: ListingUiStatus | null =
     uiStatus ??
     (showDraftBadge
@@ -160,7 +171,13 @@ export function EnVentaListingManageCard({
           sold: "Finalizar / vendido",
           active: "Reactivar",
           pauseAd: "Pausar anuncio",
-          resumeAd: "Restaurar",
+          resumeAd: "Reactivar anuncio",
+          republicar: "Republicar anuncio",
+          repubConfirmTitle: "¿Republicar este anuncio?",
+          repubConfirmBody:
+            "Crearemos una nueva publicación usando la información y fotos guardadas de este anuncio. El anuncio anterior se conservará en tu historial.",
+          repubConfirmCancel: "Cancelar",
+          repubConfirmOk: "Sí, republicar",
           upgradeTitle: "Editar anuncio",
           upgradeBullets: ["Más fotos y video", "Varios Pro incluido", "Analíticas básicas"],
           pro: "PRO",
@@ -212,7 +229,13 @@ export function EnVentaListingManageCard({
           sold: "Mark sold",
           active: "Reactivate",
           pauseAd: "Pause ad",
-          resumeAd: "Restore",
+          resumeAd: "Reactivate listing",
+          republicar: "Republish listing",
+          repubConfirmTitle: "Republish this listing?",
+          repubConfirmBody:
+            "We'll create a new listing using the saved information and photos from this one. The previous listing will stay in your history.",
+          repubConfirmCancel: "Cancel",
+          repubConfirmOk: "Yes, republish",
           upgradeTitle: "Edit listing",
           upgradeBullets: ["More photos & video", "For Sale Pro included", "Basic analytics"],
           pro: "PRO",
@@ -264,10 +287,16 @@ export function EnVentaListingManageCard({
   const v = analytics.views;
   const expireLbl = expiresIso ? expiresInDaysLabel(expiresIso, lang) : null;
   const [soldConfirmOpen, setSoldConfirmOpen] = useState(false);
+  const [repubConfirmOpen, setRepubConfirmOpen] = useState(false);
 
   const confirmMarkSold = () => {
     setSoldConfirmOpen(false);
     onMarkSold();
+  };
+
+  const confirmRepublicar = () => {
+    setRepubConfirmOpen(false);
+    onRepublicarListing?.();
   };
 
   return (
@@ -374,7 +403,7 @@ export function EnVentaListingManageCard({
                 <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
                   <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
                 </p>
-                {visibilityRenewal ? (
+                {visibilityRenewal && isActiveLifecycle ? (
                   <div className="mt-3 rounded-2xl border border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.visH}</p>
                     <p className="mt-1 text-xs text-[#3D3428]">
@@ -452,7 +481,7 @@ export function EnVentaListingManageCard({
             >
               {L.details} →
             </Link>
-            {canEdit ? (
+            {canEdit && isActiveLifecycle ? (
               <Link href={editHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
                 {L.edit}
               </Link>
@@ -470,16 +499,7 @@ export function EnVentaListingManageCard({
                 {L.proUpgradeCta}
               </Link>
             ) : null}
-            {isSold ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onMarkActive}
-                className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] disabled:opacity-50"
-              >
-                {L.active}
-              </button>
-            ) : (
+            {isActiveLifecycle ? (
               <button
                 type="button"
                 disabled={busy}
@@ -488,7 +508,17 @@ export function EnVentaListingManageCard({
               >
                 {L.sold}
               </button>
-            )}
+            ) : null}
+            {showRepublicar ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setRepubConfirmOpen(true)}
+                className="rounded-xl border border-[#C9B46A]/45 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] disabled:opacity-50"
+              >
+                {L.republicar}
+              </button>
+            ) : null}
             {canOwnerPause ? (
               <button
                 type="button"
@@ -522,6 +552,39 @@ export function EnVentaListingManageCard({
           </div>
         </div>
       </div>
+
+      {repubConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#1E1810]/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="enventa-repub-confirm-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 shadow-xl">
+            <h4 id="enventa-repub-confirm-title" className="text-lg font-bold text-[#1E1810]">
+              {L.repubConfirmTitle}
+            </h4>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">{L.repubConfirmBody}</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRepubConfirmOpen(false)}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+              >
+                {L.repubConfirmCancel}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={confirmRepublicar}
+                className="rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] disabled:opacity-50"
+              >
+                {L.repubConfirmOk}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {soldConfirmOpen ? (
         <div

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { FaClock, FaEnvelope, FaGlobe, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 import { SiWhatsapp } from "react-icons/si";
+import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
+import { trackEmpleosApplyStarted, trackEmpleosSidebarContactCta } from "../../lib/empleosCtaTracking";
+import { empleosGlobalListingFromRow } from "../../lib/recordEmpleosGlobalAnalytics";
 import {
   buildCallIntent,
   buildSendEmailIntent,
@@ -33,6 +36,7 @@ type Props = {
   phoneLabel: string;
   badgeFeatured: string;
   badgePremium: string;
+  contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
 };
 
 const GOLD = "bg-[#B8943F] text-white hover:bg-[#9A7A32]";
@@ -66,8 +70,16 @@ export function PremiumJobSidebarCard({
   phoneLabel,
   badgeFeatured,
   badgePremium,
+  contactAnalyticsMeta,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const globalListing = contactAnalyticsMeta?.sourceId
+    ? empleosGlobalListingFromRow({
+        id: String(contactAnalyticsMeta.sourceId),
+        slug: contactAnalyticsMeta.slug,
+        leonix_ad_id: contactAnalyticsMeta.leonixAdId,
+      })
+    : null;
   const site = websiteUrl?.trim() ?? "";
   const contactShareExtras = { email: email ?? undefined, websiteUrl: site || undefined };
 
@@ -76,14 +88,17 @@ export function PremiumJobSidebarCard({
   };
 
   const openCallSheet = (rawPhone: string) => {
+    trackEmpleosSidebarContactCta("phone", contactAnalyticsMeta);
     openSheet(buildCallIntent({ phone: digits(rawPhone), contactShareExtras }));
   };
 
   const openWhatsAppSheet = (rawWa: string) => {
+    trackEmpleosSidebarContactCta("whatsapp", contactAnalyticsMeta);
     openSheet(buildWhatsAppMessageIntent({ whatsappDigits: digits(rawWa), message: "", contactShareExtras }));
   };
 
   const openEmailSheet = (rawEmail: string) => {
+    trackEmpleosSidebarContactCta("email", contactAnalyticsMeta);
     openSheet(
       buildSendEmailIntent({
         email: rawEmail,
@@ -95,6 +110,7 @@ export function PremiumJobSidebarCard({
   };
 
   const openWebsiteSheet = (url: string, headline: string) => {
+    trackEmpleosSidebarContactCta("website", contactAnalyticsMeta);
     openSheet(buildWebsiteIntent({ url, headline, kind: "website" }));
   };
 
@@ -165,6 +181,10 @@ export function PremiumJobSidebarCard({
               href={primaryAction.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                if (globalListing) trackEmpleosApplyStarted(globalListing, "external_url");
+                trackEmpleosSidebarContactCta("website", contactAnalyticsMeta);
+              }}
               className={primaryClass}
             >
               {primaryAction.label}

@@ -326,12 +326,26 @@ export async function fetchEmpleosListingsForOwner(ownerUserId: string): Promise
   return data as EmpleosPublicListingRow[];
 }
 
-export async function fetchAllEmpleosListingsForAdmin(): Promise<EmpleosPublicListingRow[]> {
+export async function fetchAllEmpleosListingsForAdmin(opts?: {
+  limit?: number;
+  scope?: "live";
+}): Promise<EmpleosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase.from("empleos_public_listings").select("*").order("republish_sort_at", { ascending: false, nullsFirst: true });
+  const cap = Math.min(Math.max(Math.floor(opts?.limit ?? 100), 1), 500);
+  let q = supabase
+    .from("empleos_public_listings")
+    .select(
+      "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state",
+    )
+    .order("republish_sort_at", { ascending: false, nullsFirst: true })
+    .limit(cap);
+  if (opts?.scope === "live") {
+    q = q.eq("lifecycle_status", "published");
+  }
+  const { data, error } = await q;
   if (error || !data) return [];
-  return data as EmpleosPublicListingRow[];
+  return data as unknown as EmpleosPublicListingRow[];
 }
 
 export async function updateEmpleosListingLifecycleAdmin(input: {

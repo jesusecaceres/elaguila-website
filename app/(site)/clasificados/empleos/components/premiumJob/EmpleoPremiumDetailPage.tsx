@@ -23,6 +23,7 @@ import { PremiumJobMoreJobsSection } from "./PremiumJobMoreJobsSection";
 import { PremiumJobRequirementsCard } from "./PremiumJobRequirementsCard";
 import { PremiumJobSidebarCard } from "./PremiumJobSidebarCard";
 import { PremiumJobTabsShell } from "./PremiumJobTabsShell";
+import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 
 function modalityLine(lang: Lang, m?: JobModalitySlug): string | undefined {
   if (!m) return undefined;
@@ -82,12 +83,14 @@ type Props = {
   /** Hide global site Navbar (publish preview embedded under LeonixPreviewPageShell). */
   withSiteChrome?: boolean;
   publicFooterSlot?: ReactNode;
+  contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
 };
 
 export function EmpleoPremiumDetailPage({
   data = EMPLEO_PREMIUM_JOB_SAMPLE,
   withSiteChrome = true,
   publicFooterSlot = null,
+  contactAnalyticsMeta,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -163,6 +166,7 @@ export function EmpleoPremiumDetailPage({
               phoneLabel={t.phoneCta}
               badgeFeatured={t.badgeFeatured}
               badgePremium={t.badgePremium}
+              contactAnalyticsMeta={contactAnalyticsMeta}
             />
           </div>
         </div>

@@ -181,6 +181,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (cat) {
     revalidatePath(`/admin/workspace/clasificados/${encodeURIComponent(catLower)}`);
   }
+  if (catLower === "en-venta") {
+    revalidatePath("/admin/workspace/clasificados/en-venta");
+  }
   if (catLower === "rentas") {
     revalidatePath("/clasificados/rentas");
     revalidatePath("/clasificados/rentas/results");
