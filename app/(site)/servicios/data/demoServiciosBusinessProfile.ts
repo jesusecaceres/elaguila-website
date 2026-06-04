@@ -10,6 +10,7 @@ import {
 
 /**
  * Demo / slug resolver — always: draft → wire profile → `resolveServiciosProfile` at the page boundary.
+ * Seller preview (`/clasificados/publicar/servicios/preview`) must NOT import this module.
  */
 export function getServiciosProfileBySlug(slug: string, lang: ServiciosLang = "es"): ServiciosBusinessProfile {
   if (slug === "minimal-demo") {

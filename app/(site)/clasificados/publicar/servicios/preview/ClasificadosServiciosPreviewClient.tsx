@@ -16,7 +16,6 @@ import {
 } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { resolveServiciosPublicCategoryLabel } from "../lib/resolveServiciosPublicCategoryLabel";
 import { ServiciosProfessionalPreviewShell } from "./ServiciosProfessionalPreviewShell";
-import { getServiciosWireProfileFromSample } from "@/app/servicios/data/demoServiciosBusinessProfile";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosApplicationDraft";
@@ -32,7 +31,8 @@ import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadin
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 
-type Source = "loading" | "expert" | "application";
+/** Seller preview — real application draft only (no demo/sample fallback). */
+type Source = "loading" | "application" | "missing";
 
 const PREVIEW_BAR =
   "sticky top-0 z-[60] border-b border-black/[0.08] bg-[#F9F8F6]/95 shadow-[0_6px_20px_-12px_rgba(42,36,22,0.18)] backdrop-blur-md";
@@ -40,15 +40,61 @@ const PREVIEW_BAR =
 const EDIT_LINK =
   "inline-flex min-h-[44px] touch-manipulation items-center rounded-full border border-[#D8C79A]/80 bg-white px-4 py-2 text-sm font-bold text-[#3D2C12] shadow-sm transition hover:border-[#3B66AD]/40 hover:bg-[#FFFCF7]";
 
+function ServiciosSellerPreviewIncomplete({
+  lang,
+  editHref,
+  title,
+  body,
+  showChecklist,
+  missing,
+}: {
+  lang: ServiciosLang;
+  editHref: string;
+  title: string;
+  body: string;
+  showChecklist?: boolean;
+  missing?: { id: string; label: string }[];
+}) {
+  const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
+  return (
+    <div className="min-h-screen bg-[#F9F8F6] text-neutral-900">
+      <div className={PREVIEW_BAR}>
+        <div className="mx-auto flex max-w-[1280px] justify-end px-4 py-3 md:px-6">
+          <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
+            {backLabel}
+          </Link>
+        </div>
+      </div>
+      <div className="mx-auto max-w-lg px-4 py-12">
+        <h1 className="text-xl font-bold text-[#3D2C12]">{title}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">{body}</p>
+        {showChecklist && missing && missing.length > 0 ? (
+          <ul className="mt-6 list-inside list-disc space-y-2 text-sm text-neutral-700">
+            {missing.map((m) => (
+              <li key={m.id}>{m.label}</li>
+            ))}
+          </ul>
+        ) : null}
+        <Link
+          href={editHref}
+          onClick={markPublishFlowReturningToEdit}
+          className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
+        >
+          {backLabel}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Clasificados Servicios preview: application draft from session storage, or expert sample (`?sample=expert`).
- * Outer bar holds only “Volver a editar”; the publishable ad canvas is `ServiciosProfileView` without the global Servicios top bar.
+ * Clasificados Servicios seller preview — application draft from session storage only.
+ * Never renders demo/sample business profiles.
  */
 export function ClasificadosServiciosPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const forceExpert = searchParams?.get("sample") === "expert";
 
   const editHref = `/clasificados/publicar/servicios?lang=${lang}`;
   const [publishBusy, setPublishBusy] = useState(false);
@@ -63,18 +109,12 @@ export function ClasificadosServiciosPreviewClient() {
   const [appState, setAppState] = useState<ClasificadosServiciosApplicationState | null>(null);
 
   useEffect(() => {
-    if (forceExpert) {
-      setSource("expert");
-      setAppDraft(null);
-      setAppState(null);
-      return;
-    }
     let cancelled = false;
     void (async () => {
       const raw = await loadClasificadosServiciosApplicationResolved();
       if (cancelled) return;
       if (raw == null) {
-        setSource("expert");
+        setSource("missing");
         setAppDraft(null);
         setAppState(null);
         return;
@@ -88,7 +128,7 @@ export function ClasificadosServiciosPreviewClient() {
     return () => {
       cancelled = true;
     };
-  }, [lang, forceExpert]);
+  }, [lang]);
 
   const previewReadiness = useMemo(() => {
     if (source !== "application" || !appState) return { ok: true as const, missing: [] as { id: string; label: string }[] };
@@ -218,11 +258,8 @@ export function ClasificadosServiciosPreviewClient() {
   }, [appState, canPublishFromPreview, lang, router]);
 
   const profile = useMemo(() => {
-    if (source === "loading") return null;
-    const wire =
-      source === "expert"
-        ? getServiciosWireProfileFromSample("expert", lang)
-        : mapServiciosApplicationDraftToBusinessProfile(appDraft!);
+    if (source !== "application" || !appDraft) return null;
+    const wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     return resolveServiciosProfile(wire, lang);
   }, [source, appDraft, lang]);
 
@@ -236,8 +273,7 @@ export function ClasificadosServiciosPreviewClient() {
     });
   }, [source, appState, lang]);
 
-  const useProfessionalPreview =
-    source === "application" && isServiciosProfessionalTemplate(listingTemplate);
+  const useProfessionalPreview = isServiciosProfessionalTemplate(listingTemplate);
 
   const previewListingRow = useMemo((): ServiciosPublicListingRow | null => {
     if (!useProfessionalPreview || !appState || !appDraft || !profile) return null;
@@ -259,48 +295,54 @@ export function ClasificadosServiciosPreviewClient() {
   const cardPreviewTitle = lang === "en" ? "Result card preview" : "Vista previa de la tarjeta";
   const fullPreviewTitle = lang === "en" ? "Full profile preview" : "Vista previa completa";
 
-  if (source === "loading" || !profile) {
+  if (source === "loading") {
     return <div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />;
   }
 
-  if (source === "application" && !previewReadiness.ok) {
+  if (source === "missing") {
     return (
-      <div className="min-h-screen bg-[#F9F8F6] text-neutral-900">
-        <div className={PREVIEW_BAR}>
-          <div className="mx-auto flex max-w-[1280px] justify-end px-4 py-3 md:px-6">
-            <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
-              {backLabel}
-            </Link>
-          </div>
-        </div>
-        <div className="mx-auto max-w-lg px-4 py-12">
-          <h1 className="text-xl font-bold text-[#3D2C12]">
-            {lang === "en" ? "Preview needs a few more details" : "La vista previa necesita unos datos más"}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-            {lang === "en"
-              ? "Complete the checklist in the application so the public profile looks complete and premium."
-              : "Completa el formulario para que el perfil público se vea completo y premium."}
-          </p>
-          <p className="mt-3 text-xs leading-relaxed text-neutral-500">
-            {lang === "en"
-              ? "Return to the form, complete the checklist, then open Preview again from the last step."
-              : "Vuelve al formulario, completa el checklist y abre de nuevo «Vista previa» desde el último paso."}
-          </p>
-          <ul className="mt-6 list-inside list-disc space-y-2 text-sm text-neutral-700">
-            {previewReadiness.missing.map((m) => (
-              <li key={m.id}>{m.label}</li>
-            ))}
-          </ul>
-          <Link
-            href={editHref}
-            onClick={markPublishFlowReturningToEdit}
-            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
-          >
-            {lang === "en" ? "Return to application" : "Volver al formulario"}
-          </Link>
-        </div>
-      </div>
+      <ServiciosSellerPreviewIncomplete
+        lang={lang}
+        editHref={editHref}
+        title={lang === "en" ? "Complete your service information to preview your listing." : "Completa la información de tu servicio para ver la vista previa."}
+        body={
+          lang === "en"
+            ? "Return to the application form, enter your business details, then open Preview again from the last step."
+            : "Vuelve al formulario, ingresa los datos de tu negocio y abre de nuevo «Vista previa» desde el último paso."
+        }
+      />
+    );
+  }
+
+  if (!profile) {
+    return (
+      <ServiciosSellerPreviewIncomplete
+        lang={lang}
+        editHref={editHref}
+        title={lang === "en" ? "Complete your service information to preview your listing." : "Completa la información de tu servicio para ver la vista previa."}
+        body={
+          lang === "en"
+            ? "We could not build a preview from your saved draft. Return to the form and try again."
+            : "No pudimos generar la vista previa con tu borrador guardado. Vuelve al formulario e inténtalo de nuevo."
+        }
+      />
+    );
+  }
+
+  if (!previewReadiness.ok) {
+    return (
+      <ServiciosSellerPreviewIncomplete
+        lang={lang}
+        editHref={editHref}
+        title={lang === "en" ? "Preview needs a few more details" : "La vista previa necesita unos datos más"}
+        body={
+          lang === "en"
+            ? "Complete the checklist in the application so the public profile looks complete and premium."
+            : "Completa el formulario para que el perfil público se vea completo y premium."
+        }
+        showChecklist
+        missing={previewReadiness.missing}
+      />
     );
   }
 
@@ -308,23 +350,21 @@ export function ClasificadosServiciosPreviewClient() {
     <div className="min-h-screen bg-[#F9F8F6]">
       <div className={PREVIEW_BAR}>
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
-          {source === "application" && !forceExpert ? (
-            <button
-              type="button"
-              disabled={!canPublishFromPreview || publishBusy}
-              title={
-                !canPublishFromPreview
-                  ? lang === "en"
-                    ? "Complete publish checklist and the three confirmations on the last step, then try again."
-                    : "Completa el checklist de publicación y las tres confirmaciones del último paso."
-                  : undefined
-              }
-              onClick={() => void handlePublishFromPreview()}
-              className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            disabled={!canPublishFromPreview || publishBusy}
+            title={
+              !canPublishFromPreview
+                ? lang === "en"
+                  ? "Complete publish checklist and the three confirmations on the last step, then try again."
+                  : "Completa el checklist de publicación y las tres confirmaciones del último paso."
+                : undefined
+            }
+            onClick={() => void handlePublishFromPreview()}
+            className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
+          </button>
           <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
             {backLabel}
           </Link>
@@ -337,7 +377,6 @@ export function ClasificadosServiciosPreviewClient() {
       </div>
       <div className="mx-auto max-w-[1280px] px-4 pb-12 pt-2 md:px-6">
         <ClasificadosPreviewAdCanvas className="overflow-hidden">
-          {/* Premium Preview Card */}
           <div className="mb-8">
             <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{cardPreviewTitle}</h2>
             {previewListingRow ? (

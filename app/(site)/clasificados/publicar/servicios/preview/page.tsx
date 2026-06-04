@@ -6,7 +6,7 @@ import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 export const metadata: Metadata = {
   ...PREVIEW_NOINDEX_METADATA,
   title: "Vista previa · Servicios · Leonix Clasificados",
-  description: "Vista previa del perfil de negocio (borrador de la aplicación o ejemplo).",
+  description: "Vista previa del perfil de negocio desde el borrador de la aplicación.",
   alternates: {
     canonical: "/clasificados/publicar/servicios/preview",
   },

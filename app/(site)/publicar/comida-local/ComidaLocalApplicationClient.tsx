@@ -1,6 +1,7 @@
 "use client";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import Link from "next/link";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
@@ -108,6 +109,7 @@ export default function ComidaLocalApplicationClient() {
   const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft), [draft]);
   const publishReady = publishIssues.every((i) => i.severity !== "error");
+  const previewReady = previewIssues.length === 0;
 
   const markTouched = useCallback((key: string) => {
     setTouched((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
@@ -588,17 +590,37 @@ export default function ComidaLocalApplicationClient() {
                 "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
               )}
             >
-              <p className="text-sm text-[#1E1814]/70">
-                {COMIDA_LOCAL_SHELL_COPY.previewSoon}. No se publica ni cobra desde este formulario.
-              </p>
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed shrink-0 rounded-xl bg-[#7A1E2C]/50 px-5 py-2.5 text-sm font-semibold text-[#FFFCF7]"
-                title={COMIDA_LOCAL_SHELL_COPY.previewSoon}
-              >
-                {COMIDA_LOCAL_SHELL_COPY.previewSoon}
-              </button>
+              <div className="min-w-0">
+                <p className="text-sm text-[#1E1814]/70">
+                  {previewReady
+                    ? "Revisa cómo se verá tu ficha antes de publicar (cuando esté disponible)."
+                    : "Completa los campos de la guía «Para vista previa» para abrir la vista previa."}
+                </p>
+                {!previewReady && previewIssues.length > 0 ? (
+                  <ul className="mt-2 space-y-0.5 text-xs text-[#7A1E2C]/90">
+                    {previewIssues.map((issue) => (
+                      <li key={`cta-${issue.field}-${issue.message}`}>{issue.message}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              {previewReady ? (
+                <Link
+                  href="/clasificados/comida-local/preview"
+                  className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
+                >
+                  {COMIDA_LOCAL_SHELL_COPY.viewPreview}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="cursor-not-allowed shrink-0 rounded-xl bg-[#7A1E2C]/40 px-5 py-2.5 text-sm font-semibold text-[#FFFCF7]"
+                  title={COMIDA_LOCAL_SHELL_COPY.previewSoon}
+                >
+                  {COMIDA_LOCAL_SHELL_COPY.viewPreview}
+                </button>
+              )}
             </div>
           </div>
         </div>

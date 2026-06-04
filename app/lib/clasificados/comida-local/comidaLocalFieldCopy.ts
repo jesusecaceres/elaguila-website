@@ -16,6 +16,8 @@ export const COMIDA_LOCAL_SHELL_COPY = {
   scaffoldNotice:
     "Tu borrador se guarda automáticamente en este navegador. Aún no publicamos ni cobramos desde aquí.",
   previewSoon: "Próximo paso: vista previa",
+  viewPreview: "Ver vista previa",
+  publishSoonPreview: "Publicar próximamente",
   draftSaved: "Borrador guardado en este dispositivo",
   resetDraft: "Empezar de nuevo",
   validationPreviewTitle: "Para vista previa",
