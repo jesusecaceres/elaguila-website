@@ -284,8 +284,10 @@ export function BienesRaicesPrivadoForm() {
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <LeonixCategoryApplicationHeader
           lang={lang}
-          categoryTitle="Leonix Â· Bienes RaÃ­ces Â· Privado"
-          headline={lang === "es" ? "Publicar â€” Particular" : "Post â€” Private seller"}
+          categoryTitle={
+            lang === "en" ? "Leonix · Real Estate · Private" : "Leonix · Bienes Raíces · Privado"
+          }
+          headline={lang === "es" ? "Publicar — Particular" : "Post — Private seller"}
         />
         <LeonixApplicationDataLossNotice lang={lang} />
 
