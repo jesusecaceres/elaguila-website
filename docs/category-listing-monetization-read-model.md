@@ -22,15 +22,20 @@ En Venta `gratis` / `pro` stays En Venta-specific unless another category explic
 
 Code source: `app/lib/listingPlans/categoryListingMonetization.ts`
 
-The resolver returns a `CategoryListingMonetizationSummary` with:
+The resolver exports `resolveCategoryListingMonetization(input)` and returns a `CategoryListingMonetizationSummary` (Admin-compatible) that extends `CategoryListingMonetizationResult` with flat `warnings`, `planLabel`, `planSource`, and `source`.
 
-- `category`, `source`, `planKind`, `planLabel`, and `planSource`
-- `accountTierIgnored: true`
-- read-only `tools`
-- safe metadata such as `leonixAdId`, `republishedAt`, `republishCount`, `expiresAt`, `promoted`, `featured`, `verified`, `sourceId`, and `slug`
-- `warnings` for missing fields, unsupported categories, or legacy data that should not be treated as monetization
+Structured outputs:
 
-The helper accepts a loose listing row and optional detail pairs or an existing category plan result. It reads optional fields defensively and does not mutate rows.
+- `category`, `sourceTable`, `sourceId`, `internalId`, `leonixAdId`, `slug`
+- `displayPlanLabel`, `planKind`, `listingTier`
+- `accountTierIgnored: true` (always)
+- `tools`: `Record<CategoryListingToolKey, CategoryListingToolState>` with `key`, `status`, `label`, `reason`, `source`
+- `metadata`: republish, expiration, promoted/featured/verified flags, package tier, optional entitlement id
+- `catalogWarnings` and `gaps`: structured `CategoryListingMonetizationWarning` entries (`code`, `message`, `severity`, `source`)
+- `isClientReady` and `pipelineClassification` per category
+- flat `warnings[]` for legacy Admin chips
+
+The helper accepts explicit identity fields, date fields, optional package entitlement snapshot, analytics capability hints, and a loose listing row. It reads optional fields defensively and does not mutate rows or call Supabase.
 
 ## Tool States
 
@@ -82,7 +87,22 @@ Restaurantes may use `package_tier` when present and can read promoted, verified
 
 Empleos and Viajes use separate models and are not V1 monetization. The resolver still returns safe summaries so Admin/Dashboard can show unsupported/future states without breaking.
 
-Clases and Comunidad are later/not client-ready for paid listing tools. The resolver returns defensive unsupported/future states and does not enable them as monetized client-ready categories.
+Clases, Comunidad, Busco, and Mascotas/Perdidos are later/not client-ready (`isClientReady: false`). The resolver returns defensive unsupported/future states and does not enable them as monetized client-ready categories.
+
+Empleos and Viajes use separate models (`pipelineClassification`: `JOBS_PIPELINE`, `TRAVEL_STAGED`) and are not V1 monetization. Republish eligibility defers to `republishCapabilityReason` from the existing admin helper.
+
+## Warnings And Gaps
+
+Structured warnings use severity `info`, `warning`, or `gap`. Common codes:
+
+- `account_tier_ignored` — membership/account tiers deliberately not used
+- `missing_leonix_ad_id`, `missing_source_id`, `missing_owner_id`
+- `featured_until_missing`, `expires_at_missing`, `legacy_boost_expires`
+- `en_venta_pro_leak` — En Venta Pro must not appear on other categories
+- `category_not_client_ready`, `package_entitlement_not_supplied`
+- `legacy_mock_admin`, `dual_analytics_pipeline`
+
+Consumers should display gaps honestly instead of assuming missing Supabase columns exist.
 
 ## Admin Visibility
 
