@@ -448,7 +448,7 @@ export function readerCtaHref(key: ReaderCtaKey, lang: MagazineLang): string {
         ? "/media-kit/leonix-media-kit-en.pdf"
         : "/media-kit/leonix-media-kit-es.pdf";
     case "comingSoon":
-      return lang === "en" ? "/coming-soon-v2?lang=en" : lang === "vi" ? "/coming-soon-v2?lang=es" : "/coming-soon-v2?lang=es";
+      return `/coming-soon-v2?lang=${lang}`;
   }
 }
 
@@ -459,5 +459,5 @@ export function mediaKitHref(lang: MagazineLang): string {
 }
 
 export function comingSoonHref(lang: MagazineLang): string {
-  return lang === "en" ? "/coming-soon-v2?lang=en" : "/coming-soon-v2?lang=es";
+  return `/coming-soon-v2?lang=${lang}`;
 }

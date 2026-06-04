@@ -9,6 +9,12 @@ import { Suspense, useEffect, useState } from "react";
 const HEADER_LOGO_SRC = "/logo.png";
 
 type Lang = "es" | "en";
+type RouteLang = "es" | "en" | "vi";
+
+function resolveRouteLang(raw: string | null | undefined): RouteLang {
+  if (raw === "en" || raw === "vi") return raw;
+  return "es";
+}
 
 type NavItem = { label: string; href: string; active?: boolean };
 
@@ -1535,12 +1541,12 @@ function FinalContactSection({
   newsletter: {
     title: string;
     body: string;
-    placeholder: string;
-    button: string;
     formAria: string;
     emailLabel: string;
+    placeholder: string;
+    button: string;
   };
-  lang: Lang;
+  lang: RouteLang;
 }) {
   return (
     <section
@@ -1670,11 +1676,11 @@ function ComingSoonV2Footer({ text }: { text: string }) {
   );
 }
 
-function launchHref(lang: Lang) {
+function launchHref(lang: RouteLang) {
   return `/contact?interest=launch&lang=${lang}`;
 }
 
-function LaunchCtaLink({ lang, label }: { lang: Lang; label: string }) {
+function LaunchCtaLink({ lang, label }: { lang: RouteLang; label: string }) {
   return (
     <Link
       href={launchHref(lang)}
@@ -1704,10 +1710,14 @@ function ComingSoonV2ShellContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlLang = searchParams?.get("lang");
-  const [lang, setLang] = useState<Lang>(() => (urlLang === "en" ? "en" : "es"));
+  const routeLang = resolveRouteLang(urlLang);
+  const [lang, setLang] = useState<Lang>(() =>
+    urlLang === "en" || urlLang === "vi" ? "en" : "es"
+  );
 
   useEffect(() => {
-    if (urlLang === "es" || urlLang === "en") setLang(urlLang);
+    if (urlLang === "en" || urlLang === "vi") setLang("en");
+    else if (urlLang === "es") setLang("es");
   }, [urlLang]);
 
   const selectLang = (code: Lang) => {
@@ -1728,10 +1738,10 @@ function ComingSoonV2ShellContent() {
   const final = t.finalCta;
   const contact = t.contact;
   const newsletter = t.newsletter;
-  const magazineHref = `/magazine?lang=${lang}`;
+  const magazineHref = `/magazine?lang=${routeLang}`;
 
   return (
-    <div lang={lang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
+    <div lang={routeLang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
       <header className="sticky top-0 z-50 border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0 py-1.5 sm:gap-x-4 sm:py-2 lg:py-2">
@@ -1798,7 +1808,7 @@ function ComingSoonV2ShellContent() {
                 ))}
               </div>
 
-              <LaunchCtaLink lang={lang} label={t.launchCta} />
+              <LaunchCtaLink lang={routeLang} label={t.launchCta} />
             </div>
           </div>
 
@@ -1976,7 +1986,7 @@ function ComingSoonV2ShellContent() {
           finalCta={final}
           contact={contact}
           newsletter={newsletter}
-          lang={lang}
+          lang={routeLang}
         />
       </main>
 
