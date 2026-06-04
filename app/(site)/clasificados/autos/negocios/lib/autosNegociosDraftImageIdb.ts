@@ -27,6 +27,7 @@ function imgKey(namespace: string, imageId: string): string {
 }
 
 const logoKey = (namespace: string) => `logo:${namespace}`;
+const financeImageKey = (namespace: string) => `finance-image:${namespace}`;
 
 export async function idbPutDraftImageDataUrl(namespace: string, imageId: string, dataUrl: string): Promise<void> {
   const db = await openDb();
@@ -91,5 +92,38 @@ export async function idbClearDealerLogo(namespace: string): Promise<void> {
     tx.objectStore(STORE).delete(logoKey(namespace));
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error("idb clear logo failed"));
+  });
+}
+
+export async function idbPutFinanceImageDataUrl(namespace: string, dataUrl: string): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(dataUrl, financeImageKey(namespace));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("idb put finance image failed"));
+  });
+}
+
+export async function idbGetFinanceImageDataUrl(namespace: string): Promise<string | null> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).get(financeImageKey(namespace));
+    req.onsuccess = () => {
+      const v = req.result;
+      resolve(typeof v === "string" && v.trim() ? v : null);
+    };
+    req.onerror = () => reject(req.error ?? new Error("idb get finance image failed"));
+  });
+}
+
+export async function idbClearFinanceImage(namespace: string): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(financeImageKey(namespace));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("idb clear finance image failed"));
   });
 }

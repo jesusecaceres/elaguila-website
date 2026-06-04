@@ -207,6 +207,10 @@ export type AutoDealerListing = {
   financeApplicationUrl?: string;
   /** Optional https image URL — advisor headshot or bank/finance logo (Negocios only). */
   financeContactImageUrl?: string;
+  /** Local upload filename for finance image preview (Negocios only). */
+  financeContactImageFileName?: string;
+  /** How the finance image was added — url vs local file preview (Negocios only). */
+  financeContactImageSource?: "url" | "local";
   financeNotes?: string;
   /** Engagement snapshot for preview / live analytics strip. */
   listingAnalytics?: AutosListingAnalyticsSnapshot;

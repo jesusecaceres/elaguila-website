@@ -1,15 +1,19 @@
 import type { AutoDealerListing, MediaImageEntry } from "../types/autoDealerListing";
 import {
   idbClearDealerLogo,
+  idbClearFinanceImage,
   idbDeleteDraftImage,
   idbGetDealerLogoDataUrl,
+  idbGetFinanceImageDataUrl,
   idbGetDraftImageDataUrl,
   idbPutDealerLogoDataUrl,
+  idbPutFinanceImageDataUrl,
   idbPutDraftImageDataUrl,
 } from "./autosNegociosDraftImageIdb";
 
 export const AUTOS_DRAFT_MEDIA_REF_PREFIX = "__AUTOS_IDB_MEDIA__:";
 export const AUTOS_DRAFT_LOGO_REF = "__AUTOS_IDB_LOGO__";
+export const AUTOS_DRAFT_FINANCE_IMAGE_REF = "__AUTOS_IDB_FINANCE_IMAGE__";
 
 export function mediaRefFromId(id: string): string {
   return `${AUTOS_DRAFT_MEDIA_REF_PREFIX}${id}`;
@@ -31,7 +35,11 @@ export function stripUnresolvedIdbRefsFromListing(listing: AutoDealerListing): A
   if (dealerLogo === AUTOS_DRAFT_LOGO_REF) {
     dealerLogo = undefined;
   }
-  return { ...listing, mediaImages, dealerLogo };
+  let financeContactImageUrl = listing.financeContactImageUrl;
+  if (financeContactImageUrl === AUTOS_DRAFT_FINANCE_IMAGE_REF) {
+    financeContactImageUrl = undefined;
+  }
+  return { ...listing, mediaImages, dealerLogo, financeContactImageUrl };
 }
 
 export async function offloadDraftListingAssetsToIdb(namespace: string, listing: AutoDealerListing): Promise<AutoDealerListing> {
@@ -52,7 +60,14 @@ export async function offloadDraftListingAssetsToIdb(namespace: string, listing:
   } else if (dealerLogo === AUTOS_DRAFT_LOGO_REF) {
     /* already offloaded */
   }
-  return { ...listing, mediaImages: nextImages, dealerLogo };
+  let financeContactImageUrl = listing.financeContactImageUrl;
+  if (typeof financeContactImageUrl === "string" && financeContactImageUrl.startsWith("data:")) {
+    await idbPutFinanceImageDataUrl(namespace, financeContactImageUrl);
+    financeContactImageUrl = AUTOS_DRAFT_FINANCE_IMAGE_REF;
+  } else if (financeContactImageUrl === AUTOS_DRAFT_FINANCE_IMAGE_REF) {
+    /* already offloaded */
+  }
+  return { ...listing, mediaImages: nextImages, dealerLogo, financeContactImageUrl };
 }
 
 function isMediaImageRow(m: unknown): m is MediaImageEntry {
@@ -104,7 +119,16 @@ export async function inlineDraftListingAssetsFromIdb(namespace: string, listing
       dealerLogo = undefined;
     }
   }
-  return { ...listing, mediaImages: nextImages, dealerLogo };
+  let financeContactImageUrl = listing.financeContactImageUrl;
+  if (financeContactImageUrl === AUTOS_DRAFT_FINANCE_IMAGE_REF) {
+    try {
+      const blob = await idbGetFinanceImageDataUrl(namespace);
+      financeContactImageUrl = blob ?? undefined;
+    } catch {
+      financeContactImageUrl = undefined;
+    }
+  }
+  return { ...listing, mediaImages: nextImages, dealerLogo, financeContactImageUrl };
 }
 
 export async function clearDraftListingImageAndLogoIdb(namespace: string, listing: AutoDealerListing | undefined | null): Promise<void> {
@@ -113,4 +137,5 @@ export async function clearDraftListingImageAndLogoIdb(namespace: string, listin
     await idbDeleteDraftImage(namespace, m.id);
   }
   await idbClearDealerLogo(namespace);
+  await idbClearFinanceImage(namespace);
 }

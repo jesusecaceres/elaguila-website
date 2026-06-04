@@ -63,6 +63,8 @@ export const AUTOS_INVENTORY_INHERITED_FIELD_GROUPS: AutosInheritedPreviewFieldG
     "financeContactEmail",
     "financeApplicationUrl",
     "financeContactImageUrl",
+    "financeContactImageFileName",
+    "financeContactImageSource",
     "financeNotes",
   ],
   childSpecific: [

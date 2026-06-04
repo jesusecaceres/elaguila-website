@@ -4,11 +4,14 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { AutosDealerFinanceImageUpload } from "./AutosDealerFinanceImageUpload";
 
 const INPUT =
   "mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none focus:border-[color:var(--lx-gold-border)]";
 const LABEL = "text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const GRID2 = "mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2";
+
+/** Finance image field `financeContactImageUrl` — upload + URL via AutosDealerFinanceImageUpload. */
 
 export function AutosDealerFinanceFields({
   listing,
@@ -84,16 +87,24 @@ export function AutosDealerFinanceFields({
             onChange={(e) => setListingPatch({ financeApplicationUrl: autosDraftUrlValue(e.target.value) })}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label className={LABEL}>{f.imageUrl}</label>
-          <input
-            className={INPUT}
-            placeholder={copy.app.placeholders.https}
-            value={listing.financeContactImageUrl ?? ""}
-            onChange={(e) => setListingPatch({ financeContactImageUrl: autosDraftUrlValue(e.target.value) })}
-          />
-          <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{f.imageHelper}</p>
-        </div>
+        <AutosDealerFinanceImageUpload
+          listing={listing}
+          setListingPatch={setListingPatch}
+          copy={{
+            imageUrl: f.imageUrl,
+            imageHelper: f.imageHelper,
+            imageUrlLabel: f.imageUrlLabel,
+            useImageUrl: f.useImageUrl,
+            imageConfirmed: f.imageConfirmed,
+            imageUpload: f.imageUpload,
+            imageUploadHint: f.imageUploadHint,
+            imagePreviewTitle: f.imagePreviewTitle,
+            imagePreviewFile: f.imagePreviewFile,
+            imagePreviewUrl: f.imagePreviewUrl,
+            removeImage: f.removeImage,
+            httpsPlaceholder: copy.app.placeholders.https,
+          }}
+        />
         <div className="sm:col-span-2">
           <label className={LABEL}>{f.notes}</label>
           <textarea

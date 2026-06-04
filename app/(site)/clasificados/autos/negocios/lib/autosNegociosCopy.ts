@@ -99,6 +99,15 @@ export type AutosNegociosCopy = {
       preApprovalUrl: string;
       imageUrl: string;
       imageHelper: string;
+      imageUrlLabel: string;
+      useImageUrl: string;
+      imageConfirmed: string;
+      imageUpload: string;
+      imageUploadHint: string;
+      imagePreviewTitle: string;
+      imagePreviewFile: string;
+      imagePreviewUrl: string;
+      removeImage: string;
       notes: string;
       disclaimer: string;
     };
@@ -444,7 +453,16 @@ const ES: AutosNegociosCopy = {
       preApprovalUrl: "Enlace para pre-aprobación",
       imageUrl: "Imagen o logo de financiamiento",
       imageHelper:
-        "Opcional. Puedes agregar una foto del asesor, logo del banco, cooperativa de crédito o área de financiamiento.",
+        "Opcional. Puedes subir una imagen desde tu archivo o usar una URL. Puede ser una foto del asesor, logo del banco, cooperativa de crédito o área de financiamiento.",
+      imageUrlLabel: "URL de imagen/logo",
+      useImageUrl: "Usar URL de imagen/logo",
+      imageConfirmed: "Imagen/logo confirmado en el borrador",
+      imageUpload: "Subir imagen/logo desde archivo",
+      imageUploadHint: "Abre el selector de archivos al instante.",
+      imagePreviewTitle: "Imagen/logo confirmado en el borrador",
+      imagePreviewFile: "Archivo local (solo en este dispositivo)",
+      imagePreviewUrl: "Desde URL",
+      removeImage: "Quitar imagen/logo",
       notes: "Notas de financiamiento",
       disclaimer:
         "Leonix no aprueba ni garantiza financiamiento. Los datos son proporcionados por el concesionario.",
@@ -854,7 +872,16 @@ const EN: AutosNegociosCopy = {
       preApprovalUrl: "Pre-approval link",
       imageUrl: "Finance image or logo",
       imageHelper:
-        "Optional. Add an advisor photo, bank logo, credit-union logo, or finance department image.",
+        "Optional. Upload an image from your files or use an image URL. This can be an advisor photo, bank logo, credit-union logo, or finance department image.",
+      imageUrlLabel: "Image/logo URL",
+      useImageUrl: "Use image/logo URL",
+      imageConfirmed: "Image/logo confirmed in draft",
+      imageUpload: "Upload image/logo from file",
+      imageUploadHint: "Opens the file picker immediately.",
+      imagePreviewTitle: "Image/logo confirmed in draft",
+      imagePreviewFile: "Local file (this device only)",
+      imagePreviewUrl: "From URL",
+      removeImage: "Remove image/logo",
       notes: "Financing notes",
       disclaimer: "Leonix does not approve or guarantee financing. Information is provided by the dealership.",
     },

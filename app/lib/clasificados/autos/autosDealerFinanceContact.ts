@@ -1,5 +1,6 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
+import { AUTOS_DRAFT_FINANCE_IMAGE_REF } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftIdbRefs";
 import { whatsAppHrefFromDisplay } from "@/app/clasificados/autos/negocios/lib/dealerWhatsappHref";
 import { phoneDigitsForTel } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
 
@@ -21,7 +22,10 @@ export function hasDealerFinanceContact(data: AutoDealerListing): boolean {
 }
 
 export function resolveFinanceImageHref(data: AutoDealerListing): string | undefined {
-  return safeExternalHref(data.financeContactImageUrl ?? undefined);
+  const raw = data.financeContactImageUrl?.trim();
+  if (!raw || raw === AUTOS_DRAFT_FINANCE_IMAGE_REF) return undefined;
+  if (raw.startsWith("data:image/")) return raw;
+  return safeExternalHref(raw);
 }
 
 export function resolveFinanceApplicationHref(data: AutoDealerListing): string | undefined {
