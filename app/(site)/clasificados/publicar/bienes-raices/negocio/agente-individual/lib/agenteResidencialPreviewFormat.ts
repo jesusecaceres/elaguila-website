@@ -31,6 +31,12 @@ import {
   type ComercialDestacadoId,
   type TerrenoDestacadoId,
 } from "../schema/agenteComercialTerrenoMeta";
+import {
+  buildRealEstateMapQuery,
+  formatApproxAddressDisplay,
+  formatFullAddress,
+  formatUsdWhole,
+} from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { digitsOnly, formatUsPhoneDisplay } from "../application/utils/phoneMask";
 
 export function trim(s: unknown): string {
@@ -108,17 +114,15 @@ export function formatTipoPublicacionFijoLine(
 }
 
 export function formatPrecioUsd(raw: string): string {
+  const formatted = formatUsdWhole(raw);
+  if (formatted) return formatted;
   const t = trim(raw);
   if (!t) return "";
-  const n = Number(String(t).replace(/[^0-9.]/g, ""));
-  if (Number.isFinite(n)) {
-    try {
-      return new Intl.NumberFormat("es-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-    } catch {
-      return t.startsWith("$") ? t : `$${t}`;
-    }
-  }
   return t.startsWith("$") ? t : `$${t}`;
+}
+
+function resolveAgenteStreet(s: AgenteIndividualResidencialFormState): string {
+  return trim(s.direccionLinea1) || trim(s.direccion);
 }
 
 export function hrefFromUserInput(t: string): string | null {
@@ -187,16 +191,36 @@ export function formatTipoPropiedadLine(s: AgenteIndividualResidencialFormState,
 }
 
 export function buildLocationLine(s: AgenteIndividualResidencialFormState): string {
-  const cityLine = [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(" · ");
-  if (!s.mostrarDireccionExacta) return cityLine || "—";
-  return [cityLine, trim(s.direccion)].filter(Boolean).join(" · ");
+  const street = resolveAgenteStreet(s);
+  const unit = trim(s.direccionLinea2);
+  const city = trim(s.ciudad);
+  const state = trim(s.direccionEstado);
+  const zip = trim(s.direccionCodigoPostal);
+  const neighborhood = trim(s.areaCiudad);
+  if (!s.mostrarDireccionExacta) {
+    return formatApproxAddressDisplay({ neighborhood, city, state, zip }) || "—";
+  }
+  return formatFullAddress({ street, unit, city, state, zip }) || "—";
 }
 
 export function buildMapQuery(s: AgenteIndividualResidencialFormState): string {
-  if (!s.mostrarDireccionExacta) {
-    return [trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(", ");
-  }
-  return [trim(s.direccion), trim(s.ciudad), trim(s.areaCiudad)].filter(Boolean).join(", ");
+  const street = resolveAgenteStreet(s);
+  const unit = trim(s.direccionLinea2);
+  const city = trim(s.ciudad);
+  const state = trim(s.direccionEstado);
+  const zip = trim(s.direccionCodigoPostal);
+  const neighborhood = trim(s.areaCiudad);
+  const q = buildRealEstateMapQuery({
+    exact: Boolean(s.mostrarDireccionExacta),
+    street,
+    unit,
+    neighborhood,
+    city,
+    state,
+    zip,
+    legacyStreet: trim(s.direccion),
+  });
+  return q || city;
 }
 
 export type PropertyDetailRow = { label: string; value: string };

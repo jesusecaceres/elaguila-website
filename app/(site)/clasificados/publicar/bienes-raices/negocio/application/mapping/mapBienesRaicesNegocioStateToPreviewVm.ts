@@ -27,6 +27,14 @@ import {
   formatLeonixPreferredContactLine,
   socialLinksFromChannelsPayload,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import {
+  buildRealEstateMapQuery,
+  formatApproxAddressDisplay,
+  formatCityStateZip,
+  formatFullAddress,
+  formatStreetUnitLine,
+  formatUsdWhole,
+} from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { syncNegocioListingFieldsFromPublication } from "../schema/bienesRaicesNegocioFormState";
 import { resolveNegocioGate12dHoaSlice } from "@/app/clasificados/lib/leonixBrGate12d";
 import {
@@ -169,17 +177,7 @@ function bulletsFromGroup(
 }
 
 function formatPrice(raw: string): string {
-  const t = trim(raw);
-  if (!t) return "—";
-  const n = Number(String(t).replace(/[^0-9.]/g, ""));
-  if (Number.isFinite(n)) {
-    try {
-      return new Intl.NumberFormat("es-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-    } catch {
-      return t;
-    }
-  }
-  return t;
+  return formatUsdWhole(raw) || "—";
 }
 
 function bathLine(complete: string, half: string): string {
@@ -192,13 +190,24 @@ function bathLine(complete: string, half: string): string {
 }
 
 function buildAddress(s: BienesRaicesNegocioFormState): string {
-  const parts = [trim(s.direccion), trim(s.colonia), trim(s.ciudad), trim(s.estado), trim(s.codigoPostal)].filter(Boolean);
-  return parts.length ? parts.join(", ") : "—";
+  const full = formatFullAddress({
+    street: trim(s.direccion),
+    unit: trim(s.direccionLinea2),
+    city: trim(s.ciudad),
+    state: trim(s.estado),
+    zip: trim(s.codigoPostal),
+  });
+  return full || "—";
 }
 
 function buildNegocioApproxAddressLine(s: BienesRaicesNegocioFormState): string {
-  const parts = [trim(s.colonia), trim(s.ciudad), trim(s.estado), trim(s.codigoPostal)].filter(Boolean);
-  return parts.length ? parts.join(", ") : "—";
+  const line = formatApproxAddressDisplay({
+    neighborhood: trim(s.colonia),
+    city: trim(s.ciudad),
+    state: trim(s.estado),
+    zip: trim(s.codigoPostal),
+  });
+  return line || "—";
 }
 
 function publicationOperationSummary(s: BienesRaicesNegocioFormState): string {
@@ -495,21 +504,29 @@ function buildHoaDevelopmentRows(s: BienesRaicesNegocioFormState): BienesRaicesP
 }
 
 function buildLocationVm(s: BienesRaicesNegocioFormState): BienesRaicesPreviewLocationVm {
-  const line1 = trim(s.direccion);
+  const street = trim(s.direccion);
+  const unit = trim(s.direccionLinea2);
   const colonia = trim(s.colonia);
   const city = trim(s.ciudad);
   const st = trim(s.estado);
   const zip = trim(s.codigoPostal);
-  const cityPart = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const streetLine = formatStreetUnitLine(street, unit);
+  const cityPart = formatCityStateZip(city, st, zip);
   const showExact = s.mostrarDireccionExacta;
   const fullAddress = showExact ? buildAddress(s) : buildNegocioApproxAddressLine(s);
-  const mapsQuery = showExact
-    ? [line1, colonia, city, st, zip].filter(Boolean).join(", ")
-    : [colonia, city, st, zip].filter(Boolean).join(", ");
+  const mapsQuery = buildRealEstateMapQuery({
+    exact: showExact,
+    street,
+    unit,
+    neighborhood: colonia,
+    city,
+    state: st,
+    zip,
+  });
   const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : null;
-  const hasMeaningfulAddress = Boolean((showExact && line1) || colonia || (city && st) || zip);
+  const hasMeaningfulAddress = Boolean((showExact && streetLine) || colonia || cityPart || mapsUrl);
   return {
-    line1: showExact ? line1 : "",
+    line1: showExact ? streetLine : "",
     colonia,
     cityStateZip: cityPart,
     fullAddress,

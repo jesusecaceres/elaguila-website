@@ -88,6 +88,45 @@ export function formatRentasDepositUsdPreview(digitsRaw: string): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
+/** Plain large numbers with thousands separators (sqft, counts, etc.). */
+export function formatRentasPlainNumberPreview(digitsRaw: string): string {
+  const d = String(digitsRaw ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  const n = Number(d);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
+}
+
+/** Preview / public display for square-foot fields. */
+export function formatRentasSqftPreview(digitsRaw: string): string {
+  const pretty = formatRentasPlainNumberPreview(digitsRaw);
+  return pretty ? `${pretty} ft²` : "";
+}
+
+/** Normalize persisted or legacy size strings for cards/detail (keeps non-numeric text). */
+export function formatRentasSizeDisplayForPublic(raw: string): string {
+  const t = trim(raw);
+  if (!t || t === "—") return t;
+  const ftMatch = t.match(/^([\d,.\s]+)\s*(ft²|ft2|sq\.?\s*ft)?$/i);
+  if (ftMatch) {
+    const formatted = formatRentasSqftPreview(ftMatch[1]!);
+    return formatted || t;
+  }
+  const digitsOnly = t.replace(/\D/g, "");
+  if (digitsOnly && /^\d+$/.test(t.replace(/,/g, "").replace(/\s/g, ""))) {
+    return formatRentasPlainNumberPreview(t) || t;
+  }
+  return t;
+}
+
+function appendRentasMapSegment(line: string, part: string): string {
+  const p = trim(part);
+  if (!p) return line;
+  const low = line.toLowerCase();
+  if (low.includes(p.toLowerCase())) return line;
+  return line ? `${line}, ${p}` : p;
+}
+
 /** Primary street line: single field first, then legacy número+calle, then referencia. */
 export function buildRentasStreetLine(parts: {
   direccionLinea1?: string;
@@ -161,14 +200,15 @@ export function buildRentasGoogleMapsSearchQuery(parts: {
 }): string | null {
   const exactOk = parts.mostrarDireccionExacta === true;
   const cross = trim(parts.direccionCruceCercano);
-  const line1 = exactOk ? buildRentasStreetLine(parts) : "";
+  const street = exactOk ? buildRentasStreetLine(parts) : "";
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
   const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
   const zona = trim(parts.zonaVecindario);
   const cityStZip = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  const primary = exactOk ? line1 : cross;
-  const q = [primary, cityStZip, zona].filter(Boolean).join(", ");
+  let q = exactOk ? street : cross;
+  q = appendRentasMapSegment(q, cityStZip);
+  q = appendRentasMapSegment(q, zona);
   return q.trim() || null;
 }
 

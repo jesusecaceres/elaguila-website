@@ -14,6 +14,7 @@ import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentas
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { rentasShowExactAddressFromDetailPairs } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { buildRentasPublishedFlowExtensionRows } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasSizeDisplayForPublic } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
 import { parseBusinessMeta } from "@/app/clasificados/config/businessListingContract";
 import {
@@ -155,16 +156,18 @@ function bathsFromPairs(dp: unknown): string {
 }
 
 function sqftFromPairs(dp: unknown): string {
-  return (
+  const raw =
     pairValue(dp, "interior (ft²)") ??
     pairValue(dp, "interior (ft2)") ??
     pairValue(dp, "tamaño interior") ??
     pairValue(dp, "interior") ??
     pairValue(dp, "superficie") ??
     pairValue(dp, "sqft") ??
+    pairValue(dp, "tamaño (ft²)") ??
+    pairValue(dp, "tamaño (ft2)") ??
     pairValue(dp, "m²") ??
-    "—"
-  );
+    "—";
+  return formatRentasSizeDisplayForPublic(raw);
 }
 
 function amuebladoFromPairs(dp: unknown): boolean | undefined {
@@ -304,7 +307,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
       city ||
       postalCode ||
       "—"
-    : approxLine || trim(publicLocationLine) || "—";
+    : approxLine || "—";
   const cityStateZip = [city, estadoPair].filter(Boolean).join(", ");
   const resultBrowseLocation = (() => {
     if (cityStateZip && zonaVecindario) return `${cityStateZip} · ${zonaVecindario}`;
@@ -395,11 +398,12 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const sqftStr = sqftFromPairs(detailPairs);
   const fullBaths = pairValue(detailPairs, "Baños completos") ?? undefined;
   const halfBaths = pairValue(detailPairs, "Medios baños") ?? undefined;
-  const lotSqft =
+  const lotSqftRaw =
     pairValue(detailPairs, "Lote (ft²)") ??
     pairValue(detailPairs, "Lote (ft2)") ??
     pairValue(detailPairs, "Tamaño del lote") ??
     undefined;
+  const lotSqft = lotSqftRaw ? formatRentasSizeDisplayForPublic(lotSqftRaw) : undefined;
   const yearBuilt = pairValue(detailPairs, "Año de construcción") ?? undefined;
   const condition = pairValue(detailPairs, "Condición") ?? undefined;
   const parking = pairValue(detailPairs, "Estacionamiento") ?? undefined;

@@ -15,6 +15,7 @@ import {
   formatRentasDepositUsdPreview,
   formatRentasDisponibilidadDisplay,
   formatRentasServiciosIncluidosOutputMultiline,
+  formatRentasSqftPreview,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { buildRentasResidencialPropertyRows } from "@/app/clasificados/rentas/shared/rentasResidencialPreviewRows";
 import {
@@ -239,7 +240,7 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
   if (g === "commercial_space") {
     const r0 = row("Uso permitido", s.rentasComercialUsoPermitido);
     if (r0) out.push(r0);
-    const rSq = row("Tamaño (ft²)", s.rentasComercialTamanoFt2);
+    const rSq = row("Tamaño (ft²)", s.rentasComercialTamanoFt2 ? formatRentasSqftPreview(s.rentasComercialTamanoFt2) : "");
     if (rSq) out.push(rSq);
     const b = siNoLabel(s.rentasComercialBanoDisponible);
     if (b) out.push({ label: "Baño disponible", value: b });
@@ -462,7 +463,13 @@ export function buildRentasPublishedFlowExtensionRows(
   }
   if (g === "commercial_space") {
     push("Uso permitido", pairValue("Uso permitido"));
-    push("Tamaño (ft²)", pairValue("Tamaño (ft²)"));
+    push(
+      "Tamaño (ft²)",
+      (() => {
+        const raw = pairValue("Tamaño (ft²)");
+        return raw ? formatRentasSqftPreview(raw) || raw : null;
+      })(),
+    );
     push("Baño disponible", pairValue("Baño disponible"));
     push("Horario / acceso", pairValue("Horario / acceso"));
     push("Contrato mínimo", pairValue("Contrato mínimo"));

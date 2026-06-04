@@ -103,6 +103,8 @@ export type BienesRaicesNegocioFormState = {
   /** @deprecated Derived from publication type + listing status; kept for sessionStorage only */
   tipoOperacion: string;
   direccion: string;
+  /** Unit / apt / suite / space (optional). */
+  direccionLinea2: string;
   ciudad: string;
   estado: string;
   codigoPostal: string;
@@ -461,6 +463,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     precio: "",
     tipoOperacion: "",
     direccion: "",
+    direccionLinea2: "",
     ciudad: "",
     estado: "",
     codigoPostal: "",

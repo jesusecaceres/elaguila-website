@@ -61,18 +61,12 @@ const CONDICION_LABEL: Record<string, string> = {
   necesita_reparacion: "Necesita reparación",
 };
 
-/** Price field: unbounded digits (do not use phone `digitsOnly`, which caps at 10). */
-function priceDigits(raw: string): string {
-  return String(raw ?? "").replace(/\D/g, "");
-}
-
-function formatUsdWhole(precio: string): string {
-  const d = priceDigits(precio);
-  if (!d) return "";
-  const n = Number(d);
-  if (!Number.isFinite(n) || n <= 0) return "";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-}
+import {
+  formatCityStateZip,
+  formatFullAddress,
+  formatStreetUnitLine,
+  formatUsdWhole,
+} from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 /** Thousands separators for plain numeric input (counts, sqft, etc.). */
 function prettifyPlainNumber(raw: string): string {
@@ -391,23 +385,24 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(
   const city = trim(s.ciudad);
   const line = trim(s.ubicacionLinea);
   const showExact = s.mostrarDireccionExacta;
-  const streetLine = [trim(g.calleNumero), trim(g.unidad)].filter(Boolean).join(" ");
-  const linePublic = streetLine || line;
-  const addressLine = showExact
-    ? [linePublic, city].filter(Boolean).join(linePublic && city ? " · " : "") || city
-    : city || "";
-
+  const calle = trim(g.calleNumero);
+  const unidad = trim(g.unidad);
+  const estado = trim(g.estado);
   const zipPretty = normalizeZipForBrowse(trim(g.codigoPostal));
-  const cityStateZip = [city, trim(g.estado), zipPretty].filter(Boolean).join(" · ");
+  const streetLine = formatStreetUnitLine(calle, unidad) || line;
+  const cityStateZip = formatCityStateZip(city, estado, zipPretty);
+  const addressLine = showExact
+    ? formatFullAddress({ street: calle || line, unit: unidad, city, state: estado, zip: zipPretty }) || city
+    : formatCityStateZip(city, estado, zipPretty) || city;
 
   const zipForCompose = zipPretty.length >= 5 ? zipPretty.replace(/\D/g, "").slice(0, 10) : "";
   const composedQ = showExact
     ? composeBrExactMapQuery({
-        streetAddress: trim(g.calleNumero),
-        unit: trim(g.unidad),
+        streetAddress: calle || line,
+        unit: unidad,
         neighborhood: trim(g.colonia),
         city,
-        state: trim(g.estado),
+        state: estado,
         zip: zipForCompose,
       })
     : composeBrApproximateMapQuery({
@@ -480,9 +475,9 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(
     },
     location: {
       mapsUrl,
-      line1: showExact ? linePublic : "",
+      line1: showExact ? streetLine : "",
       cityStateZip,
-      hasMeaningfulAddress: Boolean((showExact && linePublic) || city || mapsUrl),
+      hasMeaningfulAddress: Boolean((showExact && streetLine) || city || mapsUrl),
     },
     hoaCommunityCard,
     openHouseCard,

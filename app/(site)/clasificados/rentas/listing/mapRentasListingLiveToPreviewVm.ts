@@ -311,10 +311,11 @@ function rentasLiveLocationLines(listing: RentasPublicListing): {
   const cityZip = cityStateZipLine(listing);
   const zona = zonaFromListing(listing);
   const crossOrPublic = trim(listing.addressLine);
-  const line1 = exact ? crossOrPublic : zona || trim(listing.city) || crossOrPublic;
+  const approxBrowse = trim(listing.resultBrowseLocation) || [cityZip, zona].filter(Boolean).join(" · ");
+  const line1 = exact ? crossOrPublic : zona || trim(listing.city) || approxBrowse;
   const addressLine = exact
     ? crossOrPublic
-    : [zona, trim(listing.city), trim(listing.postalCode)].filter(Boolean).join(", ") || crossOrPublic;
+    : [zona, trim(listing.city), trim(listing.postalCode)].filter(Boolean).join(", ") || approxBrowse;
   return { line1, cityStateZip: cityZip, addressLine, exact };
 }
 

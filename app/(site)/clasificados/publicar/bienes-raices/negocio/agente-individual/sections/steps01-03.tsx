@@ -24,6 +24,7 @@ import {
 import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
+import { formatPrecioUsd } from "../lib/agenteResidencialPreviewFormat";
 
 /** Virtual tour uploads: images, PDF, short video, static HTML — not a general file dump. */
 export const BR_AGENTE_RES_TOUR_FILE_ACCEPT =
@@ -298,6 +299,7 @@ export function Step02InformacionBasica({
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
   const est = t.step02.estados;
+  const precioPreview = formatPrecioUsd(state.precio);
 
   return (
     <section className={aiCardClass}>
@@ -325,6 +327,9 @@ export function Step02InformacionBasica({
               autoComplete="off"
             />
           </div>
+          {precioPreview ? (
+            <p className="mt-1.5 text-xs font-medium text-[#5C5346]">{t.step02.precioPreview(precioPreview)}</p>
+          ) : null}
         </AiField>
         <AiField label={t.step02.estadoAnuncio} hint={t.step02.estadoAnuncioHint}>
           <select
@@ -343,6 +348,29 @@ export function Step02InformacionBasica({
             <option value="vendido">{est.vendido}</option>
           </select>
         </AiField>
+        <div className="sm:col-span-2">
+          <AiField label={t.step02.direccion} hint={t.step02.direccionHint}>
+            <input
+              className={aiInputClass}
+              value={state.direccionLinea1}
+              onChange={(ev) => {
+                const v = ev.target.value;
+                setState((s) => ({ ...s, direccionLinea1: v, direccion: v }));
+              }}
+              autoComplete="street-address"
+            />
+          </AiField>
+        </div>
+        <div className="sm:col-span-2">
+          <AiField label={t.step02.direccionUnidad} hint={t.step02.direccionUnidadHint}>
+            <input
+              className={aiInputClass}
+              value={state.direccionLinea2}
+              onChange={(ev) => setState((s) => ({ ...s, direccionLinea2: ev.target.value }))}
+              autoComplete="address-line2"
+            />
+          </AiField>
+        </div>
         <AiField label={t.step02.ciudad} hint={t.step02.ciudadHint}>
           <CityAutocomplete
             value={state.ciudad}
@@ -354,6 +382,24 @@ export function Step02InformacionBasica({
             className="w-full"
           />
         </AiField>
+        <AiField label={t.step02.direccionEstado} hint={t.step02.direccionEstadoHint}>
+          <input
+            className={aiInputClass}
+            value={state.direccionEstado}
+            onChange={(ev) => setState((s) => ({ ...s, direccionEstado: ev.target.value }))}
+            autoComplete="address-level1"
+            placeholder="CA"
+          />
+        </AiField>
+        <AiField label={t.step02.direccionCodigoPostal} hint={t.step02.direccionCodigoPostalHint}>
+          <input
+            className={aiInputClass}
+            value={state.direccionCodigoPostal}
+            onChange={(ev) => setState((s) => ({ ...s, direccionCodigoPostal: ev.target.value }))}
+            autoComplete="postal-code"
+            inputMode="numeric"
+          />
+        </AiField>
         <AiField label={t.step02.area} hint={t.step02.areaHint}>
           <input
             className={aiInputClass}
@@ -362,16 +408,6 @@ export function Step02InformacionBasica({
             autoComplete="off"
           />
         </AiField>
-        <div className="sm:col-span-2">
-          <AiField label={t.step02.direccion} hint={t.step02.direccionHint}>
-            <input
-              className={aiInputClass}
-              value={state.direccion}
-              onChange={(ev) => setState((s) => ({ ...s, direccion: ev.target.value }))}
-              autoComplete="street-address"
-            />
-          </AiField>
-        </div>
         <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-black/10 bg-white/80 px-3 py-2.5">
           <input
             id="agente-mostrar-direccion-exacta"

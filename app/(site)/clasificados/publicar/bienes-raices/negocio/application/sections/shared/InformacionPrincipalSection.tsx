@@ -1,6 +1,7 @@
 "use client";
 
 import type { BienesRaicesNegocioFormState } from "../../schema/bienesRaicesNegocioFormState";
+import { formatUsdWhole } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { BrField, BrPreviewHint, brInputClass, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 const STATUS_OPTS: Array<{ v: BienesRaicesNegocioFormState["listingStatus"]; l: string }> = [
@@ -18,6 +19,8 @@ export function InformacionPrincipalSection({
   state: BienesRaicesNegocioFormState;
   setState: React.Dispatch<React.SetStateAction<BienesRaicesNegocioFormState>>;
 }) {
+  const precioPreview = formatUsdWhole(state.precio);
+
   return (
     <section className={brCardClass}>
       <h2 className={brSectionTitleClass}>Información principal del anuncio</h2>
@@ -45,6 +48,9 @@ export function InformacionPrincipalSection({
             onChange={(e) => setState((s) => ({ ...s, precio: e.target.value }))}
             placeholder="1250000"
           />
+          {precioPreview ? (
+            <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {precioPreview}</p>
+          ) : null}
         </BrField>
         <BrField
           label="Estado del anuncio"
@@ -64,18 +70,20 @@ export function InformacionPrincipalSection({
             ))}
           </select>
         </BrField>
-        <BrField label="Dirección o ubicación principal" hint="Calle y número o referencia visible (o usa solo ciudad abajo).">
+        <BrField label="Calle y número" hint="Número y nombre de la calle (sin unidad).">
           <input
             className={brInputClass}
             value={state.direccion}
             onChange={(e) => setState((s) => ({ ...s, direccion: e.target.value }))}
+            autoComplete="street-address"
           />
         </BrField>
-        <BrField label="Colonia / zona / sector">
+        <BrField label="Unidad / apt / suite / espacio" hint="Opcional: Space B, Apt 2, Suite 100, etc.">
           <input
             className={brInputClass}
-            value={state.colonia}
-            onChange={(e) => setState((s) => ({ ...s, colonia: e.target.value }))}
+            value={state.direccionLinea2}
+            onChange={(e) => setState((s) => ({ ...s, direccionLinea2: e.target.value }))}
+            autoComplete="address-line2"
           />
         </BrField>
         <BrField label="Ciudad" hint="Si no hay dirección arriba, la ciudad cumple el requisito de ubicación para la vista previa.">
@@ -91,6 +99,7 @@ export function InformacionPrincipalSection({
             value={state.estado}
             onChange={(e) => setState((s) => ({ ...s, estado: e.target.value }))}
             placeholder="CA"
+            autoComplete="address-level1"
           />
         </BrField>
         <BrField label="Código postal">
@@ -98,6 +107,15 @@ export function InformacionPrincipalSection({
             className={brInputClass}
             value={state.codigoPostal}
             onChange={(e) => setState((s) => ({ ...s, codigoPostal: e.target.value }))}
+            autoComplete="postal-code"
+            inputMode="numeric"
+          />
+        </BrField>
+        <BrField label="Colonia / zona / sector" hint="Contexto opcional; no reemplaza ciudad, estado ni ZIP.">
+          <input
+            className={brInputClass}
+            value={state.colonia}
+            onChange={(e) => setState((s) => ({ ...s, colonia: e.target.value }))}
           />
         </BrField>
         <div className="sm:col-span-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import { AiField } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/formPrimitives";
+import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
@@ -223,6 +224,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
   }
 
   if (g === "commercial_space") {
+    const sizePreview = formatRentasSqftPreview(state.rentasComercialTamanoFt2);
     return (
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
         <div className="sm:col-span-2">
@@ -248,6 +250,11 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             }
             autoComplete="off"
           />
+          {sizePreview ? (
+            <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
+              En el anuncio: <span className="text-[#1E1810]">{sizePreview}</span>
+            </p>
+          ) : null}
         </AiField>
         <AiField label="Baño disponible">
           <select

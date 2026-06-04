@@ -97,6 +97,13 @@ export type AgenteIndividualResidencialFormState = {
   precio: string;
   ciudad: string;
   areaCiudad: string;
+  /** Street number + street name (structured). Legacy `direccion` remains as fallback. */
+  direccionLinea1: string;
+  /** Unit / apt / suite / space / lot (optional). */
+  direccionLinea2: string;
+  direccionEstado: string;
+  direccionCodigoPostal: string;
+  /** @deprecated Legacy single-line address; hydrated from `direccionLinea1` when missing. */
   direccion: string;
   /** When false (default), preview map query and location line avoid street-level `direccion`. */
   mostrarDireccionExacta: boolean;
@@ -377,6 +384,10 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
   if (typeof p.ciudad === "string") out.ciudad = p.ciudad;
   if (typeof p.areaCiudad === "string") out.areaCiudad = p.areaCiudad;
   if (typeof p.direccion === "string") out.direccion = p.direccion;
+  if (typeof p.direccionLinea1 === "string") out.direccionLinea1 = p.direccionLinea1;
+  if (typeof p.direccionLinea2 === "string") out.direccionLinea2 = p.direccionLinea2;
+  if (typeof p.direccionEstado === "string") out.direccionEstado = p.direccionEstado;
+  if (typeof p.direccionCodigoPostal === "string") out.direccionCodigoPostal = p.direccionCodigoPostal;
   if (typeof p.estadoAnuncio === "string") out.estadoAnuncio = mapEstadoLegacy(p.estadoAnuncio);
 
   if (typeof p.tipoPropiedadCodigo === "string") {
@@ -512,6 +523,10 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     precio: "",
     ciudad: "",
     areaCiudad: "",
+    direccionLinea1: "",
+    direccionLinea2: "",
+    direccionEstado: "",
+    direccionCodigoPostal: "",
     direccion: "",
     mostrarDireccionExacta: false,
     estadoAnuncio: "disponible",
@@ -1020,5 +1035,19 @@ export function mergePartialAgenteIndividualResidencial(
 
   const hydrated = hydrateContactFieldsFromLegacy(inferred);
   delete (hydrated as Record<string, unknown>).tipoPropiedadOtro;
-  return hydrated;
+  return hydrateAgenteStructuredAddress(hydrated);
+}
+
+function hydrateAgenteStructuredAddress(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialFormState {
+  const legacy = trim(s.direccion);
+  const line1 = trim(s.direccionLinea1) || legacy;
+  const direccion = legacy || line1;
+  return {
+    ...s,
+    direccionLinea1: line1,
+    direccionLinea2: trim(s.direccionLinea2),
+    direccionEstado: trim(s.direccionEstado),
+    direccionCodigoPostal: trim(s.direccionCodigoPostal),
+    direccion,
+  };
 }
