@@ -1,0 +1,31 @@
+import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
+
+/** Safe empty draft — no fake business names, prices, coupons, or flyer assets. */
+export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
+  return {
+    offerType: "",
+    businessCategory: "",
+    marketType: "",
+    businessName: "",
+    title: "",
+    description: "",
+    couponText: "",
+    flyerTitle: "",
+    validFrom: "",
+    validUntil: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    serviceZipCodes: [],
+    phone: "",
+    whatsapp: "",
+    websiteUrl: "",
+    directionsUrl: "",
+    flyerAssets: [],
+    couponAssets: [],
+    isFeaturedRequested: false,
+    languageTags: [],
+    internalNotes: "",
+  };
+}
