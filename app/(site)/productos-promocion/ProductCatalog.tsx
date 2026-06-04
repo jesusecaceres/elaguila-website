@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useCallback, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { tryWebShare } from "@/app/components/cta/ctaLaunchers";
 import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
 import {
   CATALOG_CATEGORIES,
@@ -51,6 +52,34 @@ function generalQuoteHref(lang: Lang): string {
 function outlineBtnProps(): CSSProperties {
   return { background: "var(--lx-card)", color: "var(--lx-text)", borderColor: "var(--lx-border)" };
 }
+
+const HERO_INTRO_COPY = {
+  es: {
+    eyebrow: "LEONIX MEDIA",
+    title: "Productos para Promoción",
+    description:
+      "Todo lo que necesitas para presentar, promocionar y hacer crecer tu negocio: tarjetas, volantes, letreros, banners, artículos promocionales y más.",
+    quote: "Solicitar cotización",
+    call: "Llamar",
+    map: "Abrir mapa",
+    email: "Abrir correo",
+    share: "Compartir con apps",
+  },
+  en: {
+    eyebrow: "LEONIX MEDIA",
+    title: "Promotional Products",
+    description:
+      "Everything your business needs to present, promote, and grow: business cards, flyers, signs, banners, promotional items, and more.",
+    quote: "Request a quote",
+    call: "Call",
+    map: "Open map",
+    email: "Email us",
+    share: "Share with apps",
+  },
+} as const;
+
+const HERO_OUTLINE_BTN =
+  "inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-5 py-2.5 text-sm font-semibold text-[#2A2826] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FAF6EE] active:scale-[0.99]";
 
 function ProductCardImage({ product, lang }: { product: Product; lang: Lang }) {
   const [loadFailed, setLoadFailed] = useState(false);
@@ -212,33 +241,46 @@ function ContactActionLink({
 }
 
 function HeroContactActions({ lang }: { lang: Lang }) {
-  const quoteLabel = lang === "es" ? "Solicitar cotización" : "Request quote";
-  const callLabel = lang === "es" ? "Llamar" : "Call";
-  const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
+  const t = HERO_INTRO_COPY[lang];
+  const mailto = promoMailtoHref(lang);
+
+  const onShare = useCallback(async () => {
+    await tryWebShare({
+      title: CONTACT.businessName,
+      text: CONTACT.email,
+    });
+  }, []);
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex flex-wrap justify-center gap-3">
+    <div className="mt-6 flex flex-col items-center gap-3">
+      <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3">
         <Link
           href={generalQuoteHref(lang)}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
-          style={{ background: OLIVE_BG, color: OLIVE_FG }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-6 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_8px_24px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] active:scale-[0.99]"
         >
-          {quoteLabel}
+          {t.quote}
         </Link>
-        <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
-        <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
+        <a href={CONTACT.phoneTel} className={HERO_OUTLINE_BTN} aria-label={t.call}>
+          {t.call}
+        </a>
+        <a
+          href={CONTACT.mapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={HERO_OUTLINE_BTN}
+          aria-label={t.map}
+        >
+          {t.map}
+        </a>
       </div>
-      <LeonixEmailContactBlock
-        email={CONTACT.email}
-        mailtoHref={promoMailtoHref(lang)}
-        lang={lang}
-        shareTitle={CONTACT.businessName}
-        showEmail={false}
-        className="flex justify-center"
-      />
+      <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3">
+        <a href={mailto} className={HERO_OUTLINE_BTN}>
+          {t.email}
+        </a>
+        <button type="button" className={HERO_OUTLINE_BTN} onClick={() => void onShare()}>
+          {t.share}
+        </button>
+      </div>
     </div>
   );
 }
@@ -416,33 +458,38 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
 
   const activeCategory = CATALOG_CATEGORIES.find((c) => c.id === activeId) ?? CATALOG_CATEGORIES[0];
 
-  const heroTitle = lang === "es" ? "Productos para Promoción" : "Promotional Products";
-  const heroSubtitle =
-    lang === "es"
-      ? "Todo lo que necesitas para presentar, promocionar y hacer crecer tu negocio: tarjetas, volantes, letreros, banners, artículos promocionales y más."
-      : "Everything you need to present, promote, and grow your business: cards, flyers, signs, banners, promotional items, and more.";
+  const hero = HERO_INTRO_COPY[lang];
   const helperCopy =
     lang === "es"
       ? "Explora algunos de los productos que podemos ayudarte a conseguir. Si no lo ves aquí, también podemos cotizarlo."
       : "Explore some of the products we can help you source. If you do not see it here, we can still quote it.";
   return (
     <div style={{ background: "var(--lx-page)" }}>
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      {/* ── HERO (PP-HERO-ONLY — Leonix premium intro) ───────────────── */}
       <section
-        className="px-4 py-10 sm:px-8 sm:py-14"
-        style={{ background: "linear-gradient(160deg, var(--lx-section) 0%, var(--lx-page) 100%)", borderBottom: "1px solid var(--lx-border)" }}
+        className="border-b border-[#D6C7AD]/55 bg-[#FAF6EE] px-4 py-8 sm:px-6 sm:py-10"
+        aria-labelledby="pp-promo-hero-title"
       >
         <div className="mx-auto max-w-3xl text-center">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--lx-lion)" }}>
-            Leonix Media
-          </p>
-          <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl" style={{ color: "var(--lx-text)" }}>
-            {heroTitle}
-          </h1>
-          <p className="mx-auto mb-8 max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
-            {heroSubtitle}
-          </p>
-          <HeroContactActions lang={lang} />
+          <div
+            className="rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-5 py-7 shadow-[0_12px_36px_-22px_rgba(42,36,22,0.2)] sm:px-8 sm:py-8"
+          >
+            <div
+              className="mx-auto mb-4 h-px w-14 bg-gradient-to-r from-transparent via-[#C9B46A]/75 to-transparent"
+              aria-hidden
+            />
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{hero.eyebrow}</p>
+            <h1
+              id="pp-promo-hero-title"
+              className="mt-2 font-serif text-2xl font-bold leading-tight text-[#2A4536] sm:text-[1.85rem]"
+            >
+              {hero.title}
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#5C5346] sm:text-[0.9375rem]">
+              {hero.description}
+            </p>
+            <HeroContactActions lang={lang} />
+          </div>
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useMemo, type ReactNode } from "react";
 import {
   OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
@@ -560,9 +561,9 @@ export default function OfertasLocalesApplicationClient() {
               >
                 {OFERTAS_LOCALES_SHELL_COPY.resetDraft}
               </button>
-              <button type="button" className={BTN_PRIMARY} disabled title="Próximo gate">
-                {OFERTAS_LOCALES_SHELL_COPY.previewDisabled}
-              </button>
+              <Link href="/publicar/ofertas-locales/preview" className={BTN_PRIMARY}>
+                {OFERTAS_LOCALES_SHELL_COPY.previewLink}
+              </Link>
               <button type="button" className={BTN_PRIMARY} disabled title="Gate futuro">
                 {OFERTAS_LOCALES_SHELL_COPY.publishDisabled}
               </button>

@@ -3,10 +3,11 @@ export const OFERTAS_LOCALES_SHELL_COPY = {
   pageSubtitle: "Weekly specials, coupons, and featured local deals for businesses.",
   digitalFirstTagline: "Put your offer where local shoppers are already searching.",
   scaffoldNotice:
-    "Borrador local en este dispositivo. Vista previa y publicación llegarán en el siguiente gate.",
+    "Borrador local en este dispositivo. Usa Vista previa para ver cómo lo verán los compradores.",
   draftSaved: "Guardado",
   resetDraft: "Restablecer borrador",
   saveDraft: "Guardar borrador localmente",
+  previewLink: "Ver vista previa",
   previewDisabled: "Vista previa — próximamente",
   publishDisabled: "Publicar — más adelante",
   uploadFlyerPlaceholder: "Carga de volante / PDF — próximamente",
