@@ -2,19 +2,20 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
+import {
+  LEONIX_MAGAZINE_HERO_CTAS,
+  resolveLeonixSiteLang,
+  withLeonixLang,
+  type LeonixSiteLang,
+} from "@/app/lib/lang";
 
 /** Square emblem — no baked-in checkerboard (logo-clean.png has transparency grid in file). */
 const HEADER_LOGO_SRC = "/logo.png";
 
 type Lang = "es" | "en";
-type RouteLang = "es" | "en" | "vi";
-
-function resolveRouteLang(raw: string | null | undefined): RouteLang {
-  if (raw === "en" || raw === "vi") return raw;
-  return "es";
-}
 
 type NavItem = { label: string; href: string; active?: boolean };
 
@@ -1546,7 +1547,7 @@ function FinalContactSection({
     placeholder: string;
     button: string;
   };
-  lang: RouteLang;
+  lang: LeonixSiteLang;
 }) {
   return (
     <section
@@ -1570,7 +1571,10 @@ function FinalContactSection({
           {finalCta.body}
         </p>
         <FinalCtaActions
-          ctas={finalCta.ctas}
+          ctas={finalCta.ctas.map((cta) => ({
+            ...cta,
+            href: cta.href.includes("lang=") ? withLeonixLang(cta.href, lang) : cta.href,
+          })) as [HeroCta, HeroCta, HeroCta]}
           mediaKitDownload={finalCta.mediaKitDownload}
         />
       </div>
@@ -1676,11 +1680,11 @@ function ComingSoonV2Footer({ text }: { text: string }) {
   );
 }
 
-function launchHref(lang: RouteLang) {
+function launchHref(lang: LeonixSiteLang) {
   return `/contact?interest=launch&lang=${lang}`;
 }
 
-function LaunchCtaLink({ lang, label }: { lang: RouteLang; label: string }) {
+function LaunchCtaLink({ lang, label }: { lang: LeonixSiteLang; label: string }) {
   return (
     <Link
       href={launchHref(lang)}
@@ -1708,27 +1712,11 @@ export function ComingSoonV2Shell() {
 
 function ComingSoonV2ShellContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const urlLang = searchParams?.get("lang");
-  const routeLang = resolveRouteLang(urlLang);
-  const [lang, setLang] = useState<Lang>(() =>
-    urlLang === "en" || urlLang === "vi" ? "en" : "es"
-  );
+  const routeLang = resolveLeonixSiteLang(urlLang);
+  const displayLang: Lang = routeLang === "es" ? "es" : "en";
 
-  useEffect(() => {
-    if (urlLang === "en" || urlLang === "vi") setLang("en");
-    else if (urlLang === "es") setLang("es");
-  }, [urlLang]);
-
-  const selectLang = (code: Lang) => {
-    setLang(code);
-    const params = new URLSearchParams(searchParams?.toString() ?? "");
-    params.set("lang", code);
-    const qs = params.toString();
-    router.replace(qs ? `/coming-soon-v2?${qs}` : "/coming-soon-v2", { scroll: false });
-  };
-
-  const t = COPY[lang];
+  const t = COPY[displayLang];
   const h = t.hero;
   const mp = t.marketplace;
   const wyg = t.whatYouGet;
@@ -1739,6 +1727,16 @@ function ComingSoonV2ShellContent() {
   const contact = t.contact;
   const newsletter = t.newsletter;
   const magazineHref = `/magazine?lang=${routeLang}`;
+  const magazineHero = LEONIX_MAGAZINE_HERO_CTAS[routeLang];
+
+  const heroCtas = useMemo(
+    () =>
+      h.ctas.map((cta) => ({
+        ...cta,
+        href: cta.href.includes("lang=") ? withLeonixLang(cta.href, routeLang) : cta.href,
+      })),
+    [h.ctas, routeLang]
+  );
 
   return (
     <div lang={routeLang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
@@ -1786,27 +1784,7 @@ function ComingSoonV2ShellContent() {
             </nav>
 
             <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
-              <div
-                className="flex rounded-full border border-[#D6C7AD] bg-[#FFFDF7] p-0.5 text-[0.6875rem] font-semibold sm:text-xs"
-                role="group"
-                aria-label={t.langAria}
-              >
-                {(["es", "en"] as const).map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => selectLang(code)}
-                    aria-pressed={lang === code}
-                    className={`min-h-[1.875rem] min-w-[3.25rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2rem] sm:min-w-[3.5rem] sm:px-2.5 ${
-                      lang === code
-                        ? "bg-[#7A1E2C] text-white"
-                        : "text-[#3D3428] hover:bg-[#EDE6D6]"
-                    }`}
-                  >
-                    {COPY[code].langToggle[code]}
-                  </button>
-                ))}
-              </div>
+              <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/coming-soon-v2" />
 
               <LaunchCtaLink lang={routeLang} label={t.launchCta} />
             </div>
@@ -1878,35 +1856,24 @@ function ComingSoonV2ShellContent() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch">
-                {h.ctas.map((cta) => (
+                {heroCtas.map((cta) => (
                   <HeroCtaLink key={cta.label} cta={cta} />
                 ))}
                 <HeroCtaLink
                   cta={{
-                    label: h.magazineCta,
+                    label: magazineHero.read,
                     href: magazineHref,
                     variant: "secondary",
                   }}
                 />
+                <HeroCtaLink
+                  cta={{
+                    label: magazineHero.digital,
+                    href: magazineHref,
+                    variant: "green",
+                  }}
+                />
               </div>
-
-              <p className="mt-3 text-sm font-semibold text-[#3D3428]">
-                <Link
-                  href={magazineHref}
-                  className="text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-[0.2em] hover:text-[#5e1721]"
-                >
-                  {h.magazineCtaHint}
-                </Link>
-                <span className="mx-2 font-normal text-[#3D3428]/50" aria-hidden>
-                  ·
-                </span>
-                <Link
-                  href={magazineHref}
-                  className="font-medium text-[#556B3E] hover:text-[#2A4536] hover:underline"
-                >
-                  {lang === "en" ? "View digital edition" : "Ver edición digital"}
-                </Link>
-              </p>
 
               <ul
                 className="mt-8 flex flex-col gap-2.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"

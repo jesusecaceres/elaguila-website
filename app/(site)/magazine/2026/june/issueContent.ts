@@ -1,4 +1,4 @@
-export type MagazineLang = "es" | "en" | "vi";
+export type MagazineLang = import("@/app/lib/lang").LeonixSiteLang;
 
 export function resolveMagazineLang(raw: string | null | undefined): MagazineLang {
   if (raw === "en" || raw === "vi") return raw;
