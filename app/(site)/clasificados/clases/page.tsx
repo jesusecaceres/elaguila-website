@@ -7,7 +7,7 @@ import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/c
 import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { appendLangToPath, resolveHubCopyLang, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
 import { CLASES_LANDING_CATEGORY_PILLS, CLASES_QUICK_CHIPS } from "./shared/fields/clasesTaxonomy";
 import { buildClasesListaUrl } from "./shared/utils/clasesListaUrl";
 
@@ -30,12 +30,13 @@ const COPY = {
 
 export default function Page() {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const routeLang = resolveRouteLang(sp?.get("lang"));
+  const lang = resolveHubCopyLang(sp?.get("lang"));
   const t = COPY[lang];
   const chips = CLASES_QUICK_CHIPS[lang];
 
   const listaHref = useMemo(() => buildClasesListaUrl("clases", lang), [lang]);
-  const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/clases", lang), [lang]);
+  const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/clases", routeLang as Lang), [routeLang]);
 
   const topicChips = (
     <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>

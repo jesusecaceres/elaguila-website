@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { useSearchParams } from "next/navigation";
 import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes";
 import type { EnVentaDepartmentKey } from "./taxonomy/categories";
@@ -121,19 +122,20 @@ export function EnVentaHubPageClient({
   initialLiveListings: EnVentaPublicBrowseListing[];
 }) {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const routeLang = normalizeLang(sp?.get("lang"));
+  const lang: Lang = navCopyLang(routeLang);
 
-  const publishHref = `/clasificados/publicar/en-venta?lang=${lang}`;
-  const allListingsHref = buildEnVentaResultsUrl(lang);
-  const hrefBrowseNewest = buildEnVentaResultsUrl(lang, { sort: "newest" });
-  const hrefBrowseNear = buildEnVentaResultsUrl(lang, { city: DEFAULT_CITY });
-  const hrefBrowseShip = buildEnVentaResultsUrl(lang, { ship: "1" });
-  const hrefBrowsePickup = buildEnVentaResultsUrl(lang, { pickup: "1" });
+  const publishHref = replaceLangInHref("/clasificados/publicar/en-venta", routeLang);
+  const allListingsHref = buildEnVentaResultsUrl(routeLang as Lang);
+  const hrefBrowseNewest = buildEnVentaResultsUrl(routeLang as Lang, { sort: "newest" });
+  const hrefBrowseNear = buildEnVentaResultsUrl(routeLang as Lang, { city: DEFAULT_CITY });
+  const hrefBrowseShip = buildEnVentaResultsUrl(routeLang as Lang, { ship: "1" });
+  const hrefBrowsePickup = buildEnVentaResultsUrl(routeLang as Lang, { pickup: "1" });
   /** Featured-only browse: `featured=1` matches Pro listings inside an active post-republish visibility window (`republished_at`). */
   /** `featured=1` = listings whose visibility window from `republished_at` is still open (Pro renewed visibility), not mock inventory. */
-  const hrefBrowseFeatured = buildEnVentaResultsUrl(lang, { featured: "1" });
-  const hrefSellerIndividual = buildEnVentaResultsUrl(lang, { seller: "individual" });
-  const hrefSellerBusiness = buildEnVentaResultsUrl(lang, { seller: "business" });
+  const hrefBrowseFeatured = buildEnVentaResultsUrl(routeLang as Lang, { featured: "1" });
+  const hrefSellerIndividual = buildEnVentaResultsUrl(routeLang as Lang, { seller: "individual" });
+  const hrefSellerBusiness = buildEnVentaResultsUrl(routeLang as Lang, { seller: "business" });
 
   const t = hub;
   const backdropSrc = t.heroImageUrl?.trim() ? t.heroImageUrl.trim() : DEFAULT_HERO_BACKDROP;
@@ -154,7 +156,7 @@ export function EnVentaHubPageClient({
 
   const enVentaSearchForm = (
     <form className="w-full min-w-0 text-left" action="/clasificados/en-venta/results" method="get" role="search">
-      <input type="hidden" name="lang" value={lang} />
+      <input type="hidden" name="lang" value={routeLang} />
       <div
         className={cx(
           "flex flex-col gap-0 overflow-hidden rounded-xl border border-[#D6C7AD] bg-white shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)]",
@@ -298,7 +300,7 @@ export function EnVentaHubPageClient({
           </h2>
           <div className="mt-7 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:mt-10 sm:gap-4 lg:gap-5 xl:grid-cols-4">
             {EN_VENTA_DEPARTMENTS.map((d) => {
-              const href = buildEnVentaResultsUrl(lang, { evDept: d.key });
+              const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
               const title = d.label[lang];
               const hint = d.browseHint[lang];
               const vis = DEPT_VISUAL[d.key];
@@ -380,7 +382,7 @@ export function EnVentaHubPageClient({
 
         {process.env.NEXT_PUBLIC_EV_INTERNAL_QA === "1" ? (
           <p className="mt-8 text-center text-[11px] text-[#7A7164]">
-            <Link href={`/clasificados/en-venta/launch-checklist?lang=${lang}`} className="font-semibold underline underline-offset-2">
+            <Link href={replaceLangInHref("/clasificados/en-venta/launch-checklist", routeLang)} className="font-semibold underline underline-offset-2">
               {lang === "es" ? "Checklist interno de lanzamiento (QA)" : "Internal launch checklist (QA)"}
             </Link>
           </p>

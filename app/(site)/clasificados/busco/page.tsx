@@ -5,9 +5,8 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { BuscoLandingRecentListings } from "./BuscoLandingRecentListings";
-import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang } from "./shared/buscoShellCopy";
+import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang, buscoRouteLangFromSearchParams } from "./shared/buscoShellCopy";
 
 const COPY = {
   es: {
@@ -35,12 +34,13 @@ const COPY = {
 export default function BuscoLandingPage() {
   const sp = useSearchParams();
   const lang = buscoLangFromSearchParams(sp);
+  const routeLang = buscoRouteLangFromSearchParams(sp);
   const t = COPY[lang];
   const product = BUSCO_PRODUCT;
 
-  const postHref = useMemo(() => buscoPathWithLang("/publicar/busco/quick", lang), [lang]);
-  const resultsHref = useMemo(() => buildCategoryResultsUrl("busco", lang), [lang]);
-  const hubHref = useMemo(() => appendLangToPath("/clasificados", lang), [lang]);
+  const postHref = useMemo(() => buscoPathWithLang("/publicar/busco/quick", routeLang), [routeLang]);
+  const resultsHref = useMemo(() => buildCategoryResultsUrl("busco", routeLang as "es" | "en"), [routeLang]);
+  const hubHref = useMemo(() => buscoPathWithLang("/clasificados", routeLang), [routeLang]);
 
   return (
     <CategoryStandardLandingPage

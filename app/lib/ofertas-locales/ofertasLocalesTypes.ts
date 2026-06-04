@@ -79,9 +79,26 @@ export type OfertaLocalDraftAsset = {
   url: string;
   fileName: string;
   mimeType: string;
+  /** Vercel Blob pathname after upload (Stack 6). */
+  storagePath: string;
+  sizeBytes: number | null;
   pageNumber: number | null;
   sortOrder: number;
   status: OfertaLocalDraftAssetStatus;
+};
+
+/** Result from POST /api/ofertas-locales/assets/upload */
+export type OfertaLocalUploadedAssetResult = {
+  ok: boolean;
+  storagePath?: string;
+  publicUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  assetType?: OfertaLocalDraftAssetType;
+  errors?: string[];
+  error?: string;
+  detail?: string;
 };
 
 export type OfertaLocalValidationIssue = {

@@ -13,7 +13,7 @@ import {
   selectRentasLandingPrivado,
   selectRentasLandingRecientes,
 } from "@/app/clasificados/rentas/data/rentasSectionSelectors";
-import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
+import { useRentasLandingLang } from "@/app/(site)/clasificados/rentas/hooks/useRentasLandingLang";
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
@@ -44,7 +44,7 @@ import {
 import { splitLocationIntent } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import { RENTAS_PUBLICAR_PRIVADO, RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
-import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import { rentasLandingHeroPanelClass, rentasSectionHeaderActionClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
 export type RentasLandingHubProps = {
@@ -54,7 +54,7 @@ export type RentasLandingHubProps = {
 
 export function RentasLandingHub({ initialLiveListings, includeDemoPool }: RentasLandingHubProps) {
   const router = useRouter();
-  const { lang, copy } = useRentasLandingLang();
+  const { lang, routeLang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");
   const [locationLine, setLocationLine] = useState("");
   const [propertyType, setPropertyType] = useState("");
@@ -113,7 +113,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
     };
   }, [copy.quickExplore, lang]);
 
-  const resultsBase = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, lang), [lang]);
+  const resultsBase = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, routeLang), [routeLang]);
 
   const destacadasDescription = useMemo(() => {
     if (includeDemoPool) return copy.sections.destacadas.description;
@@ -129,7 +129,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
       : "Ordered by publish time, interleaving private and business listings for a balanced homepage.";
   }, [copy.sections.recientes.description, includeDemoPool, lang]);
 
-  const publishHref = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang);
+  const publishHref = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang);
 
   return (
     <RentasLandingShell>
@@ -138,7 +138,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         lang={lang}
         title={categoryStandardTitle("rentas", lang)}
         description={categoryStandardDescription("rentas", lang)}
-        searchAction={buildCategoryResultsUrl("rentas", lang)}
+        searchAction={buildCategoryResultsUrl("rentas", routeLang as "es" | "en")}
         searchPlaceholder={categoryStandardSearchPlaceholder("rentas", lang)}
         publishHref={publishHref}
         browseHref={resultsBase}

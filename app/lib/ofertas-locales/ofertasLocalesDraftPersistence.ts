@@ -48,6 +48,11 @@ function sanitizeAsset(raw: unknown, fallbackSort: number): OfertaLocalDraftAsse
   const pageNumber =
     typeof raw.pageNumber === "number" && Number.isFinite(raw.pageNumber) ? raw.pageNumber : null;
 
+  const sizeBytes =
+    typeof raw.sizeBytes === "number" && Number.isFinite(raw.sizeBytes) && raw.sizeBytes >= 0
+      ? raw.sizeBytes
+      : null;
+
   return {
     id,
     assetType: assetType as OfertaLocalDraftAssetType,
@@ -56,6 +61,8 @@ function sanitizeAsset(raw: unknown, fallbackSort: number): OfertaLocalDraftAsse
     url: sanitizeUrl(raw.url),
     fileName: String(raw.fileName ?? "").slice(0, 160),
     mimeType: String(raw.mimeType ?? "").slice(0, 80),
+    storagePath: String(raw.storagePath ?? "").slice(0, 500),
+    sizeBytes,
     pageNumber,
     sortOrder: typeof raw.sortOrder === "number" ? raw.sortOrder : fallbackSort,
     status,

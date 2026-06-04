@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getLeonixMarketplaceRulesCopy } from "@/app/clasificados/en-venta/shared/lib/leonixMarketplaceRulesCopy";
+import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 
 export default function ReglasPage() {
   const searchParams = useSearchParams();
-  const lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
-  const returnUrl = searchParams?.get("return") || `/clasificados/publicar/en-venta?lang=${lang}`;
+  const routeLang = normalizeLang(searchParams?.get("lang"));
+  const lang = navCopyLang(routeLang);
+  const returnUrl =
+    searchParams?.get("return") || replaceLangInHref("/clasificados/publicar/en-venta", routeLang);
 
   const t = getLeonixMarketplaceRulesCopy(lang);
   const back = lang === "es" ? "Volver" : "Back";
 
-  const safeReturn = returnUrl.startsWith("/") ? returnUrl : `/clasificados/publicar/en-venta?lang=${lang}`;
+  const safeReturn = returnUrl.startsWith("/") ? returnUrl : replaceLangInHref("/clasificados/publicar/en-venta", routeLang);
 
   return (
     <main className="min-h-screen bg-[#F5F5F5] text-[#111111] pt-28 pb-16">

@@ -27,11 +27,23 @@ export function assetNeedsFileUpload(asset: OfertaLocalDraftAsset): boolean {
   return asset.status === "needs_upload" && !asset.fileName.trim();
 }
 
+export function assetHasUploadedStorage(asset: OfertaLocalDraftAsset): boolean {
+  return asset.assetType !== "external_url" && Boolean(asset.storagePath.trim());
+}
+
+export function assetHasUploadedWithUrl(asset: OfertaLocalDraftAsset): boolean {
+  return assetHasUploadedStorage(asset) && Boolean(asset.url.trim());
+}
+
+export function assetHasUploadedStorageOnly(asset: OfertaLocalDraftAsset): boolean {
+  return assetHasUploadedStorage(asset) && !asset.url.trim();
+}
+
 /** File selected locally (metadata in draft) but not uploaded to storage yet. */
 export function assetHasLocalFileMetadata(asset: OfertaLocalDraftAsset): boolean {
   return (
     asset.assetType !== "external_url" &&
-    asset.status === "ready" &&
-    Boolean(asset.fileName.trim())
+    Boolean(asset.fileName.trim()) &&
+    !asset.storagePath.trim()
   );
 }

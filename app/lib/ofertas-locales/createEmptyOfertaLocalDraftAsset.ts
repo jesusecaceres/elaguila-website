@@ -20,6 +20,8 @@ export function createEmptyOfertaLocalDraftAsset(
     url: "",
     fileName: "",
     mimeType: "",
+    storagePath: "",
+    sizeBytes: null,
     pageNumber: null,
     sortOrder,
     status: assetType === "external_url" ? "draft" : "needs_upload",

@@ -5,11 +5,10 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
 import { MascotasPerdidosLandingRecentListings } from "./MascotasPerdidosLandingRecentListings";
 import { mascotasPerdidosPublishEntryUrl, mascotasPerdidosTipoChipHref } from "./shared/mascotasPerdidosBrowseUrls";
-import { mascotasPerdidosLangFromSearchParams } from "./shared/mascotasPerdidosShellCopy";
+import { mascotasPerdidosLangFromSearchParams, mascotasPerdidosPathWithLang, mascotasPerdidosRouteLangFromSearchParams } from "./shared/mascotasPerdidosShellCopy";
 
 const COPY = {
   es: {
@@ -37,11 +36,12 @@ const COPY = {
 export default function MascotasPerdidosLandingPage() {
   const sp = useSearchParams();
   const lang = mascotasPerdidosLangFromSearchParams(sp);
+  const routeLang = mascotasPerdidosRouteLangFromSearchParams(sp);
   const t = COPY[lang];
 
-  const postHref = useMemo(() => mascotasPerdidosPublishEntryUrl(lang), [lang]);
-  const resultsHref = useMemo(() => buildCategoryResultsUrl("mascotas-y-perdidos", lang), [lang]);
-  const hubHref = useMemo(() => appendLangToPath("/clasificados", lang), [lang]);
+  const postHref = useMemo(() => mascotasPerdidosPublishEntryUrl(routeLang), [routeLang]);
+  const resultsHref = useMemo(() => buildCategoryResultsUrl("mascotas-y-perdidos", routeLang as "es" | "en"), [routeLang]);
+  const hubHref = useMemo(() => mascotasPerdidosPathWithLang("/clasificados", routeLang), [routeLang]);
 
   return (
     <CategoryStandardLandingPage
@@ -60,7 +60,7 @@ export default function MascotasPerdidosLandingPage() {
             {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => (
               <Link
                 key={opt.value}
-                href={mascotasPerdidosTipoChipHref(lang, opt.value)}
+                href={mascotasPerdidosTipoChipHref(routeLang, opt.value)}
                 className="inline-flex min-h-[2.25rem] items-center rounded-full border border-[#C9A84A]/50 bg-[#FAF6EE] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
                 data-testid={`mascotas-landing-tipo-${opt.value}`}
               >

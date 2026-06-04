@@ -1,20 +1,19 @@
+import { navCopyLang, normalizeLang, replaceLangInHref, type SupportedLang } from "@/app/lib/language";
+
 export type RentasLandingLang = "es" | "en";
 
 export const RENTAS_LANDING_LANG_QUERY = "lang";
 
 export function normalizeRentasLandingLang(raw: string | null | undefined): RentasLandingLang {
-  return raw === "en" ? "en" : "es";
+  return navCopyLang(normalizeLang(raw));
 }
 
-/** Append `lang` to an href, preserving existing query params. */
-export function withRentasLandingLang(href: string, lang: RentasLandingLang): string {
+export function resolveRentasRouteLang(raw: string | null | undefined): SupportedLang {
+  return normalizeLang(raw);
+}
+
+/** Append route lang to an href, preserving existing query params. */
+export function withRentasLandingLang(href: string, routeLang: SupportedLang): string {
   if (href.startsWith("#")) return href;
-  try {
-    const u = new URL(href, "https://leonix.local");
-    u.searchParams.set(RENTAS_LANDING_LANG_QUERY, lang);
-    return u.pathname + u.search + u.hash;
-  } catch {
-    const sep = href.includes("?") ? "&" : "?";
-    return `${href}${sep}${RENTAS_LANDING_LANG_QUERY}=${lang}`;
-  }
+  return replaceLangInHref(href, routeLang);
 }

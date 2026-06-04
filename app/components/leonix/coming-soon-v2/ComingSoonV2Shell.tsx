@@ -74,7 +74,6 @@ const COPY: Record<
         magazineAlt: string;
       };
       magazineCta: string;
-      magazineCtaHint: string;
     };
     marketplace: {
       eyebrow: string;
@@ -241,7 +240,6 @@ const COPY: Record<
         magazineAlt: "Vista previa decorativa de la revista Leonix Media",
       },
       magazineCta: "Leer la revista",
-      magazineCtaHint: "Lea la revista en su idioma",
     },
     marketplace: {
       eyebrow: "CLASIFICADOS + MARKETPLACE LOCAL",
@@ -529,7 +527,6 @@ const COPY: Record<
         magazineAlt: "Decorative Leonix Media magazine preview",
       },
       magazineCta: "Read the magazine",
-      magazineCtaHint: "Read the magazine in your language",
     },
     marketplace: {
       eyebrow: "CLASSIFIEDS + LOCAL MARKETPLACE",

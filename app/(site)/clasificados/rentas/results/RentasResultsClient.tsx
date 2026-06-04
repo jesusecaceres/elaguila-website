@@ -14,7 +14,7 @@ import {
   rentasCtaSecondaryClass,
   rentasResultsFilterCardClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
-import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import {
   normalizeRentasBrowseHighlightToken,
   parseRentasBrowseParams,
@@ -83,7 +83,7 @@ export type RentasResultsClientProps = {
 /** Category-owned results for `/clasificados/rentas/results` — separado de vista previa y del detalle vivo. */
 export function RentasResultsClient({ initialLiveListings, includeDemoPool }: RentasResultsClientProps) {
   const router = useRouter();
-  const { copy, lang } = useRentasLandingLang();
+  const { copy, lang, routeLang } = useRentasLandingLang();
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState("");
@@ -165,12 +165,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const pushUrl = useCallback(
     (mutate: (sp: URLSearchParams) => void) => {
       const sp = new URLSearchParams(searchParams?.toString() ?? "");
-      sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+      sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
       mutate(sp);
       const qs = sp.toString();
-      router.replace(qs ? `${RENTAS_RESULTS}?${qs}` : `${RENTAS_RESULTS}?${RENTAS_LANDING_LANG_QUERY}=${lang}`);
+      router.replace(qs ? `${RENTAS_RESULTS}?${qs}` : `${RENTAS_RESULTS}?${RENTAS_LANDING_LANG_QUERY}=${routeLang}`);
     },
-    [lang, router, searchParams]
+    [routeLang, router, searchParams]
   );
 
   useEffect(() => {
@@ -337,7 +337,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
 
   return (
     <RentasResultsShell>
-      <RentasResultsTopBar copy={copy} lang={lang} />
+      <RentasResultsTopBar copy={copy} lang={lang} routeLang={routeLang} />
 
       <div className="space-y-4 border-b border-[#D6C7AD]/50 pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
@@ -348,11 +348,11 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             <p className="mt-2 text-sm text-[#3D3428]/90">
               {copy.results.introPart1}
               {copy.results.introPart2}
-              <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
+              <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, routeLang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
                 {copy.card.sellerPrivado}
               </Link>{" "}
               /{" "}
-              <Link href={withRentasLandingLang(RENTAS_PREVIEW_NEGOCIO, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
+              <Link href={withRentasLandingLang(RENTAS_PREVIEW_NEGOCIO, routeLang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
                 {copy.card.sellerNegocio}
               </Link>
               .
@@ -403,10 +403,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{copy.publishEyebrow}</p>
             <p className="text-xs leading-snug text-[#3D3428]/85">{copy.publishHint}</p>
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)} className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}>
+              <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}>
                 {copy.publishPrivado}
               </Link>
-              <Link href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)} className={`${rentasCtaSecondaryClass} w-full min-w-0 flex-1 text-center`}>
+              <Link href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, routeLang)} className={`${rentasCtaSecondaryClass} w-full min-w-0 flex-1 text-center`}>
                 {copy.publishNegocio}
               </Link>
             </div>
@@ -724,7 +724,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           ).map((opt) => {
             const isOn = branchFilter === opt.id;
             const sp = new URLSearchParams(searchParams?.toString() ?? "");
-            sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+            sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
             if (opt.id === "all") sp.delete("branch");
             else sp.set("branch", opt.id);
             const href = `${RENTAS_RESULTS}?${sp.toString()}`;
@@ -778,7 +778,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         {displayedListings.length === 0 ? (
           <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
             {copy.results.noMatches}{" "}
-            <Link href={withRentasLandingLang(RENTAS_RESULTS, lang)} className="font-semibold text-[#B8954A] underline">
+            <Link href={withRentasLandingLang(RENTAS_RESULTS, routeLang)} className="font-semibold text-[#B8954A] underline">
               {copy.results.clearFiltersDemo}
             </Link>
           </p>
@@ -808,7 +808,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                 <Link
                   href={(() => {
                     const sp = new URLSearchParams(searchParams?.toString() ?? "");
-                    sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+                    sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
                     if (safePage - 1 <= 1) sp.delete(RENTAS_QUERY_PAGE);
                     else sp.set(RENTAS_QUERY_PAGE, String(safePage - 1));
                     return `${RENTAS_RESULTS}?${sp.toString()}`;
@@ -827,7 +827,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                 <Link
                   href={(() => {
                     const sp = new URLSearchParams(searchParams?.toString() ?? "");
-                    sp.set(RENTAS_LANDING_LANG_QUERY, lang);
+                    sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
                     sp.set(RENTAS_QUERY_PAGE, String(safePage + 1));
                     return `${RENTAS_RESULTS}?${sp.toString()}`;
                   })()}
@@ -847,7 +847,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       </section>
 
       <footer className="mt-14 border-t border-[#D4C4A8]/50 pt-8 text-center text-sm text-[#4A4338]/88">
-        <Link href={withRentasLandingLang(RENTAS_LANDING, lang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
+        <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
           {copy.results.backToHub}
         </Link>
       </footer>
