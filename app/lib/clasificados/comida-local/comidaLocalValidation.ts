@@ -1,4 +1,5 @@
 import type { ComidaLocalDraft, ComidaLocalValidationIssue } from "./comidaLocalTypes";
+import { resolveComidaLocalCityCanonical } from "./comidaLocalCity";
 import { normalizeComidaLocalPhoneDigits } from "./comidaLocalFormatting";
 
 const MIN_BUSINESS_NAME = 2;
@@ -17,7 +18,11 @@ function hasFoodType(draft: ComidaLocalDraft): boolean {
 }
 
 function hasCity(draft: ComidaLocalDraft): boolean {
-  return Boolean(draft.cityCanonical.trim() || draft.cityDisplay.trim());
+  return Boolean(resolveComidaLocalCityCanonical(draft));
+}
+
+function hasCanonicalCity(draft: ComidaLocalDraft): boolean {
+  return Boolean(resolveComidaLocalCityCanonical(draft));
 }
 
 function pushIssue(
@@ -40,6 +45,13 @@ export function validateComidaLocalDraftForPreview(draft: ComidaLocalDraft): Com
   }
   if (!hasCity(draft)) {
     pushIssue(issues, "cityDisplay", "Indica la ciudad donde vendes.", "warning");
+  } else if (!hasCanonicalCity(draft)) {
+    pushIssue(
+      issues,
+      "cityDisplay",
+      "Elige una ciudad de la lista NorCal para la vista previa.",
+      "warning"
+    );
   }
   return issues;
 }
@@ -54,8 +66,15 @@ export function validateComidaLocalDraftForFuturePublish(draft: ComidaLocalDraft
   if (!hasFoodType(draft)) {
     pushIssue(issues, "foodType", "Elige un tipo de comida o describe otro tipo.", "error");
   }
-  if (!hasCity(draft)) {
-    pushIssue(issues, "cityDisplay", "La ciudad es obligatoria.", "error");
+  if (!hasCanonicalCity(draft)) {
+    pushIssue(
+      issues,
+      "cityDisplay",
+      draft.cityDisplay.trim()
+        ? "Elige una ciudad válida de la lista NorCal."
+        : "La ciudad es obligatoria.",
+      "error"
+    );
   }
   if (!hasContact(draft)) {
     pushIssue(issues, "phone", "Agrega teléfono o WhatsApp para que te contacten.", "error");
@@ -72,7 +91,7 @@ export function validateComidaLocalDraftForFuturePublish(draft: ComidaLocalDraft
     pushIssue(
       issues,
       "mainPhoto",
-      "La foto principal será obligatoria al publicar (FOOD-L3/FOOD-L5).",
+      "La foto principal será obligatoria al publicar (FOOD-L4/FOOD-L5).",
       "warning"
     );
   }

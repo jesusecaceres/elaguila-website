@@ -14,12 +14,14 @@ export const COMIDA_LOCAL_SHELL_COPY = {
   pageSubtitle:
     "Ficha simple para puestos, pop-ups y vendedores locales. Esto es un borrador de formulario — la publicación llegará en una fase siguiente.",
   scaffoldNotice:
-    "Estás viendo el formulario base de Comida Local. Aún no se guarda ni publica; la vista previa y la publicación se conectarán en FOOD-L3 y FOOD-L4.",
-  previewSoon: "Vista previa próximamente",
-  cityDeferredNote:
-    "La ciudad se conectará al catálogo NorCal en una fase siguiente. Por ahora escribe cómo quieres que aparezca en resultados.",
+    "Tu borrador se guarda automáticamente en este navegador. Aún no publicamos ni cobramos desde aquí.",
+  previewSoon: "Próximo paso: vista previa",
+  draftSaved: "Borrador guardado en este dispositivo",
+  resetDraft: "Empezar de nuevo",
+  validationPreviewTitle: "Para vista previa",
+  validationPublishTitle: "Lista para publicar (futuro)",
   photosDeferredNote:
-    "La carga de fotos se conectará en FOOD-L3/FOOD-L4. Por ahora solo verás el área de subida.",
+    "La carga de fotos se conectará en FOOD-L4. Por ahora solo verás el área de subida.",
 } as const;
 
 export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
@@ -41,8 +43,8 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   },
   cityDisplay: {
     label: "Ciudad / zona principal",
-    helper: "Ciudad donde vendes o atiendes. Aparece en resultados y en la ficha.",
-    placeholder: "Ej. San José",
+    helper: "Elige una ciudad NorCal de la lista. Aparece en resultados y en la ficha.",
+    placeholder: "Busca tu ciudad",
   },
   zoneNote: {
     label: "Nota de zona (opcional)",
