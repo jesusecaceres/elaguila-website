@@ -110,3 +110,88 @@ No tracking code, API calls, or localStorage counters were added.
 - Wire empty draft + validation + formatting into a client form
 - Auth gate via existing `PublishAuthGateLayout` pattern
 - Still no DB migration until publish-readiness gate
+
+---
+
+## Gate 1A — Pricing + Partner Strategy Correction
+
+### Final CFO pricing table (USD / month)
+
+| Package | Regular | Pickup partner |
+|---------|---------|----------------|
+| Digital Coupon Listing | $199 | $149 |
+| Digital Weekly Specials | $399 | $299 |
+| Quarter Local Deals | $799 | $599 |
+| Half Growth | $1,199 | $899 |
+| Full Authority | $1,799 | $1,399 |
+| Special Placement Campaign | $2,750 | $2,250 |
+| AI Searchable Specials Add-On | +$249 | +$199 |
+| Coupon Boost Add-On | +$149 | +$99 |
+
+Partner pricing is earned by active Leonix magazine pickup/display participation (`pickup_partner_discount` / `magazine_pickup_partner`).
+
+### Digital-first supermarket positioning
+
+For supermarkets, the primary value is **not** print advertising. Core value:
+
+- Leonix digital traffic
+- Shopper intent
+- Local discovery
+- ZIP / city / category search
+- Connection to classifieds, services, restaurants, businesses, newsletters, QR campaigns, and future AI search
+
+Magazine pickup/display is a partner discount lever and distribution strategy, not the core value sold.
+
+### Flipp vs Leonix positioning
+
+> Flipp is a flyer platform. Leonix is a local community traffic platform that can host weekly specials inside a broader ecosystem of classifieds, services, restaurants, businesses, newsletters, QR campaigns, and future AI item search.
+
+### Pickup partner discount strategy
+
+The pickup partner rate is the target sellable rate. The regular price protects perceived value and gives the business a reason to join the Leonix distribution network.
+
+### Membership / rewards CTA foundation
+
+Optional draft fields: `membershipUrl`, `membershipCtaLabel`, `membershipNote`, `requiresMembershipForDeals`, `digitalCouponUrl`, `digitalCouponNote`.
+
+Default CTA labels: Join Rewards, Sign up before you go, Activate digital coupons (EN) / Unirme a recompensas, Regístrate antes de ir, Activar cupones digitales (ES).
+
+Not required for preview or future publish validation.
+
+### Magazine distribution partner foundation
+
+Optional draft fields: `isMagazinePickupPartner`, `magazinePickupNotes`, `magazineDistributionStatus`, `magazineMonthlyDropEstimate`.
+
+Distribution status options: `not_offered`, `invited`, `active`, `paused`, `declined`.
+
+Ofertas Locales creates a natural reason to connect with supermarkets and local businesses and invite them to become Leonix magazine pickup/distribution partners.
+
+### Analytics events planned but not implemented (Gate 1A additions)
+
+- `membership_signup_click`
+- `digital_coupon_activation_click`
+- `magazine_pickup_info_click`
+
+No tracking code, API calls, or localStorage counters were added.
+
+### What was intentionally not touched (Gate 1A)
+
+- `app/(site)/**`, `app/api/**`, `app/admin/**`, dashboard, `supabase/**`
+- Header/nav, `categoryConfig`, search/results, Stripe/payment
+- Existing clasificados categories and behavior
+- No public membership or magazine pickup UI
+
+### Gate 1A TRUE/FALSE checklist
+
+| Requirement | TRUE/FALSE | Evidence |
+|-------------|------------|----------|
+| Final CFO pricing updated | TRUE | `OFERTAS_LOCALES_PRICING` |
+| Pickup partner pricing added | TRUE | `pickupPartnerPriceMonthly` on all packages |
+| Digital-first positioning documented | TRUE | `OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS` |
+| Flipp vs Leonix positioning documented | TRUE | `OFERTAS_LOCALES_FLIPP_VS_LEONIX_POSITIONING` |
+| Membership/rewards fields created | TRUE | `OfertaLocalDraft` membership fields |
+| Digital coupon fields created | TRUE | `digitalCouponUrl`, `digitalCouponNote` |
+| Magazine pickup fields created | TRUE | `isMagazinePickupPartner`, etc. |
+| Magazine distribution status options | TRUE | `OFERTAS_LOCALES_MAGAZINE_DISTRIBUTION_STATUS_OPTIONS` |
+| New analytics events planned only | TRUE | `ofertasLocalesAnalyticsEvents.ts` |
+| No public/API/migration changes | TRUE | Gate scope lock |

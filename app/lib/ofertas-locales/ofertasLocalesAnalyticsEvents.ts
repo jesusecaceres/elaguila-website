@@ -19,6 +19,9 @@ export const OFERTAS_LOCALES_ANALYTICS_VERSION_1_EVENTS = [
   "like_click",
   "qr_source_click",
   "newsletter_source_click",
+  "membership_signup_click",
+  "digital_coupon_activation_click",
+  "magazine_pickup_info_click",
 ] as const;
 
 export const OFERTAS_LOCALES_ANALYTICS_VERSION_2_EVENTS = [

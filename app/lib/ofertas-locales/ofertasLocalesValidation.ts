@@ -153,6 +153,8 @@ export function validateOfertaLocalDraftForFuturePublish(
 
   return issues;
 }
+
+/** Structured missing-field summary for future publish UI. */
 export function listOfertaLocalDraftMissingFieldsForFuturePublish(
   draft: OfertaLocalDraft
 ): string[] {
