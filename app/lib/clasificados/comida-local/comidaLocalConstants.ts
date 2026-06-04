@@ -78,5 +78,8 @@ export const COMIDA_LOCAL_SECTIONS: ReadonlyArray<{
   { key: "fotos", title: "Fotos" },
 ];
 
-/** Gallery cap placeholder until package tiers (FOOD-L5). */
-export const COMIDA_LOCAL_GALLERY_MAX_PLACEHOLDER = 3;
+/** Gallery cap for Basic-ready default (FOOD-L5C); Plus may raise in package gate. */
+export const COMIDA_LOCAL_GALLERY_MAX = 2;
+
+/** @deprecated Use COMIDA_LOCAL_GALLERY_MAX */
+export const COMIDA_LOCAL_GALLERY_MAX_PLACEHOLDER = COMIDA_LOCAL_GALLERY_MAX;

@@ -3,6 +3,7 @@ import type { ComidaLocalDraft } from "./comidaLocalTypes";
 /** Safe empty draft — no fake URLs, cities, or contact data. */
 export function createEmptyComidaLocalDraft(): ComidaLocalDraft {
   return {
+    draftListingId: "",
     businessName: "",
     foodType: "",
     foodTypeCustom: "",

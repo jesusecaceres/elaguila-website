@@ -32,12 +32,29 @@ export type ComidaLocalLanguageOption = "es" | "en" | "bilingual";
 
 export type ComidaLocalSocialPlatform = "instagram" | "facebook" | "tiktok";
 
-/** Placeholder image slot — upload wired in FOOD-L3/FOOD-L4. */
-export type ComidaLocalImageDraft = {
-  /** Local preview URL or empty until upload exists. */
-  previewUrl: string;
-  /** Future storage key; empty in scaffold. */
-  storageKey: string;
+export type ComidaLocalImageRole = "main" | "logo" | "gallery";
+
+/** Uploaded image metadata only — no base64, blob, or File handles. */
+export type ComidaLocalUploadedImage = {
+  id: string;
+  role: ComidaLocalImageRole;
+  url: string;
+  storagePath: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+  altText?: string;
+  uploadedAt: string;
+};
+
+/** Draft/publish image slot (uploaded metadata; legacy previewUrl tolerated on load). */
+export type ComidaLocalImageDraft = ComidaLocalUploadedImage & {
+  /** @deprecated FOOD-L2 placeholder — stripped on load; use `url`. */
+  previewUrl?: string;
+  /** @deprecated FOOD-L2 placeholder — use `storagePath`. */
+  storageKey?: string;
 };
 
 export type ComidaLocalSectionKey =
@@ -56,6 +73,8 @@ export type ComidaLocalValidationIssue = {
 };
 
 export type ComidaLocalDraft = {
+  /** Stable id for draft media uploads and publish upsert. */
+  draftListingId: string;
   businessName: string;
   foodType: ComidaLocalFoodType | "";
   foodTypeCustom: string;

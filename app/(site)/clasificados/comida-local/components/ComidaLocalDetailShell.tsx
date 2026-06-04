@@ -59,7 +59,7 @@ export function ComidaLocalDetailShell({ vm }: Props) {
                 className="aspect-square h-28 w-28 rounded-xl border border-[#D4C4A8]/80 object-cover sm:h-32 sm:w-32"
               />
             ) : (
-              <ImagePlaceholder label="Foto próximamente" />
+              <ImagePlaceholder label="Sin foto principal" />
             )}
           </div>
           <div className="min-w-0 flex-1">

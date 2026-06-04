@@ -42,6 +42,24 @@ function isIsoDate(value: string): boolean {
   return !Number.isNaN(d.getTime());
 }
 
+function validateOptionalUrlField(
+  issues: OfertaLocalValidationIssue[],
+  field: string,
+  raw: string,
+  label: string
+) {
+  const t = String(raw ?? "").trim();
+  if (!t) return;
+  if (!normalizeOfertaLocalUrlInput(t)) {
+    pushIssue(issues, field, `${label} debe ser una URL válida (http o https).`, "error");
+  }
+}
+
+function appendOptionalUrlValidation(issues: OfertaLocalValidationIssue[], draft: OfertaLocalDraft) {
+  validateOptionalUrlField(issues, "membershipUrl", draft.membershipUrl, "La URL de membresía");
+  validateOptionalUrlField(issues, "digitalCouponUrl", draft.digitalCouponUrl, "La URL del cupón digital");
+}
+
 /** Gentle checks for future preview surfaces. */
 export function validateOfertaLocalDraftForPreview(draft: OfertaLocalDraft): OfertaLocalValidationIssue[] {
   const issues: OfertaLocalValidationIssue[] = [];
@@ -55,6 +73,8 @@ export function validateOfertaLocalDraftForPreview(draft: OfertaLocalDraft): Ofe
   if (!draft.offerType) {
     pushIssue(issues, "offerType", "Elige un tipo de oferta para la vista previa.", "warning");
   }
+
+  appendOptionalUrlValidation(issues, draft);
 
   return issues;
 }
@@ -129,10 +149,10 @@ export function validateOfertaLocalDraftForFuturePublish(
     );
   }
 
+  appendOptionalUrlValidation(issues, draft);
+
   return issues;
 }
-
-/** Structured missing-field summary for future publish UI. */
 export function listOfertaLocalDraftMissingFieldsForFuturePublish(
   draft: OfertaLocalDraft
 ): string[] {

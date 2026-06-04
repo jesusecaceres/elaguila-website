@@ -14,6 +14,7 @@ import {
   normalizeComidaLocalPhoneDigits,
   normalizeComidaLocalSocialInput,
 } from "./comidaLocalFormatting";
+import { comidaLocalImageAltText } from "./comidaLocalImageNormalize";
 import { resolveComidaLocalPreviewImageSrc } from "./comidaLocalPreviewImage";
 import type {
   ComidaLocalPreviewChip,
@@ -168,10 +169,23 @@ export function mapComidaLocalDraftToPreviewVm(draft: ComidaLocalDraft): ComidaL
     labelFromOptions(v, COMIDA_LOCAL_LANGUAGE_OPTIONS)
   );
   const contactActions = buildContactActions(draft);
-  const mainImage = toPreviewImage(draft.mainPhoto, "main", businessName);
-  const logoImage = toPreviewImage(draft.logoImage, "logo", `${businessName} logo`);
+  const foodLabel = buildFoodTypeChips(draft)[0]?.label ?? "";
+  const mainAlt =
+    draft.mainPhoto?.altText?.trim() ||
+    comidaLocalImageAltText(businessName, foodLabel, "main");
+  const logoAlt =
+    draft.logoImage?.altText?.trim() ||
+    comidaLocalImageAltText(businessName, foodLabel, "logo");
+  const mainImage = toPreviewImage(draft.mainPhoto, "main", mainAlt);
+  const logoImage = toPreviewImage(draft.logoImage, "logo", logoAlt);
   const galleryImages = draft.galleryImages
-    .map((g, i) => toPreviewImage(g, "gallery", `${businessName} foto ${i + 1}`))
+    .map((g, i) =>
+      toPreviewImage(
+        g,
+        "gallery",
+        g.altText?.trim() || comidaLocalImageAltText(businessName, foodLabel, "gallery") + ` ${i + 1}`
+      )
+    )
     .filter((x): x is ComidaLocalPreviewImage => x !== null);
 
   const sections = {

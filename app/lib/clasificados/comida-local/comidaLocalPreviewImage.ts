@@ -1,19 +1,14 @@
 import type { ComidaLocalImageDraft } from "./comidaLocalTypes";
+import { resolveComidaLocalImageUrl } from "./comidaLocalImageValidation";
 
 /**
  * Resolve a safe image src for preview/detail output.
- * Never returns data: URLs or fake placeholders.
+ * Never returns data:, blob:, or placeholder URLs.
  */
 export function resolveComidaLocalPreviewImageSrc(
   img: ComidaLocalImageDraft | null | undefined
 ): string | null {
-  if (!img) return null;
-  const u = String(img.previewUrl ?? "").trim();
-  if (!u) return null;
-  if (u.startsWith("data:") || u.includes("base64")) return null;
-  if (u.startsWith("blob:")) return u;
-  if (/^https?:\/\//i.test(u)) return u;
-  return null;
+  return resolveComidaLocalImageUrl(img);
 }
 
 export function draftHasPreviewImageMetadata(draft: {

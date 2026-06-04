@@ -26,6 +26,16 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     couponAssets: [],
     isFeaturedRequested: false,
     languageTags: [],
+    membershipUrl: "",
+    membershipCtaLabel: "",
+    membershipNote: "",
+    requiresMembershipForDeals: false,
+    digitalCouponUrl: "",
+    digitalCouponNote: "",
+    isMagazinePickupPartner: false,
+    magazinePickupNotes: "",
+    magazineDistributionStatus: "not_offered",
+    magazineMonthlyDropEstimate: "",
     internalNotes: "",
   };
 }

@@ -1,13 +1,64 @@
 import type {
   OfertaLocalBusinessCategory,
   OfertaLocalLanguageTag,
+  OfertaLocalMagazineDistributionStatus,
   OfertaLocalMarketType,
   OfertaLocalOfferType,
+  OfertaLocalPartnerDiscountReason,
+  OfertaLocalPartnerType,
+  OfertaLocalPricingPackage,
 } from "./ofertasLocalesTypes";
 
 export const OFERTAS_LOCALES_CATEGORY_KEY = "ofertas-locales" as const;
 export const OFERTAS_LOCALES_PRODUCT_NAME = "Ofertas Locales";
 export const OFERTAS_LOCALES_NAV_LABEL = "Ofertas";
+
+/** Digital-first supermarket value proposition — print is not the core sell. */
+export const OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS = [
+  "Leonix digital traffic",
+  "Shopper intent",
+  "Local discovery",
+  "ZIP / city / category search",
+  "Connection to classifieds, services, restaurants, businesses, newsletters, QR campaigns, and future AI search",
+] as const;
+
+/** Positioning vs flyer-only platforms. */
+export const OFERTAS_LOCALES_FLIPP_VS_LEONIX_POSITIONING =
+  "Flipp is a flyer platform. Leonix is a local community traffic platform that can host weekly specials inside a broader ecosystem of classifieds, services, restaurants, businesses, newsletters, QR campaigns, and future AI item search." as const;
+
+/** Partner discount earned through active Leonix magazine pickup/display participation. */
+export const OFERTAS_LOCALES_PARTNER_TYPE: OfertaLocalPartnerType = "magazine_pickup_partner";
+
+export const OFERTAS_LOCALES_PARTNER_DISCOUNT_REASON: OfertaLocalPartnerDiscountReason =
+  "pickup_partner_discount";
+
+export const OFERTAS_LOCALES_PICKUP_PARTNER_PRICING_NOTE =
+  "The pickup partner rate is the target sellable rate. The regular price protects perceived value and gives the business a reason to join the Leonix distribution network." as const;
+
+export const OFERTAS_LOCALES_MAGAZINE_DISTRIBUTION_STRATEGIC_NOTE =
+  "Ofertas Locales creates a natural reason to connect with supermarkets and local businesses and invite them to become Leonix magazine pickup/distribution partners." as const;
+
+/** Default membership / rewards CTA labels (EN + ES). */
+export const OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS = {
+  joinRewardsEn: "Join Rewards",
+  signUpBeforeYouGoEn: "Sign up before you go",
+  activateDigitalCouponsEn: "Activate digital coupons",
+  joinRewardsEs: "Unirme a recompensas",
+  signUpBeforeYouGoEs: "Regístrate antes de ir",
+  activateDigitalCouponsEs: "Activar cupones digitales",
+} as const;
+
+export const OFERTAS_LOCALES_MAGAZINE_DISTRIBUTION_STATUS_OPTIONS: ReadonlyArray<{
+  value: OfertaLocalMagazineDistributionStatus;
+  labelEs: string;
+  labelEn: string;
+}> = [
+  { value: "not_offered", labelEs: "No ofrecido", labelEn: "Not offered" },
+  { value: "invited", labelEs: "Invitado", labelEn: "Invited" },
+  { value: "active", labelEs: "Activo", labelEn: "Active" },
+  { value: "paused", labelEs: "Pausado", labelEn: "Paused" },
+  { value: "declined", labelEs: "Declinado", labelEn: "Declined" },
+];
 
 /** Planned routes — not implemented in Gate 1. */
 export const OFERTAS_LOCALES_ROUTES = {
@@ -77,35 +128,66 @@ export const OFERTAS_LOCALES_LANGUAGE_TAG_OPTIONS: ReadonlyArray<{
   { value: "bilingual", labelEs: "Bilingüe", labelEn: "Bilingual" },
 ];
 
-/** Monthly pricing packages (USD). */
-export const OFERTAS_LOCALES_PRICING = {
-  digitalCouponListing: { label: "Digital Coupon Listing", amountUsd: 99, interval: "month" as const },
-  digitalWeeklySpecials: { label: "Digital Weekly Specials", amountUsd: 199, interval: "month" as const },
-  foundingWeeklyPartner: {
-    label: "Founding Weekly Partner",
-    amountUsd: 499,
-    interval: "month" as const,
-    durationMonths: 3,
+/** Final CFO monthly pricing packages (USD) — regular + pickup partner rates. */
+export const OFERTAS_LOCALES_PRICING: Record<
+  | "digitalCouponListing"
+  | "digitalWeeklySpecials"
+  | "quarterLocalDeals"
+  | "halfGrowth"
+  | "fullAuthority"
+  | "specialPlacementCampaign"
+  | "aiSearchableSpecialsAddOn"
+  | "couponBoostAddOn",
+  OfertaLocalPricingPackage
+> = {
+  digitalCouponListing: {
+    label: "Digital Coupon Listing",
+    regularPriceMonthly: 199,
+    pickupPartnerPriceMonthly: 149,
+    interval: "month",
   },
-  quarterLocalDeals: { label: "Quarter Local Deals", amountUsd: 599, interval: "month" as const },
-  halfGrowth: { label: "Half Growth", amountUsd: 899, interval: "month" as const },
-  fullAuthority: { label: "Full Authority", amountUsd: 1399, interval: "month" as const },
-  premiumCommunityCampaign: {
-    label: "Premium Community Campaign",
-    amountUsd: 2000,
-    interval: "month" as const,
+  digitalWeeklySpecials: {
+    label: "Digital Weekly Specials",
+    regularPriceMonthly: 399,
+    pickupPartnerPriceMonthly: 299,
+    interval: "month",
+  },
+  quarterLocalDeals: {
+    label: "Quarter Local Deals",
+    regularPriceMonthly: 799,
+    pickupPartnerPriceMonthly: 599,
+    interval: "month",
+  },
+  halfGrowth: {
+    label: "Half Growth",
+    regularPriceMonthly: 1199,
+    pickupPartnerPriceMonthly: 899,
+    interval: "month",
+  },
+  fullAuthority: {
+    label: "Full Authority",
+    regularPriceMonthly: 1799,
+    pickupPartnerPriceMonthly: 1399,
+    interval: "month",
+  },
+  specialPlacementCampaign: {
+    label: "Special Placement Campaign",
+    regularPriceMonthly: 2750,
+    pickupPartnerPriceMonthly: 2250,
+    interval: "month",
   },
   aiSearchableSpecialsAddOn: {
     label: "AI Searchable Specials Add-On",
-    amountUsd: 199,
-    interval: "month" as const,
+    regularPriceMonthly: 249,
+    pickupPartnerPriceMonthly: 199,
+    interval: "month",
     isAddOn: true,
   },
-  couponBoost: {
-    label: "Coupon Boost",
-    amountUsdMin: 49,
-    amountUsdMax: 99,
-    interval: "month" as const,
+  couponBoostAddOn: {
+    label: "Coupon Boost Add-On",
+    regularPriceMonthly: 149,
+    pickupPartnerPriceMonthly: 99,
+    interval: "month",
     isAddOn: true,
   },
 } as const;
@@ -126,7 +208,7 @@ export const OFERTAS_LOCALES_VERSION_2_FEATURES = [
   "Item-to-flyer flow",
   "Review and approve workflow",
   "Google Document AI scan jobs",
-  "AI Searchable Specials +$199/mo add-on",
+  "AI Searchable Specials +$249/mo add-on (pickup partner +$199/mo)",
 ] as const;
 
 export const OFERTAS_LOCALES_DEFAULT_FILTERS = {
@@ -158,4 +240,11 @@ export const OFERTAS_LOCALES_VALIDATION_LIMITS = {
   couponAssetsMax: 6,
   languageTagsMax: 3,
   internalNotesMax: 2000,
+  membershipUrlMax: 500,
+  membershipCtaLabelMax: 80,
+  membershipNoteMax: 500,
+  digitalCouponUrlMax: 500,
+  digitalCouponNoteMax: 500,
+  magazinePickupNotesMax: 1000,
+  magazineMonthlyDropEstimateMax: 40,
 } as const;

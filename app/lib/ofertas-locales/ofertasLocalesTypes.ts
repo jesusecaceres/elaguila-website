@@ -38,6 +38,29 @@ export type OfertaLocalMarketType =
 
 export type OfertaLocalLanguageTag = "es" | "en" | "bilingual";
 
+/** Magazine pickup / distribution partner lifecycle. */
+export type OfertaLocalMagazineDistributionStatus =
+  | "not_offered"
+  | "invited"
+  | "active"
+  | "paused"
+  | "declined";
+
+/** Partner type — earned through Leonix magazine pickup/display participation. */
+export type OfertaLocalPartnerType = "magazine_pickup_partner";
+
+/** Reason a pickup-partner rate applies instead of regular pricing. */
+export type OfertaLocalPartnerDiscountReason = "pickup_partner_discount";
+
+/** Monthly pricing package with regular and pickup-partner rates (USD). */
+export type OfertaLocalPricingPackage = {
+  label: string;
+  regularPriceMonthly: number;
+  pickupPartnerPriceMonthly: number;
+  interval: "month";
+  isAddOn?: boolean;
+};
+
 /** Placeholder asset slot — upload wired in a future gate. */
 export type OfertaLocalAssetDraft = {
   /** Local preview URL or empty until upload exists. */
@@ -78,6 +101,19 @@ export type OfertaLocalDraft = {
   couponAssets: OfertaLocalAssetDraft[];
   isFeaturedRequested: boolean;
   languageTags: OfertaLocalLanguageTag[];
+  /** Optional rewards / membership program link and CTA copy. */
+  membershipUrl: string;
+  membershipCtaLabel: string;
+  membershipNote: string;
+  requiresMembershipForDeals: boolean;
+  /** Optional store digital coupon activation link and note. */
+  digitalCouponUrl: string;
+  digitalCouponNote: string;
+  /** Magazine pickup / distribution partner tracking. */
+  isMagazinePickupPartner: boolean;
+  magazinePickupNotes: string;
+  magazineDistributionStatus: OfertaLocalMagazineDistributionStatus;
+  magazineMonthlyDropEstimate: string;
   internalNotes?: string;
 };
 

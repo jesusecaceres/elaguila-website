@@ -1,8 +1,15 @@
 import { createEmptyComidaLocalDraft } from "./createEmptyComidaLocalDraft";
+import {
+  COMIDA_LOCAL_GALLERY_MAX,
+} from "./comidaLocalConstants";
+import {
+  ensureComidaLocalDraftListingId,
+  normalizeComidaLocalImageFromStorage,
+  normalizeComidaLocalImageListFromStorage,
+} from "./comidaLocalImageNormalize";
 import type {
   ComidaLocalDraft,
   ComidaLocalFoodType,
-  ComidaLocalImageDraft,
   ComidaLocalLanguageOption,
   ComidaLocalPaymentMethod,
   ComidaLocalPriceLevel,
@@ -46,25 +53,6 @@ function safeString(v: unknown, max = 2000): string {
   return v.slice(0, max);
 }
 
-/** Never persist data: URLs or base64 in localStorage. */
-function sanitizeImageDraft(raw: unknown): ComidaLocalImageDraft | null {
-  if (!isRecord(raw)) return null;
-  const previewUrl = safeString(raw.previewUrl, 512);
-  const storageKey = safeString(raw.storageKey, 256);
-  if (!previewUrl && !storageKey) return null;
-  if (previewUrl.startsWith("data:") || previewUrl.includes("base64")) {
-    return storageKey ? { previewUrl: "", storageKey } : null;
-  }
-  return { previewUrl, storageKey };
-}
-
-function sanitizeImageList(raw: unknown): ComidaLocalImageDraft[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item) => sanitizeImageDraft(item))
-    .filter((x): x is ComidaLocalImageDraft => x !== null)
-    .slice(0, 8);
-}
 
 /** Merge parsed JSON with empty defaults; tolerant of malformed storage. */
 export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDraft {
@@ -107,6 +95,7 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
 
   return {
     ...base,
+    draftListingId: ensureComidaLocalDraftListingId(safeString(parsed.draftListingId, 64)),
     businessName: safeString(parsed.businessName, 120),
     foodType,
     foodTypeCustom: safeString(parsed.foodTypeCustom, 80),
@@ -131,9 +120,12 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     paymentOtherNote: safeString(parsed.paymentOtherNote, 80),
     priceLevel,
     languages,
-    mainPhoto: sanitizeImageDraft(parsed.mainPhoto),
-    logoImage: sanitizeImageDraft(parsed.logoImage),
-    galleryImages: sanitizeImageList(parsed.galleryImages),
+    mainPhoto: normalizeComidaLocalImageFromStorage(parsed.mainPhoto, "main"),
+    logoImage: normalizeComidaLocalImageFromStorage(parsed.logoImage, "logo"),
+    galleryImages: normalizeComidaLocalImageListFromStorage(parsed.galleryImages, "gallery").slice(
+      0,
+      COMIDA_LOCAL_GALLERY_MAX
+    ),
   };
 }
 

@@ -23,7 +23,7 @@ export const COMIDA_LOCAL_SHELL_COPY = {
   validationPreviewTitle: "Para vista previa",
   validationPublishTitle: "Lista para publicar (futuro)",
   photosDeferredNote:
-    "La carga de fotos se conectará en FOOD-L4. Por ahora solo verás el área de subida.",
+    "Sube una foto principal (obligatoria para publicar). Logo y galería son opcionales.",
 } as const;
 
 export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
@@ -135,7 +135,7 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   },
   mainPhoto: {
     label: "Foto principal",
-    helper: "Será obligatoria al publicar. Muestra tu comida o puesto.",
+    helper: "Obligatoria para publicar. Muestra tu comida o puesto (JPEG, PNG o WebP).",
   },
   logoImage: {
     label: "Logo (opcional)",
@@ -144,7 +144,7 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   },
   galleryImages: {
     label: "Galería limitada",
-    helper: "Fotos extra con límite según plan. Se conectará en FOOD-L3.",
+    helper: "Hasta 2 fotos extra por ahora. Más fotos con plan Plus (próximamente).",
     optional: true,
   },
 };

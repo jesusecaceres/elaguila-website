@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
-  COMIDA_LOCAL_GALLERY_MAX_PLACEHOLDER,
+  COMIDA_LOCAL_GALLERY_MAX,
   COMIDA_LOCAL_LANGUAGE_OPTIONS,
   COMIDA_LOCAL_PAYMENT_OPTIONS,
   COMIDA_LOCAL_PRICE_LEVEL_OPTIONS,
@@ -38,6 +38,8 @@ import {
   validateComidaLocalDraftForPreview,
 } from "@/app/lib/clasificados/comida-local/comidaLocalValidation";
 import { ComidaLocalValidationPanel } from "./ComidaLocalValidationPanel";
+import { ComidaLocalGalleryUpload } from "./components/ComidaLocalGalleryUpload";
+import { ComidaLocalImageUploadField } from "./components/ComidaLocalImageUploadField";
 
 const PAGE_BG = "bg-[#FFFCF7]";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm";
@@ -549,37 +551,32 @@ export default function ComidaLocalApplicationClient() {
                 <p className="mt-2 text-xs text-[#1E1814]/60">
                   {COMIDA_LOCAL_SHELL_COPY.photosDeferredNote}
                 </p>
-                <div className="mt-5 space-y-5">
-                  <FieldBlock fieldKey="mainPhoto">
-                    <div
-                      className="flex min-h-[140px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#D4C4A8] bg-[#FDF8F0] px-4 py-6 text-center text-sm text-[#1E1814]/55"
-                      role="group"
-                      aria-label="Foto principal — próximamente"
-                    >
-                      <span className="font-medium text-[#7A1E2C]/80">Subida en FOOD-L4</span>
-                      <span className="mt-1 text-xs">Sin almacenar imágenes en el borrador local</span>
-                    </div>
-                  </FieldBlock>
-                  <FieldBlock fieldKey="logoImage">
-                    <div
-                      className="flex min-h-[100px] items-center justify-center rounded-xl border border-dashed border-[#D4C4A8]/80 bg-white text-xs text-[#1E1814]/50"
-                      aria-hidden
-                    >
-                      Logo — FOOD-L4
-                    </div>
-                  </FieldBlock>
-                  <FieldBlock fieldKey="galleryImages">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {Array.from({ length: COMIDA_LOCAL_GALLERY_MAX_PLACEHOLDER }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="flex min-h-[88px] items-center justify-center rounded-xl border border-dashed border-[#D4C4A8]/70 bg-white text-xs text-[#1E1814]/45"
-                        >
-                          Foto {i + 1}
-                        </div>
-                      ))}
-                    </div>
-                  </FieldBlock>
+                <div className="mt-5 space-y-6">
+                  <ComidaLocalImageUploadField
+                    role="main"
+                    label={COMIDA_LOCAL_FIELD_COPY.mainPhoto.label}
+                    helper={COMIDA_LOCAL_FIELD_COPY.mainPhoto.helper}
+                    draftListingId={draft.draftListingId}
+                    image={draft.mainPhoto}
+                    onImageChange={(mainPhoto) => updateDraft({ mainPhoto })}
+                  />
+                  <ComidaLocalImageUploadField
+                    role="logo"
+                    label={COMIDA_LOCAL_FIELD_COPY.logoImage.label}
+                    helper={COMIDA_LOCAL_FIELD_COPY.logoImage.helper}
+                    optional
+                    draftListingId={draft.draftListingId}
+                    image={draft.logoImage}
+                    minHeightClass="min-h-[100px]"
+                    onImageChange={(logoImage) => updateDraft({ logoImage })}
+                  />
+                  <ComidaLocalGalleryUpload
+                    draftListingId={draft.draftListingId}
+                    images={draft.galleryImages}
+                    onChange={(galleryImages) =>
+                      updateDraft({ galleryImages: galleryImages.slice(0, COMIDA_LOCAL_GALLERY_MAX) })
+                    }
+                  />
                 </div>
               </section>
             )}

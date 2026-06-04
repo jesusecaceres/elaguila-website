@@ -1,6 +1,11 @@
 import type { ComidaLocalDraft, ComidaLocalValidationIssue } from "./comidaLocalTypes";
 import { resolveComidaLocalCityCanonical } from "./comidaLocalCity";
 import { normalizeComidaLocalPhoneDigits } from "./comidaLocalFormatting";
+import {
+  COMIDA_LOCAL_GALLERY_MAX,
+  hasComidaLocalMainPhoto,
+  validateComidaLocalGalleryCount,
+} from "./comidaLocalImageValidation";
 
 const MIN_BUSINESS_NAME = 2;
 const MIN_QUE_VENDES = 20;
@@ -87,12 +92,21 @@ export function validateComidaLocalDraftForFuturePublish(draft: ComidaLocalDraft
       "error"
     );
   }
-  if (!draft.mainPhoto?.previewUrl && !draft.mainPhoto?.storageKey) {
+  if (!hasComidaLocalMainPhoto(draft)) {
     pushIssue(
       issues,
       "mainPhoto",
-      "La foto principal será obligatoria al publicar (FOOD-L4/FOOD-L5).",
-      "warning"
+      "Sube una foto principal antes de publicar.",
+      "error"
+    );
+  }
+
+  if (!validateComidaLocalGalleryCount(draft.galleryImages.length)) {
+    pushIssue(
+      issues,
+      "galleryImages",
+      `Máximo ${COMIDA_LOCAL_GALLERY_MAX} fotos en la galería.`,
+      "error"
     );
   }
 

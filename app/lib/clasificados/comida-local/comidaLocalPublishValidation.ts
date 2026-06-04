@@ -7,7 +7,14 @@ import {
   normalizeComidaLocalPhoneDigits,
   normalizeComidaLocalSocialInput,
 } from "./comidaLocalFormatting";
-import type { ComidaLocalDraft, ComidaLocalImageDraft, ComidaLocalValidationIssue } from "./comidaLocalTypes";
+import {
+  COMIDA_LOCAL_GALLERY_MAX,
+  hasComidaLocalMainPhoto,
+  sanitizeComidaLocalImageForDb,
+  validateComidaLocalGalleryCount,
+  validateComidaLocalImageMetadata,
+} from "./comidaLocalImageValidation";
+import type { ComidaLocalDraft, ComidaLocalValidationIssue } from "./comidaLocalTypes";
 import type {
   ComidaLocalNormalizedPublishDraft,
   ComidaLocalPackageTierDb,
@@ -30,22 +37,7 @@ function clamp(s: string, max: number): string {
   return String(s ?? "").trim().slice(0, max);
 }
 
-/** Persisted rows only — reject blob/data/base64 preview URLs. */
-export function sanitizeComidaLocalImageForDb(
-  img: ComidaLocalImageDraft | null | undefined
-): ComidaLocalImageDraft | null {
-  if (!img) return null;
-  const previewUrl = String(img.previewUrl ?? "").trim();
-  const storageKey = String(img.storageKey ?? "").trim();
-  if (previewUrl.startsWith("data:") || previewUrl.includes("base64") || previewUrl.startsWith("blob:")) {
-    return storageKey ? { previewUrl: "", storageKey: storageKey.slice(0, 256) } : null;
-  }
-  if (previewUrl && /^https?:\/\//i.test(previewUrl)) {
-    return { previewUrl: previewUrl.slice(0, 512), storageKey: storageKey.slice(0, 256) };
-  }
-  if (storageKey) return { previewUrl: "", storageKey: storageKey.slice(0, 256) };
-  return null;
-}
+export { sanitizeComidaLocalImageForDb } from "./comidaLocalImageValidation";
 
 export function normalizeComidaLocalPackageTier(raw: unknown): ComidaLocalPackageTierDb {
   const s = String(raw ?? "").trim().toLowerCase();
@@ -71,8 +63,8 @@ export function normalizeComidaLocalDraftForPublish(raw: unknown): ComidaLocalDr
 
   const gallery = merged.galleryImages
     .map((g) => sanitizeComidaLocalImageForDb(g))
-    .filter((g): g is ComidaLocalImageDraft => g !== null)
-    .slice(0, 8);
+    .filter((g): g is NonNullable<ReturnType<typeof sanitizeComidaLocalImageForDb>> => g !== null)
+    .slice(0, COMIDA_LOCAL_GALLERY_MAX);
 
   return {
     ...merged,
@@ -119,6 +111,35 @@ export function validateComidaLocalPublishPayload(
       message: "Agrega teléfono o WhatsApp.",
       severity: "error",
     });
+  }
+
+  if (!hasComidaLocalMainPhoto(draft)) {
+    errors.push({
+      field: "mainPhoto",
+      message: "La foto principal es obligatoria.",
+      severity: "error",
+    });
+  }
+
+  if (!validateComidaLocalGalleryCount(draft.galleryImages.length)) {
+    errors.push({
+      field: "galleryImages",
+      message: `Máximo ${COMIDA_LOCAL_GALLERY_MAX} fotos en la galería.`,
+      severity: "error",
+    });
+  }
+
+  for (const img of [draft.mainPhoto, draft.logoImage, ...draft.galleryImages]) {
+    if (!img) continue;
+    const v = validateComidaLocalImageMetadata(img);
+    if (!v.ok) {
+      errors.push({
+        field: "mainPhoto",
+        message: "Una imagen no es válida para publicar. Vuelve a subirla.",
+        severity: "error",
+      });
+      break;
+    }
   }
 
   return errors;
