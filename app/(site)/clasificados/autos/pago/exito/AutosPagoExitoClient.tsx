@@ -9,9 +9,30 @@ import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPubli
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { clearInventoryAddContextFromSession } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import {
+  AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY,
+  type AutosBundlePublishSessionResult,
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+import {
+  autosBundlePublishSuccessIntro,
+  autosQaPublishSuccessLabel,
+} from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 
 function laneFromParam(raw: string | null): AutosClassifiedsLane {
   return raw === "negocios" ? "negocios" : "privado";
+}
+
+function readBundleResult(): AutosBundlePublishSessionResult | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw) as AutosBundlePublishSessionResult;
+    if (!j?.mainListingId || !Array.isArray(j.published)) return null;
+    return j;
+  } catch {
+    return null;
+  }
 }
 
 export function AutosPagoExitoClient() {
@@ -22,11 +43,20 @@ export function AutosPagoExitoClient() {
   const internal = qs.get("internal") === "1";
   const testPublish = qs.get("test_publish") === "1";
   const internalListingId = qs.get("listing_id")?.trim() ?? "";
+  const bundleQuery = qs.get("bundle") === "1";
   const [laneOverride, setLaneOverride] = useState<AutosClassifiedsLane | null>(null);
   const lane = laneOverride ?? laneFromParam(qs.get("lane"));
   const c = getAutosPublishFlowCopy(lang, lane);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [err, setErr] = useState(false);
+  const [bundleResult, setBundleResult] = useState<AutosBundlePublishSessionResult | null>(null);
+
+  useEffect(() => {
+    if (bundleQuery) {
+      const stored = readBundleResult();
+      if (stored) setBundleResult(stored);
+    }
+  }, [bundleQuery]);
 
   useEffect(() => {
     if (internal && internalListingId) {
@@ -149,14 +179,29 @@ export function AutosPagoExitoClient() {
     /* keep as-is */
   }
 
+  const qaBypass = internal && (testPublish || bundleResult?.qaBypass);
+  const publishedList = bundleResult?.published ?? [];
+  const totalPublished = bundleResult?.totalPublished ?? 1;
+  const inventoryLimit = bundleResult?.inventoryLimit ?? 10;
+
   return (
-    <div className="mx-auto max-w-md px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">
+    <div className="mx-auto max-w-lg px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">
       <h1 className="text-2xl font-bold tracking-tight">
         {internal && testPublish ? c.successTitleTest : internal ? c.successTitleInternal : c.successTitle}
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
         {internal && testPublish ? c.successBodyTest : internal ? c.successBodyInternal : c.successBody}
       </p>
+      {qaBypass ? (
+        <p className="mt-3 inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950">
+          {autosQaPublishSuccessLabel(lang)}
+        </p>
+      ) : null}
+      {bundleResult && publishedList.length > 1 ? (
+        <p className="mt-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+          {autosBundlePublishSuccessIntro(lang, totalPublished, inventoryLimit)}
+        </p>
+      ) : null}
       <Link
         href={returnToHref ?? livePath}
         className="mt-8 inline-flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90"
@@ -167,6 +212,21 @@ export function AutosPagoExitoClient() {
             : "Back to dealer inventory"
           : c.viewLive}
       </Link>
+      {publishedList.length > 1 ? (
+        <ul className="mt-6 space-y-2 text-left text-sm">
+          {publishedList.map((v) => (
+            <li key={v.id}>
+              <Link
+                href={`${autosLiveVehiclePath(v.id)}?lang=${lang}`}
+                className="font-semibold text-[color:var(--lx-gold)] underline"
+              >
+                {v.title}
+                {v.leonix_ad_id ? ` · ${v.leonix_ad_id}` : ""}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-5 flex flex-col gap-3 sm:items-center">
         <Link href={resultsHref} className="text-sm font-semibold text-[color:var(--lx-gold)]">
           {c.browseMore}

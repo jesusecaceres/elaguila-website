@@ -20,6 +20,14 @@ import {
   resolveInventoryAddReturnHref,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import { autosDealerInventoryLimitMessage } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
+import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY,
+  type AutosBundlePublishSessionResult,
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { autosQaPaymentBypassLabel } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 
 function sessionKey(lane: AutosClassifiedsLane) {
   return `lx-autos-publish-listing-${lane}`;
@@ -43,6 +51,7 @@ export function AutosPublishConfirmCore({
   editHref,
   inventoryAddMode = false,
   inventoryAddContext = null,
+  additionalInventoryVehicles = [],
 }: {
   lane: AutosClassifiedsLane;
   lang: AutosPublishFlowLang;
@@ -52,6 +61,8 @@ export function AutosPublishConfirmCore({
   editHref: string;
   inventoryAddMode?: boolean;
   inventoryAddContext?: AutosInventoryAddContext | null;
+  /** Negocios bundle: additional inventory vehicles from application draft. */
+  additionalInventoryVehicles?: AutosAdditionalInventoryVehicleDraft[];
 }) {
   const [publishConfirmMode, setPublishConfirmMode] = useState<AutosPublishConfirmMode>("stripe");
   const inventoryCtx = inventoryAddContext ?? (inventoryAddMode ? readInventoryAddContextFromSession() : null);
@@ -255,6 +266,9 @@ export function AutosPublishConfirmCore({
         listingId,
         lang,
         ...(inventoryCtx?.returnToListingId ? { returnToListingId: inventoryCtx.returnToListingId } : {}),
+        ...(lane === "negocios" && additionalInventoryVehicles.length > 0 && !inventoryCtx
+          ? { additionalInventoryVehicles }
+          : {}),
       }),
     });
     const j = (await res.json()) as {
@@ -265,6 +279,14 @@ export function AutosPublishConfirmCore({
       successUrl?: string;
       error?: string;
       message?: string;
+      bundlePublish?: {
+        mainListingId: string;
+        published: AutosBundlePublishSessionResult["published"];
+        totalPublished: number;
+        additionalSkipped: number;
+        inventoryIncluded: number;
+        inventoryLimit: number;
+      };
     };
     setPayBusy(false);
     if (!res.ok && j.error === "dealer_active_limit_reached") {
@@ -272,7 +294,23 @@ export function AutosPublishConfirmCore({
       setPhase("error");
       return;
     }
+    if (!res.ok && j.error === "bundle_requires_qa_bypass") {
+      setErrorDetail(j.message ?? c.checkoutErrorGeneric);
+      setPhase("error");
+      return;
+    }
     if (res.ok && (j.internalBypass || j.testPublishBypass) && typeof j.successUrl === "string" && j.successUrl) {
+      if (j.bundlePublish && typeof window !== "undefined") {
+        const sessionResult: AutosBundlePublishSessionResult = {
+          mainListingId: j.bundlePublish.mainListingId,
+          published: j.bundlePublish.published,
+          totalPublished: j.bundlePublish.totalPublished,
+          qaBypass: true,
+          inventoryIncluded: j.bundlePublish.inventoryIncluded,
+          inventoryLimit: j.bundlePublish.inventoryLimit,
+        };
+        window.sessionStorage.setItem(AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY, JSON.stringify(sessionResult));
+      }
       if (inventoryCtx) {
         clearInventoryAddContextFromSession();
         const returnHref = resolveInventoryAddReturnHref({
@@ -306,6 +344,9 @@ export function AutosPublishConfirmCore({
     normalizeVehicleSegment(listing.vehicleTitle?.trim()) ||
     "—";
   const locLine = [listing.city, listing.state, listing.zip].filter((x) => (x ?? "").trim()).join(", ") || "—";
+  const qaBypassActive = publishConfirmMode !== "stripe";
+  const bundleCount =
+    lane === "negocios" && !inventoryCtx ? countApplicationInventoryVehicles(additionalInventoryVehicles.length) : 0;
 
   const summaryRow = (label: string, value: ReactNode, valueClass = "font-semibold text-[color:var(--lx-text)]") => (
     <div className="flex flex-col gap-1 py-3.5 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:py-3">
@@ -318,6 +359,23 @@ export function AutosPublishConfirmCore({
     <div className="mx-auto max-w-xl px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[color:var(--lx-text)] sm:py-10">
       <h1 className="text-2xl font-bold tracking-tight sm:text-[1.65rem]">{c.title}</h1>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.subtitle}</p>
+      {qaBypassActive ? (
+        <p className="mt-3 inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950">
+          {autosQaPaymentBypassLabel(lang)}
+        </p>
+      ) : null}
+      {bundleCount > 1 ? (
+        <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+          {lang === "es"
+            ? `Esta solicitud publicará ${bundleCount} vehículos (${bundleCount}/${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} incluidos) bajo el mismo inventario del dealer.`
+            : `This application will publish ${bundleCount} vehicles (${bundleCount}/${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} included) under the same dealer inventory.`}
+          {!qaBypassActive
+            ? lang === "es"
+              ? " Con pago Stripe solo se activa el vehículo principal; los adicionales se agregan después desde el inventario."
+              : " With Stripe payment only the main vehicle activates; add additional vehicles from inventory afterward."
+            : null}
+        </p>
+      ) : null}
       <dl className="mt-8 divide-y divide-[color:var(--lx-nav-border)]/80 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-sm shadow-sm sm:px-5 sm:py-3">
         {summaryRow(c.laneLine, c.laneValue)}
         {summaryRow(c.summaryVehicle, vehicleLine)}

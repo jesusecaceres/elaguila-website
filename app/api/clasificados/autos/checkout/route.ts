@@ -20,13 +20,100 @@ import { isAutosAllowTestPublishBypassEnabled } from "@/app/lib/clasificados/aut
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { autosDealerInventoryLimitMessage } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
+import {
+  normalizeAdditionalInventoryVehicles,
+  countApplicationInventoryVehicles,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  promoteNegociosMainInventoryListing,
+  publishNegociosBundleAdditionalVehicles,
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 
 export const dynamic = "force-dynamic";
 
-type Body = { listingId?: string; lang?: AutosClassifiedsLang; returnToListingId?: string };
+type Body = {
+  listingId?: string;
+  lang?: AutosClassifiedsLang;
+  returnToListingId?: string;
+  /** Negocios QA bundle: additional inventory drafts to publish after main activates (bypass only). */
+  additionalInventoryVehicles?: unknown[];
+};
 
 function dealerLimitMessage(lang: AutosClassifiedsLang): string {
   return autosDealerInventoryLimitMessage(lang);
+}
+
+async function finishAutosBypassCheckout(opts: {
+  listingId: string;
+  row: NonNullable<Awaited<ReturnType<typeof assertAutosListingOwner>>>;
+  userId: string;
+  lang: AutosClassifiedsLang;
+  returnQ: string;
+  testPublish: boolean;
+  additionalInventoryVehicles: unknown[] | undefined;
+}) {
+  const { listingId, row, userId, lang, returnQ, testPublish } = opts;
+  const okAct = await activateAutosClassifiedsListing(listingId);
+  if (!okAct) {
+    if (row.lane === "negocios") {
+      return NextResponse.json(
+        { ok: false, error: "dealer_active_limit_reached", message: dealerLimitMessage(lang) },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
+  }
+  const live = await getAutosClassifiedsListingById(listingId);
+  if (!live || live.status !== "active" || !live.published_at?.trim()) {
+    return NextResponse.json({ ok: false, error: "activate_verify_failed" }, { status: 500 });
+  }
+
+  let bundlePublish:
+    | Awaited<ReturnType<typeof publishNegociosBundleAdditionalVehicles>>
+    | undefined;
+
+  if (row.lane === "negocios") {
+    await promoteNegociosMainInventoryListing(listingId);
+    const additional = normalizeAdditionalInventoryVehicles(opts.additionalInventoryVehicles ?? []);
+    if (additional.length > 0) {
+      bundlePublish = await publishNegociosBundleAdditionalVehicles({
+        ownerUserId: userId,
+        mainListingId: listingId,
+        additionalVehicles: additional,
+        lang,
+      });
+    }
+  }
+
+  const origin = getAutosSiteOrigin();
+  const qLang = lang === "en" ? "lang=en" : "lang=es";
+  const laneQ = `lane=${encodeURIComponent(row.lane)}`;
+  const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
+  const bundleQ = bundlePublish && bundlePublish.published.length > 1 ? "&bundle=1" : "";
+  const testQ = testPublish ? "&test_publish=1" : "";
+  const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1${testQ}&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}${returnQ}${bundleQ}`;
+
+  return NextResponse.json({
+    ok: true,
+    ...(testPublish ? { testPublishBypass: true as const } : { internalBypass: true as const }),
+    liveUrl: `${origin}${livePath}`,
+    successUrl,
+    ...(bundlePublish
+      ? {
+          bundlePublish: {
+            mainListingId: bundlePublish.mainListingId,
+            published: bundlePublish.published,
+            additionalSkipped: bundlePublish.additionalSkipped,
+            totalPublished: bundlePublish.published.length,
+            inventoryIncluded: countApplicationInventoryVehicles(
+              Math.max(0, bundlePublish.published.length - 1),
+            ),
+            inventoryLimit: STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+          },
+        }
+      : {}),
+  });
 }
 
 export async function POST(request: Request) {
@@ -62,9 +149,12 @@ export async function POST(request: Request) {
   const lang: AutosClassifiedsLang = body.lang === "en" || row.lang === "en" ? "en" : "es";
   const returnTo = body.returnToListingId?.trim();
   const returnQ = returnTo ? `&return_to=${encodeURIComponent(returnTo)}` : "";
+  const additionalDrafts =
+    row.lane === "negocios" ? normalizeAdditionalInventoryVehicles(body.additionalInventoryVehicles ?? []) : [];
   if (row.lane === "negocios") {
     const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
-    if (!dealerInventory.canAddActiveVehicle) {
+    const slotsNeeded = countApplicationInventoryVehicles(additionalDrafts.length);
+    if (dealerInventory.activeCount + slotsNeeded > STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT) {
       return NextResponse.json(
         {
           ok: false,
@@ -78,60 +168,42 @@ export async function POST(request: Request) {
   }
 
   if (internalBypass) {
-    const okAct = await activateAutosClassifiedsListing(listingId);
-    if (!okAct) {
-      if (row.lane === "negocios") {
-        return NextResponse.json(
-          { ok: false, error: "dealer_active_limit_reached", message: dealerLimitMessage(lang) },
-          { status: 409 },
-        );
-      }
-      return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
-    }
-    const live = await getAutosClassifiedsListingById(listingId);
-    if (!live || live.status !== "active" || !live.published_at?.trim()) {
-      return NextResponse.json({ ok: false, error: "activate_verify_failed" }, { status: 500 });
-    }
-    const origin = getAutosSiteOrigin();
-    const qLang = lang === "en" ? "lang=en" : "lang=es";
-    const laneQ = `lane=${encodeURIComponent(row.lane)}`;
-    const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
-    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}${returnQ}`;
-    return NextResponse.json({
-      ok: true,
-      internalBypass: true as const,
-      liveUrl: `${origin}${livePath}`,
-      successUrl,
+    return finishAutosBypassCheckout({
+      listingId,
+      row,
+      userId,
+      lang,
+      returnQ,
+      testPublish: false,
+      additionalInventoryVehicles: body.additionalInventoryVehicles,
     });
   }
 
   /** Autos Phase 2: dev/staging test publish without Stripe (gated env; never production). */
   if (testPublishBypass) {
-    const okAct = await activateAutosClassifiedsListing(listingId);
-    if (!okAct) {
-      if (row.lane === "negocios") {
-        return NextResponse.json(
-          { ok: false, error: "dealer_active_limit_reached", message: dealerLimitMessage(lang) },
-          { status: 409 },
-        );
-      }
-      return NextResponse.json({ ok: false, error: "activate_failed" }, { status: 500 });
-    }
-    const live = await getAutosClassifiedsListingById(listingId);
-    if (!live || live.status !== "active" || !live.published_at?.trim()) {
-      return NextResponse.json({ ok: false, error: "activate_verify_failed" }, { status: 500 });
-    }
-    const origin = getAutosSiteOrigin();
-    const qLang = lang === "en" ? "lang=en" : "lang=es";
-    const laneQ = `lane=${encodeURIComponent(row.lane)}`;
-    const livePath = `${autosLiveVehiclePath(listingId)}?${qLang}`;
-    const successUrl = `${origin}/clasificados/autos/pago/exito?internal=1&test_publish=1&listing_id=${encodeURIComponent(listingId)}&${qLang}&${laneQ}${returnQ}`;
-    return NextResponse.json({
-      ok: true,
-      testPublishBypass: true as const,
-      liveUrl: `${origin}${livePath}`,
-      successUrl,
+    return finishAutosBypassCheckout({
+      listingId,
+      row,
+      userId,
+      lang,
+      returnQ,
+      testPublish: true,
+      additionalInventoryVehicles: body.additionalInventoryVehicles,
     });
+  }
+
+  if (row.lane === "negocios" && additionalDrafts.length > 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "bundle_requires_qa_bypass",
+        message:
+          lang === "es"
+            ? "La publicación en lote del inventario requiere modo QA (bypass de pago). Publica el anuncio principal con Stripe y agrega vehículos desde el inventario del dealer."
+            : "Bundle inventory publish requires QA mode (payment bypass). Publish the main listing with Stripe and add vehicles from dealer inventory.",
+      },
+      { status: 409 },
+    );
   }
 
   const priceId = getStripePriceIdForAutosLane(row.lane);

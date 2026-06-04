@@ -302,7 +302,7 @@ export function additionalInventoryVehicleTitle(draft: AutosAdditionalInventoryV
   return parts.map(String).join(" ").trim() || (draft.make ?? draft.model ?? "—");
 }
 
-/** Future analytics hooks — not wired in A5.QA-08A.2. */
+/** Future analytics hooks — not wired in this gate. */
 export const AUTOS_INVENTORY_ANALYTICS_EVENTS = [
   "add_inventory_clicked",
   "inventory_drawer_opened",
@@ -313,6 +313,19 @@ export const AUTOS_INVENTORY_ANALYTICS_EVENTS = [
   "inventory_vehicle_removed",
   "inventory_preview_seen",
   "inventory_bundle_publish_started",
+  "inventory_bundle_publish_completed",
+  "result_card_click",
+  "detail_view",
+  "call_click",
+  "message_click",
+  "whatsapp_click",
+  "email_click",
+  "website_click",
+  "directions_click",
+  "google_review_click",
+  "yelp_review_click",
+  "social_click",
+  "inventory_vehicle_click",
 ] as const;
 
 /** Dealer/business fields that must never appear in the child vehicle drawer form. */

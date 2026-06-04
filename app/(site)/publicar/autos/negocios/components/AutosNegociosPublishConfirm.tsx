@@ -11,7 +11,8 @@ export function AutosNegociosPublishConfirm() {
   const params = sp ?? new URLSearchParams();
   const lang = params.get("lang") === "en" ? "en" : "es";
   const inventory = parseAutosInventoryAddSearchParams(params);
-  const { hydrated, listing, flushDraft, inventoryAddMode, inventoryAddContext } = useAutoDealerDraft();
+  const { hydrated, listing, flushDraft, inventoryAddMode, inventoryAddContext, additionalInventoryVehicles } =
+    useAutoDealerDraft();
   const editBase = inventory.inventoryModeAdd
     ? `/publicar/autos/negocios?inventoryMode=add&parentListingId=${encodeURIComponent(inventory.context?.parentListingId ?? "")}`
     : "/publicar/autos/negocios";
@@ -36,6 +37,7 @@ export function AutosNegociosPublishConfirm() {
           editHref={editHref}
           inventoryAddMode={inventoryAddMode || inventory.inventoryModeAdd}
           inventoryAddContext={inventoryAddContext ?? inventory.context}
+          additionalInventoryVehicles={inventory.inventoryModeAdd ? [] : additionalInventoryVehicles}
         />
       </div>
     </div>

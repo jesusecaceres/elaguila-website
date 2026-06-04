@@ -158,6 +158,20 @@ export function autosResultsCardLeonixIdNote(lang: AutosClassifiedsLang): string
   return lang === "es" ? "ID Leonix se generará al publicar" : "Leonix ID generated on publish";
 }
 
+export function autosQaPaymentBypassLabel(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Modo QA: pago omitido" : "QA mode: payment skipped";
+}
+
+export function autosQaPublishSuccessLabel(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Publicado en modo QA — pago omitido" : "Published in QA mode — payment skipped";
+}
+
+export function autosBundlePublishSuccessIntro(lang: AutosClassifiedsLang, published: number, limit: number): string {
+  return lang === "es"
+    ? `Se publicaron ${published} vehículo${published === 1 ? "" : "s"} (${published}/${limit} incluidos en este inventario).`
+    : `${published} vehicle${published === 1 ? "" : "s"} published (${published}/${limit} included in this inventory).`;
+}
+
 export function autosInventoryBoostStripeReturnNote(lang: AutosClassifiedsLang): string {
   return lang === "es"
     ? "Inventory Boost agrega 10 espacios adicionales por $129/mes. Después del pago, regresarás a esta misma solicitud para seguir agregando vehículos sin perder tu información."
