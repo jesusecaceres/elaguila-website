@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
+import { LeonixRealEstateSortablePhotoStrip } from "@/app/(site)/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import {
   COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_SUBVALUE_LABEL_EN,
@@ -235,7 +237,8 @@ function UrlOrFileRow({
   pegarUrl,
   subirArchivo,
   quitar,
-  uploadedLabel,
+  fileReadyLabel,
+  usarUrlLabel,
 }: {
   label: string;
   hint?: string;
@@ -249,19 +252,34 @@ function UrlOrFileRow({
   pegarUrl: string;
   subirArchivo: string;
   quitar: string;
-  uploadedLabel: string;
+  fileReadyLabel: string;
+  usarUrlLabel: string;
 }) {
+  const [urlDraft, setUrlDraft] = useState(urlValue);
+  useEffect(() => {
+    setUrlDraft(urlValue);
+  }, [urlValue]);
+
   return (
     <AiField label={label} hint={hint}>
       <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-start">
         <input
           type="url"
           className={`${aiInputClass} sm:flex-1`}
-          value={urlValue}
-          onChange={(e) => onUrl(e.target.value)}
+          value={urlDraft}
+          onChange={(e) => setUrlDraft(e.target.value)}
           placeholder={pegarUrl}
           autoComplete="off"
+          disabled={fileActive}
         />
+        <button
+          type="button"
+          disabled={fileActive || !urlDraft.trim()}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-2.5 text-xs font-semibold text-[#5C4E2E] disabled:opacity-40 sm:min-h-0"
+          onClick={() => onUrl(urlDraft.trim())}
+        >
+          {usarUrlLabel}
+        </button>
         <label className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold text-[#5C4E2E] touch-manipulation sm:w-auto sm:min-h-0 sm:px-3 sm:py-2">
           {subirArchivo}
           <input
@@ -277,9 +295,12 @@ function UrlOrFileRow({
           />
         </label>
       </div>
+      {urlValue && !fileActive ? (
+        <p className="mt-2 text-xs font-medium text-[#5C5346]">{urlValue}</p>
+      ) : null}
       {fileActive ? (
         <div className="mt-2 rounded-xl border border-[#C9B46A]/45 bg-[#FFF9E8] px-3 py-2.5">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[#6E5418]">{uploadedLabel}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#6E5418]">{fileReadyLabel}</p>
           {fileName ? <p className="mt-1 text-sm font-semibold text-[#1E1810]">{fileName}</p> : null}
           <button type="button" className="mt-2 text-xs font-semibold text-red-800 hover:underline" onClick={clearFile}>
             {quitar}
@@ -421,30 +442,6 @@ export function Step02InformacionBasica({
             <span className="mt-1 block text-xs text-[#5C5346]/90">{t.step02.mostrarDireccionExactaHint}</span>
           </label>
         </div>
-        <div className="sm:col-span-2">
-          <UrlOrFileRow
-            label={t.step02.listado}
-            hint={t.step02.listadoHint}
-            urlValue={state.listadoUrl}
-            onUrl={(v) => setState((s) => ({ ...s, listadoUrl: v, listadoArchivoDataUrl: "", listadoArchivoNombre: "" }))}
-            fileAccept="application/pdf,.pdf,image/*"
-            onPickFile={(dataUrl, name) =>
-              setState((s) => ({
-                ...s,
-                listadoArchivoDataUrl: dataUrl,
-                listadoArchivoNombre: name,
-                listadoUrl: "",
-              }))
-            }
-            clearFile={() => setState((s) => ({ ...s, listadoArchivoDataUrl: "", listadoArchivoNombre: "" }))}
-            fileActive={Boolean(state.listadoArchivoDataUrl)}
-            fileName={state.listadoArchivoNombre}
-            pegarUrl={t.step02.pegarUrl}
-            subirArchivo={t.step02.subirPdf}
-            quitar={t.step02.quitar}
-            uploadedLabel={t.step03.archivoSubido}
-          />
-        </div>
       </div>
     </section>
   );
@@ -459,18 +456,6 @@ export function Step03Media({
 }) {
   const { t } = useBrAgenteResidencialCopy();
   const photos = state.fotosDataUrls;
-
-  const swapPhotos = (i: number, j: number) => {
-    if (j < 0 || j >= photos.length || i === j) return;
-    setState((s) => {
-      const next = [...s.fotosDataUrls];
-      [next[i], next[j]] = [next[j], next[i]];
-      let idx = s.fotoPortadaIndex;
-      if (idx === i) idx = j;
-      else if (idx === j) idx = i;
-      return { ...s, fotosDataUrls: next, fotoPortadaIndex: idx };
-    });
-  };
 
   return (
     <section className={aiCardClass}>
@@ -499,75 +484,47 @@ export function Step03Media({
             />
           </label>
           {photos.length > 0 ? (
-            <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible">
-              {photos.map((u, i) => (
-                <div key={`${i}-${u.slice(0, 32)}`} className="flex w-[5.5rem] shrink-0 flex-col gap-1.5 sm:w-auto sm:shrink">
-                  <div className="relative">
-                    { }
-                    <img src={u} alt="" className="h-[5.5rem] w-[5.5rem] rounded-lg border object-cover sm:h-20 sm:w-20" />
-                    <button
-                      type="button"
-                      className="absolute -right-1 -top-1 flex h-8 min-w-[2rem] items-center justify-center rounded-full bg-white px-2 text-xs shadow touch-manipulation"
-                      aria-label={t.step03.eliminar}
-                      onClick={() =>
-                        setState((s) => {
-                          const next = s.fotosDataUrls.filter((_, j) => j !== i);
-                          let idx = s.fotoPortadaIndex;
-                          if (idx === i) idx = Math.min(i, Math.max(0, next.length - 1));
-                          else if (idx > i) idx -= 1;
-                          if (idx >= next.length) idx = Math.max(0, next.length - 1);
-                          return { ...s, fotosDataUrls: next, fotoPortadaIndex: idx };
-                        })
-                      }
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      disabled={i <= 0}
-                      className="min-h-[40px] min-w-[2.5rem] touch-manipulation rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:px-1.5 sm:py-0.5 sm:text-[10px]"
-                      aria-label={t.step03.moverIzq}
-                      onClick={() => swapPhotos(i, i - 1)}
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      disabled={i >= photos.length - 1}
-                      className="min-h-[40px] min-w-[2.5rem] touch-manipulation rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40 sm:min-h-0 sm:min-w-0 sm:px-1.5 sm:py-0.5 sm:text-[10px]"
-                      aria-label={t.step03.moverDer}
-                      onClick={() => swapPhotos(i, i + 1)}
-                    >
-                      →
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LeonixRealEstateSortablePhotoStrip
+              urls={photos}
+              primaryImageIndex={state.fotoPortadaIndex}
+              onReorder={(nextUrls, nextPrimary) =>
+                setState((s) => ({ ...s, fotosDataUrls: nextUrls, fotoPortadaIndex: nextPrimary }))
+              }
+              onRemove={(i) =>
+                setState((s) => {
+                  const next = s.fotosDataUrls.filter((_, j) => j !== i);
+                  let idx = s.fotoPortadaIndex;
+                  if (idx >= next.length) idx = Math.max(0, next.length - 1);
+                  return { ...s, fotosDataUrls: next, fotoPortadaIndex: idx };
+                })
+              }
+              onSetPrimary={(i) => setState((s) => ({ ...s, fotoPortadaIndex: i }))}
+            />
           ) : null}
         </div>
-        {photos.length > 0 ? (
-          <AiField label={t.step03.portada} hint={t.step03.portadaHint}>
-            <select
-              className={aiInputClass}
-              value={state.fotoPortadaIndex}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  fotoPortadaIndex: Number(e.target.value),
-                }))
-              }
-            >
-              {photos.map((_, i) => (
-                <option key={i} value={i}>
-                  {t.step03.fotoN(i + 1)}
-                </option>
-              ))}
-            </select>
-          </AiField>
-        ) : null}
+        <UrlOrFileRow
+          label={t.step02.listado}
+          hint={t.step02.listadoHint}
+          urlValue={state.listadoUrl}
+          onUrl={(v) => setState((s) => ({ ...s, listadoUrl: v, listadoArchivoDataUrl: "", listadoArchivoNombre: "" }))}
+          fileAccept="application/pdf,.pdf,image/*"
+          onPickFile={(dataUrl, name) =>
+            setState((s) => ({
+              ...s,
+              listadoArchivoDataUrl: dataUrl,
+              listadoArchivoNombre: name,
+              listadoUrl: "",
+            }))
+          }
+          clearFile={() => setState((s) => ({ ...s, listadoArchivoDataUrl: "", listadoArchivoNombre: "" }))}
+          fileActive={Boolean(state.listadoArchivoDataUrl)}
+          fileName={state.listadoArchivoNombre}
+          pegarUrl={t.step02.pegarUrl}
+          subirArchivo={t.step02.subirPdf}
+          quitar={t.step02.quitar}
+          fileReadyLabel={t.step03.archivoListoPublicar}
+          usarUrlLabel={t.step03.usarUrl}
+        />
         <UrlOrFileRow
           label={t.step03.video}
           hint={t.step03.videoHint}
@@ -581,9 +538,10 @@ export function Step03Media({
           fileActive={Boolean(state.videoDataUrl)}
           fileName={state.videoArchivoNombre}
           pegarUrl={t.step02.pegarUrl}
-          subirArchivo={t.step03.subirVideo}
+          subirArchivo={t.step03.subirVideoDispositivo}
           quitar={t.step02.quitar}
-          uploadedLabel={t.step03.archivoSubido}
+          fileReadyLabel={t.step03.videoListoPublicar}
+          usarUrlLabel={t.step03.usarUrl}
         />
         <UrlOrFileRow
           label={t.step03.tour}
@@ -600,7 +558,8 @@ export function Step03Media({
           pegarUrl={t.step02.pegarUrl}
           subirArchivo={t.step02.subirPdf}
           quitar={t.step02.quitar}
-          uploadedLabel={t.step03.archivoSubido}
+          fileReadyLabel={t.step03.archivoListoPublicar}
+          usarUrlLabel={t.step03.usarUrl}
         />
         <UrlOrFileRow
           label={t.step03.folleto}
@@ -617,7 +576,8 @@ export function Step03Media({
           pegarUrl={t.step02.pegarUrl}
           subirArchivo={t.step02.subirPdf}
           quitar={t.step02.quitar}
-          uploadedLabel={t.step03.archivoSubido}
+          fileReadyLabel={t.step03.archivoListoPublicar}
+          usarUrlLabel={t.step03.usarUrl}
         />
       </div>
     </section>

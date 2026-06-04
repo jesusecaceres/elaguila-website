@@ -22,6 +22,7 @@ import { SelectWithOtherField } from "./SelectWithOtherField";
 import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
+import { useAutosVehicleStructuredSpecFill } from "@/app/publicar/autos/shared/components/useAutosVehicleStructuredSpecFill";
 import { AutosCustomEquipmentField } from "@/app/publicar/autos/shared/components/AutosCustomEquipmentField";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
@@ -102,6 +103,12 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
       ? autosInventoryBundleStatusReady(lang)
       : autosInventoryBundleStatusDraft(lang);
   const photoCount = inventoryVehiclePhotoCount(draft);
+
+  useAutosVehicleStructuredSpecFill({
+    lang,
+    listing: draft as AutoDealerListing,
+    onPatch: (p) => onPatch(p as Partial<AutosAdditionalInventoryVehicleDraft>),
+  });
 
   return (
     <div className="space-y-5">

@@ -37,6 +37,7 @@ import { AutosNegociosResultsCardPreview } from "./AutosNegociosResultsCardPrevi
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
+import { useAutosVehicleStructuredSpecFill } from "@/app/publicar/autos/shared/components/useAutosVehicleStructuredSpecFill";
 import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/components/AutosDealerStructuredAddressFields";
 import { AutosDealerLogoUpload } from "@/app/publicar/autos/shared/components/AutosDealerLogoUpload";
 import { AutosCustomEquipmentField } from "@/app/publicar/autos/shared/components/AutosCustomEquipmentField";
@@ -114,6 +115,8 @@ export function AutosNegociosApplication() {
     () => buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim),
     [listing.year, listing.make, listing.model, listing.trim],
   );
+
+  useAutosVehicleStructuredSpecFill({ lang, listing, onPatch: setListingPatch });
 
   useEffect(() => {
     document.title = t.meta.applicationTitle;

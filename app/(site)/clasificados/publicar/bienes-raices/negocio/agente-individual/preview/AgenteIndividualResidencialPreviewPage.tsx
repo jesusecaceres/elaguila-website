@@ -55,7 +55,6 @@ import {
   hasDescription,
   hasFeatures,
   hasLowerExtras,
-  hasNotas,
   hasPropertyDetails,
 } from "../lib/agenteResidencialPreviewPresence";
 
@@ -231,8 +230,6 @@ export function AgenteIndividualResidencialPreviewPage({
   const agente2OfficeRaw = trim(data.agente2TelefonoOficina);
   const agente2PersonalOk = digitsOnly(agente2PersonalRaw).length >= 10;
   const agente2OfficeOk = digitsOnly(agente2OfficeRaw).length >= 10;
-  const agente2WaHref = previewWhatsappClickHref(data.agente2Whatsapp);
-  const agente2SiteHref = hrefFromUserInput(data.agente2SitioWeb);
 
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
@@ -255,9 +252,7 @@ export function AgenteIndividualResidencialPreviewPage({
   const showAgente2ContactStrip =
     agente2PersonalOk ||
     agente2OfficeOk ||
-    trim(data.agente2Correo) ||
-    Boolean(agente2WaHref) ||
-    Boolean(agente2SiteHref);
+    trim(data.agente2Correo);
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -618,7 +613,7 @@ export function AgenteIndividualResidencialPreviewPage({
               </section>
             )}
 
-            {hasDescription(data) || hasNotas(data) ? (
+            {hasDescription(data) ? (
               <section className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                 <div className={CARD_PAD}>
                   <h3
@@ -627,27 +622,15 @@ export function AgenteIndividualResidencialPreviewPage({
                   >
                     {p.descripcion}
                   </h3>
-                  {hasDescription(data) ? (
-                    <div className={`space-y-3 ${typo.body}`}>
-                      {trim(data.descripcionPrincipal)
-                        .split(/\n\n+/)
-                        .map((para, i) => (
-                          <p key={i} className="whitespace-pre-wrap text-[#3a342c]">
-                            {para}
-                          </p>
-                        ))}
-                    </div>
-                  ) : null}
-                  {hasNotas(data) ? (
-                    <div className={`${hasDescription(data) ? "mt-4 border-t pt-3" : ""}`} style={{ borderColor: "rgba(44,36,22,0.08)" }}>
-                      <p className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                        {p.notasAdicionales}
-                      </p>
-                      <p className={`${typo.body} whitespace-pre-wrap`} style={{ color: MUTED }}>
-                        {trim(data.notasAdicionales)}
-                      </p>
-                    </div>
-                  ) : null}
+                  <div className={`space-y-3 ${typo.body}`}>
+                    {trim(data.descripcionPrincipal)
+                      .split(/\n\n+/)
+                      .map((para, i) => (
+                        <p key={i} className="whitespace-pre-wrap text-[#3a342c]">
+                          {para}
+                        </p>
+                      ))}
+                  </div>
                 </div>
               </section>
             ) : null}
@@ -740,18 +723,6 @@ export function AgenteIndividualResidencialPreviewPage({
                             {formatPreviewPhoneDisplay(brokerSupportBlock.officePhone)}
                           </a>
                         ) : null}
-                        {brokerSupportBlock.whatsappHref ? (
-                          <a
-                            href={brokerSupportBlock.whatsappHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`mt-2 inline-flex items-center gap-1 ${typo.bodySm} font-semibold`}
-                            style={{ color: "#128C7E" }}
-                          >
-                            {p.whatsapp}
-                            <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
-                          </a>
-                        ) : null}
                         {brokerSupportBlock.website ? (
                           <a
                             href={brokerSupportBlock.website}
@@ -760,42 +731,13 @@ export function AgenteIndividualResidencialPreviewPage({
                             className="mt-2 inline-flex items-center gap-1 text-sm font-semibold"
                             style={{ color: BRONZE }}
                           >
-                            {p.sitioWeb}
+                            {p.masInformacion}
                             <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
                           </a>
                         ) : null}
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {brokerSupportBlock.socialInstagram ? (
-                            <SocialCircle href={brokerSupportBlock.socialInstagram} label="Instagram">
-                              <SiInstagram className="h-3.5 w-3.5" aria-hidden />
-                            </SocialCircle>
-                          ) : null}
-                          {brokerSupportBlock.socialFacebook ? (
-                            <SocialCircle href={brokerSupportBlock.socialFacebook} label="Facebook">
-                              <SiFacebook className="h-3.5 w-3.5" aria-hidden />
-                            </SocialCircle>
-                          ) : null}
-                          {brokerSupportBlock.socialYoutube ? (
-                            <SocialCircle href={brokerSupportBlock.socialYoutube} label="YouTube">
-                              <SiYoutube className="h-3.5 w-3.5" aria-hidden />
-                            </SocialCircle>
-                          ) : null}
-                          {brokerSupportBlock.socialTiktok ? (
-                            <SocialCircle href={brokerSupportBlock.socialTiktok} label="TikTok">
-                              <SiTiktok className="h-3.5 w-3.5" aria-hidden />
-                            </SocialCircle>
-                          ) : null}
-                          {brokerSupportBlock.socialX ? (
-                            <SocialCircle href={brokerSupportBlock.socialX} label="X">
-                              <SiX className="h-3.5 w-3.5" aria-hidden />
-                            </SocialCircle>
-                          ) : null}
-                          {brokerSupportBlock.socialOtro ? (
-                            <SocialCircle href={brokerSupportBlock.socialOtro} label={p.verSitioWeb}>
-                              <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
-                            </SocialCircle>
-                          ) : null}
-                        </div>
+                        <p className={`mt-3 ${typo.bodySm} leading-snug opacity-80`} style={{ color: MUTED_LIGHT }}>
+                          {p.financingDisclaimer}
+                        </p>
                       </div>
                     </div>
                   ) : null}
@@ -982,33 +924,8 @@ export function AgenteIndividualResidencialPreviewPage({
                             </a>
                           </p>
                         ) : null}
-                        {agente2WaHref ? (
-                          <p className="text-[11px]">
-                            <a
-                              href={agente2WaHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-semibold text-[#128C7E] underline-offset-2 hover:underline"
-                            >
-                              {p.whatsapp}
-                            </a>
-                          </p>
-                        ) : null}
                         {trim(data.agente2Correo) ? (
                           <p className={`truncate text-[11px] opacity-90`}>{trim(data.agente2Correo)}</p>
-                        ) : null}
-                        {agente2SiteHref ? (
-                          <p className="text-[11px]">
-                            <a
-                              href={agente2SiteHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 font-semibold text-[#B8954A] underline-offset-2 hover:underline"
-                            >
-                              {p.sitioWeb}
-                              <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
-                            </a>
-                          </p>
                         ) : null}
                       </div>
                     ) : null}

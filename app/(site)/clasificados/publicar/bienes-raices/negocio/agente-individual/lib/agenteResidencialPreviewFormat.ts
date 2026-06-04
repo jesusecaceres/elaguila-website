@@ -918,15 +918,8 @@ export type BrokerSupportBlock = {
   fotoDataUrl: string | null;
   personalPhone: string;
   officePhone: string;
-  whatsappHref: string | null;
   email: string;
   website: string | null;
-  socialInstagram: string | null;
-  socialFacebook: string | null;
-  socialYoutube: string | null;
-  socialTiktok: string | null;
-  socialX: string | null;
-  socialOtro: string | null;
 };
 
 export function buildBrokerSupportBlock(s: AgenteIndividualResidencialFormState): BrokerSupportBlock | null {
@@ -934,7 +927,6 @@ export function buildBrokerSupportBlock(s: AgenteIndividualResidencialFormState)
   if (!trim(s.brokerNombre)) return null;
   const personalPhone = trim(s.brokerTelefonoPersonal) || trim(s.brokerTelefono);
   const officePhone = trim(s.brokerTelefonoOficina);
-  const waHref = previewWhatsappClickHref(s.brokerWhatsapp);
   return {
     name: trim(s.brokerNombre),
     title: trim(s.brokerTitulo),
@@ -942,15 +934,8 @@ export function buildBrokerSupportBlock(s: AgenteIndividualResidencialFormState)
     fotoDataUrl: trim(s.brokerFotoDataUrl) || null,
     personalPhone,
     officePhone,
-    whatsappHref: waHref,
     email: trim(s.brokerEmail),
     website: hrefFromUserInput(s.brokerSitioWeb),
-    socialInstagram: resolveAnyHref(s.brokerInstagram),
-    socialFacebook: resolveAnyHref(s.brokerFacebook),
-    socialYoutube: resolveAnyHref(s.brokerYoutube),
-    socialTiktok: resolveAnyHref(s.brokerTiktok),
-    socialX: resolveAnyHref(s.brokerX),
-    socialOtro: resolveAnyHref(s.brokerOtro),
   };
 }
 

@@ -4,6 +4,9 @@ import {
   autosHasDraftTrailingSpace,
   autosPreserveDraftTypingValue,
 } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import {
+  getStructuredTrimOptions,
+} from "@/app/lib/clasificados/autos/autosVehicleStructuredSeed";
 
 /**
  * Curated Autos vehicle taxonomy (US marketplace oriented). Expand by editing `MODELS_BY_MAKE`.
@@ -110,6 +113,15 @@ const TRIMS_BY_MAKE_MODEL: Record<string, Record<string, readonly string[]>> = {
     "F-150": ["XL", "XLT", "Lariat", "King Ranch", "Platinum", "Limited", "Raptor"],
     Mustang: ["EcoBoost", "GT", "Mach 1", "Dark Horse"],
   },
+  Chevrolet: {
+    "Silverado 1500": ["Work Truck", "Custom", "LT", "RST", "LTZ", "High Country"],
+  },
+  Nissan: {
+    Altima: ["S", "SV", "SR", "SL", "Platinum"],
+  },
+  Tesla: {
+    "Model 3": ["Standard Range", "Long Range", "Performance"],
+  },
 };
 
 export function getAutosVehicleYearOptions(): number[] {
@@ -130,9 +142,14 @@ export function getTrimOptionsForMakeModel(make: string | undefined, model: stri
   const m = resolveMakeToCanonical(make);
   const mo = resolveModelToCanonical(make, model);
   if (!m || !mo) return [];
+
+  const merged = new Set<string>();
+  for (const t of getStructuredTrimOptions(m, mo)) merged.add(t.label);
   const byModel = TRIMS_BY_MAKE_MODEL[m];
-  if (!byModel) return [];
-  return byModel[mo] ?? [];
+  if (byModel?.[mo]) {
+    for (const t of byModel[mo]) merged.add(t);
+  }
+  return [...merged].sort((a, b) => a.localeCompare(b));
 }
 
 /** Case-insensitive match → canonical catalog make, or undefined if unknown. */

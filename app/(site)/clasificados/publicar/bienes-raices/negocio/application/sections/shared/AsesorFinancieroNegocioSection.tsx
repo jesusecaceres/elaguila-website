@@ -24,12 +24,12 @@ export function AsesorFinancieroNegocioSection({
   if (!state.asesorFinancieroActivo) {
     return (
       <section className={brCardClass}>
-        <h2 className={brSectionTitleClass}>Asesor de préstamos / financiamiento</h2>
+        <h2 className={brSectionTitleClass}>Financiamiento</h2>
         <p className={brSubTitleClass}>
           Puedes activarlo aquí o desde el paso de identidad (<span className="font-semibold">paso 9</span>). Los campos
           detallados se capturan en este paso (<span className="font-semibold">paso 11</span> del asistente).
         </p>
-        <BrPreviewHint>Cuando está activo, aparece el bloque de apoyo de financiamiento junto al carril de contacto.</BrPreviewHint>
+        <BrPreviewHint>Cuando está activo, aparece el bloque de financiamiento junto al carril de contacto.</BrPreviewHint>
         <label className="mt-4 flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 text-sm font-medium text-[#2C2416]">
           <input
             type="checkbox"
@@ -37,7 +37,7 @@ export function AsesorFinancieroNegocioSection({
             checked={false}
             onChange={() => setState((s) => ({ ...s, asesorFinancieroActivo: true }))}
           />
-          Incluir bloque de asesor de préstamos
+          Incluir bloque de financiamiento
         </label>
       </section>
     );
@@ -45,11 +45,11 @@ export function AsesorFinancieroNegocioSection({
 
   return (
     <section className={brCardClass}>
-      <h2 className={brSectionTitleClass}>Asesor de préstamos / financiamiento</h2>
+      <h2 className={brSectionTitleClass}>Financiamiento</h2>
       <p className={brSubTitleClass}>
         Aparece como tarjeta de apoyo junto al contacto principal. Puedes desactivarlo si cambias de opinión.
       </p>
-      <BrPreviewHint>Tarjeta de asesor de préstamos debajo del rail de CTAs en el preview.</BrPreviewHint>
+      <BrPreviewHint>Tarjeta de financiamiento debajo del rail de CTAs en el preview.</BrPreviewHint>
       <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2C2416]">
         <input
           type="checkbox"

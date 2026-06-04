@@ -911,22 +911,25 @@ function buildLenderVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
   if (!trim(a.nombre)) return null;
   if (!s.asesorFinancieroActivo) return null;
   const nmls = trim(a.nmls);
+  const websiteHref = trim(a.sitioWeb).match(/^https?:\/\//i) ? trim(a.sitioWeb) : null;
   const subtitle =
     [
       trim(a.compania),
       trim(a.telefono),
       trim(a.email),
       nmls ? `NMLS ${nmls}` : "",
-      trim(a.sitioWeb),
       trim(a.textoApoyo),
     ]
       .filter(Boolean)
       .join(" · ") || "Financiamiento";
   return {
     name: trim(a.nombre),
-    role: trim(a.rol) || "Asesor de préstamos",
+    role: trim(a.rol) || "Financiamiento",
     subtitle,
     photoUrl: trim(a.fotoUrl) || null,
+    websiteHref,
+    disclaimer:
+      "Información proporcionada por el anunciante. Leonix no garantiza aprobación, tasas ni términos.",
   };
 }
 

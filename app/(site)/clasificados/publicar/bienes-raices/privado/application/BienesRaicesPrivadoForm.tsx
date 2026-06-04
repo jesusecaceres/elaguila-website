@@ -483,12 +483,12 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="sm:col-span-2">
               <AiField
-                label="DescripciÃ³n de la propiedad"
-                hint="Describe la vivienda o terreno: distribuciÃ³n, estado, luz, vecindario, accesos. Es el texto principal del anuncio."
+                label="Descripción principal"
+                hint="Describe la propiedad, el espacio, las reglas importantes y lo que debe saber la persona interesada."
               >
                 <textarea
                   className={textareaFieldClass}
-                  rows={6}
+                  rows={8}
                   value={state.descripcion}
                   onChange={(e) => setState((s) => ({ ...s, descripcion: e.target.value }))}
                 />

@@ -5,8 +5,13 @@ import {
   autosHasDraftTrailingSpace,
   autosPreserveDraftTypingValue,
 } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import {
+  AUTOS_VEHICLE_STRUCTURED_SEED,
+  getStructuredEngineOptions,
+  resolveStructuredEngineOption,
+} from "@/app/lib/clasificados/autos/autosVehicleStructuredSeed";
 
-/** Curated engines (make → model → trim[] → engines). Expand as taxonomy grows. */
+/** Legacy curated engines (make → model → trim → engines). Merged with structured seed. */
 const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, readonly string[]>>> = {
   Toyota: {
     Camry: {
@@ -14,6 +19,11 @@ const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, r
       SE: ["2.5L I4", "2.5L Hybrid"],
       XLE: ["2.5L I4", "2.5L Hybrid"],
       XSE: ["2.5L I4", "2.5L Hybrid"],
+    },
+    Corolla: {
+      L: ["1.8L I4", "2.0L I4"],
+      LE: ["1.8L I4", "2.0L I4"],
+      SE: ["2.0L I4", "1.8L Hybrid"],
     },
     RAV4: {
       LE: ["2.5L I4", "2.5L Hybrid"],
@@ -33,6 +43,11 @@ const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, r
       EX: ["1.5L Turbo I4", "2.0L Hybrid"],
       Touring: ["2.0L Turbo I4", "2.0L Hybrid"],
     },
+    "CR-V": {
+      LX: ["1.5L Turbo I4", "2.0L Hybrid"],
+      EX: ["1.5L Turbo I4", "2.0L Hybrid"],
+      Touring: ["1.5L Turbo I4", "2.0L Hybrid"],
+    },
   },
   Ford: {
     "F-150": {
@@ -46,9 +61,6 @@ const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, r
     },
   },
   Tesla: {
-    "Model 3": {
-      __any__: ["Electric"],
-    },
     "Model Y": {
       __any__: ["Electric"],
     },
@@ -70,7 +82,13 @@ for (const byMake of Object.values(ENGINES_BY_MAKE_MODEL_TRIM)) {
   }
 }
 
-export function getEngineOptionsForVehicle(
+for (const entry of AUTOS_VEHICLE_STRUCTURED_SEED) {
+  for (const tr of entry.trims) {
+    for (const e of tr.engines ?? []) registerEngine(e.label);
+  }
+}
+
+function legacyEngineOptions(
   make: string | undefined,
   model: string | undefined,
   trim: string | undefined,
@@ -87,6 +105,17 @@ export function getEngineOptionsForVehicle(
 
   const merged = new Set<string>();
   for (const list of Object.values(byModel)) for (const e of list) merged.add(e);
+  return [...merged].sort((a, b) => a.localeCompare(b));
+}
+
+export function getEngineOptionsForVehicle(
+  make: string | undefined,
+  model: string | undefined,
+  trim: string | undefined,
+): readonly string[] {
+  const structured = getStructuredEngineOptions(make, model, trim).map((e) => e.label);
+  const legacy = legacyEngineOptions(make, model, trim);
+  const merged = new Set<string>([...structured, ...legacy]);
   return [...merged].sort((a, b) => a.localeCompare(b));
 }
 
@@ -122,6 +151,14 @@ export function coerceEngineFromCatalog(
     return {
       engine: autosPreserveDraftTypingValue(raw, catalog),
       engineNormalized: catalog,
+    };
+  }
+
+  const structured = resolveStructuredEngineOption(listing.make, listing.model, listing.trim, trimmed);
+  if (structured) {
+    return {
+      engine: autosPreserveDraftTypingValue(raw, structured.normalizedValue),
+      engineNormalized: structured.normalizedValue,
     };
   }
 

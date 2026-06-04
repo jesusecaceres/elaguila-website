@@ -373,19 +373,12 @@ export function Step06Descripcion({
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{t.step06.title}</h2>
       <div className="mt-5 space-y-4">
-        <AiField label={t.step06.principal}>
+        <AiField label={t.step06.principal} hint={t.step06.principalHint}>
           <textarea
-            className={aiTextareaClass}
+            className={`${aiTextareaClass} min-h-[12rem]`}
+            rows={8}
             value={state.descripcionPrincipal}
             onChange={(e) => setState((s) => ({ ...s, descripcionPrincipal: e.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
-        <AiField label={t.step06.notas} hint={t.step06.notasHint}>
-          <textarea
-            className={aiTextareaClass}
-            value={state.notasAdicionales}
-            onChange={(e) => setState((s) => ({ ...s, notasAdicionales: e.target.value }))}
             autoComplete="off"
           />
         </AiField>
@@ -809,20 +802,6 @@ export function Step07InformacionProfesional({
                 placeholder="(555) 555-5555"
               />
             </AiField>
-            <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
-              <input
-                className={aiInputClass}
-                value={formatUsPhoneDisplay(digitsOnly(state.agente2Whatsapp))}
-                onChange={(e) => {
-                  const prev = digitsOnly(state.agente2Whatsapp);
-                  const { display } = onPhoneInputChange(e.target.value, prev);
-                  setState((s) => ({ ...s, agente2Whatsapp: display }));
-                }}
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="(555) 555-5555"
-              />
-            </AiField>
             {digitsOnly(state.agente2TelefonoPersonal || state.agente2Telefono).length >= 10 &&
             digitsOnly(state.agente2TelefonoOficina).length >= 10 ? (
               <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
@@ -856,16 +835,6 @@ export function Step07InformacionProfesional({
                 value={state.agente2Correo}
                 onChange={(e) => setState((s) => ({ ...s, agente2Correo: e.target.value }))}
                 autoComplete="email"
-              />
-            </AiField>
-            <AiField label={s7.sitioWebAgente} hint={s7.sitioWebAgenteHint}>
-              <input
-                className={aiInputClass}
-                type="url"
-                value={state.agente2SitioWeb}
-                onChange={(e) => setState((s) => ({ ...s, agente2SitioWeb: e.target.value }))}
-                placeholder="https://"
-                autoComplete="url"
               />
             </AiField>
             <div className="sm:col-span-2">
@@ -1012,46 +981,6 @@ export function Step07InformacionProfesional({
                 placeholder="(555) 555-5555"
               />
             </AiField>
-            <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
-              <input
-                className={aiInputClass}
-                value={formatUsPhoneDisplay(digitsOnly(state.brokerWhatsapp))}
-                onChange={(e) => {
-                  const prev = digitsOnly(state.brokerWhatsapp);
-                  const { display } = onPhoneInputChange(e.target.value, prev);
-                  setState((s) => ({ ...s, brokerWhatsapp: display }));
-                }}
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="(555) 555-5555"
-              />
-            </AiField>
-            {digitsOnly(state.brokerTelefonoPersonal || state.brokerTelefono).length >= 10 &&
-            digitsOnly(state.brokerTelefonoOficina).length >= 10 ? (
-              <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
-                <legend className="px-1 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.numeroPrincipalLlamadas}</legend>
-                <div className="mt-2 flex flex-wrap gap-4 text-sm text-[#2C2416]">
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
-                      checked={state.brokerPrincipalLlamadas === "personal"}
-                      onChange={() => setState((s) => ({ ...s, brokerPrincipalLlamadas: "personal" }))}
-                    />
-                    {s7.principalPersonal}
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 border-[#C9B46A] text-[#B8954A]"
-                      checked={state.brokerPrincipalLlamadas === "oficina"}
-                      onChange={() => setState((s) => ({ ...s, brokerPrincipalLlamadas: "oficina" }))}
-                    />
-                    {s7.principalOficina}
-                  </label>
-                </div>
-              </fieldset>
-            ) : null}
             <AiField label={s7.brokerEmail}>
               <input
                 type="email"
@@ -1071,29 +1000,23 @@ export function Step07InformacionProfesional({
                 autoComplete="url"
               />
             </AiField>
-            <AiField label={s7.brokerInstagram}>
-              <input className={aiInputClass} type="url" value={state.brokerInstagram} onChange={(e) => setState((s) => ({ ...s, brokerInstagram: e.target.value }))} placeholder="https://" />
-            </AiField>
-            <AiField label={s7.brokerFacebook}>
-              <input className={aiInputClass} type="url" value={state.brokerFacebook} onChange={(e) => setState((s) => ({ ...s, brokerFacebook: e.target.value }))} placeholder="https://" />
-            </AiField>
-            <AiField label={s7.brokerYoutube}>
-              <input className={aiInputClass} type="url" value={state.brokerYoutube} onChange={(e) => setState((s) => ({ ...s, brokerYoutube: e.target.value }))} placeholder="https://" />
-            </AiField>
-            <AiField label={s7.brokerTiktok}>
-              <input className={aiInputClass} type="url" value={state.brokerTiktok} onChange={(e) => setState((s) => ({ ...s, brokerTiktok: e.target.value }))} placeholder="https://" />
-            </AiField>
-            <AiField label={s7.brokerX}>
-              <input className={aiInputClass} type="url" value={state.brokerX} onChange={(e) => setState((s) => ({ ...s, brokerX: e.target.value }))} placeholder="https://" />
-            </AiField>
-            <AiField label={s7.brokerEnlaceAdicional}>
-              <input className={aiInputClass} type="url" value={state.brokerOtro} onChange={(e) => setState((s) => ({ ...s, brokerOtro: e.target.value }))} placeholder="https://" />
-            </AiField>
           </div>
         </div>
       )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <AiField label={s7.enlaceProgramarVisita} hint={s7.enlaceProgramarVisitaHint}>
+            <input
+              className={aiInputClass}
+              type="url"
+              value={state.ctaEnlaceProgramarVisita}
+              onChange={(e) => setState((s) => ({ ...s, ctaEnlaceProgramarVisita: e.target.value }))}
+              placeholder="https://"
+              autoComplete="url"
+            />
+          </AiField>
+        </div>
         <AiField label={s7.areaServicio}>
           <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
         </AiField>
@@ -1139,125 +1062,13 @@ export function Step08CtaEnlaces({
     </label>
   );
 
-  const maskPhone = (v: string) => formatUsPhoneDisplay(digitsOnly(v));
-
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{s8.title}</h2>
       <p className={aiSubClass}>{s8.sub}</p>
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.contactoBase}</p>
-      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.contactoBaseSub}</p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <AiField label={s8.correo} hint={s8.correoHint}>
-            <input
-              type="email"
-              className={aiInputClass}
-              value={state.correoPrincipal}
-              onChange={(e) => setState((s) => ({ ...s, correoPrincipal: e.target.value }))}
-              autoComplete="email"
-            />
-          </AiField>
-        </div>
-      </div>
-
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.destinos}</p>
-      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.destinosSub}</p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <AiField label={s8.numLlamadas} hint={s8.numLlamadasHint}>
-          <input
-            className={aiInputClass}
-            value={maskPhone(state.ctaNumeroLlamadas)}
-            onChange={(e) => {
-              const prev = digitsOnly(state.ctaNumeroLlamadas);
-              const { display } = onPhoneInputChange(e.target.value, prev);
-              setState((s) => ({ ...s, ctaNumeroLlamadas: display }));
-            }}
-            inputMode="numeric"
-            autoComplete="tel"
-          />
-        </AiField>
-        <AiField label={s8.numWa} hint={s8.numWaHint}>
-          <input
-            className={aiInputClass}
-            value={maskPhone(state.ctaNumeroWhatsapp)}
-            onChange={(e) => {
-              const prev = digitsOnly(state.ctaNumeroWhatsapp);
-              const { display } = onPhoneInputChange(e.target.value, prev);
-              setState((s) => ({ ...s, ctaNumeroWhatsapp: display }));
-            }}
-            inputMode="numeric"
-            autoComplete="tel"
-          />
-        </AiField>
-        <AiField label={s8.correoInfo} hint={s8.correoInfoHint}>
-          <input
-            type="email"
-            className={aiInputClass}
-            value={state.ctaCorreoSolicitarInfo}
-            onChange={(e) => setState((s) => ({ ...s, ctaCorreoSolicitarInfo: e.target.value }))}
-            autoComplete="email"
-          />
-        </AiField>
-        <AiField label={s8.enlaceVisita} hint={s8.enlaceVisitaHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.ctaEnlaceProgramarVisita}
-            onChange={(e) => setState((s) => ({ ...s, ctaEnlaceProgramarVisita: e.target.value }))}
-            placeholder="https://"
-          />
-        </AiField>
-        <AiField label={s8.enlaceWeb} hint={s8.enlaceWebHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.ctaEnlaceSitioWeb}
-            onChange={(e) => setState((s) => ({ ...s, ctaEnlaceSitioWeb: e.target.value }))}
-            placeholder="https://"
-          />
-        </AiField>
-        <AiField label={s8.enlaceListado} hint={s8.enlaceListadoHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.ctaUrlListadoCompleto}
-            onChange={(e) => setState((s) => ({ ...s, ctaUrlListadoCompleto: e.target.value }))}
-            placeholder="https://"
-          />
-        </AiField>
-        <AiField label={s8.enlaceMls} hint={s8.enlaceMlsHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.ctaUrlMls}
-            onChange={(e) => setState((s) => ({ ...s, ctaUrlMls: e.target.value }))}
-            placeholder="https://"
-          />
-        </AiField>
-        <AiField label={s8.enlaceTour} hint={s8.enlaceTourHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.ctaUrlTour}
-            onChange={(e) => setState((s) => ({ ...s, ctaUrlTour: e.target.value }))}
-            placeholder="https://"
-          />
-        </AiField>
-        <AiField label={s8.enlaceFolleto} hint={s8.enlaceFolletoHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.ctaUrlFolleto}
-            onChange={(e) => setState((s) => ({ ...s, ctaUrlFolleto: e.target.value }))}
-            placeholder="https://"
-          />
-        </AiField>
-      </div>
-
-      <p className="mt-8 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.interruptores}</p>
-      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.interruptoresSub}</p>
+      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.accionesVisibles}</p>
+      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.accionesVisiblesSub}</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {row("permitirSolicitarInformacion", s8.ctaSolicitar)}
         {row("permitirProgramarVisita", s8.ctaVisita)}

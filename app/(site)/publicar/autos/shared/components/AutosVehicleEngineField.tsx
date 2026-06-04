@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { getEngineOptionsForVehicle } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { autosVehicleSpecAdjustHelper } from "@/app/lib/clasificados/autos/autosVehicleSpecHints";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -108,6 +109,11 @@ export function AutosVehicleEngineField({
         </>
       )}
       <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{labels.filterNote}</p>
+      {catalogMatch && !customMode ? (
+        <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+          {autosVehicleSpecAdjustHelper(lang)}
+        </p>
+      ) : null}
     </div>
   );
 }

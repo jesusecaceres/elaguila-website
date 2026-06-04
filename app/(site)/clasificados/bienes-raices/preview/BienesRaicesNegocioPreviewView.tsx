@@ -650,6 +650,19 @@ function BienesRaicesNegocioDarkContactAside({
                 <p className="text-xs font-bold text-[#F5F0E8]">{vm.contact.lender.name}</p>
                 <p className="text-[10px] uppercase tracking-wide text-[#c4b8a8]">{vm.contact.lender.role}</p>
                 <p className="mt-1 text-xs text-[#e8dfd4]">{vm.contact.lender.subtitle}</p>
+                {vm.contact.lender.websiteHref ? (
+                  <a
+                    href={vm.contact.lender.websiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-xs font-semibold text-[#C9A85A] underline-offset-2 hover:underline"
+                  >
+                    Más información
+                  </a>
+                ) : null}
+                {vm.contact.lender.disclaimer ? (
+                  <p className="mt-2 text-[10px] leading-snug text-[#b8aea0]">{vm.contact.lender.disclaimer}</p>
+                ) : null}
               </div>
             </div>
           ) : null}

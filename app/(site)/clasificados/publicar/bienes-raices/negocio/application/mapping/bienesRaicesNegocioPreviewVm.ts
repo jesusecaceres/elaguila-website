@@ -107,6 +107,8 @@ export type BienesRaicesPreviewContactVm = {
     role: string;
     subtitle: string;
     photoUrl: string | null;
+    websiteHref?: string | null;
+    disclaimer?: string;
   };
 };
 

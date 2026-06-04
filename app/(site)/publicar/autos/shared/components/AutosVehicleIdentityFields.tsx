@@ -103,6 +103,10 @@ export function AutosVehicleIdentityFields({
     lang === "es"
       ? "Selecciona una versión si aparece en la lista. Si no ves tu versión, escríbela manualmente."
       : "Select a trim if it appears in the list. If you do not see your trim, enter it manually.";
+  const noStructuredTrimHint =
+    lang === "es"
+      ? "No encontramos trims estructurados para este modelo. Puedes escribirlo manualmente."
+      : "We do not have structured trims for this model yet. You can enter it manually.";
   const trimPlaceholder = lang === "es" ? "Versión / trim" : "Trim / version";
 
   const yearInList = year !== undefined && years.includes(year);
@@ -125,6 +129,9 @@ export function AutosVehicleIdentityFields({
   }
 
   const showMakeFreeInput = makeUnlisted || Boolean(make?.trim() && !catalogMake);
+  const modelSelected = Boolean(catalogModel || model?.trim());
+  const showNoStructuredTrimHint =
+    modelSelected && trimSuggestions.length === 0 && !trimCustomMode;
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
@@ -269,7 +276,9 @@ export function AutosVehicleIdentityFields({
             ) : null}
           </>
         )}
-        <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{trimHint}</p>
+        <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+          {showNoStructuredTrimHint ? noStructuredTrimHint : trimHint}
+        </p>
       </div>
     </div>
   );
