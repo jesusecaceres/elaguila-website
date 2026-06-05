@@ -1,6 +1,8 @@
 "use client";
 
 import type { AriaRole, CSSProperties, MouseEventHandler, ReactNode } from "react";
+import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import type { ServiciosAnalyticsTrackMeta } from "../lib/serviciosAnalyticsIdentity";
 
 type Props = {
   listingSlug?: string;
@@ -14,6 +16,8 @@ type Props = {
   "aria-label"?: string;
   onClick?: MouseEventHandler<HTMLAnchorElement>;
   role?: AriaRole;
+  engagementListingId?: string | null;
+  ownerUserId?: string | null;
 };
 
 export function ServiciosTrackedLink({
@@ -28,15 +32,21 @@ export function ServiciosTrackedLink({
   "aria-label": ariaLabel,
   onClick: onClickProp,
   role,
+  engagementListingId,
+  ownerUserId,
 }: Props) {
   const onClick: MouseEventHandler<HTMLAnchorElement> = (e) => {
     onClickProp?.(e);
     if (!listingSlug || !eventType) return;
-    void fetch("/api/clasificados/servicios/analytics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingSlug, eventType, meta: { href } }),
-    }).catch(() => {});
+    const meta: ServiciosAnalyticsTrackMeta = {
+      listingSlug,
+      slug: listingSlug,
+      engagementId: (engagementListingId ?? listingSlug).trim(),
+      ownerUserId: ownerUserId ?? undefined,
+      source: "tracked_link",
+      href,
+    };
+    trackServiciosListingCta(listingSlug, eventType, meta);
   };
 
   return (

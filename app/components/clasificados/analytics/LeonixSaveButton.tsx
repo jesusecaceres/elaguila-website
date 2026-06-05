@@ -13,7 +13,10 @@ import {
 } from "@/app/lib/savedListingsRuntime";
 
 type Props = {
+  /** Analytics / engagement alias key (may be Leonix display id for likes/shares). */
   listingId: string | null | undefined;
+  /** DB key for `saved_listings.listing_id` — use listing UUID for `listings` table rows. */
+  savedListingKey?: string | null;
   isSaved?: boolean;
   onToggle?: (isSaved: boolean) => void;
   variant?: "default" | "small" | "large";
@@ -23,6 +26,15 @@ type Props = {
   ownerUserId?: string | null;
   /** When false, no analytics or `saved_listings` writes. */
   persistEngagement?: boolean;
+  /** When set, replaces default clasificados analytics insert. */
+  recordSaveEvent?: (isSave: boolean) => void | Promise<void>;
+  /** Optional G2A identity fields (Servicios: source_table + source_id for Guardados). */
+  saveExtras?: {
+    category?: string;
+    source_table?: string;
+    source_id?: string;
+    canonical_ad_id?: string;
+  };
   /** Visual icon for save — default bookmark; Varios uses heart. */
   iconStyle?: "bookmark" | "heart";
 };
@@ -54,6 +66,7 @@ function engagementWriteFailedMsg(lang: "es" | "en") {
 
 export function LeonixSaveButton({
   listingId,
+  savedListingKey,
   isSaved: initialSaved = false,
   onToggle,
   variant = "default",
@@ -62,10 +75,13 @@ export function LeonixSaveButton({
   category,
   ownerUserId,
   persistEngagement,
+  recordSaveEvent,
+  saveExtras,
   iconStyle = "bookmark",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
-  const allowEngage = persistEngagement !== false && Boolean(effectiveId);
+  const dbListingId = (savedListingKey ?? listingId ?? "").trim();
+  const allowEngage = persistEngagement !== false && Boolean(dbListingId);
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isSaving, setIsSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -97,10 +113,10 @@ export function LeonixSaveButton({
     return () => {
       if (hintClearRef.current) clearTimeout(hintClearRef.current);
     };
-  }, [effectiveId]);
+  }, [dbListingId]);
 
   useEffect(() => {
-    if (!allowEngage || !effectiveId) {
+    if (!allowEngage || !dbListingId) {
       setHydrated(true);
       return;
     }
@@ -114,7 +130,7 @@ export function LeonixSaveButton({
         return;
       }
       if (user) {
-        const { saved } = await readSavedListingForUser(sb, user.id, effectiveId);
+        const { saved } = await readSavedListingForUser(sb, user.id, dbListingId);
         if (!cancelled && !userToggledRef.current) setIsSaved(saved);
       } else if (!cancelled && !userToggledRef.current) {
         setIsSaved(false);
@@ -124,10 +140,10 @@ export function LeonixSaveButton({
     return () => {
       cancelled = true;
     };
-  }, [allowEngage, effectiveId]);
+  }, [allowEngage, dbListingId]);
 
   useEffect(() => {
-    if (!allowEngage || !effectiveId) return;
+    if (!allowEngage || !dbListingId) return;
     const sb = createSupabaseBrowserClient();
     const { data } = sb.auth.onAuthStateChange(() => {
       if (userToggledRef.current) return;
@@ -135,7 +151,7 @@ export function LeonixSaveButton({
         const user = await getBrowserAuthUserForEngagement();
         if (userToggledRef.current) return;
         if (user) {
-          const { saved } = await readSavedListingForUser(sb, user.id, effectiveId);
+          const { saved } = await readSavedListingForUser(sb, user.id, dbListingId);
           if (!userToggledRef.current) setIsSaved(saved);
         } else if (!userToggledRef.current) {
           setIsSaved(false);
@@ -143,11 +159,11 @@ export function LeonixSaveButton({
       })();
     });
     return () => data.subscription.unsubscribe();
-  }, [allowEngage, effectiveId]);
+  }, [allowEngage, dbListingId]);
 
   const handleToggle = useCallback(async () => {
     if (isSaving) return;
-    if (!allowEngage || !effectiveId) return;
+    if (!allowEngage || !dbListingId) return;
 
     const prev = isSaved;
     const nextState = !prev;
@@ -172,14 +188,14 @@ export function LeonixSaveButton({
 
     try {
       if (nextState) {
-        const { error, table } = await upsertSavedListingForUser(sb, user.id, effectiveId);
+        const { error, table } = await upsertSavedListingForUser(sb, user.id, dbListingId, saveExtras);
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
           logEngagementWriteFailure({
             table,
-            op: "upsert",
-            listingKeyLen: effectiveId.length,
+            op: "insert",
+            listingKeyLen: dbListingId.length,
             hasUser: true,
             err: error,
           });
@@ -189,14 +205,14 @@ export function LeonixSaveButton({
         setPostSaveDashboardHint(true);
         hintClearRef.current = setTimeout(() => setPostSaveDashboardHint(false), 8000);
       } else {
-        const { error, table } = await deleteSavedListingForUser(sb, user.id, effectiveId);
+        const { error, table } = await deleteSavedListingForUser(sb, user.id, dbListingId);
         if (error) {
           setIsSaved(prev);
           userToggledRef.current = false;
           logEngagementWriteFailure({
             table,
             op: "delete",
-            listingKeyLen: effectiveId.length,
+            listingKeyLen: dbListingId.length,
             hasUser: true,
             err: error,
           });
@@ -205,23 +221,28 @@ export function LeonixSaveButton({
         }
       }
 
-      const ar = await trackListingSave(effectiveId, nextState, {
-        category,
-        ownerUserId: ownerUserId ?? undefined,
-        eventSource: "cta_card",
-        metadata: {},
-      });
-      if (!ar.ok && process.env.NODE_ENV === "development") {
-        console.warn("[lx-engagement] listing_analytics after save toggle failed", ar);
+      if (recordSaveEvent) {
+        await recordSaveEvent(nextState);
+      } else {
+        const analyticsKey = effectiveId || dbListingId;
+        const ar = await trackListingSave(analyticsKey, nextState, {
+          category,
+          ownerUserId: ownerUserId ?? undefined,
+          eventSource: "cta_card",
+          metadata: {},
+        });
+        if (!ar.ok && process.env.NODE_ENV === "development") {
+          console.warn("[lx-engagement] listing_analytics after save toggle failed", ar);
+        }
       }
 
       onToggle?.(nextState);
     } finally {
       setIsSaving(false);
     }
-  }, [allowEngage, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang]);
+  }, [allowEngage, dbListingId, effectiveId, isSaved, isSaving, onToggle, category, ownerUserId, lang, saveExtras, recordSaveEvent]);
 
-  const inert = !allowEngage || !effectiveId;
+  const inert = !allowEngage || !dbListingId;
 
   return (
     <div className="flex w-full max-w-[13.5rem] flex-col items-stretch gap-1">
