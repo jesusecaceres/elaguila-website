@@ -2,6 +2,7 @@ import type {
   OfertaLocalBusinessCategory,
   OfertaLocalDraftAssetStatus,
   OfertaLocalDraftAssetType,
+  OfertaLocalFeaturedPlacementScope,
   OfertaLocalLanguageTag,
   OfertaLocalMagazineDistributionStatus,
   OfertaLocalMarketType,
@@ -200,6 +201,20 @@ export const OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS = [
   "digitalWeeklySpecials",
   "aiSearchableSpecialsAddOn",
 ] as const satisfies ReadonlyArray<keyof typeof OFERTAS_LOCALES_PRICING>;
+
+/** Featured placement scope options — intent only (Stack 8). */
+export const OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS: ReadonlyArray<{
+  value: OfertaLocalFeaturedPlacementScope;
+  labelEs: string;
+  labelEn: string;
+}> = [
+  { value: "zip", labelEs: "Por ZIP", labelEn: "By ZIP" },
+  { value: "city", labelEs: "Por ciudad", labelEn: "By city" },
+  { value: "category", labelEs: "Por categoría", labelEn: "By category" },
+  { value: "homepage_or_section", labelEs: "Página principal o sección", labelEn: "Homepage or section" },
+  { value: "newsletter", labelEs: "Newsletter", labelEn: "Newsletter" },
+  { value: "not_sure", labelEs: "No estoy seguro", labelEn: "Not sure" },
+];
 
 export const OFERTAS_LOCALES_VERSION_1_FEATURES = [
   "Admin-managed offers",

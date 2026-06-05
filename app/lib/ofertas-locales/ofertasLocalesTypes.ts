@@ -38,6 +38,16 @@ export type OfertaLocalMarketType =
 
 export type OfertaLocalLanguageTag = "es" | "en" | "bilingual";
 
+/** Featured placement scope intent — not active until Leonix team follow-up (Stack 8). */
+export type OfertaLocalFeaturedPlacementScope =
+  | "zip"
+  | "city"
+  | "category"
+  | "homepage_or_section"
+  | "newsletter"
+  | "not_sure"
+  | "none";
+
 /** Magazine pickup / distribution partner lifecycle. */
 export type OfertaLocalMagazineDistributionStatus =
   | "not_offered"
@@ -193,10 +203,19 @@ export type OfertaLocalDraft = {
   phone: string;
   whatsapp: string;
   websiteUrl: string;
+  /** Business Hub Lite — optional social profile links (Stack 8). */
+  facebookUrl: string;
+  instagramUrl: string;
+  tiktokUrl: string;
+  youtubeUrl: string;
+  googleBusinessUrl: string;
   directionsUrl: string;
   flyerAssets: OfertaLocalDraftAsset[];
   couponAssets: OfertaLocalDraftAsset[];
   isFeaturedRequested: boolean;
+  /** Featured / Destacado placement intent — maps to is_featured_requested on publish (Stack 8). */
+  wantsFeaturedPlacement: boolean;
+  featuredPlacementScope: OfertaLocalFeaturedPlacementScope;
   /** Optional AI Searchable Specials add-on intent (Stack 6.5A — not active yet). */
   wantsAiSearchableSpecials: boolean;
   languageTags: OfertaLocalLanguageTag[];

@@ -80,6 +80,19 @@ const COPY = {
       "Archivo existente estará disponible cuando conectemos la biblioteca de archivos.",
     assetsUploadedFile: "Archivo cargado",
     assetsPdfDocument: "Documento PDF",
+    socialSectionTitle: "Redes sociales del negocio",
+    socialSectionHelper:
+      "Conecta tus redes sociales para que los compradores conozcan más de tu negocio.",
+    socialFacebook: "Facebook",
+    socialInstagram: "Instagram",
+    socialTiktok: "TikTok",
+    socialYoutube: "YouTube",
+    socialGoogleBusiness: "Google Business Profile",
+    featuredSectionTitle: "Destacado / más exposición",
+    featuredQuestion:
+      "¿Quieres aparecer destacado? El equipo de Leonix puede contactarte para opciones por ZIP, ciudad, categoría, newsletter o espacios destacados.",
+    featuredCheckbox: "Quiero opciones de exposición destacada",
+    featuredScopeLabel: "¿Dónde te interesa aparecer?",
   },
   en: {
     pageTitle: "Local Deals",
@@ -160,6 +173,19 @@ const COPY = {
       "Existing archive files will be available when the file library is connected.",
     assetsUploadedFile: "Uploaded file",
     assetsPdfDocument: "PDF document",
+    socialSectionTitle: "Business social links",
+    socialSectionHelper:
+      "Connect your social channels so shoppers can learn more about your business.",
+    socialFacebook: "Facebook",
+    socialInstagram: "Instagram",
+    socialTiktok: "TikTok",
+    socialYoutube: "YouTube",
+    socialGoogleBusiness: "Google Business Profile",
+    featuredSectionTitle: "Featured / more exposure",
+    featuredQuestion:
+      "Want to be featured? The Leonix team can contact you about options by ZIP, city, category, newsletter, or featured placements.",
+    featuredCheckbox: "I want featured exposure options",
+    featuredScopeLabel: "Where are you interested in being featured?",
   },
 } as const;
 

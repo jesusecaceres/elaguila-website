@@ -9,6 +9,7 @@ import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { getOfertaLocalSocialLinks } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
@@ -104,6 +105,7 @@ export function OfertasLocalesPreviewCard({
 
   const showMembership = shouldShowMembershipBlock(draft);
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
+  const socialLinks = getOfertaLocalSocialLinks(draft);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
   const previewNotice =
@@ -300,12 +302,44 @@ export function OfertasLocalesPreviewCard({
             </section>
           ) : null}
 
+          {/* Social links — only when URLs exist (Stack 8) */}
+          {socialLinks.length > 0 ? (
+            <section className={cx(CARD, "p-5")}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
+                {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.followUsEn : OFERTAS_LOCALES_PREVIEW_COPY.followUsEs}
+              </h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.key}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={BTN_OUTLINE}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {/* G. AI interest (intent only — not active) */}
           {draft.wantsAiSearchableSpecials ? (
             <p className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-center text-xs text-[#1E1814]/60">
               {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.aiInterestEn : OFERTAS_LOCALES_PREVIEW_COPY.aiInterestEs}
             </p>
           ) : null}
+
+          {/* Featured placement intent — internal note only, not active placement */}
+          {draft.wantsFeaturedPlacement ? (
+            <p className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-center text-xs text-[#1E1814]/60">
+              {lang === "en"
+                ? OFERTAS_LOCALES_PREVIEW_COPY.featuredInterestEn
+                : OFERTAS_LOCALES_PREVIEW_COPY.featuredInterestEs}
+            </p>
+          ) : null}
+
           <span className="sr-only" aria-hidden>
             {String(draft.isMagazinePickupPartner)}
             {draft.magazineDistributionStatus}

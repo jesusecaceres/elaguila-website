@@ -1,9 +1,11 @@
 import { createEmptyOfertaLocalDraft } from "./createEmptyOfertaLocalDraft";
+import { normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type {
   OfertaLocalDraft,
   OfertaLocalDraftAsset,
   OfertaLocalDraftAssetStatus,
   OfertaLocalDraftAssetType,
+  OfertaLocalFeaturedPlacementScope,
 } from "./ofertasLocalesTypes";
 
 export const OFERTAS_LOCALES_DRAFT_STORAGE_KEY = "leonix:ofertas-locales:draft:v1" as const;
@@ -31,6 +33,29 @@ function sanitizeUrl(raw: unknown): string {
   const t = String(raw ?? "").trim();
   if (!t || t.startsWith("data:")) return "";
   return t.slice(0, 500);
+}
+
+const FEATURED_SCOPES: ReadonlySet<OfertaLocalFeaturedPlacementScope> = new Set([
+  "zip",
+  "city",
+  "category",
+  "homepage_or_section",
+  "newsletter",
+  "not_sure",
+  "none",
+]);
+
+function sanitizeSocialUrl(raw: unknown): string {
+  const t = String(raw ?? "").trim();
+  if (!t || t.startsWith("data:")) return "";
+  return normalizeOfertaLocalUrlInput(t) || "";
+}
+
+function sanitizeFeaturedScope(raw: unknown): OfertaLocalFeaturedPlacementScope {
+  if (typeof raw === "string" && FEATURED_SCOPES.has(raw as OfertaLocalFeaturedPlacementScope)) {
+    return raw as OfertaLocalFeaturedPlacementScope;
+  }
+  return "none";
 }
 
 function sanitizeAsset(raw: unknown, fallbackSort: number): OfertaLocalDraftAsset | null {
@@ -94,6 +119,13 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
       : base.languageTags,
     customMarketType: String(stored.customMarketType ?? "").slice(0, 120),
     wantsAiSearchableSpecials: Boolean(stored.wantsAiSearchableSpecials),
+    wantsFeaturedPlacement: Boolean(stored.wantsFeaturedPlacement),
+    featuredPlacementScope: sanitizeFeaturedScope(stored.featuredPlacementScope),
+    facebookUrl: sanitizeSocialUrl(stored.facebookUrl),
+    instagramUrl: sanitizeSocialUrl(stored.instagramUrl),
+    tiktokUrl: sanitizeSocialUrl(stored.tiktokUrl),
+    youtubeUrl: sanitizeSocialUrl(stored.youtubeUrl),
+    googleBusinessUrl: sanitizeSocialUrl(stored.googleBusinessUrl),
     flyerAssets: sanitizeAssetList(stored.flyerAssets),
     couponAssets: sanitizeAssetList(stored.couponAssets),
   };

@@ -47,3 +47,45 @@ export function hasOfertaLocalDirectionsAccepted(draft: Pick<OfertaLocalDraft, "
 export function hasOfertaLocalUrlAccepted(url: string): boolean {
   return Boolean(normalizeOfertaLocalUrlInput(url));
 }
+
+export type OfertaLocalSocialLinkKey =
+  | "facebook"
+  | "instagram"
+  | "tiktok"
+  | "youtube"
+  | "googleBusiness";
+
+export type OfertaLocalSocialLink = {
+  key: OfertaLocalSocialLinkKey;
+  url: string;
+  label: string;
+};
+
+/** Social links with normalized URLs — only non-empty entries (Stack 8). */
+export function getOfertaLocalSocialLinks(
+  draft: Pick<
+    OfertaLocalDraft,
+    "facebookUrl" | "instagramUrl" | "tiktokUrl" | "youtubeUrl" | "googleBusinessUrl"
+  >
+): OfertaLocalSocialLink[] {
+  const out: OfertaLocalSocialLink[] = [];
+  const push = (key: OfertaLocalSocialLinkKey, raw: string, label: string) => {
+    const url = normalizeOfertaLocalUrlInput(raw);
+    if (url) out.push({ key, url, label });
+  };
+  push("facebook", draft.facebookUrl, "Facebook");
+  push("instagram", draft.instagramUrl, "Instagram");
+  push("tiktok", draft.tiktokUrl, "TikTok");
+  push("youtube", draft.youtubeUrl, "YouTube");
+  push("googleBusiness", draft.googleBusinessUrl, "Google Business");
+  return out;
+}
+
+export function hasOfertaLocalSocialLinks(
+  draft: Pick<
+    OfertaLocalDraft,
+    "facebookUrl" | "instagramUrl" | "tiktokUrl" | "youtubeUrl" | "googleBusinessUrl"
+  >
+): boolean {
+  return getOfertaLocalSocialLinks(draft).length > 0;
+}

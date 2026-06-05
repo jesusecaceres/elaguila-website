@@ -20,6 +20,7 @@ import type {
 const MAX_TEXT = 8000;
 const MAX_SHORT = 500;
 const MAX_TITLE = 200;
+const INTERNAL_METADATA_PREFIX = "[ofertas_locales_metadata]";
 
 function sanitizeText(raw: string, max = MAX_TEXT): string {
   return String(raw ?? "")
@@ -84,6 +85,38 @@ function mapAssets(assets: OfertaLocalDraftAsset[]): OfertaLocalPublishedAssetMe
   return activeOfertaLocalDraftAssets(assets)
     .filter(assetIsPublishReady)
     .map(mapAssetToPublishedMetadata);
+}
+
+function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): string | null {
+  const chunks: string[] = [];
+  const userNote = sanitizeOptionalText(draft.internalNotes ?? "", MAX_SHORT);
+  if (userNote) chunks.push(userNote);
+
+  const socialLinks: Record<string, string> = {};
+  const fb = sanitizeOptionalUrl(draft.facebookUrl);
+  if (fb) socialLinks.facebookUrl = fb;
+  const ig = sanitizeOptionalUrl(draft.instagramUrl);
+  if (ig) socialLinks.instagramUrl = ig;
+  const tt = sanitizeOptionalUrl(draft.tiktokUrl);
+  if (tt) socialLinks.tiktokUrl = tt;
+  const yt = sanitizeOptionalUrl(draft.youtubeUrl);
+  if (yt) socialLinks.youtubeUrl = yt;
+  const gb = sanitizeOptionalUrl(draft.googleBusinessUrl);
+  if (gb) socialLinks.googleBusinessUrl = gb;
+
+  const metadata: Record<string, unknown> = {};
+  if (Object.keys(socialLinks).length) metadata.socialLinks = socialLinks;
+  if (draft.wantsFeaturedPlacement && draft.featuredPlacementScope !== "none") {
+    metadata.featuredPlacementScope = draft.featuredPlacementScope;
+  }
+  if (draft.wantsAiSearchableSpecials) metadata.wantsAiSearchableSpecials = true;
+
+  if (Object.keys(metadata).length) {
+    chunks.push(`${INTERNAL_METADATA_PREFIX}${JSON.stringify(metadata)}`);
+  }
+
+  if (!chunks.length) return null;
+  return chunks.join("\n\n").slice(0, MAX_SHORT);
 }
 
 export function validateOfertaLocalDraftForServerPublish(
@@ -177,9 +210,9 @@ export function mapOfertaLocalDraftToInsertPayload(
     magazine_pickup_notes: sanitizeOptionalText(draft.magazinePickupNotes),
     flyer_assets: mapAssets(draft.flyerAssets),
     coupon_assets: mapAssets(draft.couponAssets),
-    is_featured_requested: Boolean(draft.isFeaturedRequested),
+    is_featured_requested: Boolean(draft.wantsFeaturedPlacement || draft.isFeaturedRequested),
     language_tags: draft.languageTags.filter((t) => t === "es" || t === "en" || t === "bilingual"),
-    internal_notes: sanitizeOptionalText(draft.internalNotes ?? "", MAX_SHORT),
+    internal_notes: buildOfertaLocalInternalNotesForPublish(draft),
     submitted_at: now,
   };
 }

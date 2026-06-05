@@ -14,6 +14,7 @@ import {
   OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS,
   OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
+  OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS,
   OFERTAS_LOCALES_MARKET_TYPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
@@ -173,7 +174,18 @@ export default function OfertasLocalesApplicationClient() {
   }, [draft.membershipCtaLabel, updateDraft]);
 
   const handleUrlBlur = useCallback(
-    (field: "websiteUrl" | "directionsUrl" | "membershipUrl" | "digitalCouponUrl") => {
+    (
+      field:
+        | "websiteUrl"
+        | "directionsUrl"
+        | "membershipUrl"
+        | "digitalCouponUrl"
+        | "facebookUrl"
+        | "instagramUrl"
+        | "tiktokUrl"
+        | "youtubeUrl"
+        | "googleBusinessUrl"
+    ) => {
       const raw = draft[field].trim();
       if (!raw) return;
       const normalized = normalizeOfertaLocalUrlInput(raw);
@@ -607,6 +619,122 @@ export default function OfertasLocalesApplicationClient() {
               </div>
             ) : null}
             {isFlyer && isCoupon ? null : null}
+          </SectionCard>
+
+          <SectionCard title={c.socialSectionTitle}>
+            <p className={HELPER}>{c.socialSectionHelper}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FieldBlock
+                label={c.socialFacebook}
+                optional
+                optionalLabel={c.optional}
+                confirm={hasOfertaLocalUrlAccepted(draft.facebookUrl) ? c.urlAccepted : undefined}
+              >
+                <input
+                  className={INPUT}
+                  value={draft.facebookUrl}
+                  onChange={(e) => updateDraft({ facebookUrl: e.target.value })}
+                  onBlur={() => handleUrlBlur("facebookUrl")}
+                  placeholder="https://…"
+                />
+              </FieldBlock>
+              <FieldBlock
+                label={c.socialInstagram}
+                optional
+                optionalLabel={c.optional}
+                confirm={hasOfertaLocalUrlAccepted(draft.instagramUrl) ? c.urlAccepted : undefined}
+              >
+                <input
+                  className={INPUT}
+                  value={draft.instagramUrl}
+                  onChange={(e) => updateDraft({ instagramUrl: e.target.value })}
+                  onBlur={() => handleUrlBlur("instagramUrl")}
+                  placeholder="https://…"
+                />
+              </FieldBlock>
+              <FieldBlock
+                label={c.socialTiktok}
+                optional
+                optionalLabel={c.optional}
+                confirm={hasOfertaLocalUrlAccepted(draft.tiktokUrl) ? c.urlAccepted : undefined}
+              >
+                <input
+                  className={INPUT}
+                  value={draft.tiktokUrl}
+                  onChange={(e) => updateDraft({ tiktokUrl: e.target.value })}
+                  onBlur={() => handleUrlBlur("tiktokUrl")}
+                  placeholder="https://…"
+                />
+              </FieldBlock>
+              <FieldBlock
+                label={c.socialYoutube}
+                optional
+                optionalLabel={c.optional}
+                confirm={hasOfertaLocalUrlAccepted(draft.youtubeUrl) ? c.urlAccepted : undefined}
+              >
+                <input
+                  className={INPUT}
+                  value={draft.youtubeUrl}
+                  onChange={(e) => updateDraft({ youtubeUrl: e.target.value })}
+                  onBlur={() => handleUrlBlur("youtubeUrl")}
+                  placeholder="https://…"
+                />
+              </FieldBlock>
+              <FieldBlock
+                label={c.socialGoogleBusiness}
+                optional
+                optionalLabel={c.optional}
+                confirm={hasOfertaLocalUrlAccepted(draft.googleBusinessUrl) ? c.urlAccepted : undefined}
+              >
+                <input
+                  className={INPUT}
+                  value={draft.googleBusinessUrl}
+                  onChange={(e) => updateDraft({ googleBusinessUrl: e.target.value })}
+                  onBlur={() => handleUrlBlur("googleBusinessUrl")}
+                  placeholder="https://…"
+                />
+              </FieldBlock>
+            </div>
+          </SectionCard>
+
+          <SectionCard title={c.featuredSectionTitle}>
+            <p className={HELPER}>{c.featuredQuestion}</p>
+            <label className="flex items-start gap-2 text-sm text-[#1E1814]">
+              <input
+                type="checkbox"
+                checked={draft.wantsFeaturedPlacement}
+                onChange={(e) =>
+                  updateDraft({
+                    wantsFeaturedPlacement: e.target.checked,
+                    isFeaturedRequested: e.target.checked,
+                    featuredPlacementScope: e.target.checked ? draft.featuredPlacementScope : "none",
+                  })
+                }
+                className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+              />
+              <span className="font-medium">{c.featuredCheckbox}</span>
+            </label>
+            {draft.wantsFeaturedPlacement ? (
+              <FieldBlock label={c.featuredScopeLabel} optional optionalLabel={c.optional}>
+                <select
+                  className={INPUT}
+                  value={draft.featuredPlacementScope === "none" ? "" : draft.featuredPlacementScope}
+                  onChange={(e) =>
+                    updateDraft({
+                      featuredPlacementScope: (e.target.value ||
+                        "none") as typeof draft.featuredPlacementScope,
+                    })
+                  }
+                >
+                  <option value="">{c.selectPlaceholder}</option>
+                  {OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {lang === "en" ? opt.labelEn : opt.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </FieldBlock>
+            ) : null}
           </SectionCard>
 
           <SectionCard title={c.validationSection}>
