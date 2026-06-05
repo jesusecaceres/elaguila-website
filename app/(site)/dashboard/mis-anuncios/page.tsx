@@ -67,6 +67,15 @@ import {
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
+import {
+  buildComidaLocalDashboardInventoryItems,
+  mapComidaLocalRowToDashboardVm,
+} from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
+import {
+  fetchOwnerComidaLocalListings,
+  type ComidaLocalDashboardListingRow,
+} from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
 import {
   listingUiStatusChipClass,
   listingUiStatusLabel,
@@ -254,7 +263,8 @@ type MisAnunciosCategoryFilter =
   | "servicios"
   | "clases"
   | "comunidad"
-  | "busco";
+  | "busco"
+  | "comida-local";
 
 const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "all",
@@ -266,6 +276,7 @@ const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "empleos",
   "viajes",
   "servicios",
+  "comida-local",
   "clases",
   "comunidad",
   "busco",
@@ -399,6 +410,8 @@ export default function MyListingsPage() {
   const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
   const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
   const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
+  const [comidaLocalInventory, setComidaLocalInventory] = useState<DashboardInventoryItem[]>([]);
+  const [comidaLocalRows, setComidaLocalRows] = useState<ComidaLocalDashboardListingRow[]>([]);
   const [autosPaidInventory, setAutosPaidInventory] = useState<DashboardInventoryItem[]>([]);
   const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryFilter>(() => {
@@ -504,6 +517,8 @@ export default function MyListingsPage() {
       ]);
       const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
       const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
+      const comidaRowsFetched = await fetchOwnerComidaLocalListings(supabase, u.id);
+      const comidaLocalItems = buildComidaLocalDashboardInventoryItems(comidaRowsFetched, lang);
 
       if (!mounted) return;
       setUnifiedActiveCount(activeAcross);
@@ -512,6 +527,8 @@ export default function MyListingsPage() {
       setViajesInventory(viajesItems);
       setAutosPaidInventory(autosPaidItems);
       setServiciosInventory(serviciosItems);
+      setComidaLocalInventory(comidaLocalItems);
+      setComidaLocalRows(comidaRowsFetched);
 
       const entitlementLookup = [
         ...restaurantItems.map((item) => ({
@@ -844,7 +861,8 @@ export default function MyListingsPage() {
     empleosInventory.length > 0 ||
     viajesInventory.length > 0 ||
     serviciosInventory.length > 0 ||
-    autosPaidInventory.length > 0;
+    autosPaidInventory.length > 0 ||
+    comidaLocalInventory.length > 0;
 
   const categoryCounts = useMemo(() => {
     let enVenta = 0;
@@ -876,8 +894,17 @@ export default function MyListingsPage() {
       empleos: empleosInventory.length,
       viajes: viajesInventory.length,
       servicios: serviciosInventory.length,
+      "comida-local": comidaLocalInventory.length,
     } as Record<Exclude<MisAnunciosCategoryFilter, "all">, number>;
-  }, [listings, autosPaidInventory, restaurantInventory, empleosInventory, viajesInventory, serviciosInventory]);
+  }, [
+    listings,
+    autosPaidInventory,
+    restaurantInventory,
+    empleosInventory,
+    viajesInventory,
+    serviciosInventory,
+    comidaLocalInventory,
+  ]);
 
   const filterChips = useMemo(() => {
     const owned = (MIS_ANUNCIOS_CATEGORY_FILTERS.filter((c) => c !== "all") as Exclude<MisAnunciosCategoryFilter, "all">[]).filter(
@@ -895,6 +922,14 @@ export default function MyListingsPage() {
     serviciosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "servicios");
   const showAutosPaidSection =
     autosPaidInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "autos");
+  const showComidaLocalSection =
+    (comidaLocalInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "comida-local")) ||
+    categoryFilter === "comida-local";
+
+  const comidaLocalDashboardVms = useMemo(
+    () => comidaLocalRows.map((row) => mapComidaLocalRowToDashboardVm(row, lang)),
+    [comidaLocalRows, lang]
+  );
 
   const brNegocioInventoryRows = useMemo(
     () =>
@@ -1061,6 +1096,13 @@ export default function MyListingsPage() {
                   manage: `/dashboard/viajes?${q}`,
                   publish: `/publicar/viajes?${q}`,
                 },
+                {
+                  key: "comida-local" as const,
+                  title: lang === "es" ? "Comida Local" : "Comida Local",
+                  owned: categoryCounts["comida-local"],
+                  manage: `/dashboard/mis-anuncios?${q}&cat=comida-local`,
+                  publish: `/publicar/comida-local?${q}`,
+                },
               ].map((c) => {
                 const hasOwned = c.owned > 0;
                 return (
@@ -1162,7 +1204,9 @@ export default function MyListingsPage() {
                                   : "Services"
                                 : fk === "autos"
                                   ? "Autos"
-                                  : fk === "clases"
+                                  : fk === "comida-local"
+                                    ? "Comida Local"
+                                    : fk === "clases"
                                     ? lang === "es"
                                       ? "Clases"
                                       : "Classes"
@@ -1468,6 +1512,14 @@ export default function MyListingsPage() {
                 ))}
               </div>
             </section>
+          ) : null}
+
+          {showComidaLocalSection ? (
+            <ComidaLocalDashboardListings
+              lang={lang}
+              items={comidaLocalDashboardVms}
+              showEmpty={categoryFilter === "comida-local"}
+            />
           ) : null}
 
           {!hasAnyInventory ? (

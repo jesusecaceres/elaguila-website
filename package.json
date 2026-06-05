@@ -163,6 +163,7 @@
     "comida-local:food-l5b-publish-db-audit": "tsx scripts/comida-local-food-l5b-publish-db-audit.ts",
     "comida-local:food-l5c-image-upload-audit": "tsx scripts/comida-local-food-l5c-image-upload-audit.ts",
     "comida-local:food-l6-public-results-audit": "tsx scripts/comida-local-food-l6-public-results-audit.ts",
+    "comida-local:food-l7a-user-dashboard-audit": "tsx scripts/comida-local-food-l7a-user-dashboard-audit.ts",
     "ofertas-locales:gate-1-foundation-audit": "tsx scripts/ofertas-locales-gate-1-foundation-audit.ts",
     "ofertas-locales:gate-2-draft-ui-audit": "tsx scripts/ofertas-locales-gate-2-draft-ui-audit.ts",
     "ofertas-locales:gate-3-preview-audit": "tsx scripts/ofertas-locales-gate-3-preview-audit.ts",

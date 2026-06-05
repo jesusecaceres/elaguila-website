@@ -42,7 +42,8 @@ export type DashboardInventoryItem = {
     | "empleos_public_listings"
     | "viajes_staged_listings"
     | "autos_classifieds_listings"
-    | "servicios_public_listings";
+    | "servicios_public_listings"
+    | "comida_local_public_listings";
 };
 
 export type DashboardRestaurantRow = {
