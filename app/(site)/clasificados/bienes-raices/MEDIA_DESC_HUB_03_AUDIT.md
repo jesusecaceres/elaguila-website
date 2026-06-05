@@ -14,7 +14,39 @@ Gate: **MEDIA-DESC-HUB-03** — Media UX, Public Description, Contact Hub Logic,
 - `app/(site)/clasificados/lib/LeonixRealEstateSortablePhotoStrip.tsx`
 - `app/(site)/clasificados/lib/leonixPublishPublicDescription.ts`
 
-## Files changed
+## Files changed by gate
+
+### Gate A — Media UX
+
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/sections/steps01-03.tsx`
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.es.ts` (step03 keys)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.en.ts` (step03 keys)
+
+### Gate B — Public description
+
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/sections/steps04-09.tsx` (Step 06)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.es.ts` (step06 keys)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.en.ts` (step06 keys)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage.tsx` (notas removed from public output)
+- `app/(site)/clasificados/publicar/bienes-raices/privado/application/BienesRaicesPrivadoForm.tsx`
+- `app/(site)/clasificados/publicar/rentas/shared/RentasAnuncioFormSection.tsx`
+
+### Gate C — Contact hub + duplicate CTA
+
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/sections/steps04-09.tsx` (Step 07 financing, Step 08 toggles)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.es.ts` (step07/08/previewUi)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.en.ts` (step07/08/previewUi)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat.ts`
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage.tsx` (second agent + financiamiento)
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/AsesorFinancieroNegocioSection.tsx`
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm.ts`
+- `app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm.ts`
+- `app/(site)/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView.tsx`
+- `scripts/media-desc-hub-03-audit.ts`
+- `package.json` (audit script only)
+- `app/(site)/clasificados/bienes-raices/MEDIA_DESC_HUB_03_AUDIT.md`
+
+## Files changed (combined)
 
 - `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/sections/steps01-03.tsx`
 - `app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/sections/steps04-09.tsx`
