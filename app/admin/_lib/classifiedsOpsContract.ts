@@ -7,6 +7,7 @@ import type { ClasificadosCategoryRegistryEntry } from "@/app/lib/clasificados/c
 export type ClassifiedsOpsKind =
   | "restaurantes"
   | "servicios"
+  | "comida_local"
   | "empleos"
   | "autos"
   | "listings"
@@ -82,6 +83,23 @@ export const CLASSIFIEDS_OPS_CONTRACTS: ClassifiedsCategoryOpsContract[] = [
       const slug = String(row.slug ?? "").trim();
       return `/servicios/perfil/${encodeURIComponent(slug)}`;
     },
+  },
+  {
+    slug: "comida-local",
+    displayLabelEs: "Comida Local",
+    displayLabelEn: "Local Food",
+    opsKind: "comida_local",
+    writableTable: "comida_local_public_listings",
+    leonixPrefix: "COMIDA",
+    publicListingsAdminPath: "/admin/workspace/clasificados/comida-local",
+    fieldsNotesAdminPath: "/admin/workspace/clasificados/category/comida-local#contenido",
+    operationalSpaceAdminPath: "/admin/workspace/clasificados/category/comida-local#operacion",
+    adQueueAdminPath: "/admin/workspace/clasificados/comida-local",
+    buildPublicUrl: (row) => {
+      const slug = String(row.slug ?? "").trim();
+      return `/clasificados/comida-local/${encodeURIComponent(slug)}?lang=es`;
+    },
+    buildStaffEditUrl: () => "/publicar/comida-local",
   },
   {
     slug: "empleos",

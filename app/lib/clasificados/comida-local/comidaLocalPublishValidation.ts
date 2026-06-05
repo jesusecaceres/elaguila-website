@@ -8,8 +8,13 @@ import {
   normalizeComidaLocalSocialInput,
 } from "./comidaLocalFormatting";
 import {
-  COMIDA_LOCAL_GALLERY_MAX,
+  getComidaLocalPackageLimits,
+  isValidComidaLocalPackageTier,
+  normalizeComidaLocalPackageTierKey,
+} from "./comidaLocalPackages";
+import {
   hasComidaLocalMainPhoto,
+  maxComidaLocalGalleryImagesForTier,
   sanitizeComidaLocalImageForDb,
   validateComidaLocalGalleryCount,
   validateComidaLocalImageMetadata,
@@ -40,12 +45,14 @@ function clamp(s: string, max: number): string {
 export { sanitizeComidaLocalImageForDb } from "./comidaLocalImageValidation";
 
 export function normalizeComidaLocalPackageTier(raw: unknown): ComidaLocalPackageTierDb {
-  const s = String(raw ?? "").trim().toLowerCase();
-  if (s === "plus" || s === "comida_local_plus" || s === "comida-local-plus") return "plus";
-  return "basic";
+  return normalizeComidaLocalPackageTierKey(raw);
 }
 
-export function normalizeComidaLocalDraftForPublish(raw: unknown): ComidaLocalDraft {
+export function normalizeComidaLocalDraftForPublish(
+  raw: unknown,
+  packageTier: ComidaLocalPackageTierDb = "basic"
+): ComidaLocalDraft {
+  const limits = getComidaLocalPackageLimits(packageTier);
   const merged = mergeComidaLocalDraftFromStorage(raw);
   const cityCanonical = resolveComidaLocalCityCanonical(merged);
   const cityDisplay =
@@ -54,8 +61,9 @@ export function normalizeComidaLocalDraftForPublish(raw: unknown): ComidaLocalDr
   const instagram = normalizeComidaLocalSocialInput(merged.instagramUrl, "instagram");
   const facebook = normalizeComidaLocalSocialInput(merged.facebookUrl, "facebook");
   const tiktok = normalizeComidaLocalSocialInput(merged.tiktokUrl, "tiktok");
+  const locationUrlAllowed = limits.allowLocationUrl;
 
-  let locationUrl = clamp(merged.locationUrl, 512);
+  let locationUrl = locationUrlAllowed ? clamp(merged.locationUrl, 512) : "";
   if (locationUrl) {
     const withScheme = /^https?:\/\//i.test(locationUrl) ? locationUrl : `https://${locationUrl}`;
     locationUrl = isValidComidaLocalExternalUrl(withScheme) ? withScheme : "";
@@ -64,7 +72,9 @@ export function normalizeComidaLocalDraftForPublish(raw: unknown): ComidaLocalDr
   const gallery = merged.galleryImages
     .map((g) => sanitizeComidaLocalImageForDb(g))
     .filter((g): g is NonNullable<ReturnType<typeof sanitizeComidaLocalImageForDb>> => g !== null)
-    .slice(0, COMIDA_LOCAL_GALLERY_MAX);
+    .slice(0, limits.maxGalleryImages);
+
+  const logoImage = limits.allowLogo ? sanitizeComidaLocalImageForDb(merged.logoImage) : null;
 
   return {
     ...merged,
@@ -84,14 +94,24 @@ export function normalizeComidaLocalDraftForPublish(raw: unknown): ComidaLocalDr
     availabilityNote: clamp(merged.availabilityNote, MAX_TEXT.availabilityNote),
     paymentOtherNote: clamp(merged.paymentOtherNote, MAX_TEXT.paymentOtherNote),
     mainPhoto: sanitizeComidaLocalImageForDb(merged.mainPhoto),
-    logoImage: sanitizeComidaLocalImageForDb(merged.logoImage),
+    logoImage,
     galleryImages: gallery,
   };
 }
 
+function countComidaLocalSocialLinks(draft: ComidaLocalDraft): number {
+  let n = 0;
+  if (draft.instagramUrl.trim()) n += 1;
+  if (draft.facebookUrl.trim()) n += 1;
+  if (draft.tiktokUrl.trim()) n += 1;
+  return n;
+}
+
 export function validateComidaLocalPublishPayload(
-  draft: ComidaLocalDraft
+  draft: ComidaLocalDraft,
+  packageTier: ComidaLocalPackageTierDb = "basic"
 ): ComidaLocalValidationIssue[] {
+  const limits = getComidaLocalPackageLimits(packageTier);
   const issues = validateComidaLocalDraftForFuturePublish(draft);
   const errors = issues.filter((i) => i.severity === "error");
 
@@ -121,10 +141,26 @@ export function validateComidaLocalPublishPayload(
     });
   }
 
-  if (!validateComidaLocalGalleryCount(draft.galleryImages.length)) {
+  if (!validateComidaLocalGalleryCount(draft.galleryImages.length, packageTier)) {
     errors.push({
       field: "galleryImages",
-      message: `Máximo ${COMIDA_LOCAL_GALLERY_MAX} fotos en la galería.`,
+      message: `Máximo ${maxComidaLocalGalleryImagesForTier(packageTier)} fotos en la galería.`,
+      severity: "error",
+    });
+  }
+
+  if (countComidaLocalSocialLinks(draft) > limits.maxSocialLinks) {
+    errors.push({
+      field: "instagramUrl",
+      message: `Máximo ${limits.maxSocialLinks} redes sociales para este paquete.`,
+      severity: "error",
+    });
+  }
+
+  if (!limits.allowLogo && draft.logoImage) {
+    errors.push({
+      field: "logoImage",
+      message: "El logo no está incluido en este paquete.",
       severity: "error",
     });
   }
@@ -153,9 +189,20 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
   error: string;
   issues?: ComidaLocalValidationIssue[];
 } {
+  const rawPackageTier = body.packageTier;
+  if (
+    rawPackageTier !== undefined &&
+    rawPackageTier !== null &&
+    String(rawPackageTier).trim() &&
+    !isValidComidaLocalPackageTier(rawPackageTier)
+  ) {
+    return { ok: false, error: "invalid_package_tier" };
+  }
+  const packageTier = normalizeComidaLocalPackageTier(rawPackageTier);
+
   const draftRaw = body.draft ?? body;
-  const draft = normalizeComidaLocalDraftForPublish(draftRaw);
-  const issues = validateComidaLocalPublishPayload(draft);
+  const draft = normalizeComidaLocalDraftForPublish(draftRaw, packageTier);
+  const issues = validateComidaLocalPublishPayload(draft, packageTier);
   const errors = issues.filter((i) => i.severity === "error");
   if (errors.length > 0) {
     return { ok: false, error: "not_ready", issues: errors };
@@ -173,7 +220,7 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
     value: {
       draft,
       draftListingId,
-      packageTier: normalizeComidaLocalPackageTier(body.packageTier),
+      packageTier,
       lang,
     },
   };

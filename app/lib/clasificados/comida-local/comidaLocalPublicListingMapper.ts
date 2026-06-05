@@ -1,9 +1,6 @@
 import { COMIDA_LOCAL_CATEGORY_KEY } from "./comidaLocalConstants";
-import {
-  COMIDA_LOCAL_PAYMENT_STATUS_L5B,
-  type ComidaLocalListingStatusDb,
-  type ComidaLocalPackageTierDb,
-} from "./comidaLocalPublishTypes";
+import { resolveComidaLocalPublishPaymentStatus } from "./comidaLocalPaymentStatus";
+import type { ComidaLocalListingStatusDb, ComidaLocalPackageTierDb } from "./comidaLocalPublishTypes";
 import { sanitizeComidaLocalImageForDb } from "./comidaLocalPublishValidation";
 import type { ComidaLocalDraft } from "./comidaLocalTypes";
 
@@ -68,7 +65,7 @@ export function draftToComidaLocalPublicListingInsert(
     draft_listing_id: opts.draftListingId,
     status: opts.status ?? "published",
     package_tier: opts.packageTier,
-    payment_status: opts.paymentStatus ?? COMIDA_LOCAL_PAYMENT_STATUS_L5B,
+    payment_status: opts.paymentStatus ?? resolveComidaLocalPublishPaymentStatus(),
     business_name: draft.businessName.trim(),
     food_type: draft.foodType || "otro",
     food_type_custom: emptyToNull(draft.foodTypeCustom),

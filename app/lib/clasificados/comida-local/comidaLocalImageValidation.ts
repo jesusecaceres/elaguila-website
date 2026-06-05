@@ -1,3 +1,9 @@
+import {
+  COMIDA_LOCAL_DEFAULT_GALLERY_MAX,
+  getComidaLocalPackageLimits,
+  normalizeComidaLocalPackageTierKey,
+} from "./comidaLocalPackages";
+import type { ComidaLocalPackageTierDb } from "./comidaLocalPublishTypes";
 import type { ComidaLocalImageDraft, ComidaLocalImageRole } from "./comidaLocalTypes";
 
 export const COMIDA_LOCAL_IMAGE_MAX_BYTES = 12 * 1024 * 1024;
@@ -12,7 +18,8 @@ export type ComidaLocalAcceptedImageMime = (typeof COMIDA_LOCAL_ACCEPTED_IMAGE_M
 
 export const COMIDA_LOCAL_IMAGE_ROLES = new Set<ComidaLocalImageRole>(["main", "logo", "gallery"]);
 
-export const COMIDA_LOCAL_GALLERY_MAX = 2;
+/** Default gallery cap (Basic tier) — use `getComidaLocalPackageLimits(tier)` for publish validation. */
+export const COMIDA_LOCAL_GALLERY_MAX = COMIDA_LOCAL_DEFAULT_GALLERY_MAX;
 
 const PLACEHOLDER_HOST_RE = /placeholder|via\.placeholder|picsum|dummyimage|fakeimg/i;
 
@@ -58,8 +65,18 @@ export function validateComidaLocalImageRole(role: string): role is ComidaLocalI
   return COMIDA_LOCAL_IMAGE_ROLES.has(role as ComidaLocalImageRole);
 }
 
-export function validateComidaLocalGalleryCount(count: number): boolean {
-  return count >= 0 && count <= COMIDA_LOCAL_GALLERY_MAX;
+export function maxComidaLocalGalleryImagesForTier(
+  tier?: ComidaLocalPackageTierDb | string | null
+): number {
+  return getComidaLocalPackageLimits(normalizeComidaLocalPackageTierKey(tier)).maxGalleryImages;
+}
+
+export function validateComidaLocalGalleryCount(
+  count: number,
+  tier?: ComidaLocalPackageTierDb | string | null
+): boolean {
+  const max = tier !== undefined ? maxComidaLocalGalleryImagesForTier(tier) : COMIDA_LOCAL_GALLERY_MAX;
+  return count >= 0 && count <= max;
 }
 
 export function validateComidaLocalImageMetadata(

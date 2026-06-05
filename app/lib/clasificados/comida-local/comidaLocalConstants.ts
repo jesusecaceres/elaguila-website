@@ -1,3 +1,4 @@
+import { COMIDA_LOCAL_DEFAULT_GALLERY_MAX } from "./comidaLocalPackages";
 import type {
   ComidaLocalFoodType,
   ComidaLocalLanguageOption,
@@ -78,8 +79,8 @@ export const COMIDA_LOCAL_SECTIONS: ReadonlyArray<{
   { key: "fotos", title: "Fotos" },
 ];
 
-/** Gallery cap for Basic-ready default (FOOD-L5C); Plus may raise in package gate. */
-export const COMIDA_LOCAL_GALLERY_MAX = 2;
+/** Gallery cap for Basic-ready default (FOOD-L5D package config). */
+export const COMIDA_LOCAL_GALLERY_MAX = COMIDA_LOCAL_DEFAULT_GALLERY_MAX;
 
 /** @deprecated Use COMIDA_LOCAL_GALLERY_MAX */
 export const COMIDA_LOCAL_GALLERY_MAX_PLACEHOLDER = COMIDA_LOCAL_GALLERY_MAX;

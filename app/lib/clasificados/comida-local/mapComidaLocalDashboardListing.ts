@@ -1,5 +1,10 @@
 import type { DashboardInventoryItem } from "@/app/(site)/dashboard/lib/dashboardInventory";
 import { COMIDA_LOCAL_FOOD_TYPE_OPTIONS } from "./comidaLocalConstants";
+import {
+  getComidaLocalPackageLabel,
+  getComidaLocalPackagePriceLabel,
+} from "./comidaLocalPackages";
+import { getComidaLocalPaymentStatusLabel } from "./comidaLocalPaymentStatus";
 import { resolveComidaLocalImageUrl } from "./comidaLocalImageValidation";
 import type { ComidaLocalDashboardListingRow } from "./comidaLocalDashboardQueries";
 
@@ -60,21 +65,10 @@ function statusLabel(status: string, lang: "es" | "en"): string {
   return map[s]?.[lang] ?? status;
 }
 
-function packageLabel(tier: string, lang: "es" | "en"): string {
-  const t = tier.trim().toLowerCase();
-  if (t === "plus") return lang === "es" ? "Plus" : "Plus";
-  if (t === "basic") return lang === "es" ? "Básico" : "Basic";
-  return tier || "—";
-}
-
-function paymentStatusLabel(raw: string, lang: "es" | "en"): string {
-  const s = raw.trim().toLowerCase();
-  if (s === "not_required_for_l5b") {
-    return lang === "es" ? "Sin pago (desarrollo)" : "No payment (dev)";
-  }
-  if (s === "paid") return lang === "es" ? "Pagado" : "Paid";
-  if (s === "pending") return lang === "es" ? "Pendiente" : "Pending";
-  return raw || "—";
+function packageLabelWithPrice(tier: string, lang: "es" | "en"): string {
+  const label = getComidaLocalPackageLabel(tier, lang);
+  const price = getComidaLocalPackagePriceLabel(tier);
+  return label && price ? `${label} (${price})` : label || tier || "—";
 }
 
 function primaryContactLabel(row: ComidaLocalDashboardListingRow): string | null {
@@ -108,8 +102,8 @@ export function mapComidaLocalRowToDashboardVm(
     foodTypeLabel: foodTypeLabelForDashboardRow(row),
     cityLabel: city,
     statusLabel: statusLabel(row.status, lang),
-    packageLabel: packageLabel(row.package_tier, lang),
-    paymentStatusLabel: paymentStatusLabel(row.payment_status, lang),
+    packageLabel: packageLabelWithPrice(row.package_tier, lang),
+    paymentStatusLabel: getComidaLocalPaymentStatusLabel(row.payment_status, lang),
     publishedAtLabel: formatDashboardDate(row.published_at, lang) ?? "—",
     expiresAtLabel: formatDashboardDate(row.expires_at ?? null, lang),
     mainPhotoUrl,
