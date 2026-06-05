@@ -13,8 +13,8 @@ import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLa
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
-import { fetchDashboardListingAnalytics } from "../../lib/fetchDashboardAnalyticsApi";
-import { fetchOwnerListingForWorkspace } from "../../lib/resolveOwnerListingForWorkspace";
+import { rollupListingAnalyticsEvents } from "../../lib/listingAnalyticsAggregate";
+import { listingAnalyticsReadIsDegraded } from "../../lib/listingAnalyticsReadErrors";
 import {
   isListingRepublishWindowActive,
   listingPlanFromDetailPairs,
@@ -226,20 +226,7 @@ export default function ListingWorkspacePage() {
     [lang]
   );
 
-  const tabFromQuery = searchParams?.get("tab");
-  const initialTab: Tab =
-    tabFromQuery === "analytics" ||
-    tabFromQuery === "messages" ||
-    tabFromQuery === "edit" ||
-    tabFromQuery === "promotion" ||
-    tabFromQuery === "status"
-      ? tabFromQuery
-      : "overview";
-  const [tab, setTab] = useState<Tab>(initialTab);
-
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
+  const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
@@ -304,41 +291,39 @@ export default function ListingWorkspacePage() {
     const selBase =
       "id,leonix_ad_id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,republished_at,is_published,original_price,current_price,price_last_updated";
 
-    const resolved = await fetchOwnerListingForWorkspace(sb, user.id, id, selFull, selBase);
-    if (resolved.access !== "ok" || !resolved.data) {
+    let listing: ListingRow | null = null;
+    let q = await sb.from("listings").select(selFull).eq("id", id).maybeSingle();
+    if (q.error) {
+      q = await sb.from("listings").select(selBase).eq("id", id).maybeSingle();
+    }
+    if (q.error || !q.data) {
       setRow(null);
-      setAccess(resolved.access === "forbidden" ? "forbidden" : "missing");
+      setAccess("missing");
       setListingMessages([]);
       setLoading(false);
       return;
     }
-    const listing = resolved.data as ListingRow;
+    listing = q.data as ListingRow;
+
+    if (listing.owner_id !== user.id) {
+      setRow(null);
+      setAccess("forbidden");
+      setListingMessages([]);
+      setLoading(false);
+      return;
+    }
 
     setRow(listing);
     setAccess("ok");
 
-    const { data: sess } = await sb.auth.getSession();
-    const token = sess.session?.access_token ?? "";
-    const category = (listing.category ?? "").trim() || undefined;
-    const analytics =
-      token
-        ? await fetchDashboardListingAnalytics(token, {
-            source_table: "listings",
-            source_id: listing.id,
-            category,
-            canonical_ad_id: (listing.leonix_ad_id ?? "").trim() || undefined,
-          })
-        : null;
+    const listingKeys = [listing.id, (listing.leonix_ad_id ?? "").trim()].filter(Boolean) as string[];
+    const { data: events, error: evErr } = await sb
+      .from("listing_analytics")
+      .select("listing_id, event_type, user_id, created_at")
+      .in("listing_id", listingKeys);
 
-    if (!analytics || analytics.forbidden) {
-      if (analytics?.forbidden) {
-        setRow(null);
-        setAccess("forbidden");
-        setListingMessages([]);
-        setLoading(false);
-        return;
-      }
-      setListingAnalyticsDegraded(true);
+    if (evErr) {
+      setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(evErr));
       setStats({
         views: 0,
         uniqueViews: 0,
@@ -353,26 +338,34 @@ export default function ListingWorkspacePage() {
         applications: 0,
       });
     } else {
-      setListingAnalyticsDegraded(analytics.degraded);
-      setStats(analytics.stats);
+      setListingAnalyticsDegraded(false);
+      const rolled = rollupListingAnalyticsEvents(events ?? [], listingKeys);
+      setStats({
+        views: rolled.views,
+        uniqueViews: rolled.uniqueViews,
+        messages: rolled.messages,
+        saves: rolled.saves,
+        shares: rolled.shares,
+        profileClicks: rolled.profileClicks,
+        listingOpens: rolled.listingOpens,
+        likes: rolled.likes,
+        ctaClicks: rolled.ctaClicks,
+        leads: rolled.leads,
+        applications: rolled.applications,
+        lastEngagement: rolled.lastEngagement,
+      });
     }
 
     const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
     const selMsgLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
-    const listingIdForMsgs = listing.id;
-    const mq = await sb
-      .from("messages")
-      .select(selMsg)
-      .eq("listing_id", listingIdForMsgs)
-      .order("created_at", { ascending: false })
-      .limit(40);
+    const mq = await sb.from("messages").select(selMsg).eq("listing_id", id).order("created_at", { ascending: false }).limit(40);
     const rawMsgs = (
       mq.error
         ? (
             await sb
               .from("messages")
               .select(selMsgLegacy)
-              .eq("listing_id", listingIdForMsgs)
+              .eq("listing_id", id)
               .order("created_at", { ascending: false })
               .limit(40)
           ).data

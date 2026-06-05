@@ -40,8 +40,6 @@ type Props = {
   showChevron?: boolean;
   /** Servicios listing analytics for “Open email”. */
   listingSlug?: string;
-  engagementListingId?: string | null;
-  ownerUserId?: string | null;
   analyticsEventType?: string;
   /** Root wrapper (default full width for stacked CTAs). */
   rootClassName?: string;
@@ -66,8 +64,6 @@ export function ContactEmailMenu({
   triggerStyle,
   showChevron = true,
   listingSlug,
-  engagementListingId,
-  ownerUserId,
   analyticsEventType,
   rootClassName = "relative w-full min-w-0",
 }: Props) {
@@ -147,8 +143,6 @@ export function ContactEmailMenu({
           {listingSlug && analyticsEventType ? (
             <ServiciosTrackedLink
               listingSlug={listingSlug}
-              engagementListingId={engagementListingId}
-              ownerUserId={ownerUserId}
               eventType={analyticsEventType}
               href={mailtoHref}
               className={openLinkClass}

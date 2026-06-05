@@ -2,9 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 
-type CopyLang = "es" | "en";
+type Lang = "es" | "en";
 
 const COPY = {
   es: {
@@ -29,10 +28,8 @@ const COPY = {
 
 function LegalPageInner() {
   const searchParams = useSearchParams();
-  const routeLang = normalizeLang(searchParams?.get("lang"));
-  const lang: CopyLang = navCopyLang(routeLang);
+  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const t = COPY[lang];
-  const withLang = (path: string) => replaceLangInHref(path, routeLang);
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -45,18 +42,18 @@ function LegalPageInner() {
 
         <ul className="space-y-3 text-base">
           <li>
-            <a href={withLang("/privacy")} className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200">
+            <a href={`/privacy?lang=${lang}`} className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200">
               {t.privacy}
             </a>
           </li>
           <li>
-            <a href={withLang("/terms")} className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200">
+            <a href={`/terms?lang=${lang}`} className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200">
               {t.terms}
             </a>
           </li>
           <li>
             <a
-              href={withLang("/data-deletion")}
+              href={`/data-deletion?lang=${lang}`}
               className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200"
             >
               {t.dataDeletion}
@@ -64,14 +61,14 @@ function LegalPageInner() {
           </li>
           <li>
             <a
-              href={withLang("/clasificados/reglas")}
+              href={`/clasificados/reglas?lang=${lang}`}
               className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200"
             >
               {t.reglas}
             </a>
           </li>
           <li>
-            <a href={withLang("/contacto")} className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200">
+            <a href={`/contacto?lang=${lang}`} className="font-semibold text-yellow-300 underline underline-offset-4 hover:text-yellow-200">
               {t.contact}
             </a>
           </li>

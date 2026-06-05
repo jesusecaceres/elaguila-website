@@ -1,22 +1,6 @@
-import { navCopyLang, normalizeLang, replaceLangInHref, type SupportedLang } from "@/app/lib/language";
 import type { HubCategoryKey, Lang } from "../config/clasificadosHub";
 
 export type { Lang };
-
-/** Route lang for URLs (preserves es/en/vi). */
-export function resolveRouteLang(raw: string | null | undefined): SupportedLang {
-  return normalizeLang(raw);
-}
-
-/** Display copy lang for hub pages (vi → en chrome). */
-export function resolveHubCopyLang(raw: string | null | undefined): Lang {
-  return navCopyLang(normalizeLang(raw));
-}
-
-/** Append route lang to internal paths; preserves other query params. */
-export function appendRouteLangToPath(path: string, raw: string | null | undefined): string {
-  return replaceLangInHref(path, normalizeLang(raw));
-}
 
 /** Canonical path for each hub category (category-owned listing surface). */
 export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {

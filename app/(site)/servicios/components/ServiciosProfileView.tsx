@@ -43,7 +43,6 @@ export function ServiciosProfileView({
   justPublishedPanel,
   showTopBar = true,
   analyticsListingSlug,
-  listingSourceId = null,
   engagementListingId = null,
   engagementOwnerUserId = null,
   persistListingEngagement = false,
@@ -69,8 +68,6 @@ export function ServiciosProfileView({
   showTopBar?: boolean;
   /** Public Clasificados slug — enables analytics + tracked outbound CTAs on the action panel. */
   analyticsListingSlug?: string;
-  /** `servicios_public_listings.id` for global analytics API (SVC1). */
-  listingSourceId?: string | null;
   /** Stable key for Like/Save/Share: `leonix_ad_id`, else listing row `id`, else slug (dev). */
   engagementListingId?: string | null;
   /** Listing owner auth id for analytics rollup. */
@@ -92,8 +89,12 @@ export function ServiciosProfileView({
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
-      {analyticsListingSlug && listingSourceId?.trim() ? (
-        <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} listingSourceId={listingSourceId.trim()} />
+      {analyticsListingSlug ? (
+        <ServiciosProfileViewAnalytics
+          listingSlug={analyticsListingSlug}
+          listingEngagementId={engagementListingId}
+          engagementOwnerUserId={engagementOwnerUserId}
+        />
       ) : null}
       {showTopBar ? (
         <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
@@ -156,7 +157,6 @@ export function ServiciosProfileView({
                       profile={profile}
                       lang={lang}
                       listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
                       listingShareUrl={listingShareUrl}
                       engagementListingId={engagementListingId}
                       engagementOwnerUserId={engagementOwnerUserId}
@@ -172,21 +172,12 @@ export function ServiciosProfileView({
                       profile={profile}
                       lang={lang}
                       listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
                       listingShareUrl={listingShareUrl}
                     />
                   </div>
 
                   <div className="order-5 lg:hidden">
-                    <ServiciosPromocionesCard
-                      profile={displayProfile}
-                      lang={lang}
-                      premiumLeonixTone
-                      listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
-                      engagementListingId={engagementListingId}
-                      engagementOwnerUserId={engagementOwnerUserId}
-                    />
+                    <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
                   </div>
 
                   {hasCredentialsResolved(profile) ? (
@@ -201,7 +192,6 @@ export function ServiciosProfileView({
                       lang={lang}
                       profileForQuote={profile}
                       listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
                       listingShareUrl={listingShareUrl}
                       premiumLeonixTone
                     />
@@ -254,7 +244,6 @@ export function ServiciosProfileView({
               profile={profile}
               lang={lang}
               listingSlug={analyticsListingSlug}
-              listingSourceId={listingSourceId}
               listingShareUrl={listingShareUrl}
               engagementListingId={engagementListingId}
               engagementOwnerUserId={engagementOwnerUserId}
@@ -264,15 +253,7 @@ export function ServiciosProfileView({
               showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
             />
             <div className="mt-5 lg:mt-6">
-              <ServiciosPromocionesCard
-                profile={displayProfile}
-                lang={lang}
-                premiumLeonixTone
-                listingSlug={analyticsListingSlug}
-                listingSourceId={listingSourceId}
-                engagementListingId={engagementListingId}
-                engagementOwnerUserId={engagementOwnerUserId}
-              />
+              <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
             </div>
           </aside>
         </div>

@@ -4,8 +4,6 @@ import Image from "next/image";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { HomeFeaturedBusiness } from "./homeFeaturedBusinesses";
 import { HOME_PAGE_COPY, type HomePageLang } from "./homePageCopy";
-import type { SupportedLang } from "@/app/lib/language";
-import { replaceLangInHref } from "@/app/lib/language";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -23,11 +21,10 @@ function featuredCardColClass(index: number, count: number): string {
 
 type Props = {
   lang: HomePageLang;
-  routeLang: SupportedLang;
   businesses: HomeFeaturedBusiness[];
 };
 
-export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
+export function HomeDestacadosSection({ lang, businesses }: Props) {
   const copy = HOME_PAGE_COPY[lang].destacados;
   const hasBusinesses = businesses.length > 0;
   const count = businesses.length;
@@ -63,7 +60,7 @@ export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
                 key={`${business.name}-${business.href}`}
                 className={cx(useSixCol && "lg:col-span-2", featuredCardColClass(index, businesses.length))}
               >
-                <FeaturedBusinessCard business={business} lang={lang} routeLang={routeLang} viewCta={copy.viewCta} />
+                <FeaturedBusinessCard business={business} lang={lang} viewCta={copy.viewCta} />
               </li>
             ))}
           </ul>
@@ -88,18 +85,15 @@ export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
 function FeaturedBusinessCard({
   business,
   lang,
-  routeLang,
   viewCta,
 }: {
   business: HomeFeaturedBusiness;
   lang: HomePageLang;
-  routeLang: SupportedLang;
   viewCta: string;
 }) {
-  const hashIndex = business.href.indexOf("#");
-  const base = hashIndex >= 0 ? business.href.slice(0, hashIndex) : business.href;
-  const hash = hashIndex >= 0 ? business.href.slice(hashIndex) : "";
-  const href = replaceLangInHref(base, routeLang) + hash;
+  const href = business.href.includes("?")
+    ? `${business.href}&lang=${lang}`
+    : `${business.href}?lang=${lang}`;
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_10px_28px_-18px_rgba(31,36,28,0.22)] ring-1 ring-[#C9A84A]/15">

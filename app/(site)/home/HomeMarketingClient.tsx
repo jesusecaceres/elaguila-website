@@ -5,7 +5,6 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import type { HomeMarketingResolved } from "@/app/lib/siteSectionContent/homeMarketingMerge";
-import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import { HomeDestacadosSection } from "./HomeDestacadosSection";
 import { getPopulatedFeaturedBusinesses } from "./homeFeaturedBusinesses";
@@ -21,24 +20,23 @@ export function HomeMarketingClient({ content }: { content: HomeMarketingResolve
 
 function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   const searchParams = useSearchParams();
-  const routeLang = normalizeLang(searchParams?.get("lang"));
-  const lang = navCopyLang(routeLang) as HomePageLang;
+  const lang = (searchParams?.get("lang") || "es") as HomePageLang;
   const L = content[lang];
   const pageCopy = HOME_PAGE_COPY[lang];
-  const magazineLink = replaceLangInHref("/magazine", routeLang);
+  const magazineLink = `/magazine?lang=${lang}`;
 
   const injectLang = (href: string | null | undefined): string | null => {
     if (!href) return null;
     const trimmed = href.trim();
     if (!trimmed) return null;
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("//")) return trimmed;
-    const hashIndex = trimmed.indexOf("#");
-    const base = hashIndex >= 0 ? trimmed.slice(0, hashIndex) : trimmed;
-    const hash = hashIndex >= 0 ? trimmed.slice(hashIndex) : "";
-    return replaceLangInHref(base, routeLang) + hash;
+    const [base, hash] = trimmed.split("#");
+    const joiner = base.includes("?") ? "&" : "?";
+    const withParam = `${base}${joiner}lang=${lang}`;
+    return hash ? `${withParam}#${hash}` : withParam;
   };
 
-  const withLang = (href: string) => replaceLangInHref(href, routeLang);
+  const withLang = (href: string) => injectLang(href) || `${href.split("?")[0]}?lang=${lang}`;
 
   const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
   const advertiseOverrideHref = injectLang(content.ctaSecondaryHref);
@@ -161,7 +159,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
         </div>
       </section>
 
-      <HomeDestacadosSection lang={lang} routeLang={routeLang} businesses={featuredBusinesses} />
+      <HomeDestacadosSection lang={lang} businesses={featuredBusinesses} />
 
       {/* Ecosystem */}
       <section className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/50 py-12 sm:py-14" aria-labelledby="home-ecosystem-title">
@@ -238,7 +236,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
               aria-label={pageCopy.convert.newsletterAria}
             >
               <input type="hidden" name="source" value="home" />
-              <input type="hidden" name="lang" value={routeLang} />
+              <input type="hidden" name="lang" value={lang} />
               <label htmlFor="home-newsletter-email" className="sr-only">
                 {pageCopy.convert.emailLabel}
               </label>

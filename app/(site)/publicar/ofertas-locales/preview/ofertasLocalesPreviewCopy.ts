@@ -45,10 +45,4 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
     "Este archivo se seleccionó para el borrador pero aún no se ha subido.",
   selectedFilePendingMessageEn:
     "This file has been selected for the draft but is not uploaded yet.",
-  openUploadedFlyer: "Open uploaded flyer",
-  openUploadedFlyerEs: "Abrir volante subido",
-  openUploadedCoupon: "Open uploaded coupon",
-  openUploadedCouponEs: "Abrir cupón subido",
-  uploadedPreviewPending: "Uploaded — preview link pending",
-  uploadedPreviewPendingEs: "Subido — enlace de vista previa pendiente",
 } as const;

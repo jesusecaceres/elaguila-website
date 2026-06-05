@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   isEnVentaPublishResumeRequested,
-  isEnVentaRepublishFromListingRequested,
   persistEnVentaPreviewHandoffAsync,
   resolveEnVentaPublishFormInitialState,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
@@ -53,22 +52,19 @@ export default function LeonixEnVentaFreeApplication() {
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const resumeRequested = isEnVentaPublishResumeRequested(searchParams?.get("resume"));
-  const republishRequested = isEnVentaRepublishFromListingRequested(searchParams?.get("republish"));
   const [state, setState] = useState(createEmptyEnVentaFreeState);
   const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     let cancelled = false;
-    void resolveEnVentaPublishFormInitialState("free", { resume: resumeRequested, republish: republishRequested }).then(
-      (next) => {
-        if (!cancelled) setState(next);
-      },
-    );
+    void resolveEnVentaPublishFormInitialState("free", resumeRequested).then((next) => {
+      if (!cancelled) setState(next);
+    });
     clearLeonixReturningToEditSessionFlag();
     return () => {
       cancelled = true;
     };
-  }, [resumeRequested, republishRequested]);
+  }, [resumeRequested]);
 
   const copy = useMemo(
     () =>

@@ -151,8 +151,8 @@ export async function fetchOwnerEngagementRollupsServer(ownerUserId: string): Pr
     serviciosBySlug[slug] = {
       slug,
       views: base.views,
-      likes: base.likes,
-      saves: base.saves,
+      likes: Math.max(base.likes, likesFromTable),
+      saves: Math.max(base.saves, savesFromTable),
       shares: base.shares,
       ctaClicks: base.ctaClicks,
       analyticsOnly,
@@ -179,8 +179,8 @@ export function supplementOwnerTotalsWithRollups(
   const profileViews = Math.max(totals.profileViews, analytics.profileClicks);
   const listingOpens = Math.max(totals.listingOpens, analytics.listingOpens);
   const listingViews = Math.max(totals.listingViews, analytics.views);
-  const likes = Math.max(totals.likes, analytics.likes);
-  const saves = Math.max(totals.saves, analytics.saves);
+  const likes = Math.max(totals.likes, analytics.likes, rollups.serviciosTableLikesTotal);
+  const saves = Math.max(totals.saves, analytics.saves, rollups.serviciosTableSavesTotal);
   const shares = Math.max(totals.shares, analytics.shares);
   const ctaClicks = Math.max(totals.ctaClicks, analytics.ctaClicks);
   const lastEngagement = [totals.lastEngagement, analytics.lastEngagement].filter(Boolean).sort().pop();

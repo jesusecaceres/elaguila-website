@@ -7,7 +7,6 @@ import {
   insertServiciosAnalyticsEvent,
   type ServiciosLeadPreferredContactMethod,
 } from "@/app/(site)/clasificados/servicios/lib/serviciosOpsTablesServer";
-import { mirrorServiciosOpsEventToListingAnalytics } from "@/app/(site)/clasificados/servicios/lib/serviciosListingAnalyticsMirror";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
 import { resolveServiciosLeadBusinessNotifyEmail } from "@/app/(site)/clasificados/servicios/lib/serviciosLeadNotifyRecipientServer";
@@ -106,16 +105,6 @@ export async function POST(req: Request) {
   }
 
   await insertServiciosAnalyticsEvent({
-    listingSlug,
-    eventType: "lead_created",
-    meta: {
-      requestKind,
-      leadId: ins.id,
-      preferredContactMethod,
-      hasSenderPhone: Boolean(senderPhone),
-    },
-  });
-  await mirrorServiciosOpsEventToListingAnalytics({
     listingSlug,
     eventType: "lead_created",
     meta: {

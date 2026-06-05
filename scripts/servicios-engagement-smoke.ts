@@ -111,58 +111,17 @@ function main() {
   assert.ok(saveBtn.includes("readSavedListingForUser"), "save: runtime read helper");
 
   const heroSrc = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosHero.tsx"), "utf8");
-  assert.ok(heroSrc.includes("ServiciosAdaptiveLogoPlate"), "S3: standard hero adaptive logo");
-  assert.ok(heroSrc.includes("LX_STANDARD_HERO_FALLBACK_STYLE"), "S3: royal night sky fallback hero");
-
-  const adaptiveLogo = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosAdaptiveLogoPlate.tsx"), "utf8");
-  assert.ok(adaptiveLogo.includes("object-contain"), "S3: logo object-fit contain");
+  assert.ok(heroSrc.includes("data-servicios-hero-like-cue"), "hero: like social-proof marker");
+  assert.ok(heroSrc.includes("♡ Me gusta") && heroSrc.includes("♡ Like"), "hero: zero-state copy ES/EN");
 
   const guardados = readFileSync(join(__dirname, "../app/(site)/dashboard/guardados/page.tsx"), "utf8");
   assert.ok(guardados.includes("listSavedListingIdsForUser"), "guardados: reads saved listings via runtime helper");
 
   const saveRuntime = readFileSync(join(__dirname, "../app/lib/savedListingsRuntime.ts"), "utf8");
   assert.ok(saveRuntime.includes("saved_listings") && saveRuntime.includes("user_saved_listings"), "save runtime: canonical + legacy fallback");
-  assert.ok(saveRuntime.includes("insertSavedListingIfAbsent"), "S2: idempotent insert-if-absent (no PostgREST upsert)");
-  assert.ok(!saveRuntime.includes("onConflict"), "S2: no on_conflict upsert in save runtime");
-
-  const serviciosSaveId = readFileSync(join(__dirname, "../app/lib/serviciosSavedListingIdentity.ts"), "utf8");
-  assert.ok(serviciosSaveId.includes("serviciosSavedListingExtras"), "S2: Servicios saved_listings identity helper");
-  assert.ok(serviciosSaveId.includes("servicios_public_listings"), "S2: source_table for Guardados resolve");
-
-  const hubEng = readFileSync(
-    join(__dirname, "../app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx"),
-    "utf8",
-  );
-  assert.ok(hubEng.includes("saveExtras"), "S2: standard profile hub passes saveExtras");
-
-  const proShell = readFileSync(
-    join(__dirname, "../app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx"),
-    "utf8",
-  );
-  assert.ok(proShell.includes("saveExtras"), "S2: professional profile passes saveExtras");
 
   const ownerEngagementApi = readFileSync(join(__dirname, "../app/api/dashboard/owner-engagement/route.ts"), "utf8");
   assert.ok(ownerEngagementApi.includes("fetchOwnerEngagementRollupsServer"), "dashboard API: server engagement rollups");
-
-  const identitySrc = readFileSync(join(__dirname, "../app/(site)/servicios/lib/serviciosAnalyticsIdentity.ts"), "utf8");
-  assert.ok(identitySrc.includes("serviciosCanonicalListingAnalyticsId"), "S1: canonical listing_analytics id");
-  assert.ok(identitySrc.includes("listing_analytics"), "S1: documents listing_analytics source of truth");
-
-  const mirrorSrc = readFileSync(
-    join(__dirname, "../app/(site)/clasificados/servicios/lib/serviciosListingAnalyticsMirror.ts"),
-    "utf8",
-  );
-  assert.ok(mirrorSrc.includes("clientListingAnalytics"), "S1: ops mirror skips client-duplicated events");
-  assert.ok(mirrorSrc.includes("listing_analytics"), "S1: server mirror writes listing_analytics");
-
-  const ctaSrc = readFileSync(join(__dirname, "../app/(site)/servicios/lib/serviciosCtaIntents.ts"), "utf8");
-  assert.ok(ctaSrc.includes("clientListingAnalytics: true"), "S1: CTA path marks client listing_analytics write");
-
-  const profileEng = readFileSync(
-    join(__dirname, "../app/(site)/servicios/lib/serviciosProfileEngagementAnalytics.ts"),
-    "utf8",
-  );
-  assert.ok(profileEng.includes("listing_view"), "S1: profile writes listing_view to listing_analytics");
 
   const likeCluster = readFileSync(
     join(__dirname, "../app/(site)/servicios/components/ServiciosLikeEngagementCluster.tsx"),
@@ -186,22 +145,16 @@ function main() {
     join(__dirname, "../app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx"),
     "utf8",
   );
-  assert.ok(resultCard.includes("ServiciosLikeCountBadge"), "S3: card like badge component");
-  assert.ok(resultCard.includes("ServiciosAdaptiveLogoPlate"), "S3: horizontal card adaptive logo");
-  assert.ok(resultCard.includes("LX_IVORY_CARD"), "S3: ivory discovery card");
-  assert.ok(resultCard.includes("trackServiciosResultCardClick"), "result card: profile click tracking preserved");
-  assert.ok(!resultCard.includes("+{serviceChipsMobileHidden}"), "S3: no +N chip collapse on cards");
-
-  const likeBadge = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosLikeCountBadge.tsx"), "utf8");
-  assert.ok(likeBadge.includes("data-servicios-like-badge"), "card: like badge marker");
+  assert.ok(resultCard.includes("data-servicios-like-badge"), "card: like badge marker");
+  assert.ok(resultCard.includes("public_like_net_count"));
+  assert.ok(resultCard.includes("♡ Me gusta") && resultCard.includes("♡ Like"), "card: zero-state copy ES/EN");
 
   const proResultCard = readFileSync(
     join(__dirname, "../app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx"),
     "utf8",
   );
-  assert.ok(proResultCard.includes("ServiciosLikeCountBadge"), "S3: professional card like badge");
-  assert.ok(proResultCard.includes("ServiciosAdaptiveLogoPlate"), "S3: professional card adaptive logo");
-  assert.ok(proResultCard.includes("LX_IVORY_CARD"), "S3: professional ivory card");
+  assert.ok(proResultCard.includes("data-servicios-like-badge"), "professional card: like badge");
+  assert.ok(proResultCard.includes("public_like_net_count"), "professional card: persisted like count");
 
   const dashServicios = readFileSync(join(__dirname, "../app/(site)/dashboard/servicios/page.tsx"), "utf8");
   assert.ok(dashServicios.includes("ServiciosListingMetricsPills"), "dashboard servicios: per-ad metrics pills");

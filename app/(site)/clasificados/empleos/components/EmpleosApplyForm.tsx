@@ -7,14 +7,6 @@ import type { EmpleosScreenerQuestion } from "@/app/clasificados/empleos/data/em
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { EMPLEOS_CTA_PRIMARY } from "../lib/empleosPremiumUi";
-import {
-  trackEmpleosApplyStarted,
-  trackEmpleosApplySubmitted,
-} from "../lib/empleosCtaTracking";
-import {
-  empleosGlobalListingFromRow,
-  type EmpleosGlobalAnalyticsListing,
-} from "../lib/recordEmpleosGlobalAnalytics";
 
 export function isLiveListingId(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
@@ -24,11 +16,9 @@ type Props = {
   listingId: string;
   lang: Lang;
   screenerQuestions?: readonly EmpleosScreenerQuestion[];
-  /** Global analytics listing identity (EMP1). */
-  analyticsListing?: EmpleosGlobalAnalyticsListing | null;
 };
 
-export function EmpleosApplyForm({ listingId, lang, screenerQuestions = [], analyticsListing }: Props) {
+export function EmpleosApplyForm({ listingId, lang, screenerQuestions = [] }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,11 +31,6 @@ export function EmpleosApplyForm({ listingId, lang, screenerQuestions = [], anal
   const screeners = useMemo(() => screenerQuestions.filter((q) => q.prompt.trim()), [screenerQuestions]);
 
   async function submit() {
-    const listing =
-      analyticsListing ??
-      (isLiveListingId(listingId) ? empleosGlobalListingFromRow({ id: listingId }) : null);
-    if (listing) trackEmpleosApplyStarted(listing, "internal");
-
     setBusy(true);
     setErr(null);
     setDone(null);
@@ -76,7 +61,6 @@ export function EmpleosApplyForm({ listingId, lang, screenerQuestions = [], anal
         setErr(json.error ?? (lang === "es" ? "No se pudo enviar" : "Could not submit"));
         return;
       }
-      if (listing) trackEmpleosApplySubmitted(listing, "internal");
       setDone(lang === "es" ? "Solicitud enviada. El empleador la verá en su panel." : "Application sent. The employer will see it in their dashboard.");
       setMessage("");
       setAnswers({});

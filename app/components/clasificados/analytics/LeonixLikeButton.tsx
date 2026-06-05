@@ -21,8 +21,6 @@ type Props = {
    * Default: true when `listingId` is non-empty.
    */
   persistEngagement?: boolean;
-  /** When set, replaces default clasificados analytics insert. */
-  recordLikeEvent?: (isLike: boolean) => void | Promise<void>;
 };
 
 const LABELS = {
@@ -62,7 +60,6 @@ export function LeonixLikeButton({
   category,
   ownerUserId,
   persistEngagement,
-  recordLikeEvent,
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const allowEngage = persistEngagement !== false && Boolean(effectiveId);
@@ -228,25 +225,21 @@ export function LeonixLikeButton({
         }
       }
 
-      if (recordLikeEvent) {
-        await recordLikeEvent(nextState);
-      } else {
-        const ar = await trackListingLike(effectiveId, nextState, {
-          category,
-          ownerUserId: ownerUserId ?? undefined,
-          eventSource: "cta_card",
-          metadata: { authenticated: Boolean(user) },
-        });
-        if (!ar.ok && process.env.NODE_ENV === "development") {
-          console.warn("[lx-engagement] listing_analytics after like toggle failed", ar);
-        }
+      const ar = await trackListingLike(effectiveId, nextState, {
+        category,
+        ownerUserId: ownerUserId ?? undefined,
+        eventSource: "cta_card",
+        metadata: { authenticated: Boolean(user) },
+      });
+      if (!ar.ok && process.env.NODE_ENV === "development") {
+        console.warn("[lx-engagement] listing_analytics after like toggle failed", ar);
       }
 
       onToggle?.(nextState);
     } finally {
       setIsLiking(false);
     }
-  }, [allowEngage, effectiveId, isLiked, isLiking, onToggle, category, ownerUserId, lang, recordLikeEvent]);
+  }, [allowEngage, effectiveId, isLiked, isLiking, onToggle, category, ownerUserId, lang]);
 
   const inert = !allowEngage || !effectiveId;
 

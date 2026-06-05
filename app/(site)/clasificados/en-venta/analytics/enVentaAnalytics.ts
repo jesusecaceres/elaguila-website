@@ -1,27 +1,23 @@
-import { trackEnVentaListingViewGlobal, type EnVentaGlobalAnalyticsContext } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
+import { trackEvent } from "@/app/lib/listingAnalytics";
 
-export type { EnVentaGlobalAnalyticsContext };
-
-/** @deprecated Prefer `trackEnVentaListingViewGlobal` — kept for non–en-venta surfaces still on legacy path. */
-export function trackEnVentaListingView(listingId: string, _userId?: string | null) {
-  trackEnVentaListingViewGlobal({ listingUuid: listingId });
+export function trackEnVentaListingView(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "listing_view", userId);
 }
 
-/** Legacy open event — no longer emitted for en-venta global pipeline. */
-export function trackEnVentaListingOpen(_listingId: string, _userId?: string | null) {
-  /* listing_open omitted: EV1 tracks listing_view via global API */
+export function trackEnVentaListingOpen(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "listing_open", userId);
 }
 
-export function trackEnVentaSaveClick(_listingId: string, _userId?: string | null) {
-  /* use trackEnVentaSaveGlobal from engagement row */
+export function trackEnVentaSaveClick(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "listing_save", userId);
 }
 
-export function trackEnVentaShare(_listingId: string, _userId?: string | null) {
-  /* use trackEnVentaListingShareGlobal from engagement row */
+export function trackEnVentaShare(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "listing_share", userId);
 }
 
-export function trackEnVentaMessageIntent(_listingId: string, _userId?: string | null) {
-  /* reserved — message_sent requires auth via global API */
+export function trackEnVentaMessageIntent(listingId: string, userId?: string | null) {
+  void trackEvent(listingId, "message_sent", userId);
 }
 
 /** Free MVP: hook only — extend `listing_analytics.event_type` before emitting. */

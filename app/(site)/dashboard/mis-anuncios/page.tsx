@@ -11,13 +11,6 @@ import {
   ownerListingResumeFromPausePatch,
 } from "../lib/ownerListingsLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
-import { seedEnVentaDashboardRepublishDraft } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
-import {
-  buildEnVentaRepublishPublishHref,
-  enVentaShowsRepublicarListing,
-  resolveEnVentaDashboardListingLifecycle,
-} from "@/app/lib/clasificados/en-venta/dashboard/enVentaDashboardListingActions";
-import { mapListingRowToEnVentaRepublishDraft } from "@/app/lib/clasificados/en-venta/dashboard/mapListingRowToEnVentaRepublishDraft";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
 import { AutosDealerInventoryDashboardSection } from "@/app/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection";
@@ -33,11 +26,7 @@ import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstat
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
-import type { ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
-import {
-  fetchDashboardAnalyticsSummary,
-  hubListingMetricsFromSummary,
-} from "../lib/fetchDashboardAnalyticsApi";
+import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   buildAutosClassifiedsInventoryItems,
@@ -67,15 +56,6 @@ import {
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
-import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
-import {
-  buildComidaLocalDashboardInventoryItems,
-  mapComidaLocalRowToDashboardVm,
-} from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
-import {
-  fetchOwnerComidaLocalListings,
-  type ComidaLocalDashboardListingRow,
-} from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
 import {
   listingUiStatusChipClass,
   listingUiStatusLabel,
@@ -89,6 +69,7 @@ import {
   EN_VENTA_VISIBILITY_WINDOW_MS,
   mergeDetailPairValue,
 } from "@/app/clasificados/en-venta/republish/enVentaRepublishVisibility";
+import { listingAnalyticsReadIsDegraded } from "../lib/listingAnalyticsReadErrors";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import {
@@ -263,8 +244,7 @@ type MisAnunciosCategoryFilter =
   | "servicios"
   | "clases"
   | "comunidad"
-  | "busco"
-  | "comida-local";
+  | "busco";
 
 const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "all",
@@ -276,7 +256,6 @@ const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "empleos",
   "viajes",
   "servicios",
-  "comida-local",
   "clases",
   "comunidad",
   "busco",
@@ -410,8 +389,6 @@ export default function MyListingsPage() {
   const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
   const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
   const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
-  const [comidaLocalInventory, setComidaLocalInventory] = useState<DashboardInventoryItem[]>([]);
-  const [comidaLocalRows, setComidaLocalRows] = useState<ComidaLocalDashboardListingRow[]>([]);
   const [autosPaidInventory, setAutosPaidInventory] = useState<DashboardInventoryItem[]>([]);
   const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryFilter>(() => {
@@ -517,8 +494,6 @@ export default function MyListingsPage() {
       ]);
       const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
       const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
-      const comidaRowsFetched = await fetchOwnerComidaLocalListings(supabase, u.id);
-      const comidaLocalItems = buildComidaLocalDashboardInventoryItems(comidaRowsFetched, lang);
 
       if (!mounted) return;
       setUnifiedActiveCount(activeAcross);
@@ -527,8 +502,6 @@ export default function MyListingsPage() {
       setViajesInventory(viajesItems);
       setAutosPaidInventory(autosPaidItems);
       setServiciosInventory(serviciosItems);
-      setComidaLocalInventory(comidaLocalItems);
-      setComidaLocalRows(comidaRowsFetched);
 
       const entitlementLookup = [
         ...restaurantItems.map((item) => ({
@@ -577,19 +550,23 @@ export default function MyListingsPage() {
 
       setListingsLoading(false);
 
-      if (!mounted) return;
-      if (list.length > 0 && accessToken) {
+      if (list.length > 0) {
         const ids = list.map((x) => x.id);
-        const summary = await fetchDashboardAnalyticsSummary(accessToken);
+        const { data: events, error: analyticsErr } = await supabase
+          .from("listing_analytics")
+          .select("listing_id, event_type, user_id")
+          .in("listing_id", ids);
+
         if (!mounted) return;
-        if (summary) {
-          setListingAnalyticsDegraded(summary.listingAnalyticsUnavailable);
-          setAnalyticsByListing(hubListingMetricsFromSummary(summary.byListing, ids));
+        if (analyticsErr) {
+          setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(analyticsErr));
+          setAnalyticsByListing(aggregateListingAnalyticsEvents([], ids));
         } else {
-          setListingAnalyticsDegraded(true);
-          setAnalyticsByListing(hubListingMetricsFromSummary({}, ids));
+          setListingAnalyticsDegraded(false);
+          setAnalyticsByListing(aggregateListingAnalyticsEvents(events ?? [], ids));
         }
       } else {
+        if (!mounted) return;
         setListingAnalyticsDegraded(false);
         setAnalyticsByListing({});
       }
@@ -861,8 +838,7 @@ export default function MyListingsPage() {
     empleosInventory.length > 0 ||
     viajesInventory.length > 0 ||
     serviciosInventory.length > 0 ||
-    autosPaidInventory.length > 0 ||
-    comidaLocalInventory.length > 0;
+    autosPaidInventory.length > 0;
 
   const categoryCounts = useMemo(() => {
     let enVenta = 0;
@@ -894,17 +870,8 @@ export default function MyListingsPage() {
       empleos: empleosInventory.length,
       viajes: viajesInventory.length,
       servicios: serviciosInventory.length,
-      "comida-local": comidaLocalInventory.length,
     } as Record<Exclude<MisAnunciosCategoryFilter, "all">, number>;
-  }, [
-    listings,
-    autosPaidInventory,
-    restaurantInventory,
-    empleosInventory,
-    viajesInventory,
-    serviciosInventory,
-    comidaLocalInventory,
-  ]);
+  }, [listings, autosPaidInventory, restaurantInventory, empleosInventory, viajesInventory, serviciosInventory]);
 
   const filterChips = useMemo(() => {
     const owned = (MIS_ANUNCIOS_CATEGORY_FILTERS.filter((c) => c !== "all") as Exclude<MisAnunciosCategoryFilter, "all">[]).filter(
@@ -922,14 +889,6 @@ export default function MyListingsPage() {
     serviciosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "servicios");
   const showAutosPaidSection =
     autosPaidInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "autos");
-  const showComidaLocalSection =
-    (comidaLocalInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "comida-local")) ||
-    categoryFilter === "comida-local";
-
-  const comidaLocalDashboardVms = useMemo(
-    () => comidaLocalRows.map((row) => mapComidaLocalRowToDashboardVm(row, lang)),
-    [comidaLocalRows, lang]
-  );
 
   const brNegocioInventoryRows = useMemo(
     () =>
@@ -1096,13 +1055,6 @@ export default function MyListingsPage() {
                   manage: `/dashboard/viajes?${q}`,
                   publish: `/publicar/viajes?${q}`,
                 },
-                {
-                  key: "comida-local" as const,
-                  title: lang === "es" ? "Comida Local" : "Comida Local",
-                  owned: categoryCounts["comida-local"],
-                  manage: `/dashboard/mis-anuncios?${q}&cat=comida-local`,
-                  publish: `/publicar/comida-local?${q}`,
-                },
               ].map((c) => {
                 const hasOwned = c.owned > 0;
                 return (
@@ -1204,9 +1156,7 @@ export default function MyListingsPage() {
                                   : "Services"
                                 : fk === "autos"
                                   ? "Autos"
-                                  : fk === "comida-local"
-                                    ? "Comida Local"
-                                    : fk === "clases"
+                                  : fk === "clases"
                                     ? lang === "es"
                                       ? "Clases"
                                       : "Classes"
@@ -1514,14 +1464,6 @@ export default function MyListingsPage() {
             </section>
           ) : null}
 
-          {showComidaLocalSection ? (
-            <ComidaLocalDashboardListings
-              lang={lang}
-              items={comidaLocalDashboardVms}
-              showEmpty={categoryFilter === "comida-local"}
-            />
-          ) : null}
-
           {!hasAnyInventory ? (
             <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
               <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
@@ -1655,7 +1597,6 @@ export default function MyListingsPage() {
 
                 if (x.category === "en-venta") {
                   const uiSt = normalizeUiStatus(resolveListingUiStatus(x), x);
-                  const evLifecycle = resolveEnVentaDashboardListingLifecycle(uiSt, x);
                   const enVentaPlanLabel = categoryAdPlanDisplayLabel(
                     resolveCategoryAdPlan({ category: "en-venta", detailPairs: x.detail_pairs }),
                     lang,
@@ -1671,13 +1612,6 @@ export default function MyListingsPage() {
                         ? "Refrescar anuncio"
                         : "Refresh listing"
                       : null;
-                  const evViewsFromAnalytics = stats?.views ?? 0;
-                  const republicarPlan: "free" | "pro" = listingPlan === "pro" ? "pro" : "free";
-                  const beginEnVentaRepublicar = () => {
-                    const draft = mapListingRowToEnVentaRepublishDraft(rowRecEv, republicarPlan);
-                    seedEnVentaDashboardRepublishDraft(republicarPlan, draft);
-                    router.push(buildEnVentaRepublishPublishHref(republicarPlan, lang));
-                  };
                   return (
                     <EnVentaListingManageCard
                       key={x.id}
@@ -1690,7 +1624,7 @@ export default function MyListingsPage() {
                         created_at: x.created_at,
                         is_published: x.is_published,
                         thumbUrl,
-                        views: evViewsFromAnalytics,
+                        views: viewsTotal,
                         messages: stats?.messages,
                         saves: stats?.saves,
                       }}
@@ -1718,12 +1652,8 @@ export default function MyListingsPage() {
                       maxViews={maxViews}
                       priceDropLabel={listingPriceDropLabel(x, lang)}
                       showDraftBadge={x.is_published === false}
-                      listingLifecycle={evLifecycle}
-                      onRepublicarListing={
-                        enVentaShowsRepublicarListing(evLifecycle) ? beginEnVentaRepublicar : undefined
-                      }
-                      visibilityRenewal={evLifecycle === "active" ? visibilityRenewal : null}
-                      republishButtonLabel={evLifecycle === "active" ? republishButtonLabel : null}
+                      visibilityRenewal={visibilityRenewal}
+                      republishButtonLabel={republishButtonLabel}
                       republishCount={x.republish_count ?? null}
                       republishedAtIso={
                         x.republished_at != null && String(x.republished_at).trim()
@@ -1747,8 +1677,13 @@ export default function MyListingsPage() {
                             : null
                       }
                       updatedLine={formatUpdatedLine(x, lang)}
-                      analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}&tab=analytics`}
+                      workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                      messagesHref={`/dashboard/mensajes?${q}`}
+                      analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
                       onArchive={() => void softArchiveListing(x.id)}
+                      onDuplicate={() => {
+                        void navigator.clipboard.writeText(x.id);
+                      }}
                     />
                   );
                 }

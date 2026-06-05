@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
-import { mirrorServiciosOpsEventToListingAnalytics } from "@/app/(site)/clasificados/servicios/lib/serviciosListingAnalyticsMirror";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -66,8 +65,5 @@ export async function POST(req: Request) {
   }
 
   const ok = await insertServiciosAnalyticsEvent({ listingSlug, eventType, meta });
-  if (ok) {
-    void mirrorServiciosOpsEventToListingAnalytics({ listingSlug, eventType, meta });
-  }
   return NextResponse.json({ ok });
 }

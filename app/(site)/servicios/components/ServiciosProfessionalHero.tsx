@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
-import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
+import { trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
 import {
   LX,
@@ -13,14 +15,14 @@ import {
   LX_CTA_PRIMARY_LG,
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
-  LX_HERO_BG_STYLE,
   LX_HERO_CHIP,
+  LX_HERO_LOGO_FRAME,
   LX_HERO_TITLE,
+  LX_TYPE_SERIF_DISPLAY,
   collectHeroDisplayChips,
   getPrimaryCtaLabel,
   hasPhysicalAddress,
 } from "./serviciosLeonixBrand";
-import { ServiciosAdaptiveLogoPlate } from "./ServiciosAdaptiveLogoPlate";
 import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 
 function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
@@ -54,9 +56,6 @@ export function ServiciosProfessionalHero({
   cityFallback,
   contactScrollTargetId,
   listingSlug,
-  listingSourceId,
-  engagementListingId,
-  engagementOwnerUserId,
   engagementSlot,
 }: {
   profile: ServiciosProfileResolved;
@@ -65,15 +64,12 @@ export function ServiciosProfessionalHero({
   cityFallback?: string;
   contactScrollTargetId?: string;
   listingSlug?: string;
-  listingSourceId?: string;
-  engagementListingId?: string | null;
-  engagementOwnerUserId?: string | null;
   engagementSlot?: React.ReactNode;
 }) {
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || cityFallback?.trim() || "";
   const thumb = profile.hero.logoUrl || null;
-  const displayChips = collectHeroDisplayChips(profile, 5);
+  const displayChips = collectHeroDisplayChips(profile, 3);
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
       ? profile.hero.rating
@@ -87,13 +83,6 @@ export function ServiciosProfessionalHero({
   const tel = profile.contact.phoneTelHref?.trim();
   const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact);
   const primaryLabel = getPrimaryCtaLabel(template, lang);
-  const analyticsBase = serviciosAnalyticsTrackMeta({
-    listingSlug,
-    sourceId: listingSourceId,
-    engagementListingId,
-    ownerUserId: engagementOwnerUserId,
-    source: "professional_hero",
-  });
 
   const scrollToContact = () => {
     if (!contactScrollTargetId) return;
@@ -111,20 +100,20 @@ export function ServiciosProfessionalHero({
       scrollToContact();
       return;
     }
-    trackServiciosListingCta(listingSlug, "cta_call_click", analyticsBase);
+    trackServiciosListingCta(listingSlug, "cta_call_click", { source: "professional_hero" });
     window.location.href = tel.startsWith("tel:") ? tel : `tel:${tel}`;
   };
 
   const openWhatsApp = () => {
     if (!waHref) return;
-    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", analyticsBase);
+    trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { source: "professional_hero" });
     window.open(waHref, "_blank", "noopener,noreferrer");
   };
 
   const openDirections = () => {
     const href = profile.contact.mapsSearchHref?.trim();
     const addr = profile.contact.physicalAddressDisplay?.trim();
-    trackServiciosListingCta(listingSlug, "cta_maps_click", analyticsBase);
+    trackServiciosListingCta(listingSlug, "cta_maps_click", { source: "professional_hero" });
     if (href && /^https?:\/\//i.test(href)) {
       window.open(href, "_blank", "noopener,noreferrer");
     } else if (addr) {
@@ -137,7 +126,7 @@ export function ServiciosProfessionalHero({
   };
 
   return (
-    <div className={LX_HERO_BG} style={LX_HERO_BG_STYLE}>
+    <div className={LX_HERO_BG}>
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/80 to-transparent"
         aria-hidden
@@ -162,13 +151,24 @@ export function ServiciosProfessionalHero({
           aria-hidden
         />
         <div className="relative z-[1] flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6 lg:gap-8">
-          <ServiciosAdaptiveLogoPlate
-            src={thumb}
-            alt={profile.hero.logoAlt || profile.identity.businessName}
-            fallbackMonogram={profile.identity.businessName}
-            variant="hero"
-            className="mx-auto sm:mx-0"
-          />
+          <div className={LX_HERO_LOGO_FRAME}>
+            {thumb ? (
+              <Image
+                src={thumb}
+                alt={profile.hero.logoAlt || profile.identity.businessName}
+                fill
+                className="object-contain"
+                sizes="104px"
+                unoptimized={serviciosImageUnoptimized(thumb)}
+              />
+            ) : (
+              <div
+                className={`flex h-full w-full items-center justify-center ${LX_TYPE_SERIF_DISPLAY} text-xl uppercase tracking-wide text-[#3B2117]`}
+              >
+                {profile.identity.businessName.slice(0, 2)}
+              </div>
+            )}
+          </div>
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
             {category ? (
@@ -217,7 +217,7 @@ export function ServiciosProfessionalHero({
             </div>
 
             {displayChips.length > 0 ? (
-              <div className="mt-3.5 flex flex-wrap justify-center gap-1.5 sm:justify-start lg:mt-4">
+              <div className="mt-3.5 flex flex-wrap justify-center gap-2 sm:justify-start lg:mt-4">
                 {displayChips.map((chip) => (
                   <span key={chip} className={LX_HERO_CHIP}>
                     {chip}
