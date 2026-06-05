@@ -6,7 +6,7 @@ Policy for the stacked **A5.VDATA-A / B / C** Autos vehicle data improvement seq
 |------|-------|
 | **A (this document)** | Audit + lane impact policy + normalized shape + Gate B/C plan |
 | **B** | Shared UI behavior + `autosVehicleData.ts` facade (trim/engine dropdowns, spec pre-fill, fallback copy) |
-| **C** | Partial curated seed expansion + full `npm run build` validation |
+| **C** | Partial curated seed expansion (18 starter models) + full `npm run build` validation |
 
 ---
 
@@ -31,7 +31,7 @@ Policy for the stacked **A5.VDATA-A / B / C** Autos vehicle data improvement seq
 | **NHTSA vPIC** | Useful for VIN decode and official manufacturer-reported baseline data; not always enough for dealership trim UX alone | Not integrated — evaluate for future supplement |
 | **Edmunds-style APIs** | Strong Make → Model → Model Year → Trim → Style hierarchy | Requires access/licensing — not added |
 | **CarAPI / CarListAPI / commercial vehicle datasets** | Likely better trim/engine dropdown coverage | Requires API/licensing review — not added |
-| **Manual curated seed** | Acceptable only as **partial starter data** for high-volume models | **Gate B active** — Camry, Civic, F-150 only; Gate C expands |
+| **Manual curated seed** | Acceptable only as **partial starter data** for high-volume models | **Gate C active** — 18 starter models; partial/not year-complete |
 
 **Gate A rules:** No large dataset import. No dealership scraping. No paid API keys. No server-side external API calls unless already safely configured elsewhere.
 
@@ -182,3 +182,28 @@ Privado **shares** `AutosVehicleIdentityFields` (year/make/model/trim) and benef
 Privado **does not** include `AutosVehicleEngineField` in its application steps — engine is not collected in the Privado publish flow by design. **No Privado code changes required for engine dropdown work in Gate B** unless product later adds an engine step.
 
 No dealer-only fields shall be added to Privado in any VDATA gate.
+
+---
+
+## Year behavior (Gate C)
+
+Starter seed is **make/model-based**, not year-complete. Year `<select>` remains independent; selecting any year does not block trim/engine dropdowns when make/model match a starter entry. Full year-specific trim/engine variance is deferred to **VDATA-D**.
+
+---
+
+## VDATA-D recommended next step
+
+Before production dependency on external vehicle data:
+
+1. **NHTSA vPIC** — evaluate for VIN decode and manufacturer-reported baseline (supplement only).
+2. **Edmunds-style licensed hierarchy** — make/model/year/trim/style for richer dealership UX.
+3. **CarAPI / CarListAPI / commercial datasets** — broader trim/engine coverage; requires licensing/API review.
+4. **Curated CSV import** — high-volume local inventory patterns from dealer exports.
+
+Requirements for VDATA-D:
+
+- Licensing/API review before production dependency.
+- **Manual free-text fallback must remain forever.**
+- No dealership website scraping.
+- No paid API keys without explicit approval gate.
+

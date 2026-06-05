@@ -97,18 +97,8 @@ const MAKE_LOOKUP = new Map<string, string>(
   AUTOS_VEHICLE_MAKES.map((m) => [m.toLowerCase().replace(/\s+/g, " "), m]),
 );
 
-/** Gate B starter trims only — mirrors partial seed (Camry, Civic, F-150). Gate C expands. */
-const TRIMS_BY_MAKE_MODEL: Record<string, Record<string, readonly string[]>> = {
-  Toyota: {
-    Camry: ["LE", "SE", "XLE", "XSE"],
-  },
-  Honda: {
-    Civic: ["LX", "Sport", "EX", "Touring", "Si", "Type R"],
-  },
-  Ford: {
-    "F-150": ["XL", "XLT", "Lariat", "Raptor"],
-  },
-};
+/** Legacy trim mirror — seed in autosVehicleStructuredSeed.ts is primary. Gate C starter models only. */
+const TRIMS_BY_MAKE_MODEL: Record<string, Record<string, readonly string[]>> = {};
 
 export function getAutosVehicleYearOptions(): number[] {
   const max = new Date().getFullYear() + 1;

@@ -2,7 +2,7 @@
  * A5.VDATA-B — Unified Autos vehicle data facade.
  *
  * Single import surface for publish UI, normalization, and search-readiness helpers.
- * Partial starter data: Toyota Camry, Honda Civic, Ford F-150 (Gate B).
+ * Partial starter data: 18 high-volume US models (Gate C). Gate D expands via licensed/import sources.
  * Gate C expands curated seed — no external APIs.
  */
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";

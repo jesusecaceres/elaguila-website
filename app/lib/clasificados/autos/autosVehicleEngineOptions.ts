@@ -11,32 +11,8 @@ import {
   resolveStructuredEngineOption,
 } from "@/app/lib/clasificados/autos/autosVehicleStructuredSeed";
 
-/** Gate B starter engines — merged with structured seed. Gate C expands. */
-const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, readonly string[]>>> = {
-  Toyota: {
-    Camry: {
-      LE: ["2.5L I4", "2.5L Hybrid"],
-      SE: ["2.5L I4", "2.5L Hybrid"],
-      XLE: ["2.5L I4", "2.5L Hybrid"],
-      XSE: ["2.5L I4", "2.5L Hybrid"],
-    },
-  },
-  Honda: {
-    Civic: {
-      LX: ["2.0L I4", "1.5L Turbo I4"],
-      Sport: ["1.5L Turbo I4", "2.0L I4"],
-      Touring: ["1.5L Turbo I4"],
-      "Type R": ["2.0L Turbo I4"],
-    },
-  },
-  Ford: {
-    "F-150": {
-      XLT: ["2.7L EcoBoost V6", "3.5L EcoBoost V6", "5.0L V8"],
-      Lariat: ["2.7L EcoBoost V6", "3.5L EcoBoost V6", "5.0L V8"],
-      Raptor: ["3.5L High-Output EcoBoost V6"],
-    },
-  },
-};
+/** Legacy engine mirror — structured seed is primary. Kept empty; Gate C seed supplies engines. */
+const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, readonly string[]>>> = {};
 
 const ENGINE_LOOKUP = new Map<string, string>();
 
