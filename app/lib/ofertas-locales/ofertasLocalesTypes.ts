@@ -101,6 +101,71 @@ export type OfertaLocalUploadedAssetResult = {
   detail?: string;
 };
 
+export type OfertaLocalPublishStatus =
+  | "draft"
+  | "submitted"
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "archived"
+  | "expired";
+
+/** Asset metadata stored in ofertas_locales.flyer_assets / coupon_assets jsonb. */
+export type OfertaLocalPublishedAssetMetadata = {
+  id: string;
+  assetType: OfertaLocalDraftAssetType;
+  title: string;
+  note: string;
+  url: string;
+  fileName: string;
+  mimeType: string;
+  storagePath: string;
+  sizeBytes: number | null;
+  pageNumber: number | null;
+  sortOrder: number;
+};
+
+/** Row payload for service-role insert into ofertas_locales. */
+export type OfertaLocalDbInsertPayload = {
+  owner_id: string;
+  status: OfertaLocalPublishStatus;
+  offer_type: string;
+  business_category: string;
+  market_type: string | null;
+  business_name: string;
+  title: string;
+  description: string | null;
+  coupon_text: string | null;
+  flyer_title: string | null;
+  valid_from: string;
+  valid_until: string;
+  address: string | null;
+  city: string;
+  state: string | null;
+  zip_code: string;
+  service_zip_codes: string[];
+  phone: string | null;
+  whatsapp: string | null;
+  website_url: string | null;
+  directions_url: string | null;
+  membership_url: string | null;
+  membership_cta_label: string | null;
+  membership_note: string | null;
+  requires_membership_for_deals: boolean;
+  digital_coupon_url: string | null;
+  digital_coupon_note: string | null;
+  is_magazine_pickup_partner: boolean;
+  magazine_distribution_status: string;
+  magazine_monthly_drop_estimate: string | null;
+  magazine_pickup_notes: string | null;
+  flyer_assets: OfertaLocalPublishedAssetMetadata[];
+  coupon_assets: OfertaLocalPublishedAssetMetadata[];
+  is_featured_requested: boolean;
+  language_tags: string[];
+  internal_notes: string | null;
+  submitted_at: string;
+};
+
 export type OfertaLocalValidationIssue = {
   field: string;
   message: string;

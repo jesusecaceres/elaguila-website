@@ -73,7 +73,7 @@ export function OfertasLocalesValidationPanel({
         <div className="mt-2">
           {publishFieldsReady ? (
             <p className="text-xs text-[#1E1814]/65">
-              Campos obligatorios completos (excepto archivos, pendiente gate futuro).{" "}
+              {OFERTAS_LOCALES_SHELL_COPY.publishReadyForReview}{" "}
               {OFERTAS_LOCALES_SHELL_COPY.publishNotBuilt}
             </p>
           ) : (

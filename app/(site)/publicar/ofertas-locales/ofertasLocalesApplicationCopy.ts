@@ -10,6 +10,16 @@ export const OFERTAS_LOCALES_SHELL_COPY = {
   previewLink: "Ver vista previa",
   previewDisabled: "Vista previa — próximamente",
   publishDisabled: "Publicar — más adelante",
+  submitForReview: "Enviar para revisión",
+  submitForReviewEn: "Submit for review",
+  submittingForReview: "Enviando…",
+  submittingForReviewEn: "Submitting…",
+  submitSuccessTitle: "Tu oferta fue enviada para revisión.",
+  submitSuccessBody:
+    "Nuestro equipo la revisará antes de publicarla. Puedes seguir editando el borrador local en este dispositivo.",
+  submitSuccessBodyEn:
+    "Our team will review it before it goes live. You can keep editing your local draft on this device.",
+  submitFailed: "No se pudo enviar la oferta.",
   uploadFlyerPlaceholder: "Carga de volante / PDF — próximamente",
   uploadCouponPlaceholder: "Carga de cupón (imagen / PDF) — próximamente",
   assetsFlyerSectionTitle: "Archivos de volante (borrador)",
@@ -58,5 +68,7 @@ export const OFERTAS_LOCALES_SHELL_COPY = {
   validationPublishTitle: "Publicación futura",
   previewReady: "Tienes lo básico para la vista previa cuando esté disponible.",
   publishNotBuilt:
-    "La publicación real, carga de archivos y pago aún no están activos en este gate.",
+    "La publicación pública y el pago aún no están activos. El envío crea un registro pendiente de revisión.",
+  publishReadyForReview:
+    "Listo para enviar a revisión. La oferta no será pública hasta aprobación.",
 } as const;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
@@ -26,10 +26,9 @@ import type {
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
-import {
-  validateOfertaLocalDraftForFuturePublish,
-  validateOfertaLocalDraftForPreview,
-} from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
+import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
+import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
+import { validateOfertaLocalDraftForPreview } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OFERTAS_LOCALES_SHELL_COPY } from "./ofertasLocalesApplicationCopy";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
@@ -127,9 +126,12 @@ function formatSavedAt(ts: number | null): string | null {
 
 export default function OfertasLocalesApplicationClient() {
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
-  const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
+  const publishIssues = useMemo(() => validateOfertaLocalDraftForServerPublish(draft), [draft]);
   const previewReady = previewIssues.length === 0;
   const publishFieldsReady = publishIssues.every((i) => i.severity !== "error");
 
@@ -148,6 +150,29 @@ export default function OfertasLocalesApplicationClient() {
 
   const handleSaveDraft = useCallback(() => {
     saveOfertaLocalDraftToStorage(draft);
+  }, [draft]);
+
+  const handleSubmitForReview = useCallback(async () => {
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      saveOfertaLocalDraftToStorage(draft);
+      const result = await submitOfertaLocalDraftForReview(draft);
+      if (!result.ok) {
+        const msg =
+          result.issues?.map((i) => i.message).join(" ") ||
+          result.detail ||
+          result.error ||
+          OFERTAS_LOCALES_SHELL_COPY.submitFailed;
+        setSubmitError(msg);
+        return;
+      }
+      setSubmitSuccess({ id: result.id, status: result.status });
+    } catch {
+      setSubmitError(OFERTAS_LOCALES_SHELL_COPY.submitFailed);
+    } finally {
+      setSubmitting(false);
+    }
   }, [draft]);
 
   if (!hasLoadedDraft) {
@@ -551,6 +576,25 @@ export default function OfertasLocalesApplicationClient() {
 
           {/* 10. Validation and actions */}
           <SectionCard title="Validación y acciones">
+            {submitSuccess ? (
+              <div className="mb-4 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <p className="font-semibold">{OFERTAS_LOCALES_SHELL_COPY.submitSuccessTitle}</p>
+                <p className="mt-1 text-xs text-emerald-800/85">
+                  {OFERTAS_LOCALES_SHELL_COPY.submitSuccessBody}
+                </p>
+                <p className="mt-1 text-xs text-emerald-800/70">
+                  {OFERTAS_LOCALES_SHELL_COPY.submitSuccessBodyEn}
+                </p>
+                <p className="mt-2 text-[10px] uppercase tracking-wide text-emerald-800/60">
+                  ID: {submitSuccess.id} · {submitSuccess.status}
+                </p>
+              </div>
+            ) : null}
+            {submitError ? (
+              <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+                {submitError}
+              </p>
+            ) : null}
             <OfertasLocalesValidationPanel
               previewIssues={previewIssues}
               publishIssues={publishIssues}
@@ -579,8 +623,15 @@ export default function OfertasLocalesApplicationClient() {
               >
                 {OFERTAS_LOCALES_SHELL_COPY.previewLink}
               </Link>
-              <button type="button" className={BTN_PRIMARY} disabled title="Gate futuro">
-                {OFERTAS_LOCALES_SHELL_COPY.publishDisabled}
+              <button
+                type="button"
+                className={BTN_PRIMARY}
+                disabled={!publishFieldsReady || submitting}
+                onClick={() => void handleSubmitForReview()}
+              >
+                {submitting
+                  ? `${OFERTAS_LOCALES_SHELL_COPY.submittingForReview} / ${OFERTAS_LOCALES_SHELL_COPY.submittingForReviewEn}`
+                  : `${OFERTAS_LOCALES_SHELL_COPY.submitForReview} / ${OFERTAS_LOCALES_SHELL_COPY.submitForReviewEn}`}
               </button>
             </div>
           </SectionCard>
