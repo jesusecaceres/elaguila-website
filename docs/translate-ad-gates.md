@@ -202,7 +202,7 @@ Per translatable field:
 | **Unavailable** (current — no `translation_records` table) | Skip read/write; call Google; `fromCache: false` |
 | **Available** (future migration gate) | Read before Google; full hit → `fromCache: true`; miss → Google + write; partial hit translates misses only |
 
-Future enablement: `TRANSLATION_CACHE_STORAGE=supabase` after `translation_records` migration lands.
+Enablement: set `TRANSLATION_CACHE_STORAGE=supabase` **after** applying migration `20260527210000_create_translation_records.sql` and redeploying with `SUPABASE_SERVICE_ROLE_KEY` present. Without both, provider still works but durable cache stays off (`fromCache: false`).
 
 ### Response `fromCache`
 
@@ -211,8 +211,54 @@ Future enablement: `TRANSLATION_CACHE_STORAGE=supabase` after `translation_recor
 
 ### Out of scope (G4)
 
-- No Supabase migration / `translation_records` table
+- ~~No Supabase migration / `translation_records` table~~ → **SQL1 ✅**
 - No category UI wiring — **Servicios pilot (T4)** is next after provider + env alignment
+
+## Gate SQL1 (Supabase durable `translation_records` cache) ✅
+
+**Scope:** Migration + wire `serverCache.ts` to Supabase service role. No category UI, no TranslateAdControl changes.
+
+### Migration
+
+| Item | Value |
+|---|---|
+| File | `supabase/migrations/20260527210000_create_translation_records.sql` |
+| Table | `public.translation_records` |
+| RLS | Enabled — **no** anon/authenticated policies (service role only) |
+| Unique cache key | `(category, listing_key, field_key, source_locale, target_locale, source_text_hash, source_text_version)` |
+
+### Environment (server-only)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `TRANSLATION_CACHE_STORAGE` | For durable cache | Set to `supabase` in Production after migration is applied. Omit or any other value → cache reads/writes skipped safely. |
+| `NEXT_PUBLIC_SUPABASE_URL` | When cache enabled | Existing project URL (not used for writes alone). |
+| `SUPABASE_SERVICE_ROLE_KEY` | When cache enabled | Server-only secret — **never** expose as `NEXT_PUBLIC_*`. |
+
+Provider env (`TRANSLATION_PROVIDER`, Google credentials) unchanged — cache is additive cost control, not a second provider.
+
+### Cache behavior (when storage active)
+
+| Case | Behavior |
+|---|---|
+| Full hit (all fields, `stale_at` null) | No Google call; `fromCache: true` |
+| Partial hit | Google only for misses; merge cached + fresh; `fromCache: false` |
+| Miss / stale row | Google + upsert; `fromCache: false` |
+| Storage unavailable | Skip read/write; Google as today; `fromCache: false` |
+| Cache write failure | Log safe metadata only (category, listingKey, fieldKey, locale, error code) — API still succeeds |
+
+### Production activation (manual)
+
+1. Apply migration in Supabase (`supabase db push` or SQL editor).
+2. Set `TRANSLATION_CACHE_STORAGE=supabase` in Vercel Production (with existing `SUPABASE_SERVICE_ROLE_KEY`).
+3. Redeploy.
+4. Run **SQL2** cache smoke — production cache is **not** active until steps 1–3 complete.
+
+### Out of scope (SQL1)
+
+- No `listing_translations` table
+- No category / TranslateAdControl wiring
+- No Google credential or validation changes
 
 ## Gate G2 (provider abstraction pivot) ✅
 

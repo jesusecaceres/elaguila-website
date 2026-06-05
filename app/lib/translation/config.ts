@@ -17,7 +17,7 @@ export type TranslationProviderConfig = {
   googleCloudProjectId: string | null;
   /** Future Google Translate location, e.g. global (G3). */
   googleTranslateLocation: string | null;
-  /** True when durable server cache storage is wired (G4). */
+  /** True when `TRANSLATION_CACHE_STORAGE=supabase` and service-role Supabase credentials exist. */
   serverCacheStorageAvailable: boolean;
 };
 

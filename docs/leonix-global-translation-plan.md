@@ -1,6 +1,6 @@
 # Leonix Global Translation — G1 Architecture Plan (design only)
 
-**Status:** G1 design complete; **G2 provider abstraction** ✅; **G3 Google backend** ✅ (no DB cache yet).  
+**Status:** G1 design complete; **G2 provider abstraction** ✅; **G3 Google backend** ✅; **SQL1 durable cache migration** ✅ (activate with env + deploy).  
 **Primary provider:** Google Cloud Translation API (Advanced) when `TRANSLATION_PROVIDER=google`.  
 **DeepL:** Optional fallback only (`TRANSLATION_PROVIDER=deepl`); not the strategic default.
 
@@ -54,33 +54,28 @@ G3 ✅ implements `providers/google.ts` (Cloud Translation Advanced v3, server-o
 - `GOOGLE_APPLICATION_CREDENTIALS_JSON` (Vercel) or `GOOGLE_APPLICATION_CREDENTIALS` (local file)
 - `GOOGLE_TRANSLATE_LOCATION` (e.g. `global`)
 - Optional: `TRANSLATION_PROVIDER_FALLBACK=deepl` + `DEEPL_API_KEY` (off in prod until CFO approves)
+- **SQL1 cache:** `TRANSLATION_CACHE_STORAGE=supabase` (after migration applied) + `SUPABASE_SERVICE_ROLE_KEY` + `NEXT_PUBLIC_SUPABASE_URL`
 
 ---
 
-## Database (G4–G5) — `translation_records`
+## Database (SQL1 / G5) — `translation_records` ✅
 
-```sql
--- design sketch — not migrated in G1
-create table public.translation_records (
-  id uuid primary key default gen_random_uuid(),
-  content_type text not null,        -- listing | servicios_profile | empleos_job | message | application | magazine_issue | site_block | pdf_page
-  content_id text not null,          -- listing id, slug, message id, etc.
-  field_key text not null,           -- title | description | body | message | ...
-  source_locale text not null,       -- es | en | unknown
-  target_locale text not null,       -- es | en | ar | fa | ...
-  source_text_hash text not null,    -- sha256 of normalized source prose
-  provider text not null,            -- google | deepl | human
-  provider_model text,
-  masked_source text,                -- optional audit (truncated); prefer hash-only in prod
-  translated_text text not null,
-  quality_status text not null default 'machine'
-    check (quality_status in ('machine','reviewed','rejected','stale')),
-  content_version int not null default 1,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (content_type, content_id, field_key, target_locale, source_text_hash, content_version)
-);
-```
+Migration: `supabase/migrations/20260527210000_create_translation_records.sql`
+
+| Column | Purpose |
+|--------|---------|
+| `category`, `listing_key` | Translate-ad request identity (not raw contact data) |
+| `field_key` | Allowlisted translatable field |
+| `source_locale`, `target_locale` | `es` / `en` / `unknown` → `es` / `en` |
+| `source_text_hash` | SHA-256 of **masked** source prose |
+| `source_text_version` | Masking rules version (`v1`) |
+| `translated_text` | Provider output only |
+| `provider`, `provider_model` | e.g. `google-cloud-translation` |
+| `quality_status`, `stale_at` | Future QA / invalidation |
+
+**RLS:** enabled, no public policies — server service role only via `app/lib/translation/serverCache.ts`.
+
+**Activation:** migration apply → `TRANSLATION_CACHE_STORAGE=supabase` → redeploy. Until then, cache adapter no-ops safely.
 
 **Original language (G5):**
 
@@ -131,7 +126,7 @@ create table public.translation_records (
 |------|--------|
 | **G2** | ✅ Provider interface + registry; DeepL isolated; Google placeholder; no category/DB changes |
 | **G3** | ✅ Google Cloud Advanced adapter; env docs; `TRANSLATION_PROVIDER=google` |
-| **G4** | ✅ Server cache adapter (`serverCache.ts`); no migration yet — provider-only until `translation_records` |
+| **G4 / SQL1** | ✅ Server cache adapter + `translation_records` migration; enable with `TRANSLATION_CACHE_STORAGE=supabase` |
 | **G5** | `original_language` + publish pipeline writes |
 | **G6** | Language config module + selector UX (ES/EN stable) |
 | **G7** | Wire cache lookup into translate-ad + category hooks |

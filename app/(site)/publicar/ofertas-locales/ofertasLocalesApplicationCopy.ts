@@ -93,6 +93,9 @@ const COPY = {
       "¿Quieres aparecer destacado? El equipo de Leonix puede contactarte para opciones por ZIP, ciudad, categoría, newsletter o espacios destacados.",
     featuredCheckbox: "Quiero opciones de exposición destacada",
     featuredScopeLabel: "¿Dónde te interesa aparecer?",
+    wizardBack: "Atrás",
+    wizardNext: "Siguiente",
+    wizardReviewStep: "Revisar antes de enviar",
   },
   en: {
     pageTitle: "Local Deals",
@@ -186,6 +189,9 @@ const COPY = {
       "Want to be featured? The Leonix team can contact you about options by ZIP, city, category, newsletter, or featured placements.",
     featuredCheckbox: "I want featured exposure options",
     featuredScopeLabel: "Where are you interested in being featured?",
+    wizardBack: "Back",
+    wizardNext: "Next",
+    wizardReviewStep: "Review before submitting",
   },
 } as const;
 
