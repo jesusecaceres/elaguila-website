@@ -20,8 +20,6 @@ import {
   type PublicNavLang,
 } from "../lib/publicNavConfig";
 import { AdvertiseDropdown } from "./AdvertiseDropdown";
-import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
-import { leonixNavCopyLang, resolveLeonixSiteLang } from "@/app/lib/lang";
 
 type Lang = PublicNavLang;
 
@@ -56,8 +54,7 @@ function NavbarContent() {
   const router = useRouter();
 
   const urlLang = searchParams?.get("lang");
-  const routeLang = resolveLeonixSiteLang(urlLang);
-  const navLang: Lang = leonixNavCopyLang(routeLang);
+  const [lang, setLang] = useState<Lang>(urlLang === "en" ? "en" : "es");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [recursosOpen, setRecursosOpen] = useState(false);
   const [compactOverflowOpen, setCompactOverflowOpen] = useState(false);
@@ -84,6 +81,10 @@ function NavbarContent() {
       return () => clearTimeout(t);
     }
   }, [pathname, signedOutParam, router, searchParams]);
+
+  useEffect(() => {
+    if (urlLang === "es" || urlLang === "en") setLang(urlLang);
+  }, [urlLang]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -152,9 +153,9 @@ function NavbarContent() {
     []
   );
 
-  const L = t[navLang];
+  const L = t[lang];
 
-  const buildLink = (href: string) => `${href.split("?")[0]}?lang=${routeLang}`;
+  const buildLink = (href: string) => `${href.split("?")[0]}?lang=${lang}`;
 
   const isActive = (href: string) => {
     const cleanHref = href.split("?")[0];
@@ -167,6 +168,13 @@ function NavbarContent() {
     isActive(PUBLIC_NAV_RECURSOS_TRIGGER.href) || recursosDropdownActive;
   const compactOverflowActive = PUBLIC_NAV_COMPACT_OVERFLOW.some((item) => isActive(item.href));
 
+  const switchLang = (target: Lang) => {
+    const next = new URLSearchParams(searchParams?.toString() ?? "");
+    next.set("lang", target);
+    const q = next.toString();
+    router.push(q ? `${pathname}?${q}` : pathname);
+  };
+
   const currentPathWithQuery = useMemo(() => {
     const q = searchParams?.toString() ?? "";
     return q ? `${pathname}?${q}` : pathname;
@@ -175,14 +183,12 @@ function NavbarContent() {
   const goToLogin = useCallback(() => {
     const onPublicar = currentPathWithQuery?.startsWith("/clasificados/publicar");
     if (onPublicar) {
-      const redirect = encodeURIComponent(
-        currentPathWithQuery || `/clasificados/publicar?lang=${routeLang}`
-      );
-      router.push(`/login?mode=post&lang=${routeLang}&redirect=${redirect}`);
+      const redirect = encodeURIComponent(currentPathWithQuery || `/clasificados/publicar?lang=${lang}`);
+      router.push(`/login?mode=post&lang=${lang}&redirect=${redirect}`);
     } else {
-      router.push(`/login?mode=login&lang=${routeLang}`);
+      router.push(`/login?mode=login&lang=${lang}`);
     }
-  }, [currentPathWithQuery, routeLang, router]);
+  }, [currentPathWithQuery, lang, router]);
 
   useEffect(() => {
     let mounted = true;
@@ -252,9 +258,9 @@ function NavbarContent() {
     } finally {
       setUser(null);
       router.refresh();
-      router.replace(`/home?lang=${routeLang}&signed_out=1`);
+      router.replace(`/home?lang=${lang}&signed_out=1`);
     }
-  }, [router, routeLang, user?.id]);
+  }, [router, lang, user?.id]);
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);
@@ -272,7 +278,29 @@ function NavbarContent() {
       ? "whitespace-nowrap text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em]"
       : "whitespace-nowrap text-[#3D3428] hover:text-[#7A1E2C]";
 
-  const langToggle = () => <LeonixHeaderLanguageSelector variant="compact" />;
+  const langToggle = (compact?: boolean) => (
+    <div
+      className="flex shrink-0 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] p-0.5 text-[0.6875rem] font-semibold sm:text-xs"
+      role="group"
+      aria-label={L.langAria}
+    >
+      {(["es", "en"] as const).map((code) => (
+        <button
+          key={code}
+          type="button"
+          onClick={() => switchLang(code)}
+          aria-pressed={lang === code}
+          className={cx(
+            "min-h-[1.875rem] rounded-full px-2 py-1 transition-colors sm:min-h-[2rem] sm:px-2.5",
+            compact ? "min-w-[2.5rem] sm:min-w-[2.75rem]" : "min-w-[3.25rem] sm:min-w-[3.5rem]",
+            lang === code ? "bg-[#7A1E2C] text-[#FFFDF7]" : "text-[#3D3428] hover:bg-[#EDE6D6]"
+          )}
+        >
+          {code.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
 
   const accountControl = (variant: "desktop" | "mobile-bar") => {
     if (authLoading) {
@@ -321,18 +349,18 @@ function NavbarContent() {
                   <div className="mt-0.5 truncate text-xs text-[#3D3428]/75">{user.email}</div>
                 )}
                 <div className="mt-1.5 inline-flex items-center rounded-full border border-[#D6C7AD] bg-[#EDE6D6] px-2 py-0.5 text-[10px] text-[#1F241C]">
-                  {accountBadgeLabel(navLang)}
+                  {accountBadgeLabel(lang)}
                 </div>
               </div>
               <Link
-                href={`/dashboard?lang=${routeLang}`}
+                href={`/dashboard?lang=${lang}`}
                 className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
                 onClick={() => setAccountOpen(false)}
               >
                 {L.manageAccount}
               </Link>
               <Link
-                href={`/dashboard/mis-anuncios?lang=${routeLang}`}
+                href={`/dashboard/mis-anuncios?lang=${lang}`}
                 className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
                 onClick={() => setAccountOpen(false)}
               >
@@ -367,10 +395,10 @@ function NavbarContent() {
 
   const advertiseCta = (
     <AdvertiseDropdown
-      lang={navLang}
+      lang={lang}
       variant="navbar"
       align="right"
-      buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, navLang)}
+      buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
       className="hidden lg:block"
       onNavigate={() => setMobileOpen(false)}
     />
@@ -427,7 +455,7 @@ function NavbarContent() {
                     className={cx(navLinkClass(isActive(item.href)), "shrink-0")}
                     aria-current={isActive(item.href) ? "page" : undefined}
                   >
-                    {publicNavLabel(item, navLang)}
+                    {publicNavLabel(item, lang)}
                   </Link>
                 ))}
 
@@ -446,7 +474,7 @@ function NavbarContent() {
                     aria-haspopup="true"
                     aria-label={L.recursosMenu}
                   >
-                    {publicNavLabel(PUBLIC_NAV_RECURSOS_TRIGGER, navLang)}
+                    {publicNavLabel(PUBLIC_NAV_RECURSOS_TRIGGER, lang)}
                     <span className="text-[0.6rem] leading-none" aria-hidden>
                       {recursosOpen ? "▲" : "▼"}
                     </span>
@@ -467,7 +495,7 @@ function NavbarContent() {
                           )}
                           onClick={() => setRecursosOpen(false)}
                         >
-                          {publicNavDropdownLabel(item, navLang)}
+                          {publicNavDropdownLabel(item, lang)}
                         </Link>
                       ))}
                     </div>
@@ -483,14 +511,14 @@ function NavbarContent() {
                           className={cx(navLinkClass(isActive(item.href)), "shrink-0 xl:inline 2xl:hidden")}
                           aria-current={isActive(item.href) ? "page" : undefined}
                         >
-                          {publicNavItemLabel(item, navLang, { short: true })}
+                          {publicNavItemLabel(item, lang, { short: true })}
                         </Link>
                         <Link
                           href={buildLink(item.href)}
                           className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 2xl:inline")}
                           aria-current={isActive(item.href) ? "page" : undefined}
                         >
-                          {publicNavLabel(item, navLang)}
+                          {publicNavLabel(item, lang)}
                         </Link>
                       </span>
                     );
@@ -502,7 +530,7 @@ function NavbarContent() {
                       className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 xl:inline")}
                       aria-current={isActive(item.href) ? "page" : undefined}
                     >
-                      {publicNavLabel(item, navLang)}
+                      {publicNavLabel(item, lang)}
                     </Link>
                   );
                 })}
@@ -521,7 +549,7 @@ function NavbarContent() {
                     aria-expanded={compactOverflowOpen}
                     aria-haspopup="true"
                   >
-                    {navLang === "es"
+                    {lang === "es"
                       ? PUBLIC_NAV_COMPACT_OVERFLOW_LABEL.labelEs
                       : PUBLIC_NAV_COMPACT_OVERFLOW_LABEL.labelEn}
                     <span className="text-[0.6rem] leading-none" aria-hidden>
@@ -541,7 +569,7 @@ function NavbarContent() {
                           className="block whitespace-nowrap px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C]"
                           onClick={() => setCompactOverflowOpen(false)}
                         >
-                          {publicNavItemLabel(item, navLang, { short: true })}
+                          {publicNavItemLabel(item, lang, { short: true })}
                         </Link>
                       ))}
                     </div>
@@ -552,7 +580,7 @@ function NavbarContent() {
 
             {/* ZONE 3 — right controls */}
             <div className="flex shrink-0 flex-nowrap items-center justify-end gap-2 ps-2 sm:gap-2.5 lg:gap-3 lg:ps-3">
-              {langToggle()}
+              {langToggle(true)}
               {accountControl("desktop")}
               {advertiseCta}
               <button
@@ -607,7 +635,7 @@ function NavbarContent() {
                         : "text-[#1F241C] hover:bg-[#FBF7EF]"
                     )}
                   >
-                    {publicNavLabel(item, navLang)}
+                    {publicNavLabel(item, lang)}
                   </Link>
                 ))}
               </nav>
@@ -615,10 +643,10 @@ function NavbarContent() {
 
             <div className="shrink-0 space-y-3 border-t border-[#D6C7AD]/60 px-4 py-4">
               <AdvertiseDropdown
-                lang={navLang}
+                lang={lang}
                 variant="primary"
                 fullWidth
-                buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, navLang)}
+                buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, lang)}
                 onNavigate={() => setMobileOpen(false)}
               />
 
@@ -629,14 +657,14 @@ function NavbarContent() {
                   <div className="truncate text-sm font-semibold text-[#1F241C]">{displayName}</div>
                   <div className="mt-2 flex flex-col gap-2">
                     <Link
-                      href={`/dashboard?lang=${routeLang}`}
+                      href={`/dashboard?lang=${lang}`}
                       onClick={() => setMobileOpen(false)}
                       className="rounded-xl bg-[#7A1E2C] px-3 py-2.5 text-center text-sm font-semibold text-white"
                     >
                       {L.manageAccount}
                     </Link>
                     <Link
-                      href={`/dashboard/mis-anuncios?lang=${routeLang}`}
+                      href={`/dashboard/mis-anuncios?lang=${lang}`}
                       onClick={() => setMobileOpen(false)}
                       className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-center text-sm font-medium text-[#1F241C]"
                     >
@@ -664,7 +692,7 @@ function NavbarContent() {
                     {L.signIn}
                   </button>
                   <Link
-                    href={`/login?mode=signup&lang=${routeLang}`}
+                    href={`/login?mode=signup&lang=${lang}`}
                     onClick={() => setMobileOpen(false)}
                     className="block rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-center text-sm font-medium text-[#1F241C]"
                   >
@@ -673,7 +701,7 @@ function NavbarContent() {
                 </div>
               )}
 
-              <div className="flex justify-center">{langToggle()}</div>
+              <div className="flex justify-center">{langToggle(true)}</div>
             </div>
           </div>
         </div>
