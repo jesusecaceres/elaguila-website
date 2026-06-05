@@ -194,6 +194,13 @@ export const OFERTAS_LOCALES_PRICING: Record<
   },
 } as const;
 
+/** Application UI — digital packages only (Stack 6.5A display subset). */
+export const OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS = [
+  "digitalCouponListing",
+  "digitalWeeklySpecials",
+  "aiSearchableSpecialsAddOn",
+] as const satisfies ReadonlyArray<keyof typeof OFERTAS_LOCALES_PRICING>;
+
 export const OFERTAS_LOCALES_VERSION_1_FEATURES = [
   "Admin-managed offers",
   "Public landing and results pages",

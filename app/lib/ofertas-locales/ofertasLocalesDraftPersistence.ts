@@ -92,6 +92,8 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
           t === "es" || t === "en" || t === "bilingual"
         )
       : base.languageTags,
+    customMarketType: String(stored.customMarketType ?? "").slice(0, 120),
+    wantsAiSearchableSpecials: Boolean(stored.wantsAiSearchableSpecials),
     flyerAssets: sanitizeAssetList(stored.flyerAssets),
     couponAssets: sanitizeAssetList(stored.couponAssets),
   };

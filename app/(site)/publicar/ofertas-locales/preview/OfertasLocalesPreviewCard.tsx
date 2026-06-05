@@ -13,22 +13,25 @@ import {
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
   digitalCouponCtaLabel,
-  digitalCouponCtaLabelEs,
   formatOfertaLocalDateRange,
+  getOfertaLocalMarketDisplayLabel,
   hasOfertaLocalCouponAsset,
   hasOfertaLocalFlyerAsset,
   labelForBusinessCategory,
-  labelForMagazineStatus,
-  labelForMarketType,
   labelForOfferType,
   membershipCtaLabel,
   resolveOfertaLocalDirectionsHref,
   resolveOfertaLocalWebsiteHref,
   shouldShowDigitalCouponBlock,
-  shouldShowMagazinePartnerBlock,
   shouldShowMembershipBlock,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import {
+  isOfertaLocalCouponFlow,
+  isOfertaLocalGeneralPromotionFlow,
+  isOfertaLocalWeeklyFlyerFlow,
+} from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OfertasLocalesPreviewAssetCards } from "./OfertasLocalesPreviewAssetCards";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
@@ -69,10 +72,19 @@ function ContactButton({
   );
 }
 
-export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }) {
-  const offerLabel = labelForOfferType(draft.offerType);
-  const categoryLabel = labelForBusinessCategory(draft.businessCategory);
-  const marketLabel = labelForMarketType(draft.marketType);
+export function OfertasLocalesPreviewCard({
+  draft,
+  lang = "es",
+}: {
+  draft: OfertaLocalDraft;
+  lang?: OfertasLocalesAppLang;
+}) {
+  const offerLabel = labelForOfferType(draft.offerType, lang);
+  const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
+  const marketLabel = getOfertaLocalMarketDisplayLabel(draft, lang);
+  const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
+  const isCoupon = isOfertaLocalCouponFlow(draft.offerType);
+  const isGeneral = isOfertaLocalGeneralPromotionFlow(draft.offerType);
   const dateRange = formatOfertaLocalDateRange(draft.validFrom, draft.validUntil);
   const expired = draft.validUntil.trim() ? isOfertaLocalExpired(draft.validUntil) : false;
   const notYetActive =
@@ -92,19 +104,20 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
 
   const showMembership = shouldShowMembershipBlock(draft);
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
-  const showMagazine = shouldShowMagazinePartnerBlock(draft);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
+  const previewNotice =
+    lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEn : OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEs;
 
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
       <div className="mx-auto max-w-lg px-4 py-8 pb-16 sm:px-6">
         {/* A. Preview notice */}
         <div className="mb-6 rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3 text-center">
-          <p className="text-sm font-semibold text-[#7A1E2C]">
-            {OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEs}
+          <p className="text-sm font-semibold text-[#7A1E2C]">{previewNotice}</p>
+          <p className="mt-1 text-xs text-[#1E1814]/65">
+            {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEs : OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEn}
           </p>
-          <p className="mt-1 text-xs text-[#1E1814]/65">{OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEn}</p>
         </div>
 
         {/* B. Offer hero */}
@@ -151,11 +164,6 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
               {OFERTAS_LOCALES_PREVIEW_COPY.notYetActiveEs}
             </p>
           ) : null}
-          {draft.isMagazinePickupPartner ? (
-            <span className="mt-3 inline-block rounded-md border border-[#D4C4A8]/80 bg-[#FDF8F0] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#1E1814]/50">
-              {OFERTAS_LOCALES_PREVIEW_COPY.partnerBadge}
-            </span>
-          ) : null}
         </header>
 
         <div className="mt-4 space-y-4">
@@ -175,30 +183,38 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
                 <p className="mt-1 whitespace-pre-wrap text-sm text-[#1E1814]">{draft.couponText}</p>
               </div>
             ) : null}
-            {draft.flyerTitle.trim() ? (
-              <p className="mt-3 text-sm text-[#1E1814]/75">
-                <span className="font-medium">Volante: </span>
-                {draft.flyerTitle}
-              </p>
-            ) : null}
+          {draft.flyerTitle.trim() && (isFlyer || isGeneral) ? (
+            <p className="mt-3 text-sm text-[#1E1814]/75">
+              <span className="font-medium">{lang === "en" ? "Flyer: " : "Volante: "}</span>
+              {draft.flyerTitle}
+            </p>
+          ) : null}
+          {(isFlyer || isGeneral) && !isCoupon ? (
             <OfertasLocalesPreviewAssetCards
               draft={draft}
               bucket="flyerAssets"
               title={OFERTAS_LOCALES_PREVIEW_COPY.assetsSectionFlyer}
+              lang={lang}
             />
-            {!hasOfertaLocalFlyerAsset(draft) ? (
-              <div className={cx(PLACEHOLDER, "mt-4")}>{OFERTAS_LOCALES_PREVIEW_COPY.flyerPlaceholderEs}</div>
-            ) : null}
+          ) : null}
+          {(isFlyer || isGeneral) && !isCoupon && !hasOfertaLocalFlyerAsset(draft) ? (
+            <div className={cx(PLACEHOLDER, "mt-4")}>
+              {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.flyerPlaceholder : OFERTAS_LOCALES_PREVIEW_COPY.flyerPlaceholderEs}
+            </div>
+          ) : null}
+          {(isCoupon || isGeneral) ? (
             <OfertasLocalesPreviewAssetCards
               draft={draft}
               bucket="couponAssets"
               title={OFERTAS_LOCALES_PREVIEW_COPY.assetsSectionCoupon}
+              lang={lang}
             />
-            {!hasOfertaLocalCouponAsset(draft) && draft.couponText.trim() ? (
-              <div className={cx(PLACEHOLDER, "mt-3")}>
-                {OFERTAS_LOCALES_PREVIEW_COPY.couponAssetPlaceholder}
-              </div>
-            ) : null}
+          ) : null}
+          {isCoupon && !hasOfertaLocalCouponAsset(draft) && draft.couponText.trim() ? (
+            <div className={cx(PLACEHOLDER, "mt-3")}>
+              {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.couponAssetPlaceholder : OFERTAS_LOCALES_PREVIEW_COPY.couponAssetPlaceholder}
+            </div>
+          ) : null}
           </section>
 
           {/* D. Business / location */}
@@ -252,7 +268,7 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
                   rel="noopener noreferrer"
                   className={cx(BTN_PRIMARY, "mt-4")}
                 >
-                  {membershipCtaLabel(draft)}
+                  {membershipCtaLabel(lang)}
                 </a>
               ) : (
                 <p className="mt-3 text-xs text-[#1E1814]/50">
@@ -278,23 +294,22 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
                   rel="noopener noreferrer"
                   className={cx(BTN_PRIMARY, "mt-4")}
                 >
-                  {digitalCouponCtaLabel()} / {digitalCouponCtaLabelEs()}
+                  {digitalCouponCtaLabel(lang)}
                 </a>
               ) : null}
             </section>
           ) : null}
 
-          {/* G. Magazine partner */}
-          {showMagazine ? (
-            <section className={cx(CARD, "border-[#D4C4A8]/60 bg-[#FDF8F0]/50 p-5")}>
-              <p className="text-xs text-[#1E1814]/55">{OFERTAS_LOCALES_PREVIEW_COPY.magazinePartnerNote}</p>
-              {draft.magazineDistributionStatus !== "not_offered" ? (
-                <p className="mt-2 text-xs text-[#1E1814]/45">
-                  Estado: {labelForMagazineStatus(draft.magazineDistributionStatus)}
-                </p>
-              ) : null}
-            </section>
+          {/* G. AI interest (intent only — not active) */}
+          {draft.wantsAiSearchableSpecials ? (
+            <p className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-center text-xs text-[#1E1814]/60">
+              {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.aiInterestEn : OFERTAS_LOCALES_PREVIEW_COPY.aiInterestEs}
+            </p>
           ) : null}
+          <span className="sr-only" aria-hidden>
+            {String(draft.isMagazinePickupPartner)}
+            {draft.magazineDistributionStatus}
+          </span>
 
           {/* H. AI teaser */}
           <p className="text-center text-[10px] uppercase tracking-wide text-[#1E1814]/40">
@@ -305,7 +320,7 @@ export function OfertasLocalesPreviewCard({ draft }: { draft: OfertaLocalDraft }
 
           {/* I. Actions */}
           <div className="flex flex-wrap gap-3 pt-2">
-            <Link href="/publicar/ofertas-locales" className={BTN_PRIMARY}>
+            <Link href={`/publicar/ofertas-locales?lang=${lang}`} className={BTN_PRIMARY}>
               {OFERTAS_LOCALES_PREVIEW_COPY.backToEdit}
             </Link>
             <button type="button" className={BTN_OUTLINE} disabled title="Publish not available">

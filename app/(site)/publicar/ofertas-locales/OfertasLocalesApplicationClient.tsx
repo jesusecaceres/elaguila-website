@@ -1,36 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  hasOfertaLocalAddressAccepted,
+  hasOfertaLocalDirectionsAccepted,
+  hasOfertaLocalUrlAccepted,
+  isOfertaLocalCouponFlow,
+  isOfertaLocalGeneralPromotionFlow,
+  isOfertaLocalWeeklyFlyerFlow,
+} from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
+import {
+  OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS,
   OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
   OFERTAS_LOCALES_MARKET_TYPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
-  OFERTAS_LOCALES_MAGAZINE_DISTRIBUTION_STATUS_OPTIONS,
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
-  OFERTAS_LOCALES_PICKUP_PARTNER_PRICING_NOTE,
   OFERTAS_LOCALES_PRICING,
   OFERTAS_LOCALES_PRODUCT_NAME,
 } from "@/app/lib/ofertas-locales/ofertasLocalesConstants";
 import {
-  normalizeOfertaLocalPhoneInput,
+  formatOfertaLocalPhoneDisplay,
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
-import type {
-  OfertaLocalBusinessCategory,
-  OfertaLocalMagazineDistributionStatus,
-  OfertaLocalMarketType,
-  OfertaLocalOfferType,
-} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
-import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
 import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
-import { validateOfertaLocalDraftForPreview } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
-import { OFERTAS_LOCALES_SHELL_COPY } from "./ofertasLocalesApplicationCopy";
+import type {
+  OfertaLocalBusinessCategory,
+  OfertaLocalMarketType,
+  OfertaLocalOfferType,
+} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
+import {
+  validateOfertaLocalDraftForFuturePublish,
+  validateOfertaLocalDraftForPreview,
+} from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
+import {
+  OFERTAS_LOCALES_SHELL_COPY,
+  ofertasLocalesAppCopy,
+} from "./ofertasLocalesApplicationCopy";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
 
 const PAGE_BG = "bg-[#FFFCF7]";
@@ -39,6 +52,7 @@ const INPUT =
   "w-full rounded-xl border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] placeholder:text-[#1E1814]/40 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/25";
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70";
 const HELPER = "mt-1 text-xs leading-relaxed text-[#1E1814]/60";
+const CONFIRM = "mt-1 text-xs font-medium text-emerald-800";
 const SECTION_TITLE = "text-lg font-semibold text-[#1E1814]";
 const CHIP_ON =
   "rounded-lg border border-[#7A1E2C] bg-[#7A1E2C]/10 px-3 py-1.5 text-sm font-medium text-[#7A1E2C]";
@@ -48,18 +62,11 @@ const BTN_PRIMARY =
   "rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_SECONDARY =
   "rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
-const PLACEHOLDER_BOX =
-  "rounded-xl border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/80 px-4 py-6 text-center text-sm text-[#1E1814]/55";
+const CALLOUT =
+  "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3 text-sm text-[#1E1814]/75";
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
-}
-
-function formatPhoneDisplay(raw: string): string {
-  const d = normalizeOfertaLocalPhoneInput(raw).slice(0, 10);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
 function parseServiceZips(raw: string): string[] {
@@ -94,11 +101,15 @@ function FieldBlock({
   label,
   helper,
   optional,
+  optionalLabel = "opcional",
+  confirm,
   children,
 }: {
   label: string;
   helper?: string;
   optional?: boolean;
+  optionalLabel?: string;
+  confirm?: string;
   children: ReactNode;
 }) {
   return (
@@ -106,37 +117,60 @@ function FieldBlock({
       <label className={LABEL}>
         {label}
         {optional ? (
-          <span className="ml-1 font-normal normal-case text-[#1E1814]/45">(opcional)</span>
+          <span className="ml-1 font-normal normal-case text-[#1E1814]/45">({optionalLabel})</span>
         ) : null}
       </label>
       {children}
       {helper ? <p className={HELPER}>{helper}</p> : null}
+      {confirm ? <p className={CONFIRM}>{confirm}</p> : null}
     </div>
   );
 }
 
-function formatSavedAt(ts: number | null): string | null {
+function formatSavedAt(ts: number | null, lang: "es" | "en"): string | null {
   if (!ts) return null;
   try {
-    return new Date(ts).toLocaleTimeString("es-US", { hour: "numeric", minute: "2-digit" });
+    return new Date(ts).toLocaleTimeString(lang === "en" ? "en-US" : "es-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   } catch {
     return null;
   }
 }
 
 export default function OfertasLocalesApplicationClient() {
+  const lang = useOfertasLocalesAppLang();
+  const c = ofertasLocalesAppCopy(lang);
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
-  const publishIssues = useMemo(() => validateOfertaLocalDraftForServerPublish(draft), [draft]);
+  const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
+  const serverPublishIssues = useMemo(() => validateOfertaLocalDraftForServerPublish(draft), [draft]);
   const previewReady = previewIssues.length === 0;
-  const publishFieldsReady = publishIssues.every((i) => i.severity !== "error");
+  const publishFieldsReady = serverPublishIssues.every((i) => i.severity !== "error");
 
-  const savedLabel = formatSavedAt(lastSavedAt);
+  const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
+  const isCoupon = isOfertaLocalCouponFlow(draft.offerType);
+  const isGeneral = isOfertaLocalGeneralPromotionFlow(draft.offerType);
+
+  const savedLabel = formatSavedAt(lastSavedAt, lang);
   const serviceZipsDisplay = formatServiceZipsDisplay(draft.serviceZipCodes);
+  const addressAccepted = hasOfertaLocalAddressAccepted(draft);
+  const directionsAccepted = hasOfertaLocalDirectionsAccepted(draft);
+  const membershipUrlAccepted = hasOfertaLocalUrlAccepted(draft.membershipUrl);
+  const digitalCouponUrlAccepted = hasOfertaLocalUrlAccepted(draft.digitalCouponUrl);
+
+  useEffect(() => {
+    if (!draft.membershipCtaLabel.trim()) {
+      updateDraft({
+        membershipCtaLabel: OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEs,
+      });
+    }
+  }, [draft.membershipCtaLabel, updateDraft]);
 
   const handleUrlBlur = useCallback(
     (field: "websiteUrl" | "directionsUrl" | "membershipUrl" | "digitalCouponUrl") => {
@@ -163,23 +197,25 @@ export default function OfertasLocalesApplicationClient() {
           result.issues?.map((i) => i.message).join(" ") ||
           result.detail ||
           result.error ||
-          OFERTAS_LOCALES_SHELL_COPY.submitFailed;
+          c.submitFailed;
         setSubmitError(msg);
         return;
       }
       setSubmitSuccess({ id: result.id, status: result.status });
     } catch {
-      setSubmitError(OFERTAS_LOCALES_SHELL_COPY.submitFailed);
+      setSubmitError(c.submitFailed);
     } finally {
       setSubmitting(false);
     }
-  }, [draft]);
+  }, [c.submitFailed, draft]);
+
+  const previewHref = `/publicar/ofertas-locales/preview?lang=${lang}`;
 
   if (!hasLoadedDraft) {
     return (
       <div className={cx("min-h-screen", PAGE_BG)}>
         <div className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-[#1E1814]/60">
-          Cargando borrador…
+          {lang === "en" ? "Loading draft…" : "Cargando borrador…"}
         </div>
       </div>
     );
@@ -188,32 +224,26 @@ export default function OfertasLocalesApplicationClient() {
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
       <div className="mx-auto max-w-3xl px-4 py-8 pb-16 sm:px-6">
-        {/* 1. Hero */}
         <header className="mb-8 border-b border-[#D4C4A8]/60 pb-6">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#7A1E2C]">
             Leonix · {OFERTAS_LOCALES_PRODUCT_NAME}
           </p>
-          <h1 className="mt-2 text-2xl font-bold text-[#1E1814] sm:text-3xl">
-            {OFERTAS_LOCALES_SHELL_COPY.pageTitle}
-          </h1>
-          <p className="mt-2 text-sm text-[#1E1814]/75">{OFERTAS_LOCALES_SHELL_COPY.pageSubtitle}</p>
-          <p className="mt-2 text-sm font-medium text-[#7A1E2C]">
-            {OFERTAS_LOCALES_SHELL_COPY.digitalFirstTagline}
-          </p>
+          <h1 className="mt-2 text-2xl font-bold text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
+          <p className="mt-2 text-sm text-[#1E1814]/75">{c.pageSubtitle}</p>
+          <p className="mt-2 text-sm font-medium text-[#7A1E2C]">{c.digitalFirstTagline}</p>
           <ul className="mt-3 space-y-1 text-xs text-[#1E1814]/65">
-            {OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS.slice(0, 4).map((prop) => (
+            {OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS.slice(0, 3).map((prop) => (
               <li key={prop}>· {prop}</li>
             ))}
           </ul>
           <p className="mt-3 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-2 text-xs text-[#1E1814]/70">
-            {OFERTAS_LOCALES_SHELL_COPY.scaffoldNotice}
-            {savedLabel ? ` · ${OFERTAS_LOCALES_SHELL_COPY.draftSaved} (${savedLabel})` : null}
+            {c.scaffoldNotice}
+            {savedLabel ? ` · ${c.draftSaved} (${savedLabel})` : null}
           </p>
         </header>
 
         <div className="space-y-6">
-          {/* 2. Offer type */}
-          <SectionCard title="Tipo de oferta">
+          <SectionCard title={c.offerTypeSection}>
             <div className="flex flex-wrap gap-2">
               {OFERTAS_LOCALES_OFFER_TYPE_OPTIONS.map((opt) => (
                 <button
@@ -222,15 +252,14 @@ export default function OfertasLocalesApplicationClient() {
                   className={draft.offerType === opt.value ? CHIP_ON : CHIP_OFF}
                   onClick={() => updateDraft({ offerType: opt.value as OfertaLocalOfferType })}
                 >
-                  {opt.labelEs}
+                  {lang === "en" ? opt.labelEn : opt.labelEs}
                 </button>
               ))}
             </div>
           </SectionCard>
 
-          {/* 3. Business details */}
-          <SectionCard title="Detalles del negocio">
-            <FieldBlock label="Categoría del negocio">
+          <SectionCard title={c.businessSection}>
+            <FieldBlock label={lang === "en" ? "Business category" : "Categoría del negocio"}>
               <select
                 className={INPUT}
                 value={draft.businessCategory}
@@ -238,31 +267,44 @@ export default function OfertasLocalesApplicationClient() {
                   updateDraft({ businessCategory: e.target.value as OfertaLocalBusinessCategory | "" })
                 }
               >
-                <option value="">Selecciona…</option>
+                <option value="">{c.selectPlaceholder}</option>
                 {OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.labelEs}
+                    {lang === "en" ? opt.labelEn : opt.labelEs}
                   </option>
                 ))}
               </select>
             </FieldBlock>
-            <FieldBlock label="Tipo de mercado" optional>
+            <FieldBlock label={lang === "en" ? "Market type" : "Tipo de mercado"} optional optionalLabel={c.optional}>
               <select
                 className={INPUT}
                 value={draft.marketType}
-                onChange={(e) =>
-                  updateDraft({ marketType: e.target.value as OfertaLocalMarketType | "" })
-                }
+                onChange={(e) => {
+                  const marketType = e.target.value as OfertaLocalMarketType | "";
+                  updateDraft({
+                    marketType,
+                    customMarketType: marketType === "other" ? draft.customMarketType : "",
+                  });
+                }}
               >
-                <option value="">Selecciona…</option>
+                <option value="">{c.selectPlaceholder}</option>
                 {OFERTAS_LOCALES_MARKET_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.labelEs}
+                    {lang === "en" ? opt.labelEn : opt.labelEs}
                   </option>
                 ))}
               </select>
             </FieldBlock>
-            <FieldBlock label="Nombre del negocio">
+            {draft.marketType === "other" ? (
+              <FieldBlock label={c.customMarketLabel} helper={c.customMarketHelper}>
+                <input
+                  className={INPUT}
+                  value={draft.customMarketType}
+                  onChange={(e) => updateDraft({ customMarketType: e.target.value })}
+                />
+              </FieldBlock>
+            ) : null}
+            <FieldBlock label={lang === "en" ? "Business name" : "Nombre del negocio"}>
               <input
                 className={INPUT}
                 value={draft.businessName}
@@ -270,40 +312,53 @@ export default function OfertasLocalesApplicationClient() {
                 autoComplete="organization"
               />
             </FieldBlock>
-            <FieldBlock label="Título de la oferta">
+            <FieldBlock label={lang === "en" ? "Offer title" : "Título de la oferta"}>
               <input
                 className={INPUT}
                 value={draft.title}
                 onChange={(e) => updateDraft({ title: e.target.value })}
               />
             </FieldBlock>
-            <FieldBlock label="Descripción" optional>
-              <textarea
-                className={cx(INPUT, "min-h-[100px] resize-y")}
-                value={draft.description}
-                onChange={(e) => updateDraft({ description: e.target.value })}
-              />
-            </FieldBlock>
+            {(isGeneral || isCoupon) && !isFlyer ? (
+              <FieldBlock label={c.descriptionLabel} optional>
+                <textarea
+                  className={cx(INPUT, "min-h-[80px] resize-y")}
+                  value={draft.description}
+                  onChange={(e) => updateDraft({ description: e.target.value })}
+                />
+              </FieldBlock>
+            ) : null}
           </SectionCard>
 
-          {/* 4. Offer details */}
-          <SectionCard title="Detalles de la oferta">
-            <FieldBlock label="Título del volante" optional helper="Para volantes semanales.">
-              <input
-                className={INPUT}
-                value={draft.flyerTitle}
-                onChange={(e) => updateDraft({ flyerTitle: e.target.value })}
-              />
-            </FieldBlock>
-            <FieldBlock label="Texto del cupón" optional helper="Para cupones y promociones.">
-              <textarea
-                className={cx(INPUT, "min-h-[80px] resize-y")}
-                value={draft.couponText}
-                onChange={(e) => updateDraft({ couponText: e.target.value })}
-              />
-            </FieldBlock>
+          <SectionCard
+            title={
+              isCoupon ? c.offerDetailsCoupon : isFlyer ? c.offerDetailsFlyer : c.offerDetailsGeneral
+            }
+          >
+            {isFlyer || isGeneral ? (
+              <FieldBlock label={c.flyerTitleLabel} optional={!isFlyer} helper={isFlyer ? c.flyerTitleHelper : undefined}>
+                <input
+                  className={INPUT}
+                  value={draft.flyerTitle}
+                  onChange={(e) => updateDraft({ flyerTitle: e.target.value })}
+                />
+              </FieldBlock>
+            ) : null}
+            {isCoupon || isGeneral || isFlyer ? (
+              <FieldBlock
+                label={c.couponTextLabel}
+                optional={isFlyer}
+                helper={isCoupon ? c.couponTextHelper : undefined}
+              >
+                <textarea
+                  className={cx(INPUT, "min-h-[80px] resize-y")}
+                  value={draft.couponText}
+                  onChange={(e) => updateDraft({ couponText: e.target.value })}
+                />
+              </FieldBlock>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
-              <FieldBlock label="Válido desde">
+              <FieldBlock label={c.validFrom}>
                 <input
                   type="date"
                   className={INPUT}
@@ -311,7 +366,7 @@ export default function OfertasLocalesApplicationClient() {
                   onChange={(e) => updateDraft({ validFrom: e.target.value })}
                 />
               </FieldBlock>
-              <FieldBlock label="Válido hasta">
+              <FieldBlock label={c.validUntil}>
                 <input
                   type="date"
                   className={INPUT}
@@ -322,9 +377,12 @@ export default function OfertasLocalesApplicationClient() {
             </div>
           </SectionCard>
 
-          {/* 5. Location and contact */}
-          <SectionCard title="Ubicación y contacto">
-            <FieldBlock label="Dirección" optional>
+          <SectionCard title={c.locationSection}>
+            <FieldBlock
+              label={lang === "en" ? "Address" : "Dirección"}
+              optional
+              confirm={addressAccepted ? c.addressAccepted : undefined}
+            >
               <input
                 className={INPUT}
                 value={draft.address}
@@ -333,14 +391,14 @@ export default function OfertasLocalesApplicationClient() {
               />
             </FieldBlock>
             <div className="grid gap-4 sm:grid-cols-3">
-              <FieldBlock label="Ciudad">
+              <FieldBlock label={lang === "en" ? "City" : "Ciudad"} helper={c.cityHelper}>
                 <input
                   className={INPUT}
                   value={draft.city}
                   onChange={(e) => updateDraft({ city: e.target.value })}
                 />
               </FieldBlock>
-              <FieldBlock label="Estado" optional>
+              <FieldBlock label={lang === "en" ? "State" : "Estado"} optional>
                 <input
                   className={INPUT}
                   value={draft.state}
@@ -362,37 +420,37 @@ export default function OfertasLocalesApplicationClient() {
               </FieldBlock>
             </div>
             <FieldBlock
-              label="ZIPs de servicio"
+              label={lang === "en" ? "Service ZIP codes" : "ZIPs de servicio"}
               optional
-              helper="Separa con comas (ej. 94533, 94534)."
+              helper={lang === "en" ? "Separate with commas." : "Separa con comas."}
             >
               <input
                 className={INPUT}
                 value={serviceZipsDisplay}
                 onChange={(e) => updateDraft({ serviceZipCodes: parseServiceZips(e.target.value) })}
-                placeholder="94533, 94534"
               />
             </FieldBlock>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FieldBlock label="Teléfono">
+              <FieldBlock label={lang === "en" ? "Phone" : "Teléfono"}>
                 <input
                   className={INPUT}
                   value={draft.phone}
-                  onChange={(e) => updateDraft({ phone: formatPhoneDisplay(e.target.value) })}
+                  onChange={(e) => updateDraft({ phone: formatOfertaLocalPhoneDisplay(e.target.value) })}
                   inputMode="tel"
                   autoComplete="tel"
+                  placeholder="(408) 555-1234"
                 />
               </FieldBlock>
               <FieldBlock label="WhatsApp" optional>
                 <input
                   className={INPUT}
                   value={draft.whatsapp}
-                  onChange={(e) => updateDraft({ whatsapp: formatPhoneDisplay(e.target.value) })}
+                  onChange={(e) => updateDraft({ whatsapp: formatOfertaLocalPhoneDisplay(e.target.value) })}
                   inputMode="tel"
                 />
               </FieldBlock>
             </div>
-            <FieldBlock label="Sitio web" optional>
+            <FieldBlock label={lang === "en" ? "Website" : "Sitio web"} optional>
               <input
                 className={INPUT}
                 value={draft.websiteUrl}
@@ -401,22 +459,26 @@ export default function OfertasLocalesApplicationClient() {
                 placeholder="https://"
               />
             </FieldBlock>
-            <FieldBlock label="URL de direcciones" optional>
+            <FieldBlock
+              label={lang === "en" ? "Directions / map URL" : "URL de mapa / direcciones"}
+              optional
+              confirm={directionsAccepted ? c.directionsAccepted : undefined}
+            >
               <input
                 className={INPUT}
                 value={draft.directionsUrl}
                 onChange={(e) => updateDraft({ directionsUrl: e.target.value })}
                 onBlur={() => handleUrlBlur("directionsUrl")}
-                placeholder="Google Maps u otro enlace"
+                placeholder="Google Maps"
               />
             </FieldBlock>
           </SectionCard>
 
-          {/* 6. Rewards / membership / digital coupons */}
-          <SectionCard title="Recompensas y cupones digitales">
-            <p className="text-sm text-[#1E1814]/75">{OFERTAS_LOCALES_SHELL_COPY.membershipHelperEn}</p>
-            <p className="text-sm text-[#1E1814]/75">{OFERTAS_LOCALES_SHELL_COPY.membershipHelperEn2}</p>
-            <p className="text-xs text-[#1E1814]/60">{OFERTAS_LOCALES_SHELL_COPY.membershipHelperEs}</p>
+          <SectionCard title={c.membershipSection}>
+            <p className="text-sm text-[#1E1814]/75">{c.membershipQuestion}</p>
+            <p className="text-xs text-[#1E1814]/55">
+              {c.membershipCtaStandard} · {c.digitalCouponCtaStandard}
+            </p>
             <label className="flex items-center gap-2 text-sm text-[#1E1814]">
               <input
                 type="checkbox"
@@ -424,9 +486,15 @@ export default function OfertasLocalesApplicationClient() {
                 onChange={(e) => updateDraft({ requiresMembershipForDeals: e.target.checked })}
                 className="rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
               />
-              Requiere cuenta de recompensas para estas ofertas
+              {lang === "en"
+                ? "Offers require membership or rewards account"
+                : "Las ofertas requieren membresía o cuenta de recompensas"}
             </label>
-            <FieldBlock label="URL de membresía / recompensas" optional>
+            <FieldBlock
+              label={lang === "en" ? "Membership / rewards URL" : "URL de membresía / recompensas"}
+              optional
+              confirm={membershipUrlAccepted ? c.urlAccepted : undefined}
+            >
               <input
                 className={INPUT}
                 value={draft.membershipUrl}
@@ -434,26 +502,18 @@ export default function OfertasLocalesApplicationClient() {
                 onBlur={() => handleUrlBlur("membershipUrl")}
               />
             </FieldBlock>
-            <FieldBlock
-              label="Etiqueta CTA de membresía"
-              optional
-              helper={`Ej. ${OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.joinRewardsEs} / ${OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.joinRewardsEn}`}
-            >
-              <input
-                className={INPUT}
-                value={draft.membershipCtaLabel}
-                onChange={(e) => updateDraft({ membershipCtaLabel: e.target.value })}
-                placeholder={OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEs}
-              />
-            </FieldBlock>
-            <FieldBlock label="Nota de membresía" optional>
+            <FieldBlock label={lang === "en" ? "Membership note" : "Nota de membresía"} optional>
               <textarea
                 className={cx(INPUT, "min-h-[60px] resize-y")}
                 value={draft.membershipNote}
                 onChange={(e) => updateDraft({ membershipNote: e.target.value })}
               />
             </FieldBlock>
-            <FieldBlock label="URL de cupón digital" optional>
+            <FieldBlock
+              label={lang === "en" ? "Digital coupon URL" : "URL de cupón digital"}
+              optional
+              confirm={digitalCouponUrlAccepted ? c.urlAccepted : undefined}
+            >
               <input
                 className={INPUT}
                 value={draft.digitalCouponUrl}
@@ -461,11 +521,7 @@ export default function OfertasLocalesApplicationClient() {
                 onBlur={() => handleUrlBlur("digitalCouponUrl")}
               />
             </FieldBlock>
-            <FieldBlock
-              label="Nota de cupón digital"
-              optional
-              helper={`Ej. ${OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEs}`}
-            >
+            <FieldBlock label={lang === "en" ? "Digital coupon note" : "Nota de cupón digital"} optional>
               <textarea
                 className={cx(INPUT, "min-h-[60px] resize-y")}
                 value={draft.digitalCouponNote}
@@ -474,117 +530,90 @@ export default function OfertasLocalesApplicationClient() {
             </FieldBlock>
           </SectionCard>
 
-          {/* 7. Magazine pickup partner */}
-          <SectionCard title="Socio de recogida de revista">
-            <p className="text-sm text-[#1E1814]/75">{OFERTAS_LOCALES_SHELL_COPY.magazinePartnerHelper}</p>
-            <p className="text-xs text-[#1E1814]/55">
-              Opción de distribución — no es el producto principal para supermercados.
+          <div className={CALLOUT}>
+            <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed">{c.leonixPartnerBody}</p>
+            <Link
+              href="/contacto"
+              className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
+            >
+              {c.leonixPartnerCta}
+            </Link>
+          </div>
+
+          <SectionCard title={c.pricingSectionTitle}>
+            <div className="space-y-3">
+              {OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS.map((key) => {
+                const pkg = OFERTAS_LOCALES_PRICING[key];
+                return (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 text-sm"
+                  >
+                    <p className="font-medium text-[#1E1814]">{pkg.label}</p>
+                    <p className="mt-1 text-[#1E1814]/75">
+                      {c.regularRateLabel}: {formatUsd(pkg.regularPriceMonthly)}/mo ·{" "}
+                      {c.partnerRateLabel}: {formatUsd(pkg.pickupPartnerPriceMonthly)}/mo
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-xs text-[#1E1814]/65">
+              <span className="font-medium">{c.moreExposureTitle}</span> {c.moreExposureBody}
             </p>
-            <label className="flex items-center gap-2 text-sm text-[#1E1814]">
+            <label className="mt-4 flex items-start gap-2 text-sm text-[#1E1814]">
               <input
                 type="checkbox"
-                checked={draft.isMagazinePickupPartner}
-                onChange={(e) => updateDraft({ isMagazinePickupPartner: e.target.checked })}
-                className="rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+                checked={draft.wantsAiSearchableSpecials}
+                onChange={(e) => updateDraft({ wantsAiSearchableSpecials: e.target.checked })}
+                className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
               />
-              Interés en ser socio de recogida Leonix
+              <span>
+                <span className="font-medium">{c.aiAddOnLabel}</span>
+                {draft.wantsAiSearchableSpecials ? (
+                  <span className="mt-1 block text-xs text-[#1E1814]/65">{c.aiAddOnHelper}</span>
+                ) : null}
+              </span>
             </label>
-            <FieldBlock label="Estado de distribución">
-              <select
-                className={INPUT}
-                value={draft.magazineDistributionStatus}
-                onChange={(e) =>
-                  updateDraft({
-                    magazineDistributionStatus: e.target.value as OfertaLocalMagazineDistributionStatus,
-                  })
-                }
-              >
-                {OFERTAS_LOCALES_MAGAZINE_DISTRIBUTION_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.labelEs}
-                  </option>
-                ))}
-              </select>
-            </FieldBlock>
-            <FieldBlock label="Estimado mensual de entregas" optional>
-              <input
-                className={INPUT}
-                value={draft.magazineMonthlyDropEstimate}
-                onChange={(e) => updateDraft({ magazineMonthlyDropEstimate: e.target.value })}
-                placeholder="ej. 200 revistas/mes"
-              />
-            </FieldBlock>
-            <FieldBlock label="Notas de recogida" optional>
-              <textarea
-                className={cx(INPUT, "min-h-[60px] resize-y")}
-                value={draft.magazinePickupNotes}
-                onChange={(e) => updateDraft({ magazinePickupNotes: e.target.value })}
-              />
-            </FieldBlock>
           </SectionCard>
 
-          {/* 8. Pricing preview */}
-          <SectionCard title={OFERTAS_LOCALES_SHELL_COPY.pricingSectionTitle}>
-            <p className="text-xs text-[#1E1814]/65">{OFERTAS_LOCALES_SHELL_COPY.magazinePartnerNote}</p>
-            <p className="text-xs text-[#1E1814]/55">{OFERTAS_LOCALES_PICKUP_PARTNER_PRICING_NOTE}</p>
-            <div className="overflow-x-auto">
-              <table className="mt-2 w-full min-w-[320px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-[#D4C4A8]/80 text-[#1E1814]/60">
-                    <th className="py-2 pr-3 font-semibold uppercase tracking-wide">Plan</th>
-                    <th className="py-2 pr-3 font-semibold uppercase tracking-wide">Regular</th>
-                    <th className="py-2 font-semibold uppercase tracking-wide">Socio recogida</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.values(OFERTAS_LOCALES_PRICING).map((pkg) => (
-                    <tr key={pkg.label} className="border-b border-[#D4C4A8]/40">
-                      <td className="py-2.5 pr-3 text-[#1E1814]">
-                        {pkg.label}
-                        {pkg.isAddOn ? (
-                          <span className="ml-1 text-[#1E1814]/45">(add-on)</span>
-                        ) : null}
-                      </td>
-                      <td className="py-2.5 pr-3 text-[#1E1814]/80">
-                        {formatUsd(pkg.regularPriceMonthly)}/mo
-                      </td>
-                      <td className="py-2.5 font-medium text-[#7A1E2C]">
-                        {formatUsd(pkg.pickupPartnerPriceMonthly)}/mo
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
-
-          {/* 9. Draft asset metadata */}
-          <SectionCard title="Archivos (borrador)">
-            <OfertasLocalesDraftAssetSection
-              bucket="flyerAssets"
-              draft={draft}
-              updateDraft={updateDraft}
-            />
-            <div className="border-t border-[#D4C4A8]/50 pt-4">
+          <SectionCard title={c.assetsSection}>
+            {!draft.offerType ? (
+              <p className="text-sm text-[#1E1814]/55">
+                {lang === "en" ? "Choose an offer type first." : "Elige un tipo de oferta primero."}
+              </p>
+            ) : null}
+            {(isFlyer || isGeneral) && !isCoupon ? (
               <OfertasLocalesDraftAssetSection
-                bucket="couponAssets"
+                bucket="flyerAssets"
                 draft={draft}
                 updateDraft={updateDraft}
+                lang={lang}
+                sectionTitleOverride={c.assetsSectionFlyer}
               />
-            </div>
+            ) : null}
+            {isCoupon || isGeneral ? (
+              <div className={isFlyer && !isCoupon ? "border-t border-[#D4C4A8]/50 pt-4" : ""}>
+                <OfertasLocalesDraftAssetSection
+                  bucket="couponAssets"
+                  draft={draft}
+                  updateDraft={updateDraft}
+                  lang={lang}
+                  sectionTitleOverride={
+                    isFlyer && !isCoupon ? c.assetsSectionFlyerOptional : c.assetsSectionCoupon
+                  }
+                />
+              </div>
+            ) : null}
+            {isFlyer && isCoupon ? null : null}
           </SectionCard>
 
-          {/* 10. Validation and actions */}
-          <SectionCard title="Validación y acciones">
+          <SectionCard title={c.validationSection}>
             {submitSuccess ? (
               <div className="mb-4 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                <p className="font-semibold">{OFERTAS_LOCALES_SHELL_COPY.submitSuccessTitle}</p>
-                <p className="mt-1 text-xs text-emerald-800/85">
-                  {OFERTAS_LOCALES_SHELL_COPY.submitSuccessBody}
-                </p>
-                <p className="mt-1 text-xs text-emerald-800/70">
-                  {OFERTAS_LOCALES_SHELL_COPY.submitSuccessBodyEn}
-                </p>
+                <p className="font-semibold">{c.submitSuccessTitle}</p>
+                <p className="mt-1 text-xs">{c.submitSuccessBody}</p>
                 <p className="mt-2 text-[10px] uppercase tracking-wide text-emerald-800/60">
                   ID: {submitSuccess.id} · {submitSuccess.status}
                 </p>
@@ -600,42 +629,53 @@ export default function OfertasLocalesApplicationClient() {
               publishIssues={publishIssues}
               previewReady={previewReady}
               publishFieldsReady={publishFieldsReady}
+              lang={lang}
             />
             <div className="flex flex-wrap gap-3 pt-2">
               <button type="button" className={BTN_SECONDARY} onClick={handleSaveDraft}>
-                {OFERTAS_LOCALES_SHELL_COPY.saveDraft}
+                {c.saveDraft}
               </button>
               <button
                 type="button"
                 className={BTN_SECONDARY}
                 onClick={() => {
-                  if (window.confirm("¿Restablecer el borrador guardado en este dispositivo?")) {
-                    resetDraft();
-                  }
+                  const msg =
+                    lang === "en"
+                      ? "Reset the draft saved on this device?"
+                      : "¿Restablecer el borrador guardado en este dispositivo?";
+                  if (window.confirm(msg)) resetDraft();
                 }}
               >
-                {OFERTAS_LOCALES_SHELL_COPY.resetDraft}
+                {c.resetDraft}
               </button>
               <Link
-                href="/publicar/ofertas-locales/preview"
+                href={previewHref}
                 className={BTN_PRIMARY}
                 title={OFERTAS_LOCALES_SHELL_COPY.previewDisabled}
               >
-                {OFERTAS_LOCALES_SHELL_COPY.previewLink}
+                {c.previewLink}
               </Link>
               <button
                 type="button"
                 className={BTN_PRIMARY}
                 disabled={!publishFieldsReady || submitting}
+                title={OFERTAS_LOCALES_SHELL_COPY.publishDisabled}
                 onClick={() => void handleSubmitForReview()}
               >
-                {submitting
-                  ? `${OFERTAS_LOCALES_SHELL_COPY.submittingForReview} / ${OFERTAS_LOCALES_SHELL_COPY.submittingForReviewEn}`
-                  : `${OFERTAS_LOCALES_SHELL_COPY.submitForReview} / ${OFERTAS_LOCALES_SHELL_COPY.submitForReviewEn}`}
+                {submitting ? c.submittingForReview : c.submitForReview}
               </button>
             </div>
           </SectionCard>
         </div>
+
+        {/* Foundation fields preserved for draft compatibility — hidden from main UI (Stack 6.5A). */}
+        <span className="sr-only" aria-hidden>
+          {draft.membershipCtaLabel}
+          {String(draft.isMagazinePickupPartner)}
+          {draft.magazineDistributionStatus}
+          {draft.magazinePickupNotes}
+          {draft.magazineMonthlyDropEstimate}
+        </span>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
 } from "./ofertasLocalesConstants";
+import { getOfertaLocalMarketDisplayLabel } from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
@@ -31,12 +32,14 @@ export function labelForBusinessCategory(
   return lang === "en" ? opt.labelEn : opt.labelEs;
 }
 
-export function labelForMarketType(value: OfertaLocalDraft["marketType"], lang: "es" | "en" = "es"): string {
-  if (!value) return "";
-  const opt = OFERTAS_LOCALES_MARKET_TYPE_OPTIONS.find((o) => o.value === value);
-  if (!opt) return value;
-  return lang === "en" ? opt.labelEn : opt.labelEs;
+export function labelForMarketType(
+  draft: Pick<OfertaLocalDraft, "marketType" | "customMarketType">,
+  lang: "es" | "en" = "es"
+): string {
+  return getOfertaLocalMarketDisplayLabel(draft, lang);
 }
+
+export { getOfertaLocalMarketDisplayLabel };
 
 export function labelForMagazineStatus(
   value: OfertaLocalDraft["magazineDistributionStatus"],
@@ -108,20 +111,18 @@ export function shouldShowDigitalCouponBlock(draft: OfertaLocalDraft): boolean {
   return Boolean(draft.digitalCouponUrl.trim() || draft.digitalCouponNote.trim());
 }
 
-export function shouldShowMagazinePartnerBlock(draft: OfertaLocalDraft): boolean {
-  return draft.isMagazinePickupPartner || draft.magazineDistributionStatus !== "not_offered";
+export function shouldShowMagazinePartnerBlock(_draft: OfertaLocalDraft): boolean {
+  return false;
 }
 
-export function membershipCtaLabel(draft: OfertaLocalDraft): string {
-  const custom = draft.membershipCtaLabel.trim();
-  if (custom) return custom;
-  return OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.joinRewardsEn;
+export function membershipCtaLabel(lang: "es" | "en" = "es"): string {
+  return lang === "en"
+    ? OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEn
+    : OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEs;
 }
 
-export function digitalCouponCtaLabel(): string {
-  return OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEn;
-}
-
-export function digitalCouponCtaLabelEs(): string {
-  return OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEs;
+export function digitalCouponCtaLabel(lang: "es" | "en" = "en"): string {
+  return lang === "en"
+    ? OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEn
+    : OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEs;
 }

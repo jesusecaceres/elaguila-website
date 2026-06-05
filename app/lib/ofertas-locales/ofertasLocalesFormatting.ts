@@ -9,6 +9,14 @@ export function normalizeOfertaLocalPhoneInput(raw: string): string {
   return digits;
 }
 
+/** Display US phone as (xxx) xxx-xxxx while typing. */
+export function formatOfertaLocalPhoneDisplay(raw: string): string {
+  const d = normalizeOfertaLocalPhoneInput(raw).slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
 /** Normalize US ZIP to 5 digits; returns empty if invalid length. */
 export function normalizeOfertaLocalZipInput(raw: string): string {
   const digits = String(raw ?? "").replace(/\D/g, "").slice(0, 5);

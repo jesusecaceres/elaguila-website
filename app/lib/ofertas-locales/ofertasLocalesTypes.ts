@@ -176,6 +176,8 @@ export type OfertaLocalDraft = {
   offerType: OfertaLocalOfferType | "";
   businessCategory: OfertaLocalBusinessCategory | "";
   marketType: OfertaLocalMarketType | "";
+  /** When marketType is other — used for display/search instead of “Otro”. */
+  customMarketType: string;
   businessName: string;
   title: string;
   description: string;
@@ -195,6 +197,8 @@ export type OfertaLocalDraft = {
   flyerAssets: OfertaLocalDraftAsset[];
   couponAssets: OfertaLocalDraftAsset[];
   isFeaturedRequested: boolean;
+  /** Optional AI Searchable Specials add-on intent (Stack 6.5A — not active yet). */
+  wantsAiSearchableSpecials: boolean;
   languageTags: OfertaLocalLanguageTag[];
   /** Optional rewards / membership program link and CTA copy. */
   membershipUrl: string;
