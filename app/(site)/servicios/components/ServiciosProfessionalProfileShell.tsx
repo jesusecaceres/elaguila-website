@@ -51,6 +51,16 @@ import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
+import {
+  serviciosSavedListingExtras,
+  serviciosSavedListingExtrasFromClient,
+} from "@/app/lib/serviciosSavedListingIdentity";
+import {
+  serviciosGlobalListingFromRow,
+  serviciosGlobalLikeRecorder,
+  serviciosGlobalSaveRecorder,
+  serviciosGlobalShareRecorder,
+} from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 
@@ -115,6 +125,7 @@ export type ServiciosProfessionalProfileShellProps = {
   /** Gate 20F — success panel after publish (`?justPublished=1`). */
   justPublishedPanel?: ReactNode;
   analyticsListingSlug?: string;
+  listingSourceId?: string | null;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
   persistListingEngagement?: boolean;
@@ -135,6 +146,7 @@ export function ServiciosProfessionalProfileShell({
   noticeBanner,
   justPublishedPanel,
   analyticsListingSlug,
+  listingSourceId = null,
   engagementListingId = null,
   engagementOwnerUserId = null,
   persistListingEngagement = false,
@@ -161,10 +173,29 @@ export function ServiciosProfessionalProfileShell({
 
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
+  const sourceId = (listingSourceId ?? "").trim();
+  const saveExtras = sourceId
+    ? serviciosSavedListingExtras({
+        slug: profile.identity.slug,
+        id: sourceId,
+        leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
+      })
+    : serviciosSavedListingExtrasFromClient({
+        slug: profile.identity.slug,
+        engagementListingId: lxListingId,
+      });
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount)
       ? Math.max(0, Math.floor(publicLikeCount))
       : 0;
+  const globalListing =
+    sourceId && analyticsListingSlug
+      ? serviciosGlobalListingFromRow({
+          id: sourceId,
+          slug: analyticsListingSlug,
+          leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
+        })
+      : null;
 
   const showExperience =
     template === "legal_provider" &&
@@ -182,12 +213,8 @@ export function ServiciosProfessionalProfileShell({
       className="min-h-screen overflow-x-hidden pb-[5.5rem] sm:pb-[5rem] lg:pb-16"
       style={{ backgroundColor: SV.bg }}
     >
-      {analyticsListingSlug ? (
-        <ServiciosProfileViewAnalytics
-          listingSlug={analyticsListingSlug}
-          listingEngagementId={engagementListingId}
-          engagementOwnerUserId={engagementOwnerUserId}
-        />
+      {analyticsListingSlug && listingSourceId?.trim() ? (
+        <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} listingSourceId={listingSourceId.trim()} />
       ) : null}
       <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
 
@@ -212,6 +239,9 @@ export function ServiciosProfessionalProfileShell({
             template={template}
             contactScrollTargetId="servicios-pro-contact"
             listingSlug={analyticsListingSlug}
+            listingSourceId={sourceId || undefined}
+            engagementListingId={engagementListingId}
+            engagementOwnerUserId={engagementOwnerUserId}
             engagementSlot={
               persistListingEngagement ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -223,6 +253,9 @@ export function ServiciosProfessionalProfileShell({
                     persistEngagement
                     variant="small"
                     tone="hero"
+                    recordLikeEvent={
+                      globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined
+                    }
                   />
                   <LeonixSaveButton
                     listingId={lxListingId}
@@ -231,6 +264,10 @@ export function ServiciosProfessionalProfileShell({
                     lang={lang}
                     category="servicios"
                     persistEngagement
+                    saveExtras={saveExtras}
+                    recordSaveEvent={
+                      globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined
+                    }
                   />
                   <LeonixShareButton
                     listingId={lxListingId}
@@ -241,6 +278,9 @@ export function ServiciosProfessionalProfileShell({
                     lang={lang}
                     category="servicios"
                     persistEngagement
+                    recordShareEvent={
+                      globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
+                    }
                   />
                 </div>
               ) : undefined
@@ -297,6 +337,7 @@ export function ServiciosProfessionalProfileShell({
                   profile={profile}
                   lang={lang}
                   listingSlug={analyticsListingSlug}
+                  listingSourceId={sourceId || listingSourceId}
                   listingShareUrl={listingShareUrl}
                 />
               ) : null}
@@ -338,6 +379,7 @@ export function ServiciosProfessionalProfileShell({
                         lang={lang}
                         profileForQuote={profile}
                         listingSlug={analyticsListingSlug}
+                        listingSourceId={sourceId || listingSourceId}
                         listingShareUrl={listingShareUrl}
                         premiumLeonixTone
                       />
@@ -359,6 +401,7 @@ export function ServiciosProfessionalProfileShell({
                     lang={lang}
                     profileForQuote={profile}
                     listingSlug={analyticsListingSlug}
+                    listingSourceId={sourceId || listingSourceId}
                     listingShareUrl={listingShareUrl}
                     premiumLeonixTone
                   />
@@ -377,6 +420,7 @@ export function ServiciosProfessionalProfileShell({
                     lang={lang}
                     listingTemplate={template}
                     listingSlug={analyticsListingSlug}
+                    listingSourceId={sourceId || listingSourceId}
                     listingShareUrl={listingShareUrl}
                     engagementListingId={engagementListingId}
                     engagementOwnerUserId={engagementOwnerUserId}
@@ -388,7 +432,15 @@ export function ServiciosProfessionalProfileShell({
                 </div>
 
                 <div className="lg:hidden">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
+                  <ServiciosPromocionesCard
+                    profile={displayProfile}
+                    lang={lang}
+                    premiumLeonixTone
+                    listingSlug={analyticsListingSlug}
+                    listingSourceId={sourceId || listingSourceId}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                  />
                 </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
@@ -407,6 +459,7 @@ export function ServiciosProfessionalProfileShell({
                     lang={lang}
                     listingTemplate={template}
                     listingSlug={analyticsListingSlug}
+                    listingSourceId={sourceId || listingSourceId}
                     listingShareUrl={listingShareUrl}
                     engagementListingId={engagementListingId}
                     engagementOwnerUserId={engagementOwnerUserId}
@@ -417,7 +470,15 @@ export function ServiciosProfessionalProfileShell({
                   />
                 </div>
                 <div className="mt-5 lg:mt-6">
-                  <ServiciosPromocionesCard profile={displayProfile} lang={lang} premiumLeonixTone listingSlug={analyticsListingSlug} />
+                  <ServiciosPromocionesCard
+                    profile={displayProfile}
+                    lang={lang}
+                    premiumLeonixTone
+                    listingSlug={analyticsListingSlug}
+                    listingSourceId={sourceId || listingSourceId}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                  />
                 </div>
               </aside>
             </div>

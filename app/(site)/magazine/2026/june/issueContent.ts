@@ -95,7 +95,7 @@ export const MAGAZINE_UI: Record<
     issuePageTitle: "Edición Junio 2026",
     issuePageIntro:
       "La edición de lanzamiento de Leonix Media conecta negocios locales, comunidad, cultura y oportunidades. Elija cómo explorarla.",
-    issuePageReaderCta: "Leer en su idioma",
+    issuePageReaderCta: "Abrir lector traducido",
     issuePageHubCta: "Ir al hub de la revista",
     closeFlipbook: "Cerrar",
     langLabels: { es: "Español", en: "English", vi: "Tiếng Việt" },
@@ -124,7 +124,7 @@ export const MAGAZINE_UI: Record<
     issuePageTitle: "June 2026 Edition",
     issuePageIntro:
       "Leonix Media’s launch edition connects local businesses, community, culture, and opportunities. Choose how to explore it.",
-    issuePageReaderCta: "Read in your language",
+    issuePageReaderCta: "Open translated reader",
     issuePageHubCta: "Go to magazine hub",
     closeFlipbook: "Close",
     langLabels: { es: "Español", en: "English", vi: "Tiếng Việt" },
@@ -153,7 +153,7 @@ export const MAGAZINE_UI: Record<
     issuePageTitle: "Số Tháng 6 năm 2026",
     issuePageIntro:
       "Số ra mắt Leonix Media kết nối doanh nghiệp địa phương, cộng đồng, văn hóa và cơ hội. Chọn cách khám phá.",
-    issuePageReaderCta: "Đọc bằng ngôn ngữ của bạn",
+    issuePageReaderCta: "Mở trình đọc bản dịch",
     issuePageHubCta: "Đến trang tạp chí",
     closeFlipbook: "Đóng",
     langLabels: { es: "Español", en: "English", vi: "Tiếng Việt" },

@@ -75,10 +75,9 @@ export function LeonixHeaderLanguageSelector({
     setDropdownOpen(false);
   }, [pathname, searchParams?.toString()]);
 
-  const aria = languageAriaLabel(lang);
-  const additionalActive = isAdditionalLanguageActive(lang);
   const dropdownLabel = moreLanguagesDropdownLabel(lang);
   const plannedNote = plannedLanguageNote(lang);
+  const additionalActive = isAdditionalLanguageActive(lang);
 
   const primaryLabel = (code: (typeof PRIMARY_LANGUAGES)[number]) => {
     if (isFull) {
@@ -97,7 +96,9 @@ export function LeonixHeaderLanguageSelector({
     );
   };
 
-  const dropdownTriggerText = additionalActive ? getLanguageLabel(lang) : dropdownLabel;
+  const dropdownTriggerText = dropdownLabel;
+
+  const aria = languageAriaLabel(lang);
 
   return (
     <div
@@ -132,16 +133,19 @@ export function LeonixHeaderLanguageSelector({
           onClick={() => setDropdownOpen((v) => !v)}
           aria-expanded={dropdownOpen}
           aria-haspopup="listbox"
-          aria-label={`${dropdownLabel}${additionalActive ? `: ${getLanguageLabel(lang)}` : ""}`}
+          aria-label={additionalActive ? `${dropdownLabel} (${getLanguageLabel(lang)})` : dropdownLabel}
           title={dropdownLabel}
           className={cx(
             pillBase,
             "gap-0.5 border-l border-[#D6C7AD]/80 pl-1.5 sm:pl-2",
-            additionalActive ? pillActive : pillIdle,
-            "max-w-[7.5rem] truncate sm:max-w-[9rem]"
+            additionalActive ? `${pillActive} ring-1 ring-[#C9A84A]/50` : pillIdle,
+            "max-w-[7.5rem] truncate sm:max-w-[9.5rem]"
           )}
         >
           <span className="truncate">{dropdownTriggerText}</span>
+          {additionalActive ? (
+            <span className="sr-only">{getLanguageLabel(lang)}</span>
+          ) : null}
           <span className="text-[0.6rem] leading-none opacity-80" aria-hidden>
             ▾
           </span>
@@ -163,13 +167,18 @@ export function LeonixHeaderLanguageSelector({
                     aria-selected={selected}
                     onClick={() => switchLang(code)}
                     className={cx(
-                      "flex w-full min-h-[2.75rem] items-center px-3 py-2 text-left text-sm font-semibold transition",
+                      "flex w-full min-h-[2.75rem] items-center justify-between gap-2 px-3 py-2 text-left text-sm font-semibold transition",
                       selected
                         ? "bg-[#7A1E2C]/10 text-[#7A1E2C]"
                         : "text-[#1F241C] hover:bg-[#FBF7EF]"
                     )}
                   >
-                    {LANGUAGE_LABELS[code]}
+                    <span>{LANGUAGE_LABELS[code]}</span>
+                    {selected ? (
+                      <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[#7A1E2C]" aria-hidden>
+                        ✓
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               );

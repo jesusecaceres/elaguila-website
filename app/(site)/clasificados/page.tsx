@@ -8,7 +8,13 @@ import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rent
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
-import { appendLangToPath, buildHubCategoryPageUrl, buildHubPostEntryHref } from "./lib/hubUrl";
+import {
+  appendLangToPath,
+  buildHubCategoryPageUrl,
+  buildHubPostEntryHref,
+  resolveHubCopyLang,
+  resolveRouteLang,
+} from "./lib/hubUrl";
 
 /** Gate C1.1 — hub landing display order (browse routes unchanged). */
 const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
@@ -344,12 +350,13 @@ function CategoryCard({
 
 export default function ClasificadosPage() {
   const params = useSearchParams();
-  const lang = (params?.get("lang") === "en" ? "en" : "es") as Lang;
+  const routeLang = resolveRouteLang(params?.get("lang"));
+  const lang = resolveHubCopyLang(params?.get("lang"));
 
   const hub = useMemo(() => getClasificadosHubCopy(lang), [lang]);
   const t = PAGE_COPY[lang];
 
-  const postEntryHref = buildHubPostEntryHref(lang);
+  const postEntryHref = buildHubPostEntryHref(routeLang as Lang);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -405,8 +412,8 @@ export default function ClasificadosPage() {
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {C1_CATEGORY_ORDER.map((k) => {
-              const browseHref = buildHubCategoryPageUrl(k, lang);
-              const publishHref = buildCategoryPublishHref(k, lang);
+              const browseHref = buildHubCategoryPageUrl(k, routeLang as Lang);
+              const publishHref = buildCategoryPublishHref(k, routeLang as Lang);
               const priority = PRIORITY_KEYS.has(k);
 
               return (
