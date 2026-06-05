@@ -283,6 +283,7 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
               customPlaceholder: t.app.engine.customPlaceholder,
               filterNote: t.app.engine.filterNote,
             }}
+            year={draft.year}
             make={draft.make}
             model={draft.model}
             trim={draft.trim}

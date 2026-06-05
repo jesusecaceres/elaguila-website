@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import {
   AUTOS_VEHICLE_MAKES,
+  autosVehicleNoStructuredTrimHint,
   getAutosVehicleYearOptions,
+  getKnownTrimsForVehicle,
   getModelsForMake,
-  getTrimOptionsForMakeModel,
+  normalizeVehicleTrim,
   resolveMakeToCanonical,
   resolveModelToCanonical,
-} from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
+} from "@/app/lib/clasificados/autos/autosVehicleData";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const INPUT =
@@ -76,7 +77,10 @@ export function AutosVehicleIdentityFields({
   const catalogMake = resolveMakeToCanonical(make);
   const models = useMemo(() => getModelsForMake(make), [make]);
   const catalogModel = resolveModelToCanonical(make, model);
-  const trimSuggestions = useMemo(() => getTrimOptionsForMakeModel(make, model), [make, model]);
+  const trimSuggestions = useMemo(
+    () => getKnownTrimsForVehicle(year, make, model),
+    [year, make, model],
+  );
 
   const [makeUnlisted, setMakeUnlisted] = useState(false);
   const trimInCatalog = trim?.trim() && trimSuggestions.some((t) => t.toLowerCase() === trim.trim().toLowerCase());
@@ -103,10 +107,7 @@ export function AutosVehicleIdentityFields({
     lang === "es"
       ? "Selecciona una versión si aparece en la lista. Si no ves tu versión, escríbela manualmente."
       : "Select a trim if it appears in the list. If you do not see your trim, enter it manually.";
-  const noStructuredTrimHint =
-    lang === "es"
-      ? "No encontramos trims estructurados para este modelo. Puedes escribirlo manualmente."
-      : "We do not have structured trims for this model yet. You can enter it manually.";
+  const noStructuredTrimHint = autosVehicleNoStructuredTrimHint(lang);
   const trimPlaceholder = lang === "es" ? "Versión / trim" : "Trim / version";
 
   const yearInList = year !== undefined && years.includes(year);
@@ -211,7 +212,7 @@ export function AutosVehicleIdentityFields({
               </option>
             ))}
             {legacyModel ? (
-              <option value={legacyModel}>{normalizeVehicleSegment(legacyModel) ?? legacyModel}</option>
+              <option value={legacyModel}>{normalizeVehicleTrim(make, model, legacyModel) ?? legacyModel}</option>
             ) : null}
           </select>
         ) : (
@@ -250,7 +251,7 @@ export function AutosVehicleIdentityFields({
               {lang === "es" ? "Escribir versión manualmente" : "Enter trim manually"}
             </option>
             {trim && !trimInCatalog ? (
-              <option value={trim}>{normalizeVehicleSegment(trim) ?? trim}</option>
+              <option value={trim}>{normalizeVehicleTrim(make, model, trim) ?? trim}</option>
             ) : null}
           </select>
         ) : (

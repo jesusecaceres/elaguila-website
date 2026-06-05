@@ -11,7 +11,7 @@ import {
   resolveStructuredEngineOption,
 } from "@/app/lib/clasificados/autos/autosVehicleStructuredSeed";
 
-/** Legacy curated engines (make → model → trim → engines). Merged with structured seed. */
+/** Gate B starter engines — merged with structured seed. Gate C expands. */
 const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, readonly string[]>>> = {
   Toyota: {
     Camry: {
@@ -19,16 +19,6 @@ const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, r
       SE: ["2.5L I4", "2.5L Hybrid"],
       XLE: ["2.5L I4", "2.5L Hybrid"],
       XSE: ["2.5L I4", "2.5L Hybrid"],
-    },
-    Corolla: {
-      L: ["1.8L I4", "2.0L I4"],
-      LE: ["1.8L I4", "2.0L I4"],
-      SE: ["2.0L I4", "1.8L Hybrid"],
-    },
-    RAV4: {
-      LE: ["2.5L I4", "2.5L Hybrid"],
-      XLE: ["2.5L I4", "2.5L Hybrid"],
-      Limited: ["2.5L I4", "2.5L Hybrid"],
     },
   },
   Honda: {
@@ -38,31 +28,12 @@ const ENGINES_BY_MAKE_MODEL_TRIM: Record<string, Record<string, Record<string, r
       Touring: ["1.5L Turbo I4"],
       "Type R": ["2.0L Turbo I4"],
     },
-    Accord: {
-      LX: ["1.5L Turbo I4", "2.0L Turbo I4", "2.0L Hybrid"],
-      EX: ["1.5L Turbo I4", "2.0L Hybrid"],
-      Touring: ["2.0L Turbo I4", "2.0L Hybrid"],
-    },
-    "CR-V": {
-      LX: ["1.5L Turbo I4", "2.0L Hybrid"],
-      EX: ["1.5L Turbo I4", "2.0L Hybrid"],
-      Touring: ["1.5L Turbo I4", "2.0L Hybrid"],
-    },
   },
   Ford: {
     "F-150": {
       XLT: ["2.7L EcoBoost V6", "3.5L EcoBoost V6", "5.0L V8"],
       Lariat: ["2.7L EcoBoost V6", "3.5L EcoBoost V6", "5.0L V8"],
       Raptor: ["3.5L High-Output EcoBoost V6"],
-    },
-    Mustang: {
-      EcoBoost: ["2.3L EcoBoost I4"],
-      GT: ["5.0L V8"],
-    },
-  },
-  Tesla: {
-    "Model Y": {
-      __any__: ["Electric"],
     },
   },
 };

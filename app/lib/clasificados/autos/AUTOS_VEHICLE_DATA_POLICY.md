@@ -5,7 +5,7 @@ Policy for the stacked **A5.VDATA-A / B / C** Autos vehicle data improvement seq
 | Gate | Scope |
 |------|-------|
 | **A (this document)** | Audit + lane impact policy + normalized shape + Gate B/C plan |
-| **B** | Shared UI behavior (trim/engine dropdowns, spec pre-fill, fallback copy) |
+| **B** | Shared UI behavior + `autosVehicleData.ts` facade (trim/engine dropdowns, spec pre-fill, fallback copy) |
 | **C** | Partial curated seed expansion + full `npm run build` validation |
 
 ---
@@ -31,7 +31,7 @@ Policy for the stacked **A5.VDATA-A / B / C** Autos vehicle data improvement seq
 | **NHTSA vPIC** | Useful for VIN decode and official manufacturer-reported baseline data; not always enough for dealership trim UX alone | Not integrated — evaluate for future supplement |
 | **Edmunds-style APIs** | Strong Make → Model → Model Year → Trim → Style hierarchy | Requires access/licensing — not added |
 | **CarAPI / CarListAPI / commercial vehicle datasets** | Likely better trim/engine dropdown coverage | Requires API/licensing review — not added |
-| **Manual curated seed** | Acceptable only as **partial starter data** for high-volume models | Planned Gate C — small test set only |
+| **Manual curated seed** | Acceptable only as **partial starter data** for high-volume models | **Gate B active** — Camry, Civic, F-150 only; Gate C expands |
 
 **Gate A rules:** No large dataset import. No dealership scraping. No paid API keys. No server-side external API calls unless already safely configured elsewhere.
 

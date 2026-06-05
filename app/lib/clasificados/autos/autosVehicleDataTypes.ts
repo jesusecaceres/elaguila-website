@@ -1,5 +1,5 @@
 /**
- * Shared Autos structured vehicle data shapes (A5.VDATA-01 foundation).
+ * Shared Autos structured vehicle data shapes (A5.VDATA-A/B foundation).
  * Partial data is allowed; unknown fields fall back to free text in UI.
  */
 
@@ -50,6 +50,21 @@ export type VehicleYearMakeModelData = {
   trims: readonly AutosVehicleTrimOption[];
   source?: AutosVehicleDataSource;
   confidence?: AutosVehicleDataConfidence;
+};
+
+/** Gate naming alias for policy/audit docs. */
+export type AutosVehicleYearMakeModelData = VehicleYearMakeModelData;
+
+/** User selection slice for normalization and search keywords. */
+export type AutosVehicleStructuredSelection = {
+  year?: number;
+  make?: string;
+  model?: string;
+  trim?: string;
+  engine?: string;
+  engineNormalized?: string;
+  vehicleTitle?: string;
+  otherEquipmentDetails?: string;
 };
 
 export type AutosVehicleNormalizedIdentity = {

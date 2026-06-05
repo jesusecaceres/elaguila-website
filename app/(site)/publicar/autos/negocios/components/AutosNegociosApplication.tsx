@@ -407,6 +407,7 @@ export function AutosNegociosApplication() {
                   customPlaceholder: t.app.engine.customPlaceholder,
                   filterNote: t.app.engine.filterNote,
                 }}
+                year={listing.year}
                 make={listing.make}
                 model={listing.model}
                 trim={listing.trim}

@@ -97,30 +97,16 @@ const MAKE_LOOKUP = new Map<string, string>(
   AUTOS_VEHICLE_MAKES.map((m) => [m.toLowerCase().replace(/\s+/g, " "), m]),
 );
 
-/** Optional curated trims (make → model → trims). Empty array = free-text trim only. */
+/** Gate B starter trims only — mirrors partial seed (Camry, Civic, F-150). Gate C expands. */
 const TRIMS_BY_MAKE_MODEL: Record<string, Record<string, readonly string[]>> = {
   Toyota: {
-    Camry: ["LE", "SE", "XLE", "XSE", "TRD", "Nightshade"],
-    Corolla: ["L", "LE", "SE", "XLE", "XSE", "APEX"],
-    RAV4: ["LE", "XLE", "Limited", "Adventure", "TRD Off-Road"],
+    Camry: ["LE", "SE", "XLE", "XSE"],
   },
   Honda: {
     Civic: ["LX", "Sport", "EX", "Touring", "Si", "Type R"],
-    Accord: ["LX", "EX", "Sport", "EX-L", "Touring"],
-    "CR-V": ["LX", "EX", "Sport", "EX-L", "Touring"],
   },
   Ford: {
-    "F-150": ["XL", "XLT", "Lariat", "King Ranch", "Platinum", "Limited", "Raptor"],
-    Mustang: ["EcoBoost", "GT", "Mach 1", "Dark Horse"],
-  },
-  Chevrolet: {
-    "Silverado 1500": ["Work Truck", "Custom", "LT", "RST", "LTZ", "High Country"],
-  },
-  Nissan: {
-    Altima: ["S", "SV", "SR", "SL", "Platinum"],
-  },
-  Tesla: {
-    "Model 3": ["Standard Range", "Long Range", "Performance"],
+    "F-150": ["XL", "XLT", "Lariat", "Raptor"],
   },
 };
 

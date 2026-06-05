@@ -6,8 +6,10 @@ import {
   buildSafeAutosVehicleSpecHintPatch,
   getAutosVehicleSpecHints,
 } from "@/app/lib/clasificados/autos/autosVehicleSpecHints";
-import { getTrimOptionsForMakeModel } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
-import { getEngineOptionsForVehicle } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
+import {
+  getKnownEnginesForTrim,
+  getKnownTrimsForVehicle,
+} from "@/app/lib/clasificados/autos/autosVehicleData";
 
 /**
  * When user picks a catalog trim or engine, safely pre-fill empty spec fields only.
@@ -36,14 +38,14 @@ export function useAutosVehicleStructuredSpecFill({
 
     const trimCatalog =
       listing.trim?.trim() &&
-      getTrimOptionsForMakeModel(listing.make, listing.model).some(
+      getKnownTrimsForVehicle(listing.year, listing.make, listing.model).some(
         (t) => t.toLowerCase() === listing.trim!.trim().toLowerCase(),
       );
 
     const engineLabel = listing.engineNormalized?.trim() || listing.engine?.trim();
     const engineCatalog =
       engineLabel &&
-      getEngineOptionsForVehicle(listing.make, listing.model, listing.trim).some(
+      getKnownEnginesForTrim(listing.year, listing.make, listing.model, listing.trim).some(
         (e) => e.toLowerCase() === engineLabel.toLowerCase(),
       );
 
@@ -62,6 +64,7 @@ export function useAutosVehicleStructuredSpecFill({
     listing.trim,
     listing.engine,
     listing.engineNormalized,
+    listing.year,
     listing.make,
     listing.model,
     listing.transmission,

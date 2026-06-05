@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { getEngineOptionsForVehicle } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
+import {
+  autosVehicleSpecAdjustHelper,
+  getKnownEnginesForTrim,
+} from "@/app/lib/clasificados/autos/autosVehicleData";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
-import { autosVehicleSpecAdjustHelper } from "@/app/lib/clasificados/autos/autosVehicleSpecHints";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -23,6 +25,7 @@ export type AutosVehicleEngineLabels = {
 export function AutosVehicleEngineField({
   lang,
   labels,
+  year,
   make,
   model,
   trim,
@@ -31,13 +34,17 @@ export function AutosVehicleEngineField({
 }: {
   lang: "es" | "en";
   labels: AutosVehicleEngineLabels;
+  year?: number;
   make: string | undefined;
   model: string | undefined;
   trim: string | undefined;
   engine: string | undefined;
   onPatch: (patch: { engine?: string; engineNormalized?: string }) => void;
 }) {
-  const options = useMemo(() => getEngineOptionsForVehicle(make, model, trim), [make, model, trim]);
+  const options = useMemo(
+    () => getKnownEnginesForTrim(year, make, model, trim),
+    [year, make, model, trim],
+  );
   const emptySelect = lang === "es" ? "Selecciona motor" : "Select engine";
   const customOptionLabel = lang === "es" ? "Escribir motor manualmente" : "Enter engine manually";
 

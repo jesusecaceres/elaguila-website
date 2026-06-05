@@ -77,6 +77,7 @@
     "autos:a5-qa-08b-qa-publish-multi-listing-results-audit": "tsx scripts/autos-a5-qa-08b-qa-publish-multi-listing-results-audit.ts",
     "autos:a5-vdata-01-shared-vehicle-data-coverage-audit": "tsx scripts/autos-a5-vdata-01-shared-vehicle-data-coverage-audit.ts",
     "autos:a5-vdata-a-shared-vehicle-data-audit": "tsx scripts/autos-a5-vdata-a-shared-vehicle-data-audit.ts",
+    "autos:a5-vdata-b-shared-vehicle-helper-wiring-audit": "tsx scripts/autos-a5-vdata-b-shared-vehicle-helper-wiring-audit.ts",
     "autos:a4-0-inventory-sql-audit": "tsx scripts/autos-a4-0-dealer-inventory-sql-contract-audit.ts",
     "br:13a-property-inventory-sql-audit": "tsx scripts/br13a-property-inventory-sql-contract-audit.ts",
     "br:13b-property-inventory-add-flow-audit": "tsx scripts/br13b-property-inventory-add-flow-audit.ts",
