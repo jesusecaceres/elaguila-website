@@ -161,7 +161,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
         </div>
       </section>
 
-      <HomeDestacadosSection lang={lang} businesses={featuredBusinesses} />
+      <HomeDestacadosSection lang={lang} routeLang={routeLang} businesses={featuredBusinesses} />
 
       {/* Ecosystem */}
       <section className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/50 py-12 sm:py-14" aria-labelledby="home-ecosystem-title">
@@ -238,7 +238,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
               aria-label={pageCopy.convert.newsletterAria}
             >
               <input type="hidden" name="source" value="home" />
-              <input type="hidden" name="lang" value={lang} />
+              <input type="hidden" name="lang" value={routeLang} />
               <label htmlFor="home-newsletter-email" className="sr-only">
                 {pageCopy.convert.emailLabel}
               </label>

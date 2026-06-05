@@ -1863,13 +1863,6 @@ function ComingSoonV2ShellContent() {
                     variant: "secondary",
                   }}
                 />
-                <HeroCtaLink
-                  cta={{
-                    label: magazineHero.digital,
-                    href: magazineHref,
-                    variant: "green",
-                  }}
-                />
               </div>
 
               <ul

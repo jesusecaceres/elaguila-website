@@ -12,20 +12,20 @@ import { mascotasPerdidosLangFromSearchParams, mascotasPerdidosPathWithLang, mas
 
 const COPY = {
   es: {
-    eyebrow: "Mascotas y Perdidos · Leonix",
+    eyebrow: "MASCOTAS Y PERDIDOS · LEONIX",
     ctaPost: "Publicar en Mascotas y Perdidos",
     ctaView: "Ver todos los anuncios",
-    typesTitle: "Tipos de aviso",
+    typesTitle: "Filtros rápidos",
     recentTitle: "Avisos recientes",
     recentEmpty: "Aún no hay avisos publicados. Sé el primero en publicar un aviso gratuito.",
     recentError: "No se pudieron cargar los avisos recientes.",
     backHub: "Volver a Clasificados",
   },
   en: {
-    eyebrow: "Pets & Lost & Found · Leonix",
-    ctaPost: "Post in Pets & Lost & Found",
+    eyebrow: "PETS & LOST · LEONIX",
+    ctaPost: "Post in Pets & Lost",
     ctaView: "View all listings",
-    typesTitle: "Notice types",
+    typesTitle: "Quick filters",
     recentTitle: "Recent notices",
     recentEmpty: "No published notices yet. Be the first to post a free notice.",
     recentError: "Could not load recent notices.",
@@ -53,22 +53,19 @@ export default function MascotasPerdidosLandingPage() {
       searchAction={buildCategoryResultsUrl("mascotas-y-perdidos", lang)}
       publishLabel={t.ctaPost}
       browseLabel={t.ctaView}
-      belowHero={
-        <section className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 sm:px-5">
-          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">{t.typesTitle}</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => (
-              <Link
-                key={opt.value}
-                href={mascotasPerdidosTipoChipHref(routeLang, opt.value)}
-                className="inline-flex min-h-[2.25rem] items-center rounded-full border border-[#C9A84A]/50 bg-[#FAF6EE] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
-                data-testid={`mascotas-landing-tipo-${opt.value}`}
-              >
-                {lang === "en" ? opt.labelEn : opt.labelEs}
-              </Link>
-            ))}
-          </div>
-        </section>
+      searchChips={
+        <div className="flex flex-wrap gap-2">
+          {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => (
+            <Link
+              key={opt.value}
+              href={mascotasPerdidosTipoChipHref(routeLang, opt.value)}
+              className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF]"
+              data-testid={`mascotas-landing-tipo-${opt.value}`}
+            >
+              {lang === "en" ? opt.labelEn : opt.labelEs}
+            </Link>
+          ))}
+        </div>
       }
     >
       <MascotasPerdidosLandingRecentListings

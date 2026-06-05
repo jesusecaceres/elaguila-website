@@ -1,33 +1,76 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { CategoryCompactHero } from "@/app/(site)/clasificados/components/categoryStandard/CategoryCompactHero";
+import { CategoryStandardCtaRow } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardCtaRow";
+import { CategoryStandardLandingPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPageShell";
+import {
+  categoryStandardDescription,
+  categoryStandardTitle,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import type { IglesiasPageCopy } from "@/app/lib/siteSectionContent/iglesiasPageMerge";
+import { LEONIX_GLOBAL_CONTACT_PATH } from "@/app/data/leonixGlobalContact";
 
 type Lang = "es" | "en";
+
+const IGLESIAS_UI = {
+  es: {
+    eyebrow: "FE Y COMUNIDAD · LEONIX",
+    publish: "Publicar iglesia",
+    browse: "Ver iglesias",
+    searchPending: "La búsqueda por iglesia o ciudad estará disponible cuando abramos el directorio.",
+  },
+  en: {
+    eyebrow: "FAITH & COMMUNITY · LEONIX",
+    publish: "Post church",
+    browse: "View churches",
+    searchPending: "Search by church or city will be available when the directory opens.",
+  },
+} as const;
 
 export function IglesiasPageClient({ shell }: { shell: IglesiasPageCopy }) {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const t = shell[lang];
+  const ui = IGLESIAS_UI[lang];
+  const contactHref = `${LEONIX_GLOBAL_CONTACT_PATH}?lang=${lang}`;
+  const clasificadosHref = `/clasificados?lang=${lang}`;
 
   return (
-    <>
-      <main className="mx-auto max-w-6xl px-6 pt-28 pb-16">
-        <div className="rounded-3xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-8 shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
-          <h1 className="text-3xl font-extrabold tracking-tight text-[color:var(--lx-text)]">{t.title}</h1>
-          <p className="mt-3 max-w-3xl text-sm text-[color:var(--lx-text-2)]/90">{t.subtitle}</p>
-          <p className="mt-4 max-w-3xl text-sm text-[color:var(--lx-muted)]">{t.note}</p>
-
-          <div className="mt-8">
-            <a
-              href={`/clasificados?lang=${lang}`}
-              className="inline-flex rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 px-5 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-white/80 transition"
-            >
-              {t.backCta}
-            </a>
+    <CategoryStandardLandingPageShell>
+      <div className="space-y-5 py-6 sm:space-y-6 sm:py-8">
+        <CategoryCompactHero
+          category="iglesias"
+          lang={lang}
+          eyebrow={ui.eyebrow}
+          title={categoryStandardTitle("iglesias", lang)}
+          description={categoryStandardDescription("iglesias", lang)}
+        >
+          <p className="rounded-lg border border-[#D6C7AD]/70 bg-[#FAF6EE] px-3 py-2.5 text-xs leading-relaxed text-[#5C5346]">
+            {t.note}
+          </p>
+          <p className="text-xs leading-relaxed text-[#5C5346]/90">{ui.searchPending}</p>
+          <div className="mt-2">
+            <CategoryStandardCtaRow
+              lang={lang}
+              publishHref={contactHref}
+              browseHref={clasificadosHref}
+              publishLabel={ui.publish}
+              browseLabel={ui.browse}
+            />
           </div>
-        </div>
-      </main>
-    </>
+        </CategoryCompactHero>
+
+        <p className="text-center text-sm text-[#5C5346]">
+          <Link
+            href={clasificadosHref}
+            className="font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]"
+          >
+            {t.backCta}
+          </Link>
+        </p>
+      </div>
+    </CategoryStandardLandingPageShell>
   );
 }

@@ -10,7 +10,7 @@ import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang, buscoRoute
 
 const COPY = {
   es: {
-    eyebrow: "Solicitudes · Leonix",
+    eyebrow: "SOLICITUDES · LEONIX",
     ctaPost: "Publicar solicitud",
     ctaView: "Ver todos los anuncios",
     recentTitle: "Solicitudes recientes",
@@ -20,7 +20,7 @@ const COPY = {
     backHub: "Volver a Clasificados",
   },
   en: {
-    eyebrow: "Requests · Leonix",
+    eyebrow: "REQUESTS · LEONIX",
     ctaPost: "Post request",
     ctaView: "View all listings",
     recentTitle: "Recent requests",

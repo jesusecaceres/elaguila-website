@@ -15,16 +15,18 @@ type Lang = "es" | "en";
 
 const COPY = {
   es: {
-    eyebrow: "Aprendizaje · Leonix",
+    eyebrow: "APRENDIZAJE · LEONIX",
     ctaPost: "Publicar en Clases",
     ctaView: "Ver todos los anuncios",
     exploreCategory: "Explorar por categoría",
+    quickTopics: "Filtros rápidos",
   },
   en: {
-    eyebrow: "Learning · Leonix",
+    eyebrow: "LEARNING · LEONIX",
     ctaPost: "Post in Classes",
     ctaView: "View all listings",
     exploreCategory: "Browse by category",
+    quickTopics: "Quick filters",
   },
 } as const;
 
@@ -39,7 +41,7 @@ export default function Page() {
   const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/clases", routeLang as Lang), [routeLang]);
 
   const topicChips = (
-    <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>
+    <CategoryLandingChipsRail label={t.quickTopics}>
       {chips.map((label) => (
         <Link
           key={label}

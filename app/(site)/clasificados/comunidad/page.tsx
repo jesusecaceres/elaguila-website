@@ -15,17 +15,19 @@ type Lang = "es" | "en";
 
 const COPY = {
   es: {
-    eyebrow: "Comunidad y Eventos · Leonix",
+    eyebrow: "COMUNIDAD Y EVENTOS · LEONIX",
     ctaPost: "Publicar en Comunidad y Eventos",
     ctaView: "Ver todos los anuncios",
     exploreCategory: "Explorar por categoría",
+    quickTopics: "Filtros rápidos",
     backHub: "Volver a Clasificados",
   },
   en: {
-    eyebrow: "Community & Events · Leonix",
+    eyebrow: "COMMUNITY & EVENTS · LEONIX",
     ctaPost: "Post in Community & Events",
     ctaView: "View all listings",
     exploreCategory: "Browse by category",
+    quickTopics: "Quick filters",
     backHub: "Back to Classifieds",
   },
 } as const;
@@ -42,7 +44,7 @@ export default function Page() {
   const hubHref = useMemo(() => appendLangToPath("/clasificados", routeLang as Lang), [routeLang]);
 
   const topicChips = (
-    <CategoryLandingChipsRail label={lang === "en" ? "Quick topic shortcuts" : "Atajos de temas"}>
+    <CategoryLandingChipsRail label={t.quickTopics}>
       {chips.map((label) => (
         <Link
           key={label}

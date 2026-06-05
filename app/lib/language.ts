@@ -57,9 +57,8 @@ export function languageAriaLabel(lang: SupportedLang): string {
 }
 
 export function moreLanguagesDropdownLabel(currentLang: SupportedLang): string {
-  if (currentLang === "en") return "More languages";
-  if (currentLang === "vi") return "Thêm ngôn ngữ";
-  return "Más idiomas";
+  const copyLang = navCopyLang(currentLang);
+  return copyLang === "en" ? "More languages" : "Más idiomas";
 }
 
 export function plannedLanguageNote(currentLang: SupportedLang): string {

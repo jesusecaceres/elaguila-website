@@ -13,7 +13,9 @@ import {
 } from "@/app/data/leonixGlobalContact";
 import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_SLOGAN, LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
-type Lang = "es" | "en";
+import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
+
+type CopyLang = "es" | "en";
 
 const COPY = {
   es: {
@@ -56,10 +58,11 @@ const COPY = {
 
 function FooterInner() {
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const routeLang = normalizeLang(searchParams?.get("lang"));
+  const lang: CopyLang = navCopyLang(routeLang);
   const t = COPY[lang];
 
-  const langQuery = `?lang=${lang}`;
+  const withLang = (path: string) => replaceLangInHref(path, routeLang);
 
   return (
     <footer className="mt-20 w-full border-t border-[color:var(--lx-border)] bg-[color:var(--lx-section)] py-12 text-[color:var(--lx-text)]">
@@ -94,7 +97,7 @@ function FooterInner() {
             {LEONIX_MEDIA_BRAND} {t.advertiseBody}
           </p>
           <Link
-            href={`/contacto${langQuery}`}
+            href={withLang("/contacto")}
             className="mt-3 inline-flex min-h-[44px] items-center text-sm font-semibold underline decoration-[color:var(--lx-lion)] underline-offset-4 transition hover:text-[color:var(--lx-lion)]"
           >
             {t.learnMore} →
@@ -108,7 +111,7 @@ function FooterInner() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href={`/productos-promocion${langQuery}`}
+                  href={withLang("/productos-promocion")}
                   className="inline-flex min-h-[44px] items-center text-sm font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 transition hover:text-[color:var(--lx-lion)]"
                 >
                   {t.promoProducts}
@@ -138,17 +141,17 @@ function FooterInner() {
           className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm"
           aria-label={lang === "es" ? "Enlaces legales" : "Legal links"}
         >
-          <Link href={`/legal${langQuery}`} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
+          <Link href={withLang("/legal")} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
             {t.legal}
           </Link>
-          <Link href={`/privacy${langQuery}`} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
+          <Link href={withLang("/privacy")} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
             {t.privacy}
           </Link>
-          <Link href={`/terms${langQuery}`} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
+          <Link href={withLang("/terms")} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
             {t.terms}
           </Link>
           <Link
-            href={`/data-deletion${langQuery}`}
+            href={withLang("/data-deletion")}
             className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]"
           >
             {t.dataDeletion}
