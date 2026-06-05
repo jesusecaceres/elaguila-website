@@ -341,7 +341,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                         category="autos"
                         source="autos_classifieds_listings"
                         listing={r as unknown as Record<string, unknown>}
-                        lang={lang}
+                        hints={{ dualAnalyticsPipeline: true, analyticsCapability: "partial" }}
                       />
                     </td>
                   </tr>

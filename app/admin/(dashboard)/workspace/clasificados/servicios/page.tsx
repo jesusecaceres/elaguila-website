@@ -425,12 +425,8 @@ export default async function AdminServiciosWorkspacePage(props: {
                         <AdminListingMonetizationSummary
                           category="servicios"
                           source="servicios_public_listings"
-                          listing={{
-                            ...r,
-                            views: serviciosAdminEngagementByRowId.get(r.id)?.likes ?? 0,
-                            saves: serviciosAdminEngagementByRowId.get(r.id)?.saves ?? 0,
-                          }}
-                          lang={lang}
+                          listing={r as unknown as Record<string, unknown>}
+                          hints={{ dualAnalyticsPipeline: true, analyticsCapability: "partial" }}
                         />
                       </td>
                       <td className="p-3">

@@ -263,7 +263,6 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
                         category="restaurantes"
                         source="restaurantes_public_listings"
                         listing={r as unknown as Record<string, unknown>}
-                        lang={lang}
                       />
                     </td>
                   </tr>

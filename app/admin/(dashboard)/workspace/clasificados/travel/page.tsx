@@ -205,7 +205,7 @@ export default async function AdminTravelViajesQueuePage(props: {
                         category="viajes"
                         source="viajes_staged_listings"
                         listing={r as unknown as Record<string, unknown>}
-                        lang={lang}
+                        hints={{ analyticsCapability: "partial" }}
                       />
                     </td>
                   </tr>

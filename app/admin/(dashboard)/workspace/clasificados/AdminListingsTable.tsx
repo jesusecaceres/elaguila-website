@@ -574,7 +574,7 @@ export default function AdminListingsTable({
                     source="listings"
                     listing={row as Record<string, unknown>}
                     detailPairs={row.detail_pairs}
-                    lang={lang}
+                    hints={{ analyticsCapability: "partial" }}
                   />
                 </td>
                 <td

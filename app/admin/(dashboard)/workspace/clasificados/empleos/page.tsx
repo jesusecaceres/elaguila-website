@@ -283,7 +283,7 @@ export default function AdminEmpleosListingsPage() {
                     category="empleos"
                     source="empleos_public_listings"
                     listing={r as unknown as Record<string, unknown>}
-                    lang={adminLang}
+                    hints={{ analyticsCapability: "partial" }}
                   />
                 </td>
                 <td className="px-4 py-3 text-xs font-semibold">

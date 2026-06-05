@@ -25,6 +25,7 @@
     "verify:category-plan-boundaries": "node scripts/verify-category-plan-boundaries.mjs",
     "verify:category-listing-monetization": "node scripts/verify-category-listing-monetization-read-model.mjs",
     "verify:admin-monetization-readonly": "node scripts/verify-admin-monetization-readonly-visibility.mjs",
+    "verify:admin-monetization-summary": "node scripts/verify-admin-monetization-summary.mjs",
     "verify:print-to-digital-visibility-policy": "node scripts/verify-print-to-digital-visibility-policy.mjs",
     "verify:print-digital-visibility-rank-helper": "node scripts/verify-print-digital-visibility-rank-helper.mjs",
     "verify:print-package-entitlement-model": "node scripts/verify-print-package-entitlement-model.mjs",
