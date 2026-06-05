@@ -49,4 +49,13 @@ export const OFERTAS_LOCALES_SHELL_COPY = {
   previewReady: "Tienes lo básico para la vista previa cuando esté disponible.",
   publishNotBuilt:
     "La publicación real, carga de archivos y pago aún no están activos en este gate.",
+  publishReadyForReview: "Cuando la validación pase, podrás enviar a revisión.",
+  submitForReview: "Enviar a revisión",
+  submitForReviewEn: "Submit for review",
+  submittingForReview: "Enviando…",
+  submittingForReviewEn: "Submitting…",
+  submitFailed: "No se pudo enviar el borrador. Intenta de nuevo.",
+  submitSuccessTitle: "Borrador enviado",
+  submitSuccessBody: "Recibimos tu oferta para revisión. Te avisaremos cuando haya novedades.",
+  submitSuccessBodyEn: "We received your offer for review. We will notify you when there is an update.",
 } as const;
