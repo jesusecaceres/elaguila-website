@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { selectLandingDestacadosRecientes } from "../lib/serviciosLandingBuild";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
@@ -6,9 +5,6 @@ import { ServiciosDestacadosSection } from "../components/ServiciosDestacadosSec
 import { PublishServiceCTA } from "./PublishServiceCTA";
 import { RecentServicesSection } from "./RecentServicesSection";
 import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
-import { ServiciosLandingBrowseRow } from "./ServiciosLandingBrowseRow";
-import { ServiciosHeroSearch } from "./ServiciosHeroSearch";
-import { ServiciosLandingQuickFilterLinks } from "./ServiciosLandingQuickFilterLinks";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { TrustValueStrip } from "./TrustValueStrip";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
@@ -18,12 +14,19 @@ import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } f
 
 type Lang = "es" | "en";
 
-/** Page-wide whisper (same service-trade family as hero); stays behind sections so the hero image reads as the category anchor. */
-const PAGE_ATMOSPHERE =
-  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=70";
+const LANDING_QUICK_CHIP_IDS = new Set([
+  "web",
+  "limpieza",
+  "plomeria",
+  "electricista",
+  "jardineria",
+  "mecanica",
+  "reparaciones",
+  "consultoria",
+]);
 
 const sectionShell =
-  "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] ring-1 ring-[#D4A574]/10 sm:rounded-3xl";
+  "rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]";
 
 export function ServiciosLandingPage({
   lang,
@@ -35,51 +38,49 @@ export function ServiciosLandingPage({
 }) {
   const { destacadosRows, recientesRows } = selectLandingDestacadosRecientes(liveRows, lang);
   const hasDestacados = destacadosRows.length > 0;
+  const landingChips = SERVICIOS_LANDING_QUICK_CHIPS.filter((c) => LANDING_QUICK_CHIP_IDS.has(c.id));
+
+  const copy = {
+    es: {
+      eyebrow: "SERVICIOS LOCALES · LEONIX",
+      publish: "Publicar en Servicios",
+      browse: "Ver todos los anuncios",
+    },
+    en: {
+      eyebrow: "LOCAL SERVICES · LEONIX",
+      publish: "Post in Services",
+      browse: "View all listings",
+    },
+  }[lang];
+
+  const quickChips = <ServiciosQuickChips lang={lang} chips={landingChips} variant="standard" />;
 
   return (
     <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
-      <main className="relative mx-auto w-full max-w-6xl px-4 pb-16 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:px-8">
-        <CategoryStandardLandingPage
-          category="servicios"
-          lang={lang}
-          searchAction={buildCategoryResultsUrl("servicios", lang)}
-          searchSlot={<ServiciosHeroSearch lang={lang} />}
-          belowHero={
-            <div className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 sm:px-5">
-              <ServiciosQuickChips lang={lang} chips={SERVICIOS_LANDING_QUICK_CHIPS} />
-              <div className="mt-4 border-t border-[#D6C7AD]/60 pt-4">
-                <ServiciosLandingQuickFilterLinks lang={lang} />
-              </div>
-            </div>
-          }
-        />
+      <CategoryStandardLandingPage
+        category="servicios"
+        lang={lang}
+        eyebrow={copy.eyebrow}
+        publishLabel={copy.publish}
+        browseLabel={copy.browse}
+        searchAction={buildCategoryResultsUrl("servicios", lang)}
+        searchChips={quickChips}
+      />
 
-        <div className="mt-5 sm:mt-9 md:mt-11">
-          <ServiciosLandingBrowseRow lang={lang} />
-        </div>
-
-        <div className="mt-10 space-y-10 sm:mt-16 sm:space-y-16 md:mt-20 md:space-y-[5.5rem] lg:mt-24">
-          <div className="flex flex-col gap-10 sm:gap-16 md:gap-[5.5rem]">
+      <main className="relative mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 sm:pb-20 lg:px-8">
+        <div className="mt-8 space-y-8 sm:mt-10 sm:space-y-10">
+          <div className="flex flex-col gap-8 sm:gap-10">
             <div
-              className={`${sectionShell} p-5 sm:p-9 md:p-11 lg:p-12 ${
-                hasDestacados ? "order-1" : "order-3 lg:order-1"
-              }`}
+              className={`${sectionShell} p-5 sm:p-7 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
             >
               <ServiciosDestacadosSection lang={lang} rows={destacadosRows} id="servicios-landing-destacados" />
             </div>
 
-            <div
-              id="categorias"
-              className={`scroll-mt-24 ${sectionShell} p-5 sm:p-9 md:p-11 lg:p-12 order-2`}
-            >
+            <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-5 sm:p-7 order-2`}>
               <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
             </div>
 
-            <div
-              className={`${sectionShell} p-5 sm:p-9 md:p-11 lg:p-12 ${
-                hasDestacados ? "order-3" : "order-1 lg:order-3"
-              }`}
-            >
+            <div className={`${sectionShell} p-5 sm:p-7 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
               <RecentServicesSection lang={lang} rows={recientesRows} />
             </div>
           </div>
@@ -88,19 +89,19 @@ export function ServiciosLandingPage({
           <PublishServiceCTA lang={lang} />
 
           <nav
-            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#dcd3c7]/90 pt-8 text-[13px] text-[#64748b] sm:pt-12"
+            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#D6C7AD]/80 pt-8 text-[13px] text-[#5C5346] sm:pt-10"
             aria-label={lang === "en" ? "Legal and help" : "Legal y ayuda"}
           >
-            <Link href={`/about?lang=${lang}`} className="transition hover:text-[#142a42]">
+            <Link href={`/about?lang=${lang}`} className="transition hover:text-[#7A1E2C]">
               {lang === "en" ? "About" : "Sobre Nosotros"}
             </Link>
-            <Link href={`/contact?lang=${lang}`} className="transition hover:text-[#142a42]">
+            <Link href={`/contact?lang=${lang}`} className="transition hover:text-[#7A1E2C]">
               {lang === "en" ? "Contact" : "Contáctanos"}
             </Link>
-            <Link href={`/clasificados/reglas?lang=${lang}`} className="transition hover:text-[#142a42]">
+            <Link href={`/clasificados/reglas?lang=${lang}`} className="transition hover:text-[#7A1E2C]">
               {lang === "en" ? "Terms" : "Términos y Condiciones"}
             </Link>
-            <Link href={`/clasificados?lang=${lang}#categorias`} className="transition hover:text-[#142a42]">
+            <Link href={`/clasificados?lang=${lang}#categorias`} className="transition hover:text-[#7A1E2C]">
               {lang === "en" ? "FAQ" : "Preguntas Frecuentes"}
             </Link>
           </nav>

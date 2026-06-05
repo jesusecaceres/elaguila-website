@@ -217,19 +217,28 @@ function HeroContactActions({ lang }: { lang: Lang }) {
   const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-4">
       <div className="flex flex-wrap justify-center gap-3">
         <Link
           href={generalQuoteHref(lang)}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
-          style={{ background: OLIVE_BG, color: OLIVE_FG }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
+          className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
         >
           {quoteLabel}
         </Link>
-        <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
-        <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
+        <a
+          href={CONTACT.phoneTel}
+          className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2.5 text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
+        >
+          {callLabel}
+        </a>
+        <a
+          href={CONTACT.mapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2.5 text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
+        >
+          {mapLabel}
+        </a>
       </div>
       <LeonixEmailContactBlock
         email={CONTACT.email}
@@ -427,22 +436,21 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
       : "Explore some of the products we can help you source. If you do not see it here, we can still quote it.";
   return (
     <div style={{ background: "var(--lx-page)" }}>
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section
-        className="px-4 py-10 sm:px-8 sm:py-14"
-        style={{ background: "linear-gradient(160deg, var(--lx-section) 0%, var(--lx-page) 100%)", borderBottom: "1px solid var(--lx-border)" }}
-      >
+      {/* ── HERO (header only — catalog grid below is unchanged) ─────── */}
+      <section className="border-b border-[#D6C7AD] bg-[#FAF6EE] px-4 py-8 sm:px-8 sm:py-10">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--lx-lion)" }}>
-            Leonix Media
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
+            {lang === "es" ? "PRODUCTOS PROMOCIONALES · LEONIX" : "PROMOTIONAL PRODUCTS · LEONIX"}
           </p>
-          <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl" style={{ color: "var(--lx-text)" }}>
+          <h1 className="mt-3 font-serif text-3xl font-bold leading-tight tracking-tight text-[#2A4536] sm:text-4xl">
             {heroTitle}
           </h1>
-          <p className="mx-auto mb-8 max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
             {heroSubtitle}
           </p>
-          <HeroContactActions lang={lang} />
+          <div className="mt-8">
+            <HeroContactActions lang={lang} />
+          </div>
         </div>
       </section>
 
