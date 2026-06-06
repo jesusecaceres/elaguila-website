@@ -28,18 +28,18 @@ type MagazineEdition = {
   flipbookUrl: string | null;
 };
 
-const DEFAULT_FLIPBOOK = "https://flip.leonixmedia.com/books/leonix-media-june-2026/";
+const DEFAULT_FLIPBOOK = "https://flip.leonixmedia.com/books/qnda/";
 
 const CURRENT_EDITION: MagazineEdition = {
-  titleEs: "Leonix Media — Junio 2026",
-  titleEn: "Leonix Media — June 2026",
+  titleEs: "Leonix Media — Revista Junio 2026",
+  titleEn: "Leonix Media — June 2026 Magazine",
   monthEs: "Junio",
   monthEn: "June",
   year: "2026",
   monthKey: "june",
   coverImage: "/magazine/2026/june/cover.png",
-  pdfUrl: "/magazine/2026/june/leonix-media-june-2026.pdf",
-  flipbookUrl: "https://flip.leonixmedia.com/books/leonix-media-june-2026/",
+  pdfUrl: "/magazine/2026/june/leonix_media_june.pdf",
+  flipbookUrl: "https://flip.leonixmedia.com/books/qnda/",
 };
 
 const PAST_EDITIONS: MagazineEdition[] = [];
@@ -52,9 +52,9 @@ const COPY = {
     heroDescription:
       "Explora la edición actual, consulta publicaciones anteriores y mantente conectado con historias, negocios y oportunidades de nuestra comunidad.",
     currentEyebrow: "EDICIÓN ACTUAL",
-    currentTitle: "Leonix Media — Junio 2026",
+    currentTitle: "Leonix Media — Revista Junio 2026",
     currentBody:
-      "La nueva edición de Leonix Media conecta negocios locales, comunidad, cultura, deportes, recetas, inspiración y oportunidades para crecer con nuestra comunidad.",
+      "Leonix Media presenta su edición de junio: una revista bilingüe y multicultural hecha para nuestra comunidad. Esta edición reúne negocios locales, recursos importantes, eventos familiares, deportes, cultura, bienestar, inspiración y contenido útil para conectar, apoyar y hacer crecer a nuestra gente desde San José para el Bay Area y más allá.",
     readMagazine: "Leer la revista",
     downloadPdf: "Descargar PDF",
     archiveEyebrow: "ARCHIVO",
@@ -82,9 +82,9 @@ const COPY = {
     heroDescription:
       "Explore the current edition, browse past publications, and stay connected with stories, businesses, and opportunities from our community.",
     currentEyebrow: "CURRENT EDITION",
-    currentTitle: "Leonix Media — June 2026",
+    currentTitle: "Leonix Media — June 2026 Magazine",
     currentBody:
-      "The new Leonix Media edition connects local businesses, community, culture, sports, recipes, inspiration, and opportunities to grow with our community.",
+      "Leonix Media presents its June edition: a bilingual, multicultural magazine made for our community. This issue brings together local businesses, important resources, family events, sports, culture, wellness, inspiration, and useful content to connect, support, and help our people grow from San José across the Bay Area and beyond.",
     readMagazine: "Read the magazine",
     downloadPdf: "Download PDF",
     archiveEyebrow: "ARCHIVE",
@@ -112,9 +112,9 @@ const COPY = {
     heroDescription:
       "Khám phá số hiện tại, xem các ấn phẩm trước và giữ kết nối với câu chuyện, doanh nghiệp và cơ hội từ cộng đồng của chúng ta.",
     currentEyebrow: "SỐ HIỆN TẠI",
-    currentTitle: "Leonix Media — Tháng 6 năm 2026",
+    currentTitle: "Leonix Media — Tạp chí Tháng 6 năm 2026",
     currentBody:
-      "Số Leonix Media mới kết nối doanh nghiệp địa phương, cộng đồng, văn hóa, thể thao, công thức, cảm hứng và cơ hội phát triển cùng cộng đồng.",
+      "Leonix Media giới thiệu số tháng 6: một tạp chí song ngữ và đa văn hóa dành cho cộng đồng của chúng ta. Số này gồm doanh nghiệp địa phương, tài nguyên quan trọng, sự kiện gia đình, thể thao, văn hóa, sức khỏe, cảm hứng và nội dung hữu ích để kết nối, hỗ trợ và giúp cộng đồng phát triển từ San José ra Bay Area và xa hơn.",
     readMagazine: "Đọc tạp chí (flipbook tiếng Tây Ban Nha)",
     downloadPdf: "Tải PDF",
     archiveEyebrow: "LƯU TRỮ",

@@ -13,12 +13,12 @@ export const JUNE_2026 = {
   year: "2026",
   monthKey: "june",
   coverImage: "/magazine/2026/june/cover.png",
-  pdfUrl: "/magazine/2026/june/leonix-media-june-2026.pdf",
-  flipbookUrl: "https://flip.leonixmedia.com/books/leonix-media-june-2026/",
+  pdfUrl: "/magazine/2026/june/leonix_media_june.pdf",
+  flipbookUrl: "https://flip.leonixmedia.com/books/qnda/",
   title: {
-    es: "Leonix Media — Junio 2026",
-    en: "Leonix Media — June 2026",
-    vi: "Leonix Media — Tháng 6 năm 2026",
+    es: "Leonix Media — Revista Junio 2026",
+    en: "Leonix Media — June 2026 Magazine",
+    vi: "Leonix Media — Tạp chí Tháng 6 năm 2026",
   },
   monthLabel: {
     es: "Junio",
