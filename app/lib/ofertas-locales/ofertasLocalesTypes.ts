@@ -235,16 +235,41 @@ export type OfertaLocalDraft = {
   internalNotes?: string;
 };
 
-/** Future item-level searchable specials (Version 2). */
+/** Future item-level searchable specials (Version 2 — extended Stack 10). */
 export type OfertaLocalSearchableItemReviewStatus =
   | "pending"
   | "needs_review"
   | "approved"
   | "rejected";
 
+/** AI scan provider — planning only (Stack 10). */
+export type OfertaLocalAiScanProvider =
+  | "google_document_ai"
+  | "leonix_manual"
+  | "future_provider";
+
+/** Post-scan normalizer — planning only (Stack 10). */
+export type OfertaLocalAiNormalizerProvider =
+  | "leonix_normalizer"
+  | "openai"
+  | "gemini"
+  | "manual";
+
 export type OfertaLocalSearchableItemDraft = {
+  /** Draft or DB id when persisted. */
+  id?: string;
+  ofertaLocalId?: string;
+  ownerId?: string;
+  businessName?: string;
+  businessAddress?: string;
+  businessCity?: string;
+  businessState?: string;
+  businessZipCode?: string;
+  businessLatitude?: number | null;
+  businessLongitude?: number | null;
   itemName: string;
   normalizedItemName: string;
+  description?: string;
   category: string;
   subcategory: string;
   priceText: string;
@@ -253,26 +278,124 @@ export type OfertaLocalSearchableItemDraft = {
   dealType: string;
   quantity: string;
   searchTags: string[];
+  validFrom?: string;
+  validUntil?: string;
   sourceAssetId: string;
+  sourceAssetUrl?: string;
   sourcePage: number | null;
+  sourceCropUrl?: string;
   confidence: number | null;
   reviewStatus: OfertaLocalSearchableItemReviewStatus;
+  reviewerNote?: string;
+  isActive?: boolean;
+  isSponsored?: boolean;
+  sponsorshipWeight?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-/** Google Document AI scan job lifecycle (Version 2). */
+/** Shopper-facing item card view model — planning only (Stack 10). */
+export type OfertaLocalClickableItemCardView = {
+  itemTitle: string;
+  priceText: string;
+  description: string;
+  businessName: string;
+  addressLabel: string;
+  validDateLabel: string;
+  sourceAssetUrl: string;
+  sourceCropUrl: string;
+  callHref: string;
+  directionsHref: string;
+  fullFlyerHref: string;
+  canAddToShoppingList: boolean;
+  isSponsored: boolean;
+  sponsorshipLabel: string;
+};
+
+/** Google Document AI scan job lifecycle (Version 2 — extended Stack 10). */
 export type OfertaLocalScanJobStatus =
   | "idle"
   | "pending"
   | "processing"
   | "needs_review"
+  | "reviewed"
   | "approved"
   | "failed"
   | "cancelled";
 
+/** Legacy minimal scan job draft — retained for Gate 1 compatibility. */
 export type OfertaLocalScanJobDraft = {
   status: OfertaLocalScanJobStatus;
   sourceAssetId: string;
   startedAt: string;
   completedAt: string;
   errorMessage: string;
+};
+
+/** Full scan job record shape for future DB/API (Stack 10). */
+export type OfertaLocalScanJobRecordDraft = {
+  id: string;
+  ofertaLocalId: string;
+  ownerId: string;
+  sourceAssetId: string;
+  sourceAssetType: OfertaLocalDraftAssetType | "";
+  provider: OfertaLocalAiScanProvider;
+  normalizerProvider: OfertaLocalAiNormalizerProvider;
+  status: OfertaLocalScanJobStatus;
+  startedAt: string;
+  completedAt: string;
+  rawResultStoragePath: string;
+  normalizedResultStoragePath: string;
+  errorMessage: string;
+  pagesProcessed: number | null;
+  itemsExtractedCount: number | null;
+  confidenceAverage: number | null;
+};
+
+/** Shopping list item — V1 session/local only (Stack 10 planning). */
+export type OfertaLocalShoppingListItemDraft = {
+  itemId: string;
+  ofertaLocalId: string;
+  businessName: string;
+  businessAddress: string;
+  businessCity: string;
+  businessState: string;
+  businessZipCode: string;
+  itemName: string;
+  priceText: string;
+  quantity: string;
+  sourceAssetUrl: string;
+  addedAt: string;
+};
+
+export type OfertaLocalShoppingListDraft = {
+  id: string;
+  sessionId: string;
+  items: OfertaLocalShoppingListItemDraft[];
+  createdAt: string;
+  expiresAt: string;
+};
+
+export type OfertaLocalShoppingRouteOriginMode = "current_location" | "entered_address" | "omitted";
+
+export type OfertaLocalShoppingRouteStopDraft = {
+  businessName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  itemCount: number;
+};
+
+/** Google Maps route V1 — max 5 stops, URL-based (Stack 10 planning). */
+export type OfertaLocalShoppingRouteDraft = {
+  id: string;
+  shoppingListId: string;
+  stops: OfertaLocalShoppingRouteStopDraft[];
+  maxStops: 5;
+  googleMapsUrl: string;
+  originMode: OfertaLocalShoppingRouteOriginMode;
+  createdAt: string;
 };

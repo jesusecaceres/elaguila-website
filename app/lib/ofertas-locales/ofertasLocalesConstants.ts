@@ -382,3 +382,38 @@ export const OFERTAS_LOCALES_VALIDATION_LIMITS = {
   draftAssetUrlMax: 500,
   draftAssetFileNameMax: 160,
 } as const;
+
+/** AI Product Search architecture — planning constants (Stack 10). */
+export const OFERTAS_LOCALES_AI_TOOL_STACK = {
+  scanner: "google_document_ai",
+  scannerPhase1: "Enterprise Document OCR + Layout Parser",
+  scannerPhase2: "Custom Extractor (after sample corpus)",
+  normalizer: "leonix_normalizer",
+  optionalCleanup: ["openai", "gemini"],
+} as const;
+
+export const OFERTAS_LOCALES_AI_PIPELINE_STEPS = [
+  "upload_asset",
+  "create_scan_job",
+  "google_document_ai_scan",
+  "leonix_normalizer",
+  "item_candidates",
+  "business_review",
+  "approved_items_live",
+  "clickable_item_cards",
+  "shopping_list",
+  "google_maps_route_v1",
+] as const;
+
+export const OFERTAS_LOCALES_AI_REVIEW_RULES = [
+  "No AI item goes public without reviewStatus approved",
+  "isActive must be true",
+  "Parent offer must be approved and within valid dates",
+  "Low confidence items default to needs_review",
+  "Business can reject or edit before approval",
+] as const;
+
+export const OFERTAS_LOCALES_SHOPPING_ROUTE_MAX_STOPS = 5 as const;
+
+export const OFERTAS_LOCALES_GOOGLE_MAPS_ROUTE_V1_NOTE =
+  "V1 builds a Google Maps directions URL with up to 5 waypoints — no Maps API key or paid routing API required." as const;
