@@ -6,7 +6,7 @@ import {
   mapComidaLocalRowToDetailVm,
   resolveComidaLocalFoodTypeLabel,
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalPublicListing";
-import { ComidaLocalDetailShell } from "../components/ComidaLocalDetailShell";
+import { ComidaLocalPublicDetailClient } from "../components/ComidaLocalPublicDetailClient";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +53,7 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <ComidaLocalDetailShell vm={vm} leonixAdId={vm.leonixAdId} />
+        <ComidaLocalPublicDetailClient vm={vm} />
       </div>
     </div>
   );

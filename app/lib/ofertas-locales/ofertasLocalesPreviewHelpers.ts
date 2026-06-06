@@ -5,7 +5,7 @@ import {
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
 } from "./ofertasLocalesConstants";
-import { getOfertaLocalMarketDisplayLabel } from "./ofertasLocalesApplicationHelpers";
+import { getOfertaLocalMarketDisplayLabel, getOfertaLocalProductDisplayLabel, labelForCouponPromotionSubtype } from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
@@ -17,6 +17,12 @@ export function hasOfertaLocalDraftContent(draft: OfertaLocalDraft): boolean {
 
 export function labelForOfferType(value: OfertaLocalDraft["offerType"], lang: "es" | "en" = "es"): string {
   if (!value) return "";
+  const productLabel = getOfertaLocalProductDisplayLabel({ offerType: value }, lang);
+  if (productLabel) {
+    const subtype = labelForCouponPromotionSubtype(value, lang);
+    if (subtype && value !== "coupon") return `${productLabel} · ${subtype}`;
+    return productLabel;
+  }
   const opt = OFERTAS_LOCALES_OFFER_TYPE_OPTIONS.find((o) => o.value === value);
   if (!opt) return value;
   return lang === "en" ? opt.labelEn : opt.labelEs;

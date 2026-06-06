@@ -27,8 +27,7 @@ import {
   shouldShowMembershipBlock,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import {
-  isOfertaLocalCouponFlow,
-  isOfertaLocalGeneralPromotionFlow,
+  isOfertaLocalCouponPromotionFlow,
   isOfertaLocalWeeklyFlyerFlow,
 } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
@@ -84,8 +83,7 @@ export function OfertasLocalesPreviewCard({
   const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
   const marketLabel = getOfertaLocalMarketDisplayLabel(draft, lang);
   const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
-  const isCoupon = isOfertaLocalCouponFlow(draft.offerType);
-  const isGeneral = isOfertaLocalGeneralPromotionFlow(draft.offerType);
+  const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
   const dateRange = formatOfertaLocalDateRange(draft.validFrom, draft.validUntil);
   const expired = draft.validUntil.trim() ? isOfertaLocalExpired(draft.validUntil) : false;
   const notYetActive =
@@ -185,13 +183,13 @@ export function OfertasLocalesPreviewCard({
                 <p className="mt-1 whitespace-pre-wrap text-sm text-[#1E1814]">{draft.couponText}</p>
               </div>
             ) : null}
-          {draft.flyerTitle.trim() && (isFlyer || isGeneral) ? (
+          {draft.flyerTitle.trim() && isFlyer ? (
             <p className="mt-3 text-sm text-[#1E1814]/75">
               <span className="font-medium">{lang === "en" ? "Flyer: " : "Volante: "}</span>
               {draft.flyerTitle}
             </p>
           ) : null}
-          {(isFlyer || isGeneral) && !isCoupon ? (
+          {isFlyer ? (
             <OfertasLocalesPreviewAssetCards
               draft={draft}
               bucket="flyerAssets"
@@ -199,12 +197,12 @@ export function OfertasLocalesPreviewCard({
               lang={lang}
             />
           ) : null}
-          {(isFlyer || isGeneral) && !isCoupon && !hasOfertaLocalFlyerAsset(draft) ? (
+          {isFlyer && !hasOfertaLocalFlyerAsset(draft) ? (
             <div className={cx(PLACEHOLDER, "mt-4")}>
               {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.flyerPlaceholder : OFERTAS_LOCALES_PREVIEW_COPY.flyerPlaceholderEs}
             </div>
           ) : null}
-          {(isCoupon || isGeneral) ? (
+          {isCouponPromo ? (
             <OfertasLocalesPreviewAssetCards
               draft={draft}
               bucket="couponAssets"
@@ -212,7 +210,7 @@ export function OfertasLocalesPreviewCard({
               lang={lang}
             />
           ) : null}
-          {isCoupon && !hasOfertaLocalCouponAsset(draft) && draft.couponText.trim() ? (
+          {isCouponPromo && !hasOfertaLocalCouponAsset(draft) && draft.couponText.trim() ? (
             <div className={cx(PLACEHOLDER, "mt-3")}>
               {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.couponAssetPlaceholder : OFERTAS_LOCALES_PREVIEW_COPY.couponAssetPlaceholder}
             </div>

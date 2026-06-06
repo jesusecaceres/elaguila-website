@@ -72,6 +72,48 @@ export const OFERTAS_LOCALES_ROUTES = {
   admin: "/admin/ofertas-locales",
 } as const;
 
+/** Step 1 — two base sellable products (Stack 9B). */
+export const OFERTAS_LOCALES_STEP1_BASE_PRODUCTS = [
+  {
+    productKey: "weekly_flyer" as const,
+    pricingKey: "digitalWeeklySpecials" as const,
+    labelEs: "Volante semanal",
+    labelEn: "Weekly Flyer",
+    priceDisplayMonthly: 399,
+    valueCopyEs:
+      "Sube tu volante semanal y ayuda a los compradores a encontrarte por ciudad, ZIP, categoría y negocio.",
+    valueCopyEn:
+      "Upload your weekly flyer and help shoppers find you by city, ZIP, category, and business.",
+  },
+  {
+    productKey: "coupon_promotion" as const,
+    pricingKey: "digitalCouponListing" as const,
+    labelEs: "Cupón o promoción",
+    labelEn: "Coupon / Promotion",
+    priceDisplayMonthly: 199,
+    valueCopyEs:
+      "Publica cupones, promociones, combos, especiales de temporada o descuentos por tiempo limitado.",
+    valueCopyEn:
+      "Publish coupons, promotions, bundles, seasonal specials, or limited-time deals.",
+  },
+] as const;
+
+/** Optional promotion subtype when Coupon / Promotion product is selected (internal offerType). */
+export const OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS: ReadonlyArray<{
+  value: OfertaLocalOfferType;
+  labelEs: string;
+  labelEn: string;
+}> = [
+  { value: "coupon", labelEs: "Cupón general", labelEn: "General coupon" },
+  { value: "promotion", labelEs: "Promoción general", labelEn: "General promotion" },
+  { value: "seasonal_special", labelEs: "Especial de temporada", labelEn: "Seasonal special" },
+  { value: "bundle", labelEs: "Paquete / combo", labelEn: "Bundle / combo" },
+  { value: "featured_deal", labelEs: "Oferta por tiempo limitado", labelEn: "Limited-time deal" },
+];
+
+/** Application-facing AI add-on monthly display (Stack 9B — no partner label). */
+export const OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY = 199;
+
 export const OFERTAS_LOCALES_OFFER_TYPE_OPTIONS: ReadonlyArray<{
   value: OfertaLocalOfferType;
   labelEs: string;

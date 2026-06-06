@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComidaLocalAnalyticsContext } from "@/app/lib/clasificados/comida-local/comidaLocalAnalytics";
 import type { ComidaLocalPreviewVm } from "@/app/lib/clasificados/comida-local/comidaLocalPreviewTypes";
 import { ComidaLocalContactActions } from "./ComidaLocalContactActions";
 
@@ -12,6 +13,8 @@ type Props = {
   vm: ComidaLocalPreviewVm;
   /** Public listing only — real ID from DB when present. */
   leonixAdId?: string | null;
+  /** When set, contact CTAs emit real analytics events (public detail only). */
+  analyticsContext?: ComidaLocalAnalyticsContext | null;
 };
 
 function ImagePlaceholder({ label }: { label: string }) {
@@ -40,7 +43,7 @@ function SafeListingImage({
   );
 }
 
-export function ComidaLocalDetailShell({ vm, leonixAdId }: Props) {
+export function ComidaLocalDetailShell({ vm, leonixAdId, analyticsContext }: Props) {
   const headerImage = vm.mainImage ?? vm.logoImage;
 
   return (
@@ -95,7 +98,10 @@ export function ComidaLocalDetailShell({ vm, leonixAdId }: Props) {
         <section className={CARD}>
           <h2 className={SECTION_TITLE}>Contacto</h2>
           <div className="mt-4">
-            <ComidaLocalContactActions actions={vm.contactActions} />
+            <ComidaLocalContactActions
+              actions={vm.contactActions}
+              analyticsContext={analyticsContext}
+            />
           </div>
         </section>
       ) : null}

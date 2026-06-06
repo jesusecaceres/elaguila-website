@@ -19,13 +19,13 @@ Prepares Bienes Raíces for a future **multi-property inventory workflow** model
 
 | Check | Result |
 |-------|--------|
-| `git status --short` | Clean at audit run |
-| `git diff --name-only` | Empty |
-| Latest commit | `1ec44924` (commit and push) |
+| `git status --short` | Unrelated dirty only: `M package.json` (Autos script line), untracked Autos QA-08C audit artifacts — **no overlap with BR-INV-A** |
+| `git diff --name-only` | `package.json` only (unrelated Autos work) |
+| Latest commit | `c71449af` (commit and push) |
 | Staging / commit / push | None in this gate |
-| Unrelated dirty files touched | No |
+| Unrelated dirty files touched | **No** |
 
-**Note:** Prior gates **BR13A–BR13D** and **MEDIA-DESC-HUB-03** / **DETAILS-COMMAS-02** are already merged. BR-INV-A does not revert them; it documents current truth and defines the **next** BR-INV stack (Autos-style in-application inventory) on top of polish + SQL contract work.
+**Note:** Prior gates **BR13A–BR13D**, **MEDIA-DESC-HUB-03**, and **DETAILS-COMMAS-02** are merged. **BR-INV-A** is audit-only; this document records current architecture truth and the **BR-INV-B–F** implementation stack on top of existing SQL contract + post-publish add flow (BR13B/D).
 
 ---
 
@@ -35,7 +35,7 @@ Prepares Bienes Raíces for a future **multi-property inventory workflow** model
 
 - `app/(site)/clasificados/bienes-raices/MEDIA_DESC_HUB_03_AUDIT.md`
 - `app/(site)/clasificados/bienes-raices/DETAILS_COMMAS_02_PIPELINE_AUDIT.md`
-- `app/(site)/clasificados/COPY_ENCODING_00_AUDIT.md` — **not found** (N/A)
+- `app/(site)/clasificados/rentas/RENTAS_BR_ADDRESS_PRICE_01_AUDIT.md` (relationship/readiness only — Rentas deferred from inventory)
 
 ### Prior BR inventory gates (read-only context)
 
@@ -431,7 +431,7 @@ Reference: Autos `AUTOS_INVENTORY_ANALYTICS_EVENTS` pattern in `autosAdditionalI
 |----------|----------------------------|
 | MEDIA-DESC-HUB-03 (media, public description, contact hub, CTA cleanup) | **Yes** — sufficient foundation |
 | DETAILS-COMMAS-02 (numeric formatting) | **Yes** |
-| COPY_ENCODING_00 | **N/A** — file not in repo |
+| RENTAS_BR_ADDRESS_PRICE_01 (Rentas address/price parity) | **Yes** — Rentas stable for its lane; inventory **not** in scope |
 
 ---
 

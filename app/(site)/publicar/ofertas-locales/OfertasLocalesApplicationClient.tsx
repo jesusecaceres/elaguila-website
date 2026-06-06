@@ -6,19 +6,20 @@ import {
   hasOfertaLocalAddressAccepted,
   hasOfertaLocalDirectionsAccepted,
   hasOfertaLocalUrlAccepted,
-  isOfertaLocalCouponFlow,
-  isOfertaLocalGeneralPromotionFlow,
+  getOfertaLocalApplicationBasePriceMonthly,
+  getOfertaLocalProductDisplayLabel,
+  isOfertaLocalCouponPromotionFlow,
   isOfertaLocalWeeklyFlyerFlow,
 } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
-  OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS,
+  OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY,
   OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
+  OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS,
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
   OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS,
   OFERTAS_LOCALES_MARKET_TYPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
-  OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
-  OFERTAS_LOCALES_PRICING,
+  OFERTAS_LOCALES_STEP1_BASE_PRODUCTS,
   OFERTAS_LOCALES_PRODUCT_NAME,
 } from "@/app/lib/ofertas-locales/ofertasLocalesConstants";
 import {
@@ -154,8 +155,8 @@ export default function OfertasLocalesApplicationClient() {
   const publishFieldsReady = serverPublishIssues.every((i) => i.severity !== "error");
 
   const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
-  const isCoupon = isOfertaLocalCouponFlow(draft.offerType);
-  const isGeneral = isOfertaLocalGeneralPromotionFlow(draft.offerType);
+  const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
+  const basePriceMonthly = getOfertaLocalApplicationBasePriceMonthly(draft);
 
   const savedLabel = formatSavedAt(lastSavedAt, lang);
   const serviceZipsDisplay = formatServiceZipsDisplay(draft.serviceZipCodes);
@@ -265,43 +266,103 @@ export default function OfertasLocalesApplicationClient() {
     switch (step) {
       case 1:
         return (
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {OFERTAS_LOCALES_OFFER_TYPE_OPTIONS.map((opt) => {
-                const selected = draft.offerType === opt.value;
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {OFERTAS_LOCALES_STEP1_BASE_PRODUCTS.map((product) => {
+                const isWeeklyCard = product.productKey === "weekly_flyer";
+                const selected = isWeeklyCard
+                  ? isOfertaLocalWeeklyFlyerFlow(draft.offerType)
+                  : isOfertaLocalCouponPromotionFlow(draft.offerType);
                 return (
                   <button
-                    key={opt.value}
+                    key={product.productKey}
                     type="button"
                     className={cx(
-                      "rounded-xl border p-4 text-left transition-all",
+                      "rounded-2xl border p-5 text-left transition-all",
                       selected
                         ? "border-[#7A1E2C] bg-[#7A1E2C]/5 shadow-sm ring-2 ring-[#7A1E2C]/15"
                         : "border-[#D4C4A8]/80 bg-white hover:border-[#7A1E2C]/35"
                     )}
-                    onClick={() => updateDraft({ offerType: opt.value as OfertaLocalOfferType })}
+                    onClick={() =>
+                      updateDraft({
+                        offerType: isWeeklyCard
+                          ? "weekly_flyer"
+                          : isOfertaLocalCouponPromotionFlow(draft.offerType)
+                            ? draft.offerType
+                            : "coupon",
+                      })
+                    }
                   >
-                    <span className="text-sm font-semibold text-[#1E1814]">
-                      {lang === "en" ? opt.labelEn : opt.labelEs}
-                    </span>
+                    <p className="text-base font-semibold text-[#1E1814]">
+                      {lang === "en" ? product.labelEn : product.labelEs}
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
+                      {formatUsd(product.priceDisplayMonthly)}
+                      {c.perMonth}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">
+                      {lang === "en" ? product.valueCopyEn : product.valueCopyEs}
+                    </p>
                   </button>
                 );
               })}
             </div>
-            <label className="flex items-start gap-2 rounded-xl border border-[#D4C4A8]/60 bg-white p-4 text-sm text-[#1E1814]">
-              <input
-                type="checkbox"
-                checked={draft.wantsAiSearchableSpecials}
-                onChange={(e) => updateDraft({ wantsAiSearchableSpecials: e.target.checked })}
-                className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-              />
-              <span>
-                <span className="font-medium">{c.aiAddOnLabel}</span>
-                {draft.wantsAiSearchableSpecials ? (
-                  <span className="mt-1 block text-xs text-[#1E1814]/65">{c.aiAddOnHelper}</span>
-                ) : null}
-              </span>
-            </label>
+
+            <p className="text-center text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
+
+            <button
+              type="button"
+              className={cx(
+                "w-full rounded-2xl border p-5 text-left transition-all",
+                draft.wantsAiSearchableSpecials
+                  ? "border-[#7A1E2C] bg-[#7A1E2C]/5 ring-2 ring-[#7A1E2C]/15"
+                  : "border-[#D4C4A8]/80 bg-white hover:border-[#7A1E2C]/35"
+              )}
+              onClick={() =>
+                updateDraft({ wantsAiSearchableSpecials: !draft.wantsAiSearchableSpecials })
+              }
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-[#1E1814]">{c.aiProductSearchTitle}</p>
+                  <p className="mt-1 text-lg font-bold text-[#7A1E2C]">{c.aiProductSearchPrice}</p>
+                </div>
+                <span
+                  className={cx(
+                    "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs",
+                    draft.wantsAiSearchableSpecials
+                      ? "border-[#7A1E2C] bg-[#7A1E2C] text-white"
+                      : "border-[#D4C4A8] bg-white"
+                  )}
+                >
+                  {draft.wantsAiSearchableSpecials ? "✓" : ""}
+                </span>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-[#1E1814]/75">{c.aiProductSearchBody}</p>
+              <p className="mt-2 text-xs text-[#1E1814]/55">{c.aiProductSearchExamples}</p>
+            </button>
+
+            <div className={CALLOUT}>
+              <p className="font-semibold text-[#7A1E2C]">{c.step1MoreExposureTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed">{c.step1MoreExposureBody}</p>
+              <Link
+                href="/contacto"
+                className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
+              >
+                {c.reviewContactLeonix}
+              </Link>
+            </div>
+
+            <div className={cx(CALLOUT, "border-[#D4C4A8]/50 bg-white")}>
+              <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed">{c.step1LeonixPartnerBody}</p>
+              <Link
+                href="/contacto"
+                className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
+              >
+                {c.leonixPartnerCta}
+              </Link>
+            </div>
           </div>
         );
 
@@ -368,7 +429,7 @@ export default function OfertasLocalesApplicationClient() {
                 onChange={(e) => updateDraft({ title: e.target.value })}
               />
             </FieldBlock>
-            {(isGeneral || isCoupon) && !isFlyer ? (
+            {(isCouponPromo) && !isFlyer ? (
               <FieldBlock label={c.descriptionLabel} optional optionalLabel={c.optional}>
                 <textarea
                   className={cx(INPUT, "min-h-[80px] resize-y")}
@@ -388,13 +449,25 @@ export default function OfertasLocalesApplicationClient() {
                 {lang === "en" ? "Choose an offer type in Step 1 first." : "Elige un tipo de oferta en el Paso 1."}
               </p>
             ) : null}
-            {(isFlyer || isGeneral) && !isCoupon ? (
-              <FieldBlock
-                label={c.flyerTitleLabel}
-                optional={!isFlyer}
-                optionalLabel={c.optional}
-                helper={isFlyer ? c.flyerTitleHelper : undefined}
-              >
+            {isCouponPromo ? (
+              <FieldBlock label={c.promotionSubtypeLabel} optional optionalLabel={c.optional}>
+                <select
+                  className={INPUT}
+                  value={draft.offerType}
+                  onChange={(e) =>
+                    updateDraft({ offerType: e.target.value as OfertaLocalOfferType })
+                  }
+                >
+                  {OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {lang === "en" ? opt.labelEn : opt.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </FieldBlock>
+            ) : null}
+            {isFlyer ? (
+              <FieldBlock label={c.flyerTitleLabel} helper={c.flyerTitleHelper}>
                 <input
                   className={INPUT}
                   value={draft.flyerTitle}
@@ -402,26 +475,17 @@ export default function OfertasLocalesApplicationClient() {
                 />
               </FieldBlock>
             ) : null}
-            {isCoupon || isGeneral || isFlyer ? (
+            {isCouponPromo || isFlyer ? (
               <FieldBlock
                 label={c.couponTextLabel}
                 optional={isFlyer}
                 optionalLabel={c.optional}
-                helper={isCoupon ? c.couponTextHelper : undefined}
+                helper={isCouponPromo ? c.couponTextHelper : undefined}
               >
                 <textarea
                   className={cx(INPUT, "min-h-[80px] resize-y")}
                   value={draft.couponText}
                   onChange={(e) => updateDraft({ couponText: e.target.value })}
-                />
-              </FieldBlock>
-            ) : null}
-            {isGeneral && !isFlyer && !isCoupon ? (
-              <FieldBlock label={c.descriptionLabel} optional optionalLabel={c.optional}>
-                <textarea
-                  className={cx(INPUT, "min-h-[80px] resize-y")}
-                  value={draft.description}
-                  onChange={(e) => updateDraft({ description: e.target.value })}
                 />
               </FieldBlock>
             ) : null}
@@ -562,27 +626,34 @@ export default function OfertasLocalesApplicationClient() {
                 {lang === "en" ? "Choose an offer type in Step 1 first." : "Elige un tipo de oferta en el Paso 1."}
               </p>
             ) : null}
-            {(isFlyer || isGeneral) && !isCoupon ? (
-              <OfertasLocalesDraftAssetSection
-                bucket="flyerAssets"
-                draft={draft}
-                updateDraft={updateDraft}
-                lang={lang}
-                sectionTitleOverride={c.assetsSectionFlyer}
-              />
-            ) : null}
-            {isCoupon || isGeneral ? (
-              <div className={isFlyer && !isCoupon ? "border-t border-[#D4C4A8]/50 pt-4" : ""}>
+            {isFlyer ? (
+              <>
                 <OfertasLocalesDraftAssetSection
-                  bucket="couponAssets"
+                  bucket="flyerAssets"
                   draft={draft}
                   updateDraft={updateDraft}
                   lang={lang}
-                  sectionTitleOverride={
-                    isFlyer && !isCoupon ? c.assetsSectionFlyerOptional : c.assetsSectionCoupon
-                  }
+                  sectionTitleOverride={c.assetsSectionFlyer}
                 />
-              </div>
+                <div className="border-t border-[#D4C4A8]/50 pt-4">
+                  <OfertasLocalesDraftAssetSection
+                    bucket="couponAssets"
+                    draft={draft}
+                    updateDraft={updateDraft}
+                    lang={lang}
+                    sectionTitleOverride={c.assetsSectionFlyerOptional}
+                  />
+                </div>
+              </>
+            ) : null}
+            {isCouponPromo && !isFlyer ? (
+              <OfertasLocalesDraftAssetSection
+                bucket="couponAssets"
+                draft={draft}
+                updateDraft={updateDraft}
+                lang={lang}
+                sectionTitleOverride={c.assetsSectionCoupon}
+              />
             ) : null}
           </div>
         );
@@ -732,7 +803,7 @@ export default function OfertasLocalesApplicationClient() {
 
             <div className={CALLOUT}>
               <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
-              <p className="mt-1 text-xs leading-relaxed">{c.leonixPartnerBody}</p>
+              <p className="mt-1 text-xs leading-relaxed">{c.step1LeonixPartnerBody}</p>
               <Link
                 href="/contacto"
                 className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
@@ -770,29 +841,47 @@ export default function OfertasLocalesApplicationClient() {
             />
 
             <div>
+              {/* OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS — review shows selected base product only (Stack 9B). */}
               <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
                 {c.pricingSectionTitle}
               </h3>
               <div className="mt-3 space-y-2">
-                {OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS.map((key) => {
-                  const pkg = OFERTAS_LOCALES_PRICING[key];
-                  return (
-                    <div
-                      key={key}
-                      className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 text-sm"
-                    >
-                      <p className="font-medium text-[#1E1814]">{pkg.label}</p>
-                      <p className="mt-1 text-xs text-[#1E1814]/75">
-                        {c.regularRateLabel}: {formatUsd(pkg.regularPriceMonthly)}/mo ·{" "}
-                        {c.partnerRateLabel}: {formatUsd(pkg.pickupPartnerPriceMonthly)}/mo
-                      </p>
-                    </div>
-                  );
-                })}
+                {basePriceMonthly != null && draft.offerType ? (
+                  <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 text-sm">
+                    <p className="font-medium text-[#1E1814]">
+                      {getOfertaLocalProductDisplayLabel(draft, lang)}
+                    </p>
+                    <p className="mt-1 text-xs text-[#1E1814]/75">
+                      {formatUsd(basePriceMonthly)}
+                      {c.perMonth}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#1E1814]/55">
+                    {lang === "en" ? "Select a product in Step 1." : "Elige un producto en el Paso 1."}
+                  </p>
+                )}
+                {draft.wantsAiSearchableSpecials ? (
+                  <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3 text-sm">
+                    <p className="font-medium text-[#1E1814]">{c.aiProductSearchTitle}</p>
+                    <p className="mt-1 text-xs text-[#1E1814]/75">
+                      +{formatUsd(OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY)}
+                      {c.perMonth}
+                    </p>
+                  </div>
+                ) : null}
+                <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-sm">
+                  <p className="font-medium text-[#1E1814]">{c.step1MoreExposureTitle}</p>
+                  <p className="mt-1 text-xs text-[#1E1814]/65">{c.reviewContactLeonix}</p>
+                </div>
+                <div className="rounded-xl border border-[#D4C4A8]/60 bg-white px-4 py-3 text-sm">
+                  <p className="font-medium text-[#1E1814]">{c.leonixPartnerTitle}</p>
+                  <p className="mt-1 text-xs text-[#1E1814]/65">
+                    {c.reviewContactLeonix} · {c.reviewInviteOnly}
+                  </p>
+                </div>
               </div>
-              <p className="mt-3 text-xs text-[#1E1814]/65">
-                <span className="font-medium">{c.moreExposureTitle}</span> {c.moreExposureBody}
-              </p>
+              <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
               <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
             </div>
 

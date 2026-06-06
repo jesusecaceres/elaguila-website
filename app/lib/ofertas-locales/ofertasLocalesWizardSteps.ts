@@ -1,8 +1,7 @@
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "./useOfertasLocalesAppLang";
 import {
-  isOfertaLocalCouponFlow,
-  isOfertaLocalGeneralPromotionFlow,
+  isOfertaLocalCouponPromotionFlow,
   isOfertaLocalWeeklyFlyerFlow,
 } from "./ofertasLocalesApplicationHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
@@ -106,11 +105,11 @@ export function getOfertasLocalesWizardStepHints(
       break;
     case 3: {
       const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
-      const isCoupon = isOfertaLocalCouponFlow(draft.offerType);
+      const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
       if (isFlyer && !draft.flyerTitle.trim()) {
         hints.push(es ? "Agrega un título para el volante." : "Add a flyer title.");
       }
-      if (isCoupon && !draft.couponText.trim()) {
+      if (isCouponPromo && !draft.couponText.trim()) {
         hints.push(es ? "Describe el cupón o promoción." : "Describe the coupon or promotion.");
       }
       if (!draft.validFrom.trim() || !draft.validUntil.trim()) {
@@ -137,7 +136,7 @@ export function getOfertasLocalesWizardStepHints(
             : "Upload or link your flyer when ready."
         );
       }
-      if (isOfertaLocalCouponFlow(draft.offerType) && draft.couponAssets.length === 0) {
+      if (isOfertaLocalCouponPromotionFlow(draft.offerType) && draft.couponAssets.length === 0) {
         hints.push(
           es ? "Sube o enlaza tu cupón cuando estés listo." : "Upload or link your coupon when ready."
         );
@@ -173,5 +172,5 @@ export function wizardStepTitle(
 }
 
 export function isOfertaLocalGeneralFlow(draft: OfertaLocalDraft): boolean {
-  return isOfertaLocalGeneralPromotionFlow(draft.offerType);
+  return isOfertaLocalCouponPromotionFlow(draft.offerType);
 }

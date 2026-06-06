@@ -14,6 +14,7 @@ export const LISTING_ANALYTICS_SOURCE_TABLES = [
   "empleos_public_listings",
   "servicios_public_listings",
   "restaurantes_public_listings",
+  "comida_local_public_listings",
   "viajes_staged_listings",
 ] as const;
 
@@ -34,6 +35,7 @@ export const LISTING_ANALYTICS_CATEGORIES = [
   "clases",
   "busco",
   "mascotas-y-perdidos",
+  "comida-local",
 ] as const;
 
 export type ListingAnalyticsCategory = (typeof LISTING_ANALYTICS_CATEGORIES)[number] | string;
@@ -43,6 +45,7 @@ const SLUG_PRIMARY_SOURCE_TABLES = new Set<ListingAnalyticsSourceTable>([
   "servicios_public_listings",
   "restaurantes_public_listings",
   "empleos_public_listings",
+  "comida_local_public_listings",
 ]);
 
 export type ListingAnalyticsIdentity = {

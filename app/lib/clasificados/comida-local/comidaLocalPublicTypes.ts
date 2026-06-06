@@ -62,6 +62,7 @@ export type ComidaLocalResultsFilters = {
 export type ComidaLocalPublicListingCardVm = {
   id: string;
   slug: string;
+  leonixAdId: string | null;
   businessName: string;
   foodTypeLabel: string;
   locationLine: string;
@@ -76,6 +77,7 @@ export type ComidaLocalPublicListingCardVm = {
 
 /** Detail uses shared preview shell VM + public identifiers only. */
 export type ComidaLocalPublicListingDetailVm = ComidaLocalPreviewVm & {
+  id: string;
   slug: string;
   leonixAdId: string | null;
 };

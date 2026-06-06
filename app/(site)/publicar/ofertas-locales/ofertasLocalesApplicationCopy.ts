@@ -35,11 +35,27 @@ const COPY = {
       "Contáctanos para paquetes impresos, destacados, newsletter y campañas especiales.",
     leonixPartnerTitle: "¿Quieres ser Leonix Partner?",
     leonixPartnerBody:
-      "Contáctanos para conocer cómo puedes obtener más exposición, revista impresa, puntos de distribución, espacios destacados, newsletter y campañas especiales.",
+      "Contáctanos para conocer opciones de colaboración. Disponible por invitación o revisión del equipo Leonix.",
     leonixPartnerCta: "Contactar a Leonix",
     aiAddOnLabel: "Agregar AI Searchable Specials",
     aiAddOnHelper:
       "Podemos ayudar a que tu volante o cupón sea buscable por producto, como carne asada, tomates, tortillas, cambio de aceite, especiales de comida y más.",
+    aiProductSearchTitle: "Búsqueda por producto con AI",
+    aiProductSearchPrice: "+$199/mo",
+    aiProductSearchBody:
+      "Convertimos tu volante o cupón en productos buscables. Tú revisas y apruebas los artículos antes de publicarlos.",
+    aiProductSearchExamples:
+      "Ejemplos: carne asada, bananas, tortillas, cambio de aceite, especiales de comida.",
+    flatPricingCopy: "Precio mensual fijo. Sin cargos sorpresa por clics.",
+    step1MoreExposureTitle: "¿Quieres más exposición?",
+    step1MoreExposureBody:
+      "Contáctanos para destacados por ZIP, ciudad, categoría, búsqueda de productos, newsletter, revista impresa y campañas especiales.",
+    step1LeonixPartnerBody:
+      "Contáctanos para conocer opciones de colaboración. Disponible por invitación o revisión del equipo Leonix.",
+    reviewContactLeonix: "Contactar a Leonix",
+    reviewInviteOnly: "Solo por invitación",
+    promotionSubtypeLabel: "Tipo de promoción (opcional)",
+    perMonth: "/mes",
     customMarketLabel: "Escribe el tipo de mercado o negocio",
     customMarketHelper:
       "Ej. mercado brasileño, tienda orgánica, mercado africano, productos internacionales.",
@@ -131,11 +147,27 @@ const COPY = {
       "Contact us for print packages, featured placements, newsletter, and special campaigns.",
     leonixPartnerTitle: "Want to become a Leonix Partner?",
     leonixPartnerBody:
-      "Contact us to learn how you can get more exposure, print magazine options, distribution points, featured placements, newsletter support, and special campaigns.",
+      "Contact us to learn about partnership options. Available by invitation or Leonix team review.",
     leonixPartnerCta: "Contact Leonix",
     aiAddOnLabel: "Add AI Searchable Specials",
     aiAddOnHelper:
       "We can help make your flyer or coupon searchable by item, like carne asada, tomatoes, tortillas, oil change, lunch specials, and more.",
+    aiProductSearchTitle: "AI Product Search",
+    aiProductSearchPrice: "+$199/mo",
+    aiProductSearchBody:
+      "We help turn your flyer or coupon into searchable items. You review and approve the items before they go live.",
+    aiProductSearchExamples:
+      "Examples: carne asada, bananas, tortillas, oil change, lunch specials.",
+    flatPricingCopy: "Flat monthly pricing. No surprise click charges.",
+    step1MoreExposureTitle: "Want more exposure?",
+    step1MoreExposureBody:
+      "Contact us for featured placement by ZIP, city, category, product search, newsletter, print, and special campaigns.",
+    step1LeonixPartnerBody:
+      "Contact us to learn about partnership options. Available by invitation or Leonix team review.",
+    reviewContactLeonix: "Contact Leonix",
+    reviewInviteOnly: "Invite-only",
+    promotionSubtypeLabel: "Promotion type (optional)",
+    perMonth: "/mo",
     customMarketLabel: "Enter the market or business type",
     customMarketHelper:
       "Example: Brazilian market, organic store, African market, international goods.",

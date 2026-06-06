@@ -160,9 +160,13 @@ export function mapComidaLocalRowToCardVm(row: ComidaLocalPublicListingRow): Com
   const mainImageSrc = resolveComidaLocalImageUrl(main);
   const slug = row.slug.trim();
 
+  const leonix =
+    typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null;
+
   return {
     id: row.id,
     slug,
+    leonixAdId: leonix,
     businessName,
     foodTypeLabel,
     locationLine: buildComidaLocalLocationLine(row),
@@ -186,6 +190,7 @@ export function mapComidaLocalRowToDetailVm(row: ComidaLocalPublicListingRow): C
     ...vm,
     previewIssues: [],
     previewReady: true,
+    id: row.id,
     slug: row.slug.trim(),
     leonixAdId: leonix,
   };

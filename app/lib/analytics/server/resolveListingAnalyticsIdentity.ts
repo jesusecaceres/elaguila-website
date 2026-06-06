@@ -249,6 +249,20 @@ async function resolveFromTable(
       });
       if (!row) return { ok: false, error: "listing_not_found" };
       return resolveSlugPrimaryRow(row, sourceId, "restaurantes_public_listings", "restaurantes", ["business_name"], "status");
+    case "comida_local_public_listings":
+      row = await fetchRowByIdOrSlug(sb, "comida_local_public_listings", sourceId, {
+        leonixColumn: true,
+      });
+      if (!row) return { ok: false, error: "listing_not_found" };
+      if (str(row.status) !== "published") return { ok: false, error: "listing_not_found" };
+      return resolveSlugPrimaryRow(
+        row,
+        sourceId,
+        "comida_local_public_listings",
+        "comida-local",
+        ["business_name"],
+        "status",
+      );
     case "viajes_staged_listings":
       row = await fetchRowByIdOrSlug(sb, "viajes_staged_listings", sourceId, {
         leonixColumn: true,
