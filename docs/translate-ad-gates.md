@@ -3,8 +3,7 @@
 ## Gate 3A (foundation) ✅
 
 - Shared locale/types, masking helpers, session-only cache utilities, and `TranslateAdControl` client component live under `app/lib/translation/` and `app/components/translation/`.
-- **No Supabase migration** and **no stored `listing_translations`** yet.
-- Pilots pass an optional `requestTranslation` callback (typed as `TranslateAdProviderFn`) — not wired to category pages until T4+.
+- **Durable server cache** (`public.translation_records`) active in production after **SQL1 + SQL2D** — see **Gate ROLL1** below.
 - Translate Ad must remain **user-triggered** (no auto-translate on render).
 - **Do not translate or ship raw contact fields** — emails, phones, URL/WhatsApp/map-like strings are masked before any provider call; prices and legal copy stay out of the default picked fields.
 
@@ -254,11 +253,49 @@ Provider env (`TRANSLATION_PROVIDER`, Google credentials) unchanged — cache is
 3. Redeploy.
 4. Run **SQL2** cache smoke — production cache is **not** active until steps 1–3 complete.
 
-### Out of scope (SQL1)
+## Gate ROLL1 (cache active + rollout/magazine audit) ✅
 
-- No `listing_translations` table
-- No category / TranslateAdControl wiring
-- No Google credential or validation changes
+**Status:** Durable Supabase cache **active in production** (confirmed 2026-06-06).
+
+### Production proof
+
+| Request | `fromCache` | Notes |
+|---|---|---|
+| First identical POST (`roll1-cache-proof-v1`) | `false` | Cold miss — Google called |
+| Second identical POST | **`true`** | Durable cache hit — no repeat Google charge |
+
+Required env: `TRANSLATION_CACHE_STORAGE=supabase`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`.
+
+### Rollout surface (audit only — no new wiring in ROLL1)
+
+| Surface | TranslateAdControl | Server cache |
+|---|---|---|
+| Servicios public profile | ✅ T4 pilot | ✅ |
+| Autos vehiculo detail | ✅ | ✅ |
+| Empleos job detail | ✅ | ✅ |
+| Viajes offer detail | ✅ | ✅ |
+| Rentas listing detail | ✅ | ✅ |
+| Generic `/clasificados/anuncio/[id]` | ✅ T7 (en-venta, bienes-raices, mascotas, …) | ✅ |
+| Restaurantes shell/preview | ✅ | ✅ |
+| Restaurantes live `[slug]` | ❌ not wired | n/a |
+
+### Magazine (audit only)
+
+- Spanish flipbook/PDF remain original visual assets.
+- June 2026 **structured HTML reader** exists in ES/EN/VI via `issueContent.ts` (hand-authored copy, not Google cache).
+- Full visual flipbook translation requires separate EN/VI assets (Level 3) or content extraction (Level 2 / **MAG1**).
+
+### Next gates
+
+- **ROLL2** — enable/verify Translate Ad on next category surface (e.g. Restaurantes live public).
+- **MAG1** — structured extraction of magazine ad/article text from PDF for cache-backed translation.
+
+### Out of scope (ROLL1)
+
+- No new category wiring
+- No magazine asset changes
+- No new API routes
+- No future languages beyond es/en/vi audit scope
 
 ## Gate G2 (provider abstraction pivot) ✅
 

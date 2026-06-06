@@ -1,6 +1,6 @@
 # Leonix Global Translation — G1 Architecture Plan (design only)
 
-**Status:** G1 design complete; **G2 provider abstraction** ✅; **G3 Google backend** ✅; **SQL1 durable cache migration** ✅ (activate with env + deploy).  
+**Status:** G1 design complete; **G2 provider abstraction** ✅; **G3 Google backend** ✅; **SQL1 durable cache** ✅; **ROLL1 production cache active** ✅.  
 **Primary provider:** Google Cloud Translation API (Advanced) when `TRANSLATION_PROVIDER=google`.  
 **DeepL:** Optional fallback only (`TRANSLATION_PROVIDER=deepl`); not the strategic default.
 
