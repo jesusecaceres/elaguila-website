@@ -7,6 +7,7 @@ import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType } from ".
 import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
 import { BrNegocioPrePublishInventoryShell } from "./BrNegocioPrePublishInventoryShell";
+import { mapNegocioFormToMainInventoryCard } from "../../brNegocioInventoryCardModel";
 
 const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
   agente_individual: "Agente individual",
@@ -69,6 +70,7 @@ export function ResumenPublicarNegocioSection({
       <BrNegocioPrePublishInventoryShell
         lang={lang}
         hidden={hideInventoryShell}
+        mainProperty={mapNegocioFormToMainInventoryCard(state, lang)}
         items={state.additionalInventoryProperties}
         onItemsChange={(items) => setState((s) => ({ ...s, additionalInventoryProperties: items }))}
       />

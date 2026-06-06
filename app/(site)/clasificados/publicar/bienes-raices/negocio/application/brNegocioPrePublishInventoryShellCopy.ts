@@ -43,6 +43,11 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
         mainPhotoUrl: "URL de foto principal (opcional)",
       },
       validationSummary: "Revisa los campos marcados antes de guardar.",
+      previewTitle: "Vista previa del inventario",
+      previewHelper:
+        "Estas tarjetas son solo una vista previa para ti. Las propiedades adicionales no se publicarán hasta completar el gate de publicación.",
+      previewEmptyAdditional:
+        "Agrega otra propiedad para ver cómo se verá tu inventario antes de publicar.",
     };
   }
   return {
@@ -84,5 +89,9 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       mainPhotoUrl: "Main photo URL (optional)",
     },
     validationSummary: "Review the highlighted fields before saving.",
+    previewTitle: "Inventory preview",
+    previewHelper:
+      "These cards are only a preview for you. Additional properties will not publish until the publish mapping gate is completed.",
+    previewEmptyAdditional: "Add another property to see how your inventory will look before publishing.",
   };
 }

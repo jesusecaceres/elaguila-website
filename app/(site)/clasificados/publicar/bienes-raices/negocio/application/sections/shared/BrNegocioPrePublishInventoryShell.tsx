@@ -4,26 +4,24 @@ import { useCallback, useMemo, useState } from "react";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
-import {
-  brInventoryDraftLocationLine,
-  brInventoryDraftPriceDisplay,
-  brInventoryPropertySubtypeLabel,
-  brInventoryPropertyTypeLabel,
-} from "../../brNegocioAdditionalInventoryDraft";
+import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryDrawerShell } from "./BrNegocioPrePublishInventoryDrawerShell";
+import { BrNegocioPrePublishInventoryPreview } from "./BrNegocioPrePublishInventoryPreview";
 
 type Props = {
   lang?: BrNegocioPrePublishInventoryLang;
   /** Hide when already in post-publish inventory add mode (BR13B). */
   hidden?: boolean;
+  mainProperty: BrNegocioInventoryCardModel;
   items: BrNegocioAdditionalInventoryPropertyDraft[];
   onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void;
 };
 
-/** BR-INV-C — CTA + count + owner summary + drawer CRUD (pre-publish only). */
+/** BR-INV-B/C/D — CTA + owner preview cards + drawer CRUD (pre-publish only). */
 export function BrNegocioPrePublishInventoryShell({
   lang = "es",
   hidden = false,
+  mainProperty,
   items,
   onItemsChange,
 }: Props) {
@@ -78,51 +76,15 @@ export function BrNegocioPrePublishInventoryShell({
       <div className="mt-5 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#6E5418]">{copy.sectionKicker}</p>
         <p className="mt-1.5 text-sm leading-relaxed text-[#5C5346]/90">{copy.hint}</p>
-        <p className="mt-2 text-sm font-semibold tabular-nums text-[#1E1810]">{copy.countLabel(additionalCount)}</p>
         <p className="mt-1 text-xs text-[#7A7164]">{copy.ownerOnlyNote}</p>
 
-        {additionalCount === 0 ? (
-          <p className="mt-3 text-sm text-[#5C5346]/85">{copy.emptyList}</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {items.map((item) => {
-              const typeLabel = brInventoryPropertyTypeLabel(item.propertyType, lang);
-              const subLabel = brInventoryPropertySubtypeLabel(item.propertyType, item.propertySubtype, lang);
-              const typeLine = subLabel ? `${typeLabel} · ${subLabel}` : typeLabel;
-              return (
-                <li
-                  key={item.id}
-                  className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#2C2416]"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-bold text-[#1E1810]">{item.title.trim() || "—"}</p>
-                      <p className="mt-0.5 text-[#6E5418]">{brInventoryDraftPriceDisplay(item.price, lang)}</p>
-                      <p className="mt-0.5 text-xs text-[#5C5346]/90">{typeLine}</p>
-                      <p className="mt-0.5 text-xs text-[#7A7164]">{brInventoryDraftLocationLine(item)}</p>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openForEdit(item.id)}
-                        className="min-h-[40px] touch-manipulation rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#6E5418] hover:bg-[#FFFCF7] sm:min-h-0"
-                      >
-                        {copy.edit}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(item.id)}
-                        className="min-h-[40px] touch-manipulation rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#B42318] hover:bg-[#FFF5F5] sm:min-h-0"
-                      >
-                        {copy.remove}
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <BrNegocioPrePublishInventoryPreview
+          lang={lang}
+          mainProperty={mainProperty}
+          items={items}
+          onEdit={openForEdit}
+          onRemove={handleRemove}
+        />
 
         <button
           type="button"

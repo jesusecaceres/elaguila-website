@@ -49,6 +49,7 @@ import {
   validateOfertaLocalDraftForFuturePublish,
   validateOfertaLocalDraftForPreview,
 } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
+import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
 import {
   OFERTAS_LOCALES_SHELL_COPY,
@@ -655,6 +656,13 @@ export default function OfertasLocalesApplicationClient() {
                 sectionTitleOverride={c.assetsSectionCoupon}
               />
             ) : null}
+            {draft.wantsAiSearchableSpecials ? (
+              <OfertasLocalesAiScanPanel
+                draft={draft}
+                lang={lang}
+                ofertaLocalId={submitSuccess?.id}
+              />
+            ) : null}
           </div>
         );
 
@@ -839,6 +847,14 @@ export default function OfertasLocalesApplicationClient() {
               publishFieldsReady={publishFieldsReady}
               lang={lang}
             />
+
+            {draft.wantsAiSearchableSpecials ? (
+              <OfertasLocalesAiScanPanel
+                draft={draft}
+                lang={lang}
+                ofertaLocalId={submitSuccess?.id}
+              />
+            ) : null}
 
             <div>
               {/* OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS — review shows selected base product only (Stack 9B). */}

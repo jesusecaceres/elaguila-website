@@ -41,6 +41,7 @@ import { useBrAgenteResidencialCopy } from "./BrAgenteResidencialLocaleContext";
 import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { BrNegocioPrePublishInventoryShell } from "../../application/sections/shared/BrNegocioPrePublishInventoryShell";
+import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInventoryCardModel";
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
@@ -204,6 +205,7 @@ export default function AgenteIndividualResidencialApplication() {
                 <p className="mt-1 text-sm text-[#5C5346]/88">{t.app.vistaPreviaBody}</p>
                 <BrNegocioPrePublishInventoryShell
                   lang={lang}
+                  mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                   items={state.additionalInventoryProperties}
                   onItemsChange={(items) => setState((s) => ({ ...s, additionalInventoryProperties: items }))}
                 />

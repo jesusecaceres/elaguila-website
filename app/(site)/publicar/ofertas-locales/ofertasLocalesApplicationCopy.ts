@@ -112,6 +112,14 @@ const COPY = {
     wizardBack: "Atrás",
     wizardNext: "Siguiente",
     wizardReviewStep: "Revisar antes de enviar",
+    aiScanPanelTitle: "Preparación para escaneo AI",
+    aiScanButton: "Escanear con AI",
+    aiScanProcessing: "Escaneando…",
+    aiScanReviewBeforePublish:
+      "Los productos extraídos deberán revisarse antes de publicarse.",
+    aiScanConfigMissing: "Google Document AI no está configurado en el servidor.",
+    aiScanFailed: "No se pudo completar el escaneo.",
+    aiScanSuccess: "Escaneo completado. Los artículos deben revisarse antes de publicarse.",
   },
   en: {
     pageTitle: "Local Deals",
@@ -224,6 +232,14 @@ const COPY = {
     wizardBack: "Back",
     wizardNext: "Next",
     wizardReviewStep: "Review before submitting",
+    aiScanPanelTitle: "AI scan readiness",
+    aiScanButton: "Scan with AI",
+    aiScanProcessing: "Scanning…",
+    aiScanReviewBeforePublish:
+      "Extracted items must be reviewed before they can be published.",
+    aiScanConfigMissing: "Google Document AI is not configured on the server.",
+    aiScanFailed: "The scan could not be completed.",
+    aiScanSuccess: "Scan completed. Items must be reviewed before they can go live.",
   },
 } as const;
 

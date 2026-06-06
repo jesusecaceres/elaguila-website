@@ -490,3 +490,25 @@ export type OfertaLocalItemDbInsert = Omit<
   created_at?: string;
   updated_at?: string;
 };
+
+/** POST /api/ofertas-locales/scan request (Stack 12). */
+export type OfertaLocalScanApiRequest = {
+  ofertaLocalId: string;
+  assetId: string;
+  assetKind: "flyer" | "coupon";
+  assetUrl: string;
+  storagePath?: string;
+  mimeType: string;
+};
+
+export type OfertaLocalScanApiResponse = {
+  ok: boolean;
+  scanJobId?: string;
+  status?: OfertaLocalScanJobStatus;
+  pagesProcessed?: number;
+  itemsExtractedCount?: number;
+  message?: string;
+  configurationMissing?: boolean;
+  error?: string;
+  detail?: string;
+};
