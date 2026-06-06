@@ -11,7 +11,7 @@ export function ServiciosQuickChips({
   chips: ServiciosQuickChip[];
   variant?: "legacy" | "standard";
 }) {
-  const base = "/clasificados/servicios/resultados";
+  const base = "/clasificados/servicios/results";
   const railLabel = lang === "en" ? "Quick filters" : "Filtros rápidos";
 
   return (

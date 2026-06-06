@@ -12,6 +12,11 @@
 import { navCopyLang, normalizeLang, type SupportedLang } from "@/app/lib/language";
 import type { AutosPublicFilterState, AutosPublicSortKey } from "./autosPublicFilterTypes";
 import { emptyAutosPublicFilters } from "./autosPublicFilterTypes";
+import {
+  CAT_STD_DEFAULT_PER_PAGE,
+  catStdPerPageToParam,
+  parseCatStdPerPage,
+} from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 
 export const AUTOS_BROWSE_URL_KEYS = {
   lang: "lang",
@@ -41,6 +46,7 @@ export const AUTOS_BROWSE_URL_KEYS = {
   hasVideo: "hasVideo",
   sort: "sort",
   page: "page",
+  perPage: "perPage",
 } as const;
 
 /** Paid shell lane — aligns with `AutoDealerListing["autosLane"]`. */
@@ -75,6 +81,7 @@ export type AutosBrowseUrlBundle = {
   q: string;
   sort: AutosPublicSortKey;
   page: number;
+  perPage?: number;
   /** Display copy lang (vi → en). */
   lang: "es" | "en";
   /** Route lang preserved in URLs (es/en/vi). */
@@ -114,8 +121,9 @@ export function parseAutosBrowseUrl(sp: URLSearchParams): AutosBrowseUrlBundle {
   const q = sp.get(K.q) ?? "";
   const sort = parseSort(sp.get(K.sort));
   const page = parsePage(sp.get(K.page));
+  const perPage = parseCatStdPerPage(sp.get(K.perPage));
 
-  return { filters, q, sort, page, lang, routeLang };
+  return { filters, q, sort, page, perPage, lang, routeLang };
 }
 
 function setIfNonEmpty(params: URLSearchParams, key: string, value: string | undefined | null) {
@@ -152,6 +160,8 @@ export function serializeAutosBrowseUrl(bundle: AutosBrowseUrlBundle): string {
   if (bundle.filters.hasVideo === "yes") params.set(K.hasVideo, "yes");
   if (bundle.sort !== "newest") params.set(K.sort, bundle.sort);
   if (bundle.page > 1) params.set(K.page, String(bundle.page));
+  const perPageParam = catStdPerPageToParam(bundle.perPage ?? CAT_STD_DEFAULT_PER_PAGE);
+  if (perPageParam) params.set(K.perPage, perPageParam);
   return params.toString();
 }
 

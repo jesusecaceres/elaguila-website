@@ -7,7 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
 
-import Navbar from "@/app/components/Navbar";
+import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
+import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
+import { CAT_STD_PER_PAGE_OPTIONS } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 import {
   RESTAURANTE_BUSINESS_TYPES,
   RESTAURANTE_CUISINES,
@@ -41,7 +43,6 @@ import type { RestaurantesResultsInventorySource } from "@/app/clasificados/rest
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
 
 const ACCENT = "#D4A574";
-const PAGE_SIZE = 9;
 
 function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string {
   switch (svc) {
@@ -101,8 +102,7 @@ export function RestaurantesResultsShell({
   const parsed = useMemo(() => parseRestaurantesResultsSearchParams(new URLSearchParams(spStr)), [spStr]);
   const lang: RestaurantesDiscoveryLang = parsed.lang;
 
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [geoNote, setGeoNote] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -115,10 +115,6 @@ export function RestaurantesResultsShell({
     setQInput(parsed.q);
     setLocInput(parsed.zip || parsed.city || "");
   }, [parsed.q, parsed.city, parsed.zip]);
-
-  useEffect(() => {
-    setVisible(PAGE_SIZE);
-  }, [spStr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -155,8 +151,13 @@ export function RestaurantesResultsShell({
   const sorted = useMemo(() => sortRestaurantesBlueprintRows(ranked, effectiveSort), [ranked, effectiveSort]);
 
   const gridRows = sorted;
-
-  const shown = useMemo(() => gridRows.slice(0, visible), [gridRows, visible]);
+  const perPage = parsed.perPage;
+  const pageCount = Math.max(1, Math.ceil(gridRows.length / perPage));
+  const currentPage = Math.min(parsed.page, pageCount);
+  const shown = useMemo(
+    () => gridRows.slice((currentPage - 1) * perPage, currentPage * perPage),
+    [gridRows, currentPage, perPage],
+  );
 
   const pushState = useCallback(
     (next: RestaurantesDiscoveryState) => {
@@ -1129,9 +1130,11 @@ export function RestaurantesResultsShell({
     </>
   );
 
+  const clearHref = buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang)));
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <Navbar />
+    <CategoryStandardResultsPageShell>
+    <div className="min-h-screen overflow-x-hidden text-[color:var(--lx-text)]">
       {inventoryBannerNote ? (
         <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
           <p
@@ -1165,59 +1168,52 @@ export function RestaurantesResultsShell({
           </div>
         </div>
       ) : null}
-      <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-16 pt-5 sm:px-5 sm:pb-20 sm:pt-6 md:px-5 lg:px-6">
-        <div className="rounded-[18px] border border-[color:var(--lx-border)]/30 bg-[color:var(--lx-card)]/75 p-4 shadow-sm sm:p-5 md:p-6">
-          <div className="flex flex-col gap-3 border-b border-[color:var(--lx-border)]/35 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
-            <div className="min-w-0 max-w-full">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.eyebrow}</p>
-              <h1 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{t.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.subtitle}</p>
-              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{t.journeyLine}</p>
-              <Link href={landingHref} className="mt-3 inline-flex text-sm font-semibold text-[#D97706] underline-offset-4 hover:underline">
-                ← {t.backLanding}
-              </Link>
-            </div>
-          </div>
+      <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-14 pt-3 sm:px-5 sm:pb-16 md:px-5 lg:px-6">
+        <CategoryStandardResultsHeader
+          lang={lang}
+          title={t.title}
+          subtitle={lang === "es" ? "Busca y afina en Filtros." : "Search and refine in Filters."}
+          backHref={landingHref}
+          backLabel={t.backLanding}
+          clearHref={clearHref}
+          resultCount={sorted.length}
+        />
 
           <form
             onSubmit={onSearchSubmit}
-            className="mt-5 rounded-[18px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-4 ring-1 ring-[#D97706]/12 shadow-[0_16px_48px_-28px_rgba(45,36,30,0.35)] sm:mt-6 sm:rounded-[20px] sm:p-5"
+            className="mt-3 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)]"
           >
-          <div className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-stretch">
-            <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:contents">
-              <div className="relative min-w-0 md:min-w-0 xl:flex-1">
+          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch">
+              <div className="relative min-w-0 sm:col-span-5">
                 <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
                 <input
                   value={qInput}
                   onChange={(e) => setQInput(e.target.value)}
                   placeholder={t.searchPh}
-                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
+                  className="min-h-[2.5rem] w-full min-w-0 rounded-lg border border-[#D6C7AD] bg-white py-2 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#D97706]/30"
                   autoComplete="off"
                 />
               </div>
-              <div className="relative min-w-0 md:min-w-0 xl:flex-1">
+              <div className="relative min-w-0 sm:col-span-3">
                 <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
                 <input
                   value={locInput}
                   onChange={(e) => setLocInput(e.target.value)}
                   placeholder={t.locationPh}
-                  className="min-h-[52px] w-full min-w-0 rounded-[16px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-10 pr-3 text-sm outline-none transition-shadow ring-[#D97706]/30 focus:ring-2"
+                  className="min-h-[2.5rem] w-full min-w-0 rounded-lg border border-[#D6C7AD] bg-white py-2 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#D97706]/30"
                 />
               </div>
-            </div>
             <button
               type="submit"
-              className="min-h-[52px] w-full shrink-0 rounded-[16px] px-8 text-sm font-bold text-white shadow-[0_10px_32px_-12px_rgba(180,83,9,0.55)] touch-manipulation xl:w-[min(100%,200px)] xl:self-center"
+              className="min-h-[2.5rem] rounded-lg px-6 text-sm font-bold text-white shadow-sm sm:col-span-4"
               style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
             >
               {t.search}
             </button>
           </div>
         </form>
-        {locationToolbar}
-        </div>
 
-        <div className="mt-5 flex min-w-0 flex-col gap-4 sm:mt-6 md:flex-row md:items-start md:justify-between lg:items-center">
+        <div className="mt-2 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="min-w-0 shrink text-sm leading-snug text-[color:var(--lx-text)]/80">
             <span className="font-semibold text-[color:var(--lx-text)]">{sorted.length}</span>{" "}
             <span className="text-[color:var(--lx-muted)]">{t.resultsMatching}</span>
@@ -1241,13 +1237,35 @@ export function RestaurantesResultsShell({
             </label>
             <button
               type="button"
-              className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center rounded-[12px] border border-[color:var(--lx-border)]/50 bg-[color:var(--lx-card)] px-4 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)] sm:w-auto lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/45 touch-manipulation"
-              onClick={() => setMobileFiltersOpen(true)}
+              className="inline-flex min-h-[36px] shrink-0 items-center justify-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm hover:bg-[#FAF6EE]"
+              onClick={() => setFiltersPanelOpen(true)}
             >
               {t.filters}
             </button>
+            <select
+              className="min-h-[36px] rounded-full border border-[#D6C7AD] bg-white px-3 py-1.5 text-xs font-medium"
+              value={perPage}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { perPage: Number(e.target.value), page: 1 }))}
+              aria-label={lang === "es" ? "Mostrar por página" : "Per page"}
+            >
+              {CAT_STD_PER_PAGE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="inline-flex min-h-[36px] items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold hover:bg-[#FAF6EE]"
+              onClick={() =>
+                router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+              }
+            >
+              {t.clearAll}
+            </button>
           </div>
         </div>
+        {locationToolbar}
 
         {activeChips.length ? (
           <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -1267,11 +1285,7 @@ export function RestaurantesResultsShell({
           </div>
         ) : null}
 
-        <div className="mt-6 min-w-0 lg:mt-8 lg:grid lg:grid-cols-[minmax(0,280px)_1fr] lg:gap-6 xl:gap-8">
-          <aside className="mb-6 hidden lg:block">
-            <div className="sticky top-24 rounded-[20px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] p-4 shadow-sm xl:p-5">{filterPanel}</div>
-          </aside>
-
+        <div className="mt-4 min-w-0">
           <div className="min-w-0">
             {destacadosRows.length > 0 ? (
               <div className="mb-6 sm:mb-8">
@@ -1309,33 +1323,45 @@ export function RestaurantesResultsShell({
               </ul>
             )}
 
-            {gridRows.length > visible ? (
-              <div className="mt-8 flex justify-center">
-                <button
-                  type="button"
-                  className="min-h-[48px] rounded-[14px] border border-[color:var(--lx-border)]/50 px-8 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)]"
-                  onClick={() => setVisible((v) => v + PAGE_SIZE)}
-                >
-                  {t.loadMore}
-                </button>
-              </div>
+            {pageCount > 1 ? (
+              <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label={lang === "es" ? "Paginación" : "Pagination"}>
+                {currentPage > 1 ? (
+                  <Link
+                    href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage - 1 })))}
+                    className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
+                  >
+                    {lang === "es" ? "Anterior" : "Previous"}
+                  </Link>
+                ) : null}
+                <span className="text-sm text-[color:var(--lx-muted)]">
+                  {lang === "es" ? `Página ${currentPage} de ${pageCount}` : `Page ${currentPage} of ${pageCount}`}
+                </span>
+                {currentPage < pageCount ? (
+                  <Link
+                    href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage + 1 })))}
+                    className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
+                  >
+                    {lang === "es" ? "Siguiente" : "Next"}
+                  </Link>
+                ) : null}
+              </nav>
             ) : null}
           </div>
         </div>
       </div>
 
-      {mobileFiltersOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={t.filters}>
+      {filtersPanelOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.filters}>
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
             aria-label={t.close}
-            onClick={() => setMobileFiltersOpen(false)}
+            onClick={() => setFiltersPanelOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-[color:var(--lx-page)] p-5 pb-8 shadow-2xl sm:pb-5">
+          <div className="relative z-[51] max-h-[85vh] w-full overflow-y-auto rounded-t-[20px] bg-[color:var(--lx-page)] p-5 pb-8 shadow-2xl sm:max-w-2xl sm:rounded-2xl sm:pb-5">
             <div className="mb-4 flex items-center justify-between">
               <p className="font-serif text-lg font-semibold">{t.filters}</p>
-              <button type="button" className="min-h-[44px] px-3 text-sm font-semibold text-[#D97706]" onClick={() => setMobileFiltersOpen(false)}>
+              <button type="button" className="min-h-[44px] px-3 text-sm font-semibold text-[#D97706]" onClick={() => setFiltersPanelOpen(false)}>
                 {t.close}
               </button>
             </div>
@@ -1344,5 +1370,6 @@ export function RestaurantesResultsShell({
         </div>
       ) : null}
     </div>
+    </CategoryStandardResultsPageShell>
   );
 }

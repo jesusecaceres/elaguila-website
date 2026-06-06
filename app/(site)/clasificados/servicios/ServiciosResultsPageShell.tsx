@@ -16,17 +16,18 @@ export function ServiciosResultsPageShell({ lang, children, resultCount }: Props
   const landingHref = `/clasificados/servicios?lang=${lang}`;
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
   const clearHref = `/clasificados/servicios/results?lang=${lang}`;
+  // compact shell — listings-first, no atmosphere band
 
   return (
     <CategoryStandardResultsPageShell>
-      <div className="space-y-5">
+      <div className="space-y-3">
         <CategoryStandardResultsHeader
           lang={lang}
           title={lang === "en" ? "Services results" : "Resultados de Servicios"}
           subtitle={
             lang === "en"
-              ? "Refine by area, trade, and trust signals — published showcases only."
-              : "Afinar por zona, giro y señales de confianza — solo vitrinas publicadas."
+              ? "Search by keyword and area; refine in Filtros."
+              : "Busca por palabra y zona; afina en Filtros."
           }
           backHref={landingHref}
           backLabel={lang === "en" ? "Back to Servicios" : "Volver a Servicios"}

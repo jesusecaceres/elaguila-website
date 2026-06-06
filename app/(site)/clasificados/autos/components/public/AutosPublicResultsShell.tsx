@@ -30,9 +30,12 @@ import {
   categoryStandardDescription,
   categoryStandardTitle,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import {
+  CAT_STD_DEFAULT_PER_PAGE,
+  CAT_STD_PER_PAGE_OPTIONS,
+} from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 
 const RESULTADOS_PATH = "/clasificados/autos/results";
-const PAGE_SIZE = 12;
 
 function uniqSort(values: string[]): string[] {
   return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
@@ -66,7 +69,8 @@ export function AutosPublicResultsShell() {
     router.push(`${RESULTADOS_PATH}?${serializeAutosBrowseUrl(b)}`);
   }, [router]);
 
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
+  const perPage = applied.perPage ?? CAT_STD_DEFAULT_PER_PAGE;
 
   const { listings: inventory, isDemoInventory, loaded } = useAutosPublicListingsFetch();
   const emptyCatalog = loaded && inventory.length === 0 && !isDemoInventory;
@@ -108,11 +112,11 @@ export function AutosPublicResultsShell() {
 
   const gridListings = mainGridPool;
 
-  const totalPages = Math.max(1, Math.ceil(gridListings.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(gridListings.length / perPage));
   const currentPage = Math.min(Math.max(1, applied.page), totalPages);
   const pagedGrid = useMemo(
-    () => gridListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
-    [gridListings, currentPage],
+    () => gridListings.slice((currentPage - 1) * perPage, currentPage * perPage),
+    [gridListings, currentPage, perPage],
   );
 
   const resultCount = sorted.length;
@@ -133,20 +137,27 @@ export function AutosPublicResultsShell() {
       q: qDraft.trim(),
       page: 1,
     });
-    setMobileFiltersOpen(false);
+    setFiltersPanelOpen(false);
   }, [applied, draftFilters, qDraft, pushBundle]);
 
   const resetFiltersUrl = useCallback(() => {
     const empty = emptyAutosPublicFilters();
     setDraftFilters(empty);
     setQDraft("");
-    pushBundle({ ...applied, filters: empty, q: "", page: 1 });
-    setMobileFiltersOpen(false);
+    pushBundle({ ...applied, filters: empty, q: "", page: 1, perPage: CAT_STD_DEFAULT_PER_PAGE });
+    setFiltersPanelOpen(false);
   }, [applied, pushBundle]);
 
   const setSortUrl = useCallback(
     (sort: AutosPublicSortKey) => {
       pushBundle({ ...applied, sort, page: 1 });
+    },
+    [applied, pushBundle],
+  );
+
+  const setPerPageUrl = useCallback(
+    (nextPerPage: number) => {
+      pushBundle({ ...applied, perPage: nextPerPage, page: 1 });
     },
     [applied, pushBundle],
   );
@@ -229,7 +240,7 @@ export function AutosPublicResultsShell() {
   return (
     <CategoryStandardResultsPageShell>
       <div className="pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[#1A1A1A]">
-      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-6 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 lg:py-8">
+      <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-4 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 sm:py-5">
         <CategoryStandardResultsHeader
           lang={L}
           title={categoryStandardTitle("autos", L)}
@@ -243,20 +254,15 @@ export function AutosPublicResultsShell() {
         />
         <p className="mt-2 text-sm text-[#5C5346]">{nearLine}</p>
 
-        <div className="mb-5 mt-4 rounded-[20px] border border-[#D4A574]/30 bg-[#FFFAF0]/95 p-4 shadow-[0_14px_40px_-24px_rgba(212,165,116,0.22)] backdrop-blur-[2px] sm:p-5 lg:p-6">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-4">
-            <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="min-w-0 sm:col-span-2 lg:col-span-1">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]" htmlFor="autos-res-q">
-                  {copy.heroSearchFieldLabel}
-                </label>
-                <div className="relative">
+        <div className="mb-3 mt-3 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-4">
+          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch">
+              <div className="relative min-w-0 sm:col-span-5">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7A7A7A]" aria-hidden>
                     ⌕
                   </span>
                   <input
                     id="autos-res-q"
-                    className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] py-2.5 pl-9 pr-3 text-sm outline-none ring-[#D4A574]/50 focus:ring-2 focus:ring-[#D4A574]"
+                    className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
                     value={qDraft}
                     onChange={(e) => setQDraft(e.target.value)}
                     onKeyDown={(e) => {
@@ -269,28 +275,21 @@ export function AutosPublicResultsShell() {
                     aria-label={copy.searchPlaceholder}
                     autoComplete="off"
                   />
-                </div>
               </div>
-              <div className="min-w-0">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]" htmlFor="autos-res-city">
-                  {copy.cityLabel}
-                </label>
+              <div className="min-w-0 sm:col-span-3">
                 <input
                   id="autos-res-city"
-                  className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]"
+                  className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
                   value={draftFilters.city}
                   onChange={(e) => patchDraft({ city: e.target.value })}
                   placeholder={copy.cityPlaceholder}
                   autoComplete="address-level2"
                 />
               </div>
-              <div className="min-w-0">
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]" htmlFor="autos-res-zip">
-                  {copy.zipLabel}
-                </label>
+              <div className="min-w-0 sm:col-span-2">
                 <input
                   id="autos-res-zip"
-                  className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]"
+                  className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
                   inputMode="numeric"
                   maxLength={5}
                   value={draftFilters.zip}
@@ -299,50 +298,55 @@ export function AutosPublicResultsShell() {
                   autoComplete="postal-code"
                 />
               </div>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto xl:shrink-0">
-              <AutosGeolocationButton copy={copy} onResolved={onGeoResolved} className="w-full sm:w-auto" />
               <button
                 type="button"
-                className="min-h-[44px] w-full rounded-xl border border-[#E5E5E5] bg-[#FFFAF0] px-4 text-sm font-semibold text-[#1A1A1A] sm:w-auto hover:bg-[#F5F0E8] transition-colors"
-                onClick={resetFiltersUrl}
-              >
-                {copy.resultsResetShort}
-              </button>
-              <button
-                type="button"
-                className="min-h-[48px] w-full rounded-xl bg-[#D4A574] px-6 text-sm font-bold text-white shadow-md sm:w-auto hover:bg-[#C19A6B] transition-colors"
+                className="min-h-[2.5rem] rounded-lg bg-[#D4A574] px-4 text-sm font-bold text-white shadow-sm sm:col-span-2 hover:bg-[#C19A6B]"
                 onClick={applyDraftToUrl}
               >
                 {copy.searchCta}
               </button>
-              <label className="flex w-full min-w-0 shrink-0 flex-col gap-1 text-sm text-[#4A4A4A] sm:w-auto sm:min-w-[11rem]">
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A7A7A]">{copy.sortLabel}</span>
-                <select
-                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-[#FFFEF7] px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#D4A574]"
-                  value={applied.sort}
-                  onChange={(e) => setSortUrl(e.target.value as AutosPublicSortKey)}
-                  aria-describedby="autos-res-sort-hint"
-                >
-                  <option value="newest">{copy.sortNewest}</option>
-                  <option value="priceAsc">{copy.sortPriceLow}</option>
-                  <option value="priceDesc">{copy.sortPriceHigh}</option>
-                  <option value="mileage">{copy.sortMileage}</option>
-                  <option value="yearDesc">{copy.sortYearNewest}</option>
-                  <option value="yearAsc">{copy.sortYearOldest}</option>
-                </select>
-                <span id="autos-res-sort-hint" className="text-[10px] text-[#7A7A7A]">
-                  {copy.sortHint}
-                </span>
-              </label>
-              <button
-                type="button"
-                className="flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-[#D4A574]/50 bg-[#FFFAF0] px-4 text-sm font-bold text-[#1A1A1A] shadow-sm lg:hidden hover:bg-[#F5F0E8] transition-colors"
-                onClick={() => setMobileFiltersOpen(true)}
-              >
-                {copy.filtersOpen}
-              </button>
-            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-[36px] items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold text-[#1A1A1A] shadow-sm hover:bg-[#FAF6EE]"
+              onClick={() => setFiltersPanelOpen(true)}
+            >
+              {copy.filtersOpen}
+            </button>
+            <select
+              className="min-h-[36px] rounded-full border border-[#D6C7AD] bg-white px-3 py-1.5 text-xs font-medium text-[#1A1A1A]"
+              value={applied.sort}
+              onChange={(e) => setSortUrl(e.target.value as AutosPublicSortKey)}
+              aria-label={copy.sortLabel}
+            >
+              <option value="newest">{copy.sortNewest}</option>
+              <option value="priceAsc">{copy.sortPriceLow}</option>
+              <option value="priceDesc">{copy.sortPriceHigh}</option>
+              <option value="mileage">{copy.sortMileage}</option>
+              <option value="yearDesc">{copy.sortYearNewest}</option>
+              <option value="yearAsc">{copy.sortYearOldest}</option>
+            </select>
+            <select
+              className="min-h-[36px] rounded-full border border-[#D6C7AD] bg-white px-3 py-1.5 text-xs font-medium text-[#1A1A1A]"
+              value={perPage}
+              onChange={(e) => setPerPageUrl(Number(e.target.value))}
+              aria-label={lang === "es" ? "Mostrar por página" : "Per page"}
+            >
+              {CAT_STD_PER_PAGE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <AutosGeolocationButton copy={copy} onResolved={onGeoResolved} className="!min-h-[36px] !rounded-full !px-3 !py-2 !text-xs" />
+            <button
+              type="button"
+              className="inline-flex min-h-[36px] items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold text-[#1A1A1A] hover:bg-[#FAF6EE]"
+              onClick={resetFiltersUrl}
+            >
+              {copy.resultsResetShort}
+            </button>
           </div>
         </div>
 
@@ -355,34 +359,15 @@ export function AutosPublicResultsShell() {
           />
         </div>
 
-        <div className="mb-5 rounded-2xl border border-[#E5E5E5]/80 bg-[#FFFAF0]/60 px-4 py-4 sm:px-5">
+        <div className="mb-3 rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7] px-3 py-2">
           <AutosPublicResultsQuickChips bundle={applied} copy={copy} />
         </div>
 
-        <div className="mb-5">
+        <div className="mb-3">
           <AutosPublicResultsActiveFilters bundle={applied} pushBundle={pushBundle} copy={copy} />
         </div>
 
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
-          <aside className="hidden w-[280px] shrink-0 lg:block xl:w-[320px]">
-            <div className="sticky top-24 rounded-[20px] border border-[#D4A574]/30 bg-[#FFFAF0] p-4 shadow-[0_12px_36px_-20px_rgba(212,165,116,0.18)] sm:p-5">
-              <p className="font-serif text-lg font-semibold text-[#1A1A1A]">{copy.filtersTitle}</p>
-              <p className="mt-1.5 text-xs leading-relaxed text-[#7A7A7A]">{copy.resultsFilterRailCaption}</p>
-              <div className="mt-4">
-                <AutosPublicFilterRail
-                  value={draftFilters}
-                  onChange={patchDraft}
-                  onReset={resetFiltersUrl}
-                  onApply={applyDraftToUrl}
-                  copy={copy}
-                  options={filterOptions}
-                  idPrefix="desk"
-                />
-              </div>
-            </div>
-          </aside>
-
-          <div className="min-w-0 flex-1 lg:min-w-0">
+          <div className="min-w-0 flex-1">
             {!loaded ? (
               <div
                 className="rounded-2xl border border-dashed border-[#D4A574]/40 bg-[#FFFAF0] px-6 py-14 text-center"
@@ -505,24 +490,23 @@ export function AutosPublicResultsShell() {
               </p>
             ) : null}
           </div>
-        </div>
       </div>
 
-      {mobileFiltersOpen ? (
-        <div className="fixed inset-0 z-[70] lg:hidden">
+      {filtersPanelOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4">
           <button
             type="button"
             className="absolute inset-0 bg-black/45"
             aria-label="Close"
-            onClick={() => setMobileFiltersOpen(false)}
+            onClick={() => setFiltersPanelOpen(false)}
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[min(92vh,720px)] overflow-y-auto rounded-t-[22px] border border-[#D4A574]/30 bg-[#FFFAF0] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl">
+          <div className="relative z-[71] max-h-[min(92vh,720px)] w-full overflow-y-auto rounded-t-[22px] border border-[#D4A574]/30 bg-[#FFFAF0] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-2xl sm:rounded-2xl sm:pb-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="font-serif text-lg font-semibold text-[#1A1A1A]">{copy.filtersTitle}</p>
               <button
                 type="button"
                 className="rounded-lg px-3 py-1.5 text-sm font-semibold text-[#D4A574]"
-                onClick={() => setMobileFiltersOpen(false)}
+                onClick={() => setFiltersPanelOpen(false)}
               >
                 {lang === "es" ? "Cerrar" : "Close"}
               </button>

@@ -266,7 +266,7 @@ function RestaurantesLandingPageInner({
         searchChips={restaurantesLandingChips}
       />
 
-      <main className="mx-auto max-w-[1280px] space-y-10 overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-14 text-[color:var(--lx-text)] sm:space-y-12 sm:px-5 sm:pb-20 md:space-y-14 lg:space-y-16 lg:px-6">
+      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-12 text-[color:var(--lx-text)] sm:space-y-8 sm:px-5 sm:pb-16 md:space-y-9 lg:px-6">
         <section
           className="grid grid-cols-1 gap-5 rounded-[20px] border border-[color:var(--lx-border)]/20 bg-[color:var(--lx-card)]/90 p-5 shadow-sm sm:gap-6 sm:p-6 md:grid-cols-2 md:gap-6 md:p-7 lg:grid-cols-3 lg:gap-8 lg:p-8"
           aria-label={lang === "es" ? "Por qué Leonix Restaurantes" : "Why search Leonix Restaurants"}

@@ -17,15 +17,13 @@ import {
 import { listServiciosPublicListingsRaw } from "../lib/serviciosPublicListingsServer";
 import { overlayActiveEntitlementsForServiciosResults } from "../lib/serviciosEntitlementOverlay";
 import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
+import { CategoryStandardPagination } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardPagination";
+import {
+  parseCatStdPage,
+  parseCatStdPerPage,
+} from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 
 export const dynamic = "force-dynamic";
-
-/** Same whisper image family as landing — stays behind content, low contrast */
-const RESULTS_ATMOSPHERE =
-  "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=2400&q=68";
-
-const contentShell =
-  "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] ring-1 ring-[#D4A574]/10 sm:rounded-3xl";
 
 export const metadata: Metadata = {
   title: "Servicios — Resultados · Leonix Clasificados",
@@ -67,8 +65,12 @@ type PageProps = {
     has_photos?: string;
     has_videos?: string;
     has_offers?: string;
+    page?: string;
+    perPage?: string;
   }>;
 };
+
+const SERVICIOS_RESULTS_PATH = "/clasificados/servicios/results";
 
 function parseSeller(raw: string | undefined): ServiciosResultsFilterQuery["seller"] {
   if (raw === "business" || raw === "independent") return raw;
@@ -144,22 +146,24 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
 
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
   const landingHref = `/clasificados/servicios?lang=${lang}`;
-  const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const perPage = parseCatStdPerPage(sp.perPage);
+  const pageCount = Math.max(1, Math.ceil(displayRows.length / perPage));
+  const currentPage = Math.min(parseCatStdPage(sp.page), pageCount);
+  const startIdx = (currentPage - 1) * perPage;
+  const pagedRows = displayRows.slice(startIdx, startIdx + perPage);
+  const paginationParams = new URLSearchParams();
+  paginationParams.set("lang", lang);
+  for (const [k, v] of Object.entries(sp)) {
+    if (v != null && v !== "" && k !== "page") paginationParams.set(k, v);
+  }
 
   return (
     <ServiciosResultsPageShell lang={lang} resultCount={displayRows.length}>
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
 
-        <div className="min-w-0 lg:grid lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] lg:items-start lg:gap-6 xl:gap-8">
-          <aside className="hidden lg:sticky lg:top-4 lg:block">
-            <ServiciosResultsFilters lang={lang} current={filterQuery} variant="desktop" />
-          </aside>
-
-          <div className="min-w-0">
-            <div className={`mt-0 min-w-0 p-4 sm:p-6 lg:mt-0 ${contentShell}`}>
-            <div className="lg:hidden">
-              <ServiciosResultsFilters lang={lang} current={filterQuery} variant="mobile" />
-            </div>
+        <div className="min-w-0">
+            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-4">
+            <ServiciosResultsFilters lang={lang} current={filterQuery} perPage={perPage} />
 
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
@@ -213,7 +217,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                   {hasActiveFilters ? (
                     <Link
-                      href={`/clasificados/servicios/resultados?lang=${lang}`}
+                      href={`${SERVICIOS_RESULTS_PATH}?lang=${lang}`}
                       className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#3B66AD]/30 bg-white px-5 text-sm font-bold text-[#3B66AD] shadow-sm transition hover:bg-[#3B66AD]/5"
                     >
                       {lang === "en" ? "Show all listings" : "Ver todos los anuncios"}
@@ -257,16 +261,22 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                   </h2>
                 ) : null}
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
-                  {displayRows.map((r) => (
+                  {pagedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
                       <ServiciosHorizontalResultCard row={r} lang={lang} />
                     </li>
                   ))}
                 </ul>
+                <CategoryStandardPagination
+                  lang={lang}
+                  basePath={SERVICIOS_RESULTS_PATH}
+                  searchParams={paginationParams}
+                  currentPage={currentPage}
+                  pageCount={pageCount}
+                />
               </section>
             ) : null}
             </div>
-          </div>
         </div>
     </ServiciosResultsPageShell>
   );

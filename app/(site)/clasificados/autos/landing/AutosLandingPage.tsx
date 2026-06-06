@@ -196,7 +196,7 @@ export function AutosLandingPage() {
         </div>
       </div>
 
-      <main className="flex w-full min-w-0 flex-col gap-7 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-4 sm:gap-9 sm:pt-6 md:gap-10 lg:gap-11 2xl:gap-12">
+      <main className="flex w-full min-w-0 flex-col gap-5 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-3 sm:gap-7 sm:pt-4 md:gap-8">
         <CategoryStandardLandingPage
           category="autos"
           lang={lang as Lang}

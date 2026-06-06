@@ -57,6 +57,11 @@
  */
 
 import type { RestauranteBusinessTypeKey } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import {
+  CAT_STD_DEFAULT_PER_PAGE,
+  catStdPerPageToParam,
+  parseCatStdPerPage,
+} from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 
 export const RESTAURANTES_RESULTADOS_PATH = "/clasificados/restaurantes/results" as const;
 
@@ -95,6 +100,7 @@ export const RESTAURANTES_DISCOVERY_URL_KEYS = [
   "hl",
   "saved",
   "page",
+  "perPage",
   "nbh",
   "rsv",
   "pre",
@@ -163,6 +169,7 @@ export type RestaurantesDiscoveryState = {
   /** Filter to ids saved locally (first-party; consent-gated read in UI). */
   saved: boolean;
   page: number;
+  perPage: number;
   /** Substring on `neighborhood` (URL `nbh`). */
   neighborhoodQuery: string;
   reservationsOnly: boolean;
@@ -207,6 +214,7 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     hl: "",
     saved: false,
     page: 1,
+    perPage: CAT_STD_DEFAULT_PER_PAGE,
     neighborhoodQuery: "",
     reservationsOnly: false,
     preorderOnly: false,
@@ -283,6 +291,7 @@ export function parseRestaurantesResultsSearchParams(
     hl: (sp.get("hl") ?? "").trim(),
     saved: flag("saved"),
     page: Math.max(1, parseInt(sp.get("page") ?? "1", 10) || 1),
+    perPage: parseCatStdPerPage(sp.get("perPage")),
     neighborhoodQuery: (sp.get("nbh") ?? "").trim(),
     reservationsOnly: flag("rsv"),
     preorderOnly: flag("pre"),
@@ -329,6 +338,7 @@ export function restaurantesDiscoveryStateToParams(
     hl: s.hl || undefined,
     saved: s.saved ? "1" : undefined,
     page: s.page > 1 ? String(s.page) : undefined,
+    perPage: catStdPerPageToParam(s.perPage),
     nbh: s.neighborhoodQuery.trim() || undefined,
     rsv: s.reservationsOnly ? "1" : undefined,
     pre: s.preorderOnly ? "1" : undefined,
