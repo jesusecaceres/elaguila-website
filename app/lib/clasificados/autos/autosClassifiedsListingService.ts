@@ -393,7 +393,52 @@ export async function activateAutosClassifiedsListing(listingId: string): Promis
   const dealerSummary = await canActivateDealerListing(row);
   if (row.lane === "negocios" && !dealerSummary.canAddActiveVehicle) return false;
   const now = new Date().toISOString();
-  return updateAutosListingStatus(listingId, "active", { published_at: now });
+  const ok = await updateAutosListingStatus(listingId, "active", { published_at: now });
+  if (!ok) return false;
+  if (row.lane === "negocios") {
+    await ensureNegociosInventoryGroupingOnActivate(listingId);
+  }
+  return true;
+}
+
+/**
+ * After a Negocios listing becomes active, write dealer inventory group fields on anchor (main) rows.
+ * Child inventory_vehicle rows keep parent/group from insert; never promoted to main.
+ */
+export async function ensureNegociosInventoryGroupingOnActivate(listingId: string): Promise<void> {
+  const live = await getAutosClassifiedsListingById(listingId);
+  if (!live || live.lane !== "negocios" || live.status !== "active") return;
+  if (live.inventory_role === "inventory_vehicle" || live.dealer_inventory_parent_listing_id?.trim()) return;
+  await promoteNegociosMainInventoryListing(listingId);
+}
+
+/**
+ * Promote an active Negocios anchor listing to inventory main with a stable group id.
+ * DB value `inventory_vehicle` = draft/API "additional" child role (see autosAdditionalInventoryDraft).
+ */
+export async function promoteNegociosMainInventoryListing(listingId: string): Promise<string | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const row = await getAutosClassifiedsListingById(listingId);
+  if (!row || row.lane !== "negocios") return null;
+  if (row.inventory_role === "inventory_vehicle" || row.dealer_inventory_parent_listing_id?.trim()) {
+    return getDealerInventoryGroupId(row);
+  }
+  const groupId = getDealerInventoryGroupId(row) ?? row.id;
+  const supabase = getAdminSupabase();
+  const { error } = await supabase
+    .from("autos_classifieds_listings")
+    .update({
+      dealer_inventory_group_id: groupId,
+      inventory_role: "main",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", row.id)
+    .eq("owner_user_id", row.owner_user_id);
+  if (error) {
+    console.error("promoteNegociosMainInventoryListing", error);
+    return null;
+  }
+  return groupId;
 }
 
 export type ActivateAutosAfterPaymentOpts = { stripePaymentIntentId?: string | null };
@@ -448,9 +493,19 @@ export async function tryActivateAutosListingAfterPayment(
     console.error("tryActivateAutosListingAfterPayment", error);
     return { ok: false, transitioned: false };
   }
-  if (data) return { ok: true, transitioned: true };
+  if (data) {
+    if (existing.lane === "negocios") {
+      await ensureNegociosInventoryGroupingOnActivate(listingId);
+    }
+    return { ok: true, transitioned: true };
+  }
   const again = await getAutosClassifiedsListingById(listingId);
-  if (again?.status === "active") return { ok: true, transitioned: false };
+  if (again?.status === "active") {
+    if (again.lane === "negocios") {
+      await ensureNegociosInventoryGroupingOnActivate(listingId);
+    }
+    return { ok: true, transitioned: false };
+  }
   return { ok: false, transitioned: false };
 }
 

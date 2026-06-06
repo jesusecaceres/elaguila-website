@@ -8,11 +8,11 @@ import {
   createAutosClassifiedsListingWithInventoryParent,
   getAutosClassifiedsListingById,
   getAutosDealerInventorySummaryForOwner,
+  promoteNegociosMainInventoryListing,
 } from "./autosClassifiedsListingService";
 import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { getDealerInventoryGroupId } from "./autosDealerInventoryPolicy";
-import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosSiteOrigin } from "./autosSiteOrigin";
@@ -31,31 +31,11 @@ export type AutosNegociosBundlePublishResult = {
   mainListingId: string;
   published: AutosBundlePublishedVehicle[];
   additionalSkipped: number;
-  error?: "not_found" | "unauthorized" | "dealer_active_limit_reached" | "activate_failed" | "child_create_failed";
+  error?: "not_found" | "unauthorized" | "dealer_active_limit_reached" | "activate_failed" | "child_create_failed" | "child_activate_failed";
 };
 
-/** Promote an active Negocios listing to inventory main with a stable group id. */
-export async function promoteNegociosMainInventoryListing(listingId: string): Promise<string | null> {
-  if (!isSupabaseAdminConfigured()) return null;
-  const row = await getAutosClassifiedsListingById(listingId);
-  if (!row || row.lane !== "negocios") return null;
-  const groupId = getDealerInventoryGroupId(row) ?? row.id;
-  const supabase = getAdminSupabase();
-  const { error } = await supabase
-    .from("autos_classifieds_listings")
-    .update({
-      dealer_inventory_group_id: groupId,
-      inventory_role: "main",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", row.id)
-    .eq("owner_user_id", row.owner_user_id);
-  if (error) {
-    console.error("promoteNegociosMainInventoryListing", error);
-    return null;
-  }
-  return groupId;
-}
+/** @deprecated import from autosClassifiedsListingService — re-export for existing callers */
+export { promoteNegociosMainInventoryListing } from "./autosClassifiedsListingService";
 
 function vehicleTitleFromDraft(draft: AutosAdditionalInventoryVehicleDraft): string {
   if (draft.vehicleTitle?.trim()) return draft.vehicleTitle.trim();
@@ -153,10 +133,26 @@ export async function publishNegociosBundleAdditionalVehicles(input: {
     }
 
     const childActivated = await activateAutosClassifiedsListing(childResult.row.id);
-    if (!childActivated) continue;
+    if (!childActivated) {
+      return {
+        ok: published.length > 1,
+        mainListingId: mainId,
+        published,
+        additionalSkipped: skipped + (children.length - (published.length - 1)),
+        error: "child_activate_failed",
+      };
+    }
 
     const childLive = await getAutosClassifiedsListingById(childResult.row.id);
-    if (!childLive || childLive.status !== "active") continue;
+    if (!childLive || childLive.status !== "active") {
+      return {
+        ok: published.length > 1,
+        mainListingId: mainId,
+        published,
+        additionalSkipped: skipped + (children.length - (published.length - 1)),
+        error: "child_activate_failed",
+      };
+    }
 
     published.push({
       id: childLive.id,
