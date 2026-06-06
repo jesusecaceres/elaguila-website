@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { listServiciosPublicListingsForDiscovery } from "./lib/serviciosPublicListingsServer";
 import { ServiciosLandingPage } from "./landing/ServiciosLandingPage";
 
@@ -22,14 +23,12 @@ export const metadata: Metadata = {
   },
 };
 
-type PageProps = {
-  searchParams?: Promise<{ lang?: string }>;
-};
-
-export default async function ClasificadosServiciosLandingPage(props: PageProps) {
-  const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+export default async function ClasificadosServiciosLandingPage() {
   /** Larger window so landing “Recientes” (newest-by-time strip) stays representative vs busy directories. */
   const liveRows = await listServiciosPublicListingsForDiscovery(200);
-  return <ServiciosLandingPage lang={lang} liveRows={liveRows} />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[color:var(--lx-page)]" aria-busy="true" />}>
+      <ServiciosLandingPage liveRows={liveRows} />
+    </Suspense>
+  );
 }

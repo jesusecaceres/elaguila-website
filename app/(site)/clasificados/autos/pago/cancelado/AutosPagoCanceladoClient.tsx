@@ -28,6 +28,7 @@ export function AutosPagoCanceladoClient() {
     sort: "newest",
     page: 1,
     lang,
+    routeLang: lang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
   const confirmHref = withLangParam(`/publicar/autos/${lane}/confirm`, lang);

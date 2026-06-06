@@ -505,6 +505,7 @@ export async function getActiveLiveAutosBundle(
         sort: "newest",
         page: 1,
         lang,
+        routeLang: lang,
       })}`;
     }
   }

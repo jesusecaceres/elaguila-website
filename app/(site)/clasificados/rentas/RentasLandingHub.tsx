@@ -70,9 +70,9 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
     const loc = splitLocationIntent(locationLine);
     if (loc.city) extra[RENTAS_QUERY_CITY] = loc.city;
     if (loc.zip) extra[RENTAS_QUERY_ZIP] = loc.zip;
-    extra.lang = lang;
+    extra.lang = routeLang;
     router.push(buildRentasResultsUrl(extra));
-  }, [beds, lang, locationLine, priceBand, propertyType, query, router]);
+  }, [beds, routeLang, locationLine, priceBand, propertyType, query, router]);
 
   const { mergedPool, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } = useRentasPublicBrowseInventory({
     initialLiveListings,
@@ -93,7 +93,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
   const supportingListing = useMemo(() => privadoRows[0] ?? null, [privadoRows]);
 
   const { chipsProperty, chipsSeller, chipsDetails } = useMemo(() => {
-    const b = (extra: Record<string, string>) => buildRentasResultsUrl({ ...extra, lang });
+    const b = (extra: Record<string, string>) => buildRentasResultsUrl({ ...extra, lang: routeLang });
     const qe = copy.quickExplore;
     return {
       chipsProperty: [
@@ -111,7 +111,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         { label: qe.chipRecs2, href: b({ [RENTAS_QUERY_RECS]: "2" }), Icon: FiHome },
       ],
     };
-  }, [copy.quickExplore, lang]);
+  }, [copy.quickExplore, routeLang]);
 
   const resultsBase = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, routeLang), [routeLang]);
 
@@ -237,7 +237,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         title={copy.sections.recientes.title}
         description={recientesDescription}
         action={
-          <Link href={buildRentasResultsUrl({ lang })} className={rentasSectionHeaderActionClass}>
+          <Link href={buildRentasResultsUrl({ lang: routeLang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.recientes.action}
           </Link>
         }
@@ -254,7 +254,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         title={copy.sections.negocios.title}
         description={copy.sections.negocios.description}
         action={
-          <Link href={buildRentasResultsUrl({ branch: "negocio", lang })} className={rentasSectionHeaderActionClass}>
+          <Link href={buildRentasResultsUrl({ branch: "negocio", lang: routeLang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.negocios.action}
           </Link>
         }
@@ -271,7 +271,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         title={copy.sections.privado.title}
         description={copy.sections.privado.description}
         action={
-          <Link href={buildRentasResultsUrl({ branch: "privado", lang })} className={rentasSectionHeaderActionClass}>
+          <Link href={buildRentasResultsUrl({ branch: "privado", lang: routeLang })} className={rentasSectionHeaderActionClass}>
             {copy.sections.privado.action}
           </Link>
         }

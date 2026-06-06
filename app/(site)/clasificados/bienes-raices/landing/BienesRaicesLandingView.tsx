@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import {
   BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY,
   BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
@@ -304,7 +304,8 @@ function ListingBand({
 
 export function BienesRaicesLandingView() {
   const searchParams = useSearchParams();
-  const lang = (searchParams?.get("lang") === "en" ? "en" : "es") as Lang;
+  const routeLang = normalizeLang(searchParams?.get("lang"));
+  const lang = navCopyLang(routeLang) as Lang;
   const copy = useMemo(() => getBrLandingCopy(lang), [lang]);
   const mergeDemo = useMemo(() => brShouldMergeDemoInventoryWithLive(), []);
   const [livePool, setLivePool] = useState<BrNegocioListing[]>([]);
@@ -342,8 +343,8 @@ export function BienesRaicesLandingView() {
   const bandsLoading = !liveReady && !mergeDemo;
 
   const withLang = useMemo(() => {
-    return (path: string) => appendLangToPath(path, lang);
-  }, [lang]);
+    return (path: string) => replaceLangInHref(path, routeLang);
+  }, [routeLang]);
 
   const mapCopy = useMemo(
     () => ({

@@ -223,6 +223,7 @@ export function AutosPublicResultsShell() {
     sort: applied.sort,
     page: 1,
     lang,
+    routeLang: applied.routeLang,
   })}`;
 
   return (

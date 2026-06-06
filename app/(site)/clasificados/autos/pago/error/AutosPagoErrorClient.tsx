@@ -26,6 +26,7 @@ export function AutosPagoErrorClient() {
     sort: "newest",
     page: 1,
     lang,
+    routeLang: lang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
   const confirmHref = listingId ? withLangParam(`/publicar/autos/${lane}/confirm`, lang) : null;

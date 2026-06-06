@@ -4,8 +4,12 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { appendRouteLangToPath, resolveHubCopyLang, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
-import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
+import {
+  buildCategoryResultsUrl,
+  categoryPublishPath,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 
 import { FeaturedJobsLandingSection } from "./components/landing/FeaturedJobsLandingSection";
 import { HeroAndSearch } from "./components/landing/HeroAndSearch";
@@ -30,15 +34,26 @@ export function EmpleosLandingPage({
   recentJobsByLang,
 }: EmpleosLandingPageProps) {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const routeLang = useMemo(() => resolveRouteLang(sp?.get("lang")), [sp]);
+  const lang = useMemo<Lang>(() => resolveHubCopyLang(sp?.get("lang")), [sp]);
   const recentOverride = recentJobsByLang?.[lang];
+  const resultsHref = useMemo(
+    () => buildCategoryResultsUrl("empleos", routeLang as Lang),
+    [routeLang],
+  );
+  const publishHref = useMemo(
+    () => appendRouteLangToPath(categoryPublishPath("empleos"), routeLang),
+    [routeLang],
+  );
 
   return (
     <>
       <CategoryStandardLandingPage
         category="empleos"
         lang={lang}
-        searchAction={buildCategoryResultsUrl("empleos", lang)}
+        publishHref={publishHref}
+        browseHref={resultsHref}
+        searchAction={resultsHref}
         searchSlot={<HeroAndSearch lang={lang} />}
       />
       <div className="mx-auto w-full max-w-6xl space-y-14 px-4 pb-24 sm:space-y-16 sm:px-6 lg:px-8 md:space-y-20">

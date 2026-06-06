@@ -44,14 +44,14 @@ export default function Page() {
   const t = COPY[lang];
   const chips = QUICK_CHIPS[lang];
 
-  const listaHref = useMemo(() => buildComunidadListaUrl("comunidad", lang), [lang]);
+  const listaHref = useMemo(() => buildComunidadListaUrl("comunidad", routeLang as Lang), [routeLang]);
   const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/comunidad", routeLang as Lang), [routeLang]);
   const hubHref = useMemo(() => appendLangToPath("/clasificados", routeLang as Lang), [routeLang]);
 
   const topicChips = (
     <CategoryLandingChipsRail label={t.quickTopics}>
       {chips.map((label) => (
-        <Link key={label} href={buildComunidadListaUrl("comunidad", lang, label)} className={CHIP_CLASS}>
+        <Link key={label} href={buildComunidadListaUrl("comunidad", routeLang as Lang, label)} className={CHIP_CLASS}>
           {label}
         </Link>
       ))}
@@ -65,7 +65,7 @@ export default function Page() {
       eyebrow={t.eyebrow}
       publishHref={postHref}
       browseHref={listaHref}
-      searchAction={buildCategoryResultsUrl("comunidad", lang)}
+      searchAction={buildCategoryResultsUrl("comunidad", routeLang as Lang)}
       publishLabel={t.ctaPost}
       browseLabel={t.ctaView}
       searchChips={topicChips}

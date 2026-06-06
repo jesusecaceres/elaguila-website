@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { replaceLangInHref } from "@/app/lib/language";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../lib/autosPublicBlueprintCopy";
@@ -38,7 +38,9 @@ const RESULTADOS_PATH = "/clasificados/autos/results";
 export function AutosLandingPage() {
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
-  const lang: AutosPublicLang = useMemo(() => parseAutosBrowseUrl(new URLSearchParams(spStr)).lang, [spStr]);
+  const browseState = useMemo(() => parseAutosBrowseUrl(new URLSearchParams(spStr)), [spStr]);
+  const lang: AutosPublicLang = browseState.lang;
+  const routeLang = browseState.routeLang;
   const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang];
 
   const [searchQ, setSearchQ] = useState("");
@@ -77,8 +79,9 @@ export function AutosLandingPage() {
         sort: "newest",
         page: 1,
         lang,
+        routeLang,
       }),
-    [lang, resultsHref],
+    [lang, routeLang, resultsHref],
   );
 
   const searchHref = useMemo(() => {
@@ -92,8 +95,9 @@ export function AutosLandingPage() {
       sort: "newest",
       page: 1,
       lang,
+      routeLang,
     });
-  }, [lang, searchQ, city, zip, resultsHref]);
+  }, [lang, routeLang, searchQ, city, zip, resultsHref]);
 
   const browseAllHref = useMemo(
     () =>
@@ -103,11 +107,12 @@ export function AutosLandingPage() {
         sort: "newest",
         page: 1,
         lang,
+        routeLang,
       }),
-    [lang, resultsHref],
+    [lang, routeLang, resultsHref],
   );
 
-  const publishAutosHref = appendLangToPath("/publicar/autos", lang as Lang);
+  const publishAutosHref = replaceLangInHref("/publicar/autos", routeLang);
 
   const quickChipItems = useMemo(() => {
     const c = copy;
@@ -160,12 +165,13 @@ export function AutosLandingPage() {
         sort: "newest",
         page: 1,
         lang,
+        routeLang,
       });
     },
-    [lang, resultsHref],
+    [lang, routeLang, resultsHref],
   );
 
-  const clasificadosHome = appendLangToPath("/clasificados", lang as Lang);
+  const clasificadosHome = replaceLangInHref("/clasificados", routeLang);
 
   return (
     <AutosLandingShell>

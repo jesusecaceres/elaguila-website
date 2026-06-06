@@ -91,6 +91,7 @@ export function AutosLiveVehicleClient({
     sort: "newest",
     page: 1,
     lang,
+    routeLang: lang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
 

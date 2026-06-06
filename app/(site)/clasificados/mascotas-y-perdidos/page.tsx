@@ -69,7 +69,7 @@ export default function MascotasPerdidosLandingPage() {
       eyebrow={t.eyebrow}
       publishHref={postHref}
       browseHref={resultsHref}
-      searchAction={buildCategoryResultsUrl("mascotas-y-perdidos", lang)}
+      searchAction={buildCategoryResultsUrl("mascotas-y-perdidos", routeLang as "es" | "en")}
       publishLabel={t.ctaPost}
       browseLabel={t.ctaView}
       searchChips={topicChips}

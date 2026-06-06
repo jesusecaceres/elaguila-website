@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { fetchRentasPublicListingsForBrowse } from "@/app/clasificados/rentas/lib/fetchRentasPublicListingsForBrowse";
 import { rentasPublicIncludeDemoPool } from "@/app/clasificados/rentas/lib/rentasPublicInventoryMode";
+import { navCopyLang, normalizeLang } from "@/app/lib/language";
 import { RentasLandingHub } from "./RentasLandingHub";
 
 export const metadata: Metadata = {
@@ -14,8 +15,8 @@ type Props = { searchParams?: Promise<{ lang?: string }> };
 
 export default async function RentasCategoryPage(props: Props) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
-  const initialLiveListings = await fetchRentasPublicListingsForBrowse(lang);
+  const copyLang = navCopyLang(normalizeLang(sp.lang));
+  const initialLiveListings = await fetchRentasPublicListingsForBrowse(copyLang);
   return (
     <RentasLandingHub initialLiveListings={initialLiveListings} includeDemoPool={rentasPublicIncludeDemoPool()} />
   );

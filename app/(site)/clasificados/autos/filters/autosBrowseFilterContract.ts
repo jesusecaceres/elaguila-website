@@ -9,6 +9,7 @@
  * - `radiusMiles` — reserved for geo radius once centroids/API exist.
  */
 
+import { navCopyLang, normalizeLang, type SupportedLang } from "@/app/lib/language";
 import type { AutosPublicFilterState, AutosPublicSortKey } from "./autosPublicFilterTypes";
 import { emptyAutosPublicFilters } from "./autosPublicFilterTypes";
 
@@ -74,7 +75,10 @@ export type AutosBrowseUrlBundle = {
   q: string;
   sort: AutosPublicSortKey;
   page: number;
+  /** Display copy lang (vi → en). */
   lang: "es" | "en";
+  /** Route lang preserved in URLs (es/en/vi). */
+  routeLang: SupportedLang;
 };
 
 /** Read full browse state from URL (results + landing seeds). */
@@ -105,12 +109,13 @@ export function parseAutosBrowseUrl(sp: URLSearchParams): AutosBrowseUrlBundle {
   filters.hasPhotos = sp.get(K.hasPhotos) === "yes" ? "yes" : "";
   filters.hasVideo = sp.get(K.hasVideo) === "yes" ? "yes" : "";
 
-  const lang = sp.get(K.lang) === "en" ? "en" : "es";
+  const routeLang = normalizeLang(sp.get(K.lang));
+  const lang = navCopyLang(routeLang);
   const q = sp.get(K.q) ?? "";
   const sort = parseSort(sp.get(K.sort));
   const page = parsePage(sp.get(K.page));
 
-  return { filters, q, sort, page, lang };
+  return { filters, q, sort, page, lang, routeLang };
 }
 
 function setIfNonEmpty(params: URLSearchParams, key: string, value: string | undefined | null) {
@@ -121,7 +126,7 @@ function setIfNonEmpty(params: URLSearchParams, key: string, value: string | und
 /** Serialize browse state for `/clasificados/autos/resultados` (and landing handoff). */
 export function serializeAutosBrowseUrl(bundle: AutosBrowseUrlBundle): string {
   const params = new URLSearchParams();
-  params.set(K.lang, bundle.lang);
+  params.set(K.lang, bundle.routeLang);
   setIfNonEmpty(params, K.q, bundle.q);
   setIfNonEmpty(params, K.city, bundle.filters.city);
   setIfNonEmpty(params, K.zip, bundle.filters.zip);
