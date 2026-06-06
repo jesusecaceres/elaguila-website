@@ -29,6 +29,8 @@ export const EV_RESULTS_PARAM = {
   sort: "sort",
   view: "view",
   page: "page",
+  /** Results per page (12 | 24 | 48; default 12 when absent). */
+  perPage: "perPage",
   /** Pro-featured placements only (active post-republish visibility window from `republished_at`). */
   featured: "featured",
 } as const;

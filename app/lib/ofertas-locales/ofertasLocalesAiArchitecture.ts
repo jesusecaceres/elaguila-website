@@ -10,21 +10,20 @@ import {
   OFERTAS_LOCALES_GOOGLE_MAPS_ROUTE_V1_NOTE,
   OFERTAS_LOCALES_SHOPPING_ROUTE_MAX_STOPS,
 } from "./ofertasLocalesConstants";
-import { isOfertaLocalActiveByDates } from "./ofertasLocalesFormatting";
 import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import {
+  canOfertaLocalItemBePubliclyEligible,
+  toOfertaLocalItemPublicEligibilityInput,
+} from "./ofertasLocalesAiDbMapper";
 import type {
+  OfertaLocalItemPublicEligibilityInput,
   OfertaLocalPublishStatus,
   OfertaLocalScanJobRecordDraft,
   OfertaLocalSearchableItemDraft,
   OfertaLocalShoppingRouteStopDraft,
 } from "./ofertasLocalesTypes";
 
-export type OfertaLocalItemPublicEligibilityInput = Pick<
-  OfertaLocalSearchableItemDraft,
-  "reviewStatus" | "isActive" | "validFrom" | "validUntil"
-> & {
-  parentOfferStatus?: OfertaLocalPublishStatus | "";
-};
+export type { OfertaLocalItemPublicEligibilityInput };
 
 /** Pipeline steps for docs/UI — no side effects. */
 export function getOfertaLocalAiPipelineSteps(): readonly string[] {
@@ -52,21 +51,18 @@ export function getOfertaLocalGoogleMapsRouteV1Note(): string {
  * Parent offer must be approved; valid dates must be active when provided.
  */
 export function canOfertaLocalItemGoPublic(
-  item: OfertaLocalItemPublicEligibilityInput,
+  item: Pick<OfertaLocalSearchableItemDraft, "reviewStatus" | "isActive" | "validFrom" | "validUntil"> & {
+    parentOfferStatus?: OfertaLocalPublishStatus | "";
+  },
   parentStatus: OfertaLocalPublishStatus | "" = item.parentOfferStatus ?? ""
 ): boolean {
-  if (item.reviewStatus !== "approved") return false;
-  if (item.isActive === false) return false;
-  if (parentStatus !== "approved") return false;
-
-  const from = item.validFrom?.trim() ?? "";
-  const until = item.validUntil?.trim() ?? "";
-  if (from && until) {
-    return isOfertaLocalActiveByDates(from, until);
-  }
-
-  return true;
+  return canOfertaLocalItemBePubliclyEligible(
+    toOfertaLocalItemPublicEligibilityInput(item, parentStatus),
+    parentStatus
+  );
 }
+
+export { canOfertaLocalItemBePubliclyEligible };
 
 /** Stable key for grouping route stops / shopping list by store. */
 export function getOfertaLocalRouteStopKey(stop: OfertaLocalShoppingRouteStopDraft): string {
@@ -118,6 +114,7 @@ export function createEmptyOfertaLocalScanJobRecordDraft(): OfertaLocalScanJobRe
     ownerId: "",
     sourceAssetId: "",
     sourceAssetType: "",
+    sourceAssetUrl: "",
     provider: "google_document_ai",
     normalizerProvider: "leonix_normalizer",
     status: "idle",

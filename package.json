@@ -187,6 +187,7 @@
     "ofertas-locales:stack-9a-wizard-ux-audit": "tsx scripts/ofertas-locales-stack-9a-wizard-ux-audit.ts",
     "ofertas-locales:stack-9b-product-architecture-audit": "tsx scripts/ofertas-locales-stack-9b-product-architecture-audit.ts",
     "ofertas-locales:stack-10-ai-item-architecture-audit": "tsx scripts/ofertas-locales-stack-10-ai-item-architecture-audit.ts",
+    "ofertas-locales:stack-11-ai-sql-foundation-audit": "tsx scripts/ofertas-locales-stack-11-ai-sql-foundation-audit.ts",
     "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest:logic",
     "verify:restaurantes:launch:full": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:manual-qa-seed": "npx tsx scripts/servicios-manual-qa-catalog-seed.ts",

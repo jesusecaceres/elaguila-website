@@ -13,7 +13,6 @@ import type { EnVentaPublicBrowseListing } from "@/app/lib/clasificados/en-venta
 import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
 import { DEFAULT_CITY } from "@/app/data/locations/norcal";
 import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
-import { CategoryStandardQuickFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardQuickFilterChips";
 import {
   categoryStandardSearchPlaceholder,
   categoryStandardTitle,
@@ -154,55 +153,110 @@ export function EnVentaHubPageClient({
   const chipFeaturedCls =
     "inline-flex min-h-[44px] max-w-full items-center gap-1.5 justify-center text-balance rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3 py-2 text-center text-[12px] font-semibold leading-tight text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
 
+  const landingQuickChips: Array<{ key: string; label: string; href: string }> = [
+    {
+      key: "electronicos",
+      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "electronicos")!.label[lang],
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "electronicos" }),
+    },
+    {
+      key: "hogar",
+      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "hogar")!.label[lang],
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "hogar" }),
+    },
+    {
+      key: "muebles",
+      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "muebles")!.label[lang],
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "muebles" }),
+    },
+    {
+      key: "free",
+      label: lang === "es" ? "Gratis / regalo" : "Free / gift",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { free: "1" }),
+    },
+    {
+      key: "pickup",
+      label: lang === "es" ? "Recogida" : "Pickup",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { pickup: "1" }),
+    },
+    {
+      key: "ship",
+      label: lang === "es" ? "Envío" : "Shipping",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { ship: "1" }),
+    },
+  ];
+
   const enVentaSearchForm = (
-    <form className="w-full min-w-0 text-left" action="/clasificados/en-venta/results" method="get" role="search">
-      <input type="hidden" name="lang" value={routeLang} />
-      <div
-        className={cx(
-          "flex flex-col gap-0 overflow-hidden rounded-xl border border-[#D6C7AD] bg-white shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)]",
-          "lg:flex-row lg:items-stretch",
-        )}
-      >
-        <label className="flex min-h-[2.75rem] min-w-0 flex-1 items-center gap-2 px-3">
-          <span className="shrink-0 text-[#556B3E]" aria-hidden>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20l-3-3" strokeLinecap="round" />
-            </svg>
-          </span>
-          <input
-            name="q"
-            type="search"
-            autoComplete="off"
-            placeholder={categoryStandardSearchPlaceholder("en-venta", lang)}
-            className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
-          />
-        </label>
-        <label className="flex min-h-[2.75rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 lg:w-44 lg:border-l lg:border-t-0">
-          <select
-            name="city"
-            defaultValue=""
-            aria-label={t.cityPh}
-            className="w-full cursor-pointer rounded-lg border border-[#D6C7AD] bg-white px-2 py-2 text-sm"
-          >
-            <option value="">{t.cityPh}</option>
-            {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="border-t border-[#D6C7AD] p-2 lg:border-l lg:border-t-0">
-          <button
-            type="submit"
-            className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] lg:min-w-[7.5rem]"
-          >
-            {t.search}
-          </button>
+    <div className="w-full min-w-0 space-y-2 text-left">
+      <form action="/clasificados/en-venta/results" method="get" role="search">
+        <input type="hidden" name="lang" value={routeLang} />
+        <div
+          className={cx(
+            "flex flex-col gap-0 overflow-hidden rounded-xl border border-[#D6C7AD] bg-white shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)]",
+            "sm:grid sm:grid-cols-12 sm:items-stretch",
+          )}
+        >
+          <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 px-3 sm:col-span-5">
+            <span className="shrink-0 text-[#556B3E]" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3-3" strokeLinecap="round" />
+              </svg>
+            </span>
+            <input
+              name="q"
+              type="search"
+              autoComplete="off"
+              placeholder={categoryStandardSearchPlaceholder("en-venta", lang)}
+              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
+            />
+          </label>
+          <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:border-l sm:border-t-0">
+            <select
+              name="city"
+              defaultValue=""
+              aria-label={t.cityPh}
+              className="w-full cursor-pointer rounded-lg border border-[#D6C7AD] bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">{t.cityPh}</option>
+              {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:border-l sm:border-t-0">
+            <span className="text-[#4A6678]" aria-hidden>
+              #
+            </span>
+            <input
+              name="zip"
+              type="text"
+              inputMode="numeric"
+              maxLength={5}
+              placeholder={lang === "es" ? "CP / ZIP" : "ZIP"}
+              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
+            />
+          </label>
+          <div className="border-t border-[#D6C7AD] p-1.5 sm:col-span-2 sm:border-l sm:border-t-0">
+            <button
+              type="submit"
+              className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
+            >
+              {t.search}
+            </button>
+          </div>
         </div>
+      </form>
+      <div className="flex flex-wrap gap-1.5" aria-label={lang === "es" ? "Búsquedas rápidas" : "Quick searches"}>
+        {landingQuickChips.map((chip) => (
+          <Link key={chip.key} href={chip.href} className={chipNeutral}>
+            {chip.label}
+          </Link>
+        ))}
       </div>
-    </form>
+    </div>
   );
 
   return (
@@ -215,7 +269,7 @@ export function EnVentaHubPageClient({
         aria-hidden
       />
 
-      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pb-24 sm:pt-9 md:px-6 lg:px-10 lg:pt-10 xl:px-14">
+      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-20 sm:pt-5 md:px-6 lg:px-10 lg:pt-6 xl:px-14">
         <CategoryStandardLandingBlock
           category="en-venta"
           lang={lang}
@@ -228,16 +282,15 @@ export function EnVentaHubPageClient({
           browseHref={allListingsHref}
           publishLabel={t.publish}
           browseLabel={t.lista}
-          searchChips={<CategoryStandardQuickFilterChips category="en-venta" lang={lang} />}
           searchSlot={enVentaSearchForm}
         />
 
         {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
         <section
-          className="mt-8 sm:mt-10"
+          className="mt-5 sm:mt-6"
           aria-label={lang === "es" ? `Cómo explorar ${enVentaPublicLabel("es")}` : `How to explore ${enVentaPublicLabel("en")}`}
         >
-          <div className="rounded-[22px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-4 shadow-[0_8px_32px_-14px_rgba(47,74,101,0.12)] sm:px-6 sm:py-5">
+          <div className="rounded-[20px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-3 shadow-[0_6px_24px_-14px_rgba(47,74,101,0.12)] sm:px-5 sm:py-4">
             <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -255,7 +308,7 @@ export function EnVentaHubPageClient({
             </div>
           </div>
 
-          <h3 className="mb-2.5 mt-6 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5C5346] sm:mb-3 sm:mt-7 sm:tracking-[0.16em]">
+          <h3 className="mb-2 mt-4 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5C5346] sm:mb-2.5 sm:mt-5 sm:tracking-[0.16em]">
             {t.browseSectionLabel}
           </h3>
           <div className="flex w-full min-w-0 flex-wrap justify-center gap-2 px-0.5 sm:gap-2.5">
@@ -294,11 +347,11 @@ export function EnVentaHubPageClient({
         />
 
         {/* Categories */}
-        <section className="mt-11 sm:mt-16">
-          <h2 className="text-center font-serif text-[1.35rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
+        <section className="mt-7 sm:mt-10">
+          <h2 className="text-center font-serif text-[1.25rem] font-bold tracking-tight text-[#1E1810] sm:text-2xl">
             {t.categoriesTitle}
           </h2>
-          <div className="mt-7 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:mt-10 sm:gap-4 lg:gap-5 xl:grid-cols-4">
+          <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:mt-7 sm:gap-4 lg:gap-5 xl:grid-cols-4">
             {EN_VENTA_DEPARTMENTS.map((d) => {
               const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
               const title = d.label[lang];
@@ -336,8 +389,8 @@ export function EnVentaHubPageClient({
         </section>
 
         {/* Trust */}
-        <section className="mt-11 sm:mt-16">
-          <div className="rounded-[24px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-7 shadow-[0_14px_44px_-18px_rgba(42,36,22,0.14)] sm:px-8 sm:py-8">
+        <section className="mt-7 sm:mt-10">
+          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-5 shadow-[0_10px_36px_-16px_rgba(42,36,22,0.14)] sm:px-6 sm:py-6">
             <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 md:gap-8">
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
                 <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/50 text-[#B8891A]">
@@ -365,7 +418,7 @@ export function EnVentaHubPageClient({
         </section>
 
         {/* Bottom sell CTA */}
-        <section className="mt-10 sm:mt-14">
+        <section className="mt-7 sm:mt-10">
           <div className="flex flex-col items-start justify-between gap-5 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-5 py-7 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
             <div className="min-w-0 max-w-xl flex-1">
               <h2 className="font-serif text-[1.15rem] font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>

@@ -8,7 +8,6 @@
  *   `coalesce(republished_at, published_at, created_at)` (via `republish_sort_at` when selected).
  *   Pro “featured” rail (up to `PROMO_CAP` rows) uses staff/`Leonix:promoted` placement, not republish ordering.
  */
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -44,6 +43,11 @@ import {
   featuredOnlyBanner,
 } from "./utils/enVentaResultsSummary";
 import { buildEnVentaListingDetailHrefFromResults } from "./utils/enVentaListingLinks";
+import {
+  EN_VENTA_PER_PAGE_OPTIONS,
+  enVentaPerPageToParam,
+  parseEnVentaPerPage,
+} from "./utils/enVentaPerPage";
 import { enVentaQueryMatchesListing } from "./utils/buildEnVentaSearchText";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility";
@@ -52,7 +56,6 @@ import { queryEnVentaBrowseListings } from "../lib/enVentaListingPublicSelect";
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
 
-const PAGE_SIZE = 24;
 const PROMO_CAP = 2;
 const VIEW_PREF_KEY = "en-venta-results-view";
 
@@ -114,40 +117,32 @@ export function EnVentaResultsClient() {
   const sort = (sp?.get("sort") ?? "newest") as SortId;
   const view = sp?.get("view") === "list" ? "list" : "grid";
   const page = Math.max(1, Number(sp?.get("page") ?? "1") || 1);
+  const perPage = parseEnVentaPerPage(sp?.get(EV_RESULTS_PARAM.perPage));
 
   const [rows, setRows] = useState<RowPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [, setFavTick] = useState(0);
   const [geoHint, setGeoHint] = useState<string | null>(null);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
 
   useEffect(() => {
-    if (!mobileFiltersOpen) return;
+    if (!filtersPanelOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [mobileFiltersOpen]);
+  }, [filtersPanelOpen]);
 
   useEffect(() => {
-    if (!mobileFiltersOpen) return;
+    if (!filtersPanelOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileFiltersOpen(false);
+      if (e.key === "Escape") setFiltersPanelOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mobileFiltersOpen]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const onChange = () => {
-      if (mq.matches) setMobileFiltersOpen(false);
-    };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
+  }, [filtersPanelOpen]);
 
   useEffect(() => {
     return onSavedListingsChange(() => setFavTick((t) => t + 1));
@@ -276,10 +271,10 @@ export function EnVentaResultsClient() {
 
   const total = filtered.length;
   const totalRest = restFiltered.length;
-  const pageCount = Math.max(1, Math.ceil(totalRest / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(totalRest / perPage));
   const safePage = Math.min(page, pageCount);
-  const startIdx = (safePage - 1) * PAGE_SIZE;
-  const standardSlice = restFiltered.slice(startIdx, startIdx + PAGE_SIZE);
+  const startIdx = (safePage - 1) * perPage;
+  const standardSlice = restFiltered.slice(startIdx, startIdx + perPage);
 
   const t = {
     es: {
@@ -335,6 +330,8 @@ export function EnVentaResultsClient() {
       viewLabel: "Vista",
       standardEngineLine:
         "Listado principal: respeta tus filtros y la página; no repite los recién refrescados de arriba.",
+      perPage: "Mostrar",
+      perPageSuffix: "por página",
     },
     en: {
       title: enVentaPublicLabel("en"),
@@ -388,6 +385,8 @@ export function EnVentaResultsClient() {
       viewLabel: "View",
       standardEngineLine:
         "Main feed: honors your filters and page; recently refreshed listings above are not duplicated here.",
+      perPage: "Show",
+      perPageSuffix: "per page",
     },
   }[lang];
 
@@ -414,6 +413,7 @@ export function EnVentaResultsClient() {
         sort,
         view,
         page: String(safePage),
+        perPage: enVentaPerPageToParam(perPage),
         featured: featuredOnly ? "1" : undefined,
         ...next,
       };
@@ -444,6 +444,7 @@ export function EnVentaResultsClient() {
       sort,
       view,
       safePage,
+      perPage,
     ]
   );
 
@@ -462,8 +463,9 @@ export function EnVentaResultsClient() {
       q: String(fd.get("q") ?? "").trim() || undefined,
       city: String(fd.get("city") ?? "").trim() || undefined,
       zip: String(fd.get("zip") ?? "").trim() || undefined,
-      sort: String(fd.get("sort") ?? "newest"),
+      sort,
       view: String(fd.get("view") ?? view),
+      perPage: enVentaPerPageToParam(perPage),
       evDept: String(fd.get("evDept") ?? "").trim() || undefined,
       evSub: String(fd.get("evSub") ?? "").trim() || undefined,
       cond: String(fd.get("cond") ?? "").trim() || undefined,
@@ -493,6 +495,20 @@ export function EnVentaResultsClient() {
         /* ignore */
       }
       pushParams({ view: v, page: "1" });
+    },
+    [pushParams]
+  );
+
+  const applySort = useCallback(
+    (nextSort: SortId) => {
+      pushParams({ sort: nextSort, page: "1" });
+    },
+    [pushParams]
+  );
+
+  const applyPerPage = useCallback(
+    (nextPerPage: number) => {
+      pushParams({ perPage: enVentaPerPageToParam(nextPerPage), page: "1" });
     },
     [pushParams]
   );
@@ -642,22 +658,27 @@ export function EnVentaResultsClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-4 pb-20 pt-20 sm:px-6 lg:px-8">
-        <header className="space-y-2 border-b border-[#D6C7AD]/50 pb-4">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-4 pb-16 pt-16 sm:px-6 lg:px-8">
+        <header className="space-y-1 border-b border-[#D6C7AD]/50 pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
-            className="inline-flex text-sm font-semibold text-[#556B3E] hover:text-[#7A1E2C]"
+            className="inline-flex text-xs font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
           >
             {lang === "es" ? `← ${enVentaPublicLabel("es")}` : `← ${enVentaPublicLabel("en")}`}
           </Link>
-          <h1 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">{t.title}</h1>
-          <p className="text-sm font-semibold text-[#556B3E]">{loading ? t.loading : countLine}</p>
-          {searchSummaryLine ? <p className="text-sm text-[#3D3428]/85">{searchSummaryLine}</p> : null}
-          {locationSummaryLine ? <p className="text-sm text-[#3D3428]/85">{locationSummaryLine}</p> : null}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{t.title}</h1>
+            <p className="text-xs font-semibold text-[#556B3E] sm:text-sm">{loading ? t.loading : countLine}</p>
+          </div>
+          {searchSummaryLine || locationSummaryLine ? (
+            <p className="text-xs text-[#3D3428]/85 sm:text-sm">
+              {[searchSummaryLine, locationSummaryLine].filter(Boolean).join(" · ")}
+            </p>
+          ) : null}
         </header>
 
         {activeChips.length > 0 ? (
-          <div className="mt-6 w-full sm:mt-8">
+          <div className="mt-2 w-full">
             <EnVentaResultsChipsRow
               label={t.activeFilters}
               clearLabel={t.clearAll}
@@ -670,286 +691,292 @@ export function EnVentaResultsClient() {
         <form
           id="ev-results-form"
           onSubmit={onSubmitSearch}
-          className="mt-4 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_6px_24px_-16px_rgba(31,36,28,0.12)] sm:mt-5 sm:p-5"
+          className="mt-3 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)]"
         >
           <input type="hidden" name="lang" value={lang} />
+          <input type="hidden" name="view" value={view} readOnly />
 
-          <div className="rounded-2xl border border-[#E8DFD0]/80 bg-gradient-to-br from-white/90 to-[#FAF7F2]/80 p-4 sm:p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupSearchLoc}</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#5C5346]/90">{t.cityZipHelp}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
-              <label className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 sm:col-span-2 lg:col-span-5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.searchPh}</span>
-                <span className="mt-1 flex items-center gap-2">
-                  <span className="text-[#5C5346]" aria-hidden>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="7" />
-                      <path d="M20 20l-3-3" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  <input
-                    name="q"
-                    defaultValue={q}
-                    placeholder={t.searchPh}
-                    className="min-w-0 flex-1 bg-transparent py-1 text-sm text-[#1E1810] outline-none"
-                  />
-                </span>
-              </label>
-              <label className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 lg:col-span-4">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.cityPh}</span>
-                <span className="mt-1 flex items-center gap-2">
-                  <span aria-hidden>📍</span>
-                  <input
-                    name="city"
-                    defaultValue={city}
-                    placeholder={t.cityPh}
-                    className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
-                  />
-                </span>
-              </label>
-              <label className="flex min-h-[2.75rem] min-w-0 flex-col justify-center rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 lg:col-span-3">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.zip}</span>
-                <span className="mt-1 flex items-center gap-2">
-                  <span className="text-[#4A6678]" aria-hidden>
-                    #
-                  </span>
-                  <input
-                    name="zip"
-                    defaultValue={zip}
-                    placeholder={t.zip}
-                    inputMode="numeric"
-                    maxLength={5}
-                    className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none"
-                  />
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-[#E8DFD0]/80 bg-white/70 p-4 sm:p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupSortView}</p>
-            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:gap-4">
-              <label className="min-w-0 lg:min-w-[200px]">
-                <span className="sr-only">{t.sort}</span>
-                <select
-                  name="sort"
-                  defaultValue={sort}
-                  className="min-h-[48px] w-full rounded-2xl border border-[#E8DFD0] bg-white px-4 py-2.5 text-sm font-medium text-[#2C2416] shadow-sm"
-                >
-                  {EN_VENTA_SORT_OPTIONS.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label[lang]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.viewLabel}</span>
-                <div className="flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-1">
-                  <button
-                    type="button"
-                    onClick={() => applyViewPreference("grid")}
-                    className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "grid" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
-                  >
-                    {t.grid}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyViewPreference("list")}
-                    className={`rounded-full px-3 py-2 text-xs font-semibold ${view === "list" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
-                  >
-                    {t.list}
-                  </button>
-                </div>
-              </div>
-              <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/90 to-[#F5F8FB]/80 px-4 py-2.5 text-sm font-semibold text-[#2F4A65]">
-                <input type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="rounded border-[#C9B46A]" />
-                <span>{t.featuredMode}</span>
-              </label>
-              <input type="hidden" name="view" value={view} readOnly />
-              <button
-                type="submit"
-                className="min-h-[48px] flex-1 rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-8 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md lg:flex-initial"
-              >
-                {t.go}
-              </button>
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="min-h-[48px] rounded-full border border-[#E8DFD0] bg-white px-5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {t.clearAll}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-3 border-t border-[#E8DFD0]/70 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={onUseMyLocation}
-                className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-4 py-2.5 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
-              >
-                {t.useLocation}
-              </button>
-              {geoHint ? <span className="text-xs text-[#8B4513]">{geoHint}</span> : null}
-            </div>
+          <div className="grid gap-2 sm:grid-cols-12 sm:items-stretch">
+            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 rounded-lg border border-[#D6C7AD] bg-white px-3 sm:col-span-5">
+              <span className="shrink-0 text-[#5C5346]" aria-hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3-3" strokeLinecap="round" />
+                </svg>
+              </span>
+              <input
+                name="q"
+                defaultValue={q}
+                placeholder={t.searchPh}
+                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[#1E1810] outline-none"
+              />
+            </label>
+            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 rounded-lg border border-[#D6C7AD] bg-white px-3 sm:col-span-3">
+              <span aria-hidden>📍</span>
+              <input
+                name="city"
+                defaultValue={city}
+                placeholder={t.cityPh}
+                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
+              />
+            </label>
+            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 rounded-lg border border-[#D6C7AD] bg-white px-3 sm:col-span-2">
+              <span className="text-[#4A6678]" aria-hidden>
+                #
+              </span>
+              <input
+                name="zip"
+                defaultValue={zip}
+                placeholder={t.zip}
+                inputMode="numeric"
+                maxLength={5}
+                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
+              />
+            </label>
             <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(true)}
-              className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-4 py-2.5 text-xs font-semibold text-[#2C2416] shadow-sm lg:hidden"
+              type="submit"
+              className="min-h-[2.5rem] rounded-lg bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-4 text-sm font-semibold text-[#1E1810] shadow-sm sm:col-span-2"
             >
-              {t.filtersOpen}
+              {t.go}
             </button>
           </div>
+        </form>
 
-          {mobileFiltersOpen ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFiltersPanelOpen(true)}
+            className="rounded-full border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416] shadow-sm"
+          >
+            {t.filtersOpen}
+          </button>
+          <label className="inline-flex min-w-0 items-center gap-1.5">
+            <span className="sr-only">{t.sort}</span>
+            <select
+              value={sort}
+              onChange={(e) => applySort(e.target.value as SortId)}
+              className="min-h-[36px] max-w-[11rem] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416]"
+              aria-label={t.sort}
+            >
+              {EN_VENTA_SORT_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label[lang]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="inline-flex min-w-0 items-center gap-1.5">
+            <span className="hidden text-[10px] font-semibold uppercase tracking-wide text-[#7A7164] sm:inline">{t.perPage}</span>
+            <select
+              value={perPage}
+              onChange={(e) => applyPerPage(Number(e.target.value))}
+              className="min-h-[36px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416]"
+              aria-label={`${t.perPage} ${t.perPageSuffix}`}
+            >
+              {EN_VENTA_PER_PAGE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-0.5">
             <button
               type="button"
-              className="fixed inset-0 z-[60] bg-black/35 lg:hidden"
-              aria-label={t.close}
-              onClick={() => setMobileFiltersOpen(false)}
-            />
-          ) : null}
+              onClick={() => applyViewPreference("grid")}
+              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${view === "grid" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
+            >
+              {t.grid}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyViewPreference("list")}
+              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${view === "list" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
+            >
+              {t.list}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="rounded-full border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+          >
+            {t.clearAll}
+          </button>
+        </div>
 
+        {filtersPanelOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-[60] bg-black/35"
+            aria-label={t.close}
+            onClick={() => setFiltersPanelOpen(false)}
+          />
+        ) : null}
+
+        {filtersPanelOpen ? (
           <div
             className={
-              "relative z-[61] mt-4 space-y-4 max-lg:flex max-lg:min-h-0 max-lg:flex-col " +
-              (mobileFiltersOpen
-                ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:top-[6vh] max-lg:overflow-hidden max-lg:rounded-t-[28px] max-lg:border max-lg:border-[#E8DFD0] max-lg:bg-[#FFFCF7] max-lg:shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] "
-                : "max-lg:hidden ") +
-              "lg:block"
+              "fixed z-[61] flex flex-col overflow-hidden border border-[#E8DFD0] bg-[#FFFCF7] shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] " +
+              "inset-x-0 bottom-0 top-[8vh] rounded-t-[24px] max-lg:top-[6vh] " +
+              "lg:inset-x-auto lg:left-1/2 lg:top-[12vh] lg:max-h-[min(80vh,720px)] lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-2xl"
             }
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.filters}
           >
-            <div className="flex items-center justify-between border-b border-[#E8DFD0]/80 pb-3 lg:hidden">
+            <div className="flex items-center justify-between border-b border-[#E8DFD0]/80 px-4 py-3">
               <span className="text-sm font-bold text-[#2C2416]">{t.filters}</span>
               <button
                 type="button"
-                onClick={() => setMobileFiltersOpen(false)}
+                onClick={() => setFiltersPanelOpen(false)}
                 className="text-sm font-semibold text-[#2F4A65] underline underline-offset-2"
               >
                 {t.close}
               </button>
             </div>
-            <div className="max-lg:min-h-0 max-lg:flex-1 max-lg:overflow-y-auto max-lg:overscroll-contain lg:overflow-visible">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupRefine}</p>
-              <p className="mt-1 text-sm font-medium text-[#3D3428]">{t.refineIntro}</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              {t.dept}
-              <select
-                name="evDept"
-                defaultValue={evDept}
-                className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-              >
-                <option value="">{t.all}</option>
-                {deptOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              {t.sub}
-              <select
-                name="evSub"
-                defaultValue={evSub}
-                className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-              >
-                <option value="">{t.all}</option>
-                {subOptions.map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.label[lang]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              {lang === "es" ? "Condición" : "Condition"}
-              <select name="cond" defaultValue={cond} className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
-                <option value="">{t.all}</option>
-                {condOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              {t.seller}
-              <select name="seller" defaultValue={seller} className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
-                <option value="">{t.all}</option>
-                <option value="individual">{t.ind}</option>
-                <option value="business">{t.biz}</option>
-              </select>
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              {t.priceMin}
-              <input
-                name="priceMin"
-                defaultValue={priceMin}
-                inputMode="numeric"
-                className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-              {t.priceMax}
-              <input
-                name="priceMax"
-                defaultValue={priceMax}
-                inputMode="numeric"
-                className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
+              <p className="mt-1 text-xs text-[#3D3428]">{t.refineIntro}</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
+                  {t.dept}
+                  <select
+                    form="ev-results-form"
+                    name="evDept"
+                    defaultValue={evDept}
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">{t.all}</option>
+                    {deptOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
+                  {t.sub}
+                  <select
+                    form="ev-results-form"
+                    name="evSub"
+                    defaultValue={evSub}
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">{t.all}</option>
+                    {subOptions.map((o) => (
+                      <option key={o.key} value={o.key}>
+                        {o.label[lang]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
+                  {lang === "es" ? "Condición" : "Condition"}
+                  <select
+                    form="ev-results-form"
+                    name="cond"
+                    defaultValue={cond}
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">{t.all}</option>
+                    {condOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
+                  {t.seller}
+                  <select
+                    form="ev-results-form"
+                    name="seller"
+                    defaultValue={seller}
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">{t.all}</option>
+                    <option value="individual">{t.ind}</option>
+                    <option value="business">{t.biz}</option>
+                  </select>
+                </label>
+                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
+                  {t.priceMin}
+                  <input
+                    form="ev-results-form"
+                    name="priceMin"
+                    defaultValue={priceMin}
+                    inputMode="numeric"
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
+                  {t.priceMax}
+                  <input
+                    form="ev-results-form"
+                    name="priceMax"
+                    defaultValue={priceMax}
+                    inputMode="numeric"
+                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+                  />
+                </label>
+              </div>
 
-          <div className="mt-4 flex flex-wrap gap-4 border-t border-[#E8DFD0]/80 pt-4 text-sm text-[#3D3428]">
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" name="pickup" defaultChecked={pickup} className="rounded border-[#C9B46A]" />
-              {lang === "es" ? "Recogida" : "Pickup"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" name="ship" defaultChecked={ship} className="rounded border-[#C9B46A]" />
-              {lang === "es" ? "Envío" : "Shipping"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" name="delivery" defaultChecked={delivery} className="rounded border-[#C9B46A]" />
-              {lang === "es" ? "Entrega local" : "Local delivery"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" name="free" value="1" defaultChecked={freeOnly} className="rounded border-[#C9B46A]" />
-              {t.freeOnly}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input type="checkbox" name="nego" value="1" defaultChecked={negotiableOnly} className="rounded border-[#C9B46A]" />
-              {t.negoOnly}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="meetupFilter"
-                value="1"
-                defaultChecked={meetupOnly}
-                className="rounded border-[#C9B46A]"
-              />
-              {t.meetupOnly}
-            </label>
-          </div>
+              <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E8DFD0]/80 pt-4 text-sm text-[#3D3428]">
+                <label className="inline-flex items-center gap-2">
+                  <input form="ev-results-form" type="checkbox" name="pickup" defaultChecked={pickup} className="rounded border-[#C9B46A]" />
+                  {lang === "es" ? "Recogida" : "Pickup"}
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input form="ev-results-form" type="checkbox" name="ship" defaultChecked={ship} className="rounded border-[#C9B46A]" />
+                  {lang === "es" ? "Envío" : "Shipping"}
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input form="ev-results-form" type="checkbox" name="delivery" defaultChecked={delivery} className="rounded border-[#C9B46A]" />
+                  {lang === "es" ? "Entrega local" : "Local delivery"}
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input form="ev-results-form" type="checkbox" name="free" value="1" defaultChecked={freeOnly} className="rounded border-[#C9B46A]" />
+                  {t.freeOnly}
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input form="ev-results-form" type="checkbox" name="nego" value="1" defaultChecked={negotiableOnly} className="rounded border-[#C9B46A]" />
+                  {t.negoOnly}
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    form="ev-results-form"
+                    type="checkbox"
+                    name="meetupFilter"
+                    value="1"
+                    defaultChecked={meetupOnly}
+                    className="rounded border-[#C9B46A]"
+                  />
+                  {t.meetupOnly}
+                </label>
+                <label className="inline-flex w-full items-center gap-2 border-t border-[#E8DFD0]/60 pt-3">
+                  <input form="ev-results-form" type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="rounded border-[#C9B46A]" />
+                  <span>{t.featuredMode}</span>
+                </label>
+              </div>
 
-          <details className="mt-4 rounded-2xl border border-[#E8DFD0]/90 bg-white/60 p-4 text-left text-sm text-[#5C5346]">
-            <summary className="cursor-pointer list-none font-semibold text-[#7A7164] [&::-webkit-details-marker]:hidden">
-              {t.mapRadiusSoon}
-            </summary>
-            <p className="mt-2 text-[11px] leading-relaxed text-[#7A7164]/95">{t.mapRadiusBody}</p>
-          </details>
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8DFD0]/70 pt-3">
+                <button
+                  type="button"
+                  onClick={onUseMyLocation}
+                  className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-2 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
+                >
+                  {t.useLocation}
+                </button>
+                {geoHint ? <span className="text-xs text-[#8B4513]">{geoHint}</span> : null}
+              </div>
             </div>
-            <div className="border-t border-[#E8DFD0] bg-[#FFFCF7] p-4 lg:hidden">
+            <div className="border-t border-[#E8DFD0] bg-[#FFFCF7] p-4">
               <button
                 type="button"
-                className="w-full rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-6 py-3 text-sm font-semibold text-[#1E1810] shadow-md"
+                className="w-full rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-6 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
                 onClick={() => {
-                  setMobileFiltersOpen(false);
+                  setFiltersPanelOpen(false);
                   (document.getElementById("ev-results-form") as HTMLFormElement | null)?.requestSubmit();
                 }}
               >
@@ -957,18 +984,18 @@ export function EnVentaResultsClient() {
               </button>
             </div>
           </div>
-        </form>
+        ) : null}
 
-        {loadErr ? <p className="mt-8 text-center text-sm text-red-700">{t.err}</p> : null}
+        {loadErr ? <p className="mt-4 text-center text-sm text-red-700">{t.err}</p> : null}
 
         {!loading && !loadErr && total === 0 ? (
-          <div className="mt-12">
+          <div className="mt-6">
             <EnVentaResultsEmpty lang={lang} onReset={resetFilters} featuredOnly={featuredOnly} />
           </div>
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
-          <div className="mt-10 w-full sm:mt-12">
+          <div className="mt-5 w-full">
             <EnVentaResultsListingSections
               lang={lang}
               featuredOnly={featuredOnly}
@@ -998,12 +1025,12 @@ export function EnVentaResultsClient() {
         ) : null}
 
         {loading ? (
-          <div className="mt-16 text-center text-sm text-[#5C5346]">{t.loading}</div>
+          <div className="mt-8 text-center text-sm text-[#5C5346]">{t.loading}</div>
         ) : null}
 
-        <p className="mt-16 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
+        <p className="mt-10 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
           <Link href={`/clasificados/en-venta?lang=${lang}`} className="text-sm font-semibold text-[#2A2620] underline">
             {lang === "es"
               ? `← Volver al inicio ${enVentaPublicLabel("es")}`

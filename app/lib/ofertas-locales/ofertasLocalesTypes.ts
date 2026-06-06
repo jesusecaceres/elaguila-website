@@ -339,6 +339,7 @@ export type OfertaLocalScanJobRecordDraft = {
   ownerId: string;
   sourceAssetId: string;
   sourceAssetType: OfertaLocalDraftAssetType | "";
+  sourceAssetUrl?: string;
   provider: OfertaLocalAiScanProvider;
   normalizerProvider: OfertaLocalAiNormalizerProvider;
   status: OfertaLocalScanJobStatus;
@@ -398,4 +399,94 @@ export type OfertaLocalShoppingRouteDraft = {
   googleMapsUrl: string;
   originMode: OfertaLocalShoppingRouteOriginMode;
   createdAt: string;
+};
+
+/** Input for public eligibility checks — Stack 11. */
+export type OfertaLocalItemPublicEligibilityInput = {
+  review_status: OfertaLocalSearchableItemReviewStatus;
+  is_active: boolean;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  parentOfferStatus?: OfertaLocalPublishStatus | "";
+};
+
+/** Persisted scan job row — mirrors `oferta_local_scan_jobs` (Stack 11). */
+export type OfertaLocalScanJobDbRow = {
+  id: string;
+  oferta_local_id: string;
+  owner_id: string;
+  source_asset_id: string | null;
+  source_asset_type: string | null;
+  source_asset_url: string | null;
+  provider: OfertaLocalAiScanProvider;
+  normalizer_provider: OfertaLocalAiNormalizerProvider;
+  status: OfertaLocalScanJobStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  raw_result_storage_path: string | null;
+  normalized_result_storage_path: string | null;
+  error_message: string | null;
+  pages_processed: number;
+  items_extracted_count: number;
+  confidence_average: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OfertaLocalScanJobDbInsert = Omit<
+  OfertaLocalScanJobDbRow,
+  "id" | "created_at" | "updated_at"
+> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+/** Persisted item row — mirrors `oferta_local_items` (Stack 11). */
+export type OfertaLocalItemDbRow = {
+  id: string;
+  oferta_local_id: string;
+  scan_job_id: string | null;
+  owner_id: string;
+  business_name: string | null;
+  business_address: string | null;
+  business_city: string | null;
+  business_state: string | null;
+  business_zip_code: string | null;
+  business_latitude: number | null;
+  business_longitude: number | null;
+  item_name: string;
+  normalized_item_name: string | null;
+  description: string | null;
+  price_text: string | null;
+  price_amount: number | null;
+  unit: string | null;
+  deal_type: string | null;
+  quantity: string | null;
+  category: string | null;
+  subcategory: string | null;
+  search_tags: string[];
+  valid_from: string | null;
+  valid_until: string | null;
+  source_asset_id: string | null;
+  source_asset_url: string | null;
+  source_page: number | null;
+  source_crop_url: string | null;
+  confidence: number | null;
+  review_status: OfertaLocalSearchableItemReviewStatus;
+  reviewer_note: string | null;
+  is_active: boolean;
+  is_sponsored: boolean;
+  sponsorship_weight: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OfertaLocalItemDbInsert = Omit<
+  OfertaLocalItemDbRow,
+  "id" | "created_at" | "updated_at"
+> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
 };
