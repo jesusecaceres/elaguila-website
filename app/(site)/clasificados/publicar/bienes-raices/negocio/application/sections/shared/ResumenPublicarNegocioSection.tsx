@@ -6,6 +6,8 @@ import { BR_PREVIEW_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/cons
 import type { BienesRaicesNegocioFormState, BienesRaicesAdvertiserType } from "../../schema/bienesRaicesNegocioFormState";
 import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from "./brFormPrimitives";
 
+import { BrNegocioPrePublishInventoryShell } from "./BrNegocioPrePublishInventoryShell";
+
 const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
   agente_individual: "Agente individual",
   equipo_agentes: "Equipo de agentes",
@@ -16,9 +18,13 @@ const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
 export function ResumenPublicarNegocioSection({
   state,
   setState,
+  lang = "es",
+  hideInventoryShell = false,
 }: {
   state: BienesRaicesNegocioFormState;
   setState: Dispatch<SetStateAction<BienesRaicesNegocioFormState>>;
+  lang?: "es" | "en";
+  hideInventoryShell?: boolean;
 }) {
   const adv = state.advertiserType;
   const nPhotos = state.media.photoUrls.filter((u) => u.trim()).length;
@@ -60,6 +66,7 @@ export function ResumenPublicarNegocioSection({
           {ctasOn.length ? ctasOn.join(", ") : "Ninguno (revisa paso de botones y enlaces)"}
         </li>
       </ul>
+      <BrNegocioPrePublishInventoryShell lang={lang} hidden={hideInventoryShell} />
       <div className="mt-6">
         <ListingRulesConfirmationSection
           lang="es"

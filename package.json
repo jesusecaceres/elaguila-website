@@ -88,6 +88,7 @@
     "br:13c-inventory-qa-polish-audit": "tsx scripts/br13c-inventory-qa-polish-audit.ts",
     "br:13d-property-inventory-value-drawer-audit": "tsx scripts/br13d-property-inventory-value-drawer-audit.ts",
     "br:inv-a-audit": "tsx scripts/br-inv-a-supabase-backing-audit.ts",
+    "br:inv-b-audit": "tsx scripts/br-inv-b-drawer-shell-audit.ts",
     "br:12d-2-hoa-application-surfacing-audit": "tsx scripts/br12d-2-hoa-application-surfacing-audit.ts",
     "details:commas-02-pipeline-audit": "tsx scripts/details-commas-02-pipeline-audit.ts",
     "media:desc-hub-03-audit": "tsx scripts/media-desc-hub-03-audit.ts",

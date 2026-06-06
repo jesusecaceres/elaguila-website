@@ -40,6 +40,7 @@ import {
 import { useBrAgenteResidencialCopy } from "./BrAgenteResidencialLocaleContext";
 import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
+import { BrNegocioPrePublishInventoryShell } from "../../application/sections/shared/BrNegocioPrePublishInventoryShell";
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
@@ -201,6 +202,7 @@ export default function AgenteIndividualResidencialApplication() {
               <section className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-sm">
                 <h2 className="text-lg font-bold text-[#1E1810]">{t.app.vistaPreviaTitulo}</h2>
                 <p className="mt-1 text-sm text-[#5C5346]/88">{t.app.vistaPreviaBody}</p>
+                <BrNegocioPrePublishInventoryShell lang={lang} />
                 <ListingRulesConfirmationSection
                   lang={lang}
                   subject="property"

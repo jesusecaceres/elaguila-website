@@ -297,7 +297,14 @@ export default function BienesRaicesNegocioApplication() {
             {step === 11 ? <ContactoCtasNegocioSection state={state} setState={setState} lang={lang} /> : null}
             {step === 12 ? <ConfianzaNegocioSection state={state} setState={setState} /> : null}
             {step === 13 ? <VistaPreviaNegocioSection /> : null}
-            {step === 14 ? <ResumenPublicarNegocioSection state={state} setState={setState} /> : null}
+            {step === 14 ? (
+              <ResumenPublicarNegocioSection
+                state={state}
+                setState={setState}
+                lang={lang}
+                hideInventoryShell={inventoryAdd.inventoryModeAdd}
+              />
+            ) : null}
 
             <div className="flex flex-col gap-3 border-t border-[#E8DFD0]/80 pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <button
