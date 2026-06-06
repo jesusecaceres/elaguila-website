@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
+import { categoryStandardQuickFilters } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { BuscoLandingRecentListings } from "./BuscoLandingRecentListings";
 import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang, buscoRouteLangFromSearchParams } from "./shared/buscoShellCopy";
 
 const COPY = {
   es: {
-    eyebrow: "SOLICITUDES · LEONIX",
+    eyebrow: "CLASIFICADOS · SOLICITUDES",
     ctaPost: "Publicar solicitud",
     ctaView: "Ver todos los anuncios",
+    quickTopics: "Filtros rápidos",
     recentTitle: "Solicitudes recientes",
     recentEmpty:
       "Aún no hay solicitudes publicadas. Sé el primero en publicar lo que buscas en tu comunidad.",
@@ -20,9 +23,10 @@ const COPY = {
     backHub: "Volver a Clasificados",
   },
   en: {
-    eyebrow: "REQUESTS · LEONIX",
+    eyebrow: "CLASSIFIEDS · REQUESTS",
     ctaPost: "Post request",
     ctaView: "View all listings",
+    quickTopics: "Quick filters",
     recentTitle: "Recent requests",
     recentEmpty:
       "No published requests yet. Be the first to post what you are looking for in your community.",
@@ -31,16 +35,34 @@ const COPY = {
   },
 } as const;
 
+const CHIP_CLASS =
+  "inline-flex min-h-[2.75rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF] sm:shrink";
+
 export default function BuscoLandingPage() {
   const sp = useSearchParams();
   const lang = buscoLangFromSearchParams(sp);
   const routeLang = buscoRouteLangFromSearchParams(sp);
   const t = COPY[lang];
   const product = BUSCO_PRODUCT;
+  const chips = categoryStandardQuickFilters("busco", lang);
 
   const postHref = useMemo(() => buscoPathWithLang("/publicar/busco/quick", routeLang), [routeLang]);
   const resultsHref = useMemo(() => buildCategoryResultsUrl("busco", routeLang as "es" | "en"), [routeLang]);
   const hubHref = useMemo(() => buscoPathWithLang("/clasificados", routeLang), [routeLang]);
+
+  const topicChips = (
+    <CategoryLandingChipsRail label={t.quickTopics}>
+      {chips.map((label) => (
+        <Link
+          key={label}
+          href={buildCategoryResultsUrl("busco", lang, { q: label })}
+          className={CHIP_CLASS}
+        >
+          {label}
+        </Link>
+      ))}
+    </CategoryLandingChipsRail>
+  );
 
   return (
     <CategoryStandardLandingPage
@@ -52,6 +74,7 @@ export default function BuscoLandingPage() {
       searchAction={buildCategoryResultsUrl("busco", lang)}
       publishLabel={t.ctaPost}
       browseLabel={t.ctaView}
+      searchChips={topicChips}
       belowHero={
         <section className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 text-sm leading-relaxed text-[#3D3428] sm:px-5">
           <p>{product.helper[lang]}</p>

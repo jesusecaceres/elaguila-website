@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
@@ -12,7 +13,7 @@ import { mascotasPerdidosLangFromSearchParams, mascotasPerdidosPathWithLang, mas
 
 const COPY = {
   es: {
-    eyebrow: "MASCOTAS Y PERDIDOS · LEONIX",
+    eyebrow: "CLASIFICADOS · MASCOTAS Y PERDIDOS",
     ctaPost: "Publicar en Mascotas y Perdidos",
     ctaView: "Ver todos los anuncios",
     typesTitle: "Filtros rápidos",
@@ -22,7 +23,7 @@ const COPY = {
     backHub: "Volver a Clasificados",
   },
   en: {
-    eyebrow: "PETS & LOST · LEONIX",
+    eyebrow: "CLASSIFIEDS · PETS & LOST",
     ctaPost: "Post in Pets & Lost",
     ctaView: "View all listings",
     typesTitle: "Quick filters",
@@ -32,6 +33,9 @@ const COPY = {
     backHub: "Back to Classifieds",
   },
 } as const;
+
+const CHIP_CLASS =
+  "inline-flex min-h-[2.75rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF] sm:shrink";
 
 export default function MascotasPerdidosLandingPage() {
   const sp = useSearchParams();
@@ -43,6 +47,21 @@ export default function MascotasPerdidosLandingPage() {
   const resultsHref = useMemo(() => buildCategoryResultsUrl("mascotas-y-perdidos", routeLang as "es" | "en"), [routeLang]);
   const hubHref = useMemo(() => mascotasPerdidosPathWithLang("/clasificados", routeLang), [routeLang]);
 
+  const topicChips = (
+    <CategoryLandingChipsRail label={t.typesTitle}>
+      {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => (
+        <Link
+          key={opt.value}
+          href={mascotasPerdidosTipoChipHref(routeLang, opt.value)}
+          className={CHIP_CLASS}
+          data-testid={`mascotas-landing-tipo-${opt.value}`}
+        >
+          {lang === "en" ? opt.labelEn : opt.labelEs}
+        </Link>
+      ))}
+    </CategoryLandingChipsRail>
+  );
+
   return (
     <CategoryStandardLandingPage
       category="mascotas-y-perdidos"
@@ -53,20 +72,7 @@ export default function MascotasPerdidosLandingPage() {
       searchAction={buildCategoryResultsUrl("mascotas-y-perdidos", lang)}
       publishLabel={t.ctaPost}
       browseLabel={t.ctaView}
-      searchChips={
-        <div className="flex flex-wrap gap-2">
-          {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => (
-            <Link
-              key={opt.value}
-              href={mascotasPerdidosTipoChipHref(routeLang, opt.value)}
-              className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF]"
-              data-testid={`mascotas-landing-tipo-${opt.value}`}
-            >
-              {lang === "en" ? opt.labelEn : opt.labelEs}
-            </Link>
-          ))}
-        </div>
-      }
+      searchChips={topicChips}
     >
       <MascotasPerdidosLandingRecentListings
         lang={lang}

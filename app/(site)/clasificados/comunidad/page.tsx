@@ -8,36 +8,41 @@ import { CategoryRecentListings } from "@/app/(site)/clasificados/components/cat
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { appendLangToPath, resolveHubCopyLang, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
-import { COMUNIDAD_LANDING_CATEGORY_PILLS, COMUNIDAD_QUICK_CHIPS } from "./shared/fields/comunidadTaxonomy";
 import { buildComunidadListaUrl } from "./shared/utils/comunidadListaUrl";
 
 type Lang = "es" | "en";
 
+const QUICK_CHIPS: Record<Lang, readonly string[]> = {
+  es: ["Eventos", "Ayuda", "Avisos", "Voluntariado", "Familias", "Comunidad", "Gratis"],
+  en: ["Events", "Help", "Notices", "Volunteering", "Families", "Community", "Free"],
+};
+
 const COPY = {
   es: {
-    eyebrow: "COMUNIDAD Y EVENTOS · LEONIX",
+    eyebrow: "CLASIFICADOS · COMUNIDAD",
     ctaPost: "Publicar en Comunidad y Eventos",
     ctaView: "Ver todos los anuncios",
-    exploreCategory: "Explorar por categoría",
     quickTopics: "Filtros rápidos",
     backHub: "Volver a Clasificados",
   },
   en: {
-    eyebrow: "COMMUNITY & EVENTS · LEONIX",
+    eyebrow: "CLASSIFIEDS · COMMUNITY",
     ctaPost: "Post in Community & Events",
     ctaView: "View all listings",
-    exploreCategory: "Browse by category",
     quickTopics: "Quick filters",
     backHub: "Back to Classifieds",
   },
 } as const;
+
+const CHIP_CLASS =
+  "inline-flex min-h-[2.75rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF] sm:shrink";
 
 export default function Page() {
   const sp = useSearchParams();
   const routeLang = resolveRouteLang(sp?.get("lang"));
   const lang = resolveHubCopyLang(sp?.get("lang"));
   const t = COPY[lang];
-  const chips = COMUNIDAD_QUICK_CHIPS[lang];
+  const chips = QUICK_CHIPS[lang];
 
   const listaHref = useMemo(() => buildComunidadListaUrl("comunidad", lang), [lang]);
   const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/comunidad", routeLang as Lang), [routeLang]);
@@ -46,11 +51,7 @@ export default function Page() {
   const topicChips = (
     <CategoryLandingChipsRail label={t.quickTopics}>
       {chips.map((label) => (
-        <Link
-          key={label}
-          href={buildComunidadListaUrl("comunidad", lang, label)}
-          className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-1.5 text-xs font-medium text-[#1F241C] transition hover:bg-[#FBF7EF] sm:shrink"
-        >
+        <Link key={label} href={buildComunidadListaUrl("comunidad", lang, label)} className={CHIP_CLASS}>
           {label}
         </Link>
       ))}
@@ -68,24 +69,6 @@ export default function Page() {
       publishLabel={t.ctaPost}
       browseLabel={t.ctaView}
       searchChips={topicChips}
-      belowHero={
-        <section className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 sm:px-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#556B3E]">{t.exploreCategory}</p>
-          <div className="mt-3">
-            <CategoryLandingChipsRail label={t.exploreCategory}>
-              {COMUNIDAD_LANDING_CATEGORY_PILLS.map(({ key, labelEs, labelEn }) => (
-                <Link
-                  key={key}
-                  href={appendLangToPath(`/clasificados/${key}`, lang)}
-                  className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:bg-[#FBF7EF] sm:shrink"
-                >
-                  {lang === "es" ? labelEs : labelEn}
-                </Link>
-              ))}
-            </CategoryLandingChipsRail>
-          </div>
-        </section>
-      }
     >
       <CategoryRecentListings
         category="comunidad"
