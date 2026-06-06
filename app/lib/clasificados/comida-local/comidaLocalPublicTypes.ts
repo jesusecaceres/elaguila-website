@@ -89,8 +89,15 @@ export type ComidaLocalFilterOptions = {
   priceLevels: ComidaLocalPriceLevel[];
 };
 
+export type ComidaLocalPublicListingsQuerySource =
+  | "published"
+  | "inventory_unavailable"
+  | "inventory_table_missing"
+  | "inventory_query_failed";
+
 export type ComidaLocalPublicListingsQueryResult = {
   rows: ComidaLocalPublicListingRow[];
-  source: "published" | "inventory_unavailable" | "inventory_query_failed";
+  source: ComidaLocalPublicListingsQuerySource;
+  /** Customer-safe banner text only — never raw PostgREST/schema-cache errors. */
   bannerNote?: string;
 };

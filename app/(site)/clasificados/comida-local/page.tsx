@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import {
+  COMIDA_LOCAL_RESULTS_EMPTY_MESSAGE_ES,
+  COMIDA_LOCAL_RESULTS_FILTER_EMPTY_MESSAGE_ES,
+} from "@/app/lib/clasificados/comida-local/comidaLocalPublicInventoryErrors";
+import {
   getComidaLocalFilterOptions,
   listPublishedComidaLocalListings,
   parseComidaLocalResultsSearchParams,
@@ -33,6 +37,17 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
 
   const cards = inventory.rows.map((row) => mapComidaLocalRowToCardVm(row));
   const count = cards.length;
+  const hasActiveFilters = !!(
+    filters.q ||
+    filters.city ||
+    filters.foodType ||
+    filters.service ||
+    filters.priceLevel
+  );
+  const inventoryBlocked =
+    inventory.source === "inventory_table_missing" ||
+    inventory.source === "inventory_unavailable" ||
+    inventory.source === "inventory_query_failed";
 
   return (
     <div className="min-h-screen bg-[#FFFCF7] pb-16">
@@ -69,9 +84,11 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
         <p className="text-sm text-[#1E1814]/65">
           {inventory.source === "published"
             ? count === 0
-              ? "No hay fichas publicadas con estos filtros."
+              ? hasActiveFilters
+                ? COMIDA_LOCAL_RESULTS_FILTER_EMPTY_MESSAGE_ES
+                : COMIDA_LOCAL_RESULTS_EMPTY_MESSAGE_ES
               : `${count} ${count === 1 ? "ficha" : "fichas"}`
-            : "Resultados no disponibles"}
+            : inventory.bannerNote ?? "Resultados no disponibles"}
         </p>
 
         {count > 0 ? (
@@ -82,9 +99,11 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
               </li>
             ))}
           </ul>
-        ) : inventory.source === "published" ? (
+        ) : inventory.source === "published" && !hasActiveFilters ? (
           <div className="rounded-2xl border border-[#D4C4A8]/80 bg-white px-6 py-12 text-center shadow-sm">
-            <h2 className="text-lg font-semibold text-[#1E1814]">Aún no hay resultados</h2>
+            <h2 className="text-lg font-semibold text-[#1E1814]">
+              {COMIDA_LOCAL_RESULTS_EMPTY_MESSAGE_ES}
+            </h2>
             <p className="mt-2 text-sm text-[#1E1814]/70">
               Cuando alguien publique su ficha de Comida Local, aparecerá aquí. ¿Tienes un puesto o
               pop-up?
@@ -95,6 +114,18 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
             >
               Crear mi ficha
             </Link>
+          </div>
+        ) : inventory.source === "published" && hasActiveFilters ? (
+          <div className="rounded-2xl border border-[#D4C4A8]/80 bg-white px-6 py-10 text-center shadow-sm">
+            <p className="text-sm text-[#1E1814]/70">
+              {COMIDA_LOCAL_RESULTS_FILTER_EMPTY_MESSAGE_ES}
+            </p>
+          </div>
+        ) : inventoryBlocked ? (
+          <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-6 py-10 text-center shadow-sm">
+            <p className="text-sm font-medium text-amber-950">
+              {inventory.bannerNote ?? "Resultados temporalmente no disponibles."}
+            </p>
           </div>
         ) : null}
       </div>

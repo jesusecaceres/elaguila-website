@@ -7,6 +7,11 @@ import type {
   ComidaLocalPublicListingsQueryResult,
   ComidaLocalResultsFilters,
 } from "./comidaLocalPublicTypes";
+import {
+  classifyComidaLocalInventoryError,
+  customerMessageForComidaLocalInventoryFailure,
+  logComidaLocalInventoryFailure,
+} from "./comidaLocalPublicInventoryErrors";
 import type { ComidaLocalServiceOption } from "./comidaLocalTypes";
 
 export const COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED = "published" as const;
@@ -121,18 +126,27 @@ export async function listPublishedComidaLocalListings(
 ): Promise<ComidaLocalPublicListingsQueryResult> {
   const fetched = await fetchAllPublishedRows();
   if (!fetched.ok) {
-    if (fetched.error === "supabase_unconfigured") {
+    const failure = classifyComidaLocalInventoryError(fetched.error);
+    logComidaLocalInventoryFailure(failure, "listPublishedComidaLocalListings");
+
+    if (failure.kind === "table_missing") {
+      return {
+        rows: [],
+        source: "inventory_table_missing",
+        bannerNote: customerMessageForComidaLocalInventoryFailure(failure, "es"),
+      };
+    }
+    if (failure.kind === "unconfigured") {
       return {
         rows: [],
         source: "inventory_unavailable",
-        bannerNote:
-          "No pudimos cargar el inventario publicado. Configura Supabase en el servidor.",
+        bannerNote: customerMessageForComidaLocalInventoryFailure(failure, "es"),
       };
     }
     return {
       rows: [],
       source: "inventory_query_failed",
-      bannerNote: fetched.error,
+      bannerNote: customerMessageForComidaLocalInventoryFailure(failure, "es"),
     };
   }
 
