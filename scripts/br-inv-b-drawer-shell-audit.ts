@@ -43,8 +43,8 @@ function run() {
   assert.ok(audit.includes("BR-INV-C"), "Next gate BR-INV-C required");
 
   assert.ok(shell.includes("BrNegocioPrePublishInventoryDrawerShell"), "Shell must render drawer");
-  assert.ok(shell.includes("additionalCount = 0"), "Count shell must start at 0");
-  assert.ok(drawer.includes("disabled"), "Save button must be disabled");
+  assert.ok(/items\.length|additionalCount = items\.length|additionalInventoryProperties/.test(shell), "Count shell must use draft array");
+  assert.ok(/onItemsChange|onSave/.test(shell + drawer), "Save flow must exist (BR-INV-C+)");
   assert.equal(/from\s+["']@\/.*supabase|createClient|\.from\(/i.test(drawer), false, "Drawer must not call Supabase");
 
   const privadoFiles = fs.readdirSync(path.join(ROOT, PRIVADO.replace(/\//g, path.sep)), { recursive: true });

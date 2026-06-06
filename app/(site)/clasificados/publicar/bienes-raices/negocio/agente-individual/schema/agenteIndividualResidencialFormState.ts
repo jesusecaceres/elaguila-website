@@ -15,6 +15,8 @@ import {
   normalizeResidencialTipoPropiedadCodigo,
   type TipoPropiedadCodigo,
 } from "./agenteResidencialTipoMeta";
+import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../application/brNegocioAdditionalInventoryDraft";
+import { mergeAdditionalInventoryProperties } from "../../application/brNegocioAdditionalInventoryDraft";
 import type { ComercialDestacadoId, TerrenoDestacadoId } from "./agenteComercialTerrenoMeta";
 import {
   COMERCIAL_DESTACADOS_DEFS,
@@ -308,6 +310,9 @@ export type AgenteIndividualResidencialFormState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
+
+  /** BR-INV-C — pre-publish additional properties (local draft only; not published). */
+  additionalInventoryProperties: BrNegocioAdditionalInventoryPropertyDraft[];
 };
 
 function trim(s: unknown): string {
@@ -688,6 +693,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     confirmListingAccurate: false,
     confirmPhotosRepresentItem: false,
     confirmCommunityRules: false,
+    additionalInventoryProperties: [],
   };
 }
 
@@ -1035,7 +1041,14 @@ export function mergePartialAgenteIndividualResidencial(
 
   const hydrated = hydrateContactFieldsFromLegacy(inferred);
   delete (hydrated as Record<string, unknown>).tipoPropiedadOtro;
-  return hydrateAgenteStructuredAddress(hydrated);
+  const withAddress = hydrateAgenteStructuredAddress(hydrated);
+  return {
+    ...withAddress,
+    additionalInventoryProperties: mergeAdditionalInventoryProperties(
+      flat.additionalInventoryProperties ?? nested.additionalInventoryProperties,
+      withAddress.additionalInventoryProperties,
+    ),
+  };
 }
 
 function hydrateAgenteStructuredAddress(s: AgenteIndividualResidencialFormState): AgenteIndividualResidencialFormState {

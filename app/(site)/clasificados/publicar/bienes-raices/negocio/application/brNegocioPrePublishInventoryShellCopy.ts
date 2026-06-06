@@ -1,4 +1,4 @@
-/** BR-INV-B — pre-publish inventory drawer shell copy (Negocio application only). */
+/** BR-INV-B/C — pre-publish inventory drawer copy (Negocio application only). */
 
 export type BrNegocioPrePublishInventoryLang = "es" | "en";
 
@@ -9,16 +9,40 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       ctaAlt: "Agregar otra propiedad",
       hint: "Puedes preparar varias propiedades para este mismo agente o negocio antes de publicar.",
       countLabel: (n: number) => `Propiedades adicionales: ${n}`,
+      emptyList: "Aún no has agregado propiedades adicionales.",
       ownerOnlyNote:
         "Solo en tu solicitud de publicación. No aparece en el anuncio público hasta que cada propiedad se publique por separado.",
       drawerTitle: "Agregar propiedad al inventario",
+      drawerTitleEdit: "Editar propiedad del inventario",
       drawerExplain:
-        "Esta propiedad usará la misma información del agente, contacto y negocio. En el siguiente paso podrás capturar los detalles de la propiedad.",
-      comingNext: "Los campos de la propiedad se activarán en el siguiente gate (BR-INV-C).",
+        "Esta propiedad usará la misma información del agente, contacto y negocio. Captura solo los detalles de la propiedad.",
       close: "Cerrar",
+      cancel: "Cancelar",
       saveProperty: "Guardar propiedad",
-      saveDisabledHint: "Los campos de propiedad llegarán en el siguiente gate.",
+      saveAndAddAnother: "Guardar y agregar otra",
+      edit: "Editar",
+      remove: "Eliminar",
+      removeConfirm: "¿Eliminar esta propiedad del borrador de inventario?",
       sectionKicker: "Inventario de propiedades",
+      fields: {
+        title: "Título de la propiedad",
+        propertyType: "Tipo de propiedad",
+        propertySubtype: "Subtipo",
+        price: "Precio",
+        bedrooms: "Recámaras",
+        bathrooms: "Baños",
+        interiorSqft: "Tamaño interior (pies²)",
+        lotSqft: "Tamaño del lote (pies²)",
+        streetLine1: "Dirección",
+        streetLine2: "Unidad / apt / suite / espacio",
+        city: "Ciudad",
+        state: "Estado",
+        zip: "Código postal",
+        showExactAddress: "Mostrar dirección exacta en el anuncio",
+        description: "Descripción",
+        mainPhotoUrl: "URL de foto principal (opcional)",
+      },
+      validationSummary: "Revisa los campos marcados antes de guardar.",
     };
   }
   return {
@@ -26,15 +50,39 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
     ctaAlt: "Add another property",
     hint: "You can prepare multiple properties for this same agent or business before publishing.",
     countLabel: (n: number) => `Additional properties: ${n}`,
+    emptyList: "You have not added additional properties yet.",
     ownerOnlyNote:
       "Owner application only. Nothing appears on the public listing until each property is published separately.",
     drawerTitle: "Add property to inventory",
+    drawerTitleEdit: "Edit inventory property",
     drawerExplain:
-      "This property will use the same agent, contact, and business information. In the next step you will be able to enter the property details.",
-    comingNext: "Property fields will be enabled in the next gate (BR-INV-C).",
+      "This property will use the same agent, contact, and business information. Enter property details only.",
     close: "Close",
+    cancel: "Cancel",
     saveProperty: "Save property",
-    saveDisabledHint: "Property fields arrive in the next gate.",
+    saveAndAddAnother: "Save and add another",
+    edit: "Edit",
+    remove: "Remove",
+    removeConfirm: "Remove this property from the inventory draft?",
     sectionKicker: "Property inventory",
+    fields: {
+      title: "Property title",
+      propertyType: "Property type",
+      propertySubtype: "Subtype",
+      price: "Price",
+      bedrooms: "Bedrooms",
+      bathrooms: "Bathrooms",
+      interiorSqft: "Interior size (sq ft)",
+      lotSqft: "Lot size (sq ft)",
+      streetLine1: "Street address",
+      streetLine2: "Unit / apt / suite / space",
+      city: "City",
+      state: "State",
+      zip: "ZIP code",
+      showExactAddress: "Show exact address on listing",
+      description: "Description",
+      mainPhotoUrl: "Main photo URL (optional)",
+    },
+    validationSummary: "Review the highlighted fields before saving.",
   };
 }

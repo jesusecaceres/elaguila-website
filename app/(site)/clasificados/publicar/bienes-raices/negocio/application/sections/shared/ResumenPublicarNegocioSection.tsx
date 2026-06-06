@@ -66,7 +66,12 @@ export function ResumenPublicarNegocioSection({
           {ctasOn.length ? ctasOn.join(", ") : "Ninguno (revisa paso de botones y enlaces)"}
         </li>
       </ul>
-      <BrNegocioPrePublishInventoryShell lang={lang} hidden={hideInventoryShell} />
+      <BrNegocioPrePublishInventoryShell
+        lang={lang}
+        hidden={hideInventoryShell}
+        items={state.additionalInventoryProperties}
+        onItemsChange={(items) => setState((s) => ({ ...s, additionalInventoryProperties: items }))}
+      />
       <div className="mt-6">
         <ListingRulesConfirmationSection
           lang="es"

@@ -13,6 +13,8 @@ import {
   createEmptyLeonixContactChannelsFormSlice,
   mergePartialLeonixContactChannelsFormSlice,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import type { BrNegocioAdditionalInventoryPropertyDraft } from "../brNegocioAdditionalInventoryDraft";
+import { mergeAdditionalInventoryProperties } from "../brNegocioAdditionalInventoryDraft";
 
 export type BienesRaicesAdvertiserType =
   | ""
@@ -290,6 +292,9 @@ export type BienesRaicesNegocioFormState = {
 
   /** Gate 12C — optional website/social URLs + channel toggles (shared with Rentas negocio contract). */
   contactChannels: LeonixContactChannelsFormSlice;
+
+  /** BR-INV-C — pre-publish additional properties (local draft only; not published). */
+  additionalInventoryProperties: BrNegocioAdditionalInventoryPropertyDraft[];
 };
 
 const REDES_SLOTS = 5;
@@ -621,6 +626,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       confirmarReglas: false,
       confirmarAutorizacion: false,
     },
+    additionalInventoryProperties: [],
   };
 }
 
@@ -791,6 +797,10 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
     petsAllowed: coerceNegocioPetsAllowed(
       (partial as Partial<BienesRaicesNegocioFormState>).petsAllowed,
       base.petsAllowed,
+    ),
+    additionalInventoryProperties: mergeAdditionalInventoryProperties(
+      (partial as Partial<BienesRaicesNegocioFormState>).additionalInventoryProperties,
+      base.additionalInventoryProperties,
     ),
   };
 }
