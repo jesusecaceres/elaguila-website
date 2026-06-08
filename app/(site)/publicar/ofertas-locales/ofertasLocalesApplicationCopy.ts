@@ -106,6 +106,8 @@ const COPY = {
     socialTiktok: "TikTok",
     socialYoutube: "YouTube",
     socialGoogleBusiness: "Google Business Profile",
+    socialGoogleReview: "Google Reviews",
+    socialYelp: "Yelp",
     featuredSectionTitle: "Destacado / más exposición",
     featuredQuestion:
       "¿Quieres aparecer destacado? El equipo de Leonix puede contactarte para opciones por ZIP, ciudad, categoría, newsletter o espacios destacados.",
@@ -284,6 +286,8 @@ const COPY = {
     socialTiktok: "TikTok",
     socialYoutube: "YouTube",
     socialGoogleBusiness: "Google Business Profile",
+    socialGoogleReview: "Google Reviews",
+    socialYelp: "Yelp",
     featuredSectionTitle: "Featured / more exposure",
     featuredQuestion:
       "Want to be featured? The Leonix team can contact you about options by ZIP, city, category, newsletter, or featured placements.",

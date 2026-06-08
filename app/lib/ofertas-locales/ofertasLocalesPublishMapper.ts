@@ -103,6 +103,10 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
   if (yt) socialLinks.youtubeUrl = yt;
   const gb = sanitizeOptionalUrl(draft.googleBusinessUrl);
   if (gb) socialLinks.googleBusinessUrl = gb;
+  const gr = sanitizeOptionalUrl(draft.googleReviewUrl);
+  if (gr) socialLinks.googleReviewUrl = gr;
+  const yelp = sanitizeOptionalUrl(draft.yelpUrl);
+  if (yelp) socialLinks.yelpUrl = yelp;
 
   const metadata: Record<string, unknown> = {};
   if (Object.keys(socialLinks).length) metadata.socialLinks = socialLinks;

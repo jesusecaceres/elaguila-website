@@ -8,7 +8,17 @@ import type {
   OfertaLocalFeaturedPlacementScope,
 } from "./ofertasLocalesTypes";
 
+/** Per-tab session draft — aligned with En Venta tab-scoped publish sessions (not cross-tab localStorage). */
 export const OFERTAS_LOCALES_DRAFT_STORAGE_KEY = "leonix:ofertas-locales:draft:v1" as const;
+
+function getOfertasLocalesDraftStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
 
 const ASSET_TYPES: ReadonlySet<OfertaLocalDraftAssetType> = new Set([
   "flyer_pdf",
@@ -126,15 +136,18 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
     tiktokUrl: sanitizeSocialUrl(stored.tiktokUrl),
     youtubeUrl: sanitizeSocialUrl(stored.youtubeUrl),
     googleBusinessUrl: sanitizeSocialUrl(stored.googleBusinessUrl),
+    googleReviewUrl: sanitizeSocialUrl(stored.googleReviewUrl),
+    yelpUrl: sanitizeSocialUrl(stored.yelpUrl),
     flyerAssets: sanitizeAssetList(stored.flyerAssets),
     couponAssets: sanitizeAssetList(stored.couponAssets),
   };
 }
 
 export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
-  if (typeof window === "undefined") return null;
+  const storage = getOfertasLocalesDraftStorage();
+  if (!storage) return null;
   try {
-    const raw = window.localStorage.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    const raw = storage.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isPlainObject(parsed)) return null;
@@ -145,18 +158,20 @@ export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
 }
 
 export function saveOfertaLocalDraftToStorage(draft: OfertaLocalDraft): void {
-  if (typeof window === "undefined") return;
+  const storage = getOfertasLocalesDraftStorage();
+  if (!storage) return;
   try {
-    window.localStorage.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    storage.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, JSON.stringify(draft));
   } catch {
     // Quota or privacy mode — ignore silently.
   }
 }
 
 export function clearOfertaLocalDraftStorage(): void {
-  if (typeof window === "undefined") return;
+  const storage = getOfertasLocalesDraftStorage();
+  if (!storage) return;
   try {
-    window.localStorage.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    storage.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
   } catch {
     // ignore
   }

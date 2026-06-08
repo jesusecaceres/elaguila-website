@@ -119,7 +119,9 @@ export type OfertaLocalSocialLinkKey =
   | "instagram"
   | "tiktok"
   | "youtube"
-  | "googleBusiness";
+  | "googleBusiness"
+  | "googleReview"
+  | "yelp";
 
 export type OfertaLocalSocialLink = {
   key: OfertaLocalSocialLinkKey;
@@ -130,7 +132,13 @@ export type OfertaLocalSocialLink = {
 export function getOfertaLocalSocialLinks(
   draft: Pick<
     OfertaLocalDraft,
-    "facebookUrl" | "instagramUrl" | "tiktokUrl" | "youtubeUrl" | "googleBusinessUrl"
+    | "facebookUrl"
+    | "instagramUrl"
+    | "tiktokUrl"
+    | "youtubeUrl"
+    | "googleBusinessUrl"
+    | "googleReviewUrl"
+    | "yelpUrl"
   >
 ): OfertaLocalSocialLink[] {
   const out: OfertaLocalSocialLink[] = [];
@@ -143,13 +151,21 @@ export function getOfertaLocalSocialLinks(
   push("tiktok", draft.tiktokUrl, "TikTok");
   push("youtube", draft.youtubeUrl, "YouTube");
   push("googleBusiness", draft.googleBusinessUrl, "Google Business");
+  push("googleReview", draft.googleReviewUrl, "Google Reviews");
+  push("yelp", draft.yelpUrl, "Yelp");
   return out;
 }
 
 export function hasOfertaLocalSocialLinks(
   draft: Pick<
     OfertaLocalDraft,
-    "facebookUrl" | "instagramUrl" | "tiktokUrl" | "youtubeUrl" | "googleBusinessUrl"
+    | "facebookUrl"
+    | "instagramUrl"
+    | "tiktokUrl"
+    | "youtubeUrl"
+    | "googleBusinessUrl"
+    | "googleReviewUrl"
+    | "yelpUrl"
   >
 ): boolean {
   return getOfertaLocalSocialLinks(draft).length > 0;

@@ -27,6 +27,8 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     tiktokUrl: "",
     youtubeUrl: "",
     googleBusinessUrl: "",
+    googleReviewUrl: "",
+    yelpUrl: "",
     directionsUrl: "",
     flyerAssets: [],
     couponAssets: [],

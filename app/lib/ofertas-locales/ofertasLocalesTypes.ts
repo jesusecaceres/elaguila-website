@@ -209,6 +209,8 @@ export type OfertaLocalDraft = {
   tiktokUrl: string;
   youtubeUrl: string;
   googleBusinessUrl: string;
+  googleReviewUrl: string;
+  yelpUrl: string;
   directionsUrl: string;
   flyerAssets: OfertaLocalDraftAsset[];
   couponAssets: OfertaLocalDraftAsset[];

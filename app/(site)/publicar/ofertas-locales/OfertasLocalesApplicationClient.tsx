@@ -197,6 +197,8 @@ export default function OfertasLocalesApplicationClient() {
         | "tiktokUrl"
         | "youtubeUrl"
         | "googleBusinessUrl"
+        | "googleReviewUrl"
+        | "yelpUrl"
     ) => {
       const raw = draft[field].trim();
       if (!raw) return;
@@ -764,6 +766,8 @@ export default function OfertasLocalesApplicationClient() {
                     ["tiktokUrl", c.socialTiktok],
                     ["youtubeUrl", c.socialYoutube],
                     ["googleBusinessUrl", c.socialGoogleBusiness],
+                    ["googleReviewUrl", c.socialGoogleReview],
+                    ["yelpUrl", c.socialYelp],
                   ] as const
                 ).map(([field, label]) => (
                   <FieldBlock
