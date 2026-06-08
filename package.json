@@ -181,6 +181,7 @@
     "comida-local:food-l5c-image-upload-audit": "tsx scripts/comida-local-food-l5c-image-upload-audit.ts",
     "comida-local:food-l6-public-results-audit": "tsx scripts/comida-local-food-l6-public-results-audit.ts",
     "comida-local:food-l7a-user-dashboard-audit": "tsx scripts/comida-local-food-l7a-user-dashboard-audit.ts",
+    "comida-local:food-l7a-restore-mis-anuncios-audit": "tsx scripts/comida-local-food-l7a-restore-mis-anuncios-audit.ts",
     "comida-local:food-l7b-admin-dashboard-audit": "tsx scripts/comida-local-food-l7b-admin-dashboard-audit.ts",
     "comida-local:food-l5d-package-payment-audit": "tsx scripts/comida-local-food-l5d-package-payment-audit.ts",
     "comida-local:food-l8a-analytics-events-audit": "tsx scripts/comida-local-food-l8a-analytics-events-audit.ts",

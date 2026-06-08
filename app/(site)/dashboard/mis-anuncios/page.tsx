@@ -81,6 +81,12 @@ import {
   dashboardRepublishPrimaryKind,
   dashboardRepublishPrimaryLabel,
 } from "../lib/dashboardRepublishUi";
+import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
+import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
+import {
+  mapComidaLocalRowToDashboardVm,
+  type ComidaLocalDashboardListingVm,
+} from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -242,6 +248,7 @@ type MisAnunciosCategoryFilter =
   | "empleos"
   | "viajes"
   | "servicios"
+  | "comida-local"
   | "clases"
   | "comunidad"
   | "busco";
@@ -256,6 +263,7 @@ const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
   "empleos",
   "viajes",
   "servicios",
+  "comida-local",
   "clases",
   "comunidad",
   "busco",
@@ -390,6 +398,9 @@ export default function MyListingsPage() {
   const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
   const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
   const [autosPaidInventory, setAutosPaidInventory] = useState<DashboardInventoryItem[]>([]);
+  const [comidaLocalDashboardItems, setComidaLocalDashboardItems] = useState<
+    ComidaLocalDashboardListingVm[]
+  >([]);
   const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryFilter>(() => {
     const raw = searchParams?.get("cat");
@@ -487,13 +498,17 @@ export default function MyListingsPage() {
 
       const { data: sessData } = await supabase.auth.getSession();
       const accessToken = sessData.session?.access_token ?? null;
-      const [activeAcross, autosPaidRows, serviciosRows] = await Promise.all([
+      const [activeAcross, autosPaidRows, serviciosRows, comidaLocalRows] = await Promise.all([
         countOwnerActiveListingsAcrossSources(supabase, u.id),
         fetchOwnerAutosClassifiedsListings(supabase, u.id),
         fetchOwnerServiciosListings(accessToken),
+        fetchOwnerComidaLocalListings(supabase, u.id),
       ]);
       const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
       const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
+      const comidaLocalItems = comidaLocalRows.map((row) =>
+        mapComidaLocalRowToDashboardVm(row, lang)
+      );
 
       if (!mounted) return;
       setUnifiedActiveCount(activeAcross);
@@ -502,6 +517,7 @@ export default function MyListingsPage() {
       setViajesInventory(viajesItems);
       setAutosPaidInventory(autosPaidItems);
       setServiciosInventory(serviciosItems);
+      setComidaLocalDashboardItems(comidaLocalItems);
 
       const entitlementLookup = [
         ...restaurantItems.map((item) => ({
@@ -838,6 +854,7 @@ export default function MyListingsPage() {
     empleosInventory.length > 0 ||
     viajesInventory.length > 0 ||
     serviciosInventory.length > 0 ||
+    comidaLocalDashboardItems.length > 0 ||
     autosPaidInventory.length > 0;
 
   const categoryCounts = useMemo(() => {
@@ -870,8 +887,17 @@ export default function MyListingsPage() {
       empleos: empleosInventory.length,
       viajes: viajesInventory.length,
       servicios: serviciosInventory.length,
+      "comida-local": comidaLocalDashboardItems.length,
     } as Record<Exclude<MisAnunciosCategoryFilter, "all">, number>;
-  }, [listings, autosPaidInventory, restaurantInventory, empleosInventory, viajesInventory, serviciosInventory]);
+  }, [
+    listings,
+    autosPaidInventory,
+    restaurantInventory,
+    empleosInventory,
+    viajesInventory,
+    serviciosInventory,
+    comidaLocalDashboardItems,
+  ]);
 
   const filterChips = useMemo(() => {
     const owned = (MIS_ANUNCIOS_CATEGORY_FILTERS.filter((c) => c !== "all") as Exclude<MisAnunciosCategoryFilter, "all">[]).filter(
@@ -889,6 +915,8 @@ export default function MyListingsPage() {
     serviciosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "servicios");
   const showAutosPaidSection =
     autosPaidInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "autos");
+  const showComidaLocalBlock =
+    categoryFilter === "all" || categoryFilter === "comida-local";
 
   const brNegocioInventoryRows = useMemo(
     () =>
@@ -1012,6 +1040,13 @@ export default function MyListingsPage() {
                   owned: categoryCounts.servicios,
                   manage: `/dashboard/servicios?${q}`,
                   publish: `/clasificados/publicar/servicios?${q}`,
+                },
+                {
+                  key: "comida-local" as const,
+                  title: lang === "es" ? "Comida Local" : "Local Food",
+                  owned: categoryCounts["comida-local"],
+                  manage: `/dashboard/mis-anuncios?${q}&cat=comida-local`,
+                  publish: `/publicar/comida-local?${q}`,
                 },
                 {
                   key: "en-venta" as const,
@@ -1154,7 +1189,11 @@ export default function MyListingsPage() {
                                 ? lang === "es"
                                   ? "Servicios"
                                   : "Services"
-                                : fk === "autos"
+                                : fk === "comida-local"
+                                  ? lang === "es"
+                                    ? "Comida Local"
+                                    : "Local Food"
+                                  : fk === "autos"
                                   ? "Autos"
                                   : fk === "clases"
                                     ? lang === "es"
@@ -1404,6 +1443,15 @@ export default function MyListingsPage() {
           {showAutosPaidSection ? <AutosDealerInventoryDashboardSection lang={lang} /> : null}
           {showBrInventorySection ? (
             <BrPropertyInventoryDashboardSection lang={lang} rows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]} />
+          ) : null}
+
+          {showComidaLocalBlock &&
+          (comidaLocalDashboardItems.length > 0 || categoryFilter === "comida-local") ? (
+            <ComidaLocalDashboardListings
+              lang={lang}
+              items={comidaLocalDashboardItems}
+              showEmpty={categoryFilter === "comida-local" && comidaLocalDashboardItems.length === 0}
+            />
           ) : null}
 
           {showServiciosSection ? (

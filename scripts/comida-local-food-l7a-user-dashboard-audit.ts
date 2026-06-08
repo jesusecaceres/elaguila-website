@@ -48,6 +48,7 @@ const ALLOWED_PREFIXES = [
   "app/lib/clasificados/comida-local/",
   "app/(site)/dashboard/",
   "scripts/comida-local-food-l7a-user-dashboard-audit.ts",
+  "scripts/comida-local-food-l7a-restore-mis-anuncios-audit.ts",
   "package.json",
 ];
 
@@ -121,6 +122,7 @@ function run() {
     const scope =
       p.startsWith("app/lib/clasificados/comida-local/") ||
       p.startsWith("app/(site)/dashboard/") ||
+      p.startsWith("scripts/comida-local-food-l7a") ||
       p.startsWith("scripts/comida-local-") ||
       p === "package.json";
     if (!scope) continue;
