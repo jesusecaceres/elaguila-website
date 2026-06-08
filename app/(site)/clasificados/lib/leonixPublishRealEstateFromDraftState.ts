@@ -11,6 +11,8 @@ import { mapBienesRaicesNegocioStateToPreviewVm } from "@/app/clasificados/publi
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import { rentasNegocioToBienesRaicesNegocioState } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/rentasNegocioToBienesRaicesNegocioState";
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
+import type { AgenteIndividualResidencialFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState";
+import { mapAgenteResidencialFormStateToNegocioForPublish } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/mapAgenteResidencialFormStateToNegocioForPublish";
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import { mergeLeonixListingContractDetailPairs } from "@/app/clasificados/lib/leonixRealEstatePersistContract";
 import {
@@ -346,6 +348,26 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   if (!built.ok) return built;
   if ("params" in built) return publishLeonixRealEstateListingCore(built.params);
   return built;
+}
+
+/** BR Negocio agente-individual lane — maps to Negocio publish contract then reuses core insert. */
+export async function publishLeonixListingFromAgenteResidencialDraft(
+  state: AgenteIndividualResidencialFormState,
+  lang: "es" | "en",
+  inventory?: BrNegocioPublishInventoryContext | null,
+): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const photos = (Array.isArray(state.fotosDataUrls) ? state.fotosDataUrls : []).filter((u) => String(u ?? "").trim());
+  if (!photos.length) {
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No hay fotos listas para publicar. Vuelve al formulario, sube al menos una foto y abre la vista previa otra vez."
+          : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
+    };
+  }
+  const negocio = mapAgenteResidencialFormStateToNegocioForPublish(state);
+  return publishLeonixListingFromBienesRaicesNegocioDraft(negocio, lang, inventory);
 }
 
 export async function publishLeonixListingFromRentasNegocioDraft(

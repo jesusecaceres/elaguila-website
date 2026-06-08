@@ -2,6 +2,17 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
+import {
+  brInventoryAddModeSubcopy,
+  brInventoryAddModeTitle,
+  brInventoryConnectedToParentLine,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
+import {
+  parseBrInventoryAddSearchParams,
+  resolveBrInventoryAddReturnHref,
+  writeBrInventoryAddContextToSession,
+} from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
 import {
   applyBrNegocioBranchQuery,
   BR_NEGOCIO_Q_PROPIEDAD,
@@ -42,20 +53,58 @@ import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { BrNegocioPrePublishInventoryShell } from "../../application/sections/shared/BrNegocioPrePublishInventoryShell";
 import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInventoryCardModel";
+import { getQueue, readQueuePrefillForAddMode } from "../../application/brNegocioInventoryPublishQueue";
+import { applyInventoryDraftToAgenteFormState } from "../../application/brNegocioInventoryQueuePrefill";
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { lang, t } = useBrAgenteResidencialCopy();
+  const inventoryAdd = useMemo(
+    () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
+    [searchParams],
+  );
+  const [parentMeta, setParentMeta] = useState<{ leonix_ad_id: string | null; title: string | null } | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
 
   useLayoutEffect(() => {
-    const boot = bootstrapAgenteIndividualResidencialApplicationState();
-    setState(applyBrNegocioBranchQuery(boot, searchParams));
+    if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
+  }, [inventoryAdd.context]);
+
+  useLayoutEffect(() => {
+    let boot = bootstrapAgenteIndividualResidencialApplicationState();
+    boot = applyBrNegocioBranchQuery(boot, searchParams);
+
+    if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
+      const queue = getQueue();
+      const prefill = readQueuePrefillForAddMode();
+      if (queue?.formKind === "agente" && queue.inheritedAgenteSnapshot) {
+        boot = queue.inheritedAgenteSnapshot;
+        if (prefill) boot = applyInventoryDraftToAgenteFormState(boot, prefill, lang);
+        boot = applyBrNegocioBranchQuery(boot, searchParams);
+      }
+    }
+
+    setState(boot);
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
-     
   }, []);
+
+  useEffect(() => {
+    const parentId = inventoryAdd.context?.parentListingId;
+    if (!parentId) {
+      setParentMeta(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchBrParentListingMetaBrowser(parentId).then((meta) => {
+      if (cancelled) return;
+      setParentMeta(meta ? { leonix_ad_id: meta.leonix_ad_id, title: meta.title } : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryAdd.context?.parentListingId]);
 
   const propiedadParam = searchParams?.get(BR_NEGOCIO_Q_PROPIEDAD) ?? null;
   useEffect(() => {
@@ -88,8 +137,20 @@ export default function AgenteIndividualResidencialApplication() {
     markPublishFlowOpeningPreview();
     saveAgenteResPreviewDraft(state);
     saveAgenteResPreviewReturnDraft(state);
-    router.push(withBrAgenteResLangParam(BR_PREVIEW_NEGOCIO, lang));
-  }, [router, state, lang, confirmAll]);
+    const previewQs = new URLSearchParams();
+    if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
+      previewQs.set("inventoryMode", "add");
+      previewQs.set("parentListingId", inventoryAdd.context.parentListingId);
+      if (inventoryAdd.context.returnToListingId?.trim()) {
+        previewQs.set("returnToListingId", inventoryAdd.context.returnToListingId.trim());
+      }
+      if (inventoryAdd.context.brInventoryGroupId?.trim()) {
+        previewQs.set("inventoryGroupId", inventoryAdd.context.brInventoryGroupId.trim());
+      }
+    }
+    const previewPath = previewQs.toString() ? `${BR_PREVIEW_NEGOCIO}?${previewQs.toString()}` : BR_PREVIEW_NEGOCIO;
+    router.push(withBrAgenteResLangParam(previewPath, lang));
+  }, [router, state, lang, confirmAll, inventoryAdd.context, inventoryAdd.inventoryModeAdd]);
 
   const nav = useMemo(
     () => (
@@ -157,10 +218,39 @@ export default function AgenteIndividualResidencialApplication() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{t.app.kicker}</p>
-              <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">{t.app.title}</h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#5C5346]/88">{t.app.subtitle}</p>
+              <h1 className="mt-1 text-2xl font-extrabold text-[#1E1810] sm:text-3xl">
+                {inventoryAdd.inventoryModeAdd ? brInventoryAddModeTitle(lang) : t.app.title}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#5C5346]/88">
+                {inventoryAdd.inventoryModeAdd ? brInventoryAddModeSubcopy(lang) : t.app.subtitle}
+              </p>
+              {inventoryAdd.inventoryModeAdd && inventoryAdd.context ? (
+                <p className="mt-2 text-sm font-semibold text-[#6E5418]">
+                  {parentMeta?.leonix_ad_id
+                    ? brInventoryConnectedToParentLine(lang, parentMeta.leonix_ad_id)
+                    : lang === "es"
+                      ? `Conectada al anuncio principal · ${inventoryAdd.context.parentListingId.slice(0, 8)}…`
+                      : `Connected to main listing · ${inventoryAdd.context.parentListingId.slice(0, 8)}…`}
+                </p>
+              ) : null}
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+              {inventoryAdd.context ? (
+                <button
+                  type="button"
+                  className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
+                  onClick={() =>
+                    leaveAndGo(
+                      resolveBrInventoryAddReturnHref({
+                        returnToListingId: inventoryAdd.context!.returnToListingId,
+                        lang,
+                      }),
+                    )
+                  }
+                >
+                  {lang === "es" ? "Volver al anuncio principal" : "Back to main listing"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
@@ -208,6 +298,7 @@ export default function AgenteIndividualResidencialApplication() {
                   mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                   items={state.additionalInventoryProperties}
                   onItemsChange={(items) => setState((s) => ({ ...s, additionalInventoryProperties: items }))}
+                  hidden={inventoryAdd.inventoryModeAdd}
                 />
                 <ListingRulesConfirmationSection
                   lang={lang}

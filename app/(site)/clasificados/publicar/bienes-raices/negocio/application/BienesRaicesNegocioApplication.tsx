@@ -53,6 +53,8 @@ import { SegundoAgenteNegocioSection } from "./sections/shared/SegundoAgenteNego
 import { TipoAnuncianteSection } from "./sections/shared/TipoAnuncianteSection";
 import { TipoPublicacionSection } from "./sections/shared/TipoPublicacionSection";
 import { VistaPreviaNegocioSection } from "./sections/shared/VistaPreviaNegocioSection";
+import { getQueue, readQueuePrefillForAddMode } from "./brNegocioInventoryPublishQueue";
+import { applyInventoryDraftToNegocioFormState } from "./brNegocioInventoryQueuePrefill";
 
 const STEP_LABELS = [
   "Tipo de anunciante",
@@ -96,7 +98,16 @@ export default function BienesRaicesNegocioApplication() {
 
   /* Client-only: SSR/hydration starts empty; layout restores only return-to-edit handoff (preview roundtrip), else empty — not preview-draft. */
   useLayoutEffect(() => {
-    setState(bootstrapBienesRaicesNegocioApplicationState());
+    let boot = bootstrapBienesRaicesNegocioApplicationState();
+    if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
+      const queue = getQueue();
+      const prefill = readQueuePrefillForAddMode();
+      if (queue?.formKind === "negocio" && queue.inheritedNegocioSnapshot) {
+        boot = queue.inheritedNegocioSnapshot;
+        if (prefill) boot = applyInventoryDraftToNegocioFormState(boot, prefill, lang);
+      }
+    }
+    setState(boot);
   }, []);
 
   useLayoutEffect(() => {

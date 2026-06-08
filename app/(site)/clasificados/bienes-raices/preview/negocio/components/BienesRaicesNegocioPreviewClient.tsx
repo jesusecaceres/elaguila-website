@@ -39,6 +39,14 @@ import {
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
 import { fetchBrOwnerInventoryListingRows } from "@/app/clasificados/bienes-raices/lib/fetchBrOwnerInventoryListingsBrowser";
 import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
+import { BrNegocioInventoryPublishBridgePanel } from "@/app/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioInventoryPublishBridgePanel";
+import {
+  handleMainPublishWithOptionalQueue,
+  handleQueuedChildPublishSuccess,
+  isQueueDrivenChildPublish,
+  navigateToNextQueuedChild,
+  type BrNegocioInventoryBridgeView,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/application/brNegocioInventoryPostPublishFlow";
 import {
   brInventoryPreviewOwnerBanner,
   brLeonixAdIdPlaceholderLine,
@@ -93,6 +101,7 @@ export default function BienesRaicesNegocioPreviewClient() {
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
   const [parentLeonixAdId, setParentLeonixAdId] = useState<string | null>(null);
+  const [bridge, setBridge] = useState<BrNegocioInventoryBridgeView | null>(null);
 
   useEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -118,6 +127,7 @@ export default function BienesRaicesNegocioPreviewClient() {
     if (!st) return;
     setPublishBusy(true);
     setPublishErr(null);
+    setBridge(null);
 
     try {
       const sb = createSupabaseBrowserClient();
@@ -153,6 +163,15 @@ export default function BienesRaicesNegocioPreviewClient() {
             /* ignore */
           }
         }
+
+        if (isQueueDrivenChildPublish(inventoryCtx)) {
+          const bridgeView = handleQueuedChildPublishSuccess(r.listingId, lang);
+          if (bridgeView) {
+            setBridge(bridgeView);
+            return;
+          }
+        }
+
         if (inventoryCtx) {
           clearBrInventoryAddContextFromSession();
           router.push(
@@ -161,9 +180,22 @@ export default function BienesRaicesNegocioPreviewClient() {
               lang,
             ),
           );
-        } else {
-          router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
+          return;
         }
+
+        const queueBridge = handleMainPublishWithOptionalQueue({
+          listingId: r.listingId,
+          lang,
+          formKind: "negocio",
+          additionalItems: st.additionalInventoryProperties,
+          inheritedNegocioSnapshot: st,
+        });
+        if (queueBridge) {
+          setBridge(queueBridge);
+          return;
+        }
+
+        router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
       } else {
         setPublishErr(r.error);
       }
@@ -172,6 +204,11 @@ export default function BienesRaicesNegocioPreviewClient() {
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
   }, [inventoryCtx, lang, router]);
+
+  const onPublishNextFromBridge = useCallback(() => {
+    const href = navigateToNextQueuedChild();
+    if (href) router.push(appendLangToPath(href, lang));
+  }, [lang, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -253,6 +290,18 @@ export default function BienesRaicesNegocioPreviewClient() {
             </div>
           ) : vm.ownerPreviewShell?.leonixAdIdLine ? (
             <p className="mx-auto mb-3 max-w-[1240px] font-mono text-xs text-[#7A7164]">{vm.ownerPreviewShell.leonixAdIdLine}</p>
+          ) : null}
+          {bridge ? (
+            <div className="mx-auto mb-4 max-w-[1240px]">
+              <BrNegocioInventoryPublishBridgePanel
+                lang={lang}
+                mode={bridge.mode}
+                remainingCount={bridge.remainingCount}
+                mainListingHref={bridge.mainListingHref}
+                childListingHref={bridge.childListingHref}
+                onPublishNext={bridge.remainingCount > 0 ? onPublishNextFromBridge : undefined}
+              />
+            </div>
           ) : null}
           <BienesRaicesNegocioPreviewView vm={vm} lang={lang} />
         </LeonixPreviewPageShell>
