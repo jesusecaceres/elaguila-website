@@ -604,3 +604,59 @@ export type OfertaLocalItemPatchApiResponse = {
   error?: string;
   detail?: string;
 };
+
+/** Public shopper search item — Stack D (no private fields). */
+export type OfertaLocalPublicSearchItem = {
+  id: string;
+  itemName: string;
+  normalizedItemName: string;
+  priceText: string;
+  priceAmount: number | null;
+  unit: string;
+  category: string;
+  subcategory: string;
+  searchTags: string[];
+  sourcePage: number | null;
+  sourceAssetLabel: string;
+  sourceAssetHref: string | null;
+  validFrom: string | null;
+  validUntil: string | null;
+  businessName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phoneDisplay: string;
+  phoneHref: string | null;
+  whatsappHref: string | null;
+  websiteHref: string | null;
+  directionsHref: string | null;
+  membershipUrl: string | null;
+  membershipNote: string;
+  requiresMembership: boolean;
+  digitalCouponUrl: string | null;
+  digitalCouponNote: string;
+  offerType: string;
+  marketType: string;
+  businessCategory: string;
+  socialLinks: {
+    facebookUrl?: string;
+    instagramUrl?: string;
+    tiktokUrl?: string;
+    youtubeUrl?: string;
+    googleBusinessUrl?: string;
+  };
+  boundingBoxNote: string;
+  updatedAt: string;
+};
+
+export type OfertaLocalPublicSearchSort = "newest" | "price_low" | "expiring_soon";
+
+export type OfertaLocalPublicSearchApiResponse = {
+  ok: boolean;
+  items?: OfertaLocalPublicSearchItem[];
+  total?: number;
+  message?: string;
+  error?: string;
+  detail?: string;
+};
