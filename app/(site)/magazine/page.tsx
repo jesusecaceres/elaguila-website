@@ -55,8 +55,8 @@ const COPY = {
     currentTitle: "Leonix Media — Revista Junio 2026",
     currentBody:
       "Leonix Media presenta su edición de junio: una revista bilingüe y multicultural hecha para nuestra comunidad. Esta edición reúne negocios locales, recursos importantes, eventos familiares, deportes, cultura, bienestar, inspiración y contenido útil para conectar, apoyar y hacer crecer a nuestra gente desde San José para el Bay Area y más allá.",
-    readMagazine: "Leer la revista",
-    downloadPdf: "Descargar PDF",
+    readMagazine: "Ver flipbook en español",
+    downloadPdf: "Descargar PDF original",
     archiveEyebrow: "ARCHIVO",
     archiveTitle: "Ediciones anteriores",
     archiveIntro: "Consulta publicaciones pasadas de Leonix Media en un solo lugar.",
@@ -85,8 +85,8 @@ const COPY = {
     currentTitle: "Leonix Media — June 2026 Magazine",
     currentBody:
       "Leonix Media presents its June edition: a bilingual, multicultural magazine made for our community. This issue brings together local businesses, important resources, family events, sports, culture, wellness, inspiration, and useful content to connect, support, and help our people grow from San José across the Bay Area and beyond.",
-    readMagazine: "Read the magazine",
-    downloadPdf: "Download PDF",
+    readMagazine: "View Spanish flipbook",
+    downloadPdf: "Download original PDF",
     archiveEyebrow: "ARCHIVE",
     archiveTitle: "Past editions",
     archiveIntro: "Browse previous Leonix Media publications in one place.",
@@ -116,7 +116,7 @@ const COPY = {
     currentBody:
       "Leonix Media giới thiệu số tháng 6: một tạp chí song ngữ và đa văn hóa dành cho cộng đồng của chúng ta. Số này gồm doanh nghiệp địa phương, tài nguyên quan trọng, sự kiện gia đình, thể thao, văn hóa, sức khỏe, cảm hứng và nội dung hữu ích để kết nối, hỗ trợ và giúp cộng đồng phát triển từ San José ra Bay Area và xa hơn.",
     readMagazine: "Đọc tạp chí (flipbook tiếng Tây Ban Nha)",
-    downloadPdf: "Tải PDF",
+    downloadPdf: "Tải PDF gốc",
     archiveEyebrow: "LƯU TRỮ",
     archiveTitle: "Các số trước",
     archiveIntro: "Xem các ấn phẩm Leonix Media trước đây ở một nơi.",
@@ -399,6 +399,9 @@ export default function MagazineHubPage() {
                   <p className="mt-4 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.currentBody}</p>
                   <p className="mt-3 rounded-lg border border-[#D6C7AD]/80 bg-[#FAF6EE] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
                     {ui.originalEditionNote}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
+                    {ui.futureFlipbookNote}
                   </p>
                   <EditionActions
                     edition={currentEdition}

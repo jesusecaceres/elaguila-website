@@ -34,6 +34,13 @@ export function MagazineLanguageSelector({
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
         {ui.languageChooserHint}
       </p>
+      <p className="mt-3 text-xs leading-relaxed text-[#3D3428]/75 sm:text-sm">
+        {lang === "en"
+          ? "Use Español / English or More languages in the site header to change reading language."
+          : lang === "vi"
+            ? "Dùng Español / English hoặc Thêm ngôn ngữ trên đầu trang để đổi ngôn ngữ đọc."
+            : "Use Español / English o Más idiomas en el encabezado del sitio para cambiar el idioma de lectura."}
+      </p>
       {showControls ? (
         <p className="mt-3 text-xs text-[#3D3428]/70">
           {lang === "en"

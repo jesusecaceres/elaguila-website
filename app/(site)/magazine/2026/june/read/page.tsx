@@ -65,6 +65,9 @@ function JuneReaderContent() {
           <p className="mt-3 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
             {ui.readPageSubtitle}
           </p>
+          <p className="mt-3 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
+            {ui.futureFlipbookNote}
+          </p>
         </header>
 
         <section className="mt-10 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">

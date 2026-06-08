@@ -169,7 +169,7 @@ export const READER_SECTIONS: Record<MagazineLang, ReaderSection[]> = {
     },
     {
       id: "about-magazine",
-      title: "Sobre la revista",
+      title: "Sobre El Águila y la revista",
       body: "Leonix Media es la revista premium del ecosistema El Águila: comunidad, cultura y negocios en una edición digital e impresa. La edición de junio 2026 reúne historias locales, anuncios de negocios, inspiración comunitaria y puentes hacia el marketplace de clasificados.",
       bullets: [
         "Revista impresa premium diseñada para la comunidad latina local.",
@@ -258,7 +258,7 @@ export const READER_SECTIONS: Record<MagazineLang, ReaderSection[]> = {
     },
     {
       id: "about-magazine",
-      title: "About the magazine",
+      title: "About El Águila & the magazine",
       body: "Leonix Media is the premium magazine within the El Águila ecosystem: community, culture, and business in a digital and print edition. The June 2026 issue brings local stories, business ads, community inspiration, and bridges to the classifieds marketplace.",
       bullets: [
         "Premium print magazine designed for the local Latino community.",
@@ -347,7 +347,7 @@ export const READER_SECTIONS: Record<MagazineLang, ReaderSection[]> = {
     },
     {
       id: "about-magazine",
-      title: "Giới thiệu tạp chí",
+      title: "Giới thiệu El Águila & tạp chí",
       body: "Leonix Media là tạp chí cao cấp trong hệ sinh thái El Águila: cộng đồng, văn hóa và kinh doanh trong phiên bản kỹ thuật số và in. Số tháng 6 năm 2026 gồm câu chuyện địa phương, quảng cáo doanh nghiệp, cảm hứng cộng đồng và cầu nối tới marketplace rao vặt.",
       bullets: [
         "Tạp chí in cao cấp dành cho cộng đồng Latinh địa phương.",
