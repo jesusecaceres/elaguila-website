@@ -1283,6 +1283,7 @@ export function EnVentaAnuncioLayout({
                 ownerId={listing.owner_id}
                 brInventoryGroupId={listing.br_inventory_group_id}
                 brInventoryParentListingId={listing.br_inventory_parent_listing_id}
+                currentInventoryRole={listing.inventory_role}
                 lang={lang}
               />
             ) : null}

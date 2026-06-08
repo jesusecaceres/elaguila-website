@@ -11,12 +11,14 @@ export function BrRelatedAgentPropertiesSection({
   ownerId,
   brInventoryGroupId,
   brInventoryParentListingId,
+  currentInventoryRole,
   lang,
 }: {
   listingId: string;
   ownerId?: string | null;
   brInventoryGroupId?: string | null;
   brInventoryParentListingId?: string | null;
+  currentInventoryRole?: string | null;
   lang: BrPropertyInventoryLang;
 }) {
   const [listings, setListings] = useState<BrNegocioListing[]>([]);
@@ -29,6 +31,7 @@ export function BrRelatedAgentPropertiesSection({
         ownerId,
         brInventoryGroupId,
         brInventoryParentListingId,
+        currentInventoryRole,
         lang,
         limit: 6,
       });
@@ -37,7 +40,7 @@ export function BrRelatedAgentPropertiesSection({
     return () => {
       cancelled = true;
     };
-  }, [listingId, ownerId, brInventoryGroupId, brInventoryParentListingId, lang]);
+  }, [listingId, ownerId, brInventoryGroupId, brInventoryParentListingId, currentInventoryRole, lang]);
 
   return (
     <RelatedBrAgentProperties listings={listings} lang={lang} groupId={brInventoryGroupId ?? undefined} />

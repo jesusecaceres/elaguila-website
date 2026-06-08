@@ -1971,7 +1971,7 @@ function ComingSoonV2Footer({ text }: { text: string }) {
 }
 
 function launchHref(lang: LeonixSiteLang) {
-  return `/contact?interest=launch&lang=${lang}`;
+  return `/newsletter?source=coming-soon-v2&lang=${lang}`;
 }
 
 function HeaderLogoMark() {

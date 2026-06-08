@@ -4,8 +4,10 @@ import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/lis
 import {
   getBrInventoryGroupId,
   getBrInventoryParentListingId,
+  getBrInventoryRole,
   isBrNegocioListing,
   resolveBrInventoryGroupingKey,
+  type BrPropertyInventoryRole,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados/lib/mapBrListingRowToCard";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
@@ -18,6 +20,7 @@ export type BrRelatedInventoryFetchArgs = {
   ownerId?: string | null;
   brInventoryGroupId?: string | null;
   brInventoryParentListingId?: string | null;
+  currentInventoryRole?: BrPropertyInventoryRole | string | null;
   lang: "es" | "en";
   limit?: number;
 };
@@ -57,6 +60,12 @@ export async function fetchBrRelatedInventoryListingsForDetail(
       if (!isListingRowActiveAndPublishedForBrowse(row)) return false;
       if (!isBrNegocioListing(row)) return false;
       if (row.id === args.currentListingId) return false;
+      const role = getBrInventoryRole(row);
+      const viewerRole =
+        args.currentInventoryRole === "main" || args.currentInventoryRole === "inventory_property"
+          ? args.currentInventoryRole
+          : null;
+      if (viewerRole === "main" && role !== "inventory_property") return false;
       if (groupId) return getBrInventoryGroupId(row) === groupId;
       if (ownerId) {
         const parent = getBrInventoryParentListingId(row);
@@ -66,7 +75,14 @@ export async function fetchBrRelatedInventoryListingsForDetail(
       return true;
     });
 
-    return rows.slice(0, limit).map((r) => mapBrListingRowToNegocioCard(r, args.lang));
+    const seen = new Set<string>();
+    const unique = rows.filter((row) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
+
+    return unique.slice(0, limit).map((r) => mapBrListingRowToNegocioCard(r, args.lang));
   } catch {
     return [];
   }

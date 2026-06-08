@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
 import {
   brInventoryAddModeSubcopy,
@@ -56,6 +56,11 @@ import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInv
 import { getQueue, readQueuePrefillForAddMode } from "../../application/brNegocioInventoryPublishQueue";
 import { applyInventoryDraftToAgenteFormState } from "../../application/brNegocioInventoryQueuePrefill";
 import { setChildInventoryMediaBridge } from "../../application/brNegocioInventoryDraftPersistence";
+import { syncAgenteAddModePreviewHandoff } from "../../application/brNegocioInventoryAddModePreviewHandoff";
+
+function trim(v: unknown): string {
+  return v == null ? "" : typeof v === "string" ? v.trim() : String(v).trim();
+}
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
@@ -68,6 +73,7 @@ export default function AgenteIndividualResidencialApplication() {
   const [parentMeta, setParentMeta] = useState<{ leonix_ad_id: string | null; title: string | null } | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
+  const addModePreviewSyncedRef = useRef(false);
 
   useLayoutEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -88,8 +94,21 @@ export default function AgenteIndividualResidencialApplication() {
     }
 
     setState(boot);
+    if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && readQueuePrefillForAddMode()) {
+      syncAgenteAddModePreviewHandoff(boot);
+      addModePreviewSyncedRef.current = true;
+    }
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
   }, []);
+
+  useEffect(() => {
+    if (addModePreviewSyncedRef.current) return;
+    if (!inventoryAdd.inventoryModeAdd || !inventoryAdd.context) return;
+    if (!readQueuePrefillForAddMode()) return;
+    if (!trim(state.titulo)) return;
+    addModePreviewSyncedRef.current = true;
+    syncAgenteAddModePreviewHandoff(state);
+  }, [inventoryAdd.context, inventoryAdd.inventoryModeAdd, state.titulo]);
 
   useEffect(() => {
     const parentId = inventoryAdd.context?.parentListingId;
