@@ -545,6 +545,80 @@ Local dev may use `GOOGLE_APPLICATION_CREDENTIALS` (file path) instead of JSON e
 1. **En Venta** generic branch nested layout prose
 2. **Bienes Raíces** dedicated/preview polish
 
+## Gate SQL2E (locale constraint expansion — non-RTL dynamic unlock) ✅
+
+**Scope:** Expand `translation_records` CHECK constraints + API/provider allowlists. No TranslateAdControl UI wiring, no RTL activation, no competing tables.
+
+### Migration
+
+| Item | Value |
+|---|---|
+| File | `supabase/migrations/20260527213000_expand_translation_records_locale_constraints.sql` |
+| Action | Drop/recreate `translation_records_source_locale_chk` and `translation_records_target_locale_chk` |
+| RLS | Unchanged — service role only, no new public policies |
+| Unique key | Unchanged |
+| ar/fa | **Not** in target constraint (RTL held) |
+
+### Activated target locales (dynamic Translate Ad)
+
+`es`, `en`, `vi`, `pt`, `tl`, `fil`, `km`, `zh`, `zh-CN`, `zh-Hans`, `ja`, `ko`, `hi`, `hy`, `ru`, `pa`
+
+Source locales: same + `unknown`.
+
+### Provider mapping (Google Cloud Translation)
+
+| Internal / route | Google code | Notes |
+|---|---|---|
+| `tl` | `fil` | Primary Tagalog route code |
+| `fil` | `fil` | Alias for cache alignment |
+| `zh` | `zh-CN` | Primary Chinese route code (Simplified) |
+| `zh-CN` | `zh-CN` | Alias |
+| `zh-Hans` | `zh-Hans` | Alias |
+
+Central module: `app/lib/translation/localeCodes.ts`.
+
+### Cache proof (per locale, after migration + deploy)
+
+Use POST `/api/translate-ad` with masked fields only:
+
+```json
+{
+  "category": "servicios",
+  "listingKey": "sql2e-locale-smoke-{lang}",
+  "sourceLocale": "es",
+  "targetLocale": "{lang}",
+  "maskedFields": {
+    "description": "Servicio profesional para familias cerca de __LEONIX_MASK_0__.",
+    "details": "Atención confiable, rápida y respetuosa para la comunidad local."
+  }
+}
+```
+
+Replace `{lang}` with each activated target. Expect: first response `fromCache: false` (or true if already cached); **second identical request must return `fromCache: true`**.
+
+### Safety rejects (unchanged + held RTL)
+
+| Payload | Expected |
+|---|---|
+| `targetLocale: ar` or `fa` | 400 (not in allowlist) |
+| Empty `maskedFields` | 400 |
+| Unmasked email/URL/phone in fields | 400 |
+
+### Production activation
+
+1. Apply migration `20260527213000_expand_translation_records_locale_constraints.sql` in Supabase.
+2. Commit/push code changes (user-driven).
+3. Redeploy Vercel (provider + route validation must match DB).
+4. Run per-locale smoke above; verify `translation_records` rows and second-hit `fromCache: true`.
+
+### Out of scope (SQL2E)
+
+- TranslateAdControl UI activation for new languages
+- RTL languages (`ar`, `fa`)
+- Business Hub / contact card changes
+- PDF / FlipHTML5 translated assets
+- Competing `ad_translations` / `listing_translations` tables
+
 ## Later gates
 
 - **Stored `listing_translations`** — durable bilingual rows after product/schema decisions.

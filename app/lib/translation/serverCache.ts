@@ -4,6 +4,7 @@ import { createHash } from "crypto";
 
 import { isSupabaseAdminConfigured, getAdminSupabase } from "@/app/lib/supabase/server";
 import type { TranslateAdRequest } from "@/app/lib/translation/provider";
+import { normalizeTranslateAdSourceLocale } from "@/app/lib/translation/localeCodes";
 import type {
   ContentLocale,
   Locale,
@@ -56,7 +57,7 @@ export function hashMaskedSourceText(maskedText: string): string {
 }
 
 function normalizeSourceLocale(sourceLocale: ContentLocale): ContentLocale {
-  return sourceLocale === "es" || sourceLocale === "en" ? sourceLocale : "unknown";
+  return normalizeTranslateAdSourceLocale(sourceLocale);
 }
 
 function resolveSourceTextVersion(version?: string): string {

@@ -1,5 +1,6 @@
 import { pickTranslatableAdFields } from "@/app/lib/translation/helpers";
 import type { Locale, TranslatableAdFields } from "@/app/lib/translation/types";
+import { toBilingualFieldLocale } from "@/app/lib/translation/types";
 
 export type AnuncioListingTranslatable = {
   title: { es: string; en: string };
@@ -67,9 +68,11 @@ export function buildAnuncioTranslatableContent(
       )
     : [];
 
+  const fieldLocale = toBilingualFieldLocale(siteLocale);
+
   return {
-    title: listing.title[siteLocale]?.trim() || listing.title.es?.trim() || undefined,
-    description: listing.blurb[siteLocale]?.trim() || listing.blurb.es?.trim() || undefined,
+    title: listing.title[fieldLocale]?.trim() || listing.title.es?.trim() || undefined,
+    description: listing.blurb[fieldLocale]?.trim() || listing.blurb.es?.trim() || undefined,
     details: encodeDetailPairs(pairs),
   };
 }
@@ -103,11 +106,12 @@ export function applyAnuncioTranslation(
 
   if (translated.description?.trim()) {
     const blurb = translated.description.trim();
+    const fieldLocale = toBilingualFieldLocale(siteLocale);
     next = {
       ...next,
       blurb: {
         ...next.blurb,
-        [siteLocale]: blurb,
+        [fieldLocale]: blurb,
       },
     };
   }

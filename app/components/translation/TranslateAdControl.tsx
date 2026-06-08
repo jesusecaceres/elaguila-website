@@ -21,7 +21,7 @@ export type TranslateAdControlLabels = {
   unavailable: string;
 };
 
-const DEFAULT_LABELS: Record<Locale, TranslateAdControlLabels> = {
+const DEFAULT_LABELS: Partial<Record<Locale, TranslateAdControlLabels>> = {
   es: {
     translateAd: "Traducir anuncio",
     showOriginal: "Ver original",
@@ -73,7 +73,10 @@ export function TranslateAdControl({
   className = "",
   labels: labelsOverride,
 }: TranslateAdControlProps) {
-  const labels = useMemo(() => ({ ...DEFAULT_LABELS[siteLocale], ...labelsOverride }), [siteLocale, labelsOverride]);
+  const labels = useMemo((): TranslateAdControlLabels => {
+    const base = DEFAULT_LABELS[siteLocale] ?? DEFAULT_LABELS.en ?? DEFAULT_LABELS.es!;
+    return { ...base, ...labelsOverride };
+  }, [siteLocale, labelsOverride]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("original");
   const [busy, setBusy] = useState(false);

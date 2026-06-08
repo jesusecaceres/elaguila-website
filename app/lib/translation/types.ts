@@ -1,11 +1,21 @@
 /**
- * Gate 3A: shared types for optional “Translate ad” UX (no DB, no production provider yet).
+ * Gate 3A / SQL2E: shared types for optional “Translate ad” UX.
  */
 
-export type Locale = "es" | "en";
+import type {
+  TranslateAdSourceLocale,
+  TranslateAdTargetLocale,
+} from "@/app/lib/translation/localeCodes";
 
-/** Language of the listing body when known; otherwise pilot/heuristic may supply `unknown`. */
-export type ContentLocale = Locale | "unknown";
+export type Locale = TranslateAdTargetLocale;
+export type ContentLocale = TranslateAdSourceLocale;
+
+/** Stored bilingual listing fields use es/en keys only (not expanded Translate Ad targets). */
+export type BilingualFieldLocale = "es" | "en";
+
+export function toBilingualFieldLocale(locale: Locale): BilingualFieldLocale {
+  return locale === "en" ? "en" : "es";
+}
 
 export type TranslationUiState = "idle" | "loading" | "translated" | "error" | "original";
 

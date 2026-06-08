@@ -1,5 +1,6 @@
 import { pickTranslatableAdFields } from "@/app/lib/translation/helpers";
 import type { Locale, TranslatableAdFields } from "@/app/lib/translation/types";
+import { toBilingualFieldLocale } from "@/app/lib/translation/types";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 
 const FLOW_LINE_RE = /^(\d+)\t([^\t]*)\t(.*)$/;
@@ -50,7 +51,8 @@ function decodeFlowRows(
 }
 
 function descriptionForLocale(listing: RentasPublicListing, siteLocale: Locale): string | undefined {
-  const fromBilingual = listing.description?.[siteLocale]?.trim() || listing.description?.es?.trim();
+  const fieldLocale = toBilingualFieldLocale(siteLocale);
+  const fromBilingual = listing.description?.[fieldLocale]?.trim() || listing.description?.es?.trim();
   return fromBilingual || undefined;
 }
 

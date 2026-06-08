@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  isValidTranslateAdTargetLocale,
+  mapTranslateAdLocaleToGoogle,
+} from "@/app/lib/translation/localeCodes";
 import type {
   AdTranslationResult,
   ContentLocale,
@@ -21,8 +25,6 @@ export const GOOGLE_PROVIDER_ID = "google";
 
 const TRANSLATE_SCOPE = "https://www.googleapis.com/auth/cloud-translation";
 
-/** Active Translate Ad locales (G3). G6 TODO: zh, fil/tl, vi, ko, hi, fa, ar, hy, ru, pt, pa, ja */
-const ACTIVE_LOCALE_CODES: ReadonlySet<string> = new Set(["es", "en"]);
 
 type GoogleAuthLike = {
   getClient: () => Promise<{ getAccessToken: () => Promise<{ token?: string | null }> }>;
@@ -58,14 +60,14 @@ function parseServiceAccountJson(): Record<string, unknown> | null {
   }
 }
 
-function mapLocaleToGoogle(locale: Locale): string {
-  return locale === "en" ? "en" : "es";
-}
-
 function assertActiveTargetLocale(locale: Locale): void {
-  if (!ACTIVE_LOCALE_CODES.has(locale)) {
+  if (!isValidTranslateAdTargetLocale(locale)) {
     throw new TranslationProviderRequestError();
   }
+}
+
+function mapLocaleToGoogle(locale: Locale): string {
+  return mapTranslateAdLocaleToGoogle(locale);
 }
 
 async function getGoogleAccessToken(): Promise<string> {
@@ -178,7 +180,7 @@ async function callGoogleTranslateAdvanced(
  * - GOOGLE_TRANSLATE_LOCATION=global (default)
  * - GOOGLE_APPLICATION_CREDENTIALS_JSON (Vercel) or GOOGLE_APPLICATION_CREDENTIALS (local file path)
  *
- * G6 TODO: extend ACTIVE_LOCALE_CODES after dictionary + UX gates.
+ * SQL2E: non-RTL dynamic targets unlocked via localeCodes.ts + migration 20260527213000.
  * G4 TODO: durable cache / translation_records lookup before provider call.
  * G3+ TODO: glossary / protected terms for business names.
  */

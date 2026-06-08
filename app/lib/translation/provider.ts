@@ -1,3 +1,7 @@
+import {
+  isValidTranslateAdTargetLocale,
+  mapTranslateAdLocaleToGoogle,
+} from "@/app/lib/translation/localeCodes";
 import type { AdTranslationResult, ContentLocale, Locale, TranslatableAdFieldKey, TranslatableAdFields } from "@/app/lib/translation/types";
 import { GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID } from "@/app/lib/translation/types";
 import {
@@ -43,8 +47,6 @@ export {
 
 const TRANSLATE_SCOPE = "https://www.googleapis.com/auth/cloud-translation";
 
-/** Active locales (T3G). G6 TODO: zh, fil/tl, vi, ko, hi, fa, ar, hy, ru, pt, pa, ja */
-const ACTIVE_LOCALE_CODES: ReadonlySet<string> = new Set(["es", "en"]);
 
 type GoogleAuthLike = {
   getClient: () => Promise<{ getAccessToken: () => Promise<{ token?: string | null }> }>;
@@ -95,14 +97,14 @@ function parseServiceAccountCredentials(): Record<string, unknown> | null {
   }
 }
 
-function mapLocaleToGoogle(locale: Locale): string {
-  return locale === "en" ? "en" : "es";
-}
-
 function assertActiveLocale(locale: Locale): void {
-  if (!ACTIVE_LOCALE_CODES.has(locale)) {
+  if (!isValidTranslateAdTargetLocale(locale)) {
     throw new TranslationProviderRequestError();
   }
+}
+
+function mapLocaleToGoogle(locale: Locale): string {
+  return mapTranslateAdLocaleToGoogle(locale);
 }
 
 /** DeepL is disabled by default in T3G — only Google is the active provider. */

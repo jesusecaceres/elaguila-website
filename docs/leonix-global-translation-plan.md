@@ -181,19 +181,25 @@ Tagalog route `tl` → Google provider code `fil`. Chinese route `zh` → provid
 - Spanish PDF/cover/flipbook are the only **available** visual assets today
 - Non-ES entries are `planned`; helper always serves Spanish URLs with `isTranslatedVisualAvailable: false`
 
-### Dynamic translation locale blocker — **SQL2E required**
+### Dynamic translation locale blocker — **SQL2E ✅ (code + migration; apply before production)**
 
-| Layer | Current constraint | Blocks |
-|-------|-------------------|--------|
-| Supabase `translation_records.target_locale` | `CHECK (target_locale IN ('es','en'))` | `vi` and all planned targets |
-| `POST /api/translate-ad` | `VALID_TARGET_LOCALES = es, en` | same |
-| `app/lib/translation/types.ts` | `Locale = es \| en` | same |
-| Google provider | `ACTIVE_LOCALE_CODES = es, en` | same |
+| Layer | Before SQL2E | After SQL2E |
+|-------|--------------|-------------|
+| Supabase `translation_records.target_locale` | `CHECK (target_locale IN ('es','en'))` | Expanded non-RTL list via `20260527213000_expand_translation_records_locale_constraints.sql` |
+| `POST /api/translate-ad` | `es`, `en` only | `es`, `en`, `vi`, `pt`, `tl`/`fil`, `km`, `zh`/`zh-CN`/`zh-Hans`, `ja`, `ko`, `hi`, `hy`, `ru`, `pa` |
+| `app/lib/translation/localeCodes.ts` | n/a | Central allowlist + Google mapping |
+| Google provider | `es`, `en` only | Same expanded set via `mapTranslateAdLocaleToGoogle()` |
 
-**Unlock order:** SQL2E migration expands `target_locale` CHECK → types + route validation → provider active set → enable per-locale in header (truthfully).
+**Held RTL (not active):** `ar`, `fa` — rejected at API; omitted from DB target constraint.
 
-**Do not** activate planned languages in the header or API until SQL2E + validation expansion land.
+**Provider mapping (documented):**
+- Tagalog route code **`tl`** → Google **`fil`** (Filipino). Alias **`fil`** accepted in API/DB for cache alignment.
+- Chinese route code **`zh`** → Google **`zh-CN`** (Simplified). Aliases **`zh-CN`** / **`zh-Hans`** accepted in API/DB.
+
+**Production activation:** apply SQL2E migration → commit/push → redeploy Vercel → per-locale cache smoke (first request `fromCache: false`, second identical request **`fromCache: true`**).
+
+**Do not** claim full-site translation or activate RTL languages until dedicated gates.
 
 ### Next gate
 
-**SQL2E — Locale Constraint Expansion** — expand `translation_records.target_locale` and API allowlist before activating `vi` or any planned language for Translate Ad.
+**SQL2F — Apply migration + per-locale cache smoke** — prove durable cache hits for each unlocked target locale in production after migration deploy.

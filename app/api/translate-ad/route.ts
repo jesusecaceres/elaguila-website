@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  isValidTranslateAdSourceLocale,
+  isValidTranslateAdTargetLocale,
+} from "@/app/lib/translation/localeCodes";
 import type {
   ContentLocale,
   Locale,
@@ -28,8 +32,6 @@ const ALLOWED_FIELD_KEYS: ReadonlySet<TranslatableAdFieldKey> = new Set([
   "shareText",
 ]);
 
-const VALID_TARGET_LOCALES: ReadonlySet<string> = new Set(["es", "en"]);
-const VALID_SOURCE_LOCALES: ReadonlySet<string> = new Set(["es", "en", "unknown"]);
 
 const MAX_TOTAL_CHARS = 12_000;
 const MAX_FIELD_CHARS = 5_000;
@@ -89,10 +91,10 @@ function parseTranslateAdRequest(body: unknown): TranslateAdRequest | null {
   const payload = body as Record<string, unknown>;
 
   const targetLocale = payload.targetLocale;
-  if (typeof targetLocale !== "string" || !VALID_TARGET_LOCALES.has(targetLocale)) return null;
+  if (typeof targetLocale !== "string" || !isValidTranslateAdTargetLocale(targetLocale)) return null;
 
   const sourceLocale = payload.sourceLocale;
-  if (typeof sourceLocale !== "string" || !VALID_SOURCE_LOCALES.has(sourceLocale)) return null;
+  if (typeof sourceLocale !== "string" || !isValidTranslateAdSourceLocale(sourceLocale)) return null;
 
   const category = sanitizeMetaString(payload.category);
   if (!category) return null;
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Invalid request. Required: maskedFields (non-empty), category, listingKey, sourceLocale (es|en|unknown), targetLocale (es|en).",
+          "Invalid request. Required: maskedFields (non-empty), category, listingKey, sourceLocale (SQL2E allowlist + unknown), targetLocale (SQL2E non-RTL allowlist). ar/fa not active.",
       },
       { status: 400 },
     );
