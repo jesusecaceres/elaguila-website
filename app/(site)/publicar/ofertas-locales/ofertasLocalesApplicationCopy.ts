@@ -149,6 +149,33 @@ const COPY = {
     aiReviewCountNeedsReview: "Necesita revisión",
     aiReviewCountApproved: "Aprobado",
     aiReviewCountRejected: "Rechazado",
+    clickablePreviewPanelTitle: "Vista previa de productos",
+    clickablePreviewIntro:
+      "Toca un producto para ver cómo podría verse para compradores — solo vista previa privada.",
+    clickablePreviewEmpty: "Aún no hay productos para previsualizar.",
+    clickablePreviewLoading: "Cargando productos para vista previa…",
+    clickablePreviewLoadFailed: "No se pudieron cargar los productos para vista previa.",
+    clickablePreviewRefresh: "Actualizar",
+    clickablePreviewRefreshing: "Actualizando…",
+    clickablePreviewNotPublicBadge: "No público",
+    clickablePreviewTapHint: "Toca para ver detalles",
+    clickablePreviewDetailTitle: "Detalle del producto",
+    clickablePreviewPrivateSafety:
+      "Vista previa privada — este producto todavía no aparece públicamente.",
+    clickablePreviewApprovedNotPublic:
+      "Los productos aprobados no aparecerán públicamente hasta que Leonix active la búsqueda pública.",
+    clickablePreviewViewSource: "Ver volante o cupón original",
+    clickablePreviewSourceUnavailable:
+      "El archivo original está registrado, pero el enlace público todavía no está disponible.",
+    clickablePreviewSourcePage: "Página fuente",
+    clickablePreviewBusiness: "Negocio",
+    clickablePreviewLocation: "Ubicación",
+    clickablePreviewValidDates: "Vigencia",
+    clickablePreviewNormalizedName: "Nombre normalizado",
+    clickablePreviewSubcategory: "Subcategoría",
+    clickablePreviewClose: "Cerrar",
+    clickablePreviewReviewStatus: "Estado de revisión",
+    clickablePreviewSourceAsset: "Archivo fuente",
   },
   en: {
     pageTitle: "Local Deals",
@@ -298,6 +325,33 @@ const COPY = {
     aiReviewCountNeedsReview: "Needs review",
     aiReviewCountApproved: "Approved",
     aiReviewCountRejected: "Rejected",
+    clickablePreviewPanelTitle: "Item preview",
+    clickablePreviewIntro:
+      "Tap an item to see how it may appear to shoppers — private preview only.",
+    clickablePreviewEmpty: "No items are ready to preview yet.",
+    clickablePreviewLoading: "Loading items for preview…",
+    clickablePreviewLoadFailed: "Could not load items for preview.",
+    clickablePreviewRefresh: "Refresh",
+    clickablePreviewRefreshing: "Refreshing…",
+    clickablePreviewNotPublicBadge: "Not public",
+    clickablePreviewTapHint: "Tap to view details",
+    clickablePreviewDetailTitle: "Item detail",
+    clickablePreviewPrivateSafety:
+      "Private preview — this item is not public yet.",
+    clickablePreviewApprovedNotPublic:
+      "Approved items will not appear publicly until Leonix enables public item search.",
+    clickablePreviewViewSource: "View original flyer or coupon",
+    clickablePreviewSourceUnavailable:
+      "The original file is recorded, but the public link is not available yet.",
+    clickablePreviewSourcePage: "Source page",
+    clickablePreviewBusiness: "Business",
+    clickablePreviewLocation: "Location",
+    clickablePreviewValidDates: "Valid dates",
+    clickablePreviewNormalizedName: "Normalized name",
+    clickablePreviewSubcategory: "Subcategory",
+    clickablePreviewClose: "Close",
+    clickablePreviewReviewStatus: "Review status",
+    clickablePreviewSourceAsset: "Source file",
   },
 } as const;
 

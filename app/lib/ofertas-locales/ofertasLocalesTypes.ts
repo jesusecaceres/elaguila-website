@@ -536,6 +536,13 @@ export type OfertaLocalItemReviewViewModel = {
   sourceAssetId: string;
   sourceAssetUrl: string;
   sourcePage: number | null;
+  sourceCropUrl: string;
+  businessName: string;
+  businessCity: string;
+  businessState: string;
+  businessZipCode: string;
+  validFrom: string | null;
+  validUntil: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -570,6 +577,25 @@ export type OfertaLocalItemsListApiResponse = {
   summary?: Record<OfertaLocalItemReviewStatus, number>;
   error?: string;
   detail?: string;
+};
+
+export type OfertaLocalClickableItemPreviewCard = {
+  id: string;
+  itemName: string;
+  priceDisplay: string;
+  categoryLabel: string;
+  reviewStatus: OfertaLocalItemReviewStatus;
+  confidenceLabel: "high" | "medium" | "low" | "unknown";
+  sourcePage: number | null;
+  notPublic: true;
+};
+
+export type OfertaLocalClickableItemPreviewContext = {
+  sourceAssetLabel: string;
+  sourceAssetHref: string | null;
+  sourceAssetAvailable: boolean;
+  highlightSupportDetected: false;
+  boundingBoxNote: string;
 };
 
 export type OfertaLocalItemPatchApiResponse = {

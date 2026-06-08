@@ -1049,13 +1049,13 @@ const heroLineClass =
 /** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
 const ANCHOR_SCROLL = "scroll-mt-28 lg:scroll-mt-28";
 
-const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-6 sm:py-12 lg:py-14`;
+const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-5 sm:py-12 lg:py-14`;
 
 const sectionEyebrowClass =
   "text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#556B3E] sm:text-xs sm:tracking-[0.16em]";
 
 const sectionTitleClass =
-  "mt-1.5 max-w-3xl font-serif text-xl font-bold leading-snug tracking-tight text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:text-3xl";
+  "mt-1.5 max-w-3xl font-serif text-lg font-bold leading-snug tracking-tight text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:text-3xl";
 
 const sectionIntroClass =
   "mt-2 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed";
@@ -1235,7 +1235,7 @@ function WhatYouGetCardArticle({
 
   return (
     <article
-      className={`flex h-full flex-col ${cardShellClass} p-3.5 sm:p-6 ${extra} ${
+      className={`flex h-full flex-col ${cardShellClass} p-3 sm:p-6 ${extra} ${
         card.accent === "founder"
           ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
           : ""
@@ -1371,7 +1371,7 @@ function MarketplaceSection({
       </p>
 
       <ul
-        className="mt-4 grid min-w-0 list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
+        className="mt-3 grid min-w-0 list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
@@ -1391,7 +1391,7 @@ function MarketplaceSection({
         ))}
       </ul>
 
-      <div className="mt-4 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-3.5 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-6">
+      <div className="mt-3 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-3 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-6">
         <p className="max-w-3xl font-serif text-[0.9375rem] font-bold leading-snug text-[#F8F4EA] sm:text-xl">
           {closing}
         </p>
@@ -1447,7 +1447,7 @@ function WhatYouGetSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <ul className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:gap-5 lg:grid-cols-6">
+      <ul className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:gap-5 lg:grid-cols-6">
         {cards.map((card, index) => {
           const spanClass = index < 3 ? "lg:col-span-2" : "lg:col-span-3";
           return (
@@ -1502,12 +1502,12 @@ function HowItWorksSection({
       <p className={sectionIntroClass}>{intro}</p>
 
       <ol
-        className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
+        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
         aria-label={stepsAria}
       >
         {steps.map((step, index) => (
           <li key={index} className="flex">
-            <article className={`flex h-full w-full flex-col ${cardShellClass} p-3.5 sm:p-6`}>
+            <article className={`flex h-full w-full flex-col ${cardShellClass} p-3 sm:p-6`}>
               <span
                 className={`mb-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 sm:mb-4 sm:h-10 sm:w-10 ${processStepBadgeStyles[index]}`}
                 aria-hidden
@@ -1589,7 +1589,7 @@ function QrAccessSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <div className="mt-4 grid min-w-0 items-start gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+      <div className="mt-3 grid min-w-0 items-start gap-2.5 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
         <p className="text-[0.9375rem] leading-snug text-[#3D3428] sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-xl">
           {explanation}
         </p>
@@ -1603,12 +1603,12 @@ function QrAccessSection({
       </div>
 
       <ul
-        className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-3"
+        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-3"
         aria-label={benefitsAria}
       >
         {benefits.map((benefit, index) => (
           <li key={index} className="flex">
-            <article className={`h-full w-full ${cardShellClass} p-3.5 sm:p-6`}>
+            <article className={`h-full w-full ${cardShellClass} p-3 sm:p-6`}>
               <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
                 {benefit.title}
               </h3>
@@ -1711,13 +1711,13 @@ function MediaKitPreviewSection({
       <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
 
       <ul
-        className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
+        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
           <li key={index} className="flex">
             <article
-              className={`flex h-full w-full flex-col ${cardShellClass} p-3.5 ring-1 ring-[#C9A84A]/10 sm:p-6`}
+              className={`flex h-full w-full flex-col ${cardShellClass} p-3 ring-1 ring-[#C9A84A]/10 sm:p-6`}
             >
               <MediaKitPreviewCardIcon index={index} />
               <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
@@ -1731,7 +1731,7 @@ function MediaKitPreviewSection({
         ))}
       </ul>
 
-      <div className="mt-4 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3.5 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:mt-8 sm:p-7">
+      <div className="mt-3 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:mt-8 sm:p-7">
         <h3 className="font-serif text-base font-bold text-[#2A4536] sm:text-xl">
           {ctaHeading}
         </h3>
@@ -1788,9 +1788,9 @@ function FinalCtaActions({
   const [advertiseCta, mediaKitViewCta, joinCta] = ctas;
 
   return (
-    <div className="mt-4 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+    <div className="mt-3 flex flex-col gap-1.5 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
       <HeroCtaLink cta={advertiseCta} />
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2">
+      <div className="grid grid-cols-2 gap-1.5 sm:contents">
         <HeroCtaLink cta={mediaKitViewCta} />
         <MediaKitDownloadLink
           label={mediaKitDownload.label}
@@ -2117,10 +2117,10 @@ function ComingSoonV2ShellContent() {
         aria-label={t.mainAria}
       >
         <section
-          className="pb-6 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
+          className="pb-5 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-5 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
+          <div className="grid items-start gap-4 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
             <div className="min-w-0 max-w-3xl lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
@@ -2134,7 +2134,7 @@ function ComingSoonV2ShellContent() {
               </h1>
 
               <ul
-                className="mt-5 space-y-2 border-l-[3px] border-[#C9A84A]/55 pl-4 sm:mt-7 sm:space-y-3 sm:pl-5"
+                className="mt-4 space-y-1.5 border-l-[3px] border-[#C9A84A]/55 pl-4 sm:mt-7 sm:space-y-3 sm:pl-5"
                 aria-label={h.valueAria}
               >
                 {h.valueLines.map((line, index) => (
@@ -2155,11 +2155,14 @@ function ComingSoonV2ShellContent() {
                 {h.paragraph}
               </p>
 
-              <div className="mt-5 flex flex-col gap-2 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
-                {heroCtas.map((cta) => (
-                  <HeroCtaLink key={cta.label} cta={cta} />
-                ))}
-                <div className="grid grid-cols-2 gap-2 sm:contents">
+              <div className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+                <HeroCtaLink cta={heroCtas[0]} />
+                <div className="grid grid-cols-2 gap-1.5 sm:contents">
+                  {heroCtas.slice(1).map((cta) => (
+                    <HeroCtaLink key={cta.label} cta={cta} />
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 sm:contents">
                   <HeroCtaLink
                     cta={{
                       label: magazineHero.read,
@@ -2178,7 +2181,7 @@ function ComingSoonV2ShellContent() {
               </div>
 
               <ul
-                className="mt-5 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
+                className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
                 aria-label={h.trustAria}
               >
                 {h.trustChips.map((chip) => (

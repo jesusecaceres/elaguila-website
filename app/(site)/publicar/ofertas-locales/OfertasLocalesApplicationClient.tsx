@@ -51,6 +51,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
+import { OfertasLocalesClickableItemPreviewPanel } from "./OfertasLocalesClickableItemPreviewPanel";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
 import {
   OFERTAS_LOCALES_SHELL_COPY,
@@ -671,6 +672,12 @@ export default function OfertasLocalesApplicationClient() {
                   ofertaLocalId={submitSuccess?.id}
                   scanJobId={lastScanJobId}
                 />
+                <OfertasLocalesClickableItemPreviewPanel
+                  lang={lang}
+                  ofertaLocalId={submitSuccess?.id}
+                  scanJobId={lastScanJobId}
+                  draft={draft}
+                />
               </>
             ) : null}
           </div>
@@ -870,6 +877,12 @@ export default function OfertasLocalesApplicationClient() {
                   lang={lang}
                   ofertaLocalId={submitSuccess?.id}
                   scanJobId={lastScanJobId}
+                />
+                <OfertasLocalesClickableItemPreviewPanel
+                  lang={lang}
+                  ofertaLocalId={submitSuccess?.id}
+                  scanJobId={lastScanJobId}
+                  draft={draft}
                 />
               </>
             ) : null}
