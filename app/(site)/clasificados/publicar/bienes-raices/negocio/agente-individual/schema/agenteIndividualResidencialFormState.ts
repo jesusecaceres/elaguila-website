@@ -210,6 +210,12 @@ export type AgenteIndividualResidencialFormState = {
   socialYoutube: string;
   socialTiktok: string;
   socialX: string;
+  socialLinkedin: string;
+  socialSnapchat: string;
+  /** Google Business / reviews profile URL (main agent hub). */
+  googleReviewsUrl: string;
+  /** Yelp business reviews URL (main agent hub). */
+  yelpReviewsUrl: string;
   socialOtro: string;
 
   agenteAreaServicio: string;
@@ -614,6 +620,10 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     socialYoutube: "",
     socialTiktok: "",
     socialX: "",
+    socialLinkedin: "",
+    socialSnapchat: "",
+    googleReviewsUrl: "",
+    yelpReviewsUrl: "",
     socialOtro: "",
 
     agenteAreaServicio: "",

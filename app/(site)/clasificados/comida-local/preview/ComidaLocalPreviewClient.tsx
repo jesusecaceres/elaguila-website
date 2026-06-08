@@ -80,7 +80,7 @@ export function ComidaLocalPreviewClient() {
               Editar formulario
             </Link>
             <Link href={PUBLISH_FORM_HREF} className={CL_BTN_PRIMARY}>
-              Ir a publicar
+              Publicar desde formulario
             </Link>
           </div>
         </div>

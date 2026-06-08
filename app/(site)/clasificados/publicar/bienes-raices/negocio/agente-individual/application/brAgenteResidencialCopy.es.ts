@@ -203,6 +203,10 @@ export const BR_COPY_ES = {
     youtube: "YouTube",
     tiktok: "TikTok",
     x: "X / Twitter",
+    linkedin: "LinkedIn",
+    snapchat: "Snapchat",
+    googleReviews: "Opiniones en Google (URL)",
+    yelpReviews: "Opiniones en Yelp (URL)",
     enlaceSocialAdicional: "Enlace social adicional (opcional)",
     areaServicio: "Área de servicio (opcional)",
     idiomas: "Idiomas (opcional)",
@@ -239,7 +243,11 @@ export const BR_COPY_ES = {
   step08: {
     title: "Acciones de contacto",
     sub:
-      "Los destinos de cada botón se toman de la información profesional, fotos y medios, y datos del anuncio. Activa solo las acciones que quieras mostrar; si falta un dato válido, el botón no aparece.",
+      "Los botones del anuncio se activan solos con los datos válidos que ya capturaste en pasos anteriores. Si un dato está vacío o no es válido, el botón no aparece.",
+    detectedTitle: "Acciones detectadas para compradores",
+    detectedHelper:
+      "Estas acciones se activan automáticamente con los datos válidos que ya capturaste. Si un dato está vacío o no es válido, el botón no aparecerá.",
+    detectedEmpty: "Aún no hay acciones detectadas. Completa teléfono, correo, enlaces o redes en los pasos anteriores.",
     accionesVisibles: "Acciones visibles para compradores",
     accionesVisiblesSub:
       "Activa solo los botones que quieras mostrar en la vista previa y en la publicación. Cada botón usa los datos ya capturados; sin destino válido, el botón no aparece. «Mostrar iconos de redes» requiere al menos un enlace en las redes del agente principal.",
@@ -363,6 +371,12 @@ export const BR_COPY_ES = {
     lightboxGalleryCount: (cur: number, total: number) => `Galería · ${cur} / ${total}`,
     footerDefault:
       "Leonix es una vitrina premium: el listado oficial puede estar en tu MLS o sitio web.",
+    officeBrokerLabel: "Oficina / Broker",
+    mainAgentLabel: "Agente principal",
+    secondAgentLabel: "Segundo agente",
+    quickActionsLabel: "Acciones rápidas",
+    googleReviews: "Opiniones en Google",
+    yelpReviews: "Opiniones en Yelp",
   },
   previewFormat: {
     opLine: "Venta residencial",

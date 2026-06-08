@@ -18,12 +18,10 @@ import {
   BiShapeSquare,
 } from "react-icons/bi";
 import { FiExternalLink, FiMapPin, FiVideo } from "react-icons/fi";
-import { SiFacebook, SiInstagram, SiTiktok, SiX, SiYoutube } from "react-icons/si";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import type { QuickFactKey } from "../lib/agenteResidencialPreviewFormat";
 import {
   buildBrokerSupportBlock,
-  buildContactModel,
   buildDestacadosLabels,
   buildGalleryModel,
   buildLocationLine,
@@ -31,25 +29,18 @@ import {
   buildOpenHouseSlotSummaries,
   buildPropertyDetailRows,
   buildQuickFacts,
-  buildSecondAgentSocialHrefs,
-  effectiveAgente2TelefonoPersonal,
-  effectiveAgenteTelefonoOficina,
-  effectiveAgenteTelefonoPersonal,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
   formatPreviewPhoneDisplay,
   formatTipoPublicacionFijoLine,
   galleryPhotoUrlsOrdered,
-  hasBrandBlockVisible,
-  hasSecondAgentRailContent,
-  hrefFromUserInput,
-  previewWhatsappClickHref,
   restPhotoIndicesAfterCover,
   trim,
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
 import { digitsOnly } from "../application/utils/phoneMask";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
+import { BrAgenteResContactSidebar } from "./BrAgenteResContactSidebar";
 import { AgenteIndividualResidencialMediaLightbox } from "./AgenteIndividualResidencialMediaLightbox";
 import {
   hasDescription,
@@ -144,30 +135,6 @@ function EmptySlot({
   );
 }
 
-function SocialCircle({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={label}
-      aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border text-[#3d3428] transition hover:border-[#c4a85a]/50 hover:bg-[rgba(197,160,89,0.08)] sm:h-8 sm:w-8"
-      style={{ borderColor: BORDER, color: CHARCOAL }}
-    >
-      {children}
-    </a>
-  );
-}
-
 function GalleryCaption({ children }: { children: ReactNode }) {
   return (
     <p className={`mt-1.5 text-center ${typo.meta}`} style={{ color: MUTED_LIGHT }}>
@@ -198,11 +165,9 @@ export function AgenteIndividualResidencialPreviewPage({
   };
 
   const g = buildGalleryModel(data);
-  const cr = buildContactModel(data);
   const propertyRows = buildPropertyDetailRows(data, locale);
   const destacadosLabels = buildDestacadosLabels(data, locale);
   const quickFacts = buildQuickFacts(data, locale);
-  const showBrand = hasBrandBlockVisible(data);
   const title = trim(data.titulo);
   const priceDisplay = formatPrecioUsd(data.precio);
   const statusPill = formatEstadoAnuncioLabel(data, locale);
@@ -211,25 +176,7 @@ export function AgenteIndividualResidencialPreviewPage({
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
   const openHouseSummaries = buildOpenHouseSlotSummaries(data, locale);
   const brokerSupportBlock = buildBrokerSupportBlock(data);
-  const agente2Social = buildSecondAgentSocialHrefs(data);
   const opLine = formatTipoPublicacionFijoLine(data, locale);
-
-  const agentLicenseLine = trim(data.agenteLicencia) ? `${p.licenciaAgente} ${trim(data.agenteLicencia)}` : "";
-  const brandLicenseLine = showBrand && trim(data.marcaLicencia) ? `${p.licenciaMarca} ${trim(data.marcaLicencia)}` : "";
-  const resolvedBrandSite = showBrand ? hrefFromUserInput(data.marcaSitioWeb) : null;
-  /** BR Negocio lane is fixed to `agente_individual` (see `BrNegocioSellerTipo`). */
-  const showPrimaryAgentVisual = true;
-  const showSecondAgentRail = hasSecondAgentRailContent(data);
-  const agente2LicenseLine = trim(data.agente2Licencia) ? `${p.licenciaAgente} ${trim(data.agente2Licencia)}` : "";
-  const agentePersonalRaw = effectiveAgenteTelefonoPersonal(data);
-  const agenteOfficeRaw = effectiveAgenteTelefonoOficina(data);
-  const agentePersonalOk = digitsOnly(agentePersonalRaw).length >= 10;
-  const agenteOfficeOk = digitsOnly(agenteOfficeRaw).length >= 10;
-  const agenteCardSiteHref = hrefFromUserInput(data.agenteSitioWeb);
-  const agente2PersonalRaw = effectiveAgente2TelefonoPersonal(data);
-  const agente2OfficeRaw = trim(data.agente2TelefonoOficina);
-  const agente2PersonalOk = digitsOnly(agente2PersonalRaw).length >= 10;
-  const agente2OfficeOk = digitsOnly(agente2OfficeRaw).length >= 10;
 
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
@@ -246,13 +193,6 @@ export function AgenteIndividualResidencialPreviewPage({
 
   const hasVideoInLightbox = Boolean(g.videoDataUrl || g.videoExternalHref);
   const videoSlideIndex = photoUrlsOrdered.length;
-
-  const showPrimaryContactStrip =
-    agentePersonalOk || agenteOfficeOk || trim(data.correoPrincipal) || Boolean(agenteCardSiteHref);
-  const showAgente2ContactStrip =
-    agente2PersonalOk ||
-    agente2OfficeOk ||
-    trim(data.agente2Correo);
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -669,75 +609,78 @@ export function AgenteIndividualResidencialPreviewPage({
                   {brokerSupportBlock ? (
                     <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={CARD_PAD}>
-                        <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
+                        <h4 className={`${typo.kicker} mb-3`} style={{ color: MUTED }}>
                           {p.brokerAsesor}
                         </h4>
-                        {brokerSupportBlock.fotoDataUrl ? (
-                          <div className="mb-2 max-w-[100px]">
-                            { }
-                            <img
-                              src={brokerSupportBlock.fotoDataUrl}
-                              alt=""
-                              className="aspect-square w-full max-h-[100px] rounded-md border object-cover"
-                              style={{ borderColor: BORDER }}
-                            />
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                          {brokerSupportBlock.fotoDataUrl ? (
+                            <div className="mx-auto shrink-0 sm:mx-0 sm:w-[100px]">
+                              <img
+                                src={brokerSupportBlock.fotoDataUrl}
+                                alt=""
+                                className="aspect-square w-full max-h-[100px] rounded-md border object-cover"
+                                style={{ borderColor: BORDER }}
+                              />
+                            </div>
+                          ) : null}
+                          <div className="min-w-0 flex-1">
+                            <p className={`${typo.body} font-semibold`}>{brokerSupportBlock.name}</p>
+                            {brokerSupportBlock.title ? (
+                              <p className={`${typo.bodySm} mt-0.5`} style={{ color: MUTED }}>
+                                {brokerSupportBlock.title}
+                              </p>
+                            ) : null}
+                            {brokerSupportBlock.license ? (
+                              <p className={`${typo.bodySm} mt-1 opacity-90`} style={{ color: MUTED_LIGHT }}>
+                                {brokerSupportBlock.license}
+                              </p>
+                            ) : null}
+                            {brokerSupportBlock.email ? (
+                              <a
+                                href={`mailto:${brokerSupportBlock.email}`}
+                                className="mt-2 block truncate text-sm font-semibold"
+                                style={{ color: BRONZE }}
+                              >
+                                {brokerSupportBlock.email}
+                              </a>
+                            ) : null}
+                            {digitsOnly(brokerSupportBlock.personalPhone).length >= 10 ? (
+                              <a
+                                href={`tel:${digitsOnly(brokerSupportBlock.personalPhone)}`}
+                                className={`mt-2 block ${typo.bodySm} font-semibold`}
+                                style={{ color: CHARCOAL }}
+                              >
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
+                                {formatPreviewPhoneDisplay(brokerSupportBlock.personalPhone)}
+                              </a>
+                            ) : null}
+                            {digitsOnly(brokerSupportBlock.officePhone).length >= 10 ? (
+                              <a
+                                href={`tel:${digitsOnly(brokerSupportBlock.officePhone)}`}
+                                className={`mt-1 block ${typo.bodySm} font-semibold`}
+                                style={{ color: CHARCOAL }}
+                              >
+                                <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
+                                {formatPreviewPhoneDisplay(brokerSupportBlock.officePhone)}
+                              </a>
+                            ) : null}
+                            {brokerSupportBlock.website ? (
+                              <a
+                                href={brokerSupportBlock.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold"
+                                style={{ color: BRONZE }}
+                              >
+                                {p.masInformacion}
+                                <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
+                              </a>
+                            ) : null}
+                            <p className={`mt-3 ${typo.bodySm} leading-snug opacity-80`} style={{ color: MUTED_LIGHT }}>
+                              {p.financingDisclaimer}
+                            </p>
                           </div>
-                        ) : null}
-                        <p className={`${typo.body} font-semibold`}>{brokerSupportBlock.name}</p>
-                        {brokerSupportBlock.title ? (
-                          <p className={`${typo.bodySm} mt-0.5`} style={{ color: MUTED }}>
-                            {brokerSupportBlock.title}
-                          </p>
-                        ) : null}
-                        {brokerSupportBlock.license ? (
-                          <p className={`${typo.bodySm} mt-1 opacity-90`} style={{ color: MUTED_LIGHT }}>
-                            {brokerSupportBlock.license}
-                          </p>
-                        ) : null}
-                        {brokerSupportBlock.email ? (
-                          <a
-                            href={`mailto:${brokerSupportBlock.email}`}
-                            className="mt-2 block truncate text-sm font-semibold"
-                            style={{ color: BRONZE }}
-                          >
-                            {brokerSupportBlock.email}
-                          </a>
-                        ) : null}
-                        {digitsOnly(brokerSupportBlock.personalPhone).length >= 10 ? (
-                          <a
-                            href={`tel:${digitsOnly(brokerSupportBlock.personalPhone)}`}
-                            className={`mt-2 block ${typo.bodySm} font-semibold`}
-                            style={{ color: CHARCOAL }}
-                          >
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
-                            {formatPreviewPhoneDisplay(brokerSupportBlock.personalPhone)}
-                          </a>
-                        ) : null}
-                        {digitsOnly(brokerSupportBlock.officePhone).length >= 10 ? (
-                          <a
-                            href={`tel:${digitsOnly(brokerSupportBlock.officePhone)}`}
-                            className={`mt-1 block ${typo.bodySm} font-semibold`}
-                            style={{ color: CHARCOAL }}
-                          >
-                            <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
-                            {formatPreviewPhoneDisplay(brokerSupportBlock.officePhone)}
-                          </a>
-                        ) : null}
-                        {brokerSupportBlock.website ? (
-                          <a
-                            href={brokerSupportBlock.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 inline-flex items-center gap-1 text-sm font-semibold"
-                            style={{ color: BRONZE }}
-                          >
-                            {p.masInformacion}
-                            <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
-                          </a>
-                        ) : null}
-                        <p className={`mt-3 ${typo.bodySm} leading-snug opacity-80`} style={{ color: MUTED_LIGHT }}>
-                          {p.financingDisclaimer}
-                        </p>
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -781,355 +724,7 @@ export function AgenteIndividualResidencialPreviewPage({
             }}
           >
             <div className="p-3.5 sm:p-4">
-              {showBrand ? (
-                <div
-                  className="mb-4 rounded-xl border px-3 py-3.5 sm:px-4 sm:py-4"
-                  style={{
-                    borderColor: BORDER,
-                    background: "linear-gradient(180deg, rgba(255,252,247,0.98) 0%, rgba(249,246,241,0.92) 100%)",
-                    boxShadow: "0 2px 14px rgba(44,36,22,0.06)",
-                  }}
-                >
-                  {trim(data.marcaLogoDataUrl) ? (
-                    <div className="mx-auto mb-2.5 flex h-[4.25rem] w-full max-w-[200px] items-center justify-center sm:h-[4.75rem] sm:max-w-[220px]">
-                      { }
-                      <img
-                        src={trim(data.marcaLogoDataUrl)}
-                        alt=""
-                        className="max-h-full max-w-full object-contain opacity-[0.98]"
-                      />
-                    </div>
-                  ) : null}
-                  {trim(data.marcaNombre) ? (
-                    <p className={`text-center ${typo.bodySm} font-bold leading-snug`} style={{ color: MUTED }}>
-                      {trim(data.marcaNombre)}
-                    </p>
-                  ) : null}
-                  {brandLicenseLine ? (
-                    <p className={`mt-1.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
-                      {brandLicenseLine}
-                    </p>
-                  ) : null}
-                  {resolvedBrandSite ? (
-                    <a
-                      href={resolvedBrandSite}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 flex w-full items-center justify-center gap-1 text-center text-[11px] font-semibold"
-                      style={{ color: BRONZE }}
-                    >
-                      {p.sitioWeb}
-                      <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
-                    </a>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div>
-                {showPrimaryAgentVisual ? (
-                  <div className="mx-auto w-full max-w-[236px]">
-                    {trim(data.agenteFotoDataUrl) ? (
-                       
-                      <img
-                        src={trim(data.agenteFotoDataUrl)}
-                        alt=""
-                        className="mx-auto aspect-square w-full max-h-[240px] rounded-lg border object-cover"
-                        style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.07)" }}
-                      />
-                    ) : (
-                      <div
-                        className="flex aspect-square w-full items-center justify-center rounded-lg border text-[11px] font-medium"
-                        style={{
-                          borderColor: BORDER,
-                          color: MUTED,
-                          background: "linear-gradient(145deg, rgba(255,252,247,0.95), rgba(249,246,241,0.75))",
-                        }}
-                      >
-                        {p.fotoAgente}
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-                {trim(data.agenteNombre) ? <p className={`mt-2.5 text-center ${typo.railName}`}>{trim(data.agenteNombre)}</p> : null}
-                {trim(data.agenteTitulo) ? (
-                  <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
-                    {trim(data.agenteTitulo)}
-                  </p>
-                ) : null}
-                {trim(data.agenteAreaServicio) ? (
-                  <p className={`mt-2 text-center ${typo.bodySm}`} style={{ color: MUTED }}>
-                    <span className="font-semibold opacity-85">{p.area}</span> {trim(data.agenteAreaServicio)}
-                  </p>
-                ) : null}
-                {trim(data.agenteIdiomas) ? (
-                  <p className={`mt-1 text-center ${typo.bodySm}`} style={{ color: MUTED }}>
-                    <span className="font-semibold opacity-85">{p.idiomas}</span> {trim(data.agenteIdiomas)}
-                  </p>
-                ) : null}
-                {agentLicenseLine ? (
-                  <p className={`mt-2.5 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
-                    {agentLicenseLine}
-                  </p>
-                ) : null}
-
-                {showSecondAgentRail ? (
-                  <div
-                    className="mt-4 rounded-lg border px-3 py-3"
-                    style={{ borderColor: BORDER, background: "rgba(44,36,22,0.03)" }}
-                  >
-                    <p className={`text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
-                      {locale === "en" ? "Second agent" : "Segundo agente"}
-                    </p>
-                    {trim(data.agente2FotoDataUrl) ? (
-                      <div className="mx-auto mt-2 flex max-w-[120px] justify-center">
-                        { }
-                        <img
-                          src={trim(data.agente2FotoDataUrl)}
-                          alt=""
-                          className="aspect-square w-full max-h-[120px] rounded-md border object-cover"
-                          style={{ borderColor: BORDER }}
-                        />
-                      </div>
-                    ) : null}
-                    {trim(data.agente2Nombre) ? (
-                      <p className={`mt-2 text-center text-sm font-bold leading-tight`} style={{ color: CHARCOAL }}>
-                        {trim(data.agente2Nombre)}
-                      </p>
-                    ) : null}
-                    {trim(data.agente2Titulo) ? (
-                      <p className={`mt-0.5 text-center ${typo.railMeta}`} style={{ color: BRONZE }}>
-                        {trim(data.agente2Titulo)}
-                      </p>
-                    ) : null}
-                    {agente2LicenseLine ? (
-                      <p className={`mt-2 text-center text-[10px] leading-snug`} style={{ color: MUTED_LIGHT }}>
-                        {agente2LicenseLine}
-                      </p>
-                    ) : null}
-                    {showAgente2ContactStrip ? (
-                      <div className="mt-2 space-y-1 text-center">
-                        {agente2PersonalOk ? (
-                          <p className="text-[11px] leading-snug">
-                            <span className="font-semibold text-[#5C5346]">{p.telPersonal}:</span>{" "}
-                            <a href={`tel:${digitsOnly(agente2PersonalRaw)}`} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
-                              {formatPreviewPhoneDisplay(agente2PersonalRaw)}
-                            </a>
-                          </p>
-                        ) : null}
-                        {agente2OfficeOk ? (
-                          <p className="text-[11px] leading-snug">
-                            <span className="font-semibold text-[#5C5346]">{p.telOficina}:</span>{" "}
-                            <a href={`tel:${digitsOnly(agente2OfficeRaw)}`} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
-                              {formatPreviewPhoneDisplay(agente2OfficeRaw)}
-                            </a>
-                          </p>
-                        ) : null}
-                        {trim(data.agente2Correo) ? (
-                          <p className={`truncate text-[11px] opacity-90`}>{trim(data.agente2Correo)}</p>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {agente2Social.showRow ? (
-                      <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
-                        {agente2Social.socialInstagram ? (
-                          <SocialCircle href={agente2Social.socialInstagram} label="Instagram">
-                            <SiInstagram className="h-3.5 w-3.5" aria-hidden />
-                          </SocialCircle>
-                        ) : null}
-                        {agente2Social.socialFacebook ? (
-                          <SocialCircle href={agente2Social.socialFacebook} label="Facebook">
-                            <SiFacebook className="h-3.5 w-3.5" aria-hidden />
-                          </SocialCircle>
-                        ) : null}
-                        {agente2Social.socialYoutube ? (
-                          <SocialCircle href={agente2Social.socialYoutube} label="YouTube">
-                            <SiYoutube className="h-3.5 w-3.5" aria-hidden />
-                          </SocialCircle>
-                        ) : null}
-                        {agente2Social.socialTiktok ? (
-                          <SocialCircle href={agente2Social.socialTiktok} label="TikTok">
-                            <SiTiktok className="h-3.5 w-3.5" aria-hidden />
-                          </SocialCircle>
-                        ) : null}
-                        {agente2Social.socialX ? (
-                          <SocialCircle href={agente2Social.socialX} label="X">
-                            <SiX className="h-3 w-3" aria-hidden />
-                          </SocialCircle>
-                        ) : null}
-                        {agente2Social.socialOtro ? (
-                          <SocialCircle href={agente2Social.socialOtro} label="Enlace">
-                            <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
-                          </SocialCircle>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {showPrimaryContactStrip ? (
-                  <div
-                    className="mt-3 space-y-1 rounded-md px-2 py-2 text-center"
-                    style={{ background: "rgba(44,36,22,0.04)" }}
-                  >
-                    {agentePersonalOk ? (
-                      <p className={`${typo.bodySm} font-semibold tracking-tight`}>
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
-                        {formatPreviewPhoneDisplay(agentePersonalRaw)}
-                      </p>
-                    ) : null}
-                    {agenteOfficeOk ? (
-                      <p className={`${typo.bodySm} font-semibold tracking-tight`}>
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
-                        {formatPreviewPhoneDisplay(agenteOfficeRaw)}
-                      </p>
-                    ) : null}
-                    {trim(data.correoPrincipal) ? (
-                      <p className={`truncate ${typo.bodySm} opacity-90`}>{trim(data.correoPrincipal)}</p>
-                    ) : null}
-                    {agenteCardSiteHref ? (
-                      <p className={typo.bodySm}>
-                        <a
-                          href={agenteCardSiteHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-1 font-semibold text-[#B8954A] underline-offset-2 hover:underline"
-                        >
-                          {p.sitioWeb}
-                          <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
-                        </a>
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {cr.showSocialIcons ? (
-                  <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
-                    {cr.socialInstagram ? (
-                      <SocialCircle href={cr.socialInstagram} label="Instagram">
-                        <SiInstagram className="h-3.5 w-3.5" aria-hidden />
-                      </SocialCircle>
-                    ) : null}
-                    {cr.socialFacebook ? (
-                      <SocialCircle href={cr.socialFacebook} label="Facebook">
-                        <SiFacebook className="h-3.5 w-3.5" aria-hidden />
-                      </SocialCircle>
-                    ) : null}
-                    {cr.socialYoutube ? (
-                      <SocialCircle href={cr.socialYoutube} label="YouTube">
-                        <SiYoutube className="h-3.5 w-3.5" aria-hidden />
-                      </SocialCircle>
-                    ) : null}
-                    {cr.socialTiktok ? (
-                      <SocialCircle href={cr.socialTiktok} label="TikTok">
-                        <SiTiktok className="h-3.5 w-3.5" aria-hidden />
-                      </SocialCircle>
-                    ) : null}
-                    {cr.socialX ? (
-                      <SocialCircle href={cr.socialX} label="X">
-                        <SiX className="h-3 w-3" aria-hidden />
-                      </SocialCircle>
-                    ) : null}
-                    {cr.socialOtro ? (
-                      <SocialCircle href={cr.socialOtro} label="Enlace">
-                        <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      </SocialCircle>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="mt-3 space-y-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
-                  {cr.showLlamar && cr.llamarHref ? (
-                    <a
-                      href={cr.llamarHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg px-2 py-2.5 text-[13px] font-bold text-[#1E1810] shadow-sm transition hover:brightness-[1.02] lg:min-h-0"
-                      style={{ background: `linear-gradient(180deg, #C9A85A 0%, ${BRONZE} 100%)` }}
-                    >
-                      {p.llamar}
-                    </a>
-                  ) : null}
-                  {cr.showWhatsapp && cr.whatsappHref ? (
-                    <a
-                      href={cr.whatsappHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border bg-white/70 px-2 py-2 text-[13px] font-semibold transition hover:bg-white lg:min-h-0"
-                      style={{ borderColor: "rgba(37,211,102,0.35)" }}
-                    >
-                      {p.whatsapp}
-                    </a>
-                  ) : null}
-                  {cr.showSolicitarInformacion && cr.solicitarInfoHref ? (
-                    <a
-                      href={cr.solicitarInfoHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
-                      style={{ borderColor: BORDER }}
-                    >
-                      {p.solicitarInfo}
-                    </a>
-                  ) : null}
-                  {cr.showProgramarVisita && cr.programarVisitaHref ? (
-                    <a
-                      href={cr.programarVisitaHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
-                      style={{ borderColor: BORDER }}
-                      {...(cr.programarVisitaHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    >
-                      {p.programarVisita}
-                    </a>
-                  ) : null}
-                  {cr.showVerSitioWeb && cr.verSitioWebHref ? (
-                    <a
-                      href={cr.verSitioWebHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
-                      style={{ borderColor: BORDER }}
-                    >
-                      {p.verSitioWeb}
-                    </a>
-                  ) : null}
-                  {cr.showVerListado && cr.verListadoHref ? (
-                    <a
-                      href={cr.verListadoHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.06)] lg:min-h-0"
-                      style={{ borderColor: `${BRONZE}99`, color: BRONZE }}
-                      {...anchorPropsForHref(cr.verListadoHref, cr.listadoDownloadName)}
-                    >
-                      {p.verListado}
-                    </a>
-                  ) : null}
-                  {cr.showVerMls && cr.verMlsHref ? (
-                    <a
-                      href={cr.verMlsHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
-                      style={{ borderColor: BORDER }}
-                      {...anchorPropsForHref(cr.verMlsHref, cr.listadoDownloadName)}
-                    >
-                      {p.verMls}
-                    </a>
-                  ) : null}
-                  {cr.showVerTour && cr.verTourHref ? (
-                    <a
-                      href={cr.verTourHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
-                      style={{ borderColor: BORDER }}
-                      {...anchorPropsForHref(cr.verTourHref, "tour.pdf")}
-                    >
-                      {p.verTour}
-                    </a>
-                  ) : null}
-                  {cr.showVerFolleto && cr.verFolletoHref ? (
-                    <a
-                      href={cr.verFolletoHref}
-                      className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
-                      style={{ borderColor: BORDER }}
-                      {...anchorPropsForHref(cr.verFolletoHref, "folleto.pdf")}
-                    >
-                      {p.verFolleto}
-                    </a>
-                  ) : null}
-                </div>
-              </div>
+              <BrAgenteResContactSidebar data={data} locale={locale} p={p} />
             </div>
           </aside>
         </section>

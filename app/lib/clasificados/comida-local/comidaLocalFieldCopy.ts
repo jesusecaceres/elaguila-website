@@ -25,6 +25,10 @@ export const COMIDA_LOCAL_SHELL_COPY = {
   publishFicha: "Publicar ficha",
   publishing: "Publicando…",
   publishSuccessTitle: "Ficha publicada",
+  publishSuccessBody:
+    "Tu ficha ya está en Comida Local. Puedes verla en resultados o abrir la ficha pública.",
+  publishSuccessViewResults: "Ver resultados",
+  publishSuccessViewListing: "Ver ficha publicada",
   publishErrorGeneric: "No se pudo publicar. Revisa los campos e intenta de nuevo.",
   photosDeferredNote:
     "Sube una foto principal (obligatoria para publicar). Logo y galería son opcionales.",

@@ -113,7 +113,10 @@ export default function ComidaLocalApplicationClient() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
-  const [publishSuccessPath, setPublishSuccessPath] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState<{
+    publicPath: string;
+    leonixAdId?: string;
+  } | null>(null);
 
   const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft), [draft]);
@@ -176,7 +179,7 @@ export default function ComidaLocalApplicationClient() {
   const handlePublish = useCallback(async () => {
     if (!publishReady || publishBusy) return;
     setPublishError(null);
-    setPublishSuccessPath(null);
+    setPublishSuccess(null);
     setPublishBusy(true);
     try {
       saveComidaLocalDraftToStorage(draft);
@@ -197,7 +200,13 @@ export default function ComidaLocalApplicationClient() {
         return;
       }
       if (data.publicPath) {
-        setPublishSuccessPath(data.publicPath);
+        setPublishSuccess({
+          publicPath: data.publicPath,
+          leonixAdId:
+            typeof data.leonix_ad_id === "string" && data.leonix_ad_id.trim()
+              ? data.leonix_ad_id.trim()
+              : undefined,
+        });
       }
     } catch {
       setPublishError(COMIDA_LOCAL_SHELL_COPY.publishErrorGeneric);
@@ -627,18 +636,30 @@ export default function ComidaLocalApplicationClient() {
               </div>
             ) : null}
 
-            {publishSuccessPath ? (
+            {publishSuccess ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950">
                 <p className="font-semibold">{COMIDA_LOCAL_SHELL_COPY.publishSuccessTitle}</p>
-                <p className="mt-1 text-emerald-900/90">
-                  Tu ficha ya está en resultados públicos cuando el inventario esté disponible.
-                </p>
-                <Link
-                  href={publishSuccessPath}
-                  className="mt-3 inline-flex rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
-                >
-                  Ver ficha publicada
-                </Link>
+                <p className="mt-1 text-emerald-900/90">{COMIDA_LOCAL_SHELL_COPY.publishSuccessBody}</p>
+                {publishSuccess.leonixAdId ? (
+                  <p className="mt-2 text-xs text-emerald-800/90">
+                    ID Leonix:{" "}
+                    <span className="font-mono font-medium">{publishSuccess.leonixAdId}</span>
+                  </p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/clasificados/comida-local"
+                    className="inline-flex rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+                  >
+                    {COMIDA_LOCAL_SHELL_COPY.publishSuccessViewResults}
+                  </Link>
+                  <Link
+                    href={publishSuccess.publicPath}
+                    className="inline-flex rounded-lg border border-emerald-600/60 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-50"
+                  >
+                    {COMIDA_LOCAL_SHELL_COPY.publishSuccessViewListing}
+                  </Link>
+                </div>
               </div>
             ) : null}
 

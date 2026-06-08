@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useMemo, type Dispatch, type SetStateAction } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import {
   AGENTE_RES_DESTACADOS_DEFS,
@@ -19,6 +19,7 @@ import {
   labelDestacadoTerrenoForPublishStep,
 } from "../lib/agenteResidencialPreviewFormat";
 import { formatSqftDisplay } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
+import { detectAgenteResBuyerActions } from "../lib/agenteResidencialDetectedActions";
 
 function BrSqftPreview({ value }: { value: string }) {
   const shown = formatSqftDisplay(value);
@@ -700,6 +701,18 @@ export function Step07InformacionProfesional({
             <AiField label={s7.x}>
               <input className={aiInputClass} type="url" value={state.socialX} onChange={(e) => setState((s) => ({ ...s, socialX: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
+            <AiField label={s7.linkedin}>
+              <input className={aiInputClass} type="url" value={state.socialLinkedin} onChange={(e) => setState((s) => ({ ...s, socialLinkedin: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.snapchat}>
+              <input className={aiInputClass} type="url" value={state.socialSnapchat} onChange={(e) => setState((s) => ({ ...s, socialSnapchat: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.googleReviews}>
+              <input className={aiInputClass} type="url" value={state.googleReviewsUrl} onChange={(e) => setState((s) => ({ ...s, googleReviewsUrl: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.yelpReviews}>
+              <input className={aiInputClass} type="url" value={state.yelpReviewsUrl} onChange={(e) => setState((s) => ({ ...s, yelpReviewsUrl: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
             <AiField label={s7.enlaceSocialAdicional}>
               <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
@@ -1028,58 +1041,48 @@ export function Step07InformacionProfesional({
   );
 }
 
-type CtaToggleKey =
-  | "permitirSolicitarInformacion"
-  | "permitirProgramarVisita"
-  | "permitirLlamar"
-  | "permitirWhatsApp"
-  | "permitirVerSitioWeb"
-  | "permitirVerRedes"
-  | "permitirVerListadoCompleto"
-  | "permitirVerMls"
-  | "permitirVerTour"
-  | "permitirVerFolleto";
-
 export function Step08CtaEnlaces({
   state,
-  setState,
+  setState: _setState,
 }: {
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const { t } = useBrAgenteResidencialCopy();
+  const { lang, t } = useBrAgenteResidencialCopy();
   const s8 = t.step08;
-
-  const row = (key: CtaToggleKey, label: string) => (
-    <label key={key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
-      <input
-        type="checkbox"
-        className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
-        checked={state[key]}
-        onChange={(e) => setState((s) => ({ ...s, [key]: e.target.checked }))}
-      />
-      {label}
-    </label>
-  );
+  const locale = lang === "en" ? "en" : "es";
+  const detected = useMemo(() => detectAgenteResBuyerActions(state, locale), [state, locale]);
+  const active = detected.filter((d) => d.active);
 
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{s8.title}</h2>
       <p className={aiSubClass}>{s8.sub}</p>
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.accionesVisibles}</p>
-      <p className="mt-1 text-xs text-[#5C5346]/85">{s8.accionesVisiblesSub}</p>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {row("permitirSolicitarInformacion", s8.ctaSolicitar)}
-        {row("permitirProgramarVisita", s8.ctaVisita)}
-        {row("permitirLlamar", s8.ctaLlamar)}
-        {row("permitirWhatsApp", s8.ctaWa)}
-        {row("permitirVerSitioWeb", s8.ctaWeb)}
-        {row("permitirVerRedes", s8.ctaRedes)}
-        {row("permitirVerListadoCompleto", s8.ctaListado)}
-        {row("permitirVerMls", s8.ctaMls)}
-        {row("permitirVerTour", s8.ctaTour)}
-        {row("permitirVerFolleto", s8.ctaFolleto)}
+      <div className="mt-6 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s8.detectedTitle}</p>
+        <p className="mt-1 text-sm text-[#5C5346]/85">{s8.detectedHelper}</p>
+        {active.length ? (
+          <ul className="mt-4 space-y-2">
+            {active.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-center gap-2 rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm font-semibold text-[#2C2416]"
+              >
+                <span
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-[#1E1810]"
+                  style={{ background: "linear-gradient(180deg, #C9A85A 0%, #B8954A 100%)" }}
+                  aria-hidden
+                >
+                  ✓
+                </span>
+                {item.label}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-[#5C5346]/85">{s8.detectedEmpty}</p>
+        )}
       </div>
     </section>
   );

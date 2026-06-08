@@ -755,45 +755,93 @@ export type AgenteResContactModel = {
   showVerMls: boolean;
   showVerTour: boolean;
   showVerFolleto: boolean;
+  /** @deprecated Social icons render via `buildMainAgentBusinessHub`; kept for callers. */
   showSocialIcons: boolean;
   socialInstagram: string | null;
   socialFacebook: string | null;
   socialYoutube: string | null;
   socialTiktok: string | null;
   socialX: string | null;
+  socialLinkedin: string | null;
+  socialSnapchat: string | null;
   socialOtro: string | null;
 };
+
+export type MainAgentBusinessHub = {
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialYoutube: string | null;
+  socialTiktok: string | null;
+  socialX: string | null;
+  socialLinkedin: string | null;
+  socialSnapchat: string | null;
+  socialOtro: string | null;
+  googleReviewsUrl: string | null;
+  yelpReviewsUrl: string | null;
+  websiteHref: string | null;
+  hasSocialIcons: boolean;
+  hasReviewCards: boolean;
+};
+
+export function buildMainAgentBusinessHub(s: AgenteIndividualResidencialFormState): MainAgentBusinessHub {
+  const socialInstagram = resolveAnyHref(s.socialInstagram);
+  const socialFacebook = resolveAnyHref(s.socialFacebook);
+  const socialYoutube = resolveAnyHref(s.socialYoutube);
+  const socialTiktok = resolveAnyHref(s.socialTiktok);
+  const socialX = resolveAnyHref(s.socialX);
+  const socialLinkedin = resolveAnyHref(s.socialLinkedin);
+  const socialSnapchat = resolveAnyHref(s.socialSnapchat);
+  const socialOtro = resolveAnyHref(s.socialOtro);
+  const googleReviewsUrl = resolveAnyHref(s.googleReviewsUrl);
+  const yelpReviewsUrl = resolveAnyHref(s.yelpReviewsUrl);
+  const websiteHref = hrefFromUserInput(s.agenteSitioWeb);
+  const hasSocialIcons = Boolean(
+    socialInstagram ||
+      socialFacebook ||
+      socialYoutube ||
+      socialTiktok ||
+      socialX ||
+      socialLinkedin ||
+      socialSnapchat ||
+      socialOtro,
+  );
+  return {
+    socialInstagram,
+    socialFacebook,
+    socialYoutube,
+    socialTiktok,
+    socialX,
+    socialLinkedin,
+    socialSnapchat,
+    socialOtro,
+    googleReviewsUrl,
+    yelpReviewsUrl,
+    websiteHref,
+    hasSocialIcons,
+    hasReviewCards: Boolean(googleReviewsUrl || yelpReviewsUrl),
+  };
+}
 
 export function buildContactModel(s: AgenteIndividualResidencialFormState): AgenteResContactModel {
   const title = trim(s.titulo);
   const mailSubject = title || "Consulta";
   const mailBodyIntro = title ? `Me interesa: ${title}` : "Me interesa su anuncio.";
 
-  const llamarHref = s.permitirLlamar ? buildTelHref(digitsOnly(numeroParaLlamar(s))) : null;
-  const waHref = s.permitirWhatsApp ? buildWhatsappHref(digitsOnly(numeroParaWhatsapp(s)), "") : null;
+  const llamarHref = buildTelHref(digitsOnly(numeroParaLlamar(s)));
+  const waHref = buildWhatsappHref(digitsOnly(numeroParaWhatsapp(s)), "");
   const solicitarEmail = correoSolicitarInfo(s);
-  const solicitarInfoHref = s.permitirSolicitarInformacion
-    ? buildMailto(solicitarEmail, `Consulta — ${mailSubject}`, `Hola,\n\n${mailBodyIntro}`)
-    : null;
+  const solicitarInfoHref = buildMailto(solicitarEmail, `Consulta — ${mailSubject}`, `Hola,\n\n${mailBodyIntro}`);
 
   const programarRaw = trim(s.ctaEnlaceProgramarVisita);
-  const programarVisitaHref = s.permitirProgramarVisita ? resolveAnyHref(programarRaw) : null;
+  const programarVisitaHref = resolveAnyHref(programarRaw);
 
-  const verSitioHref = s.permitirVerSitioWeb ? hrefSitioWebCta(s) : null;
+  const verSitioHref = hrefSitioWebCta(s);
   const listadoH = hrefListadoCompleto(s);
   const mlsH = hrefMls(s);
   const tourH = hrefTourCta(s);
   const folletoH = hrefFolletoCta(s);
 
-  const socialInstagram = resolveAnyHref(s.socialInstagram);
-  const socialFacebook = resolveAnyHref(s.socialFacebook);
-  const socialYoutube = resolveAnyHref(s.socialYoutube);
-  const socialTiktok = resolveAnyHref(s.socialTiktok);
-  const socialX = resolveAnyHref(s.socialX);
-  const socialOtro = resolveAnyHref(s.socialOtro);
-  const hasAnySocial = Boolean(
-    socialInstagram || socialFacebook || socialYoutube || socialTiktok || socialX || socialOtro,
-  );
+  const hub = buildMainAgentBusinessHub(s);
 
   return {
     llamarHref,
@@ -806,22 +854,24 @@ export function buildContactModel(s: AgenteIndividualResidencialFormState): Agen
     verMlsHref: mlsH,
     verTourHref: tourH,
     verFolletoHref: folletoH,
-    showLlamar: Boolean(s.permitirLlamar && llamarHref),
-    showWhatsapp: Boolean(s.permitirWhatsApp && waHref),
-    showSolicitarInformacion: Boolean(s.permitirSolicitarInformacion && solicitarInfoHref),
-    showProgramarVisita: Boolean(s.permitirProgramarVisita && programarVisitaHref),
-    showVerSitioWeb: Boolean(s.permitirVerSitioWeb && verSitioHref),
-    showVerListado: Boolean(s.permitirVerListadoCompleto && listadoH),
-    showVerMls: Boolean(s.permitirVerMls && mlsH),
-    showVerTour: Boolean(s.permitirVerTour && tourH),
-    showVerFolleto: Boolean(s.permitirVerFolleto && folletoH),
-    showSocialIcons: Boolean(s.permitirVerRedes && hasAnySocial),
-    socialInstagram,
-    socialFacebook,
-    socialYoutube,
-    socialTiktok,
-    socialX,
-    socialOtro,
+    showLlamar: Boolean(llamarHref),
+    showWhatsapp: Boolean(waHref),
+    showSolicitarInformacion: Boolean(solicitarInfoHref),
+    showProgramarVisita: Boolean(programarVisitaHref),
+    showVerSitioWeb: Boolean(verSitioHref),
+    showVerListado: Boolean(listadoH),
+    showVerMls: Boolean(mlsH),
+    showVerTour: Boolean(tourH),
+    showVerFolleto: Boolean(folletoH),
+    showSocialIcons: hub.hasSocialIcons,
+    socialInstagram: hub.socialInstagram,
+    socialFacebook: hub.socialFacebook,
+    socialYoutube: hub.socialYoutube,
+    socialTiktok: hub.socialTiktok,
+    socialX: hub.socialX,
+    socialLinkedin: hub.socialLinkedin,
+    socialSnapchat: hub.socialSnapchat,
+    socialOtro: hub.socialOtro,
   };
 }
 

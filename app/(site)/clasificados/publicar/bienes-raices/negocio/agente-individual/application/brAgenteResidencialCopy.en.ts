@@ -202,6 +202,10 @@ export const BR_COPY_EN = {
     youtube: "YouTube",
     tiktok: "TikTok",
     x: "X / Twitter",
+    linkedin: "LinkedIn",
+    snapchat: "Snapchat",
+    googleReviews: "Google reviews (URL)",
+    yelpReviews: "Yelp reviews (URL)",
     enlaceSocialAdicional: "Additional social link (optional)",
     areaServicio: "Service area (optional)",
     idiomas: "Languages (optional)",
@@ -238,7 +242,11 @@ export const BR_COPY_EN = {
   step08: {
     title: "Contact actions",
     sub:
-      "Each button destination comes from your professional profile, photos & media, and listing data. Turn on only the actions you want to show; if valid data is missing, the button stays hidden.",
+      "Listing buttons turn on automatically from valid data you already entered in earlier steps. If a field is empty or invalid, the button stays hidden.",
+    detectedTitle: "Detected buyer actions",
+    detectedHelper:
+      "These actions turn on automatically from the valid information you already entered. If a field is empty or invalid, the button will not appear.",
+    detectedEmpty: "No actions detected yet. Add phone, email, links, or socials in earlier steps.",
     accionesVisibles: "Visible actions for buyers",
     accionesVisiblesSub:
       "Turn on only the buttons you want in the preview and published listing. Each button uses data already captured; without a valid destination, it stays hidden. “Show social icons” needs at least one primary-agent social link.",
@@ -361,6 +369,12 @@ export const BR_COPY_EN = {
     lightboxOpenVideoTab: "Open video in a new tab",
     lightboxGalleryCount: (cur: number, total: number) => `Gallery · ${cur} / ${total}`,
     footerDefault: "Leonix is a premium showcase: the official listing may be on your MLS or website.",
+    officeBrokerLabel: "Office / Brokerage",
+    mainAgentLabel: "Main agent",
+    secondAgentLabel: "Second agent",
+    quickActionsLabel: "Quick actions",
+    googleReviews: "Google reviews",
+    yelpReviews: "Yelp reviews",
   },
   previewFormat: {
     opLine: "Residential sale",
