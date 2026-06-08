@@ -12,8 +12,8 @@ import {
   type LeonixSiteLang,
 } from "@/app/lib/lang";
 
-/** Square emblem — no baked-in checkerboard (logo-clean.png has transparency grid in file). */
-const HEADER_LOGO_SRC = "/logo.png";
+/** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
+const HEADER_LOGO_SRC = "/logo-clean.png";
 
 type Lang = "es" | "en" | "vi";
 
@@ -1046,8 +1046,8 @@ const heroAccentClass: Record<HeroAccent, string> = {
 const heroLineClass =
   "text-[1rem] font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
 
-/** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
-const ANCHOR_SCROLL = "scroll-mt-28 lg:scroll-mt-28";
+/** Sticky header clearance — taller on mobile where launch CTA + nav pills stack below the bar. */
+const ANCHOR_SCROLL = "scroll-mt-36 lg:scroll-mt-28";
 
 const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-5 sm:py-12 lg:py-14`;
 
@@ -1973,14 +1973,67 @@ function launchHref(lang: LeonixSiteLang) {
   return `/contact?interest=launch&lang=${lang}`;
 }
 
-function LaunchCtaLink({ lang, label }: { lang: LeonixSiteLang; label: string }) {
+function HeaderLogoMark() {
+  return (
+    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10 lg:h-10 lg:w-10">
+      <Image
+        src={HEADER_LOGO_SRC}
+        alt=""
+        width={40}
+        height={40}
+        className="h-full w-full object-contain"
+        priority
+        aria-hidden
+      />
+    </span>
+  );
+}
+
+function LaunchCtaLink({
+  lang,
+  label,
+  className = "",
+}: {
+  lang: LeonixSiteLang;
+  label: string;
+  className?: string;
+}) {
   return (
     <Link
       href={launchHref(lang)}
-      className="inline-flex min-h-[2rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs lg:text-sm"
+      className={`inline-flex min-h-[2.25rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-center text-[0.7rem] font-bold leading-tight text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs lg:min-h-[2.125rem] lg:text-sm ${className}`}
     >
-      {label}
+      <span className="truncate">{label}</span>
     </Link>
+  );
+}
+
+function ComingSoonMobileNavPills({
+  items,
+  ariaLabel,
+}: {
+  items: NavItem[];
+  ariaLabel: string;
+}) {
+  return (
+    <nav
+      className="flex items-center gap-2 overflow-x-auto overscroll-x-contain scroll-px-4 pb-2 pt-0.5 snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+      aria-label={ariaLabel}
+    >
+      {items.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className={`min-h-[2rem] shrink-0 snap-start whitespace-nowrap rounded-full px-3 py-1.5 text-[0.6875rem] font-semibold sm:px-3.5 sm:text-xs ${
+            item.active
+              ? "bg-[#7A1E2C]/10 text-[#7A1E2C] ring-1 ring-[#7A1E2C]/25"
+              : "bg-[#FFFDF7] text-[#3D3428] ring-1 ring-[#D6C7AD]"
+          }`}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -2042,72 +2095,69 @@ function ComingSoonV2ShellContent() {
     <div lang={routeLang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
       <header className="sticky top-0 z-50 border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-0 py-1.5 sm:gap-x-4 sm:py-2 lg:py-2">
-            <Link
-              href="#inicio"
-              className="flex shrink-0 items-center gap-1.5 sm:gap-2"
-              aria-label={t.brandName}
-            >
-              <span className="inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 lg:h-10 lg:w-10">
-                <Image
-                  src={HEADER_LOGO_SRC}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="h-full w-full object-cover object-center"
-                  priority
-                  aria-hidden
-                />
-              </span>
-              <span className="font-serif text-xs font-bold leading-tight text-[#2A4536] sm:text-sm lg:text-[0.9375rem]">
-                {t.brandName}
-              </span>
-            </Link>
+          <div className="lg:hidden">
+            <div className="flex items-center justify-between gap-2 py-1.5">
+              <Link
+                href="#inicio"
+                className="flex min-w-0 items-center gap-2"
+                aria-label={t.brandName}
+              >
+                <HeaderLogoMark />
+                <span className="sr-only">{t.brandName}</span>
+              </Link>
 
-            <nav
-              className="hidden min-w-0 items-center justify-center gap-x-4 text-[0.8125rem] font-medium text-[#3D3428] lg:flex xl:gap-x-5 xl:text-[0.875rem]"
-              aria-label={t.navAria}
-            >
-              {t.nav.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={
-                    item.active
-                      ? "whitespace-nowrap text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em]"
-                      : "whitespace-nowrap hover:text-[#7A1E2C]"
-                  }
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
               <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/coming-soon-v2" />
-
-              <LaunchCtaLink lang={routeLang} label={t.launchCta} />
             </div>
+
+            <div className="flex justify-end pb-1">
+              <LaunchCtaLink
+                lang={routeLang}
+                label={t.launchCta}
+                className="max-w-full px-4 sm:max-w-none"
+              />
+            </div>
+
+            <ComingSoonMobileNavPills items={t.nav} ariaLabel={t.navAria} />
           </div>
 
-          <nav
-            className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
-            aria-label={t.navAria}
-          >
-            {t.nav.map((item) => (
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 py-2">
               <Link
-                key={item.label}
-                href={item.href}
-                className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold sm:px-3 sm:py-1.5 sm:text-xs ${
-                  item.active
-                    ? "bg-[#7A1E2C]/10 text-[#7A1E2C] ring-1 ring-[#7A1E2C]/25"
-                    : "bg-[#FFFDF7] text-[#3D3428] ring-1 ring-[#D6C7AD]"
-                }`}
+                href="#inicio"
+                className="flex shrink-0 items-center gap-2"
+                aria-label={t.brandName}
               >
-                {item.label}
+                <HeaderLogoMark />
+                <span className="font-serif text-[0.9375rem] font-bold leading-tight text-[#2A4536]">
+                  {t.brandName}
+                </span>
               </Link>
-            ))}
-          </nav>
+
+              <nav
+                className="flex min-w-0 items-center justify-center gap-x-4 text-[0.8125rem] font-medium text-[#3D3428] xl:gap-x-5 xl:text-[0.875rem]"
+                aria-label={t.navAria}
+              >
+                {t.nav.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={
+                      item.active
+                        ? "whitespace-nowrap text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em]"
+                        : "whitespace-nowrap hover:text-[#7A1E2C]"
+                    }
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+
+              <div className="flex shrink-0 items-center justify-end gap-2">
+                <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/coming-soon-v2" />
+                <LaunchCtaLink lang={routeLang} label={t.launchCta} />
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
