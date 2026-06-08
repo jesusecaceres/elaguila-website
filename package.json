@@ -179,6 +179,7 @@
     "comida-local:food-l8a-analytics-events-audit": "tsx scripts/comida-local-food-l8a-analytics-events-audit.ts",
     "comida-local:food-l9a-full-pipeline-qa-audit": "tsx scripts/comida-local-food-l9a-full-pipeline-qa-audit.ts",
     "comida-local:food-l9b-production-table-audit": "tsx scripts/comida-local-food-l9b-production-table-audit.ts",
+    "comida-local:food-l9c-subcategory-lock-audit": "tsx scripts/comida-local-food-l9c-subcategory-lock-audit.ts",
     "ofertas-locales:gate-1-foundation-audit": "tsx scripts/ofertas-locales-gate-1-foundation-audit.ts",
     "ofertas-locales:gate-2-draft-ui-audit": "tsx scripts/ofertas-locales-gate-2-draft-ui-audit.ts",
     "ofertas-locales:gate-3-preview-audit": "tsx scripts/ofertas-locales-gate-3-preview-audit.ts",

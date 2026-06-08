@@ -12,16 +12,20 @@ export type ComidaLocalFieldCopy = {
 export const COMIDA_LOCAL_SHELL_COPY = {
   pageTitle: "Publicar Comida Local",
   pageSubtitle:
-    "Ficha simple para puestos, pop-ups y vendedores locales. Esto es un borrador de formulario — la publicación llegará en una fase siguiente.",
+    "Ficha simple para puestos, pop-ups y vendedores locales. Completa el formulario, revisa la vista previa y publica cuando estés listo.",
   scaffoldNotice:
-    "Tu borrador se guarda automáticamente en este navegador. Aún no publicamos ni cobramos desde aquí.",
+    "Tu borrador se guarda automáticamente en este navegador. La publicación es gratuita en esta fase (sin Stripe).",
   previewSoon: "Próximo paso: vista previa",
   viewPreview: "Ver vista previa",
   publishSoonPreview: "Publicar próximamente",
   draftSaved: "Borrador guardado en este dispositivo",
   resetDraft: "Empezar de nuevo",
   validationPreviewTitle: "Para vista previa",
-  validationPublishTitle: "Lista para publicar (futuro)",
+  validationPublishTitle: "Lista para publicar",
+  publishFicha: "Publicar ficha",
+  publishing: "Publicando…",
+  publishSuccessTitle: "Ficha publicada",
+  publishErrorGeneric: "No se pudo publicar. Revisa los campos e intenta de nuevo.",
   photosDeferredNote:
     "Sube una foto principal (obligatoria para publicar). Logo y galería son opcionales.",
 } as const;

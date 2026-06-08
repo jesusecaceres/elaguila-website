@@ -3,6 +3,9 @@
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import Link from "next/link";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
+import { saveComidaLocalDraftToStorage } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 import {
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
   COMIDA_LOCAL_GALLERY_MAX,
@@ -107,6 +110,9 @@ export default function ComidaLocalApplicationClient() {
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft();
   const [activeSection, setActiveSection] = useState<ComidaLocalSectionKey>("identidad");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccessPath, setPublishSuccessPath] = useState<string | null>(null);
 
   const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft), [draft]);
@@ -165,6 +171,39 @@ export default function ComidaLocalApplicationClient() {
   const showFoodTypeCustom = draft.foodType === "otro";
   const showPaymentOther = draft.paymentMethods.includes("other");
   const savedLabel = formatSavedAt(lastSavedAt);
+
+  const handlePublish = useCallback(async () => {
+    if (!publishReady || publishBusy) return;
+    setPublishError(null);
+    setPublishSuccessPath(null);
+    setPublishBusy(true);
+    try {
+      saveComidaLocalDraftToStorage(draft);
+      const supabase = createSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token ?? null;
+      const draftListingId = draft.draftListingId.trim();
+      const { res, data } = await postComidaLocalPublishApi({
+        draft,
+        draftListingId,
+        packageTier: "basic",
+        lang: "es",
+        accessToken: token,
+      });
+      if (!res.ok || !data.ok) {
+        const issueMsg = data.issues?.map((i) => i.message).filter(Boolean).join(" ");
+        setPublishError(issueMsg || data.detail || data.error || COMIDA_LOCAL_SHELL_COPY.publishErrorGeneric);
+        return;
+      }
+      if (data.publicPath) {
+        setPublishSuccessPath(data.publicPath);
+      }
+    } catch {
+      setPublishError(COMIDA_LOCAL_SHELL_COPY.publishErrorGeneric);
+    } finally {
+      setPublishBusy(false);
+    }
+  }, [draft, publishBusy, publishReady]);
 
   if (!hasLoadedDraft) {
     return (
@@ -581,6 +620,27 @@ export default function ComidaLocalApplicationClient() {
               </section>
             )}
 
+            {publishError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+                {publishError}
+              </div>
+            ) : null}
+
+            {publishSuccessPath ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950">
+                <p className="font-semibold">{COMIDA_LOCAL_SHELL_COPY.publishSuccessTitle}</p>
+                <p className="mt-1 text-emerald-900/90">
+                  Tu ficha ya está en resultados públicos cuando el inventario esté disponible.
+                </p>
+                <Link
+                  href={publishSuccessPath}
+                  className="mt-3 inline-flex rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+                >
+                  Ver ficha publicada
+                </Link>
+              </div>
+            ) : null}
+
             <div
               className={cx(
                 CARD,
@@ -590,7 +650,7 @@ export default function ComidaLocalApplicationClient() {
               <div className="min-w-0">
                 <p className="text-sm text-[#1E1814]/70">
                   {previewReady
-                    ? "Revisa cómo se verá tu ficha antes de publicar (cuando esté disponible)."
+                    ? "Revisa cómo se verá tu ficha antes de publicar."
                     : "Completa los campos de la guía «Para vista previa» para abrir la vista previa."}
                 </p>
                 {!previewReady && previewIssues.length > 0 ? (
@@ -618,6 +678,35 @@ export default function ComidaLocalApplicationClient() {
                   {COMIDA_LOCAL_SHELL_COPY.viewPreview}
                 </button>
               )}
+            </div>
+
+            <div
+              className={cx(
+                CARD,
+                "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+              )}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[#1E1814]">Publicar en Comida Local</p>
+                <p className="mt-1 text-sm text-[#1E1814]/70">
+                  {publishReady
+                    ? "Cuando publiques, tu ficha aparecerá en /clasificados/comida-local con un ID Leonix COMIDA-…"
+                    : "Completa los campos de «Lista para publicar» para habilitar la publicación."}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={!publishReady || publishBusy}
+                onClick={() => void handlePublish()}
+                className={cx(
+                  "inline-flex shrink-0 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold",
+                  publishReady && !publishBusy
+                    ? "border border-[#7A1E2C] bg-[#7A1E2C] text-[#FFFCF7] hover:bg-[#6a1a26]"
+                    : "cursor-not-allowed border border-[#7A1E2C]/30 bg-[#7A1E2C]/40 text-[#FFFCF7]"
+                )}
+              >
+                {publishBusy ? COMIDA_LOCAL_SHELL_COPY.publishing : COMIDA_LOCAL_SHELL_COPY.publishFicha}
+              </button>
             </div>
           </div>
         </div>

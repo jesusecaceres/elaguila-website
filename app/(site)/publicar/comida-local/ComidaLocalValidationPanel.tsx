@@ -65,8 +65,7 @@ export function ComidaLocalValidationPanel({
         <div className="mt-2">
           {publishReady ? (
             <p className="text-xs text-[#1E1814]/65">
-              Campos obligatorios completos (excepto foto, pendiente FOOD-L4). La publicación aún
-              no está activa.
+              Campos obligatorios completos. Usa el botón «Publicar ficha» al final del formulario.
             </p>
           ) : (
             <>
