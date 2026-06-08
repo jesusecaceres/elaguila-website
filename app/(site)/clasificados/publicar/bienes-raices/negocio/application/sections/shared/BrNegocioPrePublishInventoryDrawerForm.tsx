@@ -11,6 +11,7 @@ import {
   brInventorySubtypeOptionsForType,
 } from "../../brNegocioAdditionalInventoryDraft";
 import { brInputClass, brTextareaClass, BrField } from "./brFormPrimitives";
+import { BrNegocioPrePublishInventoryDrawerMedia } from "./BrNegocioPrePublishInventoryDrawerMedia";
 
 type Props = {
   lang: BrNegocioPrePublishInventoryLang;
@@ -194,15 +195,7 @@ export function BrNegocioPrePublishInventoryDrawerForm({ lang, draft, errors, on
         />
       </BrField>
 
-      <BrField label={f.mainPhotoUrl} hint={lang === "es" ? "Solo URL; sin subida en este paso." : "URL only; no upload in this step."}>
-        <input
-          className={brInputClass}
-          type="url"
-          value={draft.mainPhotoUrl}
-          onChange={(e) => patch({ mainPhotoUrl: e.target.value })}
-          placeholder="https://"
-        />
-      </BrField>
+      <BrNegocioPrePublishInventoryDrawerMedia lang={lang} draft={draft} onChange={onChange} />
     </div>
   );
 }

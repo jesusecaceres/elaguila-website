@@ -1,5 +1,5 @@
 /**
- * BR-INV-E-FAST — merge queued child property fields into add-mode form (property-only).
+ * BR-INV-E-FAST + BR-INV-FIX-01B — merge queued child property fields into add-mode form (property-only).
  */
 
 import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
@@ -8,11 +8,21 @@ import type { BrNegocioAdditionalInventoryPropertyDraft } from "./brNegocioAddit
 import {
   brInventoryPropertySubtypeLabel,
   brInventoryPropertyTypeLabel,
+  childInventoryCoverPhotoUrl,
+  normalizeChildInventoryDraft,
 } from "./brNegocioAdditionalInventoryDraft";
 
-function safePhotoUrl(raw: string): string {
+function durablePhotoUrls(raw: BrNegocioAdditionalInventoryPropertyDraft): string[] {
+  const draft = normalizeChildInventoryDraft(raw);
+  return draft.photoUrls.filter((u) => {
+    const t = u.trim();
+    return t.startsWith("http://") || t.startsWith("https://") || t.startsWith("data:image/");
+  });
+}
+
+function durableUrl(raw: string): string {
   const u = raw.trim();
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/")) return u;
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
   return "";
 }
 
@@ -22,41 +32,49 @@ export function applyInventoryDraftToAgenteFormState(
   draft: BrNegocioAdditionalInventoryPropertyDraft,
   lang: "es" | "en" = "es",
 ): AgenteIndividualResidencialFormState {
-  const photo = safePhotoUrl(draft.mainPhotoUrl);
-  const typeCode = draft.propertyType.trim();
+  const normalized = normalizeChildInventoryDraft(draft);
+  const photos = durablePhotoUrls(normalized);
+  const cover = childInventoryCoverPhotoUrl(normalized);
+  const coverIndex = photos.findIndex((u) => u === cover);
+  const typeCode = normalized.propertyType.trim();
   const isResidencial = ["casa", "condominio", "townhome", "apartamento", "multifamiliar"].includes(typeCode);
 
   return {
     ...base,
     additionalInventoryProperties: [],
-    titulo: draft.title.trim(),
-    precio: draft.price.trim(),
-    ciudad: draft.city.trim(),
-    direccionEstado: draft.state.trim(),
-    direccionCodigoPostal: draft.zip.trim(),
-    direccionLinea1: draft.streetLine1.trim(),
-    direccionLinea2: draft.streetLine2.trim(),
-    direccion: draft.streetLine1.trim() || base.direccion,
-    mostrarDireccionExacta: draft.showExactAddress,
-    descripcionPrincipal: draft.description.trim(),
-    recamaras: draft.bedrooms.trim(),
-    banos: draft.bathrooms.trim(),
-    tamanoInteriorSqft: draft.interiorSqft.trim(),
-    tamanoLoteSqft: draft.lotSqft.trim(),
+    titulo: normalized.title.trim(),
+    precio: normalized.price.trim(),
+    ciudad: normalized.city.trim(),
+    direccionEstado: normalized.state.trim(),
+    direccionCodigoPostal: normalized.zip.trim(),
+    direccionLinea1: normalized.streetLine1.trim(),
+    direccionLinea2: normalized.streetLine2.trim(),
+    direccion: normalized.streetLine1.trim() || base.direccion,
+    mostrarDireccionExacta: normalized.showExactAddress,
+    descripcionPrincipal: normalized.description.trim(),
+    recamaras: normalized.bedrooms.trim(),
+    banos: normalized.bathrooms.trim(),
+    tamanoInteriorSqft: normalized.interiorSqft.trim(),
+    tamanoLoteSqft: normalized.lotSqft.trim(),
     tipoPropiedadCodigo: isResidencial
       ? (typeCode as AgenteIndividualResidencialFormState["tipoPropiedadCodigo"])
       : base.tipoPropiedadCodigo,
     subtipoPropiedad: isResidencial
-      ? draft.propertySubtype.trim()
-      : brInventoryPropertySubtypeLabel(typeCode, draft.propertySubtype, lang) || draft.propertySubtype.trim(),
+      ? normalized.propertySubtype.trim()
+      : brInventoryPropertySubtypeLabel(typeCode, normalized.propertySubtype, lang) || normalized.propertySubtype.trim(),
     categoriaPropiedad:
       typeCode === "comercial"
         ? "comercial"
         : typeCode === "terreno"
           ? "terreno_lote"
           : base.categoriaPropiedad,
-    fotosDataUrls: photo ? [photo] : [],
-    fotoPortadaIndex: 0,
+    fotosDataUrls: photos.length ? photos : cover ? [cover] : [],
+    fotoPortadaIndex: coverIndex >= 0 ? coverIndex : 0,
+    listadoUrl: durableUrl(normalized.listadoUrl),
+    videoUrl: durableUrl(normalized.videoUrl),
+    tourUrl: durableUrl(normalized.tourUrl),
+    brochureUrl: durableUrl(normalized.brochureUrl),
+    ctaUrlMls: durableUrl(normalized.mlsUrl),
   };
 }
 
@@ -66,32 +84,44 @@ export function applyInventoryDraftToNegocioFormState(
   draft: BrNegocioAdditionalInventoryPropertyDraft,
   lang: "es" | "en" = "es",
 ): BienesRaicesNegocioFormState {
-  const photo = safePhotoUrl(draft.mainPhotoUrl);
-  const typeLabel = brInventoryPropertyTypeLabel(draft.propertyType, lang);
-  const subLabel = brInventoryPropertySubtypeLabel(draft.propertyType, draft.propertySubtype, lang);
+  const normalized = normalizeChildInventoryDraft(draft);
+  const photos = durablePhotoUrls(normalized);
+  const cover = childInventoryCoverPhotoUrl(normalized);
+  const coverIndex = photos.findIndex((u) => u === cover);
+  const typeLabel = brInventoryPropertyTypeLabel(normalized.propertyType, lang);
+  const subLabel = brInventoryPropertySubtypeLabel(normalized.propertyType, normalized.propertySubtype, lang);
+  const videoUrl = durableUrl(normalized.videoUrl);
 
   return {
     ...base,
     additionalInventoryProperties: [],
-    titulo: draft.title.trim(),
-    precio: draft.price.trim(),
-    ciudad: draft.city.trim(),
-    estado: draft.state.trim(),
-    codigoPostal: draft.zip.trim(),
-    direccion: draft.streetLine1.trim(),
-    direccionLinea2: draft.streetLine2.trim(),
-    mostrarDireccionExacta: draft.showExactAddress,
-    descripcionLarga: draft.description.trim(),
+    titulo: normalized.title.trim(),
+    precio: normalized.price.trim(),
+    ciudad: normalized.city.trim(),
+    estado: normalized.state.trim(),
+    codigoPostal: normalized.zip.trim(),
+    direccion: normalized.streetLine1.trim(),
+    direccionLinea2: normalized.streetLine2.trim(),
+    mostrarDireccionExacta: normalized.showExactAddress,
+    descripcionLarga: normalized.description.trim(),
     tipoPropiedad: typeLabel,
-    propertySubtype: subLabel || draft.propertySubtype.trim(),
-    recamaras: draft.bedrooms.trim(),
-    banosCompletos: draft.bathrooms.trim(),
-    piesCuadrados: draft.interiorSqft.trim(),
-    tamanoLote: draft.lotSqft.trim(),
+    propertySubtype: subLabel || normalized.propertySubtype.trim(),
+    recamaras: normalized.bedrooms.trim(),
+    banosCompletos: normalized.bathrooms.trim(),
+    piesCuadrados: normalized.interiorSqft.trim(),
+    tamanoLote: normalized.lotSqft.trim(),
     media: {
       ...base.media,
-      photoUrls: photo ? [photo] : [],
-      primaryImageIndex: 0,
+      photoUrls: photos.length ? photos : cover ? [cover] : [],
+      primaryImageIndex: coverIndex >= 0 ? coverIndex : 0,
+      virtualTourUrl: durableUrl(normalized.tourUrl),
+      floorPlanUrls: durableUrl(normalized.brochureUrl) ? [durableUrl(normalized.brochureUrl)] : base.media.floorPlanUrls,
+      listingVideoSlots: videoUrl
+        ? [
+            { ...base.media.listingVideoSlots[0], fallbackUrl: videoUrl, status: "idle" as const },
+            base.media.listingVideoSlots[1],
+          ]
+        : base.media.listingVideoSlots,
     },
   };
 }

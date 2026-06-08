@@ -7,6 +7,11 @@ import type { BienesRaicesNegocioFormState } from "./schema/bienesRaicesNegocioF
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "./brNegocioAdditionalInventoryDraft";
 import { mergeAdditionalInventoryProperties } from "./brNegocioAdditionalInventoryDraft";
 import {
+  mergeChildInventoryWithMediaBridge,
+  setChildInventoryMediaBridge,
+  stripChildInventoryForSession,
+} from "./brNegocioInventoryDraftPersistence";
+import {
   buildBrInventoryAddPublishHref,
   type BrInventoryAddContext,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
@@ -48,7 +53,7 @@ function readRaw(): BrNegocioInventoryPublishQueue | null {
         brInventoryGroupId: j.context.brInventoryGroupId.trim() || j.context.parentListingId.trim(),
         lang: j.context.lang === "en" ? "en" : "es",
       },
-      items: mergeAdditionalInventoryProperties(j.items),
+      items: mergeChildInventoryWithMediaBridge(mergeAdditionalInventoryProperties(j.items)),
       currentIndex: Math.max(0, Number(j.currentIndex) || 0),
       formKind: j.formKind === "negocio" ? "negocio" : "agente",
     };
@@ -63,7 +68,12 @@ function writeRaw(queue: BrNegocioInventoryPublishQueue | null): void {
     sessionStorage.removeItem(BR_NEGOCIO_INVENTORY_PUBLISH_QUEUE_KEY);
     return;
   }
-  sessionStorage.setItem(BR_NEGOCIO_INVENTORY_PUBLISH_QUEUE_KEY, JSON.stringify(queue));
+  setChildInventoryMediaBridge(queue.items);
+  const payload: BrNegocioInventoryPublishQueue = {
+    ...queue,
+    items: stripChildInventoryForSession(queue.items),
+  };
+  sessionStorage.setItem(BR_NEGOCIO_INVENTORY_PUBLISH_QUEUE_KEY, JSON.stringify(payload));
 }
 
 export function createQueueAfterMainPublish(input: {
@@ -142,7 +152,11 @@ export function clearQueue(): void {
 
 export function writeQueuePrefillForAddMode(item: BrNegocioAdditionalInventoryPropertyDraft): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(BR_NEGOCIO_INVENTORY_QUEUE_PREFILL_KEY, JSON.stringify(item));
+  setChildInventoryMediaBridge([item]);
+  sessionStorage.setItem(
+    BR_NEGOCIO_INVENTORY_QUEUE_PREFILL_KEY,
+    JSON.stringify(stripChildInventoryForSession([item])[0] ?? item),
+  );
 }
 
 export function readQueuePrefillForAddMode(): BrNegocioAdditionalInventoryPropertyDraft | null {
@@ -151,7 +165,7 @@ export function readQueuePrefillForAddMode(): BrNegocioAdditionalInventoryProper
     const raw = sessionStorage.getItem(BR_NEGOCIO_INVENTORY_QUEUE_PREFILL_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return mergeAdditionalInventoryProperties([parsed])[0] ?? null;
+    return mergeChildInventoryWithMediaBridge(mergeAdditionalInventoryProperties([parsed]))[0] ?? null;
   } catch {
     return null;
   }

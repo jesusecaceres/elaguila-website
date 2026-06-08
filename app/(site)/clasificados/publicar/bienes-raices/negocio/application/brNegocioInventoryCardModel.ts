@@ -12,6 +12,7 @@ import {
   brInventoryDraftPriceDisplay,
   brInventoryPropertySubtypeLabel,
   brInventoryPropertyTypeLabel,
+  childInventoryCoverPhotoUrl,
 } from "./brNegocioAdditionalInventoryDraft";
 import {
   formatDetailCountDisplay,
@@ -145,7 +146,7 @@ export function mapAdditionalDraftToInventoryCard(
     bathrooms: trim(draft.bathrooms),
     interiorSqft: trim(draft.interiorSqft),
     lotSqft: trim(draft.lotSqft),
-    photoUrl: safePhotoUrl(draft.mainPhotoUrl),
+    photoUrl: safePhotoUrl(childInventoryCoverPhotoUrl(draft)),
     statusLabel: copy.status,
     roleLabel: copy.role,
   };

@@ -12,6 +12,8 @@ import {
   type TipoPropiedadCodigo,
 } from "../agente-individual/schema/agenteResidencialTipoMeta";
 
+const MAX_CHILD_PHOTOS = 40;
+
 export type BrNegocioInventoryPropertyTypeCode =
   | TipoPropiedadCodigo
   | "comercial"
@@ -36,8 +38,16 @@ export type BrNegocioAdditionalInventoryPropertyDraft = {
   zip: string;
   showExactAddress: boolean;
   description: string;
-  /** Optional URL only — no upload in BR-INV-C. */
+  /** @deprecated Use photoUrls + primaryPhotoIndex; kept for old drafts. */
   mainPhotoUrl: string;
+  /** Child property gallery (http/https/data:image in session). */
+  photoUrls: string[];
+  primaryPhotoIndex: number;
+  videoUrl: string;
+  tourUrl: string;
+  brochureUrl: string;
+  mlsUrl: string;
+  listadoUrl: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -78,6 +88,13 @@ export function createEmptyBrNegocioAdditionalInventoryPropertyDraft(
     showExactAddress: false,
     description: "",
     mainPhotoUrl: "",
+    photoUrls: [],
+    primaryPhotoIndex: 0,
+    videoUrl: "",
+    tourUrl: "",
+    brochureUrl: "",
+    mlsUrl: "",
+    listadoUrl: "",
     createdAt: now,
     updatedAt: now,
   };
@@ -91,6 +108,51 @@ function bool(v: unknown, fallback: boolean): boolean {
   return typeof v === "boolean" ? v : fallback;
 }
 
+function clampPrimaryIndex(photoUrls: string[], index: number): number {
+  if (!photoUrls.length) return 0;
+  return Math.min(Math.max(0, index), photoUrls.length - 1);
+}
+
+function isDurablePhotoUrl(url: string): boolean {
+  const u = url.trim();
+  return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/");
+}
+
+/** Migrate legacy mainPhotoUrl → photoUrls + primaryPhotoIndex. */
+export function normalizeChildInventoryDraft(
+  raw: BrNegocioAdditionalInventoryPropertyDraft,
+): BrNegocioAdditionalInventoryPropertyDraft {
+  const photoUrls = (Array.isArray(raw.photoUrls) ? raw.photoUrls : [])
+    .map((u) => (typeof u === "string" ? u.trim() : ""))
+    .filter(isDurablePhotoUrl)
+    .slice(0, MAX_CHILD_PHOTOS);
+
+  const legacyMain = typeof raw.mainPhotoUrl === "string" ? raw.mainPhotoUrl.trim() : "";
+  if (!photoUrls.length && legacyMain && isDurablePhotoUrl(legacyMain)) {
+    photoUrls.push(legacyMain);
+  }
+
+  const primaryPhotoIndex = clampPrimaryIndex(photoUrls, Number(raw.primaryPhotoIndex) || 0);
+  const cover = photoUrls[primaryPhotoIndex] ?? photoUrls[0] ?? "";
+
+  return {
+    ...raw,
+    photoUrls,
+    primaryPhotoIndex,
+    mainPhotoUrl: cover,
+    videoUrl: typeof raw.videoUrl === "string" ? raw.videoUrl.trim() : "",
+    tourUrl: typeof raw.tourUrl === "string" ? raw.tourUrl.trim() : "",
+    brochureUrl: typeof raw.brochureUrl === "string" ? raw.brochureUrl.trim() : "",
+    mlsUrl: typeof raw.mlsUrl === "string" ? raw.mlsUrl.trim() : "",
+    listadoUrl: typeof raw.listadoUrl === "string" ? raw.listadoUrl.trim() : "",
+  };
+}
+
+export function childInventoryCoverPhotoUrl(draft: BrNegocioAdditionalInventoryPropertyDraft): string {
+  const normalized = normalizeChildInventoryDraft(draft);
+  return normalized.photoUrls[normalized.primaryPhotoIndex] ?? normalized.photoUrls[0] ?? normalized.mainPhotoUrl ?? "";
+}
+
 export function sanitizeBrNegocioAdditionalInventoryPropertyDraft(
   raw: unknown,
 ): BrNegocioAdditionalInventoryPropertyDraft | null {
@@ -101,7 +163,7 @@ export function sanitizeBrNegocioAdditionalInventoryPropertyDraft(
   const base = createEmptyBrNegocioAdditionalInventoryPropertyDraft(id);
   const createdAt = str(o.createdAt).trim() || base.createdAt;
   const updatedAt = str(o.updatedAt).trim() || base.updatedAt;
-  return {
+  return normalizeChildInventoryDraft({
     ...base,
     title: str(o.title),
     propertyType: str(o.propertyType),
@@ -119,9 +181,16 @@ export function sanitizeBrNegocioAdditionalInventoryPropertyDraft(
     showExactAddress: bool(o.showExactAddress, false),
     description: str(o.description),
     mainPhotoUrl: str(o.mainPhotoUrl),
+    photoUrls: Array.isArray(o.photoUrls) ? o.photoUrls.map((u) => str(u)).filter(Boolean) : [],
+    primaryPhotoIndex: typeof o.primaryPhotoIndex === "number" ? o.primaryPhotoIndex : 0,
+    videoUrl: str(o.videoUrl),
+    tourUrl: str(o.tourUrl),
+    brochureUrl: str(o.brochureUrl),
+    mlsUrl: str(o.mlsUrl),
+    listadoUrl: str(o.listadoUrl),
     createdAt,
     updatedAt,
-  };
+  });
 }
 
 export function mergeAdditionalInventoryProperties(
@@ -134,7 +203,7 @@ export function mergeAdditionalInventoryProperties(
     const sanitized = sanitizeBrNegocioAdditionalInventoryPropertyDraft(item);
     if (sanitized) out.push(sanitized);
   }
-  return out;
+  return out.map((item) => normalizeChildInventoryDraft(item));
 }
 
 export function validateBrNegocioAdditionalInventoryDraft(

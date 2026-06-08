@@ -8,6 +8,7 @@ import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from
 
 import { BrNegocioPrePublishInventoryShell } from "./BrNegocioPrePublishInventoryShell";
 import { mapNegocioFormToMainInventoryCard } from "../../brNegocioInventoryCardModel";
+import { setChildInventoryMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 
 const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
   agente_individual: "Agente individual",
@@ -72,7 +73,10 @@ export function ResumenPublicarNegocioSection({
         hidden={hideInventoryShell}
         mainProperty={mapNegocioFormToMainInventoryCard(state, lang)}
         items={state.additionalInventoryProperties}
-        onItemsChange={(items) => setState((s) => ({ ...s, additionalInventoryProperties: items }))}
+        onItemsChange={(items) => {
+          setChildInventoryMediaBridge(items);
+          setState((s) => ({ ...s, additionalInventoryProperties: items }));
+        }}
       />
       <div className="mt-6">
         <ListingRulesConfirmationSection

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
+import { normalizeChildInventoryList } from "../../brNegocioInventoryDraftPersistence";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryDrawerShell } from "./BrNegocioPrePublishInventoryDrawerShell";
 import { BrNegocioPrePublishInventoryPreview } from "./BrNegocioPrePublishInventoryPreview";
@@ -52,9 +53,11 @@ export function BrNegocioPrePublishInventoryShell({
 
   const handleSave = useCallback(
     (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother") => {
-      onItemsChange(
-        editingId ? items.map((x) => (x.id === editingId ? draft : x)) : [...items, draft],
-      );
+      const normalized = draft;
+      const nextItems = editingId
+        ? items.map((x) => (x.id === editingId ? normalized : x))
+        : [...items, normalized];
+      onItemsChange(normalizeChildInventoryList(nextItems));
       if (mode === "addAnother") setEditingId(null);
     },
     [editingId, items, onItemsChange],

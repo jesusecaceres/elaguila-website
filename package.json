@@ -98,6 +98,7 @@
     "br:inv-d-audit": "tsx scripts/br-inv-d-inventory-preview-cards-audit.ts",
     "br:inv-e-fast-audit": "tsx scripts/br-inv-e-fast-real-publish-queue-audit.ts",
     "br:inv-fix-01a-revised-audit": "tsx scripts/br-inv-fix-01a-revised-hub-card-step8-audit.ts",
+    "br:inv-fix-01b-audit": "tsx scripts/br-inv-fix-01b-durable-child-inventory-media-audit.ts",
     "cat-truth:remaining-category-sweep": "tsx scripts/cat-truth-01-remaining-category-sweep-audit.ts",
     "br:12d-2-hoa-application-surfacing-audit": "tsx scripts/br12d-2-hoa-application-surfacing-audit.ts",
     "details:commas-02-pipeline-audit": "tsx scripts/details-commas-02-pipeline-audit.ts",

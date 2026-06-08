@@ -7,6 +7,7 @@ import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioA
 import {
   brInventoryDrawerHasErrors,
   createEmptyBrNegocioAdditionalInventoryPropertyDraft,
+  normalizeChildInventoryDraft,
   validateBrNegocioAdditionalInventoryDraft,
 } from "../../brNegocioAdditionalInventoryDraft";
 import { BrNegocioPrePublishInventoryDrawerForm } from "./BrNegocioPrePublishInventoryDrawerForm";
@@ -60,12 +61,12 @@ export function BrNegocioPrePublishInventoryDrawerShell({
       if (brInventoryDrawerHasErrors(nextErrors)) return;
       const now = new Date().toISOString();
       onSave(
-        {
+        normalizeChildInventoryDraft({
           ...draft,
           id: editingId ?? draft.id,
           updatedAt: now,
           createdAt: initialDraft?.createdAt ?? draft.createdAt ?? now,
-        },
+        }),
         mode,
       );
       if (mode === "close") {

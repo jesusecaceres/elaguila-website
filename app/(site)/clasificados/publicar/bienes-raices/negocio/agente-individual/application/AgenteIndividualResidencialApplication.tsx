@@ -55,6 +55,7 @@ import { BrNegocioPrePublishInventoryShell } from "../../application/sections/sh
 import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInventoryCardModel";
 import { getQueue, readQueuePrefillForAddMode } from "../../application/brNegocioInventoryPublishQueue";
 import { applyInventoryDraftToAgenteFormState } from "../../application/brNegocioInventoryQueuePrefill";
+import { setChildInventoryMediaBridge } from "../../application/brNegocioInventoryDraftPersistence";
 
 export default function AgenteIndividualResidencialApplication() {
   const router = useRouter();
@@ -297,7 +298,10 @@ export default function AgenteIndividualResidencialApplication() {
                   lang={lang}
                   mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                   items={state.additionalInventoryProperties}
-                  onItemsChange={(items) => setState((s) => ({ ...s, additionalInventoryProperties: items }))}
+                  onItemsChange={(items) => {
+                    setChildInventoryMediaBridge(items);
+                    setState((s) => ({ ...s, additionalInventoryProperties: items }));
+                  }}
                   hidden={inventoryAdd.inventoryModeAdd}
                 />
                 <ListingRulesConfirmationSection

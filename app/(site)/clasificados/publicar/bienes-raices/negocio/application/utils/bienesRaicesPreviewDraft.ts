@@ -3,6 +3,12 @@ import {
   mergePartialBienesRaicesNegocioState,
   type BienesRaicesNegocioFormState,
 } from "../schema/bienesRaicesNegocioFormState";
+import {
+  clearChildInventoryMediaBridge,
+  mergeChildInventoryWithMediaBridge,
+  setChildInventoryMediaBridge,
+  stripChildInventoryForSession,
+} from "../brNegocioInventoryDraftPersistence";
 
 export const BR_NEGOCIO_PREVIEW_DRAFT_KEY = "br-negocio-preview-draft";
 export const BR_NEGOCIO_PREVIEW_RETURN_KEY = "BR_NEGOCIO_PREVIEW_RETURN_DRAFT";
@@ -30,6 +36,7 @@ export function clearBienesRaicesNegocioPublishTempState(): void {
   previewReturnTimer = null;
   previewReturnMemory = null;
   previewDraftMemory = null;
+  clearChildInventoryMediaBridge();
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY);
@@ -39,11 +46,23 @@ export function clearBienesRaicesNegocioPublishTempState(): void {
   }
 }
 
+function stripNegocioStateForSession(state: BienesRaicesNegocioFormState): BienesRaicesNegocioFormState {
+  const j = JSON.parse(JSON.stringify(state)) as BienesRaicesNegocioFormState;
+  if (Array.isArray(j.media?.photoUrls)) {
+    j.media.photoUrls = j.media.photoUrls.filter((u) => typeof u === "string" && !u.startsWith("data:"));
+  }
+  if (Array.isArray(j.additionalInventoryProperties)) {
+    j.additionalInventoryProperties = stripChildInventoryForSession(j.additionalInventoryProperties);
+  }
+  return j;
+}
+
 export function saveBienesRaicesNegocioPreviewDraft(state: BienesRaicesNegocioFormState): void {
   if (typeof window === "undefined") return;
   previewDraftMemory = state;
+  setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
   try {
-    sessionStorage.setItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY, JSON.stringify(state));
+    sessionStorage.setItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY, JSON.stringify(stripNegocioStateForSession(state)));
   } catch {
     /* sessionStorage quota — in-memory draft still available for preview in this tab */
   }
@@ -52,8 +71,9 @@ export function saveBienesRaicesNegocioPreviewDraft(state: BienesRaicesNegocioFo
 export function saveBienesRaicesNegocioPreviewReturnDraft(state: BienesRaicesNegocioFormState): void {
   if (typeof window === "undefined") return;
   previewReturnMemory = null;
+  setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
   try {
-    const payload: BienesRaicesPreviewReturnPayload = { state, savedAt: Date.now() };
+    const payload: BienesRaicesPreviewReturnPayload = { state: stripNegocioStateForSession(state), savedAt: Date.now() };
     sessionStorage.setItem(BR_NEGOCIO_PREVIEW_RETURN_KEY, JSON.stringify(payload));
   } catch {
     /* ignore */
@@ -67,7 +87,13 @@ export function loadBienesRaicesNegocioPreviewDraft(): BienesRaicesNegocioFormSt
     const raw = sessionStorage.getItem(BR_NEGOCIO_PREVIEW_DRAFT_KEY);
     if (!raw) return previewDraftMemory;
     const parsed = JSON.parse(raw) as Partial<BienesRaicesNegocioFormState>;
-    const merged = mergePartialBienesRaicesNegocioState(parsed);
+    const mergedBase = mergePartialBienesRaicesNegocioState(parsed);
+    const merged = mergePartialBienesRaicesNegocioState({
+      ...mergedBase,
+      additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
+        mergedBase.additionalInventoryProperties ?? [],
+      ),
+    });
     previewDraftMemory = merged;
     return merged;
   } catch {
@@ -107,7 +133,13 @@ export function bootstrapBienesRaicesNegocioApplicationState(): BienesRaicesNego
     if (raw) {
       const data = JSON.parse(raw) as Partial<BienesRaicesPreviewReturnPayload>;
       if (data.state && typeof data.state === "object") {
-        const merged = mergePartialBienesRaicesNegocioState(data.state as Partial<BienesRaicesNegocioFormState>);
+        const mergedBase = mergePartialBienesRaicesNegocioState(data.state as Partial<BienesRaicesNegocioFormState>);
+        const merged = mergePartialBienesRaicesNegocioState({
+          ...mergedBase,
+          additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
+            mergedBase.additionalInventoryProperties ?? [],
+          ),
+        });
         sessionStorage.removeItem(BR_NEGOCIO_PREVIEW_RETURN_KEY);
         previewReturnMemory = merged;
         scheduleClearReturnMemory();
