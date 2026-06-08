@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import {
-  JUNE_2026,
   MAGAZINE_UI,
   comingSoonHref,
   mediaKitHref,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
+import {
+  getMagazineVisualAsset,
+  MAGAZINE_ISSUE_IDS,
+} from "@/app/lib/magazine/languageAssets";
 
 type MagazineReaderActionBarProps = {
   lang: MagazineLang;
@@ -21,6 +24,7 @@ export function MagazineReaderActionBar({
   layout = "grid",
 }: MagazineReaderActionBarProps) {
   const ui = MAGAZINE_UI[lang];
+  const visual = getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang);
   const wrapClass =
     layout === "stack"
       ? "flex min-w-0 flex-col gap-3"
@@ -38,7 +42,7 @@ export function MagazineReaderActionBar({
       <button type="button" onClick={onOpenFlipbook} className={btnPrimary}>
         {ui.viewFlipbookSpanish}
       </button>
-      <a href={JUNE_2026.pdfUrl} download className={btnOutline}>
+      <a href={visual.pdfUrl} download className={btnOutline}>
         {ui.downloadPdf}
       </a>
       <Link

@@ -150,3 +150,50 @@ Migration: `supabase/migrations/20260527210000_create_translation_records.sql`
 ## Risks
 
 See G1 audit report — cost, schema migration, RTL, PDF, category regression, PII logging.
+
+---
+
+## GLOBAL-TRANS1 — Non-RTL foundation (2026-05)
+
+**Status:** Registry + static content foundation + magazine visual asset registry ✅. **Dynamic Translate Ad locales still blocked by schema.**
+
+### Central language registry (`app/lib/language.ts`)
+
+| Tier | Codes | Status |
+|------|-------|--------|
+| Primary | `es`, `en` | active |
+| Additional | `vi` | active (site + magazine reader) |
+| Planned non-RTL | `pt`, `tl`, `km`, `zh`, `ja`, `ko`, `hi`, `hy`, `ru`, `pa` | planned (dropdown disabled) |
+| Held RTL | `ar`, `fa` | held (RTL layout gate) |
+
+Helpers: `normalizeLang`, `normalizeSelectableLang`, `navCopyLang`, `replaceLangInHref`, `getLanguageDirection`, `getProviderLanguageCode`, `isActiveLanguage`, `isPlannedLanguage`, `isHeldLanguage`.
+
+Tagalog route `tl` → Google provider code `fil`. Chinese route `zh` → provider `zh-CN` (verify `zh-Hans` at activation).
+
+### Static content foundation
+
+- `app/lib/content/translationKeys.ts` — keyed hand-authored copy
+- `app/lib/content/i18n.ts` — `getStaticCopy`, fallback chain `selected → en → es`, no Google on page load
+
+### Magazine visual assets
+
+- `app/lib/magazine/languageAssets.ts` — `getMagazineVisualAsset(issueId, lang)`
+- Spanish PDF/cover/flipbook are the only **available** visual assets today
+- Non-ES entries are `planned`; helper always serves Spanish URLs with `isTranslatedVisualAvailable: false`
+
+### Dynamic translation locale blocker — **SQL2E required**
+
+| Layer | Current constraint | Blocks |
+|-------|-------------------|--------|
+| Supabase `translation_records.target_locale` | `CHECK (target_locale IN ('es','en'))` | `vi` and all planned targets |
+| `POST /api/translate-ad` | `VALID_TARGET_LOCALES = es, en` | same |
+| `app/lib/translation/types.ts` | `Locale = es \| en` | same |
+| Google provider | `ACTIVE_LOCALE_CODES = es, en` | same |
+
+**Unlock order:** SQL2E migration expands `target_locale` CHECK → types + route validation → provider active set → enable per-locale in header (truthfully).
+
+**Do not** activate planned languages in the header or API until SQL2E + validation expansion land.
+
+### Next gate
+
+**SQL2E — Locale Constraint Expansion** — expand `translation_records.target_locale` and API allowlist before activating `vi` or any planned language for Translate Ad.

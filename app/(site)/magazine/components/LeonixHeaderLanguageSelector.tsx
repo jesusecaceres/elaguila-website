@@ -3,12 +3,14 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ADDITIONAL_LANGUAGES,
-  FUTURE_LANGUAGES,
+  ACTIVE_ADDITIONAL_LANGUAGES,
+  HELD_RTL_LANGUAGES,
   LANGUAGE_LABELS,
   LANGUAGE_SHORT,
+  PLANNED_NON_RTL_LANGUAGES,
   PRIMARY_LANGUAGES,
   getLanguageLabel,
+  heldLanguageNote,
   isAdditionalLanguageActive,
   languageAriaLabel,
   moreLanguagesDropdownLabel,
@@ -77,6 +79,7 @@ export function LeonixHeaderLanguageSelector({
 
   const dropdownLabel = moreLanguagesDropdownLabel(lang);
   const plannedNote = plannedLanguageNote(lang);
+  const heldNote = heldLanguageNote(lang);
   const additionalActive = isAdditionalLanguageActive(lang);
 
   const primaryLabel = (code: (typeof PRIMARY_LANGUAGES)[number]) => {
@@ -157,7 +160,7 @@ export function LeonixHeaderLanguageSelector({
             aria-label={dropdownLabel}
             className="absolute right-0 top-[calc(100%+0.35rem)] z-[120] min-w-[11.5rem] overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
           >
-            {ADDITIONAL_LANGUAGES.map((code) => {
+            {ACTIVE_ADDITIONAL_LANGUAGES.map((code) => {
               const selected = lang === code;
               return (
                 <li key={code} role="presentation">
@@ -183,7 +186,7 @@ export function LeonixHeaderLanguageSelector({
                 </li>
               );
             })}
-            {FUTURE_LANGUAGES.map((item) => (
+            {PLANNED_NON_RTL_LANGUAGES.map((item) => (
               <li key={item.code} role="presentation">
                 <button
                   type="button"
@@ -194,6 +197,21 @@ export function LeonixHeaderLanguageSelector({
                   <span className="truncate">{item.label}</span>
                   <span className="shrink-0 text-[0.65rem] font-medium uppercase tracking-wide">
                     {plannedNote}
+                  </span>
+                </button>
+              </li>
+            ))}
+            {HELD_RTL_LANGUAGES.map((item) => (
+              <li key={item.code} role="presentation">
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="flex w-full cursor-not-allowed items-center justify-between gap-2 px-3 py-2 text-left text-sm text-[#3D3428]/40"
+                >
+                  <span className="truncate">{item.label}</span>
+                  <span className="shrink-0 text-[0.65rem] font-medium uppercase tracking-wide">
+                    {heldNote}
                   </span>
                 </button>
               </li>

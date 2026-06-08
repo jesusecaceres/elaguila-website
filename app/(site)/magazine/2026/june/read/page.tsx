@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
@@ -11,6 +11,10 @@ import {
   MAGAZINE_UI,
   resolveMagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
+import {
+  getMagazineVisualAsset,
+  MAGAZINE_ISSUE_IDS,
+} from "@/app/lib/magazine/languageAssets";
 import { MagazineFlipbookModal } from "@/app/(site)/magazine/components/MagazineFlipbookModal";
 import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
 import {
@@ -23,6 +27,10 @@ function JuneReaderContent() {
   const params = useSearchParams()!;
   const lang = resolveMagazineLang(params.get("lang"));
   const ui = MAGAZINE_UI[lang];
+  const visual = useMemo(
+    () => getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang),
+    [lang],
+  );
   const advertiseLang: AdvertiseLang = lang === "en" ? "en" : "es";
   const issueHref = `/magazine/2026/june?lang=${lang}`;
   const [flipOpen, setFlipOpen] = useState(false);
@@ -34,7 +42,7 @@ function JuneReaderContent() {
       <MagazineFlipbookModal
         open={flipOpen}
         onClose={closeFlipbook}
-        src={JUNE_2026.flipbookUrl}
+        src={visual.flipbookUrl}
         title={JUNE_2026.title[lang]}
         closeLabel={ui.closeFlipbook}
       />
@@ -80,7 +88,7 @@ function JuneReaderContent() {
           <div className="mt-6 grid min-w-0 gap-6 sm:grid-cols-[minmax(0,10rem)_1fr] sm:items-start">
             <div className="mx-auto w-full max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-1 sm:mx-0">
               <Image
-                src={JUNE_2026.coverImage}
+                src={visual.coverUrl}
                 alt={JUNE_2026.title[lang]}
                 width={320}
                 height={420}
