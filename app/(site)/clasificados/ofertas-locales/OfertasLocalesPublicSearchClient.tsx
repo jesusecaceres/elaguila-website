@@ -8,7 +8,9 @@ import type { OfertaLocalPublicSearchItem } from "@/app/lib/ofertas-locales/ofer
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
+import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
+import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 
 const INPUT =
   "w-full rounded-lg border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/20";
@@ -37,6 +39,8 @@ export function OfertasLocalesPublicSearchClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<OfertaLocalPublicSearchItem | null>(null);
+  const [listOpen, setListOpen] = useState(false);
+  const shoppingList = useOfertasLocalesShoppingList();
 
   const queryString = useMemo(() => {
     const qs = searchParams?.toString() ?? "";
@@ -98,9 +102,23 @@ export function OfertasLocalesPublicSearchClient() {
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
-          <p className="mt-2 text-sm text-[#1E1814]/70 sm:text-base">{c.pageSubtitle}</p>
+        <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
+            <p className="mt-2 text-sm text-[#1E1814]/70 sm:text-base">{c.pageSubtitle}</p>
+          </div>
+          <button
+            type="button"
+            className="relative rounded-full border border-[#7A1E2C]/35 bg-white px-4 py-2 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#7A1E2C]/5"
+            onClick={() => setListOpen(true)}
+          >
+            {c.listButton}
+            {shoppingList.counts.itemCount > 0 ? (
+              <span className="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-white">
+                {shoppingList.counts.itemCount}
+              </span>
+            ) : null}
+          </button>
         </header>
 
         <form
@@ -173,7 +191,15 @@ export function OfertasLocalesPublicSearchClient() {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
               <li key={item.id}>
-                <OfertasLocalesPublicItemCard lang={lang} item={item} onSelect={setSelected} />
+                <OfertasLocalesPublicItemCard
+                  lang={lang}
+                  item={item}
+                  isAdded={shoppingList.isAdded(item.id)}
+                  onSelect={setSelected}
+                  onAdd={shoppingList.addFromPublicItem}
+                  onRemove={shoppingList.removeItem}
+                  onOpenList={() => setListOpen(true)}
+                />
               </li>
             ))}
           </ul>
@@ -189,6 +215,20 @@ export function OfertasLocalesPublicSearchClient() {
 
       {selected ? (
         <OfertasLocalesPublicItemDetailDrawer lang={lang} item={selected} onClose={() => setSelected(null)} />
+      ) : null}
+
+      {listOpen ? (
+        <OfertasLocalesShoppingListPanel
+          lang={lang}
+          list={shoppingList.list}
+          storeCount={shoppingList.counts.storeCount}
+          itemCount={shoppingList.counts.itemCount}
+          onClose={() => setListOpen(false)}
+          onRemove={shoppingList.removeItem}
+          onUpdateQuantity={shoppingList.updateQuantity}
+          onUpdateNote={shoppingList.updateNote}
+          onClear={shoppingList.clearList}
+        />
       ) : null}
     </div>
   );
