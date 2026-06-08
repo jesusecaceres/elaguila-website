@@ -1,25 +1,13 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../_components/AdminPageHeader";
+import { AdminMonetizationLinksCard } from "../_components/AdminMonetizationLinksCard";
 import { AdminQuickActionsRail } from "../_components/AdminQuickActionsRail";
 import { AdminSectionCard } from "../_components/AdminSectionCard";
 import { AdminStatCard } from "../_components/AdminStatCard";
-import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../_components/adminTheme";
+import { adminCtaChip, adminCtaChipSecondary } from "../_components/adminTheme";
 import { getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
-import {
-  adminCategoryOpenQueueCtaCopy,
-  adminCategoryOperationalStatusLabel,
-  adminCategoryWorkspaceLiveListingsHref,
-  adminCategoryWorkspaceQueueHref,
-} from "../_lib/adminCategoryWorkspaceQueueHref";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
-import {
-  benefitLabels,
-  effectiveEntitlementStatus,
-  formatEntitlementListingHeadline,
-  formatEntitlementPricingPromoLine,
-  formatSalesRepAttribution,
-  getPackageEntitlementDashboardSnapshot,
-} from "../_lib/packageEntitlementData";
+import { getPackageEntitlementDashboardSnapshot } from "../_lib/packageEntitlementData";
 import { getPromoCodeDashboardSnapshot } from "../_lib/promoCodeData";
 import { getPaymentTrackerDashboardSnapshot } from "../_lib/paymentTrackerData";
 import {
@@ -123,176 +111,7 @@ export default async function AdminHomePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <AdminStatCard
-            title={m("dashboard.entitlementsHubTitle")}
-            value={entSnap.dataUnavailable ? "—" : entSnap.activeCount}
-            hint={
-              entSnap.dataUnavailable
-                ? (entSnap.dataUnavailableNote ?? m("dashboard.entitlementsMigrateHint"))
-                : m("dashboard.entitlementsHubHint")
-            }
-            icon="📦"
-            actionLabel={m("dashboard.entitlementsCreate")}
-            actionHref="/admin/workspace/package-entitlements"
-            actionTitle={m("dashboard.entitlementsCreateTitle")}
-            accent="amber"
-          />
-          <AdminStatCard
-            title={m("dashboard.entitlementsActiveTitle")}
-            value={entSnap.dataUnavailable ? "—" : entSnap.activeCount}
-            hint={m("dashboard.entitlementsActiveHint")}
-            icon="✓"
-            actionLabel={m("dashboard.entitlementsViewAll")}
-            actionHref="/admin/workspace/package-entitlements"
-            actionTitle={m("dashboard.entitlementsViewAllTitle")}
-          />
-          <AdminStatCard
-            title={m("dashboard.entitlementsExpiringTitle")}
-            value={entSnap.dataUnavailable ? "—" : entSnap.expiringSoonCount}
-            hint={m("dashboard.entitlementsExpiringHint")}
-            icon="⏳"
-            actionLabel={m("dashboard.entitlementsViewAll")}
-            actionHref="/admin/workspace/package-entitlements"
-            actionTitle={m("dashboard.entitlementsViewAllTitle")}
-          />
-          <AdminStatCard
-            title={m("dashboard.entitlementsRevokedTitle")}
-            value={entSnap.dataUnavailable ? "—" : entSnap.revokedOrExpiredCount}
-            hint={m("dashboard.entitlementsRevokedHint")}
-            icon="⊘"
-            actionLabel={m("dashboard.entitlementsViewAll")}
-            actionHref="/admin/workspace/package-entitlements"
-            actionTitle={m("dashboard.entitlementsViewAllTitle")}
-          />
-        </div>
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <AdminStatCard
-            title={m("dashboard.promoCodesActiveTitle")}
-            value={promoSnap.dataUnavailable ? "—" : promoSnap.activeCount}
-            hint={
-              promoSnap.dataUnavailable
-                ? (promoSnap.dataUnavailableNote ?? m("dashboard.promoCodesMigrateHint"))
-                : m("dashboard.promoCodesActiveHint")
-            }
-            icon="🏷️"
-            actionLabel={m("dashboard.promoCodesViewAll")}
-            actionHref="/admin/workspace/promo-codes"
-            actionTitle={m("dashboard.promoCodesViewAllTitle")}
-          />
-          <AdminStatCard
-            title={m("dashboard.promoCodesExpiringTitle")}
-            value={promoSnap.dataUnavailable ? "—" : promoSnap.expiringSoonCount}
-            hint={m("dashboard.promoCodesExpiringHint")}
-            icon="⏳"
-            actionLabel={m("dashboard.promoCodesViewAll")}
-            actionHref="/admin/workspace/promo-codes"
-            actionTitle={m("dashboard.promoCodesViewAllTitle")}
-          />
-          <AdminStatCard
-            title={m("dashboard.promoCodesInactiveTitle")}
-            value={promoSnap.dataUnavailable ? "—" : promoSnap.revokedOrExpiredCount}
-            hint={m("dashboard.promoCodesInactiveHint")}
-            icon="⊘"
-            actionLabel={m("dashboard.promoCodesViewAll")}
-            actionHref="/admin/workspace/promo-codes"
-            actionTitle={m("dashboard.promoCodesViewAllTitle")}
-          />
-        </div>
-
-        {canViewPaymentTracker(access.normalizedRole) ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <AdminStatCard
-            title={m("dashboard.paymentTrackerPendingTitle")}
-            value={paySnap.unavailable ? "—" : paySnap.pendingCount}
-            hint={
-              paySnap.unavailable
-                ? (paySnap.note ?? m("dashboard.paymentTrackerMigrateHint"))
-                : m("dashboard.paymentTrackerPendingHint")
-            }
-            icon="💳"
-            actionLabel={m("dashboard.paymentTrackerViewAll")}
-            actionHref="/admin/workspace/payment-tracker"
-            actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
-          />
-          <AdminStatCard
-            title={m("dashboard.paymentTrackerPaidTitle")}
-            value={paySnap.unavailable ? "—" : paySnap.paidCount}
-            hint={m("dashboard.paymentTrackerPaidHint")}
-            icon="✓"
-            actionLabel={m("dashboard.paymentTrackerViewAll")}
-            actionHref="/admin/workspace/payment-tracker"
-            actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
-          />
-          <AdminStatCard
-            title={m("dashboard.paymentTrackerCommissionTitle")}
-            value={paySnap.unavailable ? "—" : paySnap.commissionEligibleCount}
-            hint={m("dashboard.paymentTrackerCommissionHint")}
-            icon="📊"
-            actionLabel={m("dashboard.paymentTrackerViewAll")}
-            actionHref="/admin/workspace/payment-tracker"
-            actionTitle={m("dashboard.paymentTrackerViewAllTitle")}
-          />
-        </div>
-        ) : null}
-
-        <div className="mt-8">
-          <AdminSectionCard title={m("dashboard.recentEntitlementsTitle")} subtitle={m("dashboard.recentEntitlementsSub")}>
-            <ul className="space-y-3">
-              {entSnap.recent.length === 0 ? (
-                <li className="text-sm text-[#5C5346]/90">
-                  {entSnap.dataUnavailable ? m("dashboard.entitlementsEmptyUnavailable") : m("dashboard.entitlementsEmpty")}
-                </li>
-              ) : (
-                entSnap.recent.map((row) => {
-                  const effective = effectiveEntitlementStatus(row);
-                  const labels = benefitLabels(row.benefits);
-                  const pricingLine = formatEntitlementPricingPromoLine(row.metadata);
-                  const salesRep = formatSalesRepAttribution(row.metadata);
-                  return (
-                    <li
-                      key={row.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-mono text-xs font-bold text-[#1E1810]">{row.entitlement_code ?? "—"}</p>
-                        <p className="truncate font-semibold text-[#1E1810]">{formatEntitlementListingHeadline(row)}</p>
-                        <p className="text-xs text-[#7A7164]">
-                          {row.package_tier} · {row.category} · {effective}
-                        </p>
-                        {pricingLine ? (
-                          <p className="mt-0.5 text-[10px] text-[#5C5346]">{pricingLine}</p>
-                        ) : null}
-                        {salesRep ? <p className="text-[10px] text-[#7A7164]">Sales rep: {salesRep}</p> : null}
-                        <p className="mt-0.5 text-[10px] text-[#5C5346]">
-                          {labels.length ? labels.join(" · ") : "—"}
-                        </p>
-                      </div>
-                      <Link
-                        href="/admin/workspace/package-entitlements"
-                        className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
-                        title={m("dashboard.viewEntitlementTitle")}
-                      >
-                        {m("dashboard.viewEntitlement")}
-                      </Link>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/admin/workspace/package-entitlements" className={adminCtaChipSecondary}>
-                {m("dashboard.entitlementsViewAll")} →
-              </Link>
-              <Link href="/admin/workspace/package-entitlements" className={adminCtaChip}>
-                {m("dashboard.entitlementsCreate")} →
-              </Link>
-            </div>
-          </AdminSectionCard>
-        </div>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <AdminStatCard
             title={m("dashboard.pendingAdsTitle")}
             value={snap.pendingListingsReview}
@@ -506,79 +325,41 @@ export default async function AdminHomePage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <AdminSectionCard
-            title={m("dashboard.categoriesTitle")}
+            title={m("dashboard.categoriesCommandTitle")}
             subtitle={m("dashboard.categoriesSub", {
               live: String(regSum.live),
               staged: String(regSum.staged),
               comingSoon: String(regSum.comingSoon),
             })}
           >
-            <div className="grid gap-3 sm:grid-cols-2">
-              {registry.map((c) => {
-                const queueHref = adminCategoryWorkspaceQueueHref(c.slug);
-                const liveHref = adminCategoryWorkspaceLiveListingsHref(c.slug);
-                const cta = adminCategoryOpenQueueCtaCopy(lang);
-                return (
-                  <div
-                    key={c.slug}
-                    className={`${adminCardBase} flex flex-col p-4`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xl" aria-hidden>
-                        {c.emoji}
-                      </span>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-                          {adminCategoryOperationalStatusLabel(c.operationalStatus)}
-                        </span>
-                        {c.configLayer === "database" ? (
-                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-900">
-                            DB
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <p className="mt-2 font-bold text-[#1E1810]">{c.displayNameEs}</p>
-                    <p className="text-xs text-[#7A7164]">{c.slug}</p>
-                    <div className="mt-3 flex flex-col gap-2">
-                      <Link
-                        href={queueHref}
-                        className="text-xs font-bold text-[#6B5B2E] underline underline-offset-2"
-                        aria-label={`${c.displayNameEs}: ${cta.label}`}
-                        title={cta.title}
-                      >
-                        {cta.label} →
-                      </Link>
-                      <Link
-                        href={liveHref}
-                        className="text-xs font-bold text-emerald-900 underline underline-offset-2"
-                        aria-label={`${c.displayNameEs}: ${m("cta.liveListingsPrimary")}`}
-                        title={m("cta.liveListingsPrimaryTitle")}
-                      >
-                        {m("cta.liveListingsPrimary")} →
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <Link href="/admin/workspace/clasificados" className={`${adminCtaChipSecondary} mt-4 inline-flex`}>
-              {m("dashboard.manageCategories")}
+            <p className="text-sm text-[#5C5346]">{m("dashboard.categoriesCommandBody")}</p>
+            <Link
+              href="/admin/workspace/clasificados"
+              className={`${adminCtaChip} mt-4 inline-flex`}
+              title={m("dashboard.manageCategoriesTitle")}
+            >
+              {m("dashboard.manageCategories")} →
             </Link>
           </AdminSectionCard>
 
-          <AdminSectionCard title={m("dashboard.revistaCardTitle")} subtitle={m("dashboard.revistaCardSub")}>
-            <div className={`${adminCardBase} p-4`}>
-              <p className="text-sm font-semibold text-[#1E1810]">{snap.magazineFeaturedLabel ?? m("dashboard.revistaNoFeatured")}</p>
-              <p className="mt-1 text-xs text-[#7A7164]">
-                {snap.magazineUpdated ? m("dashboard.revistaUpdated", { date: snap.magazineUpdated }) : m("dashboard.revistaNoDate")}
-              </p>
-              <p className="mt-3 text-xs text-[#5C5346]/90">{m("dashboard.revistaMetricsNote")}</p>
-              <Link href="/admin/workspace/revista" className={`${adminCtaChipSecondary} mt-3 inline-flex`}>
-                {m("dashboard.revistaManage")}
-              </Link>
-            </div>
-          </AdminSectionCard>
+          <AdminMonetizationLinksCard
+            title={m("dashboard.monetizationHubTitle")}
+            subtitle={m("dashboard.monetizationHubSub")}
+            entitlementsHref="/admin/workspace/package-entitlements"
+            entitlementsLabel={m("dashboard.entitlementsHubTitle")}
+            entitlementsHint={m("dashboard.entitlementsHubHint")}
+            entitlementsCount={entSnap.dataUnavailable ? "—" : String(entSnap.activeCount)}
+            promoHref="/admin/workspace/promo-codes"
+            promoLabel={m("dashboard.promoCodesActiveTitle")}
+            promoHint={m("dashboard.promoCodesActiveHint")}
+            promoCount={promoSnap.dataUnavailable ? "—" : String(promoSnap.activeCount)}
+            paymentHref={canViewPaymentTracker(access.normalizedRole) ? "/admin/workspace/payment-tracker" : undefined}
+            paymentLabel={canViewPaymentTracker(access.normalizedRole) ? m("dashboard.paymentTrackerPendingTitle") : undefined}
+            paymentHint={m("dashboard.paymentTrackerPendingHint")}
+            paymentCount={paySnap.unavailable ? "—" : String(paySnap.pendingCount)}
+            salesHref="/admin/workspace/sales-tracker"
+            salesLabel={m("dashboard.salesTrackerLink")}
+          />
         </div>
 
         <div className="mt-8 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164]">

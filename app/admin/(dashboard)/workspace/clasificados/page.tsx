@@ -13,6 +13,7 @@ import {
   parseAdminScope,
 } from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosAdminScopeUrls";
 import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
+import { mergeAdminCategoriesHubEntries } from "@/app/admin/_lib/adminCategoriesHubEntries";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
 import { ClasificadosCategoryHub } from "./ClasificadosCategoryHub";
@@ -102,18 +103,26 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const queueLimit = normalizeAdminQueueLimit(spStr(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
   const showOverviewSections = !catFilter && !qInput && !statusFilter && !ownerFrag && !lxBranch && !lxOp && !lxProp;
 
-  const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registry] = await Promise.all([
-    fetchListingsForAdminWorkspaceFiltered(supabase, {
-      q: qInput || undefined,
-      category: catFilter,
-      status: statusFilter || undefined,
-      ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
-      limit: queueLimit,
-      ...(scopeParam === "live" ? { scope: "live" as const } : {}),
-    }),
-    fetchListingCategoriesDistinct(supabase),
+  const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registryRaw] = await Promise.all([
+    showOverviewSections
+      ? Promise.resolve({
+          data: [] as Row[],
+          error: null,
+          detailPairsAvailable: true,
+          republishColsAvailable: true,
+        })
+      : fetchListingsForAdminWorkspaceFiltered(supabase, {
+          q: qInput || undefined,
+          category: catFilter,
+          status: statusFilter || undefined,
+          ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
+          limit: queueLimit,
+          ...(scopeParam === "live" ? { scope: "live" as const } : {}),
+        }),
+    showOverviewSections ? Promise.resolve([] as string[]) : fetchListingCategoriesDistinct(supabase),
     showOverviewSections ? getClasificadosCategoryRegistryMerged() : Promise.resolve([]),
   ]);
+  const registry = showOverviewSections ? mergeAdminCategoriesHubEntries(registryRaw) : [];
 
   let rows = (listings ?? []) as Row[];
   if (ownerFrag && !isUuidString(ownerFrag)) {
@@ -197,6 +206,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         <code className="rounded bg-white/80 px-1 text-[11px]">/clasificados/rentas/preview/*</code>.
       </div>
 
+      {!showOverviewSections ? (
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link
           href="/admin/workspace/clasificados/autos"
@@ -227,7 +237,28 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           {m("clasificados.reportesCta")}
         </Link>
       </div>
+      ) : null}
 
+      {showOverviewSections ? (
+        <AdminSectionCard title={m("clasificados.globalSearchTitle")} subtitle={m("clasificados.globalSearchSub")}>
+          <form className="flex flex-col gap-3 sm:flex-row sm:items-end" method="get">
+            <input
+              name="q"
+              placeholder={m("clasificados.placeholderQ")}
+              className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base sm:min-w-[16rem] sm:flex-1 sm:py-2 sm:text-sm"
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="min-h-[44px] w-full rounded-2xl bg-[#2A2620] px-4 py-3 text-sm font-semibold text-[#FAF7F2] sm:min-h-0 sm:w-auto sm:py-2"
+            >
+              {m("common.applyFilters")}
+            </button>
+          </form>
+          <p className="mt-3 text-[11px] leading-snug text-[#7A7164]">{m("clasificados.globalSearchHint")}</p>
+        </AdminSectionCard>
+      ) : (
+        <>
       <div className={`${adminCardBase} mb-6 p-4`}>
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
           {scopeParam === "live" ? <input type="hidden" name="scope" value="live" /> : null}
@@ -343,6 +374,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           listingsCategorySlug={catFilter}
           staffQueueMode
         />
+      )}
+        </>
       )}
 
       {showOverviewSections ? (
