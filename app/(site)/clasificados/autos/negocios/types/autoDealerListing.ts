@@ -107,6 +107,15 @@ export type AutoDealerListing = {
   zip?: string;
   vin?: string;
   stockNumber?: string;
+  /** Trim alias for filters/payload (often mirrors trim). */
+  version?: string;
+  /** Free-text motor label (often mirrors engine). */
+  motor?: string;
+  engineCylinders?: number;
+  displacementL?: number;
+  vehicleType?: string;
+  manufacturer?: string;
+  plantCountry?: string;
   /** Select value; use `exteriorColorCustom` when this is `Otro`. */
   exteriorColor?: string;
   exteriorColorCustom?: string;

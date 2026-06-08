@@ -21,6 +21,7 @@ import {
 import { SelectWithOtherField } from "./SelectWithOtherField";
 import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
+import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
 import { useAutosVehicleStructuredSpecFill } from "@/app/publicar/autos/shared/components/useAutosVehicleStructuredSpecFill";
 import { AutosCustomEquipmentField } from "@/app/publicar/autos/shared/components/AutosCustomEquipmentField";
@@ -235,8 +236,15 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
             />
           </div>
           <div className="sm:col-span-2">
-            <label className={LABEL}>{t.app.labels.vin}</label>
-            <input className={INPUT} value={draft.vin ?? ""} onChange={(e) => onPatch({ vin: e.target.value || undefined })} />
+            <AutosVinDecodeBlock
+              lang={lang}
+              vinLabel={t.app.labels.vin}
+              vin={draft.vin}
+              modelYear={draft.year}
+              currentVehicle={draft}
+              onVinChange={(v) => onPatch({ vin: v })}
+              onApplyPatch={(patch) => onPatch(patch)}
+            />
           </div>
           <div>
             <label className={LABEL}>{t.app.labels.stock}</label>

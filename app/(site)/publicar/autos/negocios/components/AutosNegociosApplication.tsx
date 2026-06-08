@@ -36,6 +36,7 @@ import { AutosNegociosInventoryBundlePreview } from "./AutosNegociosInventoryBun
 import { AutosNegociosResultsCardPreview } from "./AutosNegociosResultsCardPreview";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
+import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 import { AutosVehicleEngineField } from "@/app/publicar/autos/shared/components/AutosVehicleEngineField";
 import { useAutosVehicleStructuredSpecFill } from "@/app/publicar/autos/shared/components/useAutosVehicleStructuredSpecFill";
 import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/components/AutosDealerStructuredAddressFields";
@@ -350,11 +351,14 @@ export function AutosNegociosApplication() {
                 <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.zip}</p>
               </div>
               <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.vin}</label>
-                <input
-                  className={INPUT}
-                  value={listing.vin ?? ""}
-                  onChange={(e) => setListingPatch({ vin: e.target.value || undefined })}
+                <AutosVinDecodeBlock
+                  lang={lang}
+                  vinLabel={t.app.labels.vin}
+                  vin={listing.vin}
+                  modelYear={listing.year}
+                  currentVehicle={listing}
+                  onVinChange={(v) => setListingPatch({ vin: v })}
+                  onApplyPatch={(patch) => setListingPatch(patch)}
                 />
               </div>
               <div>

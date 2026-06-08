@@ -26,7 +26,25 @@ function pushUnique(out: string[], value: string | undefined) {
 export function buildAutosVehicleNormalizedIdentity(
   listing: Pick<
     AutoDealerListing,
-    "year" | "make" | "model" | "trim" | "engine" | "engineNormalized" | "vehicleTitle" | "otherEquipmentDetails"
+    | "year"
+    | "make"
+    | "model"
+    | "trim"
+    | "version"
+    | "engine"
+    | "motor"
+    | "engineNormalized"
+    | "engineCylinders"
+    | "displacementL"
+    | "bodyStyle"
+    | "vehicleType"
+    | "drivetrain"
+    | "transmission"
+    | "fuelType"
+    | "doors"
+    | "vin"
+    | "vehicleTitle"
+    | "otherEquipmentDetails"
   >,
 ): AutosVehicleNormalizedIdentity {
   const aliases: string[] = [];
@@ -67,8 +85,19 @@ export function buildAutosVehicleNormalizedIdentity(
   pushUnique(keywords, listing.model);
   pushUnique(keywords, normalizedTrim);
   pushUnique(keywords, listing.trim);
+  pushUnique(keywords, listing.version);
   pushUnique(keywords, normalizedEngine);
   pushUnique(keywords, listing.engine);
+  pushUnique(keywords, listing.motor);
+  if (listing.engineCylinders) pushUnique(keywords, String(listing.engineCylinders));
+  if (listing.displacementL) pushUnique(keywords, `${listing.displacementL}L`);
+  pushUnique(keywords, listing.bodyStyle);
+  pushUnique(keywords, listing.vehicleType);
+  pushUnique(keywords, listing.drivetrain);
+  pushUnique(keywords, listing.transmission);
+  pushUnique(keywords, listing.fuelType);
+  if (listing.doors) pushUnique(keywords, String(listing.doors));
+  pushUnique(keywords, listing.vin);
   pushUnique(keywords, listing.vehicleTitle);
   if (listing.otherEquipmentDetails?.trim()) {
     for (const token of listing.otherEquipmentDetails.split(/[,;\n]+/)) {

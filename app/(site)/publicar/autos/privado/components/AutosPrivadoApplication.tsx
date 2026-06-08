@@ -37,6 +37,7 @@ import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/compon
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
+import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -273,11 +274,14 @@ export function AutosPrivadoApplication() {
                 <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.zip}</p>
               </div>
               <div className="sm:col-span-2">
-                <label className={LABEL}>{t.app.labels.vin}</label>
-                <input
-                  className={INPUT}
-                  value={listing.vin ?? ""}
-                  onChange={(e) => setListingPatch({ vin: e.target.value || undefined })}
+                <AutosVinDecodeBlock
+                  lang={lang}
+                  vinLabel={t.app.labels.vin}
+                  vin={listing.vin}
+                  modelYear={listing.year}
+                  currentVehicle={listing}
+                  onVinChange={(v) => setListingPatch({ vin: v })}
+                  onApplyPatch={(patch) => setListingPatch(patch)}
                 />
               </div>
             </div>

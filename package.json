@@ -79,6 +79,7 @@
     "autos:a5-qa-08d-supabase-production-verification-live-proof-audit": "tsx scripts/autos-a5-qa-08d-supabase-production-verification-live-proof-audit.ts",
     "autos:a5-qa-08e-publish-mapper-inventory-group-fields-audit": "tsx scripts/autos-a5-qa-08e-publish-mapper-inventory-group-fields-audit.ts",
     "autos:a5-ship-01-true-preview-live-publish-proof-audit": "tsx scripts/autos-a5-ship-01-true-preview-live-publish-proof-audit.ts",
+    "autos:a5-ship-03-full-finish-stack-shared-vehicle-preview-publish-audit": "tsx scripts/autos-a5-ship-03-full-finish-stack-shared-vehicle-preview-publish-audit.ts",
     "autos:a5-vdata-01-shared-vehicle-data-coverage-audit": "tsx scripts/autos-a5-vdata-01-shared-vehicle-data-coverage-audit.ts",
     "autos:a5-vdata-a-shared-vehicle-data-audit": "tsx scripts/autos-a5-vdata-a-shared-vehicle-data-audit.ts",
     "autos:a5-vdata-b-shared-vehicle-helper-wiring-audit": "tsx scripts/autos-a5-vdata-b-shared-vehicle-helper-wiring-audit.ts",
