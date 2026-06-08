@@ -74,11 +74,13 @@ export function customerMessageForComidaLocalInventoryFailure(
 /** Server-side diagnostic log — not returned to the client. */
 export function logComidaLocalInventoryFailure(
   failure: ComidaLocalInventoryFailure,
-  context: string
+  context: string,
+  extra?: Record<string, unknown>
 ): void {
   console.error(`[comida-local/inventory] ${context}`, {
     kind: failure.kind,
     technical: failure.technical,
     table: "comida_local_public_listings",
+    ...extra,
   });
 }

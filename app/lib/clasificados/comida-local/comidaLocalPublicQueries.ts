@@ -1,6 +1,12 @@
 import "server-only";
 
-import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  getAdminSupabase,
+  getServerSupabaseAnon,
+  isSupabaseAdminConfigured,
+  isSupabasePublicReadConfigured,
+} from "@/app/lib/supabase/server";
 import type {
   ComidaLocalFilterOptions,
   ComidaLocalPublicListingRow,
@@ -91,16 +97,30 @@ export function parseComidaLocalResultsSearchParams(
   };
 }
 
+type ComidaLocalPublicReadChannel = "anon_rls" | "admin";
+
+function resolveComidaLocalPublicReadClient():
+  | { ok: true; supabase: SupabaseClient; channel: ComidaLocalPublicReadChannel }
+  | { ok: false; error: string } {
+  if (isSupabasePublicReadConfigured()) {
+    return { ok: true, supabase: getServerSupabaseAnon(), channel: "anon_rls" };
+  }
+  if (isSupabaseAdminConfigured()) {
+    return { ok: true, supabase: getAdminSupabase(), channel: "admin" };
+  }
+  return { ok: false, error: "supabase_unconfigured" };
+}
+
 async function fetchAllPublishedRows(): Promise<
-  | { ok: true; rows: ComidaLocalPublicListingRow[] }
+  | { ok: true; rows: ComidaLocalPublicListingRow[]; channel: ComidaLocalPublicReadChannel }
   | { ok: false; error: string }
 > {
-  if (!isSupabaseAdminConfigured()) {
-    return { ok: false, error: "supabase_unconfigured" };
+  const client = resolveComidaLocalPublicReadClient();
+  if (!client.ok) {
+    return { ok: false, error: client.error };
   }
   try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    const { data, error } = await client.supabase
       .from("comida_local_public_listings")
       .select(COMIDA_LOCAL_PUBLIC_LISTING_SELECT)
       .eq("status", COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED)
@@ -109,7 +129,7 @@ async function fetchAllPublishedRows(): Promise<
 
     if (error) return { ok: false, error: error.message };
     const rows = (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
-    return { ok: true, rows };
+    return { ok: true, rows, channel: client.channel };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
@@ -127,7 +147,9 @@ export async function listPublishedComidaLocalListings(
   const fetched = await fetchAllPublishedRows();
   if (!fetched.ok) {
     const failure = classifyComidaLocalInventoryError(fetched.error);
-    logComidaLocalInventoryFailure(failure, "listPublishedComidaLocalListings");
+    logComidaLocalInventoryFailure(failure, "listPublishedComidaLocalListings", {
+      rowCount: 0,
+    });
 
     if (failure.kind === "table_missing") {
       return {
@@ -158,10 +180,11 @@ export async function getPublishedComidaLocalListingBySlug(
   slug: string
 ): Promise<ComidaLocalPublicListingRow | null> {
   const s = slug.trim();
-  if (!s || !isSupabaseAdminConfigured()) return null;
+  if (!s) return null;
+  const client = resolveComidaLocalPublicReadClient();
+  if (!client.ok) return null;
   try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    const { data, error } = await client.supabase
       .from("comida_local_public_listings")
       .select(COMIDA_LOCAL_PUBLIC_LISTING_SELECT)
       .eq("slug", s)
