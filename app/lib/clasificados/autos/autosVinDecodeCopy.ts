@@ -22,8 +22,12 @@ export function autosVinDecodeSuccess(lang: AutosClassifiedsLang): string {
 
 export function autosVinDecodePartial(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? "Encontramos algunos datos, pero puedes completar lo que falte manualmente."
-    : "We found some details, but you can complete missing fields manually.";
+    ? "Encontramos algunos datos. Completa manualmente lo que falte."
+    : "We found some details. Complete anything missing manually.";
+}
+
+export function autosVinDecodeSummaryTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Datos encontrados por VIN" : "Details found by VIN";
 }
 
 export function autosVinDecodeError(lang: AutosClassifiedsLang): string {

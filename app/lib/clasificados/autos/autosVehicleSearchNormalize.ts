@@ -30,18 +30,32 @@ export function buildAutosVehicleNormalizedIdentity(
     | "make"
     | "model"
     | "trim"
+    | "trim2"
     | "version"
+    | "series"
+    | "series2"
+    | "vinDetectedTrim"
     | "engine"
     | "motor"
     | "engineNormalized"
     | "engineCylinders"
     | "displacementL"
+    | "displacementCC"
     | "bodyStyle"
+    | "bodyClass"
     | "vehicleType"
     | "drivetrain"
+    | "driveType"
     | "transmission"
+    | "transmissionStyle"
     | "fuelType"
+    | "fuelTypePrimary"
+    | "fuelTypeSecondary"
+    | "electrificationLevel"
     | "doors"
+    | "cabType"
+    | "bedType"
+    | "manufacturer"
     | "vin"
     | "vehicleTitle"
     | "otherEquipmentDetails"
@@ -85,18 +99,32 @@ export function buildAutosVehicleNormalizedIdentity(
   pushUnique(keywords, listing.model);
   pushUnique(keywords, normalizedTrim);
   pushUnique(keywords, listing.trim);
+  pushUnique(keywords, listing.trim2);
   pushUnique(keywords, listing.version);
+  pushUnique(keywords, listing.series);
+  pushUnique(keywords, listing.series2);
+  pushUnique(keywords, listing.vinDetectedTrim);
   pushUnique(keywords, normalizedEngine);
   pushUnique(keywords, listing.engine);
   pushUnique(keywords, listing.motor);
   if (listing.engineCylinders) pushUnique(keywords, String(listing.engineCylinders));
   if (listing.displacementL) pushUnique(keywords, `${listing.displacementL}L`);
+  if (listing.displacementCC) pushUnique(keywords, `${listing.displacementCC}cc`);
   pushUnique(keywords, listing.bodyStyle);
+  pushUnique(keywords, listing.bodyClass);
   pushUnique(keywords, listing.vehicleType);
   pushUnique(keywords, listing.drivetrain);
+  pushUnique(keywords, listing.driveType);
   pushUnique(keywords, listing.transmission);
+  pushUnique(keywords, listing.transmissionStyle);
   pushUnique(keywords, listing.fuelType);
+  pushUnique(keywords, listing.fuelTypePrimary);
+  pushUnique(keywords, listing.fuelTypeSecondary);
+  pushUnique(keywords, listing.electrificationLevel);
   if (listing.doors) pushUnique(keywords, String(listing.doors));
+  pushUnique(keywords, listing.cabType);
+  pushUnique(keywords, listing.bedType);
+  pushUnique(keywords, listing.manufacturer);
   pushUnique(keywords, listing.vin);
   pushUnique(keywords, listing.vehicleTitle);
   if (listing.otherEquipmentDetails?.trim()) {

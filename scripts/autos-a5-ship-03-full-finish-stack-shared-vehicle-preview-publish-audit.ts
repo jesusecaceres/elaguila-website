@@ -210,7 +210,10 @@ function run() {
   assert.ok(negocios.includes("AutosVinDecodeBlock"));
   assert.ok(drawer.includes("AutosVinDecodeBlock"));
   assert.ok(privado.includes("AutosVinDecodeBlock"));
-  assert.ok(vinBlock.includes("buildVinDecodeFillEmptyPatch"));
+  assert.ok(
+    vinBlock.includes("buildVinDecodeFillEmptyPatch") || vinBlock.includes("mergeDecodedVehicleFieldsIntoDraft"),
+    "VIN block must use fill-empty-only merge",
+  );
   assert.ok(inventoryDraft.includes("engineCylinders"));
   assert.ok(inventoryDraft.includes("additionalInventoryVehicles") || inventoryDraft.includes("AutosAdditionalInventoryVehicleDraft"));
 

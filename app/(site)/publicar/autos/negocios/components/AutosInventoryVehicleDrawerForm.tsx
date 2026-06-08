@@ -133,6 +133,7 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
               make={draft.make}
               model={draft.model}
               trim={draft.trim}
+              vinDetectedTrim={draft.vinDetectedTrim}
               onPatch={(p) => onPatch(p)}
               requiredMake
               requiredModel

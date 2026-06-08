@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AUTOS_VEHICLE_MAKES,
-  autosVehicleNoStructuredTrimHint,
   getAutosVehicleYearOptions,
   getKnownTrimsForVehicle,
   getModelsForMake,
@@ -11,6 +10,10 @@ import {
   resolveMakeToCanonical,
   resolveModelToCanonical,
 } from "@/app/lib/clasificados/autos/autosVehicleData";
+import {
+  autosMissingStructuredTrimHelper,
+  autosVinDetectedTrimLabel,
+} from "@/app/lib/clasificados/autos/autosVehicleTrimIntelligence";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 
 const INPUT =
@@ -57,6 +60,7 @@ export function AutosVehicleIdentityFields({
   make,
   model,
   trim,
+  vinDetectedTrim,
   onPatch,
   requiredYear,
   requiredMake,
@@ -68,7 +72,9 @@ export function AutosVehicleIdentityFields({
   make: string | undefined;
   model: string | undefined;
   trim: string | undefined;
-  onPatch: (patch: { year?: number; make?: string; model?: string; trim?: string }) => void;
+  /** When trim was populated by VIN decode and is not in local catalog. */
+  vinDetectedTrim?: string;
+  onPatch: (patch: { year?: number; make?: string; model?: string; trim?: string; version?: string; vinDetectedTrim?: string }) => void;
   requiredYear?: boolean;
   requiredMake?: boolean;
   requiredModel?: boolean;
@@ -107,7 +113,8 @@ export function AutosVehicleIdentityFields({
     lang === "es"
       ? "Selecciona una versión si aparece en la lista. Si no ves tu versión, escríbela manualmente."
       : "Select a trim if it appears in the list. If you do not see your trim, enter it manually.";
-  const noStructuredTrimHint = autosVehicleNoStructuredTrimHint(lang);
+  const noStructuredTrimHint = autosMissingStructuredTrimHelper(lang);
+  const vinDetectedLabel = autosVinDetectedTrimLabel(lang);
   const trimPlaceholder = lang === "es" ? "Versión / trim" : "Trim / version";
 
   const yearInList = year !== undefined && years.includes(year);
@@ -133,6 +140,18 @@ export function AutosVehicleIdentityFields({
   const modelSelected = Boolean(catalogModel || model?.trim());
   const showNoStructuredTrimHint =
     modelSelected && trimSuggestions.length === 0 && !trimCustomMode;
+
+  function trimOptionLabel(value: string): string {
+    const normalized = normalizeVehicleTrim(make, model, value) ?? value;
+    if (
+      vinDetectedTrim?.trim() &&
+      value.trim().toLowerCase() === vinDetectedTrim.trim().toLowerCase() &&
+      !trimSuggestions.some((t) => t.toLowerCase() === value.trim().toLowerCase())
+    ) {
+      return `${normalized} (${vinDetectedLabel})`;
+    }
+    return normalized;
+  }
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
@@ -251,7 +270,7 @@ export function AutosVehicleIdentityFields({
               {lang === "es" ? "Escribir versión manualmente" : "Enter trim manually"}
             </option>
             {trim && !trimInCatalog ? (
-              <option value={trim}>{normalizeVehicleTrim(make, model, trim) ?? trim}</option>
+              <option value={trim}>{trimOptionLabel(trim)}</option>
             ) : null}
           </select>
         ) : (
@@ -259,10 +278,14 @@ export function AutosVehicleIdentityFields({
             <input
               className={INPUT}
               value={trim ?? ""}
-              onChange={(e) => onPatch({ trim: autosDraftTextValue(e.target.value) })}
+              onChange={(e) => onPatch({ trim: autosDraftTextValue(e.target.value), vinDetectedTrim: undefined })}
               placeholder={trimPlaceholder}
               autoComplete="off"
             />
+            {vinDetectedTrim?.trim() &&
+            trim?.trim().toLowerCase() === vinDetectedTrim.trim().toLowerCase() ? (
+              <p className="mt-1 text-[11px] font-medium text-emerald-800">{vinDetectedLabel}</p>
+            ) : null}
             {trimSuggestions.length > 0 ? (
               <button
                 type="button"

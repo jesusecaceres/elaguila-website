@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     ok: true,
     fields: result.fields,
     filledCount: result.filledCount,
-    partial: result.filledCount < 4,
+    partial: result.metadata?.completenessStatus !== "full",
+    metadata: result.metadata,
   });
 }

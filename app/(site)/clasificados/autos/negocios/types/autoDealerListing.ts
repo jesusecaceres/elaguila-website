@@ -109,13 +109,51 @@ export type AutoDealerListing = {
   stockNumber?: string;
   /** Trim alias for filters/payload (often mirrors trim). */
   version?: string;
+  trim2?: string;
+  series?: string;
+  series2?: string;
+  /** Set when trim/version came from VIN decode outside local catalog. */
+  vinDetectedTrim?: string;
   /** Free-text motor label (often mirrors engine). */
   motor?: string;
   engineCylinders?: number;
   displacementL?: number;
+  displacementCC?: number;
+  displacementCI?: number;
+  engineModel?: string;
+  engineManufacturer?: string;
+  engineConfiguration?: string;
+  engineHP?: number;
+  engineKW?: number;
+  turbo?: string;
+  valveTrain?: string;
   vehicleType?: string;
+  vehicleDescriptor?: string;
+  bodyClass?: string;
+  driveType?: string;
+  transmissionStyle?: string;
+  transmissionSpeeds?: string;
+  fuelTypePrimary?: string;
+  fuelTypeSecondary?: string;
+  electrificationLevel?: string;
+  cabType?: string;
+  bedType?: string;
+  bedLength?: string;
+  gvwr?: string;
   manufacturer?: string;
+  manufacturerId?: string;
   plantCountry?: string;
+  plantState?: string;
+  plantCity?: string;
+  plantCompanyName?: string;
+  safetyFeatures?: Record<string, boolean>;
+  nhtsaDecode?: {
+    source: "nhtsa_vpic";
+    decodedAt: string;
+    completenessScore: number;
+    completenessStatus: "full" | "partial" | "minimal";
+    availableFields: string[];
+  };
   /** Select value; use `exteriorColorCustom` when this is `Otro`. */
   exteriorColor?: string;
   exteriorColorCustom?: string;

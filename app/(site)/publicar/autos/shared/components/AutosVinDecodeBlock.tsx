@@ -13,10 +13,11 @@ import {
 } from "@/app/lib/clasificados/autos/autosVinDecodeCopy";
 import { isValidVinCandidate, normalizeVinInput } from "@/app/lib/clasificados/autos/autosNhtsaVinDecode";
 import {
-  buildVinDecodeFillEmptyPatch,
+  mergeDecodedVehicleFieldsIntoDraft,
   pickAutosVehicleStructuredFields,
   type AutosVehicleStructuredFields,
 } from "@/app/lib/clasificados/autos/autosVehicleStructuredData";
+import { AutosVinDecodeSummaryPanel } from "./AutosVinDecodeSummaryPanel";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -44,17 +45,20 @@ export function AutosVinDecodeBlock<T extends AutosVehicleStructuredFields>({
 }) {
   const [status, setStatus] = useState<DecodeStatus>("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [decodedFields, setDecodedFields] = useState<Partial<AutosVehicleStructuredFields> | null>(null);
 
   const decode = useCallback(async () => {
     const normalized = normalizeVinInput(vin);
     if (!isValidVinCandidate(normalized)) {
       setStatus("invalid");
       setStatusMessage(autosVinDecodeInvalid(lang));
+      setDecodedFields(null);
       return;
     }
 
     setStatus("loading");
     setStatusMessage(autosVinDecodeLoading(lang));
+    setDecodedFields(null);
 
     try {
       const res = await fetch("/api/clasificados/autos/decode-vin", {
@@ -72,10 +76,14 @@ export function AutosVinDecodeBlock<T extends AutosVehicleStructuredFields>({
       if (!res.ok || !j.ok || !j.fields) {
         setStatus("error");
         setStatusMessage(autosVinDecodeError(lang));
+        setDecodedFields(null);
         return;
       }
 
-      const patch = buildVinDecodeFillEmptyPatch(pickAutosVehicleStructuredFields(currentVehicle), j.fields);
+      setDecodedFields(j.fields);
+
+      const current = pickAutosVehicleStructuredFields(currentVehicle);
+      const patch = mergeDecodedVehicleFieldsIntoDraft(current, j.fields, { fillEmptyOnly: true });
       if (Object.keys(patch).length > 0) {
         onApplyPatch(patch as Partial<T>);
       }
@@ -95,6 +103,7 @@ export function AutosVinDecodeBlock<T extends AutosVehicleStructuredFields>({
     } catch {
       setStatus("error");
       setStatusMessage(autosVinDecodeError(lang));
+      setDecodedFields(null);
     }
   }, [vin, modelYear, lang, currentVehicle, onApplyPatch, onVinChange]);
 
@@ -117,6 +126,7 @@ export function AutosVinDecodeBlock<T extends AutosVehicleStructuredFields>({
           onChange={(e) => {
             setStatus("idle");
             setStatusMessage(null);
+            setDecodedFields(null);
             const raw = e.target.value;
             onVinChange(raw.trim() ? raw : undefined);
           }}
@@ -146,6 +156,7 @@ export function AutosVinDecodeBlock<T extends AutosVehicleStructuredFields>({
           {statusMessage}
         </p>
       ) : null}
+      {decodedFields ? <AutosVinDecodeSummaryPanel lang={lang} fields={decodedFields} /> : null}
     </div>
   );
 }

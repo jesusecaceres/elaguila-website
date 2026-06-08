@@ -130,7 +130,10 @@ function run() {
   assert.ok(copy.includes("Decoding VIN"));
   assert.ok(vinBlock.includes("decode-vin"));
   assert.ok(nhtsa.includes("DecodeVinValues"));
-  assert.ok(vinBlock.includes("buildVinDecodeFillEmptyPatch"));
+  assert.ok(
+    vinBlock.includes("buildVinDecodeFillEmptyPatch") || vinBlock.includes("mergeDecodedVehicleFieldsIntoDraft"),
+    "VIN block must use fill-empty-only merge",
+  );
   assert.ok(structured.includes("engineCylinders"));
   assert.ok(inventoryDraft.includes("engineCylinders"));
 

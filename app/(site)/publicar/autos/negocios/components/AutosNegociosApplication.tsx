@@ -218,6 +218,7 @@ export function AutosNegociosApplication() {
                 make={listing.make}
                 model={listing.model}
                 trim={listing.trim}
+                vinDetectedTrim={listing.vinDetectedTrim}
                 onPatch={(p) => setListingPatch(p)}
                 requiredYear={false}
                 requiredMake
