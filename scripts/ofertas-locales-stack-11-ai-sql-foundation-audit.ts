@@ -143,8 +143,8 @@ function run() {
   assert.ok(!mapper.includes("@google-cloud"), "no Google SDK in mapper");
   assert.ok(!mapper.includes('from "openai"'), "no OpenAI in mapper");
 
-  assert.ok(!exists("app/api/ofertas-locales/scan"), "no scan API route");
   assert.ok(!exists("app/api/ofertas-locales/items"), "no items API route");
+  // Stack 12 adds app/api/ofertas-locales/scan — not a Stack 11 regression.
 
   const stack11Changed = changedFiles().filter(isStack11ChangedFile);
   for (const prefix of FORBIDDEN_CHANGED_PREFIXES) {
