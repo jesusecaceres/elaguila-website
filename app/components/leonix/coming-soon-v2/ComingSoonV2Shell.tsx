@@ -2071,6 +2071,7 @@ function ComingSoonV2ShellContent() {
   const contact = t.contact;
   const newsletter = t.newsletter;
   const magazineHref = `/magazine?lang=${routeLang}`;
+  const magazineDigitalHref = `/magazine/2026/june/read?lang=${routeLang}`;
   const magazineHero = LEONIX_MAGAZINE_HERO_CTAS[routeLang];
 
   const heroCtas = useMemo(
@@ -2217,7 +2218,7 @@ function ComingSoonV2ShellContent() {
                   <HeroCtaLink
                     cta={{
                       label: magazineHero.digital,
-                      href: magazineHref,
+                      href: magazineDigitalHref,
                       variant: "green",
                     }}
                   />
