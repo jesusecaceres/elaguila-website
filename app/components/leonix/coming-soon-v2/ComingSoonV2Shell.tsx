@@ -1044,21 +1044,21 @@ const heroAccentClass: Record<HeroAccent, string> = {
 };
 
 const heroLineClass =
-  "text-[1.05rem] font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
+  "text-[1rem] font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
 
 /** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
-const ANCHOR_SCROLL = "scroll-mt-32 lg:scroll-mt-28";
+const ANCHOR_SCROLL = "scroll-mt-28 lg:scroll-mt-28";
 
-const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-11 sm:py-12 lg:py-14`;
+const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-7 sm:py-12 lg:py-14`;
 
 const sectionEyebrowClass =
-  "text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E] sm:text-xs";
+  "text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#556B3E] sm:text-xs sm:tracking-[0.16em]";
 
 const sectionTitleClass =
-  "mt-3 max-w-3xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#2A4536] sm:text-[1.75rem] lg:text-3xl";
+  "mt-2 max-w-3xl font-serif text-xl font-bold leading-snug tracking-tight text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:text-3xl";
 
 const sectionIntroClass =
-  "mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]";
+  "mt-3 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed";
 
 const cardShellClass =
   "rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.2)]";
@@ -1142,7 +1142,7 @@ function HeroMediaVisual({
           />
         </div>
 
-        <div className="mt-3.5 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5 lg:items-start lg:justify-start">
+        <div className="mt-2.5 flex flex-col items-center gap-1.5 sm:mt-3.5 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-2.5 lg:items-start lg:justify-start">
           <p className="inline-flex max-w-full rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-center text-[0.65rem] font-bold uppercase tracking-[0.11em] text-[#2A4536] shadow-sm sm:text-[0.68rem]">
             {label}
           </p>
@@ -1191,7 +1191,7 @@ function WhatYouGetCardIcon({ accent }: { accent: WhatYouGetCardAccent }) {
   const s = cardAccentStyles[accent];
   return (
     <span
-      className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-full border-2 ${s.iconRing} ${s.iconBg} ${s.iconText}`}
+      className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-full border-2 sm:mb-4 sm:h-11 sm:w-11 ${s.iconRing} ${s.iconBg} ${s.iconText}`}
       aria-hidden
     >
       {accent === "qr" ? (
@@ -1233,23 +1233,23 @@ function WhatYouGetCardArticle({
 
   return (
     <article
-      className={`flex h-full flex-col ${cardShellClass} p-5 sm:p-6 ${extra} ${
+      className={`flex h-full flex-col ${cardShellClass} p-4 sm:p-6 ${extra} ${
         card.accent === "founder"
           ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
           : ""
       } ${card.accent === "green" ? "border-l-[3px] border-l-[#2A4536]/50" : ""}`}
     >
       <WhatYouGetCardIcon accent={card.accent} />
-      <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+      <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-xl">
         {card.title}
       </h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+      <p className="mt-1.5 flex-1 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
         {card.body}
       </p>
 
       <button
         type="button"
-        className="mt-4 inline-flex min-h-[2.25rem] self-start items-center rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 py-1.5 text-xs font-semibold text-[#7A1E2C] transition-colors hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:text-[0.8125rem]"
+        className="mt-3 inline-flex min-h-[2.25rem] self-start items-center rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 py-1.5 text-xs font-semibold text-[#7A1E2C] transition-colors hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:mt-4 sm:text-[0.8125rem]"
         aria-expanded={isOpen}
         aria-controls={detailId}
         onClick={onToggle}
@@ -1364,24 +1364,24 @@ function MarketplaceSection({
         {headline}
       </h2>
       <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
-      <p className="mt-4 max-w-2xl text-sm font-semibold leading-relaxed text-[#2A4536] sm:text-[0.9375rem]">
+      <p className="mt-3 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-4 sm:text-[0.9375rem] sm:leading-relaxed">
         {bridge}
       </p>
 
       <ul
-        className="mt-8 grid min-w-0 list-none gap-4 p-0 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
+        className="mt-5 grid min-w-0 list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
           <li key={index} className="flex min-w-0">
             <article
-              className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} border-l-[3px] border-l-[#C9A84A]/45 p-4 sm:p-5`}
+              className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} border-l-[3px] border-l-[#C9A84A]/45 p-3.5 sm:p-5`}
             >
               <MarketplaceCategoryIcon index={index} />
-              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
+              <h3 className="font-serif text-[0.9375rem] font-bold leading-snug text-[#7A1E2C] sm:text-lg">
                 {card.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.875rem]">
+              <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.875rem] sm:leading-relaxed">
                 {card.body}
               </p>
             </article>
@@ -1389,8 +1389,8 @@ function MarketplaceSection({
         ))}
       </ul>
 
-      <div className="mt-8 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-5 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:p-6">
-        <p className="max-w-3xl font-serif text-lg font-bold leading-snug text-[#F8F4EA] sm:text-xl">
+      <div className="mt-5 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-4 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-6">
+        <p className="max-w-3xl font-serif text-base font-bold leading-snug text-[#F8F4EA] sm:text-xl">
           {closing}
         </p>
         <Link
@@ -1445,7 +1445,7 @@ function WhatYouGetSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <ul className="mt-8 grid list-none gap-5 p-0 sm:gap-5 lg:grid-cols-6">
+      <ul className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:gap-5 lg:grid-cols-6">
         {cards.map((card, index) => {
           const spanClass = index < 3 ? "lg:col-span-2" : "lg:col-span-3";
           return (
@@ -1500,22 +1500,22 @@ function HowItWorksSection({
       <p className={sectionIntroClass}>{intro}</p>
 
       <ol
-        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 sm:items-stretch lg:grid-cols-4"
+        className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
         aria-label={stepsAria}
       >
         {steps.map((step, index) => (
           <li key={index} className="flex">
-            <article className={`flex h-full w-full flex-col ${cardShellClass} p-5 sm:p-6`}>
+            <article className={`flex h-full w-full flex-col ${cardShellClass} p-4 sm:p-6`}>
               <span
-                className={`mb-4 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 ${processStepBadgeStyles[index]}`}
+                className={`mb-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 sm:mb-4 sm:h-10 sm:w-10 ${processStepBadgeStyles[index]}`}
                 aria-hidden
               >
                 {index + 1}
               </span>
-              <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-xl">
                 {step.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+              <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
                 {step.body}
               </p>
             </article>
@@ -1587,30 +1587,30 @@ function QrAccessSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <div className="mt-8 grid min-w-0 items-start gap-6 lg:grid-cols-2 lg:gap-8">
-        <p className="text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem] lg:max-w-xl">
+      <div className="mt-5 grid min-w-0 items-start gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+        <p className="text-[0.9375rem] leading-snug text-[#3D3428] sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-xl">
           {explanation}
         </p>
 
-        <div className="flex min-w-0 max-w-md flex-col items-center gap-4 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-6 py-6 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
+        <div className="flex min-w-0 max-w-md flex-col items-center gap-3 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-4 py-4 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:gap-4 sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
           <DecorativeQrVisual />
-          <p className="font-serif text-xl font-bold leading-snug text-[#F8F4EA] sm:text-[1.75rem]">
+          <p className="font-serif text-lg font-bold leading-snug text-[#F8F4EA] sm:text-[1.75rem]">
             {callout}
           </p>
         </div>
       </div>
 
       <ul
-        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 sm:items-stretch lg:grid-cols-3"
+        className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-3"
         aria-label={benefitsAria}
       >
         {benefits.map((benefit, index) => (
           <li key={index} className="flex">
-            <article className={`h-full w-full ${cardShellClass} p-5 sm:p-6`}>
-              <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C]">
+            <article className={`h-full w-full ${cardShellClass} p-4 sm:p-6`}>
+              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
                 {benefit.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+              <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
                 {benefit.body}
               </p>
             </article>
@@ -1648,7 +1648,7 @@ function MediaKitPreviewCardIcon({ index }: { index: number }) {
   const accent = mediaKitPreviewAccents[index];
   return (
     <span
-      className={`mb-4 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${accent.ring} ${accent.bg} ${accent.text}`}
+      className={`mb-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 sm:mb-4 sm:h-10 sm:w-10 ${accent.ring} ${accent.bg} ${accent.text}`}
       aria-hidden
     >
       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -1709,19 +1709,19 @@ function MediaKitPreviewSection({
       <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
 
       <ul
-        className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 sm:items-stretch lg:grid-cols-4"
+        className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
           <li key={index} className="flex">
             <article
-              className={`flex h-full w-full flex-col ${cardShellClass} p-5 ring-1 ring-[#C9A84A]/10 sm:p-6`}
+              className={`flex h-full w-full flex-col ${cardShellClass} p-4 ring-1 ring-[#C9A84A]/10 sm:p-6`}
             >
               <MediaKitPreviewCardIcon index={index} />
-              <h3 className="font-serif text-lg font-bold leading-snug text-[#7A1E2C]">
+              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
                 {card.title}
               </h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+              <p className="mt-1.5 flex-1 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
                 {card.body}
               </p>
             </article>
@@ -1729,11 +1729,11 @@ function MediaKitPreviewSection({
         ))}
       </ul>
 
-      <div className="mt-8 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-6 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:p-7">
-        <h3 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">
+      <div className="mt-5 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-4 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:mt-8 sm:p-7">
+        <h3 className="font-serif text-base font-bold text-[#2A4536] sm:text-xl">
           {ctaHeading}
         </h3>
-        <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2.5">
+        <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-4 sm:flex-row sm:items-stretch sm:gap-2.5">
           <HeroCtaLink cta={viewLinkCta} />
           <MediaKitDownloadLink
             label={downloadCta.label}
@@ -1786,7 +1786,7 @@ function FinalCtaActions({
   const [advertiseCta, mediaKitViewCta, joinCta] = ctas;
 
   return (
-    <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
+    <div className="mt-5 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-stretch">
       <HeroCtaLink cta={advertiseCta} />
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2">
         <HeroCtaLink cta={mediaKitViewCta} />
@@ -1844,17 +1844,17 @@ function FinalContactSection({
     >
       <span id="contact" className="block h-0" aria-hidden />
 
-      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-6 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8">
+      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-4 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8">
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#C9A84A] sm:text-xs">
           {finalCta.eyebrow}
         </p>
         <h2
           id="contacto-title"
-          className="mt-3 max-w-2xl font-serif text-2xl font-bold leading-snug tracking-tight text-[#F8F4EA] sm:text-[1.75rem] lg:text-3xl"
+          className="mt-2 max-w-2xl font-serif text-xl font-bold leading-snug tracking-tight text-[#F8F4EA] sm:mt-3 sm:text-[1.75rem] lg:text-3xl"
         >
           {finalCta.headline}
         </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#EDE6D6] sm:text-[1.0625rem]">
+        <p className="mt-3 max-w-2xl text-[0.9375rem] leading-snug text-[#EDE6D6] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed">
           {finalCta.body}
         </p>
         <FinalCtaActions
@@ -1866,14 +1866,14 @@ function FinalContactSection({
         />
       </div>
 
-      <div className="mt-8 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-8">
-        <h2 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
+      <div className="mt-5 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:mt-8 sm:p-8">
+        <h2 className="font-serif text-lg font-bold text-[#2A4536] sm:text-2xl">
           {contact.title}
         </h2>
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-[1.0625rem]">
+        <p className="mt-2 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-3 sm:text-[1.0625rem] sm:leading-relaxed">
           {contact.body}
         </p>
-        <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+        <dl className="mt-4 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4">
           <div>
             <dt className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
               {contact.emailLabel}
@@ -1919,17 +1919,17 @@ function FinalContactSection({
         </dl>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] p-6 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:p-8">
-        <h2 className="font-serif text-xl font-bold text-[#F8F4EA] sm:text-2xl">
+      <div className="mt-5 overflow-hidden rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] p-4 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-8">
+        <h2 className="font-serif text-lg font-bold text-[#F8F4EA] sm:text-2xl">
           {newsletter.title}
         </h2>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#EDE6D6] sm:text-base">
+        <p className="mt-1.5 max-w-xl text-sm leading-snug text-[#EDE6D6] sm:mt-2 sm:text-base sm:leading-relaxed">
           {newsletter.body}
         </p>
         <form
           action="/newsletter"
           method="get"
-          className="mt-5 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-stretch"
+          className="mt-4 flex min-w-0 flex-col gap-3 sm:mt-5 sm:flex-row sm:items-stretch"
           aria-label={newsletter.formAria}
         >
           <input type="hidden" name="source" value="coming-soon-v2" />
@@ -1959,7 +1959,7 @@ function FinalContactSection({
 
 function ComingSoonV2Footer({ text }: { text: string }) {
   return (
-    <footer className="border-t border-[#D6C7AD]/55 bg-[#FAF6EE] py-6 sm:py-7">
+    <footer className="border-t border-[#D6C7AD]/55 bg-[#FAF6EE] py-5 sm:py-7">
       <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
         <p className="text-sm font-medium text-[#3D3428]">{text}</p>
       </div>
@@ -2115,10 +2115,10 @@ function ComingSoonV2ShellContent() {
         aria-label={t.mainAria}
       >
         <section
-          className="pb-10 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
+          className="pb-7 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
+          <div className="grid items-start gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
             <div className="min-w-0 max-w-3xl lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
@@ -2126,13 +2126,13 @@ function ComingSoonV2ShellContent() {
 
               <h1
                 id="hero-title"
-                className="mt-5 font-serif text-[2.35rem] font-bold leading-[1.05] tracking-tight text-[#2A4536] sm:mt-6 sm:text-5xl lg:text-[3.15rem]"
+                className="mt-4 font-serif text-[2rem] font-bold leading-[1.08] tracking-tight text-[#2A4536] sm:mt-6 sm:text-5xl sm:leading-[1.05] lg:text-[3.15rem]"
               >
                 {h.title}
               </h1>
 
               <ul
-                className="mt-6 space-y-2.5 border-l-[3px] border-[#C9A84A]/55 pl-4 sm:mt-7 sm:space-y-3 sm:pl-5"
+                className="mt-5 space-y-2 border-l-[3px] border-[#C9A84A]/55 pl-4 sm:mt-7 sm:space-y-3 sm:pl-5"
                 aria-label={h.valueAria}
               >
                 {h.valueLines.map((line, index) => (
@@ -2140,7 +2140,7 @@ function ComingSoonV2ShellContent() {
                     key={index}
                     className={
                       index === 2
-                        ? `${heroLineClass} rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] px-3 py-2.5 sm:px-4`
+                        ? `${heroLineClass} rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] px-3 py-2 sm:px-4 sm:py-2.5`
                         : heroLineClass
                     }
                   >
@@ -2149,11 +2149,11 @@ function ComingSoonV2ShellContent() {
                 ))}
               </ul>
 
-              <p className="mt-6 max-w-[38rem] text-base leading-relaxed text-[#3D3428] sm:mt-8 sm:text-[1.0625rem]">
+              <p className="mt-5 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed">
                 {h.paragraph}
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch">
+              <div className="mt-6 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch">
                 {heroCtas.map((cta) => (
                   <HeroCtaLink key={cta.label} cta={cta} />
                 ))}
@@ -2174,7 +2174,7 @@ function ComingSoonV2ShellContent() {
               </div>
 
               <ul
-                className="mt-8 flex flex-col gap-2.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
+                className="mt-6 flex flex-col gap-2 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
                 aria-label={h.trustAria}
               >
                 {h.trustChips.map((chip) => (
