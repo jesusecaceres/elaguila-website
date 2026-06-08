@@ -4,10 +4,12 @@ export type LeonixSiteLang = import("./language").SupportedLang;
 export {
   ACTIVE_ADDITIONAL_LANGUAGES,
   ADDITIONAL_LANGUAGES,
+  ALL_SUPPORTED_LANGS,
   DEFAULT_LANG,
   FUTURE_LANGUAGES,
   HELD_RTL_LANGUAGES,
   HELD_RTL_LANGUAGE_CODES,
+  LANGUAGE_ENGLISH_NAMES,
   LANGUAGE_LABELS as LEONIX_LANG_LABELS,
   LANGUAGE_REGISTRY,
   LANGUAGE_SHORT as LEONIX_LANG_SHORT,
@@ -15,8 +17,10 @@ export {
   PLANNED_NON_RTL_LANGUAGES,
   PLANNED_NON_RTL_LANGUAGE_CODES,
   PRIMARY_LANGUAGES,
+  PROVIDER_LANGUAGE_CODES,
   getLanguageDefinition,
   getLanguageDirection,
+  getLanguageEnglishName,
   getLanguageLabel,
   getLanguageNativeLabel,
   getProviderLanguageCode,
@@ -24,16 +28,21 @@ export {
   isActiveLanguage,
   isAdditionalLanguageActive,
   isHeldLanguage,
+  isHeldRtlLang,
   isLanguageCode,
   isPlannedLanguage,
+  isSupportedLang,
   languageAriaLabel as leonixLangAria,
   navCopyLang as leonixNavCopyLang,
   normalizeLang as resolveLeonixSiteLang,
   normalizeSelectableLang,
   replaceLangInHref as withLeonixLang,
+  staticPageCopyLang,
   type FutureLanguage,
   type FutureLanguageCode,
+  type HeldRtlLang,
   type HeldRtlLanguageCode,
+  type HeldRtlLanguageEntry,
   type LanguageCode,
   type LanguageDefinition,
   type LanguageDirection,
@@ -42,7 +51,7 @@ export {
   type SupportedLang,
 } from "./language";
 
-import type { SupportedLang } from "./language";
+import { ADDITIONAL_LANGUAGES, PRIMARY_LANGUAGES, type SupportedLang } from "./language";
 
-/** @deprecated Use PRIMARY_LANGUAGES + ACTIVE_ADDITIONAL_LANGUAGES */
-export const LEONIX_LANG_CODES: SupportedLang[] = ["es", "en", "vi"];
+/** @deprecated Use PRIMARY_LANGUAGES + ADDITIONAL_LANGUAGES */
+export const LEONIX_LANG_CODES: SupportedLang[] = [...PRIMARY_LANGUAGES, ...ADDITIONAL_LANGUAGES];

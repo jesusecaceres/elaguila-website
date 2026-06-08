@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import {
-  MAGAZINE_UI,
+  getMagazineUi,
+  getReaderSections,
   READER_PREVIEW_SECTION_COUNT,
-  READER_SECTIONS,
   readerCtaHref,
   type MagazineLang,
   type ReaderCtaKey,
@@ -26,8 +26,8 @@ export function MagazineTranslatedReader({
   variant = "full",
   readMoreHref,
 }: MagazineTranslatedReaderProps) {
-  const ui = MAGAZINE_UI[lang];
-  const sections = READER_SECTIONS[lang];
+  const ui = getMagazineUi(lang);
+  const sections = getReaderSections(lang);
   const visible =
     variant === "preview" ? sections.slice(0, READER_PREVIEW_SECTION_COUNT) : sections;
 

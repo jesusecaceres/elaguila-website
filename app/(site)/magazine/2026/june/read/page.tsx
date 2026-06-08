@@ -8,7 +8,8 @@ import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import {
   JUNE_2026,
-  MAGAZINE_UI,
+  getMagazineUi,
+  getJune2026Title,
   resolveMagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import {
@@ -26,7 +27,7 @@ import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/Magaz
 function JuneReaderContent() {
   const params = useSearchParams()!;
   const lang = resolveMagazineLang(params.get("lang"));
-  const ui = MAGAZINE_UI[lang];
+  const ui = getMagazineUi(lang);
   const visual = useMemo(
     () => getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang),
     [lang],
@@ -43,7 +44,7 @@ function JuneReaderContent() {
         open={flipOpen}
         onClose={closeFlipbook}
         src={visual.flipbookUrl}
-        title={JUNE_2026.title[lang]}
+        title={getJune2026Title(lang)}
         closeLabel={ui.closeFlipbook}
       />
 
@@ -59,7 +60,7 @@ function JuneReaderContent() {
             href={issueHref}
             className="inline-flex items-center text-sm font-semibold text-[#556B3E] hover:underline"
           >
-            {JUNE_2026.title[lang]}
+            {getJune2026Title(lang)}
           </Link>
         </div>
 
@@ -89,7 +90,7 @@ function JuneReaderContent() {
             <div className="mx-auto w-full max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-1 sm:mx-0">
               <Image
                 src={visual.coverUrl}
-                alt={JUNE_2026.title[lang]}
+                alt={getJune2026Title(lang)}
                 width={320}
                 height={420}
                 className="h-auto w-full object-contain"

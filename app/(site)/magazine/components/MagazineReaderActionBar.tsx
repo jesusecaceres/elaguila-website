@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  MAGAZINE_UI,
+  getMagazineUi,
   comingSoonHref,
   mediaKitHref,
   type MagazineLang,
@@ -23,7 +23,7 @@ export function MagazineReaderActionBar({
   onOpenFlipbook,
   layout = "grid",
 }: MagazineReaderActionBarProps) {
-  const ui = MAGAZINE_UI[lang];
+  const ui = getMagazineUi(lang);
   const visual = getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang);
   const wrapClass =
     layout === "stack"
@@ -63,7 +63,7 @@ type MagazineReaderFooterNavProps = {
 };
 
 export function MagazineReaderFooterNav({ lang, showReaderLink = true }: MagazineReaderFooterNavProps) {
-  const ui = MAGAZINE_UI[lang];
+  const ui = getMagazineUi(lang);
 
   return (
     <nav

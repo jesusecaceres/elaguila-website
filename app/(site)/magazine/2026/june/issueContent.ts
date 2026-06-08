@@ -1,9 +1,23 @@
-import { normalizeLang, type SupportedLang } from "@/app/lib/language";
+import { normalizeLang, staticPageCopyLang, type SupportedLang } from "@/app/lib/language";
 
 export type MagazineLang = SupportedLang;
 
+export type MagazineCopyLang = "es" | "en" | "vi";
+
 export function resolveMagazineLang(raw: string | null | undefined): MagazineLang {
   return normalizeLang(raw);
+}
+
+export function magazineCopyLang(lang: MagazineLang): MagazineCopyLang {
+  return staticPageCopyLang(lang);
+}
+
+export function getJune2026Title(lang: MagazineLang): string {
+  return JUNE_2026.title[magazineCopyLang(lang)];
+}
+
+export function getJune2026MonthLabel(lang: MagazineLang): string {
+  return JUNE_2026.monthLabel[magazineCopyLang(lang)];
 }
 
 /** Hub preview shows this many reader sections before linking to full reader. */
@@ -45,7 +59,7 @@ export type ReaderSection = {
 };
 
 export const MAGAZINE_UI: Record<
-  MagazineLang,
+  MagazineCopyLang,
   {
     languageEyebrow: string;
     originalMagazineLabel: string;
@@ -160,7 +174,11 @@ export const MAGAZINE_UI: Record<
   },
 };
 
-export const READER_SECTIONS: Record<MagazineLang, ReaderSection[]> = {
+export function getMagazineUi(lang: MagazineLang) {
+  return MAGAZINE_UI[magazineCopyLang(lang)];
+}
+
+export const READER_SECTIONS: Record<MagazineCopyLang, ReaderSection[]> = {
   es: [
     {
       id: "about-leonix",
@@ -430,6 +448,10 @@ export const READER_SECTIONS: Record<MagazineLang, ReaderSection[]> = {
   ],
 };
 
+export function getReaderSections(lang: MagazineLang): ReaderSection[] {
+  return READER_SECTIONS[magazineCopyLang(lang)];
+}
+
 export function readerCtaHref(key: ReaderCtaKey, lang: MagazineLang): string {
   switch (key) {
     case "advertise":
@@ -454,7 +476,7 @@ export function readerCtaHref(key: ReaderCtaKey, lang: MagazineLang): string {
 }
 
 export function mediaKitHref(lang: MagazineLang): string {
-  return lang === "en"
+  return magazineCopyLang(lang) === "en"
     ? "/media-kit/leonix-media-kit-en.pdf"
     : "/media-kit/leonix-media-kit-es.pdf";
 }

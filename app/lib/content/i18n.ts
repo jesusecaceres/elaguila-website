@@ -1,5 +1,6 @@
 import {
   normalizeLang,
+  staticPageCopyLang,
   type SupportedLang,
 } from "@/app/lib/language";
 
@@ -16,7 +17,7 @@ export type SupportedContentLang = SupportedLang;
 type CopyLang = "es" | "en" | "vi";
 
 function toCopyLang(lang: SupportedContentLang): CopyLang {
-  return normalizeLang(lang);
+  return staticPageCopyLang(lang);
 }
 
 function resolveEntry(key: StaticCopyKey, lang: CopyLang): string | undefined {

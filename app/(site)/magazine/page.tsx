@@ -5,9 +5,10 @@ import Link from "next/link";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import type { PublicMagazineManifest } from "@/app/lib/magazine/magazineManifestTypes";
+import { staticPageCopyLang } from "@/app/lib/language";
 import {
   JUNE_2026,
-  MAGAZINE_UI,
+  getMagazineUi,
   resolveMagazineLang,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
@@ -278,8 +279,8 @@ function editionMonthLabel(edition: MagazineEdition, lang: MagazineLang): string
 export default function MagazineHubPage() {
   const params = useSearchParams()!;
   const lang = resolveMagazineLang(params.get("lang"));
-  const t = COPY[lang];
-  const ui = MAGAZINE_UI[lang];
+  const t = COPY[staticPageCopyLang(lang)];
+  const ui = getMagazineUi(lang);
   const advertiseLang: AdvertiseLang = lang === "en" ? "en" : "es";
   const readMoreHref = `/magazine/2026/june/read?lang=${lang}`;
 

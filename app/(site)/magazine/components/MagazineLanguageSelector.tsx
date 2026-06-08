@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import {
-  MAGAZINE_UI,
+  getMagazineUi,
   resolveMagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
 
@@ -21,7 +21,7 @@ export function MagazineLanguageSelector({
 }: MagazineLanguageSelectorProps) {
   const searchParams = useSearchParams();
   const lang = resolveMagazineLang(searchParams?.get("lang"));
-  const ui = MAGAZINE_UI[lang];
+  const ui = getMagazineUi(lang);
 
   return (
     <div className={`min-w-0 ${className ?? ""}`}>

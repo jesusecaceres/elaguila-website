@@ -6,7 +6,9 @@ import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   JUNE_2026,
-  MAGAZINE_UI,
+  getJune2026MonthLabel,
+  getJune2026Title,
+  getMagazineUi,
   resolveMagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import {
@@ -23,7 +25,7 @@ import {
 function JuneIssueLandingContent() {
   const params = useSearchParams()!;
   const lang = resolveMagazineLang(params.get("lang"));
-  const ui = MAGAZINE_UI[lang];
+  const ui = getMagazineUi(lang);
   const visual = useMemo(
     () => getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang),
     [lang],
@@ -40,7 +42,7 @@ function JuneIssueLandingContent() {
         open={flipOpen}
         onClose={closeFlipbook}
         src={visual.flipbookUrl}
-        title={JUNE_2026.title[lang]}
+        title={getJune2026Title(lang)}
         closeLabel={ui.closeFlipbook}
       />
 
@@ -54,7 +56,7 @@ function JuneIssueLandingContent() {
 
         <header className="mt-6 max-w-3xl">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
-            LEONIX MEDIA · {JUNE_2026.monthLabel[lang]} {JUNE_2026.year}
+            LEONIX MEDIA · {getJune2026MonthLabel(lang)} {JUNE_2026.year}
           </p>
           <h1 className="mt-3 font-serif text-3xl font-bold leading-tight text-[#2A4536] sm:text-4xl">
             {ui.issuePageTitle}
@@ -72,7 +74,7 @@ function JuneIssueLandingContent() {
             <div className="mx-auto w-full max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-1 sm:mx-0">
               <Image
                 src={visual.coverUrl}
-                alt={JUNE_2026.title[lang]}
+                alt={getJune2026Title(lang)}
                 width={320}
                 height={420}
                 className="h-auto w-full object-contain"
@@ -81,7 +83,7 @@ function JuneIssueLandingContent() {
               />
             </div>
             <div className="min-w-0">
-              <h2 className="font-serif text-xl font-bold text-[#2A4536]">{JUNE_2026.title[lang]}</h2>
+              <h2 className="font-serif text-xl font-bold text-[#2A4536]">{getJune2026Title(lang)}</h2>
               <p className="mt-2 text-sm text-[#3D3428]/80">{ui.futureFlipbookNote}</p>
               <div className="mt-5">
                 <MagazineReaderActionBar lang={lang} onOpenFlipbook={openFlipbook} layout="stack" />

@@ -8,6 +8,7 @@ import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/L
 import {
   LEONIX_MAGAZINE_HERO_CTAS,
   resolveLeonixSiteLang,
+  staticPageCopyLang,
   withLeonixLang,
   type LeonixSiteLang,
 } from "@/app/lib/lang";
@@ -2057,7 +2058,7 @@ function ComingSoonV2ShellContent() {
   const searchParams = useSearchParams();
   const urlLang = searchParams?.get("lang");
   const routeLang = resolveLeonixSiteLang(urlLang);
-  const displayLang: Lang = routeLang;
+  const displayLang = staticPageCopyLang(routeLang);
 
   const t = COPY[displayLang];
   const h = t.hero;
