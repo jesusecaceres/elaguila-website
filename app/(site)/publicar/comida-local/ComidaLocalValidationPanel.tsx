@@ -45,8 +45,8 @@ export function ComidaLocalValidationPanel({
   const publishWarnings = publishIssues.filter((i) => i.severity === "warning");
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4">
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
           {COMIDA_LOCAL_SHELL_COPY.validationPreviewTitle}
         </h3>
@@ -58,7 +58,7 @@ export function ComidaLocalValidationPanel({
           />
         </div>
       </div>
-      <div className="rounded-xl border border-[#D4C4A8]/70 bg-white p-4">
+      <div className="rounded-lg border border-[#D4C4A8]/70 bg-white p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70">
           {COMIDA_LOCAL_SHELL_COPY.validationPublishTitle}
         </h3>

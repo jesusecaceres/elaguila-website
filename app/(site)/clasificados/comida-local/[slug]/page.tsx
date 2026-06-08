@@ -6,6 +6,12 @@ import {
   mapComidaLocalRowToDetailVm,
   resolveComidaLocalFoodTypeLabel,
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalPublicListing";
+import {
+  CL_CONTAINER_NARROW,
+  CL_EYEBROW,
+  CL_HEADER_BAR,
+  CL_PAGE,
+} from "../components/comidaLocalCustomerStyles";
 import { ComidaLocalPublicDetailClient } from "../components/ComidaLocalPublicDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -40,19 +46,20 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
   const vm = mapComidaLocalRowToDetailVm(row);
 
   return (
-    <div className="min-h-screen bg-[#FFFCF7] pb-16">
-      <div className="border-b border-[#D4C4A8]/70 bg-[#FDF8F0]">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+    <div className={CL_PAGE}>
+      <div className={CL_HEADER_BAR}>
+        <div className={`${CL_CONTAINER_NARROW} flex flex-wrap items-center justify-between gap-2 py-3.5`}>
           <Link
             href="/clasificados/comida-local"
             className="text-sm font-medium text-[#7A1E2C] hover:underline"
           >
             ← Comida Local
           </Link>
+          <p className={CL_EYEBROW}>Ficha pública</p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <div className={`${CL_CONTAINER_NARROW} py-6 sm:py-8`}>
         <ComidaLocalPublicDetailClient vm={vm} />
       </div>
     </div>

@@ -45,14 +45,15 @@ import { ComidaLocalGalleryUpload } from "./components/ComidaLocalGalleryUpload"
 import { ComidaLocalImageUploadField } from "./components/ComidaLocalImageUploadField";
 
 const PAGE_BG = "bg-[#FFFCF7]";
-const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm";
+const CARD = "rounded-lg border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm";
 const INPUT =
-  "w-full rounded-xl border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] placeholder:text-[#1E1814]/40 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/25";
+  "w-full rounded-lg border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] placeholder:text-[#1E1814]/40 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/20";
 const INPUT_INVALID = "border-red-400/80 focus:ring-red-300/40";
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70";
 const HELPER = "mt-1 text-xs leading-relaxed text-[#1E1814]/60";
 const INLINE_WARN = "mt-1 text-xs text-red-700";
-const SECTION_TITLE = "text-lg font-semibold text-[#1E1814]";
+const SECTION_TITLE =
+  "border-l-[3px] border-[#7A1E2C] pl-3 text-base font-semibold text-[#1E1814]";
 const CHIP_ON =
   "rounded-lg border border-[#7A1E2C] bg-[#7A1E2C]/10 px-3 py-1.5 text-sm font-medium text-[#7A1E2C]";
 const CHIP_OFF =
@@ -218,7 +219,7 @@ export default function ComidaLocalApplicationClient() {
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
       <div className="mx-auto max-w-6xl px-4 py-8 pb-16 sm:px-6 lg:px-8">
-        <header className="mb-8 border-b border-[#D4C4A8]/60 pb-6">
+        <header className="mb-6 border-b border-[#D4C4A8]/60 pb-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#7A1E2C]">
             Leonix Clasificados · {COMIDA_LOCAL_PRODUCT_NAME}
           </p>
@@ -229,7 +230,7 @@ export default function ComidaLocalApplicationClient() {
             {COMIDA_LOCAL_SHELL_COPY.pageSubtitle}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-2 text-xs text-[#1E1814]/70">
+            <p className="rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-2 text-xs leading-relaxed text-[#1E1814]/70">
               {COMIDA_LOCAL_SHELL_COPY.scaffoldNotice}
               {savedLabel ? ` · ${COMIDA_LOCAL_SHELL_COPY.draftSaved} (${savedLabel})` : null}
             </p>
@@ -621,13 +622,13 @@ export default function ComidaLocalApplicationClient() {
             )}
 
             {publishError ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
                 {publishError}
               </div>
             ) : null}
 
             {publishSuccessPath ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950">
                 <p className="font-semibold">{COMIDA_LOCAL_SHELL_COPY.publishSuccessTitle}</p>
                 <p className="mt-1 text-emerald-900/90">
                   Tu ficha ya está en resultados públicos cuando el inventario esté disponible.
@@ -644,11 +645,12 @@ export default function ComidaLocalApplicationClient() {
             <div
               className={cx(
                 CARD,
-                "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+                "flex flex-col gap-4 border-[#D4C4A8]/70 bg-[#FDF8F0] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
               )}
             >
               <div className="min-w-0">
-                <p className="text-sm text-[#1E1814]/70">
+                <p className="text-sm font-medium text-[#1E1814]">Vista previa</p>
+                <p className="mt-1 text-sm text-[#1E1814]/68">
                   {previewReady
                     ? "Revisa cómo se verá tu ficha antes de publicar."
                     : "Completa los campos de la guía «Para vista previa» para abrir la vista previa."}
@@ -664,7 +666,7 @@ export default function ComidaLocalApplicationClient() {
               {previewReady ? (
                 <Link
                   href="/clasificados/comida-local/preview"
-                  className="inline-flex shrink-0 items-center justify-center rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
+                  className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
                 >
                   {COMIDA_LOCAL_SHELL_COPY.viewPreview}
                 </Link>
@@ -683,7 +685,7 @@ export default function ComidaLocalApplicationClient() {
             <div
               className={cx(
                 CARD,
-                "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+                "flex flex-col gap-4 border-[#7A1E2C]/15 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
               )}
             >
               <div className="min-w-0">

@@ -8,9 +8,7 @@ import {
   COMIDA_LOCAL_SERVICE_OPTIONS,
 } from "@/app/lib/clasificados/comida-local/comidaLocalConstants";
 import type { ComidaLocalFilterOptions } from "@/app/lib/clasificados/comida-local/comidaLocalPublicTypes";
-
-const INPUT =
-  "w-full rounded-xl border border-[#D4C4A8]/90 bg-white px-3 py-2 text-sm text-[#1E1814] placeholder:text-[#1E1814]/40 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/25";
+import { CL_BTN_PRIMARY, CL_INPUT, CL_PANEL_SOFT, CL_SECTION_TITLE } from "./comidaLocalCustomerStyles";
 
 type Props = {
   options: ComidaLocalFilterOptions;
@@ -66,7 +64,7 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
 
   return (
     <form
-      className="rounded-2xl border border-[#D4C4A8]/80 bg-[#FDF8F0] p-4 shadow-sm"
+      className={`${CL_PANEL_SOFT} p-3 sm:p-4`}
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -79,9 +77,10 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
         });
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <label className="block sm:col-span-2 lg:col-span-3">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/65">
+      <p className={`${CL_SECTION_TITLE} mb-3`}>Filtrar resultados</p>
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="block sm:col-span-2 lg:col-span-2">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
             Buscar
           </span>
           <input
@@ -89,21 +88,21 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
             type="search"
             defaultValue={current.q}
             placeholder="Nombre, comida, ciudad…"
-            className={INPUT}
+            className={CL_INPUT}
             disabled={pending}
           />
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/65">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
             Ciudad
           </span>
           <input
             name="city"
             list="comida-local-cities"
             defaultValue={current.city}
-            placeholder="Ciudad o zona"
-            className={INPUT}
+            placeholder="Ciudad"
+            className={CL_INPUT}
             disabled={pending}
           />
           <datalist id="comida-local-cities">
@@ -114,10 +113,10 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/65">
-            Tipo de comida
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
+            Comida
           </span>
-          <select name="foodType" defaultValue={current.foodType} className={INPUT} disabled={pending}>
+          <select name="foodType" defaultValue={current.foodType} className={CL_INPUT} disabled={pending}>
             <option value="">Todos</option>
             {COMIDA_LOCAL_FOOD_TYPE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -128,10 +127,10 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/65">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
             Servicio
           </span>
-          <select name="service" defaultValue={current.service} className={INPUT} disabled={pending}>
+          <select name="service" defaultValue={current.service} className={CL_INPUT} disabled={pending}>
             <option value="">Todos</option>
             {COMIDA_LOCAL_SERVICE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -141,11 +140,11 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
           </select>
         </label>
 
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/65">
+        <label className="block sm:col-span-2 lg:col-span-1">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
             Precio
           </span>
-          <select name="priceLevel" defaultValue={current.priceLevel} className={INPUT} disabled={pending}>
+          <select name="priceLevel" defaultValue={current.priceLevel} className={CL_INPUT} disabled={pending}>
             <option value="">Todos</option>
             {COMIDA_LOCAL_PRICE_LEVEL_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -156,22 +155,18 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
         </label>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26] disabled:opacity-60"
-        >
-          {pending ? "Buscando…" : "Aplicar filtros"}
+      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        <button type="submit" disabled={pending} className={`${CL_BTN_PRIMARY} min-h-[38px] px-3.5 py-1.5 text-[13px]`}>
+          {pending ? "Buscando…" : "Aplicar"}
         </button>
         {hasActive ? (
           <button
             type="button"
             onClick={clearAll}
             disabled={pending}
-            className="text-sm font-medium text-[#7A1E2C] hover:underline"
+            className="text-[13px] font-medium text-[#7A1E2C] hover:underline"
           >
-            Limpiar filtros
+            Limpiar
           </button>
         ) : null}
       </div>
