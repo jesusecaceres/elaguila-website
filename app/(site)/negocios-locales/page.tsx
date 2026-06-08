@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 type Lang = "es" | "en";
 
 type BusinessLaneKey =
+  | "ofertas-locales"
   | "servicios"
   | "restaurantes"
   | "comida-local"
@@ -14,6 +15,7 @@ type BusinessLaneKey =
   | "bienes-raices";
 
 const LANE_ORDER: readonly BusinessLaneKey[] = [
+  "ofertas-locales",
   "servicios",
   "restaurantes",
   "comida-local",
@@ -22,6 +24,7 @@ const LANE_ORDER: readonly BusinessLaneKey[] = [
 ];
 
 const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
+  "ofertas-locales": "/clasificados/ofertas-locales",
   servicios: "/clasificados/servicios",
   restaurantes: "/clasificados/restaurantes",
   "comida-local": "/clasificados/comida-local",
@@ -30,6 +33,7 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
 };
 
 const LANE_ADVERTISE_PATH: Record<BusinessLaneKey, string> = {
+  "ofertas-locales": "/publicar/ofertas-locales",
   servicios: "/clasificados/publicar/servicios",
   restaurantes: "/publicar/restaurantes",
   "comida-local": "/publicar/comida-local",
@@ -47,6 +51,14 @@ type LaneCopy = {
 };
 
 const LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
+  "ofertas-locales": {
+    labelEs: "Ofertas Locales",
+    labelEn: "Local Deals",
+    descEs: "Encuentra especiales, cupones y ofertas semanales de negocios locales.",
+    descEn: "Find weekly specials, coupons, and local business offers.",
+    advertiseEs: "Publica tus ofertas locales",
+    advertiseEn: "Publish your local deals",
+  },
   servicios: {
     labelEs: "Servicios",
     labelEn: "Services",
@@ -159,6 +171,14 @@ function LaneMark({ lane }: { lane: BusinessLaneKey }) {
   };
 
   switch (lane) {
+    case "ofertas-locales":
+      return (
+        <svg {...common} aria-hidden>
+          <path d="M4 8h16v12H4z" />
+          <path d="M8 8V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3" />
+          <path d="M9 13h6M9 17h4" />
+        </svg>
+      );
     case "servicios":
       return (
         <svg {...common} aria-hidden>

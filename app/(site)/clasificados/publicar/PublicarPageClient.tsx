@@ -213,6 +213,30 @@ export default function PublicarPageClient({
               </span>
               <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
             </Link>
+            <Link
+              href={`/publicar/ofertas-locales?lang=${lang}`}
+              className={cx(
+                "group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
+                "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
+                "from-[#7A1E2C]/8 via-[#FFFDF7] to-[#FAF6EE]",
+                "border-[#7A1E2C]/35",
+                "shadow-[0_10px_24px_-16px_rgba(122,30,44,0.25)]"
+              )}
+            >
+              <span className="inline-flex w-fit items-center rounded-full bg-[#7A1E2C]/10 px-2.5 py-1 text-[11px] font-semibold text-[#7A1E2C]">
+                🏷️
+              </span>
+              <div className="mt-2 flex items-center gap-2">
+                <FiShoppingCart className="h-5 w-5 shrink-0 text-[#7A1E2C]" aria-hidden />
+                <span className="text-sm font-bold leading-tight text-[#3D2C12]">
+                  {lang === "es" ? "Ofertas Locales" : "Local Deals"}
+                </span>
+              </div>
+              <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
+                {lang === "es" ? "Publica tus ofertas locales" : "Publish your local deals"}
+              </span>
+              <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
+            </Link>
             {gridCategories.map(({ key, Icon }) => {
               const label = categoryConfig[key].label[lang];
               const visual = LEONIX_CATEGORY_VISUALS[key];

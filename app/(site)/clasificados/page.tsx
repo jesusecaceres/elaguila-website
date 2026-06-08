@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
+import { OfertasLocalesHubCategoryCard } from "./ofertas-locales/OfertasLocalesHubCategoryCard";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
 import {
@@ -158,8 +159,8 @@ const PAGE_COPY = {
       "Un espacio confiable, familiar y comunitario. Los anuncios gratis siempre permanecen visibles en la búsqueda.",
     ofertasLocalesTitle: "Ofertas Locales",
     ofertasLocalesDesc:
-      "Encuentra volantes, cupones y especiales de negocios locales aprobados por Leonix.",
-    ofertasLocalesBrowse: "Ver ofertas locales",
+      "Encuentra especiales, cupones y ofertas semanales de negocios locales.",
+    ofertasLocalesBrowse: "Ver ofertas",
     ofertasLocalesPublish: "Publica tus ofertas locales",
   },
   en: {
@@ -176,8 +177,8 @@ const PAGE_COPY = {
       "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
     ofertasLocalesTitle: "Local Deals",
     ofertasLocalesDesc:
-      "Find flyers, coupons, and specials from Leonix-approved local businesses.",
-    ofertasLocalesBrowse: "Browse local deals",
+      "Find weekly specials, coupons, and local business offers.",
+    ofertasLocalesBrowse: "View deals",
     ofertasLocalesPublish: "Publish your local deals",
   },
 } as const;
@@ -442,6 +443,9 @@ export default function ClasificadosPage() {
           </h2>
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <li className="flex h-full">
+              <OfertasLocalesHubCategoryCard lang={lang} routeLang={routeLang as Lang} priority />
+            </li>
             {C1_CATEGORY_ORDER.map((k) => {
               const browseHref = buildHubCategoryPageUrl(k, routeLang as Lang);
               const publishHref = buildCategoryPublishHref(k, routeLang as Lang);
