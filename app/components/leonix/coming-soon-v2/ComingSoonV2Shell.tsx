@@ -2001,7 +2001,8 @@ function LaunchCtaLink({
   return (
     <Link
       href={launchHref(lang)}
-      className={`inline-flex min-h-[2.25rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-center text-[0.7rem] font-bold leading-tight text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs lg:min-h-[2.125rem] lg:text-sm ${className}`}
+      data-coming-soon-header-launch-cta=""
+      className={`hidden min-h-[2.25rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-3 py-1.5 text-center text-[0.7rem] font-bold leading-tight text-white shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:px-3.5 sm:text-xs lg:inline-flex lg:min-h-[2.125rem] lg:text-sm ${className}`}
     >
       <span className="truncate">{label}</span>
     </Link>
