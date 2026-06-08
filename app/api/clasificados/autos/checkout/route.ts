@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getAutosSiteOrigin } from "@/app/lib/clasificados/autos/autosSiteOrigin";
-import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
+import { getAutosPublishUserFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
   activateAutosClassifiedsListing,
   assertAutosListingOwner,
@@ -28,6 +28,7 @@ import {
   promoteNegociosMainInventoryListing,
   publishNegociosBundleAdditionalVehicles,
 } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+import { isAutosNegociosQaPublishAllowlisted } from "@/app/lib/clasificados/autos/autosNegociosQaPublishAllowlist";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 
 export const dynamic = "force-dynamic";
@@ -51,9 +52,10 @@ async function finishAutosBypassCheckout(opts: {
   lang: AutosClassifiedsLang;
   returnQ: string;
   testPublish: boolean;
+  negociosQaAllowlistBypass: boolean;
   additionalInventoryVehicles: unknown[] | undefined;
 }) {
-  const { listingId, row, userId, lang, returnQ, testPublish } = opts;
+  const { listingId, row, userId, lang, returnQ, testPublish, negociosQaAllowlistBypass } = opts;
   const okAct = await activateAutosClassifiedsListing(listingId);
   if (!okAct) {
     if (row.lane === "negocios") {
@@ -83,6 +85,20 @@ async function finishAutosBypassCheckout(opts: {
         additionalVehicles: additional,
         lang,
       });
+      if (!bundlePublish.ok || bundlePublish.error) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: bundlePublish.error ?? "bundle_publish_failed",
+            message:
+              lang === "es"
+                ? "No se pudo completar la publicación del inventario adicional."
+                : "Could not complete additional inventory publish.",
+            bundlePublish,
+          },
+          { status: 500 },
+        );
+      }
     }
   }
 
@@ -96,7 +112,11 @@ async function finishAutosBypassCheckout(opts: {
 
   return NextResponse.json({
     ok: true,
-    ...(testPublish ? { testPublishBypass: true as const } : { internalBypass: true as const }),
+    ...(testPublish
+      ? { testPublishBypass: true as const }
+      : negociosQaAllowlistBypass
+        ? { negociosQaAllowlistBypass: true as const }
+        : { internalBypass: true as const }),
     liveUrl: `${origin}${livePath}`,
     successUrl,
     ...(bundlePublish
@@ -122,12 +142,14 @@ export async function POST(request: Request) {
   }
   const internalBypass = isAutosInternalPublishPaymentBypassEnabled();
   const testPublishBypass = isAutosAllowTestPublishBypassEnabled();
-  if (!internalBypass && !testPublishBypass && !isStripeAutosConfigured()) {
-    return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
-  }
-  const userId = await getAutosPublishUserIdFromRequest(request);
-  if (!userId) {
+  const user = await getAutosPublishUserFromRequest(request);
+  if (!user) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+  const userId = user.id;
+  const userOnNegociosQaAllowlist = isAutosNegociosQaPublishAllowlisted(userId, user.email);
+  if (!internalBypass && !testPublishBypass && !userOnNegociosQaAllowlist && !isStripeAutosConfigured()) {
+    return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
   }
   let body: Body;
   try {
@@ -167,6 +189,8 @@ export async function POST(request: Request) {
     }
   }
 
+  const negociosQaAllowlistBypass = row.lane === "negocios" && userOnNegociosQaAllowlist;
+
   if (internalBypass) {
     return finishAutosBypassCheckout({
       listingId,
@@ -175,6 +199,7 @@ export async function POST(request: Request) {
       lang,
       returnQ,
       testPublish: false,
+      negociosQaAllowlistBypass: false,
       additionalInventoryVehicles: body.additionalInventoryVehicles,
     });
   }
@@ -188,6 +213,21 @@ export async function POST(request: Request) {
       lang,
       returnQ,
       testPublish: true,
+      negociosQaAllowlistBypass: false,
+      additionalInventoryVehicles: body.additionalInventoryVehicles,
+    });
+  }
+
+  /** Negocios production QA: allowlisted owner may publish without Stripe (env-gated list). */
+  if (negociosQaAllowlistBypass) {
+    return finishAutosBypassCheckout({
+      listingId,
+      row,
+      userId,
+      lang,
+      returnQ,
+      testPublish: false,
+      negociosQaAllowlistBypass: true,
       additionalInventoryVehicles: body.additionalInventoryVehicles,
     });
   }

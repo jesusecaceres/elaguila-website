@@ -84,21 +84,31 @@ export function AutosPublishConfirmCore({
     void (async () => {
       setErrorDetail(null);
       let confirmMode: AutosPublishConfirmMode = "stripe";
+
+      const supabase = createSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
       try {
-        const optRes = await fetch("/api/clasificados/autos/publish-options", { cache: "no-store" });
+        const optRes = await fetch("/api/clasificados/autos/publish-options", {
+          cache: "no-store",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (optRes.ok) {
-          const opts = (await optRes.json()) as { internalBypass?: boolean; testPublishBypass?: boolean };
+          const opts = (await optRes.json()) as {
+            internalBypass?: boolean;
+            testPublishBypass?: boolean;
+            negociosQaAllowlistBypass?: boolean;
+          };
           if (opts.internalBypass) confirmMode = "internal_bypass";
           else if (opts.testPublishBypass) confirmMode = "test_bypass";
+          else if (opts.negociosQaAllowlistBypass) confirmMode = "test_bypass";
         }
       } catch {
         /* keep stripe copy */
       }
       if (!cancelled) setPublishConfirmMode(confirmMode);
 
-      const supabase = createSupabaseBrowserClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
       if (cancelled) return;
       if (!token) {
         setSessionMissing(true);
@@ -276,6 +286,7 @@ export function AutosPublishConfirmCore({
       url?: string;
       internalBypass?: boolean;
       testPublishBypass?: boolean;
+      negociosQaAllowlistBypass?: boolean;
       successUrl?: string;
       error?: string;
       message?: string;
@@ -299,7 +310,12 @@ export function AutosPublishConfirmCore({
       setPhase("error");
       return;
     }
-    if (res.ok && (j.internalBypass || j.testPublishBypass) && typeof j.successUrl === "string" && j.successUrl) {
+    if (
+      res.ok &&
+      (j.internalBypass || j.testPublishBypass || j.negociosQaAllowlistBypass) &&
+      typeof j.successUrl === "string" &&
+      j.successUrl
+    ) {
       if (j.bundlePublish && typeof window !== "undefined") {
         const sessionResult: AutosBundlePublishSessionResult = {
           mainListingId: j.bundlePublish.mainListingId,

@@ -136,6 +136,16 @@ export function autosInventoryBundleStatusReady(lang: AutosClassifiedsLang): str
   return lang === "es" ? "Listo para vista previa" : "Ready for preview";
 }
 
+export function autosPreviewCaptureBannerTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Vista del anuncio para captura" : "Ad preview for capture";
+}
+
+export function autosPreviewCaptureBannerHelper(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Esta vista usa los datos reales del borrador. Los IDs y enlaces públicos finales se generarán al publicar."
+    : "This view uses the real draft data. Final public IDs and links are generated when published.";
+}
+
 export function autosResultsCardPreviewTitle(lang: AutosClassifiedsLang): string {
   return lang === "es" ? "Así se verá en resultados" : "How this will look in results";
 }

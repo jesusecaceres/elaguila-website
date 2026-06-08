@@ -16,6 +16,8 @@ import { buildAutosNegociosEditorResumeHref } from "@/app/lib/clasificados/autos
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { AutosNegociosPreviewInventorySection } from "../components/AutosNegociosPreviewInventorySection";
+import { AutosNegociosPreviewCaptureBanner } from "../components/AutosNegociosPreviewCaptureBanner";
+import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { normalizeAdditionalInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
@@ -100,8 +102,16 @@ function AutosNegociosPreviewInner({
     return <AutosNegociosPreviewEmptyState />;
   }
 
+  const additionalCount = additionalInventoryVehicles.length;
+
   return (
     <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
+      {mode === "draft" ? <AutosNegociosPreviewCaptureBanner lang={lang} /> : null}
+      {mode === "draft" ? (
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
+          <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
+        </div>
+      ) : null}
       <AutosNegociosPreviewInventorySection
         lang={lang}
         parentListing={listing}
