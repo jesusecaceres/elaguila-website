@@ -6,13 +6,25 @@ import { useSearchParams } from "next/navigation";
 
 type Lang = "es" | "en";
 
-type BusinessLaneKey = "servicios" | "restaurantes" | "autos-dealer" | "bienes-raices";
+type BusinessLaneKey =
+  | "servicios"
+  | "restaurantes"
+  | "comida-local"
+  | "autos-dealer"
+  | "bienes-raices";
 
-const LANE_ORDER: readonly BusinessLaneKey[] = ["servicios", "restaurantes", "autos-dealer", "bienes-raices"];
+const LANE_ORDER: readonly BusinessLaneKey[] = [
+  "servicios",
+  "restaurantes",
+  "comida-local",
+  "autos-dealer",
+  "bienes-raices",
+];
 
 const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
   servicios: "/clasificados/servicios",
   restaurantes: "/clasificados/restaurantes",
+  "comida-local": "/clasificados/comida-local",
   "autos-dealer": "/clasificados/autos/resultados",
   "bienes-raices": "/clasificados/bienes-raices",
 };
@@ -20,6 +32,7 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
 const LANE_ADVERTISE_PATH: Record<BusinessLaneKey, string> = {
   servicios: "/clasificados/publicar/servicios",
   restaurantes: "/publicar/restaurantes",
+  "comida-local": "/publicar/comida-local",
   "autos-dealer": "/publicar/autos/negocios",
   "bienes-raices": "/clasificados/publicar/bienes-raices",
 };
@@ -49,6 +62,14 @@ const LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
     descEn: "Local food, menus, cravings, and places to visit in your community.",
     advertiseEs: "Anunciar en Restaurantes",
     advertiseEn: "Advertise in Restaurants",
+  },
+  "comida-local": {
+    labelEs: "Comida Local",
+    labelEn: "Local Food",
+    descEs: "Puestos, pop-ups, comida casera y vendedores móviles para la comunidad.",
+    descEn: "Pop-ups, homemade food, mobile vendors, and local food sellers.",
+    advertiseEs: "Publicar tu puesto",
+    advertiseEn: "Publish your stand",
   },
   "autos-dealer": {
     labelEs: "Concesionarios de Autos",
@@ -152,6 +173,17 @@ function LaneMark({ lane }: { lane: BusinessLaneKey }) {
           <path d="M8 3v9M6 3h4" />
           <path d="M16 3v18M14 3h4" />
           <circle cx="12" cy="19" r="2" />
+        </svg>
+      );
+    case "comida-local":
+      return (
+        <svg {...common} aria-hidden>
+          <path d="M4 10h16" />
+          <path d="M6 10V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3" />
+          <path d="M8 14h8" />
+          <circle cx="9" cy="18" r="1.5" />
+          <circle cx="15" cy="18" r="1.5" />
+          <path d="M5 10l-1 4h16l-1-4" />
         </svg>
       );
     case "autos-dealer":
