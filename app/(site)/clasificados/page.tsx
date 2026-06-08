@@ -156,6 +156,11 @@ const PAGE_COPY = {
     explore: "EXPLORAR",
     trustLine:
       "Un espacio confiable, familiar y comunitario. Los anuncios gratis siempre permanecen visibles en la búsqueda.",
+    ofertasLocalesTitle: "Ofertas Locales",
+    ofertasLocalesDesc:
+      "Encuentra volantes, cupones y especiales de negocios locales aprobados por Leonix.",
+    ofertasLocalesBrowse: "Ver ofertas locales",
+    ofertasLocalesPublish: "Publica tus ofertas locales",
   },
   en: {
     eyebrow: "LEONIX CLASSIFIEDS",
@@ -169,6 +174,11 @@ const PAGE_COPY = {
     explore: "EXPLORE",
     trustLine:
       "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
+    ofertasLocalesTitle: "Local Deals",
+    ofertasLocalesDesc:
+      "Find flyers, coupons, and specials from Leonix-approved local businesses.",
+    ofertasLocalesBrowse: "Browse local deals",
+    ofertasLocalesPublish: "Publish your local deals",
   },
 } as const;
 
@@ -398,6 +408,27 @@ export default function ClasificadosPage() {
             >
               {t.ctaExplore}
             </a>
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-2xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 p-5 sm:p-6" aria-labelledby="ofertas-locales-hub-title">
+          <h2 id="ofertas-locales-hub-title" className="text-xl font-bold text-[#1E1814]">
+            {t.ofertasLocalesTitle}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/75">{t.ofertasLocalesDesc}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href={appendLangToPath("/clasificados/ofertas-locales", routeLang as Lang)}
+              className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#6a1926]"
+            >
+              {t.ofertasLocalesBrowse}
+            </Link>
+            <Link
+              href={appendLangToPath("/publicar/ofertas-locales", routeLang as Lang)}
+              className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-[#7A1E2C]/35 bg-white px-4 py-2.5 text-sm font-bold text-[#7A1E2C] hover:bg-white/90"
+            >
+              {t.ofertasLocalesPublish}
+            </Link>
           </div>
         </section>
 

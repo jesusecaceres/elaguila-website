@@ -71,6 +71,8 @@ const COPY = {
     submitFailed: "No se pudo enviar el borrador. Intenta de nuevo.",
     submitSuccessTitle: "Tu oferta fue enviada para revisión.",
     submitSuccessBody: "Te avisaremos cuando haya novedades. La oferta no es pública hasta aprobación.",
+    submitNotPublicUntilReview:
+      "Tu oferta no aparecerá públicamente hasta que Leonix la revise y apruebe.",
     validationPreviewTitle: "Vista previa",
     validationPublishTitle: "Envío para revisión",
     previewReady: "Tienes lo básico para la vista previa.",
@@ -247,6 +249,8 @@ const COPY = {
     submitFailed: "Could not submit your draft. Try again.",
     submitSuccessTitle: "Your offer was submitted for review.",
     submitSuccessBody: "We will notify you when there is an update. The offer is not public until approved.",
+    submitNotPublicUntilReview:
+      "Your offer will not appear publicly until Leonix reviews and approves it.",
     validationPreviewTitle: "Preview",
     validationPublishTitle: "Submit for review",
     previewReady: "You have enough for preview.",

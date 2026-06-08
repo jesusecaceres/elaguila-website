@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       ...row,
       updated_at: now,
     })
-    .select("id, status")
+    .select("id, status, submitted_at")
     .single();
 
   if (error || !data) {
@@ -110,5 +110,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     id: data.id,
     status: data.status,
+    submittedAt: data.submitted_at ?? now,
   });
 }

@@ -660,3 +660,34 @@ export type OfertaLocalPublicSearchApiResponse = {
   error?: string;
   detail?: string;
 };
+
+/** Public approved offer card — FINAL-1 (no private fields). */
+export type OfertaLocalPublicOfferCard = {
+  id: string;
+  businessName: string;
+  title: string;
+  offerType: string;
+  businessCategory: string;
+  marketType: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  address: string;
+  validFrom: string;
+  validUntil: string;
+  phoneHref: string | null;
+  websiteHref: string | null;
+  directionsHref: string | null;
+  primaryAssetHref: string | null;
+  primaryAssetLabel: string;
+  updatedAt: string;
+};
+
+export type OfertaLocalPublicOffersApiResponse = {
+  ok: boolean;
+  offers?: OfertaLocalPublicOfferCard[];
+  total?: number;
+  message?: string;
+  error?: string;
+  detail?: string;
+};

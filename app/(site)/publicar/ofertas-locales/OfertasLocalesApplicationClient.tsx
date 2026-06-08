@@ -846,11 +846,13 @@ export default function OfertasLocalesApplicationClient() {
               <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                 <p className="font-semibold">{c.submitSuccessTitle}</p>
                 <p className="mt-1 text-xs">{c.submitSuccessBody}</p>
-                <p className="mt-2 text-[10px] uppercase tracking-wide text-emerald-800/60">
-                  ID: {submitSuccess.id} · {submitSuccess.status}
-                </p>
+                <p className="mt-2 text-xs text-emerald-900/85">{c.submitNotPublicUntilReview}</p>
               </div>
-            ) : null}
+            ) : (
+              <div className="rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3 text-sm text-[#1E1814]">
+                <p className="text-xs">{c.submitNotPublicUntilReview}</p>
+              </div>
+            )}
             {submitError ? (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
                 {submitError}

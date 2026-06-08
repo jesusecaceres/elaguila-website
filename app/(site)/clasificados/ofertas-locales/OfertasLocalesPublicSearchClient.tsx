@@ -4,10 +4,15 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { OfertaLocalPublicSearchItem } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type {
+  OfertaLocalPublicOfferCard,
+  OfertaLocalPublicSearchItem,
+} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
+import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
+import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
@@ -35,10 +40,12 @@ export function OfertasLocalesPublicSearchClient() {
   const [offerType, setOfferType] = useState(() => searchParams?.get("offerType") ?? "");
   const [sort, setSort] = useState(() => searchParams?.get("sort") ?? "newest");
 
+  const [offers, setOffers] = useState<OfertaLocalPublicOfferCard[]>([]);
   const [items, setItems] = useState<OfertaLocalPublicSearchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<OfertaLocalPublicSearchItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<OfertaLocalPublicSearchItem | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<OfertaLocalPublicOfferCard | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const shoppingList = useOfertasLocalesShoppingList();
 
@@ -51,18 +58,29 @@ export function OfertasLocalesPublicSearchClient() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/ofertas-locales/public-search?${queryString}`, {
-        cache: "no-store",
-      });
-      const data = (await res.json()) as { ok: boolean; items?: OfertaLocalPublicSearchItem[]; error?: string };
-      if (!data.ok) {
+      const [offersRes, itemsRes] = await Promise.all([
+        fetch(`/api/ofertas-locales/public-offers?${queryString}`, { cache: "no-store" }),
+        fetch(`/api/ofertas-locales/public-search?${queryString}`, { cache: "no-store" }),
+      ]);
+      const offersData = (await offersRes.json()) as {
+        ok: boolean;
+        offers?: OfertaLocalPublicOfferCard[];
+      };
+      const itemsData = (await itemsRes.json()) as {
+        ok: boolean;
+        items?: OfertaLocalPublicSearchItem[];
+      };
+      if (!offersData.ok && !itemsData.ok) {
         setError(c.loadFailed);
+        setOffers([]);
         setItems([]);
         return;
       }
-      setItems(data.items ?? []);
+      setOffers(offersData.offers ?? []);
+      setItems(itemsData.items ?? []);
     } catch {
       setError(c.loadFailed);
+      setOffers([]);
       setItems([]);
     } finally {
       setLoading(false);
@@ -98,6 +116,8 @@ export function OfertasLocalesPublicSearchClient() {
   };
 
   const publishHref = `/publicar/ofertas-locales?lang=${lang}`;
+  const hasFilters = Boolean(q || city || zip || category || marketType || offerType);
+  const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
@@ -106,6 +126,7 @@ export function OfertasLocalesPublicSearchClient() {
           <div>
             <h1 className="text-2xl font-bold text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
             <p className="mt-2 text-sm text-[#1E1814]/70 sm:text-base">{c.pageSubtitle}</p>
+            <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/60">{c.pageHeroBody}</p>
           </div>
           <button
             type="button"
@@ -168,8 +189,10 @@ export function OfertasLocalesPublicSearchClient() {
             <button type="submit" className={BTN} disabled={loading}>
               {loading ? c.searching : c.searchButton}
             </button>
-            {!loading && items.length > 0 ? (
-              <p className="text-sm text-[#1E1814]/65">{c.resultsCount(items.length)}</p>
+            {!loading ? (
+              <p className="text-sm text-[#1E1814]/65">
+                {c.resultsCount(offers.length + items.length)}
+              </p>
             ) : null}
           </div>
         </form>
@@ -180,30 +203,58 @@ export function OfertasLocalesPublicSearchClient() {
           </p>
         ) : null}
 
-        {loading ? (
-          <p className="text-sm text-[#1E1814]/65">{c.searching}</p>
-        ) : items.length === 0 ? (
+        {loading ? <p className="text-sm text-[#1E1814]/65">{c.searching}</p> : null}
+
+        {!loading && showPipelineEmpty ? (
+          <div className="rounded-2xl border border-[#D4C4A8]/70 bg-white px-6 py-10 text-center">
+            <p className="text-base font-medium text-[#1E1814]">{c.pipelineEmptyTitle}</p>
+            <p className="mt-2 text-sm text-[#1E1814]/65">{c.pipelineEmptyHint}</p>
+            <Link href={publishHref} className="mt-4 inline-block text-sm font-semibold text-[#7A1E2C] underline">
+              {c.publishCta}
+            </Link>
+          </div>
+        ) : null}
+
+        {!loading && !showPipelineEmpty && offers.length === 0 && items.length === 0 ? (
           <div className="rounded-2xl border border-[#D4C4A8]/70 bg-white px-6 py-10 text-center">
             <p className="text-base font-medium text-[#1E1814]">{c.emptyTitle}</p>
             <p className="mt-2 text-sm text-[#1E1814]/65">{c.emptyHint}</p>
           </div>
-        ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
-              <li key={item.id}>
-                <OfertasLocalesPublicItemCard
-                  lang={lang}
-                  item={item}
-                  isAdded={shoppingList.isAdded(item.id)}
-                  onSelect={setSelected}
-                  onAdd={shoppingList.addFromPublicItem}
-                  onRemove={shoppingList.removeItem}
-                  onOpenList={() => setListOpen(true)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        ) : null}
+
+        {!loading && offers.length > 0 ? (
+          <section className="mb-10">
+            <h2 className="mb-4 text-lg font-semibold text-[#1E1814]">{c.offersSectionTitle}</h2>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {offers.map((offer) => (
+                <li key={offer.id}>
+                  <OfertasLocalesPublicOfferCard lang={lang} offer={offer} onSelect={setSelectedOffer} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {!loading && items.length > 0 ? (
+          <section>
+            <h2 className="mb-4 text-lg font-semibold text-[#1E1814]">{c.itemsSectionTitle}</h2>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((item) => (
+                <li key={item.id}>
+                  <OfertasLocalesPublicItemCard
+                    lang={lang}
+                    item={item}
+                    isAdded={shoppingList.isAdded(item.id)}
+                    onSelect={setSelectedItem}
+                    onAdd={shoppingList.addFromPublicItem}
+                    onRemove={shoppingList.removeItem}
+                    onOpenList={() => setListOpen(true)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <div className="mt-10 rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-4">
           <p className="text-sm font-medium text-[#1E1814]">{c.publishCtaHint}</p>
@@ -213,8 +264,12 @@ export function OfertasLocalesPublicSearchClient() {
         </div>
       </div>
 
-      {selected ? (
-        <OfertasLocalesPublicItemDetailDrawer lang={lang} item={selected} onClose={() => setSelected(null)} />
+      {selectedItem ? (
+        <OfertasLocalesPublicItemDetailDrawer lang={lang} item={selectedItem} onClose={() => setSelectedItem(null)} />
+      ) : null}
+
+      {selectedOffer ? (
+        <OfertasLocalesPublicOfferDetailDrawer lang={lang} offer={selectedOffer} onClose={() => setSelectedOffer(null)} />
       ) : null}
 
       {listOpen ? (
