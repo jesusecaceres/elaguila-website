@@ -36,9 +36,10 @@ type Props = {
   draft: OfertaLocalDraft;
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
+  onScanComplete?: (scanJobId: string) => void;
 };
 
-export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId }: Props) {
+export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId, onScanComplete }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const [serverConfigurationMissing, setServerConfigurationMissing] = useState(false);
   const [scanStatus, setScanStatus] = useState<OfertaLocalAiScanReadinessStatus>("not_ready");
@@ -94,7 +95,8 @@ export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId }: Props)
 
     setScanStatus(result.status === "needs_review" ? "needs_review" : "ready");
     setScanMessage(result.message ?? c.aiScanSuccess);
-  }, [readiness, ofertaLocalId, c]);
+    if (result.scanJobId) onScanComplete?.(result.scanJobId);
+  }, [readiness, ofertaLocalId, c, onScanComplete]);
 
   if (!draft.wantsAiSearchableSpecials) return null;
 

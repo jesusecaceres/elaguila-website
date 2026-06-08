@@ -123,7 +123,20 @@ function run() {
   );
   assert.ok(app.includes("OfertasLocalesAiScanPanel"), "app uses scan panel");
 
-  assert.ok(!exists("app/api/ofertas-locales/items"), "no items API route");
+  const itemsListRoute = exists("app/api/ofertas-locales/items/route.ts")
+    ? read("app/api/ofertas-locales/items/route.ts")
+    : "";
+  const itemsPatchRoute = exists("app/api/ofertas-locales/items/[itemId]/route.ts")
+    ? read("app/api/ofertas-locales/items/[itemId]/route.ts")
+    : "";
+  if (itemsPatchRoute) {
+    assert.ok(itemsPatchRoute.includes("getBearerUserId"), "items patch requires auth");
+    assert.ok(!itemsPatchRoute.includes("is_active: true"), "items patch does not activate");
+  }
+  if (itemsListRoute) {
+    assert.ok(itemsListRoute.includes("getBearerUserId"), "items list requires auth");
+  }
+
   assert.ok(!pkg.includes("NEXT_PUBLIC_GOOGLE_DOCUMENT_AI"), "no NEXT_PUBLIC Google creds");
 
   const stack12Changed = changedFiles().filter(isStack12ChangedFile);

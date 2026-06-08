@@ -49,6 +49,7 @@ import {
   validateOfertaLocalDraftForFuturePublish,
   validateOfertaLocalDraftForPreview,
 } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
+import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
 import {
@@ -148,6 +149,7 @@ export default function OfertasLocalesApplicationClient() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
+  const [lastScanJobId, setLastScanJobId] = useState<string | null>(null);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
@@ -657,11 +659,19 @@ export default function OfertasLocalesApplicationClient() {
               />
             ) : null}
             {draft.wantsAiSearchableSpecials ? (
-              <OfertasLocalesAiScanPanel
-                draft={draft}
-                lang={lang}
-                ofertaLocalId={submitSuccess?.id}
-              />
+              <>
+                <OfertasLocalesAiScanPanel
+                  draft={draft}
+                  lang={lang}
+                  ofertaLocalId={submitSuccess?.id}
+                  onScanComplete={setLastScanJobId}
+                />
+                <OfertasLocalesAiItemReviewPanel
+                  lang={lang}
+                  ofertaLocalId={submitSuccess?.id}
+                  scanJobId={lastScanJobId}
+                />
+              </>
             ) : null}
           </div>
         );
@@ -849,11 +859,19 @@ export default function OfertasLocalesApplicationClient() {
             />
 
             {draft.wantsAiSearchableSpecials ? (
-              <OfertasLocalesAiScanPanel
-                draft={draft}
-                lang={lang}
-                ofertaLocalId={submitSuccess?.id}
-              />
+              <>
+                <OfertasLocalesAiScanPanel
+                  draft={draft}
+                  lang={lang}
+                  ofertaLocalId={submitSuccess?.id}
+                  onScanComplete={setLastScanJobId}
+                />
+                <OfertasLocalesAiItemReviewPanel
+                  lang={lang}
+                  ofertaLocalId={submitSuccess?.id}
+                  scanJobId={lastScanJobId}
+                />
+              </>
             ) : null}
 
             <div>

@@ -512,3 +512,69 @@ export type OfertaLocalScanApiResponse = {
   error?: string;
   detail?: string;
 };
+
+/** Owner review status — Stack B (alias of searchable item review status). */
+export type OfertaLocalItemReviewStatus = OfertaLocalSearchableItemReviewStatus;
+
+export type OfertaLocalItemReviewViewModel = {
+  id: string;
+  ofertaLocalId: string;
+  scanJobId: string | null;
+  itemName: string;
+  normalizedItemName: string;
+  category: string;
+  subcategory: string;
+  priceText: string;
+  priceAmount: number | null;
+  unit: string;
+  dealType: string;
+  quantity: string;
+  searchTags: string[];
+  reviewStatus: OfertaLocalItemReviewStatus;
+  confidence: number | null;
+  confidenceLabel: "high" | "medium" | "low" | "unknown";
+  sourceAssetId: string;
+  sourceAssetUrl: string;
+  sourcePage: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OfertaLocalItemReviewPatch = {
+  itemName?: string;
+  normalizedItemName?: string;
+  category?: string;
+  subcategory?: string;
+  priceText?: string;
+  priceAmount?: number | null;
+  unit?: string;
+  dealType?: string;
+  quantity?: string;
+  searchTags?: string[];
+  reviewStatus?: OfertaLocalItemReviewStatus;
+};
+
+export type OfertaLocalScanJobSummary = {
+  id: string;
+  status: OfertaLocalScanJobStatus;
+  itemsExtractedCount: number;
+  pagesProcessed: number;
+  completedAt: string | null;
+};
+
+export type OfertaLocalItemsListApiResponse = {
+  ok: boolean;
+  items?: OfertaLocalItemReviewViewModel[];
+  scanJobs?: OfertaLocalScanJobSummary[];
+  summary?: Record<OfertaLocalItemReviewStatus, number>;
+  error?: string;
+  detail?: string;
+};
+
+export type OfertaLocalItemPatchApiResponse = {
+  ok: boolean;
+  item?: OfertaLocalItemReviewViewModel;
+  error?: string;
+  detail?: string;
+};
