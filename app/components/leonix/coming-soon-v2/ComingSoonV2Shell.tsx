@@ -1049,16 +1049,16 @@ const heroLineClass =
 /** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
 const ANCHOR_SCROLL = "scroll-mt-28 lg:scroll-mt-28";
 
-const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-7 sm:py-12 lg:py-14`;
+const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-6 sm:py-12 lg:py-14`;
 
 const sectionEyebrowClass =
   "text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#556B3E] sm:text-xs sm:tracking-[0.16em]";
 
 const sectionTitleClass =
-  "mt-2 max-w-3xl font-serif text-xl font-bold leading-snug tracking-tight text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:text-3xl";
+  "mt-1.5 max-w-3xl font-serif text-xl font-bold leading-snug tracking-tight text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:text-3xl";
 
 const sectionIntroClass =
-  "mt-3 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed";
+  "mt-2 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed";
 
 const cardShellClass =
   "rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.2)]";
@@ -1081,7 +1081,9 @@ function HeroLineText({ line }: { line: HeroLine }) {
 
 function HeroCtaLink({ cta }: { cta: HeroCta }) {
   const base =
-    "inline-flex min-h-[3rem] w-full items-center justify-center rounded-full px-6 py-3 text-center text-sm font-bold transition sm:min-h-[3.125rem] sm:w-auto sm:text-[0.9375rem]";
+    cta.variant === "primary"
+      ? "inline-flex min-h-[3rem] w-full items-center justify-center rounded-full px-6 py-3 text-center text-sm font-bold transition sm:min-h-[3.125rem] sm:w-auto sm:text-[0.9375rem]"
+      : "inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-full px-5 py-2.5 text-center text-[0.8125rem] font-bold transition sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:py-3 sm:text-[0.9375rem]";
   const styles = {
     primary: `${base} bg-[#7A1E2C] text-white shadow-[0_8px_20px_-6px_rgba(122,30,44,0.5)] hover:bg-[#5e1721]`,
     secondary: `${base} border-2 border-[#C9A84A] bg-[#FFFDF7] text-[#1F241C] shadow-sm hover:border-[#b89742] hover:bg-[#FBF7EF]`,
@@ -1191,7 +1193,7 @@ function WhatYouGetCardIcon({ accent }: { accent: WhatYouGetCardAccent }) {
   const s = cardAccentStyles[accent];
   return (
     <span
-      className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-full border-2 sm:mb-4 sm:h-11 sm:w-11 ${s.iconRing} ${s.iconBg} ${s.iconText}`}
+      className={`mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 sm:mb-4 sm:h-11 sm:w-11 ${s.iconRing} ${s.iconBg} ${s.iconText}`}
       aria-hidden
     >
       {accent === "qr" ? (
@@ -1233,7 +1235,7 @@ function WhatYouGetCardArticle({
 
   return (
     <article
-      className={`flex h-full flex-col ${cardShellClass} p-4 sm:p-6 ${extra} ${
+      className={`flex h-full flex-col ${cardShellClass} p-3.5 sm:p-6 ${extra} ${
         card.accent === "founder"
           ? "bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF]"
           : ""
@@ -1249,7 +1251,7 @@ function WhatYouGetCardArticle({
 
       <button
         type="button"
-        className="mt-3 inline-flex min-h-[2.25rem] self-start items-center rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 py-1.5 text-xs font-semibold text-[#7A1E2C] transition-colors hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:mt-4 sm:text-[0.8125rem]"
+        className="mt-2 inline-flex min-h-[2.25rem] self-start items-center rounded-full border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#7A1E2C] transition-colors hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:mt-4 sm:px-3.5 sm:text-[0.8125rem]"
         aria-expanded={isOpen}
         aria-controls={detailId}
         onClick={onToggle}
@@ -1265,8 +1267,8 @@ function WhatYouGetCardArticle({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="mt-3 border-t border-[#C9A84A]/40 pt-3">
-            <p className="text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+          <div className="mt-2 border-t border-[#C9A84A]/40 pt-2 sm:mt-3 sm:pt-3">
+            <p className="text-sm leading-snug text-[#3D3428] sm:text-[0.9375rem] sm:leading-relaxed">
               {card.detail}
             </p>
           </div>
@@ -1319,7 +1321,7 @@ function MarketplaceCategoryIcon({ index }: { index: number }) {
   const accent = marketplaceCardAccents[index];
   return (
     <span
-      className={`mb-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${accent.ring} ${accent.bg}`}
+      className={`mb-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 sm:mb-3 sm:h-9 sm:w-9 ${accent.ring} ${accent.bg}`}
       aria-hidden
     >
       <span className={`h-2.5 w-2.5 rounded-full ${accent.dot}`} />
@@ -1364,18 +1366,18 @@ function MarketplaceSection({
         {headline}
       </h2>
       <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
-      <p className="mt-3 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-4 sm:text-[0.9375rem] sm:leading-relaxed">
+      <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-4 sm:text-[0.9375rem] sm:leading-relaxed">
         {bridge}
       </p>
 
       <ul
-        className="mt-5 grid min-w-0 list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
+        className="mt-4 grid min-w-0 list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
           <li key={index} className="flex min-w-0">
             <article
-              className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} border-l-[3px] border-l-[#C9A84A]/45 p-3.5 sm:p-5`}
+              className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} border-l-[3px] border-l-[#C9A84A]/45 p-3 sm:p-5`}
             >
               <MarketplaceCategoryIcon index={index} />
               <h3 className="font-serif text-[0.9375rem] font-bold leading-snug text-[#7A1E2C] sm:text-lg">
@@ -1389,13 +1391,13 @@ function MarketplaceSection({
         ))}
       </ul>
 
-      <div className="mt-5 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-4 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-6">
-        <p className="max-w-3xl font-serif text-base font-bold leading-snug text-[#F8F4EA] sm:text-xl">
+      <div className="mt-4 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-3.5 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-6">
+        <p className="max-w-3xl font-serif text-[0.9375rem] font-bold leading-snug text-[#F8F4EA] sm:text-xl">
           {closing}
         </p>
         <Link
           href={exploreCta.href}
-          className="mt-4 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/50 underline-offset-[0.25em] transition-colors hover:text-[#EDE6D6] hover:decoration-[#EDE6D6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:text-[0.9375rem]"
+          className="mt-3 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/50 underline-offset-[0.25em] transition-colors hover:text-[#EDE6D6] hover:decoration-[#EDE6D6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:mt-4 sm:text-[0.9375rem]"
         >
           {exploreCta.label}
         </Link>
@@ -1445,7 +1447,7 @@ function WhatYouGetSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <ul className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:gap-5 lg:grid-cols-6">
+      <ul className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:gap-5 lg:grid-cols-6">
         {cards.map((card, index) => {
           const spanClass = index < 3 ? "lg:col-span-2" : "lg:col-span-3";
           return (
@@ -1500,14 +1502,14 @@ function HowItWorksSection({
       <p className={sectionIntroClass}>{intro}</p>
 
       <ol
-        className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
+        className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
         aria-label={stepsAria}
       >
         {steps.map((step, index) => (
           <li key={index} className="flex">
-            <article className={`flex h-full w-full flex-col ${cardShellClass} p-4 sm:p-6`}>
+            <article className={`flex h-full w-full flex-col ${cardShellClass} p-3.5 sm:p-6`}>
               <span
-                className={`mb-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 sm:mb-4 sm:h-10 sm:w-10 ${processStepBadgeStyles[index]}`}
+                className={`mb-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 sm:mb-4 sm:h-10 sm:w-10 ${processStepBadgeStyles[index]}`}
                 aria-hidden
               >
                 {index + 1}
@@ -1587,12 +1589,12 @@ function QrAccessSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <div className="mt-5 grid min-w-0 items-start gap-4 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
+      <div className="mt-4 grid min-w-0 items-start gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
         <p className="text-[0.9375rem] leading-snug text-[#3D3428] sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-xl">
           {explanation}
         </p>
 
-        <div className="flex min-w-0 max-w-md flex-col items-center gap-3 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-4 py-4 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:gap-4 sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
+        <div className="flex min-w-0 max-w-md flex-col items-center gap-2 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:gap-4 sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
           <DecorativeQrVisual />
           <p className="font-serif text-lg font-bold leading-snug text-[#F8F4EA] sm:text-[1.75rem]">
             {callout}
@@ -1601,12 +1603,12 @@ function QrAccessSection({
       </div>
 
       <ul
-        className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-3"
+        className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-3"
         aria-label={benefitsAria}
       >
         {benefits.map((benefit, index) => (
           <li key={index} className="flex">
-            <article className={`h-full w-full ${cardShellClass} p-4 sm:p-6`}>
+            <article className={`h-full w-full ${cardShellClass} p-3.5 sm:p-6`}>
               <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
                 {benefit.title}
               </h3>
@@ -1709,13 +1711,13 @@ function MediaKitPreviewSection({
       <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
 
       <ul
-        className="mt-5 grid list-none gap-3 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
+        className="mt-4 grid list-none gap-2.5 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
           <li key={index} className="flex">
             <article
-              className={`flex h-full w-full flex-col ${cardShellClass} p-4 ring-1 ring-[#C9A84A]/10 sm:p-6`}
+              className={`flex h-full w-full flex-col ${cardShellClass} p-3.5 ring-1 ring-[#C9A84A]/10 sm:p-6`}
             >
               <MediaKitPreviewCardIcon index={index} />
               <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
@@ -1729,7 +1731,7 @@ function MediaKitPreviewSection({
         ))}
       </ul>
 
-      <div className="mt-5 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-4 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:mt-8 sm:p-7">
+      <div className="mt-4 rounded-2xl border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3.5 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.18)] ring-1 ring-[#C9A84A]/15 sm:mt-8 sm:p-7">
         <h3 className="font-serif text-base font-bold text-[#2A4536] sm:text-xl">
           {ctaHeading}
         </h3>
@@ -1786,7 +1788,7 @@ function FinalCtaActions({
   const [advertiseCta, mediaKitViewCta, joinCta] = ctas;
 
   return (
-    <div className="mt-5 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-stretch">
+    <div className="mt-4 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
       <HeroCtaLink cta={advertiseCta} />
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2">
         <HeroCtaLink cta={mediaKitViewCta} />
@@ -1844,7 +1846,7 @@ function FinalContactSection({
     >
       <span id="contact" className="block h-0" aria-hidden />
 
-      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-4 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8">
+      <div className="rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-3.5 shadow-[0_20px_48px_-24px_rgba(31,36,28,0.55)] sm:p-8">
         <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#C9A84A] sm:text-xs">
           {finalCta.eyebrow}
         </p>
@@ -1866,7 +1868,7 @@ function FinalContactSection({
         />
       </div>
 
-      <div className="mt-5 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:mt-8 sm:p-8">
+      <div className="mt-4 rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-3.5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:mt-8 sm:p-8">
         <h2 className="font-serif text-lg font-bold text-[#2A4536] sm:text-2xl">
           {contact.title}
         </h2>
@@ -1919,7 +1921,7 @@ function FinalContactSection({
         </dl>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] p-4 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-8">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] p-3.5 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-8">
         <h2 className="font-serif text-lg font-bold text-[#F8F4EA] sm:text-2xl">
           {newsletter.title}
         </h2>
@@ -2115,10 +2117,10 @@ function ComingSoonV2ShellContent() {
         aria-label={t.mainAria}
       >
         <section
-          className="pb-7 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
+          className="pb-6 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
+          <div className="grid items-start gap-5 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
             <div className="min-w-0 max-w-3xl lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
@@ -2149,38 +2151,40 @@ function ComingSoonV2ShellContent() {
                 ))}
               </ul>
 
-              <p className="mt-5 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed">
+              <p className="mt-4 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed">
                 {h.paragraph}
               </p>
 
-              <div className="mt-6 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch">
+              <div className="mt-5 flex flex-col gap-2 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
                 {heroCtas.map((cta) => (
                   <HeroCtaLink key={cta.label} cta={cta} />
                 ))}
-                <HeroCtaLink
-                  cta={{
-                    label: magazineHero.read,
-                    href: magazineHref,
-                    variant: "secondary",
-                  }}
-                />
-                <HeroCtaLink
-                  cta={{
-                    label: magazineHero.digital,
-                    href: magazineHref,
-                    variant: "green",
-                  }}
-                />
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <HeroCtaLink
+                    cta={{
+                      label: magazineHero.read,
+                      href: magazineHref,
+                      variant: "secondary",
+                    }}
+                  />
+                  <HeroCtaLink
+                    cta={{
+                      label: magazineHero.digital,
+                      href: magazineHref,
+                      variant: "green",
+                    }}
+                  />
+                </div>
               </div>
 
               <ul
-                className="mt-6 flex flex-col gap-2 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
+                className="mt-5 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
                 aria-label={h.trustAria}
               >
                 {h.trustChips.map((chip) => (
                   <li
                     key={chip}
-                    className="flex items-center text-sm font-semibold text-[#3D3428]"
+                    className="flex items-center text-xs font-semibold text-[#3D3428] sm:text-sm"
                   >
                     <TrustChipIcon />
                     {chip}
