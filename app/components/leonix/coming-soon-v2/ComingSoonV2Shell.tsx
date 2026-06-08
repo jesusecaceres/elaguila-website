@@ -1046,8 +1046,8 @@ const heroAccentClass: Record<HeroAccent, string> = {
 const heroLineClass =
   "text-[1rem] font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
 
-/** Sticky header clearance — taller on mobile where launch CTA + nav pills stack below the bar. */
-const ANCHOR_SCROLL = "scroll-mt-36 lg:scroll-mt-28";
+/** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
+const ANCHOR_SCROLL = "scroll-mt-32 lg:scroll-mt-28";
 
 const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-5 sm:py-12 lg:py-14`;
 
@@ -2107,14 +2107,6 @@ function ComingSoonV2ShellContent() {
               </Link>
 
               <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/coming-soon-v2" />
-            </div>
-
-            <div className="flex justify-end pb-1">
-              <LaunchCtaLink
-                lang={routeLang}
-                label={t.launchCta}
-                className="max-w-full px-4 sm:max-w-none"
-              />
             </div>
 
             <ComingSoonMobileNavPills items={t.nav} ariaLabel={t.navAria} />
