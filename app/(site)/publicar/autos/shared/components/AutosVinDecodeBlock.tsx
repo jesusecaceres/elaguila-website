@@ -108,7 +108,7 @@ export function AutosVinDecodeBlock<T extends AutosVehicleStructuredFields>({
           : "text-[color:var(--lx-muted)]";
 
   return (
-    <div className={className}>
+    <div className={className} data-autos-vin-decode-block="1">
       <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">{vinLabel}</label>
       <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-start">
         <input

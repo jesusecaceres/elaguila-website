@@ -6,7 +6,13 @@ ALTER TABLE public.translation_records
   DROP CONSTRAINT IF EXISTS translation_records_source_locale_chk;
 
 ALTER TABLE public.translation_records
+  DROP CONSTRAINT IF EXISTS translation_records_source_locale_check;
+
+ALTER TABLE public.translation_records
   DROP CONSTRAINT IF EXISTS translation_records_target_locale_chk;
+
+ALTER TABLE public.translation_records
+  DROP CONSTRAINT IF EXISTS translation_records_target_locale_check;
 
 ALTER TABLE public.translation_records
   ADD CONSTRAINT translation_records_source_locale_chk CHECK (

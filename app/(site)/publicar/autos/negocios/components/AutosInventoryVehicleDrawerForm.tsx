@@ -139,6 +139,17 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
             />
           </div>
         </div>
+        <div className="mt-4" data-autos-vin-decode-anchor="negocios-inventory-drawer">
+          <AutosVinDecodeBlock
+            lang={lang}
+            vinLabel={t.app.labels.vin}
+            vin={draft.vin}
+            modelYear={draft.year}
+            currentVehicle={draft}
+            onVinChange={(v) => onPatch({ vin: v })}
+            onApplyPatch={(patch) => onPatch(patch)}
+          />
+        </div>
         <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="text-sm font-semibold text-[color:var(--lx-text)]">{t.app.titleBlock.title}</label>
@@ -233,17 +244,6 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
               maxLength={5}
               value={draft.zip ?? ""}
               onChange={(e) => onPatch({ zip: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <AutosVinDecodeBlock
-              lang={lang}
-              vinLabel={t.app.labels.vin}
-              vin={draft.vin}
-              modelYear={draft.year}
-              currentVehicle={draft}
-              onVinChange={(v) => onPatch({ vin: v })}
-              onApplyPatch={(patch) => onPatch(patch)}
             />
           </div>
           <div>
