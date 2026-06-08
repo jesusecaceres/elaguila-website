@@ -129,6 +129,8 @@ export function parseOfertaLocalPublishedSocialLinksFromInternalNotes(
       if (key === "tiktokUrl") out.tiktokUrl = href;
       if (key === "youtubeUrl") out.youtubeUrl = href;
       if (key === "googleBusinessUrl") out.googleBusinessUrl = href;
+      if (key === "googleReviewUrl") out.googleReviewUrl = href;
+      if (key === "yelpUrl") out.yelpUrl = href;
     }
     return out;
   } catch {

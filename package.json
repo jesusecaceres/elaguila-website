@@ -212,6 +212,7 @@
     "ofertas-locales:stack-e-shopping-list-audit": "tsx scripts/ofertas-locales-stack-e-shopping-list-audit.ts",
     "ofertas-locales:final-1-pipeline-audit": "tsx scripts/ofertas-locales-final-1-pipeline-audit.ts",
     "ofertas-locales:final-1b-en-venta-pipeline-audit": "tsx scripts/ofertas-locales-final-1b-en-venta-pipeline-audit.ts",
+    "ofertas-locales:final-1c-full-pipeline-smoke-audit": "tsx scripts/ofertas-locales-final-1c-full-pipeline-smoke-audit.ts",
     "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest:logic",
     "verify:restaurantes:launch:full": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:manual-qa-seed": "npx tsx scripts/servicios-manual-qa-catalog-seed.ts",

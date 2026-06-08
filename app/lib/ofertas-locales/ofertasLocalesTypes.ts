@@ -647,6 +647,8 @@ export type OfertaLocalPublicSearchItem = {
     tiktokUrl?: string;
     youtubeUrl?: string;
     googleBusinessUrl?: string;
+    googleReviewUrl?: string;
+    yelpUrl?: string;
   };
   boundingBoxNote: string;
   updatedAt: string;
