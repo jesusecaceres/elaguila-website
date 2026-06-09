@@ -51,7 +51,9 @@ export function localizeComingSoonV2Copy(
   },
 ): ComingSoonV2Copy {
   const pdf = primaryMediaKitPdfHref(lang);
+  const mediaKitPage = `/media-kit?lang=${lang}`;
   const contactHref = `/contacto?inquiryType=advertising&sourceCta=advertise&sourcePage=coming-soon-v2&lang=${lang}`;
+  const mediaKitAdInfoHref = `/contacto?inquiryType=advertising&sourceCta=media_kit_ad_info&sourcePage=coming-soon-v2&lang=${lang}`;
   const newsletterHref = `/newsletter?source=coming-soon-v2&sourceCta=join_launch&lang=${lang}`;
   const magazineReader = magazineJune2026ReaderHref(lang);
   const magazineOriginal = magazineJune2026ReaderHref(lang, { hash: "original-edition" });
@@ -62,7 +64,7 @@ export function localizeComingSoonV2Copy(
       ...copy.hero,
       ctas: [
         { label: copy.hero.ctas[0].label, href: contactHref, variant: copy.hero.ctas[0].variant },
-        { label: copy.hero.ctas[1].label, href: pdf, variant: copy.hero.ctas[1].variant, external: true },
+        { label: copy.hero.ctas[1].label, href: mediaKitPage, variant: copy.hero.ctas[1].variant },
         { label: copy.hero.ctas[2].label, href: newsletterHref, variant: copy.hero.ctas[2].variant },
       ],
     },
@@ -75,11 +77,11 @@ export function localizeComingSoonV2Copy(
     },
     mediaKitPreview: {
       ...copy.mediaKitPreview,
-      viewCta: { label: copy.mediaKitPreview.viewCta.label, href: pdf },
+      viewCta: { label: copy.mediaKitPreview.viewCta.label, href: mediaKitPage },
       downloadCta: { label: copy.mediaKitPreview.downloadCta.label, href: pdf },
       requestInfoCta: {
         label: copy.mediaKitPreview.requestInfoCta.label,
-        href: `/contacto?inquiryType=mediaKit&sourceCta=media_kit_interest&sourcePage=coming-soon-v2&lang=${lang}`,
+        href: mediaKitAdInfoHref,
       },
     },
     digitalMagazine: {
@@ -103,9 +105,8 @@ export function localizeComingSoonV2Copy(
         { label: copy.finalCta.ctas[0].label, href: contactHref, variant: copy.finalCta.ctas[0].variant },
         {
           label: copy.finalCta.ctas[1].label,
-          href: pdf,
+          href: mediaKitPage,
           variant: copy.finalCta.ctas[1].variant,
-          external: copy.finalCta.ctas[1].external,
         },
         { label: copy.finalCta.ctas[2].label, href: newsletterHref, variant: copy.finalCta.ctas[2].variant },
       ],

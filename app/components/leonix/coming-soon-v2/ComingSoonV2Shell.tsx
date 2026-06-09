@@ -91,6 +91,10 @@ function HeroLineText({ line }: { line: HeroLine }) {
   );
 }
 
+function isExternalHref(href: string): boolean {
+  return href.startsWith("http") || href.endsWith(".pdf");
+}
+
 function HeroCtaLink({ cta }: { cta: HeroCta }) {
   const base =
     cta.variant === "primary"
@@ -773,7 +777,7 @@ function MediaKitPreviewSection({
     label: viewCta.label,
     href: viewCta.href,
     variant: "secondary",
-    external: true,
+    external: isExternalHref(viewCta.href),
   };
   const requestInfoLinkCta: HeroCta = {
     label: requestInfoCta.label,
@@ -954,7 +958,7 @@ function HeroMediaKitQuickActions({
             label: viewCta.label,
             href: viewCta.href,
             variant: "secondary",
-            external: true,
+            external: isExternalHref(viewCta.href),
           }}
         />
         {dualMediaKit ? (
