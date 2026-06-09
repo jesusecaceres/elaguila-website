@@ -5,6 +5,9 @@ import {
   primaryMediaKitPdfHref,
 } from "@/app/lib/magazine/qrBridge";
 
+/** Public path for Leonix visual classifieds catalog PDF (Coming Soon V2 marketplace CTA). */
+export const LEONIX_CLASIFICADOS_CATALOG_PDF = "/catalogos/leonix-clasificados-catalogo-visual.pdf";
+
 type HeroCtaVariant = "primary" | "secondary" | "green";
 
 function contactPath(lang: SupportedLang): "/contacto" | "/contact" {
@@ -104,7 +107,7 @@ export function localizeComingSoonV2Copy(
       ...copy.marketplace,
       exploreCta: {
         label: copy.marketplace.exploreCta.label,
-        href: `/clasificados?lang=${lang}`,
+        href: LEONIX_CLASIFICADOS_CATALOG_PDF,
       },
     },
     mediaKitPreview: {

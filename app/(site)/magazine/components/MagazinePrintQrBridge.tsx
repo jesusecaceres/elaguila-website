@@ -92,14 +92,14 @@ export function MagazinePrintQrBridge({
             </Link>
           </div>
         </div>
-      ) : (
+      ) : openReaderLabel ? (
         <Link
           href={readerHref}
           className={`mt-3 inline-flex min-h-[2.5rem] items-center text-sm font-bold underline decoration-[#C9A84A]/60 underline-offset-[0.2em] ${linkClass}`}
         >
           {openReaderLabel}
         </Link>
-      )}
+      ) : null}
 
       <p className="sr-only">{MAGAZINE_JUNE_2026_QR_TARGET_URL}</p>
     </div>

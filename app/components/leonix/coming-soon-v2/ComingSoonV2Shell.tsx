@@ -37,6 +37,11 @@ import {
   getGoogleTranslatePlacementCopy,
   translateSiteHref,
 } from "@/app/lib/googleTranslateWebsite";
+import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
+import {
+  leonixGoogleTranslateWebsiteUrl,
+  magazinePrintGuideHref,
+} from "@/app/lib/magazine/qrRouteHelpers";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
@@ -616,6 +621,77 @@ function HeroQrAccessStrip({
   );
 }
 
+const QR_SECTION_CTA_COPY = {
+  es: {
+    openLens: "Abrir Google Lens",
+    translateSite: "Traducir sitio con Google",
+    guardrail:
+      "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar el sitio web.",
+  },
+  en: {
+    openLens: "Open Google Lens",
+    translateSite: "Translate website with Google",
+    guardrail:
+      "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse the website.",
+  },
+} as const;
+
+function qrSectionCtaCopy(lang: SupportedLang) {
+  return lang === "es" ? QR_SECTION_CTA_COPY.es : QR_SECTION_CTA_COPY.en;
+}
+
+const qrSectionCtaButtonClass =
+  "inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-full border-2 px-4 py-2 text-center text-[0.8125rem] font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:w-auto sm:px-5 sm:text-sm";
+
+function QrSectionTranslationCtas({
+  lang,
+  qrStepsLabel,
+}: {
+  lang: SupportedLang;
+  qrStepsLabel: string;
+}) {
+  const labels = qrSectionCtaCopy(lang);
+  const googleTranslateWebsiteHref = leonixGoogleTranslateWebsiteUrl(lang, {
+    sourcePage: "coming-soon-v2",
+    sourceCta: "coming_soon_qr_google_translate",
+    returnTo: `/coming-soon-v2?lang=${lang}`,
+  });
+  const qrStepsHref = magazinePrintGuideHref(lang, {
+    sourcePage: "coming-soon-v2",
+    sourceCta: "coming_soon_qr_steps",
+  });
+
+  return (
+    <div className="mt-4 min-w-0 sm:mt-5">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <a
+          href={LENS_WEB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+        >
+          {labels.openLens}
+        </a>
+        <Link
+          href={googleTranslateWebsiteHref}
+          className={`${qrSectionCtaButtonClass} border-[#C9A84A] bg-[#FFFDF7] text-[#2A4536] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
+        >
+          {labels.translateSite}
+        </Link>
+        <Link
+          href={qrStepsHref}
+          className={`${qrSectionCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
+        >
+          {qrStepsLabel}
+        </Link>
+      </div>
+      <p className="mt-2.5 text-xs leading-snug text-[#3D3428]/90 sm:text-[0.8125rem] sm:leading-relaxed">
+        {labels.guardrail}
+      </p>
+    </div>
+  );
+}
+
 function HeroGoogleTranslateHint({ lang }: { lang: SupportedLang }) {
   const copy = getGoogleTranslatePlacementCopy(lang);
   const href = translateSiteHref({
@@ -690,6 +766,7 @@ function QrAccessSection({
           <p className="mt-3 rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7] p-3 text-sm leading-snug text-[#3D3428] sm:mt-4 sm:p-4 sm:text-[0.9375rem] sm:leading-relaxed">
             {mobileNote}
           </p>
+          <QrSectionTranslationCtas lang={lang} qrStepsLabel={openReaderLabel} />
         </div>
 
         <div className="flex min-w-0 max-w-md flex-col items-center gap-3 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 sm:gap-4 sm:px-6 sm:py-6 lg:max-w-none lg:self-start">
@@ -697,7 +774,7 @@ function QrAccessSection({
             lang={lang}
             qrCaption=""
             mobileNote=""
-            openReaderLabel={openReaderLabel}
+            openReaderLabel=""
             readerHref={readerHref}
             variant="compact"
             tone="onDark"
