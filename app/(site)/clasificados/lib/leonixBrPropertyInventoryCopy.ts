@@ -176,17 +176,21 @@ export function brLeonixAdIdPlaceholderLine(lang: BrPropertyInventoryLang): stri
   return lang === "es" ? "ID Leonix se asignará al publicar" : "Leonix Ad ID will be assigned at publish";
 }
 
-export function brRelatedAgentPropertiesCopy(lang: BrPropertyInventoryLang) {
+export function brRelatedAgentPropertiesCopy(
+  lang: BrPropertyInventoryLang,
+  opts?: { brokerage?: boolean },
+) {
+  const brokerage = opts?.brokerage === true;
   return lang === "es"
     ? {
-        title: "Más propiedades de este agente",
-        subtitle: "Explora otras propiedades activas conectadas a este perfil.",
+        title: brokerage ? "Más propiedades de esta inmobiliaria" : "Más propiedades de este agente",
+        subtitle: "Explora otras propiedades activas de este inventario.",
         viewAll: "Ver todas las propiedades",
         viewProperty: "Ver propiedad",
       }
     : {
-        title: "More properties from this agent",
-        subtitle: "Explore other active properties connected to this profile.",
+        title: brokerage ? "More properties from this brokerage" : "More properties from this agent",
+        subtitle: "Explore other active properties from this inventory.",
         viewAll: "View all properties",
         viewProperty: "View property",
       };

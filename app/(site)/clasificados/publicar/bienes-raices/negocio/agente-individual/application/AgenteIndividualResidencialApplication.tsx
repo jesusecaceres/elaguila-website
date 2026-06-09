@@ -31,6 +31,7 @@ import {
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import {
   bootstrapAgenteIndividualResidencialApplicationState,
+  persistAgenteResApplicationDraftQuiet,
   saveAgenteResPreviewDraft,
   saveAgenteResPreviewReturnDraft,
 } from "./utils/previewDraft";
@@ -74,6 +75,18 @@ export default function AgenteIndividualResidencialApplication() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
   const addModePreviewSyncedRef = useRef(false);
+  const skipFirstPersistRef = useRef(true);
+
+  useEffect(() => {
+    if (skipFirstPersistRef.current) {
+      skipFirstPersistRef.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      persistAgenteResApplicationDraftQuiet(state);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [state]);
 
   useLayoutEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -315,11 +328,17 @@ export default function AgenteIndividualResidencialApplication() {
                 <p className="mt-1 text-sm text-[#5C5346]/88">{t.app.vistaPreviaBody}</p>
                 <BrNegocioPrePublishInventoryShell
                   lang={lang}
+                  parentHubSnapshot={state}
+                  parentFullState={state}
                   mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                   items={state.additionalInventoryProperties}
                   onItemsChange={(items) => {
                     setChildInventoryMediaBridge(items);
-                    setState((s) => ({ ...s, additionalInventoryProperties: items }));
+                    setState((s) => {
+                      const next = { ...s, additionalInventoryProperties: items };
+                      persistAgenteResApplicationDraftQuiet(next);
+                      return next;
+                    });
                   }}
                   hidden={inventoryAdd.inventoryModeAdd}
                 />

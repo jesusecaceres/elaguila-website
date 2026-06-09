@@ -15,12 +15,14 @@ export function RelatedBrAgentProperties({
   listings,
   lang,
   groupId,
+  brokerage = false,
 }: {
   listings: BrNegocioListing[];
   lang: BrPropertyInventoryLang;
   groupId?: string | null;
+  brokerage?: boolean;
 }) {
-  const copy = brRelatedAgentPropertiesCopy(lang);
+  const copy = brRelatedAgentPropertiesCopy(lang, { brokerage });
   if (!listings.length) return null;
 
   const resultsHref = `/clasificados/bienes-raices/resultados?lang=${lang}${

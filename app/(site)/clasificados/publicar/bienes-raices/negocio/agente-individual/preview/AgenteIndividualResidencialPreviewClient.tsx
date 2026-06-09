@@ -36,6 +36,9 @@ import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndiv
 import { AgenteIndividualResidencialPreviewPage } from "./AgenteIndividualResidencialPreviewPage";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { withBrAgenteResLangParam } from "../application/brAgenteResidencialLang";
+import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInventoryCardModel";
+import { BrNegocioPrePublishInventoryPreview } from "../../application/sections/shared/BrNegocioPrePublishInventoryPreview";
+import { BrNegocioChildInventoryFullPreviewOverlay } from "../../application/sections/shared/BrNegocioChildInventoryFullPreviewOverlay";
 import { BrNegocioInventoryPublishBridgePanel } from "../../application/sections/shared/BrNegocioInventoryPublishBridgePanel";
 import {
   handleMainPublishWithOptionalQueue,
@@ -75,6 +78,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const [publishErr, setPublishErr] = useState<string | null>(null);
   const [parentLeonixAdId, setParentLeonixAdId] = useState<string | null>(null);
   const [bridge, setBridge] = useState<BrNegocioInventoryBridgeView | null>(null);
+  const [childPreviewId, setChildPreviewId] = useState<string | null>(null);
 
   useEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -213,6 +217,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
   }, [lang, router]);
 
   const inventoryBanner = inventoryCtx ? brInventoryPreviewOwnerBanner(lang, parentLeonixAdId) : null;
+  const childPreviewDraft = useMemo(
+    () => (childPreviewId ? data.additionalInventoryProperties.find((x) => x.id === childPreviewId) ?? null : null),
+    [childPreviewId, data.additionalInventoryProperties],
+  );
+  const hasInventoryPackage = (data.additionalInventoryProperties?.length ?? 0) > 0 && !inventoryCtx;
 
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
@@ -264,6 +273,29 @@ export default function AgenteIndividualResidencialPreviewClient() {
         footerExtra={t.previewUi.footerDefault}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       />
+
+      {hasInventoryPackage ? (
+        <div className="mx-auto max-w-[1140px] px-4 pb-8 sm:px-6">
+          <BrNegocioPrePublishInventoryPreview
+            lang={lang}
+            variant="package"
+            mainProperty={mapAgenteFormToMainInventoryCard(data, lang)}
+            items={data.additionalInventoryProperties}
+            onPreview={(id) => setChildPreviewId(id)}
+          />
+        </div>
+      ) : null}
+
+      {childPreviewDraft ? (
+        <BrNegocioChildInventoryFullPreviewOverlay
+          open
+          onClose={() => setChildPreviewId(null)}
+          lang={lang}
+          parentHubSnapshot={data}
+          childDraft={childPreviewDraft}
+          parentFullState={data}
+        />
+      ) : null}
     </div>
   );
 }

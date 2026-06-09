@@ -11,6 +11,7 @@ import {
   childInventoryCoverPhotoUrl,
   normalizeChildInventoryDraft,
 } from "./brNegocioAdditionalInventoryDraft";
+import { mergeParentHubWithChildProperty } from "./brNegocioChildInventoryFormMapping";
 
 function durablePhotoUrls(raw: BrNegocioAdditionalInventoryPropertyDraft): string[] {
   const draft = normalizeChildInventoryDraft(raw);
@@ -33,6 +34,12 @@ export function applyInventoryDraftToAgenteFormState(
   lang: "es" | "en" = "es",
 ): AgenteIndividualResidencialFormState {
   const normalized = normalizeChildInventoryDraft(draft);
+  if (normalized.propertyForm && typeof normalized.propertyForm === "object") {
+    return mergeParentHubWithChildProperty(
+      base,
+      normalized.propertyForm as Partial<AgenteIndividualResidencialFormState>,
+    );
+  }
   const photos = durablePhotoUrls(normalized);
   const cover = childInventoryCoverPhotoUrl(normalized);
   const coverIndex = photos.findIndex((u) => u === cover);

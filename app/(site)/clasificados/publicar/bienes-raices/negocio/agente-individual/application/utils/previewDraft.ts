@@ -175,6 +175,15 @@ export function saveAgenteResPreviewReturnDraft(state: AgenteIndividualResidenci
   saveReturnPayload({ state, savedAt: Date.now() }, true);
 }
 
+/** BR-INV-FIX-01D — debounced autosave without clearing in-memory return bridge. */
+export function persistAgenteResApplicationDraftQuiet(state: AgenteIndividualResidencialFormState): void {
+  if (typeof window === "undefined") return;
+  setFullDraftMediaBridge(state);
+  setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
+  savePreviewPayload(state, true);
+  saveReturnPayload({ state, savedAt: Date.now() }, true);
+}
+
 export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormState | null {
   if (typeof window === "undefined") return null;
   if (fullDraftMediaBridge) {
@@ -269,6 +278,28 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
             return recovered;
           }
         }
+      }
+    }
+    const previewRaw = sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
+    if (previewRaw) {
+      const parsed = JSON.parse(previewRaw) as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>;
+      try {
+        const mergedBase = fullDraftMediaBridge
+          ? mergePartialAgenteIndividualResidencial(
+              fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+            )
+          : mergePartialAgenteIndividualResidencial(parsed);
+        const merged = mergePartialAgenteIndividualResidencial({
+          ...mergedBase,
+          additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
+            mergedBase.additionalInventoryProperties ?? [],
+          ),
+        });
+        previewReturnMemory = merged;
+        scheduleClearReturnMemory();
+        return merged;
+      } catch {
+        /* fall through to empty */
       }
     }
   } catch {

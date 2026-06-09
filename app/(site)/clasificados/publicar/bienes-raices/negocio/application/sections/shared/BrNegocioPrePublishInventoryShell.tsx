@@ -1,39 +1,61 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { AgenteIndividualResidencialFormState } from "../../../agente-individual/schema/agenteIndividualResidencialFormState";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
 import { normalizeChildInventoryList } from "../../brNegocioInventoryDraftPersistence";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
-import { BrNegocioPrePublishInventoryDrawerShell } from "./BrNegocioPrePublishInventoryDrawerShell";
+import { BrNegocioChildInventoryFullApplication } from "./BrNegocioChildInventoryFullApplication";
+import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
 import { BrNegocioPrePublishInventoryPreview } from "./BrNegocioPrePublishInventoryPreview";
 
 type Props = {
   lang?: BrNegocioPrePublishInventoryLang;
   /** Hide when already in post-publish inventory add mode (BR13B). */
   hidden?: boolean;
+  parentHubSnapshot: AgenteIndividualResidencialFormState;
+  /** Full parent form (main + inventory). Falls back to hub + items when omitted. */
+  parentFullState?: AgenteIndividualResidencialFormState;
   mainProperty: BrNegocioInventoryCardModel;
   items: BrNegocioAdditionalInventoryPropertyDraft[];
   onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void;
 };
 
-/** BR-INV-B/C/D — CTA + owner preview cards + drawer CRUD (pre-publish only). */
+/** BR-INV-B/C/D/E — CTA + owner preview cards + full child application (pre-publish only). */
 export function BrNegocioPrePublishInventoryShell({
   lang = "es",
   hidden = false,
+  parentHubSnapshot,
+  parentFullState,
   mainProperty,
   items,
   onItemsChange,
 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
   const additionalCount = items.length;
 
   const editingDraft = useMemo(
     () => (editingId ? items.find((x) => x.id === editingId) ?? null : null),
     [editingId, items],
+  );
+
+  const previewDraft = useMemo(
+    () => (previewDraftId ? items.find((x) => x.id === previewDraftId) ?? null : null),
+    [previewDraftId, items],
+  );
+
+  const packageState = useMemo(
+    () =>
+      parentFullState ?? {
+        ...parentHubSnapshot,
+        additionalInventoryProperties: items,
+      },
+    [parentFullState, parentHubSnapshot, items],
   );
 
   const openForAdd = useCallback(() => {
@@ -68,8 +90,9 @@ export function BrNegocioPrePublishInventoryShell({
       if (!window.confirm(copy.removeConfirm)) return;
       onItemsChange(items.filter((x) => x.id !== id));
       if (editingId === id) closeDrawer();
+      if (previewDraftId === id) setPreviewDraftId(null);
     },
-    [closeDrawer, copy.removeConfirm, editingId, items, onItemsChange],
+    [closeDrawer, copy.removeConfirm, editingId, items, onItemsChange, previewDraftId],
   );
 
   if (hidden) return null;
@@ -87,6 +110,7 @@ export function BrNegocioPrePublishInventoryShell({
           items={items}
           onEdit={openForEdit}
           onRemove={handleRemove}
+          onPreview={(id) => setPreviewDraftId(id)}
         />
 
         <button
@@ -98,14 +122,26 @@ export function BrNegocioPrePublishInventoryShell({
         </button>
       </div>
 
-      <BrNegocioPrePublishInventoryDrawerShell
+      <BrNegocioChildInventoryFullApplication
         open={drawerOpen}
         onClose={closeDrawer}
         lang={lang}
+        parentHubSnapshot={parentHubSnapshot}
         editingId={editingId}
         initialDraft={editingDraft}
         onSave={handleSave}
       />
+
+      {previewDraft ? (
+        <BrNegocioChildInventoryFullPreviewOverlay
+          open={Boolean(previewDraft)}
+          onClose={() => setPreviewDraftId(null)}
+          lang={lang}
+          parentHubSnapshot={parentHubSnapshot}
+          childDraft={previewDraft}
+          parentFullState={packageState}
+        />
+      ) : null}
     </>
   );
 }

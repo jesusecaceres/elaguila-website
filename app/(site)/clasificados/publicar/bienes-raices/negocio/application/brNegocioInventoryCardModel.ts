@@ -35,8 +35,10 @@ export type BrNegocioInventoryCardModel = {
   interiorSqft: string;
   lotSqft: string;
   photoUrl: string;
+  photoCount: number;
   statusLabel: string;
   roleLabel: string;
+  leonixDraftNote: string;
 };
 
 function cityStateLine(city: string, state: string): string {
@@ -76,8 +78,8 @@ export function mapNegocioFormToMainInventoryCard(
   const photos = state.media.photoUrls.filter((u) => trim(u));
   const idx = Math.min(Math.max(0, state.media.primaryImageIndex), Math.max(0, photos.length - 1));
   const copy = lang === "es"
-    ? { role: "Propiedad principal", status: "Borrador principal" }
-    : { role: "Main property", status: "Main draft" };
+    ? { role: "Propiedad principal", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
+    : { role: "Main property", status: "Draft", leonix: "Leonix ID generated on publish" };
 
   return {
     kind: "main",
@@ -90,8 +92,10 @@ export function mapNegocioFormToMainInventoryCard(
     interiorSqft: trim(state.piesCuadrados),
     lotSqft: trim(state.tamanoLote),
     photoUrl: safePhotoUrl(photos[idx]),
+    photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
+    leonixDraftNote: copy.leonix,
   };
 }
 
@@ -105,8 +109,8 @@ export function mapAgenteFormToMainInventoryCard(
   const idx = Math.min(Math.max(0, state.fotoPortadaIndex), Math.max(0, photos.length - 1));
   const locale = lang === "en" ? "en" : "es";
   const copy = lang === "es"
-    ? { role: "Propiedad principal", status: "Borrador principal" }
-    : { role: "Main property", status: "Main draft" };
+    ? { role: "Propiedad principal", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
+    : { role: "Main property", status: "Draft", leonix: "Leonix ID generated on publish" };
 
   return {
     kind: "main",
@@ -119,8 +123,10 @@ export function mapAgenteFormToMainInventoryCard(
     interiorSqft: trim(state.tamanoInteriorSqft),
     lotSqft: trim(state.tamanoLoteSqft),
     photoUrl: safePhotoUrl(photos[idx]),
+    photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
+    leonixDraftNote: copy.leonix,
   };
 }
 
@@ -132,8 +138,9 @@ export function mapAdditionalDraftToInventoryCard(
   const subLabel = brInventoryPropertySubtypeLabel(draft.propertyType, draft.propertySubtype, lang);
   const typeLine = subLabel ? `${typeLabel} · ${subLabel}` : typeLabel;
   const copy = lang === "es"
-    ? { role: "Propiedad adicional", status: "Borrador — aún no publicado" }
-    : { role: "Additional property", status: "Draft — not published yet" };
+    ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
+    : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };
+  const photos = (draft.propertyForm?.fotosDataUrls ?? draft.photoUrls ?? []).filter((u) => trim(String(u)));
 
   return {
     kind: "additional",
@@ -147,8 +154,10 @@ export function mapAdditionalDraftToInventoryCard(
     interiorSqft: trim(draft.interiorSqft),
     lotSqft: trim(draft.lotSqft),
     photoUrl: safePhotoUrl(childInventoryCoverPhotoUrl(draft)),
+    photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
+    leonixDraftNote: copy.leonix,
   };
 }
 

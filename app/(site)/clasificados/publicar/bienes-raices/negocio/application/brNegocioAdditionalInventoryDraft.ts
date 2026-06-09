@@ -1,7 +1,4 @@
-/**
- * BR-INV-C — pre-publish additional property drafts (local-only; no Supabase / no public IDs).
- */
-
+import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import { formatUsdWhole } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import {
   labelForSubtipo,
@@ -48,6 +45,8 @@ export type BrNegocioAdditionalInventoryPropertyDraft = {
   brochureUrl: string;
   mlsUrl: string;
   listadoUrl: string;
+  /** Full property-only Agente form slice (BR-INV-FIX-01D). */
+  propertyForm?: Partial<AgenteIndividualResidencialFormState> | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -95,6 +94,7 @@ export function createEmptyBrNegocioAdditionalInventoryPropertyDraft(
     brochureUrl: "",
     mlsUrl: "",
     listadoUrl: "",
+    propertyForm: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -116,6 +116,11 @@ function clampPrimaryIndex(photoUrls: string[], index: number): number {
 function isDurablePhotoUrl(url: string): boolean {
   const u = url.trim();
   return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/");
+}
+
+function coercePropertyForm(raw: unknown): Partial<AgenteIndividualResidencialFormState> | null {
+  if (!raw || typeof raw !== "object") return null;
+  return raw as Partial<AgenteIndividualResidencialFormState>;
 }
 
 /** Migrate legacy mainPhotoUrl → photoUrls + primaryPhotoIndex. */
@@ -188,6 +193,7 @@ export function sanitizeBrNegocioAdditionalInventoryPropertyDraft(
     brochureUrl: str(o.brochureUrl),
     mlsUrl: str(o.mlsUrl),
     listadoUrl: str(o.listadoUrl),
+    propertyForm: coercePropertyForm(o.propertyForm),
     createdAt,
     updatedAt,
   });

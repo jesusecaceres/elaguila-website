@@ -12,6 +12,7 @@ export function BrRelatedAgentPropertiesSection({
   brInventoryGroupId,
   brInventoryParentListingId,
   currentInventoryRole,
+  sellerType,
   lang,
 }: {
   listingId: string;
@@ -19,6 +20,7 @@ export function BrRelatedAgentPropertiesSection({
   brInventoryGroupId?: string | null;
   brInventoryParentListingId?: string | null;
   currentInventoryRole?: string | null;
+  sellerType?: string | null;
   lang: BrPropertyInventoryLang;
 }) {
   const [listings, setListings] = useState<BrNegocioListing[]>([]);
@@ -43,6 +45,11 @@ export function BrRelatedAgentPropertiesSection({
   }, [listingId, ownerId, brInventoryGroupId, brInventoryParentListingId, currentInventoryRole, lang]);
 
   return (
-    <RelatedBrAgentProperties listings={listings} lang={lang} groupId={brInventoryGroupId ?? undefined} />
+    <RelatedBrAgentProperties
+      listings={listings}
+      lang={lang}
+      groupId={brInventoryGroupId ?? undefined}
+      brokerage={sellerType === "business"}
+    />
   );
 }

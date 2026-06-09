@@ -16,6 +16,11 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       drawerTitleEdit: "Editar propiedad del inventario",
       drawerExplain:
         "Esta propiedad usará la misma información del agente, contacto y negocio. Captura solo los detalles de la propiedad.",
+      fullAppExplain:
+        "Completa los mismos pasos de propiedad que el anuncio principal. La información del agente y contacto se hereda automáticamente.",
+      previewSaveTitle: "Vista previa de la propiedad",
+      previewSaveBody:
+        "Revisa la tarjeta antes de guardar. Esto no publica el anuncio; solo agrega la propiedad a tu inventario pre-publicación.",
       close: "Cerrar",
       cancel: "Cancelar",
       saveProperty: "Guardar propiedad",
@@ -64,9 +69,28 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       validationSummary: "Revisa los campos marcados antes de guardar.",
       previewTitle: "Vista previa del inventario",
       previewHelper:
-        "Estas tarjetas son solo una vista previa para ti. Las propiedades adicionales no se publicarán hasta completar el gate de publicación.",
+        "Estas tarjetas son solo una vista previa para ti. Las propiedades adicionales no se publicarán hasta que publiques la solicitud completa.",
       previewEmptyAdditional:
         "Agrega otra propiedad para ver cómo se verá tu inventario antes de publicar.",
+      inheritedNotice:
+        "La información profesional, contacto, redes, reseñas, financiamiento y destinos de contacto se tomará de la solicitud principal.",
+      unsavedCloseConfirm:
+        "Tienes cambios sin guardar en esta propiedad. ¿Quieres cerrar sin guardar?",
+      childFullPreviewKicker: "Vista previa · Borrador",
+      childFullPreviewTitle: "Vista previa de la propiedad adicional",
+      childFullPreviewBody:
+        "Esta propiedad se publicará como una ficha propia cuando publiques la solicitud completa.",
+      childFullPreviewFooter: "Vista previa de borrador — no es un anuncio publicado.",
+      packagePreviewTitle: "Vista previa del inventario de propiedades",
+      packagePreviewHelper:
+        "Estas propiedades se publicarán junto con el anuncio principal cuando completes la solicitud.",
+      inventoryIncludedTitle: "Inventario incluido en esta solicitud",
+      previewCard: "Ver vista previa",
+      leonixDraftNote: "ID Leonix se generará al publicar",
+      photoCountLabel: (n: number) => `${n} foto${n === 1 ? "" : "s"}`,
+      mainRoleLabel: "Propiedad principal",
+      additionalRoleLabel: "Propiedad adicional",
+      draftStatusLabel: "Borrador",
     };
   }
   return {
@@ -81,6 +105,11 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
     drawerTitleEdit: "Edit inventory property",
     drawerExplain:
       "This property will use the same agent, contact, and business information. Enter property details only.",
+    fullAppExplain:
+      "Complete the same property steps as the main listing. Agent and contact information is inherited automatically.",
+    previewSaveTitle: "Property preview",
+    previewSaveBody:
+      "Review the card before saving. This does not publish the listing; it only adds the property to your pre-publish inventory.",
     close: "Close",
     cancel: "Cancel",
     saveProperty: "Save property",
@@ -129,7 +158,26 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
     validationSummary: "Review the highlighted fields before saving.",
     previewTitle: "Inventory preview",
     previewHelper:
-      "These cards are only a preview for you. Additional properties will not publish until the publish mapping gate is completed.",
+      "These cards are only a preview for you. Additional properties will not publish until you publish the full application.",
     previewEmptyAdditional: "Add another property to see how your inventory will look before publishing.",
+    inheritedNotice:
+      "Professional, contact, social, review, financing, and contact destination information will be inherited from the main application.",
+    unsavedCloseConfirm:
+      "You have unsaved changes in this property. Close without saving?",
+    childFullPreviewKicker: "Preview · Draft",
+    childFullPreviewTitle: "Additional property preview",
+    childFullPreviewBody:
+      "This property will publish as its own listing when you publish the full application.",
+    childFullPreviewFooter: "Draft preview — not a published listing.",
+    packagePreviewTitle: "Property inventory preview",
+    packagePreviewHelper:
+      "These properties will publish with the main listing when you complete the application.",
+    inventoryIncludedTitle: "Inventory included in this application",
+    previewCard: "Preview",
+    leonixDraftNote: "Leonix ID generated on publish",
+    photoCountLabel: (n: number) => `${n} photo${n === 1 ? "" : "s"}`,
+    mainRoleLabel: "Main property",
+    additionalRoleLabel: "Additional property",
+    draftStatusLabel: "Draft",
   };
 }

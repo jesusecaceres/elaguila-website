@@ -8,6 +8,7 @@ import { BrPreviewHint, brCardClass, brSectionTitleClass, brSubTitleClass } from
 
 import { BrNegocioPrePublishInventoryShell } from "./BrNegocioPrePublishInventoryShell";
 import { mapNegocioFormToMainInventoryCard } from "../../brNegocioInventoryCardModel";
+import { agenteHubSnapshotFromNegocioState } from "../../brNegocioChildInventoryFormMapping";
 import { setChildInventoryMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 
 const ADV_LABEL: Record<Exclude<BienesRaicesAdvertiserType, "">, string> = {
@@ -71,6 +72,7 @@ export function ResumenPublicarNegocioSection({
       <BrNegocioPrePublishInventoryShell
         lang={lang}
         hidden={hideInventoryShell}
+        parentHubSnapshot={agenteHubSnapshotFromNegocioState(state)}
         mainProperty={mapNegocioFormToMainInventoryCard(state, lang)}
         items={state.additionalInventoryProperties}
         onItemsChange={(items) => {

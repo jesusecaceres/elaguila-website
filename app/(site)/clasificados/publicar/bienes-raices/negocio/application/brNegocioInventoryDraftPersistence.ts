@@ -33,6 +33,22 @@ function isDurablePhotoUrl(url: string): boolean {
 }
 
 /** Drop data: blobs from child photos for sessionStorage / queue JSON. */
+function stripPropertyFormForSession(
+  form: Partial<import("../agente-individual/schema/agenteIndividualResidencialFormState").AgenteIndividualResidencialFormState> | null | undefined,
+): typeof form {
+  if (!form || typeof form !== "object") return form;
+  const j = JSON.parse(JSON.stringify(form)) as Record<string, unknown>;
+  if (Array.isArray(j.fotosDataUrls)) {
+    j.fotosDataUrls = (j.fotosDataUrls as string[]).filter((u) => !String(u).startsWith("data:"));
+  }
+  const z = (u: unknown) => (typeof u === "string" && u.startsWith("data:") ? "" : u);
+  j.listadoArchivoDataUrl = z(j.listadoArchivoDataUrl);
+  j.videoDataUrl = z(j.videoDataUrl);
+  j.tourDataUrl = z(j.tourDataUrl);
+  j.brochureDataUrl = z(j.brochureDataUrl);
+  return j as typeof form;
+}
+
 export function stripChildInventoryForSession(
   items: BrNegocioAdditionalInventoryPropertyDraft[],
 ): BrNegocioAdditionalInventoryPropertyDraft[] {
@@ -46,6 +62,7 @@ export function stripChildInventoryForSession(
       photoUrls,
       primaryPhotoIndex,
       mainPhotoUrl: cover.startsWith("data:") ? "" : cover,
+      propertyForm: stripPropertyFormForSession(normalized.propertyForm),
     };
   });
 }
@@ -68,6 +85,22 @@ export function mergeChildInventoryWithMediaBridge(
     const photoUrls = [...sessionPhotos, ...bridgePhotos].filter(isDurablePhotoUrl).slice(0, 40);
     const primaryPhotoIndex = clampPrimaryIndex(photoUrls, bridged.primaryPhotoIndex);
     const cover = photoUrls[primaryPhotoIndex] ?? photoUrls[0] ?? "";
+    const sessionForm = sanitized.propertyForm ?? null;
+    const bridgeForm = bridged.propertyForm ?? null;
+    let propertyForm = sessionForm;
+    if (bridgeForm && typeof bridgeForm === "object") {
+      const sessionFormPhotos = Array.isArray(sessionForm?.fotosDataUrls)
+        ? sessionForm!.fotosDataUrls!.filter((u) => !String(u).startsWith("data:"))
+        : [];
+      const bridgeFormPhotos = Array.isArray(bridgeForm.fotosDataUrls)
+        ? bridgeForm.fotosDataUrls.filter((u) => String(u).startsWith("data:"))
+        : [];
+      propertyForm = {
+        ...(sessionForm ?? {}),
+        ...bridgeForm,
+        fotosDataUrls: [...sessionFormPhotos, ...bridgeFormPhotos].filter(isDurablePhotoUrl).slice(0, 40),
+      };
+    }
     return normalizeChildInventoryDraft({
       ...sanitized,
       photoUrls,
@@ -78,6 +111,7 @@ export function mergeChildInventoryWithMediaBridge(
       brochureUrl: sanitized.brochureUrl || bridged.brochureUrl,
       mlsUrl: sanitized.mlsUrl || bridged.mlsUrl,
       listadoUrl: sanitized.listadoUrl || bridged.listadoUrl,
+      propertyForm,
     });
   });
 }

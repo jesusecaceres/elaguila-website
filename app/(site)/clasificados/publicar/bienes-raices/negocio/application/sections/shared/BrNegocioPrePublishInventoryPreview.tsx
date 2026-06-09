@@ -11,26 +11,35 @@ type Props = {
   lang: BrNegocioPrePublishInventoryLang;
   mainProperty: BrNegocioInventoryCardModel;
   items: BrNegocioAdditionalInventoryPropertyDraft[];
-  onEdit: (id: string) => void;
-  onRemove: (id: string) => void;
+  onEdit?: (id: string) => void;
+  onRemove?: (id: string) => void;
+  onPreview?: (id: string) => void;
+  /** Parent full preview package section uses alternate title. */
+  variant?: "application" | "package";
 };
 
-/** BR-INV-D — owner-only inventory preview (application workflow only). */
+/** BR-INV-D/E — owner-only inventory preview (application workflow only). */
 export function BrNegocioPrePublishInventoryPreview({
   lang,
   mainProperty,
   items,
   onEdit,
   onRemove,
+  onPreview,
+  variant = "application",
 }: Props) {
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
   const additionalCount = items.length;
+  const title = variant === "package" ? copy.packagePreviewTitle : copy.inventoryIncludedTitle;
+  const helper = variant === "package" ? copy.packagePreviewHelper : copy.previewHelper;
 
   return (
     <section className="mt-4 rounded-xl border border-[#C9B46A]/35 bg-[#FFFCF7] px-3 py-4 sm:px-4">
-      <h3 className="text-sm font-bold uppercase tracking-wide text-[#6E5418]">{copy.previewTitle}</h3>
-      <p className="mt-1.5 text-xs leading-relaxed text-[#5C5346]/90">{copy.previewHelper}</p>
-      <p className="mt-2 text-sm font-semibold tabular-nums text-[#1E1810]">{copy.countLabel(additionalCount)}</p>
+      <h3 className="text-sm font-bold uppercase tracking-wide text-[#6E5418]">{title}</h3>
+      <p className="mt-1.5 text-xs leading-relaxed text-[#5C5346]/90">{helper}</p>
+      {variant === "application" ? (
+        <p className="mt-2 text-sm font-semibold tabular-nums text-[#1E1810]">{copy.countLabel(additionalCount)}</p>
+      ) : null}
 
       <div className="mt-4 space-y-3">
         <BrNegocioPrePublishInventoryCard card={mainProperty} lang={lang} />
@@ -47,6 +56,7 @@ export function BrNegocioPrePublishInventoryPreview({
               lang={lang}
               onEdit={onEdit}
               onRemove={onRemove}
+              onPreview={onPreview}
             />
           ))
         )}
