@@ -79,7 +79,7 @@ export function localizeComingSoonV2Copy(
       downloadCta: { label: copy.mediaKitPreview.downloadCta.label, href: pdf },
       requestInfoCta: {
         label: copy.mediaKitPreview.requestInfoCta.label,
-        href: `/contacto?inquiryType=advertising&sourceCta=media-kit-request&lang=${lang}`,
+        href: `/contacto?inquiryType=mediaKit&sourceCta=media_kit_interest&sourcePage=coming_soon_v2&lang=${lang}`,
       },
     },
     digitalMagazine: {

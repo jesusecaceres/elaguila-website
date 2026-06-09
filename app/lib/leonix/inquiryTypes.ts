@@ -14,17 +14,17 @@ export const PREFERRED_CONTACT_METHODS = ["email", "phone", "either"] as const;
 
 export type PreferredContactMethod = (typeof PREFERRED_CONTACT_METHODS)[number];
 
-export const AUDIENCE_TYPES = ["business", "reader", "partner", "advertiser"] as const;
+export const AUDIENCE_TYPES = ["business", "reader", "partner", "advertiser", "community"] as const;
 
 export type AudienceType = (typeof AUDIENCE_TYPES)[number];
 
 const INQUIRY_LABELS: Record<InquiryType, { es: string; en: string }> = {
-  advertising: { es: "Publicidad", en: "Advertising" },
-  launch: { es: "Lanzamiento", en: "Launch" },
-  mediaKit: { es: "Media Kit", en: "Media Kit" },
-  general: { es: "General", en: "General" },
-  promotionalProducts: { es: "Productos promocionales", en: "Promotional products" },
-  businessListing: { es: "Página de negocio", en: "Business listing" },
+  advertising: { es: "Publicidad / anunciar mi negocio", en: "Advertising / promote my business" },
+  launch: { es: "Lanzamiento / recibir noticias", en: "Launch / receive updates" },
+  mediaKit: { es: "Media Kit / paquetes de publicidad", en: "Media Kit / advertising packages" },
+  general: { es: "Pregunta general", en: "General question" },
+  promotionalProducts: { es: "Productos promocionales / impresión", en: "Promotional products / print quote" },
+  businessListing: { es: "Página de negocio / presencia digital", en: "Business page / digital presence" },
   partnership: { es: "Alianza / partnership", en: "Partnership" },
 };
 

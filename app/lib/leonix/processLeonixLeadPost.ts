@@ -174,10 +174,8 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
       console.error("[leads] email send failed", { code: sent.code, leadId: savedId });
     }
   } else if (!emailConfigured) {
-    emailError =
-      lang === "en"
-        ? "Email notification is not configured (RESEND_API_KEY missing)."
-        : "La notificación por correo no está configurada (falta RESEND_API_KEY).";
+    emailError = "EMAIL_NOT_CONFIGURED";
+    console.warn("[leads] RESEND_API_KEY not configured — lead saved without team email notification.");
   }
 
   if (!saved && !emailSent) {
@@ -196,19 +194,11 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
     );
   }
 
-  const warnings: string[] = [];
-  if (!saved && emailSent) {
-    warnings.push(
-      lang === "en"
-        ? "Your message was emailed to our team, but list storage is pending (database not available)."
-        : "Tu mensaje se envió por correo al equipo, pero el almacenamiento en lista está pendiente (base de datos no disponible)."
-    );
-  }
-  if (saved && !emailSent && emailError) {
-    warnings.push(emailError);
-  }
-  if (saveError && !saved) {
-    warnings.push(saveError);
+  if (saved && !emailSent) {
+    console.warn("[leads] lead saved without email notification", {
+      leadId: savedId,
+      emailError,
+    });
   }
 
   return NextResponse.json({
@@ -217,6 +207,5 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
     emailSent,
     id: savedId,
     submittedAt,
-    warning: warnings.length > 0 ? warnings.join(" ") : undefined,
   });
 }

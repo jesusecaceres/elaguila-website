@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShell";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
-import { submitLeadForm } from "@/app/(site)/lib/submitLeadForm";
+import { submitContactForm } from "@/app/(site)/lib/submitContactForm";
+import { getLeadSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 
 const COPY = {
   es: {
@@ -21,7 +22,7 @@ const COPY = {
     submit: "Solicitar Media Kit",
     submitting: "Enviando…",
     successTitle: "¡Gracias!",
-    successBody: "Te enviaremos el Media Kit cuando esté listo.",
+    consent: "Acepto que Leonix me contacte sobre mi solicitud",
     placeholders: {
       name: "Tu nombre",
       email: "tu@correo.com",
@@ -44,7 +45,7 @@ const COPY = {
     submit: "Request Media Kit",
     submitting: "Sending…",
     successTitle: "Thank you!",
-    successBody: "We'll send you the Media Kit when it's ready.",
+    consent: "I agree that Leonix may contact me about my request",
     placeholders: {
       name: "Your name",
       email: "you@example.com",
@@ -68,26 +69,38 @@ export default function MediaKitPageClient() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (loading) return;
+
+    if (!consent) {
+      setError(
+        lang === "en"
+          ? "Please confirm consent to be contacted."
+          : "Confirma el consentimiento para que te contactemos."
+      );
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     const form = e.currentTarget;
     const fd = new FormData(form);
 
-    const result = await submitLeadForm(
-      "/api/media-kit/request",
+    const result = await submitContactForm(
       {
-        name: fd.get("name"),
+        fullName: fd.get("name"),
         email: fd.get("email"),
         phone: fd.get("phone"),
-        business: fd.get("business"),
-        message: fd.get("message"),
-        lang,
-        source: "media_kit_page",
+        businessName: fd.get("business"),
+        message: fd.get("message") || (lang === "en" ? "Media Kit interest" : "Interés en Media Kit"),
+        inquiryType: "mediaKit",
+        sourcePage: "/media-kit",
+        sourceCta: "media_kit_interest",
+        consentToContact: true,
       },
       lang
     );
@@ -97,12 +110,12 @@ export default function MediaKitPageClient() {
       setSubmitted(true);
       return;
     }
-    setError(result.message);
+    setError(result.message || getPublicLeadErrorMessage(lang));
   }
 
   if (submitted) {
     return (
-      <GateDestinationShell lang={lang} title={t.successTitle} subtitle="" body={t.successBody}>
+      <GateDestinationShell lang={lang} title={t.successTitle} subtitle="" body={getLeadSuccessMessage("mediaKit", lang)}>
         <p className="text-sm text-[#5F6258]">
           {lang === "es" ? "Idioma:" : "Language:"}{" "}
           <span className="font-semibold text-[#3D3428]">{lang === "es" ? "Español" : "English"}</span>
@@ -160,11 +173,23 @@ export default function MediaKitPageClient() {
           <textarea
             name="message"
             rows={4}
+            required
             disabled={loading}
             className={inputClass}
             placeholder={t.placeholders.message}
           />
         </Field>
+        <label className="flex items-start gap-3 text-sm text-[#3D3428]">
+          <input
+            type="checkbox"
+            required
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            disabled={loading}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-[#D6C7AD]"
+          />
+          <span>{t.consent}</span>
+        </label>
         {error ? (
           <p className="rounded-lg border border-[#7A1E2C]/30 bg-[#7A1E2C]/10 px-3 py-2 text-sm text-[#7A1E2C]" role="alert">
             {error}

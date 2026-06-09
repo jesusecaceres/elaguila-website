@@ -116,7 +116,6 @@ export async function POST(req: Request) {
   }
 
   let emailSent = false;
-  let warning: string | undefined;
 
   if (emailConfigured && email.trim()) {
     const mail = buildLaunchSignupEmail({
@@ -141,11 +140,10 @@ export async function POST(req: Request) {
 
     emailSent = sent.ok;
     if (!sent.ok) {
-      warning =
-        lang === "en"
-          ? "You are on the list, but we could not send the team email notification."
-          : "Quedaste en la lista, pero no pudimos enviar la notificación al equipo.";
+      console.warn("[newsletter] subscriber saved without team email notification", { email: email.trim() });
     }
+  } else if (saved) {
+    console.warn("[newsletter] RESEND_API_KEY not configured — subscriber saved without team email notification.");
   }
 
   if (!saved && !emailSent) {
@@ -155,13 +153,6 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!saved && emailSent) {
-    warning =
-      lang === "en"
-        ? "Your signup was emailed to our team, but list storage is pending (database not available)."
-        : "Tu registro se envió por correo al equipo, pero el almacenamiento en lista está pendiente.";
-  }
-
   return NextResponse.json({
     ok: true,
     id: savedId,
@@ -169,6 +160,5 @@ export async function POST(req: Request) {
     saved,
     emailSent,
     consentTimestamp,
-    warning,
   });
 }

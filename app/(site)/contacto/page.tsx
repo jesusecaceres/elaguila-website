@@ -63,6 +63,7 @@ export default async function ContactoPage(props: {
     interest?: string;
     sourceCta?: string;
     source?: string;
+    sourcePage?: string;
   }>;
 }) {
   const sp = (await props.searchParams) ?? {};
@@ -71,6 +72,7 @@ export default async function ContactoPage(props: {
   const prefillMessage = prefillRaw ? prefillRaw.slice(0, 12000) : undefined;
   const initialInquiryType = parseInquiryType(sp.inquiryType ?? sp.interest, "general");
   const sourceCta = typeof sp.sourceCta === "string" ? sp.sourceCta : typeof sp.source === "string" ? sp.source : "";
+  const sourcePage = typeof sp.sourcePage === "string" ? sp.sourcePage : "/contacto";
   const swap = lang === "en" ? "es" : "en";
 
   const { payload } = await getSiteSectionPayload("contacto");
@@ -176,7 +178,7 @@ export default async function ContactoPage(props: {
           lang={lang}
           initialMessage={prefillMessage}
           initialInquiryType={initialInquiryType}
-          sourcePage="/contacto"
+          sourcePage={sourcePage}
           sourceCta={sourceCta}
         />
       </div>

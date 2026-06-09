@@ -1,11 +1,6 @@
-import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
+import { getPublicLeadErrorMessage, type LeadFormLang } from "@/app/lib/leonix/leadConfirmationCopy";
 
-export type LaunchFormLang = "es" | "en";
-
-const ERROR_MSG: Record<LaunchFormLang, string> = {
-  es: `No pudimos guardar tu registro. Intenta de nuevo o escríbenos a ${LEONIX_GLOBAL_EMAIL}.`,
-  en: `We could not save your signup. Please try again or email ${LEONIX_GLOBAL_EMAIL}.`,
-};
+export type LaunchFormLang = LeadFormLang;
 
 export type LaunchSubmitResult =
   | { ok: true; saved: boolean; emailSent: boolean; warning?: string }
@@ -45,8 +40,8 @@ export async function submitLaunchSignupForm(
       };
     }
 
-    return { ok: false, message: ERROR_MSG[lang] };
+    return { ok: false, message: getPublicLeadErrorMessage(lang) };
   } catch {
-    return { ok: false, message: ERROR_MSG[lang] };
+    return { ok: false, message: getPublicLeadErrorMessage(lang) };
   }
 }

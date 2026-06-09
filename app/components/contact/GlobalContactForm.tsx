@@ -11,6 +11,10 @@ import {
 import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
 import {
+  getLeadSuccessMessage,
+  getPublicLeadErrorMessage,
+} from "@/app/lib/leonix/leadConfirmationCopy";
+import {
   INQUIRY_TYPES,
   inquiryTypeLabel,
   parseInquiryType,
@@ -28,9 +32,6 @@ const INPUT =
 
 const COPY = {
   es: {
-    successTitle: "Gracias. Recibimos tu información y el equipo de Leonix te contactará pronto.",
-    emailWarning: "Guardamos tu consulta, pero la notificación por correo al equipo no se envió. El equipo la verá en el sistema.",
-    storageWarning: "Enviamos tu mensaje por correo al equipo; el almacenamiento en lista está pendiente.",
     sending: "Enviando…",
     send: "Enviar a Leonix Media",
     consent: "Acepto que Leonix me contacte sobre mi solicitud",
@@ -63,9 +64,6 @@ const COPY = {
     promoLink: "contacto de productos promocionales",
   },
   en: {
-    successTitle: "Thank you. We received your information and the Leonix team will contact you soon.",
-    emailWarning: "We saved your inquiry, but the team email notification could not be sent. The team will see it in the system.",
-    storageWarning: "We emailed your message to the team; list storage is still pending.",
     sending: "Sending…",
     send: "Send to Leonix Media",
     consent: "I agree that Leonix may contact me about my request",
@@ -129,7 +127,7 @@ export function GlobalContactForm(props: {
   const [wantsLaunchUpdates, setWantsLaunchUpdates] = useState(initialInquiryType === "launch");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [warning, setWarning] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
@@ -146,7 +144,6 @@ export function GlobalContactForm(props: {
     }
 
     setError(null);
-    setWarning(null);
     setLoading(true);
 
     const result = await submitContactForm(
@@ -172,18 +169,12 @@ export function GlobalContactForm(props: {
     setLoading(false);
 
     if (result.ok) {
+      setSuccessMessage(getLeadSuccessMessage(inquiryType, lang));
       setSubmitted(true);
-      if (result.warning) {
-        setWarning(result.warning);
-      } else if (!result.emailSent && result.saved) {
-        setWarning(t.emailWarning);
-      } else if (result.emailSent && !result.saved) {
-        setWarning(t.storageWarning);
-      }
       return;
     }
 
-    setError(result.message);
+    setError(result.message || getPublicLeadErrorMessage(lang));
   }
 
   if (submitted) {
@@ -193,10 +184,7 @@ export function GlobalContactForm(props: {
           role="status"
           className="rounded-xl border border-emerald-200 bg-emerald-50/90 px-4 py-4 text-sm text-emerald-900"
         >
-          <p className="font-medium">{t.successTitle}</p>
-          {warning ? (
-            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-amber-950">{warning}</p>
-          ) : null}
+          <p className="font-medium leading-relaxed">{successMessage}</p>
         </div>
       </div>
     );
@@ -210,11 +198,11 @@ export function GlobalContactForm(props: {
       <p className="text-sm text-[color:var(--lx-muted)] mb-6 leading-relaxed">
         {lang === "en" ? (
           <>
-            Messages are sent to our team at <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="en" />.
+            Your request is saved securely with our team at <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="en" />.
           </>
         ) : (
           <>
-            Los mensajes se envían a nuestro equipo en <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="es" />.
+            Tu solicitud se guarda de forma segura con nuestro equipo en <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="es" />.
           </>
         )}
       </p>

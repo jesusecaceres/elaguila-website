@@ -9,6 +9,7 @@ import {
 } from "@/app/admin/_components/adminTheme";
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
+import { inquiryTypeLabel, parseInquiryType } from "@/app/lib/leonix/inquiryTypes";
 import {
   clipLeadText,
   copyTextToClipboard,
@@ -42,7 +43,8 @@ function leadSummary(row: LeonixLeadRow): string {
     `Preferred contact: ${row.preferred_contact_method}`,
     `City/area: ${row.city_area || "(none)"}`,
     `Wants launch updates: ${row.wants_launch_updates ? "yes" : "no"}`,
-    `Source: ${row.source_page} / ${row.source_cta || "(none)"}`,
+    `Source page: ${row.source_page}`,
+    `Source CTA: ${row.source_cta || "(none)"}`,
     `Lang: ${row.lang}`,
     `Status: ${row.status}`,
     "",
@@ -196,30 +198,30 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
         </div>
       ) : null}
 
-      <div className={adminTableWrap}>
-        <div className="overflow-x-auto">
-          <table className="min-w-[1400px] w-full text-left text-sm">
+      <div className={`${adminTableWrap} w-full max-w-none`}>
+        <div className="overflow-x-auto 2xl:overflow-visible">
+          <table className="w-full table-fixed text-left text-sm 2xl:min-w-0">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
-                <th className="px-3 py-3">Created</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">Business</th>
-                <th className="px-3 py-3">Type</th>
-                <th className="px-3 py-3">Phone</th>
-                <th className="px-3 py-3">Email</th>
-                <th className="px-3 py-3">City</th>
-                <th className="px-3 py-3">Contact</th>
-                <th className="px-3 py-3">Message</th>
-                <th className="px-3 py-3">CTA</th>
-                <th className="px-3 py-3">Launch?</th>
-                <th className="px-3 py-3">Actions</th>
+                <th className="w-[9%] px-2 py-3 2xl:px-3">Created</th>
+                <th className="w-[6%] px-2 py-3">Status</th>
+                <th className="w-[8%] px-2 py-3">Name</th>
+                <th className="w-[8%] px-2 py-3 hidden lg:table-cell">Business</th>
+                <th className="w-[10%] px-2 py-3">Inquiry</th>
+                <th className="w-[7%] px-2 py-3 hidden xl:table-cell">Phone</th>
+                <th className="w-[11%] px-2 py-3">Email</th>
+                <th className="w-[6%] px-2 py-3 hidden xl:table-cell">City</th>
+                <th className="w-[5%] px-2 py-3 hidden 2xl:table-cell">Contact</th>
+                <th className="w-[12%] px-2 py-3 hidden lg:table-cell">Message</th>
+                <th className="w-[10%] px-2 py-3">Source</th>
+                <th className="w-[4%] px-2 py-3 hidden xl:table-cell">Launch</th>
+                <th className="w-[10%] px-2 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center text-[#7A7164]">
+                  <td colSpan={13} className="px-4 py-10 text-center text-[#7A7164]" >
                     No leads match the current filters.
                   </td>
                 </tr>
@@ -230,19 +232,24 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
                       {formatLeadWhen(row.created_at)}
                     </td>
                     <td className="px-3 py-3 text-xs font-semibold uppercase">{row.status}</td>
-                    <td className="px-3 py-3 font-medium text-[#1E1810]">{clipLeadText(row.full_name, 40)}</td>
-                    <td className="px-3 py-3 text-[#3D3629]">{clipLeadText(row.business_name, 32)}</td>
-                    <td className="px-3 py-3 text-xs font-mono">{row.inquiry_type}</td>
-                    <td className="px-3 py-3 text-xs whitespace-nowrap">{row.phone || "—"}</td>
-                    <td className="px-3 py-3 text-xs break-all">{row.email}</td>
-                    <td className="px-3 py-3 text-xs">{clipLeadText(row.city_area, 24)}</td>
-                    <td className="px-3 py-3 text-xs">{row.preferred_contact_method}</td>
-                    <td className="px-3 py-3 text-xs text-[#5C5346] max-w-[180px]" title={row.message}>
+                    <td className="px-2 py-3 font-medium text-[#1E1810] 2xl:px-3">{clipLeadText(row.full_name, 40)}</td>
+                    <td className="px-2 py-3 text-[#3D3629] hidden lg:table-cell 2xl:px-3">{clipLeadText(row.business_name, 32)}</td>
+                    <td className="px-2 py-3 text-xs font-semibold text-[#3D3629] 2xl:px-3" title={row.inquiry_type}>
+                      {inquiryTypeLabel(parseInquiryType(row.inquiry_type), "en")}
+                    </td>
+                    <td className="px-2 py-3 text-xs whitespace-nowrap hidden xl:table-cell 2xl:px-3">{row.phone || "—"}</td>
+                    <td className="px-2 py-3 text-xs break-all 2xl:px-3">{row.email}</td>
+                    <td className="px-2 py-3 text-xs hidden xl:table-cell 2xl:px-3">{clipLeadText(row.city_area, 24)}</td>
+                    <td className="px-2 py-3 text-xs hidden 2xl:table-cell 2xl:px-3">{row.preferred_contact_method}</td>
+                    <td className="px-2 py-3 text-xs text-[#5C5346] hidden lg:table-cell 2xl:px-3" title={row.message}>
                       {clipLeadText(row.message, 60)}
                     </td>
-                    <td className="px-3 py-3 text-xs font-mono">{row.source_cta || "—"}</td>
-                    <td className="px-3 py-3 text-xs">{row.wants_launch_updates ? "Yes" : "No"}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-2 py-3 text-xs 2xl:px-3" title={`${row.source_page} · ${row.source_cta}`}>
+                      <span className="block font-mono text-[11px] text-[#5C5346]">{clipLeadText(row.source_page, 20)}</span>
+                      <span className="block font-semibold text-[#3D3629]">{row.source_cta || "—"}</span>
+                    </td>
+                    <td className="px-2 py-3 text-xs hidden xl:table-cell 2xl:px-3">{row.wants_launch_updates ? "Yes" : "No"}</td>
+                    <td className="px-2 py-3 2xl:px-3">
                       <div className="flex flex-wrap gap-1">
                         <button
                           type="button"

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
-import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
+import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
 import type { LeonixSiteLang } from "@/app/lib/lang";
 
@@ -19,12 +19,11 @@ const COPY = {
       reader: "Lector/a",
       partner: "Aliado/a",
       advertiser: "Anunciante",
+      community: "Comunidad",
     },
     consent: "Acepto recibir actualizaciones del lanzamiento de Leonix Media.",
     submit: "Únete al lanzamiento",
     submitting: "Guardando…",
-    success: "¡Gracias! Te avisaremos cuando Leonix Media lance oficialmente.",
-    error: `No pudimos guardar tu registro. Intenta de nuevo o escríbenos a ${LEONIX_GLOBAL_EMAIL}.`,
     emailPlaceholder: "tu@correo.com",
   },
   en: {
@@ -39,12 +38,11 @@ const COPY = {
       reader: "Reader",
       partner: "Partner",
       advertiser: "Advertiser",
+      community: "Community",
     },
     consent: "I agree to receive Leonix Media launch updates.",
     submit: "Join the launch",
     submitting: "Saving…",
-    success: "Thank you! We'll notify you when Leonix Media officially launches.",
-    error: `We could not save your signup. Please try again or email ${LEONIX_GLOBAL_EMAIL}.`,
     emailPlaceholder: "you@example.com",
   },
 } as const;
@@ -75,7 +73,6 @@ export function ComingSoonLaunchSignupForm({
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [warning, setWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
@@ -88,7 +85,6 @@ export function ComingSoonLaunchSignupForm({
     }
 
     setError(null);
-    setWarning(null);
     setLoading(true);
 
     const result = await submitLaunchSignupForm(
@@ -108,11 +104,10 @@ export function ComingSoonLaunchSignupForm({
 
     if (result.ok) {
       setSubmitted(true);
-      if (result.warning) setWarning(result.warning);
       return;
     }
 
-    setError(result.message);
+    setError(result.message || getPublicLeadErrorMessage(lang === "en" ? "en" : "es"));
   }
 
   if (submitted) {
@@ -121,8 +116,7 @@ export function ComingSoonLaunchSignupForm({
         role="status"
         className="mt-4 rounded-xl border border-emerald-300/50 bg-emerald-50/95 px-4 py-3 text-sm text-emerald-950 sm:mt-5"
       >
-        <p className="font-semibold">{t.success}</p>
-        {warning ? <p className="mt-2 text-amber-900">{warning}</p> : null}
+        <p className="font-semibold leading-relaxed">{getNewsletterSuccessMessage(lang === "en" ? "en" : "es")}</p>
       </div>
     );
   }

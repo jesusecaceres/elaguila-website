@@ -5,6 +5,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShell";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
+import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
 
 const COPY = {
@@ -28,6 +29,7 @@ const COPY = {
       reader: "Lector/a",
       partner: "Aliado/a",
       advertiser: "Anunciante",
+      community: "Comunidad",
     },
     preferredOptions: [
       { value: "es", label: "Español" },
@@ -37,8 +39,7 @@ const COPY = {
     consent: "Acepto recibir actualizaciones del lanzamiento de Leonix Media.",
     submit: "Únete al lanzamiento",
     submitting: "Guardando…",
-    successTitle: "Gracias",
-    successBody: "Te avisaremos cuando Leonix Media lance oficialmente.",
+    successTitle: "¡Gracias!",
     placeholders: {
       email: "tu@correo.com",
       name: "Tu nombre",
@@ -69,6 +70,7 @@ const COPY = {
       reader: "Reader",
       partner: "Partner",
       advertiser: "Advertiser",
+      community: "Community",
     },
     preferredOptions: [
       { value: "es", label: "Español" },
@@ -78,8 +80,7 @@ const COPY = {
     consent: "I agree to receive Leonix Media launch updates.",
     submit: "Join the launch",
     submitting: "Saving…",
-    successTitle: "Thank you",
-    successBody: "We'll notify you when Leonix Media officially launches.",
+    successTitle: "Thank you!",
     placeholders: {
       email: "you@example.com",
       name: "Your name",
@@ -108,7 +109,6 @@ export default function NewsletterPageClient() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
 
   const preserveQueryKeys = source ? (["source"] as const) : undefined;
@@ -129,7 +129,6 @@ export default function NewsletterPageClient() {
     }
 
     setError(null);
-    setWarning(null);
     setLoading(true);
 
     const form = e.currentTarget;
@@ -154,10 +153,9 @@ export default function NewsletterPageClient() {
     setLoading(false);
     if (result.ok) {
       setSubmitted(true);
-      if (result.warning) setWarning(result.warning);
       return;
     }
-    setError(result.message);
+    setError(result.message || getPublicLeadErrorMessage(lang));
   }
 
   if (submitted) {
@@ -166,7 +164,7 @@ export default function NewsletterPageClient() {
         lang={lang}
         title={t.successTitle}
         subtitle=""
-        body={t.successBody}
+        body={getNewsletterSuccessMessage(lang)}
         preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
       >
         <p className="text-sm text-[#5F6258]">
@@ -174,7 +172,6 @@ export default function NewsletterPageClient() {
           <span className="font-semibold text-[#3D3428]">{lang === "es" ? "Español" : "English"}</span>
         </p>
         {fromComingSoon ? <p className="mt-2 text-sm text-[#556B3E]">{t.fromComingSoon}</p> : null}
-        {warning ? <p className="mt-2 text-sm text-amber-800">{warning}</p> : null}
       </GateDestinationShell>
     );
   }

@@ -9,7 +9,7 @@ export default async function AdminLeonixLeadsInboxPage() {
   const list = await listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT);
 
   return (
-    <div className="space-y-8">
+    <div className="w-full max-w-none space-y-8">
       <AdminPageHeader
         title="Lead inbox"
         subtitle="Contact, advertising, and business inquiries from public.leonix_leads."

@@ -1,11 +1,6 @@
-import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
+import { getPublicLeadErrorMessage, type LeadFormLang } from "@/app/lib/leonix/leadConfirmationCopy";
 
-export type ContactFormLang = "es" | "en";
-
-const ERROR_MSG: Record<ContactFormLang, string> = {
-  es: `No pudimos enviar tu información. Intenta de nuevo o escríbenos a ${LEONIX_GLOBAL_EMAIL}.`,
-  en: `We could not submit your information. Please try again or email ${LEONIX_GLOBAL_EMAIL}.`,
-};
+export type ContactFormLang = LeadFormLang;
 
 export type ContactSubmitResult =
   | { ok: true; saved: boolean; emailSent: boolean; warning?: string }
@@ -45,9 +40,8 @@ export async function submitContactForm(
       };
     }
 
-    const detail = typeof data.error === "string" ? data.error : ERROR_MSG[lang];
-    return { ok: false, message: detail };
+    return { ok: false, message: getPublicLeadErrorMessage(lang) };
   } catch {
-    return { ok: false, message: ERROR_MSG[lang] };
+    return { ok: false, message: getPublicLeadErrorMessage(lang) };
   }
 }
