@@ -68,6 +68,14 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonix 不仅是广告。我们还在建设本地市场，社区可以搜索、发布和分享真实机会：租房、工作、私人汽车、出售物品、活动、美食、宠物等。",
       bridge: "更多访问 Leonix 的理由，意味着企业有更多被看见的机会。",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "本地市场类别",
       cards: [
         {

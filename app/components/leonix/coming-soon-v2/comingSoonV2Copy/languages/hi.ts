@@ -66,6 +66,14 @@ export function getHiCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonix सिर्फ विज्ञापन नहीं है। हम एक स्थानीय मार्केटप्लेस भी बना रहे हैं जहाँ समुदाय किराया, नौकरियाँ, निजी ऑटो, बिक्री के सामान, इवेंट, खाना, पालतू और अधिक खोज, पोस्ट और साझा कर सकता है।",
       bridge: "Leonix पर आने के अधिक कारणों का मतलब व्यवसायों के देखे जाने के अधिक अवसर।",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "स्थानीय मार्केटप्लेस श्रेणियाँ",
       cards: [
         {

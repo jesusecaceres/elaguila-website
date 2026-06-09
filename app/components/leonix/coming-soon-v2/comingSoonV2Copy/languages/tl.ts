@@ -68,6 +68,14 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Hindi lang advertising ang Leonix. Gumagawa rin kami ng lokal na marketplace kung saan maaaring maghanap, mag-post, at magbahagi ng tunay na oportunidad ang komunidad: rentals, trabaho, private autos, items for sale, events, pagkain, pets, at iba pa.",
       bridge:
         "Mas maraming dahilan para bisitahin ang Leonix ay mas maraming oportunidad para makita ang mga negosyo.",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "Mga kategorya ng lokal na marketplace",
       cards: [
         {

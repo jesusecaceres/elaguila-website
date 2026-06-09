@@ -68,6 +68,14 @@ export function getHyCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonix-ը միայն գովազդ չէ։ Մենք նաև կառուցում ենք տեղական շուկա, որտեղ համայնքը կարող է որոնել, հրապարակել և կիսվել իրական հնարավորություններով՝ վարձակալություն, աշխատանք, մասնավոր ավտո, վաճառք, միջոցառումներ, սնունդ, կենդանիներ և այլն։",
       bridge: "Leonix այցելելու ավելի շատ պատճառներ նշանակում են բիզնեսների ավելի շատ տեսանելիության հնարավորություններ։",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "Տեղական շուկայի կատեգորիաներ",
       cards: [
         {

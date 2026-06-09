@@ -66,6 +66,14 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonix는 광고만이 아닙니다. 임대, 일자리, 개인 자동차, 판매 물품, 이벤트, 음식, 반려동물 등 커뮤니티가 검색·게시·공유할 수 있는 로컬 마켓플레이스도 구축하고 있습니다.",
       bridge: "Leonix를 방문할 이유가 많을수록 비즈니스가 보일 기회도 많아집니다.",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "로컬 마켓플레이스 카테고리",
       cards: [
         {

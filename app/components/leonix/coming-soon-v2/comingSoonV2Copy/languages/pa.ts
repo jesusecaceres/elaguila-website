@@ -66,6 +66,14 @@ export function getPaCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonix ਸਿਰਫ਼ ਵਿਗਿਆਪਨ ਨਹੀਂ ਹੈ। ਅਸੀਂ ਇੱਕ ਸਥਾਨਕ ਮਾਰਕੀਟਪਲੇਸ ਵੀ ਬਣਾ ਰਹੇ ਹਾਂ ਜਿੱਥੇ ਕਮਿਊਨਿਟੀ ਕਿਰਾਏ, ਨੌਕਰੀਆਂ, ਨਿੱਜੀ ਆਟੋ, ਵਿਕਰੀ ਵਾਲੀਆਂ ਚੀਜ਼ਾਂ, ਇਵੈਂਟ, ਖਾਣਾ, ਪਾਲਤੂ ਅਤੇ ਹੋਰ ਅਸਲੀ ਮੌਕੇ ਖੋਜ, ਪੋਸਟ ਅਤੇ ਸਾਂਝਾ ਕਰ ਸਕਦੀ ਹੈ।",
       bridge: "Leonix 'ਤੇ ਜਾਣ ਦੇ ਵਧੇਰੇ ਕਾਰਨਾਂ ਦਾ ਮਤਲਬ ਕਾਰੋਬਾਰਾਂ ਲਈ ਵਧੇਰੇ ਦਿੱਖ ਦੇ ਮੌਕੇ।",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "ਸਥਾਨਕ ਮਾਰਕੀਟਪਲੇਸ ਸ਼੍ਰੇਣੀਆਂ",
       cards: [
         {

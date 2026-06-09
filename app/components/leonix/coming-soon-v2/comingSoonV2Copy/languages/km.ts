@@ -69,6 +69,14 @@ export function getKmCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Leonix មិនមែនតែផ្សាយពាណិជ្ជកម្មទេ។ យើងក៏កំពុងបង្កើតទីផ្សារក្នុងតំបន់ដែលសហគមន៍អាចស្វែងរក បង្ហោះ និងចែករំលែកឱកាសពិត៖ ជួល ការងារ រថយន្តឯកជន ទំនិញលក់ ព្រឹត្តិការណ៍ អាហារ សត្វចិញ្ចឹម និងច្រើនទៀត។",
       bridge:
         "មានហេតុផលច្រើនដើម្បីទៅ Leonix មានន័យថាអាជីវកម្មមានឱកាសច្រើនដើម្បីត្រូវបានមើលឃើញ។",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "ប្រភេទទីផ្សារក្នុងតំបន់",
       cards: [
         {

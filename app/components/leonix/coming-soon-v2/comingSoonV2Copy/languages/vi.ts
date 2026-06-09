@@ -69,6 +69,14 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Leonix không chỉ là quảng cáo. Chúng tôi cũng đang xây dựng một marketplace địa phương nơi cộng đồng có thể tìm kiếm, đăng tin và chia sẻ cơ hội thực: thuê nhà, việc làm, ô tô cá nhân, đồ bán, sự kiện, ẩm thực, thú cưng và hơn thế nữa.",
       bridge:
         "Càng nhiều lý do ghé Leonix, càng nhiều cơ hội để doanh nghiệp được nhìn thấy.",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "Danh mục marketplace địa phương",
       cards: [
         {

@@ -66,6 +66,14 @@ export function getJaCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonixは広告だけではありません。賃貸、求人、個人売却の車、出品物、イベント、食、ペットなど、コミュニティが検索・投稿・共有できるローカルマーケットプレイスも構築しています。",
       bridge: "Leonixを訪れる理由が増えるほど、ビジネスが見られる機会も増えます。",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "ローカルマーケットプレイスのカテゴリ",
       cards: [
         {

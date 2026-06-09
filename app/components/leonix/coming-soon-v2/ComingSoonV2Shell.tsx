@@ -19,6 +19,7 @@ import type {
   HeroLine,
   MediaKitPreviewCard,
   MarketplaceCategoryCard,
+  MarketplaceFeaturedCategoryCard,
   NavItem,
   ProcessStep,
   QrBenefitCard,
@@ -349,15 +350,18 @@ function MarketplaceSection({
   headline,
   intro,
   bridge,
+  featuredCard,
   cards,
   cardsAria,
   closing,
   exploreCta,
+  exploreCtaAriaLabel,
 }: {
   eyebrow: string;
   headline: string;
   intro: string;
   bridge: string;
+  featuredCard: MarketplaceFeaturedCategoryCard;
   cards: [
     MarketplaceCategoryCard,
     MarketplaceCategoryCard,
@@ -369,7 +373,10 @@ function MarketplaceSection({
   cardsAria: string;
   closing: string;
   exploreCta: { label: string; href: string };
+  exploreCtaAriaLabel?: string;
 }) {
+  const exploreCtaClassName =
+    "mt-3 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/50 underline-offset-[0.25em] transition-colors hover:text-[#EDE6D6] hover:decoration-[#EDE6D6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:mt-4 sm:text-[0.9375rem]";
   return (
     <section
       id="marketplace"
@@ -384,6 +391,29 @@ function MarketplaceSection({
       <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-4 sm:text-[0.9375rem] sm:leading-relaxed">
         {bridge}
       </p>
+
+      <article
+        className={`mt-3 w-full ${cardShellClass} border-2 border-[#C9A84A]/55 bg-gradient-to-br from-[#FFF9F0] via-[#FFFDF7] to-[#F8F4EA] p-4 shadow-[0_14px_36px_-18px_rgba(122,30,44,0.22)] sm:mt-6 sm:p-6`}
+        aria-labelledby="marketplace-featured-ofertas-locales"
+      >
+        <span
+          className="inline-flex rounded-full border border-[#C9A84A]/70 bg-[#C9A84A]/15 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#8A6B1F] sm:text-[0.7rem]"
+        >
+          {featuredCard.badge}
+        </span>
+        <h3
+          id="marketplace-featured-ofertas-locales"
+          className="mt-2 font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:mt-3 sm:text-xl lg:text-2xl"
+        >
+          {featuredCard.title}
+        </h3>
+        <p className="mt-2 max-w-3xl text-sm leading-snug text-[#3D3428] sm:mt-3 sm:text-[0.9375rem] sm:leading-relaxed">
+          {featuredCard.body}
+        </p>
+        <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-3 sm:text-[0.9375rem] sm:leading-relaxed">
+          {featuredCard.supportingLine}
+        </p>
+      </article>
 
       <ul
         className="mt-3 grid min-w-0 list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3"
@@ -410,12 +440,15 @@ function MarketplaceSection({
         <p className="max-w-3xl font-serif text-[0.9375rem] font-bold leading-snug text-[#F8F4EA] sm:text-xl">
           {closing}
         </p>
-        <Link
+        <a
           href={exploreCta.href}
-          className="mt-3 inline-flex min-h-[2.5rem] items-center text-sm font-semibold text-[#C9A84A] underline decoration-[#C9A84A]/50 underline-offset-[0.25em] transition-colors hover:text-[#EDE6D6] hover:decoration-[#EDE6D6]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:mt-4 sm:text-[0.9375rem]"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={exploreCtaAriaLabel}
+          className={exploreCtaClassName}
         >
           {exploreCta.label}
-        </Link>
+        </a>
       </div>
     </section>
   );
@@ -1467,10 +1500,16 @@ function ComingSoonV2ShellContent() {
           headline={mp.headline}
           intro={mp.intro}
           bridge={mp.bridge}
+          featuredCard={mp.featuredCard}
           cards={mp.cards}
           cardsAria={mp.cardsAria}
           closing={mp.closing}
           exploreCta={mp.exploreCta}
+          exploreCtaAriaLabel={
+            routeLang === "en"
+              ? "Open Leonix classifieds visual catalog in a new tab"
+              : "Abrir catálogo visual de Clasificados Leonix en una nueva pestaña"
+          }
         />
 
         <WhatYouGetSection

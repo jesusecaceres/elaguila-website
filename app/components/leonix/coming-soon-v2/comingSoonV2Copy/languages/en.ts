@@ -66,6 +66,14 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Leonix is not only advertising. We are also building a local marketplace where the community can search, post, and share real opportunities: rentals, jobs, private autos, items for sale, events, food, pets, and more.",
       bridge:
         "More reasons to visit Leonix means more opportunities for businesses to be seen.",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "Local marketplace categories",
       cards: [
         {

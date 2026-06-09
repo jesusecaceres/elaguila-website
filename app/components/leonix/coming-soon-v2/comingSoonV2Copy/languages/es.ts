@@ -69,6 +69,14 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Leonix no es solo publicidad. También estamos construyendo un marketplace local donde la comunidad puede buscar, publicar y compartir oportunidades reales: rentas, empleos, autos privados, cosas en venta, eventos, comida, mascotas y más.",
       bridge:
         "Más razones para visitar Leonix significa más oportunidades para que los negocios sean vistos.",
+      featuredCard: {
+        badge: "Nueva categoría",
+        title: "Ofertas Locales",
+        body:
+          "Volantes, cupones y especiales semanales de negocios locales en una experiencia clara, diseñada para que la comunidad descubra ahorros reales y los negocios ganen más visibilidad.",
+        supportingLine:
+          "Más razones para visitar Leonix significa más oportunidades para que los negocios sean vistos.",
+      },
       cardsAria: "Categorías del marketplace local",
       cards: [
         {

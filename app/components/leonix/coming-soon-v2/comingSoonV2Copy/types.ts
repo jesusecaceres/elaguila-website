@@ -32,6 +32,13 @@ export type MediaKitPreviewCard = { title: string; body: string };
 
 export type MarketplaceCategoryCard = { title: string; body: string };
 
+export type MarketplaceFeaturedCategoryCard = {
+  badge: string;
+  title: string;
+  body: string;
+  supportingLine: string;
+};
+
 export type ComingSoonV2Copy = {
   nav: NavItem[];
   launchCta: string;
@@ -61,6 +68,7 @@ export type ComingSoonV2Copy = {
     headline: string;
     intro: string;
     bridge: string;
+    featuredCard: MarketplaceFeaturedCategoryCard;
     cards: [
       MarketplaceCategoryCard,
       MarketplaceCategoryCard,

@@ -68,6 +68,14 @@ export function getRuCopy(lang: SupportedLang): ComingSoonV2Copy {
       intro:
         "Leonix — это не только реклама. Мы также создаём локальный маркетплейс, где сообщество может искать, публиковать и делиться реальными возможностями: аренда, работа, частные авто, товары, события, еда, питомцы и многое другое.",
       bridge: "Больше причин посетить Leonix — больше возможностей для бизнеса быть замеченным.",
+      featuredCard: {
+        badge: "New category",
+        title: "Local Deals",
+        body:
+          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+        supportingLine:
+          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+      },
       cardsAria: "Категории локального маркетплейса",
       cards: [
         {
