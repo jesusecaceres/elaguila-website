@@ -37,7 +37,11 @@ import {
   getGoogleTranslatePlacementCopy,
   translateSiteHref,
 } from "@/app/lib/googleTranslateWebsite";
-import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
+import {
+  ANDROID_LENS_INTENT,
+  LENS_WEB_URL,
+  detectTranslatorDevice,
+} from "@/app/lib/magazine/translatorGateway";
 import {
   leonixGoogleTranslateWebsiteUrl,
   magazinePrintGuideHref,
@@ -623,16 +627,20 @@ function HeroQrAccessStrip({
 
 const QR_SECTION_CTA_COPY = {
   es: {
-    openLens: "Abrir Google Lens",
+    openLens: "Probar Google Lens",
     translateSite: "Traducir sitio con Google",
     guardrail:
       "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar el sitio web.",
+    lensAppNote:
+      "En Android intentará abrir la app. En otros teléfonos puede abrir la web o pedir instalarla.",
   },
   en: {
-    openLens: "Open Google Lens",
+    openLens: "Try Google Lens",
     translateSite: "Translate website with Google",
     guardrail:
       "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse the website.",
+    lensAppNote:
+      "On Android, this will try to open the app. On other phones, it may open the web or ask to install it.",
   },
 } as const;
 
@@ -651,6 +659,11 @@ function QrSectionTranslationCtas({
   qrStepsLabel: string;
 }) {
   const labels = qrSectionCtaCopy(lang);
+  const device = useMemo(
+    () => (typeof navigator !== "undefined" ? detectTranslatorDevice(navigator.userAgent) : "desktop"),
+    [],
+  );
+  const isAndroid = device === "android";
   const googleTranslateWebsiteHref = leonixGoogleTranslateWebsiteUrl(lang, {
     sourcePage: "coming-soon-v2",
     sourceCta: "coming_soon_qr_google_translate",
@@ -664,14 +677,23 @@ function QrSectionTranslationCtas({
   return (
     <div className="mt-4 min-w-0 sm:mt-5">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <a
-          href={LENS_WEB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
-        >
-          {labels.openLens}
-        </a>
+        {isAndroid ? (
+          <a
+            href={ANDROID_LENS_INTENT}
+            className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+          >
+            {labels.openLens}
+          </a>
+        ) : (
+          <a
+            href={LENS_WEB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+          >
+            {labels.openLens}
+          </a>
+        )}
         <Link
           href={googleTranslateWebsiteHref}
           className={`${qrSectionCtaButtonClass} border-[#C9A84A] bg-[#FFFDF7] text-[#2A4536] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
@@ -687,6 +709,9 @@ function QrSectionTranslationCtas({
       </div>
       <p className="mt-2.5 text-xs leading-snug text-[#3D3428]/90 sm:text-[0.8125rem] sm:leading-relaxed">
         {labels.guardrail}
+      </p>
+      <p className="mt-1.5 text-xs leading-snug text-[#3D3428]/85 sm:text-[0.8125rem] sm:leading-relaxed">
+        {labels.lensAppNote}
       </p>
     </div>
   );
