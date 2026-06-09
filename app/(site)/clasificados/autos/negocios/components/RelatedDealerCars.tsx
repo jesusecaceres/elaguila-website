@@ -13,10 +13,13 @@ export function RelatedDealerCars({
   listings,
   fullInventoryHref,
   hasMore,
+  previewOnly = false,
 }: {
   listings: RelatedRow[];
   fullInventoryHref?: string | null;
   hasMore?: boolean;
+  /** Draft preview: cards are visible but not navigable. */
+  previewOnly?: boolean;
 }) {
   const { lang, t } = useAutosNegociosPreviewCopy();
   const { title, subtitle, details } = t.preview.related;
@@ -58,6 +61,7 @@ export function RelatedDealerCars({
             }}
             lang={lang}
             ctaLabel={details}
+            previewOnly={previewOnly}
           />
         ))}
       </div>

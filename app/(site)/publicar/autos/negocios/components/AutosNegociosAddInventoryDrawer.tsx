@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
@@ -21,6 +21,7 @@ import {
   autosAddInventorySaveAndAnotherCta,
   autosAddInventorySaveCta,
   autosAddInventorySaveRequiresFields,
+  autosInventoryDrawerUnsavedCloseConfirm,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import { AutosInventoryVehicleDrawerForm } from "./AutosInventoryVehicleDrawerForm";
 
@@ -35,6 +36,13 @@ type Props = {
   flushDraft?: () => Promise<void>;
 };
 
+function inventoryDraftFingerprint(v: AutosAdditionalInventoryVehicleDraft): string {
+  const { updatedAt, createdAt, ...rest } = v;
+  void updatedAt;
+  void createdAt;
+  return JSON.stringify(rest);
+}
+
 export function AutosNegociosAddInventoryDrawer({
   open,
   onClose,
@@ -48,6 +56,7 @@ export function AutosNegociosAddInventoryDrawer({
   const [draft, setDraft] = useState<AutosAdditionalInventoryVehicleDraft>(() => createEmptyInventoryVehicleDraft());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const initialFingerprint = useRef("");
 
   const isEditing = Boolean(editingVehicle?.id);
   const used = countApplicationInventoryVehicles(additionalCount);
@@ -56,7 +65,9 @@ export function AutosNegociosAddInventoryDrawer({
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setDraft(editingVehicle ? { ...editingVehicle } : createEmptyInventoryVehicleDraft());
+    const next = editingVehicle ? { ...editingVehicle } : createEmptyInventoryVehicleDraft();
+    setDraft(next);
+    initialFingerprint.current = inventoryDraftFingerprint(next);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -67,6 +78,26 @@ export function AutosNegociosAddInventoryDrawer({
   const patchDraft = useCallback((patch: Partial<AutosAdditionalInventoryVehicleDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
   }, []);
+
+  const requestClose = useCallback(() => {
+    const dirty = inventoryDraftFingerprint(draft) !== initialFingerprint.current;
+    if (dirty) {
+      if (typeof window !== "undefined" && !window.confirm(autosInventoryDrawerUnsavedCloseConfirm(lang))) return;
+    }
+    onClose();
+  }, [draft, lang, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        requestClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, requestClose]);
 
   if (!open) return null;
 
@@ -86,7 +117,9 @@ export function AutosNegociosAddInventoryDrawer({
         return;
       }
       if (andAnother) {
-        setDraft(createEmptyInventoryVehicleDraft());
+        const empty = createEmptyInventoryVehicleDraft();
+        setDraft(empty);
+        initialFingerprint.current = inventoryDraftFingerprint(empty);
       } else {
         onClose();
       }
@@ -99,7 +132,7 @@ export function AutosNegociosAddInventoryDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center lg:items-center lg:px-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center p-0 lg:items-center lg:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="autos-add-inventory-title"
@@ -108,9 +141,9 @@ export function AutosNegociosAddInventoryDrawer({
         type="button"
         className="absolute inset-0 bg-[#1E1810]/45 backdrop-blur-[2px]"
         aria-label={autosAddInventoryCancelCta(lang)}
-        onClick={onClose}
+        onClick={requestClose}
       />
-      <div className="relative flex max-h-[min(94dvh,880px)] w-full flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl lg:max-w-3xl lg:rounded-[24px]">
+      <div className="relative flex max-h-[calc(100vh-48px)] w-full max-w-[min(960px,calc(100vw-48px))] flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl lg:rounded-[24px]">
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[#D4C4A8] lg:hidden" aria-hidden />
         <div className="shrink-0 border-b border-[#E8DFD0] px-4 py-3 sm:px-5">
           <h2 id="autos-add-inventory-title" className="font-serif text-lg font-semibold text-[#1E1810]">
@@ -139,7 +172,7 @@ export function AutosNegociosAddInventoryDrawer({
             </p>
           ) : null}
         </div>
-        <div className="shrink-0 space-y-2 border-t border-[#E8DFD0] bg-[#FAF7F2] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
+        <div className="sticky bottom-0 shrink-0 space-y-2 border-t border-[#E8DFD0] bg-[#FAF7F2] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
           <button
             type="button"
             disabled={!showForm || busy}
@@ -160,7 +193,7 @@ export function AutosNegociosAddInventoryDrawer({
           ) : null}
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="w-full rounded-2xl py-2.5 text-sm font-semibold text-[#5C5346] hover:underline"
           >
             {autosAddInventoryCancelCta(lang)}

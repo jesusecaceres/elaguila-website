@@ -1,5 +1,6 @@
-import type { AutoDealerListing } from "@/app/(site)/clasificados/autos/negocios/types/autoDealerListing";
+import type { AutoDealerListing, RelatedDealerListing } from "@/app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import type { AutosClassifiedsLang } from "./autosClassifiedsTypes";
 import type { AutosAdditionalInventoryVehicleDraft } from "./autosAdditionalInventoryDraft";
 import {
   additionalInventoryVehicleTitle,
@@ -124,4 +125,60 @@ export function previewCardSummaryFromChild(
     dealerName: parent.dealerName,
     photoCount: child.mediaImages?.length ?? 0,
   };
+}
+
+function mainCoverUrl(parent: AutoDealerListing): string {
+  const primary = parent.mediaImages?.find((m) => m.isPrimary)?.url ?? parent.mediaImages?.[0]?.url;
+  if (primary?.trim()) return primary.trim();
+  return parent.heroImages?.[0]?.trim() || "";
+}
+
+/**
+ * Draft-only related inventory for child full preview — excludes the previewed child;
+ * includes main vehicle + sibling children. Hrefs are preview placeholders (no public URLs).
+ */
+export function buildRelatedDraftPreviewListings(
+  parent: AutoDealerListing,
+  additional: AutosAdditionalInventoryVehicleDraft[],
+  excludeChildId: string,
+  _lang: AutosClassifiedsLang,
+): RelatedDealerListing[] {
+  const rows: RelatedDealerListing[] = [];
+
+  if (parent.year && parent.make && parent.model) {
+    rows.push({
+      id: "draft-preview-main",
+      imageUrl: mainCoverUrl(parent),
+      year: parent.year,
+      make: parent.make,
+      model: parent.model,
+      trim: parent.trim,
+      price: parent.price ?? 0,
+      mileage: parent.mileage ?? 0,
+      city: parent.city,
+      state: parent.state,
+      href: "#draft-preview-main",
+    });
+  }
+
+  for (const child of additional) {
+    if (child.id === excludeChildId) continue;
+    const merged = mapInheritedDealerPreviewListing(parent, child);
+    if (!merged.year || !merged.make || !merged.model) continue;
+    rows.push({
+      id: `draft-preview-${child.id}`,
+      imageUrl: inventoryVehicleCoverUrl(child) ?? "",
+      year: merged.year,
+      make: merged.make,
+      model: merged.model,
+      trim: merged.trim,
+      price: merged.price ?? 0,
+      mileage: merged.mileage ?? 0,
+      city: merged.city ?? parent.city,
+      state: merged.state ?? parent.state,
+      href: `#draft-preview-${child.id}`,
+    });
+  }
+
+  return rows.slice(0, 4);
 }

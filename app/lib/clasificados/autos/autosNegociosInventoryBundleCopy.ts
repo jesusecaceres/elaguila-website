@@ -187,3 +187,29 @@ export function autosInventoryBoostStripeReturnNote(lang: AutosClassifiedsLang):
     ? "Inventory Boost agrega 10 espacios adicionales por $129/mes. Después del pago, regresarás a esta misma solicitud para seguir agregando vehículos sin perder tu información."
     : "Inventory Boost adds 10 more slots for $129/month. After payment, you will return to this same application so you can keep adding vehicles without losing your information.";
 }
+
+export function autosInventoryBundlePreviewCta(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Ver vista previa" : "Preview";
+}
+
+export function autosChildInventoryPreviewTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Vista previa del vehículo adicional" : "Additional vehicle preview";
+}
+
+export function autosChildInventoryPreviewHelper(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Este vehículo se publicará como una ficha propia cuando publiques la solicitud completa."
+    : "This vehicle will publish as its own listing when you publish the full application.";
+}
+
+export function autosInventoryDrawerUnsavedCloseConfirm(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Tienes cambios sin guardar en este vehículo. ¿Quieres cerrar sin guardar?"
+    : "You have unsaved changes in this vehicle. Close without saving?";
+}
+
+export function autosRelatedInventoryDraftNote(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Vista previa — los enlaces finales se generan al publicar."
+    : "Preview — final links are generated when published.";
+}

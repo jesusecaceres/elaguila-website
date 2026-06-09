@@ -1037,7 +1037,7 @@ const EN: AutosNegociosCopy = {
     },
     related: {
       title: "More vehicles from this dealer",
-      subtitle: "Browse other active vehicles from this inventory.",
+      subtitle: "Explore other active vehicles from this inventory.",
       details: "View vehicle",
     },
     gallery: {

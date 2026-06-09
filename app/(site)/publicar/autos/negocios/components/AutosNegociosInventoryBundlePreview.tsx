@@ -18,17 +18,20 @@ import {
   autosInventoryBundleEmptyState,
   autosInventoryBundleMainLabel,
   autosInventoryBundlePhotoCount,
+  autosInventoryBundlePreviewCta,
   autosInventoryBundleRemove,
   autosInventoryBundleSectionTitle,
   autosInventoryBundleStatusDraft,
   autosInventoryBundleStatusReady,
   autosInventoryRemoveConfirm,
+  autosResultsCardLeonixIdNote,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import {
   formatMileageInputDisplay,
   formatUsdIntegerInputDisplay,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { AutosNegociosAddInventoryDrawer } from "./AutosNegociosAddInventoryDrawer";
+import { AutosNegociosChildInventoryPreviewOverlay } from "./AutosNegociosChildInventoryPreviewOverlay";
 
 function formatPrice(n?: number): string | null {
   if (n === undefined || !Number.isFinite(n)) return null;
@@ -58,6 +61,7 @@ function VehicleCard({
   photoLabel,
   onEdit,
   onRemove,
+  onPreview,
 }: {
   lang: AutosNegociosLang;
   label: string;
@@ -69,6 +73,7 @@ function VehicleCard({
   photoLabel?: string | null;
   onEdit?: () => void;
   onRemove?: () => void;
+  onPreview?: () => void;
 }) {
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] shadow-sm">
@@ -91,8 +96,16 @@ function VehicleCard({
           {photoLabel ? <span>{photoLabel}</span> : null}
         </div>
         <p className="mt-2 text-[11px] font-semibold text-[#6E5418]">{statusLabel}</p>
-        {onEdit || onRemove ? (
+        {onPreview ? (
+          <p className="mt-1 text-[10px] text-[#8A7A68]">{autosResultsCardLeonixIdNote(lang)}</p>
+        ) : null}
+        {onEdit || onRemove || onPreview ? (
           <div className="mt-auto flex flex-wrap gap-2 pt-3">
+            {onPreview ? (
+              <button type="button" className="text-xs font-bold text-[#2A2620] hover:underline" onClick={onPreview}>
+                {autosInventoryBundlePreviewCta(lang)}
+              </button>
+            ) : null}
             {onEdit ? (
               <button type="button" className="text-xs font-bold text-[#6E5418] hover:underline" onClick={onEdit}>
                 {autosInventoryBundleEdit(lang)}
@@ -130,7 +143,9 @@ export function AutosNegociosInventoryBundlePreview({
   flushDraft?: () => Promise<void>;
 }) {
   const [editId, setEditId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const editingVehicle = editId ? (additionalVehicles.find((v) => v.id === editId) ?? null) : null;
+  const previewVehicle = previewId ? (additionalVehicles.find((v) => v.id === previewId) ?? null) : null;
 
   const mainTitle =
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
@@ -181,6 +196,7 @@ export function AutosNegociosInventoryBundlePreview({
                 imageUrl={inventoryVehicleCoverUrl(v)}
                 statusLabel={ready ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang)}
                 photoLabel={photos > 0 ? autosInventoryBundlePhotoCount(lang, photos) : null}
+                onPreview={() => setPreviewId(v.id)}
                 onEdit={() => setEditId(v.id)}
                 onRemove={() => {
                   if (typeof window !== "undefined" && !window.confirm(autosInventoryRemoveConfirm(lang))) return;
@@ -209,6 +225,15 @@ export function AutosNegociosInventoryBundlePreview({
         }}
         flushDraft={flushDraft}
       />
+      {previewVehicle ? (
+        <AutosNegociosChildInventoryPreviewOverlay
+          lang={lang}
+          parentListing={listing}
+          child={previewVehicle}
+          allAdditional={additionalVehicles}
+          onClose={() => setPreviewId(null)}
+        />
+      ) : null}
     </>
   );
 }

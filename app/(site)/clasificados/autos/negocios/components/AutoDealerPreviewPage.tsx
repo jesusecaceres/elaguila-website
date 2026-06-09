@@ -44,6 +44,7 @@ export function AutoDealerPreviewPage({
   editBackHref,
   publicPlaybackOnly = false,
   publicAnalytics,
+  relatedPreviewOnly = false,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
@@ -51,6 +52,8 @@ export function AutoDealerPreviewPage({
   /** Live published detail: gallery video uses durable URLs only. */
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
+  /** Draft child preview: related cards are non-navigable placeholders. */
+  relatedPreviewOnly?: boolean;
 }) {
   const { t } = useAutosNegociosPreviewCopy();
   const pt = t.preview.title;
@@ -248,6 +251,7 @@ export function AutoDealerPreviewPage({
                 listings={data.relatedDealerListings ?? []}
                 fullInventoryHref={data.relatedDealerInventoryHref}
                 hasMore={data.relatedDealerInventoryHasMore}
+                previewOnly={relatedPreviewOnly}
               />
             </div>
           ) : null}

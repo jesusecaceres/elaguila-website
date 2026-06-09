@@ -28,58 +28,72 @@ export function AutosDealerInventoryVehicleCard({
   car,
   lang,
   ctaLabel,
+  previewOnly = false,
 }: {
   car: AutosDealerInventoryVehicleCardRow;
   lang: AutosNegociosLang;
   ctaLabel: string;
+  previewOnly?: boolean;
 }) {
   const title = `${new Intl.NumberFormat("en-US").format(car.year)} ${car.make} ${car.model}${car.trim ? ` ${car.trim}` : ""}`;
   const loc = formatCityStateLabel(car.city, car.state);
   const href = car.href.startsWith("/") ? withLangParam(car.href, lang) : car.href;
   const heroSrc = car.imageUrl?.trim() ?? "";
 
+  const body = (
+    <>
+      <div className="relative aspect-[16/11] w-full overflow-hidden bg-[#F5F0E8] sm:aspect-[5/3]">
+        {heroSrc ? (
+          <Image
+            src={heroSrc}
+            alt={title}
+            fill
+            className="object-cover transition duration-300 group-hover:scale-[1.03]"
+            sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
+          />
+        ) : (
+          <div
+            className="flex h-full w-full items-center justify-center bg-[#F5F0E8] text-sm font-semibold tracking-wide text-[#8A8074]"
+            aria-hidden
+          >
+            Autos
+          </div>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-5">
+        <h3 className="line-clamp-2 min-h-[2.75rem] font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1A1A1A] sm:text-base">
+          {title}
+        </h3>
+        <p className="text-xl font-bold tabular-nums text-[#2A7F3E] sm:text-2xl">{formatUsd(car.price)}</p>
+        <div className="flex items-center gap-2 text-sm text-[#4A4A4A]">
+          {loc ? (
+            <>
+              <FiMapPin className="h-4 w-4 shrink-0 text-[#D4A574]" aria-hidden />
+              <span className="truncate">{loc}</span>
+              <span className="text-[#7A7A7A]">•</span>
+            </>
+          ) : null}
+          <span>{formatMiles(car.mileage)}</span>
+        </div>
+        <span className="mt-auto inline-flex min-h-[40px] w-full items-center justify-center gap-1 rounded-full border border-[#D4A574]/50 bg-[linear-gradient(135deg,rgba(212,165,116,0.12),rgba(193,154,107,0.08))] px-3 text-[11px] font-bold text-[#1A1A1A] transition hover:border-[#D4A574]">
+          {ctaLabel}
+          {!previewOnly ? <FiChevronRight className="h-4 w-4" aria-hidden /> : null}
+        </span>
+      </div>
+    </>
+  );
+
   return (
     <article className={`${RESULT_CARD} h-full`}>
-      <Link href={href} className="flex min-h-0 flex-1 flex-col">
-        <div className="relative aspect-[16/11] w-full overflow-hidden bg-[#F5F0E8] sm:aspect-[5/3]">
-          {heroSrc ? (
-            <Image
-              src={heroSrc}
-              alt={title}
-              fill
-              className="object-cover transition duration-300 group-hover:scale-[1.03]"
-              sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
-            />
-          ) : (
-            <div
-              className="flex h-full w-full items-center justify-center bg-[#F5F0E8] text-sm font-semibold tracking-wide text-[#8A8074]"
-              aria-hidden
-            >
-              Autos
-            </div>
-          )}
+      {previewOnly ? (
+        <div className="flex min-h-0 flex-1 flex-col" aria-disabled="true">
+          {body}
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-5">
-          <h3 className="line-clamp-2 min-h-[2.75rem] font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1A1A1A] sm:text-base">
-            {title}
-          </h3>
-          <p className="text-xl font-bold tabular-nums text-[#2A7F3E] sm:text-2xl">{formatUsd(car.price)}</p>
-          <div className="flex items-center gap-2 text-sm text-[#4A4A4A]">
-            {loc ? (
-              <>
-                <FiMapPin className="h-4 w-4 shrink-0 text-[#D4A574]" aria-hidden />
-                <span className="truncate">{loc}</span>
-                <span className="text-[#7A7A7A]">•</span>
-              </>
-            ) : null}
-            <span>{formatMiles(car.mileage)}</span>
-          </div>
-          <span className="mt-auto inline-flex min-h-[40px] w-full items-center justify-center gap-1 rounded-full border border-[#D4A574]/50 bg-[linear-gradient(135deg,rgba(212,165,116,0.12),rgba(193,154,107,0.08))] px-3 text-[11px] font-bold text-[#1A1A1A] transition hover:border-[#D4A574]">
-            {ctaLabel}
-            <FiChevronRight className="h-4 w-4" aria-hidden />
-          </span>
-        </div>
-      </Link>
+      ) : (
+        <Link href={href} className="flex min-h-0 flex-1 flex-col">
+          {body}
+        </Link>
+      )}
     </article>
   );
 }
