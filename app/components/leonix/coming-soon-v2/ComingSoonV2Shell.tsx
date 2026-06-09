@@ -33,6 +33,10 @@ import {
 } from "@/app/lib/lang";
 import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
+import {
+  getGoogleTranslatePlacementCopy,
+  translateSiteHref,
+} from "@/app/lib/googleTranslateWebsite";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
@@ -572,6 +576,29 @@ function HeroQrAccessStrip({
       >
         {buttonLabel}
       </Link>
+    </aside>
+  );
+}
+
+function HeroGoogleTranslateHint({ lang }: { lang: SupportedLang }) {
+  const copy = getGoogleTranslatePlacementCopy(lang);
+  const href = translateSiteHref({
+    lang,
+    sourcePage: "coming-soon-v2",
+    sourceCta: "coming_soon_google_translate",
+    returnTo: `/coming-soon-v2?lang=${lang}`,
+  });
+
+  return (
+    <aside className="mt-3 rounded-lg border border-[#D6C7AD]/60 bg-[#FFFDF7] px-3 py-2.5 sm:px-3.5 sm:py-3">
+      <p className="text-xs font-semibold text-[#2A4536] sm:text-sm">{copy.comingSoonQuestion}</p>
+      <p className="mt-1 text-[0.8125rem] leading-snug text-[#3D3428] sm:text-sm">{copy.comingSoonBody}</p>
+      <a
+        href={href}
+        className="mt-2 inline-flex min-h-[2.25rem] items-center text-xs font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm"
+      >
+        {copy.comingSoonCta}
+      </a>
     </aside>
   );
 }
@@ -1385,6 +1412,8 @@ function ComingSoonV2ShellContent() {
                 buttonLabel={qr.openReaderLabel}
                 href={comingSoonQrReaderHref(routeLang, "hero_qr_steps")}
               />
+
+              <HeroGoogleTranslateHint lang={routeLang} />
 
               <HeroMediaKitQuickActions
                 lang={routeLang}

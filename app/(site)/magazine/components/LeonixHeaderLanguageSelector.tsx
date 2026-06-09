@@ -9,14 +9,17 @@ import {
   PRIMARY_LANGUAGES,
   getLanguageLabel,
   isAdditionalLanguageActive,
-  isMagazineRouteLanguage,
   languageAriaLabel,
-  magazineRouteAdditionalLanguages,
   normalizeLang,
   UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER,
   writePersistedLangPreference,
   type SupportedLang,
 } from "@/app/lib/language";
+import {
+  getGoogleTranslatePlacementCopy,
+  sourcePageKeyFromPath,
+  translateSiteHref,
+} from "@/app/lib/googleTranslateWebsite";
 
 type LeonixHeaderLanguageSelectorProps = {
   /** compact = shorter primary labels on xs; full = full Español/English on sm+ */
@@ -42,14 +45,18 @@ export function LeonixHeaderLanguageSelector({
 }: LeonixHeaderLanguageSelectorProps) {
   const pathnameFromHook = usePathname() ?? "";
   const pathname = pathnameOverride ?? pathnameFromHook;
-  const isMagazineContext = pathname.includes("/magazine");
-  const additionalOptions = isMagazineContext
-    ? magazineRouteAdditionalLanguages()
-    : ADDITIONAL_LANGUAGES;
   const searchParams = useSearchParams();
   const router = useRouter();
   const lang = normalizeLang(searchParams?.get("lang"));
   const isFull = variant === "full";
+  const googleCopy = getGoogleTranslatePlacementCopy(lang);
+  const returnTo = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
+  const googleTranslateHref = translateSiteHref({
+    lang,
+    sourcePage: sourcePageKeyFromPath(pathname),
+    sourceCta: "language_dropdown_google_translate",
+    returnTo,
+  });
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -82,9 +89,7 @@ export function LeonixHeaderLanguageSelector({
   }, [pathname, searchParams?.toString()]);
 
   const dropdownLabel = UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER;
-  const additionalActive =
-    isAdditionalLanguageActive(lang) &&
-    (!isMagazineContext || isMagazineRouteLanguage(lang));
+  const additionalActive = isAdditionalLanguageActive(lang);
 
   const primaryLabel = (code: (typeof PRIMARY_LANGUAGES)[number]) => {
     if (isFull) {
@@ -162,7 +167,7 @@ export function LeonixHeaderLanguageSelector({
             aria-label={dropdownLabel}
             className="absolute right-0 top-[calc(100%+0.35rem)] z-[120] max-h-[min(70vh,22rem)] min-w-[11.5rem] overflow-y-auto overflow-x-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
           >
-            {additionalOptions.map((code) => {
+            {ADDITIONAL_LANGUAGES.map((code) => {
               const selected = lang === code;
               return (
                 <li key={code} role="presentation">
@@ -188,6 +193,18 @@ export function LeonixHeaderLanguageSelector({
                 </li>
               );
             })}
+            <li role="separator" aria-hidden className="my-1 border-t border-[#D6C7AD]/80" />
+            <li role="presentation" className="px-2 pb-1 pt-0.5">
+              <p className="px-1 py-1.5 text-[0.65rem] leading-snug text-[#3D3428]/75 sm:text-xs">
+                {googleCopy.dropdownHelper}
+              </p>
+              <a
+                href={googleTranslateHref}
+                className="flex min-h-[2.75rem] w-full items-center rounded-lg px-2 py-2 text-left text-sm font-semibold text-[#2A4536] transition hover:bg-[#FBF7EF]"
+              >
+                {googleCopy.dropdownCta}
+              </a>
+            </li>
           </ul>
         ) : null}
       </div>

@@ -39,6 +39,11 @@ function TranslatorGatewayContent() {
 
   const guideHref = magazinePrintGuideHref(lang);
   const iphoneStepsHref = `${guideHref}#${deviceStepsHash("iphone")}`;
+  const websiteTranslateHref = leonixGoogleTranslateWebsiteUrl(lang, {
+    sourcePage: "qr_translator",
+    sourceCta: "qr_translator_google_translate",
+    returnTo: `/qr/translator?lang=${lang}`,
+  });
 
   return (
     <main lang={lang} className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -95,14 +100,17 @@ function TranslatorGatewayContent() {
             <a href={TRANSLATE_WEB_URL} target="_blank" rel="noopener noreferrer" className={btnExternal}>
               {copy.tryGoogleTranslate}
             </a>
-            <a
-              href={leonixGoogleTranslateWebsiteUrl(lang)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={btnGold}
-            >
+          </div>
+
+          <div className="mt-5 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
+            <h2 className="font-serif text-base font-bold text-[#2A4536]">{copy.websiteTranslateTitle}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{copy.websiteTranslateBody}</p>
+            <a href={websiteTranslateHref} className={`mt-3 ${btnGold}`}>
               {copy.translateWebsite}
             </a>
+          </div>
+
+          <div className="mt-5 grid min-w-0 gap-2.5">
             {device === "ios" ? (
               <a href={iphoneStepsHref} className={btnGold}>
                 Apple / iPhone steps

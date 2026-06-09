@@ -64,6 +64,8 @@ export type TranslatorPageCopy = {
   tryGoogleLens: string;
   tryGoogleTranslate: string;
   translateWebsite: string;
+  websiteTranslateTitle: string;
+  websiteTranslateBody: string;
   backToGuide: string;
   mobileScreenshotHint: string;
 };
