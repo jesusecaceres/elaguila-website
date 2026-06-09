@@ -227,6 +227,8 @@ export function getHyCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "Պատրա՞ստ եք տեսնել մանրամասները։",
       viewCta: { label: "Դիտել Media Kit" },
       downloadCta: { label: "Ներբեռնել Media Kit" },
+      dualPdfEsLabel: "Media Kit (իսպաներեն բնօրինակ PDF)",
+      dualPdfEnLabel: "Media Kit (անգլերեն PDF)",
       requestInfoCta: { label: "Հարցման գովազդային տեղեկատվություն" },
       supportingLine: "Բացեք Media Kit-ը՝ տեսնելու ձևաչափերը, առավելությունները, փաթեթները և հաջորդ քայլերը։",
     },
@@ -276,6 +278,8 @@ export function getHyCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "Ծանուցել ինձ",
       formAria: "Լրատուի գրանցում",
       emailLabel: "Էլ. փոստ",
+      consent: "Ես համաձայն եմ ստանալ Leonix Media-ի գործարկման թարմացումներ։",
+      consentError: "Խնդրում ենք հաստատել թարմացումներ ստանալու համաձայնությունը։",
     },
     footer: "© 2026 Leonix Media։ Ստեղծված մեր համայնքի համար։",
   });

@@ -229,6 +229,8 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "Sẵn sàng xem chi tiết?",
       viewCta: { label: "Xem Media Kit" },
       downloadCta: { label: "Tải Media Kit" },
+      dualPdfEsLabel: "Media Kit (PDF tiếng Tây Ban Nha gốc)",
+      dualPdfEnLabel: "Media Kit (PDF tiếng Anh)",
       requestInfoCta: { label: "Yêu cầu thông tin quảng cáo" },
       supportingLine:
         "Mở Media Kit để xem định dạng, lợi ích, gói và các bước tiếp theo.",
@@ -279,6 +281,8 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "Thông báo cho tôi",
       formAria: "Đăng ký bản tin",
       emailLabel: "Email",
+      consent: "Tôi đồng ý nhận thông tin cập nhật ra mắt từ Leonix Media.",
+      consentError: "Vui lòng xác nhận đồng ý nhận thông tin cập nhật.",
     },
     footer: "© 2026 Leonix Media. Dành cho cộng đồng chúng ta.",
   });

@@ -53,6 +53,8 @@ type Props = {
   formAria: string;
   buttonLabel: string;
   placeholder: string;
+  consentLabel: string;
+  consentErrorLabel: string;
   compact?: boolean;
 };
 
@@ -62,6 +64,8 @@ export function ComingSoonLaunchSignupForm({
   formAria,
   buttonLabel,
   placeholder,
+  consentLabel,
+  consentErrorLabel,
   compact = false,
 }: Props) {
   const t = COPY[lang === "en" ? "en" : "es"];
@@ -80,7 +84,7 @@ export function ComingSoonLaunchSignupForm({
     if (loading) return;
 
     if (!consent) {
-      setError(lang === "en" ? "Please confirm consent to receive updates." : "Confirma el consentimiento para recibir actualizaciones.");
+      setError(consentErrorLabel);
       return;
     }
 
@@ -209,7 +213,7 @@ export function ComingSoonLaunchSignupForm({
           disabled={loading}
           className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9A84A]/45"
         />
-        <span>{t.consent}</span>
+        <span>{consentLabel}</span>
       </label>
 
       {error ? (

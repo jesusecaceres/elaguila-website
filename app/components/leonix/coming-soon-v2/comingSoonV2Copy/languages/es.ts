@@ -229,6 +229,8 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "¿Listo para ver los detalles?",
       viewCta: { label: "Ver Media Kit" },
       downloadCta: { label: "Descargar Media Kit" },
+      dualPdfEsLabel: "Descargar Media Kit",
+      dualPdfEnLabel: "Media Kit (PDF en inglés)",
       requestInfoCta: { label: "Solicitar información publicitaria" },
       supportingLine:
         "Abre el Media Kit para ver formatos, beneficios, paquetes y próximos pasos.",
@@ -279,6 +281,8 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "Notifícame",
       formAria: "Registro al boletín",
       emailLabel: "Correo electrónico",
+      consent: "Acepto recibir actualizaciones del lanzamiento de Leonix Media.",
+      consentError: "Confirma el consentimiento para recibir actualizaciones.",
     },
     footer: "© 2026 Leonix Media. Hecho para nuestra comunidad.",
   });

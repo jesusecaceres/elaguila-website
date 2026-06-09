@@ -225,6 +225,8 @@ export function getJaCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "詳細を見る準備はできましたか？",
       viewCta: { label: "メディアキットを見る" },
       downloadCta: { label: "メディアキットをダウンロード" },
+      dualPdfEsLabel: "Media Kit（スペイン語オリジナル PDF）",
+      dualPdfEnLabel: "Media Kit（英語 PDF）",
       requestInfoCta: { label: "広告情報をリクエスト" },
       supportingLine: "メディアキットを開いて形式、メリット、パッケージ、次のステップをご確認ください。",
     },
@@ -274,6 +276,8 @@ export function getJaCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "通知を受け取る",
       formAria: "ニュースレター登録",
       emailLabel: "メールアドレス",
+      consent: "Leonix Mediaのローンチ更新を受け取ることに同意します。",
+      consentError: "更新の受信に同意してください。",
     },
     footer: "© 2026 Leonix Media。コミュニティのために。",
   });

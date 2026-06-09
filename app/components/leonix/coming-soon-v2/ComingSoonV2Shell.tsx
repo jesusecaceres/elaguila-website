@@ -13,7 +13,6 @@ import {
   magazineJune2026ReaderHref,
   showDualMediaKitPdfButtons,
 } from "@/app/lib/magazine/qrBridge";
-import { getMagazineUi } from "@/app/(site)/magazine/2026/june/issueContent";
 import type {
   HeroAccent,
   HeroCta,
@@ -752,6 +751,8 @@ function MediaKitPreviewSection({
   ctaHeading,
   viewCta,
   downloadCta,
+  dualPdfEsLabel,
+  dualPdfEnLabel,
   requestInfoCta,
   supportingLine,
 }: {
@@ -770,6 +771,8 @@ function MediaKitPreviewSection({
   ctaHeading: string;
   viewCta: { label: string; href: string };
   downloadCta: { label: string; href: string };
+  dualPdfEsLabel: string;
+  dualPdfEnLabel: string;
   requestInfoCta: { label: string; href: string };
   supportingLine: string;
 }) {
@@ -785,7 +788,6 @@ function MediaKitPreviewSection({
     variant: "primary",
   };
   const dualMediaKit = showDualMediaKitPdfButtons(lang);
-  const magazineUi = getMagazineUi(lang);
 
   return (
     <section
@@ -832,12 +834,12 @@ function MediaKitPreviewSection({
           {dualMediaKit ? (
             <>
               <MediaKitDownloadLink
-                label={magazineUi.mediaKitPdfEsLabel}
+                label={dualPdfEsLabel}
                 href={MAGAZINE_KIT_PDF_ES}
                 tone="light"
               />
               <MediaKitDownloadLink
-                label={magazineUi.mediaKitPdfEnLabel}
+                label={dualPdfEnLabel}
                 href={MAGAZINE_KIT_PDF_EN}
                 tone="light"
               />
@@ -933,16 +935,19 @@ function HeroMediaKitQuickActions({
   eyebrow,
   viewCta,
   downloadCta,
+  dualPdfEsLabel,
+  dualPdfEnLabel,
   requestInfoCta,
 }: {
   lang: SupportedLang;
   eyebrow: string;
   viewCta: { label: string; href: string };
   downloadCta: { label: string; href: string };
+  dualPdfEsLabel: string;
+  dualPdfEnLabel: string;
   requestInfoCta: { label: string; href: string };
 }) {
   const dualMediaKit = showDualMediaKitPdfButtons(lang);
-  const magazineUi = getMagazineUi(lang);
 
   return (
     <div
@@ -964,12 +969,12 @@ function HeroMediaKitQuickActions({
         {dualMediaKit ? (
           <>
             <MediaKitDownloadLink
-              label={magazineUi.mediaKitPdfEsLabel}
+              label={dualPdfEsLabel}
               href={MAGAZINE_KIT_PDF_ES}
               tone="light"
             />
             <MediaKitDownloadLink
-              label={magazineUi.mediaKitPdfEnLabel}
+              label={dualPdfEnLabel}
               href={MAGAZINE_KIT_PDF_EN}
               tone="light"
             />
@@ -1073,6 +1078,8 @@ function FinalContactSection({
     emailLabel: string;
     placeholder: string;
     button: string;
+    consent: string;
+    consentError: string;
   };
   lang: LeonixSiteLang;
 }) {
@@ -1172,6 +1179,8 @@ function FinalContactSection({
           formAria={newsletter.formAria}
           buttonLabel={newsletter.button}
           placeholder={newsletter.placeholder}
+          consentLabel={newsletter.consent}
+          consentErrorLabel={newsletter.consentError}
           compact
         />
       </div>
@@ -1424,6 +1433,8 @@ function ComingSoonV2ShellContent() {
                 eyebrow={mkp.eyebrow}
                 viewCta={mkp.viewCta}
                 downloadCta={mkp.downloadCta}
+                dualPdfEsLabel={mkp.dualPdfEsLabel}
+                dualPdfEnLabel={mkp.dualPdfEnLabel}
                 requestInfoCta={mkp.requestInfoCta}
               />
 
@@ -1505,6 +1516,8 @@ function ComingSoonV2ShellContent() {
           ctaHeading={mkp.ctaHeading}
           viewCta={mkp.viewCta}
           downloadCta={mkp.downloadCta}
+          dualPdfEsLabel={mkp.dualPdfEsLabel}
+          dualPdfEnLabel={mkp.dualPdfEnLabel}
           requestInfoCta={mkp.requestInfoCta}
           supportingLine={mkp.supportingLine}
         />

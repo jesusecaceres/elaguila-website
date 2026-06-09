@@ -228,6 +228,8 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "Handa nang tingnan ang detalye?",
       viewCta: { label: "Tingnan ang Media Kit" },
       downloadCta: { label: "I-download ang Media Kit" },
+      dualPdfEsLabel: "Media Kit (orihinal na PDF sa Espanyol)",
+      dualPdfEnLabel: "Media Kit (PDF sa Ingles)",
       requestInfoCta: { label: "Humiling ng impormasyon sa advertising" },
       supportingLine:
         "Buksan ang Media Kit para makita ang formats, benefits, packages, at susunod na hakbang.",
@@ -278,6 +280,8 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "Abisuhan ako",
       formAria: "Newsletter signup",
       emailLabel: "Email",
+      consent: "Sumasang-ayon akong tumanggap ng mga update sa launch ng Leonix Media.",
+      consentError: "Pakikumpirma ang pahintulot na tumanggap ng mga update.",
     },
     footer: "© 2026 Leonix Media. Ginawa para sa ating komunidad.",
   });

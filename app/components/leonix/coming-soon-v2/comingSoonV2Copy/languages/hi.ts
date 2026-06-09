@@ -225,6 +225,8 @@ export function getHiCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "विवरण देखने के लिए तैयार?",
       viewCta: { label: "मीडिया किट देखें" },
       downloadCta: { label: "मीडिया किट डाउनलोड करें" },
+      dualPdfEsLabel: "Media Kit (मूल स्पेनिश PDF)",
+      dualPdfEnLabel: "Media Kit (अंग्रेज़ी PDF)",
       requestInfoCta: { label: "विज्ञापन जानकारी का अनुरोध करें" },
       supportingLine: "फ़ॉर्मेट, लाभ, पैकेज और अगले कदम देखने के लिए मीडिया किट खोलें।",
     },
@@ -274,6 +276,8 @@ export function getHiCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "मुझे सूचित करें",
       formAria: "न्यूज़लेटर साइनअप",
       emailLabel: "ईमेल",
+      consent: "मैं Leonix Media लॉन्च अपडेट प्राप्त करने के लिए सहमति देता/देती हूँ।",
+      consentError: "कृपया अपडेट प्राप्त करने की सहमति की पुष्टि करें।",
     },
     footer: "© 2026 Leonix Media. हमारे समुदाय के लिए बना।",
   });

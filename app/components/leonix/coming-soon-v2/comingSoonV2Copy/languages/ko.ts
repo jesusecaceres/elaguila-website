@@ -225,6 +225,8 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "세부 정보를 볼 준비가 되셨나요?",
       viewCta: { label: "미디어 키트 보기" },
       downloadCta: { label: "미디어 키트 다운로드" },
+      dualPdfEsLabel: "Media Kit (스페인어 원본 PDF)",
+      dualPdfEnLabel: "Media Kit (영어 PDF)",
       requestInfoCta: { label: "광고 정보 요청" },
       supportingLine: "미디어 키트를 열어 형식, 혜택, 패키지, 다음 단계를 확인하세요.",
     },
@@ -274,6 +276,8 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "알림 받기",
       formAria: "뉴스레터 가입",
       emailLabel: "이메일",
+      consent: "Leonix Media 출시 업데이트 수신에 동의합니다.",
+      consentError: "업데이트 수신 동의를 확인해 주세요.",
     },
     footer: "© 2026 Leonix Media. 우리 커뮤니티를 위해.",
   });

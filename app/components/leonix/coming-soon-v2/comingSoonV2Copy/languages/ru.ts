@@ -227,6 +227,8 @@ export function getRuCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "Готовы посмотреть детали?",
       viewCta: { label: "Смотреть Media Kit" },
       downloadCta: { label: "Скачать Media Kit" },
+      dualPdfEsLabel: "Media Kit (оригинальный PDF на испанском)",
+      dualPdfEnLabel: "Media Kit (PDF на английском)",
       requestInfoCta: { label: "Запросить рекламную информацию" },
       supportingLine: "Откройте Media Kit, чтобы увидеть форматы, преимущества, пакеты и следующие шаги.",
     },
@@ -276,6 +278,8 @@ export function getRuCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "Уведомить меня",
       formAria: "Подписка на рассылку",
       emailLabel: "Email",
+      consent: "Я соглашаюсь получать обновления о запуске Leonix Media.",
+      consentError: "Пожалуйста, подтвердите согласие на получение обновлений.",
     },
     footer: "© 2026 Leonix Media. Создано для нашего сообщества.",
   });

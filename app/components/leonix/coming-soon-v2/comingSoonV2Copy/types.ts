@@ -122,6 +122,8 @@ export type ComingSoonV2Copy = {
     ctaHeading: string;
     viewCta: { label: string; href: string };
     downloadCta: { label: string; href: string };
+    dualPdfEsLabel: string;
+    dualPdfEnLabel: string;
     requestInfoCta: { label: string; href: string };
     supportingLine: string;
   };
@@ -163,6 +165,8 @@ export type ComingSoonV2Copy = {
     button: string;
     formAria: string;
     emailLabel: string;
+    consent: string;
+    consentError: string;
   };
   footer: string;
 };

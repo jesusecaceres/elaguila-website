@@ -226,6 +226,8 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "准备好查看详情了吗？",
       viewCta: { label: "查看媒体资料包" },
       downloadCta: { label: "下载媒体资料包" },
+      dualPdfEsLabel: "Media Kit（西班牙语原版 PDF）",
+      dualPdfEnLabel: "Media Kit（英语 PDF）",
       requestInfoCta: { label: "索取广告信息" },
       supportingLine: "打开媒体资料包查看格式、优势、套餐和后续步骤。",
     },
@@ -274,6 +276,8 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "通知我",
       formAria: "通讯订阅",
       emailLabel: "电子邮件",
+      consent: "我同意接收 Leonix Media 发布更新。",
+      consentError: "请确认同意接收更新。",
     },
     footer: "© 2026 Leonix Media。为我们的社区打造。",
   });

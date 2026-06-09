@@ -225,6 +225,8 @@ export function getPaCopy(lang: SupportedLang): ComingSoonV2Copy {
       ctaHeading: "ਵੇਰਵੇ ਵੇਖਣ ਲਈ ਤਿਆਰ?",
       viewCta: { label: "Media Kit ਵੇਖੋ" },
       downloadCta: { label: "Media Kit ਡਾਊਨਲੋਡ ਕਰੋ" },
+      dualPdfEsLabel: "Media Kit (ਮੂਲ ਸਪੇਨੀ PDF)",
+      dualPdfEnLabel: "Media Kit (ਅੰਗਰੇਜ਼ੀ PDF)",
       requestInfoCta: { label: "ਵਿਗਿਆਪਨ ਜਾਣਕਾਰੀ ਮੰਗੋ" },
       supportingLine: "ਫਾਰਮੈਟ, ਫਾਇਦੇ, ਪੈਕੇਜ ਅਤੇ ਅਗਲੇ ਕਦਮ ਵੇਖਣ ਲਈ Media Kit ਖੋਲ੍ਹੋ।",
     },
@@ -274,6 +276,8 @@ export function getPaCopy(lang: SupportedLang): ComingSoonV2Copy {
       button: "ਮੈਨੂੰ ਸੂਚਿਤ ਕਰੋ",
       formAria: "ਨਿਊਜ਼ਲੈਟਰ ਸਾਈਨਅੱਪ",
       emailLabel: "ਈਮੇਲ",
+      consent: "ਮੈਂ Leonix Media ਲਾਂਚ ਅਪਡੇਟ ਪ੍ਰਾਪਤ ਕਰਨ ਲਈ ਸਹਿਮਤ ਹਾਂ।",
+      consentError: "ਕਿਰਪਾ ਕਰਕੇ ਅਪਡੇਟ ਪ੍ਰਾਪਤ ਕਰਨ ਦੀ ਸਹਿਮਤੀ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ।",
     },
     footer: "© 2026 Leonix Media। ਸਾਡੀ ਕਮਿਊਨਿਟੀ ਲਈ ਬਣਾਇਆ।",
   });

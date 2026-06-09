@@ -139,6 +139,62 @@ const PLACEMENT_BY_LANG: Partial<Record<SupportedLang, GoogleTranslatePlacementC
     comingSoonBody: "Google TranslateでLeonixサイトを閲覧できます。",
     comingSoonCta: "Googleでサイトを翻訳",
   },
+  tl: {
+    dropdownHelper: "Kailangan ng ibang wika? Buksan ang website sa Google Translate.",
+    dropdownCta: "🌐 Isalin ang Leonix gamit ang Google",
+    comingSoonQuestion: "Kailangan ng ibang wika?",
+    comingSoonBody: "Buksan ang Leonix gamit ang Google Translate para mag-browse sa website.",
+    comingSoonCta: "Isalin ang website gamit ang Google",
+  },
+  km: {
+    dropdownHelper: "ត្រូវការភាសាផ្សេង? បើកគេហទំព័រជាមួយ Google Translate។",
+    dropdownCta: "🌐 បកប្រែ Leonix ជាមួយ Google",
+    comingSoonQuestion: "ត្រូវការភាសាផ្សេង?",
+    comingSoonBody: "បើក Leonix ជាមួយ Google Translate ដើម្បីរុករកគេហទំព័រ។",
+    comingSoonCta: "បកប្រែគេហទំព័រជាមួយ Google",
+  },
+  zh: {
+    dropdownHelper: "需要其他语言？使用 Google Translate 打开网站。",
+    dropdownCta: "🌐 用 Google 翻译 Leonix",
+    comingSoonQuestion: "需要其他语言？",
+    comingSoonBody: "使用 Google Translate 浏览 Leonix 网站。",
+    comingSoonCta: "用 Google 翻译网站",
+  },
+  ko: {
+    dropdownHelper: "다른 언어가 필요하신가요? Google Translate로 사이트를 여세요.",
+    dropdownCta: "🌐 Google로 Leonix 번역",
+    comingSoonQuestion: "다른 언어가 필요하신가요?",
+    comingSoonBody: "Google Translate로 Leonix 웹사이트를 탐색하세요.",
+    comingSoonCta: "Google로 웹사이트 번역",
+  },
+  hi: {
+    dropdownHelper: "कोई और भाषा चाहिए? Google Translate से वेबसाइट खोलें।",
+    dropdownCta: "🌐 Google से Leonix अनुवाद करें",
+    comingSoonQuestion: "कोई और भाषा चाहिए?",
+    comingSoonBody: "वेबसाइट ब्राउज़ करने के लिए Google Translate से Leonix खोलें।",
+    comingSoonCta: "Google से वेबसाइट अनुवाद करें",
+  },
+  hy: {
+    dropdownHelper: "Պետք է այլ լեզու? Բացեք կայքը Google Translate-ով։",
+    dropdownCta: "🌐 Թարգմանել Leonix-ը Google-ով",
+    comingSoonQuestion: "Պետք է այլ լեզու?",
+    comingSoonBody: "Բացեք Leonix-ը Google Translate-ով կայքը դիտելու համար։",
+    comingSoonCta: "Թարգմանել կայքը Google-ով",
+  },
+  ru: {
+    dropdownHelper: "Нужен другой язык? Откройте сайт в Google Translate.",
+    dropdownCta: "🌐 Перевести Leonix через Google",
+    comingSoonQuestion: "Нужен другой язык?",
+    comingSoonBody: "Откройте Leonix через Google Translate для просмотра сайта.",
+    comingSoonCta: "Перевести сайт через Google",
+  },
+  pa: {
+    dropdownHelper: "ਹੋਰ ਭਾਸ਼ਾ ਚਾਹੀਦੀ ਹੈ? Google Translate ਨਾਲ ਵੈੱਬਸਾਈਟ ਖੋਲ੍ਹੋ।",
+    dropdownCta: "🌐 Google ਨਾਲ Leonix ਅਨੁਵਾਦ ਕਰੋ",
+    comingSoonQuestion: "ਹੋਰ ਭਾਸ਼ਾ ਚਾਹੀਦੀ ਹੈ?",
+    comingSoonBody: "ਵੈੱਬਸਾਈਟ ਬ੍ਰਾਊਜ਼ ਕਰਨ ਲਈ Google Translate ਨਾਲ Leonix ਖੋਲ੍ਹੋ।",
+    comingSoonCta: "Google ਨਾਲ ਵੈੱਬਸਾਈਟ ਅਨੁਵਾਦ ਕਰੋ",
+  },
 };
 
 export function getGoogleTranslatePlacementCopy(lang: SupportedLang): GoogleTranslatePlacementCopy {
