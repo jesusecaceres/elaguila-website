@@ -2,13 +2,9 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ADMIN_UI_LANG_COOKIE } from "@/app/admin/_lib/adminI18nCookie";
 import {
-  isAdminPath,
   isAllowedPublicLaunchPath,
-  isApiPath,
-  isAuthPath,
-  isNextInternalPath,
+  isBypassPath,
   isPublicLaunchLockEnabled,
-  isStaticAssetPath,
   resolveComingSoonLockLang,
 } from "@/app/lib/launchLock/publicLaunchLock";
 
@@ -61,19 +57,11 @@ function handleMagazinePdfCacheBust(req: NextRequest): NextResponse | null {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (isNextInternalPath(pathname) || isStaticAssetPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  if (isApiPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  if (isAdminPath(pathname)) {
+  if (pathname.startsWith("/admin")) {
     return handleAdminRequest(req);
   }
 
-  if (isAuthPath(pathname)) {
+  if (isBypassPath(pathname)) {
     return NextResponse.next();
   }
 
@@ -96,7 +84,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
