@@ -1,12 +1,20 @@
 /** Smart translator QR gateway — honest app-open attempt with safe fallbacks. */
 
+import type { SupportedLang } from "@/app/lib/language";
+import { magazinePrintGuideHref } from "@/app/lib/magazine/qrRouteHelpers";
+
 export const TRANSLATOR_GATEWAY_PATH = "/qr/translator";
 
 export const TRANSLATOR_GATEWAY_TARGET_URL = "https://leonixmedia.com/qr/translator";
 
 export const TRANSLATOR_OPEN_QR_IMAGE_PATH = "/qr/leonix-translator-open-qr.png";
 
+/** @deprecated Use magazinePrintGuideHref(lang) — lang-less constant kept for legacy imports. */
 export const MAGAZINE_PRINT_HELP_PATH = "/magazine/2026/june/read?source=print";
+
+export function magazinePrintHelpPath(lang: SupportedLang, hash?: string): string {
+  return magazinePrintGuideHref(lang, hash ? { hash } : undefined);
+}
 
 export const TRANSLATOR_GATEWAY_COPY = {
   title: {

@@ -5,7 +5,7 @@ import {
   mediaKitHref,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
-import { PRINT_PRIMARY_CTA } from "@/app/lib/magazine/printVisualInstructions";
+import { getQrGuideCopy } from "@/app/lib/magazine/qrGuideCopy";
 import {
   getMagazineVisualAsset,
   MAGAZINE_ISSUE_IDS,
@@ -20,6 +20,7 @@ export function MagazinePrintPrimaryActions({
   lang,
   onOpenFlipbook,
 }: MagazinePrintPrimaryActionsProps) {
+  const copy = getQrGuideCopy(lang);
   const visual = getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang);
   const mediaKit = mediaKitHref(lang);
   const contactHref = `/contacto?inquiryType=advertising&sourceCta=magazine-qr&lang=${lang}`;
@@ -40,28 +41,20 @@ export function MagazinePrintPrimaryActions({
         id="print-primary-actions-title"
         className="text-xs font-bold uppercase tracking-[0.14em] text-[#556B3E]"
       >
-        <span lang="en">Practical actions</span>
-        <span className="mx-1.5" aria-hidden>
-          /
-        </span>
-        <span lang="es">Acciones prácticas</span>
+        {copy.actionsEyebrow}
       </p>
       <div className="mt-4 flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap">
         <button type="button" onClick={onOpenFlipbook} className={btnPrimary}>
-          {PRINT_PRIMARY_CTA.openDigital.en}
-          <span className="sr-only"> / {PRINT_PRIMARY_CTA.openDigital.es}</span>
+          {copy.actions.openDigital}
         </button>
         <a href={visual.pdfUrl} download className={btnOutline}>
-          {PRINT_PRIMARY_CTA.downloadPdf.en}
-          <span className="sr-only"> / {PRINT_PRIMARY_CTA.downloadPdf.es}</span>
+          {copy.actions.downloadPdf}
         </a>
         <a href={mediaKit} target="_blank" rel="noopener noreferrer" className={btnGold}>
-          {PRINT_PRIMARY_CTA.mediaKit.en}
-          <span className="sr-only"> / {PRINT_PRIMARY_CTA.mediaKit.es}</span>
+          {copy.actions.mediaKit}
         </a>
         <Link href={contactHref} className={btnOutline}>
-          {PRINT_PRIMARY_CTA.contact.en}
-          <span className="sr-only"> / {PRINT_PRIMARY_CTA.contact.es}</span>
+          {copy.actions.contact}
         </Link>
       </div>
     </section>

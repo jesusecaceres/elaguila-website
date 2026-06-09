@@ -8,39 +8,39 @@ import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import {
   getMagazineUi,
   getJune2026Title,
-  resolveMagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import {
   getMagazineVisualAsset,
   MAGAZINE_ISSUE_IDS,
 } from "@/app/lib/magazine/languageAssets";
 import { isMagazinePrintSource } from "@/app/lib/magazine/qrBridge";
-import {
-  PRINT_SUMMARY_SECTION,
-  PRINT_WEBSITE_LANG_NOTE,
-} from "@/app/lib/magazine/printVisualInstructions";
+import { getQrGuideCopy } from "@/app/lib/magazine/qrGuideCopy";
 import { MagazineFlipbookModal } from "@/app/(site)/magazine/components/MagazineFlipbookModal";
-import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
 import { MagazinePrintPrimaryActions } from "@/app/(site)/magazine/components/MagazinePrintPrimaryActions";
-import { MagazinePrintVisualGuide } from "@/app/(site)/magazine/components/MagazinePrintVisualGuide";
 import {
-  MagazineReaderActionBar,
+  MagazinePrintVisualGuide,
+  magazineGuideBackHref,
+} from "@/app/(site)/magazine/components/MagazinePrintVisualGuide";
+import {
   MagazineReaderFooterNav,
 } from "@/app/(site)/magazine/components/MagazineReaderActionBar";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
+import { resolveRouteLang } from "@/app/lib/language";
 import Image from "next/image";
 
 function JuneReaderContent() {
   const params = useSearchParams()!;
-  const lang = resolveMagazineLang(params.get("lang"));
+  const lang = resolveRouteLang(params.get("lang"));
   const fromPrint = isMagazinePrintSource(params.get("source"));
   const ui = getMagazineUi(lang);
+  const guideCopy = useMemo(() => getQrGuideCopy(lang), [lang]);
   const visual = useMemo(
     () => getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang),
     [lang],
   );
   const advertiseLang: AdvertiseLang = lang === "en" ? "en" : "es";
   const issueHref = `/magazine/2026/june?lang=${lang}`;
+  const backMagazineHref = magazineGuideBackHref(lang);
   const [flipOpen, setFlipOpen] = useState(false);
   const openFlipbook = useCallback(() => setFlipOpen(true), []);
   const closeFlipbook = useCallback(() => setFlipOpen(false), []);
@@ -56,57 +56,49 @@ function JuneReaderContent() {
       />
 
       <div className="relative mx-auto max-w-4xl min-w-0 px-4 pt-24 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
-          <Link
-            href={`/magazine?lang=${lang}`}
-            className="inline-flex items-center text-sm font-semibold text-[#7A1E2C] hover:underline"
-          >
-            ← {ui.backToMagazine}
-          </Link>
-          <Link
-            href={issueHref}
-            className="inline-flex items-center text-sm font-semibold text-[#556B3E] hover:underline"
-          >
-            {getJune2026Title(lang)}
-          </Link>
-        </div>
-
         {fromPrint ? (
           <>
             <MagazinePrintVisualGuide
-              afterAppLaunchers={
-                <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
+              lang={lang}
+              backMagazineHref={backMagazineHref}
+              afterActions={
+                <>
+                  <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
+                  <section
+                    id="leonix-quick-summary"
+                    className="mt-8 scroll-mt-28 min-w-0 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-7"
+                  >
+                    <h2 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
+                      {guideCopy.summaryTitle}
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                      {guideCopy.summaryNote}
+                    </p>
+                    <div className="mt-6 min-w-0">
+                      <MagazineTranslatedReader lang={lang} variant="full" />
+                    </div>
+                  </section>
+                </>
               }
             />
-            <p className="mt-4 rounded-lg border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
-              {PRINT_WEBSITE_LANG_NOTE.en}
-              <span className="mt-1 block" lang="es">
-                {PRINT_WEBSITE_LANG_NOTE.es}
-              </span>
-            </p>
-            <section
-              id="leonix-quick-summary"
-              className="mt-8 scroll-mt-28 min-w-0 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-7"
-            >
-              <h2 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
-                {PRINT_SUMMARY_SECTION.title.en}
-                <span className="mt-0.5 block text-base font-semibold text-[#556B3E]">
-                  {PRINT_SUMMARY_SECTION.title.es}
-                </span>
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
-                {PRINT_SUMMARY_SECTION.note.en}
-                <span className="mt-1 block" lang="es">
-                  {PRINT_SUMMARY_SECTION.note.es}
-                </span>
-              </p>
-              <div className="mt-6 min-w-0">
-                <MagazineTranslatedReader lang={lang} variant="full" />
-              </div>
-            </section>
           </>
         ) : (
           <>
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
+              <Link
+                href={backMagazineHref}
+                className="inline-flex items-center text-sm font-semibold text-[#7A1E2C] hover:underline"
+              >
+                ← {guideCopy.backToMagazine}
+              </Link>
+              <Link
+                href={issueHref}
+                className="inline-flex items-center text-sm font-semibold text-[#556B3E] hover:underline"
+              >
+                {getJune2026Title(lang)}
+              </Link>
+            </div>
+
             <header className="mt-6 max-w-3xl">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
                 {ui.readerPreviewBadge}
@@ -121,10 +113,6 @@ function JuneReaderContent() {
                 {ui.futureFlipbookNote}
               </p>
             </header>
-
-            <section className="mt-10 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">
-              <MagazineLanguageSelector basePath="/magazine/2026/june/read" />
-            </section>
 
             <section
               id="original-edition"
@@ -143,7 +131,7 @@ function JuneReaderContent() {
                     sizes="160px"
                   />
                 </div>
-                <MagazineReaderActionBar lang={lang} onOpenFlipbook={openFlipbook} />
+                <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
               </div>
             </section>
 

@@ -565,3 +565,33 @@ export function replaceLangInHref(pathOrUrl: string, lang: SupportedLang): strin
 export function isAdditionalLanguageActive(lang: SupportedLang): boolean {
   return (ADDITIONAL_LANGUAGES as readonly SupportedLang[]).includes(lang);
 }
+
+/** Client-side language preference for routes without ?lang= */
+export const LEONIX_LANG_PREF_STORAGE_KEY = "leonix.lang.pref";
+
+export function readPersistedLangPreference(): SupportedLang | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LEONIX_LANG_PREF_STORAGE_KEY);
+    return raw && isSupportedLang(raw) ? normalizeLang(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writePersistedLangPreference(lang: SupportedLang): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LEONIX_LANG_PREF_STORAGE_KEY, lang);
+  } catch {
+    /* ignore quota / privacy mode */
+  }
+}
+
+/** URL lang first, then persisted preference, then default. Client-only persistence read. */
+export function resolveRouteLang(queryLang: string | null | undefined): SupportedLang {
+  if (queryLang && isSupportedLang(queryLang)) return normalizeLang(queryLang);
+  const persisted = readPersistedLangPreference();
+  if (persisted) return persisted;
+  return DEFAULT_LANG;
+}

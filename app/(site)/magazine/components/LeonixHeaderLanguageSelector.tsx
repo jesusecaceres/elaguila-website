@@ -14,6 +14,7 @@ import {
   magazineRouteAdditionalLanguages,
   normalizeLang,
   UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER,
+  writePersistedLangPreference,
   type SupportedLang,
 } from "@/app/lib/language";
 
@@ -59,6 +60,7 @@ export function LeonixHeaderLanguageSelector({
       next.set("lang", target);
       const q = next.toString();
       router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+      writePersistedLangPreference(target);
       setDropdownOpen(false);
     },
     [pathname, router, searchParams]

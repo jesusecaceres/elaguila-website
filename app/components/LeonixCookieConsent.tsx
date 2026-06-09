@@ -1,49 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { getCookieConsentCopy } from "@/app/lib/leonix/cookieConsentCopy";
+import { resolveRouteLang } from "@/app/lib/language";
 import { persistLeonixConsent, readLeonixConsent, type LeonixConsentV1 } from "@/app/lib/leonixPublicConsent";
 
-const COPY = {
-  es: {
-    title: "Cookies y preferencias",
-    body:
-      "Usamos cookies necesarias para el sitio (sesión, seguridad, idioma y continuidad esencial). Con tu permiso, también podemos usar analíticas de primera parte y preferencias para mejorar tu experiencia de navegación en Leonix.",
-    body2:
-      "La analítica no se activa antes de que elijas. La personalización es opcional y sirve para recordar preferencias en este sitio — no vendemos tus datos ni habilitamos seguimiento entre sitios.",
-    acceptAll: "Aceptar todo",
-    rejectNonEssential: "Rechazar lo no esencial",
-    manage: "Gestionar preferencias",
-    save: "Guardar",
-    close: "Cerrar",
-    necessary: "Necesarias (siempre activas)",
-    necessaryHint: "Sesión, seguridad, idioma y continuidad de rutas esenciales.",
-    analytics: "Analíticas",
-    analyticsHint: "Medición agregada del uso en Leonix (primera parte).",
-    personalization: "Personalización",
-    personalizationHint: "Recordar preferencias de búsqueda y similares solo en este sitio.",
-  },
-  en: {
-    title: "Cookies & preferences",
-    body:
-      "We use strictly necessary cookies for the site (session, security, language, and essential continuity). With your permission, we may also use first-party analytics and preferences to improve your Leonix browsing experience.",
-    body2:
-      "Analytics do not run before you choose. Personalization is optional and helps remember preferences on this site — we do not sell your data or enable cross-site tracking.",
-    acceptAll: "Accept all",
-    rejectNonEssential: "Reject non-essential",
-    manage: "Manage preferences",
-    save: "Save",
-    close: "Close",
-    necessary: "Necessary (always on)",
-    necessaryHint: "Session, security, language, and essential route continuity.",
-    analytics: "Analytics",
-    analyticsHint: "Aggregated, first-party usage measurement on Leonix.",
-    personalization: "Personalization",
-    personalizationHint: "Remember search preferences and similar only on this site.",
-  },
-} as const;
-
 export function LeonixCookieConsent() {
-  const [lang, setLang] = useState<"es" | "en">("es");
+  const searchParams = useSearchParams();
+  const lang = resolveRouteLang(searchParams?.get("lang"));
+  const t = getCookieConsentCopy(lang);
+
   const [mounted, setMounted] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [manage, setManage] = useState(false);
@@ -61,12 +28,6 @@ export function LeonixCookieConsent() {
 
   useEffect(() => {
     setMounted(true);
-    try {
-      const path = window.location.pathname;
-      setLang(path.startsWith("/en") ? "en" : "es");
-    } catch {
-      setLang("es");
-    }
     syncFromStorage();
     if (!readLeonixConsent()) {
       setPanelOpen(true);
@@ -83,8 +44,6 @@ export function LeonixCookieConsent() {
     window.addEventListener("leonix-consent-preferences", onPrefs);
     return () => window.removeEventListener("leonix-consent-preferences", onPrefs);
   }, [syncFromStorage]);
-
-  const t = COPY[lang];
 
   const close = useCallback((rec: Pick<LeonixConsentV1, "analytics" | "personalization">) => {
     persistLeonixConsent(rec);
@@ -108,6 +67,7 @@ export function LeonixCookieConsent() {
       role="dialog"
       aria-labelledby="lx-consent-title"
       aria-modal="true"
+      lang={lang}
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-4 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
