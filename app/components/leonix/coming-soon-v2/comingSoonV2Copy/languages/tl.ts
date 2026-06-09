@@ -174,12 +174,15 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       headline: "Mula sa printed ad patungo sa phone ng customer.",
       intro:
         "Ikinokonekta ng QR ang print magazine sa digital experience ng Leonix — ang iyong multilingual bridge.",
-      callout: "I-scan. Pumili ng wika. Kumonekta.",
+      callout: "I-scan. Isalin. Basahin. Kumonekta.",
       explanation:
         "I-scan ang QR mula sa printed o digital materials. Sa Leonix pipili ka ng wika, magbabasa ng summaries at impormasyon ng lokal na negosyo, at gagawa ng mabilis na aksyon. Ang website ang multilingual bridge; nananatili ang original edition ng visual magazine.",
       mobileNote:
         "Sa mobile, huwag subukang i-scan ang sarili mong phone screen. Gamitin ang language selector ng Leonix at ang summaries sa iyong wika. Opsiyonal lang ang Google Lens o Apple Translate para sa printed materials.",
-      openReaderLabel: "Tingnan ang mga hakbang sa camera translation",
+      openReaderLabel: "Tingnan ang mga hakbang sa QR translation",
+      heroStripSummary:
+        "Gamitin ang QR guide para isalin ang visual magazine at bumalik sa Leonix para sa mga link at action.",
+      detailNote: "Detalyadong gabay sa QR translation",
       benefitsAria: "Mga benepisyo ng QR access",
       benefits: [
         {

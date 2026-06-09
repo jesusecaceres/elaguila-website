@@ -175,12 +175,15 @@ export function getPtCopy(lang: SupportedLang): ComingSoonV2Copy {
       headline: "Do anúncio impresso ao celular do cliente.",
       intro:
         "O QR conecta a revista impressa à experiência digital da Leonix — sua ponte multilíngue.",
-      callout: "Escaneie. Escolha o idioma. Conecte.",
+      callout: "Escaneie. Traduza. Leia. Conecte.",
       explanation:
         "Escaneie o QR em materiais impressos ou digitais. Na Leonix você escolhe seu idioma, lê resumos e informações de negócios locais e toma ação rápida. O site é a ponte multilíngue; a revista visual mantém sua edição original.",
       mobileNote:
         "No celular, não tente escanear a tela do seu próprio telefone. Use o seletor de idioma da Leonix e os resumos no seu idioma. Google Lens ou Apple Translate são opcionais apenas para materiais impressos.",
-      openReaderLabel: "Ver passos de tradução com câmera",
+      openReaderLabel: "Ver passos de tradução QR",
+      heroStripSummary:
+        "Use o guia QR para traduzir a revista visual e volte à Leonix para links e ações.",
+      detailNote: "Guia detalhado de tradução QR",
       benefitsAria: "Benefícios do acesso QR",
       benefits: [
         {

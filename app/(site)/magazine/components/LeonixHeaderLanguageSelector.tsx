@@ -12,8 +12,8 @@ import {
   isMagazineRouteLanguage,
   languageAriaLabel,
   magazineRouteAdditionalLanguages,
-  moreLanguagesDropdownLabel,
   normalizeLang,
+  UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER,
   type SupportedLang,
 } from "@/app/lib/language";
 
@@ -79,7 +79,7 @@ export function LeonixHeaderLanguageSelector({
     setDropdownOpen(false);
   }, [pathname, searchParams?.toString()]);
 
-  const dropdownLabel = moreLanguagesDropdownLabel(lang);
+  const dropdownLabel = UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER;
   const additionalActive =
     isAdditionalLanguageActive(lang) &&
     (!isMagazineContext || isMagazineRouteLanguage(lang));
@@ -142,7 +142,7 @@ export function LeonixHeaderLanguageSelector({
             pillBase,
             "gap-0.5 border-l border-[#D6C7AD]/80 pl-1.5 sm:pl-2",
             additionalActive ? `${pillActive} ring-1 ring-[#C9A84A]/50` : pillIdle,
-            "max-w-[7.5rem] truncate sm:max-w-[9.5rem]"
+            "max-w-[8.5rem] truncate sm:max-w-[9.5rem]"
           )}
         >
           <span className="truncate">{dropdownLabel}</span>

@@ -529,23 +529,11 @@ export function languageAriaLabel(lang: SupportedLang): string {
   return labels[lang];
 }
 
-export function moreLanguagesDropdownLabel(currentLang: SupportedLang): string {
-  const labels: Record<SupportedLang, string> = {
-    es: "Más idiomas",
-    en: "More languages",
-    vi: "Thêm ngôn ngữ",
-    pt: "Mais idiomas",
-    tl: "Higit pang wika",
-    km: "ភាសាបន្ថែម",
-    zh: "更多语言",
-    ja: "その他の言語",
-    ko: "더 많은 언어",
-    hi: "और भाषाएँ",
-    hy: "Ավելi լեզուներ",
-    ru: "Больше языков",
-    pa: "ਹੋਰ ਭਾਸ਼ਾਵਾਂ",
-  };
-  return labels[currentLang];
+/** Universal dropdown trigger — never localized per QR-FRONTDOOR1. */
+export const UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER = "🌐 Languages";
+
+export function moreLanguagesDropdownLabel(_currentLang: SupportedLang): string {
+  return UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER;
 }
 
 /** @deprecated GLOBAL-BASE1 — planned languages are now active. */

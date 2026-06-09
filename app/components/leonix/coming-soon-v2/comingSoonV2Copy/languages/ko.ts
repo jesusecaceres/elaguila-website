@@ -170,12 +170,15 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QR 접근",
       headline: "인쇄 광고에서 고객의 휴대폰으로.",
       intro: "QR은 인쇄 매거진과 Leonix 의 디지털 경험을 연결합니다 — 다국어 다리입니다.",
-      callout: "스캔. 언어 선택. 연결.",
+      callout: "스캔. 번역. 읽기. 연결.",
       explanation:
         "인쇄물 또는 디지털 자료에서 QR을 스캔하세요. Leonix 에서 언어를 선택하고 요약과 지역 비즈니스 정보를 읽고 빠르게 행동하세요. 웹사이트가 다국어 다리이며, 시각적 매거진은 원본 판을 유지합니다.",
       mobileNote:
         "모바일에서는 자신의 휴대폰 화면을 스캔하려 하지 마세요. Leonix 언어 선택기와 선택한 언어의 요약을 사용하세요. Google Lens 또는 Apple 번역은 인쇄물에만 선택 사항입니다.",
-      openReaderLabel: "카메라 번역 단계 보기",
+      openReaderLabel: "QR 번역 단계 보기",
+      heroStripSummary:
+        "QR 가이드로 시각적 매거진을 번역하고 Leonix로 돌아와 링크와 액션을 이용하세요.",
+      detailNote: "자세한 QR 번역 가이드",
       benefitsAria: "QR 접근 혜택",
       benefits: [
         {

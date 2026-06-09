@@ -171,12 +171,15 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "二维码访问",
       headline: "从印刷广告到客户手机。",
       intro: "二维码将印刷杂志与 Leonix 的数字体验连接起来——您的多语言桥梁。",
-      callout: "扫描。选择语言。连接。",
+      callout: "扫描。翻译。阅读。连接。",
       explanation:
         "从印刷或数字材料扫描二维码。在 Leonix 上选择语言，阅读摘要和本地企业信息，并采取快速行动。网站是多语言桥梁；视觉杂志保持原版。",
       mobileNote:
         "在手机上，请勿尝试扫描自己的手机屏幕。使用 Leonix 语言选择器和您所选语言的摘要。Google Lens 或 Apple 翻译仅适用于印刷材料。",
-      openReaderLabel: "查看相机翻译步骤",
+      openReaderLabel: "查看 QR 翻译步骤",
+      heroStripSummary:
+        "使用 QR 指南翻译视觉杂志，然后返回 Leonix 获取链接和操作。",
+      detailNote: "详细 QR 翻译指南",
       benefitsAria: "二维码访问优势",
       benefits: [
         {

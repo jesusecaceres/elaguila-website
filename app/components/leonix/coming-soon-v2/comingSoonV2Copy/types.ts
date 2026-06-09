@@ -102,6 +102,8 @@ export type ComingSoonV2Copy = {
     explanation: string;
     mobileNote: string;
     openReaderLabel: string;
+    heroStripSummary: string;
+    detailNote: string;
     benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
     benefitsAria: string;
   };

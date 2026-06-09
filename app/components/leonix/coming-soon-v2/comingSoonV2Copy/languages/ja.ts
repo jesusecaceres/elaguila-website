@@ -170,12 +170,15 @@ export function getJaCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QRアクセス",
       headline: "印刷広告から顧客のスマートフォンへ。",
       intro: "QRは印刷雑誌と Leonix のデジタル体験をつなぐ——多言語の架け橋です。",
-      callout: "スキャン。言語を選択。つながる。",
+      callout: "スキャン。翻訳。読む。つながる。",
       explanation:
         "印刷物またはデジタル資料からQRをスキャン。Leonixで言語を選び、要約と地域ビジネス情報を読み、すぐに行動できます。ウェブサイトが多言語の架け橋です。視覚的な雑誌はオリジナル版のままです。",
       mobileNote:
         "モバイルでは、自分のスマートフォン画面をスキャンしないでください。Leonixの言語セレクターと選択した言語の要約を使ってください。Google Lens や Apple 翻訳は印刷物のみのオプションです。",
-      openReaderLabel: "カメラ翻訳の手順を見る",
+      openReaderLabel: "QR翻訳の手順を見る",
+      heroStripSummary:
+        "QRガイドで視覚的な雑誌を翻訳し、Leonixに戻ってリンクとアクションを利用してください。",
+      detailNote: "詳細なQR翻訳ガイド",
       benefitsAria: "QRアクセスのメリット",
       benefits: [
         {

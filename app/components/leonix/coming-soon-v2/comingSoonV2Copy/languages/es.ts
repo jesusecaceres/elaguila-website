@@ -180,7 +180,10 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Escanea el QR para aprender cómo traducir la revista visual con Google Lens, Google Translate o Apple Translate. Después usa Leonix para abrir enlaces, contactar negocios y ver acciones rápidas.",
       mobileNote:
         "Ya escaneaste el QR — no escanees tu propia pantalla. Usa Google Lens, Google Translate con cámara o Apple Translate sobre la revista impresa o digital.",
-      openReaderLabel: "Ver pasos de traducción con cámara",
+      openReaderLabel: "Ver pasos de traducción QR",
+      heroStripSummary:
+        "Usa la guía QR para traducir la revista visual y regresa a Leonix para enlaces y acciones.",
+      detailNote: "Guía detallada de traducción QR",
       benefitsAria: "Beneficios del acceso QR",
       benefits: [
         {

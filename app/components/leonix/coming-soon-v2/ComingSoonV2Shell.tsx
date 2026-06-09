@@ -49,6 +49,14 @@ const heroLineClass =
 /** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
 const ANCHOR_SCROLL = "scroll-mt-32 lg:scroll-mt-28";
 
+function comingSoonQrReaderHref(
+  lang: SupportedLang,
+  sourceCta: "hero_qr_steps" | "qr_steps",
+): string {
+  const base = magazineJune2026ReaderHref(lang, { source: "print" });
+  return `${base}&sourcePage=coming-soon-v2&sourceCta=${sourceCta}`;
+}
+
 const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-5 sm:py-12 lg:py-14`;
 
 const sectionEyebrowClass =
@@ -528,10 +536,51 @@ function HowItWorksSection({
   );
 }
 
+function HeroQrAccessStrip({
+  eyebrow,
+  callout,
+  summary,
+  buttonLabel,
+  href,
+}: {
+  eyebrow: string;
+  callout: string;
+  summary: string;
+  buttonLabel: string;
+  href: string;
+}) {
+  return (
+    <aside
+      className="mt-4 rounded-xl border border-[#2A4536]/15 bg-gradient-to-br from-[#F8F4EA] to-[#FFFDF7] px-3.5 py-3 sm:mt-5 sm:px-4 sm:py-4"
+      aria-labelledby="hero-qr-strip-title"
+    >
+      <p className="text-[0.65rem] font-bold tracking-[0.12em] text-[#7A1E2C] sm:text-[0.68rem]">
+        {eyebrow}
+      </p>
+      <p
+        id="hero-qr-strip-title"
+        className="mt-1 font-serif text-base font-bold leading-snug text-[#2A4536] sm:text-lg"
+      >
+        {callout}
+      </p>
+      <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:text-[0.9375rem] sm:leading-relaxed">
+        {summary}
+      </p>
+      <Link
+        href={href}
+        className="mt-2.5 inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#2A4536] px-4 py-2 text-center text-[0.8125rem] font-bold text-[#F8F4EA] transition hover:bg-[#223528] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:mt-3 sm:w-auto sm:px-5 sm:text-sm"
+      >
+        {buttonLabel}
+      </Link>
+    </aside>
+  );
+}
+
 function QrAccessSection({
   lang,
   eyebrow,
   headline,
+  detailNote,
   intro,
   callout,
   explanation,
@@ -544,6 +593,7 @@ function QrAccessSection({
   lang: SupportedLang;
   eyebrow: string;
   headline: string;
+  detailNote: string;
   intro: string;
   callout: string;
   explanation: string;
@@ -564,6 +614,9 @@ function QrAccessSection({
       <h2 id="qr-title" className={sectionTitleClass}>
         {headline}
       </h2>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#8A6B1F] sm:text-[0.8125rem]">
+        {detailNote}
+      </p>
       <p className={sectionIntroClass}>{intro}</p>
 
       <div className="mt-3 grid min-w-0 items-start gap-2.5 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
@@ -1314,11 +1367,7 @@ function ComingSoonV2ShellContent() {
 
               <div className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
                 <HeroCtaLink cta={h.ctas[0]} />
-                <div className="grid grid-cols-2 gap-1.5 sm:contents">
-                  {h.ctas.slice(1).map((cta) => (
-                    <HeroCtaLink key={cta.label} cta={cta} />
-                  ))}
-                </div>
+                <HeroCtaLink cta={h.ctas[2]} />
                 <HeroCtaLink
                   cta={{
                     label: h.magazineCta,
@@ -1326,7 +1375,16 @@ function ComingSoonV2ShellContent() {
                     variant: "green",
                   }}
                 />
+                <HeroCtaLink cta={h.ctas[1]} />
               </div>
+
+              <HeroQrAccessStrip
+                eyebrow={qr.eyebrow}
+                callout={qr.callout}
+                summary={qr.heroStripSummary}
+                buttonLabel={qr.openReaderLabel}
+                href={comingSoonQrReaderHref(routeLang, "hero_qr_steps")}
+              />
 
               <HeroMediaKitQuickActions
                 lang={routeLang}
@@ -1392,12 +1450,13 @@ function ComingSoonV2ShellContent() {
           lang={routeLang}
           eyebrow={qr.eyebrow}
           headline={qr.headline}
+          detailNote={qr.detailNote}
           intro={qr.intro}
           callout={qr.callout}
           explanation={qr.explanation}
           mobileNote={qr.mobileNote}
           openReaderLabel={qr.openReaderLabel}
-          readerHref={magazineJune2026ReaderHref(routeLang, { source: "print" })}
+          readerHref={comingSoonQrReaderHref(routeLang, "qr_steps")}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
         />
