@@ -174,7 +174,7 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "TRUY CẬP QR",
       headline: "Từ quảng cáo in đến điện thoại của khách.",
       intro:
-        "Quét QR để xem các bước đơn giản và nút nhanh mở công cụ dịch trên điện thoại như Google Lens, Google Translate hoặc Apple Translate.",
+        "Quét QR để xem các bước đơn giản, hoặc dùng QR dịch để thử mở Google Lens hoặc Google Translate trên điện thoại.",
       callout: "Quét. Dịch. Đọc. Kết nối.",
       explanation:
         "Quét QR để học cách dịch tạp chí hình ảnh bằng Google Lens, Google Translate hoặc Apple Translate. Sau đó dùng Leonix để mở liên kết, liên hệ doanh nghiệp và xem hành động nhanh.",

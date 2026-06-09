@@ -15,6 +15,7 @@ import {
   PRINT_QUICK_HELP,
   PRINT_VISUAL_STEPS,
 } from "@/app/lib/magazine/printVisualInstructions";
+import { MagazineTranslatorOpenBlock } from "@/app/(site)/magazine/components/MagazineTranslatorOpenBlock";
 
 const btnExternal =
   "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-4 py-2.5 text-center text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] sm:min-h-[3.125rem] sm:flex-1 sm:px-5";
@@ -109,6 +110,8 @@ export function MagazinePrintVisualGuide({ afterAppLaunchers }: MagazinePrintVis
           </span>
         </p>
       </section>
+
+      <MagazineTranslatorOpenBlock />
 
       {/* App launchers */}
       <section
