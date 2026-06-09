@@ -14,13 +14,7 @@ export default async function AdminWorkspaceLayout({ children }: { children: Rea
   const pathname = (await headers()).get("x-admin-pathname") ?? "";
 
   if (isSalesRepRole(access.normalizedRole) && pathname.startsWith("/admin/workspace")) {
-    if (pathname === "/admin/workspace") {
-      redirect("/admin/workspace/sales-tracker");
-    }
-    const allowed = allowedHrefs.some((h) => pathname === h || pathname.startsWith(`${h}/`));
-    if (!allowed) {
-      redirect("/admin/workspace/promo-codes?access_denied=1");
-    }
+    redirect("/admin/team?access_denied=1");
   }
 
   return (

@@ -41,10 +41,10 @@ export async function createTeamInviteIntentAction(formData: FormData) {
   const note = str(formData, "note") || null;
 
   if (!email || !email.includes("@")) {
-    redirect("/admin/team?invite_error=1");
+    redirect("/admin/team/roster?invite_error=1");
   }
   if (!ROLES.has(role)) {
-    redirect("/admin/team?invite_error=1");
+    redirect("/admin/team/roster?invite_error=1");
   }
 
   const supabase = getAdminSupabase();
@@ -57,9 +57,9 @@ export async function createTeamInviteIntentAction(formData: FormData) {
 
   if (error) {
     if (error.code === "23505") {
-      redirect("/admin/team?invite_error=duplicate");
+      redirect("/admin/team/roster?invite_error=duplicate");
     }
-    redirect("/admin/team?invite_error=1");
+    redirect("/admin/team/roster?invite_error=1");
   }
 
   await appendAdminAuditLog({
@@ -69,8 +69,8 @@ export async function createTeamInviteIntentAction(formData: FormData) {
     meta: { role },
   });
 
-  revalidatePath("/admin/team");
-  redirect("/admin/team?invite_saved=1");
+  revalidatePath("/admin/team/roster");
+  redirect("/admin/team/roster?invite_saved=1");
 }
 
 /** Inserts a roster row — does not create a Supabase Auth user. */
@@ -82,10 +82,10 @@ export async function createTeamMemberRecordAction(formData: FormData) {
   const notes = str(formData, "notes") || null;
 
   if (!email || !email.includes("@")) {
-    redirect("/admin/team?member_error=1");
+    redirect("/admin/team/roster?member_error=1");
   }
   if (!ROLES.has(role)) {
-    redirect("/admin/team?member_error=1");
+    redirect("/admin/team/roster?member_error=1");
   }
 
   const supabase = getAdminSupabase();
@@ -102,9 +102,9 @@ export async function createTeamMemberRecordAction(formData: FormData) {
 
   if (error) {
     if (error.code === "23505") {
-      redirect("/admin/team?member_error=duplicate");
+      redirect("/admin/team/roster?member_error=duplicate");
     }
-    redirect("/admin/team?member_error=1");
+    redirect("/admin/team/roster?member_error=1");
   }
 
   await appendAdminAuditLog({
@@ -114,15 +114,15 @@ export async function createTeamMemberRecordAction(formData: FormData) {
     meta: { role },
   });
 
-  revalidatePath("/admin/team");
-  redirect("/admin/team?member_saved=1");
+  revalidatePath("/admin/team/roster");
+  redirect("/admin/team/roster?member_saved=1");
 }
 
 /** Updates `permissions` JSON array on roster row. Does not change Supabase Auth. */
 export async function updateTeamMemberPermissionsAction(formData: FormData) {
   await assertTeamAdmin();
   const id = str(formData, "member_id");
-  if (!id) redirect("/admin/team?member_error=1");
+  if (!id) redirect("/admin/team/roster?member_error=1");
 
   const raw = formData.getAll("permissions");
   const next: AdminPermissionKey[] = [];
@@ -138,7 +138,7 @@ export async function updateTeamMemberPermissionsAction(formData: FormData) {
     .from("admin_team_members")
     .update({ permissions: next, updated_at: now })
     .eq("id", id);
-  if (error) redirect("/admin/team?member_error=1");
+  if (error) redirect("/admin/team/roster?member_error=1");
 
   await appendAdminAuditLog({
     action: "team_member_permissions_updated",
@@ -147,15 +147,15 @@ export async function updateTeamMemberPermissionsAction(formData: FormData) {
     meta: { permissions: next, source: "leonix_admin" },
   });
 
-  revalidatePath("/admin/team");
-  redirect("/admin/team?member_saved=1");
+  revalidatePath("/admin/team/roster");
+  redirect("/admin/team/roster?member_saved=1");
 }
 
 export async function toggleTeamMemberActiveAction(formData: FormData) {
   await assertTeamAdmin();
   const id = str(formData, "id");
   const nextActive = str(formData, "next_active") === "1";
-  if (!id) redirect("/admin/team?member_error=1");
+  if (!id) redirect("/admin/team/roster?member_error=1");
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
@@ -163,7 +163,7 @@ export async function toggleTeamMemberActiveAction(formData: FormData) {
     .from("admin_team_members")
     .update({ is_active: nextActive, updated_at: now })
     .eq("id", id);
-  if (error) redirect("/admin/team?member_error=1");
+  if (error) redirect("/admin/team/roster?member_error=1");
 
   await appendAdminAuditLog({
     action: nextActive ? "team_member_activated" : "team_member_deactivated",
@@ -172,6 +172,6 @@ export async function toggleTeamMemberActiveAction(formData: FormData) {
     meta: {},
   });
 
-  revalidatePath("/admin/team");
-  redirect("/admin/team?member_saved=1");
+  revalidatePath("/admin/team/roster");
+  redirect("/admin/team/roster?member_saved=1");
 }

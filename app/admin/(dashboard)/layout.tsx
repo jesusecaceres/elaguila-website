@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import {
@@ -6,6 +7,7 @@ import {
   getCurrentAdminAccessContext,
   isSalesRepRole,
 } from "../_lib/adminAccessControl";
+import { isStaffSalesAllowedAdminPath } from "../_lib/staffAdminAccess";
 import { getAdminLang } from "../_lib/adminI18n";
 import { AdminShell } from "../_components/AdminShell";
 import { getTiendaInboxUnreadCount } from "../_lib/tiendaOrdersData";
@@ -25,6 +27,17 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
   ]);
   const allowedGlobalNavHrefs = getAllowedGlobalNavHrefs(access);
   const salesRepLimited = isSalesRepRole(access.normalizedRole);
+
+  if (salesRepLimited) {
+    const pathname = (await headers()).get("x-admin-pathname") ?? "";
+    if (pathname && !isStaffSalesAllowedAdminPath(pathname)) {
+      redirect("/admin/team?access_denied=1");
+    }
+    if (pathname === "/admin") {
+      redirect("/admin/team");
+    }
+  }
+
   return (
     <AdminShell
       tiendaInboxUnread={tiendaInboxUnread}

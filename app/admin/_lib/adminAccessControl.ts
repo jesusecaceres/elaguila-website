@@ -328,11 +328,7 @@ export function requireAdminTeamAccess(ctx: AdminAccessContext): void {
 /** Workspace sub-nav hrefs visible for the current admin. */
 export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   if (isSalesRepRole(ctx.normalizedRole)) {
-    return [
-      "/admin/workspace/promo-codes",
-      "/admin/workspace/package-entitlements",
-      "/admin/workspace/sales-tracker",
-    ];
+    return [];
   }
   return [
     "/admin/workspace/home",
@@ -355,11 +351,12 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
 /** Global sidebar hrefs (top-level admin shell). */
 export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
   if (isSalesRepRole(ctx.normalizedRole)) {
-    return ["/admin", "/admin/support"];
+    return ["/admin/team", "/admin/support"];
   }
   const hrefs = ["/admin"];
   if (canViewGlobalAdminNav(ctx.normalizedRole)) {
     hrefs.push(
+      "/admin/team",
       "/admin/workspace/clasificados",
       "/admin/tienda",
       "/admin/workspace",
@@ -373,7 +370,7 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       hrefs.push("/admin/workspace/payment-tracker");
     }
     if (canViewAdminTeam(ctx.normalizedRole)) {
-      hrefs.push("/admin/team");
+      hrefs.push("/admin/team/roster");
     }
     if (canViewActivityLogs(ctx.normalizedRole)) {
       hrefs.push("/admin/activity-log");
@@ -438,6 +435,6 @@ export async function guardWorkspaceMonetizationPage(
   const allowed = getAllowedWorkspaceNavHrefs(ctx);
   const ok = allowed.some((h) => pathname === h || pathname.startsWith(`${h}/`));
   if (!ok) {
-    redirect("/admin/workspace/promo-codes?access_denied=1");
+    redirect("/admin/team?access_denied=1");
   }
 }

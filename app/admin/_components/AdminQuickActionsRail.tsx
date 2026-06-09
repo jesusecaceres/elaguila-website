@@ -89,7 +89,7 @@ export function AdminQuickActionsRail() {
           Open Classifieds queue
         </Link>
         <Link
-          href="/admin/team"
+          href="/admin/team/roster"
           className={`${adminBtnDark} w-full justify-center text-xs`}
           title="Team: invite intent may be saved in admin_team_invites"
         >

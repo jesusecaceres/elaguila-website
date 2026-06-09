@@ -48,7 +48,7 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
     "/admin/workspace/sales-tracker",
   ] },
   { href: "/admin/support", labelKey: "nav.support", icon: "💬" },
-  { href: "/admin/team", labelKey: "nav.team", icon: "👥" },
+  { href: "/admin/team/roster", labelKey: "nav.team", icon: "👥", activePathPrefixes: ["/admin/team/roster"] },
   { href: "/admin/activity-log", labelKey: "nav.activityLog", icon: "📋" },
   { href: "/admin/settings", labelKey: "nav.settings", icon: "⚙" },
   { href: "/admin/workspace/language-audit", labelKey: "nav.languageAudit", icon: "🌐" },

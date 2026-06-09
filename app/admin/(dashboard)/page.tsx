@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../_components/AdminPageHeader";
 import { AdminMonetizationLinksCard } from "../_components/AdminMonetizationLinksCard";
 import { AdminQuickActionsRail } from "../_components/AdminQuickActionsRail";
@@ -29,49 +30,14 @@ function fmt(iso: string, locale: string) {
 }
 
 export default async function AdminHomePage() {
+  const access = await getCurrentAdminAccessContext();
+  if (isSalesRepRole(access.normalizedRole)) {
+    redirect("/admin/team");
+  }
+
   const lang = await getAdminLang();
   const m = adminMessages(lang);
   const locale = "en-US";
-  const access = await getCurrentAdminAccessContext();
-  const salesRepLocked = isSalesRepRole(access.normalizedRole);
-
-  if (salesRepLocked) {
-    return (
-      <div className="max-w-3xl space-y-6">
-        <AdminPageHeader
-          title="Sales workspace"
-          subtitle="Limited access: your promo codes, package entitlements, and sales tracker only."
-          helperText="No global payments, team, CMS, or site settings."
-        />
-        <div className="grid gap-4 sm:grid-cols-3">
-          <AdminStatCard
-            title="Promo codes"
-            value="→"
-            hint="Create and manage your codes"
-            icon="🏷️"
-            actionLabel="Open"
-            actionHref="/admin/workspace/promo-codes"
-          />
-          <AdminStatCard
-            title="Package entitlements"
-            value="→"
-            hint="Your Print-to-Digital packages"
-            icon="📦"
-            actionLabel="Open"
-            actionHref="/admin/workspace/package-entitlements"
-          />
-          <AdminStatCard
-            title="Sales tracker"
-            value="→"
-            hint="Summary and commission preview"
-            icon="📊"
-            actionLabel="Open"
-            actionHref="/admin/workspace/sales-tracker"
-          />
-        </div>
-      </div>
-    );
-  }
 
   const [snap, entSnap, promoSnap, paySnap, registry] = await Promise.all([
     getAdminDashboardSnapshot(),
