@@ -21,8 +21,7 @@ import {
   PREFERRED_CONTACT_METHODS,
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
-
-type Lang = "es" | "en";
+import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
 const SUBMIT_BTN =
   "w-full min-h-[44px] whitespace-nowrap text-center text-sm sm:text-base px-4 py-3 rounded-xl font-semibold shadow-[0_18px_48px_rgba(42,36,22,0.18)] transition disabled:cursor-not-allowed disabled:opacity-70";
@@ -30,86 +29,26 @@ const SUBMIT_BTN =
 const INPUT =
   "w-full p-3 rounded-lg bg-white/70 border border-[color:var(--lx-nav-border)] text-[color:var(--lx-text)] placeholder:text-[color:var(--lx-muted)] focus:outline-none";
 
-const COPY = {
-  es: {
-    sending: "Enviando…",
-    send: "Enviar a Leonix Media",
-    consent: "Acepto que Leonix me contacte sobre mi solicitud",
-    wantsLaunch: "También quiero recibir actualizaciones del lanzamiento de Leonix Media.",
-    fields: {
-      inquiryType: "Tipo de consulta",
-      fullName: "Nombre completo",
-      email: "Correo electrónico",
-      phone: "Teléfono",
-      businessName: "Negocio u organización",
-      preferredContact: "Método preferido de contacto",
-      cityArea: "Ciudad / Área",
-      websiteOrSocial: "Sitio web o red social",
-      businessCategory: "Categoría del negocio",
-      message: "Mensaje",
-    },
-    preferred: { email: "Correo", phone: "Teléfono", either: "Correo o teléfono" },
-    placeholders: {
-      fullName: "Tu nombre",
-      email: "tu@ejemplo.com",
-      phone: "Si deseas que te llamemos",
-      businessName: "Nombre del negocio",
-      cityArea: "San José, Bay Area…",
-      websiteOrSocial: "https://…",
-      businessCategory: "Restaurante, servicios…",
-      message: "¿En qué podemos ayudarte?",
-    },
-    promoHint:
-      "Para cotizaciones de impresión y promoción más rápidas, también puedes usar la ",
-    promoLink: "contacto de productos promocionales",
-  },
-  en: {
-    sending: "Sending…",
-    send: "Send to Leonix Media",
-    consent: "I agree that Leonix may contact me about my request",
-    wantsLaunch: "I also want launch updates from Leonix Media.",
-    fields: {
-      inquiryType: "Inquiry type",
-      fullName: "Full name",
-      email: "Email",
-      phone: "Phone",
-      businessName: "Business or organization",
-      preferredContact: "Preferred contact method",
-      cityArea: "City / Area",
-      websiteOrSocial: "Website or social link",
-      businessCategory: "Business category",
-      message: "Message",
-    },
-    preferred: { email: "Email", phone: "Phone", either: "Email or phone" },
-    placeholders: {
-      fullName: "Your name",
-      email: "you@example.com",
-      phone: "If you'd like a callback",
-      businessName: "Business name",
-      cityArea: "San Jose, Bay Area…",
-      websiteOrSocial: "https://…",
-      businessCategory: "Restaurant, services…",
-      message: "How can we help?",
-    },
-    promoHint: "For faster print and promotional quotes, you can also use our ",
-    promoLink: "promotional products contact",
-  },
-} as const;
-
-function tiendaQuoteHref(lang: Lang): string {
-  const params = new URLSearchParams({ lang, service: "cotizacion-general" });
+function tiendaQuoteHref(lang: PublicFormLang, sourcePage: string): string {
+  const params = new URLSearchParams({
+    lang,
+    service: "cotizacion-general",
+    sourceCta: "promo_quote",
+    sourcePage: sourcePage === "/contacto" ? "contacto" : sourcePage,
+  });
   return `${LEONIX_TIENDA_CONTACT_PATH}?${params.toString()}`;
 }
 
 export function GlobalContactForm(props: {
-  lang: Lang;
+  lang: PublicFormLang;
   initialMessage?: string;
   initialInquiryType?: string;
   sourcePage?: string;
   sourceCta?: string;
 }) {
   const { lang, initialMessage, initialInquiryType, sourcePage = "/contacto", sourceCta = "" } = props;
-  const t = COPY[lang];
+  const locale = getPublicLocaleCopy(lang);
+  const t = locale.contactForm;
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -135,11 +74,7 @@ export function GlobalContactForm(props: {
     if (loading) return;
 
     if (!consentToContact) {
-      setError(
-        lang === "en"
-          ? "Please confirm consent to be contacted."
-          : "Confirma el consentimiento para que te contactemos."
-      );
+      setError(t.consentError);
       return;
     }
 
@@ -192,19 +127,10 @@ export function GlobalContactForm(props: {
 
   return (
     <div className="bg-[color:var(--lx-card)] p-6 sm:p-8 rounded-2xl shadow-[0_18px_48px_rgba(42,36,22,0.10)] border border-[color:var(--lx-nav-border)]">
-      <h2 className="text-2xl font-semibold text-[color:var(--lx-text)] mb-4">
-        {lang === "en" ? "Send a message" : "Envíanos un mensaje"}
-      </h2>
+      <h2 className="text-2xl font-semibold text-[color:var(--lx-text)] mb-4">{t.formTitle}</h2>
       <p className="text-sm text-[color:var(--lx-muted)] mb-6 leading-relaxed">
-        {lang === "en" ? (
-          <>
-            Your request is saved securely with our team at <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="en" />.
-          </>
-        ) : (
-          <>
-            Tu solicitud se guarda de forma segura con nuestro equipo en <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang="es" />.
-          </>
-        )}
+        {t.formIntro}{" "}
+        <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang={lang} />.
       </p>
 
       <form className="space-y-6" onSubmit={onSubmit} noValidate>
@@ -225,7 +151,7 @@ export function GlobalContactForm(props: {
           {inquiryType === "promotionalProducts" ? (
             <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
               {t.promoHint}
-              <Link href={tiendaQuoteHref(lang)} className="font-semibold text-[color:var(--lx-lion)] underline">
+              <Link href={tiendaQuoteHref(lang, sourcePage)} className="font-semibold text-[color:var(--lx-lion)] underline">
                 {t.promoLink}
               </Link>
               .
@@ -264,7 +190,7 @@ export function GlobalContactForm(props: {
 
         <div>
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
-            {t.fields.phone} {lang === "en" ? "(optional)" : "(opcional)"}
+            {t.fields.phone} ({t.optional})
           </label>
           <input
             type="tel"
@@ -279,7 +205,7 @@ export function GlobalContactForm(props: {
 
         <div>
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
-            {t.fields.businessName} {lang === "en" ? "(optional)" : "(opcional)"}
+            {t.fields.businessName} ({t.optional})
           </label>
           <input
             type="text"
@@ -313,7 +239,7 @@ export function GlobalContactForm(props: {
 
         <div>
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
-            {t.fields.cityArea} {lang === "en" ? "(optional)" : "(opcional)"}
+            {t.fields.cityArea} ({t.optional})
           </label>
           <input
             type="text"
@@ -329,7 +255,7 @@ export function GlobalContactForm(props: {
 
         <div>
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
-            {t.fields.websiteOrSocial} {lang === "en" ? "(optional)" : "(opcional)"}
+            {t.fields.websiteOrSocial} ({t.optional})
           </label>
           <input
             type="url"
@@ -344,7 +270,7 @@ export function GlobalContactForm(props: {
 
         <div>
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
-            {t.fields.businessCategory} {lang === "en" ? "(optional)" : "(opcional)"}
+            {t.fields.businessCategory} ({t.optional})
           </label>
           <input
             type="text"
@@ -398,11 +324,11 @@ export function GlobalContactForm(props: {
           <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-sm text-rose-950">
             <p>{error}</p>
             <p className="mt-2 text-xs">
-              {lang === "en" ? "Or email " : "O escríbenos a "}
+              {t.errorOrEmail}{" "}
               <a href={`mailto:${LEONIX_GLOBAL_EMAIL}`} className="font-semibold underline">
                 {LEONIX_GLOBAL_EMAIL}
-              </a>
-              {lang === "en" ? " or call " : " o llama al "}
+              </a>{" "}
+              {t.errorOrCall}{" "}
               <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
                 {LEONIX_PHONE_DISPLAY}
               </a>

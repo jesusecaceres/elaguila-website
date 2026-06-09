@@ -1396,13 +1396,7 @@ function ComingSoonV2ShellContent() {
           callout={qr.callout}
           explanation={qr.explanation}
           mobileNote={qr.mobileNote}
-          openReaderLabel={
-            routeLang === "en"
-              ? "See camera translation steps"
-              : routeLang === "vi"
-                ? "Xem hướng dẫn dịch bằng camera"
-                : "Ver pasos de traducción con cámara"
-          }
+          openReaderLabel={qr.openReaderLabel}
           readerHref={magazineJune2026ReaderHref(routeLang, { source: "print" })}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}

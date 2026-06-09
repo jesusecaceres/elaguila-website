@@ -180,6 +180,7 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Quét QR để học cách dịch tạp chí hình ảnh bằng Google Lens, Google Translate hoặc Apple Translate. Sau đó dùng Leonix để mở liên kết, liên hệ doanh nghiệp và xem hành động nhanh.",
       mobileNote:
         "Bạn đã quét QR — đừng quét màn hình của chính bạn. Dùng Google Lens, camera Google Translate hoặc Apple Translate trên tạp chí in hoặc kỹ thuật số.",
+      openReaderLabel: "Xem hướng dẫn dịch bằng camera",
       benefitsAria: "Lợi ích truy cập QR",
       benefits: [
         {

@@ -1,42 +1,40 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type { Lang } from "../types/tienda";
 import { submitContactForm } from "@/app/(site)/lib/submitContactForm";
 import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 import { LEONIX_PHONE_DISPLAY, LEONIX_PHONE_TEL, LEONIX_TIENDA_EMAIL } from "../data/leonixContact";
 import { getLeadSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
-
-const INQUIRY_OPTIONS: { value: string; es: string; en: string }[] = [
-  { value: "specialty_product", es: "Producto especial / acabado distinto", en: "Specialty product / different finish" },
-  { value: "custom_order", es: "Pedido personalizado", en: "Custom order" },
-  { value: "rep_catalog", es: "Catálogo con asistencia / cotización", en: "Rep-assisted catalog / quote" },
-  { value: "tienda_help", es: "Ayuda con pedidos (configurador, archivos)", en: "Order help (configurator, files)" },
-  { value: "general_tienda", es: "Pregunta general sobre productos promocionales", en: "General promotional products question" },
-];
+import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
 function buildPromoMessage(fields: {
   inquiryType: string;
   service?: string;
   message: string;
-  lang: Lang;
+  topicLabel: string;
+  headerLine: string;
+  topicPrefix: string;
+  servicePrefix: string;
 }): string {
-  const en = fields.lang === "en";
-  const topicOption = INQUIRY_OPTIONS.find((o) => o.value === fields.inquiryType);
-  const topicLabel = topicOption ? (en ? topicOption.en : topicOption.es) : fields.inquiryType;
   const lines = [
-    en ? "Promotional products / print quote request" : "Solicitud de cotización — productos promocionales / impresión",
-    `${en ? "Topic" : "Tema"}: ${topicLabel}`,
-    fields.service ? `${en ? "Product / service" : "Producto / servicio"}: ${fields.service.replace(/-/g, " ")}` : "",
+    fields.headerLine,
+    `${fields.topicPrefix}: ${fields.topicLabel}`,
+    fields.service ? `${fields.servicePrefix}: ${fields.service.replace(/-/g, " ")}` : "",
     "",
     fields.message,
   ].filter(Boolean);
   return lines.join("\n");
 }
 
-export function TiendaContactForm(props: { lang: Lang; service?: string }) {
-  const { lang, service } = props;
-  const en = lang === "en";
+export function TiendaContactForm(props: {
+  lang: PublicFormLang;
+  service?: string;
+  sourcePage?: string;
+  sourceCta?: string;
+}) {
+  const { lang, service, sourcePage = "tienda_contacto", sourceCta = "promo_quote" } = props;
+  const locale = getPublicLocaleCopy(lang);
+  const t = locale.tiendaForm;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -49,16 +47,15 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const topicLabel =
+    t.inquiryOptions.find((o) => o.value === inquiryType)?.label ?? inquiryType;
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
 
     if (!consentToContact) {
-      setError(
-        en
-          ? "Please confirm consent to be contacted."
-          : "Confirma el consentimiento para que te contactemos."
-      );
+      setError(t.consentError);
       return;
     }
 
@@ -74,9 +71,17 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         cityArea: cityArea.trim(),
         inquiryType: "promotionalProducts",
         preferredContactMethod: phone.trim() ? "either" : "email",
-        message: buildPromoMessage({ inquiryType, service, message, lang }),
-        sourcePage: "/tienda/contacto",
-        sourceCta: "promo_quote",
+        message: buildPromoMessage({
+          inquiryType,
+          service,
+          message,
+          topicLabel,
+          headerLine: t.title,
+          topicPrefix: t.productInterest,
+          servicePrefix: locale.tiendaPage.serviceInterestPrefix.replace(":", "").trim(),
+        }),
+        sourcePage,
+        sourceCta,
         consentToContact: true,
       },
       lang
@@ -110,32 +115,21 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
       {service ? (
         <div className="mb-5 rounded-xl border border-[color:var(--lx-olive)]/30 bg-[color:var(--lx-olive)]/8 px-4 py-3 text-sm">
           <span className="font-semibold text-[color:var(--lx-text)]">
-            {en ? "Product / service of interest: " : "Producto / servicio de interés: "}
+            {locale.tiendaPage.serviceInterestPrefix}{" "}
           </span>
           <span className="text-[color:var(--lx-text-2)]">{service.replace(/-/g, " ")}</span>
         </div>
       ) : null}
-      <h2 className="text-lg font-semibold text-[color:var(--lx-text)]">
-        {en ? "Request a quote" : "Solicitar cotización"}
-      </h2>
-      <p className="mt-2 text-sm text-[color:var(--lx-muted)] leading-relaxed">
-        {en ? (
-          <>
-            Submit your quote request online. Our team at{" "}
-            <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang="en" /> will follow up with you.
-          </>
-        ) : (
-          <>
-            Envía tu cotización en línea. Nuestro equipo en{" "}
-            <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang="es" /> dará seguimiento contigo.
-          </>
-        )}
+      <h2 className="text-lg font-semibold text-[color:var(--lx-text)]">{t.title}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-muted)]">
+        {t.intro}{" "}
+        <VisibleEmailWithCopy email={LEONIX_TIENDA_EMAIL} lang={lang} />
       </p>
 
       <form className="mt-6 space-y-5" onSubmit={onSubmit}>
         <div>
           <label className="block text-xs font-medium uppercase tracking-wide text-[color:var(--lx-lion)]">
-            {en ? "Product / service interest" : "Interés de producto / servicio"}
+            {t.productInterest}
           </label>
           <select
             value={inquiryType}
@@ -143,16 +137,16 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
             disabled={loading}
             className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm text-[color:var(--lx-text)]"
           >
-            {INQUIRY_OPTIONS.map((o) => (
+            {t.inquiryOptions.map((o) => (
               <option key={o.value} value={o.value}>
-                {en ? o.en : o.es}
+                {o.label}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{en ? "Full name" : "Nombre completo"}</label>
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.fullName}</label>
           <input
             type="text"
             required
@@ -166,7 +160,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{en ? "Email" : "Correo"}</label>
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.email}</label>
           <input
             type="email"
             required
@@ -179,9 +173,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">
-            {en ? "Phone (recommended)" : "Teléfono (recomendado)"}
-          </label>
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.phone}</label>
           <input
             type="tel"
             disabled={loading}
@@ -193,9 +185,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">
-            {en ? "Business or organization (optional)" : "Negocio u organización (opcional)"}
-          </label>
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.business}</label>
           <input
             type="text"
             disabled={loading}
@@ -207,9 +197,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">
-            {en ? "City / area (optional)" : "Ciudad / área (opcional)"}
-          </label>
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.cityArea}</label>
           <input
             type="text"
             disabled={loading}
@@ -221,7 +209,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{en ? "Message" : "Mensaje"}</label>
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.message}</label>
           <textarea
             required
             disabled={loading}
@@ -242,18 +230,14 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
             disabled={loading}
             className="mt-1 h-4 w-4 shrink-0 rounded"
           />
-          <span>
-            {en
-              ? "I agree that Leonix may contact me about my request"
-              : "Acepto que Leonix me contacte sobre mi solicitud"}
-          </span>
+          <span>{t.consent}</span>
         </label>
 
         {error ? (
           <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-sm text-rose-950">
             <p>{error}</p>
             <p className="mt-2 text-xs">
-              {en ? "Or call " : "O llama al "}
+              {t.errorOrCall}{" "}
               <a href={LEONIX_PHONE_TEL} className="font-semibold underline">
                 {LEONIX_PHONE_DISPLAY}
               </a>
@@ -269,7 +253,7 @@ export function TiendaContactForm(props: { lang: Lang; service?: string }) {
             "bg-[color:var(--lx-gold)] text-[color:var(--lx-text)] hover:brightness-95",
           ].join(" ")}
         >
-          {loading ? (en ? "Sending…" : "Enviando…") : en ? "Send quote request" : "Enviar cotización"}
+          {loading ? t.submitting : t.submit}
         </button>
       </form>
     </section>

@@ -177,6 +177,7 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Scan the QR to learn how to translate the visual magazine with Google Lens, Google Translate, or Apple Translate. Then use Leonix to open links, contact businesses, and view quick actions.",
       mobileNote:
         "You already scanned the QR — do not scan your own screen. Use Google Lens, Google Translate camera, or Apple Translate on the printed or digital magazine.",
+      openReaderLabel: "See camera translation steps",
       benefitsAria: "QR access benefits",
       benefits: [
         {

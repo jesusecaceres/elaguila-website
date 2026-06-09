@@ -1,5 +1,6 @@
 import { escapeHtml } from "./escapeHtml";
 import { inquiryTypeLabel, type InquiryType } from "@/app/lib/leonix/inquiryTypes";
+import { normalizeLang } from "@/app/lib/language";
 
 export type ContactInquiryEmailFields = {
   fullName: string;
@@ -14,7 +15,7 @@ export type ContactInquiryEmailFields = {
   message: string;
   sourcePage: string;
   sourceCta: string;
-  lang: "es" | "en";
+  lang: string;
   wantsLaunchUpdates: boolean;
   submittedAt: string;
 };
@@ -28,7 +29,7 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
   text: string;
   html: string;
 } {
-  const topicText = inquiryTypeLabel(fields.inquiryType, fields.lang);
+  const topicText = inquiryTypeLabel(fields.inquiryType, normalizeLang(fields.lang));
   const subject =
     fields.lang === "en"
       ? `New Leonix Media lead — ${fields.fullName}`
@@ -89,7 +90,7 @@ export function buildLaunchSignupEmail(fields: {
   city: string;
   audienceType: string;
   source: string;
-  lang: "es" | "en";
+  lang: string;
   wantsLaunchUpdates: boolean;
   submittedAt: string;
 }): { subject: string; text: string; html: string } {

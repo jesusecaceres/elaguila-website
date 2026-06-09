@@ -51,8 +51,8 @@ export function localizeComingSoonV2Copy(
   },
 ): ComingSoonV2Copy {
   const pdf = primaryMediaKitPdfHref(lang);
-  const contactHref = `/contacto?inquiryType=advertising&sourceCta=advertise&lang=${lang}`;
-  const newsletterHref = `/newsletter?source=coming-soon-v2&inquiryType=launch&lang=${lang}`;
+  const contactHref = `/contacto?inquiryType=advertising&sourceCta=advertise&sourcePage=coming-soon-v2&lang=${lang}`;
+  const newsletterHref = `/newsletter?source=coming-soon-v2&sourceCta=join_launch&lang=${lang}`;
   const magazineReader = magazineJune2026ReaderHref(lang);
   const magazineOriginal = magazineJune2026ReaderHref(lang, { hash: "original-edition" });
 
@@ -79,7 +79,7 @@ export function localizeComingSoonV2Copy(
       downloadCta: { label: copy.mediaKitPreview.downloadCta.label, href: pdf },
       requestInfoCta: {
         label: copy.mediaKitPreview.requestInfoCta.label,
-        href: `/contacto?inquiryType=mediaKit&sourceCta=media_kit_interest&sourcePage=coming_soon_v2&lang=${lang}`,
+        href: `/contacto?inquiryType=mediaKit&sourceCta=media_kit_interest&sourcePage=coming-soon-v2&lang=${lang}`,
       },
     },
     digitalMagazine: {

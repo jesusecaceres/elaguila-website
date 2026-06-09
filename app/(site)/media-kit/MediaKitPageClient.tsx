@@ -6,66 +6,17 @@ import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShe
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { submitContactForm } from "@/app/(site)/lib/submitContactForm";
 import { getLeadSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
-
-const COPY = {
-  es: {
-    title: "Media Kit de Leonix Media",
-    subtitle: "Publicidad impresa en español. Exposición digital bilingüe. Acceso multilingüe por QR.",
-    body: "Nuestro Media Kit está en preparación. Déjanos tu información y te enviaremos los detalles cuando esté listo.",
-    fields: {
-      name: "Nombre",
-      email: "Correo electrónico",
-      phone: "Teléfono",
-      business: "Negocio",
-      message: "Mensaje",
-    },
-    submit: "Solicitar Media Kit",
-    submitting: "Enviando…",
-    successTitle: "¡Gracias!",
-    consent: "Acepto que Leonix me contacte sobre mi solicitud",
-    placeholders: {
-      name: "Tu nombre",
-      email: "tu@correo.com",
-      phone: "(408) 000-0000",
-      business: "Nombre del negocio",
-      message: "Cuéntanos sobre tu interés en publicidad",
-    },
-  },
-  en: {
-    title: "Leonix Media Kit",
-    subtitle: "Spanish print advertising. Bilingual digital exposure. Multilingual access through QR.",
-    body: "Our Media Kit is being prepared. Leave your information and we'll send you the details when it's ready.",
-    fields: {
-      name: "Name",
-      email: "Email",
-      phone: "Phone",
-      business: "Business",
-      message: "Message",
-    },
-    submit: "Request Media Kit",
-    submitting: "Sending…",
-    successTitle: "Thank you!",
-    consent: "I agree that Leonix may contact me about my request",
-    placeholders: {
-      name: "Your name",
-      email: "you@example.com",
-      phone: "(408) 000-0000",
-      business: "Business name",
-      message: "Tell us about your advertising interest",
-    },
-  },
-} as const;
+import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
+import { getLanguageLabel } from "@/app/lib/language";
 
 const inputClass =
   "w-full rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-3 text-[#1F241C] placeholder:text-[#5F6258] focus:outline-none focus:ring-2 focus:ring-[#C9A84A]/40";
 
 export default function MediaKitPageClient() {
   const searchParams = useSearchParams();
-  const lang = useMemo(
-    () => parseGateLang(searchParams?.get("lang")),
-    [searchParams]
-  );
-  const t = COPY[lang];
+  const lang = useMemo(() => parseGateLang(searchParams?.get("lang")), [searchParams]);
+  const locale = getPublicLocaleCopy(lang);
+  const cf = locale.contactForm;
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,11 +27,7 @@ export default function MediaKitPageClient() {
     if (loading) return;
 
     if (!consent) {
-      setError(
-        lang === "en"
-          ? "Please confirm consent to be contacted."
-          : "Confirma el consentimiento para que te contactemos."
-      );
+      setError(cf.consentError);
       return;
     }
 
@@ -96,7 +43,7 @@ export default function MediaKitPageClient() {
         email: fd.get("email"),
         phone: fd.get("phone"),
         businessName: fd.get("business"),
-        message: fd.get("message") || (lang === "en" ? "Media Kit interest" : "Interés en Media Kit"),
+        message: fd.get("message") || locale.inquiryLabels.mediaKit,
         inquiryType: "mediaKit",
         sourcePage: "/media-kit",
         sourceCta: "media_kit_interest",
@@ -115,19 +62,29 @@ export default function MediaKitPageClient() {
 
   if (submitted) {
     return (
-      <GateDestinationShell lang={lang} title={t.successTitle} subtitle="" body={getLeadSuccessMessage("mediaKit", lang)}>
+      <GateDestinationShell
+        lang={lang}
+        title={locale.newsletter.successTitle}
+        subtitle=""
+        body={getLeadSuccessMessage("mediaKit", lang)}
+      >
         <p className="text-sm text-[#5F6258]">
-          {lang === "es" ? "Idioma:" : "Language:"}{" "}
-          <span className="font-semibold text-[#3D3428]">{lang === "es" ? "Español" : "English"}</span>
+          {locale.newsletter.languageLabel}:{" "}
+          <span className="font-semibold text-[#3D3428]">{getLanguageLabel(lang)}</span>
         </p>
       </GateDestinationShell>
     );
   }
 
   return (
-    <GateDestinationShell lang={lang} title={t.title} subtitle={t.subtitle} body={t.body}>
+    <GateDestinationShell
+      lang={lang}
+      title={locale.inquiryLabels.mediaKit}
+      subtitle={locale.contactPage.intro}
+      body={locale.leads.leadSuccess.mediaKit}
+    >
       <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-sm">
-        <Field label={t.fields.name}>
+        <Field label={cf.fields.fullName}>
           <input
             name="name"
             type="text"
@@ -135,10 +92,10 @@ export default function MediaKitPageClient() {
             disabled={loading}
             autoComplete="name"
             className={inputClass}
-            placeholder={t.placeholders.name}
+            placeholder={cf.placeholders.fullName}
           />
         </Field>
-        <Field label={t.fields.email}>
+        <Field label={cf.fields.email}>
           <input
             name="email"
             type="email"
@@ -146,37 +103,37 @@ export default function MediaKitPageClient() {
             disabled={loading}
             autoComplete="email"
             className={inputClass}
-            placeholder={t.placeholders.email}
+            placeholder={cf.placeholders.email}
           />
         </Field>
-        <Field label={t.fields.phone}>
+        <Field label={cf.fields.phone}>
           <input
             name="phone"
             type="tel"
             disabled={loading}
             autoComplete="tel"
             className={inputClass}
-            placeholder={t.placeholders.phone}
+            placeholder={cf.placeholders.phone}
           />
         </Field>
-        <Field label={t.fields.business}>
+        <Field label={cf.fields.businessName}>
           <input
             name="business"
             type="text"
             disabled={loading}
             autoComplete="organization"
             className={inputClass}
-            placeholder={t.placeholders.business}
+            placeholder={cf.placeholders.businessName}
           />
         </Field>
-        <Field label={t.fields.message}>
+        <Field label={cf.fields.message}>
           <textarea
             name="message"
             rows={4}
             required
             disabled={loading}
             className={inputClass}
-            placeholder={t.placeholders.message}
+            placeholder={cf.placeholders.message}
           />
         </Field>
         <label className="flex items-start gap-3 text-sm text-[#3D3428]">
@@ -188,7 +145,7 @@ export default function MediaKitPageClient() {
             disabled={loading}
             className="mt-1 h-4 w-4 shrink-0 rounded border-[#D6C7AD]"
           />
-          <span>{t.consent}</span>
+          <span>{cf.consent}</span>
         </label>
         {error ? (
           <p className="rounded-lg border border-[#7A1E2C]/30 bg-[#7A1E2C]/10 px-3 py-2 text-sm text-[#7A1E2C]" role="alert">
@@ -200,7 +157,7 @@ export default function MediaKitPageClient() {
           disabled={loading}
           className="w-full rounded-lg bg-[#7A1E2C] px-6 py-3 text-base font-bold text-white shadow-md transition hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? t.submitting : t.submit}
+          {loading ? cf.sending : cf.send}
         </button>
       </form>
     </GateDestinationShell>

@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { leonixPageTitle } from "@/app/lib/leonixBrand";
+import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
+import { normalizeLang } from "@/app/lib/language";
 import NewsletterPageClient from "./NewsletterPageClient";
 
 type PageProps = { searchParams?: Promise<{ lang?: string; source?: string }> };
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const sp = await searchParams;
-  const lang = parseGateLang(sp?.lang);
-  const title = lang === "es" ? "Lanzamiento" : "Launch";
-  const description =
-    lang === "es"
-      ? "Únete a la lista de interés de Leonix Media para recibir noticias y el lanzamiento oficial."
-      : "Join the Leonix Media interest list for launch news and official updates.";
+  const lang = normalizeLang(sp?.lang);
+  const copy = getPublicLocaleCopy(lang).newsletter;
+  const title = copy.title;
+  const description = copy.subtitle;
   return {
     title: leonixPageTitle(title),
     description,

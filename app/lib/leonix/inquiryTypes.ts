@@ -1,3 +1,6 @@
+import type { SupportedLang } from "@/app/lib/language";
+import { getInquiryTypeLabel } from "@/app/lib/leonix/publicFormCopy";
+
 export const INQUIRY_TYPES = [
   "advertising",
   "launch",
@@ -18,18 +21,8 @@ export const AUDIENCE_TYPES = ["business", "reader", "partner", "advertiser", "c
 
 export type AudienceType = (typeof AUDIENCE_TYPES)[number];
 
-const INQUIRY_LABELS: Record<InquiryType, { es: string; en: string }> = {
-  advertising: { es: "Publicidad / anunciar mi negocio", en: "Advertising / promote my business" },
-  launch: { es: "Lanzamiento / recibir noticias", en: "Launch / receive updates" },
-  mediaKit: { es: "Media Kit / paquetes de publicidad", en: "Media Kit / advertising packages" },
-  general: { es: "Pregunta general", en: "General question" },
-  promotionalProducts: { es: "Productos promocionales / impresión", en: "Promotional products / print quote" },
-  businessListing: { es: "Página de negocio / presencia digital", en: "Business page / digital presence" },
-  partnership: { es: "Alianza / partnership", en: "Partnership" },
-};
-
-export function inquiryTypeLabel(type: InquiryType, lang: "es" | "en"): string {
-  return INQUIRY_LABELS[type][lang];
+export function inquiryTypeLabel(type: InquiryType, lang: SupportedLang): string {
+  return getInquiryTypeLabel(lang, type);
 }
 
 /** Map legacy URL/topic values to canonical inquiry types. */

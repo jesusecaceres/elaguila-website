@@ -3,23 +3,13 @@
 import { useCallback, useState } from "react";
 import { FiCopy } from "react-icons/fi";
 import { tryWebShare } from "@/app/components/cta/ctaLaunchers";
+import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
-export type LeonixEmailContactLang = "es" | "en";
+export type LeonixEmailContactLang = PublicFormLang;
 
-const LABELS = {
-  es: {
-    openEmail: "Abrir correo",
-    shareApps: "Compartir con apps",
-    copied: "Copiado",
-    copyAria: "Copiar correo",
-  },
-  en: {
-    openEmail: "Open email",
-    shareApps: "Share with apps",
-    copied: "Copied",
-    copyAria: "Copy email",
-  },
-} as const;
+function emailLabels(lang: PublicFormLang) {
+  return getPublicLocaleCopy(lang).emailBlock;
+}
 
 const ACTION_BTN =
   "inline-flex min-h-[40px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] active:scale-[0.99]";
@@ -35,7 +25,7 @@ export function EmailCopyIconButton({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const t = LABELS[lang];
+  const t = emailLabels(lang);
   const em = email.trim();
   if (!em) return null;
 
@@ -108,7 +98,7 @@ export function LeonixEmailContactBlock({
   className = "",
   showEmail = true,
 }: LeonixEmailContactBlockProps) {
-  const t = LABELS[lang];
+  const t = emailLabels(lang);
 
   const em = email.trim();
   if (!em) return null;
@@ -116,7 +106,7 @@ export function LeonixEmailContactBlock({
   const onShare = useCallback(async () => {
     const textParts = [shareText?.trim(), em].filter(Boolean);
     const payload = {
-      title: shareTitle?.trim() || (lang === "en" ? "Leonix contact" : "Contacto Leonix"),
+      title: shareTitle?.trim() || (lang === "es" ? "Contacto Leonix" : "Leonix contact"),
       text: textParts.join("\n"),
     };
     await tryWebShare(payload);

@@ -7,91 +7,8 @@ import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
-
-const COPY = {
-  es: {
-    title: "Sé parte del lanzamiento",
-    subtitle: "Recibe noticias, oportunidades y el lanzamiento oficial de Leonix Media.",
-    body: "Únete a la lista de interés para recibir actualizaciones, oportunidades para negocios locales y novedades de Leonix Media.",
-    fields: {
-      email: "Correo electrónico",
-      name: "Nombre",
-      business: "Negocio",
-      city: "Ciudad o zona",
-      zip: "Código postal",
-      audienceType: "Me interesa como",
-      preferredLanguage: "Idioma preferido",
-      interests: "Intereses",
-    },
-    audienceOptions: {
-      "": "Seleccionar…",
-      business: "Negocio",
-      reader: "Lector/a",
-      partner: "Aliado/a",
-      advertiser: "Anunciante",
-      community: "Comunidad",
-    },
-    preferredOptions: [
-      { value: "es", label: "Español" },
-      { value: "en", label: "English" },
-      { value: "both", label: "Ambos / Both" },
-    ],
-    consent: "Acepto recibir actualizaciones del lanzamiento de Leonix Media.",
-    submit: "Únete al lanzamiento",
-    submitting: "Guardando…",
-    successTitle: "¡Gracias!",
-    placeholders: {
-      email: "tu@correo.com",
-      name: "Tu nombre",
-      business: "Nombre del negocio",
-      city: "San José",
-      zip: "95112",
-      interests: "Anuncios, revista, clasificados…",
-    },
-    fromComingSoon: "Te registraste desde la página de próximamente.",
-  },
-  en: {
-    title: "Be part of the launch",
-    subtitle: "Receive news, opportunities and the official Leonix Media launch.",
-    body: "Join the interest list to receive updates, local business opportunities and Leonix Media news.",
-    fields: {
-      email: "Email",
-      name: "Name",
-      business: "Business",
-      city: "City or area",
-      zip: "Zip code",
-      audienceType: "I'm interested as",
-      preferredLanguage: "Preferred language",
-      interests: "Interests",
-    },
-    audienceOptions: {
-      "": "Select…",
-      business: "Business",
-      reader: "Reader",
-      partner: "Partner",
-      advertiser: "Advertiser",
-      community: "Community",
-    },
-    preferredOptions: [
-      { value: "es", label: "Español" },
-      { value: "en", label: "English" },
-      { value: "both", label: "Both" },
-    ],
-    consent: "I agree to receive Leonix Media launch updates.",
-    submit: "Join the launch",
-    submitting: "Saving…",
-    successTitle: "Thank you!",
-    placeholders: {
-      email: "you@example.com",
-      name: "Your name",
-      business: "Business name",
-      city: "San Jose",
-      zip: "95112",
-      interests: "Ads, magazine, classifieds…",
-    },
-    fromComingSoon: "You signed up from the coming soon page.",
-  },
-} as const;
+import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
+import { getLanguageLabel } from "@/app/lib/language";
 
 const inputClass =
   "w-full rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-3 text-[#1F241C] placeholder:text-[#5F6258] focus:outline-none focus:ring-2 focus:ring-[#C9A84A]/40";
@@ -104,14 +21,16 @@ export default function NewsletterPageClient() {
   const searchParams = useSearchParams();
   const lang = useMemo(() => parseGateLang(searchParams?.get("lang")), [searchParams]);
   const source = searchParams?.get("source") ?? "";
+  const sourceCta = searchParams?.get("sourceCta") ?? "";
   const emailPrefill = searchParams?.get("email") ?? "";
-  const t = COPY[lang];
+  const locale = getPublicLocaleCopy(lang);
+  const t = locale.newsletter;
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
 
-  const preserveQueryKeys = source ? (["source"] as const) : undefined;
+  const preserveQueryKeys = source || sourceCta ? (["source", "sourceCta"] as const) : undefined;
   const resolvedSource = source.trim() || "newsletter_page";
   const fromComingSoon = isComingSoonSource(resolvedSource);
 
@@ -120,11 +39,7 @@ export default function NewsletterPageClient() {
     if (loading) return;
 
     if (!consent) {
-      setError(
-        lang === "en"
-          ? "Please confirm consent to receive launch updates."
-          : "Confirma el consentimiento para recibir actualizaciones del lanzamiento."
-      );
+      setError(t.consentError);
       return;
     }
 
@@ -145,6 +60,7 @@ export default function NewsletterPageClient() {
         preferredLanguage: fd.get("preferredLanguage"),
         interests: fd.get("interests"),
         source: resolvedSource,
+        sourceCta: sourceCta || "join_launch",
         consentToReceiveUpdates: true,
       },
       lang
@@ -168,8 +84,7 @@ export default function NewsletterPageClient() {
         preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
       >
         <p className="text-sm text-[#5F6258]">
-          {lang === "es" ? "Idioma:" : "Language:"}{" "}
-          <span className="font-semibold text-[#3D3428]">{lang === "es" ? "Español" : "English"}</span>
+          {t.languageLabel}: <span className="font-semibold text-[#3D3428]">{getLanguageLabel(lang)}</span>
         </p>
         {fromComingSoon ? <p className="mt-2 text-sm text-[#556B3E]">{t.fromComingSoon}</p> : null}
       </GateDestinationShell>
@@ -198,7 +113,7 @@ export default function NewsletterPageClient() {
             placeholder={t.placeholders.email}
           />
         </Field>
-        <Field label={`${t.fields.name} (${lang === "es" ? "opcional" : "optional"})`}>
+        <Field label={`${t.fields.name} (${locale.contactForm.optional})`}>
           <input
             name="name"
             type="text"
@@ -208,7 +123,7 @@ export default function NewsletterPageClient() {
             placeholder={t.placeholders.name}
           />
         </Field>
-        <Field label={`${t.fields.business} (${lang === "es" ? "opcional" : "optional"})`}>
+        <Field label={`${t.fields.business} (${locale.contactForm.optional})`}>
           <input
             name="business"
             type="text"
@@ -219,7 +134,7 @@ export default function NewsletterPageClient() {
           />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={`${t.fields.city} (${lang === "es" ? "opcional" : "optional"})`}>
+          <Field label={`${t.fields.city} (${locale.contactForm.optional})`}>
             <input
               name="city"
               type="text"
@@ -229,7 +144,7 @@ export default function NewsletterPageClient() {
               placeholder={t.placeholders.city}
             />
           </Field>
-          <Field label={`${t.fields.zip} (${lang === "es" ? "opcional" : "optional"})`}>
+          <Field label={`${t.fields.zip} (${locale.contactForm.optional})`}>
             <input
               name="zip"
               type="text"
@@ -241,7 +156,7 @@ export default function NewsletterPageClient() {
             />
           </Field>
         </div>
-        <Field label={`${t.fields.audienceType} (${lang === "es" ? "opcional" : "optional"})`}>
+        <Field label={`${t.fields.audienceType} (${locale.contactForm.optional})`}>
           <select name="audienceType" disabled={loading} className={inputClass} defaultValue="">
             <option value="">{t.audienceOptions[""]}</option>
             {AUDIENCE_TYPES.map((value) => (
@@ -260,7 +175,7 @@ export default function NewsletterPageClient() {
             ))}
           </select>
         </Field>
-        <Field label={`${t.fields.interests} (${lang === "es" ? "opcional" : "optional"})`}>
+        <Field label={`${t.fields.interests} (${locale.contactForm.optional})`}>
           <textarea
             name="interests"
             rows={3}

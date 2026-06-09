@@ -175,6 +175,7 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
         "인쇄물 또는 디지털 자료에서 QR을 스캔하세요. Leonix 에서 언어를 선택하고 요약과 지역 비즈니스 정보를 읽고 빠르게 행동하세요. 웹사이트가 다국어 다리이며, 시각적 매거진은 원본 판을 유지합니다.",
       mobileNote:
         "모바일에서는 자신의 휴대폰 화면을 스캔하려 하지 마세요. Leonix 언어 선택기와 선택한 언어의 요약을 사용하세요. Google Lens 또는 Apple 번역은 인쇄물에만 선택 사항입니다.",
+      openReaderLabel: "카메라 번역 단계 보기",
       benefitsAria: "QR 접근 혜택",
       benefits: [
         {

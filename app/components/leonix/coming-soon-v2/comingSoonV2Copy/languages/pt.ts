@@ -180,6 +180,7 @@ export function getPtCopy(lang: SupportedLang): ComingSoonV2Copy {
         "Escaneie o QR em materiais impressos ou digitais. Na Leonix você escolhe seu idioma, lê resumos e informações de negócios locais e toma ação rápida. O site é a ponte multilíngue; a revista visual mantém sua edição original.",
       mobileNote:
         "No celular, não tente escanear a tela do seu próprio telefone. Use o seletor de idioma da Leonix e os resumos no seu idioma. Google Lens ou Apple Translate são opcionais apenas para materiais impressos.",
+      openReaderLabel: "Ver passos de tradução com câmera",
       benefitsAria: "Benefícios do acesso QR",
       benefits: [
         {
