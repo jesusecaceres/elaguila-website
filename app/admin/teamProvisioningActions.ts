@@ -11,12 +11,13 @@ import {
 import {
   isAllowedCustomerAccountType,
   isAllowedStaffRosterRole,
-  isPrivilegedStaffRole,
+  parseStaffPermissions,
   provisionCustomerAuthUser,
   provisionStaffAuthUser,
 } from "@/app/admin/_lib/adminUserProvisioning";
 import { canCreateCustomers } from "@/app/admin/_lib/staffAdminAccess";
 import { requireLeonixAdminCookie } from "@/app/admin/_lib/leonixAdminGate";
+import { ALL_ADMIN_PERMISSION_KEYS } from "@/app/admin/_lib/teamTypes";
 
 function str(f: FormData, k: string): string {
   const v = f.get(k);
@@ -28,16 +29,30 @@ function bool(f: FormData, k: string): boolean {
   return v === "on" || v === "true" || v === "1";
 }
 
-/** Owner-only: create Supabase Auth user + admin_team_members roster row. */
+function requireSuperAdminStaffCreator(access: Awaited<ReturnType<typeof getCurrentAdminAccessContext>>): void {
+  requireAdminTeamAccess(access);
+  if (access.rosterResolved && access.rosterRole !== "super_admin") {
+    redirect("/admin/team/users/new?error=forbidden");
+  }
+}
+
+/** Super admin only: create Supabase Auth user + admin_team_members roster row. */
 export async function createStaffUserWithAuthAction(formData: FormData) {
   await requireLeonixAdminCookie();
   const access = await getCurrentAdminAccessContext();
-  requireAdminTeamAccess(access);
+  requireSuperAdminStaffCreator(access);
 
   const email = str(formData, "email").toLowerCase();
   const displayName = str(formData, "display_name") || null;
   const role = str(formData, "role");
-  const sendInvite = bool(formData, "send_invite");
+  const notes = str(formData, "notes") || null;
+  const passwordSetupMode = str(formData, "password_setup_mode") === "invite" ? "invite" : "temporary";
+  const temporaryPassword = str(formData, "temporary_password") || null;
+  const updateExistingPassword = bool(formData, "update_existing_password");
+
+  const permissions = parseStaffPermissions(
+    ALL_ADMIN_PERMISSION_KEYS.filter((key) => bool(formData, `perm_${key}`)),
+  );
 
   if (!email.includes("@")) {
     redirect("/admin/team/users/new?error=invalid_email");
@@ -46,15 +61,24 @@ export async function createStaffUserWithAuthAction(formData: FormData) {
     redirect("/admin/team/users/new?error=invalid_role");
   }
 
-  if (isPrivilegedStaffRole(role) && access.normalizedRole !== "owner_admin") {
-    redirect("/admin/team/users/new?error=role_escalation");
-  }
-
-  const result = await provisionStaffAuthUser({ email, displayName, role, sendInvite });
+  const result = await provisionStaffAuthUser({
+    email,
+    displayName,
+    role,
+    notes,
+    permissions,
+    passwordSetupMode,
+    temporaryPassword,
+    updateExistingPassword,
+    creatorRosterRole: access.rosterRole,
+  });
 
   if (!result.ok) {
     if (result.code === "duplicate") {
       redirect("/admin/team/users/new?error=duplicate");
+    }
+    if (result.code === "password_required") {
+      redirect("/admin/team/users/new?error=password_required");
     }
     redirect(`/admin/team/users/new?error=provision&message=${encodeURIComponent(result.message.slice(0, 120))}`);
   }
@@ -63,13 +87,18 @@ export async function createStaffUserWithAuthAction(formData: FormData) {
     action: "staff_auth_user_provisioned",
     targetType: "admin_team_members",
     targetId: email,
-    meta: { role, inviteSent: result.inviteSent, authUserId: result.userId },
+    meta: {
+      role,
+      inviteSent: result.inviteSent,
+      passwordSet: result.passwordSet,
+      authUserId: result.userId,
+    },
   });
 
   revalidatePath("/admin/team/roster");
   revalidatePath("/admin/team/users/new");
   redirect(
-    `/admin/team/users/new?created=1&invite=${result.inviteSent ? "1" : "0"}&email=${encodeURIComponent(email)}`,
+    `/admin/team/users/new?created=1&invite=${result.inviteSent ? "1" : "0"}&password=${result.passwordSet ? "1" : "0"}&email=${encodeURIComponent(email)}`,
   );
 }
 

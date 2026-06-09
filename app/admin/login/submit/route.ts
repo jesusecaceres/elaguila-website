@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { applyLeonixAdminSessionCookies } from "@/app/lib/supabase/adminSession";
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const password = String(formData.get("password") ?? "").trim();
@@ -8,11 +10,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login?error=1", request.url), 303);
   }
   const res = NextResponse.redirect(new URL("/admin", request.url), 303);
-  res.cookies.set("leonix_admin", "1", {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
+  applyLeonixAdminSessionCookies(res, { bootstrap: true });
   return res;
 }

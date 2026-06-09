@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { resolveAdminDashboardAccessDenial } from "../_lib/adminAuthBoundary";
 import {
   getAllowedGlobalNavHrefs,
   getCurrentAdminAccessContext,
@@ -20,6 +21,12 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
   if (!requireAdminCookie(cookieStore)) {
     redirect("/admin/login");
   }
+
+  const accessDenial = await resolveAdminDashboardAccessDenial(cookieStore);
+  if (accessDenial) {
+    redirect(`/admin/login?error=${accessDenial}`);
+  }
+
   const [tiendaInboxUnread, adminLang, access] = await Promise.all([
     getTiendaInboxUnreadCount().catch(() => 0),
     getAdminLang(),

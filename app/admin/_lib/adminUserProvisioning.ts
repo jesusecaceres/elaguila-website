@@ -2,10 +2,12 @@ import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { resolveLeonixSiteOrigin } from "@/app/lib/supabase/adminSession";
+import type { AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
+import { ALL_ADMIN_PERMISSION_KEYS } from "@/app/admin/_lib/teamTypes";
 
 export type ProvisionAuthUserResult =
-  | { ok: true; userId: string; inviteSent: boolean; inviteNote: string | null }
-  | { ok: false; code: "duplicate" | "config" | "auth_error" | "profile_error"; message: string };
+  | { ok: true; userId: string; inviteSent: boolean; inviteNote: string | null; passwordSet: boolean }
+  | { ok: false; code: "duplicate" | "config" | "auth_error" | "profile_error" | "password_required"; message: string };
 
 const ADMIN_STAFF_ROLES = new Set([
   "super_admin",
@@ -20,6 +22,7 @@ const ADMIN_STAFF_ROLES = new Set([
 ]);
 
 const CUSTOMER_ACCOUNT_TYPES = new Set(["personal", "business"]);
+const PRIVILEGED_CREATOR_ROLES = new Set(["super_admin"]);
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -33,10 +36,38 @@ export function isAllowedCustomerAccountType(accountType: string): boolean {
   return CUSTOMER_ACCOUNT_TYPES.has(accountType.trim().toLowerCase());
 }
 
-/** Owner-only: roles staff may never assign via customer flow. */
+/** Roles only super_admin roster holders may assign. */
 export function isPrivilegedStaffRole(role: string): boolean {
-  const r = role.trim();
-  return r === "super_admin" || r === "sales_manager";
+  return role.trim() === "super_admin";
+}
+
+export function canAssignStaffRole(creatorRosterRole: string | null, targetRole: string): boolean {
+  const target = targetRole.trim();
+  if (!isAllowedStaffRosterRole(target)) return false;
+  if (isPrivilegedStaffRole(target)) {
+    return creatorRosterRole === "super_admin" || creatorRosterRole == null;
+  }
+  return PRIVILEGED_CREATOR_ROLES.has(creatorRosterRole ?? "") || creatorRosterRole == null;
+}
+
+export function parseStaffPermissions(raw: string[]): AdminPermissionKey[] {
+  const allowed = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
+  return raw.filter((p): p is AdminPermissionKey => allowed.has(p));
+}
+
+async function findAuthUserIdByEmail(
+  admin: ReturnType<typeof getAdminSupabase>,
+  email: string,
+): Promise<string | null> {
+  const normalized = normalizeEmail(email);
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data?.users?.length) break;
+    const match = data.users.find((u) => (u.email ?? "").trim().toLowerCase() === normalized);
+    if (match?.id) return match.id;
+    if (data.users.length < 200) break;
+  }
+  return null;
 }
 
 async function sendInviteOrRecovery(
@@ -60,22 +91,76 @@ async function sendInviteOrRecovery(
   if (!recoveryErr) {
     return {
       inviteSent: true,
-      inviteNote: "Recovery link generated — Supabase email delivery depends on SMTP configuration.",
+      inviteNote: "Recovery link generated — email delivery depends on Supabase SMTP.",
     };
   }
 
   return {
     inviteSent: false,
     inviteNote:
-      "Auth user created but invite email could not be sent. Use Supabase Auth dashboard to send password reset.",
+      "Auth user exists but invite email could not be sent. Use Supabase Auth dashboard to send password reset.",
   };
+}
+
+async function upsertRosterMember(input: {
+  email: string;
+  displayName?: string | null;
+  role: string;
+  notes?: string | null;
+  permissions: AdminPermissionKey[];
+}): Promise<{ ok: true; rosterMemberId: string } | { ok: false; message: string }> {
+  const admin = getAdminSupabase();
+  const now = new Date().toISOString();
+  const email = normalizeEmail(input.email);
+
+  const { error: insertErr } = await admin.from("admin_team_members").insert({
+    email,
+    display_name: input.displayName?.trim() || null,
+    role: input.role,
+    is_active: true,
+    permissions: input.permissions,
+    notes: input.notes?.trim() || null,
+    updated_at: now,
+  });
+
+  if (!insertErr) {
+    const { data: row } = await admin.from("admin_team_members").select("id").eq("email", email).maybeSingle();
+    return { ok: true, rosterMemberId: String(row?.id ?? "") };
+  }
+
+  if (insertErr.code === "23505") {
+    const { data: updated, error: updateErr } = await admin
+      .from("admin_team_members")
+      .update({
+        display_name: input.displayName?.trim() || null,
+        role: input.role,
+        is_active: true,
+        permissions: input.permissions,
+        notes: input.notes?.trim() || null,
+        updated_at: now,
+      })
+      .eq("email", email)
+      .select("id")
+      .maybeSingle();
+    if (updateErr || !updated) {
+      return { ok: false, message: updateErr?.message ?? "Roster update failed." };
+    }
+    return { ok: true, rosterMemberId: String((updated as { id: string }).id) };
+  }
+
+  return { ok: false, message: insertErr.message };
 }
 
 export async function provisionStaffAuthUser(input: {
   email: string;
   displayName?: string | null;
   role: string;
-  sendInvite: boolean;
+  notes?: string | null;
+  permissions?: AdminPermissionKey[];
+  passwordSetupMode: "temporary" | "invite";
+  temporaryPassword?: string | null;
+  updateExistingPassword?: boolean;
+  creatorRosterRole?: string | null;
 }): Promise<ProvisionAuthUserResult & { rosterMemberId?: string }> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "config", message: "Supabase service role is not configured." };
@@ -85,72 +170,93 @@ export async function provisionStaffAuthUser(input: {
   if (!email.includes("@")) {
     return { ok: false, code: "auth_error", message: "Invalid email." };
   }
-  if (!isAllowedStaffRosterRole(input.role)) {
-    return { ok: false, code: "auth_error", message: "Invalid staff role." };
+  if (!canAssignStaffRole(input.creatorRosterRole ?? null, input.role)) {
+    return { ok: false, code: "auth_error", message: "You cannot assign this staff role." };
+  }
+
+  if (input.passwordSetupMode === "temporary") {
+    const pw = input.temporaryPassword?.trim() ?? "";
+    if (pw.length < 10) {
+      return { ok: false, code: "password_required", message: "Temporary password must be at least 10 characters." };
+    }
   }
 
   const admin = getAdminSupabase();
-  const now = new Date().toISOString();
+  const permissions = input.permissions ?? [];
+  let userId: string | null = await findAuthUserIdByEmail(admin, email);
+  let passwordSet = false;
 
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email,
-    email_confirm: true,
-    user_metadata: {
-      leonix_staff: true,
-      display_name: input.displayName?.trim() || null,
-      staff_role: input.role,
-    },
-  });
-
-  if (createErr || !created.user?.id) {
-    const msg = createErr?.message ?? "Could not create auth user.";
-    if (/already|registered|exists|duplicate/i.test(msg)) {
-      return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
+  if (userId) {
+    if (input.passwordSetupMode === "temporary" && input.updateExistingPassword) {
+      const pw = input.temporaryPassword!.trim();
+      const { error: updErr } = await admin.auth.admin.updateUserById(userId, { password: pw });
+      if (updErr) {
+        return { ok: false, code: "auth_error", message: updErr.message };
+      }
+      passwordSet = true;
+    } else if (!input.updateExistingPassword) {
+      return {
+        ok: false,
+        code: "duplicate",
+        message: "Supabase Auth user already exists. Enable update password or use invite mode.",
+      };
     }
-    return { ok: false, code: "auth_error", message: msg };
+  } else if (input.passwordSetupMode === "temporary") {
+    const pw = input.temporaryPassword!.trim();
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      password: pw,
+      email_confirm: true,
+      user_metadata: {
+        leonix_staff: true,
+        display_name: input.displayName?.trim() || null,
+        staff_role: input.role,
+      },
+    });
+    if (createErr || !created.user?.id) {
+      const msg = createErr?.message ?? "Could not create auth user.";
+      if (/already|registered|exists|duplicate/i.test(msg)) {
+        return { ok: false, code: "duplicate", message: "Auth user already exists." };
+      }
+      return { ok: false, code: "auth_error", message: msg };
+    }
+    userId = created.user.id;
+    passwordSet = true;
+  } else {
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: {
+        leonix_staff: true,
+        display_name: input.displayName?.trim() || null,
+        staff_role: input.role,
+      },
+    });
+    if (createErr || !created.user?.id) {
+      const msg = createErr?.message ?? "Could not create auth user.";
+      if (/already|registered|exists|duplicate/i.test(msg)) {
+        return { ok: false, code: "duplicate", message: "Auth user already exists." };
+      }
+      return { ok: false, code: "auth_error", message: msg };
+    }
+    userId = created.user.id;
   }
 
-  const userId = created.user.id;
-
-  const { error: insertErr } = await admin.from("admin_team_members").insert({
+  const roster = await upsertRosterMember({
     email,
-    display_name: input.displayName?.trim() || null,
+    displayName: input.displayName,
     role: input.role,
-    is_active: true,
-    permissions: [],
-    updated_at: now,
+    notes: input.notes,
+    permissions,
   });
 
-  let rosterMemberId: string | undefined;
-
-  if (insertErr) {
-    if (insertErr.code === "23505") {
-      const { data: updated, error: updateErr } = await admin
-        .from("admin_team_members")
-        .update({
-          display_name: input.displayName?.trim() || null,
-          role: input.role,
-          is_active: true,
-          updated_at: now,
-        })
-        .eq("email", email)
-        .select("id")
-        .maybeSingle();
-      if (updateErr || !updated) {
-        return { ok: false, code: "auth_error", message: updateErr?.message ?? "Roster update failed." };
-      }
-      rosterMemberId = String((updated as { id: string }).id);
-    } else {
-      return { ok: false, code: "auth_error", message: insertErr.message };
-    }
-  } else {
-    const { data: row } = await admin.from("admin_team_members").select("id").eq("email", email).maybeSingle();
-    rosterMemberId = row?.id != null ? String(row.id) : undefined;
+  if (!roster.ok) {
+    return { ok: false, code: "auth_error", message: roster.message };
   }
 
   let inviteSent = false;
   let inviteNote: string | null = null;
-  if (input.sendInvite) {
+  if (input.passwordSetupMode === "invite") {
     const invite = await sendInviteOrRecovery(admin, email, "/auth/callback?redirect=/admin/login");
     inviteSent = invite.inviteSent;
     inviteNote = invite.inviteNote;
@@ -158,10 +264,11 @@ export async function provisionStaffAuthUser(input: {
 
   return {
     ok: true,
-    userId,
+    userId: userId!,
     inviteSent,
     inviteNote,
-    rosterMemberId,
+    passwordSet,
+    rosterMemberId: roster.rosterMemberId,
   };
 }
 
@@ -228,5 +335,5 @@ export async function provisionCustomerAuthUser(input: {
     inviteNote = invite.inviteNote;
   }
 
-  return { ok: true, userId, inviteSent, inviteNote };
+  return { ok: true, userId, inviteSent, inviteNote, passwordSet: false };
 }

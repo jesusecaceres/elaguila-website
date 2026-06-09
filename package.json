@@ -25,6 +25,8 @@
     "verify:admin-dashboard-cleanup": "node scripts/verify-admin-dashboard-cleanup.mjs",
     "verify:staff-admin-sales-access": "node scripts/verify-staff-admin-sales-access.mjs",
     "verify:staff-admin-supabase-activation": "node scripts/verify-staff-admin-supabase-activation.mjs",
+    "verify:admin-staff-auth-boundary": "node scripts/verify-admin-staff-auth-boundary.mjs",
+    "seed:owner-admin-auth": "node scripts/seed-owner-admin-auth.mjs",
     "verify:category-plan-boundaries": "node scripts/verify-category-plan-boundaries.mjs",
     "verify:category-listing-monetization": "node scripts/verify-category-listing-monetization-read-model.mjs",
     "verify:admin-monetization-readonly": "node scripts/verify-admin-monetization-readonly-visibility.mjs",

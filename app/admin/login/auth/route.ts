@@ -29,10 +29,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL(`/admin/login?error=${code}`, request.url), 303);
   }
 
-  const res = NextResponse.redirect(new URL("/admin/team", request.url), 303);
+  const role = roster.role.trim().toLowerCase();
+  const dest =
+    role === "super_admin" || role === "sales_manager" || role === "content_manager"
+      ? "/admin"
+      : "/admin/team";
+
+  const res = NextResponse.redirect(new URL(dest, request.url), 303);
   applyLeonixAdminSessionCookies(res, {
     operatorEmail: verified.email,
     authUserId: verified.userId,
+    bootstrap: false,
   });
   return res;
 }

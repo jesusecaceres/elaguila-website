@@ -7,6 +7,7 @@ import { getAdminSupabase, getServerSupabaseAnon, isSupabaseAdminConfigured } fr
 export const LEONIX_ADMIN_COOKIE = "leonix_admin";
 export const LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE = "leonix_admin_operator_email";
 export const LEONIX_ADMIN_AUTH_USER_ID_COOKIE = "leonix_admin_auth_user_id";
+export const LEONIX_ADMIN_BOOTSTRAP_COOKIE = "leonix_admin_bootstrap";
 
 const ADMIN_SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
@@ -27,9 +28,13 @@ export type AdminSessionCookieOptions = {
   maxAge?: number;
 };
 
+export function isAdminBootstrapSession(cookies: CookieStore): boolean {
+  return cookies.get(LEONIX_ADMIN_BOOTSTRAP_COOKIE)?.value === "1";
+}
+
 export function applyLeonixAdminSessionCookies(
   res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } },
-  opts: { operatorEmail?: string | null; authUserId?: string | null },
+  opts: { operatorEmail?: string | null; authUserId?: string | null; bootstrap?: boolean },
   cookieOpts: AdminSessionCookieOptions = {},
 ) {
   const path = cookieOpts.path ?? "/";
@@ -37,6 +42,15 @@ export function applyLeonixAdminSessionCookies(
   const base = { path, httpOnly: true, sameSite: "lax" as const, maxAge };
 
   res.cookies.set(LEONIX_ADMIN_COOKIE, "1", base);
+
+  if (opts.bootstrap) {
+    res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "1", base);
+    res.cookies.set(LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE, "", { ...base, maxAge: 0 });
+    res.cookies.set(LEONIX_ADMIN_AUTH_USER_ID_COOKIE, "", { ...base, maxAge: 0 });
+    return;
+  }
+
+  res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "", { ...base, maxAge: 0 });
 
   if (opts.operatorEmail) {
     res.cookies.set(LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE, opts.operatorEmail.trim().toLowerCase(), base);
@@ -53,6 +67,7 @@ export function clearLeonixAdminSessionCookies(
   res.cookies.set(LEONIX_ADMIN_COOKIE, "", expired);
   res.cookies.set(LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE, "", expired);
   res.cookies.set(LEONIX_ADMIN_AUTH_USER_ID_COOKIE, "", expired);
+  res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "", expired);
 }
 
 export function resolveLeonixSiteOrigin(): string {

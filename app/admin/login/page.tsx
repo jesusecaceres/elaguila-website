@@ -8,7 +8,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   "1": "Invalid shared password. Try again.",
   auth: "Invalid email or password.",
   inactive: "Your team account is inactive. Contact an owner admin.",
-  not_roster: "This email is not on the Leonix admin team roster.",
+  not_roster: "This account is not authorized for admin access. Customer logins cannot access /admin.",
 };
 
 export default function AdminLoginPage() {

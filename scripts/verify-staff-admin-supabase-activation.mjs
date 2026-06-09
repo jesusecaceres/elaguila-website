@@ -66,9 +66,8 @@ if (!teamActions.includes("createStaffUserWithAuthAction")) fail("staff user cre
 if (!teamActions.includes("createCustomerUserWithAuthAction")) fail("customer user creation action missing");
 if (!teamActions.includes("requireAdminTeamAccess")) fail("staff user creation must be owner-guarded");
 if (!teamActions.includes("canCreateCustomers")) fail("customer creation must use canCreateCustomers");
-if (teamActions.includes("super_admin") && !teamActions.includes("role_escalation")) {
-  fail("must block staff role escalation");
-}
+if (!teamActions.includes("requireSuperAdminStaffCreator")) fail("staff create must be super-admin guarded");
+if (!teamActions.includes("createCustomerUserWithAuthAction")) fail("customer creation action missing");
 ok("User creation actions + guards");
 
 if (!promoActions.includes("sales_rep_id") || !promoActions.includes("resolveSalesRepFieldsForCreate")) {
