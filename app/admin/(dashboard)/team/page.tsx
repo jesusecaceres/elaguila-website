@@ -79,20 +79,30 @@ export default async function StaffTeamHomePage({
         <AdminStatCard
           title="Create Customer"
           value="→"
-          hint="Onboarding steps and Supabase Auth runbook"
+          hint="Provision Supabase Auth customer + profiles (not admin roster)"
           icon="➕"
-          actionLabel="Start onboarding"
+          actionLabel="Create customer"
           actionHref="/admin/team/customers/new"
         />
         {showOwnerExtras ? (
-          <AdminStatCard
-            title="Team roster"
-            value="→"
-            hint="Owner-only: admin_team_members + invite intent"
-            icon="👥"
-            actionLabel="Manage roster"
-            actionHref="/admin/team/roster"
-          />
+          <>
+            <AdminStatCard
+              title="Create staff login"
+              value="→"
+              hint="Supabase Auth + admin_team_members for employees"
+              icon="🔐"
+              actionLabel="Create staff login"
+              actionHref="/admin/team/users/new"
+            />
+            <AdminStatCard
+              title="Team roster"
+              value="→"
+              hint="View roster rows, permissions, activate/deactivate"
+              icon="👥"
+              actionLabel="Manage roster"
+              actionHref="/admin/team/roster"
+            />
+          </>
         ) : null}
       </div>
 

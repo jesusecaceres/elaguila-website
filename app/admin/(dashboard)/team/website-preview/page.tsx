@@ -42,8 +42,8 @@ export default async function StaffWebsitePreviewPage() {
       />
 
       <div className={`${adminCardBase} border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
-        <strong className="font-bold">Internal preview only.</strong> Do not share unfinished pages publicly unless
-        approved.
+        <strong className="font-bold">Internal preview only.</strong> Use this while presenting to approved clients.
+        Do not share unfinished pages publicly.
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2">

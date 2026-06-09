@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import {
   adminCardBase,
@@ -6,6 +8,7 @@ import {
   adminStubBadgeClass,
   adminTableZebraRow,
   adminCtaChipSecondary,
+  adminCtaChip,
 } from "../../../_components/adminTheme";
 import {
   ALL_ADMIN_PERMISSION_KEYS,
@@ -149,10 +152,21 @@ export default async function AdminTeamPage(props: {
       ) : null}
 
       <AdminPageHeader
-        title="Team"
-        subtitle="Operational roster in `admin_team_members` (not Supabase Auth). Invites in `admin_team_invites` are intent — complete signup in Auth separately."
-        helperText="Optional on server: `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` + `ADMIN_OPERATOR_EMAIL` (email in roster) enables permission checks on critical mutations; otherwise only the shared cookie applies. Passwords: Supabase Auth panel."
+        title="Team roster"
+        subtitle="View and manage admin_team_members. To onboard employees with login access, use Create staff login first."
+        helperText="Staff sign in at /admin/login with Supabase Auth. Roster rows without Auth cannot access admin."
       />
+
+      <div className={`${adminCardBase} mb-6 border-emerald-200 bg-emerald-50/80 p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Create staff login</h2>
+        <p className="mt-2 text-sm text-[#5C5346]">
+          Creates Supabase Auth user + admin roster permission. Use this for employees and sales team only — not
+          customer ad accounts.
+        </p>
+        <Link href="/admin/team/users/new" className={`${adminCtaChip} mt-4 inline-flex`}>
+          Create staff login →
+        </Link>
+      </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
         <a
@@ -167,7 +181,7 @@ export default async function AdminTeamPage(props: {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[#5C5346]/95">
-          The `leonix_admin` cookie does not replace database roles — these rows are metadata for internal coordination.
+          Active roster rows are required for `/admin` access. Supabase Auth alone does not grant admin.
         </p>
       </div>
 
@@ -211,7 +225,7 @@ export default async function AdminTeamPage(props: {
       ) : members.length === 0 ? (
         <AdminEmptyState
           title="No members in roster"
-          description="Add a row with the form below (operational record only — does not create an Auth user)."
+          description="Use Create staff login to provision Supabase Auth + roster in one step."
         />
       ) : (
         <div className={`${adminCardBase} mb-8 overflow-hidden`}>
@@ -335,10 +349,17 @@ export default async function AdminTeamPage(props: {
         </div>
       )}
 
-      <div className={`${adminCardBase} mb-8 p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Add member to roster</h2>
-        <p className="mt-1 text-xs text-[#7A7164]">
-          Internal record only. After creating the row, provision the user in Supabase Auth through your usual flow.
+      <details className={`${adminCardBase} mb-8 p-6`}>
+        <summary className="cursor-pointer text-sm font-bold text-[#1E1810]">
+          Advanced: roster row only (no Auth) — metadata / migration repair
+        </summary>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          Prefer{" "}
+          <Link href="/admin/team/users/new" className="font-bold text-[#6B5B2E] underline">
+            Create staff login
+          </Link>
+          . This form inserts a row in <code className="rounded bg-white/80 px-1">admin_team_members</code> without
+          creating a Supabase Auth user.
         </p>
         {membersUnavailable ? (
           <p className="mt-3 text-sm text-amber-900">Table unavailable.</p>
@@ -385,19 +406,22 @@ export default async function AdminTeamPage(props: {
               <button
                 type="submit"
                 className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
-                title="Inserts row in admin_team_members; does not create Supabase Auth user"
+                title="Roster metadata only — does not create Supabase Auth user"
               >
-                Save to admin_team_members
+                Save roster row only
               </button>
             </div>
           </form>
         )}
-      </div>
+      </details>
 
-      <div className={`${adminCardBase} p-6`}>
-        <h2 className="text-sm font-bold text-[#1E1810]">Register invite intent</h2>
-        <p className="mt-1 text-xs text-[#7A7164]">
-          Saves email + role in <code className="rounded bg-white/80 px-1">admin_team_invites</code>. Does not send email or create Auth user.
+      <details className={`${adminCardBase} p-6`}>
+        <summary className="cursor-pointer text-sm font-bold text-[#1E1810]">
+          Advanced: register invite intent (no email sent)
+        </summary>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          Saves email + role in <code className="rounded bg-white/80 px-1">admin_team_invites</code>. Does not send
+          email or create Auth user. Use Create staff login for real onboarding.
         </p>
         {invitesUnavailable ? (
           <p className="mt-3 text-sm font-semibold text-amber-900">
@@ -441,14 +465,14 @@ export default async function AdminTeamPage(props: {
               <button
                 type="submit"
                 className={`${adminBtnPrimary} w-full justify-center sm:w-auto`}
-                title="Records intent in admin_team_invites; does not send email or create Auth"
+                title="Records intent only"
               >
                 Save invite intent
               </button>
             </div>
           </form>
         )}
-      </div>
+      </details>
     </div>
   );
 }
