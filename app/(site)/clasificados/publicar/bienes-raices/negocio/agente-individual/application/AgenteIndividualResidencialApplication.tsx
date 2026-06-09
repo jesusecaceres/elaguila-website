@@ -32,6 +32,7 @@ import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteInd
 import {
   bootstrapAgenteIndividualResidencialApplicationState,
   persistAgenteResApplicationDraftQuiet,
+  rehydrateAgenteResDraftMediaFromIdb,
   saveAgenteResPreviewDraft,
   saveAgenteResPreviewReturnDraft,
 } from "./utils/previewDraft";
@@ -107,6 +108,9 @@ export default function AgenteIndividualResidencialApplication() {
     }
 
     setState(boot);
+    void rehydrateAgenteResDraftMediaFromIdb(boot).then((resolved) => {
+      setState(resolved);
+    });
     if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && readQueuePrefillForAddMode()) {
       syncAgenteAddModePreviewHandoff(boot);
       addModePreviewSyncedRef.current = true;

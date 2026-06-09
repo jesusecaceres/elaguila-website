@@ -23,6 +23,7 @@ import {
   withLeonixLang,
   type LeonixSiteLang,
 } from "@/app/lib/lang";
+import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
@@ -1007,32 +1008,14 @@ function FinalContactSection({
         <p className="mt-1.5 max-w-xl text-sm leading-snug text-[#EDE6D6] sm:mt-2 sm:text-base sm:leading-relaxed">
           {newsletter.body}
         </p>
-        <form
-          action="/newsletter"
-          method="get"
-          className="mt-4 flex min-w-0 flex-col gap-3 sm:mt-5 sm:flex-row sm:items-stretch"
-          aria-label={newsletter.formAria}
-        >
-          <input type="hidden" name="source" value="coming-soon-v2" />
-          <input type="hidden" name="lang" value={lang} />
-          <label htmlFor="coming-soon-v2-newsletter-email" className="sr-only">
-            {newsletter.emailLabel}
-          </label>
-          <input
-            id="coming-soon-v2-newsletter-email"
-            type="email"
-            name="email"
-            placeholder={newsletter.placeholder}
-            autoComplete="email"
-            className="min-h-[3rem] min-w-0 flex-1 rounded-full border border-[#C9A84A]/45 bg-[#FFFDF7] px-4 text-sm text-[#1F241C] placeholder:text-[#3D3428]/55 focus:border-[#C9A84A] focus:outline-none focus:ring-2 focus:ring-[#C9A84A]/40 sm:text-[0.9375rem]"
-          />
-          <button
-            type="submit"
-            className="inline-flex min-h-[3rem] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_20px_-6px_rgba(122,30,44,0.5)] transition hover:bg-[#5e1721] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:text-[0.9375rem]"
-          >
-            {newsletter.button}
-          </button>
-        </form>
+        <ComingSoonLaunchSignupForm
+          lang={lang}
+          source="coming-soon-v2"
+          formAria={newsletter.formAria}
+          buttonLabel={newsletter.button}
+          placeholder={newsletter.placeholder}
+          compact
+        />
       </div>
     </section>
   );
@@ -1049,7 +1032,7 @@ function ComingSoonV2Footer({ text }: { text: string }) {
 }
 
 function launchHref(lang: LeonixSiteLang) {
-  return `/newsletter?source=coming-soon-v2&lang=${lang}`;
+  return `/newsletter?source=coming-soon-v2&inquiryType=launch&lang=${lang}`;
 }
 
 function HeaderLogoMark() {

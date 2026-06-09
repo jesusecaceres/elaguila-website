@@ -5,6 +5,13 @@
 import type { AgenteChildPropertyFormSlice } from "./brNegocioChildInventoryFormMapping";
 import { pickChildPropertySlice } from "./brNegocioChildInventoryFormMapping";
 import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
+import { createEmptyAgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
+import {
+  BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+  inlineBrAgenteResHeavyMediaFromIdb,
+  offloadBrAgenteResHeavyMediaToIdb,
+} from "../agente-individual/application/utils/brAgenteResDraftMedia";
+import { mergeParentHubWithChildProperty } from "./brNegocioChildInventoryFormMapping";
 
 export const BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY = "br-negocio-child-inventory-editor-session";
 
@@ -34,16 +41,52 @@ function stripDataUrlsFromSlice(slice: AgenteChildPropertyFormSlice): AgenteChil
 export function persistChildInventoryEditorSession(session: BrNegocioChildInventoryEditorSession): void {
   childEditorMemoryBridge = session;
   if (typeof window === "undefined") return;
+  void persistChildInventoryEditorSessionResolved(session);
+}
+
+async function persistChildInventoryEditorSessionResolved(
+  session: BrNegocioChildInventoryEditorSession,
+): Promise<void> {
+  childEditorMemoryBridge = session;
+  let propertyForm = session.propertyForm;
+  try {
+    const hub = mergeParentHubWithChildProperty(
+      createEmptyAgenteIndividualResidencialFormState(),
+      propertyForm,
+    );
+    const offloaded = await offloadBrAgenteResHeavyMediaToIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
+    propertyForm = pickChildPropertySlice(offloaded);
+  } catch {
+    propertyForm = stripDataUrlsFromSlice(session.propertyForm);
+  }
   try {
     sessionStorage.setItem(
       BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY,
       JSON.stringify({
         ...session,
-        propertyForm: stripDataUrlsFromSlice(session.propertyForm),
+        propertyForm,
       }),
     );
   } catch {
     /* quota — in-memory bridge still available same-tab */
+  }
+}
+
+export async function loadChildInventoryEditorSessionResolved(): Promise<BrNegocioChildInventoryEditorSession | null> {
+  const sync = loadChildInventoryEditorSession();
+  if (!sync) return null;
+  try {
+    const hub = mergeParentHubWithChildProperty(
+      createEmptyAgenteIndividualResidencialFormState(),
+      sync.propertyForm,
+    );
+    const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
+    return {
+      ...sync,
+      propertyForm: pickChildPropertySlice(inlined),
+    };
+  } catch {
+    return sync;
   }
 }
 

@@ -33,7 +33,7 @@ import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventory
 import {
   childEditorSessionFromState,
   clearChildInventoryEditorSession,
-  loadChildInventoryEditorSession,
+  loadChildInventoryEditorSessionResolved,
   persistChildInventoryEditorSession,
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
@@ -100,28 +100,35 @@ export function BrNegocioChildInventoryFullApplication({
   useEffect(() => {
     if (!open) return;
     parentHubRef.current = pickParentHubSlice(parentHubSnapshot);
-    const session = loadChildInventoryEditorSession();
-    if (session && session.editingId === editingId) {
-      setStateRaw(
-        buildChildInventoryEditorState(
-          parentHubRef.current,
-          initialDraft
-            ? {
-                ...initialDraft,
-                propertyForm: session.propertyForm as Partial<AgenteIndividualResidencialFormState>,
-              }
-            : null,
-          lang,
-        ),
-      );
-      setStep(Math.min(session.step, total - 1));
-    } else {
-      setStateRaw(buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang));
-      setStep(0);
-    }
-    setErrors({});
-    const boot = buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang);
-    baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(boot));
+    let cancelled = false;
+    void loadChildInventoryEditorSessionResolved().then((session) => {
+      if (cancelled) return;
+      let bootState: AgenteIndividualResidencialFormState;
+      if (session && session.editingId === editingId) {
+        if (initialDraft) {
+          bootState = buildChildInventoryEditorState(
+            parentHubRef.current,
+            {
+              ...initialDraft,
+              propertyForm: session.propertyForm as Partial<AgenteIndividualResidencialFormState>,
+            },
+            lang,
+          );
+        } else {
+          bootState = mergeParentHubWithChildProperty(parentHubRef.current, session.propertyForm);
+        }
+        setStep(Math.min(session.step, total - 1));
+      } else {
+        bootState = buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang);
+        setStep(0);
+      }
+      setStateRaw(bootState);
+      setErrors({});
+      baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(bootState));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [open, editingId, initialDraft, parentHubSnapshot, lang, total]);
 
   const isDirty = useCallback(() => {

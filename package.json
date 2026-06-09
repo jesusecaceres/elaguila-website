@@ -105,6 +105,7 @@
     "br:inv-fix-01b-audit": "tsx scripts/br-inv-fix-01b-durable-child-inventory-media-audit.ts",
     "br:inv-fix-01c-audit": "tsx scripts/br-inv-fix-01c-real-public-inventory-proof-audit.ts",
     "br:inv-fix-01e-added-property-end-to-end-audit": "tsx scripts/br-inv-fix-01e-added-property-end-to-end-audit.ts",
+    "br:draft-persist-01-audit": "tsx scripts/br-draft-persist-01-audit.ts",
     "cat-truth:remaining-category-sweep": "tsx scripts/cat-truth-01-remaining-category-sweep-audit.ts",
     "br:12d-2-hoa-application-surfacing-audit": "tsx scripts/br12d-2-hoa-application-surfacing-audit.ts",
     "details:commas-02-pipeline-audit": "tsx scripts/details-commas-02-pipeline-audit.ts",

@@ -30,7 +30,7 @@ import { fetchBrOwnerInventoryListingRows } from "@/app/clasificados/bienes-raic
 import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
 import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { loadAgenteResPreviewDraft } from "../application/utils/previewDraft";
+import { loadAgenteResPreviewDraftResolved } from "../application/utils/previewDraft";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AgenteIndividualResidencialPreviewPage } from "./AgenteIndividualResidencialPreviewPage";
@@ -85,8 +85,9 @@ export default function AgenteIndividualResidencialPreviewClient() {
   }, [inventoryAdd.context]);
 
   useEffect(() => {
-    const loaded = loadAgenteResPreviewDraft();
-    if (loaded) setData(loaded);
+    void loadAgenteResPreviewDraftResolved().then((loaded) => {
+      if (loaded) setData(loaded);
+    });
   }, []);
 
   useEffect(() => {
@@ -127,7 +128,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       : "Publish listing";
 
   const onPublishLive = useCallback(async () => {
-    const st = loadAgenteResPreviewDraft();
+    const st = (await loadAgenteResPreviewDraftResolved()) ?? data;
     if (!st) return;
     setPublishBusy(true);
     setPublishErr(null);

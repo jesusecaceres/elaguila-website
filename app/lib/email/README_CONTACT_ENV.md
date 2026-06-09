@@ -1,6 +1,6 @@
 # Contact form email (Resend)
 
-Both `/contacto` and `/tienda/contacto` POST to API routes that send via [Resend](https://resend.com).
+`/contacto` submits to `POST /api/contact` (Supabase save first, then Resend). `/tienda/contacto` uses its own API route.
 
 ## Required (production)
 
@@ -30,7 +30,11 @@ If neither From variable is set but `RESEND_API_KEY` exists, the app uses:
 
 ## Supabase
 
-Contact forms do **not** use Supabase. Email only.
+`POST /api/contact` saves to `leonix_contact_inquiries` when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set.
+
+Launch signups use `leonix_newsletter_subscribers` via `POST /api/newsletter/subscribe`.
+
+Apply migration `20260529120000_leonix_contact_inquiries_and_launch_fields.sql` before production.
 
 ## Vercel setup
 

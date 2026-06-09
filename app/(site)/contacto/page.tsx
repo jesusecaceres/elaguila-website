@@ -12,6 +12,7 @@ import {
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { mergeContactoCopy } from "@/app/lib/siteSectionContent/contactoMerge";
+import { parseInquiryType } from "@/app/lib/leonix/inquiryTypes";
 
 type Lang = "es" | "en";
 
@@ -55,12 +56,21 @@ export async function generateMetadata(props: {
 }
 
 export default async function ContactoPage(props: {
-  searchParams?: Promise<{ lang?: string; prefillMessage?: string }>;
+  searchParams?: Promise<{
+    lang?: string;
+    prefillMessage?: string;
+    inquiryType?: string;
+    interest?: string;
+    sourceCta?: string;
+    source?: string;
+  }>;
 }) {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
   const prefillRaw = typeof sp.prefillMessage === "string" ? sp.prefillMessage : "";
   const prefillMessage = prefillRaw ? prefillRaw.slice(0, 12000) : undefined;
+  const initialInquiryType = parseInquiryType(sp.inquiryType ?? sp.interest, "general");
+  const sourceCta = typeof sp.sourceCta === "string" ? sp.sourceCta : typeof sp.source === "string" ? sp.source : "";
   const swap = lang === "en" ? "es" : "en";
 
   const { payload } = await getSiteSectionPayload("contacto");
@@ -162,7 +172,13 @@ export default async function ContactoPage(props: {
           </div>
         </div>
 
-        <GlobalContactForm lang={lang} initialMessage={prefillMessage} />
+        <GlobalContactForm
+          lang={lang}
+          initialMessage={prefillMessage}
+          initialInquiryType={initialInquiryType}
+          sourcePage="/contacto"
+          sourceCta={sourceCta}
+        />
       </div>
     </main>
   );

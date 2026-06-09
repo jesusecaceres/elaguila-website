@@ -12,8 +12,13 @@ export const LEAD_LIMITS = {
   interests: 2000,
   phone: 48,
   business: 200,
-  message: 4000,
+  message: 12000,
   source: 64,
+  sourcePage: 120,
+  sourceCta: 64,
+  cityArea: 120,
+  websiteOrSocial: 300,
+  businessCategory: 120,
 } as const;
 
 export function normalizeLeadEmail(raw: string): string {

@@ -56,8 +56,8 @@ export function localizeComingSoonV2Copy(
   },
 ): ComingSoonV2Copy {
   const pdf = mediaKitPdfForLang(lang);
-  const contactHref = `/contact?interest=advertise&lang=${lang}`;
-  const newsletterHref = `/newsletter?source=coming-soon-v2&lang=${lang}`;
+  const contactHref = `/contacto?inquiryType=advertising&sourceCta=advertise&lang=${lang}`;
+  const newsletterHref = `/newsletter?source=coming-soon-v2&inquiryType=launch&lang=${lang}`;
   const magazineLanding = `/magazine?lang=${lang}`;
   const magazineRead = `/magazine/2026/june/read?lang=${lang}`;
 
@@ -84,7 +84,7 @@ export function localizeComingSoonV2Copy(
       downloadCta: { label: copy.mediaKitPreview.downloadCta.label, href: pdf },
       requestInfoCta: {
         label: copy.mediaKitPreview.requestInfoCta.label,
-        href: `/contact?interest=advertise&lang=${lang}`,
+        href: `/contacto?inquiryType=advertising&sourceCta=media-kit-request&lang=${lang}`,
       },
     },
     digitalMagazine: {
