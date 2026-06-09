@@ -2,15 +2,34 @@ import Link from "next/link";
 
 import { AdminPageHeader } from "../../../../_components/AdminPageHeader";
 import { StaffTeamNav } from "../../../../_components/StaffTeamNav";
-import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminCtaChip, adminInputClass } from "../../../../_components/adminTheme";
 import { getCurrentAdminAccessContext } from "@/app/admin/_lib/adminAccessControl";
 import { canAccessFullAdmin } from "@/app/admin/_lib/staffAdminAccess";
+import { createCustomerUserWithAuthAction } from "@/app/admin/teamProvisioningActions";
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffCreateCustomerPage() {
+const ERROR_LABELS: Record<string, string> = {
+  invalid_email: "Enter a valid email address.",
+  invalid_account_type: "Choose personal or business account type.",
+  duplicate: "A Supabase Auth user with this email already exists.",
+  forbidden: "You do not have permission to create customers.",
+  provision: "Could not provision customer — check Supabase configuration.",
+};
+
+export default async function StaffCreateCustomerPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const access = await getCurrentAdminAccessContext();
   const showRosterLink = canAccessFullAdmin(access);
+  const sp = searchParams ? await searchParams : {};
+  const errorKey = typeof sp.error === "string" ? sp.error : "";
+  const created = sp.created === "1";
+  const createdEmail = typeof sp.email === "string" ? sp.email : "";
+  const inviteSent = sp.invite === "1";
+  const provisionMsg = typeof sp.message === "string" ? decodeURIComponent(sp.message) : "";
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -18,54 +37,68 @@ export default async function StaffCreateCustomerPage() {
 
       <AdminPageHeader
         title="Create Customer / Invite"
-        subtitle="Honest onboarding runbook — this admin surface does not yet create Supabase Auth users automatically."
-        helperText="Staff cannot create admin accounts or change roster roles from here."
+        subtitle="Provision Supabase Auth customer + profiles row (not admin roster)."
+        helperText="Staff cannot create admin accounts. Link the client with a promo code after signup."
       />
 
-      <div className={`${adminCardBase} space-y-4 p-6 text-sm text-[#5C5346]`}>
-        <p>
-          <strong className="text-[#1E1810]">Current backend:</strong> No in-app{" "}
-          <code className="rounded bg-white/80 px-1">auth.admin.createUser</code> route exists. Customer accounts must
-          be provisioned in Supabase Auth (or your IdP), then linked via promo codes and package entitlements.
-        </p>
-        <ol className="list-decimal space-y-2 pl-5">
-          <li>
-            In Supabase Auth → create user with customer email, or send magic link / password reset from the Auth panel.
-          </li>
-          <li>
-            Confirm a <code className="rounded bg-white/80 px-1">profiles</code> row exists (trigger or manual insert).
-          </li>
-          <li>
-            Create a promo code on{" "}
-            <Link href="/admin/team/promo-codes" className="font-bold text-[#6B5B2E] underline">
-              Promo Codes
-            </Link>{" "}
-            with customer name, email, and phone — your <code>sales_rep_id</code> is attached automatically.
-          </li>
-          <li>Share the code with the client for entitlement/discount rules when public redemption is enabled.</li>
-        </ol>
-        <p className="text-xs text-[#7A7164]">
-          End users can request password reset at{" "}
-          <Link href="/login" className="underline" target="_blank" rel="noopener noreferrer">
-            /login
+      {created ? (
+        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-900`} role="status">
+          Created customer Auth user for <strong>{createdEmail}</strong>.
+          {inviteSent
+            ? " Invite/reset email attempted via Supabase."
+            : " No invite sent — customer can use /login password reset when enabled."}
+          {" "}Next:{" "}
+          <Link href="/admin/team/promo-codes" className="font-bold underline">
+            create a promo code
           </Link>{" "}
-          when that flow is enabled for customers.
-        </p>
-      </div>
+          with client details (your sales rep id attaches automatically).
+        </div>
+      ) : null}
+
+      {errorKey ? (
+        <div className={`${adminCardBase} border-red-200 bg-red-50/80 p-4 text-sm text-red-900`} role="alert">
+          {ERROR_LABELS[errorKey] ?? provisionMsg ?? "Could not create customer."}
+        </div>
+      ) : null}
+
+      <form action={createCustomerUserWithAuthAction} className={`${adminCardBase} space-y-4 p-6`}>
+        <div>
+          <label htmlFor="email" className="mb-1 block text-sm text-[#5C5346]">
+            Customer email
+          </label>
+          <input id="email" name="email" type="email" required className={adminInputClass} autoComplete="off" />
+        </div>
+        <div>
+          <label htmlFor="display_name" className="mb-1 block text-sm text-[#5C5346]">
+            Name
+          </label>
+          <input id="display_name" name="display_name" type="text" className={adminInputClass} />
+        </div>
+        <div>
+          <label htmlFor="account_type" className="mb-1 block text-sm text-[#5C5346]">
+            Account type
+          </label>
+          <select id="account_type" name="account_type" defaultValue="personal" className={adminInputClass}>
+            <option value="personal">Personal</option>
+            <option value="business">Business</option>
+          </select>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-[#5C5346]">
+          <input type="checkbox" name="send_invite" defaultChecked className="rounded" />
+          Send Supabase invite / recovery email
+        </label>
+        <button type="submit" className={adminBtnPrimary}>
+          Create customer account
+        </button>
+      </form>
 
       <div className={`${adminCardBase} border-dashed p-4 text-xs text-[#7A7164]`}>
-        <strong className="text-[#5C5346]">Owner-only staff provisioning:</strong> Roster rows and invite intent live on{" "}
-        <Link href="/admin/team/roster" className="font-bold text-[#6B5B2E] underline">
-          Team roster
-        </Link>
-        . That still does not send email or create Auth users — complete signup in Supabase Auth separately.
+        <strong className="text-[#5C5346]">Redemption attribution gap:</strong> Public checkout redemption is not
+        activated. Promo codes store <code>sales_rep_id</code> and <code>redemption_count</code> for future attribution.
       </div>
 
       <Link href="/admin/team/promo-codes" className={`${adminCtaChip} inline-flex`}>
         Create promo code for client →
-      </Link>
-      <Link href="/admin/support" className={`${adminCtaChipSecondary} ml-2 inline-flex`}>
-        Support / help →
       </Link>
     </div>
   );

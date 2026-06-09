@@ -24,6 +24,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminOperatorEmailFromCookies } from "@/app/lib/supabase/adminSession";
 import type { AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
 
 export async function requireLeonixAdminCookie(): Promise<void> {
@@ -37,7 +38,9 @@ export async function requireLeonixAdminPermission(permission: AdminPermissionKe
   await requireLeonixAdminCookie();
 
   const enforce = process.env.ADMIN_ENFORCE_ROSTER_PERMISSIONS === "1";
-  const email = (process.env.ADMIN_OPERATOR_EMAIL ?? "").trim().toLowerCase();
+  const c = await cookies();
+  const cookieEmail = getAdminOperatorEmailFromCookies(c);
+  const email = cookieEmail ?? (process.env.ADMIN_OPERATOR_EMAIL ?? "").trim().toLowerCase();
   if (!enforce || !email) {
     return;
   }

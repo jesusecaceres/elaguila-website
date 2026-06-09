@@ -62,8 +62,8 @@ if (!read("app/admin/(dashboard)/team/clients/page.tsx").includes("filterPromoCo
 ok("Staff promo list + clients");
 
 if (!roster.includes("requireAdminTeamAccess")) fail("roster must remain owner-guarded");
-if (!read("app/admin/(dashboard)/team/customers/new/page.tsx").includes("does not yet create Supabase Auth")) {
-  fail("customer creator must report honest blocker");
+if (!read("app/admin/(dashboard)/team/customers/new/page.tsx").includes("createCustomerUserWithAuthAction")) {
+  fail("customer creator must use Supabase provisioning action");
 }
 ok("User creator audited — runbook, not fake auth");
 

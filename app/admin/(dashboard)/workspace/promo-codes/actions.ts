@@ -115,6 +115,7 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
       customer_phone: customerPhone,
       sales_rep_id: salesRepId,
       sales_rep_name: salesRepName,
+      created_by: access.authUserId,
       package_entitlement_id: packageEntitlementId,
       requires_owner_approval: promoPreview.requiresOwnerApproval,
       metadata,

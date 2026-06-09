@@ -32,9 +32,14 @@ export function StaffTeamNav({ showRosterLink = false }: { showRosterLink?: bool
         );
       })}
       {showRosterLink ? (
-        <Link href="/admin/team/roster" className={`${adminCtaChipSecondary} border-dashed`}>
-          Team roster (owner)
-        </Link>
+        <>
+          <Link href="/admin/team/users/new" className={`${adminCtaChipSecondary} border-dashed`}>
+            Create staff user
+          </Link>
+          <Link href="/admin/team/roster" className={`${adminCtaChipSecondary} border-dashed`}>
+            Team roster (owner)
+          </Link>
+        </>
       ) : null}
     </nav>
   );

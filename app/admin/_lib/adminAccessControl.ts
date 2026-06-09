@@ -23,6 +23,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import {
+  getAdminAuthUserIdFromCookies,
+  getAdminOperatorEmailFromCookies,
+} from "@/app/lib/supabase/adminSession";
 import type { AdminTeamRole } from "@/app/admin/_lib/teamTypes";
 
 export type NormalizedAdminRole =
@@ -37,8 +41,12 @@ export type AdminAccessContext = {
   /** True when `leonix_admin` cookie is present. */
   hasAdminCookie: boolean;
   normalizedRole: NormalizedAdminRole;
-  /** Roster email when `ADMIN_OPERATOR_EMAIL` is set. */
+  /** Supabase Auth user id when logged in via email/password (STAFF-ADMIN-02). */
+  authUserId: string | null;
+  /** Roster email from session cookie or `ADMIN_OPERATOR_EMAIL`. */
   operatorEmail: string | null;
+  /** How operator email was resolved. */
+  operatorEmailSource: "session_cookie" | "env" | null;
   /** Active roster row id (used as default sales_rep_id when role is sales_rep). */
   rosterMemberId: string | null;
   rosterDisplayName: string | null;
@@ -168,13 +176,23 @@ function resolveSalesRepIdentity(
 export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext> {
   const c = await cookies();
   const hasAdminCookie = requireAdminCookie(c);
-  const operatorEmail = (process.env.ADMIN_OPERATOR_EMAIL ?? "").trim().toLowerCase() || null;
+  const cookieEmail = getAdminOperatorEmailFromCookies(c);
+  const envEmail = (process.env.ADMIN_OPERATOR_EMAIL ?? "").trim().toLowerCase() || null;
+  const operatorEmail = cookieEmail ?? envEmail;
+  const operatorEmailSource: AdminAccessContext["operatorEmailSource"] = cookieEmail
+    ? "session_cookie"
+    : envEmail
+      ? "env"
+      : null;
+  const authUserId = getAdminAuthUserIdFromCookies(c);
 
   if (!hasAdminCookie) {
     return {
       hasAdminCookie: false,
       normalizedRole: "owner_admin",
+      authUserId: null,
       operatorEmail,
+      operatorEmailSource,
       rosterMemberId: null,
       rosterDisplayName: null,
       rosterRole: null,
@@ -188,7 +206,9 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
     return {
       hasAdminCookie: true,
       normalizedRole: "owner_admin",
+      authUserId,
       operatorEmail: null,
+      operatorEmailSource: null,
       rosterMemberId: null,
       rosterDisplayName: null,
       rosterRole: null,
@@ -210,7 +230,9 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
       return {
         hasAdminCookie: true,
         normalizedRole: "owner_admin",
+        authUserId,
         operatorEmail,
+        operatorEmailSource,
         rosterMemberId: null,
         rosterDisplayName: null,
         rosterRole: null,
@@ -235,7 +257,9 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
     return {
       hasAdminCookie: true,
       normalizedRole,
+      authUserId,
       operatorEmail,
+      operatorEmailSource,
       rosterMemberId,
       rosterDisplayName,
       rosterRole,
@@ -247,7 +271,9 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
     return {
       hasAdminCookie: true,
       normalizedRole: "owner_admin",
+      authUserId,
       operatorEmail,
+      operatorEmailSource,
       rosterMemberId: null,
       rosterDisplayName: null,
       rosterRole: null,
