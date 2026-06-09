@@ -102,43 +102,43 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "您将获得",
       headline: "不止于广告：为您的企业提供完整形象。",
       intro:
-        "Leonix 结合印刷杂志、数字形象和二维码驱动的行动，帮助更多客户找到、了解并联系您的企业。",
+        "Leonix 结合月刊印刷杂志、Negocios Locales 本地商业中心和二维码驱动的行动，帮助更多客户找到、了解并联系您的企业。",
       expandMore: "了解更多",
       expandLess: "收起",
       cards: [
         {
-          title: "优质印刷杂志",
-          body: "您的企业出现在为本地拉丁裔社区设计的出版物中。",
+          title: "月刊印刷杂志",
+          body: "您的企业可以出现在为本地拉丁裔社区设计的月刊杂志中。",
           detail:
-            "您的广告出现在一份感觉本地、可信且专业的杂志中。目标不仅是好看，更是将您的企业呈现在希望支持本地企业的社区面前。",
+            "Leonix 出版月刊西班牙语印刷杂志，提供值得信赖的本地曝光。印刷版位取决于您的广告套餐 — 并非每家企业都会在无合同情况下出现在每一期。",
           accent: "burgundy",
         },
         {
           title: "双语数字形象",
-          body: "您的广告还可以存在于清晰、专业且易于分享的数字体验中。",
+          body: "您的企业还可以出现在 Leonix 网页上，提供客户所选语言的原生表单和行动。",
           detail:
-            "数字形象帮助广告超越单页。客户可以通过手机找到、分享并再次查看您的信息。",
+            "数字页面补充您的印刷广告和 Local Business Hub 资料，提供客户可从手机再次访问的可分享信息。",
           accent: "gold",
         },
         {
           title: "二维码 + 真实行动",
-          body: "将关注转化为电话、消息、地图、链接、优惠和更多信息。",
+          body: "将印刷关注转化为电话、消息、地图、网站访问、社交链接、优惠和联系路径。",
           detail:
-            "二维码帮助人们从杂志转向具体行动：打电话、打开地图、发消息、访问网站、查看社交媒体或索取更多信息。",
+            "二维码将每期月刊与数字行动连接。读者可以扫描、使用手机翻译工具或 Leonix 语言页面，无需在各平台间跳转即可到达您的企业。",
           accent: "qr",
         },
         {
-          title: "Negocios Locales",
-          body: "有序展示电话、位置、社交账号、照片、评价和重要链接。",
+          title: "Negocios Locales + 数字形象",
+          body: "我们为您创建中央商业页面，客户可在一处找到社交链接、网站、电话、位置、照片、评价、优惠和联系方式。",
           detail:
-            "Negocios Locales 将您的信息集中在一处，客户无需在多个平台间搜索。电话、地址、地图、社交、照片和链接可以集中呈现。",
+            "Negocios Locales 不仅是广告 — 它整合您的在线形象，让客户无需在多个平台搜索即可发现和探索您的企业。",
           accent: "green",
         },
         {
           title: "创始发布机会",
           body: "成为发布阶段首批与 Leonix Media 一起亮相的企业之一。",
           detail:
-            "在发布阶段，首批企业帮助建立 Leonix Media 的初始网络。这为社区开始了解平台时创造了早期曝光机会。",
+            "在发布阶段，首批企业帮助建立 Leonix Media 的初始网络。这是早期曝光机会 — 而非单独的广告形式。",
           accent: "founder",
         },
       ],
@@ -150,8 +150,8 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       stepsAria: "流程步骤",
       steps: [
         {
-          title: "选择您的路径",
-          body: "选择您想要的形象类型：印刷广告、数字形象、二维码、媒体资料包或发布套餐。",
+          title: "选择您的形象",
+          body: "选择月刊印刷曝光、Negocios Locales 数字 Local Business Hub 页面、二维码驱动的客户行动，或发布组合方案。",
         },
         {
           title: "发送您的信息",
@@ -170,29 +170,30 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
     qrAccess: {
       eyebrow: "二维码访问",
       headline: "从印刷广告到客户手机。",
-      intro: "二维码将印刷杂志与 Leonix 的数字体验连接起来——您的多语言桥梁。",
+      intro:
+        "每期月刊可将实体杂志与数字行动连接：扫描、翻译、打开地图、打电话、访问社交链接、查看优惠并联系企业。",
       callout: "扫描。翻译。阅读。连接。",
       explanation:
-        "从印刷或数字材料扫描二维码。在 Leonix 上选择语言，阅读摘要和本地企业信息，并采取快速行动。网站是多语言桥梁；视觉杂志保持原版。",
+        "印刷杂志分发后，读者可扫描广告上的二维码。阅读视觉杂志时，可在印刷页、桌面屏幕或截图上使用手机相机、Google Lens、Google Translate 或 Apple Live Text。浏览 Leonix 网站时，可使用 Leonix 翻译页面或 Google Translate 网站模式作为备用。原生 Leonix 联系和广告表单仍是官方线索路径。",
       mobileNote:
-        "在手机上，请勿尝试扫描自己的手机屏幕。使用 Leonix 语言选择器和您所选语言的摘要。Google Lens 或 Apple 翻译仅适用于印刷材料。",
+        "在手机上，请勿扫描自己的屏幕。请先使用 Leonix 语言页面和摘要。Google Lens 和 Apple Live Text 适用于印刷物或截图。",
       openReaderLabel: "查看 QR 翻译步骤",
       heroStripSummary:
-        "使用 QR 指南翻译视觉杂志，然后返回 Leonix 获取链接和操作。",
+        "每期月刊印刷版可将读者与电话、地图、链接、社交资料和原生 Leonix 联系路径连接。",
       detailNote: "详细 QR 翻译指南",
       benefitsAria: "二维码访问优势",
       benefits: [
         {
-          title: "在 Leonix 选择语言",
-          body: "以您在网站上选择的语言提供摘要、企业信息和快速行动。",
+          title: "从印刷到手机行动",
+          body: "二维码将杂志关注转化为电话、地图、网站访问、社交链接、优惠和原生联系表单。",
         },
         {
-          title: "更多行动方式",
-          body: "通过手机，他们可以打电话、打开地图、发消息、访问链接、查看社交媒体或索取更多信息。",
+          title: "相机与网站翻译",
+          body: "Google Lens、Google Translate 和 Apple Live Text 帮助阅读视觉页面。Google Translate 网站模式帮助浏览 Leonix — 原生表单仍为官方渠道。",
         },
         {
-          title: "印刷材料可选",
-          body: "对于印刷材料，Google Lens 或 Apple 翻译可帮助阅读文字。Leonix 仍是数字内容的主要入口。",
+          title: "西班牙语原版视觉杂志",
+          body: "PDF/FlipHTML5 视觉版仍为西班牙语。Leonix 不声称提供完全翻译的视觉杂志。",
         },
       ],
     },
@@ -230,12 +231,14 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
     },
     digitalMagazine: {
       eyebrow: "数字杂志",
-      headline: "打开原版视觉杂志——并提供您所选语言的支持",
+      headline: "原版视觉杂志 + 多语言支持",
       intro:
-        "您可以打开原版数字杂志并按设计查看页面。Leonix 还提供您所选语言的摘要、亮点和快速行动。",
-      visualNote: "视觉杂志页面（PDF/FlipHTML5）是原版——并非全部图文的自动翻译。",
-      highlightsNote: "网站上提供您所选语言的摘要和 CTA，用于引导您，而非声称视觉杂志已完全翻译。",
-      mobileNote: "在手机上，请在 Leonix 选择语言并使用摘要。请勿扫描自己的屏幕进行翻译。",
+        "您可以打开西班牙语原版视觉杂志并按设计查看页面。Leonix 还在可用时提供所选语言的摘要、亮点和快速行动。",
+      visualNote: "视觉杂志页面（PDF/FlipHTML5）是西班牙语原版 — 并非全部图文的自动翻译。",
+      highlightsNote:
+        "使用 Leonix 页面获取所选语言的背景和 CTA。Google Lens 或截图可帮助阅读视觉页面。未来的 HTML 配套内容将在不替换原版视觉版的情况下改善语言覆盖。",
+      mobileNote:
+        "在手机上，请在 Leonix 选择语言并使用摘要。手机相机工具可帮助阅读印刷或屏幕页面 — 请勿扫描自己的屏幕进行翻译。",
       readHighlightsCta: { label: "以您的语言阅读亮点" },
       openOriginalCta: { label: "打开原版数字杂志" },
       learnQrCta: { label: "了解二维码访问方式" },

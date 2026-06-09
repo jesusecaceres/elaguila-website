@@ -104,43 +104,43 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "BẠN NHẬN ĐƯỢC GÌ",
       headline: "Hơn một quảng cáo: sự hiện diện đầy đủ cho doanh nghiệp.",
       intro:
-        "Leonix kết hợp tạp chí in, hiện diện kỹ thuật số và hành động qua QR để giúp nhiều khách hàng tìm thấy, hiểu và liên hệ doanh nghiệp của bạn.",
+        "Leonix kết hợp tạp chí in hàng tháng, trung tâm Negocios Locales và hành động qua QR để giúp nhiều khách hàng tìm thấy, hiểu và liên hệ doanh nghiệp của bạn.",
       expandMore: "Xem thêm",
       expandLess: "Thu gọn",
       cards: [
         {
-          title: "Tạp chí in cao cấp",
-          body: "Doanh nghiệp của bạn xuất hiện trên ấn phẩm được thiết kế cho cộng đồng Latinh địa phương.",
+          title: "Tạp chí in hàng tháng",
+          body: "Doanh nghiệp của bạn có thể xuất hiện trên tạp chí hàng tháng được thiết kế để kết nối với cộng đồng Latinh địa phương.",
           detail:
-            "Quảng cáo của bạn nằm trong một tạp chí mang cảm giác địa phương, đáng tin và chuyên nghiệp. Mục tiêu không chỉ là đẹp — mà là đặt doanh nghiệp trước một cộng đồng muốn ủng hộ doanh nghiệp địa phương.",
+            "Leonix xuất bản tạp chí in tiếng Tây Ban Nha hàng tháng để có sự hiện diện địa phương đáng tin. Vị trí in phụ thuộc vào gói quảng cáo — không phải doanh nghiệp nào cũng xuất hiện trong mỗi số nếu không có hợp đồng.",
           accent: "burgundy",
         },
         {
           title: "Hiện diện kỹ thuật số song ngữ",
-          body: "Quảng cáo cũng có thể sống trong trải nghiệm kỹ thuật số rõ ràng, chuyên nghiệp và dễ chia sẻ.",
+          body: "Doanh nghiệp cũng có thể xuất hiện trên trang Leonix với biểu mẫu và hành động gốc bằng ngôn ngữ khách hàng chọn.",
           detail:
-            "Hiện diện kỹ thuật số giúp quảng cáo không dừng ở một trang. Khách hàng có thể tìm thông tin, chia sẻ và quay lại từ điện thoại.",
+            "Trang kỹ thuật số bổ sung quảng cáo in và hồ sơ Negocios Locales với thông tin có thể chia sẻ mà khách hàng có thể quay lại từ điện thoại.",
           accent: "gold",
         },
         {
           title: "QR + hành động thực",
-          body: "Biến sự chú ý thành cuộc gọi, tin nhắn, bản đồ, liên kết, ưu đãi và thêm thông tin.",
+          body: "Biến sự chú ý từ in thành cuộc gọi, tin nhắn, bản đồ, truy cập website, mạng xã hội, ưu đãi và đường liên hệ.",
           detail:
-            "QR giúp đưa người đọc từ tạp chí đến hành động cụ thể: gọi, mở bản đồ, nhắn tin, vào website, xem mạng xã hội hoặc yêu cầu thêm thông tin.",
+            "QR kết nối mỗi số hàng tháng với hành động kỹ thuật số. Người đọc có thể quét, dùng công cụ dịch trên điện thoại hoặc trang Leonix bằng ngôn ngữ của họ, và đến doanh nghiệp mà không phải nhảy qua từng nền tảng.",
           accent: "qr",
         },
         {
-          title: "Negocios Locales",
-          body: "Sự hiện diện có tổ chức cho điện thoại, vị trí, mạng xã hội, ảnh, đánh giá và liên kết quan trọng.",
+          title: "Negocios Locales + hiện diện kỹ thuật số",
+          body: "Chúng tôi tạo một trang trung tâm cho doanh nghiệp nơi khách hàng có thể tìm mạng xã hội, website, điện thoại, vị trí, ảnh, đánh giá, ưu đãi và cách liên hệ ở một nơi.",
           detail:
-            "Negocios Locales gom thông tin một chỗ để khách không phải tìm trên nhiều nền tảng. Điện thoại, địa chỉ, bản đồ, mạng xã hội, ảnh và liên kết có thể ở cùng nhau.",
+            "Negocios Locales không chỉ là quảng cáo — gom sự hiện diện trực tuyến để khách khám phá doanh nghiệp mà không phải tìm trên nhiều nền tảng riêng.",
           accent: "green",
         },
         {
           title: "Cơ hội ra mắt sớm",
           body: "Hãy là một trong những doanh nghiệp đầu tiên xuất hiện cùng Leonix Media trong giai đoạn ra mắt.",
           detail:
-            "Trong giai đoạn ra mắt, các doanh nghiệp đầu tiên giúp xây mạng lưới Leonix Media ban đầu. Đây là cơ hội hiển thị sớm khi cộng đồng bắt đầu biết đến nền tảng.",
+            "Trong giai đoạn ra mắt, các doanh nghiệp đầu tiên giúp xây mạng lưới Leonix Media ban đầu. Đây là cơ hội hiển thị sớm — không phải định dạng quảng cáo riêng.",
           accent: "founder",
         },
       ],
@@ -153,8 +153,8 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       stepsAria: "Các bước quy trình",
       steps: [
         {
-          title: "Chọn lộ trình",
-          body: "Chọn loại hiện diện bạn muốn: quảng cáo in, kỹ thuật số, QR, Media Kit hoặc gói ra mắt.",
+          title: "Chọn sự hiện diện",
+          body: "Chọn xem bạn muốn xuất hiện trên tạp chí in hàng tháng, tạo hiện diện kỹ thuật số trên Negocios Locales, kích hoạt hành động qua QR hay kết hợp các tùy chọn ra mắt.",
         },
         {
           title: "Gửi thông tin",
@@ -174,29 +174,29 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "TRUY CẬP QR",
       headline: "Từ quảng cáo in đến điện thoại của khách.",
       intro:
-        "Quét QR để xem các bước đơn giản, hoặc dùng QR dịch để thử mở Google Lens hoặc Google Translate trên điện thoại.",
+        "Mỗi số hàng tháng có thể kết nối tạp chí vật lý với hành động kỹ thuật số: quét, dịch, mở bản đồ, gọi, xem mạng xã hội, ưu đãi và liên hệ doanh nghiệp.",
       callout: "Quét. Dịch. Đọc. Kết nối.",
       explanation:
-        "Quét QR để học cách dịch tạp chí hình ảnh bằng Google Lens, Google Translate hoặc Apple Translate. Sau đó dùng Leonix để mở liên kết, liên hệ doanh nghiệp và xem hành động nhanh.",
+        "Khi tạp chí in được phân phối, người đọc có thể quét mã QR trên quảng cáo. Để đọc tạp chí hình ảnh, họ có thể dùng camera điện thoại, Google Lens, Google Translate hoặc Apple Live Text trên trang in, màn hình máy tính hoặc ảnh chụp. Để duyệt website Leonix, họ có thể dùng trang Leonix đã dịch hoặc chế độ website Google Translate làm hỗ trợ. Biểu mẫu liên hệ và quảng cáo gốc của Leonix vẫn là đường liên hệ chính thức.",
       mobileNote:
-        "Bạn đã quét QR — đừng quét màn hình của chính bạn. Dùng Google Lens, camera Google Translate hoặc Apple Translate trên tạp chí in hoặc kỹ thuật số.",
+        "Trên điện thoại, đừng quét màn hình của chính bạn. Dùng trang và tóm tắt Leonix bằng ngôn ngữ của bạn trước. Google Lens và Apple Live Text là tùy chọn cho in hoặc ảnh chụp.",
       openReaderLabel: "Xem hướng dẫn dịch QR",
       heroStripSummary:
-        "Dùng hướng dẫn QR để dịch tạp chí hình ảnh và quay lại Leonix để xem liên kết và hành động.",
+        "Mỗi số in hàng tháng có thể kết nối người đọc với cuộc gọi, bản đồ, liên kết, mạng xã hội và biểu mẫu liên hệ gốc Leonix.",
       detailNote: "Hướng dẫn dịch QR chi tiết",
       benefitsAria: "Lợi ích truy cập QR",
       benefits: [
         {
-          title: "Dịch bằng camera",
-          body: "Google Lens, camera Google Translate hoặc Apple Translate đọc tạp chí hình ảnh bằng ngôn ngữ của bạn.",
+          title: "Từ in đến điện thoại",
+          body: "QR biến sự chú ý từ tạp chí thành cuộc gọi, bản đồ, truy cập website, mạng xã hội, ưu đãi và biểu mẫu liên hệ gốc.",
         },
         {
-          title: "Liên kết & hành động Leonix",
-          body: "Sau khi đọc, dùng Leonix để gọi, mở bản đồ, xem Media Kit và liên hệ doanh nghiệp.",
+          title: "Camera và dịch web",
+          body: "Google Lens, Google Translate và Apple Live Text giúp đọc trang hình ảnh. Chế độ website Google Translate giúp duyệt Leonix — biểu mẫu gốc vẫn chính thức.",
         },
         {
-          title: "Tạp chí gốc bằng tiếng Tây Ban Nha",
-          body: "Phiên bản hình ảnh (PDF/flipbook) vẫn là tiếng Tây Ban Nha — Leonix không tự dịch toàn bộ.",
+          title: "Tạp chí hình ảnh gốc bằng tiếng Tây Ban Nha",
+          body: "Phiên bản hình ảnh PDF/FlipHTML5 vẫn bằng tiếng Tây Ban Nha. Leonix không hứa tạp chí hình ảnh được dịch đầy đủ.",
         },
       ],
     },
@@ -235,15 +235,15 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
     },
     digitalMagazine: {
       eyebrow: "TẠP CHÍ KỸ THUẬT SỐ",
-      headline: "Mở ấn bản trực quan gốc — với hỗ trợ bằng ngôn ngữ của bạn",
+      headline: "Ấn bản trực quan gốc + hỗ trợ đa ngôn ngữ",
       intro:
-        "Bạn có thể mở tạp chí kỹ thuật số gốc và xem các trang như thiết kế. Leonix cũng cung cấp tóm tắt, điểm nổi bật và hành động nhanh bằng ngôn ngữ bạn chọn.",
+        "Bạn có thể mở tạp chí hình ảnh gốc bằng tiếng Tây Ban Nha và xem các trang như thiết kế. Leonix cũng cung cấp tóm tắt, điểm nổi bật và hành động nhanh bằng ngôn ngữ bạn chọn khi có sẵn.",
       visualNote:
-        "Các trang tạp chí trực quan (PDF/FlipHTML5) là ấn bản gốc — không phải bản dịch tự động toàn bộ nội dung hình ảnh.",
+        "Các trang tạp chí trực quan (PDF/FlipHTML5) là ấn bản gốc bằng tiếng Tây Ban Nha — không phải bản dịch tự động toàn bộ nội dung hình ảnh.",
       highlightsNote:
-        "Trên trang web bạn sẽ thấy tóm tắt và CTA bằng ngôn ngữ bạn chọn để hướng dẫn mà không hứa tạp chí trực quan được dịch đầy đủ.",
+        "Dùng trang Leonix để có ngữ cảnh và CTA bằng ngôn ngữ của bạn. Google Lens hoặc ảnh chụp có thể giúp đọc trang hình ảnh. Bạn đồng hành HTML trong tương lai sẽ cải thiện phạm vi ngôn ngữ mà không thay thế ấn bản trực quan gốc.",
       mobileNote:
-        "Trên điện thoại, chọn ngôn ngữ trên Leonix và dùng tóm tắt. Đừng quét màn hình của chính bạn để dịch.",
+        "Trên điện thoại, chọn ngôn ngữ trên Leonix và dùng tóm tắt. Công cụ camera điện thoại có thể giúp với trang in hoặc trên màn hình — đừng quét màn hình của chính bạn để dịch.",
       readHighlightsCta: { label: "Đọc điểm nổi bật bằng ngôn ngữ của bạn" },
       openOriginalCta: { label: "Mở tạp chí kỹ thuật số gốc" },
       learnQrCta: { label: "Tìm hiểu truy cập QR" },

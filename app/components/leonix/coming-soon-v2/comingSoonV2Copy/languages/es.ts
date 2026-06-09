@@ -104,43 +104,43 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QUÉ OBTIENES",
       headline: "Más que un anuncio: una presencia completa para tu negocio.",
       intro:
-        "Leonix combina revista impresa, presencia digital y acciones por QR para ayudar a que más clientes encuentren, entiendan y contacten tu negocio.",
+        "Leonix combina una revista impresa mensual, un perfil central en Negocios Locales y acciones por QR para ayudar a que más clientes encuentren, entiendan y contacten tu negocio.",
       expandMore: "Ver más",
       expandLess: "Ver menos",
       cards: [
         {
-          title: "Revista impresa premium",
-          body: "Tu negocio aparece en una publicación diseñada para conectar con la comunidad latina local.",
+          title: "Revista impresa mensual",
+          body: "Tu negocio puede aparecer en una revista mensual diseñada para conectar con la comunidad latina local.",
           detail:
-            "Tu anuncio aparece dentro de una revista diseñada para sentirse local, confiable y profesional. La meta no es solo verse bonito; es poner tu negocio frente a una comunidad que quiere apoyar negocios locales.",
+            "Leonix publica una revista impresa mensual en español para visibilidad local de confianza. La colocación en impreso depende de tu paquete publicitario — no todo negocio aparece en cada edición sin contrato.",
           accent: "burgundy",
         },
         {
           title: "Presencia digital bilingüe",
-          body: "Tu anuncio también puede vivir en una experiencia digital clara, profesional y fácil de compartir.",
+          body: "Tu negocio también puede aparecer en páginas Leonix con formularios y acciones nativas en el idioma que elijan tus clientes.",
           detail:
-            "Tu presencia digital ayuda a que el anuncio no termine en una sola página. Los clientes pueden encontrar tu información, compartirla y volver a verla desde su celular.",
+            "Las páginas digitales complementan tu anuncio impreso y tu perfil en Negocios Locales con información compartible a la que los clientes pueden volver desde su celular.",
           accent: "gold",
         },
         {
           title: "QR + acciones reales",
-          body: "Convierte la atención en llamadas, mensajes, mapas, enlaces, ofertas y más información.",
+          body: "Convierte la atención impresa en llamadas, mensajes, mapas, visitas web, redes sociales, ofertas y rutas de contacto.",
           detail:
-            "El QR ayuda a llevar a las personas desde la revista a una acción concreta: llamar, abrir un mapa, mandar mensaje, visitar un sitio web, ver redes sociales o pedir más información.",
+            "El QR conecta cada edición mensual con acción digital. Los lectores pueden escanear, usar herramientas de traducción del teléfono o las páginas Leonix en su idioma, y llegar a tu negocio sin saltar de plataforma en plataforma.",
           accent: "qr",
         },
         {
-          title: "Negocios Locales",
-          body: "Una presencia organizada para mostrar teléfono, ubicación, redes, fotos, reseñas y enlaces importantes.",
+          title: "Negocios Locales + presencia digital",
+          body: "Creamos una página central para tu negocio donde los clientes pueden encontrar tus redes, sitio web, teléfono, ubicación, fotos, reseñas, ofertas y formas de contacto en un solo lugar.",
           detail:
-            "Negocios Locales organiza tu información en un solo lugar para que el cliente no tenga que buscar entre plataformas separadas. Teléfono, dirección, mapa, redes, fotos y enlaces pueden vivir juntos.",
+            "Negocios Locales es más que un anuncio — reúne tu presencia en línea para que los clientes descubran y exploren tu negocio sin buscar en plataformas separadas.",
           accent: "green",
         },
         {
           title: "Oportunidad de lanzamiento fundador",
           body: "Sé parte de los primeros negocios en aparecer con Leonix Media durante la etapa de lanzamiento.",
           detail:
-            "Durante el lanzamiento, los primeros negocios ayudan a construir la red inicial de Leonix Media. Esto crea oportunidad de visibilidad temprana mientras la comunidad empieza a conocer la plataforma.",
+            "Durante el lanzamiento, los primeros negocios ayudan a construir la red inicial de Leonix Media. Es una oportunidad de visibilidad temprana — no un formato publicitario aparte.",
           accent: "founder",
         },
       ],
@@ -153,8 +153,8 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       stepsAria: "Pasos del proceso",
       steps: [
         {
-          title: "Elige tu camino",
-          body: "Selecciona el tipo de presencia que quieres: anuncio impreso, presencia digital, QR, Media Kit o paquete de lanzamiento.",
+          title: "Elige tu presencia",
+          body: "Selecciona si quieres aparecer en la revista impresa mensual, crear tu presencia digital en Negocios Locales, activar acciones por QR o combinar varias opciones de lanzamiento.",
         },
         {
           title: "Envíanos tu información",
@@ -174,29 +174,29 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "ACCESO QR",
       headline: "Del anuncio impreso al celular del cliente.",
       intro:
-        "Escanea el QR para ver pasos simples, o usa el QR del traductor para intentar abrir Google Lens o Google Translate en tu teléfono.",
+        "Cada edición mensual puede conectar la revista física con acciones digitales: escanear, traducir, abrir mapa, llamar, visitar redes, ver ofertas y contactar al negocio.",
       callout: "Escanea. Traduce. Lee. Conecta.",
       explanation:
-        "Escanea el QR para aprender cómo traducir la revista visual con Google Lens, Google Translate o Apple Translate. Después usa Leonix para abrir enlaces, contactar negocios y ver acciones rápidas.",
+        "Cuando se distribuye la revista impresa, los lectores pueden escanear códigos QR en los anuncios. Para leer la revista visual, pueden usar la cámara del teléfono, Google Lens, Google Translate o Apple Live Text en páginas impresas, pantallas de escritorio o capturas. Para navegar el sitio Leonix, pueden usar las páginas traducidas de Leonix o el modo sitio web de Google Translate como apoyo. Los formularios nativos de contacto y publicidad de Leonix siguen siendo la ruta oficial de contacto.",
       mobileNote:
-        "Ya escaneaste el QR — no escanees tu propia pantalla. Usa Google Lens, Google Translate con cámara o Apple Translate sobre la revista impresa o digital.",
+        "En el celular, no escanees tu propia pantalla. Usa primero las páginas y resúmenes de Leonix en tu idioma. Google Lens y Apple Live Text son opcionales para impreso o capturas.",
       openReaderLabel: "Ver pasos de traducción QR",
       heroStripSummary:
-        "Usa la guía QR para traducir la revista visual y regresa a Leonix para enlaces y acciones.",
+        "Cada edición impresa mensual puede conectar lectores con llamadas, mapas, enlaces, redes y formularios nativos de Leonix.",
       detailNote: "Guía detallada de traducción QR",
       benefitsAria: "Beneficios del acceso QR",
       benefits: [
         {
-          title: "Traduce con cámara",
-          body: "Google Lens, Google Translate con cámara o Apple Translate leen la revista visual en tu idioma.",
+          title: "Del impreso al celular",
+          body: "El QR convierte la atención de la revista en llamadas, mapas, visitas web, redes, ofertas y formularios nativos de contacto.",
         },
         {
-          title: "Enlaces y acciones Leonix",
-          body: "Después de leer, usa Leonix para llamar, abrir mapas, ver Media Kit y contactar negocios.",
+          title: "Cámara y traducción web",
+          body: "Google Lens, Google Translate y Apple Live Text ayudan a leer páginas visuales. El modo sitio web de Google Translate ayuda a navegar Leonix — los formularios nativos siguen siendo oficiales.",
         },
         {
-          title: "Revista original en español",
-          body: "La edición visual (PDF/flipbook) permanece en español — Leonix no la traduce automáticamente.",
+          title: "Revista visual original en español",
+          body: "La edición visual PDF/FlipHTML5 permanece en español. Leonix no promete una revista visual totalmente traducida.",
         },
       ],
     },
@@ -235,15 +235,15 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
     },
     digitalMagazine: {
       eyebrow: "REVISTA DIGITAL",
-      headline: "Abre la edición visual original — con apoyo en tu idioma",
+      headline: "Edición visual original + apoyo multilingüe",
       intro:
-        "Puedes abrir la revista digital original y ver sus páginas tal como fueron diseñadas. Leonix también ofrece resúmenes, destacados y acciones rápidas en el idioma que elijas.",
+        "Puedes abrir la revista visual original en español y ver sus páginas tal como fueron diseñadas. Leonix también ofrece resúmenes, destacados y acciones rápidas en tu idioma seleccionado cuando están disponibles.",
       visualNote:
-        "Las páginas visuales de la revista (PDF/FlipHTML5) son la edición original — no una traducción automática de todo el arte.",
+        "Las páginas visuales de la revista (PDF/FlipHTML5) son la edición original en español — no una traducción automática de todo el arte.",
       highlightsNote:
-        "En el sitio encontrarás resúmenes y CTAs en tu idioma para orientarte sin prometer una revista visual traducida al 100%.",
+        "Usa las páginas Leonix para contexto y CTAs en tu idioma. Google Lens o capturas pueden ayudar a leer páginas visuales. Un futuro compañero HTML mejorará el alcance multilingüe sin reemplazar la edición visual original.",
       mobileNote:
-        "En móvil, elige tu idioma en Leonix y usa los resúmenes. No escanees tu propia pantalla para traducir.",
+        "En móvil, elige tu idioma en Leonix y usa los resúmenes. Las herramientas de cámara del teléfono pueden ayudar con páginas impresas o en pantalla — no escanees tu propia pantalla para traducir.",
       readHighlightsCta: { label: "Leer destacados en tu idioma" },
       openOriginalCta: { label: "Abrir revista digital original" },
       learnQrCta: { label: "Cómo funciona el acceso QR" },

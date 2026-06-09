@@ -101,43 +101,43 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "WHAT YOU GET",
       headline: "More than an ad: a complete presence for your business.",
       intro:
-        "Leonix combines print magazine visibility, digital presence, and QR-powered actions to help more customers find, understand, and contact your business.",
+        "Leonix combines a monthly print magazine, a Local Business Hub, and QR-powered actions to help more customers find, understand, and contact your business.",
       expandMore: "Learn more",
       expandLess: "Show less",
       cards: [
         {
-          title: "Premium print magazine",
-          body: "Your business appears in a publication designed to connect with the local Latino community.",
+          title: "Monthly print magazine",
+          body: "Your business can appear in a monthly magazine designed to connect with the local Latino community.",
           detail:
-            "Your ad appears inside a magazine designed to feel local, trustworthy, and professional. The goal is not just to look good; it is to place your business in front of a community that wants to support local businesses.",
+            "Leonix publishes a monthly Spanish print magazine for trusted local visibility. Print placement depends on your advertising package — not every business appears in every edition without a contract.",
           accent: "burgundy",
         },
         {
           title: "Bilingual digital presence",
-          body: "Your ad can also live in a clear, professional digital experience that is easy to share.",
+          body: "Your business can also appear on Leonix web pages with native forms and actions in the language your customers choose.",
           detail:
-            "Your digital presence helps the ad go beyond a single page. Customers can find your information, share it, and return to it from their phone.",
+            "Digital pages complement your print ad and your Local Business Hub profile with shareable information customers can return to from their phone.",
           accent: "gold",
         },
         {
           title: "QR + real actions",
-          body: "Turn attention into calls, messages, maps, links, offers, and more information.",
+          body: "Turn print attention into calls, messages, maps, website visits, social links, offers, and contact paths.",
           detail:
-            "The QR helps move people from the magazine to a concrete action: call, open a map, send a message, visit a website, view social media, or request more information.",
+            "QR connects each monthly edition to digital action. Readers can scan, use phone translation tools or Leonix language pages, and reach your business without jumping platform by platform.",
           accent: "qr",
         },
         {
-          title: "Negocios Locales",
-          body: "An organized presence for phone, location, socials, photos, reviews, and important links.",
+          title: "Local Business Hub + digital presence",
+          body: "We create one central business page where customers can find your social links, website, phone, location, photos, reviews, offers, and contact options in one place.",
           detail:
-            "Negocios Locales organizes your information in one place so customers do not have to search across separate platforms. Phone, address, map, socials, photos, and links can live together.",
+            "Negocios Locales is more than an ad — it brings your online presence together so customers discover and explore your business without searching across separate platforms.",
           accent: "green",
         },
         {
           title: "Founder launch opportunity",
           body: "Be one of the first businesses featured with Leonix Media during the launch stage.",
           detail:
-            "During launch, the first businesses help build the initial Leonix Media network. This creates an early visibility opportunity while the community starts discovering the platform.",
+            "During launch, the first businesses help build the initial Leonix Media network. This is an early visibility opportunity — not a separate advertising format.",
           accent: "founder",
         },
       ],
@@ -150,8 +150,8 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       stepsAria: "Process steps",
       steps: [
         {
-          title: "Choose your path",
-          body: "Select the type of presence you want: print ad, digital presence, QR, Media Kit, or launch package.",
+          title: "Choose your presence",
+          body: "Select whether you want monthly print visibility, a digital Local Business Hub page, QR-powered customer actions, or a launch combination.",
         },
         {
           title: "Send your information",
@@ -171,29 +171,29 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QR ACCESS",
       headline: "From the printed ad to the customer's phone.",
       intro:
-        "Scan the QR for simple steps, or use the translator QR to try opening Google Lens or Google Translate on your phone.",
+        "Each monthly edition can connect the physical magazine to digital actions: scan, translate, open maps, call, visit social links, view offers, and contact the business.",
       callout: "Scan. Translate. Read. Connect.",
       explanation:
-        "Scan the QR to learn how to translate the visual magazine with Google Lens, Google Translate, or Apple Translate. Then use Leonix to open links, contact businesses, and view quick actions.",
+        "When the printed magazine is distributed, readers can scan QR codes on ads. To read the visual magazine, visitors can use their phone camera, Google Lens, Google Translate, or Apple Live Text on printed pages, desktop screens, or screenshots. To browse the Leonix website, they can use Leonix translated pages or Google Translate Website Mode as a fallback. Native Leonix contact and advertising forms stay the official lead path.",
       mobileNote:
-        "You already scanned the QR — do not scan your own screen. Use Google Lens, Google Translate camera, or Apple Translate on the printed or digital magazine.",
+        "On mobile, do not scan your own screen. Use Leonix language pages and summaries first. Google Lens and Apple Live Text are optional for printed pages or screenshots.",
       openReaderLabel: "View QR translation steps",
       heroStripSummary:
-        "Use the QR guide to translate the visual magazine and return to Leonix for links and actions.",
+        "Each monthly print edition can connect readers to calls, maps, links, social profiles, and native Leonix contact paths.",
       detailNote: "Detailed QR translation guide",
       benefitsAria: "QR access benefits",
       benefits: [
         {
-          title: "Translate with your camera",
-          body: "Google Lens, Google Translate camera, or Apple Translate read the visual magazine in your language.",
+          title: "Print to phone action",
+          body: "QR turns magazine attention into calls, maps, website visits, social links, offers, and native contact forms.",
         },
         {
-          title: "Leonix links & actions",
-          body: "After reading, use Leonix to call, open maps, view the Media Kit, and contact businesses.",
+          title: "Camera & website translation",
+          body: "Google Lens, Google Translate, and Apple Live Text help read visual pages. Google Translate Website Mode helps browse Leonix pages — native forms stay official.",
         },
         {
-          title: "Original magazine in Spanish",
-          body: "The visual edition (PDF/flipbook) stays in Spanish — Leonix does not auto-translate it.",
+          title: "Original visual magazine in Spanish",
+          body: "The PDF/FlipHTML5 visual edition stays in Spanish. Leonix does not claim a fully translated visual magazine.",
         },
       ],
     },
@@ -232,15 +232,15 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
     },
     digitalMagazine: {
       eyebrow: "DIGITAL MAGAZINE",
-      headline: "Open the original visual edition — with support in your language",
+      headline: "Original visual edition + multilingual support",
       intro:
-        "You can open the original digital magazine and view its pages as designed. Leonix also offers summaries, highlights, and quick actions in the language you choose.",
+        "You can open the original Spanish visual magazine and view its pages as designed. Leonix also offers summaries, highlights, and quick actions in your selected language where available.",
       visualNote:
-        "The visual magazine pages (PDF/FlipHTML5) are the original edition — not an automatic translation of all artwork.",
+        "The visual magazine pages (PDF/FlipHTML5) are the original Spanish edition — not an automatic translation of all artwork.",
       highlightsNote:
-        "On the site you will find summaries and CTAs in your language to guide you without claiming a fully translated visual magazine.",
+        "Use Leonix pages for context and CTAs in your language. Google Lens or screenshots can help read visual pages. A future HTML companion will improve language reach without replacing the original visual edition.",
       mobileNote:
-        "On mobile, choose your language on Leonix and use the summaries. Do not scan your own screen to translate.",
+        "On mobile, choose your language on Leonix and use the summaries. Phone camera tools can help with printed or on-screen pages — do not scan your own screen to translate.",
       readHighlightsCta: { label: "Read highlights in your language" },
       openOriginalCta: { label: "Open original digital magazine" },
       learnQrCta: { label: "Learn how QR access works" },

@@ -103,43 +103,43 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "ANO ANG MAKUKUHA MO",
       headline: "Higit sa ad: kumpletong presence para sa iyong negosyo.",
       intro:
-        "Pinagsasama ng Leonix ang print magazine, digital presence, at QR-powered actions para mas maraming customer ang makahanap, makaintindi, at makontak ang iyong negosyo.",
+        "Pinagsasama ng Leonix ang buwanang print magazine, Local Business Hub sa Negocios Locales, at QR-powered actions para mas maraming customer ang makahanap, makaintindi, at makontak ang iyong negosyo.",
       expandMore: "Alamin pa",
       expandLess: "Itago",
       cards: [
         {
-          title: "Premium print magazine",
-          body: "Lumalabas ang iyong negosyo sa publication na dinisenyo para sa lokal na Latino community.",
+          title: "Buwanang print magazine",
+          body: "Maaaring lumabas ang iyong negosyo sa buwanang magazine na dinisenyo para sa lokal na Latino community.",
           detail:
-            "Ang iyong ad ay nasa loob ng magazine na dinisenyo para maging lokal, mapagkakatiwalaan, at propesyonal. Hindi lang maganda ang layunin; ilalagay ang iyong negosyo sa harap ng komunidad na gustong suportahan ang lokal na negosyo.",
+            "Naglalathala ang Leonix ng buwanang Spanish print magazine para sa mapagkakatiwalaang lokal na visibility. Depende sa advertising package ang print placement — hindi lahat ng negosyo ay lumalabas sa bawat edition nang walang kontrata.",
           accent: "burgundy",
         },
         {
           title: "Bilingual digital presence",
-          body: "Maaari ring mamuhay ang iyong ad sa malinaw, propesyonal, at madaling i-share na digital experience.",
+          body: "Maaari ring lumabas ang iyong negosyo sa Leonix web pages na may native forms at actions sa wikang pipiliin ng customers.",
           detail:
-            "Tinutulungan ng digital presence na hindi huminto ang ad sa isang pahina. Mahahanap, maibabahagi, at mababalikan ng customers ang iyong impormasyon mula sa kanilang phone.",
+            "Kinukumpleto ng digital pages ang print ad at Local Business Hub profile mo na may shareable information na maaaring balikan ng customers mula sa phone.",
           accent: "gold",
         },
         {
           title: "QR + tunay na aksyon",
-          body: "Gawing tawag, mensahe, maps, links, offers, at karagdagang impormasyon ang atensyon.",
+          body: "Gawing tawag, mensahe, maps, website visits, social links, offers, at contact paths ang print attention.",
           detail:
-            "Tinutulungan ng QR na ilipat ang mga tao mula sa magazine patungo sa konkretong aksyon: tumawag, buksan ang mapa, magpadala ng mensahe, bisitahin ang website, tingnan ang social media, o humingi ng karagdagang impormasyon.",
+            "Ikinokonekta ng QR ang bawat buwanang edition sa digital action. Maaaring mag-scan, gumamit ng phone translation tools o Leonix language pages ang readers, at maabot ang negosyo mo nang hindi lumilipat-lipat ng platform.",
           accent: "qr",
         },
         {
-          title: "Negocios Locales",
-          body: "Organisadong presence para sa phone, location, socials, photos, reviews, at mahahalagang links.",
+          title: "Negocios Locales + digital presence",
+          body: "Gumagawa kami ng isang central business page kung saan mahahanap ng customers ang social links, website, phone, location, photos, reviews, offers, at contact options sa isang lugar.",
           detail:
-            "Ino-organize ng Negocios Locales ang iyong impormasyon sa isang lugar para hindi na kailangang maghanap sa iba't ibang platform ang customer. Phone, address, mapa, socials, photos, at links ay maaaring magkasama.",
+            "Higit sa ad ang Negocios Locales — pinagsasama nito ang online presence mo para matuklasan at ma-explore ng customers ang negosyo nang hindi naghahanap sa hiwalay na platform.",
           accent: "green",
         },
         {
           title: "Founder launch opportunity",
           body: "Maging isa sa unang mga negosyong lumabas kasama ang Leonix Media sa launch stage.",
           detail:
-            "Sa launch, tinutulungan ng unang mga negosyo na buuin ang paunang network ng Leonix Media. Nagbibigay ito ng maagang visibility habang natutuklasan ng komunidad ang platform.",
+            "Sa launch, tinutulungan ng unang mga negosyo na buuin ang paunang network ng Leonix Media. Maagang visibility opportunity ito — hindi hiwalay na advertising format.",
           accent: "founder",
         },
       ],
@@ -152,8 +152,8 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       stepsAria: "Mga hakbang ng proseso",
       steps: [
         {
-          title: "Piliin ang iyong landas",
-          body: "Piliin ang uri ng presence na gusto mo: print ad, digital presence, QR, Media Kit, o launch package.",
+          title: "Piliin ang iyong presence",
+          body: "Piliin kung gusto mo ng buwanang print visibility, digital Local Business Hub page sa Negocios Locales, QR-powered customer actions, o launch combination.",
         },
         {
           title: "Ipadala ang iyong impormasyon",
@@ -173,29 +173,29 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QR ACCESS",
       headline: "Mula sa printed ad patungo sa phone ng customer.",
       intro:
-        "Ikinokonekta ng QR ang print magazine sa digital experience ng Leonix — ang iyong multilingual bridge.",
+        "Maaaring ikonekta ng bawat buwanang edition ang physical magazine sa digital actions: scan, translate, open maps, call, visit social links, view offers, at kontakin ang negosyo.",
       callout: "I-scan. Isalin. Basahin. Kumonekta.",
       explanation:
-        "I-scan ang QR mula sa printed o digital materials. Sa Leonix pipili ka ng wika, magbabasa ng summaries at impormasyon ng lokal na negosyo, at gagawa ng mabilis na aksyon. Ang website ang multilingual bridge; nananatili ang original edition ng visual magazine.",
+        "Kapag naipamahagi ang printed magazine, maaaring i-scan ng readers ang QR codes sa ads. Para basahin ang visual magazine, maaari nilang gamitin ang phone camera, Google Lens, Google Translate, o Apple Live Text sa printed pages, desktop screens, o screenshots. Para mag-browse sa Leonix website, maaari nilang gamitin ang Leonix translated pages o Google Translate Website Mode bilang fallback. Ang native Leonix contact at advertising forms ang opisyal na lead path.",
       mobileNote:
-        "Sa mobile, huwag subukang i-scan ang sarili mong phone screen. Gamitin ang language selector ng Leonix at ang summaries sa iyong wika. Opsiyonal lang ang Google Lens o Apple Translate para sa printed materials.",
+        "Sa mobile, huwag i-scan ang sarili mong screen. Gamitin muna ang Leonix language pages at summaries. Opsiyonal ang Google Lens at Apple Live Text para sa print o screenshots.",
       openReaderLabel: "Tingnan ang mga hakbang sa QR translation",
       heroStripSummary:
-        "Gamitin ang QR guide para isalin ang visual magazine at bumalik sa Leonix para sa mga link at action.",
+        "Maaaring ikonekta ng bawat buwanang print edition ang readers sa calls, maps, links, social profiles, at native Leonix contact paths.",
       detailNote: "Detalyadong gabay sa QR translation",
       benefitsAria: "Mga benepisyo ng QR access",
       benefits: [
         {
-          title: "Pumili ng wika sa Leonix",
-          body: "Summaries, impormasyon ng negosyo, at mabilis na aksyon sa wikang pipiliin mo sa site.",
+          title: "Print to phone action",
+          body: "Ginagawang calls, maps, website visits, social links, offers, at native contact forms ng QR ang magazine attention.",
         },
         {
-          title: "Mas maraming paraan para kumilos",
-          body: "Mula sa phone, maaari silang tumawag, buksan ang maps, magpadala ng mensahe, bisitahin ang links, tingnan ang social media, o humingi ng karagdagang impormasyon.",
+          title: "Camera at website translation",
+          body: "Tumutulong ang Google Lens, Google Translate, at Apple Live Text sa visual pages. Tumutulong ang Google Translate Website Mode sa pag-browse sa Leonix — nananatiling opisyal ang native forms.",
         },
         {
-          title: "Opsiyonal sa print",
-          body: "Para sa printed materials, maaaring tumulong ang Google Lens o Apple Translate sa pagbasa ng text. Ang Leonix pa rin ang pangunahing pintuan sa digital content.",
+          title: "Original visual magazine sa Spanish",
+          body: "Nanatili sa Spanish ang PDF/FlipHTML5 visual edition. Hindi inaangkin ng Leonix ang fully translated visual magazine.",
         },
       ],
     },
@@ -234,15 +234,15 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
     },
     digitalMagazine: {
       eyebrow: "DIGITAL MAGAZINE",
-      headline: "Buksan ang original visual edition — may suporta sa iyong wika",
+      headline: "Original visual edition + multilingual support",
       intro:
-        "Maaari mong buksan ang original digital magazine at tingnan ang mga pahina ayon sa disenyo. Nag-aalok din ang Leonix ng summaries, highlights, at mabilis na aksyon sa wikang pipiliin mo.",
+        "Maaari mong buksan ang original Spanish visual magazine at tingnan ang mga pahina ayon sa disenyo. Nag-aalok din ang Leonix ng summaries, highlights, at mabilis na aksyon sa napiling wika kung available.",
       visualNote:
-        "Ang visual magazine pages (PDF/FlipHTML5) ay ang original edition — hindi automatic translation ng buong artwork.",
+        "Ang visual magazine pages (PDF/FlipHTML5) ay ang original Spanish edition — hindi automatic translation ng buong artwork.",
       highlightsNote:
-        "Sa site makikita mo ang summaries at CTAs sa iyong wika para gabayan ka nang hindi nagsasabing fully translated ang visual magazine.",
+        "Gamitin ang Leonix pages para sa context at CTAs sa iyong wika. Maaaring tumulong ang Google Lens o screenshots sa visual pages. Magpapabuti ang future HTML companion ng language reach nang hindi pinapalitan ang original visual edition.",
       mobileNote:
-        "Sa mobile, pumili ng wika sa Leonix at gamitin ang summaries. Huwag i-scan ang sarili mong screen para mag-translate.",
+        "Sa mobile, pumili ng wika sa Leonix at gamitin ang summaries. Maaaring tumulong ang phone camera tools sa printed o on-screen pages — huwag i-scan ang sarili mong screen para mag-translate.",
       readHighlightsCta: { label: "Basahin ang highlights sa iyong wika" },
       openOriginalCta: { label: "Buksan ang original digital magazine" },
       learnQrCta: { label: "Alamin kung paano gumagana ang QR access" },

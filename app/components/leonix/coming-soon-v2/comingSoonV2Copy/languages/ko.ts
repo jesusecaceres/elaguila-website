@@ -101,43 +101,43 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "제공 혜택",
       headline: "광고 그 이상: 비즈니스를 위한 완전한 프레즌스.",
       intro:
-        "Leonix는 인쇄 매거진, 디지털 프레즌스, QR 기반 액션을 결합해 더 많은 고객이 비즈니스를 찾고 이해하고 연락하도록 돕습니다.",
+        "Leonix는 월간 인쇄 매거진, Negocios Locales Local Business Hub, QR 기반 액션을 결합해 더 많은 고객이 비즈니스를 찾고 이해하고 연락하도록 돕습니다.",
       expandMore: "더 알아보기",
       expandLess: "접기",
       cards: [
         {
-          title: "프리미엄 인쇄 매거진",
-          body: "비즈니스가 지역 라티노 커뮤니티를 위해 설계된 출판물에 등장합니다.",
+          title: "월간 인쇄 매거진",
+          body: "비즈니스는 지역 라티노 커뮤니티를 위해 설계된 월간 매거진에 등장할 수 있습니다.",
           detail:
-            "광고는 지역적이고 신뢰할 수 있으며 전문적으로 느껴지는 매거진 안에 있습니다. 목표는 보기 좋은 것뿐만 아니라, 지역 비즈니스를 지원하려는 커뮤니티 앞에 비즈니스를 배치하는 것입니다.",
+            "Leonix는 신뢰할 수 있는 지역 노출을 위해 월간 스페인어 인쇄 매거진을 발행합니다. 인쇄 게재는 광고 패키지에 따라 다릅니다 — 계약 없이 모든 비즈니스가 매 호에 등장하는 것은 아닙니다.",
           accent: "burgundy",
         },
         {
           title: "이중언어 디지털 프레즌스",
-          body: "광고는 명확하고 전문적이며 공유하기 쉬운 디지털 경험에도 존재할 수 있습니다.",
+          body: "비즈니스는 고객이 선택한 언어의 네이티브 폼과 액션이 있는 Leonix 웹 페이지에도 등장할 수 있습니다.",
           detail:
-            "디지털 프레즌스는 광고가 한 페이지에서 끝나지 않도록 돕습니다. 고객은 휴대폰에서 정보를 찾고 공유하고 다시 볼 수 있습니다.",
+            "디지털 페이지는 인쇄 광고와 Local Business Hub 프로필을 보완하며, 고객이 휴대폰에서 다시 방문할 수 있는 공유 가능한 정보를 제공합니다.",
           accent: "gold",
         },
         {
           title: "QR + 실제 액션",
-          body: "관심을 전화, 메시지, 지도, 링크, 혜택, 추가 정보로 전환합니다.",
+          body: "인쇄 관심을 전화, 메시지, 지도, 웹사이트 방문, SNS, 혜택, 연락 경로로 전환합니다.",
           detail:
-            "QR은 매거진에서 구체적인 행동으로 이동시킵니다: 전화, 지도 열기, 메시지 보내기, 웹사이트 방문, SNS 보기, 추가 정보 요청.",
+            "QR은 각 월간 호를 디지털 액션에 연결합니다. 독자는 스캔하고, 휴대폰 번역 도구나 Leonix 언어 페이지를 사용해 플랫폼을 오가지 않고 비즈니스에 도달할 수 있습니다.",
           accent: "qr",
         },
         {
-          title: "Negocios Locales",
-          body: "전화, 위치, SNS, 사진, 리뷰, 중요 링크를 위한 정리된 프레즌스.",
+          title: "Negocios Locales + 디지털 프레즌스",
+          body: "고객이 SNS, 웹사이트, 전화, 위치, 사진, 리뷰, 혜택, 연락 방법을 한곳에서 찾을 수 있는 중앙 비즈니스 페이지를 만듭니다.",
           detail:
-            "Negocios Locales 는 정보를 한곳에 정리해 고객이 여러 플랫폼을 찾을 필요가 없게 합니다. 전화, 주소, 지도, SNS, 사진, 링크가 함께 있을 수 있습니다.",
+            "Negocios Locales는 광고 그 이상 — 온라인 프레즌스를 모아 고객이 별도 플랫폼을 검색하지 않고 비즈니스를 발견하고 탐색할 수 있게 합니다.",
           accent: "green",
         },
         {
           title: "창립 출시 기회",
           body: "출시 단계에서 Leonix Media 와 함께 처음 등장하는 비즈니스 중 하나가 되세요.",
           detail:
-            "출시 시 초기 비즈니스가 Leonix Media 의 초기 네트워크를 구축합니다. 커뮤니티가 플랫폼을 알아가는 동안 조기 노출 기회가 생깁니다.",
+            "출시 시 초기 비즈니스가 Leonix Media 의 초기 네트워크를 구축합니다. 이는 조기 노출 기회이며 — 별도의 광고 형식이 아닙니다.",
           accent: "founder",
         },
       ],
@@ -149,8 +149,8 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       stepsAria: "프로세스 단계",
       steps: [
         {
-          title: "경로 선택",
-          body: "원하는 프레즌스 유형 선택: 인쇄 광고, 디지털 프레즌스, QR, 미디어 키트, 출시 패키지.",
+          title: "프레즌스 선택",
+          body: "월간 인쇄 노출, Negocios Locales 디지털 Local Business Hub 페이지, QR 기반 고객 액션, 또는 출시 조합 중 선택하세요.",
         },
         {
           title: "정보 전송",
@@ -169,29 +169,30 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
     qrAccess: {
       eyebrow: "QR 접근",
       headline: "인쇄 광고에서 고객의 휴대폰으로.",
-      intro: "QR은 인쇄 매거진과 Leonix 의 디지털 경험을 연결합니다 — 다국어 다리입니다.",
+      intro:
+        "각 월간 호는 실물 매거진을 디지털 액션에 연결할 수 있습니다: 스캔, 번역, 지도 열기, 전화, SNS 방문, 혜택 보기, 비즈니스 연락.",
       callout: "스캔. 번역. 읽기. 연결.",
       explanation:
-        "인쇄물 또는 디지털 자료에서 QR을 스캔하세요. Leonix 에서 언어를 선택하고 요약과 지역 비즈니스 정보를 읽고 빠르게 행동하세요. 웹사이트가 다국어 다리이며, 시각적 매거진은 원본 판을 유지합니다.",
+        "인쇄 매거진이 배포되면 독자는 광고의 QR 코드를 스캔할 수 있습니다. 시각적 매거진을 읽으려면 인쇄 페이지, 데스크톱 화면, 스크린샷에서 휴대폰 카메라, Google Lens, Google Translate, Apple Live Text를 사용할 수 있습니다. Leonix 웹사이트를 탐색하려면 Leonix 번역 페이지 또는 Google Translate 웹사이트 모드를 대체 수단으로 사용할 수 있습니다. 네이티브 Leonix 연락 및 광고 양식이 공식 리드 경로입니다.",
       mobileNote:
-        "모바일에서는 자신의 휴대폰 화면을 스캔하려 하지 마세요. Leonix 언어 선택기와 선택한 언어의 요약을 사용하세요. Google Lens 또는 Apple 번역은 인쇄물에만 선택 사항입니다.",
+        "모바일에서는 자신의 화면을 스캔하지 마세요. 먼저 Leonix 언어 페이지와 요약을 사용하세요. Google Lens와 Apple Live Text는 인쇄물 또는 스크린샷용 선택 사항입니다.",
       openReaderLabel: "QR 번역 단계 보기",
       heroStripSummary:
-        "QR 가이드로 시각적 매거진을 번역하고 Leonix로 돌아와 링크와 액션을 이용하세요.",
+        "각 월간 인쇄 호는 독자를 전화, 지도, 링크, SNS, 네이티브 Leonix 연락 경로에 연결할 수 있습니다.",
       detailNote: "자세한 QR 번역 가이드",
       benefitsAria: "QR 접근 혜택",
       benefits: [
         {
-          title: "Leonix 에서 언어 선택",
-          body: "사이트에서 선택한 언어로 요약, 비즈니스 정보, 빠른 액션.",
+          title: "인쇄에서 휴대폰으로",
+          body: "QR은 매거진 관심을 전화, 지도, 웹사이트 방문, SNS, 혜택, 네이티브 연락 양식으로 전환합니다.",
         },
         {
-          title: "더 많은 행동 방법",
-          body: "휴대폰에서 전화, 지도, 메시지, 링크, SNS, 추가 정보 요청이 가능합니다.",
+          title: "카메라 및 웹 번역",
+          body: "Google Lens, Google Translate, Apple Live Text가 시각 페이지 읽기를 돕습니다. Google Translate 웹사이트 모드가 Leonix 탐색을 돕습니다 — 네이티브 양식이 공식입니다.",
         },
         {
-          title: "인쇄물 선택 사항",
-          body: "인쇄물의 경우 Google Lens 또는 Apple 번역이 텍스트 읽기에 도움이 될 수 있습니다. Leonix 가 디지털 콘텐츠의 주요 관문입니다.",
+          title: "스페인어 원본 시각 매거진",
+          body: "PDF/FlipHTML5 시각 판은 스페인어로 유지됩니다. Leonix는 완전히 번역된 시각 매거진을 주장하지 않습니다.",
         },
       ],
     },
@@ -229,15 +230,15 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
     },
     digitalMagazine: {
       eyebrow: "디지털 매거진",
-      headline: "원본 시각 판 열기 — 선택한 언어 지원 포함",
+      headline: "원본 시각 판 + 다국어 지원",
       intro:
-        "원본 디지털 매거진을 열고 설계된 대로 페이지를 볼 수 있습니다. Leonix 는 선택한 언어로 요약, 하이라이트, 빠른 액션도 제공합니다.",
+        "스페인어 원본 시각 매거진을 열고 설계된 대로 페이지를 볼 수 있습니다. Leonix는 선택한 언어로 요약, 하이라이트, 빠른 액션도 제공합니다(가능한 경우).",
       visualNote:
-        "시각적 매거진 페이지(PDF/FlipHTML5)는 원본 판입니다 — 모든 아트워크의 자동 번역이 아닙니다.",
+        "시각적 매거진 페이지(PDF/FlipHTML5)는 스페인어 원본 판 — 모든 아트워크의 자동 번역이 아닙니다.",
       highlightsNote:
-        "사이트에서 선택한 언어의 요약과 CTA를 찾아 완전히 번역된 시각 매거진을 주장하지 않고 안내합니다.",
+        "Leonix 페이지에서 선택 언어의 맥락과 CTA를 이용하세요. Google Lens나 스크린샷이 시각 페이지 읽기를 돕습니다. 향후 HTML 동반 콘텐츠가 원본 시각 판을 대체하지 않고 언어 도달을 개선합니다.",
       mobileNote:
-        "모바일에서는 Leonix 에서 언어를 선택하고 요약을 사용하세요. 번역을 위해 자신의 화면을 스캔하지 마세요.",
+        "모바일에서는 Leonix 에서 언어를 선택하고 요약을 사용하세요. 휴대폰 카메라 도구가 인쇄물 또는 화면 페이지를 돕습니다 — 번역을 위해 자신의 화면을 스캔하지 마세요.",
       readHighlightsCta: { label: "선택한 언어로 하이라이트 읽기" },
       openOriginalCta: { label: "원본 디지털 매거진 열기" },
       learnQrCta: { label: "QR 접근 작동 방식 알아보기" },
