@@ -18,6 +18,8 @@ export function adminCategoryWorkspaceQueueHref(slug: string): string {
       return "/admin/workspace/clasificados/servicios";
     case "comida-local":
       return "/admin/workspace/clasificados/comida-local";
+    case "ofertas-locales":
+      return "/admin/workspace/clasificados/ofertas-locales";
     case "empleos":
       return "/admin/workspace/clasificados/empleos";
     case "autos":

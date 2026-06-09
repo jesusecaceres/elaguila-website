@@ -29,6 +29,12 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
         publicHref: "/clasificados/comida-local",
         publishHref: "/publicar/comida-local",
       };
+    case "ofertas-locales":
+      return {
+        sourceTable: "public.ofertas_locales",
+        publicHref: "/clasificados/ofertas-locales",
+        publishHref: "/publicar/ofertas-locales",
+      };
     case "empleos":
       return {
         sourceTable: "public.empleos_public_listings",
