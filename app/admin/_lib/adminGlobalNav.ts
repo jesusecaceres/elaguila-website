@@ -36,7 +36,7 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/usuarios", labelKey: "nav.users", icon: "◎" },
   { href: "/admin/ops", labelKey: "nav.customerOps", icon: "⌕" },
   {
-    href: "/admin/leads/newsletter",
+    href: "/admin/leads/inbox",
     labelKey: "nav.launchLeads",
     icon: "📬",
     activePathPrefixes: ["/admin/leads"],

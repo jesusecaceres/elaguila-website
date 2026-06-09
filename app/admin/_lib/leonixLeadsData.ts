@@ -9,6 +9,8 @@ export const LEAD_CAPTURE_MIGRATION_NOTE =
   "Lead capture tables are not available. Apply the Supabase migration first.";
 
 export const LEAD_LIST_DEFAULT_LIMIT = 100;
+/** Inbox UI loads more rows for daily ops (still capped for performance). */
+export const LEAD_INBOX_DISPLAY_LIMIT = 500;
 export const LEAD_EXPORT_MAX_ROWS = 10_000;
 
 export type NewsletterSubscriberRow = {
@@ -23,6 +25,33 @@ export type NewsletterSubscriberRow = {
   lang: string;
   status: string;
   consent_timestamp: string;
+  created_at: string;
+  updated_at: string;
+};
+
+import { LEONIX_LEAD_STATUSES, type LeonixLeadStatus } from "./leonixLeadStatuses";
+
+export { LEONIX_LEAD_STATUSES, type LeonixLeadStatus };
+
+export type LeonixLeadRow = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  business_name: string;
+  inquiry_type: string;
+  preferred_contact_method: string;
+  city_area: string;
+  website_or_social: string;
+  business_category: string;
+  message: string;
+  source_page: string;
+  source_cta: string;
+  lang: string;
+  wants_launch_updates: boolean;
+  consent_to_contact: boolean;
+  status: string;
+  internal_notes: string;
   created_at: string;
   updated_at: string;
 };
@@ -70,6 +99,141 @@ function supabaseUnavailable<T>(): AdminLeadListResult<T> {
     dataUnavailableNote: "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
     error: null,
   };
+}
+
+const LEONIX_LEAD_SELECT =
+  "id,full_name,email,phone,business_name,inquiry_type,preferred_contact_method,city_area,website_or_social,business_category,message,source_page,source_cta,lang,wants_launch_updates,consent_to_contact,status,internal_notes,created_at,updated_at";
+
+export async function listLeonixLeadsForAdmin(
+  limit = LEAD_LIST_DEFAULT_LIMIT
+): Promise<AdminLeadListResult<LeonixLeadRow>> {
+  if (!isSupabaseAdminConfigured()) return supabaseUnavailable();
+
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error, count } = await supabase
+      .from("leonix_leads")
+      .select(LEONIX_LEAD_SELECT, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      const mapped = mapTableError(error);
+      return {
+        rows: [],
+        total: 0,
+        dataUnavailable: mapped.unavailable,
+        dataUnavailableNote: mapped.unavailable ? mapped.message : null,
+        error: mapped.message,
+      };
+    }
+
+    return {
+      rows: (data ?? []) as LeonixLeadRow[],
+      total: typeof count === "number" ? count : (data ?? []).length,
+      dataUnavailable: false,
+      dataUnavailableNote: null,
+      error: null,
+    };
+  } catch (e) {
+    const mapped = mapTableError(e);
+    return {
+      rows: [],
+      total: 0,
+      dataUnavailable: mapped.unavailable,
+      dataUnavailableNote: mapped.unavailable ? mapped.message : null,
+      error: mapped.message,
+    };
+  }
+}
+
+export async function fetchAllLeonixLeadsForExport(): Promise<AdminLeadListResult<LeonixLeadRow>> {
+  if (!isSupabaseAdminConfigured()) return supabaseUnavailable();
+
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leonix_leads")
+      .select(LEONIX_LEAD_SELECT)
+      .order("created_at", { ascending: false })
+      .limit(LEAD_EXPORT_MAX_ROWS);
+
+    if (error) {
+      const mapped = mapTableError(error);
+      return {
+        rows: [],
+        total: 0,
+        dataUnavailable: mapped.unavailable,
+        dataUnavailableNote: mapped.unavailable ? mapped.message : null,
+        error: mapped.message,
+      };
+    }
+
+    return {
+      rows: (data ?? []) as LeonixLeadRow[],
+      total: (data ?? []).length,
+      dataUnavailable: false,
+      dataUnavailableNote: null,
+      error: null,
+    };
+  } catch (e) {
+    const mapped = mapTableError(e);
+    return {
+      rows: [],
+      total: 0,
+      dataUnavailable: mapped.unavailable,
+      dataUnavailableNote: mapped.unavailable ? mapped.message : null,
+      error: mapped.message,
+    };
+  }
+}
+
+export type UpdateLeonixLeadResult =
+  | { ok: true; row: LeonixLeadRow }
+  | { ok: false; error: "not_found" | "invalid_status" | "save_failed" };
+
+export async function updateLeonixLeadAdmin(
+  id: string,
+  patch: { status?: string; internal_notes?: string }
+): Promise<UpdateLeonixLeadResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "save_failed" };
+  }
+
+  const updates: Record<string, string> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (patch.status != null) {
+    const status = patch.status.trim();
+    if (!(LEONIX_LEAD_STATUSES as readonly string[]).includes(status)) {
+      return { ok: false, error: "invalid_status" };
+    }
+    updates.status = status;
+  }
+
+  if (patch.internal_notes != null) {
+    updates.internal_notes = patch.internal_notes.trim().slice(0, 4000);
+  }
+
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leonix_leads")
+      .update(updates)
+      .eq("id", id)
+      .select(LEONIX_LEAD_SELECT)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[admin/leads] update failed", { code: error.code });
+      return { ok: false, error: "save_failed" };
+    }
+    if (!data) return { ok: false, error: "not_found" };
+    return { ok: true, row: data as LeonixLeadRow };
+  } catch {
+    return { ok: false, error: "save_failed" };
+  }
 }
 
 export async function listNewsletterSubscribersForAdmin(
