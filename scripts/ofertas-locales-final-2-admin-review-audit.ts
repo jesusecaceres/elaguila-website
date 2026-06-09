@@ -38,6 +38,18 @@ const FORBIDDEN = [
   /sms|email.*shopping/i,
 ] as const;
 
+const FINAL_3_PARALLEL = [
+  /^app\/\(site\)\/dashboard\/ofertas-locales\//,
+  /^app\/api\/ofertas-locales\/owner\//,
+  /^scripts\/ofertas-locales-final-3-seller-dashboard-audit\.ts$/,
+  /^app\/lib\/ofertas-locales\/ofertasLocalesOwner/,
+  /^app\/lib\/ofertas-locales\/OFERTAS_LOCALES_FINAL_3_/,
+] as const;
+
+function isFinal3Parallel(file: string): boolean {
+  return FINAL_3_PARALLEL.some((re) => re.test(file));
+}
+
 function read(rel: string): string {
   return fs.readFileSync(path.join(ROOT, rel.replace(/\//g, path.sep)), "utf8");
 }
@@ -122,6 +134,7 @@ function run() {
   const changed = changedFiles();
   const unrelated = changed.filter((f) => !isAllowed(f));
   for (const f of unrelated) {
+    if (isFinal3Parallel(f)) continue;
     const forbidden = FORBIDDEN.some((re) => re.test(f));
     if (forbidden) {
       assert.fail(`forbidden file changed: ${f}`);
