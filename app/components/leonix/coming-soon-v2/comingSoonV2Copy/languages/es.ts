@@ -174,7 +174,7 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "ACCESO QR",
       headline: "Del anuncio impreso al celular del cliente.",
       intro:
-        "El QR conecta la revista impresa con Leonix — aprende a traducir la revista visual con herramientas de cámara.",
+        "Escanea el QR para ver pasos simples y botones rápidos para abrir herramientas de traducción como Google Lens, Google Translate o Apple Translate.",
       callout: "Escanea. Traduce. Lee. Conecta.",
       explanation:
         "Escanea el QR para aprender cómo traducir la revista visual con Google Lens, Google Translate o Apple Translate. Después usa Leonix para abrir enlaces, contactar negocios y ver acciones rápidas.",

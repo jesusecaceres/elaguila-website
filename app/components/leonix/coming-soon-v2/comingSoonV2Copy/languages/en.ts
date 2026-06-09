@@ -171,7 +171,7 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QR ACCESS",
       headline: "From the printed ad to the customer's phone.",
       intro:
-        "The QR connects the print magazine to Leonix — learn how to translate the visual magazine with camera tools.",
+        "Scan the QR for simple steps and quick buttons to open phone translation tools like Google Lens, Google Translate, or Apple Translate.",
       callout: "Scan. Translate. Read. Connect.",
       explanation:
         "Scan the QR to learn how to translate the visual magazine with Google Lens, Google Translate, or Apple Translate. Then use Leonix to open links, contact businesses, and view quick actions.",

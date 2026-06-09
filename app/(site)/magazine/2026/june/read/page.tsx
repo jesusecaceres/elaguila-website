@@ -73,8 +73,11 @@ function JuneReaderContent() {
 
         {fromPrint ? (
           <>
-            <MagazinePrintVisualGuide />
-            <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
+            <MagazinePrintVisualGuide
+              afterAppLaunchers={
+                <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
+              }
+            />
             <p className="mt-4 rounded-lg border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
               {PRINT_WEBSITE_LANG_NOTE.en}
               <span className="mt-1 block" lang="es">

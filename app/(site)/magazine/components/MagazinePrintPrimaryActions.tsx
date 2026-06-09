@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  getMagazineUi,
   mediaKitHref,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
@@ -21,7 +20,6 @@ export function MagazinePrintPrimaryActions({
   lang,
   onOpenFlipbook,
 }: MagazinePrintPrimaryActionsProps) {
-  const ui = getMagazineUi(lang);
   const visual = getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang);
   const mediaKit = mediaKitHref(lang);
   const contactHref = `/contacto?inquiryType=advertising&sourceCta=magazine-qr&lang=${lang}`;
@@ -35,27 +33,31 @@ export function MagazinePrintPrimaryActions({
 
   return (
     <section
-      className="mt-6 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 sm:p-6"
+      className="mt-4 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 sm:p-6"
       aria-labelledby="print-primary-actions-title"
     >
-      <h2
+      <p
         id="print-primary-actions-title"
-        className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl"
+        className="text-xs font-bold uppercase tracking-[0.14em] text-[#556B3E]"
       >
-        {PRINT_PRIMARY_CTA.openDigital.en}
-        <span className="mt-0.5 block text-sm font-semibold text-[#556B3E]">
-          {PRINT_PRIMARY_CTA.openDigital.es}
+        <span lang="en">Practical actions</span>
+        <span className="mx-1.5" aria-hidden>
+          /
         </span>
-      </h2>
+        <span lang="es">Acciones prácticas</span>
+      </p>
       <div className="mt-4 flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap">
         <button type="button" onClick={onOpenFlipbook} className={btnPrimary}>
-          {ui.viewFlipbookSpanish}
+          {PRINT_PRIMARY_CTA.openDigital.en}
+          <span className="sr-only"> / {PRINT_PRIMARY_CTA.openDigital.es}</span>
         </button>
         <a href={visual.pdfUrl} download className={btnOutline}>
-          {ui.downloadPdf}
+          {PRINT_PRIMARY_CTA.downloadPdf.en}
+          <span className="sr-only"> / {PRINT_PRIMARY_CTA.downloadPdf.es}</span>
         </a>
         <a href={mediaKit} target="_blank" rel="noopener noreferrer" className={btnGold}>
-          {ui.viewMediaKit}
+          {PRINT_PRIMARY_CTA.mediaKit.en}
+          <span className="sr-only"> / {PRINT_PRIMARY_CTA.mediaKit.es}</span>
         </a>
         <Link href={contactHref} className={btnOutline}>
           {PRINT_PRIMARY_CTA.contact.en}
