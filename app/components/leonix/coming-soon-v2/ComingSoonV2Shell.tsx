@@ -2070,7 +2070,6 @@ function ComingSoonV2ShellContent() {
   const final = t.finalCta;
   const contact = t.contact;
   const newsletter = t.newsletter;
-  const magazineHref = `/magazine?lang=${routeLang}`;
   const magazineDigitalHref = `/magazine/2026/june/read?lang=${routeLang}`;
   const magazineHero = LEONIX_MAGAZINE_HERO_CTAS[routeLang];
 
@@ -2207,22 +2206,13 @@ function ComingSoonV2ShellContent() {
                     <HeroCtaLink key={cta.label} cta={cta} />
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 sm:contents">
-                  <HeroCtaLink
-                    cta={{
-                      label: magazineHero.read,
-                      href: magazineHref,
-                      variant: "secondary",
-                    }}
-                  />
-                  <HeroCtaLink
-                    cta={{
-                      label: magazineHero.digital,
-                      href: magazineDigitalHref,
-                      variant: "green",
-                    }}
-                  />
-                </div>
+                <HeroCtaLink
+                  cta={{
+                    label: magazineHero.digital,
+                    href: magazineDigitalHref,
+                    variant: "green",
+                  }}
+                />
               </div>
 
               <ul
