@@ -51,6 +51,12 @@ export function resolveLeonixResendConfig(): LeonixResendConfig {
     return { ok: false, code: "NOT_CONFIGURED", missing, message };
   }
 
+  if (!fromExplicit && apiKey) {
+    console.warn(
+      "[leonix-email] using default FROM noreply@leonixmedia.com — set LEONIX_RESEND_FROM to a Resend-verified sender if delivery fails",
+    );
+  }
+
   return { ok: true, apiKey, from };
 }
 

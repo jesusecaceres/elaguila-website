@@ -7,6 +7,33 @@ import {
 
 type HeroCtaVariant = "primary" | "secondary" | "green";
 
+function contactPath(lang: SupportedLang): "/contacto" | "/contact" {
+  return lang === "en" ? "/contact" : "/contacto";
+}
+
+function buildContactHref(
+  lang: SupportedLang,
+  params: { inquiryType: string; sourceCta: string; sourcePage?: string },
+): string {
+  const search = new URLSearchParams({
+    inquiryType: params.inquiryType,
+    sourceCta: params.sourceCta,
+    sourcePage: params.sourcePage ?? "coming-soon-v2",
+    lang,
+  });
+  return `${contactPath(lang)}?${search.toString()}`;
+}
+
+function buildNewsletterHref(lang: SupportedLang): string {
+  const search = new URLSearchParams({
+    source: "coming-soon-v2",
+    inquiryType: "launch",
+    sourceCta: "join_launch",
+    lang,
+  });
+  return `/newsletter?${search.toString()}`;
+}
+
 /** Wire internal hrefs to the active route language. */
 export function localizeComingSoonV2Copy(
   lang: SupportedLang,
@@ -51,10 +78,15 @@ export function localizeComingSoonV2Copy(
   },
 ): ComingSoonV2Copy {
   const pdf = primaryMediaKitPdfHref(lang);
-  const mediaKitPage = `/media-kit?lang=${lang}`;
-  const contactHref = `/contacto?inquiryType=advertising&sourceCta=advertise&sourcePage=coming-soon-v2&lang=${lang}`;
-  const mediaKitAdInfoHref = `/contacto?inquiryType=advertising&sourceCta=media_kit_ad_info&sourcePage=coming-soon-v2&lang=${lang}`;
-  const newsletterHref = `/newsletter?source=coming-soon-v2&sourceCta=join_launch&lang=${lang}`;
+  const advertiseHref = buildContactHref(lang, {
+    inquiryType: "advertising",
+    sourceCta: "advertise",
+  });
+  const mediaKitInterestHref = buildContactHref(lang, {
+    inquiryType: "mediaKit",
+    sourceCta: "media_kit_interest",
+  });
+  const newsletterHref = buildNewsletterHref(lang);
   const magazineReader = magazineJune2026ReaderHref(lang);
   const magazineOriginal = magazineJune2026ReaderHref(lang, { hash: "original-edition" });
 
@@ -63,8 +95,8 @@ export function localizeComingSoonV2Copy(
     hero: {
       ...copy.hero,
       ctas: [
-        { label: copy.hero.ctas[0].label, href: contactHref, variant: copy.hero.ctas[0].variant },
-        { label: copy.hero.ctas[1].label, href: mediaKitPage, variant: copy.hero.ctas[1].variant },
+        { label: copy.hero.ctas[0].label, href: advertiseHref, variant: copy.hero.ctas[0].variant },
+        { label: copy.hero.ctas[1].label, href: pdf, variant: copy.hero.ctas[1].variant, external: true },
         { label: copy.hero.ctas[2].label, href: newsletterHref, variant: copy.hero.ctas[2].variant },
       ],
     },
@@ -77,11 +109,11 @@ export function localizeComingSoonV2Copy(
     },
     mediaKitPreview: {
       ...copy.mediaKitPreview,
-      viewCta: { label: copy.mediaKitPreview.viewCta.label, href: mediaKitPage },
+      viewCta: { label: copy.mediaKitPreview.viewCta.label, href: pdf },
       downloadCta: { label: copy.mediaKitPreview.downloadCta.label, href: pdf },
       requestInfoCta: {
         label: copy.mediaKitPreview.requestInfoCta.label,
-        href: mediaKitAdInfoHref,
+        href: mediaKitInterestHref,
       },
     },
     digitalMagazine: {
@@ -102,11 +134,12 @@ export function localizeComingSoonV2Copy(
     finalCta: {
       ...copy.finalCta,
       ctas: [
-        { label: copy.finalCta.ctas[0].label, href: contactHref, variant: copy.finalCta.ctas[0].variant },
+        { label: copy.finalCta.ctas[0].label, href: advertiseHref, variant: copy.finalCta.ctas[0].variant },
         {
           label: copy.finalCta.ctas[1].label,
-          href: mediaKitPage,
+          href: pdf,
           variant: copy.finalCta.ctas[1].variant,
+          external: true,
         },
         { label: copy.finalCta.ctas[2].label, href: newsletterHref, variant: copy.finalCta.ctas[2].variant },
       ],

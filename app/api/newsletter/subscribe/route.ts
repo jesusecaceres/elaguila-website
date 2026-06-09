@@ -72,6 +72,7 @@ export async function POST(req: Request) {
   const businessName = o.businessName != null ? String(o.businessName) : o.business != null ? String(o.business) : undefined;
   const city = o.city != null ? String(o.city) : o.cityArea != null ? String(o.cityArea) : undefined;
   const source = o.source;
+  const sourceCta = String(o.sourceCta ?? o.source_cta ?? "").trim();
   const audienceType = o.audienceType ?? o.audience_type;
   const wantsLaunchUpdates = o.wantsLaunchUpdates !== false && o.wants_launch_updates !== false;
 
@@ -97,7 +98,12 @@ export async function POST(req: Request) {
       zipCode: o.zipCode != null ? String(o.zipCode) : o.zip_code != null ? String(o.zip_code) : undefined,
       audienceType,
       preferredLanguage: o.preferredLanguage ?? o.preferred_language,
-      interests: o.interests != null ? String(o.interests) : undefined,
+      interests: [
+        sourceCta ? `cta:${sourceCta}` : "",
+        o.interests != null ? String(o.interests) : "",
+      ]
+        .filter(Boolean)
+        .join("; "),
       source,
       lang,
       consentTimestamp,
@@ -139,11 +145,23 @@ export async function POST(req: Request) {
     });
 
     emailSent = sent.ok;
-    if (!sent.ok) {
-      console.warn("[newsletter] subscriber saved without team email notification", { email: email.trim() });
+    if (sent.ok) {
+      console.info("[newsletter] email notification accepted by provider", {
+        subscriberId: savedId,
+        to: LEONIX_GLOBAL_EMAIL,
+        source: String(source ?? "newsletter_page"),
+        sourceCta: sourceCta || "(none)",
+      });
+    } else {
+      console.warn("[newsletter] subscriber saved without team email notification", {
+        code: sent.code,
+        sourceCta: sourceCta || "(none)",
+      });
     }
   } else if (saved) {
-    console.warn("[newsletter] RESEND_API_KEY not configured — subscriber saved without team email notification.");
+    console.warn(
+      "[newsletter] RESEND_API_KEY or FROM address not configured — subscriber saved without team email notification. Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production.",
+    );
   }
 
   if (!saved && !emailSent) {

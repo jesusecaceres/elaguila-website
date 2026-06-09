@@ -95,6 +95,7 @@ export function ComingSoonLaunchSignupForm({
         city: cityArea.trim() || undefined,
         audienceType: audienceType || undefined,
         source,
+        sourceCta: "join_launch",
         consentToReceiveUpdates: true,
       },
       lang === "en" ? "en" : "es"

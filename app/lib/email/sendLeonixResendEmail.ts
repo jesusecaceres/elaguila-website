@@ -59,6 +59,7 @@ async function postResendEmail(
     return { ok: false, message: msg, code: "RESEND_ERROR" };
   }
 
+  console.info(`[leonix-email] scope=${scope} reason=accepted_by_provider`);
   return { ok: true };
 }
 

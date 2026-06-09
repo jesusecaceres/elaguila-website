@@ -162,6 +162,13 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
 
     if (sent.ok) {
       emailSent = true;
+      console.info("[leads] email notification accepted by provider", {
+        leadId: savedId,
+        inquiryType,
+        to: LEONIX_GLOBAL_EMAIL,
+        sourcePage: emailFields.sourcePage,
+        sourceCta: emailFields.sourceCta || "(none)",
+      });
     } else {
       emailError =
         sent.code === "NOT_CONFIGURED"
@@ -171,11 +178,25 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
           : lang === "en"
             ? "Email notification could not be sent."
             : "No se pudo enviar la notificación por correo.";
-      console.error("[leads] email send failed", { code: sent.code, leadId: savedId });
+      console.warn("[leads] email send failed", {
+        code: sent.code,
+        leadId: savedId,
+        inquiryType,
+        hint:
+          sent.code === "NOT_CONFIGURED"
+            ? "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production"
+            : "Verify Resend domain/sender for LEONIX_RESEND_FROM",
+      });
     }
   } else if (!emailConfigured) {
     emailError = "EMAIL_NOT_CONFIGURED";
-    console.warn("[leads] RESEND_API_KEY not configured — lead saved without team email notification.");
+    const config = resolveLeonixResendConfig();
+    console.warn("[leads] email not configured — lead saved without team notification", {
+      leadId: savedId,
+      inquiryType,
+      missing: config.ok ? [] : config.missing,
+      hint: "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production",
+    });
   }
 
   if (!saved && !emailSent) {
