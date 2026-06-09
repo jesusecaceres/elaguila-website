@@ -16,7 +16,7 @@ export async function submitContactForm(
   lang: ContactFormLang
 ): Promise<ContactSubmitResult> {
   try {
-    const res = await fetch("/api/contact", {
+    const res = await fetch("/api/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...body, lang }),

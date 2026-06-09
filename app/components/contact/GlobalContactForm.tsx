@@ -33,8 +33,7 @@ const COPY = {
     storageWarning: "Enviamos tu mensaje por correo al equipo; el almacenamiento en lista está pendiente.",
     sending: "Enviando…",
     send: "Enviar a Leonix Media",
-    consent:
-      "Acepto que Leonix Media me contacte sobre esta consulta. Entiendo que puedo solicitar que dejen de contactarme.",
+    consent: "Acepto que Leonix me contacte sobre mi solicitud",
     wantsLaunch: "También quiero recibir actualizaciones del lanzamiento de Leonix Media.",
     fields: {
       inquiryType: "Tipo de consulta",
@@ -42,8 +41,8 @@ const COPY = {
       email: "Correo electrónico",
       phone: "Teléfono",
       businessName: "Negocio u organización",
-      preferredContact: "Forma de contacto preferida",
-      cityArea: "Ciudad o zona",
+      preferredContact: "Método preferido de contacto",
+      cityArea: "Ciudad / Área",
       websiteOrSocial: "Sitio web o red social",
       businessCategory: "Categoría del negocio",
       message: "Mensaje",
@@ -69,8 +68,7 @@ const COPY = {
     storageWarning: "We emailed your message to the team; list storage is still pending.",
     sending: "Sending…",
     send: "Send to Leonix Media",
-    consent:
-      "I agree that Leonix Media may contact me about this inquiry. I understand I can ask to stop being contacted.",
+    consent: "I agree that Leonix may contact me about my request",
     wantsLaunch: "I also want launch updates from Leonix Media.",
     fields: {
       inquiryType: "Inquiry type",
@@ -79,7 +77,7 @@ const COPY = {
       phone: "Phone",
       businessName: "Business or organization",
       preferredContact: "Preferred contact method",
-      cityArea: "City or area",
+      cityArea: "City / Area",
       websiteOrSocial: "Website or social link",
       businessCategory: "Business category",
       message: "Message",

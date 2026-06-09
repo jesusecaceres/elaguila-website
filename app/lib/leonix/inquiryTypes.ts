@@ -22,10 +22,10 @@ const INQUIRY_LABELS: Record<InquiryType, { es: string; en: string }> = {
   advertising: { es: "Publicidad", en: "Advertising" },
   launch: { es: "Lanzamiento", en: "Launch" },
   mediaKit: { es: "Media Kit", en: "Media Kit" },
-  general: { es: "Consulta general", en: "General inquiry" },
+  general: { es: "General", en: "General" },
   promotionalProducts: { es: "Productos promocionales", en: "Promotional products" },
-  businessListing: { es: "Listado de negocio", en: "Business listing" },
-  partnership: { es: "Alianzas", en: "Partnership" },
+  businessListing: { es: "Página de negocio", en: "Business listing" },
+  partnership: { es: "Alianza / partnership", en: "Partnership" },
 };
 
 export function inquiryTypeLabel(type: InquiryType, lang: "es" | "en"): string {

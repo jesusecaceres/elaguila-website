@@ -1,6 +1,6 @@
 # Contact form email (Resend)
 
-`/contacto` submits to `POST /api/contact` (Supabase save first, then Resend). `/tienda/contacto` uses its own API route.
+`/contacto` submits to `POST /api/leads` (Supabase `leonix_leads` save first, then Resend). `POST /api/contact` is an alias. `/tienda/contacto` uses its own API route.
 
 ## Required (production)
 
@@ -25,16 +25,14 @@ If neither From variable is set but `RESEND_API_KEY` exists, the app uses:
 
 | Route | Recipient |
 |-------|-----------|
-| `POST /api/contact` | `info@leonixmedia.com` |
+| `POST /api/leads` (and `/api/contact` alias) | `info@leonixmedia.com` |
 | `POST /api/tienda/contact` | `tienda@leonixmedia.com` |
 
 ## Supabase
 
-`POST /api/contact` saves to `leonix_contact_inquiries` when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set.
+`POST /api/leads` saves to `public.leonix_leads` when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set.
 
-Launch signups use `leonix_newsletter_subscribers` via `POST /api/newsletter/subscribe`.
-
-Apply migration `20260529120000_leonix_contact_inquiries_and_launch_fields.sql` before production.
+Launch signups use `public.leonix_newsletter_subscribers` via `POST /api/newsletter/subscribe`.
 
 ## Vercel setup
 

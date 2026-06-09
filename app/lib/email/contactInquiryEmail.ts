@@ -29,7 +29,10 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
   html: string;
 } {
   const topicText = inquiryTypeLabel(fields.inquiryType, fields.lang);
-  const subject = `[Leonix — contacto] ${fields.fullName} · ${fields.inquiryType} · ${fields.submittedAt.slice(0, 16).replace("T", " ")}`;
+  const subject =
+    fields.lang === "en"
+      ? `New Leonix Media lead — ${fields.fullName}`
+      : `Nuevo lead de Leonix Media — ${fields.fullName}`;
 
   const text = [
     "Source: Leonix contact inquiry form",

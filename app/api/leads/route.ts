@@ -2,7 +2,6 @@ import { processLeonixLeadPost } from "@/app/lib/leonix/processLeonixLeadPost";
 
 export const runtime = "nodejs";
 
-/** @deprecated Prefer POST /api/leads — kept for backward compatibility. */
 export async function POST(req: Request) {
   return processLeonixLeadPost(req);
 }
