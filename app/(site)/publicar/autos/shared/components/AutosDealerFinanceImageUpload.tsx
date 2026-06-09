@@ -6,6 +6,8 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
 import { AUTOS_DRAFT_FINANCE_IMAGE_REF } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftIdbRefs";
+import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { AutosLocalFileTemporaryDraftNote } from "@/app/publicar/autos/shared/components/AutosLocalFileTemporaryDraftNote";
 
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
@@ -34,10 +36,12 @@ export function AutosDealerFinanceImageUpload({
   listing,
   setListingPatch,
   copy,
+  lang,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
   copy: AutosDealerFinanceImageCopy;
+  lang?: AutosNegociosLang;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlDraft, setUrlDraft] = useState("");
@@ -109,6 +113,7 @@ export function AutosDealerFinanceImageUpload({
       />
       <h3 className="text-sm font-bold text-[color:var(--lx-text)]">{copy.imageUrl}</h3>
       <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{copy.imageHelper}</p>
+      {lang ? <AutosLocalFileTemporaryDraftNote lang={lang} /> : null}
       <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] p-3">
         <label className={LABEL}>{copy.imageUrlLabel}</label>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">

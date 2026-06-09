@@ -132,6 +132,11 @@ export function AutosNegociosInventoryBundlePreview({
   onSaveVehicle,
   onRemoveVehicle,
   flushDraft,
+  drawerOpen = false,
+  drawerEditingId = null,
+  onDrawerOpenChange,
+  inProgressDraft = null,
+  onInProgressChange,
 }: {
   lang: AutosNegociosLang;
   copy: AutosNegociosCopy;
@@ -141,10 +146,17 @@ export function AutosNegociosInventoryBundlePreview({
   onSaveVehicle: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   onRemoveVehicle: (id: string) => void;
   flushDraft?: () => Promise<void>;
+  drawerOpen?: boolean;
+  drawerEditingId?: string | null;
+  onDrawerOpenChange?: (open: boolean, editingId?: string | null) => void;
+  inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
+  onInProgressChange?: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
 }) {
-  const [editId, setEditId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const editingVehicle = editId ? (additionalVehicles.find((v) => v.id === editId) ?? null) : null;
+  const editOpen = drawerOpen && Boolean(drawerEditingId);
+  const editingVehicle = drawerEditingId
+    ? (additionalVehicles.find((v) => v.id === drawerEditingId) ?? null)
+    : null;
   const previewVehicle = previewId ? (additionalVehicles.find((v) => v.id === previewId) ?? null) : null;
 
   const mainTitle =
@@ -197,7 +209,7 @@ export function AutosNegociosInventoryBundlePreview({
                 statusLabel={ready ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang)}
                 photoLabel={photos > 0 ? autosInventoryBundlePhotoCount(lang, photos) : null}
                 onPreview={() => setPreviewId(v.id)}
-                onEdit={() => setEditId(v.id)}
+                onEdit={() => onDrawerOpenChange?.(true, v.id)}
                 onRemove={() => {
                   if (typeof window !== "undefined" && !window.confirm(autosInventoryRemoveConfirm(lang))) return;
                   onRemoveVehicle(v.id);
@@ -209,18 +221,18 @@ export function AutosNegociosInventoryBundlePreview({
         </div>
       </section>
       <AutosNegociosAddInventoryDrawer
-        open={editId !== null}
-        onClose={() => setEditId(null)}
+        open={editOpen}
+        onClose={() => onDrawerOpenChange?.(false)}
         lang={lang}
         copy={copy}
         additionalCount={additionalCount}
         editingVehicle={editingVehicle}
+        inProgressDraft={inProgressDraft}
+        drawerEditingId={drawerEditingId}
+        onInProgressChange={onInProgressChange}
         onSave={(vehicle) => {
           const ok = onSaveVehicle(vehicle);
-          if (ok) {
-            setEditId(null);
-            void flushDraft?.();
-          }
+          if (ok) void flushDraft?.();
           return ok;
         }}
         flushDraft={flushDraft}

@@ -8,6 +8,8 @@ import { newMediaImageId } from "@/app/clasificados/autos/negocios/lib/autoDeale
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
 import { AutosSortablePhotoGrid } from "@/app/publicar/autos/shared/components/AutosSortablePhotoGrid";
 import { classifyAutosImageUrlInput } from "@/app/lib/clasificados/autos/autosImageUrlInput";
+import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { AutosLocalFileTemporaryDraftNote } from "@/app/publicar/autos/shared/components/AutosLocalFileTemporaryDraftNote";
 
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
@@ -66,12 +68,14 @@ export function AutosNegociosMediaManager({
   hideDealerLogo = false,
   /** For in-app “Vista previa” scroll target */
   sectionId = "autos-clasificados-app-media",
+  lang,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
   copy: AutosNegociosCopy;
   hideDealerLogo?: boolean;
   sectionId?: string;
+  lang?: AutosNegociosLang;
 }) {
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
@@ -306,6 +310,7 @@ export function AutosNegociosMediaManager({
     >
       <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{copy.app.sections.media}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{m.sectionIntro}</p>
+      {lang ? <AutosLocalFileTemporaryDraftNote lang={lang} /> : null}
 
       <input
         ref={photoInputRef}

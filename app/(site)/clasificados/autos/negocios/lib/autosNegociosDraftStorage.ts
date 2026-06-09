@@ -4,9 +4,14 @@ import { buildAutosNegociosDraftLocalStorageKey, LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY
 import { stripDraftMuxFields } from "./autosNegociosDraftGuards";
 import { idbClearDraftVideo, idbGetDraftVideoDataUrl, idbPutDraftVideoDataUrl } from "./autosNegociosDraftVideoIdb";
 import {
+  clearAdditionalInventoryVehiclesIdb,
   clearDraftListingImageAndLogoIdb,
+  inlineAdditionalInventoryVehiclesFromIdb,
   inlineDraftListingAssetsFromIdb,
+  inlineInventoryVehicleMediaFromIdb,
+  offloadAdditionalInventoryVehiclesToIdb,
   offloadDraftListingAssetsToIdb,
+  offloadInventoryVehicleMediaToIdb,
   stripUnresolvedIdbRefsFromListing,
 } from "./autosNegociosDraftIdbRefs";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
@@ -31,6 +36,11 @@ export type AutosNegociosDraftV1 = {
   editorMaxReached?: number;
   /** Additional vehicles bundled with the same application (not published alone). */
   additionalInventoryVehicles?: AutosAdditionalInventoryVehicleDraft[];
+  /** Unsaved child drawer draft — survives refresh and accidental close (Negocios only). */
+  inProgressInventoryVehicleDraft?: AutosAdditionalInventoryVehicleDraft | null;
+  /** When drawer is open: null = add new; string = editing saved child id. */
+  inventoryDrawerEditingId?: string | null;
+  inventoryDrawerOpen?: boolean;
 };
 
 export function isAutosNegociosDraftV1(x: unknown): x is AutosNegociosDraftV1 {
@@ -52,6 +62,15 @@ function coerceLooseAutosNegociosDraftV1(parsed: unknown): AutosNegociosDraftV1 
     editorStep: typeof o.editorStep === "number" ? o.editorStep : undefined,
     editorMaxReached: typeof o.editorMaxReached === "number" ? o.editorMaxReached : undefined,
     additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(o.additionalInventoryVehicles),
+    inProgressInventoryVehicleDraft:
+      o.inProgressInventoryVehicleDraft && typeof o.inProgressInventoryVehicleDraft === "object"
+        ? (normalizeAdditionalInventoryVehicles([o.inProgressInventoryVehicleDraft])[0] ?? null)
+        : undefined,
+    inventoryDrawerEditingId:
+      o.inventoryDrawerEditingId === null || typeof o.inventoryDrawerEditingId === "string"
+        ? o.inventoryDrawerEditingId
+        : undefined,
+    inventoryDrawerOpen: o.inventoryDrawerOpen === true ? true : undefined,
   };
 }
 
@@ -83,6 +102,9 @@ export function loadAutosNegociosDraft(namespace: string): AutosNegociosDraftV1 
         editorStep: parsed.editorStep,
         editorMaxReached: parsed.editorMaxReached,
         additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(parsed.additionalInventoryVehicles),
+        inProgressInventoryVehicleDraft: parsed.inProgressInventoryVehicleDraft ?? undefined,
+        inventoryDrawerEditingId: parsed.inventoryDrawerEditingId,
+        inventoryDrawerOpen: parsed.inventoryDrawerOpen,
       };
     }
     return coerceLooseAutosNegociosDraftV1(parsed);
@@ -131,7 +153,28 @@ export async function loadAutosNegociosDraftResolved(namespace: string): Promise
 
     listing = stripDraftMuxFields(safeNormalizeAutosDraftListing(listing, "negocios"));
 
-    return { ...sync, listing };
+    let additionalInventoryVehicles = sync.additionalInventoryVehicles;
+    try {
+      additionalInventoryVehicles = await inlineAdditionalInventoryVehiclesFromIdb(namespace, additionalInventoryVehicles);
+    } catch {
+      /* keep JSON refs */
+    }
+
+    let inProgressInventoryVehicleDraft = sync.inProgressInventoryVehicleDraft ?? null;
+    if (inProgressInventoryVehicleDraft) {
+      try {
+        inProgressInventoryVehicleDraft = await inlineInventoryVehicleMediaFromIdb(namespace, inProgressInventoryVehicleDraft);
+      } catch {
+        /* keep JSON */
+      }
+    }
+
+    return {
+      ...sync,
+      listing,
+      additionalInventoryVehicles,
+      inProgressInventoryVehicleDraft,
+    };
   } catch {
     return null;
   }
@@ -146,6 +189,15 @@ export async function saveAutosNegociosDraftResolved(namespace: string, draft: A
   let listing = stripDraftMuxFields(normalizeLoadedListing(draft.listing));
   listing = await offloadDraftListingAssetsToIdb(namespace, listing);
   let toStore = listing;
+
+  const additionalInventoryVehicles = await offloadAdditionalInventoryVehiclesToIdb(
+    namespace,
+    draft.additionalInventoryVehicles,
+  );
+  let inProgressInventoryVehicleDraft = draft.inProgressInventoryVehicleDraft ?? null;
+  if (inProgressInventoryVehicleDraft) {
+    inProgressInventoryVehicleDraft = await offloadInventoryVehicleMediaToIdb(namespace, inProgressInventoryVehicleDraft);
+  }
 
   if (listing.videoSourceType === "file") {
     const raw = listing.videoFileDataUrl?.trim() ?? "";
@@ -162,6 +214,8 @@ export async function saveAutosNegociosDraftResolved(namespace: string, draft: A
   const payload: AutosNegociosDraftV1 = {
     ...draft,
     listing: stripDraftMuxFields(normalizeLoadedListing(toStore)),
+    additionalInventoryVehicles,
+    inProgressInventoryVehicleDraft,
   };
 
   const storageKey = buildAutosNegociosDraftLocalStorageKey(namespace);
@@ -187,5 +241,9 @@ export async function clearAutosNegociosDraft(namespace: string): Promise<void> 
     /* ignore */
   }
   await clearDraftListingImageAndLogoIdb(namespace, sync?.listing ?? null);
+  await clearAdditionalInventoryVehiclesIdb(namespace, sync?.additionalInventoryVehicles);
+  if (sync?.inProgressInventoryVehicleDraft) {
+    await clearAdditionalInventoryVehiclesIdb(namespace, [sync.inProgressInventoryVehicleDraft]);
+  }
   await idbClearDraftVideo(namespace);
 }

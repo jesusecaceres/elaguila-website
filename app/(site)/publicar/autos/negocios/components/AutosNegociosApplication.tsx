@@ -111,7 +111,20 @@ export function AutosNegociosApplication() {
     additionalInventoryVehicles,
     upsertAdditionalInventoryVehicle,
     removeAdditionalInventoryVehicle,
+    inProgressInventoryVehicleDraft,
+    updateInProgressInventoryVehicleDraft,
+    inventoryDrawerOpen,
+    inventoryDrawerEditingId,
+    setInventoryDrawerOpen,
   } = useAutoDealerDraft();
+
+  const inventoryDrawerProps = {
+    drawerOpen: inventoryDrawerOpen,
+    drawerEditingId: inventoryDrawerEditingId,
+    onDrawerOpenChange: setInventoryDrawerOpen,
+    inProgressDraft: inProgressInventoryVehicleDraft,
+    onInProgressChange: updateInProgressInventoryVehicleDraft,
+  };
 
   const autoTitlePreview = useMemo(
     () => buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim),
@@ -588,7 +601,7 @@ export function AutosNegociosApplication() {
 
           {/* D — Multimedia */}
           <div className={activeStep === 3 ? "" : "hidden"} aria-hidden={activeStep !== 3}>
-            <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} copy={t} hideDealerLogo />
+            <AutosNegociosMediaManager listing={listing} setListingPatch={setListingPatch} copy={t} hideDealerLogo lang={lang} />
           </div>
 
           {/* E — Negocio */}
@@ -621,6 +634,7 @@ export function AutosNegociosApplication() {
                   removeLogo: t.media.removeLogo,
                   httpsPlaceholder: t.app.placeholders.https,
                 }}
+                lang={lang}
               />
               <div>
                 <label className={LABEL}>{t.app.labels.phoneOffice}</label>
@@ -715,7 +729,7 @@ export function AutosNegociosApplication() {
               />
             </div>
 
-            <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} />
+            <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
 
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.dealer.socialHeading}</p>
             <div className={`${GRID2} mt-3`}>
@@ -968,6 +982,7 @@ export function AutosNegociosApplication() {
                     removeAdditionalInventoryVehicle(id);
                   }}
                   flushDraft={flushDraft}
+                  {...inventoryDrawerProps}
                 />
                 <AutosNegociosInventoryValueModule
                   lang={lang}
@@ -983,6 +998,7 @@ export function AutosNegociosApplication() {
                     if (ok) void flushDraft();
                     return ok;
                   }}
+                  inventoryDrawerProps={inventoryDrawerProps}
                   boostEditorContext={{
                     editorPath: pathname ?? "",
                     editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",

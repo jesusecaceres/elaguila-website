@@ -83,6 +83,13 @@ export function useAutoDealerDraft() {
   const [additionalInventoryVehicles, setAdditionalInventoryVehicles] = useState<AutosAdditionalInventoryVehicleDraft[]>(
     [],
   );
+  const inProgressInventoryRef = useRef<AutosAdditionalInventoryVehicleDraft | null>(null);
+  const [inProgressInventoryVehicleDraft, setInProgressInventoryVehicleDraft] =
+    useState<AutosAdditionalInventoryVehicleDraft | null>(null);
+  const inventoryDrawerEditingIdRef = useRef<string | null>(null);
+  const [inventoryDrawerEditingId, setInventoryDrawerEditingId] = useState<string | null>(null);
+  const inventoryDrawerOpenRef = useRef(false);
+  const [inventoryDrawerOpen, setInventoryDrawerOpenState] = useState(false);
 
   useLayoutEffect(() => {
     listingRef.current = listing;
@@ -104,6 +111,15 @@ export function useAutoDealerDraft() {
       const additional = normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles);
       additionalInventoryRef.current = additional;
       setAdditionalInventoryVehicles(additional);
+      const inProgress = d.inProgressInventoryVehicleDraft ?? null;
+      inProgressInventoryRef.current = inProgress;
+      setInProgressInventoryVehicleDraft(inProgress);
+      const drawerEditingId = d.inventoryDrawerEditingId ?? null;
+      inventoryDrawerEditingIdRef.current = drawerEditingId;
+      setInventoryDrawerEditingId(drawerEditingId);
+      const drawerOpen = d.inventoryDrawerOpen === true;
+      inventoryDrawerOpenRef.current = drawerOpen;
+      setInventoryDrawerOpenState(drawerOpen);
       applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
     },
     [applyEditorProgress],
@@ -126,6 +142,12 @@ export function useAutoDealerDraft() {
     setListing(createEmptyListing());
     additionalInventoryRef.current = [];
     setAdditionalInventoryVehicles([]);
+    inProgressInventoryRef.current = null;
+    setInProgressInventoryVehicleDraft(null);
+    inventoryDrawerEditingIdRef.current = null;
+    setInventoryDrawerEditingId(null);
+    inventoryDrawerOpenRef.current = false;
+    setInventoryDrawerOpenState(false);
     applyEditorProgress(0, 0);
   }, [applyEditorProgress]);
 
@@ -335,7 +357,27 @@ export function useAutoDealerDraft() {
       editorStep: step,
       editorMaxReached: max,
       additionalInventoryVehicles: additionalInventoryRef.current,
+      inProgressInventoryVehicleDraft: inProgressInventoryRef.current,
+      inventoryDrawerEditingId: inventoryDrawerEditingIdRef.current,
+      inventoryDrawerOpen: inventoryDrawerOpenRef.current,
     });
+  }, []);
+
+  const setInventoryDrawerOpen = useCallback((open: boolean, editingId: string | null = null) => {
+    inventoryDrawerOpenRef.current = open;
+    inventoryDrawerEditingIdRef.current = open ? editingId : null;
+    setInventoryDrawerOpenState(open);
+    setInventoryDrawerEditingId(open ? editingId : null);
+  }, []);
+
+  const updateInProgressInventoryVehicleDraft = useCallback((draft: AutosAdditionalInventoryVehicleDraft | null) => {
+    inProgressInventoryRef.current = draft;
+    setInProgressInventoryVehicleDraft(draft);
+  }, []);
+
+  const clearInProgressInventoryVehicleDraft = useCallback(() => {
+    inProgressInventoryRef.current = null;
+    setInProgressInventoryVehicleDraft(null);
   }, []);
 
   const upsertAdditionalInventoryVehicle = useCallback((vehicle: AutosAdditionalInventoryVehicleDraft) => {
@@ -364,6 +406,9 @@ export function useAutoDealerDraft() {
     editorStep,
     editorMaxReached,
     additionalInventoryVehicles,
+    inProgressInventoryVehicleDraft,
+    inventoryDrawerEditingId,
+    inventoryDrawerOpen,
   ]);
 
   const inventoryAdd = inventoryAddFromLocation();
@@ -387,5 +432,11 @@ export function useAutoDealerDraft() {
     additionalInventoryVehicles,
     upsertAdditionalInventoryVehicle,
     removeAdditionalInventoryVehicle,
+    inProgressInventoryVehicleDraft,
+    updateInProgressInventoryVehicleDraft,
+    clearInProgressInventoryVehicleDraft,
+    inventoryDrawerOpen,
+    inventoryDrawerEditingId,
+    setInventoryDrawerOpen,
   };
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
@@ -18,6 +17,11 @@ export function AutosNegociosAddInventoryTrigger({
   onSave,
   flushDraft,
   onAtLimit,
+  drawerOpen = false,
+  drawerEditingId = null,
+  onDrawerOpenChange,
+  inProgressDraft = null,
+  onInProgressChange,
 }: {
   lang: AutosNegociosLang;
   copy: AutosNegociosCopy;
@@ -29,11 +33,13 @@ export function AutosNegociosAddInventoryTrigger({
   onSave: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   flushDraft?: () => Promise<void>;
   onAtLimit?: () => void;
+  drawerOpen?: boolean;
+  drawerEditingId?: string | null;
+  onDrawerOpenChange?: (open: boolean, editingId?: string | null) => void;
+  inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
+  onInProgressChange?: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const editingVehicle = editingId ? (additionalVehicles.find((v) => v.id === editingId) ?? null) : null;
+  const open = drawerOpen && drawerEditingId === null;
 
   const base =
     variant === "primary"
@@ -45,8 +51,7 @@ export function AutosNegociosAddInventoryTrigger({
       onAtLimit?.();
       return;
     }
-    setEditingId(null);
-    setOpen(true);
+    onDrawerOpenChange?.(true, null);
   };
 
   return (
@@ -56,17 +61,16 @@ export function AutosNegociosAddInventoryTrigger({
       </button>
       <AutosNegociosAddInventoryDrawer
         open={open}
-        onClose={() => {
-          setOpen(false);
-          setEditingId(null);
-        }}
+        onClose={() => onDrawerOpenChange?.(false)}
         lang={lang}
         copy={copy}
         additionalCount={additionalCount}
-        editingVehicle={editingVehicle}
+        editingVehicle={null}
+        inProgressDraft={inProgressDraft}
+        drawerEditingId={drawerEditingId}
+        onInProgressChange={onInProgressChange}
         onSave={(vehicle) => {
           const ok = onSave(vehicle);
-          if (ok) setEditingId(null);
           return ok;
         }}
         flushDraft={flushDraft}

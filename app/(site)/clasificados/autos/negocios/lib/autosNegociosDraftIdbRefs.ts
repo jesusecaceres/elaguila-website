@@ -1,3 +1,4 @@
+import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutoDealerListing, MediaImageEntry } from "../types/autoDealerListing";
 import {
   idbClearDealerLogo,
@@ -138,4 +139,92 @@ export async function clearDraftListingImageAndLogoIdb(namespace: string, listin
   }
   await idbClearDealerLogo(namespace);
   await idbClearFinanceImage(namespace);
+}
+
+async function offloadMediaImagesToIdb(namespace: string, images: MediaImageEntry[] | undefined): Promise<MediaImageEntry[] | undefined> {
+  if (!images?.length) return images;
+  const nextImages: MediaImageEntry[] = [];
+  for (const m of images) {
+    if (m.sourceType === "file" && m.url.startsWith("data:")) {
+      await idbPutDraftImageDataUrl(namespace, m.id, m.url);
+      nextImages.push({ ...m, url: mediaRefFromId(m.id) });
+    } else {
+      nextImages.push(m);
+    }
+  }
+  return nextImages;
+}
+
+async function inlineMediaImagesFromIdb(namespace: string, images: MediaImageEntry[] | undefined): Promise<MediaImageEntry[] | undefined> {
+  if (!images?.length) return images;
+  const nextImages: MediaImageEntry[] = [];
+  for (const m of images) {
+    if (!isMediaImageRow(m)) continue;
+    const row = coerceMediaImageRow(m);
+    const refId = mediaIdFromRef(row.url);
+    if (refId) {
+      try {
+        const blob = await idbGetDraftImageDataUrl(namespace, refId);
+        if (blob) nextImages.push({ ...row, url: blob });
+      } catch {
+        /* drop stale ref */
+      }
+    } else {
+      nextImages.push(row);
+    }
+  }
+  return nextImages.length ? nextImages : undefined;
+}
+
+/** Offload child inventory vehicle file photos to IndexedDB (same keys as main gallery). */
+export async function offloadInventoryVehicleMediaToIdb(
+  namespace: string,
+  vehicle: AutosAdditionalInventoryVehicleDraft,
+): Promise<AutosAdditionalInventoryVehicleDraft> {
+  const mediaImages = await offloadMediaImagesToIdb(namespace, vehicle.mediaImages);
+  return mediaImages ? { ...vehicle, mediaImages } : vehicle;
+}
+
+export async function inlineInventoryVehicleMediaFromIdb(
+  namespace: string,
+  vehicle: AutosAdditionalInventoryVehicleDraft,
+): Promise<AutosAdditionalInventoryVehicleDraft> {
+  const mediaImages = await inlineMediaImagesFromIdb(namespace, vehicle.mediaImages);
+  return mediaImages ? { ...vehicle, mediaImages } : vehicle;
+}
+
+export async function offloadAdditionalInventoryVehiclesToIdb(
+  namespace: string,
+  vehicles: AutosAdditionalInventoryVehicleDraft[] | undefined,
+): Promise<AutosAdditionalInventoryVehicleDraft[] | undefined> {
+  if (!vehicles?.length) return vehicles;
+  const next: AutosAdditionalInventoryVehicleDraft[] = [];
+  for (const v of vehicles) {
+    next.push(await offloadInventoryVehicleMediaToIdb(namespace, v));
+  }
+  return next;
+}
+
+export async function inlineAdditionalInventoryVehiclesFromIdb(
+  namespace: string,
+  vehicles: AutosAdditionalInventoryVehicleDraft[] | undefined,
+): Promise<AutosAdditionalInventoryVehicleDraft[] | undefined> {
+  if (!vehicles?.length) return vehicles;
+  const next: AutosAdditionalInventoryVehicleDraft[] = [];
+  for (const v of vehicles) {
+    next.push(await inlineInventoryVehicleMediaFromIdb(namespace, v));
+  }
+  return next;
+}
+
+export async function clearAdditionalInventoryVehiclesIdb(
+  namespace: string,
+  vehicles: AutosAdditionalInventoryVehicleDraft[] | undefined | null,
+): Promise<void> {
+  if (!vehicles?.length) return;
+  for (const v of vehicles) {
+    for (const m of v.mediaImages ?? []) {
+      await idbDeleteDraftImage(namespace, m.id);
+    }
+  }
 }

@@ -2,6 +2,7 @@
 
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
+import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { AutosDealerFinanceImageUpload } from "./AutosDealerFinanceImageUpload";
@@ -17,10 +18,12 @@ export function AutosDealerFinanceFields({
   listing,
   setListingPatch,
   copy,
+  lang,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
   copy: AutosNegociosCopy;
+  lang?: AutosNegociosLang;
 }) {
   const f = copy.app.finance;
   return (
@@ -104,6 +107,7 @@ export function AutosDealerFinanceFields({
             removeImage: f.removeImage,
             httpsPlaceholder: copy.app.placeholders.https,
           }}
+          lang={lang}
         />
         <div className="sm:col-span-2">
           <label className={LABEL}>{f.notes}</label>

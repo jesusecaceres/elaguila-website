@@ -423,6 +423,7 @@ export function AutosPrivadoApplication() {
               copy={t}
               hideDealerLogo
               sectionId="autos-clasificados-app-media"
+              lang={lang}
             />
           </div>
 

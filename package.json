@@ -86,6 +86,7 @@
     "autos:a5-ship-04-vehicle-data-intelligence-audit": "tsx scripts/autos-a5-ship-04-vehicle-data-intelligence-audit.ts",
     "autos:a5-ship-05a-application-header-clarity-audit": "tsx scripts/autos-a5-ship-05a-application-header-clarity-audit.ts",
     "autos:a5-ship-06-added-inventory-end-to-end-audit": "tsx scripts/autos-a5-ship-06-added-inventory-end-to-end-audit.ts",
+    "autos:a5-ship-07-zero-data-loss-media-storage-audit": "tsx scripts/autos-a5-ship-07-zero-data-loss-media-storage-audit.ts",
     "autos:a5-vdata-01-shared-vehicle-data-coverage-audit": "tsx scripts/autos-a5-vdata-01-shared-vehicle-data-coverage-audit.ts",
     "autos:a5-vdata-a-shared-vehicle-data-audit": "tsx scripts/autos-a5-vdata-a-shared-vehicle-data-audit.ts",
     "autos:a5-vdata-b-shared-vehicle-helper-wiring-audit": "tsx scripts/autos-a5-vdata-b-shared-vehicle-helper-wiring-audit.ts",

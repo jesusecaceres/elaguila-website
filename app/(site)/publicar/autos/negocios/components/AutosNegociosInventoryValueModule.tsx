@@ -40,6 +40,7 @@ export function AutosNegociosInventoryValueModule({
   copy,
   onSaveAdditionalVehicle,
   onAtLimitOpenBoost,
+  inventoryDrawerProps,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
@@ -56,6 +57,13 @@ export function AutosNegociosInventoryValueModule({
   copy?: AutosNegociosCopy;
   onSaveAdditionalVehicle?: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   onAtLimitOpenBoost?: () => void;
+  inventoryDrawerProps?: {
+    drawerOpen: boolean;
+    drawerEditingId: string | null;
+    onDrawerOpenChange: (open: boolean, editingId?: string | null) => void;
+    inProgressDraft: AutosAdditionalInventoryVehicleDraft | null;
+    onInProgressChange: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
+  };
 }) {
   const [boostOpen, setBoostOpen] = useState(false);
   const bullets = autosDealerInventoryValueBullets(lang);
@@ -157,6 +165,7 @@ export function AutosNegociosInventoryValueModule({
                 setBoostOpen(true);
                 onAtLimitOpenBoost?.();
               }}
+              {...inventoryDrawerProps}
             />
           ) : null
         ) : null}

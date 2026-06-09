@@ -444,6 +444,7 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
             copy={copy}
             hideDealerLogo
             sectionId="autos-inventory-drawer-media"
+            lang={lang}
           />
         </div>
       </section>

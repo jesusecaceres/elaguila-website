@@ -32,6 +32,9 @@ type Props = {
   copy: AutosNegociosCopy;
   additionalCount: number;
   editingVehicle: AutosAdditionalInventoryVehicleDraft | null;
+  inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
+  drawerEditingId?: string | null;
+  onInProgressChange?: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
   onSave: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   flushDraft?: () => Promise<void>;
 };
@@ -43,6 +46,28 @@ function inventoryDraftFingerprint(v: AutosAdditionalInventoryVehicleDraft): str
   return JSON.stringify(rest);
 }
 
+function inventoryDraftHasUserEdits(v: AutosAdditionalInventoryVehicleDraft): boolean {
+  const empty = createEmptyInventoryVehicleDraft(v.id);
+  return inventoryDraftFingerprint(v) !== inventoryDraftFingerprint(empty);
+}
+
+function resolveDrawerInitialDraft(
+  editingVehicle: AutosAdditionalInventoryVehicleDraft | null,
+  inProgressDraft: AutosAdditionalInventoryVehicleDraft | null,
+  drawerEditingId: string | null,
+): AutosAdditionalInventoryVehicleDraft {
+  const contextId = editingVehicle?.id ?? null;
+  if (
+    inProgressDraft &&
+    drawerEditingId === contextId &&
+    (inventoryDraftHasUserEdits(inProgressDraft) || editingVehicle)
+  ) {
+    return { ...inProgressDraft };
+  }
+  if (editingVehicle) return { ...editingVehicle };
+  return createEmptyInventoryVehicleDraft();
+}
+
 export function AutosNegociosAddInventoryDrawer({
   open,
   onClose,
@@ -50,6 +75,9 @@ export function AutosNegociosAddInventoryDrawer({
   copy,
   additionalCount,
   editingVehicle,
+  inProgressDraft = null,
+  drawerEditingId = null,
+  onInProgressChange,
   onSave,
   flushDraft,
 }: Props) {
@@ -65,7 +93,7 @@ export function AutosNegociosAddInventoryDrawer({
   useEffect(() => {
     if (!open) return;
     setError(null);
-    const next = editingVehicle ? { ...editingVehicle } : createEmptyInventoryVehicleDraft();
+    const next = resolveDrawerInitialDraft(editingVehicle, inProgressDraft, drawerEditingId);
     setDraft(next);
     initialFingerprint.current = inventoryDraftFingerprint(next);
     const prev = document.body.style.overflow;
@@ -73,7 +101,13 @@ export function AutosNegociosAddInventoryDrawer({
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open, editingVehicle]);
+  }, [open, editingVehicle, inProgressDraft, drawerEditingId]);
+
+  useEffect(() => {
+    if (!open || !onInProgressChange) return;
+    const dirty = inventoryDraftFingerprint(draft) !== initialFingerprint.current;
+    if (dirty) onInProgressChange(draft);
+  }, [draft, open, onInProgressChange]);
 
   const patchDraft = useCallback((patch: Partial<AutosAdditionalInventoryVehicleDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -84,8 +118,9 @@ export function AutosNegociosAddInventoryDrawer({
     if (dirty) {
       if (typeof window !== "undefined" && !window.confirm(autosInventoryDrawerUnsavedCloseConfirm(lang))) return;
     }
+    onInProgressChange?.(null);
     onClose();
-  }, [draft, lang, onClose]);
+  }, [draft, lang, onClose, onInProgressChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,6 +151,7 @@ export function AutosNegociosAddInventoryDrawer({
         setError(autosAddInventorySaveRequiresFields(lang));
         return;
       }
+      onInProgressChange?.(null);
       if (andAnother) {
         const empty = createEmptyInventoryVehicleDraft();
         setDraft(empty);
