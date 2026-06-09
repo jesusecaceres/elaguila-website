@@ -5,10 +5,21 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
+import { getComingSoonV2Copy } from "@/app/components/leonix/coming-soon-v2/comingSoonV2Copy/languages";
+import type {
+  HeroAccent,
+  HeroCta,
+  HeroLine,
+  MediaKitPreviewCard,
+  MarketplaceCategoryCard,
+  NavItem,
+  ProcessStep,
+  QrBenefitCard,
+  WhatYouGetCard,
+  WhatYouGetCardAccent,
+} from "@/app/components/leonix/coming-soon-v2/comingSoonV2Copy/types";
 import {
-  LEONIX_MAGAZINE_HERO_CTAS,
   resolveLeonixSiteLang,
-  staticPageCopyLang,
   withLeonixLang,
   type LeonixSiteLang,
 } from "@/app/lib/lang";
@@ -16,1028 +27,6 @@ import {
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
 
-type Lang = "es" | "en" | "vi";
-
-type NavItem = { label: string; href: string; active?: boolean };
-
-type HeroAccent = "burgundy" | "gold";
-
-type HeroLinePart = { text: string; accent?: HeroAccent };
-
-type HeroLine = { parts: HeroLinePart[] };
-
-type HeroCta = {
-  label: string;
-  href: string;
-  variant: "primary" | "secondary" | "green";
-  external?: boolean;
-};
-
-type WhatYouGetCardAccent = "burgundy" | "gold" | "green" | "qr" | "founder";
-
-type WhatYouGetCard = {
-  title: string;
-  body: string;
-  detail: string;
-  accent: WhatYouGetCardAccent;
-};
-
-type ProcessStep = { title: string; body: string };
-
-type QrBenefitCard = { title: string; body: string };
-
-type MediaKitPreviewCard = { title: string; body: string };
-
-type MarketplaceCategoryCard = { title: string; body: string };
-
-const COPY: Record<
-  Lang,
-  {
-    nav: NavItem[];
-    launchCta: string;
-    brandName: string;
-    langToggle: { es: string; en: string };
-    mainAria: string;
-    navAria: string;
-    langAria: string;
-    hero: {
-      badge: string;
-      title: string;
-      valueLines: [HeroLine, HeroLine, HeroLine];
-      paragraph: string;
-      ctas: [HeroCta, HeroCta, HeroCta];
-      trustChips: [string, string, string];
-      valueAria: string;
-      trustAria: string;
-      mediaVisual: {
-        label: string;
-        qrOverlay: string;
-        magazineAlt: string;
-      };
-      magazineCta: string;
-    };
-    marketplace: {
-      eyebrow: string;
-      headline: string;
-      intro: string;
-      bridge: string;
-      cards: [
-        MarketplaceCategoryCard,
-        MarketplaceCategoryCard,
-        MarketplaceCategoryCard,
-        MarketplaceCategoryCard,
-        MarketplaceCategoryCard,
-        MarketplaceCategoryCard,
-      ];
-      cardsAria: string;
-      closing: string;
-      exploreCta: { label: string; href: string };
-    };
-    whatYouGet: {
-      eyebrow: string;
-      headline: string;
-      intro: string;
-      expandMore: string;
-      expandLess: string;
-      cards: [
-        WhatYouGetCard,
-        WhatYouGetCard,
-        WhatYouGetCard,
-        WhatYouGetCard,
-        WhatYouGetCard,
-      ];
-    };
-    howItWorks: {
-      eyebrow: string;
-      headline: string;
-      intro: string;
-      steps: [ProcessStep, ProcessStep, ProcessStep, ProcessStep];
-      stepsAria: string;
-    };
-    qrAccess: {
-      eyebrow: string;
-      headline: string;
-      intro: string;
-      callout: string;
-      explanation: string;
-      benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
-      benefitsAria: string;
-    };
-    mediaKitPreview: {
-      eyebrow: string;
-      headline: string;
-      intro: string;
-      cards: [
-        MediaKitPreviewCard,
-        MediaKitPreviewCard,
-        MediaKitPreviewCard,
-        MediaKitPreviewCard,
-      ];
-      cardsAria: string;
-      ctaHeading: string;
-      viewCta: { label: string; href: string };
-      downloadCta: { label: string; href: string };
-      supportingLine: string;
-    };
-    finalCta: {
-      eyebrow: string;
-      headline: string;
-      body: string;
-      ctas: [HeroCta, HeroCta, HeroCta];
-      mediaKitDownload: { label: string; href: string };
-    };
-    contact: {
-      title: string;
-      body: string;
-      emailLabel: string;
-      email: string;
-      phoneLabel: string;
-      phone: string;
-      phoneHref: string;
-      addressLabel: string;
-      address: string;
-      areaLabel: string;
-      area: string;
-    };
-    newsletter: {
-      title: string;
-      body: string;
-      placeholder: string;
-      button: string;
-      formAria: string;
-      emailLabel: string;
-    };
-    footer: string;
-  }
-> = {
-  es: {
-    nav: [
-      { label: "Inicio", href: "#inicio", active: true },
-      { label: "Qué obtienes", href: "#que-obtienes" },
-      { label: "Cómo funciona", href: "#como-funciona" },
-      { label: "Acceso QR", href: "#qr" },
-      { label: "Contacto", href: "#contacto" },
-    ],
-    launchCta: "Únete al lanzamiento",
-    brandName: "Leonix Media",
-    langToggle: { es: "Español", en: "English" },
-    mainAria: "Leonix Media — Inicio",
-    navAria: "Navegación principal",
-    langAria: "Idioma",
-    hero: {
-      badge: "PRÓXIMAMENTE",
-      title: "Leonix Media",
-      valueLines: [
-        {
-          parts: [
-            { text: "Publicidad impresa en " },
-            { text: "español", accent: "burgundy" },
-            { text: "." },
-          ],
-        },
-        {
-          parts: [
-            { text: "Exposición digital " },
-            { text: "bilingüe", accent: "burgundy" },
-            { text: "." },
-          ],
-        },
-        {
-          parts: [
-            { text: "Acceso " },
-            { text: "multilingüe", accent: "burgundy" },
-            { text: " por " },
-            { text: "QR", accent: "gold" },
-            { text: "." },
-          ],
-        },
-      ],
-      paragraph:
-        "Conecta tu negocio con la comunidad latina y multicultural del Bay Area a través de una revista premium, presencia digital bilingüe y herramientas que convierten la atención en acción.",
-      ctas: [
-        {
-          label: "Anúnciate con nosotros",
-          href: "/contact?interest=advertise&lang=es",
-          variant: "primary",
-        },
-        {
-          label: "Ver Media Kit",
-          href: "/media-kit/leonix-media-kit-es.pdf",
-          variant: "secondary",
-          external: true,
-        },
-        {
-          label: "Únete al lanzamiento",
-          href: "/newsletter?source=coming-soon-v2&lang=es",
-          variant: "green",
-        },
-      ],
-      trustChips: ["Hecho para nuestra comunidad", "Confianza local", "Acción digital"],
-      valueAria: "Propuesta de valor",
-      trustAria: "Confianza",
-      mediaVisual: {
-        label: "Revista premium + presencia digital",
-        qrOverlay: "Escanea. Traduce. Conecta.",
-        magazineAlt: "Vista previa decorativa de la revista Leonix Media",
-      },
-      magazineCta: "Leer la revista",
-    },
-    marketplace: {
-      eyebrow: "CLASIFICADOS + MARKETPLACE LOCAL",
-      headline: "La comunidad viene por lo útil. Los negocios ganan visibilidad.",
-      intro:
-        "Leonix no es solo publicidad. También estamos construyendo un marketplace local donde la comunidad puede buscar, publicar y compartir oportunidades reales: rentas, empleos, autos privados, cosas en venta, eventos, comida, mascotas y más.",
-      bridge:
-        "Más razones para visitar Leonix significa más oportunidades para que los negocios sean vistos.",
-      cardsAria: "Categorías del marketplace local",
-      cards: [
-        {
-          title: "Varios gratis",
-          body: "Cosas en venta, artículos del hogar, herramientas, ropa y más. Publicaciones pensadas para atraer tráfico local y compartir oportunidades entre vecinos.",
-        },
-        {
-          title: "Rentas",
-          body: "Cuartos, apartamentos, espacios y oportunidades de vivienda con fotos, descripción, ubicación, precio y contacto.",
-        },
-        {
-          title: "Empleos",
-          body: "Negocios que están contratando pueden conectar con personas de la comunidad que buscan trabajo y nuevas oportunidades.",
-        },
-        {
-          title: "Autos privados",
-          body: "Publicaciones de autos con fotos, descripción, precio y contacto para compradores locales.",
-        },
-        {
-          title: "Comida + eventos",
-          body: "Pop-ups, comida local, actividades, eventos comunitarios y momentos que hacen que la gente regrese.",
-        },
-        {
-          title: "Busco + mascotas",
-          body: "La comunidad también puede buscar, compartir necesidades, conectar por mascotas, objetos perdidos, adopciones o apoyo local.",
-        },
-      ],
-      closing:
-        "Clasificados trae tráfico. Negocios Locales convierte esa atención en llamadas, visitas y clientes.",
-      exploreCta: { label: "Explorar Clasificados", href: "/clasificados" },
-    },
-    whatYouGet: {
-      eyebrow: "QUÉ OBTIENES",
-      headline: "Más que un anuncio: una presencia completa para tu negocio.",
-      intro:
-        "Leonix combina revista impresa, presencia digital y acciones por QR para ayudar a que más clientes encuentren, entiendan y contacten tu negocio.",
-      expandMore: "Ver más",
-      expandLess: "Ver menos",
-      cards: [
-        {
-          title: "Revista impresa premium",
-          body: "Tu negocio aparece en una publicación diseñada para conectar con la comunidad latina local.",
-          detail:
-            "Tu anuncio aparece dentro de una revista diseñada para sentirse local, confiable y profesional. La meta no es solo verse bonito; es poner tu negocio frente a una comunidad que quiere apoyar negocios locales.",
-          accent: "burgundy",
-        },
-        {
-          title: "Presencia digital bilingüe",
-          body: "Tu anuncio también puede vivir en una experiencia digital clara, profesional y fácil de compartir.",
-          detail:
-            "Tu presencia digital ayuda a que el anuncio no termine en una sola página. Los clientes pueden encontrar tu información, compartirla y volver a verla desde su celular.",
-          accent: "gold",
-        },
-        {
-          title: "QR + acciones reales",
-          body: "Convierte la atención en llamadas, mensajes, mapas, enlaces, ofertas y más información.",
-          detail:
-            "El QR ayuda a llevar a las personas desde la revista a una acción concreta: llamar, abrir un mapa, mandar mensaje, visitar un sitio web, ver redes sociales o pedir más información.",
-          accent: "qr",
-        },
-        {
-          title: "Negocios Locales",
-          body: "Una presencia organizada para mostrar teléfono, ubicación, redes, fotos, reseñas y enlaces importantes.",
-          detail:
-            "Negocios Locales organiza tu información en un solo lugar para que el cliente no tenga que buscar entre plataformas separadas. Teléfono, dirección, mapa, redes, fotos y enlaces pueden vivir juntos.",
-          accent: "green",
-        },
-        {
-          title: "Oportunidad de lanzamiento fundador",
-          body: "Sé parte de los primeros negocios en aparecer con Leonix Media durante la etapa de lanzamiento.",
-          detail:
-            "Durante el lanzamiento, los primeros negocios ayudan a construir la red inicial de Leonix Media. Esto crea oportunidad de visibilidad temprana mientras la comunidad empieza a conocer la plataforma.",
-          accent: "founder",
-        },
-      ],
-    },
-    howItWorks: {
-      eyebrow: "CÓMO FUNCIONA",
-      headline: "Un proceso claro para lanzar tu presencia con Leonix.",
-      intro:
-        "Te guiamos desde la información inicial hasta una presencia lista para imprimir, compartir y conectar.",
-      stepsAria: "Pasos del proceso",
-      steps: [
-        {
-          title: "Elige tu camino",
-          body: "Selecciona el tipo de presencia que quieres: anuncio impreso, presencia digital, QR, Media Kit o paquete de lanzamiento.",
-        },
-        {
-          title: "Envíanos tu información",
-          body: "Compártenos logo, fotos, teléfono, dirección, redes, enlaces, oferta y los detalles principales de tu negocio.",
-        },
-        {
-          title: "Preparamos tu presencia",
-          body: "Organizamos tu anuncio, tu información digital y los elementos que ayudan al cliente a entender y contactar tu negocio.",
-        },
-        {
-          title: "Lanza y conecta",
-          body: "Tu negocio queda listo para aparecer ante la comunidad y convertir interés en llamadas, mensajes, visitas y conexiones.",
-        },
-      ],
-    },
-    qrAccess: {
-      eyebrow: "ACCESO QR",
-      headline: "Del anuncio impreso al celular del cliente.",
-      intro:
-        "El QR ayuda a que tu anuncio no termine en una sola página. El cliente puede escanear, entender y tomar acción desde su teléfono.",
-      callout: "Escanea. Traduce. Conecta.",
-      explanation:
-        "La revista mantiene su identidad en español para servir primero a nuestra comunidad latina. Con el QR, los clientes pueden abrir la experiencia digital y usar herramientas de traducción del dispositivo o navegador para entender la información en el idioma que prefieran.",
-      benefitsAria: "Beneficios del acceso QR",
-      benefits: [
-        {
-          title: "Más formas de entender",
-          body: "El cliente puede apoyarse en herramientas como traducción del navegador, Google Lens o Apple Translate cuando lo necesite.",
-        },
-        {
-          title: "Más formas de actuar",
-          body: "Desde el celular puede llamar, abrir mapas, enviar mensajes, visitar enlaces, ver redes sociales o pedir más información.",
-        },
-        {
-          title: "Sin perder la identidad",
-          body: "Leonix sigue siendo una revista pensada en español, con acceso digital que ayuda a abrir la puerta a más comunidades.",
-        },
-      ],
-    },
-    mediaKitPreview: {
-      eyebrow: "MEDIA KIT",
-      headline: "Lo que encontrarás en el Media Kit",
-      intro:
-        "El Media Kit reúne la explicación completa de cómo Leonix Media combina revista impresa, presencia digital, QR, acciones reales y paquetes publicitarios para ayudar a que tu negocio se vea mejor y sea más fácil de contactar.",
-      cardsAria: "Contenido del Media Kit",
-      cards: [
-        {
-          title: "Por qué anunciarte con Leonix",
-          body: "Conoce cómo Leonix ayuda a crear alcance, confianza y acción para negocios locales que quieren conectar con la comunidad latina y multicultural.",
-        },
-        {
-          title: "QR + botones de acción",
-          body: "Mira cómo un anuncio impreso puede llevar al cliente a llamar, abrir el mapa, enviar mensaje, visitar tu sitio web, ver redes sociales, reseñas y más.",
-        },
-        {
-          title: "Negocios Locales + presencia digital",
-          body: "Entiende cómo tu negocio puede tener una presencia organizada con teléfono, dirección, mapa, fotos, reseñas, redes, sitio web y botones de contacto.",
-        },
-        {
-          title: "Paquetes y próximos pasos",
-          body: "Revisa las opciones de publicidad, niveles de visibilidad y el proceso para empezar con Leonix Media.",
-        },
-      ],
-      ctaHeading: "¿Listo para ver los detalles?",
-      viewCta: {
-        label: "Ver Media Kit",
-        href: "/media-kit/leonix-media-kit-es.pdf",
-      },
-      downloadCta: {
-        label: "Descargar Media Kit",
-        href: "/media-kit/leonix-media-kit-es.pdf",
-      },
-      supportingLine:
-        "Abre el Media Kit para ver formatos, beneficios, paquetes y próximos pasos.",
-    },
-    finalCta: {
-      eyebrow: "LISTO PARA LANZAR",
-      headline: "Reserva tu espacio antes del lanzamiento.",
-      body: "Leonix Media está preparando su lanzamiento para conectar negocios locales con la comunidad latina y multicultural del Bay Area. Si quieres aparecer desde el inicio, este es el momento de levantar la mano.",
-      ctas: [
-        {
-          label: "Anúnciate con nosotros",
-          href: "/contact?interest=advertise&lang=es",
-          variant: "primary",
-        },
-        {
-          label: "Ver Media Kit",
-          href: "/media-kit/leonix-media-kit-es.pdf",
-          variant: "secondary",
-          external: true,
-        },
-        {
-          label: "Únete al lanzamiento",
-          href: "/newsletter?source=coming-soon-v2&lang=es",
-          variant: "green",
-        },
-      ],
-      mediaKitDownload: {
-        label: "Descargar Media Kit",
-        href: "/media-kit/leonix-media-kit-es.pdf",
-      },
-    },
-    contact: {
-      title: "Contacto",
-      body: "¿Tienes preguntas sobre publicidad, el Media Kit o la etapa de lanzamiento? Contáctanos y te ayudamos a elegir el mejor camino para tu negocio.",
-      emailLabel: "Correo",
-      email: "info@leonixmedia.com",
-      phoneLabel: "Teléfono",
-      phone: "(408) 303-6500",
-      phoneHref: "tel:+14083036500",
-      addressLabel: "Dirección",
-      address: "871 Coleman Avenue, Suite 202, San Jose, CA 95110",
-      areaLabel: "Área",
-      area: "San José • Silicon Valley • Comunidad Latina",
-    },
-    newsletter: {
-      title: "Sé parte del lanzamiento",
-      body: "Recibe noticias, oportunidades y actualizaciones de Leonix Media.",
-      placeholder: "Tu correo electrónico",
-      button: "Notifícame",
-      formAria: "Registro al boletín",
-      emailLabel: "Correo electrónico",
-    },
-    footer: "© 2026 Leonix Media. Hecho para nuestra comunidad.",
-  },
-  en: {
-    nav: [
-      { label: "Home", href: "#inicio", active: true },
-      { label: "What you get", href: "#que-obtienes" },
-      { label: "How it works", href: "#como-funciona" },
-      { label: "QR access", href: "#qr" },
-      { label: "Contact", href: "#contacto" },
-    ],
-    launchCta: "Join the launch",
-    brandName: "Leonix Media",
-    langToggle: { es: "Español", en: "English" },
-    mainAria: "Leonix Media — Home",
-    navAria: "Main navigation",
-    langAria: "Language",
-    hero: {
-      badge: "COMING SOON",
-      title: "Leonix Media",
-      valueLines: [
-        {
-          parts: [
-            { text: "Spanish ", accent: "burgundy" },
-            { text: "print advertising." },
-          ],
-        },
-        {
-          parts: [
-            { text: "Bilingual ", accent: "burgundy" },
-            { text: "digital exposure." },
-          ],
-        },
-        {
-          parts: [
-            { text: "Multilingual ", accent: "burgundy" },
-            { text: "access through " },
-            { text: "QR", accent: "gold" },
-            { text: "." },
-          ],
-        },
-      ],
-      paragraph:
-        "Connect your business with the Latino and multicultural Bay Area community through a premium magazine, bilingual digital presence, and tools that turn attention into action.",
-      ctas: [
-        {
-          label: "Advertise with us",
-          href: "/contact?interest=advertise&lang=en",
-          variant: "primary",
-        },
-        {
-          label: "View Media Kit",
-          href: "/media-kit/leonix-media-kit-en.pdf",
-          variant: "secondary",
-          external: true,
-        },
-        {
-          label: "Join the launch",
-          href: "/newsletter?source=coming-soon-v2&lang=en",
-          variant: "green",
-        },
-      ],
-      trustChips: ["Built for our community", "Local trust", "Digital action"],
-      valueAria: "Value proposition",
-      trustAria: "Trust",
-      mediaVisual: {
-        label: "Premium magazine + digital presence",
-        qrOverlay: "Scan. Translate. Connect.",
-        magazineAlt: "Decorative Leonix Media magazine preview",
-      },
-      magazineCta: "Read the magazine",
-    },
-    marketplace: {
-      eyebrow: "CLASSIFIEDS + LOCAL MARKETPLACE",
-      headline: "The community comes for what they need. Businesses gain visibility.",
-      intro:
-        "Leonix is not only advertising. We are also building a local marketplace where the community can search, post, and share real opportunities: rentals, jobs, private autos, items for sale, events, food, pets, and more.",
-      bridge:
-        "More reasons to visit Leonix means more opportunities for businesses to be seen.",
-      cardsAria: "Local marketplace categories",
-      cards: [
-        {
-          title: "Free stuff for sale",
-          body: "Items for sale, home goods, tools, clothing, and more. Listings designed to bring local traffic and help neighbors share opportunities.",
-        },
-        {
-          title: "Rentals",
-          body: "Rooms, apartments, spaces, and housing opportunities with photos, description, location, price, and contact.",
-        },
-        {
-          title: "Jobs",
-          body: "Businesses that are hiring can connect with people in the community looking for work and new opportunities.",
-        },
-        {
-          title: "Private autos",
-          body: "Car listings with photos, description, price, and contact for local buyers.",
-        },
-        {
-          title: "Food + events",
-          body: "Pop-ups, local food, activities, community events, and moments that keep people coming back.",
-        },
-        {
-          title: "Wanted + pets",
-          body: "The community can also search, share needs, connect around pets, lost items, adoptions, or local support.",
-        },
-      ],
-      closing:
-        "Classifieds bring traffic. Local Businesses turn that attention into calls, visits, and customers.",
-      exploreCta: { label: "Explore Classifieds", href: "/clasificados" },
-    },
-    whatYouGet: {
-      eyebrow: "WHAT YOU GET",
-      headline: "More than an ad: a complete presence for your business.",
-      intro:
-        "Leonix combines print magazine visibility, digital presence, and QR-powered actions to help more customers find, understand, and contact your business.",
-      expandMore: "Learn more",
-      expandLess: "Show less",
-      cards: [
-        {
-          title: "Premium print magazine",
-          body: "Your business appears in a publication designed to connect with the local Latino community.",
-          detail:
-            "Your ad appears inside a magazine designed to feel local, trustworthy, and professional. The goal is not just to look good; it is to place your business in front of a community that wants to support local businesses.",
-          accent: "burgundy",
-        },
-        {
-          title: "Bilingual digital presence",
-          body: "Your ad can also live in a clear, professional digital experience that is easy to share.",
-          detail:
-            "Your digital presence helps the ad go beyond a single page. Customers can find your information, share it, and return to it from their phone.",
-          accent: "gold",
-        },
-        {
-          title: "QR + real actions",
-          body: "Turn attention into calls, messages, maps, links, offers, and more information.",
-          detail:
-            "The QR helps move people from the magazine to a concrete action: call, open a map, send a message, visit a website, view social media, or request more information.",
-          accent: "qr",
-        },
-        {
-          title: "Local Businesses",
-          body: "An organized presence for phone, location, socials, photos, reviews, and important links.",
-          detail:
-            "Local Businesses organizes your information in one place so customers do not have to search across separate platforms. Phone, address, map, socials, photos, and links can live together.",
-          accent: "green",
-        },
-        {
-          title: "Founder launch opportunity",
-          body: "Be one of the first businesses featured with Leonix Media during the launch stage.",
-          detail:
-            "During launch, the first businesses help build the initial Leonix Media network. This creates an early visibility opportunity while the community starts discovering the platform.",
-          accent: "founder",
-        },
-      ],
-    },
-    howItWorks: {
-      eyebrow: "HOW IT WORKS",
-      headline: "A clear process to launch your presence with Leonix.",
-      intro:
-        "We guide you from the first information to a presence ready to print, share, and connect.",
-      stepsAria: "Process steps",
-      steps: [
-        {
-          title: "Choose your path",
-          body: "Select the type of presence you want: print ad, digital presence, QR, Media Kit, or launch package.",
-        },
-        {
-          title: "Send your information",
-          body: "Share your logo, photos, phone, address, socials, links, offer, and the main details of your business.",
-        },
-        {
-          title: "We prepare your presence",
-          body: "We organize your ad, your digital information, and the elements that help customers understand and contact your business.",
-        },
-        {
-          title: "Launch and connect",
-          body: "Your business is ready to appear in front of the community and turn interest into calls, messages, visits, and connections.",
-        },
-      ],
-    },
-    qrAccess: {
-      eyebrow: "QR ACCESS",
-      headline: "From the printed ad to the customer's phone.",
-      intro:
-        "The QR helps your ad go beyond a single page. Customers can scan, understand, and take action from their phone.",
-      callout: "Scan. Translate. Connect.",
-      explanation:
-        "The magazine keeps its Spanish-first identity to serve our Latino community first. Through QR, customers can open the digital experience and use device or browser translation tools to understand the information in the language they prefer.",
-      benefitsAria: "QR access benefits",
-      benefits: [
-        {
-          title: "More ways to understand",
-          body: "Customers can use tools like browser translation, Google Lens, or Apple Translate when they need them.",
-        },
-        {
-          title: "More ways to act",
-          body: "From their phone, they can call, open maps, send messages, visit links, view social media, or request more information.",
-        },
-        {
-          title: "Identity stays intact",
-          body: "Leonix remains a Spanish-first magazine, with digital access that helps open the door to more communities.",
-        },
-      ],
-    },
-    mediaKitPreview: {
-      eyebrow: "MEDIA KIT",
-      headline: "What you'll find in the Media Kit",
-      intro:
-        "The Media Kit brings together the full explanation of how Leonix Media combines print magazine exposure, digital presence, QR, real actions, and advertising packages to help your business look stronger and become easier to contact.",
-      cardsAria: "Media Kit contents",
-      cards: [
-        {
-          title: "Why advertise with Leonix",
-          body: "See how Leonix helps create reach, trust, and action for local businesses that want to connect with the Latino and multicultural community.",
-        },
-        {
-          title: "QR + action buttons",
-          body: "See how a printed ad can help customers call you, open your map, send a message, visit your website, view social media, reviews, and more.",
-        },
-        {
-          title: "Local Businesses + digital presence",
-          body: "Understand how your business can have an organized presence with phone, address, map, photos, reviews, social media, website, and contact buttons.",
-        },
-        {
-          title: "Packages and next steps",
-          body: "Review advertising options, visibility levels, and the process to get started with Leonix Media.",
-        },
-      ],
-      ctaHeading: "Ready to see the details?",
-      viewCta: {
-        label: "View Media Kit",
-        href: "/media-kit/leonix-media-kit-en.pdf",
-      },
-      downloadCta: {
-        label: "Download Media Kit",
-        href: "/media-kit/leonix-media-kit-en.pdf",
-      },
-      supportingLine:
-        "Open the Media Kit to see formats, benefits, packages, and next steps.",
-    },
-    finalCta: {
-      eyebrow: "READY TO LAUNCH",
-      headline: "Reserve your space before launch.",
-      body: "Leonix Media is preparing its launch to connect local businesses with the Latino and multicultural Bay Area community. If you want to appear from the beginning, this is the moment to raise your hand.",
-      ctas: [
-        {
-          label: "Advertise with us",
-          href: "/contact?interest=advertise&lang=en",
-          variant: "primary",
-        },
-        {
-          label: "View Media Kit",
-          href: "/media-kit/leonix-media-kit-en.pdf",
-          variant: "secondary",
-          external: true,
-        },
-        {
-          label: "Join the launch",
-          href: "/newsletter?source=coming-soon-v2&lang=en",
-          variant: "green",
-        },
-      ],
-      mediaKitDownload: {
-        label: "Download Media Kit",
-        href: "/media-kit/leonix-media-kit-en.pdf",
-      },
-    },
-    contact: {
-      title: "Contact",
-      body: "Have questions about advertising, the Media Kit, or the launch stage? Contact us and we'll help you choose the best path for your business.",
-      emailLabel: "Email",
-      email: "info@leonixmedia.com",
-      phoneLabel: "Phone",
-      phone: "(408) 303-6500",
-      phoneHref: "tel:+14083036500",
-      addressLabel: "Address",
-      address: "871 Coleman Avenue, Suite 202, San Jose, CA 95110",
-      areaLabel: "Area",
-      area: "San José • Silicon Valley • Latino Community",
-    },
-    newsletter: {
-      title: "Be part of the launch",
-      body: "Receive news, opportunities, and updates from Leonix Media.",
-      placeholder: "Your email address",
-      button: "Notify Me",
-      formAria: "Newsletter signup",
-      emailLabel: "Email address",
-    },
-    footer: "© 2026 Leonix Media. Built for our community.",
-  },
-  vi: {
-    nav: [
-      { label: "Trang chủ", href: "#inicio", active: true },
-      { label: "Bạn nhận được gì", href: "#que-obtienes" },
-      { label: "Cách hoạt động", href: "#como-funciona" },
-      { label: "Truy cập QR", href: "#qr" },
-      { label: "Liên hệ", href: "#contacto" },
-    ],
-    launchCta: "Tham gia ra mắt",
-    brandName: "Leonix Media",
-    langToggle: { es: "Español", en: "English" },
-    mainAria: "Leonix Media — Trang chủ",
-    navAria: "Điều hướng chính",
-    langAria: "Ngôn ngữ",
-    hero: {
-      badge: "SẮP RA MẮT",
-      title: "Leonix Media",
-      valueLines: [
-        {
-          parts: [
-            { text: "Quảng cáo in bằng " },
-            { text: "tiếng Tây Ban Nha", accent: "burgundy" },
-            { text: "." },
-          ],
-        },
-        {
-          parts: [
-            { text: "Hiện diện kỹ thuật số " },
-            { text: "song ngữ", accent: "burgundy" },
-            { text: "." },
-          ],
-        },
-        {
-          parts: [
-            { text: "Truy cập " },
-            { text: "đa ngôn ngữ", accent: "burgundy" },
-            { text: " qua " },
-            { text: "QR", accent: "gold" },
-            { text: "." },
-          ],
-        },
-      ],
-      paragraph:
-        "Kết nối doanh nghiệp của bạn với cộng đồng Latinh và đa văn hóa tại Bay Area thông qua tạp chí cao cấp, hiện diện kỹ thuật số song ngữ và công cụ biến sự chú ý thành hành động.",
-      ctas: [
-        {
-          label: "Quảng cáo cùng chúng tôi",
-          href: "/contact?interest=advertise&lang=vi",
-          variant: "primary",
-        },
-        {
-          label: "Xem Media Kit",
-          href: "/media-kit/leonix-media-kit-en.pdf",
-          variant: "secondary",
-          external: true,
-        },
-        {
-          label: "Tham gia ra mắt",
-          href: "/newsletter?source=coming-soon-v2&lang=vi",
-          variant: "green",
-        },
-      ],
-      trustChips: ["Dành cho cộng đồng chúng ta", "Tin cậy địa phương", "Hành động kỹ thuật số"],
-      valueAria: "Giá trị cốt lõi",
-      trustAria: "Niềm tin",
-      mediaVisual: {
-        label: "Tạp chí cao cấp + hiện diện kỹ thuật số",
-        qrOverlay: "Quét. Dịch. Kết nối.",
-        magazineAlt: "Xem trước tạp chí Leonix Media",
-      },
-      magazineCta: "Đọc tạp chí",
-    },
-    marketplace: {
-      eyebrow: "RAO VẶT + MARKETPLACE ĐỊA PHƯƠNG",
-      headline: "Cộng đồng đến vì điều họ cần. Doanh nghiệp được nhìn thấy.",
-      intro:
-        "Leonix không chỉ là quảng cáo. Chúng tôi cũng đang xây dựng một marketplace địa phương nơi cộng đồng có thể tìm kiếm, đăng tin và chia sẻ cơ hội thực: thuê nhà, việc làm, ô tô cá nhân, đồ bán, sự kiện, ẩm thực, thú cưng và hơn thế nữa.",
-      bridge:
-        "Càng nhiều lý do ghé Leonix, càng nhiều cơ hội để doanh nghiệp được nhìn thấy.",
-      cardsAria: "Danh mục marketplace địa phương",
-      cards: [
-        {
-          title: "Đồ miễn phí / bán",
-          body: "Đồ bán, đồ gia dụng, dụng cụ, quần áo và hơn thế. Tin đăng giúp thu hút lưu lượng địa phương và chia sẻ cơ hội giữa hàng xóm.",
-        },
-        {
-          title: "Thuê nhà",
-          body: "Phòng, căn hộ, không gian và cơ hội nhà ở với ảnh, mô tả, vị trí, giá và liên hệ.",
-        },
-        {
-          title: "Việc làm",
-          body: "Doanh nghiệp đang tuyển dụng có thể kết nối với người trong cộng đồng đang tìm việc và cơ hội mới.",
-        },
-        {
-          title: "Ô tô cá nhân",
-          body: "Tin ô tô với ảnh, mô tả, giá và liên hệ cho người mua địa phương.",
-        },
-        {
-          title: "Ẩm thực + sự kiện",
-          body: "Pop-up, món địa phương, hoạt động, sự kiện cộng đồng và khoảnh khắc khiến mọi người quay lại.",
-        },
-        {
-          title: "Tìm kiếm + thú cưng",
-          body: "Cộng đồng cũng có thể tìm kiếm, chia sẻ nhu cầu, kết nối về thú cưng, đồ thất lạc, nhận nuôi hoặc hỗ trợ địa phương.",
-        },
-      ],
-      closing:
-        "Rao vặt mang lại lưu lượng. Negocios Locales biến sự chú ý đó thành cuộc gọi, lượt ghé và khách hàng.",
-      exploreCta: { label: "Khám phá Rao vặt", href: "/clasificados?lang=vi" },
-    },
-    whatYouGet: {
-      eyebrow: "BẠN NHẬN ĐƯỢC GÌ",
-      headline: "Hơn một quảng cáo: sự hiện diện đầy đủ cho doanh nghiệp.",
-      intro:
-        "Leonix kết hợp tạp chí in, hiện diện kỹ thuật số và hành động qua QR để giúp nhiều khách hàng tìm thấy, hiểu và liên hệ doanh nghiệp của bạn.",
-      expandMore: "Xem thêm",
-      expandLess: "Thu gọn",
-      cards: [
-        {
-          title: "Tạp chí in cao cấp",
-          body: "Doanh nghiệp của bạn xuất hiện trên ấn phẩm được thiết kế cho cộng đồng Latinh địa phương.",
-          detail:
-            "Quảng cáo của bạn nằm trong một tạp chí mang cảm giác địa phương, đáng tin và chuyên nghiệp. Mục tiêu không chỉ là đẹp — mà là đặt doanh nghiệp trước một cộng đồng muốn ủng hộ doanh nghiệp địa phương.",
-          accent: "burgundy",
-        },
-        {
-          title: "Hiện diện kỹ thuật số song ngữ",
-          body: "Quảng cáo cũng có thể sống trong trải nghiệm kỹ thuật số rõ ràng, chuyên nghiệp và dễ chia sẻ.",
-          detail:
-            "Hiện diện kỹ thuật số giúp quảng cáo không dừng ở một trang. Khách hàng có thể tìm thông tin, chia sẻ và quay lại từ điện thoại.",
-          accent: "gold",
-        },
-        {
-          title: "QR + hành động thực",
-          body: "Biến sự chú ý thành cuộc gọi, tin nhắn, bản đồ, liên kết, ưu đãi và thêm thông tin.",
-          detail:
-            "QR giúp đưa người đọc từ tạp chí đến hành động cụ thể: gọi, mở bản đồ, nhắn tin, vào website, xem mạng xã hội hoặc yêu cầu thêm thông tin.",
-          accent: "qr",
-        },
-        {
-          title: "Negocios Locales",
-          body: "Sự hiện diện có tổ chức cho điện thoại, vị trí, mạng xã hội, ảnh, đánh giá và liên kết quan trọng.",
-          detail:
-            "Negocios Locales gom thông tin một chỗ để khách không phải tìm trên nhiều nền tảng. Điện thoại, địa chỉ, bản đồ, mạng xã hội, ảnh và liên kết có thể ở cùng nhau.",
-          accent: "green",
-        },
-        {
-          title: "Cơ hội ra mắt sớm",
-          body: "Hãy là một trong những doanh nghiệp đầu tiên xuất hiện cùng Leonix Media trong giai đoạn ra mắt.",
-          detail:
-            "Trong giai đoạn ra mắt, các doanh nghiệp đầu tiên giúp xây mạng lưới Leonix Media ban đầu. Đây là cơ hội hiển thị sớm khi cộng đồng bắt đầu biết đến nền tảng.",
-          accent: "founder",
-        },
-      ],
-    },
-    howItWorks: {
-      eyebrow: "CÁCH HOẠT ĐỘNG",
-      headline: "Quy trình rõ ràng để ra mắt sự hiện diện với Leonix.",
-      intro:
-        "Chúng tôi đồng hành từ thông tin ban đầu đến sự hiện diện sẵn sàng in, chia sẻ và kết nối.",
-      stepsAria: "Các bước quy trình",
-      steps: [
-        {
-          title: "Chọn lộ trình",
-          body: "Chọn loại hiện diện bạn muốn: quảng cáo in, kỹ thuật số, QR, Media Kit hoặc gói ra mắt.",
-        },
-        {
-          title: "Gửi thông tin",
-          body: "Chia sẻ logo, ảnh, điện thoại, địa chỉ, mạng xã hội, liên kết, ưu đãi và chi tiết chính về doanh nghiệp.",
-        },
-        {
-          title: "Chúng tôi chuẩn bị",
-          body: "Sắp xếp quảng cáo, thông tin kỹ thuật số và các yếu tố giúp khách hiểu và liên hệ doanh nghiệp.",
-        },
-        {
-          title: "Ra mắt và kết nối",
-          body: "Doanh nghiệp sẵn sàng xuất hiện trước cộng đồng và biến sự quan tâm thành cuộc gọi, tin nhắn, lượt ghé và kết nối.",
-        },
-      ],
-    },
-    qrAccess: {
-      eyebrow: "TRUY CẬP QR",
-      headline: "Từ quảng cáo in đến điện thoại của khách.",
-      intro:
-        "QR giúp quảng cáo không dừng ở một trang. Khách có thể quét, hiểu và hành động từ điện thoại.",
-      callout: "Quét. Dịch. Kết nối.",
-      explanation:
-        "Tạp chí giữ bản sắc tiếng Tây Ban Nha để phục vụ cộng đồng Latinh trước. Qua QR, khách có thể mở trải nghiệm kỹ thuật số và dùng công cụ dịch trên thiết bị hoặc trình duyệt để hiểu thông tin bằng ngôn ngữ họ chọn.",
-      benefitsAria: "Lợi ích truy cập QR",
-      benefits: [
-        {
-          title: "Nhiều cách để hiểu",
-          body: "Khách có thể dùng dịch trình duyệt, Google Lens hoặc Apple Translate khi cần.",
-        },
-        {
-          title: "Nhiều cách để hành động",
-          body: "Từ điện thoại, họ có thể gọi, mở bản đồ, nhắn tin, vào liên kết, xem mạng xã hội hoặc yêu cầu thêm thông tin.",
-        },
-        {
-          title: "Giữ nguyên bản sắc",
-          body: "Leonix vẫn là tạp chí ưu tiên tiếng Tây Ban Nha, với truy cập kỹ thuật số mở cửa cho thêm cộng đồng.",
-        },
-      ],
-    },
-    mediaKitPreview: {
-      eyebrow: "MEDIA KIT",
-      headline: "Bạn sẽ thấy gì trong Media Kit",
-      intro:
-        "Media Kit gom giải thích đầy đủ về cách Leonix Media kết hợp tạp chí in, hiện diện kỹ thuật số, QR, hành động thực và gói quảng cáo để doanh nghiệp trông mạnh hơn và dễ liên hệ hơn.",
-      cardsAria: "Nội dung Media Kit",
-      cards: [
-        {
-          title: "Vì sao quảng cáo với Leonix",
-          body: "Xem Leonix giúp tạo phạm vi, niềm tin và hành động cho doanh nghiệp địa phương muốn kết nối cộng đồng Latinh và đa văn hóa.",
-        },
-        {
-          title: "QR + nút hành động",
-          body: "Xem quảng cáo in có thể dẫn khách gọi, mở bản đồ, nhắn tin, vào website, xem mạng xã hội, đánh giá và hơn thế.",
-        },
-        {
-          title: "Negocios Locales + kỹ thuật số",
-          body: "Hiểu cách doanh nghiệp có thể có sự hiện diện gọn với điện thoại, địa chỉ, bản đồ, ảnh, đánh giá, mạng xã hội, website và nút liên hệ.",
-        },
-        {
-          title: "Gói và bước tiếp theo",
-          body: "Xem lựa chọn quảng cáo, mức hiển thị và quy trình bắt đầu với Leonix Media.",
-        },
-      ],
-      ctaHeading: "Sẵn sàng xem chi tiết?",
-      viewCta: {
-        label: "Xem Media Kit",
-        href: "/media-kit/leonix-media-kit-en.pdf",
-      },
-      downloadCta: {
-        label: "Tải Media Kit",
-        href: "/media-kit/leonix-media-kit-en.pdf",
-      },
-      supportingLine:
-        "Mở Media Kit để xem định dạng, lợi ích, gói và các bước tiếp theo.",
-    },
-    finalCta: {
-      eyebrow: "SẴN SÀNG RA MẮT",
-      headline: "Đặt chỗ trước khi ra mắt.",
-      body: "Leonix Media đang chuẩn bị ra mắt để kết nối doanh nghiệp địa phương với cộng đồng Latinh và đa văn hóa Bay Area. Nếu bạn muốn xuất hiện từ đầu, đây là lúc giơ tay.",
-      ctas: [
-        {
-          label: "Quảng cáo cùng chúng tôi",
-          href: "/contact?interest=advertise&lang=vi",
-          variant: "primary",
-        },
-        {
-          label: "Xem Media Kit",
-          href: "/media-kit/leonix-media-kit-en.pdf",
-          variant: "secondary",
-          external: true,
-        },
-        {
-          label: "Tham gia ra mắt",
-          href: "/newsletter?source=coming-soon-v2&lang=vi",
-          variant: "green",
-        },
-      ],
-      mediaKitDownload: {
-        label: "Tải Media Kit",
-        href: "/media-kit/leonix-media-kit-en.pdf",
-      },
-    },
-    contact: {
-      title: "Liên hệ",
-      body: "Có câu hỏi về quảng cáo, Media Kit hoặc giai đoạn ra mắt? Liên hệ với chúng tôi — chúng tôi sẽ giúp bạn chọn lộ trình phù hợp.",
-      emailLabel: "Email",
-      email: "info@leonixmedia.com",
-      phoneLabel: "Điện thoại",
-      phone: "(408) 303-6500",
-      phoneHref: "tel:+14083036500",
-      addressLabel: "Địa chỉ",
-      address: "871 Coleman Avenue, Suite 202, San Jose, CA 95110",
-      areaLabel: "Khu vực",
-      area: "San José • Silicon Valley • Cộng đồng Latinh",
-    },
-    newsletter: {
-      title: "Tham gia ra mắt",
-      body: "Nhận tin tức, cơ hội và cập nhật từ Leonix Media.",
-      placeholder: "Email của bạn",
-      button: "Thông báo cho tôi",
-      formAria: "Đăng ký bản tin",
-      emailLabel: "Email",
-    },
-    footer: "© 2026 Leonix Media. Dành cho cộng đồng chúng ta.",
-  },
-};
 
 const heroAccentClass: Record<HeroAccent, string> = {
   burgundy: "font-bold text-[#7A1E2C]",
@@ -1566,6 +555,7 @@ function QrAccessSection({
   intro,
   callout,
   explanation,
+  mobileNote,
   benefits,
   benefitsAria,
 }: {
@@ -1574,6 +564,7 @@ function QrAccessSection({
   intro: string;
   callout: string;
   explanation: string;
+  mobileNote: string;
   benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
   benefitsAria: string;
 }) {
@@ -1591,9 +582,14 @@ function QrAccessSection({
       <p className={sectionIntroClass}>{intro}</p>
 
       <div className="mt-3 grid min-w-0 items-start gap-2.5 sm:mt-8 sm:gap-6 lg:grid-cols-2 lg:gap-8">
-        <p className="text-[0.9375rem] leading-snug text-[#3D3428] sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-xl">
-          {explanation}
-        </p>
+        <div className="min-w-0 lg:max-w-xl">
+          <p className="text-[0.9375rem] leading-snug text-[#3D3428] sm:text-[1.0625rem] sm:leading-relaxed">
+            {explanation}
+          </p>
+          <p className="mt-3 rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7] p-3 text-sm leading-snug text-[#3D3428] sm:mt-4 sm:p-4 sm:text-[0.9375rem] sm:leading-relaxed">
+            {mobileNote}
+          </p>
+        </div>
 
         <div className="flex min-w-0 max-w-md flex-col items-center gap-2 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:gap-4 sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
           <DecorativeQrVisual />
@@ -1670,16 +666,19 @@ function MediaKitPreviewSection({
   eyebrow,
   headline,
   intro,
+  pdfHonestyLine,
   cards,
   cardsAria,
   ctaHeading,
   viewCta,
   downloadCta,
+  requestInfoCta,
   supportingLine,
 }: {
   eyebrow: string;
   headline: string;
   intro: string;
+  pdfHonestyLine: string;
   cards: [
     MediaKitPreviewCard,
     MediaKitPreviewCard,
@@ -1690,6 +689,7 @@ function MediaKitPreviewSection({
   ctaHeading: string;
   viewCta: { label: string; href: string };
   downloadCta: { label: string; href: string };
+  requestInfoCta: { label: string; href: string };
   supportingLine: string;
 }) {
   const viewLinkCta: HeroCta = {
@@ -1697,6 +697,11 @@ function MediaKitPreviewSection({
     href: viewCta.href,
     variant: "secondary",
     external: true,
+  };
+  const requestInfoLinkCta: HeroCta = {
+    label: requestInfoCta.label,
+    href: requestInfoCta.href,
+    variant: "primary",
   };
 
   return (
@@ -1710,6 +715,9 @@ function MediaKitPreviewSection({
         {headline}
       </h2>
       <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#3D3428]/90 sm:mt-3 sm:text-[0.9375rem]">
+        {pdfHonestyLine}
+      </p>
 
       <ul
         className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
@@ -1736,18 +744,88 @@ function MediaKitPreviewSection({
         <h3 className="font-serif text-base font-bold text-[#2A4536] sm:text-xl">
           {ctaHeading}
         </h3>
-        <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-4 sm:flex-row sm:items-stretch sm:gap-2.5">
+        <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2.5">
           <HeroCtaLink cta={viewLinkCta} />
           <MediaKitDownloadLink
             label={downloadCta.label}
             href={downloadCta.href}
             tone="light"
           />
+          <HeroCtaLink cta={requestInfoLinkCta} />
         </div>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428]/90 sm:text-[0.9375rem]">
           {supportingLine}
         </p>
       </div>
+    </section>
+  );
+}
+
+function DigitalMagazineSection({
+  eyebrow,
+  headline,
+  intro,
+  visualNote,
+  highlightsNote,
+  mobileNote,
+  readHighlightsCta,
+  openOriginalCta,
+  learnQrCta,
+}: {
+  eyebrow: string;
+  headline: string;
+  intro: string;
+  visualNote: string;
+  highlightsNote: string;
+  mobileNote: string;
+  readHighlightsCta: { label: string; href: string };
+  openOriginalCta: { label: string; href: string };
+  learnQrCta: { label: string; href: string };
+}) {
+  return (
+    <section
+      id="digital-magazine"
+      className={sectionShellClass}
+      aria-labelledby="digital-magazine-title"
+    >
+      <p className={sectionEyebrowClass}>{eyebrow}</p>
+      <h2 id="digital-magazine-title" className={sectionTitleClass}>
+        {headline}
+      </h2>
+      <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:mt-3 sm:text-[0.9375rem]">
+        {visualNote}
+      </p>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+        {highlightsNote}
+      </p>
+
+      <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-2.5">
+        <HeroCtaLink
+          cta={{
+            label: readHighlightsCta.label,
+            href: readHighlightsCta.href,
+            variant: "primary",
+          }}
+        />
+        <HeroCtaLink
+          cta={{
+            label: openOriginalCta.label,
+            href: openOriginalCta.href,
+            variant: "secondary",
+          }}
+        />
+        <Link
+          href={learnQrCta.href}
+          className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#FFFDF7] px-5 py-2.5 text-center text-[0.8125rem] font-bold text-[#2A4536] transition hover:border-[#2A4536] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:min-h-[3.125rem] sm:w-auto sm:px-6 sm:py-3 sm:text-[0.9375rem]"
+        >
+          {learnQrCta.label}
+        </Link>
+      </div>
+
+      <p className="mt-3 max-w-3xl rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7] p-3 text-sm leading-snug text-[#3D3428] sm:mt-4 sm:p-4 sm:text-[0.9375rem] sm:leading-relaxed">
+        {mobileNote}
+      </p>
     </section>
   );
 }
@@ -2058,40 +1136,18 @@ function ComingSoonV2ShellContent() {
   const searchParams = useSearchParams();
   const urlLang = searchParams?.get("lang");
   const routeLang = resolveLeonixSiteLang(urlLang);
-  const displayLang = staticPageCopyLang(routeLang);
 
-  const t = COPY[displayLang];
+  const t = useMemo(() => getComingSoonV2Copy(routeLang), [routeLang]);
   const h = t.hero;
   const mp = t.marketplace;
   const wyg = t.whatYouGet;
   const hiw = t.howItWorks;
   const qr = t.qrAccess;
   const mkp = t.mediaKitPreview;
+  const dm = t.digitalMagazine;
   const final = t.finalCta;
   const contact = t.contact;
   const newsletter = t.newsletter;
-  const magazineDigitalHref = `/magazine/2026/june/read?lang=${routeLang}`;
-  const magazineHero = LEONIX_MAGAZINE_HERO_CTAS[routeLang];
-
-  const heroCtas = useMemo(
-    () =>
-      h.ctas.map((cta) => ({
-        ...cta,
-        href: cta.href.includes("lang=") ? withLeonixLang(cta.href, routeLang) : cta.href,
-      })),
-    [h.ctas, routeLang]
-  );
-
-  const marketplace = useMemo(
-    () => ({
-      ...mp,
-      exploreCta: {
-        ...mp.exploreCta,
-        href: withLeonixLang(mp.exploreCta.href, routeLang),
-      },
-    }),
-    [mp, routeLang]
-  );
 
   return (
     <div lang={routeLang} className="min-h-screen overflow-x-hidden bg-[#F5F0E6] text-[#1F241C]">
@@ -2200,16 +1256,16 @@ function ComingSoonV2ShellContent() {
               </p>
 
               <div className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
-                <HeroCtaLink cta={heroCtas[0]} />
+                <HeroCtaLink cta={h.ctas[0]} />
                 <div className="grid grid-cols-2 gap-1.5 sm:contents">
-                  {heroCtas.slice(1).map((cta) => (
+                  {h.ctas.slice(1).map((cta) => (
                     <HeroCtaLink key={cta.label} cta={cta} />
                   ))}
                 </div>
                 <HeroCtaLink
                   cta={{
-                    label: magazineHero.digital,
-                    href: magazineDigitalHref,
+                    label: dm.openOriginalCta.label,
+                    href: dm.openOriginalCta.href,
                     variant: "green",
                   }}
                 />
@@ -2240,14 +1296,14 @@ function ComingSoonV2ShellContent() {
         </section>
 
         <MarketplaceSection
-          eyebrow={marketplace.eyebrow}
-          headline={marketplace.headline}
-          intro={marketplace.intro}
-          bridge={marketplace.bridge}
-          cards={marketplace.cards}
-          cardsAria={marketplace.cardsAria}
-          closing={marketplace.closing}
-          exploreCta={marketplace.exploreCta}
+          eyebrow={mp.eyebrow}
+          headline={mp.headline}
+          intro={mp.intro}
+          bridge={mp.bridge}
+          cards={mp.cards}
+          cardsAria={mp.cardsAria}
+          closing={mp.closing}
+          exploreCta={mp.exploreCta}
         />
 
         <WhatYouGetSection
@@ -2273,6 +1329,7 @@ function ComingSoonV2ShellContent() {
           intro={qr.intro}
           callout={qr.callout}
           explanation={qr.explanation}
+          mobileNote={qr.mobileNote}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
         />
@@ -2281,12 +1338,26 @@ function ComingSoonV2ShellContent() {
           eyebrow={mkp.eyebrow}
           headline={mkp.headline}
           intro={mkp.intro}
+          pdfHonestyLine={mkp.pdfHonestyLine}
           cards={mkp.cards}
           cardsAria={mkp.cardsAria}
           ctaHeading={mkp.ctaHeading}
           viewCta={mkp.viewCta}
           downloadCta={mkp.downloadCta}
+          requestInfoCta={mkp.requestInfoCta}
           supportingLine={mkp.supportingLine}
+        />
+
+        <DigitalMagazineSection
+          eyebrow={dm.eyebrow}
+          headline={dm.headline}
+          intro={dm.intro}
+          visualNote={dm.visualNote}
+          highlightsNote={dm.highlightsNote}
+          mobileNote={dm.mobileNote}
+          readHighlightsCta={dm.readHighlightsCta}
+          openOriginalCta={dm.openOriginalCta}
+          learnQrCta={dm.learnQrCta}
         />
 
         <FinalContactSection

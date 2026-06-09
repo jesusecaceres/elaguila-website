@@ -142,10 +142,74 @@ const MAGAZINE_HERO_CTA_VI = {
   digital: "Xem phiên bản kỹ thuật số",
 } as const;
 
+const MAGAZINE_HERO_CTA_PT = {
+  read: "Ler a revista",
+  digital: "Ver edição digital",
+} as const;
+
+const MAGAZINE_HERO_CTA_TL = {
+  read: "Basahin ang magazine",
+  digital: "Tingnan ang digital edition",
+} as const;
+
+const MAGAZINE_HERO_CTA_KM = {
+  read: "អានទស្សនាវ",
+  digital: "មើលកំណែឌីជីថល",
+} as const;
+
+const MAGAZINE_HERO_CTA_ZH = {
+  read: "阅读杂志",
+  digital: "查看数字版",
+} as const;
+
+const MAGAZINE_HERO_CTA_JA = {
+  read: "雑誌を読む",
+  digital: "デジタル版を見る",
+} as const;
+
+const MAGAZINE_HERO_CTA_KO = {
+  read: "매거진 읽기",
+  digital: "디지털판 보기",
+} as const;
+
+const MAGAZINE_HERO_CTA_HI = {
+  read: "पत्रिका पढ़ें",
+  digital: "डिजिटल संस्करण देखें",
+} as const;
+
+const MAGAZINE_HERO_CTA_HY = {
+  read: "Կարդալ ամսագիր",
+  digital: "Դիտել թվային հրատարակությունը",
+} as const;
+
+const MAGAZINE_HERO_CTA_RU = {
+  read: "Читать журнал",
+  digital: "Смотреть цифровое издание",
+} as const;
+
+const MAGAZINE_HERO_CTA_PA = {
+  read: "ਪੱਤਰਿਕਾ ਪੜ੍ਹੋ",
+  digital: "ਡਿਜੀਟਲ ਐਡੀਸ਼ਨ ਦੇਖੋ",
+} as const;
+
+const MAGAZINE_HERO_CTA_BY_LANG: Record<SupportedLang, { read: string; digital: string }> = {
+  es: MAGAZINE_HERO_CTA_ES,
+  en: MAGAZINE_HERO_CTA_EN,
+  vi: MAGAZINE_HERO_CTA_VI,
+  pt: MAGAZINE_HERO_CTA_PT,
+  tl: MAGAZINE_HERO_CTA_TL,
+  km: MAGAZINE_HERO_CTA_KM,
+  zh: MAGAZINE_HERO_CTA_ZH,
+  ja: MAGAZINE_HERO_CTA_JA,
+  ko: MAGAZINE_HERO_CTA_KO,
+  hi: MAGAZINE_HERO_CTA_HI,
+  hy: MAGAZINE_HERO_CTA_HY,
+  ru: MAGAZINE_HERO_CTA_RU,
+  pa: MAGAZINE_HERO_CTA_PA,
+};
+
 function magazineHeroCtaForLang(lang: SupportedLang): { read: string; digital: string } {
-  if (lang === "es") return MAGAZINE_HERO_CTA_ES;
-  if (lang === "vi") return MAGAZINE_HERO_CTA_VI;
-  return MAGAZINE_HERO_CTA_EN;
+  return MAGAZINE_HERO_CTA_BY_LANG[lang];
 }
 
 export const MAGAZINE_HERO_CTAS = Object.fromEntries(
@@ -434,14 +498,41 @@ export function staticPageCopyLang(routeLang: SupportedLang): "es" | "en" | "vi"
 }
 
 export function languageAriaLabel(lang: SupportedLang): string {
-  if (lang === "en") return "Language";
-  if (lang === "vi") return "Ngôn ngữ";
-  if (lang === "es") return "Idioma";
-  return "Language";
+  const labels: Record<SupportedLang, string> = {
+    es: "Idioma",
+    en: "Language",
+    vi: "Ngôn ngữ",
+    pt: "Idioma",
+    tl: "Wika",
+    km: "ភាសា",
+    zh: "语言",
+    ja: "言語",
+    ko: "언어",
+    hi: "भाषा",
+    hy: "Լեզու",
+    ru: "Язык",
+    pa: "ਭਾਸ਼ਾ",
+  };
+  return labels[lang];
 }
 
 export function moreLanguagesDropdownLabel(currentLang: SupportedLang): string {
-  return navCopyLang(currentLang) === "en" ? "More languages" : "Más idiomas";
+  const labels: Record<SupportedLang, string> = {
+    es: "Más idiomas",
+    en: "More languages",
+    vi: "Thêm ngôn ngữ",
+    pt: "Mais idiomas",
+    tl: "Higit pang wika",
+    km: "ភាសាបន្ថែម",
+    zh: "更多语言",
+    ja: "その他の言語",
+    ko: "더 많은 언어",
+    hi: "और भाषाएँ",
+    hy: "Ավելi լեզուներ",
+    ru: "Больше языков",
+    pa: "ਹੋਰ ਭਾਸ਼ਾਵਾਂ",
+  };
+  return labels[currentLang];
 }
 
 /** @deprecated GLOBAL-BASE1 — planned languages are now active. */
