@@ -1,16 +1,11 @@
 import type { SupportedLang } from "@/app/lib/language";
 import type { ComingSoonV2Copy } from "./types";
+import {
+  magazineJune2026ReaderHref,
+  primaryMediaKitPdfHref,
+} from "@/app/lib/magazine/qrBridge";
 
 type HeroCtaVariant = "primary" | "secondary" | "green";
-
-const MEDIA_KIT_PDF_ES = "/media-kit/leonix-media-kit-es.pdf";
-const MEDIA_KIT_PDF_EN = "/media-kit/leonix-media-kit-en.pdf";
-
-function mediaKitPdfForLang(lang: SupportedLang): string {
-  if (lang === "es") return MEDIA_KIT_PDF_ES;
-  if (lang === "en") return MEDIA_KIT_PDF_EN;
-  return MEDIA_KIT_PDF_ES;
-}
 
 /** Wire internal hrefs to the active route language. */
 export function localizeComingSoonV2Copy(
@@ -55,11 +50,11 @@ export function localizeComingSoonV2Copy(
     };
   },
 ): ComingSoonV2Copy {
-  const pdf = mediaKitPdfForLang(lang);
+  const pdf = primaryMediaKitPdfHref(lang);
   const contactHref = `/contacto?inquiryType=advertising&sourceCta=advertise&lang=${lang}`;
   const newsletterHref = `/newsletter?source=coming-soon-v2&inquiryType=launch&lang=${lang}`;
-  const magazineLanding = `/magazine?lang=${lang}`;
-  const magazineRead = `/magazine/2026/june/read?lang=${lang}`;
+  const magazineReader = magazineJune2026ReaderHref(lang);
+  const magazineOriginal = magazineJune2026ReaderHref(lang, { hash: "original-edition" });
 
   return {
     ...copy,
@@ -91,11 +86,11 @@ export function localizeComingSoonV2Copy(
       ...copy.digitalMagazine,
       readHighlightsCta: {
         label: copy.digitalMagazine.readHighlightsCta.label,
-        href: magazineLanding,
+        href: magazineReader,
       },
       openOriginalCta: {
         label: copy.digitalMagazine.openOriginalCta.label,
-        href: magazineRead,
+        href: magazineOriginal,
       },
       learnQrCta: {
         label: copy.digitalMagazine.learnQrCta.label,

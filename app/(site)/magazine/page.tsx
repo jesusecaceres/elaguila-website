@@ -14,8 +14,9 @@ import {
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
-import { useSearchParams } from "next/navigation";
+import { magazineJune2026ReaderHref } from "@/app/lib/magazine/qrBridge";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type MagazineEdition = {
   titleEs: string;
@@ -222,30 +223,44 @@ function FullscreenFlipbookModal({
 function EditionActions({
   edition,
   lang,
-  readLabel,
+  readerHref,
+  readerLabel,
+  flipbookLabel,
   downloadLabel,
   onRead,
   compact,
 }: {
   edition: MagazineEdition;
   lang: MagazineLang;
-  readLabel: string;
+  readerHref: string;
+  readerLabel: string;
+  flipbookLabel: string;
   downloadLabel: string;
   onRead: (flipbookUrl: string | null) => void;
   compact?: boolean;
 }) {
   return (
     <div className={compact ? "mt-4 flex flex-col gap-2 sm:flex-row" : "mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap"}>
-      <button
-        type="button"
-        onClick={() => onRead(edition.flipbookUrl)}
+      <Link
+        href={readerHref}
         className={
           compact
             ? "inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:text-sm"
             : "inline-flex min-h-[2.875rem] items-center justify-center rounded-full bg-[#7A1E2C] px-7 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
         }
       >
-        {readLabel}
+        {readerLabel}
+      </Link>
+      <button
+        type="button"
+        onClick={() => onRead(edition.flipbookUrl)}
+        className={
+          compact
+            ? "inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-4 py-2 text-xs font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:text-sm"
+            : "inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-7 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF]"
+        }
+      >
+        {flipbookLabel}
       </button>
       {edition.pdfUrl ? (
         <a
@@ -407,10 +422,21 @@ export default function MagazineHubPage() {
                   <EditionActions
                     edition={currentEdition}
                     lang={lang}
-                    readLabel={t.readMagazine}
+                    readerHref={readMoreHref}
+                    readerLabel={ui.openFullReader}
+                    flipbookLabel={t.readMagazine}
                     downloadLabel={t.downloadPdf}
                     onRead={openFlipbook}
                   />
+                  <p className="mt-4 text-sm leading-relaxed text-[#3D3428]">
+                    <Link
+                      href={magazineJune2026ReaderHref(lang, { source: "print" })}
+                      className="font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/50 underline-offset-[0.2em] hover:text-[#5e1721]"
+                    >
+                      {ui.openLanguageReader}
+                    </Link>
+                    <span className="text-[#3D3428]/80"> — {ui.printSourceStepLanguage}</span>
+                  </p>
                   <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Link
                       href={`/magazine/2026/june?lang=${lang}`}
@@ -483,7 +509,9 @@ export default function MagazineHubPage() {
                         <EditionActions
                           edition={edition}
                           lang={lang}
-                          readLabel={t.readMagazine}
+                          readerHref={readMoreHref}
+                          readerLabel={ui.openFullReader}
+                          flipbookLabel={t.readMagazine}
                           downloadLabel={t.downloadPdf}
                           onRead={openFlipbook}
                           compact

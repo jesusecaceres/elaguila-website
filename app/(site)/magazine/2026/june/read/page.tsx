@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import {
-  JUNE_2026,
   getMagazineUi,
   getJune2026Title,
   resolveMagazineLang,
@@ -16,8 +15,10 @@ import {
   getMagazineVisualAsset,
   MAGAZINE_ISSUE_IDS,
 } from "@/app/lib/magazine/languageAssets";
+import { isMagazinePrintSource } from "@/app/lib/magazine/qrBridge";
 import { MagazineFlipbookModal } from "@/app/(site)/magazine/components/MagazineFlipbookModal";
 import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
+import { MagazinePrintSourceIntro } from "@/app/(site)/magazine/components/MagazinePrintSourceIntro";
 import {
   MagazineReaderActionBar,
   MagazineReaderFooterNav,
@@ -27,6 +28,7 @@ import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/Magaz
 function JuneReaderContent() {
   const params = useSearchParams()!;
   const lang = resolveMagazineLang(params.get("lang"));
+  const fromPrint = isMagazinePrintSource(params.get("source"));
   const ui = getMagazineUi(lang);
   const visual = useMemo(
     () => getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang),
@@ -79,11 +81,16 @@ function JuneReaderContent() {
           </p>
         </header>
 
+        {fromPrint ? <MagazinePrintSourceIntro lang={lang} /> : null}
+
         <section className="mt-10 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">
           <MagazineLanguageSelector basePath="/magazine/2026/june/read" />
         </section>
 
-        <section className="mt-8 overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">
+        <section
+          id="original-edition"
+          className="mt-8 scroll-mt-28 overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8"
+        >
           <h2 className="font-serif text-xl font-bold text-[#2A4536]">{ui.originalEditionTitle}</h2>
           <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{ui.originalEditionNote}</p>
           <div className="mt-6 grid min-w-0 gap-6 sm:grid-cols-[minmax(0,10rem)_1fr] sm:items-start">

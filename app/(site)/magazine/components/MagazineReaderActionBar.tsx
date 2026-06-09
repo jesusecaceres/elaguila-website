@@ -5,6 +5,9 @@ import {
   getMagazineUi,
   comingSoonHref,
   mediaKitHref,
+  showDualMediaKitPdfButtons,
+  MAGAZINE_KIT_PDF_EN,
+  MAGAZINE_KIT_PDF_ES,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import {
@@ -37,6 +40,8 @@ export function MagazineReaderActionBar({
   const btnGold =
     "inline-flex min-h-[2.875rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#C9A84A] bg-[#FFFDF7] px-5 py-2.5 text-sm font-bold text-[#1F241C] transition hover:border-[#b89742] hover:bg-[#FBF7EF] sm:w-auto sm:px-7";
 
+  const dualMediaKit = showDualMediaKitPdfButtons(lang);
+
   return (
     <div className={wrapClass}>
       <button type="button" onClick={onOpenFlipbook} className={btnPrimary}>
@@ -45,14 +50,35 @@ export function MagazineReaderActionBar({
       <a href={visual.pdfUrl} download className={btnOutline}>
         {ui.downloadPdf}
       </a>
-      <Link
-        href={mediaKitHref(lang)}
-        className={btnGold}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {ui.viewMediaKit}
-      </Link>
+      {dualMediaKit ? (
+        <>
+          <a
+            href={MAGAZINE_KIT_PDF_ES}
+            className={btnGold}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {ui.mediaKitPdfEsLabel}
+          </a>
+          <a
+            href={MAGAZINE_KIT_PDF_EN}
+            className={btnGold}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {ui.mediaKitPdfEnLabel}
+          </a>
+        </>
+      ) : (
+        <Link
+          href={mediaKitHref(lang)}
+          className={btnGold}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {ui.viewMediaKit}
+        </Link>
+      )}
     </div>
   );
 }

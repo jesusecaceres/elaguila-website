@@ -1,4 +1,10 @@
 import { normalizeLang, staticPageCopyLang, type SupportedLang } from "@/app/lib/language";
+import {
+  MAGAZINE_KIT_PDF_EN,
+  MAGAZINE_KIT_PDF_ES,
+  primaryMediaKitPdfHref,
+  showDualMediaKitPdfButtons,
+} from "@/app/lib/magazine/qrBridge";
 
 export type MagazineLang = SupportedLang;
 
@@ -83,6 +89,18 @@ export const MAGAZINE_UI: Record<
     issuePageHubCta: string;
     closeFlipbook: string;
     langLabels: { es: string; en: string; vi: string };
+    printSourceBadge: string;
+    printSourceTitle: string;
+    printSourceIntro: string;
+    printSourceStepScan: string;
+    printSourceStepLanguage: string;
+    printSourceStepHighlights: string;
+    printSourceStepOriginal: string;
+    printSourceMobileNote: string;
+    printQrCaption: string;
+    openLanguageReader: string;
+    mediaKitPdfEsLabel: string;
+    mediaKitPdfEnLabel: string;
   }
 > = {
   es: {
@@ -113,6 +131,21 @@ export const MAGAZINE_UI: Record<
     issuePageHubCta: "Ir al hub de la revista",
     closeFlipbook: "Cerrar",
     langLabels: { es: "Español", en: "English", vi: "Tiếng Việt" },
+    printSourceBadge: "DESDE IMPRESO · QR",
+    printSourceTitle: "Bienvenido desde la revista impresa",
+    printSourceIntro:
+      "Escaneaste el QR de Leonix. Este lector es el puente multilingüe: elige idioma, lee resúmenes y acciones, y abre la edición visual original cuando quieras.",
+    printSourceStepScan: "Escanea el QR desde materiales impresos o digitales de Leonix.",
+    printSourceStepLanguage: "Elige tu idioma en Leonix para leer resúmenes e información local.",
+    printSourceStepHighlights: "Usa los resúmenes y CTAs en tu idioma — el sitio es el puente multilingüe.",
+    printSourceStepOriginal:
+      "Abre la revista digital original (PDF/flipbook) cuando quieras ver la edición visual en español.",
+    printSourceMobileNote:
+      "Si ya estás en el celular, no escanees tu propia pantalla. Usa el selector de idioma arriba y este lector.",
+    printQrCaption: "QR oficial · Junio 2026 · leonixmedia.com",
+    openLanguageReader: "Abrir lector en tu idioma",
+    mediaKitPdfEsLabel: "Media Kit (PDF español original)",
+    mediaKitPdfEnLabel: "Media Kit (PDF English)",
   },
   en: {
     languageEyebrow: "READING LANGUAGE",
@@ -142,6 +175,21 @@ export const MAGAZINE_UI: Record<
     issuePageHubCta: "Go to magazine hub",
     closeFlipbook: "Close",
     langLabels: { es: "Español", en: "English", vi: "Tiếng Việt" },
+    printSourceBadge: "FROM PRINT · QR",
+    printSourceTitle: "Welcome from the printed magazine",
+    printSourceIntro:
+      "You scanned the Leonix QR. This reader is the multilingual bridge: choose your language, read highlights and actions, then open the original visual edition when you want.",
+    printSourceStepScan: "Scan the QR code from Leonix print or digital materials.",
+    printSourceStepLanguage: "Choose your language on Leonix to read summaries and local business information.",
+    printSourceStepHighlights: "Use summaries and CTAs in your language — the website is the multilingual bridge.",
+    printSourceStepOriginal:
+      "Open the original digital magazine (PDF/flipbook) when you want the Spanish visual edition.",
+    printSourceMobileNote:
+      "If you are already on your phone, do not scan your own screen. Use the language selector above and this reader.",
+    printQrCaption: "Official QR · June 2026 · leonixmedia.com",
+    openLanguageReader: "Open reader in your language",
+    mediaKitPdfEsLabel: "Media Kit (original Spanish PDF)",
+    mediaKitPdfEnLabel: "Media Kit (English PDF)",
   },
   vi: {
     languageEyebrow: "NGÔN NGỮ ĐỌC",
@@ -171,6 +219,21 @@ export const MAGAZINE_UI: Record<
     issuePageHubCta: "Đến trang tạp chí",
     closeFlipbook: "Đóng",
     langLabels: { es: "Español", en: "English", vi: "Tiếng Việt" },
+    printSourceBadge: "TỪ BẢN IN · QR",
+    printSourceTitle: "Chào mừng từ tạp chí in",
+    printSourceIntro:
+      "Bạn đã quét QR Leonix. Trình đọc này là cầu nối đa ngôn ngữ: chọn ngôn ngữ, đọc tóm tắt và hành động, rồi mở phiên bản hình ảnh gốc khi bạn muốn.",
+    printSourceStepScan: "Quét mã QR từ tài liệu in hoặc kỹ thuật số của Leonix.",
+    printSourceStepLanguage: "Chọn ngôn ngữ trên Leonix để đọc tóm tắt và thông tin doanh nghiệp địa phương.",
+    printSourceStepHighlights: "Dùng tóm tắt và CTA bằng ngôn ngữ của bạn — website là cầu nối đa ngôn ngữ.",
+    printSourceStepOriginal:
+      "Mở tạp chí kỹ thuật số gốc (PDF/flipbook) khi bạn muốn xem phiên bản hình ảnh tiếng Tây Ban Nha.",
+    printSourceMobileNote:
+      "Nếu bạn đã ở trên điện thoại, đừng quét màn hình của chính bạn. Dùng bộ chọn ngôn ngữ phía trên và trình đọc này.",
+    printQrCaption: "QR chính thức · Tháng 6 2026 · leonixmedia.com",
+    openLanguageReader: "Mở trình đọc bằng ngôn ngữ của bạn",
+    mediaKitPdfEsLabel: "Media Kit (PDF tiếng Tây Ban Nha gốc)",
+    mediaKitPdfEnLabel: "Media Kit (PDF English)",
   },
 };
 
@@ -467,19 +530,17 @@ export function readerCtaHref(key: ReaderCtaKey, lang: MagazineLang): string {
           ? "/clasificados?lang=vi"
           : "/clasificados?lang=es";
     case "mediaKit":
-      return lang === "en"
-        ? "/media-kit/leonix-media-kit-en.pdf"
-        : "/media-kit/leonix-media-kit-es.pdf";
+      return primaryMediaKitPdfHref(lang);
     case "comingSoon":
       return `/coming-soon-v2?lang=${lang}`;
   }
 }
 
 export function mediaKitHref(lang: MagazineLang): string {
-  return magazineCopyLang(lang) === "en"
-    ? "/media-kit/leonix-media-kit-en.pdf"
-    : "/media-kit/leonix-media-kit-es.pdf";
+  return primaryMediaKitPdfHref(lang);
 }
+
+export { MAGAZINE_KIT_PDF_EN, MAGAZINE_KIT_PDF_ES, showDualMediaKitPdfButtons };
 
 export function comingSoonHref(lang: MagazineLang): string {
   return `/coming-soon-v2?lang=${lang}`;

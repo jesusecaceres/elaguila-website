@@ -6,6 +6,13 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { getComingSoonV2Copy } from "@/app/components/leonix/coming-soon-v2/comingSoonV2Copy/languages";
+import { MagazinePrintQrBridge } from "@/app/(site)/magazine/components/MagazinePrintQrBridge";
+import {
+  MAGAZINE_KIT_PDF_EN,
+  MAGAZINE_KIT_PDF_ES,
+  showDualMediaKitPdfButtons,
+} from "@/app/lib/magazine/qrBridge";
+import { getMagazineUi } from "@/app/(site)/magazine/2026/june/issueContent";
 import type {
   HeroAccent,
   HeroCta,
@@ -23,6 +30,7 @@ import {
   withLeonixLang,
   type LeonixSiteLang,
 } from "@/app/lib/lang";
+import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
@@ -519,53 +527,26 @@ function HowItWorksSection({
   );
 }
 
-/** Decorative QR-style grid — not scannable. */
-function DecorativeQrVisual() {
-  const pattern = [
-    1, 1, 1, 1, 1, 0, 1,
-    1, 0, 0, 0, 1, 0, 1,
-    1, 0, 1, 0, 1, 0, 0,
-    1, 0, 0, 0, 1, 0, 1,
-    1, 1, 1, 0, 1, 0, 1,
-    0, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 0, 1, 1, 1,
-  ];
-
-  return (
-    <div
-      className="rounded-xl border-2 border-[#C9A84A]/45 bg-[#FFFDF7] p-2.5 shadow-inner sm:p-3"
-      aria-hidden
-    >
-      <div className="grid grid-cols-7 gap-0.5">
-        {pattern.map((filled, index) => (
-          <span
-            key={index}
-            className={`h-2.5 w-2.5 rounded-[1px] sm:h-3 sm:w-3 ${
-              filled ? "bg-[#2A4536]" : "bg-[#F8F4EA]"
-            }`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function QrAccessSection({
+  lang,
   eyebrow,
   headline,
   intro,
   callout,
   explanation,
   mobileNote,
+  openReaderLabel,
   benefits,
   benefitsAria,
 }: {
+  lang: SupportedLang;
   eyebrow: string;
   headline: string;
   intro: string;
   callout: string;
   explanation: string;
   mobileNote: string;
+  openReaderLabel: string;
   benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
   benefitsAria: string;
 }) {
@@ -592,9 +573,18 @@ function QrAccessSection({
           </p>
         </div>
 
-        <div className="flex min-w-0 max-w-md flex-col items-center gap-2 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 text-center shadow-[0_16px_40px_-18px_rgba(42,69,54,0.65)] sm:gap-4 sm:px-8 sm:py-7 lg:max-w-none lg:self-start">
-          <DecorativeQrVisual />
-          <p className="font-serif text-lg font-bold leading-snug text-[#F8F4EA] sm:text-[1.75rem]">
+        <div className="flex min-w-0 max-w-md flex-col items-center gap-3 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 sm:gap-4 sm:px-6 sm:py-6 lg:max-w-none lg:self-start">
+          <MagazinePrintQrBridge
+            lang={lang}
+            qrCaption=""
+            mobileNote=""
+            openReaderLabel={openReaderLabel}
+            variant="compact"
+            tone="onDark"
+            showQrImage
+            className="text-[#F8F4EA]"
+          />
+          <p className="max-w-xs text-center font-serif text-base font-bold leading-snug text-[#F8F4EA] sm:text-lg">
             {callout}
           </p>
         </div>
@@ -664,6 +654,7 @@ function MediaKitPreviewCardIcon({ index }: { index: number }) {
 }
 
 function MediaKitPreviewSection({
+  lang,
   eyebrow,
   headline,
   intro,
@@ -676,6 +667,7 @@ function MediaKitPreviewSection({
   requestInfoCta,
   supportingLine,
 }: {
+  lang: SupportedLang;
   eyebrow: string;
   headline: string;
   intro: string;
@@ -704,6 +696,8 @@ function MediaKitPreviewSection({
     href: requestInfoCta.href,
     variant: "primary",
   };
+  const dualMediaKit = showDualMediaKitPdfButtons(lang);
+  const magazineUi = getMagazineUi(lang);
 
   return (
     <section
@@ -747,11 +741,26 @@ function MediaKitPreviewSection({
         </h3>
         <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2.5">
           <HeroCtaLink cta={viewLinkCta} />
-          <MediaKitDownloadLink
-            label={downloadCta.label}
-            href={downloadCta.href}
-            tone="light"
-          />
+          {dualMediaKit ? (
+            <>
+              <MediaKitDownloadLink
+                label={magazineUi.mediaKitPdfEsLabel}
+                href={MAGAZINE_KIT_PDF_ES}
+                tone="light"
+              />
+              <MediaKitDownloadLink
+                label={magazineUi.mediaKitPdfEnLabel}
+                href={MAGAZINE_KIT_PDF_EN}
+                tone="light"
+              />
+            </>
+          ) : (
+            <MediaKitDownloadLink
+              label={downloadCta.label}
+              href={downloadCta.href}
+              tone="light"
+            />
+          )}
           <HeroCtaLink cta={requestInfoLinkCta} />
         </div>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428]/90 sm:text-[0.9375rem]">
@@ -1247,8 +1256,8 @@ function ComingSoonV2ShellContent() {
                 </div>
                 <HeroCtaLink
                   cta={{
-                    label: dm.openOriginalCta.label,
-                    href: dm.openOriginalCta.href,
+                    label: h.magazineCta,
+                    href: dm.readHighlightsCta.href,
                     variant: "green",
                   }}
                 />
@@ -1307,17 +1316,20 @@ function ComingSoonV2ShellContent() {
         />
 
         <QrAccessSection
+          lang={routeLang}
           eyebrow={qr.eyebrow}
           headline={qr.headline}
           intro={qr.intro}
           callout={qr.callout}
           explanation={qr.explanation}
           mobileNote={qr.mobileNote}
+          openReaderLabel={dm.readHighlightsCta.label}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
         />
 
         <MediaKitPreviewSection
+          lang={routeLang}
           eyebrow={mkp.eyebrow}
           headline={mkp.headline}
           intro={mkp.intro}
