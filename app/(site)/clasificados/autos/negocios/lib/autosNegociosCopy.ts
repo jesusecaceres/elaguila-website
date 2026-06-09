@@ -269,7 +269,7 @@ const ES: AutosNegociosCopy = {
   app: {
     kicker: "Clasificados",
     pageTitle: "Autos · Negocios",
-    intro: "Completa la ficha de inventario; la vista previa refleja lo que ingreses en esta sesión.",
+    intro: "Completa la ficha de inventario del dealer. La vista previa refleja lo que ingreses en esta sesión.",
     badgeLocal: "Borrador · esta sesión",
     noteTitle: "",
     noteBody: "",
@@ -692,7 +692,7 @@ const EN: AutosNegociosCopy = {
   app: {
     kicker: "Classifieds",
     pageTitle: "Autos · Business",
-    intro: "Complete your inventory listing; preview reflects what you enter in this session.",
+    intro: "Complete the dealer inventory listing. The preview reflects what you enter in this session.",
     badgeLocal: "Draft · this session",
     noteTitle: "",
     noteBody: "",

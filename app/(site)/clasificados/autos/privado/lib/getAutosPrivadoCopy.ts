@@ -43,8 +43,8 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
       kicker: isEs ? "Clasificados" : "Classifieds",
       pageTitle: isEs ? "Autos · Privado" : "Autos · Private",
       intro: isEs
-        ? "Completa la ficha; la vista previa refleja lo que ingreses en esta sesión."
-        : "Complete the listing; preview reflects what you enter in this session.",
+        ? "Publica tu vehículo como vendedor particular. La vista previa refleja lo que ingreses en esta sesión."
+        : "Publish your vehicle as a private seller. The preview reflects what you enter in this session.",
       noteTitle: "",
       noteBody: "",
       hints: {

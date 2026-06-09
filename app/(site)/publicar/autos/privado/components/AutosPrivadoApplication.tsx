@@ -34,6 +34,7 @@ import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/sha
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
+import { AutosPublishApplicationHeader } from "@/app/publicar/autos/shared/components/AutosPublishApplicationHeader";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
@@ -118,16 +119,13 @@ export function AutosPrivadoApplication() {
       initialMaxReached={editorMaxReached}
       onStepChange={setEditorProgress}
       header={
-        <header className="mb-6 sm:mb-7">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
-          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-4xl">{t.app.pageTitle}</h1>
-          <p className="mt-2 max-w-xl text-sm leading-snug text-[color:var(--lx-text-2)]">{t.app.intro}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
-            <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">
-              {t.app.badgeLocal}
-            </span>
-          </div>
-        </header>
+        <AutosPublishApplicationHeader
+          lang={lang}
+          lane="privado"
+          title={t.app.pageTitle}
+          helper={t.app.intro}
+          draftLabel={t.app.badgeLocal}
+        />
       }
       topActions={(stepCtx) =>
         stepCtx.activeStep >= stepCtx.stepCount - 1 ? null : (

@@ -30,6 +30,7 @@ import {
 import { SelectWithOtherField } from "./SelectWithOtherField";
 import { AutosNegociosMediaManager } from "./AutosNegociosMediaManager";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
+import { AutosPublishApplicationHeader } from "@/app/publicar/autos/shared/components/AutosPublishApplicationHeader";
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { AutosNegociosInventoryValueModule } from "./AutosNegociosInventoryValueModule";
 import { AutosNegociosInventoryBundlePreview } from "./AutosNegociosInventoryBundlePreview";
@@ -172,21 +173,20 @@ export function AutosNegociosApplication() {
       initialMaxReached={editorMaxReached}
       onStepChange={setEditorProgress}
       header={
-        <header className="mb-6 sm:mb-7">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">{t.app.kicker}</p>
-          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-4xl">{t.app.pageTitle}</h1>
-          <p className="mt-2 max-w-xl text-sm leading-snug text-[color:var(--lx-text-2)]">{t.app.intro}</p>
-          {inventoryBanner ? (
-            <p className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">
-              {inventoryBanner}
-            </p>
-          ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-muted)]">
-            <span className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1">
-              {t.app.badgeLocal}
-            </span>
-          </div>
-        </header>
+        <AutosPublishApplicationHeader
+          lang={lang}
+          lane="negocios"
+          title={t.app.pageTitle}
+          helper={t.app.intro}
+          draftLabel={t.app.badgeLocal}
+          banner={
+            inventoryBanner ? (
+              <p className="rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">
+                {inventoryBanner}
+              </p>
+            ) : undefined
+          }
+        />
       }
       topActions={(stepCtx) =>
         stepCtx.activeStep >= stepCtx.stepCount - 1 ? null : (
