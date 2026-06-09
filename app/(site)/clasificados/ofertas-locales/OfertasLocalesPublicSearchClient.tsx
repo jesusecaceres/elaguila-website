@@ -12,7 +12,6 @@ import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertas
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
-import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
@@ -45,7 +44,6 @@ export function OfertasLocalesPublicSearchClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<OfertaLocalPublicSearchItem | null>(null);
-  const [selectedOffer, setSelectedOffer] = useState<OfertaLocalPublicOfferCard | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const shoppingList = useOfertasLocalesShoppingList();
 
@@ -228,7 +226,7 @@ export function OfertasLocalesPublicSearchClient() {
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {offers.map((offer) => (
                 <li key={offer.id}>
-                  <OfertasLocalesPublicOfferCard lang={lang} offer={offer} onSelect={setSelectedOffer} />
+                  <OfertasLocalesPublicOfferCard lang={lang} offer={offer} />
                 </li>
               ))}
             </ul>
@@ -266,10 +264,6 @@ export function OfertasLocalesPublicSearchClient() {
 
       {selectedItem ? (
         <OfertasLocalesPublicItemDetailDrawer lang={lang} item={selectedItem} onClose={() => setSelectedItem(null)} />
-      ) : null}
-
-      {selectedOffer ? (
-        <OfertasLocalesPublicOfferDetailDrawer lang={lang} offer={selectedOffer} onClose={() => setSelectedOffer(null)} />
       ) : null}
 
       {listOpen ? (

@@ -46,8 +46,20 @@ const FINAL_3_PARALLEL = [
   /^app\/lib\/ofertas-locales\/OFERTAS_LOCALES_FINAL_3_/,
 ] as const;
 
+const FINAL_4_PARALLEL = [
+  /^app\/\(site\)\/clasificados\/ofertas-locales\/\[id\]\//,
+  /^app\/api\/ofertas-locales\/public-offers\/\[id\]\//,
+  /^scripts\/ofertas-locales-final-4-public-detail-audit\.ts$/,
+  /^app\/lib\/ofertas-locales\/ofertasLocalesPublicDetail/,
+  /^app\/lib\/ofertas-locales\/OFERTAS_LOCALES_FINAL_4_/,
+] as const;
+
 function isFinal3Parallel(file: string): boolean {
   return FINAL_3_PARALLEL.some((re) => re.test(file));
+}
+
+function isFinal4Parallel(file: string): boolean {
+  return FINAL_4_PARALLEL.some((re) => re.test(file));
 }
 
 function read(rel: string): string {
@@ -134,7 +146,7 @@ function run() {
   const changed = changedFiles();
   const unrelated = changed.filter((f) => !isAllowed(f));
   for (const f of unrelated) {
-    if (isFinal3Parallel(f)) continue;
+    if (isFinal3Parallel(f) || isFinal4Parallel(f)) continue;
     const forbidden = FORBIDDEN.some((re) => re.test(f));
     if (forbidden) {
       assert.fail(`forbidden file changed: ${f}`);

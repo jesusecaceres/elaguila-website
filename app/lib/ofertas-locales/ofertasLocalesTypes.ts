@@ -695,3 +695,48 @@ export type OfertaLocalPublicOffersApiResponse = {
   error?: string;
   detail?: string;
 };
+
+/** Public-safe social links on offer detail (FINAL-4). */
+export type OfertaLocalPublicOfferSocialLinks = {
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  googleBusinessUrl?: string;
+  googleReviewUrl?: string;
+  yelpUrl?: string;
+};
+
+export type OfertaLocalPublicDetailAsset = {
+  id: string;
+  label: string;
+  kind: "flyer" | "coupon";
+  href: string | null;
+  pending: boolean;
+};
+
+/** Full public approved offer detail — no private fields (FINAL-4). */
+export type OfertaLocalPublicOfferDetail = OfertaLocalPublicOfferCard & {
+  description: string;
+  couponText: string;
+  flyerTitle: string;
+  whatsappHref: string | null;
+  flyerAssets: OfertaLocalPublicDetailAsset[];
+  couponAssets: OfertaLocalPublicDetailAsset[];
+  membershipUrl: string | null;
+  membershipCtaLabel: string | null;
+  membershipNote: string | null;
+  requiresMembershipForDeals: boolean;
+  digitalCouponUrl: string | null;
+  digitalCouponNote: string | null;
+  socialLinks: OfertaLocalPublicOfferSocialLinks;
+  wantsAiSearchableSpecials: boolean;
+  isExpired: boolean;
+};
+
+export type OfertaLocalPublicOfferDetailApiResponse = {
+  ok: boolean;
+  offer?: OfertaLocalPublicOfferDetail;
+  error?: string;
+  detail?: string;
+};
