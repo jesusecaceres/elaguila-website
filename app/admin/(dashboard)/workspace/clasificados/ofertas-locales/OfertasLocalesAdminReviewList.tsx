@@ -7,6 +7,7 @@ import type {
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminHelpers";
 import type { OfertaLocalPublishedAssetMetadata } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 
+import { OfertasLocalesAdminAiItemReviewSection } from "./OfertasLocalesAdminAiItemReviewSection";
 import { reviewOfertaLocalAdminAction } from "./actions";
 
 type Props = {
@@ -294,6 +295,10 @@ function InspectDetail({
           <dd>{item.updatedAt}</dd>
         </div>
       </dl>
+
+      {wantsAiSearchableSpecials ? (
+        <OfertasLocalesAdminAiItemReviewSection ofertaLocalId={item.id} />
+      ) : null}
 
       {reviewEnabled && item.status !== "approved" && item.status !== "archived" ? (
         <div className="space-y-3 border-t border-[#E8DFD0] pt-4">

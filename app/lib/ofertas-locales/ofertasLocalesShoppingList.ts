@@ -306,6 +306,67 @@ export function parseOfertaLocalShoppingList(value: string | null | undefined): 
   }
 }
 
+export const OFERTAS_LOCALES_SHOPPING_LIST_MAP_MAX_STORES = 5;
+
+export function buildOfertaLocalShoppingListStoreAddress(
+  group: OfertaLocalShoppingListBusinessGroup
+): string | null {
+  const parts = [group.address, group.city, group.state, group.zipCode].filter((p) => p.trim());
+  if (parts.length > 0) return parts.join(", ");
+  if (group.city.trim()) return group.city.trim();
+  if (group.zipCode.trim()) return group.zipCode.trim();
+  return null;
+}
+
+export type OfertaLocalShoppingListMapsDirResult = {
+  url: string | null;
+  reason: "empty" | "no_address" | null;
+};
+
+/** Google Maps directions handoff V1 — not Google Routes API optimization. */
+export function buildOfertaLocalShoppingListGoogleMapsDirUrl(
+  list: OfertaLocalShoppingListState
+): OfertaLocalShoppingListMapsDirResult {
+  const groups = groupOfertaLocalShoppingListByBusiness(list);
+  if (groups.length === 0) return { url: null, reason: "empty" };
+
+  const limited = groups.slice(0, OFERTAS_LOCALES_SHOPPING_LIST_MAP_MAX_STORES);
+
+  if (limited.length === 1) {
+    const group = limited[0];
+    const directions = group.directionsHref?.trim();
+    if (directions && directions.includes("google.com/maps")) {
+      return { url: directions, reason: null };
+    }
+    const addr = buildOfertaLocalShoppingListStoreAddress(group);
+    if (!addr) return { url: null, reason: "no_address" };
+    return {
+      url: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`,
+      reason: null,
+    };
+  }
+
+  const addresses: string[] = [];
+  for (const group of limited) {
+    const addr = buildOfertaLocalShoppingListStoreAddress(group);
+    if (addr) addresses.push(addr);
+  }
+
+  if (addresses.length === 0) return { url: null, reason: "no_address" };
+
+  if (addresses.length === 1) {
+    return {
+      url: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addresses[0])}`,
+      reason: null,
+    };
+  }
+
+  const destination = addresses[addresses.length - 1];
+  const waypoints = addresses.slice(0, -1).join("|");
+  const params = new URLSearchParams({ api: "1", destination, waypoints });
+  return { url: `https://www.google.com/maps/dir/?${params.toString()}`, reason: null };
+}
+
 export function formatOfertaLocalShoppingListPlainText(
   list: OfertaLocalShoppingListState,
   lang: OfertasLocalesAppLang

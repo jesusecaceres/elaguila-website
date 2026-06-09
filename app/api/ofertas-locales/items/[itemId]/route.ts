@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getBearerUserId } from "@/app/api/_lib/bearerUser";
 import {
   mapOfertaLocalItemReviewPatchToDbUpdate,
   mapOfertaLocalItemReviewRowToViewModel,
   validateOfertaLocalItemReviewPatch,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
+import { resolveOfertasLocalesOwnerOrAdminAuth } from "@/app/lib/ofertas-locales/ofertasLocalesReviewAuth";
 import type {
   OfertaLocalItemDbRow,
   OfertaLocalItemPatchApiResponse,
+  OfertaLocalPublishStatus,
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -22,8 +23,8 @@ function isDbTableMissingError(message: string | undefined): boolean {
 }
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
-  const ownerId = await getBearerUserId(req);
-  if (!ownerId) {
+  const auth = await resolveOfertasLocalesOwnerOrAdminAuth(req);
+  if (!auth) {
     return NextResponse.json<OfertaLocalItemPatchApiResponse>(
       { ok: false, error: "unauthorized" },
       { status: 401 }
@@ -84,25 +85,46 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     );
   }
 
-  if (!existing || existing.owner_id !== ownerId) {
+  if (!existing) {
     return NextResponse.json<OfertaLocalItemPatchApiResponse>(
       { ok: false, error: "not_found" },
       { status: 404 }
     );
   }
 
+  if (!auth.isAdmin && existing.owner_id !== auth.actorUserId) {
+    return NextResponse.json<OfertaLocalItemPatchApiResponse>(
+      { ok: false, error: "not_found" },
+      { status: 404 }
+    );
+  }
+
+  const { data: parentOffer, error: parentError } = await supabase
+    .from("ofertas_locales")
+    .select("id, status")
+    .eq("id", existing.oferta_local_id)
+    .maybeSingle();
+
+  if (parentError || !parentOffer) {
+    return NextResponse.json<OfertaLocalItemPatchApiResponse>(
+      { ok: false, error: "parent_lookup_failed", detail: parentError?.message },
+      { status: 500 }
+    );
+  }
+
+  const parentStatus = parentOffer.status as OfertaLocalPublishStatus;
   const updatePayload = mapOfertaLocalItemReviewPatchToDbUpdate(
     validated.patch,
-    existing as OfertaLocalItemDbRow
+    existing as OfertaLocalItemDbRow,
+    parentStatus
   );
 
-  const { data: updated, error: updateError } = await supabase
-    .from("oferta_local_items")
-    .update(updatePayload)
-    .eq("id", itemId)
-    .eq("owner_id", ownerId)
-    .select("*")
-    .single();
+  let updateQuery = supabase.from("oferta_local_items").update(updatePayload).eq("id", itemId);
+  if (!auth.isAdmin) {
+    updateQuery = updateQuery.eq("owner_id", auth.actorUserId);
+  }
+
+  const { data: updated, error: updateError } = await updateQuery.select("*").single();
 
   if (updateError || !updated) {
     return NextResponse.json<OfertaLocalItemPatchApiResponse>(

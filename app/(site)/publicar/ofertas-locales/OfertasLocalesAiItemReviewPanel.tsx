@@ -8,6 +8,7 @@ import {
 import type {
   OfertaLocalItemReviewStatus,
   OfertaLocalItemReviewViewModel,
+  OfertaLocalScanJobSummary,
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
@@ -71,6 +72,7 @@ function confidenceLabelText(
 export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const [items, setItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
+  const [scanJobs, setScanJobs] = useState<OfertaLocalScanJobSummary[]>([]);
   const [summary, setSummary] = useState<Record<OfertaLocalItemReviewStatus, number> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,12 +90,14 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
     if (!result.ok) {
       setError(result.detail ?? result.error ?? c.aiReviewLoadFailed);
       setItems([]);
+      setScanJobs([]);
       setSummary(null);
       return;
     }
 
     const nextItems = result.items ?? [];
     setItems(nextItems);
+    setScanJobs(result.scanJobs ?? []);
     setSummary(result.summary ?? null);
     const nextDrafts: Record<string, ItemDraft> = {};
     for (const item of nextItems) {
@@ -190,6 +194,16 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
           <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiReviewPanelTitle}</p>
           <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiReviewBeforePublish}</p>
           <p className="mt-2 text-xs text-[#1E1814]/60">{c.aiReviewApprovedNotPublic}</p>
+          {scanJobs.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-[10px] text-[#1E1814]/55">
+              {scanJobs.map((job) => (
+                <li key={job.id}>
+                  {lang === "en" ? "Scan" : "Escaneo"} {job.status} · {job.itemsExtractedCount}{" "}
+                  {lang === "en" ? "items" : "artículos"}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
         <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
           {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
@@ -304,7 +318,9 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
               </p>
 
               {item.reviewStatus === "approved" ? (
-                <p className="mt-2 text-[10px] font-medium text-emerald-800">{c.aiReviewApprovedNote}</p>
+                <p className="mt-2 text-[10px] font-medium text-emerald-800">
+                  {item.isActive ? c.aiReviewApprovedPublic : c.aiReviewApprovedNote}
+                </p>
               ) : null}
 
               <div className="mt-3 flex flex-wrap gap-2">

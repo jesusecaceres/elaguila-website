@@ -6,6 +6,7 @@ import {
   formatOfertaLocalPublicItemValidDates,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers";
 import {
+  buildOfertaLocalShoppingListGoogleMapsDirUrl,
   formatOfertaLocalShoppingListPlainText,
   groupOfertaLocalShoppingListByBusiness,
   OFERTAS_LOCALES_SHOPPING_LIST_MAX_NOTE,
@@ -52,6 +53,7 @@ export function OfertasLocalesShoppingListPanel({
   const c = ofertasLocalesPublicSearchCopy(lang);
   const groups = groupOfertaLocalShoppingListByBusiness(list);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const mapsDir = buildOfertaLocalShoppingListGoogleMapsDirUrl(list);
 
   const onCopyList = useCallback(async () => {
     setCopyMessage(null);
@@ -190,9 +192,25 @@ export function OfertasLocalesShoppingListPanel({
             {c.copyList}
           </button>
           {copyMessage ? <p className="text-center text-xs text-[#1E1814]/70">{copyMessage}</p> : null}
-          <button type="button" className={`${BTN_OUTLINE} w-full`} disabled title={c.routeComingNext}>
-            {c.routeComingNext}
-          </button>
+          {mapsDir.url ? (
+            <a
+              href={mapsDir.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${BTN} w-full text-center`}
+            >
+              {c.openMap}
+            </a>
+          ) : (
+            <button
+              type="button"
+              className={`${BTN_OUTLINE} w-full`}
+              disabled
+              title={mapsDir.reason === "no_address" ? c.openMapNoAddress : c.openMapEmpty}
+            >
+              {c.openMap}
+            </button>
+          )}
           {groups.length > 0 ? (
             <button type="button" className={`${BTN_OUTLINE} w-full text-red-700`} onClick={onClear}>
               {c.clearList}

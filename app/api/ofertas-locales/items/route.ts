@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getBearerUserId } from "@/app/api/_lib/bearerUser";
 import {
   mapOfertaLocalItemReviewRowToViewModel,
   summarizeOfertaLocalItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
+import { resolveOfertasLocalesOwnerOrAdminAuth } from "@/app/lib/ofertas-locales/ofertasLocalesReviewAuth";
 import type {
   OfertaLocalItemDbRow,
   OfertaLocalItemsListApiResponse,
@@ -19,10 +19,10 @@ function isDbTableMissingError(message: string | undefined): boolean {
   return m.includes("does not exist") || m.includes("could not find the table");
 }
 
-async function assertOwnerOfOffer(
+async function assertOfferAccess(
   supabase: ReturnType<typeof getAdminSupabase>,
   ofertaLocalId: string,
-  ownerId: string
+  auth: { actorUserId: string; isAdmin: boolean }
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from("ofertas_locales")
@@ -31,12 +31,13 @@ async function assertOwnerOfOffer(
     .maybeSingle();
 
   if (error || !data) return false;
-  return data.owner_id === ownerId;
+  if (auth.isAdmin) return true;
+  return data.owner_id === auth.actorUserId;
 }
 
 export async function GET(req: NextRequest) {
-  const ownerId = await getBearerUserId(req);
-  if (!ownerId) {
+  const auth = await resolveOfertasLocalesOwnerOrAdminAuth(req);
+  if (!auth) {
     return NextResponse.json<OfertaLocalItemsListApiResponse>(
       { ok: false, error: "unauthorized" },
       { status: 401 }
@@ -62,10 +63,10 @@ export async function GET(req: NextRequest) {
 
   const supabase = getAdminSupabase();
 
-  const ownsOffer = await assertOwnerOfOffer(supabase, ofertaLocalId, ownerId);
-  if (!ownsOffer) {
+  const hasAccess = await assertOfferAccess(supabase, ofertaLocalId, auth);
+  if (!hasAccess) {
     return NextResponse.json<OfertaLocalItemsListApiResponse>(
-      { ok: false, error: "forbidden", detail: "Offer not found or not owned by you." },
+      { ok: false, error: "forbidden", detail: "Offer not found or not accessible." },
       { status: 403 }
     );
   }
@@ -73,9 +74,12 @@ export async function GET(req: NextRequest) {
   let itemsQuery = supabase
     .from("oferta_local_items")
     .select("*")
-    .eq("owner_id", ownerId)
     .eq("oferta_local_id", ofertaLocalId)
     .order("created_at", { ascending: false });
+
+  if (!auth.isAdmin) {
+    itemsQuery = itemsQuery.eq("owner_id", auth.actorUserId);
+  }
 
   if (scanJobId) {
     itemsQuery = itemsQuery.eq("scan_job_id", scanJobId);
@@ -105,13 +109,18 @@ export async function GET(req: NextRequest) {
   );
 
   let scanJobs: OfertaLocalScanJobSummary[] = [];
-  const { data: scanJobRows, error: scanJobsError } = await supabase
+  let scanJobsQuery = supabase
     .from("oferta_local_scan_jobs")
     .select("id, status, items_extracted_count, pages_processed, completed_at")
-    .eq("owner_id", ownerId)
     .eq("oferta_local_id", ofertaLocalId)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  if (!auth.isAdmin) {
+    scanJobsQuery = scanJobsQuery.eq("owner_id", auth.actorUserId);
+  }
+
+  const { data: scanJobRows, error: scanJobsError } = await scanJobsQuery;
 
   if (!scanJobsError && scanJobRows) {
     scanJobs = scanJobRows.map((job) => ({

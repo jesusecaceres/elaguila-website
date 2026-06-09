@@ -3,11 +3,13 @@
  */
 
 import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import { resolveOfertaLocalItemIsActiveOnReviewPatch } from "./ofertasLocalesItemReviewActivation";
 import type {
   OfertaLocalItemDbRow,
   OfertaLocalItemReviewPatch,
   OfertaLocalItemReviewStatus,
   OfertaLocalItemReviewViewModel,
+  OfertaLocalPublishStatus,
 } from "./ofertasLocalesTypes";
 
 const MAX_NAME = 200;
@@ -140,13 +142,14 @@ export function validateOfertaLocalItemReviewPatch(
   return { ok: true, patch };
 }
 
-/** DB update payload — always keeps is_active false in Stack B. */
+/** DB update payload — activates only when item approved and parent offer is approved. */
 export function mapOfertaLocalItemReviewPatchToDbUpdate(
   patch: OfertaLocalItemReviewPatch,
-  existing?: Pick<OfertaLocalItemDbRow, "item_name" | "normalized_item_name">
+  existing: Pick<OfertaLocalItemDbRow, "item_name" | "normalized_item_name" | "review_status" | "is_active">,
+  parentOfferStatus: OfertaLocalPublishStatus = "pending_review"
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {
-    is_active: false,
+    is_active: resolveOfertaLocalItemIsActiveOnReviewPatch(patch, existing, parentOfferStatus),
     updated_at: new Date().toISOString(),
   };
 

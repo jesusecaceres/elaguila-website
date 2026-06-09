@@ -11,6 +11,7 @@ import type { OfertaLocalOwnerUpdateInput } from "@/app/lib/ofertas-locales/ofer
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
+import { OfertasLocalesOwnerAiManageSection } from "./OfertasLocalesOwnerAiManageSection";
 
 type Lang = "es" | "en";
 
@@ -307,6 +308,15 @@ export default function OfertasLocalesOwnerManagePage() {
           {t.contactLeonix}
         </Link>
       ) : null}
+
+      <OfertasLocalesOwnerAiManageSection
+        lang={lang}
+        offerId={offer.id}
+        wantsAiSearchableSpecials={offer.metadata.wantsAiSearchableSpecials}
+        flyerAssets={offer.flyerAssets}
+        couponAssets={offer.couponAssets}
+        offerStatus={offer.status}
+      />
 
       <div className="space-y-6 text-sm">
         <section>

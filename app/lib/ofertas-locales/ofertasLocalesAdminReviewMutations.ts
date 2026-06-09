@@ -109,6 +109,20 @@ export async function mutateOfertaLocalAdminReview(
 
   if (updateError) return { ok: false, error: "update_failed" };
 
+  const now = new Date().toISOString();
+  if (action === "approve") {
+    await sb
+      .from("oferta_local_items")
+      .update({ is_active: true, updated_at: now })
+      .eq("oferta_local_id", offerId)
+      .eq("review_status", "approved");
+  } else if (action === "reject" || action === "archive") {
+    await sb
+      .from("oferta_local_items")
+      .update({ is_active: false, updated_at: now })
+      .eq("oferta_local_id", offerId);
+  }
+
   return { ok: true, id: offerId, previousStatus: current, newStatus };
 }
 
