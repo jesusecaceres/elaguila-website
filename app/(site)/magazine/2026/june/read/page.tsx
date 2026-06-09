@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import {
@@ -16,14 +15,20 @@ import {
   MAGAZINE_ISSUE_IDS,
 } from "@/app/lib/magazine/languageAssets";
 import { isMagazinePrintSource } from "@/app/lib/magazine/qrBridge";
+import {
+  PRINT_SUMMARY_SECTION,
+  PRINT_WEBSITE_LANG_NOTE,
+} from "@/app/lib/magazine/printVisualInstructions";
 import { MagazineFlipbookModal } from "@/app/(site)/magazine/components/MagazineFlipbookModal";
 import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
-import { MagazinePrintSourceIntro } from "@/app/(site)/magazine/components/MagazinePrintSourceIntro";
+import { MagazinePrintPrimaryActions } from "@/app/(site)/magazine/components/MagazinePrintPrimaryActions";
+import { MagazinePrintVisualGuide } from "@/app/(site)/magazine/components/MagazinePrintVisualGuide";
 import {
   MagazineReaderActionBar,
   MagazineReaderFooterNav,
 } from "@/app/(site)/magazine/components/MagazineReaderActionBar";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
+import Image from "next/image";
 
 function JuneReaderContent() {
   const params = useSearchParams()!;
@@ -66,51 +71,84 @@ function JuneReaderContent() {
           </Link>
         </div>
 
-        <header className="mt-6 max-w-3xl">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
-            {ui.readerPreviewBadge}
-          </p>
-          <h1 className="mt-3 font-serif text-3xl font-bold leading-tight text-[#2A4536] sm:text-4xl">
-            {ui.readPageTitle}
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
-            {ui.readPageSubtitle}
-          </p>
-          <p className="mt-3 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
-            {ui.futureFlipbookNote}
-          </p>
-        </header>
+        {fromPrint ? (
+          <>
+            <MagazinePrintVisualGuide />
+            <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
+            <p className="mt-4 rounded-lg border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
+              {PRINT_WEBSITE_LANG_NOTE.en}
+              <span className="mt-1 block" lang="es">
+                {PRINT_WEBSITE_LANG_NOTE.es}
+              </span>
+            </p>
+            <section
+              id="leonix-quick-summary"
+              className="mt-8 scroll-mt-28 min-w-0 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-7"
+            >
+              <h2 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
+                {PRINT_SUMMARY_SECTION.title.en}
+                <span className="mt-0.5 block text-base font-semibold text-[#556B3E]">
+                  {PRINT_SUMMARY_SECTION.title.es}
+                </span>
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                {PRINT_SUMMARY_SECTION.note.en}
+                <span className="mt-1 block" lang="es">
+                  {PRINT_SUMMARY_SECTION.note.es}
+                </span>
+              </p>
+              <div className="mt-6 min-w-0">
+                <MagazineTranslatedReader lang={lang} variant="full" />
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            <header className="mt-6 max-w-3xl">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
+                {ui.readerPreviewBadge}
+              </p>
+              <h1 className="mt-3 font-serif text-3xl font-bold leading-tight text-[#2A4536] sm:text-4xl">
+                {ui.readPageTitle}
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
+                {ui.readPageSubtitle}
+              </p>
+              <p className="mt-3 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
+                {ui.futureFlipbookNote}
+              </p>
+            </header>
 
-        {fromPrint ? <MagazinePrintSourceIntro lang={lang} /> : null}
+            <section className="mt-10 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">
+              <MagazineLanguageSelector basePath="/magazine/2026/june/read" />
+            </section>
 
-        <section className="mt-10 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">
-          <MagazineLanguageSelector basePath="/magazine/2026/june/read" />
-        </section>
+            <section
+              id="original-edition"
+              className="mt-8 scroll-mt-28 overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8"
+            >
+              <h2 className="font-serif text-xl font-bold text-[#2A4536]">{ui.originalEditionTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{ui.originalEditionNote}</p>
+              <div className="mt-6 grid min-w-0 gap-6 sm:grid-cols-[minmax(0,10rem)_1fr] sm:items-start">
+                <div className="mx-auto w-full max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-1 sm:mx-0">
+                  <Image
+                    src={visual.coverUrl}
+                    alt={getJune2026Title(lang)}
+                    width={320}
+                    height={420}
+                    className="h-auto w-full object-contain"
+                    sizes="160px"
+                  />
+                </div>
+                <MagazineReaderActionBar lang={lang} onOpenFlipbook={openFlipbook} />
+              </div>
+            </section>
 
-        <section
-          id="original-edition"
-          className="mt-8 scroll-mt-28 overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8"
-        >
-          <h2 className="font-serif text-xl font-bold text-[#2A4536]">{ui.originalEditionTitle}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{ui.originalEditionNote}</p>
-          <div className="mt-6 grid min-w-0 gap-6 sm:grid-cols-[minmax(0,10rem)_1fr] sm:items-start">
-            <div className="mx-auto w-full max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-1 sm:mx-0">
-              <Image
-                src={visual.coverUrl}
-                alt={getJune2026Title(lang)}
-                width={320}
-                height={420}
-                className="h-auto w-full object-contain"
-                sizes="160px"
-              />
-            </div>
-            <MagazineReaderActionBar lang={lang} onOpenFlipbook={openFlipbook} />
-          </div>
-        </section>
-
-        <section className="mt-8 min-w-0">
-          <MagazineTranslatedReader lang={lang} variant="full" />
-        </section>
+            <section className="mt-8 min-w-0">
+              <MagazineTranslatedReader lang={lang} variant="full" />
+            </section>
+          </>
+        )}
 
         <section className="mt-10 rounded-2xl border border-[#2A4536]/20 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-6 sm:p-8">
           <AdvertiseDropdown lang={advertiseLang} variant="primary" className="mt-2" />

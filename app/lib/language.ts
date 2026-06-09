@@ -26,6 +26,19 @@ export const DEFAULT_LANG: SupportedLang = "es";
 
 export const PRIMARY_LANGUAGES = ["es", "en"] as const satisfies readonly SupportedLang[];
 
+/** Magazine hub + reader: only languages with reader UI copy (es/en/vi). */
+export const MAGAZINE_ROUTE_LANGUAGES = ["es", "en", "vi"] as const satisfies readonly SupportedLang[];
+
+export type MagazineRouteLang = (typeof MAGAZINE_ROUTE_LANGUAGES)[number];
+
+export function isMagazineRouteLanguage(lang: SupportedLang): lang is MagazineRouteLang {
+  return (MAGAZINE_ROUTE_LANGUAGES as readonly SupportedLang[]).includes(lang);
+}
+
+export function magazineRouteAdditionalLanguages(): readonly SupportedLang[] {
+  return MAGAZINE_ROUTE_LANGUAGES.filter((c) => c !== "es" && c !== "en");
+}
+
 /** Active community languages in More Languages dropdown (non-primary). */
 export const ADDITIONAL_LANGUAGES = [
   "vi",

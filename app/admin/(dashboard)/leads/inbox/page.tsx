@@ -13,7 +13,7 @@ export default async function AdminLeonixLeadsInboxPage() {
       <AdminPageHeader
         title="Lead inbox"
         subtitle="Contact, advertising, and business inquiries from public.leonix_leads."
-        helperText="Check daily, update status, and add internal notes after follow-up. Newest first."
+        helperText="Check daily, update status, and add internal notes after follow-up. Promotional product and print quote requests appear here as leads under Promotional products / print quote. Newest first."
       />
 
       {list.dataUnavailable ? (

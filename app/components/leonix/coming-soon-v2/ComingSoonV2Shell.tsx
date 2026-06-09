@@ -10,6 +10,7 @@ import { MagazinePrintQrBridge } from "@/app/(site)/magazine/components/Magazine
 import {
   MAGAZINE_KIT_PDF_EN,
   MAGAZINE_KIT_PDF_ES,
+  magazineJune2026ReaderHref,
   showDualMediaKitPdfButtons,
 } from "@/app/lib/magazine/qrBridge";
 import { getMagazineUi } from "@/app/(site)/magazine/2026/june/issueContent";
@@ -536,6 +537,7 @@ function QrAccessSection({
   explanation,
   mobileNote,
   openReaderLabel,
+  readerHref,
   benefits,
   benefitsAria,
 }: {
@@ -547,6 +549,7 @@ function QrAccessSection({
   explanation: string;
   mobileNote: string;
   openReaderLabel: string;
+  readerHref: string;
   benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
   benefitsAria: string;
 }) {
@@ -579,6 +582,7 @@ function QrAccessSection({
             qrCaption=""
             mobileNote=""
             openReaderLabel={openReaderLabel}
+            readerHref={readerHref}
             variant="compact"
             tone="onDark"
             showQrImage
@@ -837,6 +841,67 @@ function DigitalMagazineSection({
         {mobileNote}
       </p>
     </section>
+  );
+}
+
+function HeroMediaKitQuickActions({
+  lang,
+  eyebrow,
+  viewCta,
+  downloadCta,
+  requestInfoCta,
+}: {
+  lang: SupportedLang;
+  eyebrow: string;
+  viewCta: { label: string; href: string };
+  downloadCta: { label: string; href: string };
+  requestInfoCta: { label: string; href: string };
+}) {
+  const dualMediaKit = showDualMediaKitPdfButtons(lang);
+  const magazineUi = getMagazineUi(lang);
+
+  return (
+    <div
+      className="mt-3 rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-3 shadow-sm sm:mt-4 sm:p-4"
+      aria-label={eyebrow}
+    >
+      <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#556B3E] sm:text-xs">
+        {eyebrow}
+      </p>
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2">
+        <HeroCtaLink
+          cta={{
+            label: viewCta.label,
+            href: viewCta.href,
+            variant: "secondary",
+            external: true,
+          }}
+        />
+        {dualMediaKit ? (
+          <>
+            <MediaKitDownloadLink
+              label={magazineUi.mediaKitPdfEsLabel}
+              href={MAGAZINE_KIT_PDF_ES}
+              tone="light"
+            />
+            <MediaKitDownloadLink
+              label={magazineUi.mediaKitPdfEnLabel}
+              href={MAGAZINE_KIT_PDF_EN}
+              tone="light"
+            />
+          </>
+        ) : (
+          <MediaKitDownloadLink label={downloadCta.label} href={downloadCta.href} tone="light" />
+        )}
+        <HeroCtaLink
+          cta={{
+            label: requestInfoCta.label,
+            href: requestInfoCta.href,
+            variant: "primary",
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -1263,6 +1328,14 @@ function ComingSoonV2ShellContent() {
                 />
               </div>
 
+              <HeroMediaKitQuickActions
+                lang={routeLang}
+                eyebrow={mkp.eyebrow}
+                viewCta={mkp.viewCta}
+                downloadCta={mkp.downloadCta}
+                requestInfoCta={mkp.requestInfoCta}
+              />
+
               <ul
                 className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
                 aria-label={h.trustAria}
@@ -1323,7 +1396,14 @@ function ComingSoonV2ShellContent() {
           callout={qr.callout}
           explanation={qr.explanation}
           mobileNote={qr.mobileNote}
-          openReaderLabel={dm.readHighlightsCta.label}
+          openReaderLabel={
+            routeLang === "en"
+              ? "See camera translation steps"
+              : routeLang === "vi"
+                ? "Xem hướng dẫn dịch bằng camera"
+                : "Ver pasos de traducción con cámara"
+          }
+          readerHref={magazineJune2026ReaderHref(routeLang, { source: "print" })}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
         />

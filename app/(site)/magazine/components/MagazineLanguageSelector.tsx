@@ -36,10 +36,10 @@ export function MagazineLanguageSelector({
       </p>
       <p className="mt-3 text-xs leading-relaxed text-[#3D3428]/75 sm:text-sm">
         {lang === "en"
-          ? "Use Español / English or More languages in the site header to change reading language."
+          ? "Use Español / English or Tiếng Việt in the site header for Leonix summary text — this does not translate the full visual magazine."
           : lang === "vi"
-            ? "Dùng Español / English hoặc Thêm ngôn ngữ trên đầu trang để đổi ngôn ngữ đọc."
-            : "Use Español / English o Más idiomas en el encabezado del sitio para cambiar el idioma de lectura."}
+            ? "Dùng Español / English hoặc Tiếng Việt trên đầu trang cho tóm tắt Leonix — không dịch toàn bộ tạp chí hình ảnh."
+            : "Use Español / English o Tiếng Việt en el encabezado para resúmenes de Leonix — no traduce la revista visual completa."}
       </p>
       {showControls ? (
         <p className="mt-3 text-xs text-[#3D3428]/70">

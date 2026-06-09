@@ -174,25 +174,25 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "TRUY CẬP QR",
       headline: "Từ quảng cáo in đến điện thoại của khách.",
       intro:
-        "QR kết nối tạp chí in với trải nghiệm kỹ thuật số của Leonix — cầu nối đa ngôn ngữ của bạn.",
-      callout: "Quét. Chọn ngôn ngữ. Kết nối.",
+        "QR kết nối tạp chí in với Leonix — học cách dịch tạp chí hình ảnh bằng công cụ camera.",
+      callout: "Quét. Dịch. Đọc. Kết nối.",
       explanation:
-        "Quét QR từ tài liệu in hoặc kỹ thuật số. Trên Leonix bạn chọn ngôn ngữ, đọc tóm tắt và thông tin doanh nghiệp địa phương, rồi hành động nhanh. Website là cầu nối đa ngôn ngữ; tạp chí trực quan giữ nguyên ấn bản gốc.",
+        "Quét QR để học cách dịch tạp chí hình ảnh bằng Google Lens, Google Translate hoặc Apple Translate. Sau đó dùng Leonix để mở liên kết, liên hệ doanh nghiệp và xem hành động nhanh.",
       mobileNote:
-        "Trên điện thoại, đừng cố quét màn hình của chính bạn. Dùng bộ chọn ngôn ngữ Leonix và các tóm tắt bằng ngôn ngữ bạn chọn. Google Lens hoặc Apple Translate chỉ là tùy chọn cho tài liệu in.",
+        "Bạn đã quét QR — đừng quét màn hình của chính bạn. Dùng Google Lens, camera Google Translate hoặc Apple Translate trên tạp chí in hoặc kỹ thuật số.",
       benefitsAria: "Lợi ích truy cập QR",
       benefits: [
         {
-          title: "Chọn ngôn ngữ trên Leonix",
-          body: "Tóm tắt, thông tin doanh nghiệp và hành động nhanh bằng ngôn ngữ bạn chọn trên trang.",
+          title: "Dịch bằng camera",
+          body: "Google Lens, camera Google Translate hoặc Apple Translate đọc tạp chí hình ảnh bằng ngôn ngữ của bạn.",
         },
         {
-          title: "Nhiều cách để hành động",
-          body: "Từ điện thoại, họ có thể gọi, mở bản đồ, nhắn tin, vào liên kết, xem mạng xã hội hoặc yêu cầu thêm thông tin.",
+          title: "Liên kết & hành động Leonix",
+          body: "Sau khi đọc, dùng Leonix để gọi, mở bản đồ, xem Media Kit và liên hệ doanh nghiệp.",
         },
         {
-          title: "Tùy chọn cho bản in",
-          body: "Với tài liệu in, Google Lens hoặc Apple Translate có thể giúp đọc văn bản. Leonix vẫn là cổng chính đến nội dung kỹ thuật số.",
+          title: "Tạp chí gốc bằng tiếng Tây Ban Nha",
+          body: "Phiên bản hình ảnh (PDF/flipbook) vẫn là tiếng Tây Ban Nha — Leonix không tự dịch toàn bộ.",
         },
       ],
     },

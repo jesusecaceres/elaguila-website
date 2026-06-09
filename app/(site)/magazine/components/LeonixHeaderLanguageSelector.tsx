@@ -9,7 +9,9 @@ import {
   PRIMARY_LANGUAGES,
   getLanguageLabel,
   isAdditionalLanguageActive,
+  isMagazineRouteLanguage,
   languageAriaLabel,
+  magazineRouteAdditionalLanguages,
   moreLanguagesDropdownLabel,
   normalizeLang,
   type SupportedLang,
@@ -39,6 +41,10 @@ export function LeonixHeaderLanguageSelector({
 }: LeonixHeaderLanguageSelectorProps) {
   const pathnameFromHook = usePathname() ?? "";
   const pathname = pathnameOverride ?? pathnameFromHook;
+  const isMagazineContext = pathname.includes("/magazine");
+  const additionalOptions = isMagazineContext
+    ? magazineRouteAdditionalLanguages()
+    : ADDITIONAL_LANGUAGES;
   const searchParams = useSearchParams();
   const router = useRouter();
   const lang = normalizeLang(searchParams?.get("lang"));
@@ -74,7 +80,9 @@ export function LeonixHeaderLanguageSelector({
   }, [pathname, searchParams?.toString()]);
 
   const dropdownLabel = moreLanguagesDropdownLabel(lang);
-  const additionalActive = isAdditionalLanguageActive(lang);
+  const additionalActive =
+    isAdditionalLanguageActive(lang) &&
+    (!isMagazineContext || isMagazineRouteLanguage(lang));
 
   const primaryLabel = (code: (typeof PRIMARY_LANGUAGES)[number]) => {
     if (isFull) {
@@ -152,7 +160,7 @@ export function LeonixHeaderLanguageSelector({
             aria-label={dropdownLabel}
             className="absolute right-0 top-[calc(100%+0.35rem)] z-[120] max-h-[min(70vh,22rem)] min-w-[11.5rem] overflow-y-auto overflow-x-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
           >
-            {ADDITIONAL_LANGUAGES.map((code) => {
+            {additionalOptions.map((code) => {
               const selected = lang === code;
               return (
                 <li key={code} role="presentation">

@@ -16,6 +16,8 @@ type MagazinePrintQrBridgeProps = {
   mobileNote: string;
   /** CTA for users already on mobile (opens reader with lang). */
   openReaderLabel: string;
+  /** Override reader link (e.g. source=print landing). */
+  readerHref?: string;
   /** Whether to show the scannable PNG (print context or QR section). */
   showQrImage?: boolean;
   /** compact = smaller QR for Coming Soon section; print = reader source=print block */
@@ -29,12 +31,13 @@ export function MagazinePrintQrBridge({
   qrCaption,
   mobileNote,
   openReaderLabel,
+  readerHref: readerHrefOverride,
   showQrImage = true,
   variant = "compact",
   tone = "default",
   className = "",
 }: MagazinePrintQrBridgeProps) {
-  const readerHref = magazineJune2026ReaderHref(lang);
+  const readerHref = readerHrefOverride ?? magazineJune2026ReaderHref(lang);
   const qrSize = variant === "print" ? 160 : 128;
   const captionClass =
     tone === "onDark"

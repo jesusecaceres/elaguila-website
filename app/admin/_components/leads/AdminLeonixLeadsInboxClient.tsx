@@ -9,7 +9,11 @@ import {
 } from "@/app/admin/_components/adminTheme";
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
-import { inquiryTypeLabel, parseInquiryType } from "@/app/lib/leonix/inquiryTypes";
+import {
+  inquiryTypeLabel,
+  parseInquiryType,
+  type InquiryType,
+} from "@/app/lib/leonix/inquiryTypes";
 import {
   clipLeadText,
   copyTextToClipboard,
@@ -33,13 +37,19 @@ const INQUIRY_FILTER_OPTIONS = [
   "partnership",
 ] as const;
 
+function adminInquiryFilterLabel(value: (typeof INQUIRY_FILTER_OPTIONS)[number]): string {
+  if (value === "all") return "All inquiry types";
+  return inquiryTypeLabel(parseInquiryType(value), "en");
+}
+
 function leadSummary(row: LeonixLeadRow): string {
+  const inquiryLabel = inquiryTypeLabel(parseInquiryType(row.inquiry_type), "en");
   return [
     `Leonix lead — ${row.full_name}`,
     `Business: ${row.business_name || "(none)"}`,
     `Email: ${row.email}`,
     `Phone: ${row.phone || "(none)"}`,
-    `Type: ${row.inquiry_type}`,
+    `Type: ${inquiryLabel} (${row.inquiry_type})`,
     `Preferred contact: ${row.preferred_contact_method}`,
     `City/area: ${row.city_area || "(none)"}`,
     `Wants launch updates: ${row.wants_launch_updates ? "yes" : "no"}`,
@@ -81,7 +91,19 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
       if (launchFilter === "yes" && !row.wants_launch_updates) return false;
       if (launchFilter === "no" && row.wants_launch_updates) return false;
       if (!q) return true;
-      const hay = [row.full_name, row.email, row.business_name, row.phone, row.city_area, row.message]
+      const inquiryLabel = inquiryTypeLabel(parseInquiryType(row.inquiry_type), "en");
+      const hay = [
+        row.full_name,
+        row.email,
+        row.business_name,
+        row.phone,
+        row.city_area,
+        row.message,
+        row.inquiry_type,
+        inquiryLabel,
+        row.source_page,
+        row.source_cta,
+      ]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
@@ -129,6 +151,13 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
 
   return (
     <div className="space-y-6">
+      <p className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
+        Promotional product and print quote requests appear here as leads under{" "}
+        <strong>Promotional products / print quote</strong>. Filter by that inquiry type or search{" "}
+        <span className="font-mono text-xs">promo_quote</span> /{" "}
+        <span className="font-mono text-xs">/tienda/contacto</span>.
+      </p>
+
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Search
@@ -136,7 +165,7 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name, email, business, phone…"
+            placeholder="Name, email, inquiry type, source, promo_quote…"
             className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]"
           />
         </label>
@@ -164,7 +193,7 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
           >
             {INQUIRY_FILTER_OPTIONS.map((v) => (
               <option key={v} value={v}>
-                {v === "all" ? "All" : v}
+                {adminInquiryFilterLabel(v)}
               </option>
             ))}
           </select>
@@ -234,8 +263,11 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
                     <td className="px-3 py-3 text-xs font-semibold uppercase">{row.status}</td>
                     <td className="px-2 py-3 font-medium text-[#1E1810] 2xl:px-3">{clipLeadText(row.full_name, 40)}</td>
                     <td className="px-2 py-3 text-[#3D3629] hidden lg:table-cell 2xl:px-3">{clipLeadText(row.business_name, 32)}</td>
-                    <td className="px-2 py-3 text-xs font-semibold text-[#3D3629] 2xl:px-3" title={row.inquiry_type}>
-                      {inquiryTypeLabel(parseInquiryType(row.inquiry_type), "en")}
+                    <td
+                      className="px-2 py-3 text-xs font-semibold text-[#3D3629] 2xl:px-3"
+                      title={row.inquiry_type}
+                    >
+                      {inquiryTypeLabel(parseInquiryType(row.inquiry_type) as InquiryType, "en")}
                     </td>
                     <td className="px-2 py-3 text-xs whitespace-nowrap hidden xl:table-cell 2xl:px-3">{row.phone || "—"}</td>
                     <td className="px-2 py-3 text-xs break-all 2xl:px-3">{row.email}</td>
@@ -245,8 +277,16 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
                       {clipLeadText(row.message, 60)}
                     </td>
                     <td className="px-2 py-3 text-xs 2xl:px-3" title={`${row.source_page} · ${row.source_cta}`}>
-                      <span className="block font-mono text-[11px] text-[#5C5346]">{clipLeadText(row.source_page, 20)}</span>
-                      <span className="block font-semibold text-[#3D3629]">{row.source_cta || "—"}</span>
+                      <span className="block font-mono text-[11px] text-[#5C5346]">
+                        {clipLeadText(row.source_page, 24)}
+                      </span>
+                      <span
+                        className={`block font-semibold ${
+                          row.source_cta === "promo_quote" ? "text-[#7A1E2C]" : "text-[#3D3629]"
+                        }`}
+                      >
+                        {row.source_cta || "—"}
+                      </span>
                     </td>
                     <td className="px-2 py-3 text-xs hidden xl:table-cell 2xl:px-3">{row.wants_launch_updates ? "Yes" : "No"}</td>
                     <td className="px-2 py-3 2xl:px-3">
@@ -323,7 +363,12 @@ export function AdminLeonixLeadsInboxClient({ initialRows, total, limit }: Props
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <dt className="text-xs font-bold uppercase text-[#7A7164]">Inquiry type</dt>
-                <dd className="font-mono text-xs">{selected.inquiry_type}</dd>
+                <dd>
+                  {inquiryTypeLabel(parseInquiryType(selected.inquiry_type) as InquiryType, "en")}
+                  <span className="mt-0.5 block font-mono text-[11px] text-[#7A7164]">
+                    {selected.inquiry_type}
+                  </span>
+                </dd>
               </div>
               <div>
                 <dt className="text-xs font-bold uppercase text-[#7A7164]">Preferred contact</dt>

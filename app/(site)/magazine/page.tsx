@@ -433,9 +433,12 @@ export default function MagazineHubPage() {
                       href={magazineJune2026ReaderHref(lang, { source: "print" })}
                       className="font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/50 underline-offset-[0.2em] hover:text-[#5e1721]"
                     >
-                      {ui.openLanguageReader}
+                      {lang === "en"
+                        ? "How to translate with your phone camera"
+                        : lang === "vi"
+                          ? "Cách dịch bằng camera điện thoại"
+                          : "Cómo traducir con la cámara del teléfono"}
                     </Link>
-                    <span className="text-[#3D3428]/80"> — {ui.printSourceStepLanguage}</span>
                   </p>
                   <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Link

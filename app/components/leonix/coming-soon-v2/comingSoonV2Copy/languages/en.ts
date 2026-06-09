@@ -171,25 +171,25 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       eyebrow: "QR ACCESS",
       headline: "From the printed ad to the customer's phone.",
       intro:
-        "The QR connects the print magazine to Leonix's digital experience — your multilingual bridge.",
-      callout: "Scan. Choose language. Connect.",
+        "The QR connects the print magazine to Leonix — learn how to translate the visual magazine with camera tools.",
+      callout: "Scan. Translate. Read. Connect.",
       explanation:
-        "Scan the QR from printed or digital materials. On Leonix you choose your language, read summaries and local business information, and take quick action. The website is the multilingual bridge; the visual magazine keeps its original edition.",
+        "Scan the QR to learn how to translate the visual magazine with Google Lens, Google Translate, or Apple Translate. Then use Leonix to open links, contact businesses, and view quick actions.",
       mobileNote:
-        "On mobile, do not try to scan your own phone screen. Use Leonix's language selector and summaries in your language. Google Lens or Apple Translate are optional for printed materials only.",
+        "You already scanned the QR — do not scan your own screen. Use Google Lens, Google Translate camera, or Apple Translate on the printed or digital magazine.",
       benefitsAria: "QR access benefits",
       benefits: [
         {
-          title: "Choose your language on Leonix",
-          body: "Summaries, business information, and quick actions in the language you select on the site.",
+          title: "Translate with your camera",
+          body: "Google Lens, Google Translate camera, or Apple Translate read the visual magazine in your language.",
         },
         {
-          title: "More ways to act",
-          body: "From their phone, they can call, open maps, send messages, visit links, view social media, or request more information.",
+          title: "Leonix links & actions",
+          body: "After reading, use Leonix to call, open maps, view the Media Kit, and contact businesses.",
         },
         {
-          title: "Optional for print",
-          body: "For printed materials, Google Lens or Apple Translate can help read text. Leonix remains the main gateway to digital content.",
+          title: "Original magazine in Spanish",
+          body: "The visual edition (PDF/flipbook) stays in Spanish — Leonix does not auto-translate it.",
         },
       ],
     },
