@@ -2,6 +2,7 @@ import {
   DEFAULT_LANG,
   isSupportedLang,
   normalizeLang,
+  replaceLangInHref,
   type SupportedLang,
 } from "@/app/lib/language";
 
@@ -52,8 +53,7 @@ export function buildLeonixSiteUrlForTranslate(
 ): string {
   const safePath = sanitizeTranslateReturnTo(returnTo);
   if (safePath) {
-    const sep = safePath.includes("?") ? "&" : "?";
-    return `${LEONIX_TRANSLATE_SITE_ORIGIN}${safePath}${sep}lang=${lang}`;
+    return `${LEONIX_TRANSLATE_SITE_ORIGIN}${replaceLangInHref(safePath, lang)}`;
   }
   return `${LEONIX_TRANSLATE_SITE_ORIGIN}/?lang=${lang}`;
 }
