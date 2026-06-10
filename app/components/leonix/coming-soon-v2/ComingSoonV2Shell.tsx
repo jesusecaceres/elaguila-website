@@ -40,7 +40,6 @@ import {
 import {
   ANDROID_LENS_INTENT,
   LENS_WEB_URL,
-  detectTranslatorDevice,
 } from "@/app/lib/magazine/translatorGateway";
 import {
   leonixGoogleTranslateWebsiteUrl,
@@ -633,6 +632,7 @@ const QR_SECTION_CTA_COPY = {
       "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar el sitio web.",
     lensAppNote:
       "En Android intentará abrir la app. En otros teléfonos puede abrir la web o pedir instalarla.",
+    lensWebFallback: "Si no abre la app, abre Lens en la web.",
   },
   en: {
     openLens: "Try Google Lens",
@@ -641,6 +641,7 @@ const QR_SECTION_CTA_COPY = {
       "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse the website.",
     lensAppNote:
       "On Android, this will try to open the app. On other phones, it may open the web or ask to install it.",
+    lensWebFallback: "If the app does not open, open Lens on the web.",
   },
 } as const;
 
@@ -659,11 +660,6 @@ function QrSectionTranslationCtas({
   qrStepsLabel: string;
 }) {
   const labels = qrSectionCtaCopy(lang);
-  const device = useMemo(
-    () => (typeof navigator !== "undefined" ? detectTranslatorDevice(navigator.userAgent) : "desktop"),
-    [],
-  );
-  const isAndroid = device === "android";
   const googleTranslateWebsiteHref = leonixGoogleTranslateWebsiteUrl(lang, {
     sourcePage: "coming-soon-v2",
     sourceCta: "coming_soon_qr_google_translate",
@@ -676,24 +672,23 @@ function QrSectionTranslationCtas({
 
   return (
     <div className="mt-4 min-w-0 sm:mt-5">
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {isAndroid ? (
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
+        <div className="flex min-w-0 flex-col gap-1">
           <a
             href={ANDROID_LENS_INTENT}
             className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
           >
             {labels.openLens}
           </a>
-        ) : (
           <a
             href={LENS_WEB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+            className="px-1 text-xs font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-[0.8125rem]"
           >
-            {labels.openLens}
+            {labels.lensWebFallback}
           </a>
-        )}
+        </div>
         <Link
           href={googleTranslateWebsiteHref}
           className={`${qrSectionCtaButtonClass} border-[#C9A84A] bg-[#FFFDF7] text-[#2A4536] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
