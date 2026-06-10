@@ -77,8 +77,8 @@ export function getKoCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "로컬 마켓플레이스 카테고리",
       cards: [
         {
-          title: "무료 물품 / 판매",
-          body: "판매 물품, 가정용품, 도구, 의류 등. 지역 트래픽을 유도하고 이웃 간 기회를 공유하는 게시물.",
+          title: "물품 및 무료 나눔",
+          body: "지역 물품, 가정용품, 도구, 의류, 무료 나눔, 일상 게시물로 이웃이 구매·판매·공유·유용한 기회 발견을 돕습니다.",
         },
         {
           title: "임대",

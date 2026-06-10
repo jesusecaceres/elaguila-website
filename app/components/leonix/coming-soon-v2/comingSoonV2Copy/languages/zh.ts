@@ -79,8 +79,8 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "本地市场类别",
       cards: [
         {
-          title: "免费物品 / 出售",
-          body: "出售物品、家居用品、工具、服装等。旨在吸引本地流量并在邻里间分享机会的发布信息。",
+          title: "物品与免费好物",
+          body: "本地物品、家居用品、工具、服装、免费发现并日常发布，帮助邻里购买、出售、分享和发现实用机会。",
         },
         {
           title: "租房",

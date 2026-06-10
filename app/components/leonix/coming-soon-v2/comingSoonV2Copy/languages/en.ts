@@ -77,8 +77,8 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "Local marketplace categories",
       cards: [
         {
-          title: "Free stuff for sale",
-          body: "Items for sale, home goods, tools, clothing, and more. Listings designed to bring local traffic and help neighbors share opportunities.",
+          title: "Items & Free Stuff",
+          body: "Local items, home goods, tools, clothing, free finds, and everyday listings that help neighbors buy, sell, share, and discover useful opportunities.",
         },
         {
           title: "Rentals",

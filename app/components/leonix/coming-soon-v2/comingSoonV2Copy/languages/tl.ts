@@ -79,8 +79,8 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "Mga kategorya ng lokal na marketplace",
       cards: [
         {
-          title: "Libreng items / for sale",
-          body: "Items for sale, gamit sa bahay, tools, damit, at iba pa. Mga listing na dinisenyo para sa lokal na traffic at pagbabahagi ng oportunidad sa kapitbahay.",
+          title: "Mga item at libreng gamit",
+          body: "Mga lokal na item, gamit sa bahay, tools, damit, libreng hanap, at pang-araw-araw na listing na tumutulong sa kapitbahay bumili, magbenta, magbahagi, at tumuklas ng kapaki-pakinabang na oportunidad.",
         },
         {
           title: "Rentals",

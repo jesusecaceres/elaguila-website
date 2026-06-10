@@ -80,8 +80,8 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "Danh mục marketplace địa phương",
       cards: [
         {
-          title: "Đồ miễn phí / bán",
-          body: "Đồ bán, đồ gia dụng, dụng cụ, quần áo và hơn thế. Tin đăng giúp thu hút lưu lượng địa phương và chia sẻ cơ hội giữa hàng xóm.",
+          title: "Đồ dùng & đồ miễn phí",
+          body: "Đồ dùng địa phương, đồ gia dụng, dụng cụ, quần áo, đồ miễn phí và tin đăng hàng ngày giúp hàng xóm mua, bán, chia sẻ và khám phá cơ hội hữu ích.",
         },
         {
           title: "Thuê nhà",

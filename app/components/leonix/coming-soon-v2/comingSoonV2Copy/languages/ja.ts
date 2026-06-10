@@ -77,8 +77,8 @@ export function getJaCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "ローカルマーケットプレイスのカテゴリ",
       cards: [
         {
-          title: "無料出品 / 販売",
-          body: "出品物、家庭用品、工具、衣類など。地域のトラフィックを呼び、近隣で機会を共有するための掲載。",
+          title: "アイテムと無料の出品",
+          body: "地域のアイテム、家庭用品、工具、衣類、無料の発見、日常的な掲載で近所同士が購入・販売・共有・有用な機会の発見をサポート。",
         },
         {
           title: "賃貸",

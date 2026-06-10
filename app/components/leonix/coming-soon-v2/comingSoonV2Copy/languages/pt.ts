@@ -80,8 +80,8 @@ export function getPtCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "Categorias do marketplace local",
       cards: [
         {
-          title: "Itens grátis / à venda",
-          body: "Itens à venda, artigos para casa, ferramentas, roupas e mais. Anúncios pensados para atrair tráfego local e compartilhar oportunidades entre vizinhos.",
+          title: "Artigos e coisas grátis",
+          body: "Itens locais, artigos para casa, ferramentas, roupas, achados grátis e anúncios do dia a dia que ajudam a comunidade a comprar, vender, compartilhar e descobrir oportunidades.",
         },
         {
           title: "Aluguéis",

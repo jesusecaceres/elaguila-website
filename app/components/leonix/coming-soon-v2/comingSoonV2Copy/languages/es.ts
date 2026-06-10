@@ -80,8 +80,8 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       cardsAria: "Categorías del marketplace local",
       cards: [
         {
-          title: "Varios gratis",
-          body: "Cosas en venta, artículos del hogar, herramientas, ropa y más. Publicaciones pensadas para atraer tráfico local y compartir oportunidades entre vecinos.",
+          title: "Artículos y cosas gratis",
+          body: "Artículos locales, cosas para el hogar, herramientas, ropa, objetos gratis y publicaciones útiles para ayudar a la comunidad a comprar, vender, compartir y descubrir oportunidades.",
         },
         {
           title: "Rentas",
