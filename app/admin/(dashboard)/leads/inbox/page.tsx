@@ -6,29 +6,41 @@ import { LEAD_INBOX_DISPLAY_LIMIT, listLeonixLeadsForAdmin } from "@/app/admin/_
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeonixLeadsInboxPage() {
-  const list = await listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT);
+  const [activeList, archivedList] = await Promise.all([
+    listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT, "active"),
+    listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT, "archived"),
+  ]);
 
   return (
     <div className="w-full max-w-none space-y-8">
       <AdminPageHeader
         title="Lead inbox"
         subtitle="Contact, advertising, and business inquiries from public.leonix_leads."
-        helperText="Check daily, update status, and add internal notes after follow-up. Promotional product and print quote requests appear here as leads under Promotional products / print quote. Newest first."
+        helperText="Check daily, update status, archive when done, and add internal notes after follow-up. Export CSV includes all non-deleted leads."
       />
 
-      {list.dataUnavailable ? (
+      {activeList.dataUnavailable || archivedList.dataUnavailable ? (
         <div className={`${adminCardBase} border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
-          <strong>Data unavailable.</strong> {list.dataUnavailableNote}
+          <strong>Data unavailable.</strong>{" "}
+          {activeList.dataUnavailableNote ?? archivedList.dataUnavailableNote}
+          {" "}Apply migration <code className="rounded bg-white/80 px-1">20260609120000_leonix_leads_lifecycle.sql</code> if
+          the table is missing.
         </div>
       ) : null}
 
-      {list.error && !list.dataUnavailable ? (
+      {(activeList.error || archivedList.error) && !activeList.dataUnavailable ? (
         <div className={`${adminCardBase} border-rose-200 bg-rose-50/90 p-4 text-sm text-rose-950`}>
-          <strong>Could not load leads.</strong> {list.error}
+          <strong>Could not load leads.</strong> {activeList.error ?? archivedList.error}
         </div>
       ) : null}
 
-      <AdminLeonixLeadsInboxClient initialRows={list.rows} total={list.total} limit={LEAD_INBOX_DISPLAY_LIMIT} />
+      <AdminLeonixLeadsInboxClient
+        initialActiveRows={activeList.rows}
+        initialArchivedRows={archivedList.rows}
+        activeTotal={activeList.total}
+        archivedTotal={archivedList.total}
+        limit={LEAD_INBOX_DISPLAY_LIMIT}
+      />
     </div>
   );
 }

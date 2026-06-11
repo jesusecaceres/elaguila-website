@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { assertAdminLeadExportAccess } from "@/app/admin/_lib/adminLeadExportAuth";
-import { updateLeonixLeadAdmin } from "@/app/admin/_lib/leonixLeadsData";
+import {
+  applyLeonixLeadLifecycleAdmin,
+  updateLeonixLeadAdmin,
+  type LeadLifecycleAction,
+} from "@/app/admin/_lib/leonixLeadsData";
 
 export const runtime = "nodejs";
 
@@ -27,6 +31,22 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   const o = body as Record<string, unknown>;
+
+  const actionRaw = o.action != null ? String(o.action).trim() : "";
+  if (actionRaw === "archive" || actionRaw === "restore" || actionRaw === "delete") {
+    const result = await applyLeonixLeadLifecycleAdmin(id, actionRaw as LeadLifecycleAction);
+    if (!result.ok) {
+      const status =
+        result.error === "not_found"
+          ? 404
+          : result.error === "already_deleted"
+            ? 409
+            : 500;
+      return NextResponse.json({ ok: false, error: result.error }, { status });
+    }
+    return NextResponse.json({ ok: true, row: result.row, action: actionRaw });
+  }
+
   const result = await updateLeonixLeadAdmin(id, {
     status: o.status != null ? String(o.status) : undefined,
     internal_notes: o.internal_notes != null ? String(o.internal_notes) : undefined,

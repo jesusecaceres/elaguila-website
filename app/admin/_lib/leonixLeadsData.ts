@@ -52,6 +52,10 @@ export type LeonixLeadRow = {
   consent_to_contact: boolean;
   status: string;
   internal_notes: string;
+  archived_at: string | null;
+  archived_by: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -102,20 +106,28 @@ function supabaseUnavailable<T>(): AdminLeadListResult<T> {
 }
 
 const LEONIX_LEAD_SELECT =
-  "id,full_name,email,phone,business_name,inquiry_type,preferred_contact_method,city_area,website_or_social,business_category,message,source_page,source_cta,lang,wants_launch_updates,consent_to_contact,status,internal_notes,created_at,updated_at";
+  "id,full_name,email,phone,business_name,inquiry_type,preferred_contact_method,city_area,website_or_social,business_category,message,source_page,source_cta,lang,wants_launch_updates,consent_to_contact,status,internal_notes,archived_at,archived_by,deleted_at,deleted_by,created_at,updated_at";
+
+export type LeadInboxBucket = "active" | "archived" | "all_non_deleted";
 
 export async function listLeonixLeadsForAdmin(
-  limit = LEAD_LIST_DEFAULT_LIMIT
+  limit = LEAD_LIST_DEFAULT_LIMIT,
+  bucket: LeadInboxBucket = "all_non_deleted",
 ): Promise<AdminLeadListResult<LeonixLeadRow>> {
   if (!isSupabaseAdminConfigured()) return supabaseUnavailable();
 
   try {
     const supabase = getAdminSupabase();
-    const { data, error, count } = await supabase
-      .from("leonix_leads")
-      .select(LEONIX_LEAD_SELECT, { count: "exact" })
-      .order("created_at", { ascending: false })
-      .limit(limit);
+    let query = supabase.from("leonix_leads").select(LEONIX_LEAD_SELECT, { count: "exact" });
+
+    query = query.is("deleted_at", null);
+    if (bucket === "active") {
+      query = query.is("archived_at", null);
+    } else if (bucket === "archived") {
+      query = query.not("archived_at", "is", null);
+    }
+
+    const { data, error, count } = await query.order("created_at", { ascending: false }).limit(limit);
 
     if (error) {
       const mapped = mapTableError(error);
@@ -155,6 +167,7 @@ export async function fetchAllLeonixLeadsForExport(): Promise<AdminLeadListResul
     const { data, error } = await supabase
       .from("leonix_leads")
       .select(LEONIX_LEAD_SELECT)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LEAD_EXPORT_MAX_ROWS);
 
@@ -190,7 +203,85 @@ export async function fetchAllLeonixLeadsForExport(): Promise<AdminLeadListResul
 
 export type UpdateLeonixLeadResult =
   | { ok: true; row: LeonixLeadRow }
-  | { ok: false; error: "not_found" | "invalid_status" | "save_failed" };
+  | { ok: false; error: "not_found" | "invalid_status" | "save_failed" | "already_deleted" };
+
+export type LeadLifecycleAction = "archive" | "restore" | "delete";
+
+export type LeadLifecycleResult =
+  | { ok: true; row: LeonixLeadRow }
+  | { ok: false; error: "not_found" | "already_deleted" | "save_failed" };
+
+export async function applyLeonixLeadLifecycleAdmin(
+  id: string,
+  action: LeadLifecycleAction,
+  actor = "leonix_admin",
+): Promise<LeadLifecycleResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "save_failed" };
+  }
+
+  const now = new Date().toISOString();
+  const supabase = getAdminSupabase();
+
+  const { data: existing, error: readErr } = await supabase
+    .from("leonix_leads")
+    .select(LEONIX_LEAD_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (readErr || !existing) {
+    return { ok: false, error: "not_found" };
+  }
+
+  const row = existing as LeonixLeadRow;
+  if (row.deleted_at) {
+    return { ok: false, error: "already_deleted" };
+  }
+
+  let updates: Record<string, string | null> = { updated_at: now };
+
+  switch (action) {
+    case "archive":
+      updates = {
+        ...updates,
+        status: "archived",
+        archived_at: now,
+        archived_by: actor,
+      };
+      break;
+    case "restore":
+      updates = {
+        ...updates,
+        status: row.status === "archived" ? "contacted" : row.status,
+        archived_at: null,
+        archived_by: null,
+      };
+      break;
+    case "delete":
+      updates = {
+        ...updates,
+        deleted_at: now,
+        deleted_by: actor,
+      };
+      break;
+    default:
+      return { ok: false, error: "save_failed" };
+  }
+
+  const { data, error } = await supabase
+    .from("leonix_leads")
+    .update(updates)
+    .eq("id", id)
+    .select(LEONIX_LEAD_SELECT)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("[admin/leads] lifecycle failed", { code: error?.code, action });
+    return { ok: false, error: "save_failed" };
+  }
+
+  return { ok: true, row: data as LeonixLeadRow };
+}
 
 export async function updateLeonixLeadAdmin(
   id: string,
@@ -218,6 +309,20 @@ export async function updateLeonixLeadAdmin(
 
   try {
     const supabase = getAdminSupabase();
+
+    const { data: existing, error: readErr } = await supabase
+      .from("leonix_leads")
+      .select("deleted_at")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (readErr || !existing) {
+      return { ok: false, error: "not_found" };
+    }
+    if ((existing as { deleted_at: string | null }).deleted_at) {
+      return { ok: false, error: "already_deleted" };
+    }
+
     const { data, error } = await supabase
       .from("leonix_leads")
       .update(updates)
