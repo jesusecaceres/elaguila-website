@@ -2,6 +2,7 @@
 
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { applicationCanAddInventoryVehicle } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosNegociosAddInventoryDrawer } from "./AutosNegociosAddInventoryDrawer";
@@ -14,6 +15,7 @@ export function AutosNegociosAddInventoryTrigger({
   variant = "primary",
   additionalCount,
   additionalVehicles,
+  parentListing,
   onSave,
   flushDraft,
   onAtLimit,
@@ -22,6 +24,7 @@ export function AutosNegociosAddInventoryTrigger({
   onDrawerOpenChange,
   inProgressDraft = null,
   onInProgressChange,
+  onEditParentDealerStep,
 }: {
   lang: AutosNegociosLang;
   copy: AutosNegociosCopy;
@@ -30,6 +33,7 @@ export function AutosNegociosAddInventoryTrigger({
   variant?: "primary" | "secondary";
   additionalCount: number;
   additionalVehicles: AutosAdditionalInventoryVehicleDraft[];
+  parentListing: AutoDealerListing;
   onSave: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   flushDraft?: () => Promise<void>;
   onAtLimit?: () => void;
@@ -38,6 +42,7 @@ export function AutosNegociosAddInventoryTrigger({
   onDrawerOpenChange?: (open: boolean, editingId?: string | null) => void;
   inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
   onInProgressChange?: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
+  onEditParentDealerStep?: () => void;
 }) {
   const open = drawerOpen && drawerEditingId === null;
 
@@ -64,11 +69,14 @@ export function AutosNegociosAddInventoryTrigger({
         onClose={() => onDrawerOpenChange?.(false)}
         lang={lang}
         copy={copy}
+        parentListing={parentListing}
+        additionalVehicles={additionalVehicles}
         additionalCount={additionalCount}
         editingVehicle={null}
         inProgressDraft={inProgressDraft}
         drawerEditingId={drawerEditingId}
         onInProgressChange={onInProgressChange}
+        onEditParentDealerStep={onEditParentDealerStep}
         onSave={(vehicle) => {
           const ok = onSave(vehicle);
           return ok;

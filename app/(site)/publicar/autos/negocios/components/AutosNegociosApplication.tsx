@@ -44,6 +44,7 @@ import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/
 import { AutosDealerLogoUpload } from "@/app/publicar/autos/shared/components/AutosDealerLogoUpload";
 import { AutosCustomEquipmentField } from "@/app/publicar/autos/shared/components/AutosCustomEquipmentField";
 import { AutosDealerFinanceFields } from "@/app/publicar/autos/shared/components/AutosDealerFinanceFields";
+import { AutosDealerHoursEditor } from "@/app/publicar/autos/shared/components/AutosDealerHoursEditor";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
   formatMileageInputDisplay,
@@ -124,6 +125,10 @@ export function AutosNegociosApplication() {
     onDrawerOpenChange: setInventoryDrawerOpen,
     inProgressDraft: inProgressInventoryVehicleDraft,
     onInProgressChange: updateInProgressInventoryVehicleDraft,
+    onEditParentDealerStep: () => {
+      setInventoryDrawerOpen(false, null);
+      setEditorProgress(4, Math.max(editorMaxReached, 4));
+    },
   };
 
   const autoTitlePreview = useMemo(
@@ -731,6 +736,9 @@ export function AutosNegociosApplication() {
 
             <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
 
+            <h3 className="mt-6 text-sm font-extrabold text-[color:var(--lx-text)]">{t.app.dealer.dealershipContactsHeading}</h3>
+            <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.dealershipContactsHelper}</p>
+
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.dealer.socialHeading}</p>
             <div className={`${GRID2} mt-3`}>
               {(
@@ -785,9 +793,9 @@ export function AutosNegociosApplication() {
             <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.reviewsHelper}</p>
 
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
-              {t.app.dealer.customLinksHeading}
+              {t.app.dealer.usefulDealershipLinksHeading}
             </p>
-            <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.customLinksHelper}</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.usefulDealershipLinksHelper}</p>
             <div className="mt-4 space-y-3">
               {normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).map((row) => (
                 <div
@@ -844,16 +852,16 @@ export function AutosNegociosApplication() {
             </div>
             <button
               type="button"
-              disabled={normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).length >= 3}
+              disabled={normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).length >= 2}
               className="mt-3 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => {
                 const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
-                if (rows.length >= 3) return;
+                if (rows.length >= 2) return;
                 const next: DealerCustomLink = { id: newHourRowId(), label: undefined, url: undefined };
                 setListingPatch({ dealerCustomLinks: [...rows, next] });
               }}
             >
-              {t.app.dealer.addCustomLink}
+              {t.app.dealer.addDealershipLink}
             </button>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -891,61 +899,19 @@ export function AutosNegociosApplication() {
             </div>
             <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.scheduleHelper}</p>
 
-            <div className="mt-4 space-y-3">
-              {(listing.dealerHours ?? []).map((row) => (
-                <div
-                  key={row.rowId}
-                  className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3"
-                >
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="min-w-0">
-                      <label className={LABEL}>{t.app.dealer.day}</label>
-                      <input
-                        className={INPUT}
-                        value={row.day}
-                        onChange={(e) => updateDealerHourRow(row.rowId!, { day: e.target.value })}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <label className={LABEL}>{t.app.dealer.open}</label>
-                      <input
-                        className={INPUT}
-                        disabled={row.closed}
-                        value={row.open}
-                        onChange={(e) => updateDealerHourRow(row.rowId!, { open: e.target.value })}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <label className={LABEL}>{t.app.dealer.close}</label>
-                      <input
-                        className={INPUT}
-                        disabled={row.closed}
-                        value={row.close}
-                        onChange={(e) => updateDealerHourRow(row.rowId!, { close: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-3">
-                    <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
-                      <input
-                        type="checkbox"
-                        checked={row.closed}
-                        onChange={(e) => updateDealerHourRow(row.rowId!, { closed: e.target.checked })}
-                        className="h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                      />
-                      {t.app.dealer.closed}
-                    </label>
-                    <button
-                      type="button"
-                      className="min-h-[44px] min-w-[44px] text-xs font-bold text-red-700 hover:underline sm:min-h-0 sm:min-w-0"
-                      onClick={() => removeDealerHourRow(row.rowId!)}
-                    >
-                      {t.app.dealer.remove}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <AutosDealerHoursEditor
+              lang={lang}
+              rows={listing.dealerHours ?? []}
+              copy={{
+                day: t.app.dealer.day,
+                open: t.app.dealer.open,
+                close: t.app.dealer.close,
+                closed: t.app.dealer.closed,
+                remove: t.app.dealer.remove,
+              }}
+              onUpdateRow={(rowId, patch) => updateDealerHourRow(rowId, patch)}
+              onRemoveRow={(rowId) => removeDealerHourRow(rowId)}
+            />
           </section>
 
           {/* F — Descripción */}
@@ -988,6 +954,7 @@ export function AutosNegociosApplication() {
                   lang={lang}
                   prePublishMode
                   copy={t}
+                  parentListing={listing}
                   parentListingId={inventoryAddContext?.parentListingId ?? null}
                   dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
                   flushDraft={flushDraft}

@@ -72,11 +72,16 @@ export type AutosNegociosCopy = {
       googleReviews: string;
       yelpReviews: string;
       reviewsHelper: string;
+      dealershipContactsHeading: string;
+      dealershipContactsHelper: string;
+      usefulDealershipLinksHeading: string;
+      usefulDealershipLinksHelper: string;
       customLinksHeading: string;
       customLinkTitle: string;
       customLinkUrl: string;
       customLinksHelper: string;
       addCustomLink: string;
+      addDealershipLink: string;
       removeCustomLink: string;
       inventoryMainHelper: string;
       inventoryAddHelper: string;
@@ -386,7 +391,7 @@ const ES: AutosNegociosCopy = {
     dealer: {
       socialHeading: "Redes sociales",
       applyHoursTemplate: "Aplicar plantilla de horario (Lun–Dom)",
-      addHoursRow: "Añadir fila de horario",
+      addHoursRow: "Añadir horario especial",
       scheduleHelper:
         "Añade horarios especiales, días festivos o notas como “solo con cita”. Puedes agregar una fila personalizada si el horario cambia por temporada o día especial.",
       logoHeading: "Logo del concesionario",
@@ -416,12 +421,19 @@ const ES: AutosNegociosCopy = {
       yelpReviews: "Opiniones en Yelp",
       reviewsHelper:
         "Agrega enlaces reales de reseñas. No mostraremos calificaciones inventadas.",
-      customLinksHeading: "Encuentra más sobre nosotros",
+      dealershipContactsHeading: "Contactos y enlaces del concesionario",
+      dealershipContactsHelper:
+        "Agrega redes sociales, reseñas y enlaces útiles del dealer. Solo se mostrarán públicamente los campos que completes.",
+      usefulDealershipLinksHeading: "Enlaces útiles del concesionario",
+      usefulDealershipLinksHelper:
+        "Agrega hasta 2 enlaces importantes, como financiamiento, trade-in, promociones, garantías o servicio.",
+      customLinksHeading: "Enlaces útiles del concesionario",
       customLinkTitle: "Título del enlace",
       customLinkUrl: "URL",
       customLinksHelper:
-        "Agrega hasta 3 enlaces importantes para tu dealer, como financiamiento, trade-in, promociones, garantías o servicio.",
-      addCustomLink: "Añadir enlace",
+        "Agrega hasta 2 enlaces importantes, como financiamiento, trade-in, promociones, garantías o servicio.",
+      addCustomLink: "Añadir enlace del concesionario",
+      addDealershipLink: "Añadir enlace del concesionario",
       removeCustomLink: "Eliminar",
       inventoryMainHelper:
         "Este será el vehículo principal de tu inventario. Será la ficha principal del dealer y podrá mostrar otros vehículos activos del mismo inventario.",
@@ -808,7 +820,7 @@ const EN: AutosNegociosCopy = {
     dealer: {
       socialHeading: "Social links",
       applyHoursTemplate: "Apply Mon–Sun schedule template",
-      addHoursRow: "Add hours row",
+      addHoursRow: "Add special hours",
       scheduleHelper:
         "Add special hours, holidays, or notes like “appointment only”. You can add a custom row if hours change by season or special day.",
       logoHeading: "Dealer logo",
@@ -836,12 +848,19 @@ const EN: AutosNegociosCopy = {
       googleReviews: "Google Reviews",
       yelpReviews: "Yelp Reviews",
       reviewsHelper: "Add real review links only. We will not show invented ratings.",
-      customLinksHeading: "Find more about us",
+      dealershipContactsHeading: "Dealership contacts and links",
+      dealershipContactsHelper:
+        "Add the dealer’s social links, reviews, and useful links. Only completed fields will show publicly.",
+      usefulDealershipLinksHeading: "Useful dealership links",
+      usefulDealershipLinksHelper:
+        "Add up to 2 important links, such as financing, trade-in, promotions, warranties, or service.",
+      customLinksHeading: "Useful dealership links",
       customLinkTitle: "Link title",
       customLinkUrl: "URL",
       customLinksHelper:
-        "Add up to 3 important dealership links, such as financing, trade-in, specials, warranties, or service.",
-      addCustomLink: "Add link",
+        "Add up to 2 important links, such as financing, trade-in, promotions, warranties, or service.",
+      addCustomLink: "Add dealership link",
+      addDealershipLink: "Add dealership link",
       removeCustomLink: "Remove",
       inventoryMainHelper:
         "This will be the main vehicle for your inventory. It becomes the dealer’s main listing and can show other active vehicles from the same inventory.",

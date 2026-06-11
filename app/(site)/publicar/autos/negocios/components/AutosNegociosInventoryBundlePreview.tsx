@@ -137,6 +137,7 @@ export function AutosNegociosInventoryBundlePreview({
   onDrawerOpenChange,
   inProgressDraft = null,
   onInProgressChange,
+  onEditParentDealerStep,
 }: {
   lang: AutosNegociosLang;
   copy: AutosNegociosCopy;
@@ -151,6 +152,7 @@ export function AutosNegociosInventoryBundlePreview({
   onDrawerOpenChange?: (open: boolean, editingId?: string | null) => void;
   inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
   onInProgressChange?: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
+  onEditParentDealerStep?: () => void;
 }) {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const editOpen = drawerOpen && Boolean(drawerEditingId);
@@ -225,11 +227,14 @@ export function AutosNegociosInventoryBundlePreview({
         onClose={() => onDrawerOpenChange?.(false)}
         lang={lang}
         copy={copy}
+        parentListing={listing}
+        additionalVehicles={additionalVehicles}
         additionalCount={additionalCount}
         editingVehicle={editingVehicle}
         inProgressDraft={inProgressDraft}
         drawerEditingId={drawerEditingId}
         onInProgressChange={onInProgressChange}
+        onEditParentDealerStep={onEditParentDealerStep}
         onSave={(vehicle) => {
           const ok = onSaveVehicle(vehicle);
           if (ok) void flushDraft?.();

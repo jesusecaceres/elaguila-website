@@ -44,6 +44,7 @@ import {
   autosInventoryDrawerSectionSpecs,
   autosInventoryInheritedBusinessNotice,
   autosInventoryBundlePhotoCount,
+  autosResultsCardLeonixIdNote,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import {
   formatMileageInputDisplay,
@@ -73,9 +74,24 @@ type Props = {
   copy: AutosNegociosCopy;
   draft: AutosAdditionalInventoryVehicleDraft;
   onPatch: (patch: Partial<AutosAdditionalInventoryVehicleDraft>) => void;
+  /** When set, only the matching step section renders (0–3, 5–6). Step 4 is inherited dealer in parent. */
+  activeStep?: number;
+  steppedMode?: boolean;
 };
 
-export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: Props) {
+function stepVisible(steppedMode: boolean | undefined, activeStep: number | undefined, index: number): boolean {
+  if (!steppedMode || activeStep === undefined) return true;
+  return activeStep === index;
+}
+
+export function AutosInventoryVehicleDrawerForm({
+  lang,
+  copy,
+  draft,
+  onPatch,
+  activeStep,
+  steppedMode = false,
+}: Props) {
   const t = copy;
   const override = draft.vehicleTitleOverride === true;
   const autoTitle = useMemo(
@@ -113,10 +129,13 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
 
   return (
     <div className="space-y-5">
-      <p className="rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF7] px-4 py-3 text-xs leading-relaxed text-[#5C5346]">
-        {autosInventoryInheritedBusinessNotice(lang)}
-      </p>
+      {!steppedMode ? (
+        <p className="rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF7] px-4 py-3 text-xs leading-relaxed text-[#5C5346]">
+          {autosInventoryInheritedBusinessNotice(lang)}
+        </p>
+      ) : null}
 
+      {stepVisible(steppedMode, activeStep, 0) ? (
       <section className={CARD}>
         <h3 className={SECTION}>{autosInventoryDrawerSectionMain(lang)}</h3>
         <div className={`${GRID2} mt-4`}>
@@ -257,7 +276,9 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
           </div>
         </div>
       </section>
+      ) : null}
 
+      {stepVisible(steppedMode, activeStep, 1) ? (
       <section className={CARD}>
         <h3 className={SECTION}>{autosInventoryDrawerSectionSpecs(lang)}</h3>
         <div className={`${GRID2} mt-4`}>
@@ -382,7 +403,9 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
           />
         </div>
       </section>
+      ) : null}
 
+      {stepVisible(steppedMode, activeStep, 2) ? (
       <section className={CARD}>
         <h3 className={SECTION}>{autosInventoryDrawerSectionHighlights(lang)}</h3>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -434,7 +457,9 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
           />
         </div>
       </section>
+      ) : null}
 
+      {stepVisible(steppedMode, activeStep, 3) ? (
       <section className={CARD}>
         <h3 className={SECTION}>{autosInventoryDrawerSectionMedia(lang)}</h3>
         <div className="mt-3">
@@ -448,7 +473,9 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
           />
         </div>
       </section>
+      ) : null}
 
+      {stepVisible(steppedMode, activeStep, 5) ? (
       <section className={CARD}>
         <h3 className={SECTION}>{autosInventoryDrawerSectionDescription(lang)}</h3>
         <textarea
@@ -458,7 +485,9 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
           onChange={(e) => onPatch({ description: autosDraftTextValue(e.target.value) || undefined })}
         />
       </section>
+      ) : null}
 
+      {stepVisible(steppedMode, activeStep, 6) ? (
       <section className={`${CARD} border-[#C9B46A]/50 bg-[#FAF7F2]`}>
         <h3 className={SECTION}>{autosInventoryDrawerSectionReview(lang)}</h3>
         <dl className="mt-3 space-y-2 text-sm text-[#2C2416]">
@@ -483,8 +512,13 @@ export function AutosInventoryVehicleDrawerForm({ lang, copy, draft, onPatch }: 
             <dd>{status}</dd>
           </div>
         </dl>
-        <p className="mt-3 text-xs text-[#6E5418]">{autosInventoryInheritedBusinessNotice(lang)}</p>
+        {steppedMode ? (
+          <p className="mt-3 text-xs text-[#6E5418]">{autosResultsCardLeonixIdNote(lang)}</p>
+        ) : (
+          <p className="mt-3 text-xs text-[#6E5418]">{autosInventoryInheritedBusinessNotice(lang)}</p>
+        )}
       </section>
+      ) : null}
     </div>
   );
 }

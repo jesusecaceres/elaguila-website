@@ -208,6 +208,40 @@ export function autosInventoryDrawerUnsavedCloseConfirm(lang: AutosClassifiedsLa
     : "You have unsaved changes in this vehicle. Close without saving?";
 }
 
+export function autosInventoryUnsavedModalTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Cambios sin guardar" : "Unsaved changes";
+}
+
+export function autosInventoryUnsavedModalBody(lang: AutosClassifiedsLang): string {
+  return autosInventoryDrawerUnsavedCloseConfirm(lang);
+}
+
+export function autosInventoryUnsavedModalKeepEditing(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Seguir editando" : "Keep editing";
+}
+
+export function autosInventoryUnsavedModalCloseWithoutSaving(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Cerrar sin guardar" : "Close without saving";
+}
+
+export function autosInventoryChildStep5Intro(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Esta información se toma de la solicitud principal del concesionario. Se usará para este vehículo cuando se guarde en inventario."
+    : "This information comes from the main dealership application. It will be used for this vehicle when saved to inventory.";
+}
+
+export function autosInventoryChildEditInMainApplication(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Editar en solicitud principal" : "Edit in main application";
+}
+
+export function autosInventoryChildStep5SectionTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Negocio / contacto (heredado)" : "Business / contact (inherited)";
+}
+
+export function autosInventoryChildReviewPreviewCta(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Ver vista previa del vehículo" : "Preview this vehicle";
+}
+
 export function autosRelatedInventoryDraftNote(lang: AutosClassifiedsLang): string {
   return lang === "es"
     ? "Vista previa — los enlaces finales se generan al publicar."

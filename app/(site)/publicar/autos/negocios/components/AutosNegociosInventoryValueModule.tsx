@@ -21,6 +21,7 @@ import { AutosNegociosAddInventoryTrigger } from "./AutosNegociosAddInventoryTri
 import { AutosNegociosInventoryBoostPanel } from "./AutosNegociosInventoryBoostPanel";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosInventoryBoostEditorContext } from "./AutosNegociosInventoryBoostPanel";
 
 const INVENTORY_BOOST_APPROACHING_SLOTS = 2;
@@ -37,6 +38,7 @@ export function AutosNegociosInventoryValueModule({
   boostEditorContext,
   additionalInventoryCount = 0,
   additionalVehicles = [],
+  parentListing,
   copy,
   onSaveAdditionalVehicle,
   onAtLimitOpenBoost,
@@ -54,6 +56,7 @@ export function AutosNegociosInventoryValueModule({
   boostEditorContext?: AutosInventoryBoostEditorContext;
   additionalInventoryCount?: number;
   additionalVehicles?: AutosAdditionalInventoryVehicleDraft[];
+  parentListing?: AutoDealerListing;
   copy?: AutosNegociosCopy;
   onSaveAdditionalVehicle?: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   onAtLimitOpenBoost?: () => void;
@@ -63,6 +66,7 @@ export function AutosNegociosInventoryValueModule({
     onDrawerOpenChange: (open: boolean, editingId?: string | null) => void;
     inProgressDraft: AutosAdditionalInventoryVehicleDraft | null;
     onInProgressChange: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
+    onEditParentDealerStep?: () => void;
   };
 }) {
   const [boostOpen, setBoostOpen] = useState(false);
@@ -152,13 +156,14 @@ export function AutosNegociosInventoryValueModule({
               flushDraft={flushDraft}
               boostEditorContext={boostContext}
             />
-          ) : prePublishMode && onSaveAdditionalVehicle && copy ? (
+          ) : prePublishMode && onSaveAdditionalVehicle && copy && parentListing ? (
             <AutosNegociosAddInventoryTrigger
               lang={lang}
               copy={copy}
               label={autosDealerInventoryAddVehicleCta(lang)}
               additionalCount={additionalInventoryCount}
               additionalVehicles={additionalVehicles}
+              parentListing={parentListing}
               onSave={onSaveAdditionalVehicle}
               flushDraft={flushDraft}
               onAtLimit={() => {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
   applicationCanAddInventoryVehicle,
@@ -21,15 +22,19 @@ import {
   autosAddInventorySaveAndAnotherCta,
   autosAddInventorySaveCta,
   autosAddInventorySaveRequiresFields,
-  autosInventoryDrawerUnsavedCloseConfirm,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
-import { AutosInventoryVehicleDrawerForm } from "./AutosInventoryVehicleDrawerForm";
+import { getAutosApplicationStepShellCopy } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
+import { AutosUnsavedChangesModal } from "@/app/publicar/autos/shared/components/AutosUnsavedChangesModal";
+import type { AutosInventoryChildStepContext } from "@/app/publicar/autos/shared/components/AutosInventoryChildSteppedShell";
+import { AutosNegociosInventoryChildApplication } from "./AutosNegociosInventoryChildApplication";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   lang: AutosNegociosLang;
   copy: AutosNegociosCopy;
+  parentListing: AutoDealerListing;
+  additionalVehicles: AutosAdditionalInventoryVehicleDraft[];
   additionalCount: number;
   editingVehicle: AutosAdditionalInventoryVehicleDraft | null;
   inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
@@ -37,6 +42,7 @@ type Props = {
   onInProgressChange?: (draft: AutosAdditionalInventoryVehicleDraft | null) => void;
   onSave: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   flushDraft?: () => Promise<void>;
+  onEditParentDealerStep?: () => void;
 };
 
 function inventoryDraftFingerprint(v: AutosAdditionalInventoryVehicleDraft): string {
@@ -73,6 +79,8 @@ export function AutosNegociosAddInventoryDrawer({
   onClose,
   lang,
   copy,
+  parentListing,
+  additionalVehicles,
   additionalCount,
   editingVehicle,
   inProgressDraft = null,
@@ -80,11 +88,16 @@ export function AutosNegociosAddInventoryDrawer({
   onInProgressChange,
   onSave,
   flushDraft,
+  onEditParentDealerStep,
 }: Props) {
   const [draft, setDraft] = useState<AutosAdditionalInventoryVehicleDraft>(() => createEmptyInventoryVehicleDraft());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
+  const [stepNav, setStepNav] = useState<AutosInventoryChildStepContext | null>(null);
   const initialFingerprint = useRef("");
+  const shellCopy = getAutosApplicationStepShellCopy(lang);
+  const finalStepIndex = 6;
 
   const isEditing = Boolean(editingVehicle?.id);
   const used = countApplicationInventoryVehicles(additionalCount);
@@ -93,6 +106,7 @@ export function AutosNegociosAddInventoryDrawer({
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setUnsavedModalOpen(false);
     const next = resolveDrawerInitialDraft(editingVehicle, inProgressDraft, drawerEditingId);
     setDraft(next);
     initialFingerprint.current = inventoryDraftFingerprint(next);
@@ -113,26 +127,48 @@ export function AutosNegociosAddInventoryDrawer({
     setDraft((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  const requestClose = useCallback(() => {
-    const dirty = inventoryDraftFingerprint(draft) !== initialFingerprint.current;
-    if (dirty) {
-      if (typeof window !== "undefined" && !window.confirm(autosInventoryDrawerUnsavedCloseConfirm(lang))) return;
-    }
+  const isDirty = useCallback(
+    () => inventoryDraftFingerprint(draft) !== initialFingerprint.current,
+    [draft],
+  );
+
+  const discardAndClose = useCallback(() => {
+    setUnsavedModalOpen(false);
     onInProgressChange?.(null);
     onClose();
-  }, [draft, lang, onClose, onInProgressChange]);
+  }, [onClose, onInProgressChange]);
+
+  const requestClose = useCallback(() => {
+    if (isDirty()) {
+      setUnsavedModalOpen(true);
+      return;
+    }
+    discardAndClose();
+  }, [discardAndClose, isDirty]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        if (unsavedModalOpen) {
+          setUnsavedModalOpen(false);
+          return;
+        }
         requestClose();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, requestClose]);
+  }, [open, requestClose, unsavedModalOpen]);
+
+  const handleEditInMainApplication = useCallback(() => {
+    if (isDirty()) {
+      setUnsavedModalOpen(true);
+      return;
+    }
+    onEditParentDealerStep?.();
+  }, [isDirty, onEditParentDealerStep]);
 
   if (!open) return null;
 
@@ -156,6 +192,7 @@ export function AutosNegociosAddInventoryDrawer({
         const empty = createEmptyInventoryVehicleDraft();
         setDraft(empty);
         initialFingerprint.current = inventoryDraftFingerprint(empty);
+        stepNav?.goToStep(0);
       } else {
         onClose();
       }
@@ -165,77 +202,124 @@ export function AutosNegociosAddInventoryDrawer({
   };
 
   const showForm = isEditing || canAddNew;
+  const onFinalStep = stepNav?.activeStep === finalStepIndex;
 
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-end justify-center p-0 lg:items-center lg:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="autos-add-inventory-title"
-    >
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#1E1810]/45 backdrop-blur-[2px]"
-        aria-label={autosAddInventoryCancelCta(lang)}
-        onClick={requestClose}
-      />
-      <div className="relative flex max-h-[calc(100vh-48px)] w-full max-w-[min(960px,calc(100vw-48px))] flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl lg:rounded-[24px]">
-        <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[#D4C4A8] lg:hidden" aria-hidden />
-        <div className="shrink-0 border-b border-[#E8DFD0] px-4 py-3 sm:px-5">
-          <h2 id="autos-add-inventory-title" className="font-serif text-lg font-semibold text-[#1E1810]">
-            {isEditing
-              ? lang === "es"
-                ? "Editar vehículo adicional"
-                : "Edit additional vehicle"
-              : autosAddInventoryDrawerTitle(lang)}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#2C2416]">{autosAddInventoryDrawerHelper(lang)}</p>
-          <p className="mt-2 text-xs font-semibold text-[#6E5418]">
-            {autosAddInventoryCountLabel(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
-          </p>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
-          {!showForm ? (
-            <p className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950">
-              {autosAddInventoryAtLimitHelper(lang)}
+    <>
+      <div
+        className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="autos-add-inventory-title"
+      >
+        <button
+          type="button"
+          className="absolute inset-0 bg-[#1E1810]/45 backdrop-blur-[2px]"
+          aria-label={autosAddInventoryCancelCta(lang)}
+          onClick={requestClose}
+        />
+        <div className="relative flex h-[calc(100vh-48px)] w-full max-w-[min(1120px,calc(100vw-48px))] flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl sm:rounded-[24px]">
+          <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[#D4C4A8] sm:hidden" aria-hidden />
+          <div className="sticky top-0 z-10 shrink-0 border-b border-[#E8DFD0] bg-[#FAF7F2]/95 px-4 py-3 backdrop-blur-sm sm:px-5">
+            <h2 id="autos-add-inventory-title" className="font-serif text-lg font-semibold text-[#1E1810]">
+              {isEditing
+                ? lang === "es"
+                  ? "Editar vehículo adicional"
+                  : "Edit additional vehicle"
+                : autosAddInventoryDrawerTitle(lang)}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#2C2416]">{autosAddInventoryDrawerHelper(lang)}</p>
+            <p className="mt-2 text-xs font-semibold text-[#6E5418]">
+              {autosAddInventoryCountLabel(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
             </p>
-          ) : (
-            <AutosInventoryVehicleDrawerForm lang={lang} copy={copy} draft={draft} onPatch={patchDraft} />
-          )}
-          {error ? (
-            <p className="mt-3 text-sm font-medium text-red-800" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
-        <div className="sticky bottom-0 shrink-0 space-y-2 border-t border-[#E8DFD0] bg-[#FAF7F2] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
-          <button
-            type="button"
-            disabled={!showForm || busy}
-            onClick={() => void persist(false)}
-            className="w-full rounded-2xl bg-[#2A2620] py-3.5 text-sm font-bold text-[#FAF7F2] shadow-md hover:bg-[#1E1810] disabled:opacity-50"
-          >
-            {busy ? (lang === "es" ? "Guardando…" : "Saving…") : autosAddInventorySaveCta(lang)}
-          </button>
-          {!isEditing ? (
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+            {!showForm ? (
+              <p className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950">
+                {autosAddInventoryAtLimitHelper(lang)}
+              </p>
+            ) : (
+              <AutosNegociosInventoryChildApplication
+                key={draft.id}
+                lang={lang}
+                copy={copy}
+                draft={draft}
+                parentListing={parentListing}
+                additionalVehicles={additionalVehicles}
+                onPatch={patchDraft}
+                onEditInMainApplication={handleEditInMainApplication}
+                onStepNavReady={setStepNav}
+              />
+            )}
+            {error ? (
+              <p className="mt-3 text-sm font-medium text-red-800" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="sticky bottom-0 z-10 shrink-0 space-y-2 border-t border-[#E8DFD0] bg-[#FAF7F2] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
+            {showForm && stepNav && !onFinalStep ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={stepNav.activeStep === 0}
+                  onClick={stepNav.goPrev}
+                  className="min-h-[48px] flex-1 rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-bold text-[#1E1810] disabled:opacity-40"
+                >
+                  {shellCopy.previous}
+                </button>
+                <button
+                  type="button"
+                  onClick={stepNav.goNext}
+                  className="min-h-[48px] flex-1 rounded-2xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2]"
+                >
+                  {shellCopy.next}
+                </button>
+              </div>
+            ) : null}
+
+            {showForm && onFinalStep ? (
+              <>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void persist(false)}
+                  className="w-full rounded-2xl bg-[#2A2620] py-3.5 text-sm font-bold text-[#FAF7F2] shadow-md hover:bg-[#1E1810] disabled:opacity-50"
+                >
+                  {busy ? (lang === "es" ? "Guardando…" : "Saving…") : autosAddInventorySaveCta(lang)}
+                </button>
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    disabled={busy || !canAddNew}
+                    onClick={() => void persist(true)}
+                    className="w-full rounded-2xl border border-[#C9B46A]/50 bg-white py-3.5 text-sm font-bold text-[#6E5418] disabled:opacity-50"
+                  >
+                    {autosAddInventorySaveAndAnotherCta(lang)}
+                  </button>
+                ) : null}
+              </>
+            ) : null}
+
             <button
               type="button"
-              disabled={!showForm || busy || !canAddNew}
-              onClick={() => void persist(true)}
-              className="w-full rounded-2xl border border-[#C9B46A]/50 bg-white py-3.5 text-sm font-bold text-[#6E5418] disabled:opacity-50"
+              onClick={requestClose}
+              className="w-full rounded-2xl py-2.5 text-sm font-semibold text-[#5C5346] hover:underline"
             >
-              {autosAddInventorySaveAndAnotherCta(lang)}
+              {autosAddInventoryCancelCta(lang)}
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={requestClose}
-            className="w-full rounded-2xl py-2.5 text-sm font-semibold text-[#5C5346] hover:underline"
-          >
-            {autosAddInventoryCancelCta(lang)}
-          </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <AutosUnsavedChangesModal
+        lang={lang}
+        open={unsavedModalOpen}
+        onKeepEditing={() => setUnsavedModalOpen(false)}
+        onCloseWithoutSaving={discardAndClose}
+      />
+    </>
   );
 }

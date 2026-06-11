@@ -1,7 +1,7 @@
 import type { DealerCustomLink } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
 
-const MAX_CUSTOM_LINKS = 3;
+const MAX_CUSTOM_LINKS = 2;
 
 function draftSafeTrim(raw: string | undefined, liveDraft: boolean): string {
   if (!raw) return "";
@@ -9,7 +9,7 @@ function draftSafeTrim(raw: string | undefined, liveDraft: boolean): string {
   return raw.trim();
 }
 
-/** Normalize draft rows — caps at 3, ensures stable ids. Drops fully empty rows unless `keepEmptyRows`. */
+/** Normalize draft rows — caps at 2, ensures stable ids. Drops fully empty rows unless `keepEmptyRows`. */
 export function normalizeDealerCustomLinks(
   raw: unknown,
   opts?: { keepEmptyRows?: boolean; liveDraft?: boolean },
@@ -38,7 +38,7 @@ export function normalizeDealerCustomLinks(
 
 export type DealerCustomLinkOutput = { label: string; url: string };
 
-/** Output-only rows with safe https URLs (max 3). */
+/** Output-only rows with safe https URLs (max 2). */
 export function dealerCustomLinksForOutput(
   links: DealerCustomLink[] | undefined,
   lang: "es" | "en",
