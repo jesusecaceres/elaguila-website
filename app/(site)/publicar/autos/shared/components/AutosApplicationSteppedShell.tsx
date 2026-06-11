@@ -30,8 +30,12 @@ type Props = {
   lang: AutosNegociosLang;
   lane: AutosPreviewLane;
   stepLabels: string[];
-  header: ReactNode;
-  topActions: (ctx: AutosApplicationStepContext) => ReactNode;
+  /** Full-page (default) or embedded inside inventory drawer/modal. */
+  variant?: "page" | "embedded";
+  /** Hide built-in prev/next footer (drawer supplies its own). */
+  hideShellFooter?: boolean;
+  header?: ReactNode;
+  topActions?: (ctx: AutosApplicationStepContext) => ReactNode;
   /** Step indices that still have blocking completeness gaps (for subtle nav hints). */
   stepBlockWarnings?: readonly number[];
   /** Restored from draft on hydrate / preview return. */
@@ -45,7 +49,9 @@ export function AutosApplicationSteppedShell({
   lang,
   lane,
   stepLabels,
-  header,
+  variant = "page",
+  hideShellFooter = false,
+  header = null,
   topActions,
   stepBlockWarnings,
   initialStep = 0,
@@ -121,31 +127,10 @@ export function AutosApplicationSteppedShell({
 
   const laneLabel = lane === "negocios" ? copy.laneNegocios : copy.lanePrivado;
   const currentLabel = stepLabels[activeStep] ?? "";
+  const embedded = variant === "embedded";
 
-  return (
-    <div
-      className="min-h-screen overflow-x-hidden pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)] lg:pb-28"
-      style={{
-        backgroundColor: "var(--lx-page)",
-        backgroundImage:
-          "radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.16), transparent 55%)",
-      }}
-    >
-      <div className="mx-auto w-full min-w-0 max-w-6xl px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:py-10 md:px-6">
-        {header}
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--lx-nav-border)] pb-4 sm:mt-6 sm:gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">
-              {copy.category} · {laneLabel}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">{copy.progress(activeStep + 1, stepCount)}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 sm:mt-6">{topActions(ctx)}</div>
-
-        <div className="mt-6 grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-10 lg:items-start">
+  const stepGrid = (
+    <div className={`grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] lg:gap-10 lg:items-start ${embedded ? "mt-0" : "mt-6"}`}>
           {/* Desktop sidebar */}
           <aside className="hidden lg:block">
             <nav aria-label={lang === "es" ? "Pasos del formulario" : "Form steps"} className="sticky top-24 space-y-1">
@@ -235,6 +220,7 @@ export function AutosApplicationSteppedShell({
 
             <div className="min-w-0">{children(ctx)}</div>
 
+            {!hideShellFooter ? (
             <footer className="flex flex-col gap-3 border-t border-[color:var(--lx-nav-border)] pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
               <button type="button" className={BTN_NAV} onClick={goPrev} disabled={activeStep === 0}>
                 {copy.previous}
@@ -245,8 +231,39 @@ export function AutosApplicationSteppedShell({
                 </button>
               ) : null}
             </footer>
+            ) : null}
           </div>
         </div>
+  );
+
+  if (embedded) {
+    return <div className="min-w-0 text-[color:var(--lx-text)]">{stepGrid}</div>;
+  }
+
+  return (
+    <div
+      className="min-h-screen overflow-x-hidden pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[color:var(--lx-text)] lg:pb-28"
+      style={{
+        backgroundColor: "var(--lx-page)",
+        backgroundImage:
+          "radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.16), transparent 55%)",
+      }}
+    >
+      <div className="mx-auto w-full min-w-0 max-w-6xl px-[max(1rem,env(safe-area-inset-left))] py-8 pr-[max(1rem,env(safe-area-inset-right))] sm:py-10 md:px-6">
+        {header}
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--lx-nav-border)] pb-4 sm:mt-6 sm:gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">
+              {copy.category} · {laneLabel}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">{copy.progress(activeStep + 1, stepCount)}</p>
+          </div>
+        </div>
+
+        {topActions ? <div className="mt-5 sm:mt-6">{topActions(ctx)}</div> : null}
+
+        {stepGrid}
       </div>
     </div>
   );

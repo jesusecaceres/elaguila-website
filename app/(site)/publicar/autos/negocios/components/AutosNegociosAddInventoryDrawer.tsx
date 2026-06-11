@@ -25,7 +25,7 @@ import {
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import { getAutosApplicationStepShellCopy } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosUnsavedChangesModal } from "@/app/publicar/autos/shared/components/AutosUnsavedChangesModal";
-import type { AutosInventoryChildStepContext } from "@/app/publicar/autos/shared/components/AutosInventoryChildSteppedShell";
+import type { AutosApplicationStepContext } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosNegociosInventoryChildApplication } from "./AutosNegociosInventoryChildApplication";
 
 type Props = {
@@ -94,7 +94,7 @@ export function AutosNegociosAddInventoryDrawer({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
-  const [stepNav, setStepNav] = useState<AutosInventoryChildStepContext | null>(null);
+  const [stepNav, setStepNav] = useState<AutosApplicationStepContext | null>(null);
   const initialFingerprint = useRef("");
   const shellCopy = getAutosApplicationStepShellCopy(lang);
   const finalStepIndex = 6;

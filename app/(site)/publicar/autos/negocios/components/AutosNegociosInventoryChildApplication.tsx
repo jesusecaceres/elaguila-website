@@ -1,19 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import {
-  AutosInventoryChildSteppedShell,
-  type AutosInventoryChildStepContext,
-} from "@/app/publicar/autos/shared/components/AutosInventoryChildSteppedShell";
-import { AutosInventoryVehicleDrawerForm } from "./AutosInventoryVehicleDrawerForm";
+  AutosApplicationSteppedShell,
+  type AutosApplicationStepContext,
+} from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
+import { AutosNegociosVehicleApplicationSteps } from "./AutosNegociosVehicleApplicationSteps";
 import { AutosInventoryInheritedDealerStep } from "./AutosInventoryInheritedDealerStep";
 import { AutosNegociosChildInventoryPreviewOverlay } from "./AutosNegociosChildInventoryPreviewOverlay";
 import { autosInventoryChildReviewPreviewCta } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import { buildVehicleTitle } from "../lib/autoDealerTitle";
 
 type Props = {
   lang: AutosNegociosLang;
@@ -24,7 +25,7 @@ type Props = {
   onPatch: (patch: Partial<AutosAdditionalInventoryVehicleDraft>) => void;
   onEditInMainApplication?: () => void;
   onActiveStepChange?: (step: number) => void;
-  onStepNavReady?: (ctx: AutosInventoryChildStepContext | null) => void;
+  onStepNavReady?: (ctx: AutosApplicationStepContext | null) => void;
 };
 
 function StepNavBridge({
@@ -32,8 +33,8 @@ function StepNavBridge({
   onReady,
   children,
 }: {
-  ctx: AutosInventoryChildStepContext;
-  onReady?: (ctx: AutosInventoryChildStepContext) => void;
+  ctx: AutosApplicationStepContext;
+  onReady?: (ctx: AutosApplicationStepContext) => void;
   children: React.ReactNode;
 }) {
   useEffect(() => {
@@ -56,6 +57,12 @@ export function AutosNegociosInventoryChildApplication({
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
   const [previewOpen, setPreviewOpen] = useState(false);
 
+  const vehicleTitleOverride = draft.vehicleTitleOverride === true;
+  const autoTitlePreview = useMemo(
+    () => buildVehicleTitle(draft.year, draft.make, draft.model, draft.trim),
+    [draft.year, draft.make, draft.model, draft.trim],
+  );
+
   const renderStep = useCallback(
     (activeStep: number) => {
       if (activeStep === 4) {
@@ -74,20 +81,25 @@ export function AutosNegociosInventoryChildApplication({
 
       return (
         <>
-          <AutosInventoryVehicleDrawerForm
+          <AutosNegociosVehicleApplicationSteps
+            mode="inventory-child"
             lang={lang}
             copy={copy}
-            draft={draft}
-            onPatch={onPatch}
+            listing={draft}
+            onPatch={(p) => onPatch(p as Partial<AutosAdditionalInventoryVehicleDraft>)}
+            vehicleTitleOverride={vehicleTitleOverride}
+            onVehicleTitleOverrideChange={(v) => onPatch({ vehicleTitleOverride: v })}
+            autoTitlePreview={autoTitlePreview}
             steppedMode
             activeStep={formStep}
+            includeChildReview
           />
           {activeStep === 6 ? (
             <div className="mt-4">
               <button
                 type="button"
                 onClick={() => setPreviewOpen(true)}
-                className="w-full rounded-2xl border border-[#C9B46A]/50 bg-white py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFF6E7]"
+                className="w-full rounded-2xl border border-[color:var(--lx-gold-border)]/50 bg-white py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFF6E7]"
               >
                 {autosInventoryChildReviewPreviewCta(lang)}
               </button>
@@ -96,22 +108,34 @@ export function AutosNegociosInventoryChildApplication({
         </>
       );
     },
-    [copy, draft, lang, onEditInMainApplication, onPatch, parentListing],
+    [
+      autoTitlePreview,
+      copy,
+      draft,
+      lang,
+      onEditInMainApplication,
+      onPatch,
+      parentListing,
+      vehicleTitleOverride,
+    ],
   );
 
   return (
     <>
-      <AutosInventoryChildSteppedShell
+      <AutosApplicationSteppedShell
         lang={lang}
+        lane="negocios"
         stepLabels={stepLabels}
-        onStepChange={onActiveStepChange}
+        variant="embedded"
+        hideShellFooter
+        onStepChange={(step) => onActiveStepChange?.(step)}
       >
         {(ctx) => (
           <StepNavBridge ctx={ctx} onReady={onStepNavReady}>
             {renderStep(ctx.activeStep)}
           </StepNavBridge>
         )}
-      </AutosInventoryChildSteppedShell>
+      </AutosApplicationSteppedShell>
       {previewOpen ? (
         <AutosNegociosChildInventoryPreviewOverlay
           lang={lang}

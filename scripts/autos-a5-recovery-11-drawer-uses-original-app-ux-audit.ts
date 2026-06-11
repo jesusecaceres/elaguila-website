@@ -1,5 +1,5 @@
 /**
- * A5.RECOVERY-10 — Autos Negocios added inventory field parity audit.
+ * A5.RECOVERY-11 — Autos Negocios drawer uses original application UX/UI audit.
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -12,56 +12,42 @@ const ROOT = path.resolve(SCRIPT_DIR, "..");
 
 const AUDIT_MD = path.join(
   ROOT,
-  "app/lib/clasificados/autos/AUTOS_A5_RECOVERY_10_FIELD_PARITY_AUDIT.md",
+  "app/lib/clasificados/autos/AUTOS_A5_RECOVERY_11_DRAWER_USES_ORIGINAL_APP_UX_AUDIT.md",
 );
 
 const GATE_ROWS = [
   "Correct repo confirmed",
   "Autos-only scope respected",
-  "Broken mini drawer root cause documented",
-  "Added inventory uses same application field logic as main",
-  "Added inventory uses same UX/UI step flow as main",
-  "Child Step 1 rendered and works",
-  "Child Step 2 rendered and works",
-  "Child Step 3 rendered and works",
-  "Child Step 4 rendered and works",
-  "Child Step 5 rendered with inherited parent data",
-  "Child Step 6 rendered and works",
-  "Child Step 7 rendered and works",
-  "Child final CTA is Save to Inventory, not Publish",
-  "Save to inventory creates/updates child draft",
-  "Save to inventory shows child result card",
-  "Save and add another keeps saved child and starts new child",
-  "Parent data is never wiped",
-  "No fake child Leonix ID before publish",
-  "No fake child public URL before publish",
-  "Child full preview works",
-  "Child Step 5 inherits dealer data from parent",
-  "Child Step 5 does not corrupt parent data",
-  "Child year dropdown works",
-  "Child make dropdown works",
-  "Child model dropdown works",
-  "Child trim/manual trim works",
-  "Child VIN/VIN decode works if main supports it",
-  "Child media works",
-  "Child media reorder works",
-  "Desktop child modal is large enough",
-  "Mobile child modal works",
-  "Native confirm removed",
-  "Leonix unsaved changes modal works",
+  "Original main Autos Negocios UX/UI source identified",
+  "Broken drawer root cause documented",
+  "Drawer no longer uses weaker mini-form logic",
+  "Drawer uses original app step components or shared extracted equivalent",
+  "Child has same 7-step flow as main Autos Negocios app",
+  "Child Step 1 works",
+  "Child Step 2 works",
+  "Child Step 3 works",
+  "Child Step 4 works",
+  "Child Step 5 inherited/prefilled works",
+  "Child Step 6 works",
+  "Child Step 7 works",
+  "Step 5 parent dealer data is visible in child",
+  "Step 5 child view does not corrupt parent data",
+  "Guardar en inventario saves child",
+  "Saved child result card appears",
+  "Guardar y agregar otro saves current child and opens fresh child",
+  "Parent app is never wiped",
   "Outside click cannot silently lose child data",
   "Escape/cancel cannot silently lose child data",
-  "Field-by-field parity matrix completed",
-  "No required field has unresolved FALSE",
-  "Image reorder persists",
-  "Custom city persists and feeds search normalization",
-  "Dealership links section clearly labeled",
-  "Custom dealership links fixed and limited to 2",
-  "Hours AM/PM UX fixed",
+  "Native window.confirm removed from child close path",
+  "Desktop drawer/sheet is large enough",
+  "Mobile drawer/sheet is usable",
+  "Required 12-step verification table completed",
+  "Field-by-field child matrix completed",
+  "No required child field remains FALSE",
   "Privado checked if shared helpers touched",
   "No dealer-only features leaked to Privado",
   "No unrelated categories touched",
-  "No Stripe/payment touched",
+  "No global Stripe/payment touched",
   "No schema/migration touched",
   "npm run build passed",
 ];
@@ -69,21 +55,17 @@ const GATE_ROWS = [
 const REQUIRED_COPY = [
   "Guardar en inventario",
   "Guardar y agregar otro",
-  "ID Leonix se generará al publicar",
   "Esta información se toma de la solicitud principal del concesionario",
-  "Editar en solicitud principal",
+  "ID Leonix se generará al publicar",
   "Cambios sin guardar",
   "Seguir editando",
   "Cerrar sin guardar",
-  "Contactos y enlaces del concesionario",
-  "Enlaces útiles del concesionario",
-  "Añadir enlace del concesionario",
-  "Añadir horario especial",
 ];
 
 const PRIVADO_FORBIDDEN = [
   "Inventory Boost",
   "Agregar vehículo al inventario",
+  "Guardar en inventario",
   "Más vehículos de este dealer",
   "financeContactImage",
   "dealerCustomLinks",
@@ -113,7 +95,8 @@ function run() {
   assert.ok(fs.existsSync(AUDIT_MD), "Audit markdown must exist");
 
   const auditText = fs.readFileSync(AUDIT_MD, "utf8");
-  assert.match(auditText, /Field-by-field parity matrix/i, "Field parity matrix required");
+  assert.match(auditText, /Required 12-step verification table/i, "12-step verification table required");
+  assert.match(auditText, /Field-by-field TRUE\/FALSE matrix/i, "Field-by-field matrix required");
   assert.match(auditText, /## TRUE\/FALSE table/i, "TRUE/FALSE table required");
 
   const recMatch = auditText.match(/Final recommendation:\s*\*{0,2}(GREEN|YELLOW|RED)\*{0,2}/i);
@@ -122,6 +105,8 @@ function run() {
   if (recMatch[1]!.toUpperCase() === "GREEN") {
     const tableSection = auditText.slice(auditText.indexOf("## TRUE/FALSE table"));
     assert.ok(!tableSection.includes("| FALSE |"), "No FALSE rows when GREEN");
+    const verifySection = auditText.slice(auditText.indexOf("Required 12-step verification table"));
+    assert.ok(!verifySection.includes("| FALSE |"), "No FALSE in 12-step table when GREEN");
   }
 
   for (const row of GATE_ROWS) {
@@ -134,32 +119,33 @@ function run() {
 
   const drawer = read("app/(site)/publicar/autos/negocios/components/AutosNegociosAddInventoryDrawer.tsx");
   const childApp = read("app/(site)/publicar/autos/negocios/components/AutosNegociosInventoryChildApplication.tsx");
+  const mainApp = read("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  const sharedSteps = read("app/(site)/publicar/autos/negocios/components/AutosNegociosVehicleApplicationSteps.tsx");
+  const drawerForm = read("app/(site)/publicar/autos/negocios/components/AutosInventoryVehicleDrawerForm.tsx");
   const inheritedStep = read("app/(site)/publicar/autos/negocios/components/AutosInventoryInheritedDealerStep.tsx");
   const bundleCopy = read("app/lib/clasificados/autos/autosNegociosInventoryBundleCopy.ts");
-  const negociosCopy = read("app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy.ts");
-  const customLinks = read("app/lib/clasificados/autos/autosDealerCustomLinks.ts");
-  const mediaManager = read("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
-  const draftDefaults = read("app/(site)/clasificados/autos/negocios/lib/autoDealerDraftDefaults.ts");
   const privado = read("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
 
-  const copyPool = [bundleCopy, negociosCopy, drawer, inheritedStep, childApp].join("\n");
+  const copyPool = [bundleCopy, drawer, inheritedStep, childApp, sharedSteps].join("\n");
   for (const phrase of REQUIRED_COPY) {
     assert.ok(copyPool.includes(phrase), `Required copy missing: ${phrase}`);
   }
 
-  assert.ok(drawer.includes("AutosNegociosInventoryChildApplication"), "Child must use stepped application");
+  assert.ok(mainApp.includes("AutosNegociosVehicleApplicationSteps"), "Main app must use shared vehicle steps");
+  assert.ok(mainApp.includes('mode="main-negocios"'), "Main mode required");
+  assert.ok(childApp.includes("AutosNegociosVehicleApplicationSteps"), "Child must use shared vehicle steps");
+  assert.ok(childApp.includes('mode="inventory-child"'), "Child mode required");
+  assert.ok(childApp.includes("AutosApplicationSteppedShell"), "Child must use main application stepped shell");
+  assert.ok(childApp.includes('variant="embedded"'), "Embedded shell variant for drawer");
+  assert.ok(drawerForm.includes("AutosNegociosVehicleApplicationSteps"), "Drawer form delegates to shared steps");
+  assert.ok(sharedSteps.includes("AutosVehicleIdentityFields"), "Shared steps use main identity fields");
+  assert.ok(sharedSteps.includes("AutosVinDecodeBlock"), "Shared steps use VIN decode");
+  assert.ok(sharedSteps.includes("AutosNegociosMediaManager"), "Shared steps use main media manager");
   assert.ok(drawer.includes("AutosUnsavedChangesModal"), "Leonix unsaved modal required");
   assert.ok(!drawer.includes("window.confirm"), "No native confirm in child close path");
   assert.ok(drawer.includes("max-w-[min(1120px"), "Desktop modal width 1120px");
-  assert.ok(
-    childApp.includes("AutosApplicationSteppedShell") || childApp.includes("AutosInventoryChildSteppedShell"),
-    "Stepped shell required",
-  );
+  assert.ok(drawer.includes("additionalInventoryVehicles") || mainApp.includes("additionalInventoryVehicles"), "additionalInventoryVehicles still used");
   assert.ok(inheritedStep.includes("autosInventoryChildStep5Intro"), "Step 5 inheritance copy");
-  assert.ok(customLinks.includes("MAX_CUSTOM_LINKS = 2"), "Custom links max 2");
-  assert.ok(read("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx").includes("AutosDealerHoursEditor"));
-  assert.ok(mediaManager.includes("reindex") || mediaManager.includes("commitImages"), "Media reorder persistence");
-  assert.ok(draftDefaults.includes("return leadingTrimmed"), "Custom city preserved in draft normalize");
 
   for (const phrase of PRIVADO_FORBIDDEN) {
     assert.ok(!privado.includes(phrase), `Privado must not contain: ${phrase}`);
@@ -173,7 +159,7 @@ function run() {
     }
   }
 
-  console.log("A5.RECOVERY-10 field parity audit: PASS");
+  console.log("A5.RECOVERY-11 drawer uses original app UX audit: PASS");
 }
 
 run();
