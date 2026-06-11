@@ -53,9 +53,57 @@ const migration = read(crmMigration);
 const pkg = read(packageJson);
 const leadCaptureSrc = exists(leadCapture) ? read(leadCapture) : "";
 
+const drawerFile = "app/admin/_components/leads/AdminLeonixLeadDetailDrawer.tsx";
+
+assert("detail drawer component exists", exists(drawerFile), drawerFile);
+
+const drawerSrc = read(drawerFile);
+
+assert(
+  "View action prominent in table",
+  /adminBtnPrimary/.test(clientSrc) && />\s*View\s*</.test(clientSrc),
+  "View button must be visible in actions column.",
+);
+
+assert(
+  "full lead detail drawer with full message",
+  /Full message/.test(drawerSrc) &&
+    /Lead submission — full details/.test(drawerSrc) &&
+    /whitespace-pre-wrap/.test(drawerSrc),
+  "Drawer shows untruncated full message and all submission context.",
+);
+
+assert(
+  "drawer lifecycle actions",
+  /Archive lead/.test(drawerSrc) &&
+    /Delete \(soft\)/.test(drawerSrc) &&
+    /Restore to inbox/.test(drawerSrc) &&
+    /Mark contacted/.test(drawerSrc),
+  "Drawer includes archive/delete/restore/contact actions.",
+);
+
+assert(
+  "drawer preserves reply and email CTAs",
+  /Open email/.test(drawerSrc) &&
+    /Copy reply/.test(drawerSrc) &&
+    /Copy email/.test(drawerSrc),
+  "Drawer keeps reply helpers — not replacing View workflow.",
+);
+
+assert(
+  "table row actions preserved",
+  />\s*View\s*</.test(clientSrc) &&
+    /Copy reply/.test(clientSrc) &&
+    /Copy email/.test(clientSrc) &&
+    /Archive/.test(clientSrc) &&
+    /Delete/.test(clientSrc) &&
+    /Restore/.test(clientSrc),
+  "Table actions column retains View, reply, archive, delete, restore.",
+);
+
 assert(
   "professional table zebra rows",
-  /adminTableZebraRow/.test(clientSrc) && /min-w-\[1200px\]/.test(clientSrc),
+  /adminTableZebraRow/.test(clientSrc) && /min-w-\[1050px\]/.test(clientSrc),
   "Inbox table uses zebra rows and horizontal scroll.",
 );
 
@@ -174,7 +222,7 @@ assert(
   "mark contacted and follow-up",
   /mark_contacted/.test(dataSrc + apiSrc) &&
     /follow_up_at/.test(dataSrc + migration) &&
-    /Follow-up date/.test(clientSrc),
+    (/Follow-up date/.test(clientSrc + drawerSrc) || /Follow-up scheduled/.test(drawerSrc)),
   "Contact tracking and follow-up date.",
 );
 
