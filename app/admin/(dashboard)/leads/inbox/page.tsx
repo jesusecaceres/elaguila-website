@@ -1,6 +1,6 @@
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { AdminLeonixLeadsInboxClient } from "@/app/admin/_components/leads/AdminLeonixLeadsInboxClient";
-import { adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminCardBase, adminWarningCallout } from "@/app/admin/_components/adminTheme";
 import { LEAD_INBOX_DISPLAY_LIMIT, listLeonixLeadsForAdmin } from "@/app/admin/_lib/leonixLeadsData";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function AdminLeonixLeadsInboxPage() {
       />
 
       {activeList.dataUnavailable || archivedList.dataUnavailable ? (
-        <div className={`${adminCardBase} border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
+        <div className={adminWarningCallout}>
           <strong>Data unavailable.</strong>{" "}
           {activeList.dataUnavailableNote ?? archivedList.dataUnavailableNote}
           {" "}Apply migration <code className="rounded bg-white/80 px-1">20260609120000_leonix_leads_lifecycle.sql</code> if

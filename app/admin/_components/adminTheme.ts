@@ -40,6 +40,30 @@ export const adminCtaChipCompact =
 export const adminTableWrap =
   "max-w-full min-w-0 overflow-x-auto rounded-lg border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] [-webkit-overflow-scrolling:touch]";
 
+/** Main admin page content — full width on phone, capped on desktop, no horizontal bleed. */
+export const adminContentArea =
+  "mx-auto w-full max-w-7xl min-w-0 overflow-x-hidden px-3 py-6 sm:px-6 sm:py-8 lg:py-10";
+
+/** Desktop-only table block; pair with adminMobileCardList. */
+export const adminDesktopTableOnly = "hidden md:block";
+
+/** Phone/tablet card list; pair with adminDesktopTableOnly. */
+export const adminMobileCardList = "md:hidden space-y-3";
+
+/** Filter / search rows stack on phone, wrap on tablet+. */
+export const adminFilterRow = "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end";
+
+/** Warning / migration callouts — long filenames wrap safely. */
+export const adminWarningCallout =
+  "break-words rounded-3xl border border-amber-200/90 bg-amber-50/90 p-4 text-sm text-amber-950 [&_code]:break-all";
+
+/** Horizontal scrollable pill tab strip (mobile command centers). */
+export const adminResponsiveTabsOuter =
+  "-mx-3 px-3 sm:-mx-0 sm:px-0";
+
+export const adminResponsiveTabsScroll =
+  "flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]";
+
 /** Zebra striping for admin tracking tables. */
 /** Obvious warm zebra for admin queue tables (Phase 15). */
 export const adminTableZebraRow =

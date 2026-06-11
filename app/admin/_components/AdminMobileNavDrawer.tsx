@@ -54,6 +54,7 @@ export function AdminMobileNavDrawer({
         aria-controls="admin-mobile-nav-panel"
         aria-label={t("mobile.openMenu")}
         title={t("mobile.menuTitle")}
+        data-testid="admin-mobile-hamburger"
       >
         ☰
       </button>
@@ -64,6 +65,7 @@ export function AdminMobileNavDrawer({
           <div
             id="admin-mobile-nav-panel"
             className="absolute left-0 top-0 flex h-full w-[min(20rem,92vw)] flex-col border-r border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)] shadow-xl"
+            data-testid="admin-mobile-nav-drawer"
           >
             <div className="flex items-center justify-between gap-2 border-b border-[color:var(--lx-border)]/70 px-4 py-4">
               <div className="flex min-w-0 items-center gap-3">

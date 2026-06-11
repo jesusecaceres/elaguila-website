@@ -41,6 +41,7 @@
     "verify:admin-promo-code-lifecycle": "node scripts/verify-admin-promo-code-lifecycle.mjs",
     "verify:admin-leads-inbox-ui-lifecycle": "node scripts/verify-admin-leads-inbox-ui-lifecycle.mjs",
     "verify:admin-leads-crm": "node scripts/verify-admin-leads-crm.mjs",
+    "verify:admin-mobile-shell": "node scripts/verify-admin-mobile-shell.mjs",
     "verify:entitlement-redemption-attachment": "node scripts/verify-entitlement-redemption-attachment.mjs",
     "verify:sales-rep-dashboard-foundation": "node scripts/verify-sales-rep-dashboard-foundation.mjs",
     "verify:servicios-entitlement-overlay": "node scripts/verify-servicios-entitlement-overlay.mjs",

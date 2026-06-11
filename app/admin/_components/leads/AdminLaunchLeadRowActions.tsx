@@ -19,7 +19,7 @@ type Props = {
 };
 
 const actionBtn =
-  "rounded border px-2 py-1 text-xs font-semibold transition disabled:opacity-50";
+  "inline-flex min-h-[44px] items-center justify-center rounded border px-2 py-1 text-xs font-semibold transition disabled:opacity-50 sm:min-h-0";
 
 export function AdminLaunchLeadRowActions({
   folder,
@@ -41,7 +41,7 @@ export function AdminLaunchLeadRowActions({
       <button
         type="button"
         onClick={onView}
-        className={`${adminBtnPrimary} w-full justify-center px-3 py-1.5 text-xs`}
+        className={`${adminBtnPrimary} min-h-[44px] w-full justify-center px-3 py-1.5 text-xs sm:min-h-0`}
       >
         View
       </button>

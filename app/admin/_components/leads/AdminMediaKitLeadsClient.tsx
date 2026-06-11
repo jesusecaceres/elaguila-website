@@ -5,11 +5,15 @@ import { useMemo, useState } from "react";
 import {
   adminBtnSecondary,
   adminCardBase,
+  adminDesktopTableOnly,
+  adminMobileCardList,
   adminTableWrap,
   adminTableZebraRow,
 } from "@/app/admin/_components/adminTheme";
 import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
+import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
 import { AdminMediaKitLeadDetailDrawer } from "@/app/admin/_components/leads/AdminMediaKitLeadDetailDrawer";
+import { AdminResponsiveTabs } from "@/app/admin/_components/AdminResponsiveTabs";
 import type { MediaKitLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import {
   buildMediaKitMailtoUrl,
@@ -178,30 +182,29 @@ export function AdminMediaKitLeadsClient({
         . Archive when done; restore from Archived tab.
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setFolder("active")}
-          className={`rounded-full border px-4 py-2 text-sm font-bold ${
-            folder === "active" ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"
-          }`}
-        >
-          Active
-          <span className="ml-1.5 rounded-full bg-[#F3E6D2] px-1.5 py-0.5 text-xs">{activeTotal}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setFolder("archived")}
-          className={`rounded-full border px-4 py-2 text-sm font-bold ${
-            folder === "archived" ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"
-          }`}
-        >
-          Archived
-          <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs text-violet-900">{archivedTotal}</span>
-        </button>
-      </div>
+      <AdminResponsiveTabs
+        ariaLabel="Media kit folders"
+        items={[
+          {
+            key: "active",
+            label: "Active",
+            active: folder === "active",
+            onClick: () => setFolder("active"),
+            badge: <span className="rounded-full bg-[#F3E6D2] px-1.5 py-0.5 text-xs">{activeTotal}</span>,
+          },
+          {
+            key: "archived",
+            label: "Archived",
+            active: folder === "archived",
+            onClick: () => setFolder("archived"),
+            badge: (
+              <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-xs text-violet-900">{archivedTotal}</span>
+            ),
+          },
+        ]}
+      />
 
-      <label className="flex min-w-[200px] max-w-md flex-col gap-1 text-xs font-semibold text-[#5C5346]">
+      <label className="flex min-w-0 max-w-md flex-col gap-1 text-xs font-semibold text-[#5C5346]">
         Search
         <input
           type="search"
@@ -225,7 +228,7 @@ export function AdminMediaKitLeadsClient({
         </div>
       ) : null}
 
-      <div className={adminTableWrap}>
+      <div className={`${adminTableWrap} ${adminDesktopTableOnly}`}>
         <div className="overflow-x-auto">
           <table className="min-w-[1050px] w-full text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
@@ -285,6 +288,51 @@ export function AdminMediaKitLeadsClient({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className={adminMobileCardList} data-testid="media-kit-mobile-list">
+        {filtered.length === 0 ? (
+          <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
+            No media kit leads match the search.
+          </p>
+        ) : (
+          filtered.map((row) => {
+            const reply = buildMediaKitReplyContent(row);
+            const mailto = buildMediaKitMailtoUrl(row);
+            const created = formatLeadCreatedParts(row.created_at);
+            return (
+              <AdminLaunchLeadMobileCard
+                key={row.id}
+                createdAt={
+                  <>
+                    {created.date}
+                    {created.time ? ` · ${created.time}` : ""}
+                  </>
+                }
+                statusBadge={
+                  <span className="rounded-full bg-[#FAF3E6] px-2 py-0.5 text-[10px] font-bold uppercase text-[#3D3629]">
+                    {row.status}
+                  </span>
+                }
+                title={row.name || "—"}
+                subtitle={row.business || undefined}
+                wants={row.message ? <p className="break-words text-xs leading-snug">{clipLeadText(row.message, 120)}</p> : undefined}
+                source={row.source}
+                contactEmail={row.email}
+                contactPhone={row.phone ? formatLeadPhoneDisplay(row.phone) : undefined}
+                folder={folder}
+                mailtoHref={mailto}
+                lifecycleBusy={lifecycleBusy === row.id}
+                onView={() => openDetail(row)}
+                onCopyReply={() => void copyValue("Reply", reply.body)}
+                onEmail={() => void copyValue("Email", row.email)}
+                onArchive={() => void runLifecycle(row, "archive")}
+                onRestore={() => void runLifecycle(row, "restore")}
+                onDelete={() => void runLifecycle(row, "delete")}
+              />
+            );
+          })
+        )}
       </div>
 
       {selected ? (

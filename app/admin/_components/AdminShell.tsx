@@ -5,7 +5,7 @@ import { AdminI18nProvider } from "./AdminI18nProvider";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { AdminQueryFlash } from "./AdminQueryFlash";
-import { adminPageBg } from "./adminTheme";
+import { adminContentArea, adminPageBg } from "./adminTheme";
 
 export function AdminShell({
   children,
@@ -31,7 +31,7 @@ export function AdminShell({
         }}
         aria-hidden
       />
-      <div className="relative flex min-h-screen">
+      <div className="relative flex min-h-screen overflow-x-hidden">
         <div className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-0 h-screen overflow-y-auto">
             <AdminSidebar
@@ -41,7 +41,7 @@ export function AdminShell({
             />
           </div>
         </div>
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
           <AdminTopbar
             alertCount={tiendaInboxUnread}
             allowedGlobalNavHrefs={allowedGlobalNavHrefs}
@@ -50,7 +50,7 @@ export function AdminShell({
           <Suspense fallback={null}>
             <AdminQueryFlash />
           </Suspense>
-          <div className="mx-auto w-full max-w-7xl min-w-0 px-3 py-6 sm:px-6 sm:py-8 lg:py-10">{children}</div>
+          <div className={adminContentArea}>{children}</div>
         </div>
       </div>
     </div>

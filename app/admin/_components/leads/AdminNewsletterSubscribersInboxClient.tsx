@@ -5,11 +5,16 @@ import { useMemo, useState } from "react";
 import {
   adminBtnSecondary,
   adminCardBase,
+  adminDesktopTableOnly,
+  adminFilterRow,
+  adminMobileCardList,
   adminTableWrap,
   adminTableZebraRow,
 } from "@/app/admin/_components/adminTheme";
 import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
+import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
 import { AdminNewsletterSubscriberDetailDrawer } from "@/app/admin/_components/leads/AdminNewsletterSubscriberDetailDrawer";
+import { AdminResponsiveTabs } from "@/app/admin/_components/AdminResponsiveTabs";
 import type { NewsletterSubscriberRow } from "@/app/admin/_lib/leonixLeadsData";
 import {
   buildNewsletterMailtoUrl,
@@ -216,30 +221,29 @@ export function AdminNewsletterSubscribersInboxClient({
         Archive when done; restore from Archived tab.
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setFolder("active")}
-          className={`rounded-full border px-4 py-2 text-sm font-bold ${
-            folder === "active" ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"
-          }`}
-        >
-          Active
-          <span className="ml-1.5 rounded-full bg-[#F3E6D2] px-1.5 py-0.5 text-xs">{activeTotal}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setFolder("archived")}
-          className={`rounded-full border px-4 py-2 text-sm font-bold ${
-            folder === "archived" ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"
-          }`}
-        >
-          Archived
-          <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs text-violet-900">{archivedTotal}</span>
-        </button>
-      </div>
+      <AdminResponsiveTabs
+        ariaLabel="Newsletter folders"
+        items={[
+          {
+            key: "active",
+            label: "Active",
+            active: folder === "active",
+            onClick: () => setFolder("active"),
+            badge: <span className="rounded-full bg-[#F3E6D2] px-1.5 py-0.5 text-xs">{activeTotal}</span>,
+          },
+          {
+            key: "archived",
+            label: "Archived",
+            active: folder === "archived",
+            onClick: () => setFolder("archived"),
+            badge: (
+              <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-xs text-violet-900">{archivedTotal}</span>
+            ),
+          },
+        ]}
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className={adminFilterRow}>
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Search
           <input
@@ -292,7 +296,7 @@ export function AdminNewsletterSubscribersInboxClient({
         </div>
       ) : null}
 
-      <div className={adminTableWrap}>
+      <div className={`${adminTableWrap} ${adminDesktopTableOnly}`}>
         <div className="overflow-x-auto">
           <table className="min-w-[1100px] w-full text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
@@ -351,6 +355,56 @@ export function AdminNewsletterSubscribersInboxClient({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className={adminMobileCardList} data-testid="newsletter-mobile-list">
+        {filtered.length === 0 ? (
+          <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
+            No subscribers match filters.
+          </p>
+        ) : (
+          filtered.map((row) => {
+            const reply = buildNewsletterReplyContent(row);
+            const mailto = buildNewsletterMailtoUrl(row);
+            const created = formatLeadCreatedParts(row.created_at);
+            return (
+              <AdminLaunchLeadMobileCard
+                key={row.id}
+                createdAt={
+                  <>
+                    {created.date}
+                    {created.time ? ` · ${created.time}` : ""}
+                  </>
+                }
+                statusBadge={
+                  <span className="rounded-full bg-[#FAF3E6] px-2 py-0.5 text-[10px] font-bold uppercase capitalize text-[#3D3629]">
+                    {row.status}
+                  </span>
+                }
+                title={row.name?.trim() || row.email}
+                subtitle={row.name?.trim() ? row.email : undefined}
+                wants={
+                  <>
+                    <InterestChips interests={row.interests} />
+                    {row.city ? <span className="mt-1 block text-xs">City: {row.city}</span> : null}
+                    <span className="mt-1 block text-xs uppercase">Lang: {row.preferred_language}</span>
+                  </>
+                }
+                source={row.source}
+                contactEmail={row.email}
+                folder={folder}
+                mailtoHref={mailto}
+                lifecycleBusy={lifecycleBusy === row.id}
+                onView={() => openDetail(row)}
+                onCopyReply={() => void copyValue("Reply", reply.body)}
+                onEmail={() => void copyValue("Email", row.email)}
+                onArchive={() => void runLifecycle(row, "archive")}
+                onRestore={() => void runLifecycle(row, "restore")}
+                onDelete={() => void runLifecycle(row, "delete")}
+              />
+            );
+          })
+        )}
       </div>
 
       {selected ? (

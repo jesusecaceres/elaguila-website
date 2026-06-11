@@ -5,11 +5,16 @@ import { useMemo, useState } from "react";
 import {
   adminBtnSecondary,
   adminCardBase,
+  adminDesktopTableOnly,
+  adminFilterRow,
+  adminMobileCardList,
   adminTableWrap,
   adminTableZebraRow,
 } from "@/app/admin/_components/adminTheme";
 import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
+import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
 import { AdminLeonixLeadDetailDrawer } from "@/app/admin/_components/leads/AdminLeonixLeadDetailDrawer";
+import { AdminResponsiveTabs } from "@/app/admin/_components/AdminResponsiveTabs";
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
 import {
@@ -22,7 +27,7 @@ import {
   parseInquiryType,
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
-import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
+import { phoneTelHref, formatLeadPhoneDisplay } from "@/app/lib/leonix/phoneFormat";
 import {
   clipLeadText,
   contactPreferenceBadgeClass,
@@ -310,38 +315,32 @@ export function AdminLeonixLeadsInboxClient({
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {OPS_VIEWS.map((view) => (
-          <button
-            key={view.id}
-            type="button"
-            onClick={() => {
+      <AdminResponsiveTabs
+        ariaLabel="Launch leads views"
+        items={[
+          ...OPS_VIEWS.map((view) => ({
+            key: view.id,
+            label: view.label,
+            active: opsView === view.id,
+            onClick: () => {
               setOpsView(view.id);
               setStatusFilter("all");
-            }}
-            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition sm:px-4 sm:py-2 sm:text-sm ${
-              opsView === view.id
-                ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]"
-                : "border-[#E8DFD0] text-[#5C5346] hover:bg-[#FAF7F2]"
-            }`}
-          >
-            {view.label}
-            {view.id === "archived" ? (
-              <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] text-violet-900">
-                {archivedTotal}
-              </span>
-            ) : null}
-          </button>
-        ))}
-        <Link
-          href="/admin/leads/newsletter"
-          className="rounded-full border border-[#E8DFD0] px-3 py-1.5 text-xs font-bold text-[#5C5346] hover:bg-[#FAF7F2] sm:px-4 sm:py-2 sm:text-sm"
-        >
-          Newsletter Subscribers
-        </Link>
-      </div>
+            },
+            badge:
+              view.id === "archived" ? (
+                <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] text-violet-900">{archivedTotal}</span>
+              ) : undefined,
+          })),
+          {
+            key: "newsletter-link",
+            href: "/admin/leads/newsletter",
+            label: "Newsletter Subscribers",
+            active: false,
+          },
+        ]}
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className={adminFilterRow}>
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Search
           <input
@@ -402,7 +401,7 @@ export function AdminLeonixLeadsInboxClient({
         </div>
       ) : null}
 
-      <div className={`${adminTableWrap} w-full max-w-none`}>
+      <div className={`${adminTableWrap} ${adminDesktopTableOnly} w-full max-w-none`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1050px] text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
@@ -505,6 +504,55 @@ export function AdminLeonixLeadsInboxClient({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className={adminMobileCardList} data-testid="launch-leads-mobile-list">
+        {filtered.length === 0 ? (
+          <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
+            No leads match the current view and filters.
+          </p>
+        ) : (
+          filtered.map((row) => {
+            const mailto = buildLeadMailtoUrl(row);
+            const reply = buildLeadReplyContent(row);
+            const created = formatLeadCreatedParts(row.created_at);
+            return (
+              <AdminLaunchLeadMobileCard
+                key={row.id}
+                createdAt={
+                  <>
+                    {created.date}
+                    {created.time ? ` · ${created.time}` : ""}
+                  </>
+                }
+                statusBadge={<StatusBadge status={row.status} />}
+                title={row.full_name || "—"}
+                subtitle={row.business_name || undefined}
+                wants={
+                  <>
+                    <InquiryBadge inquiryType={row.inquiry_type} />
+                    <ContactPrefBadge method={row.preferred_contact_method} />
+                    {row.message ? (
+                      <p className="mt-1 break-words text-xs leading-snug">{clipLeadText(row.message, 120)}</p>
+                    ) : null}
+                  </>
+                }
+                source={`${row.source_page} · ${row.source_cta || "—"}`}
+                contactEmail={row.email}
+                contactPhone={row.phone ? formatLeadPhoneDisplay(row.phone) : undefined}
+                folder={folder}
+                mailtoHref={mailto}
+                lifecycleBusy={lifecycleBusy === row.id}
+                onView={() => openDetail(row)}
+                onCopyReply={() => void copyValue("Reply", reply.body)}
+                onEmail={() => void copyValue("Email", row.email)}
+                onArchive={() => void runLifecycle(row, "archive")}
+                onRestore={() => void runLifecycle(row, "restore")}
+                onDelete={() => void runLifecycle(row, "delete")}
+              />
+            );
+          })
+        )}
       </div>
 
       {selected ? (

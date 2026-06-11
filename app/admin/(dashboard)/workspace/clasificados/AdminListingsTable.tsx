@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { deleteListingAction, setListingPublishedAction } from "../../../actions";
 import { Suspense, useMemo, useState } from "react";
-import { adminTableWrap } from "../../../_components/adminTheme";
+import { adminTableWrap, adminCardBase, adminDesktopTableOnly, adminMobileCardList } from "../../../_components/adminTheme";
 import {
   adminQueueRowAnchorId,
   adminQueueRowClass,
@@ -331,7 +331,8 @@ export default function AdminListingsTable({
       : t("listings.col.envVisTitleOk");
 
   return (
-    <div className={adminTableWrap}>
+    <>
+    <div className={`${adminTableWrap} ${adminDesktopTableOnly}`}>
       <Suspense fallback={null}>
         <ClasificadosQueueActionChrome />
       </Suspense>
@@ -594,5 +595,62 @@ export default function AdminListingsTable({
         </table>
       </div>
     </div>
+
+    <div className={adminMobileCardList} data-testid="clasificados-mobile-list">
+      {listings.length === 0 ? (
+        <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
+          {t("listings.emptyGlobal")}
+        </p>
+      ) : (
+        listings.map((row) => {
+          const displayLeonixAdId = adminDisplayLeonixAdId(row);
+          return (
+            <article key={row.id} className={`${adminCardBase} break-words p-4`} data-testid="clasificados-mobile-card">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="min-w-0 flex-1 font-bold text-[#1E1810] break-words">{row.title ?? "—"}</h3>
+                <span
+                  className={
+                    row.status === "removed"
+                      ? "rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800"
+                      : row.status === "pending" || row.status === "flagged"
+                        ? "rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900"
+                        : "rounded-full bg-[#FAF3E6] px-2 py-0.5 text-[10px] font-bold text-[#3D3629]"
+                  }
+                >
+                  {row.status ?? "active"}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-[#5C5346]">
+                <span>
+                  {adminListingsCategoryLabel(row.category)} · {row.city ?? "—"}
+                </span>
+                <span>{row.is_free ? t("listings.free") : row.price != null ? `$${row.price}` : "—"}</span>
+                <span className="font-mono text-[10px] break-all">{displayLeonixAdId}</span>
+                <span className="text-[#7A7164]">{formatDate(row.created_at)}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href={`/clasificados/anuncio/${row.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] bg-[#FBF7EF] px-3 py-2 text-xs font-bold text-[#6B5B2E]"
+                >
+                  {t("listings.viewPublic")}
+                </Link>
+                {!staffQueueMode ? (
+                  <Link
+                    href={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
+                    className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810]"
+                  >
+                    {t("audit.th.editAd")}
+                  </Link>
+                ) : null}
+              </div>
+            </article>
+          );
+        })
+      )}
+    </div>
+    </>
   );
 }

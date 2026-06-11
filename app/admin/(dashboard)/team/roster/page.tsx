@@ -9,6 +9,9 @@ import {
   adminTableZebraRow,
   adminCtaChipSecondary,
   adminCtaChip,
+  adminDesktopTableOnly,
+  adminMobileCardList,
+  adminWarningCallout,
 } from "../../../_components/adminTheme";
 import {
   ALL_ADMIN_PERMISSION_KEYS,
@@ -190,7 +193,7 @@ export default async function AdminTeamPage(props: {
           <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
             Registered invites (intent). Complete signup in Supabase Auth or your IdP.
           </div>
-          <div className="overflow-x-auto">
+          <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
             <table className="min-w-full border-collapse text-sm">
               <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
                 <tr>
@@ -214,11 +217,27 @@ export default async function AdminTeamPage(props: {
               </tbody>
             </table>
           </div>
+          <div className={`${adminMobileCardList} p-3`} data-testid="team-invites-mobile-list">
+            {invites.map((inv) => (
+              <article key={inv.id} className={`${adminCardBase} break-words p-4`}>
+                <p className="font-mono text-xs break-all text-[#1E1810]">{inv.email}</p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#5C5346]">
+                  <span className="rounded-full bg-[#FFF4E0] px-2 py-0.5 font-bold text-[#5C4E2E]">
+                    {ROLE_LABELS[inv.role as AdminTeamRole] ?? inv.role}
+                  </span>
+                  <span className="font-semibold">{inv.status}</span>
+                  <span className="text-[#7A7164]">
+                    {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       ) : null}
 
       {membersUnavailable ? (
-        <div className={`${adminCardBase} mb-8 p-4 text-sm text-amber-950`}>
+        <div className={adminWarningCallout}>
           <strong>admin_team_members</strong> unavailable — apply migration{" "}
           <code className="rounded bg-white/80 px-1 text-[11px]">20260408183000_control_center_extensions.sql</code>.
         </div>
@@ -232,6 +251,7 @@ export default async function AdminTeamPage(props: {
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
             Roster (Supabase)
           </div>
+          <div className={adminDesktopTableOnly}>
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
@@ -346,6 +366,73 @@ export default async function AdminTeamPage(props: {
               })}
             </tbody>
           </table>
+          </div>
+          <div className={`${adminMobileCardList} p-3`} data-testid="team-roster-mobile-list">
+            {members.map((m) => {
+              const perms = parsePermissions(m.permissions);
+              return (
+                <article key={m.id} className={`${adminCardBase} break-words p-4`}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#1E1810] break-words">{m.display_name?.trim() || m.email}</p>
+                      <p className="text-xs break-all text-[#7A7164]">{m.email}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        m.is_active ? "bg-emerald-100 text-emerald-900" : "bg-neutral-200 text-neutral-700"
+                      }`}
+                    >
+                      {m.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="rounded-full bg-[#FFF4E0] px-2 py-0.5 text-[10px] font-bold text-[#5C4E2E]">
+                      {ROLE_LABELS[m.role as AdminTeamRole] ?? m.role}
+                    </span>
+                    {perms.slice(0, 4).map((p) => (
+                      <span
+                        key={p}
+                        className="rounded border border-[#E8DFD0] bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold"
+                      >
+                        {PERM_SHORT[p]}
+                      </span>
+                    ))}
+                  </div>
+                  <form action={toggleTeamMemberActiveAction} className="mt-3">
+                    <input type="hidden" name="id" value={m.id} />
+                    <input type="hidden" name="next_active" value={m.is_active ? "0" : "1"} />
+                    <button
+                      type="submit"
+                      className="min-h-[44px] w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#5C5346] sm:min-h-0 sm:w-auto"
+                    >
+                      {m.is_active ? "Deactivate" : "Activate"}
+                    </button>
+                  </form>
+                  <details className="mt-2">
+                    <summary className="min-h-[44px] cursor-pointer py-2 text-xs font-semibold text-[#8B4513]">
+                      Edit permissions
+                    </summary>
+                    <form action={updateTeamMemberPermissionsAction} className="mt-2 space-y-2 rounded-lg border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3">
+                      <input type="hidden" name="member_id" value={m.id} />
+                      <ul className="max-h-48 space-y-1.5 overflow-y-auto">
+                        {ALL_ADMIN_PERMISSION_KEYS.map((key) => (
+                          <li key={key}>
+                            <label className="flex cursor-pointer items-start gap-2 text-xs">
+                              <input type="checkbox" name="permissions" value={key} defaultChecked={perms.includes(key)} className="mt-0.5" />
+                              <span>{PERM_SHORT[key]}</span>
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                      <button type="submit" className="min-h-[44px] w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold">
+                        Save permissions
+                      </button>
+                    </form>
+                  </details>
+                </article>
+              );
+            })}
+          </div>
         </div>
       )}
 
