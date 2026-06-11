@@ -55,17 +55,33 @@ export type QrGuideCopy = {
   };
 };
 
+export type DevicePathSectionCopy = {
+  title: string;
+  bestFor: string;
+  steps: readonly string[];
+  openLensCta: string;
+  translateCta: string;
+};
+
+export type WebPathSectionCopy = {
+  title: string;
+  bestFor: string;
+  steps: readonly string[];
+  translateCta: string;
+};
+
 export type TranslatorPageCopy = {
   eyebrow: string;
   title: string;
-  subtitle: string;
+  intro: string;
   honestNote: string;
-  desktopMessage: string;
-  tryGoogleLens: string;
-  tryGoogleTranslate: string;
-  translateWebsite: string;
-  websiteTranslateTitle: string;
-  websiteTranslateBody: string;
-  backToGuide: string;
-  mobileScreenshotHint: string;
+  nativeFormsNote: string;
+  deviceChoiceAndroid: string;
+  deviceChoiceIphone: string;
+  deviceChoiceWeb: string;
+  lensWebFallback: string;
+  android: DevicePathSectionCopy;
+  iphone: DevicePathSectionCopy;
+  web: WebPathSectionCopy;
+  fullQrGuideCta: string;
 };

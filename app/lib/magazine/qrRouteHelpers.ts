@@ -19,8 +19,14 @@ export function magazinePrintGuideHref(
 }
 
 /** Translator options gateway with lang preserved. */
-export function translatorGatewayHref(lang: SupportedLang): string {
-  return `/qr/translator?lang=${lang}`;
+export function translatorGatewayHref(
+  lang: SupportedLang,
+  opts?: { sourcePage?: string; sourceCta?: string },
+): string {
+  const params = new URLSearchParams({ lang });
+  if (opts?.sourcePage) params.set("sourcePage", opts.sourcePage);
+  if (opts?.sourceCta) params.set("sourceCta", opts.sourceCta);
+  return `/qr/translator?${params.toString()}`;
 }
 
 /** Controlled gateway to Google Translate Website Mode for Leonix. */

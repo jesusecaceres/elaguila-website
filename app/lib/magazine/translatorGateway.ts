@@ -81,9 +81,15 @@ export const PRINT_TRANSLATOR_OPEN = {
 export const LENS_WEB_URL = "https://lens.google/";
 export const TRANSLATE_WEB_URL = "https://translate.google.com/";
 
-/** Android intent with https fallback — no fake Apple deep links. */
+/** Android Google app Lens activity with web fallback. */
+export const ANDROID_LENS_APP_INTENT =
+  "intent://#Intent;action=android.intent.action.VIEW;component=com.google.android.googlequicksearchbox/com.google.android.apps.search.lens.LensActivity;S.browser_fallback_url=https%3A%2F%2Flens.google%2F;end";
+
+/** @deprecated Legacy package intent — prefer ANDROID_LENS_APP_INTENT for visible CTAs. */
 export const ANDROID_LENS_INTENT =
   "intent:///#Intent;scheme=https;package=com.google.ar.lens;S.browser_fallback_url=https%3A%2F%2Flens.google%2F;end";
+
+export const IOS_GOOGLE_LENS_SCHEME = "google://lens";
 
 export type TranslatorDeviceKind = "android" | "ios" | "desktop";
 
@@ -93,9 +99,15 @@ export function detectTranslatorDevice(userAgent: string): TranslatorDeviceKind 
   return "desktop";
 }
 
+export function getGoogleLensHrefForDevice(device: "android" | "ios" | "desktop"): string {
+  if (device === "android") return ANDROID_LENS_APP_INTENT;
+  if (device === "ios") return IOS_GOOGLE_LENS_SCHEME;
+  return LENS_WEB_URL;
+}
+
 /** One safe auto-open attempt URL for mobile; null on desktop. */
 export function getTranslatorAutoOpenUrl(device: TranslatorDeviceKind): string | null {
-  if (device === "android") return ANDROID_LENS_INTENT;
-  if (device === "ios") return TRANSLATE_WEB_URL;
+  if (device === "android") return ANDROID_LENS_APP_INTENT;
+  if (device === "ios") return IOS_GOOGLE_LENS_SCHEME;
   return null;
 }

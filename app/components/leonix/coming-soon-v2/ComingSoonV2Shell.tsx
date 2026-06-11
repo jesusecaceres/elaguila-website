@@ -33,12 +33,7 @@ import {
 } from "@/app/lib/lang";
 import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
-import {
-  buildGoogleTranslateWebsiteUrl,
-  LEONIX_TRANSLATE_SITE_ORIGIN,
-} from "@/app/lib/googleTranslateWebsite";
-import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
-import { magazinePrintGuideHref } from "@/app/lib/magazine/qrRouteHelpers";
+import { magazinePrintGuideHref, translatorGatewayHref } from "@/app/lib/magazine/qrRouteHelpers";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
@@ -627,15 +622,13 @@ function HeroQrAccessStrip({
 
 const QR_SECTION_CTA_COPY = {
   es: {
-    openLens: "Probar Google Lens",
-    translateSite: "Traducir LeonixMedia.com con Google",
+    translationOptions: "Ver opciones de traducción",
     qrGuide: "Ver guía QR",
     guardrail:
       "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar LeonixMedia.com en otro idioma.",
   },
   en: {
-    openLens: "Try Google Lens",
-    translateSite: "Translate LeonixMedia.com with Google",
+    translationOptions: "View translation options",
     qrGuide: "View QR guide",
     guardrail:
       "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse LeonixMedia.com in another language.",
@@ -651,9 +644,9 @@ const qrSectionCtaButtonClass =
 
 function QrSectionTranslationCtas({ lang }: { lang: SupportedLang }) {
   const labels = qrSectionCtaCopy(lang);
-  const googleTranslateWebsiteHref = buildGoogleTranslateWebsiteUrl({
-    targetLang: lang,
-    siteUrl: LEONIX_TRANSLATE_SITE_ORIGIN,
+  const translatorOptionsHref = translatorGatewayHref(lang, {
+    sourcePage: "coming-soon-v2",
+    sourceCta: "qr_translation_options",
   });
   const qrGuideHref = magazinePrintGuideHref(lang, {
     sourcePage: "coming-soon-v2",
@@ -663,22 +656,12 @@ function QrSectionTranslationCtas({ lang }: { lang: SupportedLang }) {
   return (
     <div className="mt-4 min-w-0 sm:mt-5">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <a
-          href={LENS_WEB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={translatorOptionsHref}
           className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
         >
-          {labels.openLens}
-        </a>
-        <a
-          href={googleTranslateWebsiteHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${qrSectionCtaButtonClass} border-[#C9A84A] bg-[#FFFDF7] text-[#2A4536] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
-        >
-          {labels.translateSite}
-        </a>
+          {labels.translationOptions}
+        </Link>
         <Link
           href={qrGuideHref}
           className={`${qrSectionCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
