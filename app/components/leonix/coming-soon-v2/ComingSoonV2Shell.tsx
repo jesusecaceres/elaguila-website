@@ -1014,7 +1014,6 @@ function DigitalMagazineSection({
 function HeroMediaKitQuickActions({
   lang,
   eyebrow,
-  viewCta,
   downloadCta,
   dualPdfEsLabel,
   dualPdfEnLabel,
@@ -1022,7 +1021,6 @@ function HeroMediaKitQuickActions({
 }: {
   lang: SupportedLang;
   eyebrow: string;
-  viewCta: { label: string; href: string };
   downloadCta: { label: string; href: string };
   dualPdfEsLabel: string;
   dualPdfEnLabel: string;
@@ -1039,14 +1037,6 @@ function HeroMediaKitQuickActions({
         {eyebrow}
       </p>
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2">
-        <HeroCtaLink
-          cta={{
-            label: viewCta.label,
-            href: viewCta.href,
-            variant: "secondary",
-            external: isExternalHref(viewCta.href),
-          }}
-        />
         {dualMediaKit ? (
           <>
             <MediaKitDownloadLink
@@ -1486,7 +1476,15 @@ function ComingSoonV2ShellContent() {
                 {h.paragraph}
               </p>
 
-              <div className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
+              <HeroQrAccessStrip
+                eyebrow={qr.eyebrow}
+                callout={qr.callout}
+                summary={qr.heroStripSummary}
+                buttonLabel={qr.openReaderLabel}
+                href={comingSoonQrReaderHref(routeLang, "hero_qr_steps")}
+              />
+
+              <div className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
                 <HeroCtaLink cta={h.ctas[0]} />
                 <HeroCtaLink cta={h.ctas[2]} />
                 <HeroCtaLink
@@ -1499,18 +1497,9 @@ function ComingSoonV2ShellContent() {
                 <HeroCtaLink cta={h.ctas[1]} />
               </div>
 
-              <HeroQrAccessStrip
-                eyebrow={qr.eyebrow}
-                callout={qr.callout}
-                summary={qr.heroStripSummary}
-                buttonLabel={qr.openReaderLabel}
-                href={comingSoonQrReaderHref(routeLang, "hero_qr_steps")}
-              />
-
               <HeroMediaKitQuickActions
                 lang={routeLang}
                 eyebrow={mkp.eyebrow}
-                viewCta={mkp.viewCta}
                 downloadCta={mkp.downloadCta}
                 dualPdfEsLabel={mkp.dualPdfEsLabel}
                 dualPdfEnLabel={mkp.dualPdfEnLabel}
