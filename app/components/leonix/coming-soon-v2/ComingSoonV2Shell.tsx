@@ -97,6 +97,14 @@ function isExternalHref(href: string): boolean {
   return href.startsWith("http") || href.endsWith(".pdf");
 }
 
+function heroPromoProductsCta(lang: LeonixSiteLang): HeroCta {
+  return {
+    label: lang === "en" ? "Promotional products" : "Productos promocionales",
+    href: withLeonixLang("/productos-promocion", lang),
+    variant: "secondary",
+  };
+}
+
 function HeroCtaLink({ cta }: { cta: HeroCta }) {
   const base =
     cta.variant === "primary"
@@ -1486,6 +1494,7 @@ function ComingSoonV2ShellContent() {
 
               <div className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
                 <HeroCtaLink cta={h.ctas[0]} />
+                <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
                 <HeroCtaLink cta={h.ctas[2]} />
                 <HeroCtaLink
                   cta={{
