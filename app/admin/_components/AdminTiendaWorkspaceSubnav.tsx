@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
 
 const LINKS = [
+  { href: ADMIN_LEADS_PROMO_INBOX_HREF, label: "Promo leads", hint: "Launch Leads — promo / print quotes" },
   { href: "/admin/tienda", label: "Tienda home", hint: "Command center and route map" },
   { href: "/admin/workspace/tienda", label: "Workspace map", hint: "Storefront summary and links" },
-  { href: "/admin/tienda/orders", label: "Orders", hint: "Order inbox and queue" },
   { href: "/admin/tienda/catalog", label: "Catalog", hint: "List and edit catalog items" },
   { href: "/admin/tienda/catalog/new", label: "New item", hint: "Add a product to the catalog" },
+  { href: "/admin/tienda/orders", label: "Orders", hint: "Order inbox and queue (when orders exist)" },
 ] as const;
 
 function cx(...p: Array<string | false | undefined>) {
@@ -16,6 +18,9 @@ function cx(...p: Array<string | false | undefined>) {
 }
 
 function tiendaSubnavActive(pathname: string, href: string): boolean {
+  if (href === ADMIN_LEADS_PROMO_INBOX_HREF) {
+    return pathname === "/admin/leads/inbox";
+  }
   if (href === "/admin/tienda") return pathname === href;
   if (href === "/admin/workspace/tienda") return pathname === href;
   if (href === "/admin/tienda/orders") return pathname === href || pathname.startsWith(`${href}/`);
@@ -55,7 +60,7 @@ export function AdminTiendaWorkspaceSubnav() {
                 "inline-flex min-h-[2rem] items-center rounded-lg border px-2.5 py-1 text-xs font-semibold transition sm:px-3 sm:text-sm",
                 active
                   ? "border-[#C9B46A]/45 bg-[#FBF7EF] text-[#1E1810]"
-                  : "border-transparent bg-white/70 text-[#3D3428]/90 hover:border-[#E8DFD0] hover:bg-white"
+                  : "border-transparent bg-white/70 text-[#3D3428]/90 hover:border-[#E8DFD0] hover:bg-white",
               )}
             >
               {item.label}

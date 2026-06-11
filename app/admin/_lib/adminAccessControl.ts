@@ -28,6 +28,7 @@ import {
   getAdminOperatorEmailFromCookies,
 } from "@/app/lib/supabase/adminSession";
 import type { AdminTeamRole } from "@/app/admin/_lib/teamTypes";
+import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
 
 export type NormalizedAdminRole =
   | "owner_admin"
@@ -361,6 +362,7 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
     "/admin/workspace/clasificados",
     "/admin/workspace/package-entitlements",
     "/admin/workspace/promo-codes",
+    ADMIN_LEADS_PROMO_INBOX_HREF,
     "/admin/workspace/sales-tracker",
     "/admin/workspace/payment-tracker",
     "/admin/workspace/tienda",

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
 import { useAdminT } from "./AdminI18nProvider";
 
 export type WorkspaceNavItem = { href: string; labelKey: string; hintKey: string };
@@ -18,6 +19,11 @@ export const ADMIN_WORKSPACE_NAV_SECTIONS: WorkspaceNavItem[] = [
     href: "/admin/workspace/promo-codes",
     labelKey: "workspaceNav.link.promoCodes",
     hintKey: "workspaceNav.promoCodes.hint",
+  },
+  {
+    href: ADMIN_LEADS_PROMO_INBOX_HREF,
+    labelKey: "workspaceNav.link.promotions",
+    hintKey: "workspaceNav.promotions.hint",
   },
   {
     href: "/admin/workspace/sales-tracker",
@@ -41,7 +47,14 @@ export const ADMIN_WORKSPACE_NAV_SECTIONS: WorkspaceNavItem[] = [
 
 const TIENDA_CRUD_PREFIX = "/admin/tienda";
 
-function isSectionActive(pathname: string, item: WorkspaceNavItem): boolean {
+function isPromotionsInboxHref(href: string): boolean {
+  return href === ADMIN_LEADS_PROMO_INBOX_HREF;
+}
+
+function isSectionActive(pathname: string, item: WorkspaceNavItem, searchView: string | null): boolean {
+  if (isPromotionsInboxHref(item.href)) {
+    return pathname === "/admin/leads/inbox" && (searchView === "promo" || searchView === "promotions");
+  }
   if (pathname === item.href || pathname.startsWith(`${item.href}/`)) return true;
   if (item.href === "/admin/workspace/tienda" && (pathname === TIENDA_CRUD_PREFIX || pathname.startsWith(`${TIENDA_CRUD_PREFIX}/`)))
     return true;
@@ -54,6 +67,8 @@ function cx(...p: Array<string | false | undefined>) {
 
 export function AdminWorkspaceNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
+  const searchView = searchParams?.get("view") ?? null;
   const t = useAdminT();
   const sections =
     allowedHrefs && allowedHrefs.length > 0
@@ -82,15 +97,17 @@ export function AdminWorkspaceNav({ allowedHrefs }: { allowedHrefs?: string[] })
       <nav
         className="-mx-1 flex max-w-full gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0"
         aria-label={t("workspaceNav.aria")}
+        data-testid="admin-workspace-nav"
       >
         {sections.map((item) => {
-          const active = isSectionActive(pathname, item);
+          const active = isSectionActive(pathname, item, searchView);
           return (
             <Link
               key={item.href}
               href={item.href}
               title={t(item.hintKey)}
               aria-current={active ? "page" : undefined}
+              data-testid={isPromotionsInboxHref(item.href) ? "admin-workspace-promotions-tab" : undefined}
               className={cx(
                 "inline-flex shrink-0 snap-start items-center rounded-xl border px-3 py-2.5 text-xs font-semibold transition sm:min-h-[2.25rem] sm:py-1.5 sm:text-sm",
                 active

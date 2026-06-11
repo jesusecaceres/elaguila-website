@@ -15,6 +15,7 @@ import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLa
 import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
 import { AdminLeonixLeadDetailDrawer } from "@/app/admin/_components/leads/AdminLeonixLeadDetailDrawer";
 import { AdminResponsiveTabs } from "@/app/admin/_components/AdminResponsiveTabs";
+import type { AdminLeadsInboxOpsView } from "@/app/admin/_lib/adminNavOps";
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
 import {
@@ -39,13 +40,7 @@ import {
 
 type InboxFolder = "active" | "archived";
 
-type OpsView =
-  | "all"
-  | "needs_reply"
-  | "promo"
-  | "advertising"
-  | "media_kit"
-  | "archived";
+type OpsView = AdminLeadsInboxOpsView;
 
 type Props = {
   initialActiveRows: LeonixLeadRow[];
@@ -53,6 +48,7 @@ type Props = {
   activeTotal: number;
   archivedTotal: number;
   limit: number;
+  initialOpsView?: OpsView;
 };
 
 const OPS_VIEWS: { id: OpsView; label: string }[] = [
@@ -138,8 +134,9 @@ export function AdminLeonixLeadsInboxClient({
   activeTotal,
   archivedTotal,
   limit,
+  initialOpsView,
 }: Props) {
-  const [opsView, setOpsView] = useState<OpsView>("all");
+  const [opsView, setOpsView] = useState<OpsView>(initialOpsView ?? "all");
   const [activeRows, setActiveRows] = useState(initialActiveRows);
   const [archivedRows, setArchivedRows] = useState(initialArchivedRows);
   const [search, setSearch] = useState("");
@@ -310,6 +307,12 @@ export function AdminLeonixLeadsInboxClient({
       <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
         <strong>Launch Leads command center.</strong> Use reply helpers (mailto / copy) — emails are not sent from the
         server. Archive when done; restore from Archived.{" "}
+        {opsView === "promo" ? (
+          <span className="block mt-1 text-xs text-[#5C5346]">
+            <strong>Promotions view:</strong> filtered to promo / print-quote inquiries from Launch Leads (not a separate
+            quote system).
+          </span>
+        ) : null}{" "}
         <Link href="/admin/leads/newsletter" className="font-semibold text-[#6B5B2E] underline">
           Newsletter subscribers →
         </Link>

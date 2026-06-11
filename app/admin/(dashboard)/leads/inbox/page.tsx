@@ -1,11 +1,19 @@
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { AdminLeonixLeadsInboxClient } from "@/app/admin/_components/leads/AdminLeonixLeadsInboxClient";
 import { adminCardBase, adminWarningCallout } from "@/app/admin/_components/adminTheme";
+import { parseAdminLeadsInboxViewParam } from "@/app/admin/_lib/adminNavOps";
 import { LEAD_INBOX_DISPLAY_LIMIT, listLeonixLeadsForAdmin } from "@/app/admin/_lib/leonixLeadsData";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLeonixLeadsInboxPage() {
+type PageProps = {
+  searchParams?: Promise<{ view?: string }>;
+};
+
+export default async function AdminLeonixLeadsInboxPage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const initialOpsView = parseAdminLeadsInboxViewParam(searchParams?.view);
+
   const [activeList, archivedList] = await Promise.all([
     listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT, "active"),
     listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT, "archived"),
@@ -40,6 +48,7 @@ export default async function AdminLeonixLeadsInboxPage() {
         activeTotal={activeList.total}
         archivedTotal={archivedList.total}
         limit={LEAD_INBOX_DISPLAY_LIMIT}
+        initialOpsView={initialOpsView}
       />
     </div>
   );

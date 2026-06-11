@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminCardBase, adminBtnSecondary } from "../../../_components/adminTheme";
+import { ADMIN_LEADS_PROMO_INBOX_HREF } from "../../../_lib/adminNavOps";
 
 type TiendaWorkspaceArea = {
   title: string;
@@ -9,27 +10,38 @@ type TiendaWorkspaceArea = {
   href: string;
   cta: string;
   openInNewTab?: boolean;
+  launchPriority?: boolean;
 };
 
 const AREAS: TiendaWorkspaceArea[] = [
+  {
+    title: "Promo / print quote leads",
+    body: "Quote and promotional product inquiries are tracked in Launch Leads (filtered promo view). There is no separate quote inbox in Tienda yet.",
+    href: ADMIN_LEADS_PROMO_INBOX_HREF,
+    cta: "Open promo leads",
+    launchPriority: true,
+  },
   {
     title: "Public storefront",
     body: "How visitors see the shop at `/tienda`. Editable content (copy, photos, prices, visibility) is managed in the admin catalog.",
     href: "/tienda",
     cta: "Open storefront in new tab",
     openInNewTab: true,
+    launchPriority: true,
   },
   {
     title: "Product categories",
     body: "Tienda families and slugs live in the code category registry; use the catalog list to align each item with its public category.",
     href: "/admin/tienda/catalog",
     cta: "Go to catalog",
+    launchPriority: true,
   },
   {
     title: "Catalog items",
     body: "Create, edit, visibility, and metadata per item. Same CRUD you already use under `/admin/tienda/catalog`.",
     href: "/admin/tienda/catalog",
     cta: "Open catalog",
+    launchPriority: true,
   },
   {
     title: "Images and primary photo",
@@ -51,7 +63,7 @@ const AREAS: TiendaWorkspaceArea[] = [
   },
   {
     title: "Orders (inbox)",
-    body: "Self-serve order inbox: statuses, internal notes, and customer files. Unread count stays in the header and global Dashboard.",
+    body: "Self-serve order inbox when purchases exist: statuses, internal notes, and customer files. Secondary to quote follow-up at launch.",
     href: "/admin/tienda/orders",
     cta: "Open orders",
   },
@@ -92,9 +104,14 @@ export default function AdminWorkspaceTiendaPage() {
         </p>
         <p className="mt-3 font-semibold text-[#1E1810]">Suggested training order</p>
         <ol className="mt-2 list-inside list-decimal space-y-1 text-xs text-[#7A7164]">
-          <li>Public storefront → see the result.</li>
-          <li>Catalog → items, photos, prices, and featured.</li>
-          <li>Orders → fulfillment after purchase.</li>
+          <li>
+            <Link href={ADMIN_LEADS_PROMO_INBOX_HREF} className="font-bold text-[#6B5B2E] underline">
+              Promo / print quote leads
+            </Link>{" "}
+            in Launch Leads.
+          </li>
+          <li>Public storefront + catalog → items, photos, prices, and featured.</li>
+          <li>Orders → fulfillment after purchase (when orders exist).</li>
         </ol>
       </div>
 
