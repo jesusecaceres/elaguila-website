@@ -8,6 +8,8 @@ import {
   adminTableWrap,
   adminTableZebraRow,
 } from "@/app/admin/_components/adminTheme";
+import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
+import { AdminNewsletterSubscriberDetailDrawer } from "@/app/admin/_components/leads/AdminNewsletterSubscriberDetailDrawer";
 import type { NewsletterSubscriberRow } from "@/app/admin/_lib/leonixLeadsData";
 import {
   buildNewsletterMailtoUrl,
@@ -20,9 +22,13 @@ import {
   parseInterestChips,
 } from "@/app/admin/_components/leads/adminLeadInboxFormat";
 
+type Folder = "active" | "archived";
+
 type Props = {
-  initialRows: NewsletterSubscriberRow[];
-  total: number;
+  initialActiveRows: NewsletterSubscriberRow[];
+  initialArchivedRows: NewsletterSubscriberRow[];
+  activeTotal: number;
+  archivedTotal: number;
   limit: number;
 };
 
@@ -54,29 +60,48 @@ function InterestChips({ interests }: { interests: string }) {
   );
 }
 
-function LangBadge({ lang }: { lang: string }) {
-  return (
-    <span className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-900 ring-1 ring-sky-200">
-      {lang}
-    </span>
-  );
+function patchRow(prev: NewsletterSubscriberRow[], row: NewsletterSubscriberRow): NewsletterSubscriberRow[] {
+  const exists = prev.some((r) => r.id === row.id);
+  if (exists) return prev.map((r) => (r.id === row.id ? row : r));
+  return [row, ...prev];
 }
 
-export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limit }: Props) {
+export function AdminNewsletterSubscribersInboxClient({
+  initialActiveRows,
+  initialArchivedRows,
+  activeTotal,
+  archivedTotal,
+  limit,
+}: Props) {
+  const [folder, setFolder] = useState<Folder>("active");
+  const [activeRows, setActiveRows] = useState(initialActiveRows);
+  const [archivedRows, setArchivedRows] = useState(initialArchivedRows);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [langFilter, setLangFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [toast, setToast] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editNotes, setEditNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; kind: "ok" | "err" } | null>(null);
+
+  const rows = folder === "active" ? activeRows : archivedRows;
+  const total = folder === "active" ? activeTotal : archivedTotal;
 
   const sources = useMemo(() => {
-    const set = new Set(initialRows.map((r) => r.source).filter(Boolean));
+    const set = new Set(rows.map((r) => r.source).filter(Boolean));
     return ["all", ...Array.from(set).sort()];
-  }, [initialRows]);
+  }, [rows]);
+
+  const selected = useMemo(() => {
+    const all = [...activeRows, ...archivedRows];
+    return all.find((r) => r.id === selectedId) ?? null;
+  }, [activeRows, archivedRows, selectedId]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return initialRows.filter((row) => {
+    return rows.filter((row) => {
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
       if (langFilter !== "all" && row.preferred_language !== langFilter) return false;
       if (sourceFilter !== "all" && row.source !== sourceFilter) return false;
@@ -84,11 +109,91 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
       const hay = [row.email, row.name, row.city, row.zip_code, row.interests].join(" ").toLowerCase();
       return hay.includes(q);
     });
-  }, [initialRows, search, statusFilter, langFilter, sourceFilter]);
+  }, [rows, search, statusFilter, langFilter, sourceFilter]);
 
-  function showToast(msg: string) {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2200);
+  function showToast(msg: string, kind: "ok" | "err" = "ok") {
+    setToast({ msg, kind });
+    window.setTimeout(() => setToast(null), 2800);
+  }
+
+  async function copyValue(label: string, value: string) {
+    const ok = await copyTextToClipboard(value);
+    showToast(ok ? `${label} copied` : `Could not copy ${label}`, ok ? "ok" : "err");
+  }
+
+  function openDetail(row: NewsletterSubscriberRow) {
+    setSelectedId(row.id);
+    setEditNotes(row.internal_notes ?? "");
+  }
+
+  async function saveDetail() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/leads/newsletter/${selected.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ internal_notes: editNotes }),
+      });
+      const data = (await res.json()) as { ok?: boolean; row?: NewsletterSubscriberRow };
+      if (res.ok && data.ok && data.row) {
+        const row = data.row;
+        if (row.archived_at) {
+          setActiveRows((p) => p.filter((r) => r.id !== row.id));
+          setArchivedRows((p) => patchRow(p, row));
+        } else {
+          setArchivedRows((p) => p.filter((r) => r.id !== row.id));
+          setActiveRows((p) => patchRow(p, row));
+        }
+        showToast("Notes saved");
+      } else {
+        showToast("Could not save", "err");
+      }
+    } catch {
+      showToast("Could not save", "err");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function runLifecycle(row: NewsletterSubscriberRow, action: "archive" | "restore" | "delete") {
+    if (action === "delete") {
+      if (!window.confirm("Soft-delete this subscriber? They will be hidden from active and archived views.")) return;
+    }
+    setLifecycleBusy(row.id);
+    try {
+      const res = await fetch(`/api/admin/leads/newsletter/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = (await res.json()) as { ok?: boolean; row?: NewsletterSubscriberRow };
+      if (!res.ok || !data.ok || !data.row) {
+        showToast("Action failed", "err");
+        return;
+      }
+      const updated = data.row;
+      if (action === "delete") {
+        setActiveRows((p) => p.filter((r) => r.id !== row.id));
+        setArchivedRows((p) => p.filter((r) => r.id !== row.id));
+        if (selectedId === row.id) setSelectedId(null);
+        showToast("Subscriber deleted (soft)");
+      } else if (action === "archive") {
+        setActiveRows((p) => p.filter((r) => r.id !== row.id));
+        setArchivedRows((p) => patchRow(p.filter((r) => r.id !== row.id), updated));
+        if (selectedId === row.id) setSelectedId(null);
+        showToast("Subscriber archived");
+      } else {
+        setArchivedRows((p) => p.filter((r) => r.id !== row.id));
+        setActiveRows((p) => patchRow(p.filter((r) => r.id !== row.id), updated));
+        setFolder("active");
+        showToast("Subscriber restored");
+      }
+    } catch {
+      showToast("Action failed", "err");
+    } finally {
+      setLifecycleBusy(null);
+    }
   }
 
   async function copyEmails() {
@@ -104,17 +209,35 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
     showToast(ok ? "Visible emails copied" : "Could not copy emails");
   }
 
-  async function copyValue(label: string, value: string) {
-    const ok = await copyTextToClipboard(value);
-    showToast(ok ? `${label} copied` : `Could not copy ${label}`);
-  }
-
   return (
     <div className="space-y-6">
       <p className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
-        Launch newsletter subscribers. Use <strong>Copy reply</strong> or <strong>Open email</strong> (mailto) — Leonix
-        does not bulk-send from this inbox.
+        Newsletter subscribers — use <strong>View</strong> for full details. Reply/Email use mailto (no server send).
+        Archive when done; restore from Archived tab.
       </p>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setFolder("active")}
+          className={`rounded-full border px-4 py-2 text-sm font-bold ${
+            folder === "active" ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"
+          }`}
+        >
+          Active
+          <span className="ml-1.5 rounded-full bg-[#F3E6D2] px-1.5 py-0.5 text-xs">{activeTotal}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setFolder("archived")}
+          className={`rounded-full border px-4 py-2 text-sm font-bold ${
+            folder === "archived" ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]" : "border-[#E8DFD0] text-[#5C5346]"
+          }`}
+        >
+          Archived
+          <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-xs text-violet-900">{archivedTotal}</span>
+        </button>
+      </div>
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs font-semibold text-[#5C5346]">
@@ -129,11 +252,7 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Status
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
             <option value="all">All</option>
             <option value="subscribed">subscribed</option>
             <option value="unsubscribed">unsubscribed</option>
@@ -141,11 +260,7 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Pref. language
-          <select
-            value={langFilter}
-            onChange={(e) => setLangFilter(e.target.value)}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-          >
+          <select value={langFilter} onChange={(e) => setLangFilter(e.target.value)} className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
             <option value="all">All</option>
             <option value="es">es</option>
             <option value="en">en</option>
@@ -154,64 +269,49 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Source
-          <select
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-          >
+          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
             {sources.map((s) => (
-              <option key={s} value={s}>
-                {s === "all" ? "All" : s}
-              </option>
+              <option key={s} value={s}>{s === "all" ? "All" : s}</option>
             ))}
           </select>
         </label>
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Link href="/api/admin/leads/newsletter/export" className={adminBtnSecondary}>
-          Export full CSV
-        </Link>
-        <Link href="/api/admin/leads/newsletter/emails-export" className={adminBtnSecondary}>
-          Export newsletter emails CSV
-        </Link>
-        <button type="button" onClick={() => void copyEmails()} className={adminBtnSecondary}>
-          Copy visible emails
-        </button>
+        <Link href="/api/admin/leads/newsletter/export" className={adminBtnSecondary}>Export full CSV</Link>
+        <Link href="/api/admin/leads/newsletter/emails-export" className={adminBtnSecondary}>Export emails CSV</Link>
+        <button type="button" onClick={() => void copyEmails()} className={adminBtnSecondary}>Copy visible emails</button>
         <span className="self-center text-sm text-[#7A7164]">
-          Showing {filtered.length} of {initialRows.length} loaded ({total} total, newest {limit})
+          Showing {filtered.length} of {rows.length} loaded ({total} {folder}, newest {limit})
         </span>
       </div>
 
       {toast ? (
-        <div className={`${adminCardBase} border-emerald-200 bg-emerald-50/90 px-4 py-2 text-sm text-emerald-950`}>
-          {toast}
+        <div className={`${adminCardBase} px-4 py-2 text-sm ${toast.kind === "ok" ? "border-emerald-200 bg-emerald-50/90 text-emerald-950" : "border-rose-200 bg-rose-50/90 text-rose-950"}`}>
+          {toast.msg}
         </div>
       ) : null}
 
       <div className={adminTableWrap}>
         <div className="overflow-x-auto">
-          <table className="min-w-[1100px] w-full table-fixed text-left text-sm">
+          <table className="min-w-[1100px] w-full text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
-                <th className="w-[80px] px-3 py-3">Created</th>
-                <th className="w-[160px] px-3 py-3">Email</th>
-                <th className="w-[100px] px-3 py-3">Name</th>
-                <th className="w-[80px] px-3 py-3 hidden lg:table-cell">City</th>
-                <th className="w-[56px] px-3 py-3 hidden xl:table-cell">ZIP</th>
-                <th className="w-[72px] px-3 py-3">Lang</th>
-                <th className="w-[200px] px-3 py-3">Interests</th>
-                <th className="w-[100px] px-3 py-3">Source</th>
-                <th className="w-[72px] px-3 py-3">Status</th>
-                <th className="w-[180px] px-3 py-3">Actions</th>
+                <th className="px-3 py-3">Created</th>
+                <th className="px-3 py-3">Email</th>
+                <th className="px-3 py-3">Name</th>
+                <th className="px-3 py-3 hidden lg:table-cell">City</th>
+                <th className="px-3 py-3">Lang</th>
+                <th className="px-3 py-3">Interests</th>
+                <th className="px-3 py-3">Source</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="min-w-[220px] px-3 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-[#7A7164]">
-                    No subscribers match the current filters.
-                  </td>
+                  <td colSpan={9} className="px-4 py-10 text-center text-[#7A7164]">No subscribers match filters.</td>
                 </tr>
               ) : (
                 filtered.map((row) => {
@@ -219,44 +319,30 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
                   const mailto = buildNewsletterMailtoUrl(row);
                   return (
                     <tr key={row.id} className={`align-top ${adminTableZebraRow}`}>
-                      <td className="px-3 py-3">
-                        <CreatedCell iso={row.created_at} />
-                      </td>
+                      <td className="px-3 py-3"><CreatedCell iso={row.created_at} /></td>
                       <td className="px-3 py-3 font-medium break-all text-[#1E1810]">{row.email}</td>
-                      <td className="px-3 py-3">{clipLeadText(row.name, 32)}</td>
+                      <td className="px-3 py-3">
+                        <button type="button" onClick={() => openDetail(row)} className="font-semibold text-[#1E1810] underline decoration-[#C9B46A]/40 underline-offset-2">
+                          {clipLeadText(row.name, 32) || "—"}
+                        </button>
+                      </td>
                       <td className="px-3 py-3 text-xs hidden lg:table-cell">{clipLeadText(row.city, 24)}</td>
-                      <td className="px-3 py-3 text-xs hidden xl:table-cell">{clipLeadText(row.zip_code, 10)}</td>
-                      <td className="px-3 py-3">
-                        <LangBadge lang={row.preferred_language} />
-                      </td>
-                      <td className="px-3 py-3">
-                        <InterestChips interests={row.interests} />
-                      </td>
+                      <td className="px-3 py-3 text-xs uppercase">{row.preferred_language}</td>
+                      <td className="px-3 py-3"><InterestChips interests={row.interests} /></td>
                       <td className="px-3 py-3 text-xs font-mono">{row.source}</td>
                       <td className="px-3 py-3 text-xs font-semibold capitalize">{row.status}</td>
                       <td className="px-3 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          <a
-                            href={mailto}
-                            className="rounded border border-[#E8DFD0] px-2 py-1 text-xs font-semibold hover:bg-[#FAF7F2]"
-                          >
-                            Open email
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => void copyValue("Reply", reply.body)}
-                            className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-900 hover:bg-sky-100"
-                          >
-                            Copy reply
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void copyValue("Email", row.email)}
-                            className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
-                          >
-                            Copy email
-                          </button>
-                        </div>
+                        <AdminLaunchLeadRowActions
+                          folder={folder}
+                          mailtoHref={mailto}
+                          lifecycleBusy={lifecycleBusy === row.id}
+                          onView={() => openDetail(row)}
+                          onCopyReply={() => void copyValue("Reply", reply.body)}
+                          onEmail={() => void copyValue("Email", row.email)}
+                          onArchive={() => void runLifecycle(row, "archive")}
+                          onRestore={() => void runLifecycle(row, "restore")}
+                          onDelete={() => void runLifecycle(row, "delete")}
+                        />
                       </td>
                     </tr>
                   );
@@ -266,6 +352,21 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
           </table>
         </div>
       </div>
+
+      {selected ? (
+        <AdminNewsletterSubscriberDetailDrawer
+          row={selected}
+          folder={folder}
+          saving={saving}
+          lifecycleBusy={lifecycleBusy === selected.id}
+          editNotes={editNotes}
+          onClose={() => setSelectedId(null)}
+          onEditNotes={setEditNotes}
+          onSave={() => void saveDetail()}
+          onCopy={(label, value) => void copyValue(label, value)}
+          onLifecycle={(action) => void runLifecycle(selected, action)}
+        />
+      ) : null}
     </div>
   );
 }

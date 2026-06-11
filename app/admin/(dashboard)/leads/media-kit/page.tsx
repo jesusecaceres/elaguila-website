@@ -6,29 +6,38 @@ import { LEAD_LIST_DEFAULT_LIMIT, listMediaKitLeadsForAdmin } from "@/app/admin/
 export const dynamic = "force-dynamic";
 
 export default async function AdminMediaKitLeadsPage() {
-  const list = await listMediaKitLeadsForAdmin(LEAD_LIST_DEFAULT_LIMIT);
+  const [activeList, archivedList] = await Promise.all([
+    listMediaKitLeadsForAdmin(LEAD_LIST_DEFAULT_LIMIT, "active"),
+    listMediaKitLeadsForAdmin(LEAD_LIST_DEFAULT_LIMIT, "archived"),
+  ]);
 
   return (
     <div className="space-y-8">
       <AdminPageHeader
         title="Media kit leads"
-        subtitle="Media kit requests from /media-kit — reply with the Leonix media kit PDF."
-        helperText={`Showing newest ${LEAD_LIST_DEFAULT_LIMIT} of ${list.total} lead(s). Use mailto or copy reply; no server email from admin.`}
+        subtitle="Media kit requests from /media-kit — view, reply, archive, and manage leads."
+        helperText="View opens full request details. Reply includes media kit PDF link via mailto."
       />
 
-      {list.dataUnavailable ? (
+      {activeList.dataUnavailable || archivedList.dataUnavailable ? (
         <div className={`${adminCardBase} border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
-          <strong>Data unavailable.</strong> {list.dataUnavailableNote}
+          <strong>Data unavailable.</strong> {activeList.dataUnavailableNote ?? archivedList.dataUnavailableNote}
         </div>
       ) : null}
 
-      {list.error && !list.dataUnavailable ? (
+      {(activeList.error || archivedList.error) && !activeList.dataUnavailable ? (
         <div className={`${adminCardBase} border-rose-200 bg-rose-50/90 p-4 text-sm text-rose-950`}>
-          <strong>Could not load leads.</strong> {list.error}
+          <strong>Could not load leads.</strong> {activeList.error ?? archivedList.error}
         </div>
       ) : null}
 
-      <AdminMediaKitLeadsClient initialRows={list.rows} total={list.total} limit={LEAD_LIST_DEFAULT_LIMIT} />
+      <AdminMediaKitLeadsClient
+        initialActiveRows={activeList.rows}
+        initialArchivedRows={archivedList.rows}
+        activeTotal={activeList.total}
+        archivedTotal={archivedList.total}
+        limit={LEAD_LIST_DEFAULT_LIMIT}
+      />
     </div>
   );
 }

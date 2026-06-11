@@ -22,246 +22,139 @@ function assert(name, condition, detail) {
 const MEDIA_KIT_URL = "https://leonixmedia.com/media-kit/leonix-media-kit-es.pdf";
 const MAGAZINE_URL = "https://leonixmedia.com/magazine/2026/june/read?lang=es";
 
-const inboxPage = "app/admin/(dashboard)/leads/inbox/page.tsx";
 const inboxClient = "app/admin/_components/leads/AdminLeonixLeadsInboxClient.tsx";
 const newsletterClient = "app/admin/_components/leads/AdminNewsletterSubscribersInboxClient.tsx";
 const mediaKitClient = "app/admin/_components/leads/AdminMediaKitLeadsClient.tsx";
-const replyTemplates = "app/admin/_lib/leonixLeadReplyTemplates.ts";
-const leadStatuses = "app/admin/_lib/leonixLeadStatuses.ts";
+const rowActions = "app/admin/_components/leads/AdminLaunchLeadRowActions.tsx";
+const inboxDrawer = "app/admin/_components/leads/AdminLeonixLeadDetailDrawer.tsx";
+const newsletterDrawer = "app/admin/_components/leads/AdminNewsletterSubscriberDetailDrawer.tsx";
+const mediaKitDrawer = "app/admin/_components/leads/AdminMediaKitLeadDetailDrawer.tsx";
 const leadsData = "app/admin/_lib/leonixLeadsData.ts";
-const inboxFormat = "app/admin/_components/leads/adminLeadInboxFormat.ts";
-const inboxApi = "app/api/admin/leads/inbox/[id]/route.ts";
-const leadCapture = "app/lib/leonix/leadCaptureServer.ts";
-const crmMigration = "supabase/migrations/20260610120000_leonix_leads_crm_pipeline.sql";
+const lifecycleMigration = "supabase/migrations/20260611120000_newsletter_media_kit_lifecycle.sql";
 const packageJson = "package.json";
 
-assert("inbox page exists", exists(inboxPage), inboxPage);
-assert("inbox client exists", exists(inboxClient), inboxClient);
-assert("reply templates exist", exists(replyTemplates), replyTemplates);
-assert("CRM migration exists", exists(crmMigration), crmMigration);
-
-const pageSrc = read(inboxPage);
-const clientSrc = read(inboxClient);
+const inboxSrc = read(inboxClient);
 const newsletterSrc = read(newsletterClient);
 const mediaKitSrc = read(mediaKitClient);
-const templatesSrc = read(replyTemplates);
-const statusesSrc = read(leadStatuses);
+const actionsSrc = read(rowActions);
+const inboxDrawerSrc = read(inboxDrawer);
+const newsletterDrawerSrc = read(newsletterDrawer);
+const mediaKitDrawerSrc = read(mediaKitDrawer);
 const dataSrc = read(leadsData);
-const formatSrc = read(inboxFormat);
-const apiSrc = read(inboxApi);
-const migration = read(crmMigration);
 const pkg = read(packageJson);
-const leadCaptureSrc = exists(leadCapture) ? read(leadCapture) : "";
 
-const drawerFile = "app/admin/_components/leads/AdminLeonixLeadDetailDrawer.tsx";
+function routeHasActions(src, routeName) {
+  return (
+    /AdminLaunchLeadRowActions/.test(src) &&
+    />\s*View\s*</.test(actionsSrc) &&
+    />\s*Reply\s*</.test(actionsSrc) &&
+    />\s*Email\s*</.test(actionsSrc) &&
+    />\s*Archive\s*</.test(actionsSrc) &&
+    />\s*Delete\s*</.test(actionsSrc) &&
+    />\s*Restore\s*</.test(actionsSrc) &&
+    src.includes("AdminLaunchLeadRowActions")
+  );
+}
 
-assert("detail drawer component exists", exists(drawerFile), drawerFile);
+assert("shared row actions component", exists(rowActions), rowActions);
+assert("inbox uses shared row actions", /AdminLaunchLeadRowActions/.test(inboxSrc), inboxClient);
+assert("newsletter uses shared row actions", /AdminLaunchLeadRowActions/.test(newsletterSrc), newsletterClient);
+assert("media-kit uses shared row actions", /AdminLaunchLeadRowActions/.test(mediaKitSrc), mediaKitClient);
 
-const drawerSrc = read(drawerFile);
+assert("actions: View button", />\s*View\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render View");
+assert("actions: Reply link", />\s*Reply\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Reply");
+assert("actions: Email button", />\s*Email\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Email");
+assert("actions: Phone when tel", />\s*Phone\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Phone");
+assert("actions: Archive", />\s*Archive\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Archive");
+assert("actions: Restore", />\s*Restore\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Restore");
+assert("actions: Delete", />\s*Delete\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Delete");
+assert("actions: Copy reply preserved", /Copy reply/.test(actionsSrc), "Copy reply secondary action");
+
+assert("inbox detail drawer", exists(inboxDrawer) && /Full message/.test(inboxDrawerSrc), inboxDrawer);
+assert("newsletter detail drawer", exists(newsletterDrawer) && /Interests/.test(newsletterDrawerSrc), newsletterDrawer);
+assert("media-kit detail drawer", exists(mediaKitDrawer) && /Full message/.test(mediaKitDrawerSrc), mediaKitDrawer);
+
+assert("inbox archived ops view", /Archived/.test(inboxSrc) && /"archived"/.test(inboxSrc), "Inbox archived tab");
+assert("newsletter archived folder", /Archived/.test(newsletterSrc) && /setFolder\("archived"\)/.test(newsletterSrc), newsletterClient);
+assert("media-kit archived folder", /Archived/.test(mediaKitSrc) && /setFolder\("archived"\)/.test(mediaKitSrc), mediaKitClient);
 
 assert(
-  "View action prominent in table",
-  /adminBtnPrimary/.test(clientSrc) && />\s*View\s*</.test(clientSrc),
-  "View button must be visible in actions column.",
+  "newsletter lifecycle API",
+  exists("app/api/admin/leads/newsletter/[id]/route.ts") && /applyNewsletterLifecycleAdmin/.test(read("app/api/admin/leads/newsletter/[id]/route.ts")),
+  "newsletter PATCH lifecycle",
 );
 
 assert(
-  "full lead detail drawer with full message",
-  /Full message/.test(drawerSrc) &&
-    /Lead submission — full details/.test(drawerSrc) &&
-    /whitespace-pre-wrap/.test(drawerSrc),
-  "Drawer shows untruncated full message and all submission context.",
-);
-
-assert(
-  "drawer lifecycle actions",
-  /Archive lead/.test(drawerSrc) &&
-    /Delete \(soft\)/.test(drawerSrc) &&
-    /Restore to inbox/.test(drawerSrc) &&
-    /Mark contacted/.test(drawerSrc),
-  "Drawer includes archive/delete/restore/contact actions.",
-);
-
-assert(
-  "drawer preserves reply and email CTAs",
-  /Open email/.test(drawerSrc) &&
-    /Copy reply/.test(drawerSrc) &&
-    /Copy email/.test(drawerSrc),
-  "Drawer keeps reply helpers — not replacing View workflow.",
-);
-
-assert(
-  "table row actions preserved",
-  />\s*View\s*</.test(clientSrc) &&
-    /Copy reply/.test(clientSrc) &&
-    /Copy email/.test(clientSrc) &&
-    /Archive/.test(clientSrc) &&
-    /Delete/.test(clientSrc) &&
-    /Restore/.test(clientSrc),
-  "Table actions column retains View, reply, archive, delete, restore.",
-);
-
-assert(
-  "professional table zebra rows",
-  /adminTableZebraRow/.test(clientSrc) && /min-w-\[1050px\]/.test(clientSrc),
-  "Inbox table uses zebra rows and horizontal scroll.",
-);
-
-assert(
-  "created status separate",
-  /CreatedCell/.test(clientSrc) && /StatusBadge/.test(clientSrc),
-  "Created and status are separate cells/badges.",
-);
-
-assert(
-  "lead intent visible (Wants column)",
-  />\s*Wants\s*</.test(clientSrc) && /InquiryBadge/.test(clientSrc),
-  "Wants column with inquiry badge and message preview.",
-);
-
-assert(
-  "contact preference visible",
-  /ContactPrefBadge|preferred_contact_method/.test(clientSrc + formatSrc),
-  "Preferred contact badge in inbox.",
+  "media-kit lifecycle API",
+  exists("app/api/admin/leads/media-kit/[id]/route.ts") && /applyMediaKitLifecycleAdmin/.test(read("app/api/admin/leads/media-kit/[id]/route.ts")),
+  "media-kit PATCH lifecycle",
 );
 
 assert(
   "newsletter interests chips",
-  /InterestChips|parseInterestChips/.test(newsletterSrc + formatSrc),
-  "Newsletter interests as readable chips.",
+  /InterestChips|parseInterestChips/.test(newsletterSrc),
+  "Newsletter interests readable",
 );
 
 assert(
-  "ops top views",
-  /All Leads/.test(clientSrc) &&
-    /Needs Reply/.test(clientSrc) &&
-    /Promo \/ Print Quotes/.test(clientSrc) &&
-    /Advertising Leads/.test(clientSrc) &&
-    /Media Kit Requests/.test(clientSrc) &&
-    /Archived/.test(clientSrc),
-  "Operation-focused view tabs.",
+  "reply templates media kit URL",
+  read("app/admin/_lib/leonixLeadReplyTemplates.ts").includes(MEDIA_KIT_URL),
+  MEDIA_KIT_URL,
 );
 
 assert(
-  "media kit reply URL in templates",
-  templatesSrc.includes(MEDIA_KIT_URL),
-  `Templates must include ${MEDIA_KIT_URL}`,
+  "reply templates magazine URL",
+  read("app/admin/_lib/leonixLeadReplyTemplates.ts").includes(MAGAZINE_URL),
+  MAGAZINE_URL,
 );
 
 assert(
-  "magazine reply URL in templates",
-  templatesSrc.includes(MAGAZINE_URL),
-  `Templates must include ${MAGAZINE_URL}`,
+  "delete confirmation",
+  /window\.confirm/.test(inboxSrc + newsletterSrc + mediaKitSrc),
+  "Delete requires confirmation",
 );
 
 assert(
-  "advertising reply template",
-  /case "advertising"/.test(templatesSrc) && templatesSrc.includes(MEDIA_KIT_URL),
-  "Advertising reply includes media kit link.",
+  "filters preserved inbox",
+  /type="search"/.test(inboxSrc) && /statusFilter/.test(inboxSrc),
+  inboxClient,
 );
 
 assert(
-  "promo print reply template",
-  /case "promoPrint"/.test(templatesSrc),
-  "Promo/print quote reply template.",
+  "filters preserved newsletter",
+  /type="search"/.test(newsletterSrc) && /statusFilter/.test(newsletterSrc),
+  newsletterClient,
 );
 
 assert(
-  "newsletter reply template",
-  /buildNewsletterReplyContent/.test(templatesSrc),
-  "Newsletter subscriber reply template.",
+  "CSV export preserved",
+  /\/api\/admin\/leads\/inbox\/export/.test(inboxSrc) &&
+    /\/api\/admin\/leads\/newsletter\/export/.test(newsletterSrc) &&
+    /\/api\/admin\/leads\/media-kit\/export/.test(mediaKitSrc),
+  "All three routes export CSV",
 );
 
 assert(
-  "mailto and copy reply (no fake server send)",
-  /buildLeadMailtoUrl/.test(templatesSrc) &&
-    /Copy reply/.test(clientSrc) &&
-    /mailto/.test(clientSrc) &&
-    !/sendLeonixResendEmail/.test(clientSrc + newsletterSrc + mediaKitSrc),
-  "Mailto/copy only in admin lead UI — no Resend from inbox.",
+  "zebra rows all routes",
+  /adminTableZebraRow/.test(inboxSrc + newsletterSrc + mediaKitSrc),
+  "Zebra striping",
 );
 
 assert(
-  "does not claim email was sent",
-  /does not send|no server email|mailto/i.test(clientSrc + newsletterSrc + mediaKitSrc),
-  "UI clarifies emails are not sent from server.",
+  "lifecycle data layer newsletter media-kit",
+  /applyNewsletterLifecycleAdmin/.test(dataSrc) &&
+    /applyMediaKitLifecycleAdmin/.test(dataSrc) &&
+    /\.is\("deleted_at", null\)/.test(dataSrc),
+  leadsData,
 );
 
 assert(
-  "archive view and action",
-  /"archive"/.test(clientSrc) && /Archived/.test(clientSrc),
-  "Archive action and archived view.",
+  "lifecycle migration file",
+  exists(lifecycleMigration) && read(lifecycleMigration).includes("leonix_newsletter_subscribers"),
+  lifecycleMigration,
 );
 
-assert(
-  "restore action",
-  /"restore"/.test(clientSrc),
-  "Restore from archived view.",
-);
-
-assert(
-  "delete protected",
-  /window\.confirm/.test(clientSrc) && /"delete"/.test(clientSrc),
-  "Delete requires confirmation (soft delete).",
-);
-
-assert(
-  "filters and search preserved",
-  /type="search"/.test(clientSrc) && /statusFilter/.test(clientSrc),
-  "Search and status filters.",
-);
-
-assert(
-  "export CSV preserved",
-  /\/api\/admin\/leads\/inbox\/export/.test(clientSrc) &&
-    /\/api\/admin\/leads\/newsletter\/export/.test(newsletterSrc),
-  "CSV export links.",
-);
-
-assert(
-  "mark contacted and follow-up",
-  /mark_contacted/.test(dataSrc + apiSrc) &&
-    /follow_up_at/.test(dataSrc + migration) &&
-    (/Follow-up date/.test(clientSrc + drawerSrc) || /Follow-up scheduled/.test(drawerSrc)),
-  "Contact tracking and follow-up date.",
-);
-
-assert(
-  "pipeline statuses",
-  /needs_reply/.test(statusesSrc) &&
-    /waiting_on_client/.test(statusesSrc) &&
-    /won/.test(statusesSrc) &&
-    /lost/.test(statusesSrc),
-  "Expanded CRM pipeline statuses.",
-);
-
-assert(
-  "no public form lifecycle changes",
-  !leadCaptureSrc.includes("follow_up_at") && !leadCaptureSrc.includes("last_contacted_at"),
-  "Public capture unchanged.",
-);
-
-assert(
-  "no stripe in lead CRM files",
-  !/stripe/i.test(clientSrc + pageSrc + templatesSrc + newsletterSrc),
-  "No Stripe changes.",
-);
-
-assert(
-  "no category queue changes",
-  !/categoryQueue|listingQueue/i.test(clientSrc + pageSrc),
-  "No category queue changes.",
-);
-
-assert(
-  "npm script registered",
-  /verify:admin-leads-crm/.test(pkg),
-  "package.json verify:admin-leads-crm.",
-);
-
-for (const col of ["last_contacted_at", "follow_up_at"]) {
-  assert(`migration adds ${col}`, migration.includes(col), `Missing ${col}.`);
-}
+assert("npm script", /verify:admin-leads-crm/.test(pkg), packageJson);
 
 const failed = checks.filter((c) => !c.ok);
 

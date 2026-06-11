@@ -25,6 +25,11 @@ export type NewsletterSubscriberRow = {
   lang: string;
   status: string;
   consent_timestamp: string;
+  internal_notes: string;
+  archived_at: string | null;
+  archived_by: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -72,6 +77,11 @@ export type MediaKitLeadRow = {
   lang: string;
   source: string;
   status: string;
+  internal_notes: string;
+  archived_at: string | null;
+  archived_by: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -111,6 +121,26 @@ const LEONIX_LEAD_SELECT =
   "id,full_name,email,phone,business_name,inquiry_type,preferred_contact_method,city_area,website_or_social,business_category,message,source_page,source_cta,lang,wants_launch_updates,consent_to_contact,status,internal_notes,last_contacted_at,follow_up_at,archived_at,archived_by,deleted_at,deleted_by,created_at,updated_at";
 
 export type LeadInboxBucket = "active" | "archived" | "all_non_deleted";
+
+export type LeadLifecycleAction = "archive" | "restore" | "delete" | "mark_contacted";
+
+export type LeadLifecycleResult =
+  | { ok: true; row: LeonixLeadRow }
+  | { ok: false; error: "not_found" | "already_deleted" | "save_failed" };
+
+export type SubscriberLifecycleResult =
+  | { ok: true; row: NewsletterSubscriberRow }
+  | { ok: false; error: "not_found" | "already_deleted" | "save_failed" };
+
+export type MediaKitLifecycleResult =
+  | { ok: true; row: MediaKitLeadRow }
+  | { ok: false; error: "not_found" | "already_deleted" | "save_failed" };
+
+const NEWSLETTER_SELECT =
+  "id,email,name,city,zip_code,preferred_language,interests,source,lang,status,consent_timestamp,internal_notes,archived_at,archived_by,deleted_at,deleted_by,created_at,updated_at";
+
+const MEDIA_KIT_SELECT =
+  "id,name,email,phone,business,message,lang,source,status,internal_notes,archived_at,archived_by,deleted_at,deleted_by,created_at,updated_at";
 
 export async function listLeonixLeadsForAdmin(
   limit = LEAD_LIST_DEFAULT_LIMIT,
@@ -207,12 +237,6 @@ export type UpdateLeonixLeadResult =
   | { ok: true; row: LeonixLeadRow }
   | { ok: false; error: "not_found" | "invalid_status" | "save_failed" | "already_deleted" };
 
-export type LeadLifecycleAction = "archive" | "restore" | "delete" | "mark_contacted";
-
-export type LeadLifecycleResult =
-  | { ok: true; row: LeonixLeadRow }
-  | { ok: false; error: "not_found" | "already_deleted" | "save_failed" };
-
 export async function applyLeonixLeadLifecycleAdmin(
   id: string,
   action: LeadLifecycleAction,
@@ -293,6 +317,125 @@ export async function applyLeonixLeadLifecycleAdmin(
   return { ok: true, row: data as LeonixLeadRow };
 }
 
+type SimpleLifecycleAction = "archive" | "restore" | "delete";
+
+async function applyRecordLifecycle<T extends { deleted_at: string | null }>(
+  table: string,
+  select: string,
+  id: string,
+  action: SimpleLifecycleAction,
+  actor: string,
+): Promise<{ ok: true; row: T } | { ok: false; error: "not_found" | "already_deleted" | "save_failed" }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "save_failed" };
+  }
+
+  const now = new Date().toISOString();
+  const supabase = getAdminSupabase();
+
+  const { data: existing, error: readErr } = await supabase.from(table).select(select).eq("id", id).maybeSingle();
+
+  if (readErr || !existing) {
+    return { ok: false, error: "not_found" };
+  }
+
+  const row = existing as unknown as T;
+  if (row.deleted_at) {
+    return { ok: false, error: "already_deleted" };
+  }
+
+  let updates: Record<string, string | null> = { updated_at: now };
+
+  switch (action) {
+    case "archive":
+      updates = { ...updates, archived_at: now, archived_by: actor };
+      break;
+    case "restore":
+      updates = { ...updates, archived_at: null, archived_by: null };
+      break;
+    case "delete":
+      updates = { ...updates, deleted_at: now, deleted_by: actor };
+      break;
+    default:
+      return { ok: false, error: "save_failed" };
+  }
+
+  const { data, error } = await supabase.from(table).update(updates).eq("id", id).select(select).maybeSingle();
+
+  if (error || !data) {
+    console.error(`[admin/leads] ${table} lifecycle failed`, { code: error?.code, action });
+    return { ok: false, error: "save_failed" };
+  }
+
+  return { ok: true, row: data as unknown as T };
+}
+
+export async function applyNewsletterLifecycleAdmin(
+  id: string,
+  action: SimpleLifecycleAction,
+  actor = "leonix_admin",
+): Promise<SubscriberLifecycleResult> {
+  return applyRecordLifecycle<NewsletterSubscriberRow>(
+    "leonix_newsletter_subscribers",
+    NEWSLETTER_SELECT,
+    id,
+    action,
+    actor,
+  );
+}
+
+export async function applyMediaKitLifecycleAdmin(
+  id: string,
+  action: SimpleLifecycleAction,
+  actor = "leonix_admin",
+): Promise<MediaKitLifecycleResult> {
+  return applyRecordLifecycle<MediaKitLeadRow>("leonix_media_kit_leads", MEDIA_KIT_SELECT, id, action, actor);
+}
+
+export async function updateNewsletterSubscriberNotesAdmin(
+  id: string,
+  internal_notes: string,
+): Promise<SubscriberLifecycleResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "save_failed" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("leonix_newsletter_subscribers")
+    .update({
+      internal_notes: internal_notes.trim().slice(0, 4000),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select(NEWSLETTER_SELECT)
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: "save_failed" };
+  return { ok: true, row: data as NewsletterSubscriberRow };
+}
+
+export async function updateMediaKitLeadNotesAdmin(
+  id: string,
+  internal_notes: string,
+): Promise<MediaKitLifecycleResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "save_failed" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("leonix_media_kit_leads")
+    .update({
+      internal_notes: internal_notes.trim().slice(0, 4000),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select(MEDIA_KIT_SELECT)
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: "save_failed" };
+  return { ok: true, row: data as MediaKitLeadRow };
+}
+
 export async function updateLeonixLeadAdmin(
   id: string,
   patch: {
@@ -368,20 +511,23 @@ export async function updateLeonixLeadAdmin(
 }
 
 export async function listNewsletterSubscribersForAdmin(
-  limit = LEAD_LIST_DEFAULT_LIMIT
+  limit = LEAD_LIST_DEFAULT_LIMIT,
+  bucket: LeadInboxBucket = "active",
 ): Promise<AdminLeadListResult<NewsletterSubscriberRow>> {
   if (!isSupabaseAdminConfigured()) return supabaseUnavailable();
 
   try {
     const supabase = getAdminSupabase();
-    const { data, error, count } = await supabase
-      .from("leonix_newsletter_subscribers")
-      .select(
-        "id,email,name,city,zip_code,preferred_language,interests,source,lang,status,consent_timestamp,created_at,updated_at",
-        { count: "exact" }
-      )
-      .order("created_at", { ascending: false })
-      .limit(limit);
+    let query = supabase.from("leonix_newsletter_subscribers").select(NEWSLETTER_SELECT, { count: "exact" });
+
+    query = query.is("deleted_at", null);
+    if (bucket === "active") {
+      query = query.is("archived_at", null);
+    } else if (bucket === "archived") {
+      query = query.not("archived_at", "is", null);
+    }
+
+    const { data, error, count } = await query.order("created_at", { ascending: false }).limit(limit);
 
     if (error) {
       const mapped = mapTableError(error);
@@ -414,19 +560,23 @@ export async function listNewsletterSubscribersForAdmin(
 }
 
 export async function listMediaKitLeadsForAdmin(
-  limit = LEAD_LIST_DEFAULT_LIMIT
+  limit = LEAD_LIST_DEFAULT_LIMIT,
+  bucket: LeadInboxBucket = "active",
 ): Promise<AdminLeadListResult<MediaKitLeadRow>> {
   if (!isSupabaseAdminConfigured()) return supabaseUnavailable();
 
   try {
     const supabase = getAdminSupabase();
-    const { data, error, count } = await supabase
-      .from("leonix_media_kit_leads")
-      .select("id,name,email,phone,business,message,lang,source,status,created_at,updated_at", {
-        count: "exact",
-      })
-      .order("created_at", { ascending: false })
-      .limit(limit);
+    let query = supabase.from("leonix_media_kit_leads").select(MEDIA_KIT_SELECT, { count: "exact" });
+
+    query = query.is("deleted_at", null);
+    if (bucket === "active") {
+      query = query.is("archived_at", null);
+    } else if (bucket === "archived") {
+      query = query.not("archived_at", "is", null);
+    }
+
+    const { data, error, count } = await query.order("created_at", { ascending: false }).limit(limit);
 
     if (error) {
       const mapped = mapTableError(error);
@@ -467,9 +617,8 @@ export async function fetchAllNewsletterSubscribersForExport(): Promise<
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("leonix_newsletter_subscribers")
-      .select(
-        "id,email,name,city,zip_code,preferred_language,interests,source,lang,status,consent_timestamp,created_at,updated_at"
-      )
+      .select(NEWSLETTER_SELECT)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LEAD_EXPORT_MAX_ROWS);
 
@@ -510,7 +659,8 @@ export async function fetchAllMediaKitLeadsForExport(): Promise<AdminLeadListRes
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("leonix_media_kit_leads")
-      .select("id,name,email,phone,business,message,lang,source,status,created_at,updated_at")
+      .select(MEDIA_KIT_SELECT)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(LEAD_EXPORT_MAX_ROWS);
 

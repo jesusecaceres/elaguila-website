@@ -3,18 +3,17 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  adminBtnPrimary,
   adminBtnSecondary,
   adminCardBase,
   adminTableWrap,
   adminTableZebraRow,
 } from "@/app/admin/_components/adminTheme";
+import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
 import { AdminLeonixLeadDetailDrawer } from "@/app/admin/_components/leads/AdminLeonixLeadDetailDrawer";
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
 import {
   buildLeadMailtoUrl,
-  buildLeadPhoneScript,
   buildLeadReplyContent,
   leadNextActionLabel,
 } from "@/app/admin/_lib/leonixLeadReplyTemplates";
@@ -486,75 +485,18 @@ export function AdminLeonixLeadsInboxClient({
                         {leadNextActionLabel(row)}
                       </td>
                       <td className="px-3 py-3">
-                        <div className="flex min-w-[200px] flex-col gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openDetail(row)}
-                            className={`${adminBtnPrimary} w-full justify-center px-3 py-1.5 text-xs`}
-                          >
-                            View
-                          </button>
-                          <div className="flex flex-wrap gap-1">
-                            <a
-                              href={mailto}
-                              className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-900 hover:bg-sky-100"
-                            >
-                              Reply
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => void copyValue("Reply", reply.body)}
-                              className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
-                            >
-                              Copy reply
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void copyValue("Email", row.email)}
-                              className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
-                            >
-                              Copy email
-                            </button>
-                            {row.phone ? (
-                              <button
-                                type="button"
-                                onClick={() => void copyValue("Phone script", buildLeadPhoneScript(row))}
-                                className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
-                              >
-                                Phone
-                              </button>
-                            ) : null}
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {folder === "active" ? (
-                              <button
-                                type="button"
-                                disabled={lifecycleBusy === row.id}
-                                onClick={() => void runLifecycle(row, "archive")}
-                                className="rounded border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-900 hover:bg-violet-100 disabled:opacity-50"
-                              >
-                                Archive
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={lifecycleBusy === row.id}
-                                onClick={() => void runLifecycle(row, "restore")}
-                                className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-50"
-                              >
-                                Restore
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              disabled={lifecycleBusy === row.id}
-                              onClick={() => void runLifecycle(row, "delete")}
-                              className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-900 hover:bg-rose-100 disabled:opacity-50"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
+                        <AdminLaunchLeadRowActions
+                          folder={folder}
+                          mailtoHref={mailto}
+                          phone={row.phone}
+                          lifecycleBusy={lifecycleBusy === row.id}
+                          onView={() => openDetail(row)}
+                          onCopyReply={() => void copyValue("Reply", reply.body)}
+                          onEmail={() => void copyValue("Email", row.email)}
+                          onArchive={() => void runLifecycle(row, "archive")}
+                          onRestore={() => void runLifecycle(row, "restore")}
+                          onDelete={() => void runLifecycle(row, "delete")}
+                        />
                       </td>
                     </tr>
                   );
