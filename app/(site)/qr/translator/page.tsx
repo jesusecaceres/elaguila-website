@@ -4,15 +4,11 @@ import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
-import {
-  ANDROID_LENS_INTENT,
-  LENS_WEB_URL,
-  TRANSLATE_WEB_URL,
-} from "@/app/lib/magazine/translatorGateway";
+import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
 import { getTranslatorPageCopy } from "@/app/lib/magazine/qrGuideCopy";
+import { leonixHomeGoogleTranslateUrl } from "@/app/lib/googleTranslateWebsite";
 import {
   deviceStepsHash,
-  leonixGoogleTranslateWebsiteUrl,
   magazinePrintGuideHref,
 } from "@/app/lib/magazine/qrRouteHelpers";
 import { detectTranslatorDevice } from "@/app/lib/magazine/translatorGateway";
@@ -37,13 +33,12 @@ function TranslatorGatewayContent() {
   const isDesktop = device === "desktop";
   const isMobile = !isDesktop;
 
-  const guideHref = magazinePrintGuideHref(lang);
-  const iphoneStepsHref = `${guideHref}#${deviceStepsHash("iphone")}`;
-  const websiteTranslateHref = leonixGoogleTranslateWebsiteUrl(lang, {
+  const guideHref = magazinePrintGuideHref(lang, {
     sourcePage: "qr_translator",
-    sourceCta: "qr_translator_google_translate",
-    returnTo: `/qr/translator?lang=${lang}`,
+    sourceCta: "qr_guide",
   });
+  const iphoneStepsHref = `${guideHref}#${deviceStepsHash("iphone")}`;
+  const leonixTranslateHref = leonixHomeGoogleTranslateUrl(lang);
 
   return (
     <main lang={lang} className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -88,38 +83,29 @@ function TranslatorGatewayContent() {
           </p>
 
           <div className="mt-5 grid min-w-0 gap-2.5">
-            {device === "android" ? (
-              <a href={ANDROID_LENS_INTENT} className={btnExternal}>
-                {copy.tryGoogleLens}
-              </a>
-            ) : (
-              <a href={LENS_WEB_URL} target="_blank" rel="noopener noreferrer" className={btnExternal}>
-                {copy.tryGoogleLens}
-              </a>
-            )}
-            <a href={TRANSLATE_WEB_URL} target="_blank" rel="noopener noreferrer" className={btnExternal}>
-              {copy.tryGoogleTranslate}
+            <a href={LENS_WEB_URL} target="_blank" rel="noopener noreferrer" className={btnExternal}>
+              {copy.tryGoogleLens}
             </a>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
-            <h2 className="font-serif text-base font-bold text-[#2A4536]">{copy.websiteTranslateTitle}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{copy.websiteTranslateBody}</p>
-            <a href={websiteTranslateHref} className={`mt-3 ${btnGold}`}>
+            <a
+              href={leonixTranslateHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={btnGold}
+            >
               {copy.translateWebsite}
             </a>
-          </div>
-
-          <div className="mt-5 grid min-w-0 gap-2.5">
-            {device === "ios" ? (
-              <a href={iphoneStepsHref} className={btnGold}>
-                Apple / iPhone steps
-              </a>
-            ) : null}
             <Link href={guideHref} className={btnPrimary}>
               {copy.backToGuide}
             </Link>
           </div>
+
+          {device === "ios" ? (
+            <div className="mt-5">
+              <a href={iphoneStepsHref} className={btnGold}>
+                Apple / iPhone steps
+              </a>
+            </div>
+          ) : null}
         </section>
       </div>
     </main>

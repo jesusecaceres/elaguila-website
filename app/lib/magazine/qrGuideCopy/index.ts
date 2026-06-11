@@ -33,11 +33,11 @@ const TRANSLATOR_EN: TranslatorPageCopy = {
   desktopMessage: "These options work best from your phone. Open this page on your phone or use the QR guide steps on another device.",
   tryGoogleLens: "Try Google Lens",
   tryGoogleTranslate: "Try Google Translate",
-  translateWebsite: "Open Leonix in Google Translate",
-  websiteTranslateTitle: "Translate the Leonix website",
+  translateWebsite: "Translate LeonixMedia.com with Google",
+  websiteTranslateTitle: "Translate LeonixMedia.com",
   websiteTranslateBody:
-    "Use Google Translate Website Mode to browse Leonix pages in another language. For contact, advertising, newsletter, and quote forms, use Leonix's native translated forms.",
-  backToGuide: "Back to QR guide",
+    "Google Translate Website Mode opens LeonixMedia.com already loaded in your selected language.",
+  backToGuide: "View QR guide",
   mobileScreenshotHint:
     "If an app does not open, take a screenshot of the magazine page and use Lens or Translate on the image.",
 };
@@ -51,11 +51,11 @@ const TRANSLATOR_ES: TranslatorPageCopy = {
   desktopMessage: "Estas opciones funcionan mejor desde tu teléfono. Abre esta página en tu teléfono o sigue la guía QR en otro dispositivo.",
   tryGoogleLens: "Probar Google Lens",
   tryGoogleTranslate: "Probar Google Translate",
-  translateWebsite: "Abrir Leonix en Google Translate",
-  websiteTranslateTitle: "Traducir el sitio Leonix",
+  translateWebsite: "Traducir LeonixMedia.com con Google",
+  websiteTranslateTitle: "Traducir LeonixMedia.com",
   websiteTranslateBody:
-    "Usa el modo sitio web de Google Translate para navegar Leonix en otro idioma. Para contacto, publicidad, newsletter y cotizaciones, usa los formularios nativos traducidos de Leonix.",
-  backToGuide: "Volver a la guía QR",
+    "El modo sitio web de Google Translate abre LeonixMedia.com ya cargado en el idioma seleccionado.",
+  backToGuide: "Ver guía QR",
   mobileScreenshotHint:
     "Si no se abre una app, toma una captura de la página de la revista y usa Lens o Translate en la imagen.",
 };

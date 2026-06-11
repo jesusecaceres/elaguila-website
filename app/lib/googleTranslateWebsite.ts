@@ -67,6 +67,14 @@ export function buildGoogleTranslateWebsiteUrl(opts: {
   return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(googleLang)}&u=${u}`;
 }
 
+/** Direct Google Translate Website Mode URL for LeonixMedia.com homepage. */
+export function leonixHomeGoogleTranslateUrl(targetLang: SupportedLang): string {
+  return buildGoogleTranslateWebsiteUrl({
+    targetLang,
+    siteUrl: LEONIX_TRANSLATE_SITE_ORIGIN,
+  });
+}
+
 export type TranslateSiteHrefOpts = {
   lang: SupportedLang;
   sourcePage?: string;

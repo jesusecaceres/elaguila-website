@@ -34,17 +34,11 @@ import {
 import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
 import {
-  getGoogleTranslatePlacementCopy,
-  translateSiteHref,
+  buildGoogleTranslateWebsiteUrl,
+  LEONIX_TRANSLATE_SITE_ORIGIN,
 } from "@/app/lib/googleTranslateWebsite";
-import {
-  ANDROID_LENS_INTENT,
-  LENS_WEB_URL,
-} from "@/app/lib/magazine/translatorGateway";
-import {
-  leonixGoogleTranslateWebsiteUrl,
-  magazinePrintGuideHref,
-} from "@/app/lib/magazine/qrRouteHelpers";
+import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
+import { magazinePrintGuideHref } from "@/app/lib/magazine/qrRouteHelpers";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
@@ -627,21 +621,17 @@ function HeroQrAccessStrip({
 const QR_SECTION_CTA_COPY = {
   es: {
     openLens: "Probar Google Lens",
-    translateSite: "Traducir sitio con Google",
+    translateSite: "Traducir LeonixMedia.com con Google",
+    qrGuide: "Ver guía QR",
     guardrail:
-      "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar el sitio web.",
-    lensAppNote:
-      "En Android intentará abrir la app. En otros teléfonos puede abrir la web o pedir instalarla.",
-    lensWebFallback: "Si no abre la app, abre Lens en la web.",
+      "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar LeonixMedia.com en otro idioma.",
   },
   en: {
     openLens: "Try Google Lens",
-    translateSite: "Translate website with Google",
+    translateSite: "Translate LeonixMedia.com with Google",
+    qrGuide: "View QR guide",
     guardrail:
-      "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse the website.",
-    lensAppNote:
-      "On Android, this will try to open the app. On other phones, it may open the web or ask to install it.",
-    lensWebFallback: "If the app does not open, open Lens on the web.",
+      "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse LeonixMedia.com in another language.",
   },
 } as const;
 
@@ -652,86 +642,47 @@ function qrSectionCtaCopy(lang: SupportedLang) {
 const qrSectionCtaButtonClass =
   "inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-full border-2 px-4 py-2 text-center text-[0.8125rem] font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:w-auto sm:px-5 sm:text-sm";
 
-function QrSectionTranslationCtas({
-  lang,
-  qrStepsLabel,
-}: {
-  lang: SupportedLang;
-  qrStepsLabel: string;
-}) {
+function QrSectionTranslationCtas({ lang }: { lang: SupportedLang }) {
   const labels = qrSectionCtaCopy(lang);
-  const googleTranslateWebsiteHref = leonixGoogleTranslateWebsiteUrl(lang, {
-    sourcePage: "coming-soon-v2",
-    sourceCta: "coming_soon_qr_google_translate",
-    returnTo: `/coming-soon-v2?lang=${lang}`,
+  const googleTranslateWebsiteHref = buildGoogleTranslateWebsiteUrl({
+    targetLang: lang,
+    siteUrl: LEONIX_TRANSLATE_SITE_ORIGIN,
   });
-  const qrStepsHref = magazinePrintGuideHref(lang, {
+  const qrGuideHref = magazinePrintGuideHref(lang, {
     sourcePage: "coming-soon-v2",
-    sourceCta: "coming_soon_qr_steps",
+    sourceCta: "qr_guide",
   });
 
   return (
     <div className="mt-4 min-w-0 sm:mt-5">
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
-        <div className="flex min-w-0 flex-col gap-1">
-          <a
-            href={ANDROID_LENS_INTENT}
-            className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
-          >
-            {labels.openLens}
-          </a>
-          <a
-            href={LENS_WEB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-1 text-xs font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-[0.8125rem]"
-          >
-            {labels.lensWebFallback}
-          </a>
-        </div>
-        <Link
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <a
+          href={LENS_WEB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+        >
+          {labels.openLens}
+        </a>
+        <a
           href={googleTranslateWebsiteHref}
+          target="_blank"
+          rel="noopener noreferrer"
           className={`${qrSectionCtaButtonClass} border-[#C9A84A] bg-[#FFFDF7] text-[#2A4536] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
         >
           {labels.translateSite}
-        </Link>
+        </a>
         <Link
-          href={qrStepsHref}
+          href={qrGuideHref}
           className={`${qrSectionCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
         >
-          {qrStepsLabel}
+          {labels.qrGuide}
         </Link>
       </div>
       <p className="mt-2.5 text-xs leading-snug text-[#3D3428]/90 sm:text-[0.8125rem] sm:leading-relaxed">
         {labels.guardrail}
       </p>
-      <p className="mt-1.5 text-xs leading-snug text-[#3D3428]/85 sm:text-[0.8125rem] sm:leading-relaxed">
-        {labels.lensAppNote}
-      </p>
     </div>
-  );
-}
-
-function HeroGoogleTranslateHint({ lang }: { lang: SupportedLang }) {
-  const copy = getGoogleTranslatePlacementCopy(lang);
-  const href = translateSiteHref({
-    lang,
-    sourcePage: "coming-soon-v2",
-    sourceCta: "coming_soon_google_translate",
-    returnTo: `/coming-soon-v2?lang=${lang}`,
-  });
-
-  return (
-    <aside className="mt-3 rounded-lg border border-[#D6C7AD]/60 bg-[#FFFDF7] px-3 py-2.5 sm:px-3.5 sm:py-3">
-      <p className="text-xs font-semibold text-[#2A4536] sm:text-sm">{copy.comingSoonQuestion}</p>
-      <p className="mt-1 text-[0.8125rem] leading-snug text-[#3D3428] sm:text-sm">{copy.comingSoonBody}</p>
-      <a
-        href={href}
-        className="mt-2 inline-flex min-h-[2.25rem] items-center text-xs font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm"
-      >
-        {copy.comingSoonCta}
-      </a>
-    </aside>
   );
 }
 
@@ -786,7 +737,7 @@ function QrAccessSection({
           <p className="mt-3 rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7] p-3 text-sm leading-snug text-[#3D3428] sm:mt-4 sm:p-4 sm:text-[0.9375rem] sm:leading-relaxed">
             {mobileNote}
           </p>
-          <QrSectionTranslationCtas lang={lang} qrStepsLabel={openReaderLabel} />
+          <QrSectionTranslationCtas lang={lang} />
         </div>
 
         <div className="flex min-w-0 max-w-md flex-col items-center gap-3 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 sm:gap-4 sm:px-6 sm:py-6 lg:max-w-none lg:self-start">
@@ -1555,8 +1506,6 @@ function ComingSoonV2ShellContent() {
                 buttonLabel={qr.openReaderLabel}
                 href={comingSoonQrReaderHref(routeLang, "hero_qr_steps")}
               />
-
-              <HeroGoogleTranslateHint lang={routeLang} />
 
               <HeroMediaKitQuickActions
                 lang={routeLang}

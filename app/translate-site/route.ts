@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   buildGoogleTranslateWebsiteUrl,
   buildLeonixSiteUrlForTranslate,
+  LEONIX_TRANSLATE_SITE_ORIGIN,
   resolveTranslateSiteLang,
 } from "@/app/lib/googleTranslateWebsite";
 
@@ -13,7 +14,9 @@ export function GET(request: NextRequest) {
   );
 
   const returnTo = searchParams.get("returnTo");
-  const siteUrl = buildLeonixSiteUrlForTranslate(lang, returnTo);
+  const siteUrl = returnTo
+    ? buildLeonixSiteUrlForTranslate(lang, returnTo)
+    : LEONIX_TRANSLATE_SITE_ORIGIN;
   const googleUrl = buildGoogleTranslateWebsiteUrl({
     targetLang: lang,
     siteUrl,
