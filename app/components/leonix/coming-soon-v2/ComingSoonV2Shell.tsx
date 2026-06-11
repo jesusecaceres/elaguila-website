@@ -69,10 +69,10 @@ const sectionEyebrowClass =
   "text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#556B3E] sm:text-xs sm:tracking-[0.16em]";
 
 const sectionTitleClass =
-  "mt-1.5 max-w-3xl font-serif text-lg font-bold leading-snug tracking-tight text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:text-3xl";
+  "mt-1.5 max-w-3xl font-serif text-lg font-bold leading-snug tracking-tight text-balance text-[#2A4536] sm:mt-3 sm:text-[1.75rem] lg:max-w-4xl lg:text-3xl xl:max-w-5xl";
 
 const sectionIntroClass =
-  "mt-2 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed";
+  "mt-2 max-w-2xl text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-4 sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-3xl xl:max-w-[42rem]";
 
 const cardShellClass =
   "rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.2)]";
@@ -268,7 +268,7 @@ function WhatYouGetCardArticle({
       } ${card.accent === "green" ? "border-l-[3px] border-l-[#2A4536]/50" : ""}`}
     >
       <WhatYouGetCardIcon accent={card.accent} />
-      <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+      <h3 className="font-serif text-base font-bold leading-snug text-balance text-[#7A1E2C] sm:text-lg lg:text-xl">
         {card.title}
       </h3>
       <p className="mt-1.5 flex-1 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
@@ -397,8 +397,8 @@ function MarketplaceSection({
       <h2 id="marketplace-title" className={sectionTitleClass}>
         {headline}
       </h2>
-      <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
-      <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-4 sm:text-[0.9375rem] sm:leading-relaxed">
+      <p className={sectionIntroClass}>{intro}</p>
+      <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-4 sm:text-[0.9375rem] sm:leading-relaxed lg:max-w-3xl xl:max-w-[42rem]">
         {bridge}
       </p>
 
@@ -413,14 +413,14 @@ function MarketplaceSection({
         </span>
         <h3
           id="marketplace-featured-ofertas-locales"
-          className="mt-2 font-serif text-lg font-bold leading-snug text-[#7A1E2C] sm:mt-3 sm:text-xl lg:text-2xl"
+          className="mt-2 font-serif text-lg font-bold leading-snug text-balance text-[#7A1E2C] sm:mt-3 sm:text-xl lg:text-2xl"
         >
           {featuredCard.title}
         </h3>
-        <p className="mt-2 max-w-3xl text-sm leading-snug text-[#3D3428] sm:mt-3 sm:text-[0.9375rem] sm:leading-relaxed">
+        <p className="mt-2 max-w-3xl text-sm leading-snug text-[#3D3428] sm:mt-3 sm:text-[0.9375rem] sm:leading-relaxed lg:max-w-4xl">
           {featuredCard.body}
         </p>
-        <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-3 sm:text-[0.9375rem] sm:leading-relaxed">
+        <p className="mt-2 max-w-2xl text-sm font-semibold leading-snug text-[#2A4536] sm:mt-3 sm:text-[0.9375rem] sm:leading-relaxed lg:max-w-3xl">
           {featuredCard.supportingLine}
         </p>
       </article>
@@ -435,7 +435,7 @@ function MarketplaceSection({
               className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} border-l-[3px] border-l-[#C9A84A]/45 p-3 sm:p-5`}
             >
               <MarketplaceCategoryIcon index={index} />
-              <h3 className="font-serif text-[0.9375rem] font-bold leading-snug text-[#7A1E2C] sm:text-lg">
+              <h3 className="font-serif text-[0.9375rem] font-bold leading-snug text-balance text-[#7A1E2C] sm:text-lg">
                 {card.title}
               </h3>
               <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.875rem] sm:leading-relaxed">
@@ -447,7 +447,7 @@ function MarketplaceSection({
       </ul>
 
       <div className="mt-3 rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-3 shadow-[0_16px_40px_-18px_rgba(42,69,54,0.55)] sm:mt-8 sm:p-6">
-        <p className="max-w-3xl font-serif text-[0.9375rem] font-bold leading-snug text-[#F8F4EA] sm:text-xl">
+        <p className="max-w-3xl font-serif text-[0.9375rem] font-bold leading-snug text-balance text-[#F8F4EA] sm:text-xl lg:max-w-4xl">
           {closing}
         </p>
         <a
@@ -505,11 +505,10 @@ function WhatYouGetSection({
       </h2>
       <p className={sectionIntroClass}>{intro}</p>
 
-      <ul className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:gap-5 lg:grid-cols-6">
+      <ul className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
         {cards.map((card, index) => {
-          const spanClass = index < 3 ? "lg:col-span-2" : "lg:col-span-3";
           return (
-            <li key={index} className={`flex ${spanClass}`}>
+            <li key={index} className="flex min-w-0">
               <WhatYouGetCardArticle
                 card={card}
                 index={index}
@@ -560,19 +559,19 @@ function HowItWorksSection({
       <p className={sectionIntroClass}>{intro}</p>
 
       <ol
-        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
+        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-2 lg:gap-6 2xl:grid-cols-4"
         aria-label={stepsAria}
       >
         {steps.map((step, index) => (
-          <li key={index} className="flex">
-            <article className={`flex h-full w-full flex-col ${cardShellClass} p-3 sm:p-6`}>
+          <li key={index} className="flex min-w-0">
+            <article className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} p-3 sm:p-6`}>
               <span
                 className={`mb-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ring-2 sm:mb-4 sm:h-10 sm:w-10 ${processStepBadgeStyles[index]}`}
                 aria-hidden
               >
                 {index + 1}
               </span>
-              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-xl">
+              <h3 className="font-serif text-base font-bold leading-snug text-balance text-[#7A1E2C] sm:text-lg lg:text-xl">
                 {step.title}
               </h3>
               <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
@@ -888,22 +887,22 @@ function MediaKitPreviewSection({
       <h2 id="media-kit-preview-title" className={sectionTitleClass}>
         {headline}
       </h2>
-      <p className={`${sectionIntroClass} max-w-3xl`}>{intro}</p>
-      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#3D3428]/90 sm:mt-3 sm:text-[0.9375rem]">
+      <p className={sectionIntroClass}>{intro}</p>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#3D3428]/90 sm:mt-3 sm:text-[0.9375rem] lg:max-w-4xl">
         {pdfHonestyLine}
       </p>
 
       <ul
-        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-4"
+        className="mt-3 grid list-none gap-2 p-0 sm:mt-8 sm:grid-cols-2 sm:gap-5 sm:items-stretch lg:grid-cols-2 lg:gap-6 2xl:grid-cols-4"
         aria-label={cardsAria}
       >
         {cards.map((card, index) => (
-          <li key={index} className="flex">
+          <li key={index} className="flex min-w-0">
             <article
-              className={`flex h-full w-full flex-col ${cardShellClass} p-3 ring-1 ring-[#C9A84A]/10 sm:p-6`}
+              className={`flex h-full w-full min-w-0 flex-col ${cardShellClass} p-3 ring-1 ring-[#C9A84A]/10 sm:p-6`}
             >
               <MediaKitPreviewCardIcon index={index} />
-              <h3 className="font-serif text-base font-bold leading-snug text-[#7A1E2C] sm:text-lg">
+              <h3 className="font-serif text-base font-bold leading-snug text-balance text-[#7A1E2C] sm:text-lg">
                 {card.title}
               </h3>
               <p className="mt-1.5 flex-1 text-sm leading-snug text-[#3D3428] sm:mt-2 sm:text-[0.9375rem] sm:leading-relaxed">
@@ -1480,7 +1479,7 @@ function ComingSoonV2ShellContent() {
                 ))}
               </ul>
 
-              <p className="mt-4 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed">
+              <p className="mt-4 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-[42rem]">
                 {h.paragraph}
               </p>
 
