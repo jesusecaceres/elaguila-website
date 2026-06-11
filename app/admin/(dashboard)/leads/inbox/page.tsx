@@ -14,9 +14,9 @@ export default async function AdminLeonixLeadsInboxPage() {
   return (
     <div className="w-full max-w-none space-y-8">
       <AdminPageHeader
-        title="Lead inbox"
-        subtitle="Contact, advertising, and business inquiries from public.leonix_leads."
-        helperText="Check daily, update status, archive when done, and add internal notes after follow-up. Export CSV includes all non-deleted leads."
+        title="Launch Leads command center"
+        subtitle="Track, reply to, and follow up on advertising, promo, media kit, and contact inquiries."
+        helperText="Use mailto and copy-reply helpers — emails are not sent from the server. Archive when done. Export CSV includes all non-deleted leads."
       />
 
       {activeList.dataUnavailable || archivedList.dataUnavailable ? (

@@ -52,6 +52,8 @@ export type LeonixLeadRow = {
   consent_to_contact: boolean;
   status: string;
   internal_notes: string;
+  last_contacted_at: string | null;
+  follow_up_at: string | null;
   archived_at: string | null;
   archived_by: string | null;
   deleted_at: string | null;
@@ -106,7 +108,7 @@ function supabaseUnavailable<T>(): AdminLeadListResult<T> {
 }
 
 const LEONIX_LEAD_SELECT =
-  "id,full_name,email,phone,business_name,inquiry_type,preferred_contact_method,city_area,website_or_social,business_category,message,source_page,source_cta,lang,wants_launch_updates,consent_to_contact,status,internal_notes,archived_at,archived_by,deleted_at,deleted_by,created_at,updated_at";
+  "id,full_name,email,phone,business_name,inquiry_type,preferred_contact_method,city_area,website_or_social,business_category,message,source_page,source_cta,lang,wants_launch_updates,consent_to_contact,status,internal_notes,last_contacted_at,follow_up_at,archived_at,archived_by,deleted_at,deleted_by,created_at,updated_at";
 
 export type LeadInboxBucket = "active" | "archived" | "all_non_deleted";
 
@@ -205,7 +207,7 @@ export type UpdateLeonixLeadResult =
   | { ok: true; row: LeonixLeadRow }
   | { ok: false; error: "not_found" | "invalid_status" | "save_failed" | "already_deleted" };
 
-export type LeadLifecycleAction = "archive" | "restore" | "delete";
+export type LeadLifecycleAction = "archive" | "restore" | "delete" | "mark_contacted";
 
 export type LeadLifecycleResult =
   | { ok: true; row: LeonixLeadRow }
@@ -252,7 +254,7 @@ export async function applyLeonixLeadLifecycleAdmin(
     case "restore":
       updates = {
         ...updates,
-        status: row.status === "archived" ? "contacted" : row.status,
+        status: row.status === "archived" ? "needs_reply" : row.status,
         archived_at: null,
         archived_by: null,
       };
@@ -262,6 +264,14 @@ export async function applyLeonixLeadLifecycleAdmin(
         ...updates,
         deleted_at: now,
         deleted_by: actor,
+      };
+      break;
+    case "mark_contacted":
+      updates = {
+        ...updates,
+        last_contacted_at: now,
+        status:
+          row.status === "new" || row.status === "needs_reply" ? "contacted" : row.status,
       };
       break;
     default:
@@ -285,13 +295,17 @@ export async function applyLeonixLeadLifecycleAdmin(
 
 export async function updateLeonixLeadAdmin(
   id: string,
-  patch: { status?: string; internal_notes?: string }
+  patch: {
+    status?: string;
+    internal_notes?: string;
+    follow_up_at?: string | null;
+  }
 ): Promise<UpdateLeonixLeadResult> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, error: "save_failed" };
   }
 
-  const updates: Record<string, string> = {
+  const updates: Record<string, string | null> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -305,6 +319,18 @@ export async function updateLeonixLeadAdmin(
 
   if (patch.internal_notes != null) {
     updates.internal_notes = patch.internal_notes.trim().slice(0, 4000);
+  }
+
+  if (patch.follow_up_at !== undefined) {
+    if (patch.follow_up_at === null || patch.follow_up_at.trim() === "") {
+      updates.follow_up_at = null;
+    } else {
+      const d = new Date(patch.follow_up_at);
+      if (!Number.isFinite(d.getTime())) {
+        return { ok: false, error: "invalid_status" };
+      }
+      updates.follow_up_at = d.toISOString();
+    }
   }
 
   try {

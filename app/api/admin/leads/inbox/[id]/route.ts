@@ -33,7 +33,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   const o = body as Record<string, unknown>;
 
   const actionRaw = o.action != null ? String(o.action).trim() : "";
-  if (actionRaw === "archive" || actionRaw === "restore" || actionRaw === "delete") {
+  if (actionRaw === "archive" || actionRaw === "restore" || actionRaw === "delete" || actionRaw === "mark_contacted") {
     const result = await applyLeonixLeadLifecycleAdmin(id, actionRaw as LeadLifecycleAction);
     if (!result.ok) {
       const status =
@@ -50,6 +50,12 @@ export async function PATCH(req: Request, context: RouteContext) {
   const result = await updateLeonixLeadAdmin(id, {
     status: o.status != null ? String(o.status) : undefined,
     internal_notes: o.internal_notes != null ? String(o.internal_notes) : undefined,
+    follow_up_at:
+      o.follow_up_at === null
+        ? null
+        : o.follow_up_at != null
+          ? String(o.follow_up_at)
+          : undefined,
   });
 
   if (!result.ok) {

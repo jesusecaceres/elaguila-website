@@ -11,19 +11,36 @@ import {
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
 import {
+  buildLeadMailtoUrl,
+  buildLeadPhoneScript,
+  buildLeadReplyContent,
+  leadNextActionLabel,
+  leadReplyKindLabel,
+} from "@/app/admin/_lib/leonixLeadReplyTemplates";
+import {
   inquiryTypeLabel,
   parseInquiryType,
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
 import {
   clipLeadText,
+  contactPreferenceBadgeClass,
   copyTextToClipboard,
   formatLeadCreatedParts,
   formatLeadWhen,
+  inquiryTypeBadgeClass,
   leadStatusBadgeClass,
 } from "@/app/admin/_components/leads/adminLeadInboxFormat";
 
 type InboxFolder = "active" | "archived";
+
+type OpsView =
+  | "all"
+  | "needs_reply"
+  | "promo"
+  | "advertising"
+  | "media_kit"
+  | "archived";
 
 type Props = {
   initialActiveRows: LeonixLeadRow[];
@@ -33,24 +50,18 @@ type Props = {
   limit: number;
 };
 
-const INQUIRY_FILTER_OPTIONS = [
-  "all",
-  "advertising",
-  "launch",
-  "mediaKit",
-  "general",
-  "promotionalProducts",
-  "businessListing",
-  "partnership",
-] as const;
-
-function adminInquiryFilterLabel(value: (typeof INQUIRY_FILTER_OPTIONS)[number]): string {
-  if (value === "all") return "All inquiry types";
-  return inquiryTypeLabel(parseInquiryType(value), "en");
-}
+const OPS_VIEWS: { id: OpsView; label: string }[] = [
+  { id: "all", label: "All Leads" },
+  { id: "needs_reply", label: "Needs Reply" },
+  { id: "promo", label: "Promo / Print Quotes" },
+  { id: "advertising", label: "Advertising Leads" },
+  { id: "media_kit", label: "Media Kit Requests" },
+  { id: "archived", label: "Archived" },
+];
 
 function leadSummary(row: LeonixLeadRow): string {
   const inquiryLabel = inquiryTypeLabel(parseInquiryType(row.inquiry_type), "en");
+  const reply = buildLeadReplyContent(row);
   return [
     `Leonix lead — ${row.full_name}`,
     `Business: ${row.business_name || "(none)"}`,
@@ -58,16 +69,15 @@ function leadSummary(row: LeonixLeadRow): string {
     `Phone: ${row.phone || "(none)"}`,
     `Type: ${inquiryLabel} (${row.inquiry_type})`,
     `Preferred contact: ${row.preferred_contact_method}`,
-    `City/area: ${row.city_area || "(none)"}`,
-    `Wants launch updates: ${row.wants_launch_updates ? "yes" : "no"}`,
-    `Source page: ${row.source_page}`,
-    `Source CTA: ${row.source_cta || "(none)"}`,
-    `Lang: ${row.lang}`,
     `Status: ${row.status}`,
+    `Next: ${leadNextActionLabel(row)}`,
     "",
     "Message:",
     row.message,
     row.internal_notes ? `\nInternal notes:\n${row.internal_notes}` : "",
+    "",
+    `Recommended reply (${leadReplyKindLabel(reply.kind)}):`,
+    reply.body,
   ]
     .filter((line, i, arr) => !(line === "" && i === arr.length - 1))
     .join("\n");
@@ -78,7 +88,29 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={`inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${leadStatusBadgeClass(status)}`}
     >
-      {status}
+      {status.replace(/_/g, " ")}
+    </span>
+  );
+}
+
+function InquiryBadge({ inquiryType }: { inquiryType: string }) {
+  const parsed = parseInquiryType(inquiryType) as InquiryType;
+  return (
+    <span
+      className={`inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${inquiryTypeBadgeClass(inquiryType)}`}
+      title={inquiryType}
+    >
+      {inquiryTypeLabel(parsed, "en")}
+    </span>
+  );
+}
+
+function ContactPrefBadge({ method }: { method: string }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${contactPreferenceBadgeClass(method)}`}
+    >
+      {method}
     </span>
   );
 }
@@ -93,6 +125,32 @@ function CreatedCell({ iso }: { iso: string }) {
   );
 }
 
+function matchesOpsView(row: LeonixLeadRow, view: OpsView): boolean {
+  if (view === "archived") return Boolean(row.archived_at);
+  if (row.archived_at) return false;
+  if (view === "all") return true;
+  if (view === "needs_reply") {
+    const s = row.status.trim().toLowerCase();
+    return s === "new" || s === "needs_reply";
+  }
+  if (view === "promo") {
+    return (
+      row.inquiry_type === "promotionalProducts" ||
+      row.source_cta === "promo_quote" ||
+      /promo|print|quote|impres/i.test(`${row.message} ${row.source_page}`)
+    );
+  }
+  if (view === "advertising") return row.inquiry_type === "advertising";
+  if (view === "media_kit") return row.inquiry_type === "mediaKit";
+  return true;
+}
+
+function patchRowInList(prev: LeonixLeadRow[], row: LeonixLeadRow): LeonixLeadRow[] {
+  const exists = prev.some((r) => r.id === row.id);
+  if (exists) return prev.map((r) => (r.id === row.id ? row : r));
+  return [row, ...prev];
+}
+
 export function AdminLeonixLeadsInboxClient({
   initialActiveRows,
   initialArchivedRows,
@@ -100,12 +158,11 @@ export function AdminLeonixLeadsInboxClient({
   archivedTotal,
   limit,
 }: Props) {
-  const [folder, setFolder] = useState<InboxFolder>("active");
+  const [opsView, setOpsView] = useState<OpsView>("all");
   const [activeRows, setActiveRows] = useState(initialActiveRows);
   const [archivedRows, setArchivedRows] = useState(initialArchivedRows);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [inquiryFilter, setInquiryFilter] = useState<string>("all");
   const [launchFilter, setLaunchFilter] = useState<"all" | "yes" | "no">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; kind: "ok" | "err" } | null>(null);
@@ -113,7 +170,9 @@ export function AdminLeonixLeadsInboxClient({
   const [lifecycleBusy, setLifecycleBusy] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editFollowUp, setEditFollowUp] = useState("");
 
+  const folder: InboxFolder = opsView === "archived" ? "archived" : "active";
   const rows = folder === "active" ? activeRows : archivedRows;
   const total = folder === "active" ? activeTotal : archivedTotal;
 
@@ -130,8 +189,8 @@ export function AdminLeonixLeadsInboxClient({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((row) => {
+      if (!matchesOpsView(row, opsView)) return false;
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (inquiryFilter !== "all" && row.inquiry_type !== inquiryFilter) return false;
       if (launchFilter === "yes" && !row.wants_launch_updates) return false;
       if (launchFilter === "no" && row.wants_launch_updates) return false;
       if (!q) return true;
@@ -147,12 +206,13 @@ export function AdminLeonixLeadsInboxClient({
         inquiryLabel,
         row.source_page,
         row.source_cta,
+        leadNextActionLabel(row),
       ]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [rows, search, statusFilter, inquiryFilter, launchFilter]);
+  }, [rows, opsView, search, statusFilter, launchFilter]);
 
   function showToast(msg: string, kind: "ok" | "err" = "ok") {
     setToast({ msg, kind });
@@ -168,6 +228,21 @@ export function AdminLeonixLeadsInboxClient({
     setSelectedId(row.id);
     setEditStatus(row.status);
     setEditNotes(row.internal_notes ?? "");
+    setEditFollowUp(row.follow_up_at ? row.follow_up_at.slice(0, 10) : "");
+  }
+
+  function applyRowUpdate(row: LeonixLeadRow) {
+    if (row.archived_at || row.deleted_at) {
+      setActiveRows((prev) => prev.filter((r) => r.id !== row.id));
+      if (!row.deleted_at) {
+        setArchivedRows((prev) => patchRowInList(prev.filter((r) => r.id !== row.id), row));
+      } else {
+        setArchivedRows((prev) => prev.filter((r) => r.id !== row.id));
+      }
+    } else {
+      setArchivedRows((prev) => prev.filter((r) => r.id !== row.id));
+      setActiveRows((prev) => patchRowInList(prev.filter((r) => r.id !== row.id), row));
+    }
   }
 
   async function saveDetail() {
@@ -177,25 +252,15 @@ export function AdminLeonixLeadsInboxClient({
       const res = await fetch(`/api/admin/leads/inbox/${selected.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: editStatus, internal_notes: editNotes }),
+        body: JSON.stringify({
+          status: editStatus,
+          internal_notes: editNotes,
+          follow_up_at: editFollowUp.trim() ? editFollowUp.trim() : null,
+        }),
       });
       const data = (await res.json()) as { ok?: boolean; row?: LeonixLeadRow };
       if (res.ok && data.ok && data.row) {
-        const row = data.row;
-        const updater = (prev: LeonixLeadRow[]) => prev.map((r) => (r.id === row.id ? row : r));
-        if (row.archived_at) {
-          setActiveRows((prev) => prev.filter((r) => r.id !== row.id));
-          setArchivedRows((prev) => {
-            const exists = prev.some((r) => r.id === row.id);
-            return exists ? updater(prev) : [row, ...prev];
-          });
-        } else {
-          setArchivedRows((prev) => prev.filter((r) => r.id !== row.id));
-          setActiveRows((prev) => {
-            const exists = prev.some((r) => r.id === row.id);
-            return exists ? updater(prev) : [row, ...prev];
-          });
-        }
+        applyRowUpdate(data.row);
         showToast("Lead updated");
       } else {
         showToast("Could not save lead", "err");
@@ -207,7 +272,10 @@ export function AdminLeonixLeadsInboxClient({
     }
   }
 
-  async function runLifecycle(row: LeonixLeadRow, action: "archive" | "restore" | "delete") {
+  async function runLifecycle(
+    row: LeonixLeadRow,
+    action: "archive" | "restore" | "delete" | "mark_contacted",
+  ) {
     if (action === "delete") {
       const confirmed = window.confirm(
         "Soft-delete this lead? It will be hidden from active and archived views. Export CSV will also exclude it.",
@@ -229,19 +297,23 @@ export function AdminLeonixLeadsInboxClient({
       }
 
       const updated = data.row;
-      if (action === "archive") {
-        setActiveRows((prev) => prev.filter((r) => r.id !== row.id));
-        setArchivedRows((prev) => [updated, ...prev.filter((r) => r.id !== row.id)]);
-        showToast("Lead archived");
-      } else if (action === "restore") {
-        setArchivedRows((prev) => prev.filter((r) => r.id !== row.id));
-        setActiveRows((prev) => [updated, ...prev.filter((r) => r.id !== row.id)]);
-        showToast("Lead restored to inbox");
-      } else {
+      if (action === "delete") {
         setActiveRows((prev) => prev.filter((r) => r.id !== row.id));
         setArchivedRows((prev) => prev.filter((r) => r.id !== row.id));
         if (selectedId === row.id) setSelectedId(null);
         showToast("Lead deleted (soft)");
+      } else if (action === "archive") {
+        setActiveRows((prev) => prev.filter((r) => r.id !== row.id));
+        setArchivedRows((prev) => patchRowInList(prev, updated));
+        showToast("Lead archived");
+      } else if (action === "restore") {
+        setArchivedRows((prev) => prev.filter((r) => r.id !== row.id));
+        setActiveRows((prev) => patchRowInList(prev, updated));
+        setOpsView("all");
+        showToast("Lead restored to inbox");
+      } else {
+        applyRowUpdate(updated);
+        showToast("Marked as contacted");
       }
     } catch {
       showToast("Action failed", "err");
@@ -250,49 +322,47 @@ export function AdminLeonixLeadsInboxClient({
     }
   }
 
+  const selectedReply = selected ? buildLeadReplyContent(selected) : null;
+
   return (
     <div className="space-y-6">
-      <p className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
-        Promotional product and print quote requests appear here as leads under{" "}
-        <strong>Promotional products / print quote</strong>. Archive when follow-up is complete; restore from the
-        Archived folder if needed. Delete is a soft-delete (hidden, not hard-removed).
-      </p>
+      <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
+        <strong>Launch Leads command center.</strong> Use reply helpers (mailto / copy) — emails are not sent from the
+        server. Archive when done; restore from Archived.{" "}
+        <Link href="/admin/leads/newsletter" className="font-semibold text-[#6B5B2E] underline">
+          Newsletter subscribers →
+        </Link>
+      </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-[#E8DFD0] pb-1">
-        <button
-          type="button"
-          onClick={() => {
-            setFolder("active");
-            setStatusFilter("all");
-          }}
-          className={`rounded-t-lg px-4 py-2 text-sm font-bold transition ${
-            folder === "active"
-              ? "border border-b-0 border-[#E8DFD0] bg-white text-[#1E1810]"
-              : "text-[#7A7164] hover:bg-[#FAF7F2]"
-          }`}
+      <div className="flex flex-wrap gap-2">
+        {OPS_VIEWS.map((view) => (
+          <button
+            key={view.id}
+            type="button"
+            onClick={() => {
+              setOpsView(view.id);
+              setStatusFilter("all");
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition sm:px-4 sm:py-2 sm:text-sm ${
+              opsView === view.id
+                ? "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416]"
+                : "border-[#E8DFD0] text-[#5C5346] hover:bg-[#FAF7F2]"
+            }`}
+          >
+            {view.label}
+            {view.id === "archived" ? (
+              <span className="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] text-violet-900">
+                {archivedTotal}
+              </span>
+            ) : null}
+          </button>
+        ))}
+        <Link
+          href="/admin/leads/newsletter"
+          className="rounded-full border border-[#E8DFD0] px-3 py-1.5 text-xs font-bold text-[#5C5346] hover:bg-[#FAF7F2] sm:px-4 sm:py-2 sm:text-sm"
         >
-          Active inbox
-          <span className="ml-2 rounded-full bg-[#F3E6D2] px-2 py-0.5 text-xs font-semibold text-[#5C5346]">
-            {activeTotal}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setFolder("archived");
-            setStatusFilter("all");
-          }}
-          className={`rounded-t-lg px-4 py-2 text-sm font-bold transition ${
-            folder === "archived"
-              ? "border border-b-0 border-[#E8DFD0] bg-white text-[#1E1810]"
-              : "text-[#7A7164] hover:bg-[#FAF7F2]"
-          }`}
-        >
-          Archived
-          <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-900">
-            {archivedTotal}
-          </span>
-        </button>
+          Newsletter Subscribers
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -302,7 +372,7 @@ export function AdminLeonixLeadsInboxClient({
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name, email, inquiry type, source, promo_quote…"
+            placeholder="Name, email, inquiry, source, promo_quote…"
             className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]"
           />
         </label>
@@ -316,21 +386,7 @@ export function AdminLeonixLeadsInboxClient({
             <option value="all">All</option>
             {statusOptions.map((s) => (
               <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
-          Inquiry type
-          <select
-            value={inquiryFilter}
-            onChange={(e) => setInquiryFilter(e.target.value)}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-          >
-            {INQUIRY_FILTER_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {adminInquiryFilterLabel(v)}
+                {s.replace(/_/g, " ")}
               </option>
             ))}
           </select>
@@ -372,152 +428,177 @@ export function AdminLeonixLeadsInboxClient({
 
       <div className={`${adminTableWrap} w-full max-w-none`}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1200px] table-fixed text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
-                <th className="w-[88px] px-3 py-3">Created</th>
+                <th className="w-[80px] px-3 py-3">Created</th>
                 <th className="w-[88px] px-3 py-3">Status</th>
-                <th className="w-[100px] px-3 py-3">Name</th>
-                <th className="w-[96px] px-3 py-3 hidden lg:table-cell">Business</th>
-                <th className="w-[120px] px-3 py-3">Inquiry</th>
-                <th className="w-[96px] px-3 py-3 hidden xl:table-cell">Phone</th>
-                <th className="w-[140px] px-3 py-3">Email</th>
-                <th className="w-[72px] px-3 py-3 hidden xl:table-cell">City</th>
-                <th className="w-[64px] px-3 py-3 hidden 2xl:table-cell">Contact</th>
-                <th className="w-[140px] px-3 py-3 hidden lg:table-cell">Message</th>
-                <th className="w-[120px] px-3 py-3">Source</th>
-                <th className="w-[52px] px-3 py-3 hidden xl:table-cell">Launch</th>
-                <th className="w-[168px] px-3 py-3">Actions</th>
+                <th className="w-[140px] px-3 py-3">Lead</th>
+                <th className="w-[100px] px-3 py-3 hidden lg:table-cell">Business</th>
+                <th className="w-[160px] px-3 py-3">Wants</th>
+                <th className="w-[72px] px-3 py-3 hidden xl:table-cell">Pref.</th>
+                <th className="w-[120px] px-3 py-3">Contact</th>
+                <th className="w-[120px] px-3 py-3 hidden md:table-cell">Source</th>
+                <th className="w-[120px] px-3 py-3">Next action</th>
+                <th className="w-[200px] px-3 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="px-4 py-10 text-center text-[#7A7164]">
-                    {folder === "active"
-                      ? "No active leads match the current filters."
-                      : "No archived leads match the current filters."}
+                  <td colSpan={10} className="px-4 py-10 text-center text-[#7A7164]">
+                    No leads match the current view and filters.
                   </td>
                 </tr>
               ) : (
-                filtered.map((row) => (
-                  <tr key={row.id} className={`align-top ${adminTableZebraRow}`}>
-                    <td className="px-3 py-3">
-                      <CreatedCell iso={row.created_at} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td className="px-3 py-3 font-medium text-[#1E1810]">{clipLeadText(row.full_name, 40)}</td>
-                    <td className="px-3 py-3 text-[#3D3629] hidden lg:table-cell">
-                      {clipLeadText(row.business_name, 32)}
-                    </td>
-                    <td className="px-3 py-3 text-xs font-semibold text-[#3D3629]" title={row.inquiry_type}>
-                      {inquiryTypeLabel(parseInquiryType(row.inquiry_type) as InquiryType, "en")}
-                    </td>
-                    <td className="px-3 py-3 text-xs whitespace-nowrap hidden xl:table-cell">
-                      {row.phone || "—"}
-                    </td>
-                    <td className="px-3 py-3 text-xs break-all">{row.email}</td>
-                    <td className="px-3 py-3 text-xs hidden xl:table-cell">{clipLeadText(row.city_area, 24)}</td>
-                    <td className="px-3 py-3 text-xs hidden 2xl:table-cell">{row.preferred_contact_method}</td>
-                    <td className="px-3 py-3 text-xs text-[#5C5346] hidden lg:table-cell" title={row.message}>
-                      {clipLeadText(row.message, 60)}
-                    </td>
-                    <td className="px-3 py-3 text-xs" title={`${row.source_page} · ${row.source_cta}`}>
-                      <span className="block font-mono text-[11px] text-[#5C5346]">
-                        {clipLeadText(row.source_page, 24)}
-                      </span>
-                      <span
-                        className={`block font-semibold ${
-                          row.source_cta === "promo_quote" ? "text-[#7A1E2C]" : "text-[#3D3629]"
-                        }`}
-                      >
-                        {row.source_cta || "—"}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-xs hidden xl:table-cell">
-                      {row.wants_launch_updates ? "Yes" : "No"}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openDetail(row)}
-                          className="rounded border border-[#E8DFD0] px-2 py-1 text-xs font-semibold hover:bg-[#FAF7F2]"
-                        >
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => copyValue("Email", row.email)}
-                          className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
-                        >
-                          Email
-                        </button>
+                filtered.map((row) => {
+                  const mailto = buildLeadMailtoUrl(row);
+                  const reply = buildLeadReplyContent(row);
+                  return (
+                    <tr key={row.id} className={`align-top ${adminTableZebraRow}`}>
+                      <td className="px-3 py-3">
+                        <CreatedCell iso={row.created_at} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <StatusBadge status={row.status} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="block font-semibold text-[#1E1810]">{clipLeadText(row.full_name, 36)}</span>
+                        <span className="mt-0.5 block text-xs break-all text-[#5C5346]">{row.email}</span>
                         {row.phone ? (
+                          <span className="mt-0.5 block text-[10px] text-[#7A7164]">{row.phone}</span>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3 hidden lg:table-cell text-[#3D3629]">
+                        {clipLeadText(row.business_name, 28)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <InquiryBadge inquiryType={row.inquiry_type} />
+                        <p className="mt-1 text-xs leading-snug text-[#5C5346]" title={row.message}>
+                          {clipLeadText(row.message, 72)}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3 hidden xl:table-cell">
+                        <ContactPrefBadge method={row.preferred_contact_method} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col gap-1">
+                          <a
+                            href={mailto}
+                            className="rounded border border-[#E8DFD0] px-2 py-1 text-center text-xs font-semibold hover:bg-[#FAF7F2]"
+                          >
+                            Open email
+                          </a>
                           <button
                             type="button"
-                            onClick={() => copyValue("Phone", row.phone)}
+                            onClick={() => void copyValue("Email", row.email)}
                             className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
                           >
-                            Phone
+                            Copy email
                           </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => copyValue("Summary", leadSummary(row))}
-                          className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 hidden md:table-cell text-xs" title={`${row.source_page} · ${row.source_cta}`}>
+                        <span className="block font-mono text-[10px] text-[#7A7164]">
+                          {clipLeadText(row.source_page, 22)}
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            row.source_cta === "promo_quote" ? "text-[#7A1E2C]" : "text-[#3D3629]"
+                          }`}
                         >
-                          Summary
-                        </button>
-                        {folder === "active" ? (
+                          {row.source_cta || "—"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-xs font-semibold text-[#3D3629]">
+                        {leadNextActionLabel(row)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openDetail(row)}
+                            className="rounded border border-[#E8DFD0] px-2 py-1 text-xs font-semibold hover:bg-[#FAF7F2]"
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyValue("Reply", reply.body)}
+                            className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+                          >
+                            Copy reply
+                          </button>
+                          {row.phone ? (
+                            <button
+                              type="button"
+                              onClick={() => void copyValue("Phone script", buildLeadPhoneScript(row))}
+                              className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
+                            >
+                              Phone script
+                            </button>
+                          ) : null}
+                          {folder === "active" ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={lifecycleBusy === row.id}
+                                onClick={() => void runLifecycle(row, "mark_contacted")}
+                                className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-50"
+                              >
+                                Contacted
+                              </button>
+                              <button
+                                type="button"
+                                disabled={lifecycleBusy === row.id}
+                                onClick={() => void runLifecycle(row, "archive")}
+                                className="rounded border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-900 hover:bg-violet-100 disabled:opacity-50"
+                              >
+                                Archive
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={lifecycleBusy === row.id}
+                              onClick={() => void runLifecycle(row, "restore")}
+                              className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-50"
+                            >
+                              Restore
+                            </button>
+                          )}
                           <button
                             type="button"
                             disabled={lifecycleBusy === row.id}
-                            onClick={() => void runLifecycle(row, "archive")}
-                            className="rounded border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-900 hover:bg-violet-100 disabled:opacity-50"
+                            onClick={() => void runLifecycle(row, "delete")}
+                            className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-900 hover:bg-rose-100 disabled:opacity-50"
                           >
-                            Archive
+                            Delete
                           </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={lifecycleBusy === row.id}
-                            onClick={() => void runLifecycle(row, "restore")}
-                            className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-50"
-                          >
-                            Restore
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          disabled={lifecycleBusy === row.id}
-                          onClick={() => void runLifecycle(row, "delete")}
-                          className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-900 hover:bg-rose-100 disabled:opacity-50"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {selected ? (
+      {selected && selectedReply ? (
         <div
-          className={`${adminCardBase} fixed inset-x-4 bottom-4 z-50 max-h-[85vh] overflow-y-auto border-[#6B5B2E]/30 p-5 shadow-2xl sm:inset-x-auto sm:right-6 sm:left-auto sm:w-[min(520px,calc(100vw-2rem))]`}
+          className={`${adminCardBase} fixed inset-x-4 bottom-4 z-50 max-h-[85vh] overflow-y-auto border-[#6B5B2E]/30 p-5 shadow-2xl sm:inset-x-auto sm:right-6 sm:left-auto sm:w-[min(560px,calc(100vw-2rem))]`}
           role="dialog"
           aria-label="Lead details"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold text-[#1E1810]">{selected.full_name}</h3>
-              <StatusBadge status={selected.status} />
+              <div className="mt-1 flex flex-wrap gap-1">
+                <StatusBadge status={selected.status} />
+                <InquiryBadge inquiryType={selected.inquiry_type} />
+              </div>
             </div>
             <button
               type="button"
@@ -527,87 +608,70 @@ export function AdminLeonixLeadsInboxClient({
               Close
             </button>
           </div>
+
+          <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50/80 p-3 text-sm">
+            <p className="text-xs font-bold uppercase text-sky-900">
+              Recommended reply — {leadReplyKindLabel(selectedReply.kind)}
+            </p>
+            <p className="mt-2 whitespace-pre-wrap text-xs text-[#3D3629]">{selectedReply.body}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href={buildLeadMailtoUrl(selected)} className={adminBtnSecondary}>
+                Open email (mailto)
+              </a>
+              <button
+                type="button"
+                onClick={() => void copyValue("Reply", selectedReply.body)}
+                className={adminBtnSecondary}
+              >
+                Copy reply
+              </button>
+              {selected.phone ? (
+                <button
+                  type="button"
+                  onClick={() => void copyValue("Phone script", buildLeadPhoneScript(selected))}
+                  className={adminBtnSecondary}
+                >
+                  Copy phone script
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-2 text-[10px] text-[#7A7164]">
+              Opens your email client — Leonix does not send this email from the server.
+            </p>
+          </div>
+
           <dl className="mt-4 grid gap-2 text-sm">
-            <div>
-              <dt className="text-xs font-bold uppercase text-[#7A7164]">Email</dt>
-              <dd className="break-all">{selected.email}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-[#7A7164]">Phone</dt>
-              <dd>{selected.phone || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-[#7A7164]">Business</dt>
-              <dd>{selected.business_name || "—"}</dd>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <dt className="text-xs font-bold uppercase text-[#7A7164]">Inquiry type</dt>
-                <dd>
-                  {inquiryTypeLabel(parseInquiryType(selected.inquiry_type) as InquiryType, "en")}
-                  <span className="mt-0.5 block font-mono text-[11px] text-[#7A7164]">
-                    {selected.inquiry_type}
-                  </span>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-bold uppercase text-[#7A7164]">Preferred contact</dt>
-                <dd>{selected.preferred_contact_method}</dd>
-              </div>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-[#7A7164]">City / area</dt>
-              <dd>{selected.city_area || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-[#7A7164]">Website / social</dt>
-              <dd className="break-all">{selected.website_or_social || "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold uppercase text-[#7A7164]">Business category</dt>
-              <dd>{selected.business_category || "—"}</dd>
-            </div>
             <div>
               <dt className="text-xs font-bold uppercase text-[#7A7164]">Message</dt>
               <dd className="whitespace-pre-wrap rounded-lg bg-[#FAF7F2] p-3 text-[#3D3629]">{selected.message}</dd>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <dt className="font-bold uppercase text-[#7A7164]">Source page</dt>
-                <dd>{selected.source_page}</dd>
+                <dt className="font-bold uppercase text-[#7A7164]">Preferred contact</dt>
+                <dd>
+                  <ContactPrefBadge method={selected.preferred_contact_method} />
+                </dd>
               </div>
               <div>
-                <dt className="font-bold uppercase text-[#7A7164]">Source CTA</dt>
-                <dd>{selected.source_cta || "—"}</dd>
+                <dt className="font-bold uppercase text-[#7A7164]">Next action</dt>
+                <dd>{leadNextActionLabel(selected)}</dd>
               </div>
               <div>
-                <dt className="font-bold uppercase text-[#7A7164]">Language</dt>
-                <dd>{selected.lang}</dd>
+                <dt className="font-bold uppercase text-[#7A7164]">Last contacted</dt>
+                <dd>{selected.last_contacted_at ? formatLeadWhen(selected.last_contacted_at) : "—"}</dd>
               </div>
               <div>
-                <dt className="font-bold uppercase text-[#7A7164]">Launch updates</dt>
-                <dd>{selected.wants_launch_updates ? "Yes" : "No"}</dd>
+                <dt className="font-bold uppercase text-[#7A7164]">Source</dt>
+                <dd>
+                  {selected.source_page} · {selected.source_cta || "—"}
+                </dd>
               </div>
-              <div>
-                <dt className="font-bold uppercase text-[#7A7164]">Consent</dt>
-                <dd>{selected.consent_to_contact ? "Yes" : "No"}</dd>
-              </div>
-              <div>
-                <dt className="font-bold uppercase text-[#7A7164]">Created</dt>
-                <dd>{formatLeadWhen(selected.created_at)}</dd>
-              </div>
-              {selected.archived_at ? (
-                <div>
-                  <dt className="font-bold uppercase text-[#7A7164]">Archived</dt>
-                  <dd>{formatLeadWhen(selected.archived_at)}</dd>
-                </div>
-              ) : null}
             </div>
           </dl>
 
           <div className="mt-4 space-y-3 border-t border-[#E8DFD0] pt-4">
             <label className="block text-xs font-bold uppercase text-[#5C5346]">
-              Status
+              Pipeline status
               <select
                 value={editStatus}
                 onChange={(e) => setEditStatus(e.target.value)}
@@ -616,10 +680,20 @@ export function AdminLeonixLeadsInboxClient({
               >
                 {LEONIX_LEAD_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {s.replace(/_/g, " ")}
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="block text-xs font-bold uppercase text-[#5C5346]">
+              Follow-up date
+              <input
+                type="date"
+                value={editFollowUp}
+                onChange={(e) => setEditFollowUp(e.target.value)}
+                disabled={saving}
+                className="mt-1 w-full rounded-lg border border-[#E8DFD0] px-3 py-2 text-sm"
+              />
             </label>
             <label className="block text-xs font-bold uppercase text-[#5C5346]">
               Internal notes
@@ -630,7 +704,7 @@ export function AdminLeonixLeadsInboxClient({
                 rows={4}
                 maxLength={4000}
                 className="mt-1 w-full rounded-lg border border-[#E8DFD0] px-3 py-2 text-sm"
-                placeholder="Call outcome, follow-up date, deal stage…"
+                placeholder="Call outcome, deal stage, next steps…"
               />
             </label>
             <div className="flex flex-wrap gap-2">
@@ -640,11 +714,19 @@ export function AdminLeonixLeadsInboxClient({
                 disabled={saving}
                 className="rounded-lg bg-[#6B5B2E] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
               >
-                {saving ? "Saving…" : "Save status & notes"}
+                {saving ? "Saving…" : "Save"}
               </button>
               <button
                 type="button"
-                onClick={() => copyValue("Summary", leadSummary(selected))}
+                disabled={lifecycleBusy === selected.id}
+                onClick={() => void runLifecycle(selected, "mark_contacted")}
+                className={adminBtnSecondary}
+              >
+                Mark contacted
+              </button>
+              <button
+                type="button"
+                onClick={() => void copyValue("Summary", leadSummary(selected))}
                 className={adminBtnSecondary}
               >
                 Copy summary

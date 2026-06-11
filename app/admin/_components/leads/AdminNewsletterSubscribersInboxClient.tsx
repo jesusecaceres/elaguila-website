@@ -2,12 +2,22 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { adminBtnSecondary, adminCardBase, adminTableWrap } from "@/app/admin/_components/adminTheme";
+import {
+  adminBtnSecondary,
+  adminCardBase,
+  adminTableWrap,
+  adminTableZebraRow,
+} from "@/app/admin/_components/adminTheme";
 import type { NewsletterSubscriberRow } from "@/app/admin/_lib/leonixLeadsData";
+import {
+  buildNewsletterMailtoUrl,
+  buildNewsletterReplyContent,
+} from "@/app/admin/_lib/leonixLeadReplyTemplates";
 import {
   clipLeadText,
   copyTextToClipboard,
-  formatLeadWhen,
+  formatLeadCreatedParts,
+  parseInterestChips,
 } from "@/app/admin/_components/leads/adminLeadInboxFormat";
 
 type Props = {
@@ -15,6 +25,42 @@ type Props = {
   total: number;
   limit: number;
 };
+
+function CreatedCell({ iso }: { iso: string }) {
+  const parts = formatLeadCreatedParts(iso);
+  return (
+    <div className="leading-tight">
+      <span className="block text-xs font-medium text-[#3D3629]">{parts.date}</span>
+      {parts.time ? <span className="block text-[10px] text-[#7A7164]">{parts.time}</span> : null}
+    </div>
+  );
+}
+
+function InterestChips({ interests }: { interests: string }) {
+  const chips = parseInterestChips(interests);
+  if (chips.length === 0) return <span className="text-xs text-[#7A7164]">—</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {chips.map((chip) => (
+        <span
+          key={chip}
+          className="inline-flex rounded-full bg-[#F3E6D2] px-2 py-0.5 text-[10px] font-semibold text-[#5C5346] ring-1 ring-[#E8DFD0]"
+          title={chip}
+        >
+          {chip.length > 28 ? `${chip.slice(0, 28)}…` : chip}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function LangBadge({ lang }: { lang: string }) {
+  return (
+    <span className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase text-sky-900 ring-1 ring-sky-200">
+      {lang}
+    </span>
+  );
+}
 
 export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limit }: Props) {
   const [search, setSearch] = useState("");
@@ -58,8 +104,18 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
     showToast(ok ? "Visible emails copied" : "Could not copy emails");
   }
 
+  async function copyValue(label: string, value: string) {
+    const ok = await copyTextToClipboard(value);
+    showToast(ok ? `${label} copied` : `Could not copy ${label}`);
+  }
+
   return (
     <div className="space-y-6">
+      <p className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
+        Launch newsletter subscribers. Use <strong>Copy reply</strong> or <strong>Open email</strong> (mailto) — Leonix
+        does not bulk-send from this inbox.
+      </p>
+
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs font-semibold text-[#5C5346]">
           Search
@@ -67,7 +123,7 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Email, name, city…"
+            placeholder="Email, name, city, interests…"
             className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
           />
         </label>
@@ -135,60 +191,76 @@ export function AdminNewsletterSubscribersInboxClient({ initialRows, total, limi
 
       <div className={adminTableWrap}>
         <div className="overflow-x-auto">
-          <table className="min-w-[1200px] w-full text-left text-sm">
+          <table className="min-w-[1100px] w-full table-fixed text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
               <tr>
-                <th className="px-3 py-3">Created</th>
-                <th className="px-3 py-3">Email</th>
-                <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">City</th>
-                <th className="px-3 py-3">ZIP</th>
-                <th className="px-3 py-3">Pref. lang</th>
-                <th className="px-3 py-3">Interests</th>
-                <th className="px-3 py-3">Source</th>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3">Consent</th>
-                <th className="px-3 py-3">Actions</th>
+                <th className="w-[80px] px-3 py-3">Created</th>
+                <th className="w-[160px] px-3 py-3">Email</th>
+                <th className="w-[100px] px-3 py-3">Name</th>
+                <th className="w-[80px] px-3 py-3 hidden lg:table-cell">City</th>
+                <th className="w-[56px] px-3 py-3 hidden xl:table-cell">ZIP</th>
+                <th className="w-[72px] px-3 py-3">Lang</th>
+                <th className="w-[200px] px-3 py-3">Interests</th>
+                <th className="w-[100px] px-3 py-3">Source</th>
+                <th className="w-[72px] px-3 py-3">Status</th>
+                <th className="w-[180px] px-3 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-10 text-center text-[#7A7164]">
+                  <td colSpan={10} className="px-4 py-10 text-center text-[#7A7164]">
                     No subscribers match the current filters.
                   </td>
                 </tr>
               ) : (
-                filtered.map((row) => (
-                  <tr key={row.id} className="border-b border-[#F0E8D8]/90 bg-white/60">
-                    <td className="px-3 py-3 text-xs whitespace-nowrap text-[#5C5346]">
-                      {formatLeadWhen(row.created_at)}
-                    </td>
-                    <td className="px-3 py-3 font-medium break-all text-[#1E1810]">{row.email}</td>
-                    <td className="px-3 py-3">{clipLeadText(row.name, 40)}</td>
-                    <td className="px-3 py-3 text-xs">{clipLeadText(row.city, 32)}</td>
-                    <td className="px-3 py-3 text-xs">{clipLeadText(row.zip_code, 12)}</td>
-                    <td className="px-3 py-3 text-xs">{row.preferred_language}</td>
-                    <td className="px-3 py-3 text-xs max-w-[200px]" title={row.interests}>
-                      {clipLeadText(row.interests, 80)}
-                    </td>
-                    <td className="px-3 py-3 text-xs font-mono">{row.source}</td>
-                    <td className="px-3 py-3 text-xs font-semibold">{row.status}</td>
-                    <td className="px-3 py-3 text-xs whitespace-nowrap">{formatLeadWhen(row.consent_timestamp)}</td>
-                    <td className="px-3 py-3">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const ok = await copyTextToClipboard(row.email);
-                          showToast(ok ? "Email copied" : "Could not copy email");
-                        }}
-                        className="rounded border border-[#E8DFD0] px-2 py-1 text-xs font-semibold hover:bg-[#FAF7F2]"
-                      >
-                        Copy email
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filtered.map((row) => {
+                  const reply = buildNewsletterReplyContent(row);
+                  const mailto = buildNewsletterMailtoUrl(row);
+                  return (
+                    <tr key={row.id} className={`align-top ${adminTableZebraRow}`}>
+                      <td className="px-3 py-3">
+                        <CreatedCell iso={row.created_at} />
+                      </td>
+                      <td className="px-3 py-3 font-medium break-all text-[#1E1810]">{row.email}</td>
+                      <td className="px-3 py-3">{clipLeadText(row.name, 32)}</td>
+                      <td className="px-3 py-3 text-xs hidden lg:table-cell">{clipLeadText(row.city, 24)}</td>
+                      <td className="px-3 py-3 text-xs hidden xl:table-cell">{clipLeadText(row.zip_code, 10)}</td>
+                      <td className="px-3 py-3">
+                        <LangBadge lang={row.preferred_language} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <InterestChips interests={row.interests} />
+                      </td>
+                      <td className="px-3 py-3 text-xs font-mono">{row.source}</td>
+                      <td className="px-3 py-3 text-xs font-semibold capitalize">{row.status}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          <a
+                            href={mailto}
+                            className="rounded border border-[#E8DFD0] px-2 py-1 text-xs font-semibold hover:bg-[#FAF7F2]"
+                          >
+                            Open email
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => void copyValue("Reply", reply.body)}
+                            className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-900 hover:bg-sky-100"
+                          >
+                            Copy reply
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyValue("Email", row.email)}
+                            className="rounded border border-[#E8DFD0] px-2 py-1 text-xs hover:bg-[#FAF7F2]"
+                          >
+                            Copy email
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
