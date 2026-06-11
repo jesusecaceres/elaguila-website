@@ -273,7 +273,7 @@ export function getZhCopy(lang: SupportedLang): ComingSoonV2Copy {
       phone: "(408) 303-6500",
       phoneHref: "tel:+14083036500",
       addressLabel: "地址",
-      address: "871 Coleman Avenue, Suite 202, San Jose, CA 95110",
+      address: "871 Coleman Avenue, Suite 201, San Jose, CA 95110",
       areaLabel: "区域",
       area: "San José • Silicon Valley • 拉丁裔社区",
     },

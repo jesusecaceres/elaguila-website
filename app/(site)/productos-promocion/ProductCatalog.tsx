@@ -31,9 +31,9 @@ const CONTACT = {
   email: "info@leonixmedia.com",
   phoneDisplay: "(408) 360-6500",
   phoneTel: "tel:+14083606500",
-  address: "871 Coleman Ave, Suite 202, San Jose, CA 95110",
+  address: "871 Coleman Ave, Suite 201, San Jose, CA 95110",
   mapUrl:
-    "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20202%20San%20Jose%20CA%2095110",
+    "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20201%20San%20Jose%20CA%2095110",
 } as const;
 
 function promoMailtoHref(lang: Lang): string {
