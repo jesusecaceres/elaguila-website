@@ -10,7 +10,6 @@ import { MagazinePrintQrBridge } from "@/app/(site)/magazine/components/Magazine
 import {
   MAGAZINE_KIT_PDF_EN,
   MAGAZINE_KIT_PDF_ES,
-  magazineJune2026ReaderHref,
   showDualMediaKitPdfButtons,
 } from "@/app/lib/magazine/qrBridge";
 import type {
@@ -33,7 +32,12 @@ import {
 } from "@/app/lib/lang";
 import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
-import { magazinePrintGuideHref, translatorGatewayHref } from "@/app/lib/magazine/qrRouteHelpers";
+import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
+import {
+  leonixGoogleTranslateWebsiteUrl,
+  magazinePrintGuideHref,
+  translatorGatewayHref,
+} from "@/app/lib/magazine/qrRouteHelpers";
 
 /** Official Leonix lion emblem — transparent PNG, use object-contain (never /logo.png). */
 const HEADER_LOGO_SRC = "/logo-clean.png";
@@ -49,14 +53,6 @@ const heroLineClass =
 
 /** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
 const ANCHOR_SCROLL = "scroll-mt-32 lg:scroll-mt-28";
-
-function comingSoonQrReaderHref(
-  lang: SupportedLang,
-  sourceCta: "hero_qr_steps" | "qr_steps",
-): string {
-  const base = magazineJune2026ReaderHref(lang, { source: "print" });
-  return `${base}&sourcePage=coming-soon-v2&sourceCta=${sourceCta}`;
-}
 
 const sectionShellClass = `${ANCHOR_SCROLL} border-t border-[#D6C7AD]/55 py-5 sm:py-12 lg:py-14`;
 
@@ -580,19 +576,58 @@ function HowItWorksSection({
   );
 }
 
+const COMING_SOON_QR_CTA = {
+  es: {
+    translationOptions: "Ver opciones de traducción",
+    tryLens: "Probar Google Lens",
+    translateLeonix: "Traducir LeonixMedia.com con Google",
+    qrGuide: "Ver guía QR",
+    guardrail:
+      "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar LeonixMedia.com en otro idioma.",
+  },
+  en: {
+    translationOptions: "View translation options",
+    tryLens: "Try Google Lens",
+    translateLeonix: "Translate LeonixMedia.com with Google",
+    qrGuide: "View QR guide",
+    guardrail:
+      "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse LeonixMedia.com in another language.",
+  },
+} as const;
+
+function comingSoonQrCtaCopy(lang: SupportedLang) {
+  return lang === "es" ? COMING_SOON_QR_CTA.es : COMING_SOON_QR_CTA.en;
+}
+
+const qrCtaButtonClass =
+  "inline-flex min-h-[2.5rem] w-full min-w-0 items-center justify-center rounded-full border-2 px-4 py-2 text-center text-[0.8125rem] font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:w-auto sm:px-5 sm:text-sm";
+
 function HeroQrAccessStrip({
+  lang,
   eyebrow,
   callout,
   summary,
-  buttonLabel,
-  href,
 }: {
+  lang: SupportedLang;
   eyebrow: string;
   callout: string;
   summary: string;
-  buttonLabel: string;
-  href: string;
 }) {
+  const labels = comingSoonQrCtaCopy(lang);
+  const translatorOptionsHref = translatorGatewayHref(lang, {
+    sourcePage: "coming-soon-v2",
+    sourceCta: "qr_translation_options",
+  });
+  const translateHref = leonixGoogleTranslateWebsiteUrl(lang, {
+    sourcePage: "coming-soon-v2",
+    sourceCta: "hero_qr_google_translate",
+    returnTo: "/coming-soon-v2",
+  });
+  const qrGuideHref = magazinePrintGuideHref(lang, {
+    sourcePage: "coming-soon-v2",
+    sourceCta: "hero_qr_guide",
+  });
+
   return (
     <aside
       className="mt-4 rounded-xl border border-[#2A4536]/15 bg-gradient-to-br from-[#F8F4EA] to-[#FFFDF7] px-3.5 py-3 sm:mt-5 sm:px-4 sm:py-4"
@@ -610,61 +645,62 @@ function HeroQrAccessStrip({
       <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:text-[0.9375rem] sm:leading-relaxed">
         {summary}
       </p>
-      <Link
-        href={href}
-        className="mt-2.5 inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#2A4536] px-4 py-2 text-center text-[0.8125rem] font-bold text-[#F8F4EA] transition hover:bg-[#223528] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:mt-3 sm:w-auto sm:px-5 sm:text-sm"
-      >
-        {buttonLabel}
-      </Link>
+      <div className="mt-2.5 flex min-w-0 flex-col gap-2 sm:mt-3 sm:flex-row sm:flex-wrap">
+        <Link
+          href={translatorOptionsHref}
+          className={`${qrCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+        >
+          {labels.translationOptions}
+        </Link>
+        <Link
+          href={translateHref}
+          className={`${qrCtaButtonClass} border-[#C9A84A]/55 bg-[#FFFDF7] text-[#1F241C] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
+        >
+          {labels.translateLeonix}
+        </Link>
+        <Link
+          href={qrGuideHref}
+          className={`${qrCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
+        >
+          {labels.qrGuide}
+        </Link>
+      </div>
     </aside>
   );
 }
 
-const QR_SECTION_CTA_COPY = {
-  es: {
-    translationOptions: "Ver opciones de traducción",
-    qrGuide: "Ver guía QR",
-    guardrail:
-      "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar LeonixMedia.com en otro idioma.",
-  },
-  en: {
-    translationOptions: "View translation options",
-    qrGuide: "View QR guide",
-    guardrail:
-      "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse LeonixMedia.com in another language.",
-  },
-} as const;
-
-function qrSectionCtaCopy(lang: SupportedLang) {
-  return lang === "es" ? QR_SECTION_CTA_COPY.es : QR_SECTION_CTA_COPY.en;
-}
-
-const qrSectionCtaButtonClass =
-  "inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-full border-2 px-4 py-2 text-center text-[0.8125rem] font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:w-auto sm:px-5 sm:text-sm";
-
-function QrSectionTranslationCtas({ lang }: { lang: SupportedLang }) {
-  const labels = qrSectionCtaCopy(lang);
-  const translatorOptionsHref = translatorGatewayHref(lang, {
+function QrSectionDirectCtas({ lang }: { lang: SupportedLang }) {
+  const labels = comingSoonQrCtaCopy(lang);
+  const translateHref = leonixGoogleTranslateWebsiteUrl(lang, {
     sourcePage: "coming-soon-v2",
-    sourceCta: "qr_translation_options",
+    sourceCta: "lower_qr_google_translate",
+    returnTo: "/coming-soon-v2",
   });
   const qrGuideHref = magazinePrintGuideHref(lang, {
     sourcePage: "coming-soon-v2",
-    sourceCta: "qr_guide",
+    sourceCta: "lower_qr_guide",
   });
 
   return (
     <div className="mt-4 min-w-0 sm:mt-5">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <Link
-          href={translatorOptionsHref}
-          className={`${qrSectionCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
+        <a
+          href={LENS_WEB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${qrCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
         >
-          {labels.translationOptions}
+          {labels.tryLens}
+        </a>
+        <Link
+          href={translateHref}
+          className={`${qrCtaButtonClass} border-[#C9A84A]/55 bg-[#FFFDF7] text-[#1F241C] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
+        >
+          {labels.translateLeonix}
         </Link>
         <Link
           href={qrGuideHref}
-          className={`${qrSectionCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
+          className={`${qrCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
         >
           {labels.qrGuide}
         </Link>
@@ -685,8 +721,6 @@ function QrAccessSection({
   callout,
   explanation,
   mobileNote,
-  openReaderLabel,
-  readerHref,
   benefits,
   benefitsAria,
 }: {
@@ -698,8 +732,6 @@ function QrAccessSection({
   callout: string;
   explanation: string;
   mobileNote: string;
-  openReaderLabel: string;
-  readerHref: string;
   benefits: [QrBenefitCard, QrBenefitCard, QrBenefitCard];
   benefitsAria: string;
 }) {
@@ -727,7 +759,7 @@ function QrAccessSection({
           <p className="mt-3 rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7] p-3 text-sm leading-snug text-[#3D3428] sm:mt-4 sm:p-4 sm:text-[0.9375rem] sm:leading-relaxed">
             {mobileNote}
           </p>
-          <QrSectionTranslationCtas lang={lang} />
+          <QrSectionDirectCtas lang={lang} />
         </div>
 
         <div className="flex min-w-0 max-w-md flex-col items-center gap-3 self-center rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] px-3.5 py-3.5 sm:gap-4 sm:px-6 sm:py-6 lg:max-w-none lg:self-start">
@@ -736,7 +768,6 @@ function QrAccessSection({
             qrCaption=""
             mobileNote=""
             openReaderLabel=""
-            readerHref={readerHref}
             variant="compact"
             tone="onDark"
             showQrImage
@@ -1467,11 +1498,10 @@ function ComingSoonV2ShellContent() {
               </p>
 
               <HeroQrAccessStrip
+                lang={routeLang}
                 eyebrow={qr.eyebrow}
                 callout={qr.callout}
                 summary={qr.heroStripSummary}
-                buttonLabel={qr.openReaderLabel}
-                href={comingSoonQrReaderHref(routeLang, "hero_qr_steps")}
               />
 
               <div className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
@@ -1564,8 +1594,6 @@ function ComingSoonV2ShellContent() {
           callout={qr.callout}
           explanation={qr.explanation}
           mobileNote={qr.mobileNote}
-          openReaderLabel={qr.openReaderLabel}
-          readerHref={comingSoonQrReaderHref(routeLang, "qr_steps")}
           benefits={qr.benefits}
           benefitsAria={qr.benefitsAria}
         />
