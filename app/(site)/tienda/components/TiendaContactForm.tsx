@@ -5,6 +5,10 @@ import { submitContactForm } from "@/app/(site)/lib/submitContactForm";
 import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
 import { LEONIX_PHONE_DISPLAY, LEONIX_PHONE_TEL, LEONIX_TIENDA_EMAIL } from "../data/leonixContact";
 import { getLeadSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
+import { normalizeNorCalCityForSubmit, normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
+import { getPhoneValidationMessage, isValidUsPhone } from "@/app/lib/leonix/phoneFormat";
 import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
 function buildPromoMessage(fields: {
@@ -35,6 +39,7 @@ export function TiendaContactForm(props: {
   const { lang, service, sourcePage = "tienda_contacto", sourceCta = "promo_quote" } = props;
   const locale = getPublicLocaleCopy(lang);
   const t = locale.tiendaForm;
+  const formLang = lang === "en" ? "en" : "es";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -59,6 +64,12 @@ export function TiendaContactForm(props: {
       return;
     }
 
+    const phoneSubmit = normalizePhoneForSubmit(phone);
+    if (phone.trim() && !isValidUsPhone(phone)) {
+      setError(getPhoneValidationMessage(lang));
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -66,11 +77,11 @@ export function TiendaContactForm(props: {
       {
         fullName: name,
         email,
-        phone: phone.trim(),
+        phone: phoneSubmit,
         businessName: businessName.trim(),
-        cityArea: cityArea.trim(),
+        cityArea: normalizeNorCalCityForSubmit(cityArea, formLang),
         inquiryType: "promotionalProducts",
-        preferredContactMethod: phone.trim() ? "either" : "email",
+        preferredContactMethod: phoneSubmit ? "either" : "email",
         message: buildPromoMessage({
           inquiryType,
           service,
@@ -174,13 +185,11 @@ export function TiendaContactForm(props: {
 
         <div>
           <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.phone}</label>
-          <input
-            type="tel"
+          <PhoneInput
             disabled={loading}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={setPhone}
             className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm"
-            autoComplete="tel"
           />
         </div>
 
@@ -198,13 +207,12 @@ export function TiendaContactForm(props: {
 
         <div>
           <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.cityArea}</label>
-          <input
-            type="text"
+          <NorCalCitySelect
+            lang={formLang}
             disabled={loading}
             value={cityArea}
-            onChange={(e) => setCityArea(e.target.value)}
+            onChange={setCityArea}
             className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm"
-            autoComplete="address-level2"
           />
         </div>
 

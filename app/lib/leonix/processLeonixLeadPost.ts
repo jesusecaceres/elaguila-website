@@ -3,6 +3,12 @@ import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
 import { buildContactInquiryEmail } from "@/app/lib/email/contactInquiryEmail";
 import { resolveLeonixResendConfig } from "@/app/lib/email/leonixResendConfig";
 import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
+import {
+  isValidUsPhone,
+  normalizeNorCalCityForSubmit,
+  normalizePhoneForSubmit,
+} from "@/app/lib/leonix/leadCaptureValidation";
+import { getPhoneValidationMessage } from "@/app/lib/leonix/phoneFormat";
 import { parseInquiryType, type InquiryType } from "@/app/lib/leonix/inquiryTypes";
 import { saveLeonixLead, saveNewsletterSubscriber } from "@/app/lib/leonix/leadCaptureServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -62,14 +68,28 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
 
   const inquiryType = parseInquiryType(o.inquiryType ?? o.inquiry_type ?? o.topic, "general");
   const submittedAt = new Date().toISOString();
+  const phoneRaw = o.phone != null ? String(o.phone).trim() : "";
+  const phoneNormalized = normalizePhoneForSubmit(phoneRaw);
+  if (phoneRaw && !isValidUsPhone(phoneRaw)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "VALIDATION",
+        error: getPhoneValidationMessage(lang),
+      },
+      { status: 400 },
+    );
+  }
+
+  const cityRaw = String(o.cityArea ?? o.city_area ?? o.city ?? "");
   const payload = {
     fullName: String(o.fullName ?? o.full_name ?? o.name ?? ""),
     email: String(o.email ?? ""),
-    phone: o.phone != null ? String(o.phone) : "",
+    phone: phoneNormalized,
     businessName: String(o.businessName ?? o.business_name ?? o.business ?? ""),
     inquiryType,
     preferredContactMethod: o.preferredContactMethod ?? o.preferred_contact_method,
-    cityArea: String(o.cityArea ?? o.city_area ?? o.city ?? ""),
+    cityArea: normalizeNorCalCityForSubmit(cityRaw, lang),
     websiteOrSocial: String(o.websiteOrSocial ?? o.website_or_social ?? ""),
     businessCategory: String(o.businessCategory ?? o.business_category ?? ""),
     message: String(o.message ?? ""),

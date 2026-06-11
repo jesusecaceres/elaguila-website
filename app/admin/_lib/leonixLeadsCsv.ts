@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formatLeadPhoneDisplay } from "@/app/lib/leonix/phoneFormat";
 import type { LeonixLeadRow, MediaKitLeadRow, NewsletterSubscriberRow } from "./leonixLeadsData";
 
 function csvCell(value: string | number | null | undefined): string {
@@ -79,7 +80,7 @@ export function leonixLeadsToCsv(rows: LeonixLeadRow[]): string {
       r.status,
       r.full_name,
       r.email,
-      r.phone,
+      formatLeadPhoneDisplay(r.phone),
       r.business_name,
       r.inquiry_type,
       r.preferred_contact_method,
@@ -130,7 +131,7 @@ export function mediaKitLeadsToCsv(rows: MediaKitLeadRow[]): string {
       r.updated_at,
       r.name,
       r.email,
-      r.phone,
+      formatLeadPhoneDisplay(r.phone),
       r.business,
       r.message,
       r.lang,

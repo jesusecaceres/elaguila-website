@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
+import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
+import { normalizeNorCalCityForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
 import type { LeonixSiteLang } from "@/app/lib/lang";
 
 const COPY = {
@@ -96,7 +98,7 @@ export function ComingSoonLaunchSignupForm({
         email,
         name: name.trim() || undefined,
         businessName: businessName.trim() || undefined,
-        city: cityArea.trim() || undefined,
+        city: normalizeNorCalCityForSubmit(cityArea, lang === "en" ? "en" : "es") || undefined,
         audienceType: audienceType || undefined,
         source,
         sourceCta: "join_launch",
@@ -170,13 +172,11 @@ export function ComingSoonLaunchSignupForm({
               autoComplete="organization"
               className={inputClass}
             />
-            <input
-              type="text"
+            <NorCalCitySelect
+              lang={lang === "en" ? "en" : "es"}
               disabled={loading}
               value={cityArea}
-              onChange={(e) => setCityArea(e.target.value)}
-              placeholder={t.cityLabel}
-              autoComplete="address-level2"
+              onChange={setCityArea}
               className={inputClass}
             />
             <select

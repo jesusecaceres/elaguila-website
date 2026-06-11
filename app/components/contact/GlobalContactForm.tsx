@@ -21,6 +21,10 @@ import {
   PREFERRED_CONTACT_METHODS,
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
+import { normalizeNorCalCityForSubmit, normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
+import { getPhoneValidationMessage, isValidUsPhone } from "@/app/lib/leonix/phoneFormat";
 import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
 const SUBMIT_BTN =
@@ -49,6 +53,7 @@ export function GlobalContactForm(props: {
   const { lang, initialMessage, initialInquiryType, sourcePage = "/contacto", sourceCta = "" } = props;
   const locale = getPublicLocaleCopy(lang);
   const t = locale.contactForm;
+  const formLang = lang === "en" ? "en" : "es";
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -78,6 +83,16 @@ export function GlobalContactForm(props: {
       return;
     }
 
+    const phoneSubmit = normalizePhoneForSubmit(phone);
+    if (phone.trim() && !isValidUsPhone(phone)) {
+      setError(getPhoneValidationMessage(lang));
+      return;
+    }
+    if (preferredContactMethod === "phone" && !phoneSubmit) {
+      setError(getPhoneValidationMessage(lang));
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -85,11 +100,11 @@ export function GlobalContactForm(props: {
       {
         fullName,
         email,
-        phone: phone.trim(),
+        phone: phoneSubmit,
         businessName: businessName.trim(),
         inquiryType,
         preferredContactMethod,
-        cityArea: cityArea.trim(),
+        cityArea: normalizeNorCalCityForSubmit(cityArea, formLang),
         websiteOrSocial: websiteOrSocial.trim(),
         businessCategory: businessCategory.trim(),
         message,
@@ -192,14 +207,12 @@ export function GlobalContactForm(props: {
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
             {t.fields.phone} ({t.optional})
           </label>
-          <input
-            type="tel"
+          <PhoneInput
             disabled={loading}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={setPhone}
             className={INPUT}
             placeholder={t.placeholders.phone}
-            autoComplete="tel"
           />
         </div>
 
@@ -241,15 +254,12 @@ export function GlobalContactForm(props: {
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
             {t.fields.cityArea} ({t.optional})
           </label>
-          <input
-            type="text"
+          <NorCalCitySelect
+            lang={formLang}
             disabled={loading}
             value={cityArea}
-            onChange={(e) => setCityArea(e.target.value)}
-            maxLength={120}
+            onChange={setCityArea}
             className={INPUT}
-            placeholder={t.placeholders.cityArea}
-            autoComplete="address-level2"
           />
         </div>
 

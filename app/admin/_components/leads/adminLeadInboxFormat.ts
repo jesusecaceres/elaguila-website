@@ -1,3 +1,6 @@
+export { formatLeadPhoneDisplay } from "@/app/lib/leonix/phoneFormat";
+export { formatNorCalCityDisplay } from "@/app/lib/leonix/norCalCities";
+
 export function formatLeadWhen(iso: string): string {
   try {
     const d = new Date(iso);

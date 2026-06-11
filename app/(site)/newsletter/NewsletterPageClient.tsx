@@ -7,6 +7,8 @@ import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
+import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
+import { normalizeNorCalCityForSubmit, type LeadLang } from "@/app/lib/leonix/leadCaptureValidation";
 import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
 import { getLanguageLabel } from "@/app/lib/language";
 
@@ -25,10 +27,12 @@ export default function NewsletterPageClient() {
   const emailPrefill = searchParams?.get("email") ?? "";
   const locale = getPublicLocaleCopy(lang);
   const t = locale.newsletter;
+  const formLang: LeadLang = lang === "en" ? "en" : "es";
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
+  const [city, setCity] = useState("");
 
   const preserveQueryKeys = source || sourceCta ? (["source", "sourceCta"] as const) : undefined;
   const resolvedSource = source.trim() || "newsletter_page";
@@ -54,7 +58,7 @@ export default function NewsletterPageClient() {
         email: fd.get("email"),
         name: fd.get("name"),
         businessName: fd.get("business"),
-        city: fd.get("city"),
+        city: normalizeNorCalCityForSubmit(city, formLang),
         zipCode: fd.get("zip"),
         audienceType: fd.get("audienceType"),
         preferredLanguage: fd.get("preferredLanguage"),
@@ -135,13 +139,12 @@ export default function NewsletterPageClient() {
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={`${t.fields.city} (${locale.contactForm.optional})`}>
-            <input
-              name="city"
-              type="text"
+            <NorCalCitySelect
+              lang={formLang}
               disabled={loading}
-              autoComplete="address-level2"
+              value={city}
+              onChange={setCity}
               className={inputClass}
-              placeholder={t.placeholders.city}
             />
           </Field>
           <Field label={`${t.fields.zip} (${locale.contactForm.optional})`}>

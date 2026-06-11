@@ -53,3 +53,6 @@ export function trimField(raw: unknown, max: number): string {
     .trim()
     .slice(0, max);
 }
+
+export { normalizePhoneForSubmit, isValidUsPhone } from "./phoneFormat";
+export { normalizeNorCalCityForSubmit } from "./norCalCities";

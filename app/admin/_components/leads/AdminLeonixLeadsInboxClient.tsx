@@ -23,6 +23,7 @@ import {
   parseInquiryType,
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
+import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 import {
   clipLeadText,
   contactPreferenceBadgeClass,
@@ -461,7 +462,7 @@ export function AdminLeonixLeadsInboxClient({
                             Email
                           </a>
                           {row.phone ? (
-                            <a href={`tel:${row.phone.replace(/\s/g, "")}`} className="text-[#6B5B2E] underline">
+                            <a href={phoneTelHref(row.phone)} className="text-[#6B5B2E] underline">
                               Call
                             </a>
                           ) : (

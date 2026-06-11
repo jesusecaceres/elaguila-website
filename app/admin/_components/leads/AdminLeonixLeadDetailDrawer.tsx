@@ -20,8 +20,10 @@ import {
   parseInquiryType,
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
+import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 import {
   contactPreferenceBadgeClass,
+  formatLeadPhoneDisplay,
   formatLeadWhen,
   inquiryTypeBadgeClass,
   leadStatusBadgeClass,
@@ -142,8 +144,8 @@ export function AdminLeonixLeadDetailDrawer({
             </DetailField>
             <DetailField label="Phone">
               {lead.phone ? (
-                <a href={`tel:${lead.phone.replace(/\s/g, "")}`} className="font-medium text-[#6B5B2E] underline">
-                  {lead.phone}
+                <a href={phoneTelHref(lead.phone)} className="font-medium text-[#6B5B2E] underline">
+                  {formatLeadPhoneDisplay(lead.phone)}
                 </a>
               ) : (
                 "—"
@@ -248,7 +250,7 @@ export function AdminLeonixLeadDetailDrawer({
             </button>
             {lead.phone ? (
               <>
-                <a href={`tel:${lead.phone.replace(/\s/g, "")}`} className={adminBtnSecondary}>
+                <a href={phoneTelHref(lead.phone)} className={adminBtnSecondary}>
                   Call
                 </a>
                 <button

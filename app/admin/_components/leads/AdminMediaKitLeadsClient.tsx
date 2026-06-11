@@ -14,6 +14,7 @@ import {
   buildMediaKitReplyContent,
   LEONIX_MEDIA_KIT_PDF_URL,
 } from "@/app/admin/_lib/leonixLeadReplyTemplates";
+import { formatLeadPhoneDisplay } from "@/app/lib/leonix/phoneFormat";
 import {
   clipLeadText,
   copyTextToClipboard,
@@ -132,7 +133,9 @@ export function AdminMediaKitLeadsClient({ initialRows, total, limit }: Props) {
                         <span className="block font-semibold text-[#1E1810]">{clipLeadText(row.name, 36)}</span>
                         <span className="mt-0.5 block text-xs break-all text-[#5C5346]">{row.email}</span>
                         {row.phone ? (
-                          <span className="mt-0.5 block text-[10px] text-[#7A7164]">{row.phone}</span>
+                          <span className="mt-0.5 block text-[10px] text-[#7A7164]">
+                            {formatLeadPhoneDisplay(row.phone)}
+                          </span>
                         ) : null}
                       </td>
                       <td className="px-3 py-3 text-[#3D3629]">{clipLeadText(row.business, 32)}</td>
