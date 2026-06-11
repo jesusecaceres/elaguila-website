@@ -17,9 +17,15 @@ import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 
 const INPUT =
-  "w-full rounded-lg border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/20";
+  "w-full min-h-[2.75rem] rounded-lg border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/20";
 const BTN =
-  "rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-[2.75rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-50";
+const BTN_OUTLINE =
+  "inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/35 disabled:cursor-not-allowed disabled:opacity-50";
+const BTN_LIST_EMPTY =
+  "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-lg border border-[#D4C4A8]/90 bg-[#FAF6F0] px-2.5 py-2 text-xs font-medium text-[#1E1814]/75 hover:border-[#7A1E2C]/25";
+const BTN_LIST_ACTIVE =
+  "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-full border border-[#7A1E2C]/35 bg-white px-3 py-2 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#7A1E2C]/5";
 
 function parseLang(raw: string | null): OfertasLocalesAppLang {
   return raw === "en" ? "en" : "es";
@@ -38,6 +44,7 @@ export function OfertasLocalesPublicSearchClient() {
   const [marketType, setMarketType] = useState(() => searchParams?.get("marketType") ?? "");
   const [offerType, setOfferType] = useState(() => searchParams?.get("offerType") ?? "");
   const [sort, setSort] = useState(() => searchParams?.get("sort") ?? "newest");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [offers, setOffers] = useState<OfertaLocalPublicOfferCard[]>([]);
   const [items, setItems] = useState<OfertaLocalPublicSearchItem[]>([]);
@@ -116,37 +123,26 @@ export function OfertasLocalesPublicSearchClient() {
   const publishHref = `/publicar/ofertas-locales?lang=${lang}`;
   const hasFilters = Boolean(q || city || zip || category || marketType || offerType);
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
+  const listHasItems = shoppingList.counts.itemCount > 0;
+  const mobileFiltersLabel = mobileFiltersOpen ? c.filtersToggleHide : c.filtersToggleShow;
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
-            <p className="mt-2 text-sm text-[#1E1814]/70 sm:text-base">{c.pageSubtitle}</p>
-            <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/60">{c.pageHeroBody}</p>
-          </div>
-          <button
-            type="button"
-            className="relative rounded-full border border-[#7A1E2C]/35 bg-white px-4 py-2 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#7A1E2C]/5"
-            onClick={() => setListOpen(true)}
-          >
-            {c.listButton}
-            {shoppingList.counts.itemCount > 0 ? (
-              <span className="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-white">
-                {shoppingList.counts.itemCount}
-              </span>
-            ) : null}
-          </button>
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-14 sm:px-6 sm:pt-16 lg:px-8">
+        <header className="mb-4 sm:mb-6">
+          <h1 className="text-xl font-bold leading-tight text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
+          <p className="mt-1 text-sm text-[#1E1814]/75 sm:mt-2 sm:text-base">{c.pageSubtitle}</p>
+          <p className="mt-1 text-sm text-[#1E1814]/60 sm:mt-2">{c.pageHeroBody}</p>
         </header>
 
         <form
           onSubmit={onSubmit}
-          className="mb-8 rounded-2xl border border-[#D4C4A8]/80 bg-white p-4 shadow-sm sm:p-5"
+          className="mb-4 rounded-2xl border border-[#D4C4A8]/80 bg-white p-3 shadow-sm sm:mb-6 sm:p-5"
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="sm:col-span-2 lg:col-span-3">
-              <span className="sr-only">{c.pageTitle}</span>
+          {/* Mobile primary action row */}
+          <div className="flex flex-wrap items-center gap-2 md:hidden">
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">{c.mobileSearchLabel}</span>
               <input
                 className={INPUT}
                 value={q}
@@ -154,49 +150,207 @@ export function OfertasLocalesPublicSearchClient() {
                 placeholder={c.searchPlaceholder}
               />
             </label>
-            <label>
-              <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.cityLabel}</span>
-              <input className={INPUT} value={city} onChange={(e) => setCity(e.target.value)} placeholder={c.cityPlaceholder} />
-            </label>
-            <label>
-              <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.zipLabel}</span>
-              <input className={INPUT} value={zip} onChange={(e) => setZip(e.target.value)} placeholder={c.zipPlaceholder} />
-            </label>
-            <label>
-              <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.categoryLabel}</span>
-              <input className={INPUT} value={category} onChange={(e) => setCategory(e.target.value)} placeholder={c.categoryPlaceholder} />
-            </label>
-            <label>
-              <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.marketTypeLabel}</span>
-              <input className={INPUT} value={marketType} onChange={(e) => setMarketType(e.target.value)} placeholder={c.marketTypePlaceholder} />
-            </label>
-            <label>
-              <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.offerTypeLabel}</span>
-              <input className={INPUT} value={offerType} onChange={(e) => setOfferType(e.target.value)} placeholder={c.offerTypePlaceholder} />
-            </label>
-            <label>
-              <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.sortLabel}</span>
-              <select className={INPUT} value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="newest">{c.sortNewest}</option>
-                <option value="price_low">{c.sortPriceLow}</option>
-                <option value="expiring_soon">{c.sortExpiringSoon}</option>
-              </select>
-            </label>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button type="submit" className={BTN} disabled={loading}>
+            <button
+              type="button"
+              className={BTN_OUTLINE}
+              aria-expanded={mobileFiltersOpen}
+              aria-controls="ofertas-locales-mobile-filters"
+              onClick={() => setMobileFiltersOpen((open) => !open)}
+            >
+              {c.filtersButton}
+            </button>
+            <button
+              type="button"
+              className={listHasItems ? BTN_LIST_ACTIVE : BTN_LIST_EMPTY}
+              onClick={() => setListOpen(true)}
+            >
+              {c.listButton}
+              {listHasItems ? (
+                <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-white">
+                  {shoppingList.counts.itemCount}
+                </span>
+              ) : null}
+            </button>
+            <button type="submit" className={`${BTN} w-full sm:w-auto`} disabled={loading}>
               {loading ? c.searching : c.searchButton}
             </button>
-            {!loading ? (
-              <p className="text-sm text-[#1E1814]/65">
-                {c.resultsCount(offers.length + items.length)}
-              </p>
-            ) : null}
+          </div>
+
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium text-[#7A1E2C] underline md:hidden"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="ofertas-locales-mobile-filters"
+            onClick={() => setMobileFiltersOpen((open) => !open)}
+          >
+            {mobileFiltersLabel}
+          </button>
+
+          {/* Mobile collapsible advanced filters */}
+          <div
+            id="ofertas-locales-mobile-filters"
+            className={`md:hidden ${mobileFiltersOpen ? "mt-3 block" : "hidden"}`}
+          >
+            <div className="grid gap-3 border-t border-[#D4C4A8]/50 pt-3">
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.cityLabel}</span>
+                <input
+                  className={INPUT}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder={c.cityPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.zipLabel}</span>
+                <input
+                  className={INPUT}
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value)}
+                  placeholder={c.zipPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.categoryLabel}</span>
+                <input
+                  className={INPUT}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder={c.categoryPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.marketTypeLabel}</span>
+                <input
+                  className={INPUT}
+                  value={marketType}
+                  onChange={(e) => setMarketType(e.target.value)}
+                  placeholder={c.marketTypePlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.offerTypeLabel}</span>
+                <input
+                  className={INPUT}
+                  value={offerType}
+                  onChange={(e) => setOfferType(e.target.value)}
+                  placeholder={c.offerTypePlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.sortLabel}</span>
+                <select className={INPUT} value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="newest">{c.sortNewest}</option>
+                  <option value="price_low">{c.sortPriceLow}</option>
+                  <option value="expiring_soon">{c.sortExpiringSoon}</option>
+                </select>
+              </label>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button type="submit" className={BTN} disabled={loading}>
+                {loading ? c.searching : c.searchButton}
+              </button>
+              {!loading ? (
+                <p className="text-sm text-[#1E1814]/65">
+                  {c.resultsCount(offers.length + items.length)}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Desktop / tablet full filter grid */}
+          <div className="hidden md:block">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="sm:col-span-2 lg:col-span-3">
+                <span className="sr-only">{c.pageTitle}</span>
+                <input
+                  className={INPUT}
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder={c.searchPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.cityLabel}</span>
+                <input
+                  className={INPUT}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder={c.cityPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.zipLabel}</span>
+                <input
+                  className={INPUT}
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value)}
+                  placeholder={c.zipPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.categoryLabel}</span>
+                <input
+                  className={INPUT}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder={c.categoryPlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.marketTypeLabel}</span>
+                <input
+                  className={INPUT}
+                  value={marketType}
+                  onChange={(e) => setMarketType(e.target.value)}
+                  placeholder={c.marketTypePlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.offerTypeLabel}</span>
+                <input
+                  className={INPUT}
+                  value={offerType}
+                  onChange={(e) => setOfferType(e.target.value)}
+                  placeholder={c.offerTypePlaceholder}
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.sortLabel}</span>
+                <select className={INPUT} value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="newest">{c.sortNewest}</option>
+                  <option value="price_low">{c.sortPriceLow}</option>
+                  <option value="expiring_soon">{c.sortExpiringSoon}</option>
+                </select>
+              </label>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button type="submit" className={BTN} disabled={loading}>
+                {loading ? c.searching : c.searchButton}
+              </button>
+              {!loading ? (
+                <p className="text-sm text-[#1E1814]/65">
+                  {c.resultsCount(offers.length + items.length)}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                className={listHasItems ? BTN_LIST_ACTIVE : BTN_OUTLINE}
+                onClick={() => setListOpen(true)}
+              >
+                {c.listButton}
+                {listHasItems ? (
+                  <span className="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-white">
+                    {shoppingList.counts.itemCount}
+                  </span>
+                ) : null}
+              </button>
+            </div>
           </div>
         </form>
 
         {error ? (
-          <p className="mb-4 text-sm text-red-700" role="alert">
+          <p className="mb-3 text-sm text-red-700" role="alert">
             {error}
           </p>
         ) : null}
@@ -204,25 +358,28 @@ export function OfertasLocalesPublicSearchClient() {
         {loading ? <p className="text-sm text-[#1E1814]/65">{c.searching}</p> : null}
 
         {!loading && showPipelineEmpty ? (
-          <div className="rounded-2xl border border-[#D4C4A8]/70 bg-white px-6 py-10 text-center">
-            <p className="text-base font-medium text-[#1E1814]">{c.pipelineEmptyTitle}</p>
-            <p className="mt-2 text-sm text-[#1E1814]/65">{c.pipelineEmptyHint}</p>
-            <Link href={publishHref} className="mt-4 inline-block text-sm font-semibold text-[#7A1E2C] underline">
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-5 text-center sm:rounded-2xl sm:px-6 sm:py-8">
+            <p className="text-base font-semibold text-[#1E1814]">{c.pipelineEmptyTitle}</p>
+            <p className="mt-2 text-sm text-[#1E1814]/65">{c.pipelineEmptyBody}</p>
+            <Link
+              href={publishHref}
+              className="mt-4 inline-flex min-h-[2.75rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6a1926]"
+            >
               {c.publishCta}
             </Link>
           </div>
         ) : null}
 
         {!loading && !showPipelineEmpty && offers.length === 0 && items.length === 0 ? (
-          <div className="rounded-2xl border border-[#D4C4A8]/70 bg-white px-6 py-10 text-center">
-            <p className="text-base font-medium text-[#1E1814]">{c.emptyTitle}</p>
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-5 text-center sm:rounded-2xl sm:px-6 sm:py-8">
+            <p className="text-base font-semibold text-[#1E1814]">{c.emptyTitle}</p>
             <p className="mt-2 text-sm text-[#1E1814]/65">{c.emptyHint}</p>
           </div>
         ) : null}
 
         {!loading && offers.length > 0 ? (
-          <section className="mb-10">
-            <h2 className="mb-4 text-lg font-semibold text-[#1E1814]">{c.offersSectionTitle}</h2>
+          <section className="mb-6 sm:mb-10">
+            <h2 className="mb-3 text-lg font-semibold text-[#1E1814] sm:mb-4">{c.offersSectionTitle}</h2>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {offers.map((offer) => (
                 <li key={offer.id}>
@@ -235,7 +392,7 @@ export function OfertasLocalesPublicSearchClient() {
 
         {!loading && items.length > 0 ? (
           <section>
-            <h2 className="mb-4 text-lg font-semibold text-[#1E1814]">{c.itemsSectionTitle}</h2>
+            <h2 className="mb-3 text-lg font-semibold text-[#1E1814] sm:mb-4">{c.itemsSectionTitle}</h2>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((item) => (
                 <li key={item.id}>
@@ -254,16 +411,22 @@ export function OfertasLocalesPublicSearchClient() {
           </section>
         ) : null}
 
-        <div className="mt-10 rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-4">
-          <p className="text-sm font-medium text-[#1E1814]">{c.publishCtaHint}</p>
-          <Link href={publishHref} className="mt-2 inline-block text-sm font-semibold text-[#7A1E2C] underline">
-            {c.publishCta}
-          </Link>
-        </div>
+        {!showPipelineEmpty ? (
+          <div className="mt-6 rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3 sm:mt-10 sm:py-4">
+            <p className="text-sm font-medium text-[#1E1814]">{c.publishCtaHint}</p>
+            <Link href={publishHref} className="mt-2 inline-block text-sm font-semibold text-[#7A1E2C] underline">
+              {c.publishCta}
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       {selectedItem ? (
-        <OfertasLocalesPublicItemDetailDrawer lang={lang} item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <OfertasLocalesPublicItemDetailDrawer
+          lang={lang}
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       ) : null}
 
       {listOpen ? (

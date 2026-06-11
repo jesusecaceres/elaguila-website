@@ -4,8 +4,11 @@ const COPY = {
   es: {
     pageTitle: "Ofertas Locales",
     pageSubtitle: "Encuentra volantes, cupones y especiales de negocios locales.",
-    pageHeroBody:
-      "Busca productos, cupones y ofertas aprobadas de negocios locales cerca de ti.",
+    pageHeroBody: "Busca ofertas aprobadas cerca de ti.",
+    mobileSearchLabel: "Buscar ofertas",
+    filtersButton: "Filtros",
+    filtersToggleShow: "Mostrar filtros",
+    filtersToggleHide: "Ocultar filtros",
     offersSectionTitle: "Ofertas de negocios",
     itemsSectionTitle: "Buscar por producto",
     searchPlaceholder: "Ej. carne asada, tomates, tortillas, cambio de aceite",
@@ -28,8 +31,9 @@ const COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 oferta encontrada" : `${n} ofertas encontradas`),
     emptyTitle: "No encontramos ofertas con esos filtros.",
     emptyHint: "Intenta buscar otro producto o ciudad.",
-    pipelineEmptyTitle:
-      "Todavía estamos agregando ofertas locales. Vuelve pronto o invita a tu negocio favorito a publicar sus especiales.",
+    pipelineEmptyTitle: "Todavía estamos agregando ofertas locales.",
+    pipelineEmptyBody:
+      "Vuelve pronto o invita a tu negocio favorito a publicar sus especiales.",
     pipelineEmptyHint: "¿Tienes un negocio? Publica tus ofertas locales.",
     loadFailed: "No se pudieron cargar las ofertas.",
     viewDeal: "Ver oferta",
@@ -73,8 +77,11 @@ const COPY = {
   en: {
     pageTitle: "Local Deals",
     pageSubtitle: "Find flyers, coupons, and specials from local businesses.",
-    pageHeroBody:
-      "Search approved products, coupons, and specials from local businesses near you.",
+    pageHeroBody: "Search approved deals near you.",
+    mobileSearchLabel: "Search deals",
+    filtersButton: "Filters",
+    filtersToggleShow: "Show filters",
+    filtersToggleHide: "Hide filters",
     offersSectionTitle: "Business deals",
     itemsSectionTitle: "Search by product",
     searchPlaceholder: "Example: carne asada, tomatoes, tortillas, oil change",
@@ -97,8 +104,9 @@ const COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 deal found" : `${n} deals found`),
     emptyTitle: "We didn't find deals with those filters.",
     emptyHint: "Try another product or city.",
-    pipelineEmptyTitle:
-      "We're adding local deals soon. Check back soon or invite your favorite business to post their specials.",
+    pipelineEmptyTitle: "We're adding local deals soon.",
+    pipelineEmptyBody:
+      "Check back soon or invite your favorite business to post their specials.",
     pipelineEmptyHint: "Have a business? Publish your local deals.",
     loadFailed: "Could not load deals.",
     viewDeal: "View deal",
@@ -116,7 +124,7 @@ const COPY = {
     signUpBeforeYouGo: "Sign up before you go",
     membershipNote: "Membership",
     digitalCouponNote: "Digital coupons",
-    publishCta: "Publish a deal",
+    publishCta: "Publish deal",
     publishCtaHint: "Have a business? Publish your local deals.",
     offerDetailTitle: "Deal detail",
     addToList: "Add to list",
