@@ -47,19 +47,24 @@ async function postResendEmail(
     body: JSON.stringify(payload),
   });
 
+  let responseBody: { id?: string; message?: string } = {};
+  try {
+    responseBody = (await res.json()) as { id?: string; message?: string };
+  } catch {
+    /* non-JSON */
+  }
+
   if (!res.ok) {
-    let msg = `Resend HTTP ${res.status}`;
-    try {
-      const j = (await res.json()) as ResendErrorBody;
-      if (j?.message) msg = `${msg}: ${j.message}`;
-    } catch {
-      /* ignore */
-    }
+    const msg = responseBody.message
+      ? `Resend HTTP ${res.status}: ${responseBody.message}`
+      : `Resend HTTP ${res.status}`;
     logLeonixEmailFailure(scope, msg);
     return { ok: false, message: msg, code: "RESEND_ERROR" };
   }
 
-  console.info(`[leonix-email] scope=${scope} reason=accepted_by_provider`);
+  console.info(`[leonix-email] scope=${scope} reason=accepted_by_provider`, {
+    resendId: responseBody.id ?? "(none)",
+  });
   return { ok: true };
 }
 

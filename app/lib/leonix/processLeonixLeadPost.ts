@@ -150,8 +150,13 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
   let emailSent = false;
   let emailError: string | null = null;
 
-  if (emailConfigured && emailFields.fullName && emailFields.email && emailFields.message) {
-    const mail = buildContactInquiryEmail(emailFields);
+  if (saved && emailConfigured && emailFields.email) {
+    const mail = buildContactInquiryEmail({
+      ...emailFields,
+      fullName: emailFields.fullName || "(not provided)",
+      message: emailFields.message || "(not provided)",
+      leadId: savedId,
+    });
     const sent = await sendLeonixResendEmail({
       to: LEONIX_GLOBAL_EMAIL,
       subject: mail.subject,
@@ -172,30 +177,28 @@ export async function processLeonixLeadPost(req: Request): Promise<NextResponse>
     } else {
       emailError =
         sent.code === "NOT_CONFIGURED"
-          ? lang === "en"
-            ? "Email notification is not configured."
-            : "La notificación por correo no está configurada."
-          : lang === "en"
-            ? "Email notification could not be sent."
-            : "No se pudo enviar la notificación por correo.";
-      console.warn("[leads] email send failed", {
+          ? "EMAIL_NOT_CONFIGURED"
+          : "RESEND_SEND_FAILED";
+      console.warn("[leads] email send failed after successful save", {
         code: sent.code,
         leadId: savedId,
         inquiryType,
+        to: LEONIX_GLOBAL_EMAIL,
         hint:
           sent.code === "NOT_CONFIGURED"
             ? "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production"
             : "Verify Resend domain/sender for LEONIX_RESEND_FROM",
       });
     }
-  } else if (!emailConfigured) {
+  } else if (saved && !emailConfigured) {
     emailError = "EMAIL_NOT_CONFIGURED";
     const config = resolveLeonixResendConfig();
     console.warn("[leads] email not configured — lead saved without team notification", {
       leadId: savedId,
       inquiryType,
+      to: LEONIX_GLOBAL_EMAIL,
       missing: config.ok ? [] : config.missing,
-      hint: "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production",
+      hint: "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production, then redeploy",
     });
   }
 

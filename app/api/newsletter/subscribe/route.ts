@@ -121,19 +121,35 @@ export async function POST(req: Request) {
     }
   }
 
+  const zipCode =
+    o.zipCode != null ? String(o.zipCode) : o.zip_code != null ? String(o.zip_code) : "";
+  const preferredLanguage = String(o.preferredLanguage ?? o.preferred_language ?? "").trim();
+  const interestsValue = [
+    sourceCta ? `cta:${sourceCta}` : "",
+    o.interests != null ? String(o.interests) : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
   let emailSent = false;
 
-  if (emailConfigured && email.trim()) {
+  if (saved && emailConfigured && email.trim()) {
     const mail = buildLaunchSignupEmail({
       email: email.trim(),
       name: String(name ?? "").trim(),
       businessName: String(businessName ?? "").trim(),
       city: String(city ?? "").trim(),
-      audienceType: String(audienceType ?? "").trim(),
+      zipCode,
+      preferredLanguage,
+      interests: interestsValue,
       source: String(source ?? "newsletter_page"),
+      sourceCta,
+      status: "subscribed",
       lang,
       wantsLaunchUpdates,
       submittedAt: consentTimestamp,
+      subscriberId: savedId,
+      updated,
     });
 
     const sent = await sendLeonixResendEmail({
@@ -151,17 +167,28 @@ export async function POST(req: Request) {
         to: LEONIX_GLOBAL_EMAIL,
         source: String(source ?? "newsletter_page"),
         sourceCta: sourceCta || "(none)",
+        updated,
       });
     } else {
       console.warn("[newsletter] subscriber saved without team email notification", {
         code: sent.code,
+        subscriberId: savedId,
+        to: LEONIX_GLOBAL_EMAIL,
         sourceCta: sourceCta || "(none)",
+        hint:
+          sent.code === "NOT_CONFIGURED"
+            ? "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production"
+            : "Verify Resend domain/sender for LEONIX_RESEND_FROM",
       });
     }
-  } else if (saved) {
-    console.warn(
-      "[newsletter] RESEND_API_KEY or FROM address not configured — subscriber saved without team email notification. Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production.",
-    );
+  } else if (saved && !emailConfigured) {
+    const config = resolveLeonixResendConfig();
+    console.warn("[newsletter] email not configured — subscriber saved without team notification", {
+      subscriberId: savedId,
+      to: LEONIX_GLOBAL_EMAIL,
+      missing: config.ok ? [] : config.missing,
+      hint: "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production, then redeploy",
+    });
   }
 
   if (!saved && !emailSent) {

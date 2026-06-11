@@ -1,4 +1,8 @@
 import { escapeHtml } from "./escapeHtml";
+import {
+  leonixAdminLeadInboxUrl,
+  leonixAdminNewsletterInboxUrl,
+} from "./leonixInternalNotificationUrls";
 import { inquiryTypeLabel, type InquiryType } from "@/app/lib/leonix/inquiryTypes";
 import { normalizeLang } from "@/app/lib/language";
 
@@ -18,10 +22,30 @@ export type ContactInquiryEmailFields = {
   lang: string;
   wantsLaunchUpdates: boolean;
   submittedAt: string;
+  leadId?: string | null;
 };
 
 function line(label: string, value: string): string {
   return value ? `${label}: ${value}` : `${label}: (not provided)`;
+}
+
+function leadNotificationSubject(inquiryType: InquiryType, lang: string): string {
+  const en = lang === "en";
+  switch (inquiryType) {
+    case "mediaKit":
+      return en ? "New Leonix Media Kit interest" : "Nuevo interés en Media Kit de Leonix";
+    case "promotionalProducts":
+      return en
+        ? "New promotional products / print quote request"
+        : "Nueva cotización de productos promocionales";
+    case "advertising":
+    case "general":
+    case "businessListing":
+    case "partnership":
+    case "launch":
+    default:
+      return en ? "New Leonix Media lead" : "Nuevo lead de Leonix Media";
+  }
 }
 
 export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
@@ -29,17 +53,20 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
   text: string;
   html: string;
 } {
-  const topicText = inquiryTypeLabel(fields.inquiryType, normalizeLang(fields.lang));
-  const subject =
-    fields.lang === "en"
-      ? `New Leonix Media lead — ${fields.fullName}`
-      : `Nuevo lead de Leonix Media — ${fields.fullName}`;
+  const lang = normalizeLang(fields.lang);
+  const topicText = inquiryTypeLabel(fields.inquiryType, lang);
+  const subject = leadNotificationSubject(fields.inquiryType, lang);
+  const adminInbox = leonixAdminLeadInboxUrl();
 
   const text = [
-    "Source: Leonix contact inquiry form",
+    "Leonix internal lead notification",
     `Submitted (UTC): ${fields.submittedAt}`,
+    fields.leadId ? `Lead ID: ${fields.leadId}` : "",
     "",
-    line("Language", fields.lang),
+    "Review in admin:",
+    adminInbox,
+    "",
+    line("Language", lang),
     line("Inquiry type", `${fields.inquiryType} (${topicText})`),
     line("Source page", fields.sourcePage),
     line("Source CTA", fields.sourceCta || "(not provided)"),
@@ -56,13 +83,17 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
     "",
     "Message:",
     fields.message,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const html = `
 <!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#222;">
-  <h2 style="margin:0 0 12px;">Leonix contact inquiry</h2>
+  <h2 style="margin:0 0 12px;">Leonix internal lead notification</h2>
   <p><strong>Submitted (UTC):</strong> ${escapeHtml(fields.submittedAt)}</p>
-  <p><strong>Language:</strong> ${escapeHtml(fields.lang)}</p>
+  ${fields.leadId ? `<p><strong>Lead ID:</strong> ${escapeHtml(fields.leadId)}</p>` : ""}
+  <p><strong>Admin inbox:</strong> <a href="${escapeHtml(adminInbox)}">${escapeHtml(adminInbox)}</a></p>
+  <p><strong>Language:</strong> ${escapeHtml(lang)}</p>
   <p><strong>Inquiry type:</strong> ${escapeHtml(fields.inquiryType)} — ${escapeHtml(topicText)}</p>
   <p><strong>Source page:</strong> ${escapeHtml(fields.sourcePage)}</p>
   <p><strong>Source CTA:</strong> ${escapeHtml(fields.sourceCta || "(not provided)")}</p>
@@ -88,39 +119,70 @@ export function buildLaunchSignupEmail(fields: {
   name: string;
   businessName: string;
   city: string;
-  audienceType: string;
+  zipCode: string;
+  preferredLanguage: string;
+  interests: string;
   source: string;
+  sourceCta: string;
+  status: string;
   lang: string;
   wantsLaunchUpdates: boolean;
   submittedAt: string;
+  subscriberId?: string | null;
+  updated?: boolean;
 }): { subject: string; text: string; html: string } {
-  const subject = `[Leonix — lanzamiento] ${fields.email} · ${fields.submittedAt.slice(0, 16).replace("T", " ")}`;
+  const lang = normalizeLang(fields.lang);
+  const subject =
+    lang === "en" ? "New Leonix launch signup" : "Nuevo registro de lanzamiento Leonix";
+  const adminInbox = leonixAdminNewsletterInboxUrl();
 
   const text = [
-    "Source: Leonix launch signup",
+    "Leonix internal launch / newsletter signup notification",
     `Submitted (UTC): ${fields.submittedAt}`,
+    fields.subscriberId ? `Subscriber ID: ${fields.subscriberId}` : "",
+    fields.updated ? "Record: updated existing subscriber" : "Record: new subscriber",
     "",
-    line("Language", fields.lang),
+    "Review in admin:",
+    adminInbox,
+    "",
+    line("Language", lang),
     line("Source", fields.source),
+    line("Source CTA", fields.sourceCta || "(not provided)"),
+    line("Status", fields.status),
+    line("Consent timestamp (UTC)", fields.submittedAt),
+    "",
     line("Email", fields.email),
     line("Name", fields.name),
     line("Business", fields.businessName),
     line("City", fields.city),
-    line("Audience type", fields.audienceType),
+    line("ZIP code", fields.zipCode),
+    line("Preferred language", fields.preferredLanguage),
+    line("Interests", fields.interests),
+    line("Audience type", fields.interests.includes("audience:") ? fields.interests : "(see interests)"),
     line("Wants launch updates", fields.wantsLaunchUpdates ? "yes" : "no"),
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const html = `
 <!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#222;">
-  <h2 style="margin:0 0 12px;">Leonix launch signup</h2>
+  <h2 style="margin:0 0 12px;">Leonix launch / newsletter signup</h2>
   <p><strong>Submitted (UTC):</strong> ${escapeHtml(fields.submittedAt)}</p>
-  <p><strong>Language:</strong> ${escapeHtml(fields.lang)}</p>
+  ${fields.subscriberId ? `<p><strong>Subscriber ID:</strong> ${escapeHtml(fields.subscriberId)}</p>` : ""}
+  <p><strong>Record:</strong> ${fields.updated ? "updated existing subscriber" : "new subscriber"}</p>
+  <p><strong>Admin subscribers:</strong> <a href="${escapeHtml(adminInbox)}">${escapeHtml(adminInbox)}</a></p>
+  <p><strong>Language:</strong> ${escapeHtml(lang)}</p>
   <p><strong>Source:</strong> ${escapeHtml(fields.source)}</p>
+  <p><strong>Source CTA:</strong> ${escapeHtml(fields.sourceCta || "(not provided)")}</p>
+  <p><strong>Status:</strong> ${escapeHtml(fields.status)}</p>
+  <p><strong>Consent timestamp (UTC):</strong> ${escapeHtml(fields.submittedAt)}</p>
   <p><strong>Email:</strong> ${escapeHtml(fields.email)}</p>
   <p><strong>Name:</strong> ${fields.name ? escapeHtml(fields.name) : "<em>not provided</em>"}</p>
   <p><strong>Business:</strong> ${fields.businessName ? escapeHtml(fields.businessName) : "<em>not provided</em>"}</p>
   <p><strong>City:</strong> ${fields.city ? escapeHtml(fields.city) : "<em>not provided</em>"}</p>
-  <p><strong>Audience type:</strong> ${fields.audienceType ? escapeHtml(fields.audienceType) : "<em>not provided</em>"}</p>
+  <p><strong>ZIP code:</strong> ${fields.zipCode ? escapeHtml(fields.zipCode) : "<em>not provided</em>"}</p>
+  <p><strong>Preferred language:</strong> ${fields.preferredLanguage ? escapeHtml(fields.preferredLanguage) : "<em>not provided</em>"}</p>
+  <p><strong>Interests:</strong> ${fields.interests ? escapeHtml(fields.interests) : "<em>not provided</em>"}</p>
   <p><strong>Wants launch updates:</strong> ${fields.wantsLaunchUpdates ? "yes" : "no"}</p>
 </body></html>`;
 
