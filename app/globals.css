@@ -103,3 +103,25 @@ body {
     grid-row-end: auto !important;
   }
 }
+
+/* Autos Negocios inventory drawer: native selects inside scroll hosts */
+.autos-drawer-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.autos-drawer-scroll select {
+  position: relative;
+  z-index: 2;
+}
+
+.autos-drawer-scroll select:focus {
+  z-index: 30;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .autos-drawer-scroll select {
+    transform: translateZ(0);
+  }
+}

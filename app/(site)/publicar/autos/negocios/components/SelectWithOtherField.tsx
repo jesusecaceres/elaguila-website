@@ -2,6 +2,7 @@
 
 import { isOtroIncomplete, SELECT_OTHER_VALUE } from "@/app/clasificados/autos/negocios/lib/autoDealerSelectResolve";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { autosDrawerNativeSelectProps } from "@/app/lib/clasificados/autos/autosDrawerNativeSelectInteraction";
 
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 const INPUT =
@@ -17,6 +18,7 @@ export function SelectWithOtherField({
   incompleteHint,
   emptyLabel,
   optionLabels,
+  insideModal = false,
 }: {
   label: string;
   options: readonly string[];
@@ -29,15 +31,17 @@ export function SelectWithOtherField({
   emptyLabel?: string;
   /** Parallel to `options` — localized display text while `value` stays canonical. */
   optionLabels?: readonly string[];
+  insideModal?: boolean;
 }) {
   const showCustom = value === SELECT_OTHER_VALUE;
   const incomplete = incompleteHint ? isOtroIncomplete(value, customValue) : false;
+  const selectProps = autosDrawerNativeSelectProps(`${INPUT} pr-10`, insideModal);
 
   return (
     <div>
       <label className={LABEL}>{label}</label>
       <select
-        className={`${INPUT} pr-10`}
+        {...selectProps}
         value={value ?? ""}
         onChange={(e) => {
           const v = e.target.value || undefined;

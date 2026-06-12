@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -27,6 +27,9 @@ import { getAutosApplicationStepShellCopy } from "@/app/publicar/autos/shared/li
 import { AutosUnsavedChangesModal } from "@/app/publicar/autos/shared/components/AutosUnsavedChangesModal";
 import type { AutosApplicationStepContext } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosNegociosInventoryChildApplication } from "./AutosNegociosInventoryChildApplication";
+import {
+  shouldIgnoreAutosDrawerOutsideInteraction,
+} from "@/app/lib/clasificados/autos/autosDrawerNativeSelectInteraction";
 
 type Props = {
   open: boolean;
@@ -96,6 +99,8 @@ export function AutosNegociosAddInventoryDrawer({
   const [unsavedModalOpen, setUnsavedModalOpen] = useState(false);
   const [stepNav, setStepNav] = useState<AutosApplicationStepContext | null>(null);
   const initialFingerprint = useRef("");
+  const inProgressDraftRef = useRef(inProgressDraft);
+  inProgressDraftRef.current = inProgressDraft;
   const shellCopy = getAutosApplicationStepShellCopy(lang);
   const finalStepIndex = 6;
 
@@ -107,7 +112,11 @@ export function AutosNegociosAddInventoryDrawer({
     if (!open) return;
     setError(null);
     setUnsavedModalOpen(false);
-    const next = resolveDrawerInitialDraft(editingVehicle, inProgressDraft, drawerEditingId);
+    const next = resolveDrawerInitialDraft(
+      editingVehicle,
+      inProgressDraftRef.current,
+      drawerEditingId,
+    );
     setDraft(next);
     initialFingerprint.current = inventoryDraftFingerprint(next);
     const prev = document.body.style.overflow;
@@ -115,7 +124,7 @@ export function AutosNegociosAddInventoryDrawer({
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open, editingVehicle, inProgressDraft, drawerEditingId]);
+  }, [open, editingVehicle, drawerEditingId]);
 
   useEffect(() => {
     if (!open || !onInProgressChange) return;
@@ -170,6 +179,15 @@ export function AutosNegociosAddInventoryDrawer({
     onEditParentDealerStep?.();
   }, [isDirty, onEditParentDealerStep]);
 
+  const handleBackdropClose = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (shouldIgnoreAutosDrawerOutsideInteraction(event.nativeEvent)) return;
+      if (event.target !== event.currentTarget) return;
+      requestClose();
+    },
+    [requestClose],
+  );
+
   if (!open) return null;
 
   const persist = async (andAnother: boolean) => {
@@ -211,14 +229,18 @@ export function AutosNegociosAddInventoryDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="autos-add-inventory-title"
+        onMouseDown={handleBackdropClose}
       >
-        <button
-          type="button"
-          className="absolute inset-0 bg-[#1E1810]/45 backdrop-blur-[2px]"
-          aria-label={autosAddInventoryCancelCta(lang)}
-          onClick={requestClose}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[#1E1810]/45 backdrop-blur-[2px]"
+          aria-hidden
         />
-        <div className="relative flex h-[calc(100vh-48px)] w-full max-w-[min(1120px,calc(100vw-48px))] flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl sm:rounded-[24px]">
+        <div
+          className="relative z-[1] flex h-[calc(100vh-48px)] w-full max-w-[min(1120px,calc(100vw-48px))] flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl sm:rounded-[24px]"
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[#D4C4A8] sm:hidden" aria-hidden />
           <div className="sticky top-0 z-10 shrink-0 border-b border-[#E8DFD0] bg-[#FAF7F2]/95 px-4 py-3 backdrop-blur-sm sm:px-5">
             <h2 id="autos-add-inventory-title" className="font-serif text-lg font-semibold text-[#1E1810]">
@@ -234,7 +256,7 @@ export function AutosNegociosAddInventoryDrawer({
             </p>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+          <div className="autos-drawer-scroll min-h-0 flex-1 overscroll-contain px-4 py-4 sm:px-5">
             {!showForm ? (
               <p className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950">
                 {autosAddInventoryAtLimitHelper(lang)}

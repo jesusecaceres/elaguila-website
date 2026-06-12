@@ -53,6 +53,7 @@ import {
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { autosDrawerNativeSelectProps } from "@/app/lib/clasificados/autos/autosDrawerNativeSelectInteraction";
 
 import {
   AUTOS_NEGOCIOS_FORM_CARD,
@@ -144,6 +145,7 @@ export function AutosNegociosVehicleApplicationSteps({
   const INPUT = AUTOS_NEGOCIOS_FORM_INPUT;
   const GRID2 = AUTOS_NEGOCIOS_FORM_GRID2;
   const SECTION = "text-lg font-bold text-[color:var(--lx-text)]";
+  const modalSelect = (extraClass = "") => autosDrawerNativeSelectProps(`${INPUT}${extraClass}`, isChild);
 
   useAutosVehicleStructuredSpecFill({
     lang,
@@ -188,6 +190,7 @@ export function AutosNegociosVehicleApplicationSteps({
               onPatch={(p) => onPatch(p)}
               requiredMake
               requiredModel
+              insideModal={isChild}
             />
           </div>
         </div>
@@ -230,7 +233,7 @@ export function AutosNegociosVehicleApplicationSteps({
           <div>
             <label className={LABEL}>{t.app.labels.condition}</label>
             <select
-              className={INPUT}
+              {...modalSelect()}
               value={draft.condition ?? ""}
               onChange={(e) => {
                 const v = e.target.value;
@@ -294,7 +297,7 @@ export function AutosNegociosVehicleApplicationSteps({
           </div>
           <div>
             <label className={LABEL}>{t.app.labels.state}</label>
-            <select className={INPUT} value={draft.state ?? ""} onChange={(e) => onPatch({ state: e.target.value || undefined })}>
+            <select {...modalSelect()} value={draft.state ?? ""} onChange={(e) => onPatch({ state: e.target.value || undefined })}>
               {US_STATE_OPTIONS.map((s) => (
                 <option key={s || "empty"} value={s}>
                   {s || t.taxonomy.selectEmpty}
@@ -338,6 +341,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ transmission: value, transmissionCustom: custom })}
             customPlaceholder={t.app.hints.transPh}
             incompleteHint={t.app.hints.transmission}
+            insideModal={isChild}
           />
           <SelectWithOtherField
             label={t.app.labels.drivetrain}
@@ -349,6 +353,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ drivetrain: value, drivetrainCustom: custom })}
             customPlaceholder={t.app.hints.drivePh}
             incompleteHint={t.app.hints.drivetrain}
+            insideModal={isChild}
           />
           <AutosVehicleEngineField
             lang={lang}
@@ -376,6 +381,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ fuelType: value, fuelTypeCustom: custom })}
             customPlaceholder={t.app.hints.fuelPh}
             incompleteHint={t.app.hints.fuel}
+            insideModal={isChild}
           />
           <div>
             <label className={LABEL}>{t.app.labels.mpgCity}</label>
@@ -405,6 +411,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ bodyStyle: value, bodyStyleCustom: custom })}
             customPlaceholder={t.app.hints.bodyPh}
             incompleteHint={t.app.hints.bodyStyle}
+            insideModal={isChild}
           />
           <SelectWithOtherField
             label={t.app.labels.exteriorColor}
@@ -416,6 +423,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ exteriorColor: value, exteriorColorCustom: custom })}
             customPlaceholder={t.app.hints.extPh}
             incompleteHint={t.app.hints.exterior}
+            insideModal={isChild}
           />
           <SelectWithOtherField
             label={t.app.labels.interiorColor}
@@ -427,6 +435,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ interiorColor: value, interiorColorCustom: custom })}
             customPlaceholder={t.app.hints.intPh}
             incompleteHint={t.app.hints.interior}
+            insideModal={isChild}
           />
           <div>
             <label className={LABEL}>{t.app.labels.doors}</label>
@@ -446,6 +455,7 @@ export function AutosNegociosVehicleApplicationSteps({
             onChange={({ value, custom }) => onPatch({ titleStatus: value, titleStatusCustom: custom })}
             customPlaceholder={t.app.hints.titlePh}
             incompleteHint={t.app.hints.titleStatus}
+            insideModal={isChild}
           />
         </div>
       </section>

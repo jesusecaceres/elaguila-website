@@ -65,6 +65,7 @@ export function AutosVehicleIdentityFields({
   requiredYear,
   requiredMake,
   requiredModel,
+  insideModal = false,
 }: {
   lang: AutosVehicleIdentityLang;
   labels: AutosVehicleIdentityFieldLabels;
@@ -78,6 +79,8 @@ export function AutosVehicleIdentityFields({
   requiredYear?: boolean;
   requiredMake?: boolean;
   requiredModel?: boolean;
+  /** When true, harden native `<select>` inside modal/drawer scroll hosts. */
+  insideModal?: boolean;
 }) {
   const years = useMemo(() => getAutosVehicleYearOptions(), []);
   const catalogMake = resolveMakeToCanonical(make);
@@ -153,13 +156,25 @@ export function AutosVehicleIdentityFields({
     return normalized;
   }
 
+  const selectClass = insideModal ? `${INPUT} relative z-[2] touch-manipulation` : INPUT;
+  const modalSelectHandlers = insideModal
+    ? {
+        onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+        onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+        onClick: (e: React.MouseEvent) => e.stopPropagation(),
+      }
+    : {};
+
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4">
+    <div
+      className={`grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4${insideModal ? " isolate" : ""}`}
+    >
       <div>
         <label className="block">{labelEl(labels.year, requiredYear)}</label>
         <select
-          className={INPUT}
+          className={selectClass}
           value={yearSelectValue}
+          {...modalSelectHandlers}
           onChange={(e) => {
             const v = e.target.value;
             onPatch({ year: v ? parseInt(v, 10) : undefined });
@@ -201,7 +216,7 @@ export function AutosVehicleIdentityFields({
             </button>
           </div>
         ) : (
-          <select className={INPUT} value={makeSelectValue} onChange={(e) => {
+          <select className={selectClass} value={makeSelectValue} {...modalSelectHandlers} onChange={(e) => {
               const v = e.target.value;
               if (v === UNLISTED_MAKE) {
                 setMakeUnlisted(true);
@@ -223,7 +238,7 @@ export function AutosVehicleIdentityFields({
       <div>
         <label className="block">{labelEl(labels.model, requiredModel)}</label>
         {models.length > 0 ? (
-          <select className={INPUT} value={modelSelectValue} onChange={(e) => onModelChange(e.target.value)}>
+          <select className={selectClass} value={modelSelectValue} {...modalSelectHandlers} onChange={(e) => onModelChange(e.target.value)}>
             <option value="">{emptyModel}</option>
             {models.map((m) => (
               <option key={m} value={m}>
@@ -248,8 +263,9 @@ export function AutosVehicleIdentityFields({
         <label className="block">{labelEl(labels.trim, false)}</label>
         {trimSuggestions.length > 0 && !trimCustomMode ? (
           <select
-            className={INPUT}
+            className={selectClass}
             value={trimInCatalog ? (trim ?? "") : ""}
+            {...modalSelectHandlers}
             onChange={(e) => {
               const v = e.target.value;
               if (v === TRIM_CUSTOM) {
