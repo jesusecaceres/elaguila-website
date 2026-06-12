@@ -15,7 +15,11 @@ import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLa
 import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
 import { AdminLeonixLeadDetailDrawer } from "@/app/admin/_components/leads/AdminLeonixLeadDetailDrawer";
 import { AdminResponsiveTabs } from "@/app/admin/_components/AdminResponsiveTabs";
-import type { AdminLeadsInboxOpsView } from "@/app/admin/_lib/adminNavOps";
+import {
+  ADMIN_LEADS_PROMO_EMPTY_STATE,
+  isPromotionalLeadRow,
+  type AdminLeadsInboxOpsView,
+} from "@/app/admin/_lib/adminNavOps";
 import type { LeonixLeadRow } from "@/app/admin/_lib/leonixLeadsData";
 import { LEONIX_LEAD_STATUSES } from "@/app/admin/_lib/leonixLeadStatuses";
 import {
@@ -110,13 +114,7 @@ function matchesOpsView(row: LeonixLeadRow, view: OpsView): boolean {
     const s = row.status.trim().toLowerCase();
     return s === "new" || s === "needs_reply";
   }
-  if (view === "promo") {
-    return (
-      row.inquiry_type === "promotionalProducts" ||
-      row.source_cta === "promo_quote" ||
-      /promo|print|quote|impres/i.test(`${row.message} ${row.source_page}`)
-    );
-  }
+  if (view === "promo") return isPromotionalLeadRow(row);
   if (view === "advertising") return row.inquiry_type === "advertising";
   if (view === "media_kit") return row.inquiry_type === "mediaKit";
   return true;
@@ -250,6 +248,9 @@ export function AdminLeonixLeadsInboxClient({
     }
   }
 
+  const emptyStateMessage =
+    opsView === "promo" ? ADMIN_LEADS_PROMO_EMPTY_STATE : "No leads match the current view and filters.";
+
   async function runLifecycle(
     row: LeonixLeadRow,
     action: "archive" | "restore" | "delete" | "mark_contacted",
@@ -309,8 +310,8 @@ export function AdminLeonixLeadsInboxClient({
         server. Archive when done; restore from Archived.{" "}
         {opsView === "promo" ? (
           <span className="block mt-1 text-xs text-[#5C5346]">
-            <strong>Promotions view:</strong> filtered to promo / print-quote inquiries from Launch Leads (not a separate
-            quote system).
+            <strong>Promocionales view:</strong> showing promotional product / print quote leads from public forms
+            (`/productos-promocion`, `/tienda/contacto?service=cotizacion-general`). Not a separate quote system.
           </span>
         ) : null}{" "}
         <Link href="/admin/leads/newsletter" className="font-semibold text-[#6B5B2E] underline">
@@ -423,7 +424,7 @@ export function AdminLeonixLeadsInboxClient({
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center text-[#7A7164]">
-                    No leads match the current view and filters.
+                    {emptyStateMessage}
                   </td>
                 </tr>
               ) : (
@@ -512,7 +513,7 @@ export function AdminLeonixLeadsInboxClient({
       <div className={adminMobileCardList} data-testid="launch-leads-mobile-list">
         {filtered.length === 0 ? (
           <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
-            No leads match the current view and filters.
+            {emptyStateMessage}
           </p>
         ) : (
           filtered.map((row) => {

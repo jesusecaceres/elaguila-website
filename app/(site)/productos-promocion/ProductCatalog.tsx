@@ -45,7 +45,13 @@ function promoMailtoHref(lang: Lang): string {
 }
 
 function generalQuoteHref(lang: Lang): string {
-  return `/tienda/contacto?service=cotizacion-general&lang=${lang}`;
+  const params = new URLSearchParams({
+    lang,
+    service: "cotizacion-general",
+    sourceCta: "promo_quote",
+    sourcePage: "productos-promocion",
+  });
+  return `/tienda/contacto?${params.toString()}`;
 }
 
 function outlineBtnProps(): CSSProperties {

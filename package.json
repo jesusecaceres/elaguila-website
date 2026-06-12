@@ -43,6 +43,7 @@
     "verify:admin-leads-crm": "node scripts/verify-admin-leads-crm.mjs",
     "verify:admin-mobile-shell": "node scripts/verify-admin-mobile-shell.mjs",
     "verify:admin-nav-ops": "node scripts/verify-admin-nav-ops.mjs",
+    "verify:admin-leads-promocionales-tab": "node scripts/verify-admin-leads-promocionales-tab.mjs",
     "verify:entitlement-redemption-attachment": "node scripts/verify-entitlement-redemption-attachment.mjs",
     "verify:sales-rep-dashboard-foundation": "node scripts/verify-sales-rep-dashboard-foundation.mjs",
     "verify:servicios-entitlement-overlay": "node scripts/verify-servicios-entitlement-overlay.mjs",
