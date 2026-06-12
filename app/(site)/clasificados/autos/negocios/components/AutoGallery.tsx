@@ -78,7 +78,7 @@ export function AutoGallery({
     <div className={CARD}>
       <div className="flex flex-col gap-3">
         {main ? (
-          <div className="relative aspect-[16/10] max-h-[min(420px,48vh)] overflow-hidden rounded-[14px] lg:max-h-[min(480px,42vh)]">
+          <div className="relative aspect-[16/10] max-h-[min(520px,56vh)] overflow-hidden rounded-[14px] lg:max-h-[min(560px,48vh)]">
             <button
               type="button"
               className="relative block h-full w-full cursor-zoom-in text-left"

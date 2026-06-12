@@ -214,6 +214,8 @@ export type RestauranteTaxonomyOtherSupplements = {
   secondaryCuisineCustom?: string;
   /** When "other" is checked under cocinas adicionales */
   additionalCuisineOtherCustom?: string;
+  /** Multiple custom language labels when Otro is selected (max 3). */
+  customLanguages?: string[];
   languageOtherCustom?: string;
   serviceModeOtherCustom?: string;
 };
@@ -275,6 +277,8 @@ export type RestauranteContactCta = {
   facebookUrl?: string;
   tiktokUrl?: string;
   youtubeUrl?: string;
+  snapchatUrl?: string;
+  xTwitterUrl?: string;
   reservationUrl?: string;
   orderUrl?: string;
   menuUrl?: string;

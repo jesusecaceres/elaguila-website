@@ -41,7 +41,12 @@ export function autosInventoryDrawerSectionReview(lang: AutosClassifiedsLang): s
 }
 
 export function autosPreviewInventorySectionTitle(lang: AutosClassifiedsLang): string {
-  return lang === "es" ? "Vista previa del inventario del dealer" : "Dealer inventory preview";
+  return lang === "es" ? "Más vehículos de este dealer" : "More vehicles from this dealer";
+}
+
+/** Pre-publish application bundle — owner review context in Paso 7. */
+export function autosApplicationInventorySectionTitle(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Inventario incluido en esta solicitud" : "Inventory included in this application";
 }
 
 export function autosPreviewInventorySectionHelper(lang: AutosClassifiedsLang): string {
@@ -111,7 +116,7 @@ export function autosAddInventorySectionComingSoon(lang: AutosClassifiedsLang, s
 }
 
 export function autosInventoryBundleSectionTitle(lang: AutosClassifiedsLang): string {
-  return lang === "es" ? "Inventario incluido en esta solicitud" : "Inventory included in this application";
+  return autosApplicationInventorySectionTitle(lang);
 }
 
 export function autosInventoryBundleMainLabel(lang: AutosClassifiedsLang): string {

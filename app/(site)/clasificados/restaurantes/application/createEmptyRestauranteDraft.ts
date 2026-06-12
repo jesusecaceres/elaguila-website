@@ -1,5 +1,9 @@
 import { sanitizeRestauranteAmenities, hasAnyRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import {
+  migrateRestauranteServiceModesAndFlags,
+  normalizeRestauranteCustomLanguages,
+} from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
+import {
   collectRestauranteExternalVideoUrls,
   normalizeRestauranteVideoUrlsList,
 } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
@@ -57,6 +61,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     additionalCuisines: [],
     additionalCuisineOtherCustom: undefined,
     languageOtherCustom: undefined,
+    customLanguages: undefined,
     serviceModeOtherCustom: undefined,
     shortSummary: undefined,
     longDescription: undefined,
@@ -97,6 +102,8 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     facebookUrl: undefined,
     tiktokUrl: undefined,
     youtubeUrl: undefined,
+    snapchatUrl: undefined,
+    xTwitterUrl: undefined,
     reservationUrl: undefined,
     orderUrl: undefined,
     menuUrl: undefined,
@@ -218,6 +225,20 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   } else {
     merged.videoUrls = merged.videoUrls ?? [];
   }
+
+  const withServices = migrateRestauranteServiceModesAndFlags(merged);
+  merged.serviceModes = withServices.serviceModes;
+  merged.dineIn = withServices.dineIn;
+  merged.takeout = withServices.takeout;
+  merged.delivery = withServices.delivery;
+  merged.foodTruck = withServices.foodTruck;
+  merged.personalChef = withServices.personalChef;
+  merged.popUp = withServices.popUp;
+
+  const withLangs = normalizeRestauranteCustomLanguages(merged);
+  merged.customLanguages = withLangs.customLanguages;
+  merged.languageOtherCustom = withLangs.languageOtherCustom;
+  merged.languagesSpoken = withLangs.languagesSpoken ?? merged.languagesSpoken;
 
   return merged;
 }

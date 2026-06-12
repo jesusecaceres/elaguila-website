@@ -15,7 +15,6 @@ import {
   RESTAURANTE_LANGUAGES,
   RESTAURANTE_LOCATION_PRIVACY,
   RESTAURANTE_PRICE_LEVELS,
-  RESTAURANTE_SERVICE_MODES,
   TAXONOMY_KEY_OTHER,
   TAXONOMY_KEY_OTHER_LANG,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
@@ -35,8 +34,13 @@ import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectio
 import { RestauranteAmenitiesFormBlock } from "./RestauranteAmenitiesFormBlock";
 import { RestauranteExternalVideoUrlsSection } from "./RestauranteExternalVideoUrlsSection";
 import {
+  buildRestauranteFormServicePatch,
   isDuplicateCustomLanguage,
+  isRestauranteFormServiceSelected,
   RESTAURANTE_FORM_BUSINESS_TYPES,
+  RESTAURANTE_FORM_SERVICE_OPTIONS,
+  RESTAURANTE_MAX_CUSTOM_LANGUAGES,
+  resolveRestauranteCustomLanguages,
 } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
@@ -196,6 +200,8 @@ export default function RestauranteApplicationClient() {
     [draft.highlights, setDraftPatch]
   );
 
+  const customLanguages = useMemo(() => resolveRestauranteCustomLanguages(draft), [draft]);
+
   const toggleLanguage = useCallback(
     (key: string) => {
       const cur = draft.languagesSpoken ?? [];
@@ -203,6 +209,7 @@ export default function RestauranteApplicationClient() {
       const patch: Partial<RestauranteListingDraft> = { languagesSpoken: next };
       if (key === TAXONOMY_KEY_OTHER_LANG && cur.includes(key) && !next.includes(key)) {
         patch.languageOtherCustom = undefined;
+        patch.customLanguages = undefined;
         setLanguageOtherPending("");
       }
       setDraftPatch(patch);
@@ -213,28 +220,39 @@ export default function RestauranteApplicationClient() {
   const addCustomLanguage = useCallback(() => {
     const trimmed = languageOtherPending.trim();
     if (!trimmed) return;
-    if (
-      isDuplicateCustomLanguage(trimmed, draft.languagesSpoken, draft.languageOtherCustom, labelForLanguage)
-    ) {
+    const existing = resolveRestauranteCustomLanguages(draft);
+    if (existing.length >= RESTAURANTE_MAX_CUSTOM_LANGUAGES) return;
+    if (isDuplicateCustomLanguage(trimmed, draft.languagesSpoken, existing, labelForLanguage)) {
       return;
     }
+    const nextCustom = [...existing, trimmed];
     const cur = draft.languagesSpoken ?? [];
     const patch: Partial<RestauranteListingDraft> = {
-      languageOtherCustom: trimmed,
+      customLanguages: nextCustom,
+      languageOtherCustom: nextCustom[0],
       languagesSpoken: cur.includes(TAXONOMY_KEY_OTHER_LANG) ? cur : [...cur, TAXONOMY_KEY_OTHER_LANG],
     };
     setDraftPatch(patch);
     setLanguageOtherPending("");
-  }, [draft.languageOtherCustom, draft.languagesSpoken, languageOtherPending, setDraftPatch]);
+  }, [draft, languageOtherPending, setDraftPatch]);
 
-  const removeCustomLanguage = useCallback(() => {
-    const cur = draft.languagesSpoken ?? [];
-    setDraftPatch({
-      languageOtherCustom: undefined,
-      languagesSpoken: cur.filter((k) => k !== TAXONOMY_KEY_OTHER_LANG),
-    });
-    setLanguageOtherPending("");
-  }, [draft.languagesSpoken, setDraftPatch]);
+  const removeCustomLanguageAt = useCallback(
+    (index: number) => {
+      const existing = resolveRestauranteCustomLanguages(draft);
+      const nextCustom = existing.filter((_, i) => i !== index);
+      const cur = draft.languagesSpoken ?? [];
+      const patch: Partial<RestauranteListingDraft> = {
+        customLanguages: nextCustom.length ? nextCustom : undefined,
+        languageOtherCustom: nextCustom[0],
+      };
+      if (!nextCustom.length) {
+        patch.languagesSpoken = cur.filter((k) => k !== TAXONOMY_KEY_OTHER_LANG);
+      }
+      setDraftPatch(patch);
+      setLanguageOtherPending("");
+    },
+    [draft, setDraftPatch]
+  );
 
   const toggleAdditionalCuisine = useCallback(
     (key: string) => {
@@ -252,18 +270,12 @@ export default function RestauranteApplicationClient() {
     [draft.additionalCuisines, setDraftPatch]
   );
 
-  const toggleServiceMode = useCallback(
-    (mode: RestauranteServiceMode) => {
-      const cur = draft.serviceModes ?? [];
-      const next = cur.includes(mode) ? cur.filter((m) => m !== mode) : [...cur, mode];
-      const patch: Partial<RestauranteListingDraft> = { serviceModes: next };
-      if (mode === TAXONOMY_KEY_OTHER && cur.includes(mode) && !next.includes(mode)) {
-        patch.serviceModeOtherCustom = undefined;
-      }
-      setDraftPatch(patch);
+  const toggleFormService = useCallback(
+    (opt: (typeof RESTAURANTE_FORM_SERVICE_OPTIONS)[number]) => {
+      setDraftPatch(buildRestauranteFormServicePatch(draft, opt));
       setServiceErr(false);
     },
-    [draft.serviceModes, setDraftPatch]
+    [draft, setDraftPatch]
   );
 
   const patchFeatured = useCallback(
@@ -708,24 +720,33 @@ export default function RestauranteApplicationClient() {
               </div>
               {(draft.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) ? (
                 <div className="mt-3 max-w-md space-y-3">
-                  {draft.languageOtherCustom ? (
+                  {customLanguages.length ? (
                     <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-3 py-1 text-sm font-medium text-[color:var(--lx-text)]">
-                        {draft.languageOtherCustom}
-                        <button
-                          type="button"
-                          className="ml-0.5 rounded-full px-1 text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]"
-                          aria-label={`Quitar ${draft.languageOtherCustom}`}
-                          onClick={removeCustomLanguage}
+                      {customLanguages.map((lang, index) => (
+                        <span
+                          key={`${lang}-${index}`}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-3 py-1 text-sm font-medium text-[color:var(--lx-text)]"
                         >
-                          ×
-                        </button>
-                      </span>
+                          {lang}
+                          <button
+                            type="button"
+                            className="ml-0.5 rounded-full px-1 text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]"
+                            aria-label={`Quitar ${lang}`}
+                            onClick={() => removeCustomLanguageAt(index)}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
                     </div>
-                  ) : (
+                  ) : null}
+                  {customLanguages.length < RESTAURANTE_MAX_CUSTOM_LANGUAGES ? (
                     <>
                       <FieldLabel optional>Especifica el idioma (Otro)</FieldLabel>
-                      <HelperText>Escribe el idioma concreto y pulsa Añadir.</HelperText>
+                      <HelperText>
+                        Escribe el idioma concreto y pulsa Añadir. Máximo {RESTAURANTE_MAX_CUSTOM_LANGUAGES} idiomas
+                        personalizados.
+                      </HelperText>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           className={`${OTHER_INPUT} mt-0 flex-1 min-w-[10rem]`}
@@ -749,7 +770,7 @@ export default function RestauranteApplicationClient() {
                         </button>
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -767,16 +788,12 @@ export default function RestauranteApplicationClient() {
             listado pero no se requiere para vista previa.
           </p>
           <HelperText>
-            Hay <strong className="text-[color:var(--lx-text)]">dos capas</strong> que conviven: (1) catering y eventos
-            desbloquea la sección extra <strong>K</strong> del formulario; (2) la lista canónica de modos de servicio define
-            la identidad de servicio en datos y vista previa.
+            Marca <strong className="text-[color:var(--lx-text)]">Catering y eventos</strong> si necesitas la sección extra{" "}
+            <strong>K</strong>. Usa <strong className="text-[color:var(--lx-text)]">Modos y servicios disponibles</strong>{" "}
+            para la identidad de servicio en datos y vista previa.
           </HelperText>
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
-            Capa 1 — Catering y eventos (stack K)
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            Controla si aparece la sección <strong>K</strong> (catering/eventos). No sustituye los modos de servicio para
-            la vista previa.
+            Catering y eventos (stack K)
           </p>
           <div className="mt-4 max-w-xl">
             <div className={PRIMARY_OP_CARD}>
@@ -862,42 +879,32 @@ export default function RestauranteApplicationClient() {
           </div>
 
           <div className="mt-8 border-t border-[color:var(--lx-nav-border)] pt-6">
-            <p className="text-sm font-semibold text-[color:var(--lx-text)]">Capa 2 — Modos de servicio (lista canónica)</p>
-            <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-              Estos son los <strong className="font-semibold text-[color:var(--lx-text-2)]">modos formales</strong> (comer
-              en local, para llevar, entrega, etc.) que valida «Vista previa» y que alimentan la identidad de servicio en la
-              ficha. Son independientes del stack K (catering/eventos).
+            <p className="text-sm font-semibold text-[color:var(--lx-text)]">
+              Modos y servicios disponibles <span className="text-red-600">*</span>
             </p>
-            <div className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/35 bg-[color:var(--lx-nav-hover)]/40 px-4 py-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
-              <strong className="text-[color:var(--lx-text)]">Recuerda:</strong> el stack K solo abre la sección extra de
-              catering/eventos. Esta lista es la que debe tener al menos una opción marcada para el botón principal de vista
-              previa.
-            </div>
+            <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
+              Una sola lista para comer en local, para llevar, entrega, recogida, reservas, catering, eventos y más. Al
+              menos una opción para la vista previa con validación.
+            </p>
           </div>
 
-          <p className="mt-6 text-sm font-semibold text-[color:var(--lx-text)]">
-            Modos de servicio (lista canónica) <span className="text-red-600">*</span>
-          </p>
-          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-            Obligatorio: al menos una opción para usar el botón «Vista previa» con validación.
-          </p>
           <div className="mt-3 rounded-2xl border border-[color:var(--lx-nav-border)]/85 bg-white/50 p-3 sm:p-4">
             <div className="flex flex-wrap gap-2">
-            {RESTAURANTE_SERVICE_MODES.map((o) => (
-              <label
-                key={o.key}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  className="shrink-0"
-                  checked={(draft.serviceModes ?? []).includes(o.key)}
-                  onChange={() => toggleServiceMode(o.key)}
-                />
-                <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                <span className="min-w-0">{o.labelEs}</span>
-              </label>
-            ))}
+              {RESTAURANTE_FORM_SERVICE_OPTIONS.map((o) => (
+                <label
+                  key={o.kind === "mode" ? o.key : o.key}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1.5 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    className="shrink-0"
+                    checked={isRestauranteFormServiceSelected(draft, o)}
+                    onChange={() => toggleFormService(o)}
+                  />
+                  <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
+                  <span className="min-w-0">{o.labelEs}</span>
+                </label>
+              ))}
             </div>
           </div>
           {(draft.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) ? (
@@ -939,44 +946,6 @@ export default function RestauranteApplicationClient() {
               </div>
             </div>
           )}
-
-          <p className="mt-8 text-sm font-semibold text-[color:var(--lx-text)]">
-            Opciones de servicio (detalles complementarios)
-          </p>
-          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-            Casillas de apoyo que refuerzan el relato operativo en la ficha. No reemplazan la lista canónica de arriba.
-          </p>
-          <div className={`mt-3 grid gap-2 sm:grid-cols-2 ${SECONDARY_CHANNEL_CLUSTER}`}>
-            {(
-              [
-                ["dineIn", "Comer en local", "🍽️"],
-                ["takeout", "Para llevar", "🛍️"],
-                ["delivery", "Entrega", "🚚"],
-                ["reservationsAvailable", "Reservas", "📅"],
-                ["preorderRequired", "Preorden obligatoria", "📲"],
-                ["pickupAvailable", "Recogida", "🛍️"],
-                ["foodTruck", "Food truck", "🚚"],
-                ["popUp", "Pop-up", "✨"],
-                ["personalChef", "Chef personal", "👨‍🍳"],
-              ] as const
-            ).map(([key, label, emoji]) => (
-              <label key={key} className="inline-flex items-center gap-1.5 text-sm">
-                <input
-                  type="checkbox"
-                  className="shrink-0"
-                  checked={Boolean(draft[key])}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDraftPatch({ [key]: checked } as Partial<RestauranteListingDraft>);
-                  }}
-                />
-                <span className="shrink-0 select-none text-sm leading-none" aria-hidden="true">
-                  {emoji}
-                </span>
-                <span className="min-w-0">{label}</span>
-              </label>
-            ))}
-          </div>
         </section>
         ) : null}
 
@@ -1062,57 +1031,63 @@ export default function RestauranteApplicationClient() {
             (PDF/imagen). Si hay ambos, verás dos botones: menú en línea y carta en archivo; el bloque de contacto también puede
             repetir el archivo para descarga/visualización.
           </HelperText>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Sitio web</FieldLabel>
-              <HelperText>Destino principal de tu marca; botón «Sitio web» en la fila de acciones.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.websiteUrl}
-                value={draft.websiteUrl ?? ""}
-                onChange={(e) => setDraftPatch({ websiteUrl: e.target.value || undefined })}
-              />
+          <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Contacto principal</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <FieldLabel optional>Sitio web</FieldLabel>
+                  <HelperText>Destino principal de tu marca; botón «Sitio web» en la fila de acciones.</HelperText>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.websiteUrl}
+                    value={draft.websiteUrl ?? ""}
+                    onChange={(e) => setDraftPatch({ websiteUrl: e.target.value || undefined })}
+                  />
+                </div>
+                <div>
+                  <FieldLabel optional>Teléfono</FieldLabel>
+                  <HelperText>Visible y usable para «Llamar»; se formateará automáticamente como (408) 555-1234.</HelperText>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
+                    value={draft.phoneNumber ?? ""}
+                    onChange={(e) => setDraftPatch({ phoneNumber: normalizePhoneInput(e.target.value) || undefined })}
+                    onBlur={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      if (formatted) setDraftPatch({ phoneNumber: formatted });
+                    }}
+                  />
+                </div>
+                <div>
+                  <FieldLabel optional>WhatsApp (número)</FieldLabel>
+                  <HelperText>Genera el botón de WhatsApp con el número en formato internacional.</HelperText>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.whatsAppNumber}
+                    value={draft.whatsAppNumber ?? ""}
+                    onChange={(e) => setDraftPatch({ whatsAppNumber: normalizePhoneInput(e.target.value) || undefined })}
+                    onBlur={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      if (formatted) setDraftPatch({ whatsAppNumber: formatted });
+                    }}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <FieldLabel optional>Correo</FieldLabel>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.email}
+                    value={draft.email ?? ""}
+                    onChange={(e) => setDraftPatch({ email: e.target.value || undefined })}
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <FieldLabel optional>Teléfono</FieldLabel>
-              <HelperText>Visible y usable para «Llamar»; se formateará automáticamente como (408) 555-1234.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
-                value={draft.phoneNumber ?? ""}
-                onChange={(e) => setDraftPatch({ phoneNumber: normalizePhoneInput(e.target.value) || undefined })}
-                onBlur={(e) => {
-                  const formatted = formatPhoneNumber(e.target.value);
-                  if (formatted) setDraftPatch({ phoneNumber: formatted });
-                }}
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Correo</FieldLabel>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.email}
-                value={draft.email ?? ""}
-                onChange={(e) => setDraftPatch({ email: e.target.value || undefined })}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <FieldLabel optional>WhatsApp (número)</FieldLabel>
-              <HelperText>Genera el botón de WhatsApp con el número en formato internacional. Se formateará automáticamente.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.whatsAppNumber}
-                value={draft.whatsAppNumber ?? ""}
-                onChange={(e) => setDraftPatch({ whatsAppNumber: normalizePhoneInput(e.target.value) || undefined })}
-                onBlur={(e) => {
-                  const formatted = formatPhoneNumber(e.target.value);
-                  if (formatted) setDraftPatch({ whatsAppNumber: formatted });
-                }}
-              />
-            </div>
-            <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Redes</p>
-              <HelperText className="!mt-0">Enlaces a perfiles; aparecen como accesos secundarios en contacto.</HelperText>
+
+            <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Redes sociales</p>
+              <HelperText className="!mt-0">Enlaces a perfiles; iconos de plataforma en la ficha solo cuando completes la URL.</HelperText>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {(
                   [
@@ -1120,6 +1095,8 @@ export default function RestauranteApplicationClient() {
                     ["facebookUrl", "Facebook (URL)"],
                     ["tiktokUrl", "TikTok (URL)"],
                     ["youtubeUrl", "YouTube (URL)"],
+                    ["snapchatUrl", "Snapchat (URL)"],
+                    ["xTwitterUrl", "X / Twitter (URL)"],
                   ] as const
                 ).map(([key, lab]) => (
                   <div key={key}>
@@ -1134,38 +1111,9 @@ export default function RestauranteApplicationClient() {
                 ))}
               </div>
             </div>
-            <div>
-              <FieldLabel optional>Reservas (URL)</FieldLabel>
-              <HelperText>Enlace directo a reservar (OpenTable, su propia web, etc.). Botón «Reservar» si existe.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.reservationUrl}
-                value={draft.reservationUrl ?? ""}
-                onChange={(e) => setDraftPatch({ reservationUrl: e.target.value || undefined })}
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Pedidos (URL)</FieldLabel>
-              <HelperText>Donde el cliente ordena en línea (app, web propia, delivery). Botón «Ordenar» si existe.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.orderUrl}
-                value={draft.orderUrl ?? ""}
-                onChange={(e) => setDraftPatch({ orderUrl: e.target.value || undefined })}
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Menú (URL)</FieldLabel>
-              <HelperText>Página pública donde está la carta (sitio propio, PDF en hosting, etc.). Si también subes archivo, la URL sigue siendo el acceso «en línea»; el archivo es la copia local en visor.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
-                value={draft.menuUrl ?? ""}
-                onChange={(e) => setDraftPatch({ menuUrl: e.target.value || undefined })}
-              />
-            </div>
-            <div className="sm:col-span-2 rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Opiniones</p>
+
+            <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Opiniones / reputación</p>
               <HelperText className="!mt-0">
                 Enlaces opcionales a reseñas públicas; solo aparecen en la ficha cuando los completes.
               </HelperText>
@@ -1190,53 +1138,93 @@ export default function RestauranteApplicationClient() {
                 </div>
               </div>
             </div>
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
-              <HelperText>
-                PDF o imagen de la carta guardada en el borrador de sesión: en la vista previa se abre en un visor a pantalla
-                completa. <strong className="text-[color:var(--lx-text-2)]">Estado actual:</strong> {draft.menuFile ? "✅ Archivo aceptado y listo para vista previa" : "⭕ Sin archivo"}
+
+            <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Acciones de restaurante</p>
+              <HelperText className="!mt-0">
+                Enlaces de reservas, pedidos y menú. El archivo de menú se abre en visor dentro de la vista previa.
               </HelperText>
-              <RestauranteUploadRow
-                buttonLabel="Subir archivo"
-                helperText="PDF o imagen. Se guarda en el borrador de sesión."
-                accept="image/*,application/pdf"
-                selectedLabel={
-                  uploadLabels.menu ?? (draft.menuFile ? "✅ Archivo guardado en el borrador" : null)
-                }
-                onFilesSelected={async (files) => {
-                  const f = files?.[0];
-                  if (!f) {
-                    setDraftPatch({ menuFile: undefined });
-                    setUploadLabels((p) => {
-                      const n = { ...p };
-                      delete n.menu;
-                      return n;
-                    });
-                    return;
-                  }
-                  setUploadLabels((p) => ({ ...p, menu: f.name }));
-                  setDraftPatch({ menuFile: await readFileAsDataUrl(f) });
-                }}
-              />
-              {draft.menuFile ? (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs font-medium text-green-700">✅ Archivo aceptado</span>
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-red-800 underline"
-                    onClick={() => {
-                      setDraftPatch({ menuFile: undefined });
-                      setUploadLabels((p) => {
-                        const n = { ...p };
-                        delete n.menu;
-                        return n;
-                      });
-                    }}
-                  >
-                    Quitar archivo
-                  </button>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <FieldLabel optional>Reservas (URL)</FieldLabel>
+                  <HelperText>Enlace directo a reservar. Botón «Reservar» si existe.</HelperText>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.reservationUrl}
+                    value={draft.reservationUrl ?? ""}
+                    onChange={(e) => setDraftPatch({ reservationUrl: e.target.value || undefined })}
+                  />
                 </div>
-              ) : null}
+                <div>
+                  <FieldLabel optional>Pedidos (URL)</FieldLabel>
+                  <HelperText>Donde el cliente ordena en línea. Botón «Ordenar» si existe.</HelperText>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.orderUrl}
+                    value={draft.orderUrl ?? ""}
+                    onChange={(e) => setDraftPatch({ orderUrl: e.target.value || undefined })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <FieldLabel optional>Menú (URL)</FieldLabel>
+                  <HelperText>Página pública donde está la carta en línea.</HelperText>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
+                    value={draft.menuUrl ?? ""}
+                    onChange={(e) => setDraftPatch({ menuUrl: e.target.value || undefined })}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
+                  <HelperText>
+                    PDF o imagen de la carta guardada en el borrador de sesión.{" "}
+                    <strong className="text-[color:var(--lx-text-2)]">Estado actual:</strong>{" "}
+                    {draft.menuFile ? "✅ Archivo aceptado y listo para vista previa" : "⭕ Sin archivo"}
+                  </HelperText>
+                  <RestauranteUploadRow
+                    buttonLabel="Subir archivo"
+                    helperText="PDF o imagen. Se guarda en el borrador de sesión."
+                    accept="image/*,application/pdf"
+                    selectedLabel={
+                      uploadLabels.menu ?? (draft.menuFile ? "✅ Archivo guardado en el borrador" : null)
+                    }
+                    onFilesSelected={async (files) => {
+                      const f = files?.[0];
+                      if (!f) {
+                        setDraftPatch({ menuFile: undefined });
+                        setUploadLabels((p) => {
+                          const n = { ...p };
+                          delete n.menu;
+                          return n;
+                        });
+                        return;
+                      }
+                      setUploadLabels((p) => ({ ...p, menu: f.name }));
+                      setDraftPatch({ menuFile: await readFileAsDataUrl(f) });
+                    }}
+                  />
+                  {draft.menuFile ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-xs font-medium text-green-700">✅ Archivo aceptado</span>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-red-800 underline"
+                        onClick={() => {
+                          setDraftPatch({ menuFile: undefined });
+                          setUploadLabels((p) => {
+                            const n = { ...p };
+                            delete n.menu;
+                            return n;
+                          });
+                        }}
+                      >
+                        Quitar archivo
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
         </section>

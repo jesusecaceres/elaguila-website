@@ -566,32 +566,94 @@ export function isAdditionalLanguageActive(lang: SupportedLang): boolean {
   return (ADDITIONAL_LANGUAGES as readonly SupportedLang[]).includes(lang);
 }
 
-/** Client-side language preference for routes without ?lang= */
+/** Public language persistence — URL wins, then cookie, then localStorage. */
+export const LEONIX_LANG_COOKIE = "leonix_lang";
+export const LEONIX_LANG_STORAGE_KEY = "leonix_lang";
+/** @deprecated Migrated to LEONIX_LANG_STORAGE_KEY on read/write. */
 export const LEONIX_LANG_PREF_STORAGE_KEY = "leonix.lang.pref";
+export const LEONIX_LANG_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-export function readPersistedLangPreference(): SupportedLang | null {
+/** Valid active lang from URL query, or null when absent/invalid. */
+export function readUrlLang(queryLang: string | null | undefined): SupportedLang | null {
+  if (queryLang && isSupportedLang(queryLang)) return normalizeLang(queryLang);
+  return null;
+}
+
+function readClientCookieLang(): SupportedLang | null {
+  if (typeof document === "undefined") return null;
+  const pattern = new RegExp(`(?:^|; )${LEONIX_LANG_COOKIE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`);
+  const match = document.cookie.match(pattern);
+  const raw = match?.[1] ? decodeURIComponent(match[1]) : null;
+  return raw && isSupportedLang(raw) ? normalizeLang(raw) : null;
+}
+
+function writeClientCookieLang(lang: SupportedLang): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${LEONIX_LANG_COOKIE}=${encodeURIComponent(lang)}; path=/; max-age=${LEONIX_LANG_COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
+function readClientLocalStorageLang(): SupportedLang | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(LEONIX_LANG_PREF_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(LEONIX_LANG_STORAGE_KEY) ??
+      localStorage.getItem(LEONIX_LANG_PREF_STORAGE_KEY);
     return raw && isSupportedLang(raw) ? normalizeLang(raw) : null;
   } catch {
     return null;
   }
 }
 
+/** Cookie first, then localStorage — client only. */
+export function readClientStoredLangPreference(): SupportedLang | null {
+  return readClientCookieLang() ?? readClientLocalStorageLang();
+}
+
+/** @deprecated Alias for readClientStoredLangPreference. */
+export function readPersistedLangPreference(): SupportedLang | null {
+  return readClientStoredLangPreference();
+}
+
+/** Persist public lang to cookie + localStorage (both keys during migration). */
 export function writePersistedLangPreference(lang: SupportedLang): void {
   if (typeof window === "undefined") return;
+  writeClientCookieLang(lang);
   try {
+    localStorage.setItem(LEONIX_LANG_STORAGE_KEY, lang);
     localStorage.setItem(LEONIX_LANG_PREF_STORAGE_KEY, lang);
   } catch {
     /* ignore quota / privacy mode */
   }
 }
 
-/** URL lang first, then persisted preference, then default. Client-only persistence read. */
+/** Append/replace lang on internal path query; preserves hash when provided. */
+export function buildPathWithLang(
+  pathname: string,
+  searchParams: URLSearchParams,
+  lang: SupportedLang,
+  hash = "",
+): string {
+  const next = new URLSearchParams(searchParams.toString());
+  next.set("lang", lang);
+  const qs = next.toString();
+  return `${pathname}${qs ? `?${qs}` : ""}${hash}`;
+}
+
+/** URL lang → cookie/localStorage → default. Client-safe. */
 export function resolveRouteLang(queryLang: string | null | undefined): SupportedLang {
-  if (queryLang && isSupportedLang(queryLang)) return normalizeLang(queryLang);
-  const persisted = readPersistedLangPreference();
-  if (persisted) return persisted;
+  const fromUrl = readUrlLang(queryLang);
+  if (fromUrl) return fromUrl;
+  const stored = readClientStoredLangPreference();
+  if (stored) return stored;
   return DEFAULT_LANG;
+}
+
+export function isPublicLangPersistenceExcludedPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/login")
+  );
 }

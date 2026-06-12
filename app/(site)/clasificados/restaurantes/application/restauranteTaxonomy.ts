@@ -179,6 +179,8 @@ export const RESTAURANTE_CONTACT_PLACEHOLDERS: Record<string, string> = {
   facebookUrl: "https://facebook.com/tu_negocio",
   tiktokUrl: "https://tiktok.com/@tu_negocio",
   youtubeUrl: "https://youtube.com/@tu_negocio",
+  snapchatUrl: "https://www.snapchat.com/add/tu_negocio",
+  xTwitterUrl: "https://x.com/tu_negocio",
   reservationUrl: "https://tusitio.com/reservas",
   orderUrl: "https://tusitio.com/pedido",
   menuUrl: "https://tusitio.com/menu",

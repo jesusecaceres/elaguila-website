@@ -24,11 +24,16 @@ export function AutosClasificadosPreviewChrome({
   lang,
   labels,
   editBackHref,
+  showSiteLogo = true,
+  hideBackToEdit = false,
   children,
 }: {
   lang: AutosNegociosLang;
   labels: AutosClasificadosPreviewChromeLabels;
   editBackHref?: string;
+  /** When false, breadcrumb-only header — no large Leonix logo in preview canvas. */
+  showSiteLogo?: boolean;
+  hideBackToEdit?: boolean;
   children: ReactNode;
 }) {
   const classifiedsHref = withLangParam("/clasificados", lang);
@@ -39,10 +44,12 @@ export function AutosClasificadosPreviewChrome({
       <header className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <Link href={classifiedsHref} className="block w-[min(160px,52vw)] max-w-[180px] sm:w-[min(200px,42vw)] sm:max-w-[200px]">
-              <Image src={newLogo} alt="LEONIX" className="h-auto w-full object-contain object-left" priority />
-            </Link>
-            <nav aria-label="Breadcrumb" className="min-w-0 pt-0.5 text-sm text-[color:var(--lx-muted)] sm:pt-1">
+            {showSiteLogo ? (
+              <Link href={classifiedsHref} className="block w-[min(160px,52vw)] max-w-[180px] sm:w-[min(200px,42vw)] sm:max-w-[200px]">
+                <Image src={newLogo} alt="LEONIX" className="h-auto w-full object-contain object-left" priority />
+              </Link>
+            ) : null}
+            <nav aria-label="Breadcrumb" className={`min-w-0 text-sm text-[color:var(--lx-muted)] ${showSiteLogo ? "pt-0.5 sm:pt-1" : ""}`}>
               <ol className="flex flex-wrap items-center gap-1.5">
                 <li>
                   <Link
@@ -67,7 +74,7 @@ export function AutosClasificadosPreviewChrome({
               </ol>
             </nav>
           </div>
-          {editBackHref ? (
+          {editBackHref && !hideBackToEdit ? (
             <div className="flex shrink-0 justify-end sm:pt-1">
               <Link
                 href={editBackHref}

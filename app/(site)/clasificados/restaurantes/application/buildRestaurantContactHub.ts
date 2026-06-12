@@ -270,6 +270,8 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
   addSocial("facebook", "Facebook", d.facebookUrl);
   addSocial("tiktok", "TikTok", d.tiktokUrl);
   addSocial("youtube", "YouTube", d.youtubeUrl);
+  addSocial("snapchat", "Snapchat", d.snapchatUrl);
+  addSocial("x", "X", d.xTwitterUrl);
 
   const reviews: RestaurantHubButton[] = [];
   if (nonEmpty(d.googleReviewUrl)) {

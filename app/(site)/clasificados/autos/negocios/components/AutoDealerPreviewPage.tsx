@@ -11,6 +11,7 @@ import {
 } from "../lib/autoDealerPresence";
 import {
   formatCityStateLabel,
+  formatCityStateZipLine,
   formatMiles,
   formatStockDisplay,
   formatUsd,
@@ -23,6 +24,7 @@ import { RelatedDealerCars } from "./RelatedDealerCars";
 import { VehicleDescription } from "./VehicleDescription";
 import { VehicleHighlights } from "./VehicleHighlights";
 import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
+import { VehicleHeroSpecsStrip } from "./VehicleHeroSpecsStrip";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
@@ -45,6 +47,9 @@ export function AutoDealerPreviewPage({
   publicPlaybackOnly = false,
   publicAnalytics,
   relatedPreviewOnly = false,
+  embeddedInShell = false,
+  draftPreviewMode = false,
+  heroSpecItems,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
@@ -54,11 +59,16 @@ export function AutoDealerPreviewPage({
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   /** Draft child preview: related cards are non-navigable placeholders. */
   relatedPreviewOnly?: boolean;
+  /** Parent already rendered preview chrome — skip duplicate header/logo. */
+  embeddedInShell?: boolean;
+  /** Pre-publish capture preview — stronger buyer-facing hierarchy. */
+  draftPreviewMode?: boolean;
+  heroSpecItems?: Array<{ key: string; label: string; value: string }>;
 }) {
-  const { t } = useAutosNegociosPreviewCopy();
+  const { t, lang } = useAutosNegociosPreviewCopy();
   const pt = t.preview.title;
 
-  const loc = formatCityStateLabel(data.city, data.state);
+  const loc = formatCityStateZipLine(data.city, data.state, data.zip) || formatCityStateLabel(data.city, data.state);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
   const showTitle = hasTitleBand(data);
   const showGallery = hasHeroMedia(data);
@@ -105,20 +115,30 @@ export function AutoDealerPreviewPage({
   const orderHi = showHighlights ? ord++ : undefined;
   const orderRelated = (data.relatedDealerListings ?? []).length > 0 ? ord++ : undefined;
 
-  return (
-    <AutoDealerPreviewChrome editBackHref={editBackHref}>
-      <main className="mx-auto mt-5 max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] pt-1 sm:mt-8 sm:pb-10 md:px-5 lg:px-6">
-        <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
-          {showTitle ? (
-            <section
-              className={`${MAIN_CARD} border-l-[3px] border-l-[color:var(--lx-gold)]/70 lg:col-span-7 lg:col-start-1`}
-              style={{ gridRowStart: titleRow, order: orderTitle }}
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+  const mainContent = (
+    <main
+      className={`mx-auto max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] md:px-5 lg:px-6 ${
+        embeddedInShell ? "pt-2 sm:pt-3" : "pt-1 sm:mt-8 sm:pb-10"
+      }`}
+    >
+      <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
+        {showTitle ? (
+          <section
+            className={`${MAIN_CARD} border-l-[3px] border-l-[color:var(--lx-gold)]/70 lg:col-span-7 lg:col-start-1 ${
+              draftPreviewMode ? "shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14)]" : ""
+            }`}
+            style={{ gridRowStart: titleRow, order: orderTitle }}
+          >
+            {draftPreviewMode ? (
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-gold)]">
+                {lang === "es" ? "Vista previa del anuncio" : "Listing preview"}
+              </p>
+            ) : null}
+            <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8 ${draftPreviewMode ? "mt-2" : ""}`}>
                 {showLeft ? (
                   <div className="min-w-0 max-w-full flex-1">
                     {h1 ? (
-                      <h1 className="text-pretty text-[1.65rem] font-extrabold leading-[1.12] tracking-tight text-[color:var(--lx-text)] sm:text-3xl md:text-[2rem]">
+                      <h1 className="text-pretty text-[1.75rem] font-extrabold leading-[1.1] tracking-tight text-[color:var(--lx-text)] sm:text-[2rem] md:text-[2.35rem]">
                         {h1}
                       </h1>
                     ) : null}
@@ -171,7 +191,7 @@ export function AutoDealerPreviewPage({
                     {priceOk ? (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-pretty text-3xl font-extrabold tabular-nums leading-none tracking-tight text-[#2A7F3E] sm:text-4xl lg:text-[color:var(--lx-text)]">
+                        <p className="mt-1 text-pretty text-3xl font-extrabold tabular-nums leading-none tracking-tight text-[#6E5418] sm:text-4xl lg:text-[2.5rem]">
                           {formatUsd(data.price)}
                         </p>
                       </>
@@ -184,6 +204,7 @@ export function AutoDealerPreviewPage({
                   </div>
                 ) : null}
               </div>
+              {heroSpecItems && heroSpecItems.length > 0 ? <VehicleHeroSpecsStrip items={heroSpecItems} /> : null}
             </section>
           ) : null}
 
@@ -222,6 +243,7 @@ export function AutoDealerPreviewPage({
                 data={data}
                 buyerInventoryHref={publicPlaybackOnly ? data.relatedDealerInventoryHref : undefined}
                 publicAnalytics={publicAnalytics}
+                showPremiumHubHeader={draftPreviewMode || publicPlaybackOnly}
                 className="!rounded-none !border-0 !shadow-none bg-transparent p-5 sm:p-6 max-lg:!bg-transparent"
               />
             </div>
@@ -257,6 +279,9 @@ export function AutoDealerPreviewPage({
           ) : null}
         </div>
       </main>
-    </AutoDealerPreviewChrome>
   );
+
+  if (embeddedInShell) return mainContent;
+
+  return <AutoDealerPreviewChrome editBackHref={editBackHref}>{mainContent}</AutoDealerPreviewChrome>;
 }

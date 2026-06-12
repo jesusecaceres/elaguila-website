@@ -57,12 +57,14 @@ export function AutosNegociosResultsCardPreview({
 
   return (
     <section
-      className="mb-6 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)]"
+      className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)] sm:p-5"
       aria-label={autosResultsCardPreviewTitle(lang)}
     >
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6E5418]">{autosResultsCardPreviewTitle(lang)}</p>
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[color:var(--lx-gold)]">
+        {autosResultsCardPreviewTitle(lang)}
+      </p>
       <div className="mt-3 flex flex-col gap-4 sm:flex-row">
-        <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl bg-[#F0E8DC] sm:max-w-[200px]">
+        <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl bg-[color:var(--lx-section)] sm:max-w-[220px]">
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={img} alt="" className="h-full w-full object-cover" />

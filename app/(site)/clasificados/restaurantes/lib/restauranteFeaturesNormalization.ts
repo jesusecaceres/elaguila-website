@@ -4,6 +4,7 @@
  */
 
 import type { RestauranteListingDraft } from "../application/restauranteDraftTypes";
+import { resolveRestauranteCustomLanguages } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
 // UI-ready grouped data structure
 export interface GroupedFeatures {
@@ -159,12 +160,15 @@ export function normalizeRestaurantFeatures(draft: RestauranteListingDraft): Gro
   // GROUP 1: Servicios (from serviceModes)
   const serviceModes = draft.serviceModes || [];
   for (const mode of serviceModes) {
-    if (mode === 'other' && hasValue(draft.serviceModeOtherCustom)) {
+    if (mode === "pop_up") continue;
+    if (mode === "other" && hasValue(draft.serviceModeOtherCustom)) {
       result.servicios.items.push(cleanCustomValue(draft.serviceModeOtherCustom));
     } else if (SERVICE_MODE_LABELS[mode]) {
       result.servicios.items.push(SERVICE_MODE_LABELS[mode]);
     }
   }
+  if (draft.pickupAvailable) result.servicios.items.push("Recogida");
+  if (draft.reservationsAvailable) result.servicios.items.push("Reservas");
 
   // GROUP 2: Cocina y estilo (from cuisines)
   // Primary cuisine
@@ -220,17 +224,17 @@ export function normalizeRestaurantFeatures(draft: RestauranteListingDraft): Gro
     }
   }
 
-  // GROUP 4: Idiomas (from languagesSpoken)
+  // GROUP 4: Idiomas (from languagesSpoken + customLanguages)
   const languages = draft.languagesSpoken || [];
+  const customLangs = resolveRestauranteCustomLanguages(draft);
   for (const lang of languages) {
-    if (lang === 'other_lang' && hasValue(draft.languageOtherCustom)) {
-      result.idiomas.items.push(cleanCustomValue(draft.languageOtherCustom));
-    } else if (lang === 'other_lang') {
-      // Fallback for other_lang without custom value
-      result.idiomas.items.push('Otro');
-    } else if (LANGUAGE_LABELS[lang]) {
+    if (lang === "other_lang") continue;
+    if (LANGUAGE_LABELS[lang]) {
       result.idiomas.items.push(LANGUAGE_LABELS[lang]);
     }
+  }
+  for (const custom of customLangs) {
+    result.idiomas.items.push(cleanCustomValue(custom));
   }
 
   // GROUP 5: Precio (from priceLevel)

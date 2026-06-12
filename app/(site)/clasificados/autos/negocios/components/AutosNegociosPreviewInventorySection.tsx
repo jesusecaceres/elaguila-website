@@ -3,88 +3,77 @@
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
-import {
-  additionalInventoryVehicleTitle,
-  computeInventoryVehicleStatus,
-  inventoryVehicleCoverUrl,
-  inventoryVehiclePhotoCount,
-} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import type { AutosNegociosBuyerPreviewInventoryCard } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
 import {
   autosInventoryBundleAdditionalLabel,
-  autosInventoryBundlePhotoCount,
-  autosInventoryBundleStatusDraft,
-  autosInventoryBundleStatusReady,
   autosPreviewInventorySectionHelper,
   autosPreviewInventorySectionTitle,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
-import {
-  formatMileageInputDisplay,
-  formatUsdIntegerInputDisplay,
-} from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
-
-function formatPrice(n?: number): string | null {
-  if (n === undefined || !Number.isFinite(n)) return null;
-  const s = formatUsdIntegerInputDisplay(n);
-  return s ? `$${s}` : null;
-}
 
 export function AutosNegociosPreviewInventorySection({
   lang,
   parentListing,
   additionalVehicles,
+  viewModelCards,
 }: {
   lang: AutosNegociosLang;
   parentListing: AutoDealerListing;
   additionalVehicles: AutosAdditionalInventoryVehicleDraft[];
+  viewModelCards?: AutosNegociosBuyerPreviewInventoryCard[];
 }) {
   void parentListing;
   if (additionalVehicles.length === 0) return null;
 
+  const cards =
+    viewModelCards ??
+    additionalVehicles.map((v) => ({
+      id: v.id,
+      title: v.id,
+      coverUrl: null,
+      price: null,
+      mileage: null,
+      location: null,
+      specLine: null,
+      draftNote: lang === "es" ? "ID Leonix se generará al publicar" : "Leonix ID generated on publish",
+    }));
+
   return (
-    <section className="mx-auto mb-8 max-w-5xl px-4">
-      <h2 className="text-lg font-extrabold text-[color:var(--lx-text)]">{autosPreviewInventorySectionTitle(lang)}</h2>
-      <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{autosPreviewInventorySectionHelper(lang)}</p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {additionalVehicles.map((v) => {
-          const ready = computeInventoryVehicleStatus(v) === "ready_for_preview";
-          const cover = inventoryVehicleCoverUrl(v);
-          const photos = inventoryVehiclePhotoCount(v);
-          return (
-            <article
-              key={v.id}
-              className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-sm"
-            >
-              <div className="aspect-[16/10] bg-[color:var(--lx-section)]">
-                {cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={cover} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-[color:var(--lx-muted)]">
-                    {lang === "es" ? "Sin imagen" : "No image"}
-                  </div>
-                )}
-              </div>
-              <div className="p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-gold)]">
-                  {autosInventoryBundleAdditionalLabel(lang)} ·{" "}
-                  {lang === "es" ? "Vista previa / borrador" : "Preview / draft"}
-                </p>
-                <h3 className="mt-1 font-bold text-[color:var(--lx-text)]">{additionalInventoryVehicleTitle(v)}</h3>
-                <div className="mt-2 flex flex-wrap gap-x-3 text-sm text-[color:var(--lx-text-2)]">
-                  {formatPrice(v.price) ? <span>{formatPrice(v.price)}</span> : null}
-                  {v.mileage !== undefined ? <span>{formatMileageInputDisplay(v.mileage)} mi</span> : null}
-                  {photos > 0 ? <span>{autosInventoryBundlePhotoCount(lang, photos)}</span> : null}
+    <section className="mx-auto mb-10 max-w-[1280px] px-4 md:px-5 lg:px-6">
+      <h2 className="text-xl font-extrabold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
+        {autosPreviewInventorySectionTitle(lang)}
+      </h2>
+      <p className="mt-2 max-w-3xl text-sm text-[color:var(--lx-text-2)]">{autosPreviewInventorySectionHelper(lang)}</p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((card) => (
+          <article
+            key={card.id}
+            className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)]"
+          >
+            <div className="aspect-[16/10] bg-[color:var(--lx-section)]">
+              {card.coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={card.coverUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-xs text-[color:var(--lx-muted)]">
+                  {lang === "es" ? "Sin imagen" : "No image"}
                 </div>
-                <p className="mt-2 text-xs font-semibold text-[color:var(--lx-gold)]">
-                  {ready ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang)}
-                </p>
-                <p className="mt-2 text-[10px] text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "ID Leonix se generará al publicar" : "Leonix ID generated on publish"}
-                </p>
+              )}
+            </div>
+            <div className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-gold)]">
+                {autosInventoryBundleAdditionalLabel(lang)} · {lang === "es" ? "Vista previa / borrador" : "Preview / draft"}
+              </p>
+              <h3 className="mt-1 text-base font-bold text-[color:var(--lx-text)]">{card.title}</h3>
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[color:var(--lx-text-2)]">
+                {card.price ? <span className="font-semibold text-[color:var(--lx-text)]">{card.price}</span> : null}
+                {card.mileage ? <span>{card.mileage}</span> : null}
+                {card.location ? <span>{card.location}</span> : null}
               </div>
-            </article>
-          );
-        })}
+              {card.specLine ? <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{card.specLine}</p> : null}
+              <p className="mt-3 text-[10px] text-[color:var(--lx-muted)]">{card.draftNote}</p>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

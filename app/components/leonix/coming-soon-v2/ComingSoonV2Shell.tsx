@@ -26,10 +26,10 @@ import type {
   WhatYouGetCardAccent,
 } from "@/app/components/leonix/coming-soon-v2/comingSoonV2Copy/types";
 import {
-  resolveLeonixSiteLang,
   withLeonixLang,
   type LeonixSiteLang,
 } from "@/app/lib/lang";
+import { resolveRouteLang } from "@/app/lib/language";
 import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
 import {
@@ -154,8 +154,8 @@ function HeroMainCtaGroup({
   mkp: ReturnType<typeof getComingSoonV2Copy>["mediaKitPreview"];
 }) {
   return (
-    <div className="w-full min-w-0">
-      <div className="flex flex-col gap-2 sm:gap-2.5 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-start lg:gap-3 [&_a]:w-full sm:[&_a]:whitespace-nowrap lg:[&_a]:w-auto lg:[&_a]:shrink-0">
+    <div className="flex w-full min-w-0 flex-col items-center">
+      <div className="flex w-full min-w-0 flex-col gap-2 sm:gap-2.5 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-center lg:gap-3 [&_a]:w-full sm:[&_a]:whitespace-nowrap lg:[&_a]:w-auto lg:[&_a]:shrink-0">
         <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
         <HeroCtaLink
           cta={{
@@ -1329,8 +1329,7 @@ export function ComingSoonV2Shell() {
 
 function ComingSoonV2ShellContent() {
   const searchParams = useSearchParams();
-  const urlLang = searchParams?.get("lang");
-  const routeLang = resolveLeonixSiteLang(urlLang);
+  const routeLang = resolveRouteLang(searchParams?.get("lang"));
 
   const t = useMemo(() => getComingSoonV2Copy(routeLang), [routeLang]);
   const h = t.hero;

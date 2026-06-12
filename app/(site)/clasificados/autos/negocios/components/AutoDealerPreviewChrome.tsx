@@ -9,9 +9,13 @@ export { AUTO_DEALER_PREVIEW_PAGE_BG } from "@/app/clasificados/autos/shared/com
 /** Negocios lane — uses shared Autos preview chrome. */
 export function AutoDealerPreviewChrome({
   editBackHref,
+  showSiteLogo,
+  hideBackToEdit,
   children,
 }: {
   editBackHref?: string;
+  showSiteLogo?: boolean;
+  hideBackToEdit?: boolean;
   children: ReactNode;
 }) {
   const { lang, t } = useAutosNegociosPreviewCopy();
@@ -26,6 +30,8 @@ export function AutoDealerPreviewChrome({
         backToEdit: c.backToEdit,
       }}
       editBackHref={editBackHref}
+      showSiteLogo={showSiteLogo}
+      hideBackToEdit={hideBackToEdit}
     >
       {children}
     </AutosClasificadosPreviewChrome>

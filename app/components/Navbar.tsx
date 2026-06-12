@@ -21,7 +21,8 @@ import {
 } from "../lib/publicNavConfig";
 import { AdvertiseDropdown } from "./AdvertiseDropdown";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
-import { leonixNavCopyLang, resolveLeonixSiteLang } from "@/app/lib/lang";
+import { leonixNavCopyLang } from "@/app/lib/lang";
+import { resolveRouteLang } from "@/app/lib/language";
 
 type Lang = PublicNavLang;
 
@@ -55,8 +56,7 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const urlLang = searchParams?.get("lang");
-  const routeLang = resolveLeonixSiteLang(urlLang);
+  const routeLang = resolveRouteLang(searchParams?.get("lang"));
   const navLang: Lang = leonixNavCopyLang(routeLang);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [recursosOpen, setRecursosOpen] = useState(false);
@@ -90,7 +90,7 @@ function NavbarContent() {
     setAccountOpen(false);
     setRecursosOpen(false);
     setCompactOverflowOpen(false);
-  }, [pathname, urlLang, searchParams?.toString()]);
+  }, [pathname, routeLang, searchParams?.toString()]);
 
   useEffect(() => {
     if (!mobileOpen) return;

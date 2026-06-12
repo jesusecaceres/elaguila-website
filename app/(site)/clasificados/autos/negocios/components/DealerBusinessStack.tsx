@@ -74,12 +74,14 @@ export function DealerBusinessStack({
   className,
   buyerInventoryHref,
   publicAnalytics,
+  showPremiumHubHeader = false,
 }: {
   data: AutoDealerListing;
   className?: string;
   /** Public buyer context only — never owner dashboard inventory management. */
   buyerInventoryHref?: string | null;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
+  showPremiumHubHeader?: boolean;
 }) {
   const { t, lang } = useAutosNegociosPreviewCopy();
   const sb = t.preview.sidebar;
@@ -201,6 +203,11 @@ export function DealerBusinessStack({
     <div
       className={`min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-6 max-lg:bg-[color:var(--lx-card)] ${className ?? ""}`}
     >
+      {showPremiumHubHeader ? (
+        <div className="-mx-5 -mt-5 mb-5 rounded-t-[20px] bg-[#5C1A1A] px-5 py-2.5 text-center text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#FFFCF7] sm:-mx-6 sm:-mt-6">
+          {lang === "es" ? "Dealer / Negocio" : "Dealer / Business"}
+        </div>
+      ) : null}
       {showIdentity ? (
         <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
           <div className="relative h-[8.5rem] w-[8.5rem] shrink-0 overflow-hidden rounded-[24px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.16)] max-lg:h-[9rem] max-lg:w-[9rem] lg:h-[7.75rem] lg:w-[7.75rem]">

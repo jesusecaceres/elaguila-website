@@ -13,6 +13,7 @@ import type {
 import { buildShellAmenitiesSection } from "../lib/restauranteAmenitiesCatalog";
 import { normalizeRestaurantFeatures } from "../lib/restauranteFeaturesNormalization";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
+import { resolveRestauranteCustomLanguages } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 import {
   firstRestauranteBucketImageRef,
   isRestauranteDisplayableImageRef,
@@ -72,29 +73,35 @@ const LANG_QUICKINFO_MAX = 140;
 
 function formatLanguagesForQuickInfo(d: RestauranteListingDraft): string {
   const langs = d.languagesSpoken?.filter(nonEmpty) ?? [];
-  if (!langs.length) return "";
-  const line = langs
-    .map((k) => {
-      if (k === TAXONOMY_KEY_OTHER_LANG) {
-        if (nonEmpty(d.languageOtherCustom)) return clampChipLabel(d.languageOtherCustom!, 36);
-        return labelForLanguage(k);
-      }
-      return labelForLanguage(k);
-    })
-    .join(" · ");
+  const customLangs = resolveRestauranteCustomLanguages(d);
+  if (!langs.length && !customLangs.length) return "";
+  const parts: string[] = [];
+  for (const k of langs) {
+    if (k === TAXONOMY_KEY_OTHER_LANG) continue;
+    parts.push(labelForLanguage(k));
+  }
+  for (const custom of customLangs) {
+    parts.push(clampChipLabel(custom, 36));
+  }
+  const line = parts.join(" · ");
   return line.length > LANG_QUICKINFO_MAX ? `${line.slice(0, LANG_QUICKINFO_MAX - 1)}…` : line;
 }
 
 function formatServiceModesForQuickInfo(d: RestauranteListingDraft): string {
   const modes = d.serviceModes ?? [];
-  if (!modes.length) return "";
-  return modes
-    .map((m) =>
+  const parts: string[] = [];
+  for (const m of modes) {
+    if (m === "pop_up") continue;
+    parts.push(
       m === (TAXONOMY_KEY_OTHER as RestauranteServiceMode) && nonEmpty(d.serviceModeOtherCustom)
         ? clampChipLabel(d.serviceModeOtherCustom!)
-        : labelForServiceMode(m)
-    )
-    .join(" · ");
+        : labelForServiceMode(m),
+    );
+  }
+  if (d.pickupAvailable) parts.push("Recogida");
+  if (d.reservationsAvailable) parts.push("Reservas");
+  if (!parts.length) return "";
+  return parts.join(" · ");
 }
 
 function buildTaxonomyChips(d: RestauranteListingDraft): { key: string; label: string }[] | undefined {
@@ -111,8 +118,10 @@ function buildTaxonomyChips(d: RestauranteListingDraft): { key: string; label: s
   if ((d.additionalCuisines ?? []).includes(TAXONOMY_KEY_OTHER) && nonEmpty(d.additionalCuisineOtherCustom)) {
     chips.push({ key: "tax-ca", label: clampChipLabel(d.additionalCuisineOtherCustom!) });
   }
-  if ((d.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) && nonEmpty(d.languageOtherCustom)) {
-    chips.push({ key: "tax-lang", label: clampChipLabel(d.languageOtherCustom!) });
+  if ((d.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG)) {
+    for (const [i, custom] of resolveRestauranteCustomLanguages(d).entries()) {
+      if (nonEmpty(custom)) chips.push({ key: `tax-lang-${i}`, label: clampChipLabel(custom) });
+    }
   }
   if (
     (d.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) &&

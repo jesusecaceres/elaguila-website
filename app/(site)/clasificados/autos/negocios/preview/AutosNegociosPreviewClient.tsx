@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
+import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
 import { loadAutosNegociosDraftResolved } from "../lib/autosNegociosDraftStorage";
 import {
@@ -21,6 +22,7 @@ import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/neg
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { normalizeAdditionalInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
+import { mapAutosNegociosBuyerPreviewViewModel } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
 
 const EDIT_BASE = "/publicar/autos/negocios";
 
@@ -93,6 +95,10 @@ function AutosNegociosPreviewInner({
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
   const editBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
+  const viewModel = useMemo(
+    () => mapAutosNegociosBuyerPreviewViewModel(listing, additionalInventoryVehicles, lang),
+    [listing, additionalInventoryVehicles, lang],
+  );
 
   if (!ready) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
@@ -102,21 +108,36 @@ function AutosNegociosPreviewInner({
     return <AutosNegociosPreviewEmptyState />;
   }
 
+  const isDraftCapture = mode === "draft";
   const additionalCount = additionalInventoryVehicles.length;
+
+  if (isDraftCapture) {
+    return (
+      <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
+        <AutoDealerPreviewChrome editBackHref={editBackHref} showSiteLogo={false} hideBackToEdit>
+          <AutosNegociosPreviewCaptureBanner lang={lang} editBackHref={editBackHref} />
+          <div className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
+            <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
+          </div>
+          <AutoDealerPreviewPage
+            data={listing}
+            embeddedInShell
+            draftPreviewMode
+            heroSpecItems={viewModel.heroSpecItems}
+          />
+          <AutosNegociosPreviewInventorySection
+            lang={lang}
+            parentListing={listing}
+            additionalVehicles={additionalInventoryVehicles}
+            viewModelCards={viewModel.additionalInventory}
+          />
+        </AutoDealerPreviewChrome>
+      </AutosDraftPreviewErrorBoundary>
+    );
+  }
 
   return (
     <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
-      {mode === "draft" ? <AutosNegociosPreviewCaptureBanner lang={lang} /> : null}
-      {mode === "draft" ? (
-        <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
-          <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
-        </div>
-      ) : null}
-      <AutosNegociosPreviewInventorySection
-        lang={lang}
-        parentListing={listing}
-        additionalVehicles={additionalInventoryVehicles}
-      />
       <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />
     </AutosDraftPreviewErrorBoundary>
   );

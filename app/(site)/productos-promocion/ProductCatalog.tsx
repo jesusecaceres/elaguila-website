@@ -4,6 +4,8 @@ import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
+import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
+import { navCopyLang, type SupportedLang } from "@/app/lib/language";
 import {
   CATALOG_CATEGORIES,
   CUSTOM_QUOTE_SERVICE_SLUG,
@@ -12,7 +14,8 @@ import {
   type CatalogCategory,
 } from "./catalogData";
 
-type Lang = "es" | "en";
+/** Product UI strings — es/en only until PROMO-LANG1 full community copy. */
+type CopyLang = "es" | "en";
 
 const CATEGORY_ICONS: Record<CategoryId, string> = {
   "business-cards": "🪪",
@@ -36,7 +39,7 @@ const CONTACT = {
     "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20201%20San%20Jose%20CA%2095110",
 } as const;
 
-function promoMailtoHref(lang: Lang): string {
+function promoMailtoHref(lang: CopyLang): string {
   const subject =
     lang === "en"
       ? "Quote request — Promotional Products"
@@ -44,9 +47,9 @@ function promoMailtoHref(lang: Lang): string {
   return `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}`;
 }
 
-function generalQuoteHref(lang: Lang): string {
+function generalQuoteHref(routeLang: SupportedLang): string {
   const params = new URLSearchParams({
-    lang,
+    lang: routeLang,
     service: "cotizacion-general",
     sourceCta: "promo_quote",
     sourcePage: "productos-promocion",
@@ -58,7 +61,7 @@ function outlineBtnProps(): CSSProperties {
   return { background: "var(--lx-card)", color: "var(--lx-text)", borderColor: "var(--lx-border)" };
 }
 
-function ProductCardImage({ product, lang }: { product: Product; lang: Lang }) {
+function ProductCardImage({ product, lang }: { product: Product; lang: CopyLang }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const title = product[lang].title;
   const alt = lang === "es" ? (product.imageAltEs ?? title) : (product.imageAltEn ?? title);
@@ -81,7 +84,7 @@ function ProductCardImage({ product, lang }: { product: Product; lang: Lang }) {
   );
 }
 
-function ProductImagePlaceholder({ product, lang }: { product: Product; lang: Lang }) {
+function ProductImagePlaceholder({ product, lang }: { product: Product; lang: CopyLang }) {
   const title = product[lang].title;
   const initials = title
     .split(/\s+/)
@@ -126,11 +129,19 @@ function ProductImagePlaceholder({ product, lang }: { product: Product; lang: La
   );
 }
 
-function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
+function ProductCard({
+  product,
+  lang,
+  routeLang,
+}: {
+  product: Product;
+  lang: CopyLang;
+  routeLang: SupportedLang;
+}) {
   const title = product[lang].title;
   const subtitle = product[lang].subtitle;
   const ctaLabel = lang === "es" ? "Solicitar cotización" : "Request Quote";
-  const href = quoteHref(lang, product.slug);
+  const href = quoteHref(routeLang, product.slug);
 
   return (
     <article
@@ -167,8 +178,14 @@ function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
   );
 }
 
-function quoteHref(lang: Lang, slug: string): string {
-  return `/tienda/contacto?lang=${lang}&service=${encodeURIComponent(slug)}`;
+function quoteHref(routeLang: SupportedLang, slug: string): string {
+  const params = new URLSearchParams({
+    lang: routeLang,
+    service: slug,
+    sourcePage: "productos-promocion",
+    sourceCta: slug === CUSTOM_QUOTE_SERVICE_SLUG ? "custom_quote" : "product_quote",
+  });
+  return `/tienda/contacto?${params.toString()}`;
 }
 
 function ContactActionLink({
@@ -217,7 +234,7 @@ function ContactActionLink({
   );
 }
 
-function HeroContactActions({ lang }: { lang: Lang }) {
+function HeroContactActions({ lang, routeLang }: { lang: CopyLang; routeLang: SupportedLang }) {
   const quoteLabel = lang === "es" ? "Solicitar cotización" : "Request quote";
   const callLabel = lang === "es" ? "Llamar" : "Call";
   const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
@@ -226,7 +243,7 @@ function HeroContactActions({ lang }: { lang: Lang }) {
     <div className="flex flex-col items-center gap-4">
       <div className="flex flex-wrap justify-center gap-3">
         <Link
-          href={generalQuoteHref(lang)}
+          href={generalQuoteHref(routeLang)}
           className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
         >
           {quoteLabel}
@@ -258,7 +275,7 @@ function HeroContactActions({ lang }: { lang: Lang }) {
   );
 }
 
-function BottomContactBlock({ lang }: { lang: Lang }) {
+function BottomContactBlock({ lang, routeLang }: { lang: CopyLang; routeLang: SupportedLang }) {
   const heading = lang === "es" ? "¿Prefieres hablarlo en persona?" : "Prefer to talk in person?";
   const body =
     lang === "es"
@@ -304,7 +321,7 @@ function BottomContactBlock({ lang }: { lang: Lang }) {
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href={generalQuoteHref(lang)}
+            href={generalQuoteHref(routeLang)}
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
             style={{ background: OLIVE_BG, color: OLIVE_FG }}
           >
@@ -318,7 +335,15 @@ function BottomContactBlock({ lang }: { lang: Lang }) {
   );
 }
 
-function AdditionalProductsSection({ products, lang }: { products: Product[]; lang: Lang }) {
+function AdditionalProductsSection({
+  products,
+  lang,
+  routeLang,
+}: {
+  products: Product[];
+  lang: CopyLang;
+  routeLang: SupportedLang;
+}) {
   if (products.length === 0) return null;
 
   const heading = lang === "es" ? "También podemos cotizar" : "We can also quote";
@@ -342,7 +367,7 @@ function AdditionalProductsSection({ products, lang }: { products: Product[]; la
         {products.map((product) => (
           <li key={product.slug}>
             <Link
-              href={quoteHref(lang, product.slug)}
+              href={quoteHref(routeLang, product.slug)}
               className="inline-flex max-w-full items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:brightness-[0.97]"
               style={{
                 background: "var(--lx-card)",
@@ -359,7 +384,7 @@ function AdditionalProductsSection({ products, lang }: { products: Product[]; la
   );
 }
 
-function TabCustomQuoteCta({ lang }: { lang: Lang }) {
+function TabCustomQuoteCta({ lang, routeLang }: { lang: CopyLang; routeLang: SupportedLang }) {
   const callout =
     lang === "es"
       ? "¿No ves lo que necesitas? Te ayudamos a cotizarlo."
@@ -375,7 +400,7 @@ function TabCustomQuoteCta({ lang }: { lang: Lang }) {
         {callout}
       </p>
       <Link
-        href={quoteHref(lang, CUSTOM_QUOTE_SERVICE_SLUG)}
+        href={quoteHref(routeLang, CUSTOM_QUOTE_SERVICE_SLUG)}
         className="mt-4 inline-block rounded-xl px-6 py-3 text-sm font-semibold transition"
         style={{ background: OLIVE_BG, color: OLIVE_FG, boxShadow: "0 2px 12px rgba(85,107,62,0.22)" }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
@@ -392,7 +417,7 @@ function CategoryTabs({
 }: {
   categories: CatalogCategory[];
   active: CategoryId;
-  lang: Lang;
+  lang: CopyLang;
   onSelect: (id: CategoryId) => void;
 }) {
   return (
@@ -426,7 +451,8 @@ function CategoryTabs({
   );
 }
 
-export function ProductCatalog({ lang }: { lang: Lang }) {
+export function ProductCatalog({ routeLang }: { routeLang: SupportedLang }) {
+  const lang = navCopyLang(routeLang);
   const [activeId, setActiveId] = useState<CategoryId>("business-cards");
 
   const activeCategory = CATALOG_CATEGORIES.find((c) => c.id === activeId) ?? CATALOG_CATEGORIES[0];
@@ -441,10 +467,13 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
       ? "Explora algunos de los productos que podemos ayudarte a conseguir. Si no lo ves aquí, también podemos cotizarlo."
       : "Explore some of the products we can help you source. If you do not see it here, we can still quote it.";
   return (
-    <div style={{ background: "var(--lx-page)" }}>
+    <div lang={routeLang} style={{ background: "var(--lx-page)" }}>
       {/* ── HERO (header only — catalog grid below is unchanged) ─────── */}
       <section className="border-b border-[#D6C7AD] bg-[#FAF6EE] px-4 py-8 sm:px-8 sm:py-10">
-        <div className="mx-auto max-w-3xl text-center">
+        <div className="relative mx-auto max-w-3xl text-center">
+          <div className="mb-4 flex justify-end">
+            <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/productos-promocion" />
+          </div>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
             {lang === "es" ? "PRODUCTOS PROMOCIONALES · LEONIX" : "PROMOTIONAL PRODUCTS · LEONIX"}
           </p>
@@ -455,7 +484,7 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
             {heroSubtitle}
           </p>
           <div className="mt-8">
-            <HeroContactActions lang={lang} />
+            <HeroContactActions lang={lang} routeLang={routeLang} />
           </div>
         </div>
       </section>
@@ -476,17 +505,17 @@ export function ProductCatalog({ lang }: { lang: Lang }) {
           {activeCategory.featuredProducts.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {activeCategory.featuredProducts.map((product) => (
-                <ProductCard key={product.slug} product={product} lang={lang} />
+                <ProductCard key={product.slug} product={product} lang={lang} routeLang={routeLang} />
               ))}
             </div>
           ) : null}
 
-          <AdditionalProductsSection products={activeCategory.additionalProducts} lang={lang} />
-          <TabCustomQuoteCta lang={lang} />
+          <AdditionalProductsSection products={activeCategory.additionalProducts} lang={lang} routeLang={routeLang} />
+          <TabCustomQuoteCta lang={lang} routeLang={routeLang} />
         </div>
       </section>
 
-      <BottomContactBlock lang={lang} />
+      <BottomContactBlock lang={lang} routeLang={routeLang} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ComingSoonGateRoot } from "./components/ComingSoonGateRoot";
+import { LanguagePreferenceSync } from "./components/LanguagePreferenceSync";
 import { LeonixRootJsonLd } from "./components/LeonixRootJsonLd";
 import {
   LEONIX_MEDIA_SITE_NAME,
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
         <LeonixRootJsonLd />
         <ComingSoonGateRoot>
+          <LanguagePreferenceSync />
           <Suspense fallback={<div className="flex min-h-screen items-center justify-center" aria-busy="true" />}>{children}</Suspense>
         </ComingSoonGateRoot>
       </body>

@@ -152,7 +152,12 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
   const hasWhatsApp = nonEmpty(draft.whatsAppNumber);
   const hasMenu = nonEmpty(draft.menuUrl) || nonEmpty(draft.menuFile);
   const hasSocial =
-    nonEmpty(draft.instagramUrl) || nonEmpty(draft.facebookUrl) || nonEmpty(draft.tiktokUrl) || nonEmpty(draft.youtubeUrl);
+    nonEmpty(draft.instagramUrl) ||
+    nonEmpty(draft.facebookUrl) ||
+    nonEmpty(draft.tiktokUrl) ||
+    nonEmpty(draft.youtubeUrl) ||
+    nonEmpty(draft.snapchatUrl) ||
+    nonEmpty(draft.xTwitterUrl);
 
   let shellBase: ReturnType<typeof mapRestauranteDraftToShellData>;
   try {
