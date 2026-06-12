@@ -618,15 +618,6 @@ function HeroQrAccessStrip({
     sourcePage: "coming-soon-v2",
     sourceCta: "qr_translation_options",
   });
-  const translateHref = leonixGoogleTranslateWebsiteUrl(lang, {
-    sourcePage: "coming-soon-v2",
-    sourceCta: "hero_qr_google_translate",
-    returnTo: "/coming-soon-v2",
-  });
-  const qrGuideHref = magazinePrintGuideHref(lang, {
-    sourcePage: "coming-soon-v2",
-    sourceCta: "hero_qr_guide",
-  });
 
   return (
     <aside
@@ -645,24 +636,12 @@ function HeroQrAccessStrip({
       <p className="mt-1.5 text-sm leading-snug text-[#3D3428] sm:text-[0.9375rem] sm:leading-relaxed">
         {summary}
       </p>
-      <div className="mt-2.5 flex min-w-0 flex-col gap-2 sm:mt-3 sm:flex-row sm:flex-wrap">
+      <div className="mt-2.5 sm:mt-3">
         <Link
           href={translatorOptionsHref}
           className={`${qrCtaButtonClass} border-[#2A4536]/35 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]`}
         >
           {labels.translationOptions}
-        </Link>
-        <Link
-          href={translateHref}
-          className={`${qrCtaButtonClass} border-[#C9A84A]/55 bg-[#FFFDF7] text-[#1F241C] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
-        >
-          {labels.translateLeonix}
-        </Link>
-        <Link
-          href={qrGuideHref}
-          className={`${qrCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}
-        >
-          {labels.qrGuide}
         </Link>
       </div>
     </aside>
@@ -1029,60 +1008,6 @@ function DigitalMagazineSection({
         {mobileNote}
       </p>
     </section>
-  );
-}
-
-function HeroMediaKitQuickActions({
-  lang,
-  eyebrow,
-  downloadCta,
-  dualPdfEsLabel,
-  dualPdfEnLabel,
-  requestInfoCta,
-}: {
-  lang: SupportedLang;
-  eyebrow: string;
-  downloadCta: { label: string; href: string };
-  dualPdfEsLabel: string;
-  dualPdfEnLabel: string;
-  requestInfoCta: { label: string; href: string };
-}) {
-  const dualMediaKit = showDualMediaKitPdfButtons(lang);
-
-  return (
-    <div
-      className="mt-3 rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-3 shadow-sm sm:mt-4 sm:p-4"
-      aria-label={eyebrow}
-    >
-      <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#556B3E] sm:text-xs">
-        {eyebrow}
-      </p>
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2">
-        {dualMediaKit ? (
-          <>
-            <MediaKitDownloadLink
-              label={dualPdfEsLabel}
-              href={MAGAZINE_KIT_PDF_ES}
-              tone="light"
-            />
-            <MediaKitDownloadLink
-              label={dualPdfEnLabel}
-              href={MAGAZINE_KIT_PDF_EN}
-              tone="light"
-            />
-          </>
-        ) : (
-          <MediaKitDownloadLink label={downloadCta.label} href={downloadCta.href} tone="light" />
-        )}
-        <HeroCtaLink
-          cta={{
-            label: requestInfoCta.label,
-            href: requestInfoCta.href,
-            variant: "primary",
-          }}
-        />
-      </div>
-    </div>
   );
 }
 
@@ -1504,10 +1429,8 @@ function ComingSoonV2ShellContent() {
                 summary={qr.heroStripSummary}
               />
 
-              <div className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-3">
-                <HeroCtaLink cta={h.ctas[0]} />
+              <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-5 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2.5">
                 <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
-                <HeroCtaLink cta={h.ctas[2]} />
                 <HeroCtaLink
                   cta={{
                     label: h.magazineCta,
@@ -1516,19 +1439,17 @@ function ComingSoonV2ShellContent() {
                   }}
                 />
                 <HeroCtaLink cta={h.ctas[1]} />
+                <MediaKitDownloadLink
+                  label={mkp.downloadCta.label}
+                  href={mkp.downloadCta.href}
+                  tone="light"
+                />
+                <HeroCtaLink cta={h.ctas[0]} />
+                <HeroCtaLink cta={h.ctas[2]} />
               </div>
 
-              <HeroMediaKitQuickActions
-                lang={routeLang}
-                eyebrow={mkp.eyebrow}
-                downloadCta={mkp.downloadCta}
-                dualPdfEsLabel={mkp.dualPdfEsLabel}
-                dualPdfEnLabel={mkp.dualPdfEnLabel}
-                requestInfoCta={mkp.requestInfoCta}
-              />
-
               <ul
-                className="mt-4 flex flex-col gap-1.5 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4"
+                className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-3"
                 aria-label={h.trustAria}
               >
                 {h.trustChips.map((chip) => (
