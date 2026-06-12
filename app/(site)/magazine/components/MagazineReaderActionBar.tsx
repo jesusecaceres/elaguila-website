@@ -4,12 +4,12 @@ import Link from "next/link";
 import {
   getMagazineUi,
   comingSoonHref,
-  mediaKitHref,
   showDualMediaKitPdfButtons,
   MAGAZINE_KIT_PDF_EN,
   MAGAZINE_KIT_PDF_ES,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
+import { mediaKitPageHref } from "@/app/lib/leonix/mediaKitRoutes";
 import {
   getMagazineVisualAsset,
   MAGAZINE_ISSUE_IDS,
@@ -70,12 +70,7 @@ export function MagazineReaderActionBar({
           </a>
         </>
       ) : (
-        <Link
-          href={mediaKitHref(lang)}
-          className={btnGold}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <Link href={mediaKitPageHref(lang)} className={btnGold}>
           {ui.viewMediaKit}
         </Link>
       )}

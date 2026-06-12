@@ -13,11 +13,13 @@ import {
   CL_PAGE,
 } from "../components/comidaLocalCustomerStyles";
 import { ComidaLocalPublicDetailClient } from "../components/ComidaLocalPublicDetailClient";
+import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ lang?: string }>;
 };
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
@@ -40,17 +42,20 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
 export default async function ComidaLocalPublicDetailPage(props: PageProps) {
   const { slug } = await props.params;
+  const sp = (await props.searchParams) ?? {};
+  const lang = normalizeLang(sp.lang);
   const row = await getPublishedComidaLocalListingBySlug(slug);
   if (!row) notFound();
 
   const vm = mapComidaLocalRowToDetailVm(row);
+  const hubHref = replaceLangInHref("/clasificados/comida-local", lang);
 
   return (
     <div className={CL_PAGE}>
       <div className={CL_HEADER_BAR}>
         <div className={`${CL_CONTAINER_NARROW} flex flex-wrap items-center justify-between gap-2 py-3.5`}>
           <Link
-            href="/clasificados/comida-local"
+            href={hubHref}
             className="text-sm font-medium text-[#7A1E2C] hover:underline"
           >
             ← Comida Local

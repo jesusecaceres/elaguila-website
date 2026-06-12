@@ -2,7 +2,9 @@
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
 import { saveComidaLocalDraftToStorage } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
@@ -108,6 +110,10 @@ function formatSavedAt(ts: number | null): string | null {
 }
 
 export default function ComidaLocalApplicationClient() {
+  const searchParams = useSearchParams();
+  const routeLang = normalizeLang(searchParams?.get("lang"));
+  const comidaLocalHubHref = replaceLangInHref("/clasificados/comida-local", routeLang);
+  const comidaLocalPreviewHref = replaceLangInHref("/clasificados/comida-local/preview", routeLang);
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft();
   const [activeSection, setActiveSection] = useState<ComidaLocalSectionKey>("identidad");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -648,7 +654,7 @@ export default function ComidaLocalApplicationClient() {
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
-                    href="/clasificados/comida-local"
+                    href={comidaLocalHubHref}
                     className="inline-flex rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
                   >
                     {COMIDA_LOCAL_SHELL_COPY.publishSuccessViewResults}
@@ -686,7 +692,7 @@ export default function ComidaLocalApplicationClient() {
               </div>
               {previewReady ? (
                 <Link
-                  href="/clasificados/comida-local/preview"
+                  href={comidaLocalPreviewHref}
                   className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
                 >
                   {COMIDA_LOCAL_SHELL_COPY.viewPreview}

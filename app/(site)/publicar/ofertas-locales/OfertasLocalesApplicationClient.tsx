@@ -56,6 +56,9 @@ import {
   wizardStepTitle,
   type OfertasLocalesWizardStepId,
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
+import { useSearchParams } from "next/navigation";
+import { normalizeLang } from "@/app/lib/language";
+import { publicContactHref } from "@/app/lib/leonix/publicRouteHrefs";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import {
@@ -156,8 +159,22 @@ function formatSavedAt(ts: number | null, lang: "es" | "en"): string | null {
 }
 
 export default function OfertasLocalesApplicationClient() {
+  const searchParams = useSearchParams();
+  const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = useOfertasLocalesAppLang();
   const c = ofertasLocalesAppCopy(lang);
+  const contactMoreExposureHref = publicContactHref({
+    lang: routeLang,
+    sourcePage: "publicar-ofertas-locales",
+    sourceCta: "more_exposure_contact",
+    inquiryType: "advertising",
+  });
+  const contactPartnerHref = publicContactHref({
+    lang: routeLang,
+    sourcePage: "publicar-ofertas-locales",
+    sourceCta: "leonix_partner_contact",
+    inquiryType: "advertising",
+  });
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft();
   const [step, setStep] = useState<OfertasLocalesWizardStepId>(1);
   const [submitting, setSubmitting] = useState(false);
@@ -363,7 +380,7 @@ export default function OfertasLocalesApplicationClient() {
               <p className="font-semibold text-[#7A1E2C]">{c.step1MoreExposureTitle}</p>
               <p className="mt-1 text-xs leading-relaxed">{c.step1MoreExposureBody}</p>
               <Link
-                href="/contacto"
+                href={contactMoreExposureHref}
                 className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
               >
                 {c.reviewContactLeonix}
@@ -374,7 +391,7 @@ export default function OfertasLocalesApplicationClient() {
               <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
               <p className="mt-1 text-xs leading-relaxed">{c.step1LeonixPartnerBody}</p>
               <Link
-                href="/contacto"
+                href={contactPartnerHref}
                 className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
               >
                 {c.leonixPartnerCta}
@@ -913,7 +930,7 @@ export default function OfertasLocalesApplicationClient() {
               <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
               <p className="mt-1 text-xs leading-relaxed">{c.step1LeonixPartnerBody}</p>
               <Link
-                href="/contacto"
+                href={contactPartnerHref}
                 className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
               >
                 {c.leonixPartnerCta}

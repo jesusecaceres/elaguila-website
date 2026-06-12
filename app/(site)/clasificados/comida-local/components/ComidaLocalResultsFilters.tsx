@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useTransition } from "react";
+import { normalizeLang } from "@/app/lib/language";
 import {
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
   COMIDA_LOCAL_PRICE_LEVEL_OPTIONS,
@@ -39,23 +40,25 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
 
   const pushFilters = useCallback(
     (next: Partial<typeof current>) => {
+      const routeLang = normalizeLang(searchParams?.get("lang"));
       const params = new URLSearchParams();
+      params.set("lang", routeLang);
       const merged = { ...current, ...next };
       if (merged.q) params.set("q", merged.q);
       if (merged.city) params.set("city", merged.city);
       if (merged.foodType) params.set("foodType", merged.foodType);
       if (merged.service) params.set("service", merged.service);
       if (merged.priceLevel) params.set("priceLevel", merged.priceLevel);
-      const qs = params.toString();
       startTransition(() => {
-        router.push(qs ? `/clasificados/comida-local?${qs}` : "/clasificados/comida-local");
+        router.push(`/clasificados/comida-local?${params.toString()}`);
       });
     },
-    [current, router]
+    [current, router, searchParams]
   );
 
   const clearAll = () => {
-    startTransition(() => router.push("/clasificados/comida-local"));
+    const routeLang = normalizeLang(searchParams?.get("lang"));
+    startTransition(() => router.push(`/clasificados/comida-local?lang=${routeLang}`));
   };
 
   const hasActive = Boolean(
