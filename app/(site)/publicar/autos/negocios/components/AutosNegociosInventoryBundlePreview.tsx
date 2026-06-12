@@ -32,6 +32,8 @@ import {
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { AutosNegociosAddInventoryDrawer } from "./AutosNegociosAddInventoryDrawer";
 import { AutosNegociosChildInventoryPreviewOverlay } from "./AutosNegociosChildInventoryPreviewOverlay";
+import { writeAutosNegociosEditorReturnContext } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
+import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
 function formatPrice(n?: number): string | null {
   if (n === undefined || !Number.isFinite(n)) return null;
@@ -132,6 +134,11 @@ export function AutosNegociosInventoryBundlePreview({
   onSaveVehicle,
   onRemoveVehicle,
   flushDraft,
+  editorStep = 6,
+  editorMaxReached = 6,
+  inventoryAddMode = false,
+  inventoryAddContext = null,
+  backToEditLabel,
   drawerOpen = false,
   drawerEditingId = null,
   onDrawerOpenChange,
@@ -146,7 +153,12 @@ export function AutosNegociosInventoryBundlePreview({
   additionalCount: number;
   onSaveVehicle: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   onRemoveVehicle: (id: string) => void;
-  flushDraft?: () => Promise<void>;
+  flushDraft?: (opts?: { editorStep?: number; editorMaxReached?: number }) => Promise<void>;
+  editorStep?: number;
+  editorMaxReached?: number;
+  inventoryAddMode?: boolean;
+  inventoryAddContext?: AutosInventoryAddContext | null;
+  backToEditLabel?: string;
   drawerOpen?: boolean;
   drawerEditingId?: string | null;
   onDrawerOpenChange?: (open: boolean, editingId?: string | null) => void;
@@ -210,7 +222,21 @@ export function AutosNegociosInventoryBundlePreview({
                 imageUrl={inventoryVehicleCoverUrl(v)}
                 statusLabel={ready ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang)}
                 photoLabel={photos > 0 ? autosInventoryBundlePhotoCount(lang, photos) : null}
-                onPreview={() => setPreviewId(v.id)}
+                onPreview={async () => {
+                  writeAutosNegociosEditorReturnContext({
+                    returnStep: editorStep,
+                    returnMode: "child-preview",
+                    childId: v.id,
+                    lang,
+                    inventoryAddMode: Boolean(inventoryAddMode && inventoryAddContext),
+                    inventoryAddContext: inventoryAddMode ? inventoryAddContext : null,
+                  });
+                  await flushDraft?.({
+                    editorStep,
+                    editorMaxReached: Math.max(editorMaxReached, editorStep),
+                  });
+                  setPreviewId(v.id);
+                }}
                 onEdit={() => onDrawerOpenChange?.(true, v.id)}
                 onRemove={() => {
                   if (typeof window !== "undefined" && !window.confirm(autosInventoryRemoveConfirm(lang))) return;
@@ -248,7 +274,8 @@ export function AutosNegociosInventoryBundlePreview({
           parentListing={listing}
           child={previewVehicle}
           allAdditional={additionalVehicles}
-          onClose={() => setPreviewId(null)}
+          backToEditLabel={backToEditLabel ?? (lang === "es" ? "Volver a editar" : "Back to edit")}
+          onBackToEdit={() => setPreviewId(null)}
         />
       ) : null}
     </>

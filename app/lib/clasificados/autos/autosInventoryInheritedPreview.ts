@@ -57,6 +57,7 @@ export const AUTOS_INVENTORY_INHERITED_FIELD_GROUPS: AutosInheritedPreviewFieldG
     "googleReviewsUrl",
     "yelpReviewsUrl",
     "dealerCustomLinks",
+    "dealerLanguages",
     "financeContactName",
     "financeContactTitle",
     "financeContactPhone",

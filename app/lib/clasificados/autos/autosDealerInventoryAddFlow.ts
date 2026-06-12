@@ -3,6 +3,7 @@ import { createEmptyListing } from "@/app/clasificados/autos/negocios/lib/autoDe
 import type { AutosClassifiedsListingRow } from "./autosClassifiedsTypes";
 import { getDealerInventoryGroupId } from "./autosDealerInventoryPolicy";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
+import { readAutosNegociosEditorReturnContext } from "./autosNegociosEditorReturnContext";
 
 export const AUTOS_INVENTORY_ADD_SESSION_KEY = "lx-autos-inventory-add-context" as const;
 
@@ -105,6 +106,7 @@ export function prefillDealerListingForInventoryAdd(parent: AutoDealerListing): 
     dealerCustomLinks: Array.isArray(parent.dealerCustomLinks)
       ? parent.dealerCustomLinks.map((r, i) => ({ ...r, id: r.id ?? `prefill-link-${i}` }))
       : [],
+    dealerLanguages: Array.isArray(parent.dealerLanguages) ? [...parent.dealerLanguages] : [],
     financeContactName: parent.financeContactName,
     financeContactTitle: parent.financeContactTitle,
     financeContactPhone: parent.financeContactPhone,
@@ -157,28 +159,48 @@ export function clearInventoryAddContextFromSession(): void {
   window.sessionStorage.removeItem(AUTOS_INVENTORY_ADD_SESSION_KEY);
 }
 
-/** URL params first; fall back to session after preview roundtrip (`resume=1` without query). */
+/** URL params first; session fallback only when URL explicitly requests inventory add mode. */
 export function resolveAutosInventoryAddContextForEditor(
   params: URLSearchParams | { get: (key: string) => string | null },
 ): { inventoryModeAdd: boolean; context: AutosInventoryAddContext | null } {
   const fromUrl = parseAutosInventoryAddSearchParams(params);
   if (fromUrl.inventoryModeAdd && fromUrl.context) return fromUrl;
-  const session = readInventoryAddContextFromSession();
-  if (session) return { inventoryModeAdd: true, context: session };
+  const mode = params.get("inventoryMode")?.trim().toLowerCase();
+  if (mode === "add") {
+    const session = readInventoryAddContextFromSession();
+    if (session) return { inventoryModeAdd: true, context: session };
+  }
   return { inventoryModeAdd: false, context: null };
 }
 
-/** Editor return from preview — preserves inventory add query when context lives in session. */
+/** Editor return from preview — uses explicit return context; never stale inventory add session alone. */
 export function buildAutosNegociosEditorResumeHref(basePath: string, lang: "es" | "en"): string {
-  const ctx = readInventoryAddContextFromSession();
+  const returnCtx = readAutosNegociosEditorReturnContext();
   const p = new URLSearchParams();
   p.set("lang", lang);
   p.set("resume", "1");
-  if (ctx) {
+  if (returnCtx?.inventoryAddMode && returnCtx.inventoryAddContext?.parentListingId) {
+    const ctx = returnCtx.inventoryAddContext;
     p.set("inventoryMode", "add");
     p.set("parentListingId", ctx.parentListingId);
     if (ctx.returnToListingId?.trim()) p.set("returnToListingId", ctx.returnToListingId.trim());
     if (ctx.dealerInventoryGroupId?.trim()) p.set("dealerInventoryGroupId", ctx.dealerInventoryGroupId.trim());
   }
   return `${basePath}?${p.toString()}`;
+}
+
+/** Strip preview-only query params after resume hydrate so remounts do not re-enter inventory add wipe paths. */
+export function stripAutosNegociosEditorResumeQueryParams(
+  params: URLSearchParams,
+  opts: { inventoryAddMode: boolean },
+): URLSearchParams {
+  const p = new URLSearchParams(params.toString());
+  p.delete("resume");
+  if (!opts.inventoryAddMode) {
+    p.delete("inventoryMode");
+    p.delete("parentListingId");
+    p.delete("returnToListingId");
+    p.delete("dealerInventoryGroupId");
+  }
+  return p;
 }

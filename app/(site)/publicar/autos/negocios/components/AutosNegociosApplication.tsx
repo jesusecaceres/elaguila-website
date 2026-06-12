@@ -24,6 +24,7 @@ import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/a
 import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/components/AutosDealerStructuredAddressFields";
 import { AutosDealerLogoUpload } from "@/app/publicar/autos/shared/components/AutosDealerLogoUpload";
 import { AutosDealerFinanceFields } from "@/app/publicar/autos/shared/components/AutosDealerFinanceFields";
+import { AutosDealerLanguagesField } from "@/app/publicar/autos/shared/components/AutosDealerLanguagesField";
 import { AutosDealerHoursEditor } from "@/app/publicar/autos/shared/components/AutosDealerHoursEditor";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
@@ -35,6 +36,8 @@ import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/sha
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
+import { writeAutosNegociosEditorReturnContext } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
+import { stripAutosNegociosEditorResumeQueryParams } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -116,11 +119,12 @@ export function AutosNegociosApplication() {
   useEffect(() => {
     if (!hydrated || !searchParams || !pathname) return;
     if (searchParams.get("resume") !== "1") return;
-    const p = new URLSearchParams(searchParams.toString());
-    p.delete("resume");
+    const p = stripAutosNegociosEditorResumeQueryParams(new URLSearchParams(searchParams.toString()), {
+      inventoryAddMode: Boolean(inventoryAddMode && inventoryAddContext),
+    });
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
-  }, [hydrated, pathname, router, searchParams]);
+  }, [hydrated, inventoryAddContext, inventoryAddMode, pathname, router, searchParams]);
 
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
@@ -314,6 +318,13 @@ export function AutosNegociosApplication() {
                 onPatch={(p) => setListingPatch(syncDealerAddressFromStructured({ ...listing, ...p }))}
               />
             </div>
+
+            <AutosDealerLanguagesField
+              lang={lang}
+              copy={t}
+              languages={listing.dealerLanguages}
+              onChange={(dealerLanguages) => setListingPatch({ dealerLanguages })}
+            />
 
             <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
 
@@ -515,6 +526,11 @@ export function AutosNegociosApplication() {
                   listing={listing}
                   additionalVehicles={additionalInventoryVehicles}
                   additionalCount={additionalInventoryVehicles.length}
+                  editorStep={editorStep}
+                  editorMaxReached={editorMaxReached}
+                  inventoryAddMode={inventoryAddMode}
+                  inventoryAddContext={inventoryAddContext}
+                  backToEditLabel={t.preview.chrome.backToEdit}
                   onSaveVehicle={(vehicle) => {
                     const ok = upsertAdditionalInventoryVehicle(vehicle);
                     if (ok) void flushDraft();
@@ -566,6 +582,13 @@ export function AutosNegociosApplication() {
               onPreview={async () => {
                 const finalStep = AUTOS_PUBLISH_FINAL_STEP_INDEX;
                 setEditorProgress(finalStep, Math.max(editorMaxReached, finalStep));
+                writeAutosNegociosEditorReturnContext({
+                  returnStep: finalStep,
+                  returnMode: "parent-preview",
+                  lang,
+                  inventoryAddMode: Boolean(inventoryAddMode && inventoryAddContext),
+                  inventoryAddContext: inventoryAddMode ? inventoryAddContext : null,
+                });
                 await flushDraft({
                   editorStep: finalStep,
                   editorMaxReached: Math.max(editorMaxReached, finalStep),

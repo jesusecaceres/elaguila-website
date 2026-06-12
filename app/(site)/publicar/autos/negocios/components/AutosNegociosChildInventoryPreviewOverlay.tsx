@@ -23,7 +23,8 @@ type Props = {
   parentListing: AutoDealerListing;
   child: AutosAdditionalInventoryVehicleDraft;
   allAdditional: AutosAdditionalInventoryVehicleDraft[];
-  onClose: () => void;
+  backToEditLabel: string;
+  onBackToEdit: () => void;
 };
 
 export function AutosNegociosChildInventoryPreviewOverlay({
@@ -31,7 +32,8 @@ export function AutosNegociosChildInventoryPreviewOverlay({
   parentListing,
   child,
   allAdditional,
-  onClose,
+  backToEditLabel,
+  onBackToEdit,
 }: Props) {
   const merged = mapInheritedDealerPreviewListing(parentListing, child);
   merged.relatedDealerListings = buildRelatedDraftPreviewListings(
@@ -47,14 +49,14 @@ export function AutosNegociosChildInventoryPreviewOverlay({
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onBackToEdit();
     };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [onBackToEdit]);
 
   return (
     <div
@@ -75,10 +77,10 @@ export function AutosNegociosChildInventoryPreviewOverlay({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={onBackToEdit}
             className="shrink-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
           >
-            {lang === "es" ? "Cerrar" : "Close"}
+            {backToEditLabel}
           </button>
         </div>
       </div>

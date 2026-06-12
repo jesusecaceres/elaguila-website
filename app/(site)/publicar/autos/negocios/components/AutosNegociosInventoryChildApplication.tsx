@@ -142,7 +142,8 @@ export function AutosNegociosInventoryChildApplication({
           parentListing={parentListing}
           child={draft}
           allAdditional={additionalVehicles}
-          onClose={() => setPreviewOpen(false)}
+          backToEditLabel={copy.preview.chrome.backToEdit}
+          onBackToEdit={() => setPreviewOpen(false)}
         />
       ) : null}
     </>

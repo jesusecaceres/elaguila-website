@@ -117,6 +117,7 @@ export function DealerBusinessStack({
   const showSocial = hub.social.length > 0;
   const showReviews = hub.reviews.length > 0;
   const showMoreLinks = hub.moreLinks.length > 0;
+  const showLanguages = (hub.languages?.length ?? 0) > 0;
   const showLocation = Boolean(hub.location?.addressDisplay?.trim() || hub.location?.mapsHref);
   const showFinance = hasDealerFinanceContact(data);
 
@@ -285,6 +286,22 @@ export function DealerBusinessStack({
               </a>
             ))}
           </div>
+        </SectionBlock>
+      ) : null}
+
+      {showLanguages ? (
+        <SectionBlock showTopBorder={nextSection()}>
+          <p className={SECTION_HEAD}>{sb.languagesHeading}</p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {hub.languages!.map((label) => (
+              <li
+                key={label}
+                className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-3 py-1 text-sm font-semibold text-[color:var(--lx-text)]"
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
         </SectionBlock>
       ) : null}
 

@@ -85,6 +85,20 @@ export type AutosNegociosCopy = {
       addCustomLink: string;
       addDealershipLink: string;
       removeCustomLink: string;
+      languages: {
+        heading: string;
+        helper: string;
+        presetSpanish: string;
+        presetEnglish: string;
+        presetOther: string;
+        customLabel: string;
+        customPlaceholder: string;
+        customExamplesHelper: string;
+        addCustom: string;
+        limitReached: string;
+        removeChip: string;
+        publicHeading: string;
+      };
       inventoryMainHelper: string;
       inventoryAddHelper: string;
     };
@@ -225,6 +239,7 @@ export type AutosNegociosCopy = {
       textMessageCta: string;
       reviewsHeading: string;
       moreLinksHeading: string;
+      languagesHeading: string;
       locationHeading: string;
     };
     specs: { title: string; subtitle: string; rows: Record<string, string> };
@@ -441,6 +456,21 @@ const ES: AutosNegociosCopy = {
       addCustomLink: "Añadir website",
       addDealershipLink: "Añadir website",
       removeCustomLink: "Eliminar",
+      languages: {
+        heading: "Idiomas que hablamos",
+        helper:
+          "Selecciona hasta 3 idiomas para que los compradores sepan cómo pueden comunicarse contigo.",
+        presetSpanish: "Español",
+        presetEnglish: "English",
+        presetOther: "Otro",
+        customLabel: "Otro idioma",
+        customPlaceholder: "Ej. Portugués, Mandarín, Vietnamita",
+        customExamplesHelper: "Ejemplos: Portugués, Mandarín, Vietnamita",
+        addCustom: "Añadir idioma",
+        limitReached: "Puedes mostrar hasta 3 idiomas.",
+        removeChip: "Quitar",
+        publicHeading: "Idiomas",
+      },
       inventoryMainHelper:
         "Este será el vehículo principal de tu inventario. Será la ficha principal del dealer y podrá mostrar otros vehículos activos del mismo inventario.",
       inventoryAddHelper:
@@ -591,6 +621,7 @@ const ES: AutosNegociosCopy = {
       textMessageCta: "Enviar texto",
       reviewsHeading: "Reseñas del dealer",
       moreLinksHeading: "Encuentra más sobre nosotros",
+      languagesHeading: "Idiomas",
       locationHeading: "Nuestra ubicación",
     },
     specs: {
@@ -871,6 +902,20 @@ const EN: AutosNegociosCopy = {
       addCustomLink: "Add website",
       addDealershipLink: "Add website",
       removeCustomLink: "Remove",
+      languages: {
+        heading: "Languages we speak",
+        helper: "Select up to 3 languages so buyers know how they can communicate with you.",
+        presetSpanish: "Español",
+        presetEnglish: "English",
+        presetOther: "Other",
+        customLabel: "Other language",
+        customPlaceholder: "Ex. Portuguese, Mandarin, Vietnamese",
+        customExamplesHelper: "Examples: Portuguese, Mandarin, Vietnamese",
+        addCustom: "Add language",
+        limitReached: "You can show up to 3 languages.",
+        removeChip: "Remove",
+        publicHeading: "Languages",
+      },
       inventoryMainHelper:
         "This will be the main vehicle for your inventory. It becomes the dealer’s main listing and can show other active vehicles from the same inventory.",
       inventoryAddHelper:
@@ -1018,6 +1063,7 @@ const EN: AutosNegociosCopy = {
       textMessageCta: "Text dealer",
       reviewsHeading: "Dealer reviews",
       moreLinksHeading: "Find more about us",
+      languagesHeading: "Languages",
       locationHeading: "Our location",
     },
     specs: {

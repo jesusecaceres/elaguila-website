@@ -6,6 +6,7 @@ import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { coerceEngineFromCatalog } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
 import { normalizeDealerCustomLinks } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
+import { normalizeDealerLanguages } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 
 /**
  * NorCal canonical city when possible; preserves in-progress typing.
@@ -184,6 +185,7 @@ export function normalizeLoadedListing(
     googleReviewsUrl: liveDraft ? raw.googleReviewsUrl || undefined : raw.googleReviewsUrl?.trim() || undefined,
     yelpReviewsUrl: liveDraft ? raw.yelpReviewsUrl || undefined : raw.yelpReviewsUrl?.trim() || undefined,
     dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks, { liveDraft }),
+    dealerLanguages: normalizeDealerLanguages(raw.dealerLanguages, { liveDraft }),
     relatedDealerListings: Array.isArray(raw.relatedDealerListings) ? raw.relatedDealerListings : base.relatedDealerListings,
   };
 

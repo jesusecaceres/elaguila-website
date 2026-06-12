@@ -42,6 +42,8 @@ export type AutosNegociosBusinessHubContactViewModel = {
   social: AutosNegociosBusinessHubSocialLink[];
   reviews: AutosNegociosBusinessHubReviewLink[];
   moreLinks: AutosNegociosBusinessHubCustomLink[];
+  /** Public language chips — preset + custom labels only (never bare “Otro”). */
+  languages?: string[];
   location?: {
     addressDisplay: string;
     mapsHref?: string;

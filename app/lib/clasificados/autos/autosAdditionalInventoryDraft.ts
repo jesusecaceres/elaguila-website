@@ -384,5 +384,6 @@ export const AUTOS_INVENTORY_DEALER_FIELD_BLOCKLIST = [
   "financeContactName",
   "googleReviewsUrl",
   "dealerCustomLinks",
+  "dealerLanguages",
   "dealerHours",
 ] as const;

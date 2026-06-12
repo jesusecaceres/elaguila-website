@@ -10,6 +10,7 @@ import { whatsAppHrefFromDisplay } from "./dealerWhatsappHref";
 import { hrefForUserWebsiteUrl, phoneDigitsForTel } from "../components/autoDealerFormatters";
 import { buildDealerDisplayAddress, buildDealerMapsHref } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { dealerCustomLinksForOutput } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
+import { dealerLanguagesForOutput } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import type {
   AutosNegociosBusinessHubContactViewModel,
   AutosNegociosBusinessHubSocialLink,
@@ -106,6 +107,7 @@ export function mapAutosDealerToBusinessHubContact(
   }
 
   const moreLinks = dealerCustomLinksForOutput(data.dealerCustomLinks, lang);
+  const languages = dealerLanguagesForOutput(data.dealerLanguages);
 
   const addressLine = buildDealerDisplayAddress(data);
   const mapsHref = buildDealerMapsHref(data);
@@ -123,6 +125,7 @@ export function mapAutosDealerToBusinessHubContact(
     social,
     reviews,
     moreLinks,
+    languages: languages.length ? languages : undefined,
     location: location?.addressDisplay || location?.mapsHref ? location : undefined,
   };
 }
@@ -136,6 +139,7 @@ export function autosNegociosBusinessHubHasContactContent(
     vm.social.length > 0 ||
     vm.reviews.length > 0 ||
     vm.moreLinks.length > 0 ||
+    (vm.languages?.length ?? 0) > 0 ||
     Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref)
   );
 }

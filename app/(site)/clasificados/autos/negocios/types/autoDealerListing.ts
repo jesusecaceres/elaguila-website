@@ -247,6 +247,8 @@ export type AutoDealerListing = {
   yelpReviewsUrl?: string;
   /** Up to 3 titled dealership links (financing, trade-in, service, etc.). */
   dealerCustomLinks?: DealerCustomLink[];
+  /** Up to 3 languages spoken at the dealership (Negocios Business Hub). */
+  dealerLanguages?: string[];
   /** Optional financing / pre-approval contact (Negocios only). */
   financeContactName?: string;
   financeContactTitle?: string;

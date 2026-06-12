@@ -29,11 +29,15 @@ import {
   prefillDealerListingForInventoryAdd,
   resolveAutosInventoryAddContextForEditor,
   writeInventoryAddContextToSession,
+  clearInventoryAddContextFromSession,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import {
+  autosNegociosEditorReturnStepFallback,
+  clearAutosNegociosEditorReturnContext,
+} from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
 import {
   clampAutosEditorMaxReached,
   clampAutosEditorStep,
-  AUTOS_PUBLISH_FINAL_STEP_INDEX,
 } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import type { AutosNegociosDraftV1 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import type {
@@ -180,7 +184,8 @@ export function useAutoDealerDraft() {
         if (resume) {
           const d = await loadAutosNegociosDraftResolved(ns);
           if (d && d.editorStep === undefined) {
-            applyEditorProgress(AUTOS_PUBLISH_FINAL_STEP_INDEX, AUTOS_PUBLISH_FINAL_STEP_INDEX);
+            const fallback = autosNegociosEditorReturnStepFallback();
+            applyEditorProgress(fallback, Math.max(d.editorMaxReached ?? fallback, fallback));
           }
         }
         if (!cancelled) setHydrated(true);
@@ -310,6 +315,8 @@ export function useAutoDealerDraft() {
     setVehicleTitleOverride(false);
     setListing(empty);
     clearAutosDraftNamespaceHint("negocios");
+    clearAutosNegociosEditorReturnContext();
+    clearInventoryAddContextFromSession();
     try {
       window.sessionStorage.removeItem(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
     } catch {

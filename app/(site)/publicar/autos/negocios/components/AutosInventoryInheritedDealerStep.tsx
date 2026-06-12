@@ -4,6 +4,7 @@ import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/au
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeDealerCustomLinks } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
+import { dealerLanguagesForOutput } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import {
   autosInventoryChildEditInMainApplication,
   autosInventoryChildStep5Intro,
@@ -52,6 +53,7 @@ export function AutosInventoryInheritedDealerStep({
   const customLinks = normalizeDealerCustomLinks(parentListing.dealerCustomLinks).filter(
     (l) => l.label?.trim() || l.url?.trim(),
   );
+  const languages = dealerLanguagesForOutput(parentListing.dealerLanguages);
   const hours = (parentListing.dealerHours ?? [])
     .map((row) => formatHoursRow(row, t.app.dealer.closed))
     .filter(Boolean) as string[];
@@ -130,6 +132,22 @@ export function AutosInventoryInheritedDealerStep({
             {customLinks.map((link) => (
               <li key={link.id}>
                 {link.label?.trim() || (lang === "es" ? "Website del concesionario" : "Dealership website")}: {link.url}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {languages.length > 0 ? (
+        <div className="mt-5">
+          <p className={LABEL}>{t.app.dealer.languages.publicHeading}</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {languages.map((label) => (
+              <li
+                key={label}
+                className="rounded-full border border-[#E8DFD0] bg-white px-2.5 py-0.5 text-xs font-semibold text-[color:var(--lx-text-2)]"
+              >
+                {label}
               </li>
             ))}
           </ul>
