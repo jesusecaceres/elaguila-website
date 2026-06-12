@@ -337,9 +337,24 @@ export const OFERTAS_LOCALES_DRAFT_ASSET_STATUS_OPTIONS: ReadonlyArray<{
 export const OFERTAS_LOCALES_MAX_FLYER_ASSETS = 12;
 export const OFERTAS_LOCALES_MAX_COUPON_ASSETS = 6;
 
-/** Client-side file picker limits (Stack 5 — no upload yet). */
-export const OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_FLYER_MB = 15;
-export const OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_COUPON_MB = 10;
+/** Client upload limits by asset type (Gate OL-5 — weekly flyer PDFs). */
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB = {
+  flyer_pdf: 75,
+  flyer_image: 20,
+  coupon_pdf: 30,
+  coupon_image: 15,
+} as const;
+
+/** @deprecated Use OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.flyer_pdf — kept for legacy audits. */
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_FLYER_MB =
+  OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.flyer_pdf;
+
+/** @deprecated Use OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.coupon_pdf — kept for legacy audits. */
+export const OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_COUPON_MB =
+  OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.coupon_pdf;
+
+/** Vercel Functions request body limit — larger files use @vercel/blob/client direct upload. */
+export const OFERTAS_LOCALES_SERVER_UPLOAD_MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
 
 export const OFERTAS_LOCALES_CLIENT_UPLOAD_FLYER_MIME_TYPES = [
   "application/pdf",

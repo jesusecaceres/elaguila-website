@@ -649,7 +649,13 @@ export default function OfertasLocalesApplicationClient() {
                   ? "Choose your primary format in Step 1 first."
                   : "Elige el formato principal en el Paso 1."}
               </p>
-            ) : null}
+            ) : (
+              <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
+                <p>{c.step5UploadWeeklyFlyerHint}</p>
+                <p className="mt-2">{c.step5UploadLimitsHint}</p>
+                <p className="mt-2 text-xs text-[#1E1814]/55">{c.step5UploadPendingRefreshHint}</p>
+              </div>
+            )}
             {isShoppingLane ? (
               <>
                 <OfertasLocalesDraftAssetSection

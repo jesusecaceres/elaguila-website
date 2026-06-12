@@ -1,8 +1,7 @@
 import {
   OFERTAS_LOCALES_CLIENT_UPLOAD_COUPON_MIME_TYPES,
   OFERTAS_LOCALES_CLIENT_UPLOAD_FLYER_MIME_TYPES,
-  OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_COUPON_MB,
-  OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_FLYER_MB,
+  OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB,
 } from "./ofertasLocalesConstants";
 import type { OfertaLocalDraftAssetType } from "./ofertasLocalesTypes";
 
@@ -17,18 +16,78 @@ export type OfertaLocalClientAssetValidationResult = {
 
 const IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+const UPLOAD_ASSET_TYPES = new Set<OfertaLocalDraftAssetType>([
+  "flyer_pdf",
+  "flyer_image",
+  "coupon_pdf",
+  "coupon_image",
+]);
+
 function allowedMimes(kind: OfertaLocalClientAssetKind): readonly string[] {
   return kind === "flyer"
     ? OFERTAS_LOCALES_CLIENT_UPLOAD_FLYER_MIME_TYPES
     : OFERTAS_LOCALES_CLIENT_UPLOAD_COUPON_MIME_TYPES;
 }
 
-function maxBytes(kind: OfertaLocalClientAssetKind): number {
-  const mb =
-    kind === "flyer"
-      ? OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_FLYER_MB
-      : OFERTAS_LOCALES_CLIENT_UPLOAD_MAX_COUPON_MB;
-  return mb * 1024 * 1024;
+export function getOfertaLocalAssetTypeFromMime(
+  mimeType: string,
+  assetKind: OfertaLocalClientAssetKind
+): OfertaLocalDraftAssetType | null {
+  const mime = (mimeType || "").toLowerCase();
+  if (mime === "application/pdf") {
+    return assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf";
+  }
+  if (IMAGE_MIMES.has(mime)) {
+    return assetKind === "flyer" ? "flyer_image" : "coupon_image";
+  }
+  return null;
+}
+
+export function getOfertaLocalClientUploadMaxBytes(
+  assetType: OfertaLocalDraftAssetType
+): number {
+  if (assetType === "flyer_pdf") {
+    return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.flyer_pdf * 1024 * 1024;
+  }
+  if (assetType === "flyer_image") {
+    return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.flyer_image * 1024 * 1024;
+  }
+  if (assetType === "coupon_pdf") {
+    return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.coupon_pdf * 1024 * 1024;
+  }
+  if (assetType === "coupon_image") {
+    return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.coupon_image * 1024 * 1024;
+  }
+  return 0;
+}
+
+export function getOfertaLocalClientUploadLimitMb(
+  assetType: OfertaLocalDraftAssetType
+): number {
+  if (assetType === "flyer_pdf") return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.flyer_pdf;
+  if (assetType === "flyer_image") return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.flyer_image;
+  if (assetType === "coupon_pdf") return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.coupon_pdf;
+  if (assetType === "coupon_image") return OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB.coupon_image;
+  return 0;
+}
+
+export function ofertaLocalClientUploadSizeError(
+  assetType: OfertaLocalDraftAssetType,
+  lang: "es" | "en" = "es"
+): string {
+  const mb = getOfertaLocalClientUploadLimitMb(assetType);
+  if (lang === "en") {
+    if (assetType === "flyer_pdf") return `Flyer PDF is too large. Maximum: ${mb} MB.`;
+    if (assetType === "flyer_image") return `Flyer image is too large. Maximum: ${mb} MB.`;
+    if (assetType === "coupon_pdf") return `Coupon PDF is too large. Maximum: ${mb} MB.`;
+    if (assetType === "coupon_image") return `Coupon image is too large. Maximum: ${mb} MB.`;
+    return `File is too large. Maximum: ${mb} MB.`;
+  }
+  if (assetType === "flyer_pdf") return `PDF de volante demasiado grande. Máximo: ${mb} MB.`;
+  if (assetType === "flyer_image") return `Imagen de volante demasiado grande. Máximo: ${mb} MB.`;
+  if (assetType === "coupon_pdf") return `PDF de cupón demasiado grande. Máximo: ${mb} MB.`;
+  if (assetType === "coupon_image") return `Imagen de cupón demasiado grande. Máximo: ${mb} MB.`;
+  return `El archivo es demasiado grande. Máximo: ${mb} MB.`;
 }
 
 export function formatOfertaLocalFileSize(bytes: number): string {
@@ -42,26 +101,23 @@ export function getOfertaLocalAssetTypeFromFile(
   file: File,
   assetKind: OfertaLocalClientAssetKind
 ): OfertaLocalDraftAssetType | null {
-  const mime = file.type || "";
-  if (mime === "application/pdf") {
-    return assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf";
-  }
-  if (IMAGE_MIMES.has(mime)) {
-    return assetKind === "flyer" ? "flyer_image" : "coupon_image";
-  }
-  return null;
+  return getOfertaLocalAssetTypeFromMime(file.type || "", assetKind);
 }
 
-export function validateOfertaLocalClientAssetFile(
-  file: File,
-  assetKind: OfertaLocalClientAssetKind
+function validateCore(
+  input: {
+    assetKind: OfertaLocalClientAssetKind;
+    mimeType: string;
+    sizeBytes: number;
+    lang?: "es" | "en";
+  }
 ): OfertaLocalClientAssetValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const mime = file.type || "";
-  const allowed = allowedMimes(assetKind);
-  const max = maxBytes(assetKind);
-  const label = assetKind === "flyer" ? "volante" : "cupón";
+  const mime = (input.mimeType || "").toLowerCase();
+  const allowed = allowedMimes(input.assetKind);
+  const label = input.assetKind === "flyer" ? "volante" : "cupón";
+  const lang = input.lang ?? "es";
 
   if (!mime) {
     warnings.push("No se detectó el tipo MIME del archivo; verifica la extensión.");
@@ -69,19 +125,20 @@ export function validateOfertaLocalClientAssetFile(
     errors.push(`Tipo de archivo no permitido para ${label}. Usa PDF o imagen (JPEG, PNG, WebP).`);
   }
 
-  if (file.size > max) {
-    errors.push(
-      `El archivo es demasiado grande (máx. ${formatOfertaLocalFileSize(max)} para ${label}).`
-    );
-  }
-
-  if (file.size === 0) {
+  if (input.sizeBytes === 0) {
     errors.push("El archivo está vacío.");
   }
 
-  const assetType = getOfertaLocalAssetTypeFromFile(file, assetKind);
+  const assetType = getOfertaLocalAssetTypeFromMime(mime, input.assetKind);
   if (!assetType && errors.length === 0) {
     errors.push(`No se pudo determinar el tipo de archivo para este ${label}.`);
+  }
+
+  if (assetType && UPLOAD_ASSET_TYPES.has(assetType) && input.sizeBytes > 0) {
+    const max = getOfertaLocalClientUploadMaxBytes(assetType);
+    if (input.sizeBytes > max) {
+      errors.push(ofertaLocalClientUploadSizeError(assetType, lang));
+    }
   }
 
   return {
@@ -90,4 +147,26 @@ export function validateOfertaLocalClientAssetFile(
     errors,
     warnings,
   };
+}
+
+export function validateOfertaLocalClientAssetFile(
+  file: File,
+  assetKind: OfertaLocalClientAssetKind,
+  lang: "es" | "en" = "es"
+): OfertaLocalClientAssetValidationResult {
+  return validateCore({
+    assetKind,
+    mimeType: file.type || "",
+    sizeBytes: file.size,
+    lang,
+  });
+}
+
+export function validateOfertaLocalClientAssetUploadMeta(input: {
+  assetKind: OfertaLocalClientAssetKind;
+  mimeType: string;
+  sizeBytes: number;
+  lang?: "es" | "en";
+}): OfertaLocalClientAssetValidationResult {
+  return validateCore(input);
 }

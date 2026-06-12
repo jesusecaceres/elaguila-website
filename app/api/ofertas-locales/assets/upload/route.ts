@@ -1,6 +1,9 @@
 import { put } from "@vercel/blob";
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  OFERTAS_LOCALES_SERVER_UPLOAD_MAX_BYTES,
+} from "@/app/lib/ofertas-locales/ofertasLocalesConstants";
 import { ofertasLocalesOwnerIdFromBearer } from "@/app/lib/ofertas-locales/ofertasLocalesUploadServerAuth";
 import {
   validateOfertaLocalClientAssetFile,
@@ -25,8 +28,8 @@ function fail(
 }
 
 /**
- * Upload one Ofertas Locales draft flyer/coupon file to Vercel Blob.
- * Auth required. No DB, publish, analytics, or payment.
+ * Upload one Ofertas Locales draft flyer/coupon file to Vercel Blob (small files ≤ 4.5 MB).
+ * Larger files use client-direct upload via /api/ofertas-locales/assets/client-upload.
  */
 export async function POST(req: NextRequest) {
   const ownerUserId = await ofertasLocalesOwnerIdFromBearer(req);
@@ -58,6 +61,14 @@ export async function POST(req: NextRequest) {
     return fail(400, "missing_file");
   }
 
+  if (file.size > OFERTAS_LOCALES_SERVER_UPLOAD_MAX_BYTES) {
+    return fail(
+      413,
+      "file_too_large_for_server",
+      "Este archivo debe subirse con carga directa. Intenta de nuevo desde el botón Subir archivo."
+    );
+  }
+
   const fileName = file instanceof File && file.name ? file.name : "upload.bin";
   const mimeType = (file.type || "").toLowerCase();
 
@@ -85,7 +96,7 @@ export async function POST(req: NextRequest) {
   const uploaded = await put(pathname, file, {
     access: "public",
     token,
-    addRandomSuffix: true,
+    addRandomSuffix: false,
     contentType: mimeType || undefined,
   });
 

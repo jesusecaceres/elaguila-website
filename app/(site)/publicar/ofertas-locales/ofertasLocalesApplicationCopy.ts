@@ -144,6 +144,11 @@ const COPY = {
       "Archivo existente estará disponible cuando conectemos la biblioteca de archivos.",
     assetsUploadedFile: "Archivo cargado",
     assetsPdfDocument: "Documento PDF",
+    step5UploadWeeklyFlyerHint: "Para volantes semanales, el PDF es la mejor opción.",
+    step5UploadLimitsHint:
+      "Límite: PDF de volante hasta 75 MB. Imagen de volante hasta 20 MB. Para cupones: PDF hasta 30 MB o imagen hasta 15 MB. Los archivos subidos se guardan para revisión y escaneo cuando aplique.",
+    step5UploadPendingRefreshHint:
+      "Si seleccionas un archivo pero aún no lo subes, la vista previa local puede perderse al refrescar. Usa «Subir archivo» para guardarlo.",
     socialSectionTitle: "Redes sociales del negocio",
     socialSectionHelper:
       "Conecta tus redes sociales para que los compradores conozcan más de tu negocio.",
@@ -370,6 +375,11 @@ const COPY = {
       "Existing archive files will be available when the file library is connected.",
     assetsUploadedFile: "Uploaded file",
     assetsPdfDocument: "PDF document",
+    step5UploadWeeklyFlyerHint: "For weekly flyers, PDF is the best option.",
+    step5UploadLimitsHint:
+      "Limit: flyer PDF up to 75 MB. Flyer image up to 20 MB. For coupons: PDF up to 30 MB or image up to 15 MB. Uploaded files are saved for review and scanning when applicable.",
+    step5UploadPendingRefreshHint:
+      "If you select a file but have not uploaded it yet, the local preview may be lost on refresh. Use «Upload file» to save it.",
     socialSectionTitle: "Business social links",
     socialSectionHelper:
       "Connect your social channels so shoppers can learn more about your business.",
@@ -545,5 +555,8 @@ export function ofertasLocalesAssetCopy(lang: OfertasLocalesAppLang) {
     linkAccepted: c.assetsLinkAccepted,
     uploadedFile: c.assetsUploadedFile,
     pdfDocument: c.assetsPdfDocument,
+    uploadLimitsHint: c.step5UploadLimitsHint,
+    uploadWeeklyFlyerHint: c.step5UploadWeeklyFlyerHint,
+    uploadPendingRefreshHint: c.step5UploadPendingRefreshHint,
   };
 }
