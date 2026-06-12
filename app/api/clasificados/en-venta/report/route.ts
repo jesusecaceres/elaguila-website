@@ -57,12 +57,12 @@ export async function POST(req: NextRequest) {
       lang,
     });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "report_failed";
-    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+    console.error("[en-venta/report]", e);
+    return NextResponse.json({ ok: false, error: "report_failed" }, { status: 500 });
   }
 
   if (!result.ok) {
-    return NextResponse.json(result, { status: 500 });
+    return NextResponse.json({ ok: false, error: "report_failed" }, { status: 500 });
   }
 
   return NextResponse.json({

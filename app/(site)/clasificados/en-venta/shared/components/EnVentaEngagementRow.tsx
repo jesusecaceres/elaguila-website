@@ -15,13 +15,13 @@ import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 
 const PREVIEW_COPY = {
   es: {
-    save: "Guardar",
+    like: "Me gusta",
     share: "Compartir",
     report: "Reportar",
     unpublishedHint: "Disponible cuando el anuncio esté publicado.",
   },
   en: {
-    save: "Save",
+    like: "Like",
     share: "Share",
     report: "Report",
     unpublishedHint: "Available when the listing is published.",
@@ -52,8 +52,10 @@ type Props = {
   ownerUserId?: string | null;
   /** When true, report scrolls to `#enventa-listing-report` on the detail page. */
   showReport?: boolean;
-  /** Include like (heart) alongside save on live listings — matches Servicios pattern. */
+  /** Include like (heart) on live listings. */
   showLike?: boolean;
+  /** Hide save/Guardar until saved-listings product is ready (En Venta / Varios). */
+  hideSave?: boolean;
 };
 
 function scrollToReportBlock() {
@@ -71,8 +73,10 @@ export function EnVentaEngagementRow({
   ownerUserId,
   showReport = false,
   showLike = true,
+  hideSave = true,
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
+  const likeListingId = resolveListingsTableSavedListingKey(listingUuid, saveListingId ?? listingId);
   const saveKey = resolveListingsTableSavedListingKey(listingUuid ?? saveListingId, saveListingId ?? listingId);
   const analyticsUuid = resolveListingsTableSavedListingKey(listingUuid, saveListingId ?? listingId);
   const analyticsLeonixId =
@@ -86,7 +90,7 @@ export function EnVentaEngagementRow({
       <div className={EN_VENTA_TYPO.engagementWrap}>
         <button type="button" disabled title={PREVIEW_COPY[lang].unpublishedHint} className={previewBtn}>
           <FiHeart className="h-4 w-4 shrink-0 text-[#7A1E2C]/70" aria-hidden />
-          {PREVIEW_COPY[lang].save}
+          {PREVIEW_COPY[lang].like}
           <span className="sr-only"> — {PREVIEW_COPY[lang].unpublishedHint}</span>
         </button>
         <LeonixShareButton
@@ -110,28 +114,30 @@ export function EnVentaEngagementRow({
     <div className={EN_VENTA_TYPO.engagementWrap}>
       {showLike ? (
         <LeonixLikeButton
-          listingId={effectiveId}
+          listingId={likeListingId}
           ownerUserId={ownerUserId}
           variant="small"
           lang={lang}
           category="en-venta"
-          persistEngagement={persist}
+          persistEngagement={persist && Boolean(likeListingId)}
           recordLikeEvent={(isLike) => trackEnVentaLikeGlobal(globalAnalyticsCtx, isLike)}
           className={leonixBtnShell}
         />
       ) : null}
-      <LeonixSaveButton
-        listingId={effectiveId}
-        savedListingKey={saveKey}
-        ownerUserId={ownerUserId}
-        variant="small"
-        lang={lang}
-        category="en-venta"
-        persistEngagement={persistSave}
-        recordSaveEvent={(isSave) => trackEnVentaSaveGlobal(globalAnalyticsCtx, isSave)}
-        iconStyle="heart"
-        className={leonixSaveShell}
-      />
+      {!hideSave ? (
+        <LeonixSaveButton
+          listingId={effectiveId}
+          savedListingKey={saveKey}
+          ownerUserId={ownerUserId}
+          variant="small"
+          lang={lang}
+          category="en-venta"
+          persistEngagement={persistSave}
+          recordSaveEvent={(isSave) => trackEnVentaSaveGlobal(globalAnalyticsCtx, isSave)}
+          iconStyle="heart"
+          className={leonixSaveShell}
+        />
+      ) : null}
       <LeonixShareButton
         listingId={effectiveId}
         listingUrl={listingUrl}

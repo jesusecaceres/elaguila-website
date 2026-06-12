@@ -14,7 +14,12 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { DashboardMobilePreview } from "../../components/DashboardMobilePreview";
 import { rollupListingAnalyticsEvents } from "../../lib/listingAnalyticsAggregate";
+import { fetchOwnerListingForWorkspace } from "../../lib/ownerListingsQuery";
 import { listingAnalyticsReadIsDegraded } from "../../lib/listingAnalyticsReadErrors";
+import {
+  buildAnalyticsKeySet,
+  buildCanonicalAdId,
+} from "@/app/lib/analytics/listingAnalyticsIdentity";
 import {
   isListingRepublishWindowActive,
   listingPlanFromDetailPairs,
@@ -286,41 +291,48 @@ export default function ListingWorkspacePage() {
       /* ignore */
     }
 
-    const selFull =
-      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,updated_at,published_at,expires_at,category,images,detail_pairs,republished_at,is_published,original_price,current_price,price_last_updated";
-    const selBase =
-      "id,leonix_ad_id,owner_id,title,price,city,status,created_at,category,images,detail_pairs,republished_at,is_published,original_price,current_price,price_last_updated";
+    const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
+    const selMsgLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
 
-    let listing: ListingRow | null = null;
-    let q = await sb.from("listings").select(selFull).eq("id", id).maybeSingle();
-    if (q.error) {
-      q = await sb.from("listings").select(selBase).eq("id", id).maybeSingle();
-    }
-    if (q.error || !q.data) {
+    const { row: ownerRow, error: ownerFetchErr } = await fetchOwnerListingForWorkspace(sb, user.id, id);
+    if (ownerFetchErr) {
       setRow(null);
       setAccess("missing");
       setListingMessages([]);
       setLoading(false);
       return;
     }
-    listing = q.data as ListingRow;
-
-    if (listing.owner_id !== user.id) {
+    if (!ownerRow) {
       setRow(null);
-      setAccess("forbidden");
+      setAccess("missing");
       setListingMessages([]);
       setLoading(false);
       return;
     }
 
+    const listing = ownerRow as ListingRow;
     setRow(listing);
     setAccess("ok");
 
-    const listingKeys = [listing.id, (listing.leonix_ad_id ?? "").trim()].filter(Boolean) as string[];
+    const listingUuid = String(listing.id ?? "").trim();
+    const leonixAdId = String(listing.leonix_ad_id ?? "").trim();
+    const analyticsKeys = buildAnalyticsKeySet({
+      canonicalAdId: buildCanonicalAdId({
+        sourceTable: "listings",
+        sourceId: listingUuid,
+        leonixAdId,
+      }),
+      sourceTable: "listings",
+      sourceId: listingUuid,
+      category: String(listing.category ?? "en-venta"),
+      ownerUserId: String(listing.owner_id ?? user.id),
+      leonixAdId,
+    });
+
     const { data: events, error: evErr } = await sb
       .from("listing_analytics")
       .select("listing_id, event_type, user_id, created_at")
-      .in("listing_id", listingKeys);
+      .in("listing_id", analyticsKeys.length ? analyticsKeys : [listingUuid]);
 
     if (evErr) {
       setListingAnalyticsDegraded(listingAnalyticsReadIsDegraded(evErr));
@@ -339,7 +351,7 @@ export default function ListingWorkspacePage() {
       });
     } else {
       setListingAnalyticsDegraded(false);
-      const rolled = rollupListingAnalyticsEvents(events ?? [], listingKeys);
+      const rolled = rollupListingAnalyticsEvents(events ?? [], analyticsKeys);
       setStats({
         views: rolled.views,
         uniqueViews: rolled.uniqueViews,
@@ -356,16 +368,14 @@ export default function ListingWorkspacePage() {
       });
     }
 
-    const selMsg = "id, sender_id, receiver_id, listing_id, message, created_at, read_at";
-    const selMsgLegacy = "id, sender_id, receiver_id, listing_id, message, created_at";
-    const mq = await sb.from("messages").select(selMsg).eq("listing_id", id).order("created_at", { ascending: false }).limit(40);
+    const mq = await sb.from("messages").select(selMsg).eq("listing_id", listingUuid).order("created_at", { ascending: false }).limit(40);
     const rawMsgs = (
       mq.error
         ? (
             await sb
               .from("messages")
               .select(selMsgLegacy)
-              .eq("listing_id", id)
+              .eq("listing_id", listingUuid)
               .order("created_at", { ascending: false })
               .limit(40)
           ).data
@@ -522,6 +532,11 @@ export default function ListingWorkspacePage() {
                   {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {displayLeonixAdId}
                 </p>
               ) : null}
+              {(row.category ?? "").trim() ? (
+                <p className="mt-1 text-[11px] text-[#7A7164]">
+                  {lang === "es" ? "Categoría" : "Category"}: {(row.category ?? "").trim()}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={publicListingHref} className="inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]">
@@ -642,7 +657,6 @@ export default function ListingWorkspacePage() {
                     { k: t.uniq, v: stats?.uniqueViews ?? 0 },
                     { k: t.msg, v: stats?.messages ?? 0 },
                     { k: t.leads, v: stats?.leads ?? 0 },
-                    { k: t.saves, v: stats?.saves ?? 0 },
                     { k: t.shares, v: stats?.shares ?? 0 },
                     { k: t.likes, v: stats?.likes ?? 0 },
                     { k: t.cta, v: stats?.ctaClicks ?? 0 },

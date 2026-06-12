@@ -13,6 +13,8 @@ export const ANONYMOUS_SAFE_ANALYTICS_EVENTS = new Set<ListingAnalyticsEventType
   "listing_impression",
   "result_card_click",
   "listing_share",
+  "listing_like",
+  "listing_unlike",
   "cta_click",
   "phone_click",
   "whatsapp_click",
@@ -30,8 +32,6 @@ export const ANONYMOUS_SAFE_ANALYTICS_EVENTS = new Set<ListingAnalyticsEventType
 export const AUTH_REQUIRED_ANALYTICS_EVENTS = new Set<ListingAnalyticsEventType>([
   "listing_save",
   "listing_unsave",
-  "listing_like",
-  "listing_unlike",
   "message_sent",
 ]);
 

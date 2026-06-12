@@ -456,9 +456,6 @@ export function EnVentaListingManageCard({
                 {L.views}: {v}
               </span>
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
-                {L.saves}: {analytics.saves}
-              </span>
-              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
                 {L.shares}: {analytics.shares}
               </span>
               {isPro ? (

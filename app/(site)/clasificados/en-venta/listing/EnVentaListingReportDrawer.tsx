@@ -20,7 +20,7 @@ const COPY = {
     sending: "Enviando…",
     pickReason: "Elige un motivo.",
     err: "No se pudo enviar el reporte. Intenta de nuevo.",
-    thanks: "Gracias. Recibimos tu reporte y el equipo Leonix lo revisará.",
+    thanks: "Gracias. Revisaremos este anuncio para mantener la comunidad segura.",
     close: "Cerrar",
   },
   en: {
@@ -32,7 +32,7 @@ const COPY = {
     sending: "Sending…",
     pickReason: "Choose a reason.",
     err: "Could not submit the report. Please try again.",
-    thanks: "Thank you. We received your report and Leonix staff will review it.",
+    thanks: "Thank you. We'll review this listing to keep the community safe.",
     close: "Close",
   },
 } as const;

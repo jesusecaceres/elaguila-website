@@ -117,25 +117,7 @@ export function EnVentaResultListingCard({
     layout === "list" ? "h-[168px] w-[148px] sm:h-[180px] sm:w-[192px]" : "aspect-[4/3] w-full"
   );
 
-  const favBtn = !isPreview ? (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggleFav(model.id);
-      }}
-      className={cx(
-        "z-20 rounded-full border p-2 shadow-sm transition",
-        isFav
-          ? "border-[#7A1E2C]/35 bg-[#FBF7EF] text-[#7A1E2C]"
-          : "border-[#D6C7AD]/90 bg-white/95 text-[#5C5346] hover:border-[#C9A84A]/45 hover:bg-[#FFFDF7]"
-      )}
-      aria-label={isFav ? L.unsave : L.save}
-    >
-      <HeartIcon filled={isFav} className="h-[18px] w-[18px]" />
-    </button>
-  ) : null;
+  const favBtn = null;
 
   const badgesRow = (
     <div

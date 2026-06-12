@@ -34,10 +34,10 @@ ALTER TABLE public.saved_listings
   ADD COLUMN IF NOT EXISTS canonical_ad_id text;
 
 UPDATE public.saved_listings
-SET canonical_ad_id = listing_id
+SET canonical_ad_id = listing_id::text
 WHERE canonical_ad_id IS NULL
   AND listing_id IS NOT NULL
-  AND btrim(listing_id) <> '';
+  AND btrim(listing_id::text) <> '';
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_saved_listings_user_source_unique
   ON public.saved_listings (user_id, source_table, source_id)
@@ -56,10 +56,10 @@ ALTER TABLE public.user_liked_listings
   ADD COLUMN IF NOT EXISTS canonical_ad_id text;
 
 UPDATE public.user_liked_listings
-SET canonical_ad_id = listing_id
+SET canonical_ad_id = listing_id::text
 WHERE canonical_ad_id IS NULL
   AND listing_id IS NOT NULL
-  AND btrim(listing_id) <> '';
+  AND btrim(listing_id::text) <> '';
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_liked_listings_user_source_unique
   ON public.user_liked_listings (user_id, source_table, source_id)

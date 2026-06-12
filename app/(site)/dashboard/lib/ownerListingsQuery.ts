@@ -3,6 +3,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
+import { isListingUuid } from "@/app/lib/listingSaveDbKey";
 
 const CORE =
   "id,leonix_ad_id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,republished_at,republish_count,views,original_price,current_price,price_last_updated,is_published";
@@ -56,6 +57,65 @@ export async function fetchOwnerListingsForDashboard(
     error: lastErr,
     meta: { optionalMetaAvailable: false, republishColsAvailable: true },
   };
+}
+
+/**
+ * Owner-safe single listing fetch for workspace / analytics (matches edit-route owner filter).
+ * Resolves internal UUID or Leonix ad id; strips missing columns like dashboard list fetch.
+ */
+export async function fetchOwnerListingForWorkspace(
+  sb: SupabaseClient,
+  ownerId: string,
+  idOrLeonixId: string,
+): Promise<{ row: Record<string, unknown> | null; error: { message: string } | null }> {
+  const key = idOrLeonixId.trim();
+  if (!key) return { row: null, error: null };
+
+  const tiers = [
+    { cols: WITH_OPTIONAL_META },
+    { cols: WITH_TIMESTAMPS },
+    { cols: CORE },
+  ];
+
+  const tryFetch = async (column: "id" | "leonix_ad_id", value: string) => {
+    for (const tier of tiers) {
+      let cols = tier.cols;
+      for (let attempt = 0; attempt < 32; attempt++) {
+        const res = await sb
+          .from("listings")
+          .select(cols)
+          .eq("owner_id", ownerId)
+          .eq(column, value)
+          .maybeSingle();
+        if (!res.error && res.data) {
+          return res.data as unknown as Record<string, unknown>;
+        }
+        if (res.error) {
+          const bad = missingListingsColumnName(res.error);
+          if (!bad) return null;
+          const next = stripSelectColumn(cols, bad);
+          if (next === cols) break;
+          cols = next;
+          continue;
+        }
+        return null;
+      }
+    }
+    return null;
+  };
+
+  let row: Record<string, unknown> | null = null;
+  if (isListingUuid(key)) {
+    row = await tryFetch("id", key);
+  }
+  if (!row) {
+    row = await tryFetch("leonix_ad_id", key);
+  }
+  if (!row && !isListingUuid(key)) {
+    row = await tryFetch("id", key);
+  }
+
+  return { row, error: null };
 }
 
 /** Normalize row for UI — all fields optional for forward compatibility */

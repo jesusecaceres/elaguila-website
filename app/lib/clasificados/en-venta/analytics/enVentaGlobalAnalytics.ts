@@ -38,8 +38,6 @@ function allowClientDedupe(eventType: string, sourceId: string, cooldownMs: numb
 const AUTH_REQUIRED: ReadonlySet<ListingAnalyticsEventType> = new Set([
   "listing_save",
   "listing_unsave",
-  "listing_like",
-  "listing_unlike",
   "message_sent",
 ]);
 

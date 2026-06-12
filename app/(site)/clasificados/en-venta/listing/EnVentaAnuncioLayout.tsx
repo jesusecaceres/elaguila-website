@@ -789,6 +789,7 @@ export function EnVentaAnuncioLayout({
                           listing.id,
                           (listing as { leonix_ad_id?: string | null }).leonix_ad_id
                         )}
+                        listingUuid={listing.id}
                         listingUrl={publicListingUrl}
                         listingTitle={listing.title[lang]}
                         ownerUserId={ownerId}
