@@ -20,6 +20,7 @@ import {
   hasOfertaLocalFlyerAsset,
   labelForBusinessCategory,
   labelForOfferType,
+  labelForPrimaryAdFormatLane,
   membershipCtaLabel,
   resolveOfertaLocalDirectionsHref,
   resolveOfertaLocalWebsiteHref,
@@ -80,6 +81,7 @@ export function OfertasLocalesPreviewCard({
   lang?: OfertasLocalesAppLang;
 }) {
   const offerLabel = labelForOfferType(draft.offerType, lang);
+  const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
   const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
   const marketLabel = getOfertaLocalMarketDisplayLabel(draft, lang);
   const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
@@ -125,11 +127,18 @@ export function OfertasLocalesPreviewCard({
           <p className="text-xs font-semibold uppercase tracking-widest text-[#7A1E2C]">
             Leonix · {OFERTAS_LOCALES_PRODUCT_NAME}
           </p>
-          {offerLabel ? (
-            <span className="mt-3 inline-block rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-medium text-[#7A1E2C]">
-              {offerLabel}
-            </span>
-          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {primaryFormatLabel ? (
+              <span className="inline-block rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-medium text-[#7A1E2C]">
+                {primaryFormatLabel}
+              </span>
+            ) : null}
+            {offerLabel && offerLabel !== primaryFormatLabel ? (
+              <span className="inline-block rounded-lg border border-[#D4C4A8]/80 bg-white px-2.5 py-1 text-xs font-medium text-[#1E1814]/75">
+                {offerLabel}
+              </span>
+            ) : null}
+          </div>
           <h1 className="mt-3 text-2xl font-bold text-[#1E1814]">
             {draft.title.trim() || "Oferta local"}
           </h1>

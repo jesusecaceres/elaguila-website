@@ -2,6 +2,9 @@
  * Ofertas Locales — draft types only (Gate 1 foundation; no DB / routes / analytics wiring).
  */
 
+/** Primary publish lane — shopping specials (weekly ads) vs local coupons/promotions. */
+export type OfertaLocalPrimaryAdFormat = "shopping_specials" | "local_coupons";
+
 export type OfertaLocalOfferType =
   | "weekly_flyer"
   | "coupon"
@@ -280,6 +283,8 @@ export type OfertaLocalValidationIssue = {
 };
 
 export type OfertaLocalDraft = {
+  /** Primary ad format lane — drives copy, upload sections, and AI wording. */
+  primaryAdFormat: OfertaLocalPrimaryAdFormat | "";
   offerType: OfertaLocalOfferType | "";
   businessCategory: OfertaLocalBusinessCategory | "";
   marketType: OfertaLocalMarketType | "";

@@ -179,6 +179,7 @@ function AssetEditor({
             }}
             placeholder="https://"
           />
+          <p className="mt-1 text-xs text-[#1E1814]/55">{ac.externalUrlReference}</p>
           {externalUrlReady ? (
             <p className="mt-1 text-xs font-medium text-emerald-800">{ac.linkAccepted}</p>
           ) : null}
@@ -264,30 +265,25 @@ function AssetEditor({
               ) : null}
             </div>
           ) : null}
-          <div>
-            <label className={LABEL}>{OFERTAS_LOCALES_SHELL_COPY.assetsPageNumber}</label>
-            <input
-              type="number"
-              min={1}
-              className={INPUT}
-              value={asset.pageNumber ?? ""}
-              onChange={(e) =>
-                onChange({
-                  pageNumber: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-            />
-          </div>
+          {(isPdf || asset.pageNumber != null) ? (
+            <div>
+              <label className={LABEL}>{ac.pageSectionLabel}</label>
+              <p className="mb-1 text-xs text-[#1E1814]/55">{ac.pageSectionHelper}</p>
+              <input
+                type="number"
+                min={1}
+                className={INPUT}
+                value={asset.pageNumber ?? ""}
+                onChange={(e) =>
+                  onChange({
+                    pageNumber: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              />
+            </div>
+          ) : null}
         </>
       )}
-      <div>
-        <label className={LABEL}>{OFERTAS_LOCALES_SHELL_COPY.assetsNote}</label>
-        <textarea
-          className={`${INPUT} min-h-[60px] resize-y`}
-          value={asset.note}
-          onChange={(e) => onChange({ note: e.target.value })}
-        />
-      </div>
       <p className="text-[10px] uppercase tracking-wide text-[#1E1814]/45">
         Estado: {asset.status}
         {asset.mimeType ? ` · ${asset.mimeType}` : ""}
@@ -303,13 +299,16 @@ export function OfertasLocalesDraftAssetSection({
   updateDraft,
   lang = "es",
   sectionTitleOverride,
+  showAiScanFormatsHint = false,
 }: {
   bucket: AssetBucket;
   draft: OfertaLocalDraft;
   updateDraft: (partial: Partial<OfertaLocalDraft>) => void;
   lang?: OfertasLocalesAppLang;
   sectionTitleOverride?: string;
+  showAiScanFormatsHint?: boolean;
 }) {
+  const ac = ofertasLocalesAssetCopy(lang);
   const assetKind = bucketToKind(bucket);
   const assets = draft[bucket];
   const active = activeOfertaLocalDraftAssets(assets);
@@ -471,6 +470,9 @@ export function OfertasLocalesDraftAssetSection({
           Máximo {bucket === "flyerAssets" ? OFERTAS_LOCALES_MAX_FLYER_ASSETS : OFERTAS_LOCALES_MAX_COUPON_ASSETS}{" "}
           archivos en borrador.
         </p>
+      ) : null}
+      {showAiScanFormatsHint ? (
+        <p className="text-xs leading-relaxed text-[#1E1814]/60">{ac.aiScanFormats}</p>
       ) : null}
     </div>
   );

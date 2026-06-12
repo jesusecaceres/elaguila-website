@@ -4,6 +4,7 @@ import {
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
 } from "./ofertasLocalesConstants";
 import { labelForPrimaryBusinessCategory } from "./ofertasLocalesBusinessCategoryUx";
+import { labelForPrimaryAdFormat } from "./ofertasLocalesTwoLaneProductModel";
 import { getOfertaLocalMarketDisplayLabel, getOfertaLocalProductDisplayLabel, labelForCouponPromotionSubtype } from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
@@ -25,6 +26,13 @@ export function labelForOfferType(value: OfertaLocalDraft["offerType"], lang: "e
   const opt = OFERTAS_LOCALES_OFFER_TYPE_OPTIONS.find((o) => o.value === value);
   if (!opt) return value;
   return lang === "en" ? opt.labelEn : opt.labelEs;
+}
+
+export function labelForPrimaryAdFormatLane(
+  draft: Pick<OfertaLocalDraft, "primaryAdFormat" | "offerType">,
+  lang: "es" | "en" = "es"
+): string {
+  return labelForPrimaryAdFormat(draft, lang);
 }
 
 export function labelForBusinessCategory(

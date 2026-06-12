@@ -85,8 +85,12 @@ export function getOfertasLocalesWizardStepHints(
 
   switch (step) {
     case 1:
-      if (!draft.offerType) {
-        hints.push(es ? "Elige un tipo de oferta para continuar." : "Choose an offer type to continue.");
+      if (!draft.primaryAdFormat && !draft.offerType) {
+        hints.push(
+          es
+            ? "Elige qué quieres publicar principalmente."
+            : "Choose what you mainly want to publish."
+        );
       }
       break;
     case 2:
@@ -126,13 +130,15 @@ export function getOfertasLocalesWizardStepHints(
     }
     case 4:
       if (!draft.city.trim()) {
-        hints.push(es ? "La ciudad ayuda en búsquedas locales." : "City helps local search.");
+        hints.push(es ? "Agrega una ciudad." : "Add a city.");
       }
       if (normalizeOfertaLocalZipInput(draft.zipCode).length !== 5) {
-        hints.push(es ? "Agrega un ZIP de 5 dígitos." : "Add a 5-digit ZIP code.");
+        hints.push(es ? "Agrega un ZIP de 5 dígitos." : "Add a 5-digit ZIP.");
       }
-      if (normalizeOfertaLocalPhoneInput(draft.phone).length < 10) {
-        hints.push(es ? "Agrega un teléfono de contacto." : "Add a contact phone number.");
+      const phoneDigits = normalizeOfertaLocalPhoneInput(draft.phone);
+      const whatsappDigits = normalizeOfertaLocalPhoneInput(draft.whatsapp);
+      if (phoneDigits.length < 10 && whatsappDigits.length < 10) {
+        hints.push(es ? "Agrega un teléfono o WhatsApp." : "Add a phone or WhatsApp.");
       }
       break;
     case 5:

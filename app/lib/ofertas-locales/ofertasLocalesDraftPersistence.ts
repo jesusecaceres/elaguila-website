@@ -1,5 +1,7 @@
 import { createEmptyOfertaLocalDraft } from "./createEmptyOfertaLocalDraft";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
+import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
+import type { OfertaLocalPrimaryAdFormat } from "./ofertasLocalesTypes";
 import { normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type {
   OfertaLocalDraft,
@@ -143,7 +145,12 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
     couponAssets: sanitizeAssetList(stored.couponAssets),
   } as OfertaLocalDraft;
   const normalizedCategory = normalizeOfertaLocalDraftCategoryFields(merged);
-  return { ...merged, ...normalizedCategory };
+  const primaryAdFormatRaw = stored.primaryAdFormat;
+  const primaryAdFormat: OfertaLocalPrimaryAdFormat | "" =
+    primaryAdFormatRaw === "shopping_specials" || primaryAdFormatRaw === "local_coupons"
+      ? primaryAdFormatRaw
+      : inferPrimaryAdFormatFromDraft(merged);
+  return { ...merged, ...normalizedCategory, primaryAdFormat };
 }
 
 export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {

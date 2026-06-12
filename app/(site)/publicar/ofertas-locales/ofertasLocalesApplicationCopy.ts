@@ -14,6 +14,37 @@ const COPY = {
     previewDisabled: "Vista previa",
     publishDisabled: "Publicar — más adelante",
     offerTypeSection: "Tipo de oferta",
+    step1PrimaryFormatQuestion: "¿Qué quieres publicar principalmente?",
+    laneShoppingFlyerTitleLabel: "Título del volante",
+    laneShoppingFlyerDescriptionLabel: "Descripción del volante",
+    laneShoppingSpecialDatesLabel: "Fechas del especial",
+    laneCouponPromotionTitleLabel: "Título de la promoción",
+    laneCouponTextLabel: "Texto del cupón",
+    laneCouponTermsLabel: "Términos o detalles",
+    laneCouponValidDatesLabel: "Fechas de validez",
+    laneShoppingMainFlyerAsset: "Archivo principal del volante",
+    laneShoppingAdditionalCoupons: "Cupones adicionales, si aplica",
+    laneCouponMainAsset: "Cupón principal o hoja de cupones",
+    laneCouponAdditionalPromo: "Imagen o promoción adicional, si aplica",
+    aiShoppingLaneBody:
+      "AI puede sugerir productos u ofertas desde archivos subidos para revisión antes de mostrarlos públicamente.",
+    aiCouponsLaneBody:
+      "AI puede sugerir cupones individuales desde archivos subidos para revisión antes de mostrarlos públicamente.",
+    aiScanUploadFormats:
+      "Para escaneo AI, sube un PDF, JPG o PNG. Los enlaces externos se pueden mostrar como referencia, pero no se escanean en esta versión.",
+    externalUrlReferenceOnly:
+      "Enlace de referencia — no se escanea con AI en esta versión.",
+    assetPageSectionLabel: "Página o sección",
+    assetPageSectionHelper:
+      "Opcional: indica dónde aparece este cupón o especial dentro del archivo.",
+    membershipSectionTitle: "Membresías, recompensas y cupones digitales",
+    membershipSectionPurpose:
+      "Usa esta sección si los clientes deben activar una oferta en el sitio web, app o programa de recompensas del negocio.",
+    membershipTrafficCopy:
+      "Leonix ayuda a los clientes a descubrir la oferta. La activación final puede ocurrir en el sitio web, app o programa de recompensas del negocio.",
+    membershipCustomerInstructionLabel: "Instrucciones para el cliente",
+    digitalCouponCustomerInstructionLabel: "Instrucciones para activar el cupón digital",
+    previewPrimaryFormatLabel: "Formato principal",
     businessSection: "Tu negocio",
     offerDetailsSection: "Detalles de la oferta",
     offerDetailsFlyer: "Volante semanal",
@@ -43,7 +74,7 @@ const COPY = {
     aiProductSearchTitle: "Búsqueda por producto con AI",
     aiProductSearchPrice: "+$199/mo",
     aiProductSearchBody:
-      "Convertimos tu volante o cupón en productos buscables. Tú revisas y apruebas los artículos antes de publicarlos.",
+      "AI puede sugerir productos o cupones desde archivos subidos. Tú revisas y apruebas antes de que aparezcan públicamente.",
     aiProductSearchExamples:
       "Ejemplos: carne asada, bananas, tortillas, cambio de aceite, especiales de comida.",
     flatPricingCopy: "Precio mensual fijo. Sin cargos sorpresa por clics.",
@@ -60,6 +91,13 @@ const COPY = {
     customMarketHelper:
       "Ej. mercado brasileño, tienda orgánica, mercado africano, productos internacionales.",
     cityHelper: "Usaremos la ciudad para filtros y búsquedas locales.",
+    zipHelper: "Agrega el ZIP donde los clientes encontrarán esta oferta.",
+    addressHelper:
+      "Agrega la dirección si quieres mostrar ubicación o activar \"Cómo llegar\".",
+    serviceZipHelper:
+      "Opcional: agrega otros ZIPs donde esta oferta aplica, separados por comas.",
+    directionsHelper:
+      "Opcional: pega un enlace de Google Maps si quieres controlar el botón \"Cómo llegar\".",
     addressAccepted: "Dirección aceptada. Usaremos esta información para ayudar a los clientes a encontrar tu negocio.",
     directionsAccepted: "Enlace de mapa aceptado.",
     urlAccepted: "Enlace aceptado.",
@@ -195,6 +233,37 @@ const COPY = {
     previewDisabled: "Preview",
     publishDisabled: "Publish — not available yet",
     offerTypeSection: "Offer type",
+    step1PrimaryFormatQuestion: "What do you mainly want to publish?",
+    laneShoppingFlyerTitleLabel: "Flyer title",
+    laneShoppingFlyerDescriptionLabel: "Flyer description",
+    laneShoppingSpecialDatesLabel: "Special dates",
+    laneCouponPromotionTitleLabel: "Promotion title",
+    laneCouponTextLabel: "Coupon text",
+    laneCouponTermsLabel: "Terms or details",
+    laneCouponValidDatesLabel: "Valid dates",
+    laneShoppingMainFlyerAsset: "Main flyer file",
+    laneShoppingAdditionalCoupons: "Additional coupons, if applicable",
+    laneCouponMainAsset: "Main coupon or coupon sheet",
+    laneCouponAdditionalPromo: "Additional image or promotion, if applicable",
+    aiShoppingLaneBody:
+      "AI can suggest products or deals from uploaded files for review before they appear publicly.",
+    aiCouponsLaneBody:
+      "AI can suggest individual coupons from uploaded files for review before they appear publicly.",
+    aiScanUploadFormats:
+      "For AI scanning, upload a PDF, JPG, or PNG. External links can be shown as references, but they are not scanned in this version.",
+    externalUrlReferenceOnly:
+      "Reference link — not AI-scanned in this version.",
+    assetPageSectionLabel: "Page or section",
+    assetPageSectionHelper:
+      "Optional: note where this coupon or special appears in the file.",
+    membershipSectionTitle: "Memberships, rewards, and digital coupons",
+    membershipSectionPurpose:
+      "Use this section if customers need to activate an offer on the business website, app, or rewards program.",
+    membershipTrafficCopy:
+      "Leonix helps customers discover the offer. Final activation may happen on the business website, app, or rewards program.",
+    membershipCustomerInstructionLabel: "Customer instructions",
+    digitalCouponCustomerInstructionLabel: "Digital coupon activation instructions",
+    previewPrimaryFormatLabel: "Primary format",
     businessSection: "Your business",
     offerDetailsSection: "Offer details",
     offerDetailsFlyer: "Weekly flyer",
@@ -224,7 +293,7 @@ const COPY = {
     aiProductSearchTitle: "AI Product Search",
     aiProductSearchPrice: "+$199/mo",
     aiProductSearchBody:
-      "We help turn your flyer or coupon into searchable items. You review and approve the items before they go live.",
+      "AI can suggest products or coupons from uploaded files. You review and approve before they appear publicly.",
     aiProductSearchExamples:
       "Examples: carne asada, bananas, tortillas, oil change, lunch specials.",
     flatPricingCopy: "Flat monthly pricing. No surprise click charges.",
@@ -241,6 +310,12 @@ const COPY = {
     customMarketHelper:
       "Example: Brazilian market, organic store, African market, international goods.",
     cityHelper: "We'll use the city for local filters and search.",
+    zipHelper: "Add the ZIP where customers can find this offer.",
+    addressHelper: "Add the address if you want to show a location or enable \"Directions\".",
+    serviceZipHelper:
+      "Optional: add other ZIP codes where this offer applies, separated by commas.",
+    directionsHelper:
+      "Optional: paste a Google Maps link if you want to control the \"Directions\" button.",
     addressAccepted: "Address accepted. We'll use this to help customers find your business.",
     directionsAccepted: "Map link accepted.",
     urlAccepted: "Link accepted.",
@@ -403,9 +478,11 @@ export const OFERTAS_LOCALES_SHELL_COPY = {
   assetsAddCoupon: "Agregar cupón",
   assetsRemove: "Quitar",
   assetsTitle: "Título",
-  assetsNote: "Nota",
   assetsUrl: COPY.es.assetsUseExternalUrl,
-  assetsPageNumber: "Página",
+  assetsPageNumber: COPY.es.assetPageSectionLabel,
+  assetsPageSectionHelper: COPY.es.assetPageSectionHelper,
+  assetsExternalUrlReference: COPY.es.externalUrlReferenceOnly,
+  assetsAiScanFormats: COPY.es.aiScanUploadFormats,
   assetsFileName: "Nombre de archivo",
   assetsDisabledFileInput: "",
   assetsSelectFile: COPY.es.assetsUploadFile,
@@ -444,6 +521,10 @@ export function ofertasLocalesAssetCopy(lang: OfertasLocalesAppLang) {
     uploading: c.assetsUploading,
     fileReceived: c.assetsFileReceived,
     uploadPending: c.assetsUploadPending,
+    pageSectionLabel: c.assetPageSectionLabel,
+    pageSectionHelper: c.assetPageSectionHelper,
+    externalUrlReference: c.externalUrlReferenceOnly,
+    aiScanFormats: c.aiScanUploadFormats,
     useExternalUrl: c.assetsUseExternalUrl,
     linkAccepted: c.assetsLinkAccepted,
     uploadedFile: c.assetsUploadedFile,

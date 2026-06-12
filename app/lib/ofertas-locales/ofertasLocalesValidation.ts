@@ -1,6 +1,7 @@
 import { OFERTAS_LOCALES_VALIDATION_LIMITS } from "./ofertasLocalesConstants";
 import {
   normalizeOfertaLocalPhoneInput,
+  normalizeOfertaLocalStateInput,
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "./ofertasLocalesFormatting";
@@ -95,6 +96,8 @@ function validateOptionalUrlField(
 }
 
 function appendOptionalUrlValidation(issues: OfertaLocalValidationIssue[], draft: OfertaLocalDraft) {
+  validateOptionalUrlField(issues, "websiteUrl", draft.websiteUrl, "El sitio web");
+  validateOptionalUrlField(issues, "directionsUrl", draft.directionsUrl, "La URL de mapa");
   validateOptionalUrlField(issues, "membershipUrl", draft.membershipUrl, "La URL de membresía");
   validateOptionalUrlField(issues, "digitalCouponUrl", draft.digitalCouponUrl, "La URL del cupón digital");
 }
@@ -171,6 +174,14 @@ export function validateOfertaLocalDraftForFuturePublish(
   const zip = normalizeOfertaLocalZipInput(draft.zipCode);
   if (zip.length !== LIMITS.zipCodeLen) {
     pushIssue(issues, "zipCode", "El código postal (ZIP) de 5 dígitos es obligatorio.", "error");
+  }
+  if (draft.state.trim() && normalizeOfertaLocalStateInput(draft.state).length !== 2) {
+    pushIssue(
+      issues,
+      "state",
+      "El estado debe ser un código de 2 letras (ej. TX, FL).",
+      "error"
+    );
   }
   if (!hasContactChannel(draft)) {
     pushIssue(

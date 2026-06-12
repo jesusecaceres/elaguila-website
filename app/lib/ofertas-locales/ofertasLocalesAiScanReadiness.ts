@@ -38,11 +38,21 @@ export type OfertaLocalAiScanReadinessContext = {
   serverConfigurationMissing?: boolean;
 };
 
+const AI_SCAN_READY_MIMES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+]);
+
 function eligibleAssetFromDraft(
   asset: OfertaLocalDraftAsset,
   assetKind: "flyer" | "coupon"
 ): OfertaLocalScanEligibleAsset | null {
+  if (asset.assetType === "external_url") return null;
   if (!assetHasUploadedWithUrl(asset)) return null;
+  const mime = (asset.mimeType || "").toLowerCase();
+  if (mime && !AI_SCAN_READY_MIMES.has(mime)) return null;
   return {
     assetId: asset.id,
     assetKind,
@@ -123,6 +133,9 @@ export function getOfertaLocalAiScanReadiness(
     lang === "en"
       ? "Google Document AI configuration is verified when you scan."
       : "La configuración de Google Document AI se verifica al escanear.",
+    lang === "en"
+      ? "Only uploaded PDF, JPG, or PNG files are AI scan-ready. External links are reference-only."
+      : "Solo archivos subidos PDF, JPG o PNG están listos para escaneo AI. Los enlaces externos son solo referencia.",
   ];
 
   return {

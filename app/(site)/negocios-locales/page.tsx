@@ -35,7 +35,7 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
 const LANE_ADVERTISE_PATH: Record<BusinessLaneKey, string> = {
   "ofertas-locales": "/publicar/ofertas-locales",
   servicios: "/clasificados/publicar/servicios",
-  restaurantes: "/publicar/restaurantes",
+  restaurantes: "/clasificados/publicar/restaurantes",
   "comida-local": "/publicar/comida-local",
   "autos-dealer": "/publicar/autos/negocios",
   "bienes-raices": "/clasificados/publicar/bienes-raices",

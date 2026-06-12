@@ -23,6 +23,15 @@ export function normalizeOfertaLocalZipInput(raw: string): string {
   return digits;
 }
 
+/** Normalize US state to uppercase 2-letter code while typing. */
+export function normalizeOfertaLocalStateInput(raw: string): string {
+  return String(raw ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "")
+    .slice(0, 2);
+}
+
 /** Normalize http(s) URL; returns empty string if invalid. */
 export function normalizeOfertaLocalUrlInput(raw: string | undefined): string {
   const t = String(raw ?? "").trim();

@@ -3,6 +3,7 @@ import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 /** Safe empty draft — no fake business names, prices, coupons, or flyer assets. */
 export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
   return {
+    primaryAdFormat: "",
     offerType: "",
     businessCategory: "",
     marketType: "",

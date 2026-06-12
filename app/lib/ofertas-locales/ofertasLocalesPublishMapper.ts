@@ -5,10 +5,12 @@ import {
 } from "./ofertasLocalesDraftAssetHelpers";
 import {
   normalizeOfertaLocalPhoneInput,
+  normalizeOfertaLocalStateInput,
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "./ofertasLocalesFormatting";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
+import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import { validateOfertaLocalDraftForFuturePublish } from "./ofertasLocalesValidation";
 import type {
   OfertaLocalDbInsertPayload,
@@ -44,6 +46,11 @@ function sanitizeOptionalUrl(raw: string): string | null {
 function sanitizeOptionalPhone(raw: string): string | null {
   const d = normalizeOfertaLocalPhoneInput(raw);
   return d.length >= 10 ? d : d || null;
+}
+
+function sanitizeOptionalState(raw: string): string | null {
+  const t = normalizeOfertaLocalStateInput(raw);
+  return t.length === 2 ? t : null;
 }
 
 function sanitizeZipList(zips: string[]): string[] {
@@ -117,6 +124,8 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
   if (draft.wantsAiSearchableSpecials) metadata.wantsAiSearchableSpecials = true;
   const customMarket = sanitizeOptionalText(draft.customMarketType ?? "", 120);
   if (customMarket) metadata.customMarketType = customMarket;
+  const primaryAdFormat = inferPrimaryAdFormatFromDraft(draft);
+  if (primaryAdFormat) metadata.primaryAdFormat = primaryAdFormat;
 
   if (Object.keys(metadata).length) {
     chunks.push(`${INTERNAL_METADATA_PREFIX}${JSON.stringify(metadata)}`);
@@ -208,7 +217,7 @@ export function mapOfertaLocalDraftToInsertPayload(
     valid_until: draft.validUntil.trim(),
     address: sanitizeOptionalText(draft.address, 300),
     city: sanitizeText(draft.city, 120),
-    state: sanitizeOptionalText(draft.state, 40),
+    state: sanitizeOptionalState(draft.state),
     zip_code: zip,
     service_zip_codes: sanitizeZipList(draft.serviceZipCodes),
     phone: sanitizeOptionalPhone(draft.phone),

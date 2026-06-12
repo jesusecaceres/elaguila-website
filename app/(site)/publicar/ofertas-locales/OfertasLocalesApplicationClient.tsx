@@ -18,11 +18,18 @@ import {
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
   OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
-  OFERTAS_LOCALES_STEP1_BASE_PRODUCTS,
   OFERTAS_LOCALES_PRODUCT_NAME,
 } from "@/app/lib/ofertas-locales/ofertasLocalesConstants";
 import {
+  OFERTAS_LOCALES_PRIMARY_AD_FORMAT_OPTIONS,
+  buildPrimaryAdFormatChangePatch,
+  inferPrimaryAdFormatFromDraft,
+  isOfertaLocalLocalCouponsLane,
+  isOfertaLocalShoppingSpecialsLane,
+} from "@/app/lib/ofertas-locales/ofertasLocalesTwoLaneProductModel";
+import {
   formatOfertaLocalPhoneDisplay,
+  normalizeOfertaLocalStateInput,
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
@@ -166,6 +173,9 @@ export default function OfertasLocalesApplicationClient() {
 
   const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
   const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
+  const isShoppingLane = isOfertaLocalShoppingSpecialsLane(draft);
+  const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
+  const primaryFormat = inferPrimaryAdFormatFromDraft(draft);
   const basePriceMonthly = getOfertaLocalApplicationBasePriceMonthly(draft);
 
   const savedLabel = formatSavedAt(lastSavedAt, lang);
@@ -279,15 +289,13 @@ export default function OfertasLocalesApplicationClient() {
       case 1:
         return (
           <div className="space-y-5">
+            <p className="text-sm font-semibold text-[#1E1814]">{c.step1PrimaryFormatQuestion}</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              {OFERTAS_LOCALES_STEP1_BASE_PRODUCTS.map((product) => {
-                const isWeeklyCard = product.productKey === "weekly_flyer";
-                const selected = isWeeklyCard
-                  ? isOfertaLocalWeeklyFlyerFlow(draft.offerType)
-                  : isOfertaLocalCouponPromotionFlow(draft.offerType);
+              {OFERTAS_LOCALES_PRIMARY_AD_FORMAT_OPTIONS.map((lane) => {
+                const selected = primaryFormat === lane.value;
                 return (
                   <button
-                    key={product.productKey}
+                    key={lane.value}
                     type="button"
                     className={cx(
                       "rounded-2xl border p-5 text-left transition-all",
@@ -295,25 +303,17 @@ export default function OfertasLocalesApplicationClient() {
                         ? "border-[#7A1E2C] bg-[#7A1E2C]/5 shadow-sm ring-2 ring-[#7A1E2C]/15"
                         : "border-[#D4C4A8]/80 bg-white hover:border-[#7A1E2C]/35"
                     )}
-                    onClick={() =>
-                      updateDraft({
-                        offerType: isWeeklyCard
-                          ? "weekly_flyer"
-                          : isOfertaLocalCouponPromotionFlow(draft.offerType)
-                            ? draft.offerType
-                            : "coupon",
-                      })
-                    }
+                    onClick={() => updateDraft(buildPrimaryAdFormatChangePatch(draft, lane.value))}
                   >
                     <p className="text-base font-semibold text-[#1E1814]">
-                      {lang === "en" ? product.labelEn : product.labelEs}
+                      {lang === "en" ? lane.titleEn : lane.titleEs}
                     </p>
                     <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
-                      {formatUsd(product.priceDisplayMonthly)}
+                      {formatUsd(lane.priceDisplayMonthly)}
                       {c.perMonth}
                     </p>
                     <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">
-                      {lang === "en" ? product.valueCopyEn : product.valueCopyEs}
+                      {lang === "en" ? lane.descriptionEn : lane.descriptionEs}
                     </p>
                   </button>
                 );
@@ -350,8 +350,13 @@ export default function OfertasLocalesApplicationClient() {
                   {draft.wantsAiSearchableSpecials ? "✓" : ""}
                 </span>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-[#1E1814]/75">{c.aiProductSearchBody}</p>
-              <p className="mt-2 text-xs text-[#1E1814]/55">{c.aiProductSearchExamples}</p>
+              <p className="mt-3 text-xs leading-relaxed text-[#1E1814]/75">
+                {isShoppingLane
+                  ? c.aiShoppingLaneBody
+                  : isCouponsLane
+                    ? c.aiCouponsLaneBody
+                    : c.aiProductSearchBody}
+              </p>
             </button>
 
             <div className={CALLOUT}>
@@ -478,12 +483,14 @@ export default function OfertasLocalesApplicationClient() {
       case 3:
         return (
           <div className="space-y-4">
-            {!draft.offerType ? (
+            {!primaryFormat ? (
               <p className="text-sm text-[#1E1814]/55">
-                {lang === "en" ? "Choose an offer type in Step 1 first." : "Elige un tipo de oferta en el Paso 1."}
+                {lang === "en"
+                  ? "Choose your primary format in Step 1 first."
+                  : "Elige el formato principal en el Paso 1."}
               </p>
             ) : null}
-            {isCouponPromo ? (
+            {isCouponsLane ? (
               <FieldBlock label={c.promotionSubtypeLabel} optional optionalLabel={c.optional}>
                 <select
                   className={INPUT}
@@ -500,29 +507,52 @@ export default function OfertasLocalesApplicationClient() {
                 </select>
               </FieldBlock>
             ) : null}
-            {isFlyer ? (
-              <FieldBlock label={c.flyerTitleLabel} helper={c.flyerTitleHelper}>
-                <input
-                  className={INPUT}
-                  value={draft.flyerTitle}
-                  onChange={(e) => updateDraft({ flyerTitle: e.target.value })}
-                />
-              </FieldBlock>
+            {isShoppingLane ? (
+              <>
+                <FieldBlock label={c.laneShoppingFlyerTitleLabel} helper={c.flyerTitleHelper}>
+                  <input
+                    className={INPUT}
+                    value={draft.flyerTitle}
+                    onChange={(e) => updateDraft({ flyerTitle: e.target.value })}
+                  />
+                </FieldBlock>
+                <FieldBlock label={c.laneShoppingFlyerDescriptionLabel} optional optionalLabel={c.optional}>
+                  <textarea
+                    className={cx(INPUT, "min-h-[80px] resize-y")}
+                    value={draft.description}
+                    onChange={(e) => updateDraft({ description: e.target.value })}
+                  />
+                </FieldBlock>
+              </>
             ) : null}
-            {isCouponPromo || isFlyer ? (
-              <FieldBlock
-                label={c.couponTextLabel}
-                optional={isFlyer}
-                optionalLabel={c.optional}
-                helper={isCouponPromo ? c.couponTextHelper : undefined}
-              >
-                <textarea
-                  className={cx(INPUT, "min-h-[80px] resize-y")}
-                  value={draft.couponText}
-                  onChange={(e) => updateDraft({ couponText: e.target.value })}
-                />
-              </FieldBlock>
+            {isCouponsLane ? (
+              <>
+                <FieldBlock label={c.laneCouponPromotionTitleLabel}>
+                  <input
+                    className={INPUT}
+                    value={draft.title}
+                    onChange={(e) => updateDraft({ title: e.target.value })}
+                  />
+                </FieldBlock>
+                <FieldBlock label={c.laneCouponTextLabel} helper={c.couponTextHelper}>
+                  <textarea
+                    className={cx(INPUT, "min-h-[80px] resize-y")}
+                    value={draft.couponText}
+                    onChange={(e) => updateDraft({ couponText: e.target.value })}
+                  />
+                </FieldBlock>
+                <FieldBlock label={c.laneCouponTermsLabel} optional optionalLabel={c.optional}>
+                  <textarea
+                    className={cx(INPUT, "min-h-[80px] resize-y")}
+                    value={draft.description}
+                    onChange={(e) => updateDraft({ description: e.target.value })}
+                  />
+                </FieldBlock>
+              </>
             ) : null}
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70">
+              {isShoppingLane ? c.laneShoppingSpecialDatesLabel : c.laneCouponValidDatesLabel}
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldBlock label={c.validFrom}>
                 <input
@@ -551,6 +581,7 @@ export default function OfertasLocalesApplicationClient() {
               label={lang === "en" ? "Address" : "Dirección"}
               optional
               optionalLabel={c.optional}
+              helper={c.addressHelper}
               confirm={addressAccepted ? c.addressAccepted : undefined}
             >
               <input
@@ -572,12 +603,15 @@ export default function OfertasLocalesApplicationClient() {
                 <input
                   className={INPUT}
                   value={draft.state}
-                  onChange={(e) => updateDraft({ state: e.target.value })}
+                  onChange={(e) =>
+                    updateDraft({ state: normalizeOfertaLocalStateInput(e.target.value) })
+                  }
                   maxLength={2}
-                  placeholder="CA"
+                  placeholder={lang === "en" ? "State" : "Estado"}
+                  autoComplete="address-level1"
                 />
               </FieldBlock>
-              <FieldBlock label="ZIP">
+              <FieldBlock label="ZIP" helper={c.zipHelper}>
                 <input
                   className={INPUT}
                   value={draft.zipCode}
@@ -586,6 +620,7 @@ export default function OfertasLocalesApplicationClient() {
                   }
                   inputMode="numeric"
                   maxLength={5}
+                  autoComplete="postal-code"
                 />
               </FieldBlock>
             </div>
@@ -593,7 +628,7 @@ export default function OfertasLocalesApplicationClient() {
               label={lang === "en" ? "Service ZIP codes" : "ZIPs de servicio"}
               optional
               optionalLabel={c.optional}
-              helper={lang === "en" ? "Separate with commas." : "Separa con comas."}
+              helper={c.serviceZipHelper}
             >
               <input
                 className={INPUT}
@@ -609,7 +644,7 @@ export default function OfertasLocalesApplicationClient() {
                   onChange={(e) => updateDraft({ phone: formatOfertaLocalPhoneDisplay(e.target.value) })}
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="(408) 555-1234"
+                  placeholder="(555) 123-4567"
                 />
               </FieldBlock>
               <FieldBlock label="WhatsApp" optional optionalLabel={c.optional}>
@@ -639,6 +674,7 @@ export default function OfertasLocalesApplicationClient() {
               label={lang === "en" ? "Directions / map URL" : "URL de mapa / direcciones"}
               optional
               optionalLabel={c.optional}
+              helper={c.directionsHelper}
               confirm={directionsAccepted ? c.directionsAccepted : undefined}
             >
               <input
@@ -655,19 +691,22 @@ export default function OfertasLocalesApplicationClient() {
       case 5:
         return (
           <div className="space-y-4">
-            {!draft.offerType ? (
+            {!primaryFormat ? (
               <p className="text-sm text-[#1E1814]/55">
-                {lang === "en" ? "Choose an offer type in Step 1 first." : "Elige un tipo de oferta en el Paso 1."}
+                {lang === "en"
+                  ? "Choose your primary format in Step 1 first."
+                  : "Elige el formato principal en el Paso 1."}
               </p>
             ) : null}
-            {isFlyer ? (
+            {isShoppingLane ? (
               <>
                 <OfertasLocalesDraftAssetSection
                   bucket="flyerAssets"
                   draft={draft}
                   updateDraft={updateDraft}
                   lang={lang}
-                  sectionTitleOverride={c.assetsSectionFlyer}
+                  sectionTitleOverride={c.laneShoppingMainFlyerAsset}
+                  showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
                 />
                 <div className="border-t border-[#D4C4A8]/50 pt-4">
                   <OfertasLocalesDraftAssetSection
@@ -675,19 +714,33 @@ export default function OfertasLocalesApplicationClient() {
                     draft={draft}
                     updateDraft={updateDraft}
                     lang={lang}
-                    sectionTitleOverride={c.assetsSectionFlyerOptional}
+                    sectionTitleOverride={c.laneShoppingAdditionalCoupons}
+                    showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
                   />
                 </div>
               </>
             ) : null}
-            {isCouponPromo && !isFlyer ? (
-              <OfertasLocalesDraftAssetSection
-                bucket="couponAssets"
-                draft={draft}
-                updateDraft={updateDraft}
-                lang={lang}
-                sectionTitleOverride={c.assetsSectionCoupon}
-              />
+            {isCouponsLane ? (
+              <>
+                <OfertasLocalesDraftAssetSection
+                  bucket="couponAssets"
+                  draft={draft}
+                  updateDraft={updateDraft}
+                  lang={lang}
+                  sectionTitleOverride={c.laneCouponMainAsset}
+                  showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                />
+                <div className="border-t border-[#D4C4A8]/50 pt-4">
+                  <OfertasLocalesDraftAssetSection
+                    bucket="flyerAssets"
+                    draft={draft}
+                    updateDraft={updateDraft}
+                    lang={lang}
+                    sectionTitleOverride={c.laneCouponAdditionalPromo}
+                    showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                  />
+                </div>
+              </>
             ) : null}
             {draft.wantsAiSearchableSpecials ? (
               <>
@@ -717,11 +770,9 @@ export default function OfertasLocalesApplicationClient() {
         return (
           <div className="space-y-6">
             <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-              <p className="text-sm font-medium text-[#1E1814]">{c.membershipSection}</p>
-              <p className="text-xs text-[#1E1814]/60">{c.membershipQuestion}</p>
-              <p className="text-xs text-[#1E1814]/55">
-                {c.membershipCtaStandard} · {c.digitalCouponCtaStandard}
-              </p>
+              <p className="text-sm font-semibold text-[#1E1814]">{c.membershipSectionTitle}</p>
+              <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.membershipSectionPurpose}</p>
+              <p className="text-xs leading-relaxed text-[#1E1814]/55">{c.membershipTrafficCopy}</p>
               <label className="flex items-center gap-2 text-sm text-[#1E1814]">
                 <input
                   type="checkbox"
@@ -747,7 +798,7 @@ export default function OfertasLocalesApplicationClient() {
                 />
               </FieldBlock>
               <FieldBlock
-                label={lang === "en" ? "Membership note" : "Nota de membresía"}
+                label={c.membershipCustomerInstructionLabel}
                 optional
                 optionalLabel={c.optional}
               >
@@ -771,7 +822,7 @@ export default function OfertasLocalesApplicationClient() {
                 />
               </FieldBlock>
               <FieldBlock
-                label={lang === "en" ? "Digital coupon note" : "Nota de cupón digital"}
+                label={c.digitalCouponCustomerInstructionLabel}
                 optional
                 optionalLabel={c.optional}
               >
