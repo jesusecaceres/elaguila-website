@@ -1,4 +1,8 @@
 import { sanitizeRestauranteAmenities, hasAnyRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import {
+  collectRestauranteExternalVideoUrls,
+  normalizeRestauranteVideoUrlsList,
+} from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
 
@@ -113,6 +117,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     galleryMediaSequence: undefined,
     videoFile: undefined,
     videoUrl: undefined,
+    videoUrls: [],
     foodImages: [],
     interiorImages: [],
     exteriorImages: [],
@@ -203,6 +208,15 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   }
   if (draft.cateringEventsStack && typeof draft.cateringEventsStack === "object") {
     merged.cateringEventsStack = { ...(base.cateringEventsStack ?? {}), ...(draft.cateringEventsStack as object) };
+  }
+
+  merged.videoUrls = normalizeRestauranteVideoUrlsList(merged.videoUrls);
+  const migrated = collectRestauranteExternalVideoUrls(merged);
+  if (migrated.length) {
+    merged.videoUrls = migrated;
+    merged.videoUrl = migrated[0];
+  } else {
+    merged.videoUrls = merged.videoUrls ?? [];
   }
 
   return merged;

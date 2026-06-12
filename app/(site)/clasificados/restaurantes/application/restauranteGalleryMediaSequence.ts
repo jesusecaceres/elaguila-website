@@ -1,4 +1,5 @@
 import { isRestauranteDisplayableImageRef } from "./restauranteMediaDisplay";
+import { restauranteDraftHasVideo } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
 
 /** Main gallery strip: indices into `galleryImages` plus optional video slot. */
 export type RestauranteGallerySeqEntry = number | "v";
@@ -7,6 +8,7 @@ type SeqSource = {
   galleryImages?: string[] | undefined;
   galleryMediaSequence?: unknown;
   galleryOrder?: string[] | undefined;
+  videoUrls?: string[] | undefined;
   videoFile?: string | undefined;
   videoUrl?: string | undefined;
 };
@@ -16,7 +18,7 @@ function nonEmpty(s: string | undefined | null): boolean {
 }
 
 function draftHasVideo(d: SeqSource): boolean {
-  return nonEmpty(d.videoFile) || nonEmpty(d.videoUrl);
+  return restauranteDraftHasVideo(d);
 }
 
 function coerceSeqEntry(x: unknown): RestauranteGallerySeqEntry | null {

@@ -115,6 +115,8 @@ export type RestauranteGalleryMedia = {
   galleryOrder?: string[];
   /** Mixed gallery + video order for preview/editor (Leonix-style strip). */
   galleryMediaSequence?: Array<number | "v">;
+  /** External video URLs only (max 4). Replaces direct file upload for new listings. */
+  videoUrls?: string[];
   videoFile?: RestauranteFileRef;
   videoUrl?: string;
   foodImages?: RestauranteFileRef[];

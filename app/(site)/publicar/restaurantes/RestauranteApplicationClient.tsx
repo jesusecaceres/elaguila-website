@@ -29,11 +29,11 @@ import {
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
 import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
-import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
 import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectionNav";
 import { RestauranteAmenitiesFormBlock } from "./RestauranteAmenitiesFormBlock";
+import { RestauranteExternalVideoUrlsSection } from "./RestauranteExternalVideoUrlsSection";
 import {
   isDuplicateCustomLanguage,
   RESTAURANTE_FORM_BUSINESS_TYPES,
@@ -1452,10 +1452,9 @@ export default function RestauranteApplicationClient() {
           <SectionTitle>G · Galería y medios</SectionTitle>
           <HelperText>
             <strong className="text-[color:var(--lx-text-2)]">Hero</strong> = ancla visual superior de la ficha.{" "}
-            <strong className="text-[color:var(--lx-text-2)]">Galería general + video en la tira</strong> = carrusel mixto de
-            apoyo. <strong className="text-[color:var(--lx-text-2)]">Interiores / Comida / Exterior</strong> = grupos
-            etiquetados en el detalle (no sustituyen a los platillos F). El video es opcional y complementa; en preview el
-            archivo local gana sobre URL.
+            <strong className="text-[color:var(--lx-text-2)]">Interiores / Comida / Exterior</strong> = grupos
+            etiquetados en el detalle (no sustituyen a los platillos F). Usa <strong className="text-[color:var(--lx-text-2)]">Video opcional</strong>{" "}
+            para hasta 4 enlaces externos (YouTube, TikTok, etc.).
           </HelperText>
           <div className="mt-4 grid gap-4">
             <div>
@@ -1694,59 +1693,7 @@ export default function RestauranteApplicationClient() {
               draft={draft}
               onChange={setDraftPatch}
             />
-            <div>
-              <FieldLabel optional>Video (URL externo)</FieldLabel>
-              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)] sm:max-w-2xl">
-                Opcional. En la ficha, <strong className="text-[color:var(--lx-text-2)]">un video local subido en la tira</strong>{" "}
-                tiene prioridad sobre la URL. Si pegas una URL aquí, el formulario quita el archivo local para evitar dos
-                videos a la vez.
-              </p>
-              <input
-                className="mt-2 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.videoUrl}
-                value={draft.videoUrl ?? ""}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  const v = raw.trim() === "" ? undefined : raw;
-                  const urlActive = !!v?.trim();
-                  setDraftPatch((prev) => {
-                    const nextFile = urlActive ? undefined : prev.videoFile;
-                    const nextUrl = v;
-                    let seq =
-                      prev.galleryMediaSequence ??
-                      resolveRestauranteGallerySequence({
-                        ...prev,
-                        videoFile: nextFile,
-                        videoUrl: nextUrl,
-                      });
-                    const hasVideo = !!(nextFile?.trim() || nextUrl?.trim());
-                    if (hasVideo) {
-                      if (!seq.includes("v")) seq = [...seq, "v"];
-                    } else {
-                      seq = seq.filter((x) => x !== "v");
-                    }
-                    return {
-                      videoUrl: nextUrl,
-                      videoFile: nextFile,
-                      galleryMediaSequence: seq.length ? seq : undefined,
-                    };
-                  });
-                }}
-              />
-              {draft.videoUrl?.trim() && !draft.videoFile?.trim() ? (
-                <div className="mt-2 flex items-center gap-2 rounded-xl border border-[color:var(--lx-gold-border)]/50 bg-[color:var(--lx-section)] px-3 py-2 text-xs text-[color:var(--lx-text-2)]">
-                  <span className="font-semibold text-green-600">✅ Enlace de video aceptado</span>
-                  <span className="min-w-0 truncate font-medium">{draft.videoUrl.trim()}</span>
-                  <span className="text-[color:var(--lx-muted)]">Se usará en la galería</span>
-                </div>
-              ) : null}
-              {draft.videoFile?.trim() && !draft.videoUrl?.trim() ? (
-                <div className="mt-2 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-                  <span className="font-semibold">✅ Archivo de video local</span>
-                  <span>Se usará en la galería</span>
-                </div>
-              ) : null}
-            </div>
+            <RestauranteExternalVideoUrlsSection draft={draft} setDraftPatch={setDraftPatch} />
           </div>
         </section>
         ) : null}

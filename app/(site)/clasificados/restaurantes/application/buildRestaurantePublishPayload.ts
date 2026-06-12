@@ -1,4 +1,5 @@
 import { hasAnyRestauranteAmenities, sanitizeRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import { collectRestauranteExternalVideoUrls } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 
 /**
@@ -94,6 +95,7 @@ export function buildRestaurantePublishPayload(
 
   const draft = canonicalDraft;
   const amenitiesSanitized = sanitizeRestauranteAmenities(draft.restaurantAmenities);
+  const videoUrls = collectRestauranteExternalVideoUrls(draft);
 
   const payload: Record<string, unknown> = {
     draftListingId: blockHeavyMedia(draft.draftListingId, "draftListingId"),
@@ -153,8 +155,9 @@ export function buildRestaurantePublishPayload(
     interiorImages: blockHeavyMedia(draft.interiorImages, "interiorImages"),
     foodImages: blockHeavyMedia(draft.foodImages, "foodImages"),
     exteriorImages: blockHeavyMedia(draft.exteriorImages, "exteriorImages"),
-    videoFile: blockHeavyMedia(draft.videoFile, "videoFile"),
-    videoUrl: blockHeavyMedia(draft.videoUrl, "videoUrl"),
+    videoFile: undefined,
+    videoUrl: videoUrls[0],
+    videoUrls: videoUrls.length ? videoUrls : undefined,
     featuredDishes: blockHeavyMedia((draft.featuredDishes || []).slice(0, 10), "featuredDishes"),
     cateringAvailable: blockHeavyMedia(draft.cateringAvailable, "cateringAvailable"),
     eventFoodService: blockHeavyMedia(draft.eventFoodService, "eventFoodService"),

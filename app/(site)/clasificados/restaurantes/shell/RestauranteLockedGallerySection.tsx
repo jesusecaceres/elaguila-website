@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { FiX, FiChevronLeft, FiChevronRight, FiExternalLink } from "react-icons/fi";
 import type { ShellVenueGalleryBundle } from "./restaurantDetailShellTypes";
+import { ShellVideoSlide } from "./RestauranteShellGalleryPrimitives";
 
 interface RestauranteLockedGallerySectionProps {
   galleryBundle?: ShellVenueGalleryBundle;
@@ -28,7 +29,10 @@ export function RestauranteLockedGallerySection({
                      (galleryBundle?.categories?.find(cat => cat.key === "exterior")?.items.length ?? 0) > 0 ||
                      (galleryBundle?.categories?.find(cat => cat.key === "video")?.items.length ?? 0) > 0;
 
-  const hasVideoTab = (galleryBundle?.categories?.find(cat => cat.key === "video")?.items.length ?? 0) > 0;
+  const hasVideoTab =
+    (galleryBundle?.categories?.find((cat) => cat.key === "video")?.items.length ?? 0) > 0;
+  const videoItemCount =
+    galleryBundle?.categories?.find((cat) => cat.key === "video")?.items.length ?? 0;
 
   if (!hasContent) {
     return null;
@@ -198,22 +202,37 @@ export function RestauranteLockedGallerySection({
                         : "text-white/60 hover:text-white hover:bg-white/10"
                     }`}
                   >
-                    Video
+                    {videoItemCount > 1 ? "Videos" : "Video"}
                   </button>
                 )}
               </div>
             </div>
 
             {/* Content */}
-            <div className="flex flex-1 items-center justify-center overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              {activeCategory === "video" && currentItems.length > 1 ? (
+                <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-white/10 px-3 py-2 sm:px-4">
+                  {currentItems.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveIndex(idx)}
+                      className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                        activeIndex === idx ? "bg-white/20 text-white" : "text-white/60 hover:bg-white/10"
+                      }`}
+                    >
+                      Video {idx + 1}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <div className="flex flex-1 items-center justify-center overflow-hidden">
               {currentItems.length > 0 && activeIndex < currentItems.length && (
-                <div className="relative w-full h-full flex items-center justify-center">
+                <div className="relative flex h-full w-full items-center justify-center">
                   {activeCategory === "video" ? (
-                    <video
-                      src={currentItems[activeIndex].videoSrc || currentItems[activeIndex].videoRemoteUrl}
-                      controls
-                      className="max-w-full max-h-full object-contain"
-                    />
+                    <div className="w-full max-w-5xl p-2">
+                      <ShellVideoSlide item={currentItems[activeIndex]} />
+                    </div>
                   ) : (
                     <Image
                       src={currentItems[activeIndex].imageUrl!}
@@ -224,6 +243,7 @@ export function RestauranteLockedGallerySection({
                   )}
                 </div>
               )}
+              </div>
             </div>
 
             {/* Navigation */}
