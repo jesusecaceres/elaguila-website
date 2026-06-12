@@ -26,6 +26,7 @@
     "verify:admin-dashboard-mobile-command-center": "node scripts/verify-admin-dashboard-mobile-command-center.mjs",
     "verify:admin-review-cta-actions": "node scripts/verify-admin-review-cta-actions.mjs",
     "verify:admin-reports-complaints-supabase": "node scripts/verify-admin-reports-complaints-supabase.mjs",
+    "verify:admin-classifieds-queue-polish": "node scripts/verify-admin-classifieds-queue-polish.mjs",
     "verify:staff-admin-sales-access": "node scripts/verify-staff-admin-sales-access.mjs",
     "verify:staff-admin-supabase-activation": "node scripts/verify-staff-admin-supabase-activation.mjs",
     "verify:admin-staff-auth-boundary": "node scripts/verify-admin-staff-auth-boundary.mjs",

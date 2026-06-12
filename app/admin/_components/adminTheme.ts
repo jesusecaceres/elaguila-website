@@ -98,9 +98,21 @@ export const adminDashboardMetricChip =
 export const adminDashboardUrgentBadge =
   "inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-900";
 
+/** Gold/bronze — feature / premium / utility. */
+export const adminDashboardCtaPremium =
+  adminDashboardCtaBase +
+  " border border-[#C9B46A]/80 bg-[#FFFCF7] text-[#5C4E2E] hover:bg-[#FBF7EF]";
+
 /** Red — destructive actions (queue fallback only from dashboard). */
 export const adminDashboardCtaDanger =
   adminDashboardCtaBase + " border border-rose-800 bg-rose-800 text-white hover:bg-rose-900";
+
+/** Compact queue action chip — fits table cells and mobile grids. */
+export const adminQueueActionCompact = "!min-h-[40px] !w-auto !px-3 !py-2 !text-xs";
+
+/** Queue action group label. */
+export const adminQueueActionGroupLabel =
+  "mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]";
 
 /** Zebra striping for admin tracking tables. */
 /** Obvious warm zebra for admin queue tables (Phase 15). */

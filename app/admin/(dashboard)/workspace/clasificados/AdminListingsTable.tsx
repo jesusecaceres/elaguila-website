@@ -14,7 +14,6 @@ import {
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { ClasificadosQueueActionChrome } from "./_components/ClasificadosQueueActionChrome";
 import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
-import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
   computeEnVentaVisibilityRenewalVm,
   EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
@@ -23,9 +22,8 @@ import {
 import { parseLeonixListingContract, parseLeonixMachineFacetRead } from "@/app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
-import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
-import { ClassifiedAdminRowActions } from "./_components/ClassifiedAdminRowActions";
+import { ClassifiedAdminQueueRowActionsPanel } from "./_components/ClassifiedAdminQueueRowActionsPanel";
 import { AdminListingMonetizationSummary } from "./_components/AdminListingMonetizationSummary";
 
 type Row = {
@@ -332,15 +330,49 @@ export default function AdminListingsTable({
 
   return (
     <>
-    <div className={`${adminTableWrap} ${adminDesktopTableOnly}`}>
       <Suspense fallback={null}>
         <ClasificadosQueueActionChrome />
       </Suspense>
-      {error && <div className="border-b border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+
+      <div
+        className={`${adminCardBase} mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs text-[#5C5346]`}
+        data-testid="clasificados-queue-summary"
+      >
+        <span className="font-bold text-[#1E1810]">
+          {listings.length} {listings.length === 1 ? "listing" : "listings"}
+        </span>
+        {listingsCategorySlug ? (
+          <span className="rounded-md border border-[#C9B46A]/50 bg-[#FFFCF7] px-2 py-0.5 font-semibold text-[#5C4E2E]">
+            category: {listingsCategorySlug}
+          </span>
+        ) : null}
+        <span>
+          pending {listings.filter((r) => r.status === "pending").length} · flagged{" "}
+          {listings.filter((r) => r.status === "flagged").length} · removed{" "}
+          {listings.filter((r) => r.status === "removed").length}
+        </span>
+      </div>
+
+      {error && <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+
+    <div className={`${adminTableWrap} ${adminDesktopTableOnly}`} data-testid="clasificados-desktop-table">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
+              {staffQueueMode ? (
+                <>
+                  <th className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.title")}</th>
+                  <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.category")}</th>
+                  <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.status")}</th>
+                  <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.owner")}</th>
+                  <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.date")}</th>
+                  <th className="min-w-[18rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 font-semibold text-[#5C4E2E]">
+                    {t("listings.col.actions")}
+                  </th>
+                </>
+              ) : (
+                <>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.id")}</th>
               <th className="min-w-[9rem] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.leonixId")}</th>
               <th className="min-w-[180px] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.title")}</th>
@@ -348,22 +380,7 @@ export default function AdminListingsTable({
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.city")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.price")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.status")}</th>
-              {staffQueueMode ? (
-                <>
-                  <th className="p-3 font-semibold text-[#5C4E2E]">Dest.</th>
-                  <th className="p-3 font-semibold text-[#5C4E2E]">Verif.</th>
-                </>
-              ) : null}
-              <th
-                className={
-                  staffQueueMode
-                    ? "min-w-[12rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 font-semibold text-[#5C4E2E]"
-                    : "p-3 font-semibold text-[#5C4E2E]"
-                }
-                title={staffQueueMode ? t("listings.actionsColumnEarlyHint") : undefined}
-              >
-                {t("listings.col.actions")}
-              </th>
+              <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.actions")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.owner")}</th>
               <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.date")}</th>
               <th
@@ -389,6 +406,8 @@ export default function AdminListingsTable({
               >
                 {t("listings.col.envVis")}
               </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -401,6 +420,74 @@ export default function AdminListingsTable({
                 id={adminQueueRowAnchorId(row.id)}
                 className={adminQueueRowClass(highlighted)}
               >
+                {staffQueueMode ? (
+                  <>
+                    <td className="max-w-[280px] p-3 align-top">
+                      <p className="font-semibold text-[#1E1810] break-words" title={row.title ?? ""}>
+                        {row.title ?? "—"}
+                      </p>
+                      <p className="mt-1 font-mono text-[10px] text-[#3D3428] break-all" title={displayLeonixAdId}>
+                        {displayLeonixAdId}
+                      </p>
+                      <p className="mt-1 text-xs text-[#5C5346]">
+                        {row.city ?? "—"} · {row.is_free ? t("listings.free") : row.price != null ? `$${row.price}` : "—"}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase">
+                        <span className="rounded-md border border-[#C9B46A]/50 bg-[#FFFCF7] px-1.5 py-0.5 text-[#5C4E2E]">
+                          {row.admin_promoted ? t("autosQueue.yes") : t("autosQueue.no")} featured
+                        </span>
+                        <span className="rounded-md border border-[#2A4536]/30 bg-[#F4FAF2] px-1.5 py-0.5 text-[#2A4536]">
+                          {row.leonix_verified ? t("autosQueue.yes") : t("autosQueue.no")} verified
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-3 align-top">
+                      <span className="rounded-md bg-[#FBF7EF] px-2 py-0.5 text-xs font-semibold text-[#5C4E2E]">
+                        {adminListingsCategoryLabel(row.category)}
+                      </span>
+                    </td>
+                    <td className="p-3 align-top">
+                      <span
+                        className={
+                          row.status === "removed"
+                            ? "font-bold text-red-700"
+                            : row.status === "pending" || row.status === "flagged"
+                              ? "font-bold text-amber-800"
+                              : "font-semibold text-[#5C5346]"
+                        }
+                      >
+                        {row.status ?? "active"}
+                      </span>
+                    </td>
+                    <td className="p-3 align-top">
+                      {row.owner_id ? (
+                        <Link
+                          href={`/admin/usuarios/${row.owner_id}`}
+                          className="text-xs font-semibold text-[#6B5B2E] underline"
+                          title={t("listings.ownerCard")}
+                        >
+                          {t("listings.ownerCard")}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="p-3 align-top text-[#7A7164]">{formatDate(row.created_at)}</td>
+                    <td className="min-w-[18rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 align-top">
+                      <ClassifiedAdminQueueRowActionsPanel
+                        row={row}
+                        displayLeonixAdId={displayLeonixAdId}
+                        layout="compact"
+                        staffQueueMode={staffQueueMode}
+                        publishBusyId={publishBusyId}
+                        deletingId={deletingId}
+                        onSetPublished={handleSetPublished}
+                        onDelete={handleDelete}
+                      />
+                    </td>
+                  </>
+                ) : (
+                  <>
                 <td className="p-3 font-mono text-xs text-[#3D3428]">{row.id.slice(0, 8)}…</td>
                 <td className="max-w-[10rem] truncate p-3 font-mono text-[10px] text-[#3D3428]" title={displayLeonixAdId}>
                   {displayLeonixAdId}
@@ -428,122 +515,17 @@ export default function AdminListingsTable({
                     {row.status ?? "active"}
                   </span>
                 </td>
-                {staffQueueMode ? (
-                  <>
-                    <td className="p-3">{row.admin_promoted ? t("autosQueue.yes") : t("autosQueue.no")}</td>
-                    <td className="p-3">{row.leonix_verified ? t("autosQueue.yes") : t("autosQueue.no")}</td>
-                  </>
-                ) : null}
-                <td
-                  className={
-                    staffQueueMode
-                      ? "min-w-[12rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 align-top"
-                      : "p-3 align-top"
-                  }
-                >
-                  <div
-                    className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1"
-                    title={t("listings.rowActionsTitle")}
-                  >
-                    {(row.category ?? "").toLowerCase() === "rentas" ? (
-                      <Link
-                        href={rentasListingPublicPath(row.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
-                        title={t("listings.publicRentasTitle")}
-                      >
-                        {t("listings.viewRentas")}
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/clasificados/anuncio/${row.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
-                        title={t("listings.publicGenericTitle")}
-                      >
-                        {t("listings.viewPublic")}
-                      </Link>
-                    )}
-                    {(row.category ?? "").toLowerCase() === "rentas" ? (
-                      <Link
-                        href={`/admin/workspace/clasificados/rentas/${row.id}`}
-                        className="inline-flex min-h-[44px] items-center font-semibold text-[#6B5B2E] underline sm:min-h-0"
-                        title={t("listings.inspectorRentas")}
-                      >
-                        {t("listings.inspectorRentas")}
-                      </Link>
-                    ) : null}
-                    {!staffQueueMode ? (
-                      <Link
-                        href={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
-                        className="inline-flex min-h-[44px] items-center font-semibold text-[#1E1810] underline sm:min-h-0"
-                      >
-                        {t("audit.th.editAd")}
-                      </Link>
-                    ) : null}
-                    {staffQueueMode ? (
-                      <ClassifiedAdminRowActions
-                        variant="listings"
-                        rowId={row.id}
-                        leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
-                        displayLabel={row.title}
-                        publicLive={listingsRowIsPublicLive(row as Record<string, unknown>)}
-                        promoted={Boolean(row.admin_promoted)}
-                        verified={Boolean(row.leonix_verified)}
-                        canArchive={(row.status ?? "").toLowerCase() !== "removed"}
-                        staffEditBoardHref={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
-                        republishCategory={String(row.category ?? "").trim() || "listings"}
-                        republishRow={{
-                          category: row.category,
-                          is_free: row.is_free,
-                          detail_pairs: row.detail_pairs,
-                          is_published: row.is_published,
-                          status: row.status,
-                          republish_override: row.republish_override,
-                          republish_count: row.republish_count,
-                        }}
-                      />
-                    ) : (
-                      <>
-                        {row.status !== "removed" && row.is_published !== false ? (
-                          <button
-                            type="button"
-                            disabled={publishBusyId === row.id}
-                            onClick={() => void handleSetPublished(row, false)}
-                            className="min-h-[44px] text-left text-sm font-semibold text-amber-900 hover:underline disabled:opacity-50 sm:min-h-0"
-                            title={t("listings.hidePublicTitle")}
-                          >
-                            {publishBusyId === row.id ? "…" : t("listings.hidePublic")}
-                          </button>
-                        ) : null}
-                        {row.status !== "removed" && row.is_published === false ? (
-                          <button
-                            type="button"
-                            disabled={publishBusyId === row.id}
-                            onClick={() => void handleSetPublished(row, true)}
-                            className="min-h-[44px] text-left text-sm font-semibold text-emerald-900 hover:underline disabled:opacity-50 sm:min-h-0"
-                            title={t("listings.republishTitle")}
-                          >
-                            {publishBusyId === row.id ? "…" : t("listings.republish")}
-                          </button>
-                        ) : null}
-                        {row.status !== "removed" && (
-                          <button
-                            type="button"
-                            disabled={deletingId === row.id}
-                            onClick={() => void handleDelete(row)}
-                            className="min-h-[44px] text-left text-sm font-semibold text-red-700 hover:underline disabled:opacity-50 sm:min-h-0"
-                            title={t("listings.deleteTitle")}
-                            aria-label={t("listings.deleteAria")}
-                          >
-                            {deletingId === row.id ? "…" : t("listings.deleteStaff")}
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                <td className="p-3 align-top">
+                  <ClassifiedAdminQueueRowActionsPanel
+                    row={row}
+                    displayLeonixAdId={displayLeonixAdId}
+                    layout="compact"
+                    staffQueueMode={staffQueueMode}
+                    publishBusyId={publishBusyId}
+                    deletingId={deletingId}
+                    onSetPublished={handleSetPublished}
+                    onDelete={handleDelete}
+                  />
                 </td>
                 <td className="p-3">
                   {row.owner_id ? (
@@ -588,6 +570,8 @@ export default function AdminListingsTable({
                 >
                   {enVentaVisibilityAdminLine(row, detailPairsAvailable, republishColsAvailable, t, locale)}
                 </td>
+                  </>
+                )}
               </tr>
               );
             })}
@@ -596,7 +580,7 @@ export default function AdminListingsTable({
       </div>
     </div>
 
-    <div className={adminMobileCardList} data-testid="clasificados-mobile-list">
+    <div className={`${adminMobileCardList} min-w-0 overflow-x-hidden`} data-testid="clasificados-mobile-list">
       {listings.length === 0 ? (
         <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
           {t("listings.emptyGlobal")}
@@ -604,47 +588,57 @@ export default function AdminListingsTable({
       ) : (
         listings.map((row) => {
           const displayLeonixAdId = adminDisplayLeonixAdId(row);
+          const highlighted = highlightTargetId === row.id;
           return (
-            <article key={row.id} className={`${adminCardBase} break-words p-4`} data-testid="clasificados-mobile-card">
+            <article
+              key={row.id}
+              id={adminQueueRowAnchorId(row.id)}
+              className={`${adminCardBase} break-words p-4 ${highlighted ? "ring-2 ring-[#C9B46A]" : ""}`}
+              data-testid="clasificados-mobile-card"
+            >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3 className="min-w-0 flex-1 font-bold text-[#1E1810] break-words">{row.title ?? "—"}</h3>
+                <h3 className="min-w-0 flex-1 text-base font-bold text-[#1E1810] break-words">{row.title ?? "—"}</h3>
                 <span
                   className={
                     row.status === "removed"
-                      ? "rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800"
+                      ? "rounded-md border border-red-200 bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-800"
                       : row.status === "pending" || row.status === "flagged"
-                        ? "rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900"
-                        : "rounded-full bg-[#FAF3E6] px-2 py-0.5 text-[10px] font-bold text-[#3D3629]"
+                        ? "rounded-md border border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900"
+                        : "rounded-md border border-[#E8DFD0] bg-[#FAF3E6] px-2 py-0.5 text-[10px] font-bold uppercase text-[#3D3629]"
                   }
                 >
                   {row.status ?? "active"}
                 </span>
               </div>
               <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-[#5C5346]">
+                <span className="font-semibold text-[#5C4E2E]">{adminListingsCategoryLabel(row.category)}</span>
                 <span>
-                  {adminListingsCategoryLabel(row.category)} · {row.city ?? "—"}
+                  {row.city ?? "—"} · {row.is_free ? t("listings.free") : row.price != null ? `$${row.price}` : "—"}
                 </span>
-                <span>{row.is_free ? t("listings.free") : row.price != null ? `$${row.price}` : "—"}</span>
-                <span className="font-mono text-[10px] break-all">{displayLeonixAdId}</span>
+                <span className="font-mono text-[10px] break-all text-[#3D3428]">{displayLeonixAdId}</span>
                 <span className="text-[#7A7164]">{formatDate(row.created_at)}</span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href={`/clasificados/anuncio/${row.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] bg-[#FBF7EF] px-3 py-2 text-xs font-bold text-[#6B5B2E]"
-                >
-                  {t("listings.viewPublic")}
-                </Link>
-                {!staffQueueMode ? (
-                  <Link
-                    href={`/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`}
-                    className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810]"
-                  >
-                    {t("audit.th.editAd")}
-                  </Link>
+                {staffQueueMode ? (
+                  <span className="flex flex-wrap gap-1.5 pt-1 text-[10px] font-bold uppercase">
+                    <span className="rounded-md border border-[#C9B46A]/50 bg-[#FFFCF7] px-1.5 py-0.5 text-[#5C4E2E]">
+                      {row.admin_promoted ? t("autosQueue.yes") : t("autosQueue.no")} featured
+                    </span>
+                    <span className="rounded-md border border-[#2A4536]/30 bg-[#F4FAF2] px-1.5 py-0.5 text-[#2A4536]">
+                      {row.leonix_verified ? t("autosQueue.yes") : t("autosQueue.no")} verified
+                    </span>
+                  </span>
                 ) : null}
+              </div>
+              <div className="mt-4 border-t border-[#E8DFD0]/80 pt-3">
+                <ClassifiedAdminQueueRowActionsPanel
+                  row={row}
+                  displayLeonixAdId={displayLeonixAdId}
+                  layout="card"
+                  staffQueueMode={staffQueueMode}
+                  publishBusyId={publishBusyId}
+                  deletingId={deletingId}
+                  onSetPublished={handleSetPublished}
+                  onDelete={handleDelete}
+                />
               </div>
             </article>
           );

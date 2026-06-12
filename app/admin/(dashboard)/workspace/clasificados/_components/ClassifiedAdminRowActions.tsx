@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
@@ -9,6 +8,8 @@ import {
   stripAdminQueueActionParams,
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { republishActionLabel } from "@/app/admin/_lib/classifiedsRepublishCapability";
+import { AdminDashboardCtaButton, AdminDashboardCtaGrid } from "@/app/admin/_components/AdminDashboardCta";
+import { adminQueueActionCompact, adminQueueActionGroupLabel } from "@/app/admin/_components/adminTheme";
 
 export type ClassifiedStaffOpsVariant =
   | "restaurante"
@@ -34,6 +35,8 @@ type Props = {
   republishRow?: Record<string, unknown>;
   leonixAdId?: string | null;
   displayLabel?: string | null;
+  /** Desktop table uses compact single-column groups; mobile cards use 2-col grid. */
+  layout?: "compact" | "card";
 };
 
 function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
@@ -68,11 +71,11 @@ export function ClassifiedAdminRowActions({
   promoted,
   verified,
   canArchive = true,
-  staffEditBoardHref,
   republishCategory,
   republishRow,
   leonixAdId,
   displayLabel,
+  layout = "compact",
 }: Props) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -151,103 +154,99 @@ export function ClassifiedAdminRowActions({
   }, [canArchive, run]);
 
   const republish =
-    republishCategory && republishRow
-      ? republishActionLabel(republishRow, republishCategory)
-      : null;
+    republishCategory && republishRow ? republishActionLabel(republishRow, republishCategory) : null;
+
+  const compact = adminQueueActionCompact;
+  const gridCols = layout === "card" ? 2 : 1;
 
   return (
-    <div className="space-y-2">
-      {staffEditBoardHref ? (
-        <Link
-          href={staffEditBoardHref}
-          className="inline-flex rounded-lg border border-[#C9B46A]/60 bg-[#FFF7ED] px-2 py-1 text-[10px] font-bold text-[#92400E] underline-offset-2 hover:underline"
-        >
-          Edit
-        </Link>
-      ) : null}
-      <div className="flex flex-wrap gap-1.5">
-        {republish ? (
-          <button
-            type="button"
-            disabled={busy || republish.disabled}
-            title={republish.disabled ? republish.reason : undefined}
-            onClick={() => {
-              if (republish.disabled) return;
-              void run("republish", "republish");
-            }}
-            className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-2 py-1 text-[10px] font-bold text-[#3D3428] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {busy ? "…" : republish.label}
-          </button>
-        ) : null}
-        {publicLive ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("suspend")}
-            className="rounded-lg border border-red-300/90 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-900 disabled:opacity-50"
-          >
-            Suspend
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("unsuspend")}
-            title="Restore (unsuspend). Not Republish or Move to top."
-            className="rounded-lg border border-amber-300/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-950 disabled:opacity-50"
-          >
-            Restore
-          </button>
-        )}
-        {promoted ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("promote_off")}
-            className="rounded-lg border border-amber-300/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-950 disabled:opacity-50"
-          >
-            Remove featured
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("promote_on")}
-            className="rounded-lg border border-amber-300/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-950 disabled:opacity-50"
-          >
-            Feature
-          </button>
-        )}
-        {verified ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("verify_off")}
-            className="rounded-lg border border-[#C9B46A]/70 bg-[#FBF7EF] px-2 py-1 text-[10px] font-bold text-[#5C5346] disabled:opacity-50"
-          >
-            Remove verified
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run("verify_on")}
-            className="rounded-lg border border-[#C9B46A]/70 bg-[#FBF7EF] px-2 py-1 text-[10px] font-bold text-[#5C5346] disabled:opacity-50"
-          >
-            Verify Leonix
-          </button>
-        )}
-        {canArchive ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void runArchive()}
-            className="rounded-lg border border-stone-400/80 bg-stone-100 px-2 py-1 text-[10px] font-bold text-stone-900 disabled:opacity-50"
-          >
-            Archive
-          </button>
-        ) : null}
+    <div className="min-w-0 space-y-3" data-testid="classified-admin-row-actions">
+      <div>
+        <p className={adminQueueActionGroupLabel}>Lifecycle</p>
+        <AdminDashboardCtaGrid columns={gridCols}>
+          {republish ? (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : republish.label}
+              variant="neutral"
+              disabled={busy || republish.disabled}
+              title={republish.disabled ? republish.reason : "Republish or move listing to top"}
+              onClick={() => {
+                if (republish.disabled) return;
+                void run("republish", "republish");
+              }}
+              className={compact}
+            />
+          ) : null}
+          {publicLive ? (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Suspend"}
+              variant="warning"
+              disabled={busy}
+              title="Suspend public visibility"
+              onClick={() => void run("suspend")}
+              className={compact}
+            />
+          ) : (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Restore"}
+              variant="active"
+              disabled={busy}
+              title="Restore (unsuspend). Not Republish or Move to top."
+              onClick={() => void run("unsuspend")}
+              className={compact}
+            />
+          )}
+          {canArchive ? (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Archive"}
+              variant="neutral"
+              disabled={busy}
+              title="Archive this listing"
+              onClick={runArchive}
+              className={compact}
+            />
+          ) : null}
+        </AdminDashboardCtaGrid>
+      </div>
+
+      <div>
+        <p className={adminQueueActionGroupLabel}>Monetization &amp; trust</p>
+        <AdminDashboardCtaGrid columns={gridCols}>
+          {promoted ? (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Remove featured"}
+              variant="neutral"
+              disabled={busy}
+              onClick={() => void run("promote_off")}
+              className={compact}
+            />
+          ) : (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Feature"}
+              variant="premium"
+              disabled={busy}
+              onClick={() => void run("promote_on")}
+              className={compact}
+            />
+          )}
+          {verified ? (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Remove verified"}
+              variant="neutral"
+              disabled={busy}
+              onClick={() => void run("verify_off")}
+              className={compact}
+            />
+          ) : (
+            <AdminDashboardCtaButton
+              label={busy ? "…" : "Verify Leonix"}
+              variant="active"
+              disabled={busy}
+              onClick={() => void run("verify_on")}
+              className={compact}
+            />
+          )}
+        </AdminDashboardCtaGrid>
       </div>
     </div>
   );

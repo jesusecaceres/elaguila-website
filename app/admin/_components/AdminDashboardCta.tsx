@@ -4,12 +4,20 @@ import {
   adminDashboardCtaActive,
   adminDashboardCtaDanger,
   adminDashboardCtaNeutral,
+  adminDashboardCtaPremium,
   adminDashboardCtaPrimary,
   adminDashboardCtaView,
   adminDashboardCtaWarning,
 } from "./adminTheme";
 
-export type AdminDashboardCtaVariant = "primary" | "active" | "view" | "warning" | "neutral" | "danger";
+export type AdminDashboardCtaVariant =
+  | "primary"
+  | "active"
+  | "view"
+  | "warning"
+  | "neutral"
+  | "danger"
+  | "premium";
 
 const VARIANT_CLASS: Record<AdminDashboardCtaVariant, string> = {
   primary: adminDashboardCtaPrimary,
@@ -18,6 +26,7 @@ const VARIANT_CLASS: Record<AdminDashboardCtaVariant, string> = {
   warning: adminDashboardCtaWarning,
   neutral: adminDashboardCtaNeutral,
   danger: adminDashboardCtaDanger,
+  premium: adminDashboardCtaPremium,
 };
 
 export function AdminDashboardCta({
@@ -51,6 +60,31 @@ export function AdminDashboardCta({
       {icon ? <span aria-hidden>{icon}</span> : null}
       {label}
     </Link>
+  );
+}
+
+export function AdminDashboardCtaButton({
+  label,
+  variant = "neutral",
+  title,
+  disabled,
+  onClick,
+  className = "",
+  type = "button",
+}: {
+  label: string;
+  variant?: AdminDashboardCtaVariant;
+  title?: string;
+  disabled?: boolean;
+  onClick?: () => void;
+  className?: string;
+  type?: "button" | "submit";
+}) {
+  const cls = `${VARIANT_CLASS[variant]} ${className}`.trim();
+  return (
+    <button type={type} disabled={disabled} onClick={onClick} className={cls} title={title}>
+      {label}
+    </button>
   );
 }
 
