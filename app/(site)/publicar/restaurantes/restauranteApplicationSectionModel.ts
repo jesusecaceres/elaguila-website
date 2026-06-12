@@ -19,12 +19,6 @@ export function buildRestauranteApplicationSectionNavItems(draft: RestauranteLis
     { id: "restaurantes-section-h", letter: "H", shortTitle: "Destacados del lugar" },
     { id: "restaurantes-section-amenities", letter: "L", shortTitle: "Amenidades y más" },
   ];
-  if (draft.movingVendor) {
-    items.push({ id: "restaurantes-section-i", letter: "I", shortTitle: "Ubicación móvil" });
-  }
-  if (draft.homeBasedBusiness) {
-    items.push({ id: "restaurantes-section-j", letter: "J", shortTitle: "Negocio desde casa" });
-  }
   if (draft.cateringAvailable || draft.eventFoodService) {
     items.push({ id: "restaurantes-section-k", letter: "K", shortTitle: "Catering y eventos" });
   }

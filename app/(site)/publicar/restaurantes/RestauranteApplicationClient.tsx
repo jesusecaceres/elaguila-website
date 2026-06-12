@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -7,14 +7,13 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
-  RESTAURANTE_BUSINESS_TYPES,
+  labelForLanguage,
   RESTAURANTE_CONTACT_PLACEHOLDERS,
   RESTAURANTE_CUISINES,
   RESTAURANTE_EVENT_SIZES,
   RESTAURANTE_HIGHLIGHTS,
   RESTAURANTE_LANGUAGES,
   RESTAURANTE_LOCATION_PRIVACY,
-  RESTAURANTE_PICKUP_DAYS,
   RESTAURANTE_PRICE_LEVELS,
   RESTAURANTE_SERVICE_MODES,
   TAXONOMY_KEY_OTHER,
@@ -35,6 +34,10 @@ import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publis
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
 import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectionNav";
 import { RestauranteAmenitiesFormBlock } from "./RestauranteAmenitiesFormBlock";
+import {
+  isDuplicateCustomLanguage,
+  RESTAURANTE_FORM_BUSINESS_TYPES,
+} from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
 
@@ -119,6 +122,8 @@ export default function RestauranteApplicationClient() {
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
+  /** Pending text before user confirms custom language with Añadir. */
+  const [languageOtherPending, setLanguageOtherPending] = useState("");
   /** Display names for last picked files (draft stores data URLs only). */
   const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
 
@@ -198,11 +203,38 @@ export default function RestauranteApplicationClient() {
       const patch: Partial<RestauranteListingDraft> = { languagesSpoken: next };
       if (key === TAXONOMY_KEY_OTHER_LANG && cur.includes(key) && !next.includes(key)) {
         patch.languageOtherCustom = undefined;
+        setLanguageOtherPending("");
       }
       setDraftPatch(patch);
     },
     [draft.languagesSpoken, setDraftPatch]
   );
+
+  const addCustomLanguage = useCallback(() => {
+    const trimmed = languageOtherPending.trim();
+    if (!trimmed) return;
+    if (
+      isDuplicateCustomLanguage(trimmed, draft.languagesSpoken, draft.languageOtherCustom, labelForLanguage)
+    ) {
+      return;
+    }
+    const cur = draft.languagesSpoken ?? [];
+    const patch: Partial<RestauranteListingDraft> = {
+      languageOtherCustom: trimmed,
+      languagesSpoken: cur.includes(TAXONOMY_KEY_OTHER_LANG) ? cur : [...cur, TAXONOMY_KEY_OTHER_LANG],
+    };
+    setDraftPatch(patch);
+    setLanguageOtherPending("");
+  }, [draft.languageOtherCustom, draft.languagesSpoken, languageOtherPending, setDraftPatch]);
+
+  const removeCustomLanguage = useCallback(() => {
+    const cur = draft.languagesSpoken ?? [];
+    setDraftPatch({
+      languageOtherCustom: undefined,
+      languagesSpoken: cur.filter((k) => k !== TAXONOMY_KEY_OTHER_LANG),
+    });
+    setLanguageOtherPending("");
+  }, [draft.languagesSpoken, setDraftPatch]);
 
   const toggleAdditionalCuisine = useCallback(
     (key: string) => {
@@ -463,7 +495,7 @@ export default function RestauranteApplicationClient() {
                 }}
               >
                 <option value="">Seleccionar…</option>
-                {RESTAURANTE_BUSINESS_TYPES.map((o) => (
+                {RESTAURANTE_FORM_BUSINESS_TYPES.map((o) => (
                   <option key={o.key} value={o.key}>
                     {o.labelEs}
                   </option>
@@ -675,16 +707,49 @@ export default function RestauranteApplicationClient() {
                 ))}
               </div>
               {(draft.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) ? (
-                <div className="mt-3 max-w-md">
-                  <FieldLabel optional>Especifica el idioma (Otro)</FieldLabel>
-                  <HelperText>Escribe el idioma concreto si no está en la lista.</HelperText>
-                  <input
-                    className={OTHER_INPUT}
-                    maxLength={48}
-                    placeholder="Ej. portugués, ASL…"
-                    value={draft.languageOtherCustom ?? ""}
-                    onChange={(e) => setDraftPatch({ languageOtherCustom: e.target.value || undefined })}
-                  />
+                <div className="mt-3 max-w-md space-y-3">
+                  {draft.languageOtherCustom ? (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-3 py-1 text-sm font-medium text-[color:var(--lx-text)]">
+                        {draft.languageOtherCustom}
+                        <button
+                          type="button"
+                          className="ml-0.5 rounded-full px-1 text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]"
+                          aria-label={`Quitar ${draft.languageOtherCustom}`}
+                          onClick={removeCustomLanguage}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <FieldLabel optional>Especifica el idioma (Otro)</FieldLabel>
+                      <HelperText>Escribe el idioma concreto y pulsa Añadir.</HelperText>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          className={`${OTHER_INPUT} mt-0 flex-1 min-w-[10rem]`}
+                          maxLength={48}
+                          placeholder="Ej. portugués, ASL…"
+                          value={languageOtherPending}
+                          onChange={(e) => setLanguageOtherPending(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCustomLanguage();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                          onClick={addCustomLanguage}
+                        >
+                          Añadir
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -697,140 +762,23 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-b" className={stepPanel}>
           <SectionTitle>B · Modelo de operación</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
-            Los <strong>modos de servicio</strong> son opcionales. Por defecto se asume restaurante físico/local. Usa esta sección solo si el negocio también opera como food truck/móvil, desde casa, catering/eventos, delivery, takeout, reservas, etc. La selección mejora el listado pero no se requiere para vista previa.
+            Los <strong>modos de servicio</strong> son opcionales. Por defecto se asume restaurante físico/local. Usa esta
+            sección si el negocio también ofrece catering/eventos, delivery, takeout, reservas, etc. La selección mejora el
+            listado pero no se requiere para vista previa.
           </p>
           <HelperText>
-            Hay <strong className="text-[color:var(--lx-text)]">tres capas</strong> que conviven: (1) interruptores I / J /
-            K solo <em>desbloquean secciones extra</em> del formulario; (2) la lista canónica de modos de servicio define la
-            identidad de servicio en datos y vista previa; (3) los detalles complementarios refuerzan local, entrega,
-            reservas, etc. No es duplicado: cada capa cumple un rol distinto.
+            Hay <strong className="text-[color:var(--lx-text)]">dos capas</strong> que conviven: (1) catering y eventos
+            desbloquea la sección extra <strong>K</strong> del formulario; (2) la lista canónica de modos de servicio define
+            la identidad de servicio en datos y vista previa.
           </HelperText>
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
-            Capa 1 — Interruptores (stacks I · J · K)
+            Capa 1 — Catering y eventos (stack K)
           </p>
           <p className="mt-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            Solo controlan si aparecen las secciones <strong>I</strong> (móvil), <strong>J</strong> (desde casa) y{" "}
-            <strong>K</strong> (catering/eventos). No sustituyen los modos de servicio obligatorios para la vista previa.
+            Controla si aparece la sección <strong>K</strong> (catering/eventos). No sustituye los modos de servicio para
+            la vista previa.
           </p>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <div className={PRIMARY_OP_CARD}>
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                  checked={Boolean(draft.movingVendor)}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    const patch: Partial<RestauranteListingDraft> = { movingVendor: checked };
-                    if (checked) patch.movingVendorStack = { ...draft.movingVendorStack };
-                    setDraftPatch(patch);
-                  }}
-                />
-                <span className="min-w-0">
-                  <span className="block text-base font-bold text-[color:var(--lx-text)]">Ubicación móvil</span>
-                  <span className="mt-1 block text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                    Activa la configuración de <strong className="text-[color:var(--lx-text-2)]">ubicación móvil</strong>{" "}
-                    (ruta, paradas, avisos).
-                  </span>
-                </span>
-              </label>
-              {draft.movingVendor && (
-                <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
-                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de ubicación móvil</p>
-                  <div className="space-y-3">
-                    <div>
-                      <FieldLabel optional>Ubicación actual</FieldLabel>
-                      <HelperText>
-                        Enlace para saber dónde estás hoy. Si vendes desde food truck, puesto móvil, pop-up o cambias de ubicación durante la semana, pega aquí el enlace donde tus clientes ya revisan tu ubicación actual.
-
-                        Usa el enlace que mantienes más actualizado: Instagram, TikTok, Facebook, YouTube, Google Maps, Linktree, WhatsApp Channel, tu sitio web o una página de calendario.
-
-                        Este enlace alimenta el botón "Ver dónde está hoy" en tu anuncio. No uses un enlace viejo o una ubicación fija si no lo actualizas con frecuencia.
-                      </HelperText>
-                      <input
-                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                        value={draft.movingVendorStack?.currentLocationText ?? ""}
-                        onChange={(e) =>
-                          setDraftPatch({
-                            movingVendorStack: { ...draft.movingVendorStack, currentLocationText: e.target.value || undefined },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <FieldLabel optional>URL ubicación</FieldLabel>
-                      <HelperText>Donde suele estar tu aviso actualizado (post, perfil, mapa compartido).</HelperText>
-                      <input
-                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                        value={draft.movingVendorStack?.currentLocationUrl ?? ""}
-                        onChange={(e) =>
-                          setDraftPatch({
-                            movingVendorStack: { ...draft.movingVendorStack, currentLocationUrl: e.target.value || undefined },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className={PRIMARY_OP_CARD}>
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                  checked={Boolean(draft.homeBasedBusiness)}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    const patch: Partial<RestauranteListingDraft> = { homeBasedBusiness: checked };
-                    if (checked) patch.homeBasedStack = { ...draft.homeBasedStack };
-                    setDraftPatch(patch);
-                  }}
-                />
-                <span className="min-w-0">
-                  <span className="block text-base font-bold text-[color:var(--lx-text)]">Desde casa</span>
-                  <span className="mt-1 block text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                    Activa la configuración de <strong className="text-[color:var(--lx-text-2)]">negocio desde casa</strong>{" "}
-                    (recogida, ventanas, avisos).
-                  </span>
-                </span>
-              </label>
-              {draft.homeBasedBusiness && (
-                <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
-                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de negocio desde casa</p>
-                  <div className="space-y-3">
-                    <div>
-                      <FieldLabel optional>Instrucciones de recogida</FieldLabel>
-                      <HelperText>Cómo encontrar el lugar, horarios de ventana, detalles de pickup.</HelperText>
-                      <input
-                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                        value={draft.homeBasedStack?.pickupInstructions ?? ""}
-                        onChange={(e) =>
-                          setDraftPatch({
-                            homeBasedStack: { ...draft.homeBasedStack, pickupInstructions: e.target.value || undefined },
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
-                      <HelperText>Alcance de entrega para tu negocio desde casa.</HelperText>
-                      <input
-                        type="number"
-                        min={0}
-                        className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                        value={draft.homeBasedStack?.deliveryRadiusMiles ?? ""}
-                        onChange={(e) =>
-                          setDraftPatch({
-                            homeBasedStack: { ...draft.homeBasedStack, deliveryRadiusMiles: e.target.value === "" ? undefined : Number(e.target.value) },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="mt-4 max-w-xl">
             <div className={PRIMARY_OP_CARD}>
               <div className="text-base font-bold text-[color:var(--lx-text)]">Catering y eventos</div>
               <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
@@ -918,11 +866,11 @@ export default function RestauranteApplicationClient() {
             <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
               Estos son los <strong className="font-semibold text-[color:var(--lx-text-2)]">modos formales</strong> (comer
               en local, para llevar, entrega, etc.) que valida «Vista previa» y que alimentan la identidad de servicio en la
-              ficha. Son independientes de los interruptores I / J / K.
+              ficha. Son independientes del stack K (catering/eventos).
             </p>
             <div className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/35 bg-[color:var(--lx-nav-hover)]/40 px-4 py-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
-              <strong className="text-[color:var(--lx-text)]">Recuerda:</strong> I / J / K solo abren secciones extra del
-              formulario. Esta lista es la que debe tener al menos una opción marcada para el botón principal de vista
+              <strong className="text-[color:var(--lx-text)]">Recuerda:</strong> el stack K solo abre la sección extra de
+              catering/eventos. Esta lista es la que debe tener al menos una opción marcada para el botón principal de vista
               previa.
             </div>
           </div>
@@ -1849,231 +1797,13 @@ export default function RestauranteApplicationClient() {
           </section>
         ) : null}
 
-        {/* I */}
-        {draft.movingVendor && activeSectionId === "restaurantes-section-i" ? (
-          <section id="restaurantes-section-i" className={stepPanel}>
-            <SectionTitle>I · Ubicación móvil</SectionTitle>
-            <HelperText>
-              Para <strong className="text-[color:var(--lx-text-2)]">tacos trucks, puestos móviles y pop-ups</strong> cuya
-              ubicación cambia. Esto <strong className="text-[color:var(--lx-text-2)]">no es rastreo en vivo en Leonix</strong>:
-              tú publicas texto y enlaces; el cliente usa tu URL (red social, mapa guardado, página de ubicación) para
-              enterarse. Leonix no envía notificaciones push ni GPS.
-            </HelperText>
-            <div className="mt-4 grid gap-3">
-              <div>
-                <FieldLabel optional>Enlace para saber dónde estás hoy</FieldLabel>
-                <HelperText>
-                  Si vendes desde food truck, puesto móvil, pop-up o cambias de ubicación durante la semana, pega aquí el enlace donde tus clientes ya revisan tu ubicación actual.
-
-                  Usa el enlace que mantienes más actualizado: Instagram, TikTok, Facebook, YouTube, Google Maps, Linktree, WhatsApp Channel, tu sitio web o una página de calendario.
-
-                  Este enlace alimenta el botón "Ver dónde está hoy" en tu anuncio. No uses un enlace viejo o una ubicación fija si no lo actualizas con frecuencia.
-                </HelperText>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.currentLocationText ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, currentLocationText: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>URL ubicación</FieldLabel>
-                <HelperText>Donde suele estar tu aviso actualizado (post, perfil, mapa compartido).</HelperText>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.currentLocationUrl ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, currentLocationUrl: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Horario de hoy</FieldLabel>
-                <HelperText>Franja visible en el bloque móvil (aparte de la sección C general).</HelperText>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.todayHoursText ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, todayHoursText: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Próxima parada</FieldLabel>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.nextStopText ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, nextStopText: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Hora próxima parada</FieldLabel>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.nextStopTime ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, nextStopTime: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Ruta semanal</FieldLabel>
-                <HelperText>Patrón recurrente (ej. «Mié–Vie SOMA»).</HelperText>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.weeklyRouteText ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, weeklyRouteText: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Texto de avisos</FieldLabel>
-                <HelperText>Mensaje para quien lea el anuncio (cambios, retrasos).</HelperText>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.movingVendorStack?.notifyCopy ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      movingVendorStack: { ...draft.movingVendorStack, notifyCopy: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={Boolean(draft.movingVendorStack?.activeNow)}
-                    onChange={(e) =>
-                      setDraftPatch({
-                        movingVendorStack: { ...draft.movingVendorStack, activeNow: e.target.checked },
-                      })
-                    }
-                  />
-                  <span className="font-semibold text-[color:var(--lx-text)]">Activo ahora</span>
-                </label>
-                <HelperText>Indica en el anuncio si estás operando en este momento (texto; no seguimiento automático).</HelperText>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        {/* J */}
-        {draft.homeBasedBusiness && activeSectionId === "restaurantes-section-j" ? (
-          <section id="restaurantes-section-j" className={stepPanel}>
-            <SectionTitle>J · Negocio desde casa</SectionTitle>
-            <HelperText>
-              <strong className="text-[color:var(--lx-text-2)]">No sustituye la sección C</strong>: C es el horario general del
-              negocio; J es logística de <strong className="text-[color:var(--lx-text-2)]">recogida / ventanas / radio desde
-              casa</strong> cuando operas desde domicilio.
-            </HelperText>
-            <div className="mt-4 grid gap-3">
-              <div>
-                <FieldLabel optional>Instrucciones de recogida</FieldLabel>
-                <HelperText>Cómo llega el cliente (entrada, timbre, estacionamiento).</HelperText>
-                <textarea
-                  className="mt-1 min-h-[72px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.homeBasedStack?.pickupInstructions ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      homeBasedStack: { ...draft.homeBasedStack, pickupInstructions: e.target.value || undefined },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <FieldLabel optional>Días de recogida</FieldLabel>
-                <HelperText>Días en los que aceptas pickup en casa (pueden ser un subconjunto de C).</HelperText>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {RESTAURANTE_PICKUP_DAYS.map((d) => (
-                    <label key={d} className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={(draft.homeBasedStack?.pickupDays ?? []).includes(d)}
-                        onChange={() => {
-                          const cur = draft.homeBasedStack?.pickupDays ?? [];
-                          const next = cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d];
-                          setDraftPatch({ homeBasedStack: { ...draft.homeBasedStack, pickupDays: next } });
-                        }}
-                      />
-                      {d}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              {(
-                [
-                  ["pickupWindowText", "Ventana de recogida"],
-                  ["preorderLeadTimeText", "Tiempo de anticipación"],
-                  ["homeBusinessNotice", "Aviso al cliente"],
-                ] as const
-              ).map(([k, lab]) => (
-                <div key={k}>
-                  <FieldLabel optional>{lab}</FieldLabel>
-                  {k === "pickupWindowText" ? (
-                    <HelperText>Ventana horaria típica de recogida en este modelo.</HelperText>
-                  ) : k === "preorderLeadTimeText" ? (
-                    <HelperText>Cuánto tiempo pides pedir con anticipación.</HelperText>
-                  ) : (
-                    <HelperText>Aviso corto al cliente (acceso, estacionamiento).</HelperText>
-                  )}
-                  <input
-                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                    value={(draft.homeBasedStack?.[k] as string | undefined) ?? ""}
-                    onChange={(e) =>
-                      setDraftPatch({
-                        homeBasedStack: { ...draft.homeBasedStack, [k]: e.target.value || undefined },
-                      })
-                    }
-                  />
-                </div>
-              ))}
-              <div>
-                <FieldLabel optional>Radio de entrega (millas) — hogar</FieldLabel>
-                <HelperText>Alcance desde el punto de cocina/hogar cuando ofreces entrega desde casa.</HelperText>
-                <input
-                  type="number"
-                  min={0}
-                  className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                  value={draft.homeBasedStack?.deliveryRadiusMiles ?? ""}
-                  onChange={(e) =>
-                    setDraftPatch({
-                      homeBasedStack: {
-                        ...draft.homeBasedStack,
-                        deliveryRadiusMiles: e.target.value === "" ? undefined : Number(e.target.value),
-                      },
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </section>
-        ) : null}
-
         {/* K */}
         {(draft.cateringAvailable || draft.eventFoodService) && activeSectionId === "restaurantes-section-k" ? (
           <section id="restaurantes-section-k" className={stepPanel}>
             <SectionTitle>K · Catering y eventos</SectionTitle>
             <HelperText>
-              Alcance de <strong className="text-[color:var(--lx-text-2)]">catering y comida para eventos</strong> — distinto
-              de I (móvil) y de J (pickup hogareño). Aquí defines anticipación, dónde solicitar cotización y radio de servicio.
+              Alcance de <strong className="text-[color:var(--lx-text-2)]">catering y comida para eventos</strong>. Aquí
+              defines anticipación, dónde solicitar cotización y radio de servicio.
             </HelperText>
             <div className="mt-4 grid gap-3">
               <div>
