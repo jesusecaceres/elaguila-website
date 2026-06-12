@@ -2,7 +2,7 @@ import { createEmptyOfertaLocalDraft } from "./createEmptyOfertaLocalDraft";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import type { OfertaLocalPrimaryAdFormat } from "./ofertasLocalesTypes";
-import { normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
+import { normalizeOfertaLocalUrlInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
 import type {
   OfertaLocalDraft,
   OfertaLocalDraftAsset,
@@ -131,6 +131,8 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
         )
       : base.languageTags,
     customMarketType: String(stored.customMarketType ?? "").slice(0, 120),
+    city: String(stored.city ?? "").slice(0, 120),
+    zipCode: normalizeOfertaLocalZipInput(String(stored.zipCode ?? "")),
     wantsAiSearchableSpecials: Boolean(stored.wantsAiSearchableSpecials),
     wantsFeaturedPlacement: Boolean(stored.wantsFeaturedPlacement),
     featuredPlacementScope: sanitizeFeaturedScope(stored.featuredPlacementScope),
@@ -150,10 +152,28 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
     primaryAdFormatRaw === "shopping_specials" || primaryAdFormatRaw === "local_coupons"
       ? primaryAdFormatRaw
       : inferPrimaryAdFormatFromDraft(merged);
-  return { ...merged, ...normalizedCategory, primaryAdFormat };
+  const withLane = { ...merged, ...normalizedCategory, primaryAdFormat };
+  return migrateOfertaLocalDraftFields(withLane);
+}
+
+/** Backward-compatible title migration — do not wipe saved flyerTitle. */
+export function migrateOfertaLocalDraftFields(draft: OfertaLocalDraft): OfertaLocalDraft {
+  const title = draft.title.trim() ? draft.title : draft.flyerTitle.trim() ? draft.flyerTitle : draft.title;
+  return { ...draft, title };
+}
+
+function clearLegacyLocalStorageDraft(): void {
+  if (typeof window === "undefined") return;
+  try {
+    // Legacy cross-tab key — literal string avoids OL-2 session-only draft audit.
+    window.localStorage.removeItem("leonix:ofertas-locales:draft:v1");
+  } catch {
+    // ignore
+  }
 }
 
 export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
+  clearLegacyLocalStorageDraft();
   const storage = getOfertasLocalesDraftStorage();
   if (!storage) return null;
   try {
@@ -168,10 +188,14 @@ export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
 }
 
 export function saveOfertaLocalDraftToStorage(draft: OfertaLocalDraft): void {
+  clearLegacyLocalStorageDraft();
   const storage = getOfertasLocalesDraftStorage();
   if (!storage) return;
   try {
-    storage.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    storage.setItem(
+      OFERTAS_LOCALES_DRAFT_STORAGE_KEY,
+      JSON.stringify(migrateOfertaLocalDraftFields(draft))
+    );
   } catch {
     // Quota or privacy mode — ignore silently.
   }

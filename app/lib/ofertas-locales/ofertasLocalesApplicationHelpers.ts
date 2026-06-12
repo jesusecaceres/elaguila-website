@@ -8,7 +8,7 @@ import {
   businessCategoryUsesCustomTypeText,
   labelForBusinessSubtype,
 } from "./ofertasLocalesBusinessCategoryUx";
-import { normalizeOfertaLocalUrlInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
+import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalUrlInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft, OfertaLocalOfferType } from "./ofertasLocalesTypes";
 
 export function getOfertaLocalMarketDisplayLabel(
@@ -115,8 +115,12 @@ export function hasOfertaLocalAddressAccepted(draft: Pick<OfertaLocalDraft, "add
   );
 }
 
-export function hasOfertaLocalDirectionsAccepted(draft: Pick<OfertaLocalDraft, "directionsUrl">): boolean {
-  return Boolean(normalizeOfertaLocalUrlInput(draft.directionsUrl));
+export function hasOfertaLocalDirectionsAccepted(
+  draft: Pick<OfertaLocalDraft, "directionsUrl" | "address" | "city" | "state" | "zipCode">
+): boolean {
+  return Boolean(
+    buildOfertaLocalGoogleMapsSearchUrl(draft) || normalizeOfertaLocalUrlInput(draft.directionsUrl)
+  );
 }
 
 export function hasOfertaLocalUrlAccepted(url: string): boolean {

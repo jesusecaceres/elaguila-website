@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   hasOfertaLocalAddressAccepted,
-  hasOfertaLocalDirectionsAccepted,
   hasOfertaLocalUrlAccepted,
   getOfertaLocalApplicationBasePriceMonthly,
   getOfertaLocalProductDisplayLabel,
@@ -97,17 +96,6 @@ function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function parseServiceZips(raw: string): string[] {
-  return raw
-    .split(/[,;\s]+/)
-    .map((z) => normalizeOfertaLocalZipInput(z))
-    .filter((z) => z.length === 5);
-}
-
-function formatServiceZipsDisplay(zips: string[]): string {
-  return zips.join(", ");
-}
-
 function formatUsd(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -190,9 +178,7 @@ export default function OfertasLocalesApplicationClient() {
   const basePriceMonthly = getOfertaLocalApplicationBasePriceMonthly(draft);
 
   const savedLabel = formatSavedAt(lastSavedAt, lang);
-  const serviceZipsDisplay = formatServiceZipsDisplay(draft.serviceZipCodes);
   const addressAccepted = hasOfertaLocalAddressAccepted(draft);
-  const directionsAccepted = hasOfertaLocalDirectionsAccepted(draft);
   const websiteUrlAccepted = hasOfertaLocalUrlAccepted(draft.websiteUrl);
   const membershipUrlAccepted = hasOfertaLocalUrlAccepted(draft.membershipUrl);
   const digitalCouponUrlAccepted = hasOfertaLocalUrlAccepted(draft.digitalCouponUrl);
@@ -216,7 +202,6 @@ export default function OfertasLocalesApplicationClient() {
     (
       field:
         | "websiteUrl"
-        | "directionsUrl"
         | "membershipUrl"
         | "digitalCouponUrl"
         | "facebookUrl"
@@ -460,22 +445,19 @@ export default function OfertasLocalesApplicationClient() {
                 autoComplete="organization"
               />
             </FieldBlock>
-            <FieldBlock label={lang === "en" ? "Offer title" : "Título de la oferta"}>
+            <FieldBlock
+              label={
+                isCouponsLane
+                  ? c.step2PromotionTitleLabel
+                  : c.step2OfferTitleLabel
+              }
+            >
               <input
                 className={INPUT}
                 value={draft.title}
                 onChange={(e) => updateDraft({ title: e.target.value })}
               />
             </FieldBlock>
-            {(isCouponPromo) && !isFlyer ? (
-              <FieldBlock label={c.descriptionLabel} optional optionalLabel={c.optional}>
-                <textarea
-                  className={cx(INPUT, "min-h-[80px] resize-y")}
-                  value={draft.description}
-                  onChange={(e) => updateDraft({ description: e.target.value })}
-                />
-              </FieldBlock>
-            ) : null}
           </div>
         );
       }
@@ -509,14 +491,13 @@ export default function OfertasLocalesApplicationClient() {
             ) : null}
             {isShoppingLane ? (
               <>
-                <FieldBlock label={c.laneShoppingFlyerTitleLabel} helper={c.flyerTitleHelper}>
-                  <input
-                    className={INPUT}
-                    value={draft.flyerTitle}
-                    onChange={(e) => updateDraft({ flyerTitle: e.target.value })}
-                  />
-                </FieldBlock>
-                <FieldBlock label={c.laneShoppingFlyerDescriptionLabel} optional optionalLabel={c.optional}>
+                <p className={SECTION_TITLE}>{c.laneShoppingSectionTitle}</p>
+                <FieldBlock
+                  label={c.laneShoppingFlyerDescriptionLabel}
+                  helper={c.laneShoppingFlyerDescriptionHelper}
+                  optional
+                  optionalLabel={c.optional}
+                >
                   <textarea
                     className={cx(INPUT, "min-h-[80px] resize-y")}
                     value={draft.description}
@@ -527,14 +508,8 @@ export default function OfertasLocalesApplicationClient() {
             ) : null}
             {isCouponsLane ? (
               <>
-                <FieldBlock label={c.laneCouponPromotionTitleLabel}>
-                  <input
-                    className={INPUT}
-                    value={draft.title}
-                    onChange={(e) => updateDraft({ title: e.target.value })}
-                  />
-                </FieldBlock>
-                <FieldBlock label={c.laneCouponTextLabel} helper={c.couponTextHelper}>
+                <p className={SECTION_TITLE}>{c.laneCouponSectionTitle}</p>
+                <FieldBlock label={c.laneCouponTextLabel} helper={c.laneCouponTextHelper}>
                   <textarea
                     className={cx(INPUT, "min-h-[80px] resize-y")}
                     value={draft.couponText}
@@ -597,6 +572,7 @@ export default function OfertasLocalesApplicationClient() {
                   className={INPUT}
                   value={draft.city}
                   onChange={(e) => updateDraft({ city: e.target.value })}
+                  autoComplete="address-level2"
                 />
               </FieldBlock>
               <FieldBlock label={lang === "en" ? "State" : "Estado"} optional optionalLabel={c.optional}>
@@ -614,28 +590,19 @@ export default function OfertasLocalesApplicationClient() {
               <FieldBlock label="ZIP" helper={c.zipHelper}>
                 <input
                   className={INPUT}
+                  type="text"
                   value={draft.zipCode}
                   onChange={(e) =>
                     updateDraft({ zipCode: normalizeOfertaLocalZipInput(e.target.value) })
                   }
-                  inputMode="numeric"
+                  inputMode="text"
+                  pattern="[0-9]*"
                   maxLength={5}
                   autoComplete="postal-code"
+                  placeholder="12345"
                 />
               </FieldBlock>
             </div>
-            <FieldBlock
-              label={lang === "en" ? "Service ZIP codes" : "ZIPs de servicio"}
-              optional
-              optionalLabel={c.optional}
-              helper={c.serviceZipHelper}
-            >
-              <input
-                className={INPUT}
-                value={serviceZipsDisplay}
-                onChange={(e) => updateDraft({ serviceZipCodes: parseServiceZips(e.target.value) })}
-              />
-            </FieldBlock>
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldBlock label={lang === "en" ? "Phone" : "Teléfono"}>
                 <input
@@ -668,21 +635,6 @@ export default function OfertasLocalesApplicationClient() {
                 onChange={(e) => updateDraft({ websiteUrl: e.target.value })}
                 onBlur={() => handleUrlBlur("websiteUrl")}
                 placeholder="https://"
-              />
-            </FieldBlock>
-            <FieldBlock
-              label={lang === "en" ? "Directions / map URL" : "URL de mapa / direcciones"}
-              optional
-              optionalLabel={c.optional}
-              helper={c.directionsHelper}
-              confirm={directionsAccepted ? c.directionsAccepted : undefined}
-            >
-              <input
-                className={INPUT}
-                value={draft.directionsUrl}
-                onChange={(e) => updateDraft({ directionsUrl: e.target.value })}
-                onBlur={() => handleUrlBlur("directionsUrl")}
-                placeholder="Google Maps"
               />
             </FieldBlock>
           </div>

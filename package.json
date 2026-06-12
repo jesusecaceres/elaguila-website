@@ -251,6 +251,7 @@
     "ofertas-locales:final-ai-1-audit": "tsx scripts/ofertas-locales-final-ai-1-audit.ts",
     "ofertas-locales:ol2-draft-preview-persistence-audit": "tsx scripts/ofertas-locales-ol2-draft-preview-persistence-audit.ts",
     "ofertas-locales:ol3-step1-cta-cleanup-audit": "tsx scripts/ofertas-locales-ol3-step1-cta-cleanup-audit.ts",
+    "ofertas-locales:ol4-step2-4-field-cleanup-audit": "tsx scripts/ofertas-locales-ol4-step2-4-field-cleanup-audit.ts",
     "verify:restaurantes:launch": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest:logic",
     "verify:restaurantes:launch:full": "npm run typecheck && npm run build && node scripts/restaurantes-http-smoke.mjs && npm run verify:restaurantes:selftest",
     "verify:servicios:manual-qa-seed": "npx tsx scripts/servicios-manual-qa-catalog-seed.ts",

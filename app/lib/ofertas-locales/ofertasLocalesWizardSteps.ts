@@ -115,11 +115,7 @@ export function getOfertasLocalesWizardStepHints(
       }
       break;
     case 3: {
-      const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
       const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
-      if (isFlyer && !draft.flyerTitle.trim()) {
-        hints.push(es ? "Agrega un título para el volante." : "Add a flyer title.");
-      }
       if (isCouponPromo && !draft.couponText.trim()) {
         hints.push(es ? "Describe el cupón o promoción." : "Describe the coupon or promotion.");
       }

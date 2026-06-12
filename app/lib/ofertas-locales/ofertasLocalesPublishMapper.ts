@@ -8,6 +8,7 @@ import {
   normalizeOfertaLocalStateInput,
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
+  buildOfertaLocalGoogleMapsSearchUrl,
 } from "./ofertasLocalesFormatting";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
@@ -212,7 +213,7 @@ export function mapOfertaLocalDraftToInsertPayload(
     title: sanitizeText(draft.title, MAX_TITLE),
     description: sanitizeOptionalText(draft.description),
     coupon_text: sanitizeOptionalText(draft.couponText),
-    flyer_title: sanitizeOptionalText(draft.flyerTitle, 160),
+    flyer_title: sanitizeOptionalText(draft.flyerTitle.trim() || draft.title, 160),
     valid_from: draft.validFrom.trim(),
     valid_until: draft.validUntil.trim(),
     address: sanitizeOptionalText(draft.address, 300),
@@ -223,7 +224,9 @@ export function mapOfertaLocalDraftToInsertPayload(
     phone: sanitizeOptionalPhone(draft.phone),
     whatsapp: sanitizeOptionalPhone(draft.whatsapp),
     website_url: sanitizeOptionalUrl(draft.websiteUrl),
-    directions_url: sanitizeOptionalUrl(draft.directionsUrl),
+    directions_url:
+      sanitizeOptionalUrl(draft.directionsUrl) ||
+      sanitizeOptionalUrl(buildOfertaLocalGoogleMapsSearchUrl(draft)),
     membership_url: sanitizeOptionalUrl(draft.membershipUrl),
     membership_cta_label: sanitizeOptionalText(draft.membershipCtaLabel, 80),
     membership_note: sanitizeOptionalText(draft.membershipNote),

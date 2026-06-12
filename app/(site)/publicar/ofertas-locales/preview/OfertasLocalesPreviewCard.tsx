@@ -192,10 +192,10 @@ export function OfertasLocalesPreviewCard({
                 <p className="mt-1 whitespace-pre-wrap text-sm text-[#1E1814]">{draft.couponText}</p>
               </div>
             ) : null}
-          {draft.flyerTitle.trim() && isFlyer ? (
+          {isFlyer && (draft.flyerTitle.trim() || draft.title.trim()) ? (
             <p className="mt-3 text-sm text-[#1E1814]/75">
               <span className="font-medium">{lang === "en" ? "Flyer: " : "Volante: "}</span>
-              {draft.flyerTitle}
+              {draft.flyerTitle.trim() || draft.title}
             </p>
           ) : null}
           {isFlyer ? (

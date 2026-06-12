@@ -15,11 +15,18 @@ const COPY = {
     publishDisabled: "Publicar — más adelante",
     offerTypeSection: "Tipo de oferta",
     step1PrimaryFormatQuestion: "¿Qué quieres publicar principalmente?",
+    step2OfferTitleLabel: "Título de la oferta",
+    step2PromotionTitleLabel: "Título de la promoción",
+    laneShoppingSectionTitle: "Detalles del volante",
     laneShoppingFlyerTitleLabel: "Título del volante",
     laneShoppingFlyerDescriptionLabel: "Descripción del volante",
+    laneShoppingFlyerDescriptionHelper:
+      "Describe brevemente qué encontrará el comprador en esta oferta.",
     laneShoppingSpecialDatesLabel: "Fechas del especial",
+    laneCouponSectionTitle: "Detalles del cupón o promoción",
     laneCouponPromotionTitleLabel: "Título de la promoción",
-    laneCouponTextLabel: "Texto del cupón",
+    laneCouponTextLabel: "Texto o descripción del cupón",
+    laneCouponTextHelper: "Explica el descuento, promoción o beneficio para el cliente.",
     laneCouponTermsLabel: "Términos o detalles",
     laneCouponValidDatesLabel: "Fechas de validez",
     laneShoppingMainFlyerAsset: "Archivo principal del volante",
@@ -94,7 +101,7 @@ const COPY = {
     cityHelper: "Usaremos la ciudad para filtros y búsquedas locales.",
     zipHelper: "Agrega el ZIP donde los clientes encontrarán esta oferta.",
     addressHelper:
-      "Agrega la dirección si quieres mostrar ubicación o activar \"Cómo llegar\".",
+      "Agrega la dirección si quieres mostrar ubicación. Generaremos \"Cómo llegar\" desde dirección, ciudad, estado y ZIP.",
     serviceZipHelper:
       "Opcional: agrega otros ZIPs donde esta oferta aplica, separados por comas.",
     directionsHelper:
@@ -235,11 +242,17 @@ const COPY = {
     publishDisabled: "Publish — not available yet",
     offerTypeSection: "Offer type",
     step1PrimaryFormatQuestion: "What do you mainly want to publish?",
+    step2OfferTitleLabel: "Offer title",
+    step2PromotionTitleLabel: "Promotion title",
+    laneShoppingSectionTitle: "Flyer details",
     laneShoppingFlyerTitleLabel: "Flyer title",
     laneShoppingFlyerDescriptionLabel: "Flyer description",
+    laneShoppingFlyerDescriptionHelper: "Briefly describe what shoppers will find in this offer.",
     laneShoppingSpecialDatesLabel: "Special dates",
+    laneCouponSectionTitle: "Coupon or promotion details",
     laneCouponPromotionTitleLabel: "Promotion title",
-    laneCouponTextLabel: "Coupon text",
+    laneCouponTextLabel: "Coupon text or description",
+    laneCouponTextHelper: "Explain the discount, promotion, or customer benefit.",
     laneCouponTermsLabel: "Terms or details",
     laneCouponValidDatesLabel: "Valid dates",
     laneShoppingMainFlyerAsset: "Main flyer file",
@@ -313,7 +326,8 @@ const COPY = {
       "Example: Brazilian market, organic store, African market, international goods.",
     cityHelper: "We'll use the city for local filters and search.",
     zipHelper: "Add the ZIP where customers can find this offer.",
-    addressHelper: "Add the address if you want to show a location or enable \"Directions\".",
+    addressHelper:
+      "Add the address if you want to show a location. We will generate Directions from address, city, state, and ZIP.",
     serviceZipHelper:
       "Optional: add other ZIP codes where this offer applies, separated by commas.",
     directionsHelper:

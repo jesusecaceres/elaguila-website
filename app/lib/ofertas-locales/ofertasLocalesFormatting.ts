@@ -32,6 +32,20 @@ export function normalizeOfertaLocalStateInput(raw: string): string {
     .slice(0, 2);
 }
 
+/** Safe Google Maps search URL from location fields — no Routes API. */
+export function buildOfertaLocalGoogleMapsSearchUrl(parts: {
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+}): string {
+  const query = [parts.address, parts.city, parts.state, parts.zipCode]
+    .map((p) => String(p ?? "").trim())
+    .filter(Boolean);
+  if (query.length === 0) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query.join(", "))}`;
+}
+
 /** Normalize http(s) URL; returns empty string if invalid. */
 export function normalizeOfertaLocalUrlInput(raw: string | undefined): string {
   const t = String(raw ?? "").trim();

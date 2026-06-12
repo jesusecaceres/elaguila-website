@@ -7,7 +7,7 @@ import { labelForPrimaryBusinessCategory } from "./ofertasLocalesBusinessCategor
 import { labelForPrimaryAdFormat } from "./ofertasLocalesTwoLaneProductModel";
 import { getOfertaLocalMarketDisplayLabel, getOfertaLocalProductDisplayLabel, labelForCouponPromotionSubtype } from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
-import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
+import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 
 /** True when the draft has enough content to show a meaningful preview. */
@@ -93,11 +93,9 @@ export function resolveOfertaLocalWebsiteHref(url: string): string {
 }
 
 export function resolveOfertaLocalDirectionsHref(draft: OfertaLocalDraft): string {
-  const directions = normalizeOfertaLocalUrlInput(draft.directionsUrl);
-  if (directions) return directions;
-  const parts = [draft.address, draft.city, draft.state, draft.zipCode].map((p) => p.trim()).filter(Boolean);
-  if (parts.length === 0) return "";
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`;
+  const generated = buildOfertaLocalGoogleMapsSearchUrl(draft);
+  if (generated) return generated;
+  return normalizeOfertaLocalUrlInput(draft.directionsUrl);
 }
 
 export function hasOfertaLocalFlyerAsset(draft: OfertaLocalDraft): boolean {
