@@ -372,6 +372,11 @@ export function AutosNegociosApplication() {
               {t.app.dealer.usefulDealershipLinksHeading}
             </p>
             <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.usefulDealershipLinksHelper}</p>
+            {normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).length === 0 ? (
+              <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+                {t.app.dealer.customLinksEmptyHelper}
+              </p>
+            ) : null}
             <div className="mt-4 space-y-3">
               {normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).map((row) => (
                 <div
@@ -383,6 +388,7 @@ export function AutosNegociosApplication() {
                       <label className={LABEL}>{t.app.dealer.customLinkTitle}</label>
                       <input
                         className={INPUT}
+                        placeholder={t.app.dealer.customLinkLabelPlaceholder}
                         value={row.label ?? ""}
                         onChange={(e) => {
                           const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });

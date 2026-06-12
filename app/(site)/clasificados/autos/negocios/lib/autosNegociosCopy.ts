@@ -79,7 +79,9 @@ export type AutosNegociosCopy = {
       customLinksHeading: string;
       customLinkTitle: string;
       customLinkUrl: string;
+      customLinkLabelPlaceholder: string;
       customLinksHelper: string;
+      customLinksEmptyHelper: string;
       addCustomLink: string;
       addDealershipLink: string;
       removeCustomLink: string;
@@ -424,16 +426,20 @@ const ES: AutosNegociosCopy = {
       dealershipContactsHeading: "Contactos y enlaces del concesionario",
       dealershipContactsHelper:
         "Agrega redes sociales, reseñas y enlaces útiles del dealer. Solo se mostrarán públicamente los campos que completes.",
-      usefulDealershipLinksHeading: "Enlaces útiles del concesionario",
+      usefulDealershipLinksHeading: "Websites y recursos del concesionario",
       usefulDealershipLinksHelper:
-        "Agrega hasta 2 enlaces importantes, como financiamiento, trade-in, promociones, garantías o servicio.",
-      customLinksHeading: "Enlaces útiles del concesionario",
-      customLinkTitle: "Título del enlace",
-      customLinkUrl: "URL",
+        "Agrega hasta 2 websites importantes para que los compradores puedan explorar más sobre tu negocio, promociones, financiamiento, garantías, trade-in o servicio.",
+      customLinksHeading: "Websites y recursos del concesionario",
+      customLinkTitle: "Nombre del website",
+      customLinkUrl: "URL del website",
+      customLinkLabelPlaceholder:
+        "Financiamiento, promociones, trade-in, garantías, servicio, página principal",
       customLinksHelper:
-        "Agrega hasta 2 enlaces importantes, como financiamiento, trade-in, promociones, garantías o servicio.",
-      addCustomLink: "Añadir enlace del concesionario",
-      addDealershipLink: "Añadir enlace del concesionario",
+        "Agrega hasta 2 websites importantes para que los compradores puedan explorar más sobre tu negocio, promociones, financiamiento, garantías, trade-in o servicio.",
+      customLinksEmptyHelper:
+        "Comparte páginas útiles que ayuden al comprador a confiar, comparar y tomar acción.",
+      addCustomLink: "Añadir website",
+      addDealershipLink: "Añadir website",
       removeCustomLink: "Eliminar",
       inventoryMainHelper:
         "Este será el vehículo principal de tu inventario. Será la ficha principal del dealer y podrá mostrar otros vehículos activos del mismo inventario.",
@@ -851,16 +857,19 @@ const EN: AutosNegociosCopy = {
       dealershipContactsHeading: "Dealership contacts and links",
       dealershipContactsHelper:
         "Add the dealer’s social links, reviews, and useful links. Only completed fields will show publicly.",
-      usefulDealershipLinksHeading: "Useful dealership links",
+      usefulDealershipLinksHeading: "Dealership websites and resources",
       usefulDealershipLinksHelper:
-        "Add up to 2 important links, such as financing, trade-in, promotions, warranties, or service.",
-      customLinksHeading: "Useful dealership links",
-      customLinkTitle: "Link title",
-      customLinkUrl: "URL",
+        "Add up to 2 important websites so buyers can explore more about your business, promotions, financing, warranties, trade-in, or service.",
+      customLinksHeading: "Dealership websites and resources",
+      customLinkTitle: "Website name",
+      customLinkUrl: "Website URL",
+      customLinkLabelPlaceholder: "Financing, promotions, trade-in, warranties, service, homepage",
       customLinksHelper:
-        "Add up to 2 important links, such as financing, trade-in, promotions, warranties, or service.",
-      addCustomLink: "Add dealership link",
-      addDealershipLink: "Add dealership link",
+        "Add up to 2 important websites so buyers can explore more about your business, promotions, financing, warranties, trade-in, or service.",
+      customLinksEmptyHelper:
+        "Share useful pages that help buyers build trust, compare options, and take action.",
+      addCustomLink: "Add website",
+      addDealershipLink: "Add website",
       removeCustomLink: "Remove",
       inventoryMainHelper:
         "This will be the main vehicle for your inventory. It becomes the dealer’s main listing and can show other active vehicles from the same inventory.",

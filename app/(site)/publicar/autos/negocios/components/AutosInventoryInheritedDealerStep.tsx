@@ -129,7 +129,7 @@ export function AutosInventoryInheritedDealerStep({
           <ul className="mt-2 space-y-1 text-sm text-[color:var(--lx-text-2)]">
             {customLinks.map((link) => (
               <li key={link.id}>
-                {link.label?.trim() || (lang === "es" ? "Enlace" : "Link")}: {link.url}
+                {link.label?.trim() || (lang === "es" ? "Website del concesionario" : "Dealership website")}: {link.url}
               </li>
             ))}
           </ul>

@@ -55,8 +55,8 @@ const REQUIRED_COPY = [
   "Seguir editando",
   "Cerrar sin guardar",
   "Contactos y enlaces del concesionario",
-  "Enlaces útiles del concesionario",
-  "Añadir enlace del concesionario",
+  "Websites y recursos del concesionario",
+  "Añadir website",
   "Añadir horario especial",
 ];
 

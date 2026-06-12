@@ -43,7 +43,7 @@ export function dealerCustomLinksForOutput(
   links: DealerCustomLink[] | undefined,
   lang: "es" | "en",
 ): DealerCustomLinkOutput[] {
-  const fallback = lang === "en" ? "Additional link" : "Enlace adicional";
+  const fallback = lang === "en" ? "Dealership website" : "Website del concesionario";
   const out: DealerCustomLinkOutput[] = [];
   for (const row of links ?? []) {
     const href = safeExternalHref(row.url);
