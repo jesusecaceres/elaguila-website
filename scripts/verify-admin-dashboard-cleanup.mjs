@@ -24,7 +24,10 @@ function ok(msg) {
 }
 
 // --- Dashboard: no full category registry grid ---
-const dash = read("app/admin/(dashboard)/page.tsx");
+const dashPage = read("app/admin/(dashboard)/page.tsx");
+const dashUi = read("app/admin/_components/AdminCommandCenterDashboard.tsx");
+const dashRoutes = read("app/admin/_lib/adminDashboardRoutes.ts");
+const dash = `${dashPage}\n${dashUi}\n${dashRoutes}`;
 if (dash.includes("registry.map((c)")) {
   fail("/admin still maps full category registry cards");
 }

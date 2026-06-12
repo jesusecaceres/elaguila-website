@@ -64,6 +64,40 @@ export const adminResponsiveTabsOuter =
 export const adminResponsiveTabsScroll =
   "flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]";
 
+/** Dashboard command center — semantic rectangular CTAs (MOBILE-01). */
+export const adminDashboardCtaBase =
+  "inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold shadow-sm transition active:scale-[0.99] sm:min-h-[42px] " +
+  adminCtaFocusRing;
+
+/** Burgundy — primary / strongest action. */
+export const adminDashboardCtaPrimary =
+  adminDashboardCtaBase + " border border-[#6B1A26] bg-[#7A1E2C] text-white hover:bg-[#6B1A26]";
+
+/** Army green — active / safe / positive admin ready. */
+export const adminDashboardCtaActive =
+  adminDashboardCtaBase + " border border-[#2A4536] bg-[#2A4536] text-[#FFFCF7] hover:bg-[#234036]";
+
+/** Royal blue — view / inspect / navigation. */
+export const adminDashboardCtaView =
+  adminDashboardCtaBase + " border border-[#1E4A7A] bg-[#1E4A7A] text-white hover:bg-[#173A61]";
+
+/** Orange — pending / review / warning. */
+export const adminDashboardCtaWarning =
+  adminDashboardCtaBase + " border border-[#C9782F] bg-[#E8943A] text-[#1E1810] hover:bg-[#D9852E]";
+
+/** Cream / ivory — neutral utility surface. */
+export const adminDashboardCtaNeutral =
+  adminDashboardCtaBase +
+  " border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]";
+
+/** Gold/bronze accent chip border (counts / premium). */
+export const adminDashboardMetricChip =
+  "inline-flex items-center rounded-md border border-[#C9B46A]/60 bg-[#FFFCF7] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#5C4E2E]";
+
+/** Red urgent marker — review / critical only. */
+export const adminDashboardUrgentBadge =
+  "inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-900";
+
 /** Zebra striping for admin tracking tables. */
 /** Obvious warm zebra for admin queue tables (Phase 15). */
 export const adminTableZebraRow =

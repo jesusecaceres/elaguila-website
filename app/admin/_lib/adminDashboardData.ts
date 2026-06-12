@@ -17,7 +17,10 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
 import { normalizeGenericListingForAdmin, type GenericListingAdminInput } from "@/app/admin/_lib/adminAdIdentity";
 
-const EXPIRING_SOON_MS = 7 * 24 * 60 * 60 * 1000;
+/** Ads expiring within this window surface under “Expiring soon” (dashboard MOBILE-01). */
+export const ADMIN_DASHBOARD_EXPIRING_SOON_MS = 3 * 24 * 60 * 60 * 1000;
+export const ADMIN_DASHBOARD_EXPIRING_SOON_DAYS = 3;
+const EXPIRING_SOON_MS = ADMIN_DASHBOARD_EXPIRING_SOON_MS;
 const MAX_EXPIRING_ROWS = 15;
 const MAX_PENDING_REVIEW_ROWS = 12;
 
@@ -53,6 +56,17 @@ export type AdminDashboardPendingReviewQueueRow = {
   updatedAtIso: string | null;
   adminHref: string;
   publicHref: string | null;
+};
+
+export type AdminDashboardLeadsCounts = {
+  unavailable: boolean;
+  unavailableNote: string | null;
+  launchLeadsActive: number;
+  leadsNeedingReply: number;
+  promoLeadsActive: number;
+  advertisingLeadsActive: number;
+  mediaKitActive: number;
+  newsletterActive: number;
 };
 
 export type AdminDashboardSnapshot = {
@@ -436,6 +450,91 @@ async function buildPendingReviewQueueMerged(
   });
 
   return merged.slice(0, MAX_PENDING_REVIEW_ROWS);
+}
+
+export function splitAdminDashboardExpiringQueue(items: AdminDashboardExpiringQueueRow[]): {
+  expiringSoon: AdminDashboardExpiringQueueRow[];
+  expired: AdminDashboardExpiringQueueRow[];
+  otherActive: AdminDashboardExpiringQueueRow[];
+} {
+  const expired = items.filter((row) => row.isExpired);
+  const expiringSoon = items.filter((row) => row.isExpiringSoon && !row.isExpired);
+  const otherActive = items.filter((row) => !row.isExpired && !row.isExpiringSoon);
+  return { expiringSoon, expired, otherActive };
+}
+
+export function adminDashboardReviewReasonLabel(reason: string | null): string {
+  const trimmed = reason?.trim();
+  return trimmed ? trimmed : "Reason unavailable — inspect review source";
+}
+
+export function isAdminDashboardUrgentReviewRow(row: AdminDashboardPendingReviewQueueRow): boolean {
+  const status = row.status.toLowerCase();
+  return status === "flagged" || status === "changes_requested" || status.includes("flag");
+}
+
+export async function getAdminDashboardLeadsCounts(): Promise<AdminDashboardLeadsCounts> {
+  try {
+    const supabase = getAdminSupabase();
+    const base = () => supabase.from("leonix_leads").select("id", { count: "exact", head: true }).is("deleted_at", null).is("archived_at", null);
+
+    const [activeRes, needsReplyRes, promoRes, adRes, mediaRes, newsRes] = await Promise.all([
+      base(),
+      base().in("status", ["new", "needs_reply"]),
+      base().or("source_cta.eq.promo_quote,inquiry_type.eq.promotionalProducts"),
+      base().eq("inquiry_type", "advertising"),
+      supabase
+        .from("leonix_media_kit_leads")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("archived_at", null),
+      supabase
+        .from("leonix_newsletter_subscribers")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+        .is("archived_at", null)
+        .eq("status", "subscribed"),
+    ]);
+
+    const firstErr = activeRes.error ?? needsReplyRes.error ?? promoRes.error ?? adRes.error ?? mediaRes.error ?? newsRes.error;
+    if (firstErr) {
+      const msg = String(firstErr.message ?? "");
+      if (/does not exist|schema cache|PGRST205/i.test(msg)) {
+        return {
+          unavailable: true,
+          unavailableNote: "Lead capture tables are not available. Apply the Supabase migration first.",
+          launchLeadsActive: 0,
+          leadsNeedingReply: 0,
+          promoLeadsActive: 0,
+          advertisingLeadsActive: 0,
+          mediaKitActive: 0,
+          newsletterActive: 0,
+        };
+      }
+    }
+
+    return {
+      unavailable: false,
+      unavailableNote: null,
+      launchLeadsActive: typeof activeRes.count === "number" ? activeRes.count : 0,
+      leadsNeedingReply: typeof needsReplyRes.count === "number" ? needsReplyRes.count : 0,
+      promoLeadsActive: typeof promoRes.count === "number" ? promoRes.count : 0,
+      advertisingLeadsActive: typeof adRes.count === "number" ? adRes.count : 0,
+      mediaKitActive: typeof mediaRes.count === "number" ? mediaRes.count : 0,
+      newsletterActive: typeof newsRes.count === "number" ? newsRes.count : 0,
+    };
+  } catch {
+    return {
+      unavailable: true,
+      unavailableNote: "Could not load lead counts.",
+      launchLeadsActive: 0,
+      leadsNeedingReply: 0,
+      promoLeadsActive: 0,
+      advertisingLeadsActive: 0,
+      mediaKitActive: 0,
+      newsletterActive: 0,
+    };
+  }
 }
 
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
