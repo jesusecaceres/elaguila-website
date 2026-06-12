@@ -21,7 +21,7 @@ export function AdminCommandCenterClient({
 
   const scrollToSection = useCallback((id: string) => {
     setActiveId(id);
-    const el = document.getElementById(`admin-cmd-${id}`);
+    const el = document.getElementById(id);
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
@@ -41,7 +41,7 @@ export function AdminCommandCenterClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  aria-controls={`admin-cmd-${section.id}`}
+                  aria-controls={section.id}
                   onClick={() => scrollToSection(section.id)}
                   className={
                     active
@@ -61,7 +61,7 @@ export function AdminCommandCenterClient({
         {sections.map((section) => (
           <div
             key={section.id}
-            id={`admin-cmd-${section.id}`}
+            id={section.id}
             role="tabpanel"
             aria-labelledby={`admin-cmd-tab-${section.id}`}
             className="min-w-0 scroll-mt-24 md:block"

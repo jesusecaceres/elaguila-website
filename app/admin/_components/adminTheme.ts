@@ -98,6 +98,10 @@ export const adminDashboardMetricChip =
 export const adminDashboardUrgentBadge =
   "inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-900";
 
+/** Red — destructive actions (queue fallback only from dashboard). */
+export const adminDashboardCtaDanger =
+  adminDashboardCtaBase + " border border-rose-800 bg-rose-800 text-white hover:bg-rose-900";
+
 /** Zebra striping for admin tracking tables. */
 /** Obvious warm zebra for admin queue tables (Phase 15). */
 export const adminTableZebraRow =

@@ -2,13 +2,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   adminDashboardCtaActive,
+  adminDashboardCtaDanger,
   adminDashboardCtaNeutral,
   adminDashboardCtaPrimary,
   adminDashboardCtaView,
   adminDashboardCtaWarning,
 } from "./adminTheme";
 
-export type AdminDashboardCtaVariant = "primary" | "active" | "view" | "warning" | "neutral";
+export type AdminDashboardCtaVariant = "primary" | "active" | "view" | "warning" | "neutral" | "danger";
 
 const VARIANT_CLASS: Record<AdminDashboardCtaVariant, string> = {
   primary: adminDashboardCtaPrimary,
@@ -16,6 +17,7 @@ const VARIANT_CLASS: Record<AdminDashboardCtaVariant, string> = {
   view: adminDashboardCtaView,
   warning: adminDashboardCtaWarning,
   neutral: adminDashboardCtaNeutral,
+  danger: adminDashboardCtaDanger,
 };
 
 export function AdminDashboardCta({

@@ -171,6 +171,7 @@ const labels = {
     pageSubtitle: "Administrative account view — Leonix operations.",
     eyebrow: "Account",
     backToUsers: "← Back to users",
+    backToReview: "← Back to review queue",
     dashboard: "Dashboard",
     idLabel: "ID",
     changesSaved: "Changes saved successfully.",
@@ -263,6 +264,7 @@ const labels = {
     pageSubtitle: "Vista administrativa de cuenta — operaciones Leonix.",
     eyebrow: "Cuenta",
     backToUsers: "← Volver a clientes",
+    backToReview: "← Volver a cola de revisión",
     dashboard: "Dashboard",
     idLabel: "ID",
     changesSaved: "Cambios guardados correctamente.",
@@ -413,6 +415,9 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           <Link href="/admin/usuarios" className={adminBtnSecondary}>
             ← Back to users
           </Link>
+          <Link href="/admin#review" className={adminBtnSecondary}>
+            ← Back to review queue
+          </Link>
           <Link href="/admin" className={adminBtnDark}>
             Dashboard
           </Link>
@@ -539,6 +544,9 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       <div className="mb-4 flex flex-wrap gap-2">
         <Link href="/admin/usuarios" className={adminBtnSecondary} title={t.backToUsers}>
           {t.backToUsers}
+        </Link>
+        <Link href="/admin#review" className={adminBtnSecondary} title={t.backToReview}>
+          {t.backToReview}
         </Link>
         <Link href="/admin" className={adminBtnDark} title={t.dashboard}>
           {t.dashboard}

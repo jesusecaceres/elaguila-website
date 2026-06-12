@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AdminCommandCenterClient, type AdminCommandCenterSection } from "./AdminCommandCenterClient";
 import { AdminDashboardCta, AdminDashboardCtaGrid } from "./AdminDashboardCta";
+import { AdminDashboardReviewCardActions } from "./AdminDashboardReviewCardActions";
 import { AdminMonetizationLinksCard } from "./AdminMonetizationLinksCard";
 import { AdminPageHeader } from "./AdminPageHeader";
 import { AdminSectionCard } from "./AdminSectionCard";
@@ -117,12 +118,7 @@ function ReviewRow({
           {row.status}
         </span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <AdminDashboardCta href={row.adminHref} label={m("dashboard.adminQueue")} variant="warning" className="!min-h-[40px] !w-auto !px-3 !py-2 !text-xs" />
-        {row.ownerUserId ? (
-          <AdminDashboardCta href={`/admin/usuarios/${row.ownerUserId}`} label={m("dashboard.sellerCard")} variant="neutral" className="!min-h-[40px] !w-auto !px-3 !py-2 !text-xs" />
-        ) : null}
-      </div>
+      <AdminDashboardReviewCardActions row={row} />
     </li>
   );
 }
@@ -230,7 +226,7 @@ export function AdminCommandCenterDashboard({
           label="Expiring soon"
           value={expiringSoon.length}
           hint={`Real expiration within ${ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days.`}
-          href="#admin-cmd-expiring"
+          href="#expiring"
           ctaLabel="See expiring"
           variant="view"
         />
@@ -238,7 +234,7 @@ export function AdminCommandCenterDashboard({
           label="Expired listings"
           value={expired.length}
           hint="Already past expiration timestamp."
-          href="#admin-cmd-expiring"
+          href="#expiring"
           ctaLabel="See expired"
           variant="view"
         />

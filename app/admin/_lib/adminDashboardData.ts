@@ -16,6 +16,7 @@ import { EN_VENTA_VISIBILITY_WINDOW_MS } from "@/app/clasificados/en-venta/boost
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
 import { normalizeGenericListingForAdmin, type GenericListingAdminInput } from "@/app/admin/_lib/adminAdIdentity";
+import { enrichReviewRowActionFields } from "@/app/admin/_lib/adminDashboardReviewActions";
 
 /** Ads expiring within this window surface under “Expiring soon” (dashboard MOBILE-01). */
 export const ADMIN_DASHBOARD_EXPIRING_SOON_MS = 3 * 24 * 60 * 60 * 1000;
@@ -51,11 +52,17 @@ export type AdminDashboardPendingReviewQueueRow = {
   leonixAdId: string | null;
   internalId: string;
   ownerUserId: string | null;
+  ownerEmail: string | null;
+  ownerPhone: string | null;
   status: string;
   reason: string | null;
   updatedAtIso: string | null;
   adminHref: string;
   publicHref: string | null;
+  /** Staff edit surface when available (generic listings only). */
+  editHref: string | null;
+  /** Classifieds queue where archive/delete/moderation row actions exist. */
+  queueActionsHref: string;
 };
 
 export type AdminDashboardLeadsCounts = {
@@ -312,19 +319,25 @@ async function fetchListingsPendingReview(
     if (!internalId || !status) continue;
     const category = nonEmptyString(row.category) ?? "unknown";
     const norm = normalizeGenericListingForAdmin(row as unknown as GenericListingAdminInput);
-    out.push({
-      source: "generic_listings",
-      title: norm?.title ?? nonEmptyString(row.title) ?? "(no title)",
-      categorySource: `listings · ${category}`,
-      leonixAdId: norm?.publishedId ?? null,
-      internalId,
-      ownerUserId: nonEmptyString(row.owner_id),
-      status,
-      reason: null,
-      updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at),
-      adminHref: norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
-      publicHref: `/clasificados/anuncio/${encodeURIComponent(internalId)}`,
-    });
+    out.push(
+      enrichReviewRowActionFields({
+        source: "generic_listings",
+        title: norm?.title ?? nonEmptyString(row.title) ?? "(no title)",
+        categorySource: `listings · ${category}`,
+        leonixAdId: norm?.publishedId ?? null,
+        internalId,
+        ownerUserId: nonEmptyString(row.owner_id),
+        ownerEmail: null,
+        ownerPhone: null,
+        status,
+        reason: null,
+        updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at),
+        adminHref: norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
+        publicHref: `/clasificados/anuncio/${encodeURIComponent(internalId)}`,
+        editHref: null,
+        queueActionsHref: norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
+      }),
+    );
   }
   return out;
 }
@@ -370,19 +383,25 @@ async function fetchEmpleosPendingReview(
       ? `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(leonix)}`
       : `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(internalId)}`;
 
-    out.push({
-      source: "empleos_public_listings",
-      title,
-      categorySource: "empleos_public_listings",
-      leonixAdId: leonix,
-      internalId,
-      ownerUserId: nonEmptyString(row.owner_user_id),
-      status,
-      reason,
-      updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at) ?? nonEmptyString(row.published_at),
-      adminHref,
-      publicHref: null, // not safe/available while pending_review
-    });
+    out.push(
+      enrichReviewRowActionFields({
+        source: "empleos_public_listings",
+        title,
+        categorySource: "empleos_public_listings",
+        leonixAdId: leonix,
+        internalId,
+        ownerUserId: nonEmptyString(row.owner_user_id),
+        ownerEmail: null,
+        ownerPhone: null,
+        status,
+        reason,
+        updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at) ?? nonEmptyString(row.published_at),
+        adminHref,
+        publicHref: null,
+        editHref: null,
+        queueActionsHref: adminHref,
+      }),
+    );
   }
   return out;
 }
@@ -417,21 +436,48 @@ async function fetchViajesPendingReview(
     const status = nonEmptyString(row.lifecycle_status);
     if (!internalId || !status) continue;
     const reason = nonEmptyString(row.moderation_reason) ?? nonEmptyString(row.review_notes);
-    out.push({
-      source: "viajes_staged_listings",
-      title: nonEmptyString(row.title) ?? "(no title)",
-      categorySource: "viajes_staged_listings",
-      leonixAdId: null,
-      internalId,
-      ownerUserId: nonEmptyString(row.owner_user_id),
-      status,
-      reason,
-      updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.submitted_at),
-      adminHref: "/admin/clasificados/viajes/business-offers",
-      publicHref: null, // staged moderation rows should not be linked publicly from here
-    });
+    out.push(
+      enrichReviewRowActionFields({
+        source: "viajes_staged_listings",
+        title: nonEmptyString(row.title) ?? "(no title)",
+        categorySource: "viajes_staged_listings",
+        leonixAdId: null,
+        internalId,
+        ownerUserId: nonEmptyString(row.owner_user_id),
+        ownerEmail: null,
+        ownerPhone: null,
+        status,
+        reason,
+        updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.submitted_at),
+        adminHref: "/admin/clasificados/viajes/business-offers",
+        publicHref: null,
+        editHref: null,
+        queueActionsHref: "/admin/clasificados/viajes/business-offers",
+      }),
+    );
   }
   return out;
+}
+
+async function enrichPendingReviewOwnerContacts(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  rows: AdminDashboardPendingReviewQueueRow[],
+): Promise<AdminDashboardPendingReviewQueueRow[]> {
+  const ownerIds = [...new Set(rows.map((r) => r.ownerUserId).filter((id): id is string => Boolean(id)))];
+  if (!ownerIds.length) return rows;
+
+  const { data } = await supabase.from("profiles").select("id,email,phone").in("id", ownerIds);
+  const byId = new Map<string, { email: string | null; phone: string | null }>();
+  for (const row of (data ?? []) as { id: string; email: string | null; phone: string | null }[]) {
+    byId.set(row.id, { email: nonEmptyString(row.email), phone: nonEmptyString(row.phone) });
+  }
+
+  return rows.map((row) => {
+    if (!row.ownerUserId) return row;
+    const contact = byId.get(row.ownerUserId);
+    if (!contact) return row;
+    return { ...row, ownerEmail: contact.email, ownerPhone: contact.phone };
+  });
 }
 
 async function buildPendingReviewQueueMerged(
@@ -449,7 +495,8 @@ async function buildPendingReviewQueueMerged(
     return tb - ta;
   });
 
-  return merged.slice(0, MAX_PENDING_REVIEW_ROWS);
+  const sliced = merged.slice(0, MAX_PENDING_REVIEW_ROWS);
+  return enrichPendingReviewOwnerContacts(supabase, sliced);
 }
 
 export function splitAdminDashboardExpiringQueue(items: AdminDashboardExpiringQueueRow[]): {

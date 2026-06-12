@@ -15,6 +15,7 @@ export const ADMIN_DASHBOARD_ROUTES = {
   tienda: "/admin/tienda",
   catalog: "/admin/tienda/catalog",
   viewSite: "/",
+  reviewQueue: "/admin#review",
   reports: "/admin/reportes",
   users: "/admin/usuarios",
   customerOps: "/admin/ops",
