@@ -1,6 +1,7 @@
 import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerListing";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
-import { deriveHeroImageUrls, migrateHeroImagesToMediaImages } from "./autoDealerHeroImages";
+import { deriveHeroImageUrls, migrateHeroImagesToMediaImages, normalizeMediaImagesOrder } from "./autoDealerHeroImages";
+import { dedupeAutosVideoUrls, migrateLegacyAutosVideoUrl } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { coerceEngineFromCatalog } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
@@ -88,6 +89,7 @@ export function createEmptyListing(): AutoDealerListing {
     otherEquipmentDetails: undefined,
     mediaImages: [],
     heroImages: [],
+    videoUrls: [],
     videoSourceType: null,
     videoUrl: undefined,
     videoFileDataUrl: undefined,
@@ -207,6 +209,20 @@ export function normalizeLoadedListing(
   const engineCoerced = coerceEngineFromCatalog(merged, { liveDraft });
   merged.engine = engineCoerced.engine;
   merged.engineNormalized = engineCoerced.engineNormalized;
+
+  merged.mediaImages = normalizeMediaImagesOrder(merged.mediaImages);
+
+  merged.videoUrls = migrateLegacyAutosVideoUrl(raw.videoUrls, merged.videoUrl);
+  if (merged.videoUrls.length) {
+    merged.videoUrl = merged.videoUrls[0];
+    merged.videoSourceType = "url";
+  }
+  merged.videoFileDataUrl = undefined;
+  merged.videoFileName = undefined;
+  if (merged.videoSourceType === "file") {
+    merged.videoSourceType = merged.videoUrls.length ? "url" : null;
+  }
+  merged.videoUploadStatus = merged.videoUrls.length ? "local_preview" : null;
 
   const withAddress = syncDealerAddressFromStructured(merged);
   withAddress.heroImages = deriveHeroImageUrls(withAddress);

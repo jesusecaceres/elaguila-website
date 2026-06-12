@@ -4,6 +4,8 @@ import type {
   VehicleBadge,
 } from "@/app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { normalizeMediaImagesOrder } from "@/app/(site)/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import { dedupeAutosVideoUrls, migrateLegacyAutosVideoUrl } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPolicy";
 
 export type AutosInventoryVehicleDraftStatus = "draft" | "ready_for_preview";
@@ -89,6 +91,7 @@ export type AutosInventoryVehicleFields = Pick<
   | "otherEquipmentDetails"
   | "mediaImages"
   | "heroImages"
+  | "videoUrls"
   | "videoUrl"
   | "videoSourceType"
   | "videoFileDataUrl"
@@ -175,7 +178,7 @@ function mediaArray(v: unknown): MediaImageEntry[] | undefined {
       sortOrder: typeof m.sortOrder === "number" ? m.sortOrder : out.length,
     });
   }
-  return out.length ? out : undefined;
+  return out.length ? normalizeMediaImagesOrder(out) : undefined;
 }
 
 function migrateLegacyImageUrl(o: Record<string, unknown>): MediaImageEntry[] | undefined {
@@ -201,6 +204,12 @@ function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | 
   const createdAt = strOrUndef(o.createdAt) ?? new Date().toISOString();
   const updatedAt = strOrUndef(o.updatedAt) ?? createdAt;
   const mediaImages = migrateLegacyImageUrl(o);
+  const videoUrls = dedupeAutosVideoUrls(
+    migrateLegacyAutosVideoUrl(
+      Array.isArray(o.videoUrls) ? o.videoUrls.filter((x): x is string => typeof x === "string") : undefined,
+      typeof o.videoUrl === "string" ? o.videoUrl : undefined,
+    ),
+  );
   const status: AutosInventoryVehicleDraftStatus =
     o.status === "ready_for_preview" ? "ready_for_preview" : "draft";
 
@@ -254,18 +263,12 @@ function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | 
     otherEquipmentDetails: o.otherEquipmentDetails === null ? null : strOrUndef(o.otherEquipmentDetails) ?? undefined,
     mediaImages,
     heroImages: Array.isArray(o.heroImages) ? o.heroImages.filter((x): x is string => typeof x === "string") : undefined,
-    videoUrl: o.videoUrl === null ? null : strOrUndef(o.videoUrl) ?? undefined,
-    videoSourceType:
-      o.videoSourceType === "url" || o.videoSourceType === "file" ? o.videoSourceType : o.videoUrl ? "url" : null,
-    videoFileDataUrl: o.videoFileDataUrl === null ? null : strOrUndef(o.videoFileDataUrl) ?? undefined,
-    videoFileName: o.videoFileName === null ? null : strOrUndef(o.videoFileName) ?? undefined,
-    videoUploadStatus:
-      o.videoUploadStatus === "local_preview" ||
-      o.videoUploadStatus === "pending_mux" ||
-      o.videoUploadStatus === "ready" ||
-      o.videoUploadStatus === "error"
-        ? o.videoUploadStatus
-        : null,
+    videoUrls,
+    videoUrl: videoUrls[0] ?? undefined,
+    videoSourceType: videoUrls.length ? "url" : null,
+    videoFileDataUrl: undefined,
+    videoFileName: undefined,
+    videoUploadStatus: videoUrls.length ? "local_preview" : null,
     description: strOrUndef(o.description),
   };
 
@@ -320,7 +323,9 @@ export function prepareInventoryVehicleForSave(
 }
 
 export function inventoryVehicleCoverUrl(draft: AutosAdditionalInventoryVehicleDraft): string | null {
-  const primary = draft.mediaImages?.find((m) => m.isPrimary)?.url ?? draft.mediaImages?.[0]?.url;
+  const ordered = normalizeMediaImagesOrder(draft.mediaImages ?? []);
+  const cover = ordered.find((m) => m.isPrimary) ?? ordered[0];
+  const primary = cover?.url;
   if (primary?.trim()) return primary.trim();
   if (draft.imageUrl?.trim()) return draft.imageUrl.trim();
   return draft.heroImages?.[0]?.trim() || null;

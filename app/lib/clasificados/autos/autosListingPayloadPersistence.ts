@@ -1,4 +1,5 @@
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { dedupeAutosVideoUrls } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 
 /** Keep JSON payload under typical serverless body limits; inline data URLs belong in blob/Mux flows. */
 const MAX_INLINE_DATA_URL_CHARS = 100_000;
@@ -42,9 +43,17 @@ export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerLis
     L = {
       ...L,
       videoFileDataUrl: undefined,
-      videoUploadStatus: L.videoSourceType === "file" ? "local_preview" : L.videoUploadStatus,
+      videoFileName: undefined,
+      videoSourceType: L.videoUrls?.length ? "url" : null,
+      videoUploadStatus: L.videoUrls?.length ? "local_preview" : null,
     };
   }
+
+  L = {
+    ...L,
+    videoUrls: dedupeAutosVideoUrls(L.videoUrls ?? []),
+    videoUrl: dedupeAutosVideoUrls(L.videoUrls ?? [])[0] ?? (L.videoUrl?.trim() && !isNonDurableVideoUrl(L.videoUrl) ? L.videoUrl.trim() : undefined),
+  };
 
   const vu = L.videoUrl?.trim() ?? "";
   if (vu && isNonDurableVideoUrl(vu)) {

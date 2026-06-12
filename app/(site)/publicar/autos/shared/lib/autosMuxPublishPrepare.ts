@@ -1,7 +1,6 @@
 "use client";
 
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { uploadAutosDraftVideoFileToMux } from "@/app/lib/clasificados/autos/autosMuxVideoClient";
 
 /** Drop inline draft video bytes from API payloads (confirm sync / create) so PATCH/POST stay small. */
 export function omitAutosInlineVideoForApiPayload(listing: AutoDealerListing): AutoDealerListing {
@@ -12,24 +11,6 @@ export function omitAutosInlineVideoForApiPayload(listing: AutoDealerListing): A
   return next;
 }
 
-function dataUrlToFile(dataUrl: string, fileName: string): File | null {
-  const t = dataUrl.trim();
-  if (!t.startsWith("data:")) return null;
-  const comma = t.indexOf(",");
-  if (comma < 0) return null;
-  const header = t.slice(0, comma);
-  const body = t.slice(comma + 1);
-  const mimeMatch = /^data:([^;]+)/.exec(header);
-  const mime = (mimeMatch?.[1] ?? "application/octet-stream").trim() || "application/octet-stream";
-  const isBase64 = /;base64/i.test(header);
-  try {
-    const bytes = isBase64 ? Uint8Array.from(atob(body), (c) => c.charCodeAt(0)) : new TextEncoder().encode(decodeURIComponent(body));
-    return new File([bytes], fileName || "video", { type: mime });
-  } catch {
-    return null;
-  }
-}
-
 export type AutosMuxPublishPrepareResult = {
   listing: AutoDealerListing;
   /** User-facing warnings (e.g. Mux failed — listing continues without video). */
@@ -37,7 +18,7 @@ export type AutosMuxPublishPrepareResult = {
 };
 
 /**
- * Before final PATCH + checkout: upload local draft file to Mux when configured; merge durable playback fields.
+ * Before final PATCH + checkout: strip legacy local video bytes. Autos publish forms use external videoUrls only (no Mux upload).
  * Never throws; failures add warnings and clear optional video for publish.
  */
 export async function prepareAutosListingOptionalMuxUpload(
@@ -74,66 +55,26 @@ export async function prepareAutosListingOptionalMuxUpload(
   }
 
   if (L.videoSourceType === "file" && L.videoFileDataUrl?.trim()) {
-    const fileName = (L.videoFileName?.trim() || "autos-listing-video").replace(/[^\w.\-()+ ]/g, "_") || "autos-listing-video";
-    const file = dataUrlToFile(L.videoFileDataUrl, fileName);
-    if (!file) {
-      publishWarnings.push(
-        lang === "es" ? "No se pudo leer el video local; se publicará sin video." : "Could not read the local video file; publishing without video.",
-      );
-      L = {
-        ...L,
-        videoFileDataUrl: undefined,
-        videoSourceType: null,
-        videoUploadStatus: "error",
-        autosVideoPublishDiagnostics: {
-          muxUploadAttempted: true,
-          muxUploadError: "data_url_decode_failed",
-          muxUploadAt: now,
-        },
-      };
-      return { listing: L, publishWarnings };
-    }
-
-    const up = await uploadAutosDraftVideoFileToMux(file, lang);
-    if (!up.ok) {
-      publishWarnings.push(up.error);
-      L = {
-        ...L,
-        videoFileDataUrl: undefined,
-        videoSourceType: null,
-        videoUrl: undefined,
-        videoUploadStatus: "error",
-        autosVideoPublishDiagnostics: {
-          muxUploadAttempted: true,
-          muxUploadError: up.errorType ?? "mux_upload_failed",
-          muxUploadAt: now,
-        },
-      };
-      return { listing: L, publishWarnings };
-    }
-
-    const playbackUrl = up.playbackUrl || `https://stream.mux.com/${up.playbackId}.m3u8`;
+    publishWarnings.push(
+      lang === "es"
+        ? "Los formularios Autos ya no suben archivos de video; se publicará con enlaces externos solamente."
+        : "Autos forms no longer upload video files; publishing with external links only.",
+    );
     L = {
       ...L,
-      muxAssetId: up.assetId,
-      muxPlaybackId: up.playbackId,
-      muxThumbnailUrl: up.thumbnailUrl || undefined,
-      muxPlaybackUrl: playbackUrl,
-      videoUrl: playbackUrl,
-      videoSourceType: "url",
       videoFileDataUrl: undefined,
       videoFileName: undefined,
-      videoUploadStatus: "ready",
+      videoSourceType: L.videoUrls?.length ? "url" : null,
+      videoUploadStatus: L.videoUrls?.length ? "local_preview" : null,
       autosVideoPublishDiagnostics: {
-        muxUploadAttempted: true,
-        muxUploadError: null,
+        muxUploadAttempted: false,
+        muxUploadError: "autos_external_video_only",
         muxUploadAt: now,
       },
     };
-
     return { listing: L, publishWarnings };
   }
 
-  L = { ...L, videoFileDataUrl: undefined };
+  L = { ...L, videoFileDataUrl: undefined, videoFileName: undefined };
   return { listing: L, publishWarnings };
 }

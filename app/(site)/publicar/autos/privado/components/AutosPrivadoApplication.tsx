@@ -32,6 +32,11 @@ import {
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import {
+  autosVehicleCityHelper,
+  autosVehicleCityPlaceholder,
+  autosVehicleZipHelper,
+} from "@/app/lib/clasificados/autos/autosVehicleLocationCopy";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosPublishApplicationHeader } from "@/app/publicar/autos/shared/components/AutosPublishApplicationHeader";
@@ -249,9 +254,10 @@ export function AutosPrivadoApplication() {
                   onChange={(v) => setListingPatch({ city: v || undefined })}
                   lang={lang}
                   variant="brForm"
-                  placeholder={t.app.placeholders.city}
+                  freeText
+                  placeholder={autosVehicleCityPlaceholder(lang)}
                 />
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.cityNorCal}</p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleCityHelper(lang)}</p>
               </div>
               <div>
                 <label className={LABEL}>{reqLabel(t.app.labels.state)}</label>
@@ -282,7 +288,7 @@ export function AutosPrivadoApplication() {
                   }}
                   aria-label={t.app.labels.zip}
                 />
-                <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.zip}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleZipHelper(lang)}</p>
               </div>
             </div>
           </section>

@@ -100,7 +100,7 @@ export const AUTOS_INVENTORY_INHERITED_FIELD_GROUPS: AutosInheritedPreviewFieldG
     "customEquipment",
     "otherEquipmentDetails",
     "mediaImages",
-    "videoUrl",
+    "videoUrls",
     "description",
   ],
 };

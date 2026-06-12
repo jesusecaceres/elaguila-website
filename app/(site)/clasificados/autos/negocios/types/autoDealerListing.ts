@@ -185,7 +185,9 @@ export type AutoDealerListing = {
   mediaImages?: MediaImageEntry[];
   /** Derived from `mediaImages` in normalize; legacy drafts may only have this. */
   heroImages?: string[];
-  /** External video URL when videoSourceType === "url" (YouTube/Vimeo/direct mp4, etc.). */
+  /** Up to 4 external HTTPS video links (YouTube, TikTok, Instagram, Vimeo, etc.). Autos publish forms are external-URL-only. */
+  videoUrls?: string[];
+  /** @deprecated Prefer `videoUrls`; kept for legacy drafts and single-URL readers. */
   videoUrl?: string | null;
   videoSourceType?: VideoSourceType;
   /** Local data URL for preview when videoSourceType === "file"; upload to Mux on publish only. */

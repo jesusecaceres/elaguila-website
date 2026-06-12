@@ -1,5 +1,6 @@
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutoDealerListing, MediaImageEntry } from "../types/autoDealerListing";
+import { normalizeMediaImagesOrder } from "./autoDealerHeroImages";
 import {
   idbClearDealerLogo,
   idbClearFinanceImage,
@@ -77,9 +78,9 @@ function isMediaImageRow(m: unknown): m is MediaImageEntry {
   return typeof o.id === "string" && o.id.length > 0 && typeof o.url === "string";
 }
 
-function coerceMediaImageRow(m: MediaImageEntry): MediaImageEntry {
+function coerceMediaImageRow(m: MediaImageEntry, index = 0): MediaImageEntry {
   const sourceType: MediaImageEntry["sourceType"] = m.sourceType === "file" ? "file" : "url";
-  const sortOrder = typeof m.sortOrder === "number" && Number.isFinite(m.sortOrder) ? m.sortOrder : 0;
+  const sortOrder = typeof m.sortOrder === "number" && Number.isFinite(m.sortOrder) ? m.sortOrder : index;
   return {
     id: m.id,
     url: m.url,
@@ -96,9 +97,10 @@ function coerceMediaImageRow(m: MediaImageEntry): MediaImageEntry {
 export async function inlineDraftListingAssetsFromIdb(namespace: string, listing: AutoDealerListing): Promise<AutoDealerListing> {
   const rows = listing.mediaImages ?? [];
   const nextImages: MediaImageEntry[] = [];
-  for (const m of rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const m = rows[i]!;
     if (!isMediaImageRow(m)) continue;
-    const row = coerceMediaImageRow(m);
+    const row = coerceMediaImageRow(m, i);
     const refId = mediaIdFromRef(row.url);
     if (refId) {
       try {
@@ -129,7 +131,7 @@ export async function inlineDraftListingAssetsFromIdb(namespace: string, listing
       financeContactImageUrl = undefined;
     }
   }
-  return { ...listing, mediaImages: nextImages, dealerLogo, financeContactImageUrl };
+  return { ...listing, mediaImages: normalizeMediaImagesOrder(nextImages), dealerLogo, financeContactImageUrl };
 }
 
 export async function clearDraftListingImageAndLogoIdb(namespace: string, listing: AutoDealerListing | undefined | null): Promise<void> {
@@ -158,9 +160,10 @@ async function offloadMediaImagesToIdb(namespace: string, images: MediaImageEntr
 async function inlineMediaImagesFromIdb(namespace: string, images: MediaImageEntry[] | undefined): Promise<MediaImageEntry[] | undefined> {
   if (!images?.length) return images;
   const nextImages: MediaImageEntry[] = [];
-  for (const m of images) {
+  for (let i = 0; i < images.length; i++) {
+    const m = images[i]!;
     if (!isMediaImageRow(m)) continue;
-    const row = coerceMediaImageRow(m);
+    const row = coerceMediaImageRow(m, i);
     const refId = mediaIdFromRef(row.url);
     if (refId) {
       try {
@@ -173,7 +176,8 @@ async function inlineMediaImagesFromIdb(namespace: string, images: MediaImageEnt
       nextImages.push(row);
     }
   }
-  return nextImages.length ? nextImages : undefined;
+  const ordered = normalizeMediaImagesOrder(nextImages);
+  return ordered.length ? ordered : undefined;
 }
 
 /** Offload child inventory vehicle file photos to IndexedDB (same keys as main gallery). */

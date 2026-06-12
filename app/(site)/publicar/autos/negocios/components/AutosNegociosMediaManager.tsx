@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiImage, FiPlus, FiUpload, FiVideo } from "react-icons/fi";
+import { FiImage, FiPlus, FiUpload } from "react-icons/fi";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
-import { newMediaImageId } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import {
+  ensureOnePrimaryMedia,
+  newMediaImageId,
+  normalizeMediaImagesOrder,
+} from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import { dedupeAutosVideoUrls } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
 import { AutosSortablePhotoGrid } from "@/app/publicar/autos/shared/components/AutosSortablePhotoGrid";
+import { AutosExternalVideoUrlsField } from "@/app/publicar/autos/shared/components/AutosExternalVideoUrlsField";
 import { classifyAutosImageUrlInput } from "@/app/lib/clasificados/autos/autosImageUrlInput";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { AutosLocalFileTemporaryDraftNote } from "@/app/publicar/autos/shared/components/AutosLocalFileTemporaryDraftNote";
@@ -23,31 +29,17 @@ const BTN_SECONDARY =
   "inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] active:opacity-90";
 
 function sortByOrder(images: MediaImageEntry[]): MediaImageEntry[] {
-  return [...images].sort((a, b) => a.sortOrder - b.sortOrder);
+  return normalizeMediaImagesOrder(images);
 }
 
+/** @deprecated Use normalizeMediaImagesOrder from autoDealerHeroImages */
 function ensureOnePrimary(images: MediaImageEntry[]): MediaImageEntry[] {
-  if (images.length === 0) return [];
-  const primaries = images.filter((x) => x.isPrimary);
-  if (primaries.length === 0) {
-    return sortByOrder(images).map((x, i) => ({ ...x, isPrimary: i === 0, sortOrder: i }));
-  }
-  if (primaries.length === 1) {
-    return sortByOrder(images).map((x, i) => ({ ...x, sortOrder: i }));
-  }
-  let seen = false;
-  return sortByOrder(images).map((x, i) => {
-    if (!x.isPrimary) return { ...x, sortOrder: i };
-    if (!seen) {
-      seen = true;
-      return { ...x, sortOrder: i };
-    }
-    return { ...x, isPrimary: false, sortOrder: i };
-  });
+  return ensureOnePrimaryMedia(images);
 }
 
+/** @deprecated Use normalizeMediaImagesOrder from autoDealerHeroImages */
 function reindex(images: MediaImageEntry[]): MediaImageEntry[] {
-  return sortByOrder(images).map((x, i) => ({ ...x, sortOrder: i }));
+  return normalizeMediaImagesOrder(images);
 }
 
 /** Some mobile pickers omit MIME or use HEIC; avoid dropping valid photos from multi-select. */
@@ -69,6 +61,7 @@ export function AutosNegociosMediaManager({
   /** For in-app “Vista previa” scroll target */
   sectionId = "autos-clasificados-app-media",
   lang,
+  insideModal = false,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
@@ -76,6 +69,7 @@ export function AutosNegociosMediaManager({
   hideDealerLogo?: boolean;
   sectionId?: string;
   lang?: AutosNegociosLang;
+  insideModal?: boolean;
 }) {
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
@@ -84,17 +78,18 @@ export function AutosNegociosMediaManager({
   const [singleUrlError, setSingleUrlError] = useState<string | null>(null);
   const [batchUrlError, setBatchUrlError] = useState<string | null>(null);
   const [dragOverPhotos, setDragOverPhotos] = useState(false);
-  const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
 
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const commitImages = useCallback(
     (next: MediaImageEntry[]) => {
-      const cleaned = reindex(ensureOnePrimary(next));
-      setListingPatch({ mediaImages: cleaned });
+      const cleaned = normalizeMediaImagesOrder(next);
+      setListingPatch({
+        mediaImages: cleaned,
+        heroImages: cleaned.map((x) => x.url).filter(Boolean),
+      });
     },
     [setListingPatch],
   );
@@ -197,67 +192,20 @@ export function AutosNegociosMediaManager({
     commitImages(next);
   };
 
-  const vs = listing.videoSourceType ?? null;
-  const videoUrl = listing.videoUrl?.trim() ?? "";
-  const videoFile = listing.videoFileDataUrl?.trim() ?? "";
-
-  useEffect(() => {
-    setVideoUrlDraft(listing.videoUrl ?? "");
-  }, [listing.videoUrl]);
-
-  const clearVideo = () => {
-    setVideoUrlDraft("");
-    setListingPatch({
-      videoSourceType: null,
-      videoUrl: undefined,
-      videoFileDataUrl: undefined,
-      videoFileName: undefined,
-      videoUploadStatus: null,
-    });
-  };
-
-  /** File source wins over URL when both would exist. */
-  const applyVideoUrl = () => {
-    const t = videoUrlDraft.trim();
-    setListingPatch({
-      videoSourceType: t ? "url" : null,
-      videoUrl: t || undefined,
-      videoFileDataUrl: undefined,
-      videoFileName: undefined,
-      videoUploadStatus: t ? "local_preview" : null,
-    });
-  };
-
-  const onVideoFilePicked = async (files: FileList | null) => {
-    const f = files?.[0];
-    if (!f) return;
-    const dataUrl = await readFileAsDataUrl(f);
-    setVideoUrlDraft("");
-    setListingPatch({
-      videoSourceType: "file",
-      videoUrl: undefined,
-      videoFileDataUrl: dataUrl,
-      videoFileName: f.name,
-      videoUploadStatus: "local_preview",
-    });
-  };
-
-  const setVideoModeUrl = () => {
-    setListingPatch({
-      videoSourceType: "url",
-      videoFileDataUrl: undefined,
-      videoFileName: undefined,
-      videoUploadStatus: null,
-    });
-  };
-
-  const setVideoModeFile = () => {
-    setListingPatch({
-      videoSourceType: "file",
-      videoUrl: undefined,
-      videoUploadStatus: null,
-    });
-  };
+  const onVideoUrlsChange = useCallback(
+    (urls: string[]) => {
+      const videoUrls = dedupeAutosVideoUrls(urls);
+      setListingPatch({
+        videoUrls,
+        videoUrl: videoUrls[0] ?? undefined,
+        videoSourceType: videoUrls.length ? "url" : null,
+        videoFileDataUrl: undefined,
+        videoFileName: undefined,
+        videoUploadStatus: videoUrls.length ? "local_preview" : null,
+      });
+    },
+    [setListingPatch],
+  );
 
   const logo = listing.dealerLogo?.trim();
   useEffect(() => {
@@ -440,99 +388,14 @@ export function AutosNegociosMediaManager({
           }}
         />
       )}
-      <input
-        ref={videoInputRef}
-        type="file"
-        accept="video/*"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={(e) => {
-          void onVideoFilePicked(e.target.files);
-          e.target.value = "";
-        }}
-      />
 
-      <h3 className={SUBHEAD}>{m.videoHeading}</h3>
-      <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{m.videoDraftNote}</p>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={`min-h-[44px] min-w-[44px] rounded-full px-4 py-2 text-xs font-bold transition active:opacity-90 ${
-            vs === "url" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
-          }`}
-          onClick={setVideoModeUrl}
-        >
-          {m.videoLinkTab}
-        </button>
-        <button
-          type="button"
-          className={`min-h-[44px] min-w-[44px] rounded-full px-4 py-2 text-xs font-bold transition active:opacity-90 ${
-            vs === "file" ? "bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)]" : "border border-[color:var(--lx-nav-border)] bg-[#FFFCF7]"
-          }`}
-          onClick={setVideoModeFile}
-        >
-          {m.videoFileTab}
-        </button>
-        {(vs || videoUrl || videoFile) && (
-          <button type="button" className="min-h-[44px] px-2 text-xs font-bold text-red-800 underline" onClick={clearVideo}>
-            {m.removeVideo}
-          </button>
-        )}
-      </div>
-
-      {(vs === "url" || (vs === null && videoUrl)) && (
-        <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
-          <label className={LABEL}>{m.videoUrlLabel}</label>
-          <input
-            className={INPUT}
-            placeholder={copy.app.placeholders.https}
-            value={videoUrlDraft}
-            onChange={(e) => setVideoUrlDraft(e.target.value)}
-          />
-          <button type="button" className={`${BTN_SECONDARY} mt-2`} onClick={applyVideoUrl}>
-            {m.useVideoUrl}
-          </button>
-          {videoUrl ? (
-            <p className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
-              <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
-                <FiVideo className="h-3.5 w-3.5 text-[color:var(--lx-gold)]" aria-hidden />
-                {m.videoUrlSaved}
-              </span>
-            </p>
-          ) : null}
-        </div>
-      )}
-
-      {vs === "file" && (
-        <div className="mt-3 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3">
-          <button type="button" className={BTN_PRIMARY} onClick={() => videoInputRef.current?.click()}>
-            <FiUpload className="h-4 w-4" aria-hidden />
-            {m.chooseVideo}
-          </button>
-          {listing.videoFileName ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-text)]">
-                {m.videoReady}
-              </span>
-              <span className="text-xs text-[color:var(--lx-text-2)]">{listing.videoFileName}</span>
-              <button
-                type="button"
-                className="text-xs font-bold text-[color:var(--lx-text-2)] underline"
-                onClick={() => videoInputRef.current?.click()}
-              >
-                {m.videoReplace}
-              </button>
-            </div>
-          ) : (
-            <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.videoFileHint}</p>
-          )}
-        </div>
-      )}
-
-      {vs === null && !videoUrl && !videoFile ? (
-        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.videoChooseMode}</p>
+      {lang ? (
+        <AutosExternalVideoUrlsField
+          lang={lang}
+          videoUrls={listing.videoUrls}
+          onChange={onVideoUrlsChange}
+          insideModal={insideModal}
+        />
       ) : null}
 
       {!hideDealerLogo ? (

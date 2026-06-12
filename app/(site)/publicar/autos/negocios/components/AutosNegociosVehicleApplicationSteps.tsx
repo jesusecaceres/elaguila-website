@@ -54,6 +54,11 @@ import {
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { autosDrawerNativeSelectProps } from "@/app/lib/clasificados/autos/autosDrawerNativeSelectInteraction";
+import {
+  autosVehicleCityHelper,
+  autosVehicleCityPlaceholder,
+  autosVehicleZipHelper,
+} from "@/app/lib/clasificados/autos/autosVehicleLocationCopy";
 
 import {
   AUTOS_NEGOCIOS_FORM_CARD,
@@ -289,10 +294,11 @@ export function AutosNegociosVehicleApplicationSteps({
               onChange={(v) => onPatch({ city: v || undefined })}
               lang={lang}
               variant="brForm"
-              placeholder={t.app.placeholders.city}
+              freeText
+              placeholder={autosVehicleCityPlaceholder(lang)}
             />
             <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">
-              {isChild ? autosInventoryDrawerLocationInheritHint(lang) : t.app.hints.cityNorCal}
+              {isChild ? autosInventoryDrawerLocationInheritHint(lang) : autosVehicleCityHelper(lang)}
             </p>
           </div>
           <div>
@@ -314,6 +320,7 @@ export function AutosNegociosVehicleApplicationSteps({
               value={draft.zip ?? ""}
               onChange={(e) => onPatch({ zip: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
             />
+            <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{autosVehicleZipHelper(lang)}</p>
           </div>
           <div>
             <label className={LABEL}>{t.app.labels.stock}</label>
@@ -527,6 +534,7 @@ export function AutosNegociosVehicleApplicationSteps({
             hideDealerLogo
             sectionId="autos-inventory-child-media"
             lang={lang}
+            insideModal
           />
         </div>
       </section>
