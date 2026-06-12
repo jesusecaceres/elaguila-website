@@ -69,7 +69,11 @@ export async function resolveAutosNegociosDraftNamespace(): Promise<string> {
 export function storageEventAffectsAutosNegociosDraft(key: string | null): boolean {
   if (key === null) return true;
   if (key === LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY) return true;
-  return key.startsWith(`${AUTOS_NEGOCIOS_DRAFT_STORAGE_PREFIX}:`);
+  if (key.startsWith(`${AUTOS_NEGOCIOS_DRAFT_STORAGE_PREFIX}:`)) return true;
+  return (
+    key.startsWith("leonix:autos:negocios:activeDraft:v") ||
+    key.startsWith("leonix:autos:negocios:activeChildDraft:v")
+  );
 }
 
 /**

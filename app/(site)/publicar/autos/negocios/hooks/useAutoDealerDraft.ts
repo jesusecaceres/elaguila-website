@@ -21,6 +21,7 @@ import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/
 import { clearAutosDraftNamespaceHint, rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import {
   AUTOS_NEGOCIOS_EDITOR_SESSION_KEY,
+  markAutosEditorSessionActive,
   shouldResetAutosDraftForFreshEditorTab,
 } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 import { useAutosDraftPersistEffects } from "@/app/lib/clasificados/autos/useAutosDraftPersistEffects";
@@ -68,6 +69,7 @@ function inventoryAddFromLocation(): ReturnType<typeof resolveAutosInventoryAddC
 export function useAutoDealerDraft() {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
+  const [restoredFromSession, setRestoredFromSession] = useState(false);
   const [vehicleTitleOverride, setVehicleTitleOverride] = useState(false);
   const [listing, setListing] = useState<AutoDealerListing>(() => createEmptyListing());
   const overrideRef = useRef(vehicleTitleOverride);
@@ -130,10 +132,12 @@ export function useAutoDealerDraft() {
     const d = await loadAutosNegociosDraftResolved(namespace);
     if (d) {
       applyDraftPayload(d);
+      setRestoredFromSession(true);
     } else {
       setVehicleTitleOverride(false);
       setListing(createEmptyListing());
       applyEditorProgress(0, 0);
+      setRestoredFromSession(false);
     }
   }, [applyDraftPayload, applyEditorProgress]);
 
@@ -149,6 +153,7 @@ export function useAutoDealerDraft() {
     inventoryDrawerOpenRef.current = false;
     setInventoryDrawerOpenState(false);
     applyEditorProgress(0, 0);
+    setRestoredFromSession(false);
   }, [applyEditorProgress]);
 
   useEffect(() => {
@@ -162,9 +167,11 @@ export function useAutoDealerDraft() {
 
       migrateLegacyAutosNegociosDraftJsonToNamespace(ns);
 
+      markAutosEditorSessionActive(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
+      void shouldResetAutosDraftForFreshEditorTab(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
+
       const confirmRoute = isAutosConfirmRoute(pathname);
       const resume = resumeQueryFlag();
-      const freshTab = shouldResetAutosDraftForFreshEditorTab(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
       const inventoryAdd = inventoryAddFromLocation();
 
       /** Preview return or publish confirm — always restore persisted draft. */
@@ -186,18 +193,9 @@ export function useAutoDealerDraft() {
         const existing = await loadAutosNegociosDraftResolved(ns);
         if (existing) {
           applyDraftPayload(existing);
+          setRestoredFromSession(true);
           if (!cancelled) setHydrated(true);
           return;
-        }
-
-        if (freshTab) {
-          try {
-            window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
-          } catch {
-            /* ignore */
-          }
-          clearAutosDraftNamespaceHint("negocios");
-          await clearAutosNegociosDraft(ns);
         }
 
         const { data: sessionData } = await supabase.auth.getSession();
@@ -212,6 +210,7 @@ export function useAutoDealerDraft() {
             if (j.listing) {
               setVehicleTitleOverride(false);
               setListing(safeNormalizeAutosDraftListing(prefillDealerListingForInventoryAdd(j.listing), "negocios"));
+              setRestoredFromSession(false);
               if (!cancelled) setHydrated(true);
               return;
             }
@@ -222,21 +221,7 @@ export function useAutoDealerDraft() {
         return;
       }
 
-      /** First editor mount in this browser tab — start a clean Negocios draft. */
-      if (freshTab) {
-        try {
-          window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
-        } catch {
-          /* ignore */
-        }
-        clearAutosDraftNamespaceHint("negocios");
-        await clearAutosNegociosDraft(ns);
-        emptyListing();
-        if (!cancelled) setHydrated(true);
-        return;
-      }
-
-      /** Same-tab remount (e.g. back from preview) — restore without wiping. */
+      /** Same-tab remount or refresh — restore session draft when present; never wipe on mount. */
       await hydrateFromNamespace(ns);
       if (!cancelled) setHydrated(true);
     };
@@ -333,6 +318,7 @@ export function useAutoDealerDraft() {
     if (ns) {
       await clearAutosNegociosDraft(ns);
     }
+    setRestoredFromSession(false);
   }, []);
 
   const flushDraft = useCallback(async (opts?: { editorStep?: number; editorMaxReached?: number }) => {
@@ -415,6 +401,7 @@ export function useAutoDealerDraft() {
 
   return {
     hydrated,
+    restoredFromSession,
     vehicleTitleOverride,
     setVehicleTitleOverrideState,
     listing,

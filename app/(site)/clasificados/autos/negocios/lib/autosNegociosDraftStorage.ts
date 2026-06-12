@@ -15,6 +15,7 @@ import {
   stripUnresolvedIdbRefsFromListing,
 } from "./autosNegociosDraftIdbRefs";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import { buildAutosNegociosActiveDraftSessionKey } from "@/app/lib/clasificados/autos/autosSessionDraftKeys";
 import {
   normalizeAdditionalInventoryVehicles,
   type AutosAdditionalInventoryVehicleDraft,
@@ -86,12 +87,49 @@ function stripBrokenFileVideo(listing: AutoDealerListing): AutoDealerListing {
   };
 }
 
-/** Synchronous parse of localStorage JSON only (large video may live in IndexedDB). */
+/** Read draft JSON from sessionStorage; one-time migrate from legacy localStorage. */
+function readAutosNegociosDraftJson(namespace: string): string | null {
+  if (typeof window === "undefined") return null;
+  const sessionKey = buildAutosNegociosActiveDraftSessionKey(namespace);
+  try {
+    const fromSession = window.sessionStorage.getItem(sessionKey);
+    if (fromSession) return fromSession;
+  } catch {
+    /* ignore */
+  }
+  const legacyKey = buildAutosNegociosDraftLocalStorageKey(namespace);
+  try {
+    const fromLocal = window.localStorage.getItem(legacyKey);
+    if (!fromLocal) return null;
+    window.sessionStorage.setItem(sessionKey, fromLocal);
+    window.localStorage.removeItem(legacyKey);
+    return fromLocal;
+  } catch {
+    return null;
+  }
+}
+
+function writeAutosNegociosDraftJson(namespace: string, json: string): void {
+  if (typeof window === "undefined") return;
+  const sessionKey = buildAutosNegociosActiveDraftSessionKey(namespace);
+  try {
+    window.sessionStorage.setItem(sessionKey, json);
+  } catch {
+    /* quota / private mode */
+  }
+  try {
+    window.localStorage.removeItem(buildAutosNegociosDraftLocalStorageKey(namespace));
+    window.localStorage.removeItem(LEGACY_AUTOS_NEGOCIOS_DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Synchronous parse of sessionStorage JSON only (large video may live in IndexedDB). */
 export function loadAutosNegociosDraft(namespace: string): AutosNegociosDraftV1 | null {
   if (typeof window === "undefined") return null;
   try {
-    const storageKey = buildAutosNegociosDraftLocalStorageKey(namespace);
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = readAutosNegociosDraftJson(namespace);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (isAutosNegociosDraftV1(parsed)) {
@@ -218,9 +256,8 @@ export async function saveAutosNegociosDraftResolved(namespace: string, draft: A
     inProgressInventoryVehicleDraft,
   };
 
-  const storageKey = buildAutosNegociosDraftLocalStorageKey(namespace);
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(payload));
+    writeAutosNegociosDraftJson(namespace, JSON.stringify(payload));
   } catch {
     /* quota / private mode */
   }
@@ -229,9 +266,15 @@ export async function saveAutosNegociosDraftResolved(namespace: string, draft: A
 export async function clearAutosNegociosDraft(namespace: string): Promise<void> {
   if (typeof window === "undefined") return;
   const sync = loadAutosNegociosDraft(namespace);
-  const storageKey = buildAutosNegociosDraftLocalStorageKey(namespace);
+  const sessionKey = buildAutosNegociosActiveDraftSessionKey(namespace);
   try {
-    window.localStorage.removeItem(storageKey);
+    window.sessionStorage.removeItem(sessionKey);
+  } catch {
+    /* ignore */
+  }
+  const legacyKey = buildAutosNegociosDraftLocalStorageKey(namespace);
+  try {
+    window.localStorage.removeItem(legacyKey);
   } catch {
     /* ignore */
   }

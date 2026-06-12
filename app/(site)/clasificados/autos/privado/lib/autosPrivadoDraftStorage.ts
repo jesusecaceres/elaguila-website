@@ -9,6 +9,7 @@ import {
   stripUnresolvedIdbRefsFromListing,
 } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftIdbRefs";
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
+import { buildAutosPrivadoActiveDraftSessionKey } from "@/app/lib/clasificados/autos/autosSessionDraftKeys";
 import { buildAutosPrivadoDraftLocalStorageKey } from "./autosPrivadoDraftNamespace";
 
 export type AutosPrivadoDraftV1 = {
@@ -57,10 +58,46 @@ function stripBrokenFileVideo(listing: AutoDealerListing): AutoDealerListing {
   };
 }
 
+function readAutosPrivadoDraftJson(namespace: string): string | null {
+  if (typeof window === "undefined") return null;
+  const sessionKey = buildAutosPrivadoActiveDraftSessionKey(namespace);
+  try {
+    const fromSession = window.sessionStorage.getItem(sessionKey);
+    if (fromSession) return fromSession;
+  } catch {
+    /* ignore */
+  }
+  const legacyKey = buildAutosPrivadoDraftLocalStorageKey(namespace);
+  try {
+    const fromLocal = window.localStorage.getItem(legacyKey);
+    if (!fromLocal) return null;
+    window.sessionStorage.setItem(sessionKey, fromLocal);
+    window.localStorage.removeItem(legacyKey);
+    return fromLocal;
+  } catch {
+    return null;
+  }
+}
+
+function writeAutosPrivadoDraftJson(namespace: string, json: string): void {
+  if (typeof window === "undefined") return;
+  const sessionKey = buildAutosPrivadoActiveDraftSessionKey(namespace);
+  try {
+    window.sessionStorage.setItem(sessionKey, json);
+  } catch {
+    /* quota */
+  }
+  try {
+    window.localStorage.removeItem(buildAutosPrivadoDraftLocalStorageKey(namespace));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function loadAutosPrivadoDraft(namespace: string): AutosPrivadoDraftV1 | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(buildAutosPrivadoDraftLocalStorageKey(namespace));
+    const raw = readAutosPrivadoDraftJson(namespace);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (isAutosPrivadoDraftV1(parsed)) {
@@ -147,7 +184,7 @@ export async function saveAutosPrivadoDraftResolved(namespace: string, draft: Au
   };
 
   try {
-    window.localStorage.setItem(buildAutosPrivadoDraftLocalStorageKey(namespace), JSON.stringify(payload));
+    writeAutosPrivadoDraftJson(namespace, JSON.stringify(payload));
   } catch {
     /* quota / private mode */
   }
@@ -156,6 +193,11 @@ export async function saveAutosPrivadoDraftResolved(namespace: string, draft: Au
 export async function clearAutosPrivadoDraft(namespace: string): Promise<void> {
   if (typeof window === "undefined") return;
   const sync = loadAutosPrivadoDraft(namespace);
+  try {
+    window.sessionStorage.removeItem(buildAutosPrivadoActiveDraftSessionKey(namespace));
+  } catch {
+    /* ignore */
+  }
   try {
     window.localStorage.removeItem(buildAutosPrivadoDraftLocalStorageKey(namespace));
   } catch {

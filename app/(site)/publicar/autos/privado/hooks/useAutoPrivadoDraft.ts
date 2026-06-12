@@ -18,6 +18,7 @@ import { createEmptyListing, normalizeLoadedListing } from "@/app/clasificados/a
 import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import {
   AUTOS_PRIVADO_EDITOR_SESSION_KEY,
+  markAutosEditorSessionActive,
   shouldResetAutosDraftForFreshEditorTab,
 } from "@/app/clasificados/autos/shared/lib/autosEditorTabSession";
 import { useAutosDraftPersistEffects } from "@/app/lib/clasificados/autos/useAutosDraftPersistEffects";
@@ -47,6 +48,7 @@ function resumeQueryFlag(): boolean {
 export function useAutoPrivadoDraft() {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
+  const [restoredFromSession, setRestoredFromSession] = useState(false);
   const [listing, setListing] = useState<AutoDealerListing>(() => ({
     ...createEmptyListing(),
     autosLane: "privado",
@@ -76,6 +78,7 @@ export function useAutoPrivadoDraft() {
     (d: AutosPrivadoDraftV1) => {
       setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
       applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
+      setRestoredFromSession(true);
     },
     [applyEditorProgress],
   );
@@ -87,12 +90,14 @@ export function useAutoPrivadoDraft() {
     } else {
       setListing({ ...createEmptyListing(), autosLane: "privado" });
       applyEditorProgress(0, 0);
+      setRestoredFromSession(false);
     }
   }, [applyDraftPayload, applyEditorProgress]);
 
   const emptyPrivado = useCallback(() => {
     setListing({ ...createEmptyListing(), autosLane: "privado" });
     applyEditorProgress(0, 0);
+    setRestoredFromSession(false);
   }, [applyEditorProgress]);
 
   useEffect(() => {
@@ -103,6 +108,9 @@ export function useAutoPrivadoDraft() {
       const ns = await resolveAutosPrivadoDraftNamespace();
       if (cancelled) return;
       namespaceRef.current = ns;
+
+      markAutosEditorSessionActive(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
+      void shouldResetAutosDraftForFreshEditorTab(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
 
       const confirmRoute = isAutosConfirmRoute(pathname);
       const resume = resumeQueryFlag();
@@ -115,16 +123,6 @@ export function useAutoPrivadoDraft() {
             applyEditorProgress(AUTOS_PUBLISH_FINAL_STEP_INDEX, AUTOS_PUBLISH_FINAL_STEP_INDEX);
           }
         }
-        if (!cancelled) setHydrated(true);
-        return;
-      }
-
-      const freshTab = shouldResetAutosDraftForFreshEditorTab(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
-
-      if (freshTab) {
-        clearAutosDraftNamespaceHint("privado");
-        await clearAutosPrivadoDraft(ns);
-        emptyPrivado();
         if (!cancelled) setHydrated(true);
         return;
       }
@@ -179,6 +177,7 @@ export function useAutoPrivadoDraft() {
     listingRef.current = empty;
     setListing(empty);
     applyEditorProgress(0, 0);
+    setRestoredFromSession(false);
   }, [applyEditorProgress]);
 
   const flushDraft = useCallback(async (opts?: { editorStep?: number; editorMaxReached?: number }) => {
@@ -209,6 +208,7 @@ export function useAutoPrivadoDraft() {
 
   return {
     hydrated,
+    restoredFromSession,
     listing,
     setListingPatch,
     resetDraft,

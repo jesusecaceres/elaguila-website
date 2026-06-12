@@ -44,6 +44,7 @@ import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/componen
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/components/AutosVehicleIdentityFields";
 import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
+import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -70,6 +71,7 @@ export function AutosPrivadoApplication() {
   const { lang, t } = useAutosPrivadoLang();
   const {
     hydrated,
+    restoredFromSession,
     listing,
     setListingPatch,
     resetDraft,
@@ -130,6 +132,7 @@ export function AutosPrivadoApplication() {
           title={t.app.pageTitle}
           helper={t.app.intro}
           draftLabel={t.app.badgeLocal}
+          banner={<AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />}
         />
       }
       topActions={(stepCtx) =>

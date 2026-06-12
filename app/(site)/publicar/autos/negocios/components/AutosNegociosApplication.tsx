@@ -34,6 +34,7 @@ import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/l
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
+import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -67,6 +68,7 @@ export function AutosNegociosApplication() {
   const { lang, t } = useAutosNegociosLang();
   const {
     hydrated,
+    restoredFromSession,
     vehicleTitleOverride,
     setVehicleTitleOverrideState,
     listing,
@@ -153,11 +155,14 @@ export function AutosNegociosApplication() {
           helper={t.app.intro}
           draftLabel={t.app.badgeLocal}
           banner={
-            inventoryBanner ? (
-              <p className="rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">
-                {inventoryBanner}
-              </p>
-            ) : undefined
+            <>
+              <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
+              {inventoryBanner ? (
+                <p className="rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">
+                  {inventoryBanner}
+                </p>
+              ) : null}
+            </>
           }
         />
       }

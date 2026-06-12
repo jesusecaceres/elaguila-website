@@ -60,5 +60,6 @@ export async function resolveAutosPrivadoDraftNamespace(): Promise<string> {
 
 export function storageEventAffectsAutosPrivadoDraft(key: string | null): boolean {
   if (key === null) return true;
-  return key.startsWith(`${AUTOS_PRIVADO_DRAFT_STORAGE_PREFIX}:`);
+  if (key.startsWith(`${AUTOS_PRIVADO_DRAFT_STORAGE_PREFIX}:`)) return true;
+  return key.startsWith("leonix:autos:privado:activeDraft:v");
 }
