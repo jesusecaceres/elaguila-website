@@ -80,7 +80,8 @@ const COPY = {
     flatPricingCopy: "Precio mensual fijo. Sin cargos sorpresa por clics.",
     step1MoreExposureTitle: "¿Quieres más exposición?",
     step1MoreExposureBody:
-      "Contáctanos para destacados por ZIP, ciudad, categoría, búsqueda de productos, newsletter, revista impresa y campañas especiales.",
+      "Aumenta tu visibilidad con opciones de revista impresa, ubicación destacada en Leonix, newsletter, redes sociales y campañas especiales.",
+    step1MoreExposureCta: "Hablar con Leonix",
     step1LeonixPartnerBody:
       "Contáctanos para conocer opciones de colaboración. Disponible por invitación o revisión del equipo Leonix.",
     reviewContactLeonix: "Contactar a Leonix",
@@ -299,7 +300,8 @@ const COPY = {
     flatPricingCopy: "Flat monthly pricing. No surprise click charges.",
     step1MoreExposureTitle: "Want more exposure?",
     step1MoreExposureBody:
-      "Contact us for featured placement by ZIP, city, category, product search, newsletter, print, and special campaigns.",
+      "Increase your visibility with print magazine options, featured placement on Leonix, newsletter exposure, social media, and special campaigns.",
+    step1MoreExposureCta: "Talk to Leonix",
     step1LeonixPartnerBody:
       "Contact us to learn about partnership options. Available by invitation or Leonix team review.",
     reviewContactLeonix: "Contact Leonix",

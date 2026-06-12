@@ -169,12 +169,6 @@ export default function OfertasLocalesApplicationClient() {
     sourceCta: "more_exposure_contact",
     inquiryType: "advertising",
   });
-  const contactPartnerHref = publicContactHref({
-    lang: routeLang,
-    sourcePage: "publicar-ofertas-locales",
-    sourceCta: "leonix_partner_contact",
-    inquiryType: "advertising",
-  });
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft();
   const [step, setStep] = useState<OfertasLocalesWizardStepId>(1);
   const [submitting, setSubmitting] = useState(false);
@@ -383,18 +377,7 @@ export default function OfertasLocalesApplicationClient() {
                 href={contactMoreExposureHref}
                 className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
               >
-                {c.reviewContactLeonix}
-              </Link>
-            </div>
-
-            <div className={cx(CALLOUT, "border-[#D4C4A8]/50 bg-white")}>
-              <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
-              <p className="mt-1 text-xs leading-relaxed">{c.step1LeonixPartnerBody}</p>
-              <Link
-                href={contactPartnerHref}
-                className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
-              >
-                {c.leonixPartnerCta}
+                {c.step1MoreExposureCta}
               </Link>
             </div>
           </div>
@@ -925,17 +908,6 @@ export default function OfertasLocalesApplicationClient() {
                 </FieldBlock>
               ) : null}
             </div>
-
-            <div className={CALLOUT}>
-              <p className="font-semibold text-[#7A1E2C]">{c.leonixPartnerTitle}</p>
-              <p className="mt-1 text-xs leading-relaxed">{c.step1LeonixPartnerBody}</p>
-              <Link
-                href={contactPartnerHref}
-                className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
-              >
-                {c.leonixPartnerCta}
-              </Link>
-            </div>
           </div>
         );
 
@@ -1021,13 +993,8 @@ export default function OfertasLocalesApplicationClient() {
                 ) : null}
                 <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-sm">
                   <p className="font-medium text-[#1E1814]">{c.step1MoreExposureTitle}</p>
-                  <p className="mt-1 text-xs text-[#1E1814]/65">{c.reviewContactLeonix}</p>
-                </div>
-                <div className="rounded-xl border border-[#D4C4A8]/60 bg-white px-4 py-3 text-sm">
-                  <p className="font-medium text-[#1E1814]">{c.leonixPartnerTitle}</p>
-                  <p className="mt-1 text-xs text-[#1E1814]/65">
-                    {c.reviewContactLeonix} · {c.reviewInviteOnly}
-                  </p>
+                  <p className="mt-1 text-xs text-[#1E1814]/65">{c.step1MoreExposureBody}</p>
+                  <p className="mt-2 text-xs font-semibold text-[#7A1E2C]">{c.step1MoreExposureCta}</p>
                 </div>
               </div>
               <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
