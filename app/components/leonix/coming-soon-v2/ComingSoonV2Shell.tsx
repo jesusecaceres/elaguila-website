@@ -37,6 +37,7 @@ import {
   googleTranslateWebsitesPasteHintClass,
 } from "@/app/lib/googleTranslateWebsite";
 import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
+import { getComingSoonQrCtaCopy } from "@/app/lib/magazine/qrGuideCopy";
 import {
   leonixGoogleTranslateWebsiteUrl,
   magazinePrintGuideHref,
@@ -145,13 +146,15 @@ function HeroMediaVisual({
   label,
   qrOverlay,
   magazineAlt,
+  className = "",
 }: {
   label: string;
   qrOverlay: string;
   magazineAlt: string;
+  className?: string;
 }) {
   return (
-    <aside className="w-full min-w-0 lg:justify-self-stretch" aria-label={label}>
+    <aside className={`w-full min-w-0 lg:justify-self-stretch ${className}`} aria-label={label}>
       <div className="mx-auto w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] lg:mx-0 lg:max-w-none">
         <div className="w-full overflow-hidden rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] shadow-[0_20px_48px_-20px_rgba(31,36,28,0.38)] ring-1 ring-[#C9A84A]/12">
           <Image
@@ -580,27 +583,8 @@ function HowItWorksSection({
   );
 }
 
-const COMING_SOON_QR_CTA = {
-  es: {
-    translationOptions: "Ver opciones de traducción",
-    tryLens: "Probar Google Lens",
-    translateLeonix: "Traducir LeonixMedia.com con Google",
-    qrGuide: "Ver guía QR",
-    guardrail:
-      "Google Lens ayuda con páginas impresas, pantallas y capturas. Google Translate ayuda a navegar LeonixMedia.com en otro idioma.",
-  },
-  en: {
-    translationOptions: "View translation options",
-    tryLens: "Try Google Lens",
-    translateLeonix: "Translate LeonixMedia.com with Google",
-    qrGuide: "View QR guide",
-    guardrail:
-      "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse LeonixMedia.com in another language.",
-  },
-} as const;
-
 function comingSoonQrCtaCopy(lang: SupportedLang) {
-  return lang === "es" ? COMING_SOON_QR_CTA.es : COMING_SOON_QR_CTA.en;
+  return getComingSoonQrCtaCopy(lang);
 }
 
 const qrCtaButtonClass =
@@ -678,8 +662,6 @@ function QrSectionDirectCtas({ lang }: { lang: SupportedLang }) {
         </a>
         <Link
           href={translateHref}
-          target="_blank"
-          rel="noopener noreferrer"
           className={`${qrCtaButtonClass} border-[#C9A84A]/55 bg-[#FFFDF7] text-[#1F241C] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
         >
           {labels.translateLeonix}
@@ -1395,8 +1377,8 @@ function ComingSoonV2ShellContent() {
           className="pb-5 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-4 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-12">
-            <div className="min-w-0 max-w-3xl lg:max-w-none">
+          <div className="grid items-start gap-4 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-5 xl:gap-x-12">
+            <div className="min-w-0 max-w-3xl lg:col-start-1 lg:row-start-1 lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
               </p>
@@ -1429,16 +1411,20 @@ function ComingSoonV2ShellContent() {
               <p className="mt-4 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-[42rem]">
                 {h.paragraph}
               </p>
+            </div>
 
+            <div className="min-w-0 max-w-3xl lg:col-start-1 lg:row-start-2 lg:max-w-none">
               <HeroQrAccessStrip
                 lang={routeLang}
                 eyebrow={qr.eyebrow}
                 callout={qr.callout}
                 summary={qr.heroStripSummary}
               />
+            </div>
 
-              <div className="mt-3 min-w-0 sm:mt-5">
-                <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 lg:gap-2.5 [&_a]:w-full">
+            <div className="min-w-0 lg:col-span-2 lg:row-start-3">
+              <div className="mx-auto w-full max-w-[68rem]">
+                <div className="flex flex-col gap-2 sm:gap-2.5 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-start lg:gap-3 [&_a]:w-full sm:[&_a]:whitespace-nowrap lg:[&_a]:w-auto lg:[&_a]:shrink-0">
                   <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
                   <HeroCtaLink
                     cta={{
@@ -1455,14 +1441,16 @@ function ComingSoonV2ShellContent() {
                   />
                 </div>
 
-                <div className="mt-2.5 flex min-w-0 flex-col items-stretch gap-2 sm:mt-3 sm:flex-row sm:justify-center sm:gap-4 [&_a]:w-full sm:[&_a]:w-auto">
+                <div className="mt-2.5 flex min-w-0 flex-col items-stretch gap-2 sm:mt-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4 lg:gap-5 [&_a]:w-full sm:[&_a]:w-auto sm:[&_a]:whitespace-nowrap">
                   <HeroCtaLink cta={h.ctas[0]} />
                   <HeroCtaLink cta={h.ctas[2]} />
                 </div>
               </div>
+            </div>
 
+            <div className="min-w-0 max-w-3xl lg:col-start-1 lg:row-start-4 lg:max-w-none">
               <ul
-                className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-3"
+                className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-3 lg:mt-0"
                 aria-label={h.trustAria}
               >
                 {h.trustChips.map((chip) => (
@@ -1481,6 +1469,7 @@ function ComingSoonV2ShellContent() {
               label={h.mediaVisual.label}
               qrOverlay={h.mediaVisual.qrOverlay}
               magazineAlt={h.mediaVisual.magazineAlt}
+              className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start"
             />
           </div>
         </section>

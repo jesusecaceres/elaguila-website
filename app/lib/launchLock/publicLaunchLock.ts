@@ -25,6 +25,7 @@ const ALLOWED_PUBLIC_PREFIXES = [
   "/magazine/2026/june/read",
   "/productos-promocion",
   "/tienda/contacto",
+  "/translate-site",
 ] as const;
 
 const ALLOWED_PUBLIC_EXACT = ["/auth/callback"] as const;

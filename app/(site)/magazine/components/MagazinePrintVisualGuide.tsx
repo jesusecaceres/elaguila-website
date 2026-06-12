@@ -105,7 +105,11 @@ export function MagazinePrintVisualGuide({
     sourcePage: "magazine_read",
     sourceCta: "translation_options",
   });
-  const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang);
+  const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang, {
+    sourcePage: "magazine_read",
+    sourceCta: "qr_guide_google_translate",
+    returnTo: "/magazine/2026/june/read",
+  });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
 
   return (
@@ -211,14 +215,9 @@ export function MagazinePrintVisualGuide({
         <DecisionCard title={copy.cards.website.title} className="order-3 md:order-4">
           <p>{copy.cards.website.intro}</p>
           <p className="mt-2 text-xs leading-relaxed text-[#3D3428]/90 sm:text-sm">{copy.cards.website.note}</p>
-          <a
-            href={websiteTranslateUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`mt-3 ${btnOutline}`}
-          >
+          <Link href={websiteTranslateUrl} className={`mt-3 ${btnOutline}`}>
             {copy.cards.website.ctaLabel}
-          </a>
+          </Link>
           <p className={`mt-2 ${googleTranslateWebsitesPasteHintClass}`}>{websitesPasteHint}</p>
         </DecisionCard>
       </div>

@@ -7,10 +7,10 @@ import { useMemo } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import {
-  buildGoogleTranslateWebsitesModeUrl,
   getGoogleTranslatePlacementCopy,
   getGoogleTranslateWebsitesPasteHint,
   googleTranslateWebsitesPasteHintClass,
+  translateSiteHref,
 } from "@/app/lib/googleTranslateWebsite";
 import { getMediaKitPageCopy } from "@/app/lib/leonix/mediaKitPageCopy";
 import {
@@ -42,7 +42,12 @@ export default function MediaKitPageClient() {
   const dualPdf = showDualMediaKitPdfButtons(lang);
   const magazineUi = getMagazineUi(lang);
   const primaryPdf = primaryMediaKitPdfHref(lang);
-  const googleHref = buildGoogleTranslateWebsitesModeUrl(lang);
+  const googleHref = translateSiteHref({
+    lang,
+    sourcePage: "media-kit",
+    sourceCta: "media_kit_google_translate",
+    returnTo: "/media-kit",
+  });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
   const adContactHref = mediaKitAdvertisingContactHref(lang);
   const mediaKitContactHref = mediaKitInterestContactHref(lang);
@@ -137,14 +142,12 @@ export default function MediaKitPageClient() {
         <aside className="mt-8 rounded-lg border border-[#D6C7AD]/60 bg-[#FFFDF7] px-4 py-3 sm:px-5 sm:py-4">
           <p className="text-xs font-semibold text-[#2A4536] sm:text-sm">{copy.googleTranslate.question}</p>
           <p className="mt-1 text-[0.8125rem] leading-snug text-[#3D3428] sm:text-sm">{copy.googleTranslate.body}</p>
-          <a
+          <Link
             href={googleHref}
-            target="_blank"
-            rel="noopener noreferrer"
             className="mt-2 inline-flex min-h-[2.25rem] items-center text-xs font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm"
           >
             {googleCopy.comingSoonCta}
-          </a>
+          </Link>
           <p className={`mt-1.5 ${googleTranslateWebsitesPasteHintClass} text-[#3D3428]/85`}>
             {websitesPasteHint}
           </p>

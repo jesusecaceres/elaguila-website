@@ -4,6 +4,7 @@ import {
   magazineJune2026ReaderHref,
   primaryMediaKitPdfHref,
 } from "@/app/lib/magazine/qrBridge";
+import { mediaKitPageHref } from "@/app/lib/leonix/mediaKitRoutes";
 
 /** Public path for Leonix visual classifieds catalog PDF (Coming Soon V2 marketplace CTA). */
 export const LEONIX_CLASIFICADOS_CATALOG_PDF = "/catalogos/leonix-clasificados-catalogo-visual.pdf";
@@ -112,7 +113,7 @@ export function localizeComingSoonV2Copy(
     },
     mediaKitPreview: {
       ...copy.mediaKitPreview,
-      viewCta: { label: copy.mediaKitPreview.viewCta.label, href: pdf },
+      viewCta: { label: copy.mediaKitPreview.viewCta.label, href: mediaKitPageHref(lang) },
       downloadCta: { label: copy.mediaKitPreview.downloadCta.label, href: pdf },
       requestInfoCta: {
         label: copy.mediaKitPreview.requestInfoCta.label,
@@ -140,9 +141,8 @@ export function localizeComingSoonV2Copy(
         { label: copy.finalCta.ctas[0].label, href: advertiseHref, variant: copy.finalCta.ctas[0].variant },
         {
           label: copy.finalCta.ctas[1].label,
-          href: pdf,
+          href: mediaKitPageHref(lang),
           variant: copy.finalCta.ctas[1].variant,
-          external: true,
         },
         { label: copy.finalCta.ctas[2].label, href: newsletterHref, variant: copy.finalCta.ctas[2].variant },
       ],

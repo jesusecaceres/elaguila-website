@@ -126,9 +126,173 @@ export function buildGoogleTranslateWebsiteUrl(opts: {
   return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(googleLang)}&u=${u}`;
 }
 
-/** Visible CTA: Google Translate Websites mode (not direct proxy). */
-export function leonixHomeGoogleTranslateUrl(targetLang: SupportedLang): string {
-  return buildGoogleTranslateWebsitesModeUrl(targetLang);
+/** Visible CTA: Leonix-controlled gateway (not direct Google URL). */
+export function leonixHomeGoogleTranslateUrl(
+  targetLang: SupportedLang,
+  opts?: { sourcePage?: string; sourceCta?: string; returnTo?: string },
+): string {
+  return translateSiteHref({
+    lang: targetLang,
+    sourcePage: opts?.sourcePage,
+    sourceCta: opts?.sourceCta,
+    returnTo: opts?.returnTo,
+  });
+}
+
+export type TranslateSitePageCopy = {
+  title: string;
+  websiteLabel: string;
+  copyButton: string;
+  copiedButton: string;
+  openGoogleCta: string;
+  pasteInstruction: string;
+  nativeFormsWarning: string;
+  backLink: string;
+  googleLangNote: string;
+};
+
+const TRANSLATE_SITE_PAGE_ES: TranslateSitePageCopy = {
+  title: "Traducir LeonixMedia.com con Google",
+  websiteLabel: "Sitio web",
+  copyButton: "Copiar leonixmedia.com",
+  copiedButton: "Copiado",
+  openGoogleCta: "Abrir Google Translate Websites",
+  pasteInstruction:
+    "Si Google no llena el campo automáticamente, pega leonixmedia.com en el campo Website.",
+  nativeFormsWarning:
+    "Para contacto, publicidad, newsletter y cotizaciones, usa los formularios nativos de Leonix.",
+  backLink: "Volver a Leonix",
+  googleLangNote: "Google Translate abrirá el modo Websites para {origin}.",
+};
+
+const TRANSLATE_SITE_PAGE_EN: TranslateSitePageCopy = {
+  title: "Translate LeonixMedia.com with Google",
+  websiteLabel: "Website",
+  copyButton: "Copy leonixmedia.com",
+  copiedButton: "Copied",
+  openGoogleCta: "Open Google Translate Websites",
+  pasteInstruction:
+    "If Google does not fill the field automatically, paste leonixmedia.com into the Website field.",
+  nativeFormsWarning:
+    "For contact, advertising, newsletter, and quote requests, use Leonix native forms.",
+  backLink: "Back to Leonix",
+  googleLangNote: "Google Translate will open Website mode for {origin}.",
+};
+
+const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePageCopy>> = {
+  es: TRANSLATE_SITE_PAGE_ES,
+  en: TRANSLATE_SITE_PAGE_EN,
+  vi: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Dịch LeonixMedia.com bằng Google",
+    websiteLabel: "Trang web",
+    copyButton: "Sao chép leonixmedia.com",
+    copiedButton: "Đã sao chép",
+    openGoogleCta: "Mở Google Translate Websites",
+    pasteInstruction:
+      "Nếu Google không tự điền, hãy dán leonixmedia.com vào ô Website.",
+    nativeFormsWarning:
+      "Để liên hệ, quảng cáo, newsletter và báo giá, hãy dùng biểu mẫu Leonix.",
+    backLink: "Quay lại Leonix",
+  },
+  pt: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Traduzir LeonixMedia.com com Google",
+    websiteLabel: "Site",
+    copyButton: "Copiar leonixmedia.com",
+    copiedButton: "Copiado",
+    openGoogleCta: "Abrir Google Translate Websites",
+    pasteInstruction:
+      "Se o Google não preencher automaticamente, cole leonixmedia.com no campo Website.",
+    nativeFormsWarning:
+      "Para contato, publicidade, newsletter e cotações, use os formulários nativos da Leonix.",
+    backLink: "Voltar para Leonix",
+  },
+  ja: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "GoogleでLeonixMedia.comを翻訳",
+    websiteLabel: "ウェブサイト",
+    copyButton: "leonixmedia.comをコピー",
+    copiedButton: "コピーしました",
+    openGoogleCta: "Google Translate Websitesを開く",
+    pasteInstruction:
+      "Googleが自動入力しない場合は、Website欄にleonixmedia.comを貼り付けてください。",
+    nativeFormsWarning:
+      "お問い合わせ、広告、ニュースレター、見積もりはLeonixのネイティブフォームをご利用ください。",
+    backLink: "Leonixに戻る",
+  },
+  tl: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Isalin ang LeonixMedia.com gamit ang Google",
+    copyButton: "Kopyahin ang leonixmedia.com",
+    copiedButton: "Nakopya",
+    openGoogleCta: "Buksan ang Google Translate Websites",
+    pasteInstruction:
+      "Kung hindi awtomatikong mapupunan ng Google, i-paste ang leonixmedia.com sa Website field.",
+    backLink: "Bumalik sa Leonix",
+  },
+  zh: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "用 Google 翻译 LeonixMedia.com",
+    websiteLabel: "网站",
+    copyButton: "复制 leonixmedia.com",
+    copiedButton: "已复制",
+    openGoogleCta: "打开 Google Translate Websites",
+    pasteInstruction: "如果 Google 没有自动填充，请将 leonixmedia.com 粘贴到 Website 字段。",
+    backLink: "返回 Leonix",
+  },
+  ko: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Google로 LeonixMedia.com 번역",
+    copyButton: "leonixmedia.com 복사",
+    copiedButton: "복사됨",
+    openGoogleCta: "Google Translate Websites 열기",
+    backLink: "Leonix로 돌아가기",
+  },
+  hi: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Google से LeonixMedia.com अनुवाद करें",
+    copyButton: "leonixmedia.com कॉपी करें",
+    copiedButton: "कॉपी हो गया",
+    openGoogleCta: "Google Translate Websites खोलें",
+    backLink: "Leonix पर वापस",
+  },
+  hy: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Google-ով թարգմանել LeonixMedia.com-ը",
+    copyButton: "Պատճենել leonixmedia.com",
+    copiedButton: "Պատճենված է",
+    openGoogleCta: "Բացել Google Translate Websites",
+    backLink: "Վերադառնալ Leonix",
+  },
+  ru: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Перевести LeonixMedia.com через Google",
+    copyButton: "Скопировать leonixmedia.com",
+    copiedButton: "Скопировано",
+    openGoogleCta: "Открыть Google Translate Websites",
+    backLink: "Назад к Leonix",
+  },
+  pa: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "Google ਨਾਲ LeonixMedia.com ਅਨੁਵਾਦ ਕਰੋ",
+    copyButton: "leonixmedia.com ਕਾਪੀ ਕਰੋ",
+    copiedButton: "ਕਾਪੀ ਹੋ ਗਿਆ",
+    openGoogleCta: "Google Translate Websites ਖੋਲ੍ਹੋ",
+    backLink: "Leonix 'ਤੇ ਵਾਪਸ",
+  },
+  km: {
+    ...TRANSLATE_SITE_PAGE_EN,
+    title: "បកប្រែ LeonixMedia.com ជាមួយ Google",
+    copyButton: "ចម្លង leonixmedia.com",
+    copiedButton: "បានចម្លង",
+    openGoogleCta: "បើក Google Translate Websites",
+    backLink: "ត្រឡប់ទៅ Leonix",
+  },
+};
+
+export function getTranslateSitePageCopy(lang: SupportedLang): TranslateSitePageCopy {
+  return TRANSLATE_SITE_PAGE_BY_LANG[lang] ?? TRANSLATE_SITE_PAGE_EN;
 }
 
 export type TranslateSiteHrefOpts = {

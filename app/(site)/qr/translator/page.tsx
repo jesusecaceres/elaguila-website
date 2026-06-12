@@ -67,7 +67,11 @@ function TranslatorGatewayContent() {
   const params = useSearchParams();
   const lang = resolveRouteLang(params?.get("lang"));
   const copy = useMemo(() => getTranslatorPageCopy(lang), [lang]);
-  const leonixTranslateHref = leonixHomeGoogleTranslateUrl(lang);
+  const leonixTranslateHref = leonixHomeGoogleTranslateUrl(lang, {
+    sourcePage: "qr_translator",
+    sourceCta: "google_translate_website",
+    returnTo: "/qr/translator",
+  });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
   const guideHref = magazinePrintGuideHref(lang, {
     sourcePage: "qr_translator",
@@ -133,14 +137,9 @@ function TranslatorGatewayContent() {
             >
               {copy.lensWebFallback}
             </a>
-            <a
-              href={leonixTranslateHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={btnGold}
-            >
+            <Link href={leonixTranslateHref} className={btnGold}>
               {copy.android.translateCta}
-            </a>
+            </Link>
             <p className={googleTranslateWebsitesPasteHintClass}>{websitesPasteHint}</p>
           </div>
         </section>
@@ -159,14 +158,9 @@ function TranslatorGatewayContent() {
             >
               {copy.lensWebFallback}
             </a>
-            <a
-              href={leonixTranslateHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={btnGold}
-            >
+            <Link href={leonixTranslateHref} className={btnGold}>
               {copy.iphone.translateCta}
-            </a>
+            </Link>
             <p className={googleTranslateWebsitesPasteHintClass}>{websitesPasteHint}</p>
           </div>
         </section>
@@ -176,14 +170,9 @@ function TranslatorGatewayContent() {
           <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{copy.web.bestFor}</p>
           <DeviceSectionSteps steps={copy.web.steps} />
           <div className="mt-4 grid min-w-0 gap-2.5">
-            <a
-              href={leonixTranslateHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={btnPrimary}
-            >
+            <Link href={leonixTranslateHref} className={btnPrimary}>
               {copy.web.translateCta}
-            </a>
+            </Link>
             <p className={googleTranslateWebsitesPasteHintClass}>{websitesPasteHint}</p>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
