@@ -131,6 +131,19 @@ export function validateOfertaLocalDraftForFuturePublish(
   if (!draft.businessCategory) {
     pushIssue(issues, "businessCategory", "La categoría del negocio es obligatoria.", "error");
   }
+  if (
+    draft.businessCategory === "other_business" &&
+    !draft.customMarketType.trim()
+  ) {
+    pushIssue(issues, "customMarketType", "Agrega el tipo de negocio.", "error");
+  }
+  if (
+    draft.marketType === "other" &&
+    draft.businessCategory !== "other_business" &&
+    !draft.customMarketType.trim()
+  ) {
+    pushIssue(issues, "customMarketType", "Agrega el tipo de negocio.", "error");
+  }
   if (draft.businessName.trim().length < LIMITS.businessNameMin) {
     pushIssue(issues, "businessName", "El nombre del negocio es obligatorio.", "error");
   }

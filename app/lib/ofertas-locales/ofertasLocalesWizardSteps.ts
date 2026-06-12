@@ -99,8 +99,15 @@ export function getOfertasLocalesWizardStepHints(
       if (!draft.title.trim()) {
         hints.push(es ? "Agrega un título para la oferta." : "Add an offer title.");
       }
-      if (draft.marketType === "other" && !draft.customMarketType.trim()) {
-        hints.push(es ? "Describe tu tipo de mercado o negocio." : "Describe your market or business type.");
+      if (draft.businessCategory === "other_business" && !draft.customMarketType.trim()) {
+        hints.push(es ? "Agrega el tipo de negocio." : "Add the business type.");
+      }
+      if (
+        draft.marketType === "other" &&
+        draft.businessCategory !== "other_business" &&
+        !draft.customMarketType.trim()
+      ) {
+        hints.push(es ? "Agrega el tipo de negocio." : "Add the business type.");
       }
       break;
     case 3: {

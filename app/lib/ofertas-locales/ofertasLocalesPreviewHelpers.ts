@@ -1,10 +1,9 @@
 import {
-  OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
   OFERTAS_LOCALES_MAGAZINE_DISTRIBUTION_STATUS_OPTIONS,
-  OFERTAS_LOCALES_MARKET_TYPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
 } from "./ofertasLocalesConstants";
+import { labelForPrimaryBusinessCategory } from "./ofertasLocalesBusinessCategoryUx";
 import { getOfertaLocalMarketDisplayLabel, getOfertaLocalProductDisplayLabel, labelForCouponPromotionSubtype } from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
@@ -32,14 +31,11 @@ export function labelForBusinessCategory(
   value: OfertaLocalDraft["businessCategory"],
   lang: "es" | "en" = "es"
 ): string {
-  if (!value) return "";
-  const opt = OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS.find((o) => o.value === value);
-  if (!opt) return value;
-  return lang === "en" ? opt.labelEn : opt.labelEs;
+  return labelForPrimaryBusinessCategory(value, lang);
 }
 
 export function labelForMarketType(
-  draft: Pick<OfertaLocalDraft, "marketType" | "customMarketType">,
+  draft: Pick<OfertaLocalDraft, "businessCategory" | "marketType" | "customMarketType">,
   lang: "es" | "en" = "es"
 ): string {
   return getOfertaLocalMarketDisplayLabel(draft, lang);

@@ -8,6 +8,7 @@ import {
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "./ofertasLocalesFormatting";
+import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { validateOfertaLocalDraftForFuturePublish } from "./ofertasLocalesValidation";
 import type {
   OfertaLocalDbInsertPayload,
@@ -114,6 +115,8 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
     metadata.featuredPlacementScope = draft.featuredPlacementScope;
   }
   if (draft.wantsAiSearchableSpecials) metadata.wantsAiSearchableSpecials = true;
+  const customMarket = sanitizeOptionalText(draft.customMarketType ?? "", 120);
+  if (customMarket) metadata.customMarketType = customMarket;
 
   if (Object.keys(metadata).length) {
     chunks.push(`${INTERNAL_METADATA_PREFIX}${JSON.stringify(metadata)}`);
@@ -179,13 +182,23 @@ export function mapOfertaLocalDraftToInsertPayload(
 ): OfertaLocalDbInsertPayload {
   const now = new Date().toISOString();
   const zip = normalizeOfertaLocalZipInput(draft.zipCode);
+  const categoryFields = normalizeOfertaLocalDraftCategoryFields(draft);
+  const businessCategory = categoryFields.businessCategory;
+  const marketType =
+    businessCategory === "other_business"
+      ? categoryFields.customMarketType.trim()
+        ? "other"
+        : null
+      : categoryFields.marketType
+        ? String(categoryFields.marketType)
+        : null;
 
   return {
     owner_id: ownerId,
     status: "pending_review",
     offer_type: String(draft.offerType),
-    business_category: String(draft.businessCategory),
-    market_type: draft.marketType ? String(draft.marketType) : null,
+    business_category: String(businessCategory),
+    market_type: marketType,
     business_name: sanitizeText(draft.businessName, MAX_TITLE),
     title: sanitizeText(draft.title, MAX_TITLE),
     description: sanitizeOptionalText(draft.description),

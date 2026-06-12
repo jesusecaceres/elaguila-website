@@ -4,17 +4,26 @@ import {
   OFERTAS_LOCALES_PRICING,
   OFERTAS_LOCALES_STEP1_BASE_PRODUCTS,
 } from "./ofertasLocalesConstants";
+import {
+  businessCategoryUsesCustomTypeText,
+  labelForBusinessSubtype,
+} from "./ofertasLocalesBusinessCategoryUx";
 import { normalizeOfertaLocalUrlInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft, OfertaLocalOfferType } from "./ofertasLocalesTypes";
 
 export function getOfertaLocalMarketDisplayLabel(
-  draft: Pick<OfertaLocalDraft, "marketType" | "customMarketType">,
+  draft: Pick<OfertaLocalDraft, "businessCategory" | "marketType" | "customMarketType">,
   lang: "es" | "en" = "es"
 ): string {
+  if (businessCategoryUsesCustomTypeText(draft.businessCategory) && draft.customMarketType.trim()) {
+    return draft.customMarketType.trim();
+  }
   if (draft.marketType === "other" && draft.customMarketType.trim()) {
     return draft.customMarketType.trim();
   }
   if (!draft.marketType) return "";
+  const subtypeLabel = labelForBusinessSubtype(draft.businessCategory, draft.marketType, lang);
+  if (subtypeLabel) return subtypeLabel;
   const opt = OFERTAS_LOCALES_MARKET_TYPE_OPTIONS.find((o) => o.value === draft.marketType);
   if (!opt) return draft.marketType;
   return lang === "en" ? opt.labelEn : opt.labelEs;

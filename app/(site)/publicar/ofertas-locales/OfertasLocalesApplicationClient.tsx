@@ -17,7 +17,6 @@ import {
   OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS,
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
   OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS,
-  OFERTAS_LOCALES_MARKET_TYPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_STEP1_BASE_PRODUCTS,
   OFERTAS_LOCALES_PRODUCT_NAME,
@@ -27,6 +26,13 @@ import {
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import {
+  buildBusinessCategoryChangePatch,
+  businessCategoryShowsSubtypeDropdown,
+  businessCategoryUsesCustomTypeText,
+  getSubtypeLabelForBusinessCategory,
+  getSubtypeOptionsForBusinessCategory,
+} from "@/app/lib/ofertas-locales/ofertasLocalesBusinessCategoryUx";
 import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
 import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
@@ -372,16 +378,21 @@ export default function OfertasLocalesApplicationClient() {
           </div>
         );
 
-      case 2:
+      case 2: {
+        const subtypeOptions = getSubtypeOptionsForBusinessCategory(draft.businessCategory);
+        const showSubtypeDropdown = businessCategoryShowsSubtypeDropdown(draft.businessCategory);
+        const showOtherBusinessInput = businessCategoryUsesCustomTypeText(draft.businessCategory);
+        const subtypeLabel = getSubtypeLabelForBusinessCategory(draft.businessCategory, lang);
         return (
           <div className="space-y-4">
             <FieldBlock label={lang === "en" ? "Business category" : "Categoría del negocio"}>
               <select
                 className={INPUT}
                 value={draft.businessCategory}
-                onChange={(e) =>
-                  updateDraft({ businessCategory: e.target.value as OfertaLocalBusinessCategory | "" })
-                }
+                onChange={(e) => {
+                  const next = e.target.value as OfertaLocalBusinessCategory | "";
+                  updateDraft(buildBusinessCategoryChangePatch(draft, next));
+                }}
               >
                 <option value="">{c.selectPlaceholder}</option>
                 {OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS.map((opt) => (
@@ -391,27 +402,43 @@ export default function OfertasLocalesApplicationClient() {
                 ))}
               </select>
             </FieldBlock>
-            <FieldBlock label={lang === "en" ? "Market type" : "Tipo de mercado"} optional optionalLabel={c.optional}>
-              <select
-                className={INPUT}
-                value={draft.marketType}
-                onChange={(e) => {
-                  const marketType = e.target.value as OfertaLocalMarketType | "";
-                  updateDraft({
-                    marketType,
-                    customMarketType: marketType === "other" ? draft.customMarketType : "",
-                  });
-                }}
-              >
-                <option value="">{c.selectPlaceholder}</option>
-                {OFERTAS_LOCALES_MARKET_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {lang === "en" ? opt.labelEn : opt.labelEs}
-                  </option>
-                ))}
-              </select>
-            </FieldBlock>
-            {draft.marketType === "other" ? (
+            {showSubtypeDropdown ? (
+              <FieldBlock label={subtypeLabel} optional optionalLabel={c.optional}>
+                <select
+                  className={INPUT}
+                  value={draft.marketType}
+                  onChange={(e) => {
+                    const marketType = e.target.value as OfertaLocalMarketType | "";
+                    updateDraft({
+                      marketType,
+                      customMarketType: marketType === "other" ? draft.customMarketType : "",
+                    });
+                  }}
+                >
+                  <option value="">{c.selectPlaceholder}</option>
+                  {subtypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {lang === "en" ? opt.labelEn : opt.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </FieldBlock>
+            ) : null}
+            {showOtherBusinessInput ? (
+              <FieldBlock label={subtypeLabel}>
+                <input
+                  className={INPUT}
+                  value={draft.customMarketType}
+                  onChange={(e) => updateDraft({ customMarketType: e.target.value })}
+                  placeholder={
+                    lang === "en"
+                      ? "Example: pet store, classes, repairs, local services"
+                      : "Ej. tienda de mascotas, clases, reparación, servicios locales"
+                  }
+                />
+              </FieldBlock>
+            ) : null}
+            {draft.marketType === "other" && !showOtherBusinessInput ? (
               <FieldBlock label={c.customMarketLabel} helper={c.customMarketHelper}>
                 <input
                   className={INPUT}
@@ -446,6 +473,7 @@ export default function OfertasLocalesApplicationClient() {
             ) : null}
           </div>
         );
+      }
 
       case 3:
         return (

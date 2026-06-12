@@ -1,4 +1,5 @@
 import { createEmptyOfertaLocalDraft } from "./createEmptyOfertaLocalDraft";
+import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type {
   OfertaLocalDraft,
@@ -116,7 +117,7 @@ function sanitizeAssetList(raw: unknown): OfertaLocalDraftAsset[] {
 
 function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
   const base = createEmptyOfertaLocalDraft();
-  return {
+  const merged = {
     ...base,
     ...stored,
     serviceZipCodes: Array.isArray(stored.serviceZipCodes)
@@ -140,7 +141,9 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
     yelpUrl: sanitizeSocialUrl(stored.yelpUrl),
     flyerAssets: sanitizeAssetList(stored.flyerAssets),
     couponAssets: sanitizeAssetList(stored.couponAssets),
-  };
+  } as OfertaLocalDraft;
+  const normalizedCategory = normalizeOfertaLocalDraftCategoryFields(merged);
+  return { ...merged, ...normalizedCategory };
 }
 
 export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {

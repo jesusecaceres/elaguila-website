@@ -127,6 +127,7 @@ export const OFERTAS_LOCALES_OFFER_TYPE_OPTIONS: ReadonlyArray<{
   { value: "featured_deal", labelEs: "Oferta destacada", labelEn: "Featured deal" },
 ];
 
+/** Primary business categories for Step 2 — subtypes are conditional per category. */
 export const OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS: ReadonlyArray<{
   value: OfertaLocalBusinessCategory;
   labelEs: string;
@@ -135,15 +136,17 @@ export const OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS: ReadonlyArray<{
   { value: "supermarket", labelEs: "Supermercado", labelEn: "Supermarket" },
   { value: "carniceria", labelEs: "Carnicería", labelEn: "Butcher shop" },
   { value: "panaderia", labelEs: "Panadería", labelEn: "Bakery" },
-  { value: "produce_market", labelEs: "Mercado de produce", labelEn: "Produce market" },
+  { value: "produce_market", labelEs: "Mercado de frutas y verduras", labelEn: "Produce market" },
   { value: "restaurant", labelEs: "Restaurante", labelEn: "Restaurant" },
-  { value: "tire_shop", labelEs: "Llantera", labelEn: "Tire shop" },
-  { value: "auto_service", labelEs: "Servicio automotriz", labelEn: "Auto service" },
-  { value: "beauty_salon", labelEs: "Salón de belleza", labelEn: "Beauty salon" },
-  { value: "tax_service", labelEs: "Servicios de impuestos", labelEn: "Tax service" },
-  { value: "retail", labelEs: "Retail / tienda", labelEn: "Retail" },
-  { value: "event_hall", labelEs: "Salón de eventos", labelEn: "Event hall" },
-  { value: "other_service", labelEs: "Otro servicio", labelEn: "Other service" },
+  { value: "prepared_food", labelEs: "Comida preparada", labelEn: "Prepared food" },
+  { value: "automotive_services", labelEs: "Servicios automotrices", labelEn: "Automotive services" },
+  { value: "beauty_personal_care", labelEs: "Belleza y cuidado personal", labelEn: "Beauty & personal care" },
+  { value: "professional_services", labelEs: "Servicios profesionales", labelEn: "Professional services" },
+  { value: "home_services", labelEs: "Servicios para el hogar", labelEn: "Home services" },
+  { value: "health_wellness", labelEs: "Salud y bienestar", labelEn: "Health & wellness" },
+  { value: "retail_store", labelEs: "Tienda", labelEn: "Retail store" },
+  { value: "events_entertainment", labelEs: "Eventos y entretenimiento", labelEn: "Events & entertainment" },
+  { value: "other_business", labelEs: "Otro negocio", labelEn: "Other business" },
 ];
 
 export const OFERTAS_LOCALES_MARKET_TYPE_OPTIONS: ReadonlyArray<{
@@ -158,6 +161,7 @@ export const OFERTAS_LOCALES_MARKET_TYPE_OPTIONS: ReadonlyArray<{
   { value: "middle_eastern", labelEs: "Medio Oriente", labelEn: "Middle Eastern" },
   { value: "american", labelEs: "Americano", labelEn: "American" },
   { value: "international", labelEs: "Internacional", labelEn: "International" },
+  { value: "organic", labelEs: "Orgánico", labelEn: "Organic" },
   { value: "specialty", labelEs: "Especialidad", labelEn: "Specialty" },
   { value: "general", labelEs: "General", labelEn: "General" },
   { value: "other", labelEs: "Otro", labelEn: "Other" },
