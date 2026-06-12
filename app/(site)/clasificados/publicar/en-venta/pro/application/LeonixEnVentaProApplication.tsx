@@ -27,6 +27,7 @@ import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/
 import { CategorySelectionSection } from "../../free/application/sections/CategorySelectionSection";
 import { BasicInfoSection } from "../../free/application/sections/BasicInfoSection";
 import { ConditionSection } from "../../free/application/sections/ConditionSection";
+import { EnVentaExternalVideoUrlsSection } from "../../free/application/sections/EnVentaExternalVideoUrlsSection";
 import { PhotosSection } from "../../free/application/sections/PhotosSection";
 import { LocationSection } from "../../free/application/sections/LocationSection";
 import { FulfillmentSection } from "../../free/application/sections/FulfillmentSection";
@@ -154,8 +155,9 @@ export default function LeonixEnVentaProApplication() {
             state={state}
             setState={setState}
             maxPhotos={12}
-            allowVideo
+            allowVideo={false}
           />
+          <EnVentaExternalVideoUrlsSection lang={lang} state={state} setState={setState} />
           <LocationSection lang={lang} state={state} setState={setState} />
           <FulfillmentSection lang={lang} state={state} setState={setState} />
           <SellerContactSection lang={lang} state={state} setState={setState} showSellerKind />

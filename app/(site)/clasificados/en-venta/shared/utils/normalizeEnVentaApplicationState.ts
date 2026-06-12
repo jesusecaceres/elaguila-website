@@ -1,6 +1,7 @@
 import {
   createEmptyEnVentaFreeState,
   type EnVentaFreeApplicationState,
+  type EnVentaMuxVideoSlotState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { formatEnVentaPhoneInput } from "./enVentaPhoneDisplay";
 import { collectEnVentaVideoUrlsFromState } from "./enVentaVideoUrls";
@@ -15,6 +16,31 @@ const CONTACT_METHODS = new Set<EnVentaFreeApplicationState["contactMethod"]>([
   "both",
   "whatsapp",
 ]);
+
+function sanitizeMuxSlotDuration(slot: EnVentaMuxVideoSlotState): EnVentaMuxVideoSlotState {
+  if (slot.durationSeconds == null) return slot;
+  const n = Number(slot.durationSeconds);
+  if (!Number.isFinite(n)) {
+    return { ...slot, durationSeconds: null };
+  }
+  return { ...slot, durationSeconds: Math.round(n) };
+}
+
+function clearMuxSlotForExternalUrls(slot: EnVentaMuxVideoSlotState): EnVentaMuxVideoSlotState {
+  return {
+    ...slot,
+    uploadId: "",
+    assetId: "",
+    playbackId: "",
+    playbackUrl: "",
+    thumbnailUrl: "",
+    durationSeconds: null,
+    status: "idle",
+    progressPct: 0,
+    fileName: "",
+    errorMessage: "",
+  };
+}
 
 /** Coerce persisted/partial drafts so preview builders never call methods on undefined. */
 export function normalizeEnVentaFreeApplicationState(
@@ -32,8 +58,18 @@ export function normalizeEnVentaFreeApplicationState(
   let listingVideoSlots = base.listingVideoSlots;
   if (Array.isArray(input.listingVideoSlots) && input.listingVideoSlots.length === 2) {
     listingVideoSlots = [
-      { ...base.listingVideoSlots[0], ...input.listingVideoSlots[0] },
-      { ...base.listingVideoSlots[1], ...input.listingVideoSlots[1] },
+      sanitizeMuxSlotDuration({ ...base.listingVideoSlots[0], ...input.listingVideoSlots[0] }),
+      sanitizeMuxSlotDuration({ ...base.listingVideoSlots[1], ...input.listingVideoSlots[1] }),
+    ];
+  }
+
+  const explicitVideoUrls = Array.isArray(input.videoUrls)
+    ? input.videoUrls.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : [];
+  if (explicitVideoUrls.length > 0) {
+    listingVideoSlots = [
+      clearMuxSlotForExternalUrls(listingVideoSlots[0]),
+      clearMuxSlotForExternalUrls(listingVideoSlots[1]),
     ];
   }
 
@@ -76,7 +112,7 @@ export function normalizeEnVentaFreeApplicationState(
     videoUrls: Array.isArray(input.videoUrls)
       ? input.videoUrls.filter((x): x is string => typeof x === "string")
       : base.videoUrls,
-    listingVideoUrl: str(input.listingVideoUrl),
+    listingVideoUrl: explicitVideoUrls.length > 0 ? "" : str(input.listingVideoUrl),
     listingVideoSlots,
     confirmListingAccurate: Boolean(input.confirmListingAccurate),
     confirmPhotosRepresentItem: Boolean(input.confirmPhotosRepresentItem),

@@ -5,6 +5,7 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   emptyBody:
     "Crea o guarda un borrador en el formulario de Ofertas Locales para ver cómo se verá tu oferta.",
   backToEdit: "Volver a editar",
+  backToEditEn: "Back to edit",
   backToEditCreate: "Crear borrador",
   call: "Call",
   callEs: "Llamar",

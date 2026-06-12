@@ -25,7 +25,6 @@ import {
 import { mapLeonixListingsDescriptionConstraintToUserMessage } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 import {
   appendEnVentaPhotoDescriptionAppendix,
-  coerceEnVentaDescriptionColumnForDb,
   enVentaCanonicalMainDescription,
   prepareEnVentaStateForPublish,
   resolveEnVentaPublishDescriptionForDb,
@@ -155,23 +154,54 @@ function buildDetailPairs(
   return pairs;
 }
 
+const EMPTY_MUX_VIDEO_COLS = {
+  mux_asset_id: null,
+  mux_playback_id: null,
+  mux_status: null,
+  mux_thumbnail_url: null,
+  mux_duration_seconds: null,
+  mux_asset_id_2: null,
+  mux_playback_id_2: null,
+  mux_status_2: null,
+  mux_thumbnail_url_2: null,
+  mux_duration_seconds_2: null,
+  video_layout_type: null,
+} as const;
+
+function sanitizeMuxDurationForDb(raw: unknown): number | null {
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n);
+}
+
 function resolveMuxVideoCols(state: EnVentaFreeApplicationState) {
+  const externalVideoUrls = collectEnVentaVideoUrlsFromState(state);
   const first = state.listingVideoSlots?.[0];
   const second = state.listingVideoSlots?.[1];
-  const hasFirst = Boolean(first?.assetId || first?.playbackId || first?.playbackUrl);
-  const hasSecond = Boolean(second?.assetId || second?.playbackId || second?.playbackUrl);
-  const layout = hasFirst && hasSecond ? "virtual_tour_plus_video" : hasFirst ? "single" : null;
+  const hasFirstMux = Boolean(first?.assetId || first?.playbackId);
+  const hasSecondMux = Boolean(second?.assetId || second?.playbackId);
+
+  if (externalVideoUrls.length > 0 && !hasFirstMux && !hasSecondMux) {
+    return { ...EMPTY_MUX_VIDEO_COLS };
+  }
+
+  if (!hasFirstMux && !hasSecondMux) {
+    return { ...EMPTY_MUX_VIDEO_COLS };
+  }
+
+  const layout = hasFirstMux && hasSecondMux ? "virtual_tour_plus_video" : hasFirstMux ? "single" : null;
   return {
-    mux_asset_id: first?.assetId || null,
-    mux_playback_id: first?.playbackId || null,
-    mux_status: first?.status || null,
-    mux_thumbnail_url: first?.thumbnailUrl || null,
-    mux_duration_seconds: first?.durationSeconds ?? null,
-    mux_asset_id_2: second?.assetId || null,
-    mux_playback_id_2: second?.playbackId || null,
-    mux_status_2: second?.status || null,
-    mux_thumbnail_url_2: second?.thumbnailUrl || null,
-    mux_duration_seconds_2: second?.durationSeconds ?? null,
+    mux_asset_id: hasFirstMux ? first?.assetId || null : null,
+    mux_playback_id: hasFirstMux ? first?.playbackId || null : null,
+    mux_status: hasFirstMux ? first?.status || null : null,
+    mux_thumbnail_url: hasFirstMux ? first?.thumbnailUrl || null : null,
+    mux_duration_seconds: hasFirstMux ? sanitizeMuxDurationForDb(first?.durationSeconds) : null,
+    mux_asset_id_2: hasSecondMux ? second?.assetId || null : null,
+    mux_playback_id_2: hasSecondMux ? second?.playbackId || null : null,
+    mux_status_2: hasSecondMux ? second?.status || null : null,
+    mux_thumbnail_url_2: hasSecondMux ? second?.thumbnailUrl || null : null,
+    mux_duration_seconds_2: hasSecondMux ? sanitizeMuxDurationForDb(second?.durationSeconds) : null,
     video_layout_type: layout,
   };
 }
@@ -404,17 +434,6 @@ export async function publishEnVentaFromDraft(
       }
     }
 
-    if (plan === "pro" && state.listingVideoUrl.trim() && !state.listingVideoSlots?.[0]?.playbackId) {
-      const note = lang === "es" ? `\n\nVideo: ${state.listingVideoUrl.trim()}` : `\n\nVideo: ${state.listingVideoUrl.trim()}`;
-      const { data: cur } = await supabase.from("listings").select("description").eq("id", listingId).maybeSingle();
-      const prev = String((cur as { description?: string | null } | null)?.description ?? "");
-      const merged = `${prev}${note}`.trim();
-      const prevForDb = coerceEnVentaDescriptionColumnForDb(prev);
-      const mergedForDb = coerceEnVentaDescriptionColumnForDb(merged, prevForDb);
-      if (mergedForDb != null) {
-        await supabase.from("listings").update({ description: mergedForDb }).eq("id", listingId);
-      }
-    }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);
   }

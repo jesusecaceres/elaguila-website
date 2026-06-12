@@ -362,7 +362,9 @@ export function OfertasLocalesPreviewCard({
           {/* I. Actions */}
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href={`/publicar/ofertas-locales?lang=${lang}`} className={BTN_PRIMARY}>
-              {OFERTAS_LOCALES_PREVIEW_COPY.backToEdit}
+              {lang === "en"
+                ? OFERTAS_LOCALES_PREVIEW_COPY.backToEditEn
+                : OFERTAS_LOCALES_PREVIEW_COPY.backToEdit}
             </Link>
             <button type="button" className={BTN_OUTLINE} disabled title="Publish not available">
               {OFERTAS_LOCALES_PREVIEW_COPY.publishDisabled}

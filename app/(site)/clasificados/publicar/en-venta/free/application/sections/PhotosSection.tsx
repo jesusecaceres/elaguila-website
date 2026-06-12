@@ -29,6 +29,7 @@ const COPY = {
     desc: "Añade fotos reales y bien iluminadas. Las fotos claras ayudan a vender más rápido.",
     planFree: "Hasta 3 fotos.",
     planIncluded: "Hasta 12 fotos y 1 video opcional (archivo o enlace).",
+    planIncludedPhotosOnly: "Hasta 12 fotos.",
     reorderTitle: "Ordenar fotos",
     reorderDrag: "Arrastra las fotos para cambiar el orden.",
     reorderMobile: "En móvil, usa los controles para moverlas.",
@@ -73,6 +74,7 @@ const COPY = {
     desc: "Add real, well-lit photos. Clear photos help items sell faster.",
     planFree: "Up to 3 photos.",
     planIncluded: "Up to 12 photos and 1 optional video (file or link).",
+    planIncludedPhotosOnly: "Up to 12 photos.",
     reorderTitle: "Reorder photos",
     reorderDrag: "Drag photos to change the order.",
     reorderMobile: "On mobile, use the controls to move them.",
@@ -284,7 +286,18 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   const videoInputRef = useRef<HTMLInputElement>(null);
   const allowDragFromRef = useRef<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const isProMedia = allowVideo && maxPhotos > 3;
+  const isProMedia = maxPhotos > 3;
+  const planLine = isProMedia
+    ? allowVideo
+      ? t.planIncluded
+      : t.planIncludedPhotosOnly
+    : t.planFree;
+  const sectionTitle = allowVideo ? t.title : lang === "es" ? "Fotos" : "Photos";
+  const sectionDesc = allowVideo
+    ? t.desc
+    : lang === "es"
+      ? "Añade fotos reales y bien iluminadas. Las fotos claras ayudan a vender más rápido."
+      : "Add real, well-lit photos. Clear photos help items sell faster.";
   const dark = surface === "dark";
   const c = {
     plan: dark ? "text-white/85" : "text-[#111111]/80",
@@ -549,14 +562,14 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
   }
 
   return (
-    <SectionShell lang={lang} title={t.title} description={t.desc}>
+    <SectionShell lang={lang} title={sectionTitle} description={sectionDesc}>
       <div
         className={cx(
           "rounded-2xl border px-4 py-3 sm:px-5 sm:py-4",
           dark ? "border-white/12 bg-white/[0.03]" : "border-black/10 bg-white"
         )}
       >
-        <p className={cx("text-sm font-semibold leading-snug", c.plan)}>{isProMedia ? t.planIncluded : t.planFree}</p>
+        <p className={cx("text-sm font-semibold leading-snug", c.plan)}>{planLine}</p>
       </div>
 
       <div className={cx("mt-5 rounded-2xl border p-4 sm:p-5", c.tray)}>
@@ -804,11 +817,7 @@ export function PhotosSection<S extends EnVentaFreeApplicationState>({
             </p>
           ) : null}
         </div>
-      ) : (
-        <p className={cx("mt-5 rounded-xl border border-dashed px-4 py-3 text-xs leading-relaxed", c.noVideoBox)}>
-          {t.noVideoFree}
-        </p>
-      )}
+      ) : null}
     </SectionShell>
   );
 }
