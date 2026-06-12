@@ -29,6 +29,44 @@ export function getGoogleTranslateLangCode(lang: SupportedLang): string {
   return GOOGLE_WEBSITE_LANG[lang] ?? GOOGLE_WEBSITE_LANG.en;
 }
 
+/** Google Translate Website Mode codes for raw lang strings (incl. aliases). */
+const GOOGLE_TRANSLATE_LANG_ALIASES: Record<string, string> = {
+  es: "es",
+  en: "en",
+  vi: "vi",
+  pt: "pt",
+  tl: "fil",
+  fil: "fil",
+  km: "km",
+  zh: "zh-CN",
+  "zh-CN": "zh-CN",
+  "zh-Hans": "zh-CN",
+  ja: "ja",
+  ko: "ko",
+  hi: "hi",
+  hy: "hy",
+  ru: "ru",
+  pa: "pa",
+  ar: "en",
+  fa: "en",
+};
+
+/** Resolve Google Translate `tl` from route/lang input; RTL langs fall back to English. */
+export function resolveGoogleTranslateLangCode(lang: string | null | undefined): string {
+  const raw = (lang ?? "").trim();
+  if (raw && isSupportedLang(raw)) return getGoogleTranslateLangCode(normalizeLang(raw));
+  if (raw && GOOGLE_TRANSLATE_LANG_ALIASES[raw]) return GOOGLE_TRANSLATE_LANG_ALIASES[raw];
+  return GOOGLE_WEBSITE_LANG.en;
+}
+
+/** Final Google Translate Website Mode URL with LeonixMedia.com prefilled. */
+export function buildDirectLeonixGoogleTranslateUrl(lang?: string | null): string {
+  const googleLang = resolveGoogleTranslateLangCode(lang);
+  return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(
+    googleLang,
+  )}&u=${encodeURIComponent(LEONIX_TRANSLATE_SITE_ORIGIN)}`;
+}
+
 export function resolveTranslateSiteLang(
   lang: string | null | undefined,
   target: string | null | undefined,
@@ -69,10 +107,7 @@ export function buildGoogleTranslateWebsiteUrl(opts: {
 
 /** Direct Google Translate Website Mode URL for LeonixMedia.com homepage. */
 export function leonixHomeGoogleTranslateUrl(targetLang: SupportedLang): string {
-  return buildGoogleTranslateWebsiteUrl({
-    targetLang,
-    siteUrl: LEONIX_TRANSLATE_SITE_ORIGIN,
-  });
+  return buildDirectLeonixGoogleTranslateUrl(targetLang);
 }
 
 export type TranslateSiteHrefOpts = {

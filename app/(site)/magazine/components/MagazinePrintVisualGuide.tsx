@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
@@ -98,18 +97,11 @@ export function MagazinePrintVisualGuide({
   afterActions,
 }: MagazinePrintVisualGuideProps) {
   const copy = useMemo(() => getQrGuideCopy(lang), [lang]);
-  const pathname = usePathname() ?? "";
-  const searchParams = useSearchParams();
-  const returnTo = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
   const translatorHref = translatorGatewayHref(lang, {
     sourcePage: "magazine_read",
     sourceCta: "translation_options",
   });
-  const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang, {
-    sourcePage: "magazine_read",
-    sourceCta: "qr_google_translate",
-    returnTo,
-  });
+  const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang);
 
   return (
     <div className="mt-4 min-w-0 sm:mt-6">
@@ -214,7 +206,12 @@ export function MagazinePrintVisualGuide({
         <DecisionCard title={copy.cards.website.title} className="order-3 md:order-4">
           <p>{copy.cards.website.intro}</p>
           <p className="mt-2 text-xs leading-relaxed text-[#3D3428]/90 sm:text-sm">{copy.cards.website.note}</p>
-          <a href={websiteTranslateUrl} className={`mt-3 ${btnOutline}`}>
+          <a
+            href={websiteTranslateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`mt-3 ${btnOutline}`}
+          >
             {copy.cards.website.ctaLabel}
           </a>
         </DecisionCard>

@@ -673,6 +673,8 @@ function QrSectionDirectCtas({ lang }: { lang: SupportedLang }) {
         </a>
         <Link
           href={translateHref}
+          target="_blank"
+          rel="noopener noreferrer"
           className={`${qrCtaButtonClass} border-[#C9A84A]/55 bg-[#FFFDF7] text-[#1F241C] hover:border-[#b89742] hover:bg-[#FBF7EF]`}
         >
           {labels.translateLeonix}

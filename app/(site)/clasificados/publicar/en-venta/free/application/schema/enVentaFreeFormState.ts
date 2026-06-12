@@ -63,7 +63,9 @@ export type EnVentaFreeApplicationState = {
   email: string;
   whatsapp: string;
   contactMethod: "phone" | "email" | "both" | "whatsapp";
-  /** Placeholder for Pro video; Free UI does not collect video. */
+  /** Up to 4 external video URLs (En Venta free / URL-only lane). */
+  videoUrls: string[];
+  /** Legacy single URL — migrated into `videoUrls` on read; Pro lane may still use this. */
   listingVideoUrl: string;
   /** Slot-based Mux-ready video metadata (up to 2 videos). */
   listingVideoSlots: [EnVentaMuxVideoSlotState, EnVentaMuxVideoSlotState];
@@ -123,6 +125,7 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     email: "",
     whatsapp: "",
     contactMethod: "both",
+    videoUrls: [],
     listingVideoUrl: "",
     listingVideoSlots: [emptySlot(0), emptySlot(1)],
     confirmListingAccurate: false,

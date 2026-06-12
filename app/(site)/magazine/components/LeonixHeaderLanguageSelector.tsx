@@ -16,9 +16,8 @@ import {
   type SupportedLang,
 } from "@/app/lib/language";
 import {
+  buildDirectLeonixGoogleTranslateUrl,
   getGoogleTranslatePlacementCopy,
-  sourcePageKeyFromPath,
-  translateSiteHref,
 } from "@/app/lib/googleTranslateWebsite";
 
 type LeonixHeaderLanguageSelectorProps = {
@@ -50,13 +49,7 @@ export function LeonixHeaderLanguageSelector({
   const lang = normalizeLang(searchParams?.get("lang"));
   const isFull = variant === "full";
   const googleCopy = getGoogleTranslatePlacementCopy(lang);
-  const returnTo = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
-  const googleTranslateHref = translateSiteHref({
-    lang,
-    sourcePage: sourcePageKeyFromPath(pathname),
-    sourceCta: "language_dropdown_google_translate",
-    returnTo,
-  });
+  const googleTranslateHref = buildDirectLeonixGoogleTranslateUrl(lang);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -200,6 +193,8 @@ export function LeonixHeaderLanguageSelector({
               </p>
               <a
                 href={googleTranslateHref}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex min-h-[2.75rem] w-full items-center rounded-lg px-2 py-2 text-left text-sm font-semibold text-[#2A4536] transition hover:bg-[#FBF7EF]"
               >
                 {googleCopy.dropdownCta}

@@ -7,6 +7,7 @@ import {
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { resolveEnVentaListingImageUrls } from "../shared/utils/resolveEnVentaListingImageUrls";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
+import { parseEnVentaVideoUrlsFromDetailPairs } from "../shared/utils/enVentaVideoUrls";
 import { parseEnVentaDetailPairSignals } from "./enVentaDetailPairSignals";
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 
@@ -119,11 +120,16 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
   }
 
   const images = resolveEnVentaListingImageUrls(row);
-  const listingVideoUrl = resolveEnVentaVideoUrl({
+  let listingVideoUrls = parseEnVentaVideoUrlsFromDetailPairs(pairs);
+  const listingVideoUrlResolved = resolveEnVentaVideoUrl({
     muxPlaybackId: row.mux_playback_id != null ? String(row.mux_playback_id) : null,
     description: rawDesc,
     detailPairs: pairs,
   });
+  if (!listingVideoUrls.length && listingVideoUrlResolved) {
+    listingVideoUrls = [listingVideoUrlResolved];
+  }
+  const listingVideoUrl = listingVideoUrls[0] ?? listingVideoUrlResolved;
   const sellerType = row.seller_type === "business" ? "business" : "individual";
   const businessName =
     row.business_name != null && String(row.business_name).trim()
@@ -145,7 +151,8 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     typeof viewsRaw === "number" && Number.isFinite(viewsRaw) && viewsRaw >= 0 ? Math.floor(viewsRaw) : 0;
 
   const planTier = resolvePlanTier(row, pairs, rawDesc);
-  const hasListingVideo = rowHasMuxVideo(row) || listingHasVideo(rawDesc);
+  const hasListingVideo =
+    listingVideoUrls.length > 0 || rowHasMuxVideo(row) || listingHasVideo(rawDesc);
 
   let zipResolved: string | null =
     row.zip != null && String(row.zip).trim() ? String(row.zip).trim() : null;
@@ -191,5 +198,6 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     views,
     muxPlaybackId: row.mux_playback_id != null ? String(row.mux_playback_id).trim() || null : null,
     listingVideoUrl,
+    listingVideoUrls,
   };
 }

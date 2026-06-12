@@ -1,6 +1,6 @@
 import type { SupportedLang } from "@/app/lib/language";
 import { replaceLangInHref } from "@/app/lib/language";
-import { sourcePageKeyFromPath, translateSiteHref } from "@/app/lib/googleTranslateWebsite";
+import { buildDirectLeonixGoogleTranslateUrl } from "@/app/lib/googleTranslateWebsite";
 
 /** Build magazine print QR guide href with lang + optional tracking params. */
 export function magazinePrintGuideHref(
@@ -29,30 +29,20 @@ export function translatorGatewayHref(
   return `/qr/translator?${params.toString()}`;
 }
 
-/** Controlled gateway to Google Translate Website Mode for Leonix. */
+/** Direct Google Translate Website Mode URL for LeonixMedia.com (visible CTAs). */
 export function leonixGoogleTranslateWebsiteUrl(
   lang: SupportedLang,
-  opts?: { sourcePage?: string; sourceCta?: string; returnTo?: string },
+  _opts?: { sourcePage?: string; sourceCta?: string; returnTo?: string },
 ): string {
-  return translateSiteHref({
-    lang,
-    sourcePage: opts?.sourcePage ?? "magazine_read",
-    sourceCta: opts?.sourceCta ?? "qr_google_translate",
-    returnTo: opts?.returnTo,
-  });
+  return buildDirectLeonixGoogleTranslateUrl(lang);
 }
 
 export function leonixGoogleTranslateWebsiteUrlFromPath(
   lang: SupportedLang,
-  pathname: string,
-  sourceCta: string,
+  _pathname: string,
+  _sourceCta: string,
 ): string {
-  return translateSiteHref({
-    lang,
-    sourcePage: sourcePageKeyFromPath(pathname),
-    sourceCta,
-    returnTo: pathname.startsWith("/") ? pathname : `/${pathname}`,
-  });
+  return buildDirectLeonixGoogleTranslateUrl(lang);
 }
 
 /** Preserve lang on internal Leonix hrefs. */

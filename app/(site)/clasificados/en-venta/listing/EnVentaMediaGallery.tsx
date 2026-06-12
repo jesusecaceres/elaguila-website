@@ -7,25 +7,35 @@ import {
   resolveEnVentaDefaultMediaTab,
   type EnVentaMediaTab,
 } from "@/app/clasificados/en-venta/shared/components/EnVentaMediaTabToggle";
-import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import {
+  EnVentaVideoUrlPicker,
+  normalizeEnVentaGalleryVideoUrls,
+} from "@/app/clasificados/en-venta/shared/components/EnVentaVideoUrlPicker";
 import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
 
 type Props = {
   urls: string[];
   title: string;
   videoUrl?: string | null;
+  videoUrls?: string[];
   lang?: "es" | "en";
 };
 
-export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" }: Props) {
+export function EnVentaMediaGallery({ urls, title, videoUrl = null, videoUrls, lang = "es" }: Props) {
   const photoUrls = useMemo(() => urls.filter(Boolean), [urls]);
+  const allVideoUrls = useMemo(
+    () => normalizeEnVentaGalleryVideoUrls(videoUrls, videoUrl),
+    [videoUrls, videoUrl]
+  );
+  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const embedVideoUrl = useMemo(() => {
-    const v = videoUrl?.trim();
-    return v && isEmbeddableExternalVideoUrl(v) ? v : null;
-  }, [videoUrl]);
+    if (!allVideoUrls.length) return null;
+    const idx = Math.min(activeVideoIdx, allVideoUrls.length - 1);
+    return allVideoUrls[idx];
+  }, [allVideoUrls, activeVideoIdx]);
 
   const hasPhotos = photoUrls.length > 0;
-  const hasVideos = Boolean(embedVideoUrl);
+  const hasVideos = allVideoUrls.length > 0;
 
   const [activeTab, setActiveTab] = useState<EnVentaMediaTab>(() =>
     resolveEnVentaDefaultMediaTab(hasPhotos, hasVideos)
@@ -35,7 +45,11 @@ export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" 
   useEffect(() => {
     setActiveTab(resolveEnVentaDefaultMediaTab(hasPhotos, hasVideos));
     setPhotoIdx(0);
-  }, [hasPhotos, hasVideos, photoUrls.length, embedVideoUrl]);
+  }, [hasPhotos, hasVideos, photoUrls.length, allVideoUrls.length]);
+
+  useEffect(() => {
+    if (activeVideoIdx >= allVideoUrls.length) setActiveVideoIdx(0);
+  }, [activeVideoIdx, allVideoUrls.length]);
 
   const goPhoto = useCallback(
     (d: number) => {
@@ -119,8 +133,16 @@ export function EnVentaMediaGallery({ urls, title, videoUrl = null, lang = "es" 
           ) : null}
         </>
       ) : activeTab === "videos" && embedVideoUrl ? (
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#D6C7AD]/70 bg-black shadow-[0_10px_36px_-12px_rgba(31,36,28,0.12)]">
-          <EnVentaVideoPlayer url={embedVideoUrl} lang={lang} />
+        <div className="space-y-3">
+          <EnVentaVideoUrlPicker
+            lang={lang}
+            videoUrls={allVideoUrls}
+            activeIndex={Math.min(activeVideoIdx, allVideoUrls.length - 1)}
+            onSelect={setActiveVideoIdx}
+          />
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-[#D6C7AD]/70 bg-black shadow-[0_10px_36px_-12px_rgba(31,36,28,0.12)]">
+            <EnVentaVideoPlayer url={embedVideoUrl} lang={lang} />
+          </div>
         </div>
       ) : null}
     </div>

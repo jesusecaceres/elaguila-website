@@ -3,6 +3,7 @@ import {
   type EnVentaFreeApplicationState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { formatEnVentaPhoneInput } from "./enVentaPhoneDisplay";
+import { collectEnVentaVideoUrlsFromState } from "./enVentaVideoUrls";
 
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -38,7 +39,7 @@ export function normalizeEnVentaFreeApplicationState(
 
   const contactMethod = CONTACT_METHODS.has(input.contactMethod) ? input.contactMethod : base.contactMethod;
 
-  return {
+  const merged: EnVentaFreeApplicationState = {
     ...base,
     ...input,
     rama: str(input.rama),
@@ -72,6 +73,9 @@ export function normalizeEnVentaFreeApplicationState(
     email: str(input.email),
     whatsapp: input.whatsapp ? formatEnVentaPhoneInput(str(input.whatsapp)) : "",
     contactMethod,
+    videoUrls: Array.isArray(input.videoUrls)
+      ? input.videoUrls.filter((x): x is string => typeof x === "string")
+      : base.videoUrls,
     listingVideoUrl: str(input.listingVideoUrl),
     listingVideoSlots,
     confirmListingAccurate: Boolean(input.confirmListingAccurate),
@@ -81,4 +85,6 @@ export function normalizeEnVentaFreeApplicationState(
     accessoriesNotes: str(input.accessoriesNotes),
     itemExtraDetails: str(input.itemExtraDetails),
   };
+
+  return { ...merged, videoUrls: collectEnVentaVideoUrlsFromState(merged) };
 }

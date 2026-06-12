@@ -7,6 +7,10 @@ import {
   resolveEnVentaDefaultMediaTab,
   type EnVentaMediaTab,
 } from "@/app/clasificados/en-venta/shared/components/EnVentaMediaTabToggle";
+import {
+  EnVentaVideoUrlPicker,
+  normalizeEnVentaGalleryVideoUrls,
+} from "@/app/clasificados/en-venta/shared/components/EnVentaVideoUrlPicker";
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 import { EN_VENTA_SURFACE } from "@/app/clasificados/en-venta/shared/styles/enVentaBrand";
 
@@ -15,25 +19,41 @@ type PhotoSlide = { type: "image"; src: string; i: number };
 type Props = {
   orderedImages: string[];
   videoUrl: string | null;
+  videoUrls?: string[];
   showVideo: boolean;
   photoCountLabel: string;
   lang: "es" | "en";
   plan: "free" | "pro";
 };
 
-export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, photoCountLabel, lang, plan }: Props) {
+export function EnVentaPreviewGallery({
+  orderedImages,
+  videoUrl,
+  videoUrls,
+  showVideo,
+  photoCountLabel,
+  lang,
+  plan,
+}: Props) {
   const photoSlides: PhotoSlide[] = useMemo(
     () => orderedImages.map((src, i) => ({ type: "image" as const, src, i })),
     [orderedImages]
   );
 
+  const allVideoUrls = useMemo(
+    () => (showVideo ? normalizeEnVentaGalleryVideoUrls(videoUrls, videoUrl) : []),
+    [showVideo, videoUrls, videoUrl]
+  );
+
+  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const embedVideoUrl = useMemo(() => {
-    const v = videoUrl?.trim();
-    return showVideo && v && isEmbeddableExternalVideoUrl(v) ? v : null;
-  }, [showVideo, videoUrl]);
+    if (!allVideoUrls.length) return null;
+    const idx = Math.min(activeVideoIdx, allVideoUrls.length - 1);
+    return allVideoUrls[idx];
+  }, [allVideoUrls, activeVideoIdx]);
 
   const hasPhotos = photoSlides.length > 0;
-  const hasVideos = Boolean(embedVideoUrl);
+  const hasVideos = allVideoUrls.length > 0;
   const showToggle = hasPhotos && hasVideos;
 
   const [activeTab, setActiveTab] = useState<EnVentaMediaTab>(() =>
@@ -46,7 +66,11 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
   useEffect(() => {
     setActiveTab(resolveEnVentaDefaultMediaTab(hasPhotos, hasVideos));
     setActivePhotoIdx(0);
-  }, [hasPhotos, hasVideos, photoSlides.length, embedVideoUrl]);
+  }, [hasPhotos, hasVideos, photoSlides.length, allVideoUrls.length]);
+
+  useEffect(() => {
+    if (activeVideoIdx >= allVideoUrls.length) setActiveVideoIdx(0);
+  }, [activeVideoIdx, allVideoUrls.length]);
 
   const currentPhoto = photoSlides[Math.min(activePhotoIdx, Math.max(0, photoSlides.length - 1))] ?? null;
 
@@ -124,7 +148,14 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
           ) : null}
         </>
       ) : activeTab === "videos" && embedVideoUrl ? (
-        <div className={`relative ${EN_VENTA_SURFACE.galleryFrame}`}>
+        <div className="space-y-3">
+          <EnVentaVideoUrlPicker
+            lang={lang}
+            videoUrls={allVideoUrls}
+            activeIndex={Math.min(activeVideoIdx, allVideoUrls.length - 1)}
+            onSelect={setActiveVideoIdx}
+          />
+          <div className={`relative ${EN_VENTA_SURFACE.galleryFrame}`}>
           <div className="relative aspect-[4/3] w-full bg-black">
             <EnVentaVideoPlayer url={embedVideoUrl} lang={lang} />
             <button
@@ -135,6 +166,7 @@ export function EnVentaPreviewGallery({ orderedImages, videoUrl, showVideo, phot
               {openLabel}
             </button>
           </div>
+        </div>
         </div>
       ) : null}
 

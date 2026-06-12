@@ -10,7 +10,7 @@ import {
   buildEnVentaContactActions,
   buildEnVentaPrimaryContactHref,
 } from "@/app/clasificados/en-venta/shared/utils/enVentaContactActions";
-import { resolveEnVentaVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import { collectEnVentaVideoUrlsFromState } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoUrls";
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -70,6 +70,7 @@ export type EnVentaPreviewViewModel = {
   gallery: {
     orderedImages: string[];
     videoUrl: string | null;
+    videoUrls: string[];
     showVideo: boolean;
     photoCountLabel: string;
   };
@@ -268,13 +269,9 @@ export function buildEnVentaPreviewModel(
   const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
   const orderedImages = orderedFull.slice(0, maxPhotos);
 
-  const slot = state.listingVideoSlots?.[0];
-  const videoUrl = resolveEnVentaVideoUrl({
-    muxPlaybackId: slot?.playbackId ?? null,
-    muxPlaybackUrl: slot?.playbackUrl ?? null,
-    externalUrl: state.listingVideoUrl.trim() || null,
-  });
-  const showVideo = plan === "pro" && Boolean(videoUrl);
+  const videoUrls = collectEnVentaVideoUrlsFromState(state);
+  const videoUrl = videoUrls[0] ?? null;
+  const showVideo = videoUrls.length > 0;
 
   const contactActions = buildEnVentaContactActions(state, lang);
 
@@ -318,6 +315,7 @@ export function buildEnVentaPreviewModel(
     gallery: {
       orderedImages,
       videoUrl,
+      videoUrls,
       showVideo,
       photoCountLabel: t.photoCount(orderedImages.length, maxPhotos),
     },

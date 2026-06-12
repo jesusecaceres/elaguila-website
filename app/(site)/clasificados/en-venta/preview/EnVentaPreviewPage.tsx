@@ -346,6 +346,7 @@ export function EnVentaPreviewPage() {
                   <EnVentaPreviewGallery
                     orderedImages={vm.gallery.orderedImages}
                     videoUrl={vm.gallery.videoUrl}
+                    videoUrls={vm.gallery.videoUrls}
                     showVideo={vm.gallery.showVideo}
                     photoCountLabel={vm.gallery.photoCountLabel}
                     lang={lang}

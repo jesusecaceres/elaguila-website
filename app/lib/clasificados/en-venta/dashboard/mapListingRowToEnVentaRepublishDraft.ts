@@ -6,6 +6,7 @@ import { parseEnVentaDetailPairSignals } from "@/app/clasificados/en-venta/mappi
 import { splitEnVentaDescriptionAndDelivery } from "@/app/clasificados/en-venta/shared/utils/buildEnVentaContentStackModel";
 import { resolveEnVentaListingImageUrls } from "@/app/clasificados/en-venta/shared/utils/resolveEnVentaListingImageUrls";
 import { resolveEnVentaVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import { parseEnVentaVideoUrlsFromDetailPairs } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoUrls";
 import { normalizeEnVentaFreeApplicationState } from "@/app/clasificados/en-venta/shared/utils/normalizeEnVentaApplicationState";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
 import {
@@ -174,6 +175,7 @@ export function mapListingRowToEnVentaRepublishDraft(
     seller_kind: sellerKind,
     displayName: String(row.business_name ?? "").trim(),
     ...contact,
+    videoUrls: parseEnVentaVideoUrlsFromDetailPairs(pairs),
     listingVideoUrl: plan === "pro" && externalVideo && !videoSlot0.playbackId ? externalVideo : "",
     listingVideoSlots: [videoSlot0, createEmptyEnVentaFreeState().listingVideoSlots[1]],
     wearNotes:

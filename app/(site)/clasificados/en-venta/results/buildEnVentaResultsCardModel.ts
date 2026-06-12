@@ -9,7 +9,7 @@ import {
   EN_VENTA_PREVIEW_MAX_PHOTOS,
   getOrderedEnVentaImageUrls,
 } from "../preview/buildEnVentaPreviewModel";
-import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
+import { collectEnVentaVideoUrlsFromState } from "../shared/utils/enVentaVideoUrls";
 import { buildEnVentaPublishedMediaRow } from "../shared/utils/enVentaPublishedMedia";
 import { normalizeEnVentaCardMedia } from "../shared/utils/normalizeEnVentaCardMedia";
 import { resolveEnVentaHeroImageUrl } from "../shared/utils/resolveEnVentaListingImageUrls";
@@ -102,7 +102,7 @@ export function buildEnVentaResultsCardModel(
     heroImage,
     extraImageUrls,
     extraThumbOverflow,
-    showVideoBadge: plan === "pro" && media.hasVideo,
+    showVideoBadge: media.hasVideo && (media.videoUrls.length > 0 || Boolean(media.videoUrl)),
     showViews: plan === "pro" && dto.views > 0,
     views: dto.views,
     sellerKindLabel,
@@ -121,12 +121,9 @@ export function buildEnVentaResultsCardModelFromDraftState(
   const { lang, plan } = opts;
   const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
   const images = getOrderedEnVentaImageUrls(state).slice(0, maxPhotos);
+  const videoUrls = collectEnVentaVideoUrlsFromState(state);
+  const videoUrl = videoUrls[0] ?? null;
   const slot = state.listingVideoSlots?.[0];
-  const videoUrl = resolveEnVentaVideoUrl({
-    muxPlaybackId: slot?.playbackId ?? null,
-    muxPlaybackUrl: slot?.playbackUrl ?? null,
-    externalUrl: state.listingVideoUrl?.trim() || null,
-  });
   const heroImage = resolveEnVentaHeroImageUrl(images, {
     muxPlaybackId: slot?.playbackId ?? null,
     muxThumbnailUrl: slot?.thumbnailUrl ?? null,
@@ -188,7 +185,7 @@ export function buildEnVentaResultsCardModelFromDraftState(
     heroImage,
     extraImageUrls,
     extraThumbOverflow,
-    showVideoBadge: plan === "pro" && Boolean(videoUrl),
+    showVideoBadge: videoUrls.length > 0,
     showViews: false,
     views: 0,
     sellerKindLabel,

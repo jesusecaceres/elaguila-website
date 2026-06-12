@@ -56,6 +56,8 @@ export type EnVentaAnuncioDTO = {
   muxPlaybackId?: string | null;
   /** Resolved embeddable video URL for thumbnail fallback. */
   listingVideoUrl?: string | null;
+  /** Up to 4 external video URLs when stored on the listing. */
+  listingVideoUrls?: string[];
 };
 
 export type EnVentaDashboardRowDTO = {

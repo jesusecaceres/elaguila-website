@@ -8,12 +8,14 @@ import {
   resolveEnVentaVideoThumbnailUrl,
 } from "./resolveEnVentaListingImageUrls";
 import { resolveEnVentaVideoUrl } from "./enVentaVideoEmbed";
+import { parseEnVentaVideoUrlsFromDetailPairs, resolveEnVentaVideoUrlsFromSources } from "./enVentaVideoUrls";
 
 export type EnVentaPublishedMedia = {
   primaryImageUrl: string | null;
   photoUrls: string[];
   hasVideo: boolean;
   videoUrl: string | null;
+  videoUrls: string[];
   videoThumbnailUrl: string | null;
 };
 
@@ -37,7 +39,7 @@ function pairsFromRow(row: Record<string, unknown>): Array<{ label: string; valu
 export function buildEnVentaPublishedMediaRow(
   publishedSourceRow: Record<string, unknown> | null | undefined,
   dto?: Partial<
-    Pick<EnVentaAnuncioDTO, "description" | "muxPlaybackId" | "listingVideoUrl" | "hasListingVideo">
+    Pick<EnVentaAnuncioDTO, "description" | "muxPlaybackId" | "listingVideoUrl" | "listingVideoUrls" | "hasListingVideo">
   > & {
     images?: string[] | null;
     detailPairs?: Array<{ label: string; value: string }> | null;
@@ -66,7 +68,7 @@ export function buildEnVentaPublishedMediaRow(
 /** Canonical published En Venta media — same resolver chain as preview photo order. */
 export function normalizeEnVentaPublishedMedia(
   row: Record<string, unknown>,
-  dto?: Pick<EnVentaAnuncioDTO, "hasListingVideo" | "listingVideoUrl" | "muxPlaybackId">
+  dto?: Pick<EnVentaAnuncioDTO, "hasListingVideo" | "listingVideoUrl" | "listingVideoUrls" | "muxPlaybackId">
 ): EnVentaPublishedMedia {
   const photoUrls = resolveEnVentaListingImageUrls(row);
   const muxPlaybackId =
@@ -74,8 +76,17 @@ export function normalizeEnVentaPublishedMedia(
     (row.mux_playback_id != null ? String(row.mux_playback_id).trim() || null : null);
   const rawDesc = String(row.description ?? "");
   const detailPairs = pairsFromRow(row);
+  const videoUrls =
+    dto?.listingVideoUrls?.length
+      ? dto.listingVideoUrls
+      : resolveEnVentaVideoUrlsFromSources({
+          muxPlaybackId,
+          description: rawDesc,
+          detailPairs,
+        });
   const videoUrl =
     dto?.listingVideoUrl ??
+    videoUrls[0] ??
     resolveEnVentaVideoUrl({
       muxPlaybackId,
       description: rawDesc,
@@ -83,7 +94,8 @@ export function normalizeEnVentaPublishedMedia(
     });
   const hasVideo =
     dto?.hasListingVideo ??
-    (Boolean(muxPlaybackId) ||
+    (videoUrls.length > 0 ||
+      Boolean(muxPlaybackId) ||
       /\bVideo:\s*https?:\/\//i.test(rawDesc) ||
       /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\b/i.test(rawDesc));
   const videoThumbnailUrl = resolveEnVentaVideoThumbnailUrl({ muxPlaybackId, videoUrl });
@@ -94,6 +106,7 @@ export function normalizeEnVentaPublishedMedia(
     photoUrls,
     hasVideo,
     videoUrl,
+    videoUrls,
     videoThumbnailUrl,
   };
 }
@@ -150,6 +163,7 @@ export function buildEnVentaPhotoCountLabel(count: number, maxPhotos: number, la
 export type EnVentaGalleryViewProps = {
   orderedImages: string[];
   videoUrl: string | null;
+  videoUrls: string[];
   showVideo: boolean;
   photoCountLabel: string;
   lang: "es" | "en";
@@ -163,10 +177,12 @@ export function buildEnVentaGalleryViewProps(
 ): EnVentaGalleryViewProps {
   const maxPhotos = plan === "pro" ? EN_VENTA_PREVIEW_MAX_PHOTOS.pro : EN_VENTA_PREVIEW_MAX_PHOTOS.free;
   const orderedImages = media.photoUrls.slice(0, maxPhotos);
+  const videoUrls = media.videoUrls.length ? media.videoUrls : media.videoUrl ? [media.videoUrl] : [];
   return {
     orderedImages,
     videoUrl: media.videoUrl,
-    showVideo: plan === "pro" && media.hasVideo && Boolean(media.videoUrl),
+    videoUrls,
+    showVideo: media.hasVideo && videoUrls.length > 0,
     photoCountLabel: buildEnVentaPhotoCountLabel(orderedImages.length, maxPhotos, lang),
     lang,
     plan,

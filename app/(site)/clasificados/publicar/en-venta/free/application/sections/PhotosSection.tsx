@@ -27,7 +27,7 @@ const COPY = {
   es: {
     title: "Fotos y video",
     desc: "Añade fotos reales y bien iluminadas. Las fotos claras ayudan a vender más rápido.",
-    planFree: "Hasta 3 fotos. No se admite video en esta vía.",
+    planFree: "Hasta 3 fotos.",
     planIncluded: "Hasta 12 fotos y 1 video opcional (archivo o enlace).",
     reorderTitle: "Ordenar fotos",
     reorderDrag: "Arrastra las fotos para cambiar el orden.",
@@ -71,7 +71,7 @@ const COPY = {
   en: {
     title: "Photos and video",
     desc: "Add real, well-lit photos. Clear photos help items sell faster.",
-    planFree: "Up to 3 photos. No video on this path.",
+    planFree: "Up to 3 photos.",
     planIncluded: "Up to 12 photos and 1 optional video (file or link).",
     reorderTitle: "Reorder photos",
     reorderDrag: "Drag photos to change the order.",

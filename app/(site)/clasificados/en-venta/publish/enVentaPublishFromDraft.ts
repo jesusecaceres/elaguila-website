@@ -12,6 +12,11 @@ import {
   formatEnVentaFamilySafetyPublishError,
 } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
+import {
+  collectEnVentaVideoUrlsFromState,
+  LEONIX_EN_VENTA_VIDEO_URLS_PAIR,
+  serializeEnVentaVideoUrlsForDetailPair,
+} from "@/app/clasificados/en-venta/shared/utils/enVentaVideoUrls";
 import { isEnVentaListingPubliclyVisible } from "@/app/clasificados/en-venta/lib/enVentaListingVisibility";
 import {
   missingListingsColumnName,
@@ -109,7 +114,14 @@ function buildDetailPairs(
   if (waDigits.length >= 8) {
     pairs.push({ label: "Leonix:whatsapp", value: waDigits });
   }
-  if (plan === "pro") {
+  const externalVideoUrls = collectEnVentaVideoUrlsFromState(state);
+  if (externalVideoUrls.length) {
+    pairs.push({
+      label: LEONIX_EN_VENTA_VIDEO_URLS_PAIR,
+      value: serializeEnVentaVideoUrlsForDetailPair(externalVideoUrls),
+    });
+    pairs.push({ label: "Leonix:videoUrl", value: externalVideoUrls[0] });
+  } else if (plan === "pro") {
     const slot = state.listingVideoSlots?.[0];
     const external = state.listingVideoUrl.trim();
     if (external && isEmbeddableExternalVideoUrl(external) && !slot?.playbackId) {

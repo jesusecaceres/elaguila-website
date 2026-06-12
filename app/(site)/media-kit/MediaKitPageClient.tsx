@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
-import { getGoogleTranslatePlacementCopy, translateSiteHref } from "@/app/lib/googleTranslateWebsite";
+import { buildDirectLeonixGoogleTranslateUrl, getGoogleTranslatePlacementCopy } from "@/app/lib/googleTranslateWebsite";
 import { getMediaKitPageCopy } from "@/app/lib/leonix/mediaKitPageCopy";
 import {
   MAGAZINE_KIT_PDF_EN,
@@ -37,13 +37,7 @@ export default function MediaKitPageClient() {
   const dualPdf = showDualMediaKitPdfButtons(lang);
   const magazineUi = getMagazineUi(lang);
   const primaryPdf = primaryMediaKitPdfHref(lang);
-  const returnTo = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
-  const googleHref = translateSiteHref({
-    lang,
-    sourcePage: "media-kit",
-    sourceCta: "media_kit_google_translate",
-    returnTo,
-  });
+  const googleHref = buildDirectLeonixGoogleTranslateUrl(lang);
   const adContactHref = mediaKitAdvertisingContactHref(lang);
   const mediaKitContactHref = mediaKitInterestContactHref(lang);
   const homeHref = `/coming-soon-v2?lang=${lang}`;
@@ -139,6 +133,8 @@ export default function MediaKitPageClient() {
           <p className="mt-1 text-[0.8125rem] leading-snug text-[#3D3428] sm:text-sm">{copy.googleTranslate.body}</p>
           <a
             href={googleHref}
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-2 inline-flex min-h-[2.25rem] items-center text-xs font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm"
           >
             {googleCopy.comingSoonCta}

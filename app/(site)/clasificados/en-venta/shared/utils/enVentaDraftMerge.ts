@@ -12,6 +12,7 @@ export const EN_VENTA_DRAFT_TEXT_FIELD_KEYS = [
   "price",
   "negotiable",
   "description",
+  "videoUrls",
   "quantity",
   "brand",
   "model",
@@ -50,6 +51,7 @@ export function enVentaDraftHasTextProgress(state: EnVentaFreeApplicationState):
       state.itemType.trim() ||
       state.condition.trim() ||
       state.description.trim() ||
+      (state.videoUrls?.length ?? 0) > 0 ||
       state.city.trim() ||
       state.zip.trim() ||
       state.displayName.trim() ||
@@ -77,6 +79,7 @@ function slotHasVideoProgress(slot: EnVentaFreeApplicationState["listingVideoSlo
 }
 
 export function enVentaDraftHasVideoProgress(state: EnVentaFreeApplicationState): boolean {
+  if ((state.videoUrls?.length ?? 0) > 0) return true;
   if (state.listingVideoUrl.trim()) return true;
   return state.listingVideoSlots.some(slotHasVideoProgress);
 }
@@ -87,13 +90,14 @@ export function enVentaDraftHasMediaProgress(state: EnVentaFreeApplicationState)
 
 export function pickEnVentaDraftMediaFields(
   source: EnVentaFreeApplicationState
-): Pick<
+):   Pick<
   EnVentaFreeApplicationState,
-  "images" | "primaryImageIndex" | "listingVideoUrl" | "listingVideoSlots"
+  "images" | "primaryImageIndex" | "videoUrls" | "listingVideoUrl" | "listingVideoSlots"
 > {
   return {
     images: source.images,
     primaryImageIndex: source.primaryImageIndex,
+    videoUrls: source.videoUrls ?? [],
     listingVideoUrl: source.listingVideoUrl,
     listingVideoSlots: source.listingVideoSlots,
   };
@@ -141,6 +145,7 @@ export function mergeEnVentaDraftPreferComplete(
     ...textSource,
     images: photoSource.images,
     primaryImageIndex: photoSource.primaryImageIndex,
+    videoUrls: videoSource.videoUrls ?? [],
     listingVideoUrl: videoSource.listingVideoUrl,
     listingVideoSlots: videoSource.listingVideoSlots,
   };
