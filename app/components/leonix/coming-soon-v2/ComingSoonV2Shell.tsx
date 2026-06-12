@@ -32,6 +32,10 @@ import {
 } from "@/app/lib/lang";
 import type { SupportedLang } from "@/app/lib/language";
 import { ComingSoonLaunchSignupForm } from "@/app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm";
+import {
+  getGoogleTranslateWebsitesPasteHint,
+  googleTranslateWebsitesPasteHintClass,
+} from "@/app/lib/googleTranslateWebsite";
 import { LENS_WEB_URL } from "@/app/lib/magazine/translatorGateway";
 import {
   leonixGoogleTranslateWebsiteUrl,
@@ -650,6 +654,7 @@ function HeroQrAccessStrip({
 
 function QrSectionDirectCtas({ lang }: { lang: SupportedLang }) {
   const labels = comingSoonQrCtaCopy(lang);
+  const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
   const translateHref = leonixGoogleTranslateWebsiteUrl(lang, {
     sourcePage: "coming-soon-v2",
     sourceCta: "lower_qr_google_translate",
@@ -679,6 +684,7 @@ function QrSectionDirectCtas({ lang }: { lang: SupportedLang }) {
         >
           {labels.translateLeonix}
         </Link>
+        <p className={`w-full ${googleTranslateWebsitesPasteHintClass}`}>{websitesPasteHint}</p>
         <Link
           href={qrGuideHref}
           className={`${qrCtaButtonClass} border-[#7A1E2C]/35 bg-[#FFFDF7] text-[#7A1E2C] hover:border-[#7A1E2C] hover:bg-[#FBF7EF]`}

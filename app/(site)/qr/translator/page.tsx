@@ -10,7 +10,11 @@ import {
   LENS_WEB_URL,
 } from "@/app/lib/magazine/translatorGateway";
 import { getTranslatorPageCopy } from "@/app/lib/magazine/qrGuideCopy";
-import { leonixHomeGoogleTranslateUrl } from "@/app/lib/googleTranslateWebsite";
+import {
+  getGoogleTranslateWebsitesPasteHint,
+  googleTranslateWebsitesPasteHintClass,
+  leonixHomeGoogleTranslateUrl,
+} from "@/app/lib/googleTranslateWebsite";
 import { magazinePrintGuideHref } from "@/app/lib/magazine/qrRouteHelpers";
 import { resolveRouteLang } from "@/app/lib/language";
 
@@ -64,6 +68,7 @@ function TranslatorGatewayContent() {
   const lang = resolveRouteLang(params?.get("lang"));
   const copy = useMemo(() => getTranslatorPageCopy(lang), [lang]);
   const leonixTranslateHref = leonixHomeGoogleTranslateUrl(lang);
+  const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
   const guideHref = magazinePrintGuideHref(lang, {
     sourcePage: "qr_translator",
     sourceCta: "qr_guide",
@@ -136,6 +141,7 @@ function TranslatorGatewayContent() {
             >
               {copy.android.translateCta}
             </a>
+            <p className={googleTranslateWebsitesPasteHintClass}>{websitesPasteHint}</p>
           </div>
         </section>
 
@@ -161,6 +167,7 @@ function TranslatorGatewayContent() {
             >
               {copy.iphone.translateCta}
             </a>
+            <p className={googleTranslateWebsitesPasteHintClass}>{websitesPasteHint}</p>
           </div>
         </section>
 
@@ -177,6 +184,7 @@ function TranslatorGatewayContent() {
             >
               {copy.web.translateCta}
             </a>
+            <p className={googleTranslateWebsitesPasteHintClass}>{websitesPasteHint}</p>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
             {copy.nativeFormsNote}

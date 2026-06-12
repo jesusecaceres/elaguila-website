@@ -6,7 +6,12 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
-import { buildDirectLeonixGoogleTranslateUrl, getGoogleTranslatePlacementCopy } from "@/app/lib/googleTranslateWebsite";
+import {
+  buildGoogleTranslateWebsitesModeUrl,
+  getGoogleTranslatePlacementCopy,
+  getGoogleTranslateWebsitesPasteHint,
+  googleTranslateWebsitesPasteHintClass,
+} from "@/app/lib/googleTranslateWebsite";
 import { getMediaKitPageCopy } from "@/app/lib/leonix/mediaKitPageCopy";
 import {
   MAGAZINE_KIT_PDF_EN,
@@ -37,7 +42,8 @@ export default function MediaKitPageClient() {
   const dualPdf = showDualMediaKitPdfButtons(lang);
   const magazineUi = getMagazineUi(lang);
   const primaryPdf = primaryMediaKitPdfHref(lang);
-  const googleHref = buildDirectLeonixGoogleTranslateUrl(lang);
+  const googleHref = buildGoogleTranslateWebsitesModeUrl(lang);
+  const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
   const adContactHref = mediaKitAdvertisingContactHref(lang);
   const mediaKitContactHref = mediaKitInterestContactHref(lang);
   const homeHref = `/coming-soon-v2?lang=${lang}`;
@@ -139,6 +145,9 @@ export default function MediaKitPageClient() {
           >
             {googleCopy.comingSoonCta}
           </a>
+          <p className={`mt-1.5 ${googleTranslateWebsitesPasteHintClass} text-[#3D3428]/85`}>
+            {websitesPasteHint}
+          </p>
         </aside>
 
         <p className="mt-8 text-center">

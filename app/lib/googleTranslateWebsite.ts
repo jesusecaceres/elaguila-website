@@ -59,13 +59,34 @@ export function resolveGoogleTranslateLangCode(lang: string | null | undefined):
   return GOOGLE_WEBSITE_LANG.en;
 }
 
-/** Final Google Translate Website Mode URL with LeonixMedia.com prefilled. */
+/** Final direct-proxy URL (internal/legacy only — not for visible CTAs). */
 export function buildDirectLeonixGoogleTranslateUrl(lang?: string | null): string {
   const googleLang = resolveGoogleTranslateLangCode(lang);
   return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(
     googleLang,
   )}&u=${encodeURIComponent(LEONIX_TRANSLATE_SITE_ORIGIN)}`;
 }
+
+/** Google Translate Websites tab — avoids leonixmedia-com.translate.goog proxy jump. */
+export function buildGoogleTranslateWebsitesModeUrl(lang?: string | null): string {
+  const googleLang = resolveGoogleTranslateLangCode(lang);
+  const params = new URLSearchParams({
+    sl: "auto",
+    tl: googleLang,
+    op: "websites",
+  });
+  return `https://translate.google.com/?${params.toString()}`;
+}
+
+/** Shown when Google may not prefill the Website input box. */
+export function getGoogleTranslateWebsitesPasteHint(lang: SupportedLang): string {
+  return lang === "es"
+    ? "Si Google no llena el campo automáticamente, pega: leonixmedia.com"
+    : "If Google does not fill the field automatically, paste: leonixmedia.com";
+}
+
+export const googleTranslateWebsitesPasteHintClass =
+  "mt-1.5 text-[0.65rem] leading-snug text-[#3D3428]/80 sm:text-xs";
 
 export function resolveTranslateSiteLang(
   lang: string | null | undefined,
@@ -105,9 +126,9 @@ export function buildGoogleTranslateWebsiteUrl(opts: {
   return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(googleLang)}&u=${u}`;
 }
 
-/** Direct Google Translate Website Mode URL for LeonixMedia.com homepage. */
+/** Visible CTA: Google Translate Websites mode (not direct proxy). */
 export function leonixHomeGoogleTranslateUrl(targetLang: SupportedLang): string {
-  return buildDirectLeonixGoogleTranslateUrl(targetLang);
+  return buildGoogleTranslateWebsitesModeUrl(targetLang);
 }
 
 export type TranslateSiteHrefOpts = {

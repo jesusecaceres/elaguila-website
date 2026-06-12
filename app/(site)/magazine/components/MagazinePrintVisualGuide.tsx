@@ -8,6 +8,10 @@ import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/L
 import { MAGAZINE_JUNE_2026_QR_IMAGE_PATH } from "@/app/lib/magazine/qrBridge";
 import { getQrGuideCopy } from "@/app/lib/magazine/qrGuideCopy";
 import {
+  getGoogleTranslateWebsitesPasteHint,
+  googleTranslateWebsitesPasteHintClass,
+} from "@/app/lib/googleTranslateWebsite";
+import {
   deviceStepsHash,
   leonixGoogleTranslateWebsiteUrl,
   magazinePrintGuideHref,
@@ -102,6 +106,7 @@ export function MagazinePrintVisualGuide({
     sourceCta: "translation_options",
   });
   const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang);
+  const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
 
   return (
     <div className="mt-4 min-w-0 sm:mt-6">
@@ -214,6 +219,7 @@ export function MagazinePrintVisualGuide({
           >
             {copy.cards.website.ctaLabel}
           </a>
+          <p className={`mt-2 ${googleTranslateWebsitesPasteHintClass}`}>{websitesPasteHint}</p>
         </DecisionCard>
       </div>
 
