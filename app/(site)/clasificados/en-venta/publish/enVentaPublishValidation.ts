@@ -5,6 +5,7 @@ import {
   enVentaCanonicalMainDescription,
   EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_EN,
   EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_ES,
+  prepareEnVentaStateForPublish,
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import {
   LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS,
@@ -37,13 +38,14 @@ export function collectEnVentaPublishDescriptionBlockers(
   lang: "es" | "en",
   state: EnVentaFreeApplicationState,
 ): string[] {
-  const raw = enVentaCanonicalMainDescription(state);
+  const normalized = prepareEnVentaStateForPublish(state);
+  const raw = enVentaCanonicalMainDescription(normalized);
   if (!raw) return [];
-  const prep = prepareLeonixListingDescriptionForPublish(raw, lang);
-  if (!prep.ok) return [prep.error];
-  if (prep.sanitized.length > 0 && prep.sanitized.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) {
+  if (raw.length < LEONIX_LISTINGS_DESCRIPTION_DB_MIN_CHARS) {
     return [lang === "es" ? EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_ES : EN_VENTA_PUBLISH_DESCRIPTION_TOO_SHORT_EN];
   }
+  const prep = prepareLeonixListingDescriptionForPublish(raw, lang);
+  if (!prep.ok) return [prep.error];
   return [];
 }
 

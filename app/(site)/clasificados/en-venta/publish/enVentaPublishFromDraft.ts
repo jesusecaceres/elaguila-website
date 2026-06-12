@@ -17,13 +17,12 @@ import {
   missingListingsColumnName,
   updateListingsRowResilient,
 } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
-import {
-  mapLeonixListingsDescriptionConstraintToUserMessage,
-  toLeonixListingsDescriptionForDb,
-} from "@/app/clasificados/lib/leonixPublishPublicDescription";
+import { mapLeonixListingsDescriptionConstraintToUserMessage } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 import {
   appendEnVentaPhotoDescriptionAppendix,
+  coerceEnVentaDescriptionColumnForDb,
   enVentaCanonicalMainDescription,
+  prepareEnVentaStateForPublish,
   resolveEnVentaPublishDescriptionForDb,
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
@@ -254,6 +253,7 @@ export async function publishEnVentaFromDraft(
   lang: PublishLang,
   plan: "free" | "pro"
 ): Promise<EnVentaPublishFromDraftResult> {
+  state = prepareEnVentaStateForPublish(state);
   const familySafety = evaluateEnVentaFamilySafetyFromState(state, lang);
   if (familySafety.status !== "safe") {
     return {
@@ -303,7 +303,7 @@ export async function publishEnVentaFromDraft(
   const insertPayload: Record<string, unknown> = {
     owner_id: userId,
     title: state.title.trim(),
-    description: descriptionForDb,
+    description: descriptionForDb ?? null,
     city: loc.canonicalCity,
     category: "en-venta",
     price: state.priceIsFree ? 0 : Number(String(state.price).replace(/[^0-9.]/g, "")) || 0,
@@ -397,10 +397,11 @@ export async function publishEnVentaFromDraft(
       const { data: cur } = await supabase.from("listings").select("description").eq("id", listingId).maybeSingle();
       const prev = String((cur as { description?: string | null } | null)?.description ?? "");
       const merged = `${prev}${note}`.trim();
-      await supabase
-        .from("listings")
-        .update({ description: toLeonixListingsDescriptionForDb(merged) })
-        .eq("id", listingId);
+      const prevForDb = coerceEnVentaDescriptionColumnForDb(prev);
+      const mergedForDb = coerceEnVentaDescriptionColumnForDb(merged, prevForDb);
+      if (mergedForDb != null) {
+        await supabase.from("listings").update({ description: mergedForDb }).eq("id", listingId);
+      }
     }
   } catch (e: unknown) {
     console.warn("en-venta media upload error", e);
