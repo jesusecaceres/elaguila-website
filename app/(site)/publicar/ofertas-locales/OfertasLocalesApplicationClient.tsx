@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   hasOfertaLocalAddressAccepted,
   hasOfertaLocalUrlAccepted,
@@ -73,6 +73,10 @@ import {
   ofertasLocalesAppCopy,
 } from "./ofertasLocalesApplicationCopy";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
+import {
+  splitOfertaLocalPrimaryFlyerAssets,
+  ofertaLocalDraftHasUnuploadedAssetMetadata,
+} from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
 import { OfertasLocalesWizardProgress } from "./OfertasLocalesWizardProgress";
 
 const PAGE_BG = "bg-[#FFFCF7]";
@@ -159,6 +163,7 @@ export default function OfertasLocalesApplicationClient() {
   });
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft();
   const [step, setStep] = useState<OfertasLocalesWizardStepId>(1);
+  const [step5PendingFileCount, setStep5PendingFileCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
@@ -248,9 +253,34 @@ export default function OfertasLocalesApplicationClient() {
   }, [c.submitFailed, draft]);
 
   const goNext = useCallback(() => {
+    if (step === 5) {
+      const hasPending =
+        step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
+      if (hasPending) return;
+    }
     setStep((s) => clampWizardStep(s + 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [draft, step, step5PendingFileCount]);
+
+  const step5BlocksContinue = useMemo(() => {
+    if (step !== 5) return false;
+    return step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
+  }, [draft, step, step5PendingFileCount]);
+
+  const step5PendingBySectionRef = useRef<Map<string, number>>(new Map());
+
+  const reportStep5SectionPending = useCallback((sectionKey: string, count: number) => {
+    step5PendingBySectionRef.current.set(sectionKey, count);
+    const total = [...step5PendingBySectionRef.current.values()].reduce((sum, n) => sum + n, 0);
+    setStep5PendingFileCount(total);
   }, []);
+
+  useEffect(() => {
+    if (step !== 5) {
+      step5PendingBySectionRef.current.clear();
+      setStep5PendingFileCount(0);
+    }
+  }, [step]);
 
   const goBack = useCallback(() => {
     setStep((s) => clampWizardStep(s - 1));
@@ -640,7 +670,10 @@ export default function OfertasLocalesApplicationClient() {
           </div>
         );
 
-      case 5:
+      case 5: {
+        const { supporting: supportingFlyerAssets } = splitOfertaLocalPrimaryFlyerAssets(
+          draft.flyerAssets
+        );
         return (
           <div className="space-y-4">
             {!primaryFormat ? (
@@ -653,7 +686,6 @@ export default function OfertasLocalesApplicationClient() {
               <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
                 <p>{c.step5UploadWeeklyFlyerHint}</p>
                 <p className="mt-2">{c.step5UploadLimitsHint}</p>
-                <p className="mt-2 text-xs text-[#1E1814]/55">{c.step5UploadPendingRefreshHint}</p>
               </div>
             )}
             {isShoppingLane ? (
@@ -663,17 +695,38 @@ export default function OfertasLocalesApplicationClient() {
                   draft={draft}
                   updateDraft={updateDraft}
                   lang={lang}
+                  sectionMode="primaryMainFlyer"
                   sectionTitleOverride={c.laneShoppingMainFlyerAsset}
+                  sectionHelper={c.laneShoppingMainFlyerAssetHelper}
+                  primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
                   showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                  onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
                 />
+                {supportingFlyerAssets.length > 0 ? (
+                  <OfertasLocalesDraftAssetSection
+                    bucket="flyerAssets"
+                    draft={draft}
+                    updateDraft={updateDraft}
+                    lang={lang}
+                    sectionMode="supportingFlyerExtras"
+                    sectionTitleOverride={c.laneShoppingSupportingFlyerExtras}
+                    sectionHelper={c.laneShoppingSupportingFlyerExtrasHelper}
+                    onPendingUploadsChange={(count) =>
+                      reportStep5SectionPending("supporting-flyer", count)
+                    }
+                  />
+                ) : null}
                 <div className="border-t border-[#D4C4A8]/50 pt-4">
                   <OfertasLocalesDraftAssetSection
                     bucket="couponAssets"
                     draft={draft}
                     updateDraft={updateDraft}
                     lang={lang}
+                    sectionMode="additionalCoupons"
                     sectionTitleOverride={c.laneShoppingAdditionalCoupons}
+                    sectionHelper={c.laneShoppingAdditionalCouponsHelper}
                     showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                    onPendingUploadsChange={(count) => reportStep5SectionPending("add-coupons", count)}
                   />
                 </div>
               </>
@@ -685,8 +738,11 @@ export default function OfertasLocalesApplicationClient() {
                   draft={draft}
                   updateDraft={updateDraft}
                   lang={lang}
+                  sectionMode="mainCoupons"
                   sectionTitleOverride={c.laneCouponMainAsset}
+                  sectionHelper={c.laneCouponMainAssetHelper}
                   showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                  onPendingUploadsChange={(count) => reportStep5SectionPending("main-coupons", count)}
                 />
                 <div className="border-t border-[#D4C4A8]/50 pt-4">
                   <OfertasLocalesDraftAssetSection
@@ -694,11 +750,16 @@ export default function OfertasLocalesApplicationClient() {
                     draft={draft}
                     updateDraft={updateDraft}
                     lang={lang}
+                    sectionMode="additionalPromo"
                     sectionTitleOverride={c.laneCouponAdditionalPromo}
                     showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                    onPendingUploadsChange={(count) => reportStep5SectionPending("add-promo", count)}
                   />
                 </div>
               </>
+            ) : null}
+            {step5BlocksContinue ? (
+              <p className={HINT_BOX}>{c.step5UploadBeforeContinueWarning}</p>
             ) : null}
             {draft.wantsAiSearchableSpecials ? (
               <>
@@ -723,6 +784,7 @@ export default function OfertasLocalesApplicationClient() {
             ) : null}
           </div>
         );
+      }
 
       case 6:
         return (
@@ -1061,7 +1123,12 @@ export default function OfertasLocalesApplicationClient() {
                   >
                     {c.wizardBack}
                   </button>
-                  <button type="button" className={BTN_PRIMARY} onClick={goNext}>
+                  <button
+                    type="button"
+                    className={BTN_PRIMARY}
+                    onClick={goNext}
+                    disabled={step5BlocksContinue}
+                  >
                     {c.wizardNext}
                   </button>
                 </div>

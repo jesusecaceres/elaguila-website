@@ -22,6 +22,11 @@ import {
 import { normalizeOfertaLocalUrlInput } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { formatOfertaLocalFileSize } from "@/app/lib/ofertas-locales/ofertasLocalesClientUploadValidation";
+import {
+  canAddAssetInSectionMode,
+  visibleAssetsForSectionMode,
+  type OfertaLocalDraftAssetSectionMode,
+} from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OFERTAS_LOCALES_SHELL_COPY, ofertasLocalesAssetCopy } from "./ofertasLocalesApplicationCopy";
 
@@ -67,6 +72,8 @@ function AssetEditor({
   pendingFile,
   uploading,
   uploadError,
+  showPageSection,
+  primaryFlyerMultiPageHelper,
   onChange,
   onRemove,
   onFileSelect,
@@ -79,6 +86,8 @@ function AssetEditor({
   pendingFile?: File;
   uploading: boolean;
   uploadError?: string | null;
+  showPageSection: boolean;
+  primaryFlyerMultiPageHelper?: string;
   onChange: (patch: Partial<OfertaLocalDraftAsset>) => void;
   onRemove: () => void;
   onFileSelect: (file: File) => void;
@@ -124,7 +133,7 @@ function AssetEditor({
     <div className={ASSET_CARD}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="text-sm font-semibold text-[#1E1814]">
-          {labelForOfertaLocalDraftAssetType(asset.assetType)}
+          {labelForOfertaLocalDraftAssetType(asset.assetType, lang)}
         </p>
         <button type="button" className={BTN_DANGER} onClick={onRemove} disabled={uploading}>
           {OFERTAS_LOCALES_SHELL_COPY.assetsRemove}
@@ -265,7 +274,10 @@ function AssetEditor({
               ) : null}
             </div>
           ) : null}
-          {(isPdf || asset.pageNumber != null) ? (
+          {primaryFlyerMultiPageHelper && (isPdf || asset.assetType === "flyer_pdf") ? (
+            <p className="text-xs leading-relaxed text-[#1E1814]/60">{primaryFlyerMultiPageHelper}</p>
+          ) : null}
+          {(showPageSection && (isPdf || asset.pageNumber != null)) ? (
             <div>
               <label className={LABEL}>{ac.pageSectionLabel}</label>
               <p className="mb-1 text-xs text-[#1E1814]/55">{ac.pageSectionHelper}</p>
@@ -299,20 +311,31 @@ export function OfertasLocalesDraftAssetSection({
   updateDraft,
   lang = "es",
   sectionTitleOverride,
+  sectionHelper,
+  sectionMode = "default",
+  primaryFlyerMultiPageHelper,
   showAiScanFormatsHint = false,
+  onPendingUploadsChange,
 }: {
   bucket: AssetBucket;
   draft: OfertaLocalDraft;
   updateDraft: (partial: Partial<OfertaLocalDraft>) => void;
   lang?: OfertasLocalesAppLang;
   sectionTitleOverride?: string;
+  sectionHelper?: string;
+  sectionMode?: OfertaLocalDraftAssetSectionMode;
+  primaryFlyerMultiPageHelper?: string;
   showAiScanFormatsHint?: boolean;
+  onPendingUploadsChange?: (pendingCount: number) => void;
 }) {
   const ac = ofertasLocalesAssetCopy(lang);
   const assetKind = bucketToKind(bucket);
   const assets = draft[bucket];
-  const active = activeOfertaLocalDraftAssets(assets);
-  const atMax = active.length >= maxAssets(bucket);
+  const allActive = activeOfertaLocalDraftAssets(assets);
+  const visibleActive = visibleAssetsForSectionMode(assets, sectionMode);
+  const canAdd = canAddAssetInSectionMode(assets, sectionMode, maxAssets(bucket));
+  const showPageSection = sectionMode !== "primaryMainFlyer";
+  const isPrimaryFlyerMode = sectionMode === "primaryMainFlyer";
   const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
   const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
   const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
@@ -330,10 +353,20 @@ export function OfertasLocalesDraftAssetSection({
   }, []);
 
   useEffect(() => {
+    onPendingUploadsChange?.(Object.keys(pendingFiles).length);
+  }, [pendingFiles, onPendingUploadsChange]);
+
+  useEffect(() => {
     return () => {
       Object.values(previewsRef.current).forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      onPendingUploadsChange?.(0);
+    };
+  }, [onPendingUploadsChange]);
 
   const setAssets = (next: OfertaLocalDraftAsset[]) => {
     updateDraft({ [bucket]: next } as Partial<OfertaLocalDraft>);
@@ -353,8 +386,8 @@ export function OfertasLocalesDraftAssetSection({
   };
 
   const addAsset = (assetType: OfertaLocalDraftAsset["assetType"]) => {
-    if (atMax) return;
-    const next = createEmptyOfertaLocalDraftAsset(assetType, active.length);
+    if (!canAdd) return;
+    const next = createEmptyOfertaLocalDraftAsset(assetType, allActive.length);
     setAssets([...assets, next]);
   };
 
@@ -422,6 +455,10 @@ export function OfertasLocalesDraftAssetSection({
     }
   };
 
+  if (sectionMode === "supportingFlyerExtras" && visibleActive.length === 0) {
+    return null;
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -429,14 +466,17 @@ export function OfertasLocalesDraftAssetSection({
           {sectionTitleOverride ?? sectionTitle(bucket)}
         </h3>
       </div>
-      {active.length === 0 ? (
+      {sectionHelper ? (
+        <p className="text-xs leading-relaxed text-[#1E1814]/60">{sectionHelper}</p>
+      ) : null}
+      {visibleActive.length === 0 ? (
         <p className="rounded-xl border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/80 px-4 py-4 text-center text-sm text-[#1E1814]/55">
           {bucket === "flyerAssets"
             ? OFERTAS_LOCALES_SHELL_COPY.uploadFlyerPlaceholder
             : OFERTAS_LOCALES_SHELL_COPY.uploadCouponPlaceholder}
         </p>
       ) : null}
-      {active.map((asset) => (
+      {visibleActive.map((asset) => (
         <AssetEditor
           key={asset.id}
           asset={asset}
@@ -446,26 +486,29 @@ export function OfertasLocalesDraftAssetSection({
           pendingFile={pendingFiles[asset.id]}
           uploading={uploadingIds.has(asset.id)}
           uploadError={uploadErrors[asset.id]}
+          showPageSection={showPageSection}
+          primaryFlyerMultiPageHelper={isPrimaryFlyerMode ? primaryFlyerMultiPageHelper : undefined}
           onChange={(patch) => updateAsset(asset.id, patch)}
           onRemove={() => removeAsset(asset.id)}
           onFileSelect={(file) => handleFileSelect(asset.id, file)}
           onUpload={() => void handleUpload(asset.id)}
         />
       ))}
-      <div className="flex flex-wrap gap-2">
-        {allowedTypes(bucket).map((t) => (
-          <button
-            key={t}
-            type="button"
-            className={BTN_SECONDARY}
-            disabled={atMax}
-            onClick={() => addAsset(t)}
-          >
-            + {labelForOfertaLocalDraftAssetType(t)}
-          </button>
-        ))}
-      </div>
-      {atMax ? (
+      {canAdd ? (
+        <div className="flex flex-wrap gap-2">
+          {allowedTypes(bucket).map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={BTN_SECONDARY}
+              onClick={() => addAsset(t)}
+            >
+              + {labelForOfertaLocalDraftAssetType(t, lang)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {!canAdd && sectionMode === "default" && allActive.length >= maxAssets(bucket) ? (
         <p className="text-xs text-[#1E1814]/50">
           Máximo {bucket === "flyerAssets" ? OFERTAS_LOCALES_MAX_FLYER_ASSETS : OFERTAS_LOCALES_MAX_COUPON_ASSETS}{" "}
           archivos en borrador.

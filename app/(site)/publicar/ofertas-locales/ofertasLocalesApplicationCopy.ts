@@ -30,15 +30,26 @@ const COPY = {
     laneCouponTermsLabel: "Términos o detalles",
     laneCouponValidDatesLabel: "Fechas de validez",
     laneShoppingMainFlyerAsset: "Archivo principal del volante",
+    laneShoppingMainFlyerAssetHelper:
+      "Sube el volante principal completo. Si el PDF tiene varias páginas, súbelo completo en un solo archivo.",
+    laneShoppingMainFlyerMultiPageHelper:
+      "Si tu PDF tiene varias páginas, súbelo completo. Leonix usará el archivo completo para mostrarlo y, si agregaste AI, preparar sugerencias para revisión.",
+    laneShoppingSupportingFlyerExtras: "Archivos adicionales del volante (anteriores)",
+    laneShoppingSupportingFlyerExtrasHelper:
+      "Estos archivos extra se conservan de un borrador anterior. Puedes quitarlos o mover el contenido al volante principal o a cupones adicionales.",
     laneShoppingAdditionalCoupons: "Cupones adicionales, si aplica",
-    laneCouponMainAsset: "Cupón principal o hoja de cupones",
+    laneShoppingAdditionalCouponsHelper:
+      "Si tienes cupones separados del volante principal, sube cada cupón como imagen o PDF individual para mejores resultados.",
+    laneCouponMainAsset: "Cupones o promociones",
+    laneCouponMainAssetHelper:
+      "Para mejores resultados, sube cada cupón como imagen o PDF individual. Si subes una hoja de cupones, se usará como archivo de referencia/revisión; no prometemos recorte automático en esta versión.",
     laneCouponAdditionalPromo: "Imagen o promoción adicional, si aplica",
     aiShoppingLaneBody:
-      "AI puede sugerir productos u ofertas desde archivos subidos para revisión antes de mostrarlos públicamente.",
+      "AI puede sugerir productos u ofertas desde archivos subidos para revisión antes de publicarse.",
     aiCouponsLaneBody:
-      "AI puede sugerir cupones individuales desde archivos subidos para revisión antes de mostrarlos públicamente.",
+      "AI puede sugerir cupones desde archivos subidos para revisión antes de publicarse. Los cupones individuales suelen dar mejores sugerencias que una hoja completa.",
     aiScanUploadFormats:
-      "Para escaneo AI, sube un PDF, JPG o PNG. Los enlaces externos se pueden mostrar como referencia, pero no se escanean en esta versión.",
+      "Para AI, sube archivos PDF, JPG o PNG. Los archivos subidos pueden usarse para sugerir productos, especiales o cupones para revisión antes de publicarse. Los enlaces externos se muestran como referencia y no se escanean en esta versión.",
     externalUrlReferenceOnly:
       "Enlace de referencia — no se escanea con AI en esta versión.",
     assetPageSectionLabel: "Página o sección",
@@ -135,8 +146,10 @@ const COPY = {
     validUntil: "Válido hasta",
     assetsUploadFile: "Subir archivo",
     assetsUploading: "Subiendo…",
-    assetsFileReceived: "Archivo recibido",
-    assetsUploadPending: "Archivo seleccionado — carga pendiente",
+    assetsFileReceived: "Archivo subido y guardado",
+    assetsUploadPending: "Archivo seleccionado. Haz clic en «Subir archivo» para guardarlo.",
+    step5UploadBeforeContinueWarning:
+      "Sube el archivo antes de continuar para que no se pierda al actualizar.",
     assetsUseExternalUrl: "Usar URL externa",
     assetsLinkAccepted: "Enlace aceptado",
     assetsExistingArchive: "Archivo existente",
@@ -261,15 +274,26 @@ const COPY = {
     laneCouponTermsLabel: "Terms or details",
     laneCouponValidDatesLabel: "Valid dates",
     laneShoppingMainFlyerAsset: "Main flyer file",
+    laneShoppingMainFlyerAssetHelper:
+      "Upload the full main flyer. If the PDF has multiple pages, upload the full file as one document.",
+    laneShoppingMainFlyerMultiPageHelper:
+      "If your PDF has multiple pages, upload the full file. Leonix will use the full file for display and, if you added AI, prepare suggestions for review.",
+    laneShoppingSupportingFlyerExtras: "Additional flyer files (legacy)",
+    laneShoppingSupportingFlyerExtrasHelper:
+      "These extra files are kept from an earlier draft. You can remove them or move content to the main flyer or additional coupons.",
     laneShoppingAdditionalCoupons: "Additional coupons, if applicable",
-    laneCouponMainAsset: "Main coupon or coupon sheet",
+    laneShoppingAdditionalCouponsHelper:
+      "If you have coupons separate from the main flyer, upload each coupon as an individual image or PDF for best results.",
+    laneCouponMainAsset: "Coupons or promotions",
+    laneCouponMainAssetHelper:
+      "For best results, upload each coupon as an individual image or PDF. If you upload a coupon sheet, it will be used as a reference/review file; automatic clipping is not promised in this version.",
     laneCouponAdditionalPromo: "Additional image or promotion, if applicable",
     aiShoppingLaneBody:
-      "AI can suggest products or deals from uploaded files for review before they appear publicly.",
+      "AI can suggest products or deals from uploaded files for review before publishing.",
     aiCouponsLaneBody:
-      "AI can suggest individual coupons from uploaded files for review before they appear publicly.",
+      "AI can suggest coupons from uploaded files for review before publishing. Individual coupons usually yield better suggestions than a full sheet.",
     aiScanUploadFormats:
-      "For AI scanning, upload a PDF, JPG, or PNG. External links can be shown as references, but they are not scanned in this version.",
+      "For AI, upload PDF, JPG, or PNG files. Uploaded files can be used to suggest products, specials, or coupons for review before publishing. External links are shown as references and are not scanned in this version.",
     externalUrlReferenceOnly:
       "Reference link — not AI-scanned in this version.",
     assetPageSectionLabel: "Page or section",
@@ -366,8 +390,10 @@ const COPY = {
     validUntil: "Valid until",
     assetsUploadFile: "Upload file",
     assetsUploading: "Uploading…",
-    assetsFileReceived: "File received",
-    assetsUploadPending: "Selected file — upload pending",
+    assetsFileReceived: "File uploaded and saved",
+    assetsUploadPending: 'File selected. Click "Upload file" to save it.',
+    step5UploadBeforeContinueWarning:
+      "Upload the file before continuing so it is not lost on refresh.",
     assetsUseExternalUrl: "Use external URL",
     assetsLinkAccepted: "Link accepted",
     assetsExistingArchive: "Existing archive file",
@@ -558,5 +584,6 @@ export function ofertasLocalesAssetCopy(lang: OfertasLocalesAppLang) {
     uploadLimitsHint: c.step5UploadLimitsHint,
     uploadWeeklyFlyerHint: c.step5UploadWeeklyFlyerHint,
     uploadPendingRefreshHint: c.step5UploadPendingRefreshHint,
+    uploadBeforeContinueWarning: c.step5UploadBeforeContinueWarning,
   };
 }
