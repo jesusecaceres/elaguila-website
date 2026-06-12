@@ -14,19 +14,20 @@ import { nextCityZipFromCityInput, nextCityZipFromZipInput } from "@/app/clasifi
 const COPY = {
   es: {
     title: "Ubicación",
-    desc: "Usa ciudad o ZIP para ubicar tu anuncio. Puedes escribir ciudad, ZIP o ambos. Si agregas ambos, deben coincidir. Esto ayuda a resultados cercanos y distancia aproximada más adelante.",
+    desc: "Agrega la ciudad donde está el artículo. El ZIP es opcional y ayuda a compradores cercanos a encontrarlo.",
     city: "Ciudad",
     zip: "ZIP",
-    zipHint: "Opcional. Si agregas un ZIP, debe coincidir con la ciudad.",
-    publishLocHint: "Agrega la ciudad o ubicación donde está el artículo.",
+    zipHint: "Opcional. Ingresa un ZIP de 5 dígitos si lo conoces.",
+    publishLocHint:
+      "Agrega la ciudad o ZIP donde está el artículo para ayudar a compradores cercanos a encontrarlo.",
   },
   en: {
     title: "Location",
-    desc: "Use city or ZIP to place your listing. You can enter city, ZIP, or both. If you enter both, they must match. This helps nearby results and approximate distance later.",
+    desc: "Add the city where the item is located. ZIP is optional and helps nearby buyers find it.",
     city: "City",
     zip: "ZIP",
-    zipHint: "Optional. If you add a ZIP, it must match the city.",
-    publishLocHint: "Add the city or location where the item is available.",
+    zipHint: "Optional. Enter a 5-digit ZIP if you know it.",
+    publishLocHint: "Add the city or ZIP where the item is to help nearby buyers find it.",
   },
 } as const;
 
@@ -53,10 +54,14 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
   }, [state.zip, state.city, setState]);
 
   const msg = validation.ok ? null : lang === "es" ? validation.messageEs : validation.messageEn;
-  const cityInvalid = !validation.ok && (validation.code === "bad_city" || validation.code === "mismatch");
-  const zipInvalid =
-    !validation.ok &&
-    (validation.code === "bad_zip" || validation.code === "mismatch" || validation.code === "incomplete_zip");
+  const warningMsg =
+    validation.ok && validation.warningEs
+      ? lang === "es"
+        ? validation.warningEs
+        : validation.warningEn ?? validation.warningEs
+      : null;
+  const cityInvalid = !validation.ok && validation.code === "missing_city";
+  const zipInvalid = !validation.ok && validation.code === "incomplete_zip";
 
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
@@ -65,6 +70,8 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
         <CityAutocomplete
           lang={lang}
           variant="light"
+          freeText
+          required
           label={t.city}
           value={state.city}
           onChange={(v) =>
@@ -73,7 +80,7 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
               return { ...s, city: next.city, zip: next.zip };
             })
           }
-          placeholder={lang === "es" ? "Ej: Modesto, San José…" : "e.g. Modesto, San Jose…"}
+          placeholder={lang === "es" ? "Ej: Modesto, Nueva York, San José…" : "e.g. Modesto, New York, San Jose…"}
           invalid={cityInvalid}
         />
       </div>
@@ -99,6 +106,11 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
       {msg ? (
         <p className="mt-3 rounded-xl border border-red-300/80 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">
           {msg}
+        </p>
+      ) : null}
+      {warningMsg ? (
+        <p className="mt-3 rounded-xl border border-amber-300/80 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          {warningMsg}
         </p>
       ) : null}
     </SectionShell>

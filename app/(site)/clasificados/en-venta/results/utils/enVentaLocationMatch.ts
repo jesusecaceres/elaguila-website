@@ -1,27 +1,29 @@
-import {
-  getCanonicalCityName,
-  normalizeZipInput,
-} from "@/app/data/locations/californiaLocationHelpers";
+import { getCanonicalCityName, normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
+import { normalizeEnVentaSearchText } from "../../taxonomy/synonyms";
+
+function cityMatchKey(raw: string): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return "";
+  return normalizeEnVentaSearchText(getCanonicalCityName(trimmed) || trimmed);
+}
 
 /**
- * City filter: prefer canonical NorCal/CA name equality; fall back to substring for legacy messy `listings.city` text.
+ * City filter: accent-insensitive equality or substring; works for any stored city text.
  */
 export function listingMatchesCityFilter(listingCityRaw: string, filterCityRaw: string): boolean {
   const f = (filterCityRaw ?? "").trim();
   if (!f) return true;
-  const filterCanon = getCanonicalCityName(f);
-  const filterKey = (filterCanon || f).toLowerCase().replace(/\s+/g, " ").trim();
-  const listingCanon = getCanonicalCityName(listingCityRaw);
-  const listingKey = (listingCanon || (listingCityRaw ?? "").trim()).toLowerCase().replace(/\s+/g, " ").trim();
+  const filterKey = cityMatchKey(f);
+  const listingKey = cityMatchKey(listingCityRaw);
   if (filterKey && listingKey && filterKey === listingKey) return true;
-  const loose = (listingCityRaw ?? "").toLowerCase();
-  return loose.includes(f.toLowerCase()) || (!!filterCanon && loose.includes(filterCanon.toLowerCase()));
+  const loose = normalizeEnVentaSearchText(listingCityRaw ?? "");
+  const fNorm = normalizeEnVentaSearchText(f);
+  return loose.includes(fNorm) || fNorm.includes(loose);
 }
 
 /**
  * ZIP filter: compare normalized 5-digit strings.
  * If the listing has no ZIP stored but a city filter matched, include the row (legacy sparse data).
- * Zip-only filter requires a ZIP match when the listing has a ZIP; listings without ZIP are excluded unless city matched.
  */
 export function listingMatchesZipFilter(
   listingZipRaw: string | null | undefined,

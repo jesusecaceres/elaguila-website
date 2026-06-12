@@ -42,7 +42,7 @@ export type EnVentaFreeApplicationState = {
   images: string[];
   /** Which thumbnail index is the principal listing image (0-based). */
   primaryImageIndex: number;
-  /** Raw or canonical California city (CityAutocomplete normalizes on blur). */
+  /** Trimmed city text; known CA cities may normalize to canonical names on blur. */
   city: string;
   zip: string;
   pickup: boolean;

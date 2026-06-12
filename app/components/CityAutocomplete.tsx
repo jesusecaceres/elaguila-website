@@ -69,6 +69,8 @@ export type CityAutocompleteProps = {
   onSelect?: () => void;
   /** When true, clear the field on blur if text does not resolve to a canonical NorCal city (strict filter key). */
   stripInvalidOnBlur?: boolean;
+  /** Allow any city text; suggestions remain hints only (no “pick from list” empty state). */
+  freeText?: boolean;
   /** Invalid state (e.g. after failed “next” in publish flow) */
   invalid?: boolean;
 };
@@ -86,6 +88,7 @@ export default function CityAutocomplete({
   onSelect,
   invalid = false,
   stripInvalidOnBlur = false,
+  freeText = false,
 }: CityAutocompleteProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -96,7 +99,7 @@ export default function CityAutocomplete({
   valueRef.current = value;
 
   const suggestions = useMemo(() => getSuggestions(value), [value]);
-  const showPanel = open && value.trim().length >= 1;
+  const showPanel = open && value.trim().length >= 1 && (!freeText || suggestions.length > 0);
 
   const selectValue = useCallback(
     (city: string) => {
@@ -145,7 +148,7 @@ export default function CityAutocomplete({
         e.preventDefault();
         if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
           selectValue(suggestions[highlightedIndex]);
-        } else if (suggestions.length > 0) {
+        } else if (!freeText && suggestions.length > 0) {
           selectValue(suggestions[0]);
         }
         return;
@@ -188,8 +191,13 @@ export default function CityAutocomplete({
       ? "px-4 py-3 text-sm text-[#5C5346]/80"
       : "px-4 py-3 text-sm text-[#111111]/60";
 
-  const noResultsText =
-    lang === "es" ? "No se encontró. Elige una ciudad de la lista." : "No results. Choose a city from the list.";
+  const noResultsText = freeText
+    ? lang === "es"
+      ? "Sigue escribiendo tu ciudad."
+      : "Keep typing your city."
+    : lang === "es"
+      ? "No se encontró. Elige una ciudad de la lista."
+      : "No results. Choose a city from the list.";
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>

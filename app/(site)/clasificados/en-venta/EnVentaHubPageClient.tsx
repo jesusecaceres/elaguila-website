@@ -212,19 +212,19 @@ export function EnVentaHubPageClient({
             />
           </label>
           <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:border-l sm:border-t-0">
-            <select
+            <input
               name="city"
-              defaultValue=""
+              type="text"
+              list="en-venta-hub-city-presets"
+              placeholder={t.cityPh}
               aria-label={t.cityPh}
-              className="w-full cursor-pointer rounded-lg border border-[#D6C7AD] bg-white px-2 py-1.5 text-sm"
-            >
-              <option value="">{t.cityPh}</option>
+              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
+            />
+            <datalist id="en-venta-hub-city-presets">
               {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:border-l sm:border-t-0">
             <span className="text-[#4A6678]" aria-hidden>
