@@ -1431,23 +1431,28 @@ function ComingSoonV2ShellContent() {
                 summary={qr.heroStripSummary}
               />
 
-              <div className="mt-3 flex min-w-0 flex-col gap-2 sm:mt-5 sm:flex-row sm:flex-wrap sm:items-stretch sm:gap-2.5">
-                <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
-                <HeroCtaLink
-                  cta={{
-                    label: h.magazineCta,
-                    href: dm.readHighlightsCta.href,
-                    variant: "green",
-                  }}
-                />
-                <HeroCtaLink cta={h.ctas[1]} />
-                <MediaKitDownloadLink
-                  label={mkp.downloadCta.label}
-                  href={mkp.downloadCta.href}
-                  tone="light"
-                />
-                <HeroCtaLink cta={h.ctas[0]} />
-                <HeroCtaLink cta={h.ctas[2]} />
+              <div className="mt-3 min-w-0 sm:mt-5">
+                <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 lg:gap-2.5 [&_a]:w-full">
+                  <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
+                  <HeroCtaLink
+                    cta={{
+                      label: h.magazineCta,
+                      href: dm.readHighlightsCta.href,
+                      variant: "green",
+                    }}
+                  />
+                  <HeroCtaLink cta={h.ctas[1]} />
+                  <MediaKitDownloadLink
+                    label={mkp.downloadCta.label}
+                    href={mkp.downloadCta.href}
+                    tone="light"
+                  />
+                </div>
+
+                <div className="mt-2.5 flex min-w-0 flex-col items-stretch gap-2 sm:mt-3 sm:flex-row sm:justify-center sm:gap-4 [&_a]:w-full sm:[&_a]:w-auto">
+                  <HeroCtaLink cta={h.ctas[0]} />
+                  <HeroCtaLink cta={h.ctas[2]} />
+                </div>
               </div>
 
               <ul
