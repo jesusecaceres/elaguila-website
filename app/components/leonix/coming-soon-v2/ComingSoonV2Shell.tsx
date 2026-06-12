@@ -142,6 +142,44 @@ function TrustChipIcon() {
   );
 }
 
+function HeroMainCtaGroup({
+  routeLang,
+  h,
+  dm,
+  mkp,
+}: {
+  routeLang: LeonixSiteLang;
+  h: ReturnType<typeof getComingSoonV2Copy>["hero"];
+  dm: ReturnType<typeof getComingSoonV2Copy>["digitalMagazine"];
+  mkp: ReturnType<typeof getComingSoonV2Copy>["mediaKitPreview"];
+}) {
+  return (
+    <div className="w-full min-w-0">
+      <div className="flex flex-col gap-2 sm:gap-2.5 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-start lg:gap-3 [&_a]:w-full sm:[&_a]:whitespace-nowrap lg:[&_a]:w-auto lg:[&_a]:shrink-0">
+        <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
+        <HeroCtaLink
+          cta={{
+            label: h.magazineCta,
+            href: dm.readHighlightsCta.href,
+            variant: "green",
+          }}
+        />
+        <HeroCtaLink cta={h.ctas[1]} />
+        <MediaKitDownloadLink
+          label={mkp.downloadCta.label}
+          href={mkp.downloadCta.href}
+          tone="light"
+        />
+      </div>
+
+      <div className="mt-2.5 flex min-w-0 flex-col items-stretch gap-2 sm:mt-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4 lg:gap-5 [&_a]:w-full sm:[&_a]:w-auto sm:[&_a]:whitespace-nowrap">
+        <HeroCtaLink cta={h.ctas[0]} />
+        <HeroCtaLink cta={h.ctas[2]} />
+      </div>
+    </div>
+  );
+}
+
 function HeroMediaVisual({
   label,
   qrOverlay,
@@ -1377,8 +1415,8 @@ function ComingSoonV2ShellContent() {
           className="pb-5 pt-2 sm:pb-12 sm:pt-3 lg:pb-14 lg:pt-4"
           aria-labelledby="hero-title"
         >
-          <div className="grid items-start gap-4 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-5 xl:gap-x-12">
-            <div className="min-w-0 max-w-3xl lg:col-start-1 lg:row-start-1 lg:max-w-none">
+          <div className="grid w-full min-w-0 items-start gap-4 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-5 xl:gap-x-12">
+            <div className="min-w-0 w-full lg:max-w-none">
               <p className="inline-flex rounded-full border border-[#C9A84A]/65 bg-[#FFFDF7] px-3.5 py-1 text-[0.68rem] font-bold tracking-[0.14em] text-[#7A1E2C] sm:text-xs">
                 {h.badge}
               </p>
@@ -1408,49 +1446,23 @@ function ComingSoonV2ShellContent() {
                 ))}
               </ul>
 
-              <p className="mt-4 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-[42rem]">
+              <p className="mt-4 max-w-[38rem] text-[0.9375rem] leading-snug text-[#3D3428] sm:mt-8 sm:text-[1.0625rem] sm:leading-relaxed lg:max-w-none">
                 {h.paragraph}
               </p>
-            </div>
 
-            <div className="min-w-0 max-w-3xl lg:col-start-1 lg:row-start-2 lg:max-w-none">
               <HeroQrAccessStrip
                 lang={routeLang}
                 eyebrow={qr.eyebrow}
                 callout={qr.callout}
                 summary={qr.heroStripSummary}
               />
-            </div>
 
-            <div className="min-w-0 lg:col-span-2 lg:row-start-3">
-              <div className="mx-auto w-full max-w-[68rem]">
-                <div className="flex flex-col gap-2 sm:gap-2.5 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-start lg:gap-3 [&_a]:w-full sm:[&_a]:whitespace-nowrap lg:[&_a]:w-auto lg:[&_a]:shrink-0">
-                  <HeroCtaLink cta={heroPromoProductsCta(routeLang)} />
-                  <HeroCtaLink
-                    cta={{
-                      label: h.magazineCta,
-                      href: dm.readHighlightsCta.href,
-                      variant: "green",
-                    }}
-                  />
-                  <HeroCtaLink cta={h.ctas[1]} />
-                  <MediaKitDownloadLink
-                    label={mkp.downloadCta.label}
-                    href={mkp.downloadCta.href}
-                    tone="light"
-                  />
-                </div>
-
-                <div className="mt-2.5 flex min-w-0 flex-col items-stretch gap-2 sm:mt-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4 lg:gap-5 [&_a]:w-full sm:[&_a]:w-auto sm:[&_a]:whitespace-nowrap">
-                  <HeroCtaLink cta={h.ctas[0]} />
-                  <HeroCtaLink cta={h.ctas[2]} />
-                </div>
+              <div className="mt-3 min-w-0 sm:mt-5 lg:hidden">
+                <HeroMainCtaGroup routeLang={routeLang} h={h} dm={dm} mkp={mkp} />
               </div>
-            </div>
 
-            <div className="min-w-0 max-w-3xl lg:col-start-1 lg:row-start-4 lg:max-w-none">
               <ul
-                className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-3 lg:mt-0"
+                className="mt-4 flex flex-col gap-1.5 sm:mt-6 sm:flex-row sm:flex-wrap sm:gap-3"
                 aria-label={h.trustAria}
               >
                 {h.trustChips.map((chip) => (
@@ -1469,8 +1481,11 @@ function ComingSoonV2ShellContent() {
               label={h.mediaVisual.label}
               qrOverlay={h.mediaVisual.qrOverlay}
               magazineAlt={h.mediaVisual.magazineAlt}
-              className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start"
             />
+          </div>
+
+          <div className="mt-3 hidden w-full min-w-0 sm:mt-5 lg:block">
+            <HeroMainCtaGroup routeLang={routeLang} h={h} dm={dm} mkp={mkp} />
           </div>
         </section>
 
