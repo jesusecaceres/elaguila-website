@@ -34,6 +34,7 @@ import { nearestCanonicalCityFromLatLng } from "./utils/enVentaNearestCity";
 import { EV_RESULTS_PARAM } from "./contracts/enVentaResultsUrlParams";
 import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
 import { EnVentaResultsChipsRow } from "./components/EnVentaResultsChipsRow";
+import { EnVentaResultsFiltersDrawer } from "./components/EnVentaResultsFiltersDrawer";
 import { EnVentaResultsListingSections } from "./components/EnVentaResultsListingSections";
 import {
   buildLocationSummaryLine,
@@ -52,6 +53,7 @@ import { enVentaQueryMatchesListing } from "./utils/buildEnVentaSearchText";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility";
 import { queryEnVentaBrowseListings } from "../lib/enVentaListingPublicSelect";
+import { EN_VENTA_HUB_CITY_PRESETS } from "../enVentaHubCityPresets";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
@@ -656,9 +658,16 @@ export function EnVentaResultsClient() {
     [lang, sp]
   );
 
+  const swipeHint = lang === "es" ? "Desliza →" : "Swipe →";
+
+  const applyFiltersFromDrawer = () => {
+    setFiltersPanelOpen(false);
+    (document.getElementById("ev-results-form") as HTMLFormElement | null)?.requestSubmit();
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-4 pb-16 pt-16 sm:px-6 lg:px-8">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-4 sm:px-6 sm:pt-6 lg:px-8">
         <header className="space-y-1 border-b border-[#D6C7AD]/50 pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
@@ -677,28 +686,18 @@ export function EnVentaResultsClient() {
           ) : null}
         </header>
 
-        {activeChips.length > 0 ? (
-          <div className="mt-2 w-full">
-            <EnVentaResultsChipsRow
-              label={t.activeFilters}
-              clearLabel={t.clearAll}
-              chips={activeChips}
-              onClearAll={resetFilters}
-            />
-          </div>
-        ) : null}
-
         <form
           id="ev-results-form"
           onSubmit={onSubmitSearch}
-          className="mt-3 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)]"
+          role="search"
+          className="mt-3 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:p-3"
         >
           <input type="hidden" name="lang" value={lang} />
           <input type="hidden" name="view" value={view} readOnly />
 
-          <div className="grid gap-2 sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 rounded-lg border border-[#D6C7AD] bg-white px-3 sm:col-span-5">
-              <span className="shrink-0 text-[#5C5346]" aria-hidden>
+          <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#D6C7AD] bg-white sm:grid sm:grid-cols-12 sm:items-stretch">
+            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 px-3 sm:col-span-5">
+              <span className="shrink-0 text-[#556B3E]" aria-hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="7" />
                   <path d="M20 20l-3-3" strokeLinecap="round" />
@@ -706,39 +705,49 @@ export function EnVentaResultsClient() {
               </span>
               <input
                 name="q"
+                type="search"
                 defaultValue={q}
                 placeholder={t.searchPh}
+                aria-label={t.searchPh}
                 className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[#1E1810] outline-none"
               />
             </label>
-            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 rounded-lg border border-[#D6C7AD] bg-white px-3 sm:col-span-3">
-              <span aria-hidden>📍</span>
+            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:border-l sm:border-t-0">
               <input
                 name="city"
+                type="text"
+                list="en-venta-results-city-presets"
                 defaultValue={city}
                 placeholder={t.cityPh}
+                aria-label={t.cityPh}
                 className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
               />
+              <datalist id="en-venta-results-city-presets">
+                {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </label>
-            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 rounded-lg border border-[#D6C7AD] bg-white px-3 sm:col-span-2">
-              <span className="text-[#4A6678]" aria-hidden>
-                #
-              </span>
+            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:border-l sm:border-t-0">
+              <span className="text-[#4A6678]" aria-hidden>#</span>
               <input
                 name="zip"
                 defaultValue={zip}
                 placeholder={t.zip}
                 inputMode="numeric"
                 maxLength={5}
+                aria-label={t.zip}
                 className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
               />
             </label>
-            <button
-              type="submit"
-              className="min-h-[2.5rem] rounded-lg bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-4 text-sm font-semibold text-[#1E1810] shadow-sm sm:col-span-2"
-            >
-              {t.go}
-            </button>
+            <div className="border-t border-[#D6C7AD] p-1.5 sm:col-span-2 sm:border-l sm:border-t-0">
+              <button
+                type="submit"
+                className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              >
+                {t.go}
+              </button>
+            </div>
           </div>
         </form>
 
@@ -746,7 +755,9 @@ export function EnVentaResultsClient() {
           <button
             type="button"
             onClick={() => setFiltersPanelOpen(true)}
-            className="rounded-full border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416] shadow-sm"
+            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3.5 py-2 text-xs font-semibold text-[#2F4A65] shadow-sm hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+            aria-haspopup="dialog"
+            aria-expanded={filtersPanelOpen}
           >
             {t.filtersOpen}
           </button>
@@ -755,7 +766,7 @@ export function EnVentaResultsClient() {
             <select
               value={sort}
               onChange={(e) => applySort(e.target.value as SortId)}
-              className="min-h-[36px] max-w-[11rem] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416]"
+              className="min-h-[36px] max-w-[11rem] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
               aria-label={t.sort}
             >
               {EN_VENTA_SORT_OPTIONS.map((o) => (
@@ -770,7 +781,7 @@ export function EnVentaResultsClient() {
             <select
               value={perPage}
               onChange={(e) => applyPerPage(Number(e.target.value))}
-              className="min-h-[36px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416]"
+              className="min-h-[36px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
               aria-label={`${t.perPage} ${t.perPageSuffix}`}
             >
               {EN_VENTA_PER_PAGE_OPTIONS.map((n) => (
@@ -780,222 +791,101 @@ export function EnVentaResultsClient() {
               ))}
             </select>
           </label>
-          <div className="flex items-center gap-1 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-0.5">
+          <div className="flex items-center gap-0.5 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-0.5" role="group" aria-label={t.viewLabel}>
             <button
               type="button"
               onClick={() => applyViewPreference("grid")}
-              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${view === "grid" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
+              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 ${
+                view === "grid"
+                  ? "bg-white text-[#1E1810] shadow-sm ring-1 ring-[#C9A84A]/30"
+                  : "text-[#5C5346]"
+              }`}
+              aria-pressed={view === "grid"}
             >
               {t.grid}
             </button>
             <button
               type="button"
               onClick={() => applyViewPreference("list")}
-              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${view === "list" ? "bg-white shadow-sm" : "text-[#5C5346]"}`}
+              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 ${
+                view === "list"
+                  ? "bg-white text-[#1E1810] shadow-sm ring-1 ring-[#C9A84A]/30"
+                  : "text-[#5C5346]"
+              }`}
+              aria-pressed={view === "list"}
             >
               {t.list}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="rounded-full border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-          >
-            {t.clearAll}
-          </button>
         </div>
 
-        {filtersPanelOpen ? (
-          <button
-            type="button"
-            className="fixed inset-0 z-[60] bg-black/35"
-            aria-label={t.close}
-            onClick={() => setFiltersPanelOpen(false)}
-          />
-        ) : null}
-
-        {filtersPanelOpen ? (
-          <div
-            className={
-              "fixed z-[61] flex flex-col overflow-hidden border border-[#E8DFD0] bg-[#FFFCF7] shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] " +
-              "inset-x-0 bottom-0 top-[8vh] rounded-t-[24px] max-lg:top-[6vh] " +
-              "lg:inset-x-auto lg:left-1/2 lg:top-[12vh] lg:max-h-[min(80vh,720px)] lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-2xl"
-            }
-            role="dialog"
-            aria-modal="true"
-            aria-label={t.filters}
-          >
-            <div className="flex items-center justify-between border-b border-[#E8DFD0]/80 px-4 py-3">
-              <span className="text-sm font-bold text-[#2C2416]">{t.filters}</span>
-              <button
-                type="button"
-                onClick={() => setFiltersPanelOpen(false)}
-                className="text-sm font-semibold text-[#2F4A65] underline underline-offset-2"
-              >
-                {t.close}
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7164]">{t.groupRefine}</p>
-              <p className="mt-1 text-xs text-[#3D3428]">{t.refineIntro}</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-                  {t.dept}
-                  <select
-                    form="ev-results-form"
-                    name="evDept"
-                    defaultValue={evDept}
-                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">{t.all}</option>
-                    {deptOptions.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-                  {t.sub}
-                  <select
-                    form="ev-results-form"
-                    name="evSub"
-                    defaultValue={evSub}
-                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">{t.all}</option>
-                    {subOptions.map((o) => (
-                      <option key={o.key} value={o.key}>
-                        {o.label[lang]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-                  {lang === "es" ? "Condición" : "Condition"}
-                  <select
-                    form="ev-results-form"
-                    name="cond"
-                    defaultValue={cond}
-                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">{t.all}</option>
-                    {condOptions.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-                  {t.seller}
-                  <select
-                    form="ev-results-form"
-                    name="seller"
-                    defaultValue={seller}
-                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="">{t.all}</option>
-                    <option value="individual">{t.ind}</option>
-                    <option value="business">{t.biz}</option>
-                  </select>
-                </label>
-                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-                  {t.priceMin}
-                  <input
-                    form="ev-results-form"
-                    name="priceMin"
-                    defaultValue={priceMin}
-                    inputMode="numeric"
-                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">
-                  {t.priceMax}
-                  <input
-                    form="ev-results-form"
-                    name="priceMax"
-                    defaultValue={priceMax}
-                    inputMode="numeric"
-                    className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-                  />
-                </label>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-3 border-t border-[#E8DFD0]/80 pt-4 text-sm text-[#3D3428]">
-                <label className="inline-flex items-center gap-2">
-                  <input form="ev-results-form" type="checkbox" name="pickup" defaultChecked={pickup} className="rounded border-[#C9B46A]" />
-                  {lang === "es" ? "Recogida" : "Pickup"}
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input form="ev-results-form" type="checkbox" name="ship" defaultChecked={ship} className="rounded border-[#C9B46A]" />
-                  {lang === "es" ? "Envío" : "Shipping"}
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input form="ev-results-form" type="checkbox" name="delivery" defaultChecked={delivery} className="rounded border-[#C9B46A]" />
-                  {lang === "es" ? "Entrega local" : "Local delivery"}
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input form="ev-results-form" type="checkbox" name="free" value="1" defaultChecked={freeOnly} className="rounded border-[#C9B46A]" />
-                  {t.freeOnly}
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input form="ev-results-form" type="checkbox" name="nego" value="1" defaultChecked={negotiableOnly} className="rounded border-[#C9B46A]" />
-                  {t.negoOnly}
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input
-                    form="ev-results-form"
-                    type="checkbox"
-                    name="meetupFilter"
-                    value="1"
-                    defaultChecked={meetupOnly}
-                    className="rounded border-[#C9B46A]"
-                  />
-                  {t.meetupOnly}
-                </label>
-                <label className="inline-flex w-full items-center gap-2 border-t border-[#E8DFD0]/60 pt-3">
-                  <input form="ev-results-form" type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="rounded border-[#C9B46A]" />
-                  <span>{t.featuredMode}</span>
-                </label>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E8DFD0]/70 pt-3">
-                <button
-                  type="button"
-                  onClick={onUseMyLocation}
-                  className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-2 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
-                >
-                  {t.useLocation}
-                </button>
-                {geoHint ? <span className="text-xs text-[#8B4513]">{geoHint}</span> : null}
-              </div>
-            </div>
-            <div className="border-t border-[#E8DFD0] bg-[#FFFCF7] p-4">
-              <button
-                type="button"
-                className="w-full rounded-full bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] px-6 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
-                onClick={() => {
-                  setFiltersPanelOpen(false);
-                  (document.getElementById("ev-results-form") as HTMLFormElement | null)?.requestSubmit();
-                }}
-              >
-                {t.applyFilters}
-              </button>
-            </div>
+        {activeChips.length > 0 ? (
+          <div className="mt-2 w-full">
+            <EnVentaResultsChipsRow
+              label={t.activeFilters}
+              clearLabel={t.clearAll}
+              chips={activeChips}
+              onClearAll={resetFilters}
+              swipeHint={swipeHint}
+            />
           </div>
         ) : null}
+
+        <EnVentaResultsFiltersDrawer
+          open={filtersPanelOpen}
+          lang={lang}
+          t={{
+            filters: t.filters,
+            close: t.close,
+            groupRefine: t.groupRefine,
+            refineIntro: t.refineIntro,
+            dept: t.dept,
+            sub: t.sub,
+            seller: t.seller,
+            all: t.all,
+            ind: t.ind,
+            biz: t.biz,
+            priceMin: t.priceMin,
+            priceMax: t.priceMax,
+            freeOnly: t.freeOnly,
+            negoOnly: t.negoOnly,
+            meetupOnly: t.meetupOnly,
+            featuredMode: t.featuredMode,
+            useLocation: t.useLocation,
+            applyFilters: t.applyFilters,
+          }}
+          evDept={evDept}
+          evSub={evSub}
+          cond={cond}
+          seller={seller}
+          priceMin={priceMin}
+          priceMax={priceMax}
+          pickup={pickup}
+          ship={ship}
+          delivery={delivery}
+          freeOnly={freeOnly}
+          negotiableOnly={negotiableOnly}
+          meetupOnly={meetupOnly}
+          featuredOnly={featuredOnly}
+          deptOptions={deptOptions}
+          condOptions={condOptions}
+          subOptions={subOptions}
+          geoHint={geoHint}
+          onClose={() => setFiltersPanelOpen(false)}
+          onApply={applyFiltersFromDrawer}
+          onUseMyLocation={onUseMyLocation}
+        />
 
         {loadErr ? <p className="mt-4 text-center text-sm text-red-700">{t.err}</p> : null}
 
         {!loading && !loadErr && total === 0 ? (
-          <div className="mt-6">
+          <div className="mt-4">
             <EnVentaResultsEmpty lang={lang} onReset={resetFilters} featuredOnly={featuredOnly} />
           </div>
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
-          <div className="mt-5 w-full">
+          <div className="mt-4 w-full sm:mt-5">
             <EnVentaResultsListingSections
               lang={lang}
               featuredOnly={featuredOnly}
@@ -1028,7 +918,7 @@ export function EnVentaResultsClient() {
           <div className="mt-8 text-center text-sm text-[#5C5346]">{t.loading}</div>
         ) : null}
 
-        <p className="mt-10 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
+        <p className="mt-8 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
 
         <div className="mt-6 text-center">
           <Link href={`/clasificados/en-venta?lang=${lang}`} className="text-sm font-semibold text-[#2A2620] underline">

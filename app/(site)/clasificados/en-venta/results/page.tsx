@@ -7,7 +7,7 @@ export default function EnVentaResultsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F3EBDD] pt-28 text-center text-sm text-[#5C5346]">Loading…</div>
+        <div className="min-h-screen bg-[#FAF6EE] pt-20 text-center text-sm text-[#5C5346]">Loading…</div>
       }
     >
       <EnVentaResultsClient />

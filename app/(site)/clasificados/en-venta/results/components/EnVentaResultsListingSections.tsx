@@ -64,7 +64,7 @@ export function EnVentaResultsListingSections({
   return (
     <>
       {!featuredOnly && promotedPool.length > 0 ? (
-        <section className="mt-10 w-full sm:mt-12" aria-labelledby="ev-promoted-heading">
+        <section className="mt-6 w-full sm:mt-8" aria-labelledby="ev-promoted-heading">
           <div className="mb-5 border-b border-[#E8DFD0]/80 pb-4">
             <h2 id="ev-promoted-heading" className="text-lg font-bold tracking-tight text-[#1E1810] sm:text-xl">
               {t.promoted}
