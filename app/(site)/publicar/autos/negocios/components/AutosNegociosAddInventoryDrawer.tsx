@@ -10,6 +10,7 @@ import {
   countApplicationInventoryVehicles,
   createEmptyInventoryVehicleDraft,
   prepareInventoryVehicleForSave,
+  resolveCanonicalChildInventoryEditorDraft,
   validateInventoryVehicleDraftForSave,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
@@ -55,26 +56,12 @@ function inventoryDraftFingerprint(v: AutosAdditionalInventoryVehicleDraft): str
   return JSON.stringify(rest);
 }
 
-function inventoryDraftHasUserEdits(v: AutosAdditionalInventoryVehicleDraft): boolean {
-  const empty = createEmptyInventoryVehicleDraft(v.id);
-  return inventoryDraftFingerprint(v) !== inventoryDraftFingerprint(empty);
-}
-
 function resolveDrawerInitialDraft(
   editingVehicle: AutosAdditionalInventoryVehicleDraft | null,
   inProgressDraft: AutosAdditionalInventoryVehicleDraft | null,
   drawerEditingId: string | null,
 ): AutosAdditionalInventoryVehicleDraft {
-  const contextId = editingVehicle?.id ?? null;
-  if (
-    inProgressDraft &&
-    drawerEditingId === contextId &&
-    (inventoryDraftHasUserEdits(inProgressDraft) || editingVehicle)
-  ) {
-    return { ...inProgressDraft };
-  }
-  if (editingVehicle) return { ...editingVehicle };
-  return createEmptyInventoryVehicleDraft();
+  return resolveCanonicalChildInventoryEditorDraft(editingVehicle, inProgressDraft, drawerEditingId);
 }
 
 export function AutosNegociosAddInventoryDrawer({
@@ -204,8 +191,8 @@ export function AutosNegociosAddInventoryDrawer({
         setError(autosAddInventorySaveRequiresFields(lang));
         return;
       }
-      if (flushDraft) await flushDraft();
       onInProgressChange?.(null);
+      if (flushDraft) await flushDraft();
       if (andAnother) {
         const empty = createEmptyInventoryVehicleDraft();
         setDraft(empty);

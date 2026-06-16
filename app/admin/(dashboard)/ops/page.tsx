@@ -3,9 +3,18 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
-import { adminCardBase, adminTableWrap, adminBtnSecondary, adminCtaChipCompact } from "../../_components/adminTheme";
+import {
+  adminCardBase,
+  adminTableWrap,
+  adminInputClass,
+  adminDashboardCtaPrimary,
+  adminDashboardCtaNeutral,
+  adminDashboardCtaView,
+  adminCtaChipCompact,
+} from "../../_components/adminTheme";
 import { runAdminUnifiedSearch } from "../../_lib/adminOpsUnifiedSearch";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
+import { OpsGlobalLookupEmptyState } from "./_components/OpsGlobalLookupEmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -39,16 +48,21 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
   const rErr = bundle?.reports.error ?? null;
 
   return (
-    <div className="max-w-5xl space-y-8">
+    <div className="min-w-0 max-w-5xl space-y-6 overflow-x-hidden" data-testid="ops-global-lookup-page">
       <AdminPageHeader
         eyebrow="Operations"
-        title="Customer & records search"
+        title={m("opsPage.title")}
         subtitle={m("opsPage.subtitle")}
         helperText={m("opsPage.helperText")}
       />
 
-      <form method="get" className={`${adminCardBase} space-y-3 p-5`} aria-describedby="ops-search-hint">
-        <label htmlFor="ops-q" className="text-sm font-semibold text-[#5C5346]">
+      <form
+        method="get"
+        className={`${adminCardBase} space-y-4 p-5 sm:p-6`}
+        aria-describedby="ops-search-hint"
+        data-testid="ops-global-search-form"
+      >
+        <label htmlFor="ops-q" className="text-sm font-bold text-[#1E1810]">
           {m("opsPage.searchLabel")}
         </label>
         <input
@@ -56,33 +70,36 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           name="q"
           type="search"
           defaultValue={q}
-          placeholder="Email, phone, name, account id, listing id, order id, order ref…"
-          className="w-full rounded-2xl border border-[#E8DFD0] bg-white px-4 py-3 text-base text-[#1E1810] placeholder:text-[#9A9084] focus:border-[#C9B46A] focus:outline-none focus:ring-2 focus:ring-[#D4BC6A]/50 sm:text-sm"
+          placeholder={m("opsPage.searchPlaceholder")}
+          className={adminInputClass}
           aria-describedby="ops-search-hint"
           autoComplete="off"
         />
-        <p id="ops-search-hint" className="text-[10px] leading-snug text-[#7A7164]">
+        <p id="ops-search-hint" className="text-xs leading-relaxed text-[#7A7164]">
           {m("opsPage.searchHint")}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <button
             type="submit"
-            className="min-h-[44px] rounded-2xl bg-[#2A2620] px-4 py-2.5 text-sm font-semibold text-[#FAF7F2] sm:min-h-0"
+            className={`${adminDashboardCtaPrimary} w-full`}
             title={m("opsPage.searchSubmitTitle")}
+            data-testid="ops-search-submit"
           >
             {m("opsPage.searchSubmit")}
           </button>
           <Link
             href="/admin/ops"
-            className={`${adminBtnSecondary} inline-flex min-h-[44px] items-center sm:min-h-0`}
+            className={`${adminDashboardCtaNeutral} w-full`}
             title={m("opsPage.clearTitle")}
+            data-testid="ops-search-clear"
           >
             {m("common.clear")}
           </Link>
           <Link
             href="/admin/usuarios"
-            className={`${adminBtnSecondary} inline-flex min-h-[44px] items-center sm:min-h-0`}
+            className={`${adminDashboardCtaView} w-full`}
             title={m("opsPage.usersOnlyTitle")}
+            data-testid="ops-users-only"
           >
             {m("opsPage.usersOnlyLink")}
           </Link>
@@ -90,7 +107,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
       </form>
 
       {!q ? (
-        <p className="text-sm text-[#5C5346]">Enter a term to search across accounts, ads, and print orders.</p>
+        <OpsGlobalLookupEmptyState lang={lang} />
       ) : bundle ? (
         <>
           <nav
@@ -132,7 +149,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             </div>
           )}
 
-          <section id="ops-profiles" className={`${adminCardBase} scroll-mt-24 p-5`}>
+          <section id="ops-profiles" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-profiles">
             <h2 className="text-base font-bold text-[#1E1810]">Profiles</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               Strategy: {bundle.profiles.strategy === "server_search" ? "Postgres match" : "—"} ·{" "}
@@ -258,7 +275,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section id="ops-listings" className={`${adminCardBase} scroll-mt-24 p-5`}>
+          <section id="ops-listings" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-listings">
             <h2 className="text-base font-bold text-[#1E1810]">{m("opsPage.listingsTitle")}</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               {m("opsPage.listingsSub")}{" "}
@@ -329,7 +346,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
-          <section id="ops-orders" className={`${adminCardBase} scroll-mt-24 p-5`}>
+          <section id="ops-orders" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-orders">
             <h2 className="text-base font-bold text-[#1E1810]">Tienda orders</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               <Link href={`/admin/tienda/orders?q=${encodeURIComponent(q)}`} className="font-bold text-[#6B5B2E] underline">

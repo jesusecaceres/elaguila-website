@@ -315,6 +315,147 @@ export function prepareInventoryVehicleForSave(
   };
 }
 
+function inventoryDraftContentFingerprint(v: AutosAdditionalInventoryVehicleDraft): string {
+  const { updatedAt, createdAt, status, ...rest } = v;
+  void updatedAt;
+  void createdAt;
+  void status;
+  return JSON.stringify(rest);
+}
+
+/** Hydrate editor form state with canonical child media/video fields (same shape as card + preview). */
+export function hydrateChildInventoryEditorDraft(
+  draft: AutosAdditionalInventoryVehicleDraft,
+): AutosAdditionalInventoryVehicleDraft {
+  const media = normalizeAutosVehicleMediaDraft(draft);
+  return {
+    ...draft,
+    ...media,
+    status: computeInventoryVehicleStatus({ ...draft, ...media }),
+  };
+}
+
+/** True when saved child has media/video but in-progress draft lost them (smoke escape). */
+export function inProgressChildMediaIsStaleVsSaved(
+  saved: AutosAdditionalInventoryVehicleDraft,
+  inProgress: AutosAdditionalInventoryVehicleDraft,
+): boolean {
+  const savedMedia = normalizeAutosVehicleMediaDraft(saved);
+  const inProgressMedia = normalizeAutosVehicleMediaDraft(inProgress);
+  const savedPhotos = savedMedia.mediaImages?.length ?? 0;
+  const progPhotos = inProgressMedia.mediaImages?.length ?? 0;
+  const savedVideos = savedMedia.videoUrls?.length ?? 0;
+  const progVideos = inProgressMedia.videoUrls?.length ?? 0;
+  return (savedPhotos > 0 && progPhotos === 0) || (savedVideos > 0 && progVideos === 0);
+}
+
+/** Overlay in-progress scalar edits on saved child; keep saved media unless in-progress has richer media. */
+export function mergeSavedChildInventoryWithInProgress(
+  saved: AutosAdditionalInventoryVehicleDraft,
+  inProgress: AutosAdditionalInventoryVehicleDraft,
+): AutosAdditionalInventoryVehicleDraft {
+  const savedHydrated = hydrateChildInventoryEditorDraft(saved);
+  const savedMedia = normalizeAutosVehicleMediaDraft(savedHydrated);
+  const inProgressMedia = normalizeAutosVehicleMediaDraft(inProgress);
+  const useInProgressMedia =
+    (inProgressMedia.mediaImages?.length ?? 0) > (savedMedia.mediaImages?.length ?? 0) ||
+    (inProgressMedia.videoUrls?.length ?? 0) > (savedMedia.videoUrls?.length ?? 0);
+  const media = useInProgressMedia ? inProgressMedia : savedMedia;
+  return hydrateChildInventoryEditorDraft({
+    ...savedHydrated,
+    ...inProgress,
+    ...media,
+    id: savedHydrated.id,
+    inventoryRole: "additional",
+    createdAt: savedHydrated.createdAt,
+  });
+}
+
+export function inventoryDraftHasUserEditsBeyondSaved(
+  inProgress: AutosAdditionalInventoryVehicleDraft,
+  saved: AutosAdditionalInventoryVehicleDraft,
+): boolean {
+  return inventoryDraftContentFingerprint(inProgress) !== inventoryDraftContentFingerprint(saved);
+}
+
+/**
+ * Single resolver for child editor open: card, preview, session, and editor must share this shape.
+ */
+export function resolveCanonicalChildInventoryEditorDraft(
+  editingVehicle: AutosAdditionalInventoryVehicleDraft | null,
+  inProgressDraft: AutosAdditionalInventoryVehicleDraft | null,
+  drawerEditingId: string | null,
+): AutosAdditionalInventoryVehicleDraft {
+  if (!editingVehicle) {
+    if (inProgressDraft && (!drawerEditingId || drawerEditingId === inProgressDraft.id)) {
+      return hydrateChildInventoryEditorDraft(inProgressDraft);
+    }
+    return createEmptyInventoryVehicleDraft();
+  }
+
+  const saved = hydrateChildInventoryEditorDraft(editingVehicle);
+  if (
+    !inProgressDraft ||
+    drawerEditingId !== editingVehicle.id ||
+    inProgressDraft.id !== editingVehicle.id
+  ) {
+    return saved;
+  }
+
+  if (!inventoryDraftHasUserEditsBeyondSaved(inProgressDraft, saved)) {
+    return saved;
+  }
+
+  if (inProgressChildMediaIsStaleVsSaved(saved, inProgressDraft)) {
+    return mergeSavedChildInventoryWithInProgress(saved, inProgressDraft);
+  }
+
+  return hydrateChildInventoryEditorDraft(inProgressDraft);
+}
+
+/** Reconcile session in-progress draft against saved additionalInventoryVehicles after hydrate/rehydrate. */
+export function reconcileInProgressInventoryWithSavedChildren(
+  additional: AutosAdditionalInventoryVehicleDraft[],
+  inProgress: AutosAdditionalInventoryVehicleDraft | null,
+  drawerEditingId: string | null,
+): AutosAdditionalInventoryVehicleDraft | null {
+  if (!inProgress) return null;
+  if (!drawerEditingId || inProgress.id !== drawerEditingId) {
+    return hydrateChildInventoryEditorDraft(inProgress);
+  }
+  const saved = additional.find((v) => v.id === drawerEditingId);
+  if (!saved) return hydrateChildInventoryEditorDraft(inProgress);
+  if (inProgressChildMediaIsStaleVsSaved(saved, inProgress)) {
+    return mergeSavedChildInventoryWithInProgress(saved, inProgress);
+  }
+  return hydrateChildInventoryEditorDraft(inProgress);
+}
+
+export function summarizeChildInventoryMediaDraft(
+  draft: AutosAdditionalInventoryVehicleDraft | null | undefined,
+): {
+  id: string | null;
+  mediaImagesCount: number;
+  videoUrlsCount: number;
+  coverId: string | null;
+  hasUrlImages: boolean;
+} {
+  if (!draft) {
+    return { id: null, mediaImagesCount: 0, videoUrlsCount: 0, coverId: null, hasUrlImages: false };
+  }
+  const media = normalizeAutosVehicleMediaDraft(draft);
+  const images = media.mediaImages ?? [];
+  const videos = media.videoUrls ?? [];
+  const cover = images.find((m) => m.isPrimary) ?? images[0];
+  return {
+    id: draft.id,
+    mediaImagesCount: images.length,
+    videoUrlsCount: videos.length,
+    coverId: cover?.id ?? null,
+    hasUrlImages: images.some((m) => m.sourceType === "url"),
+  };
+}
+
 export function inventoryVehicleCoverUrl(draft: AutosAdditionalInventoryVehicleDraft): string | null {
   const ordered = normalizeMediaImagesOrder(draft.mediaImages ?? []);
   const cover = ordered.find((m) => m.isPrimary) ?? ordered[0];

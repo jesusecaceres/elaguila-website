@@ -48,6 +48,8 @@ import {
   applicationCanAddInventoryVehicle,
   normalizeAdditionalInventoryVehicles,
   prepareInventoryVehicleForSave,
+  reconcileInProgressInventoryWithSavedChildren,
+  hydrateChildInventoryEditorDraft,
   validateInventoryVehicleDraftForSave,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
@@ -119,15 +121,21 @@ export function useAutoDealerDraft() {
           ? { ...d.listing, heroImages: d.listing.heroImages ?? [] }
           : safeNormalizeAutosDraftListing(d.listing, "negocios"),
       );
-      const additional = opts?.fromResolvedLoad
+      const additionalRaw = opts?.fromResolvedLoad
         ? d.additionalInventoryVehicles ?? []
         : normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles);
+      const additional = additionalRaw.map(hydrateChildInventoryEditorDraft);
       additionalInventoryRef.current = additional;
       setAdditionalInventoryVehicles(additional);
-      const inProgress = d.inProgressInventoryVehicleDraft ?? null;
+      const drawerEditingId = d.inventoryDrawerEditingId ?? null;
+      const inProgressRaw = d.inProgressInventoryVehicleDraft ?? null;
+      const inProgress = reconcileInProgressInventoryWithSavedChildren(
+        additional,
+        inProgressRaw,
+        drawerEditingId,
+      );
       inProgressInventoryRef.current = inProgress;
       setInProgressInventoryVehicleDraft(inProgress);
-      const drawerEditingId = d.inventoryDrawerEditingId ?? null;
       inventoryDrawerEditingIdRef.current = drawerEditingId;
       setInventoryDrawerEditingId(drawerEditingId);
       const drawerOpen = d.inventoryDrawerOpen === true;
@@ -409,6 +417,10 @@ export function useAutoDealerDraft() {
     const next = i >= 0 ? prev.map((v, j) => (j === i ? prepared : v)) : [...prev, prepared];
     additionalInventoryRef.current = next;
     setAdditionalInventoryVehicles(next);
+    if (inProgressInventoryRef.current?.id === prepared.id) {
+      inProgressInventoryRef.current = null;
+      setInProgressInventoryVehicleDraft(null);
+    }
     return true;
   }, []);
 
