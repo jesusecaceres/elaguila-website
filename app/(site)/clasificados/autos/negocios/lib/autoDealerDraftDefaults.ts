@@ -1,7 +1,7 @@
 import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerListing";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { deriveHeroImageUrls, migrateHeroImagesToMediaImages, normalizeMediaImagesOrder } from "./autoDealerHeroImages";
-import { dedupeAutosVideoUrls, migrateLegacyAutosVideoUrl } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
+import { applyAutosVehicleMediaDraftFields } from "@/app/lib/clasificados/autos/autosVehicleMediaDraft";
 import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { coerceEngineFromCatalog } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
@@ -214,19 +214,8 @@ export function normalizeLoadedListing(
 
   merged.mediaImages = normalizeMediaImagesOrder(merged.mediaImages);
 
-  merged.videoUrls = migrateLegacyAutosVideoUrl(raw.videoUrls, merged.videoUrl);
-  if (merged.videoUrls.length) {
-    merged.videoUrl = merged.videoUrls[0];
-    merged.videoSourceType = "url";
-  }
-  merged.videoFileDataUrl = undefined;
-  merged.videoFileName = undefined;
-  if (merged.videoSourceType === "file") {
-    merged.videoSourceType = merged.videoUrls.length ? "url" : null;
-  }
-  merged.videoUploadStatus = merged.videoUrls.length ? "local_preview" : null;
+  applyAutosVehicleMediaDraftFields(merged, raw);
 
   const withAddress = syncDealerAddressFromStructured(merged);
-  withAddress.heroImages = deriveHeroImageUrls(withAddress);
   return withAddress;
 }

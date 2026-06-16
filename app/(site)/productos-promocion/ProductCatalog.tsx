@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
-import { navCopyLang, type SupportedLang } from "@/app/lib/language";
+import type { SupportedLang } from "@/app/lib/language";
+import { getProductosPromocionPageCopy, type ProductosPromocionPageCopy } from "@/app/lib/leonix/productosPromocionPageCopy";
 import {
   CATALOG_CATEGORIES,
   CUSTOM_QUOTE_SERVICE_SLUG,
@@ -13,9 +14,7 @@ import {
   type Product,
   type CatalogCategory,
 } from "./catalogData";
-
-/** Product UI strings — es/en only until PROMO-LANG1 full community copy. */
-type CopyLang = "es" | "en";
+import { resolvePromoProductFields } from "./promoProductCopy";
 
 const CATEGORY_ICONS: Record<CategoryId, string> = {
   "business-cards": "🪪",
@@ -39,11 +38,7 @@ const CONTACT = {
     "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20201%20San%20Jose%20CA%2095110",
 } as const;
 
-function promoMailtoHref(lang: CopyLang): string {
-  const subject =
-    lang === "en"
-      ? "Quote request — Promotional Products"
-      : "Solicitud de cotización — Productos para Promoción";
+function promoMailtoHref(subject: string): string {
   return `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}`;
 }
 
@@ -61,13 +56,18 @@ function outlineBtnProps(): CSSProperties {
   return { background: "var(--lx-card)", color: "var(--lx-text)", borderColor: "var(--lx-border)" };
 }
 
-function ProductCardImage({ product, lang }: { product: Product; lang: CopyLang }) {
+function productImageAlt(product: Product, routeLang: SupportedLang, title: string): string {
+  if (routeLang === "es") return product.imageAltEs ?? title;
+  return product.imageAltEn ?? title;
+}
+
+function ProductCardImage({ product, routeLang }: { product: Product; routeLang: SupportedLang }) {
   const [loadFailed, setLoadFailed] = useState(false);
-  const title = product[lang].title;
-  const alt = lang === "es" ? (product.imageAltEs ?? title) : (product.imageAltEn ?? title);
+  const { title } = resolvePromoProductFields(product, routeLang);
+  const alt = productImageAlt(product, routeLang, title);
 
   if (!product.imageSrc || loadFailed) {
-    return <ProductImagePlaceholder product={product} lang={lang} />;
+    return <ProductImagePlaceholder product={product} routeLang={routeLang} />;
   }
 
   return (
@@ -84,8 +84,8 @@ function ProductCardImage({ product, lang }: { product: Product; lang: CopyLang 
   );
 }
 
-function ProductImagePlaceholder({ product, lang }: { product: Product; lang: CopyLang }) {
-  const title = product[lang].title;
+function ProductImagePlaceholder({ product, routeLang }: { product: Product; routeLang: SupportedLang }) {
+  const { title } = resolvePromoProductFields(product, routeLang);
   const initials = title
     .split(/\s+/)
     .filter(Boolean)
@@ -131,16 +131,14 @@ function ProductImagePlaceholder({ product, lang }: { product: Product; lang: Co
 
 function ProductCard({
   product,
-  lang,
+  pageCopy,
   routeLang,
 }: {
   product: Product;
-  lang: CopyLang;
+  pageCopy: ProductosPromocionPageCopy;
   routeLang: SupportedLang;
 }) {
-  const title = product[lang].title;
-  const subtitle = product[lang].subtitle;
-  const ctaLabel = lang === "es" ? "Solicitar cotización" : "Request Quote";
+  const { title, subtitle } = resolvePromoProductFields(product, routeLang);
   const href = quoteHref(routeLang, product.slug);
 
   return (
@@ -148,7 +146,7 @@ function ProductCard({
       className="flex flex-col overflow-hidden rounded-2xl border"
       style={{ background: "var(--lx-card)", borderColor: "var(--lx-border)", boxShadow: "0 2px 8px rgba(42,36,22,0.07)" }}
     >
-      <ProductCardImage product={product} lang={lang} />
+      <ProductCardImage product={product} routeLang={routeLang} />
       <div className="flex flex-1 flex-col gap-3 p-4">
         {product.subcategory ? (
           <span
@@ -170,7 +168,7 @@ function ProductCard({
             onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
           >
-            {ctaLabel}
+            {pageCopy.requestQuote}
           </Link>
         </div>
       </div>
@@ -234,11 +232,13 @@ function ContactActionLink({
   );
 }
 
-function HeroContactActions({ lang, routeLang }: { lang: CopyLang; routeLang: SupportedLang }) {
-  const quoteLabel = lang === "es" ? "Solicitar cotización" : "Request quote";
-  const callLabel = lang === "es" ? "Llamar" : "Call";
-  const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
-
+function HeroContactActions({
+  pageCopy,
+  routeLang,
+}: {
+  pageCopy: ProductosPromocionPageCopy;
+  routeLang: SupportedLang;
+}) {
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="flex flex-wrap justify-center gap-3">
@@ -246,13 +246,13 @@ function HeroContactActions({ lang, routeLang }: { lang: CopyLang; routeLang: Su
           href={generalQuoteHref(routeLang)}
           className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
         >
-          {quoteLabel}
+          {pageCopy.requestQuote}
         </Link>
         <a
           href={CONTACT.phoneTel}
           className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2.5 text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
         >
-          {callLabel}
+          {pageCopy.call}
         </a>
         <a
           href={CONTACT.mapUrl}
@@ -260,13 +260,13 @@ function HeroContactActions({ lang, routeLang }: { lang: CopyLang; routeLang: Su
           rel="noopener noreferrer"
           className="inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2.5 text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
         >
-          {mapLabel}
+          {pageCopy.openMap}
         </a>
       </div>
       <LeonixEmailContactBlock
         email={CONTACT.email}
-        mailtoHref={promoMailtoHref(lang)}
-        lang={lang}
+        mailtoHref={promoMailtoHref(pageCopy.mailtoSubject)}
+        lang={routeLang}
         shareTitle={CONTACT.businessName}
         showEmail={false}
         className="flex justify-center"
@@ -275,15 +275,13 @@ function HeroContactActions({ lang, routeLang }: { lang: CopyLang; routeLang: Su
   );
 }
 
-function BottomContactBlock({ lang, routeLang }: { lang: CopyLang; routeLang: SupportedLang }) {
-  const heading = lang === "es" ? "¿Prefieres hablarlo en persona?" : "Prefer to talk in person?";
-  const body =
-    lang === "es"
-      ? "Visítanos, llámanos o envíanos un correo. Te ayudamos a elegir los productos correctos para tu negocio."
-      : "Visit us, call us, or send us an email. We can help you choose the right products for your business.";
-  const mapLabel = lang === "es" ? "Abrir mapa" : "Open map";
-  const callLabel = lang === "es" ? "Llamar" : "Call";
-
+function BottomContactBlock({
+  pageCopy,
+  routeLang,
+}: {
+  pageCopy: ProductosPromocionPageCopy;
+  routeLang: SupportedLang;
+}) {
   return (
     <section
       className="px-4 py-10 sm:px-8 sm:py-14"
@@ -291,10 +289,10 @@ function BottomContactBlock({ lang, routeLang }: { lang: CopyLang; routeLang: Su
     >
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="text-lg font-bold sm:text-xl" style={{ color: "var(--lx-text)" }}>
-          {heading}
+          {pageCopy.bottomHeading}
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
-          {body}
+          {pageCopy.bottomBody}
         </p>
 
         <address
@@ -311,8 +309,8 @@ function BottomContactBlock({ lang, routeLang }: { lang: CopyLang; routeLang: Su
           <div className="mt-3">
             <LeonixEmailContactBlock
               email={CONTACT.email}
-              mailtoHref={promoMailtoHref(lang)}
-              lang={lang}
+              mailtoHref={promoMailtoHref(pageCopy.mailtoSubject)}
+              lang={routeLang}
               shareTitle={CONTACT.businessName}
               className="text-left sm:text-center [&_p]:sm:justify-center [&>div:last-child]:sm:justify-center"
             />
@@ -325,10 +323,10 @@ function BottomContactBlock({ lang, routeLang }: { lang: CopyLang; routeLang: Su
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
             style={{ background: OLIVE_BG, color: OLIVE_FG }}
           >
-            {lang === "es" ? "Solicitar cotización" : "Request quote"}
+            {pageCopy.requestQuote}
           </Link>
-          <ContactActionLink href={CONTACT.mapUrl} label={mapLabel} external />
-          <ContactActionLink href={CONTACT.phoneTel} label={callLabel} />
+          <ContactActionLink href={CONTACT.mapUrl} label={pageCopy.openMap} external />
+          <ContactActionLink href={CONTACT.phoneTel} label={pageCopy.call} />
         </div>
       </div>
     </section>
@@ -337,20 +335,14 @@ function BottomContactBlock({ lang, routeLang }: { lang: CopyLang; routeLang: Su
 
 function AdditionalProductsSection({
   products,
-  lang,
+  pageCopy,
   routeLang,
 }: {
   products: Product[];
-  lang: CopyLang;
+  pageCopy: ProductosPromocionPageCopy;
   routeLang: SupportedLang;
 }) {
   if (products.length === 0) return null;
-
-  const heading = lang === "es" ? "También podemos cotizar" : "We can also quote";
-  const helper =
-    lang === "es"
-      ? "Si no ves exactamente lo que necesitas, también podemos ayudarte a conseguirlo."
-      : "If you do not see exactly what you need, we can still help you quote it.";
 
   return (
     <div
@@ -358,10 +350,10 @@ function AdditionalProductsSection({
       style={{ background: "var(--lx-section)", borderColor: "var(--lx-border)" }}
     >
       <h3 className="text-base font-bold sm:text-lg" style={{ color: "var(--lx-text)" }}>
-        {heading}
+        {pageCopy.additionalHeading}
       </h3>
       <p className="mt-1.5 text-xs leading-relaxed sm:text-sm" style={{ color: "var(--lx-text-2)", opacity: 0.9 }}>
-        {helper}
+        {pageCopy.additionalHelper}
       </p>
       <ul className="mt-4 flex flex-wrap gap-2" role="list">
         {products.map((product) => (
@@ -375,7 +367,7 @@ function AdditionalProductsSection({
                 color: "var(--lx-text)",
               }}
             >
-              <span className="truncate">{product[lang].title}</span>
+              <span className="truncate">{resolvePromoProductFields(product, routeLang).title}</span>
             </Link>
           </li>
         ))}
@@ -384,20 +376,20 @@ function AdditionalProductsSection({
   );
 }
 
-function TabCustomQuoteCta({ lang, routeLang }: { lang: CopyLang; routeLang: SupportedLang }) {
-  const callout =
-    lang === "es"
-      ? "¿No ves lo que necesitas? Te ayudamos a cotizarlo."
-      : "Do not see what you need? We can help quote it.";
-  const btnLabel = lang === "es" ? "Solicitar cotización personalizada" : "Request custom quote";
-
+function TabCustomQuoteCta({
+  pageCopy,
+  routeLang,
+}: {
+  pageCopy: ProductosPromocionPageCopy;
+  routeLang: SupportedLang;
+}) {
   return (
     <div
       className="mt-8 rounded-2xl border px-5 py-6 text-center sm:px-8"
       style={{ background: "var(--lx-card)", borderColor: "var(--lx-border)" }}
     >
       <p className="text-sm font-semibold leading-relaxed sm:text-base" style={{ color: "var(--lx-text)" }}>
-        {callout}
+        {pageCopy.customQuoteCallout}
       </p>
       <Link
         href={quoteHref(routeLang, CUSTOM_QUOTE_SERVICE_SLUG)}
@@ -406,18 +398,21 @@ function TabCustomQuoteCta({ lang, routeLang }: { lang: CopyLang; routeLang: Sup
         onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_HOVER; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = OLIVE_BG; }}
       >
-        {btnLabel}
+        {pageCopy.customQuoteBtn}
       </Link>
     </div>
   );
 }
 
 function CategoryTabs({
-  categories, active, lang, onSelect,
+  categories,
+  active,
+  pageCopy,
+  onSelect,
 }: {
   categories: CatalogCategory[];
   active: CategoryId;
-  lang: CopyLang;
+  pageCopy: ProductosPromocionPageCopy;
   onSelect: (id: CategoryId) => void;
 }) {
   return (
@@ -425,7 +420,7 @@ function CategoryTabs({
       className="flex gap-1 overflow-x-auto pb-1"
       style={{ scrollbarWidth: "none" }}
       role="tablist"
-      aria-label={lang === "es" ? "Categorías de productos" : "Product categories"}
+      aria-label={pageCopy.categoryTabsAria}
     >
       {categories.map((cat) => {
         const isActive = cat.id === active;
@@ -443,7 +438,7 @@ function CategoryTabs({
             }
           >
             <span aria-hidden="true">{CATEGORY_ICONS[cat.id]}</span>
-            {cat[lang].label}
+            {pageCopy.categories[cat.id].label}
           </button>
         );
       })}
@@ -452,70 +447,69 @@ function CategoryTabs({
 }
 
 export function ProductCatalog({ routeLang }: { routeLang: SupportedLang }) {
-  const lang = navCopyLang(routeLang);
+  const pageCopy = getProductosPromocionPageCopy(routeLang);
   const [activeId, setActiveId] = useState<CategoryId>("business-cards");
 
   const activeCategory = CATALOG_CATEGORIES.find((c) => c.id === activeId) ?? CATALOG_CATEGORIES[0];
+  const activeCategoryCopy = pageCopy.categories[activeId];
 
-  const heroTitle = lang === "es" ? "Productos para Promoción" : "Promotional Products";
-  const heroSubtitle =
-    lang === "es"
-      ? "Todo lo que necesitas para presentar, promocionar y hacer crecer tu negocio: tarjetas, volantes, letreros, banners, artículos promocionales y más."
-      : "Everything you need to present, promote, and grow your business: cards, flyers, signs, banners, promotional items, and more.";
-  const helperCopy =
-    lang === "es"
-      ? "Explora algunos de los productos que podemos ayudarte a conseguir. Si no lo ves aquí, también podemos cotizarlo."
-      : "Explore some of the products we can help you source. If you do not see it here, we can still quote it.";
   return (
     <div lang={routeLang} style={{ background: "var(--lx-page)" }}>
-      {/* ── HERO (header only — catalog grid below is unchanged) ─────── */}
       <section className="border-b border-[#D6C7AD] bg-[#FAF6EE] px-4 py-8 sm:px-8 sm:py-10">
         <div className="relative mx-auto max-w-3xl text-center">
           <div className="mb-4 flex justify-end">
             <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/productos-promocion" />
           </div>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
-            {lang === "es" ? "PRODUCTOS PROMOCIONALES · LEONIX" : "PROMOTIONAL PRODUCTS · LEONIX"}
+            {pageCopy.heroEyebrow}
           </p>
           <h1 className="mt-3 font-serif text-3xl font-bold leading-tight tracking-tight text-[#2A4536] sm:text-4xl">
-            {heroTitle}
+            {pageCopy.heroTitle}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
-            {heroSubtitle}
+            {pageCopy.heroSubtitle}
           </p>
           <div className="mt-8">
-            <HeroContactActions lang={lang} routeLang={routeLang} />
+            <HeroContactActions pageCopy={pageCopy} routeLang={routeLang} />
           </div>
         </div>
       </section>
 
-      {/* ── CATALOG BODY ─────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-8">
-          <CategoryTabs categories={CATALOG_CATEGORIES} active={activeId} lang={lang} onSelect={setActiveId} />
+          <CategoryTabs
+            categories={CATALOG_CATEGORIES}
+            active={activeId}
+            pageCopy={pageCopy}
+            onSelect={setActiveId}
+          />
           <p className="mt-3 text-xs" style={{ color: "var(--lx-muted)" }}>
-            {activeCategory[lang].description}
+            {activeCategoryCopy.description}
           </p>
           <p className="mt-1 text-xs italic" style={{ color: "var(--lx-muted)", opacity: 0.8 }}>
-            {helperCopy}
+            {pageCopy.helperCopy}
           </p>
         </div>
 
-        <div role="tabpanel" aria-label={activeCategory[lang].label}>
+        <div role="tabpanel" aria-label={activeCategoryCopy.label}>
           {activeCategory.featuredProducts.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {activeCategory.featuredProducts.map((product) => (
-                <ProductCard key={product.slug} product={product} lang={lang} routeLang={routeLang} />
+                <ProductCard key={product.slug} product={product} pageCopy={pageCopy} routeLang={routeLang} />
               ))}
             </div>
           ) : null}
 
-          <AdditionalProductsSection products={activeCategory.additionalProducts} lang={lang} routeLang={routeLang} />
-          <TabCustomQuoteCta lang={lang} routeLang={routeLang} />
+          <AdditionalProductsSection
+            products={activeCategory.additionalProducts}
+            pageCopy={pageCopy}
+            routeLang={routeLang}
+          />
+          <TabCustomQuoteCta pageCopy={pageCopy} routeLang={routeLang} />
         </div>
       </section>
 
-      <BottomContactBlock lang={lang} routeLang={routeLang} />
+      <BottomContactBlock pageCopy={pageCopy} routeLang={routeLang} />
     </div>
   );
 }

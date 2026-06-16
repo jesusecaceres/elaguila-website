@@ -155,26 +155,45 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
     deviceChoiceIphone: "iPhone / Apple",
     deviceChoiceWeb: "Máy tính / Web",
     lensWebFallback: "Nếu không mở được, dùng Lens web",
+    appleTranslateFallback:
+      "Nếu Apple Translate không mở, hãy cài hoặc mở từ App Store.",
     android: {
-      ...TRANSLATOR_EN.android,
       title: "Android / Samsung / Google",
       bestFor:
         "Tốt nhất để dịch tạp chí in, màn hình, ảnh chụp và trang trực quan bằng Google Lens.",
+      steps: [
+        "Chạm “Mở Google Lens trên Android”.",
+        "Nếu app mở, hướng vào tạp chí, màn hình hoặc ảnh chụp.",
+        "Chạm Dịch.",
+        "Chọn ngôn ngữ của bạn.",
+        "Quay lại Leonix để dùng liên kết, bản đồ, Media Kit và hành động.",
+      ],
       openLensCta: "Mở Google Lens trên Android",
       translateCta: "Dịch LeonixMedia.com bằng Google",
     },
     iphone: {
-      ...TRANSLATOR_EN.iphone,
       title: "iPhone / Apple",
       bestFor:
         "Tốt nhất để dùng Apple Translate, Camera/Live Text hoặc ảnh chụp từ Photos.",
+      steps: [
+        "Chạm “Mở Apple Translate trên iPhone”.",
+        "Nếu Apple Translate mở, hướng camera hoặc dùng Live Text.",
+        "Nếu không mở, cài hoặc mở từ App Store.",
+        "Chọn ngôn ngữ và quay lại Leonix.",
+      ],
+      openLensCta: "Mở Apple Translate trên iPhone",
       translateCta: "Dịch LeonixMedia.com bằng Google",
     },
     web: {
-      ...TRANSLATOR_EN.web,
       title: "Máy tính / Web",
       bestFor:
         "Tốt nhất để duyệt LeonixMedia.com bằng ngôn ngữ khác với Google Translate Website Mode.",
+      steps: [
+        "Chạm “Dịch LeonixMedia.com bằng Google”.",
+        "Google Translate sẽ mở LeonixMedia.com đã tải sẵn.",
+        "Chọn ngôn ngữ nếu cần.",
+        "Để liên hệ, quảng cáo, newsletter và báo giá, hãy dùng biểu mẫu Leonix.",
+      ],
       translateCta: "Dịch LeonixMedia.com bằng Google",
     },
     fullQrGuideCta: "Xem hướng dẫn QR đầy đủ",

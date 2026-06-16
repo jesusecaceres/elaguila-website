@@ -253,10 +253,22 @@ export function getJune2026CompanionCopy(lang: SupportedLang): June2026Companion
 
 /** CTA label for read page → companion entry. */
 export function getCompanionOpenLabel(lang: SupportedLang): string {
-  if (lang === "es") return "Abrir versión legible";
-  if (lang === "pt") return "Abrir versão legível";
-  if (lang === "ja") return "読みやすい版を開く";
-  return "Open readable companion";
+  const labels: Partial<Record<SupportedLang, string>> = {
+    es: "Abrir versión legible",
+    en: "Open readable companion",
+    vi: "Mở bản đọc được",
+    pt: "Abrir versão legível",
+    tl: "Buksan ang nababasang companion",
+    km: "បើកជំនួយការអាន",
+    zh: "打开可读版本",
+    ja: "読みやすい版を開く",
+    ko: "읽기 쉬운 버전 열기",
+    hi: "पठनीय संस्करण खोलें",
+    hy: "Բացել ընթեռնելի տարբերակը",
+    ru: "Открыть читаемую версию",
+    pa: "ਪੜ੍ਹਨ ਯੋਗ ਸਾਥੀ ਖੋਲ੍ਹੋ",
+  };
+  return labels[lang] ?? "Open readable companion";
 }
 
 export function magazineCompanionHref(

@@ -70,12 +70,12 @@ export function getViCopy(lang: SupportedLang): ComingSoonV2Copy {
       bridge:
         "Càng nhiều lý do ghé Leonix, càng nhiều cơ hội để doanh nghiệp được nhìn thấy.",
       featuredCard: {
-        badge: "New category",
-        title: "Local Deals",
+        badge: "Danh mục mới",
+        title: "Ưu đãi địa phương",
         body:
-          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+          "Tờ rơi hàng tuần, phiếu giảm giá và khuyến mãi từ doanh nghiệp địa phương trong trải nghiệm rõ ràng giúp cộng đồng khám phá tiết kiệm thực và doanh nghiệp có thêm hiển thị.",
         supportingLine:
-          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+          "Càng nhiều lý do ghé Leonix, càng nhiều cơ hội để doanh nghiệp địa phương được nhìn thấy.",
       },
       cardsAria: "Danh mục marketplace địa phương",
       cards: [

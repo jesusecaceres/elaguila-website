@@ -13,54 +13,13 @@ import {
 } from "@/app/data/leonixGlobalContact";
 import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_SLOGAN, LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
-import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
-
-type CopyLang = "es" | "en";
-
-const COPY = {
-  es: {
-    followUs: "Síguenos",
-    contact: "Contacto",
-    advertise: "Anúnciate",
-    promoProducts: "Productos para Promoción",
-    cookiePrefs: "Preferencias de cookies",
-    learnMore: "Más información",
-    email: "Correo",
-    phone: "Teléfono",
-    advertiseBody:
-      "conecta negocios, clasificados y comunidad en un solo ecosistema bilingüe para el Área de la Bahía y el norte de California.",
-    socialNote: "Próximamente en redes.",
-    companyNote: "Una empresa bajo",
-    legal: "Legal",
-    privacy: "Privacidad",
-    terms: "Términos",
-    dataDeletion: "Eliminación de datos",
-  },
-  en: {
-    followUs: "Follow us",
-    contact: "Contact",
-    advertise: "Advertise",
-    promoProducts: "Promotional Products",
-    cookiePrefs: "Cookie preferences",
-    learnMore: "Learn more",
-    email: "Email",
-    phone: "Phone",
-    advertiseBody:
-      "connects businesses, classifieds, and community in one bilingual ecosystem for the Bay Area and Northern California.",
-    socialNote: "Social channels coming soon.",
-    companyNote: "A company under",
-    legal: "Legal",
-    privacy: "Privacy",
-    terms: "Terms",
-    dataDeletion: "Data deletion",
-  },
-} as const;
+import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
+import { getPublicChromeCopy } from "@/app/lib/leonix/publicChromeCopy";
 
 function FooterInner() {
   const searchParams = useSearchParams();
   const routeLang = normalizeLang(searchParams?.get("lang"));
-  const lang: CopyLang = navCopyLang(routeLang);
-  const t = COPY[lang];
+  const t = getPublicChromeCopy(routeLang);
 
   const withLang = (path: string) => replaceLangInHref(path, routeLang);
 
@@ -73,7 +32,7 @@ function FooterInner() {
           <ul className="space-y-2.5">
             <li>
               <span className="text-sm text-[color:var(--lx-muted)]">{t.email}:</span>{" "}
-              <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang={lang} className="text-sm" />
+              <VisibleEmailWithCopy email={LEONIX_GLOBAL_EMAIL} lang={routeLang} className="text-sm" />
             </li>
             <li>
               <span className="text-sm text-[color:var(--lx-muted)]">{t.phone}:</span>{" "}
@@ -139,7 +98,7 @@ function FooterInner() {
       <div className="mt-10 flex flex-col items-center gap-3 px-4 text-center">
         <nav
           className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm"
-          aria-label={lang === "es" ? "Enlaces legales" : "Legal links"}
+          aria-label={t.legalNavAria}
         >
           <Link href={withLang("/legal")} className="font-medium underline decoration-[color:var(--lx-lion)] underline-offset-4 hover:text-[color:var(--lx-lion)]">
             {t.legal}
@@ -157,7 +116,7 @@ function FooterInner() {
             {t.dataDeletion}
           </Link>
         </nav>
-        <CookiePreferencesTrigger labelEs={COPY.es.cookiePrefs} labelEn={COPY.en.cookiePrefs} />
+        <CookiePreferencesTrigger labelEs={t.cookiePrefs} labelEn={t.cookiePrefs} />
         <p className="max-w-xl text-sm text-[color:var(--lx-muted)]">{LEONIX_MEDIA_SLOGAN}</p>
         <p className="text-sm text-[color:var(--lx-muted)]">
           © {new Date().getFullYear()} {LEONIX_MEDIA_BRAND} · {LEONIX_GLOBAL_LLC}

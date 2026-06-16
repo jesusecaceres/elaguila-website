@@ -199,12 +199,12 @@ export function AutosNegociosAddInventoryDrawer({
         setError(autosAddInventorySaveRequiresFields(lang));
         return;
       }
-      if (flushDraft) await flushDraft();
       const ok = onSave(prepared);
       if (!ok) {
         setError(autosAddInventorySaveRequiresFields(lang));
         return;
       }
+      if (flushDraft) await flushDraft();
       onInProgressChange?.(null);
       if (andAnother) {
         const empty = createEmptyInventoryVehicleDraft();

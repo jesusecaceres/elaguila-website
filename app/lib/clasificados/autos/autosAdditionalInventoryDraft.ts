@@ -5,7 +5,7 @@ import type {
 } from "@/app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { normalizeMediaImagesOrder } from "@/app/(site)/clasificados/autos/negocios/lib/autoDealerHeroImages";
-import { dedupeAutosVideoUrls, migrateLegacyAutosVideoUrl } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
+import { normalizeAutosVehicleMediaDraft, coerceAutosVehicleMediaImageEntries } from "./autosVehicleMediaDraft";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPolicy";
 
 export type AutosInventoryVehicleDraftStatus = "draft" | "ready_for_preview";
@@ -162,23 +162,8 @@ function badgeArray(v: unknown): VehicleBadge[] | undefined {
 }
 
 function mediaArray(v: unknown): MediaImageEntry[] | undefined {
-  if (!Array.isArray(v)) return undefined;
-  const out: MediaImageEntry[] = [];
-  for (const item of v) {
-    if (!item || typeof item !== "object") continue;
-    const m = item as Record<string, unknown>;
-    const url = strOrUndef(m.url);
-    const id = strOrUndef(m.id);
-    if (!url || !id) continue;
-    out.push({
-      id,
-      url,
-      sourceType: m.sourceType === "file" ? "file" : "url",
-      isPrimary: m.isPrimary === true,
-      sortOrder: typeof m.sortOrder === "number" ? m.sortOrder : out.length,
-    });
-  }
-  return out.length ? normalizeMediaImagesOrder(out) : undefined;
+  const ordered = coerceAutosVehicleMediaImageEntries(v);
+  return ordered.length ? ordered : undefined;
 }
 
 function migrateLegacyImageUrl(o: Record<string, unknown>): MediaImageEntry[] | undefined {
@@ -204,12 +189,6 @@ function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | 
   const createdAt = strOrUndef(o.createdAt) ?? new Date().toISOString();
   const updatedAt = strOrUndef(o.updatedAt) ?? createdAt;
   const mediaImages = migrateLegacyImageUrl(o);
-  const videoUrls = dedupeAutosVideoUrls(
-    migrateLegacyAutosVideoUrl(
-      Array.isArray(o.videoUrls) ? o.videoUrls.filter((x): x is string => typeof x === "string") : undefined,
-      typeof o.videoUrl === "string" ? o.videoUrl : undefined,
-    ),
-  );
   const status: AutosInventoryVehicleDraftStatus =
     o.status === "ready_for_preview" ? "ready_for_preview" : "draft";
 
@@ -263,16 +242,28 @@ function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | 
     otherEquipmentDetails: o.otherEquipmentDetails === null ? null : strOrUndef(o.otherEquipmentDetails) ?? undefined,
     mediaImages,
     heroImages: Array.isArray(o.heroImages) ? o.heroImages.filter((x): x is string => typeof x === "string") : undefined,
-    videoUrls,
-    videoUrl: videoUrls[0] ?? undefined,
-    videoSourceType: videoUrls.length ? "url" : null,
+    videoUrls: undefined,
+    videoUrl: undefined,
+    videoSourceType: null,
     videoFileDataUrl: undefined,
     videoFileName: undefined,
-    videoUploadStatus: videoUrls.length ? "local_preview" : null,
+    videoUploadStatus: null,
     description: strOrUndef(o.description),
   };
 
-  return { ...draft, status: computeInventoryVehicleStatus(draft) };
+  const media = normalizeAutosVehicleMediaDraft({ ...draft, ...o });
+  const withMedia: AutosAdditionalInventoryVehicleDraft = {
+    ...draft,
+    mediaImages: media.mediaImages,
+    heroImages: media.heroImages,
+    videoUrls: media.videoUrls,
+    videoUrl: media.videoUrl,
+    videoSourceType: media.videoSourceType,
+    videoFileDataUrl: media.videoFileDataUrl,
+    videoFileName: media.videoFileName,
+    videoUploadStatus: media.videoUploadStatus,
+  };
+  return { ...withMedia, status: computeInventoryVehicleStatus(withMedia) };
 }
 
 export function normalizeAdditionalInventoryVehicles(raw: unknown): AutosAdditionalInventoryVehicleDraft[] {
@@ -314,9 +305,11 @@ export function prepareInventoryVehicleForSave(
   draft: AutosAdditionalInventoryVehicleDraft,
 ): AutosAdditionalInventoryVehicleDraft {
   const withTitle = applyVehicleTitleToDraft(draft, draft.vehicleTitleOverride === true);
+  const media = normalizeAutosVehicleMediaDraft(withTitle);
   const now = new Date().toISOString();
   return {
     ...withTitle,
+    ...media,
     updatedAt: now,
     status: computeInventoryVehicleStatus(withTitle),
   };

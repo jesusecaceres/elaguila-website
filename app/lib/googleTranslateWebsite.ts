@@ -167,6 +167,35 @@ const TRANSLATE_SITE_STEPS_EN: TranslateSitePageCopy["steps"] = [
   "Select your preferred language.",
 ];
 
+const TRANSLATE_SITE_STEPS_VI: TranslateSitePageCopy["steps"] = [
+  "Sao chép leonixmedia.com.",
+  "Mở Google Translate Websites.",
+  "Dán leonixmedia.com vào ô Website.",
+  "Chọn ngôn ngữ ưa thích của bạn.",
+];
+
+const TRANSLATE_SITE_STEPS_PT: TranslateSitePageCopy["steps"] = [
+  "Copie leonixmedia.com.",
+  "Abra Google Translate Websites.",
+  "Cole leonixmedia.com no campo Website.",
+  "Selecione seu idioma preferido.",
+];
+
+const TRANSLATE_SITE_STEPS_JA: TranslateSitePageCopy["steps"] = [
+  "leonixmedia.comをコピーします。",
+  "Google Translate Websitesを開きます。",
+  "Website欄にleonixmedia.comを貼り付けます。",
+  "希望の言語を選択します。",
+];
+
+const TRANSLATE_SITE_STEPS_BY_LANG: Partial<Record<SupportedLang, TranslateSitePageCopy["steps"]>> = {
+  es: TRANSLATE_SITE_STEPS_ES,
+  en: TRANSLATE_SITE_STEPS_EN,
+  vi: TRANSLATE_SITE_STEPS_VI,
+  pt: TRANSLATE_SITE_STEPS_PT,
+  ja: TRANSLATE_SITE_STEPS_JA,
+};
+
 const TRANSLATE_SITE_PAGE_ES: TranslateSitePageCopy = {
   title: "Traducir LeonixMedia.com con Google",
   stepsHeading: "Pasos",
@@ -205,6 +234,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   vi: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Dịch LeonixMedia.com bằng Google",
+    stepsHeading: "Các bước",
+    steps: TRANSLATE_SITE_STEPS_VI,
     websiteLabel: "Trang web",
     copyButton: "Sao chép leonixmedia.com",
     copiedButton: "Đã sao chép",
@@ -218,6 +249,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   pt: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Traduzir LeonixMedia.com com Google",
+    stepsHeading: "Passos",
+    steps: TRANSLATE_SITE_STEPS_PT,
     websiteLabel: "Site",
     copyButton: "Copiar leonixmedia.com",
     copiedButton: "Copiado",
@@ -231,6 +264,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   ja: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "GoogleでLeonixMedia.comを翻訳",
+    stepsHeading: "手順",
+    steps: TRANSLATE_SITE_STEPS_JA,
     websiteLabel: "ウェブサイト",
     copyButton: "leonixmedia.comをコピー",
     copiedButton: "コピーしました",
@@ -313,10 +348,11 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
 
 export function getTranslateSitePageCopy(lang: SupportedLang): TranslateSitePageCopy {
   const copy = TRANSLATE_SITE_PAGE_BY_LANG[lang] ?? TRANSLATE_SITE_PAGE_EN;
+  const steps = copy.steps ?? TRANSLATE_SITE_STEPS_BY_LANG[lang] ?? TRANSLATE_SITE_STEPS_EN;
   return {
     ...TRANSLATE_SITE_PAGE_EN,
     ...copy,
-    steps: copy.steps ?? TRANSLATE_SITE_PAGE_EN.steps,
+    steps,
     stepsHeading: copy.stepsHeading ?? TRANSLATE_SITE_PAGE_EN.stepsHeading,
   };
 }
