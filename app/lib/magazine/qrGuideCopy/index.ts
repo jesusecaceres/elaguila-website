@@ -37,6 +37,8 @@ const TRANSLATOR_EN: TranslatorPageCopy = {
   deviceChoiceIphone: "iPhone / Apple",
   deviceChoiceWeb: "Computer / Web",
   lensWebFallback: "If it does not open, use Lens web",
+  appleTranslateFallback:
+    "If Apple Translate does not open, install or open it from the App Store.",
   android: {
     title: "Android / Samsung / Google",
     bestFor:
@@ -54,15 +56,14 @@ const TRANSLATOR_EN: TranslatorPageCopy = {
   iphone: {
     title: "iPhone / Apple",
     bestFor:
-      "Best for using the Google app, Camera/Live Text, Apple Translate, or screenshots from Photos.",
+      "Best for using Apple Translate, Camera/Live Text, or screenshots from Photos.",
     steps: [
-      "Tap “Open Google Lens on iPhone”.",
-      "If iPhone asks “Open in Google?”, tap Open.",
-      "If it does not open, use Lens web, Camera/Live Text, or a screenshot in Photos.",
-      "Tap Translate or select the text.",
+      "Tap “Open Apple Translate on iPhone”.",
+      "If Apple Translate opens, point your camera or use Live Text.",
+      "If it does not open, install or open it from the App Store.",
       "Choose your language and return to Leonix.",
     ],
-    openLensCta: "Open Google Lens on iPhone",
+    openLensCta: "Open Apple Translate on iPhone",
     translateCta: "Translate LeonixMedia.com with Google",
   },
   web: {
@@ -93,6 +94,8 @@ const TRANSLATOR_ES: TranslatorPageCopy = {
   deviceChoiceIphone: "iPhone / Apple",
   deviceChoiceWeb: "Computadora / Web",
   lensWebFallback: "Si no abre, usar Lens web",
+  appleTranslateFallback:
+    "Si Apple Translate no se abre, instala o abre la app desde App Store.",
   android: {
     title: "Android / Samsung / Google",
     bestFor:
@@ -110,15 +113,14 @@ const TRANSLATOR_ES: TranslatorPageCopy = {
   iphone: {
     title: "iPhone / Apple",
     bestFor:
-      "Mejor para usar Google app, Cámara/Live Text, Apple Translate o capturas desde Fotos.",
+      "Mejor para usar Apple Translate, Cámara/Live Text o capturas desde Fotos.",
     steps: [
-      "Toca “Abrir Google Lens en iPhone”.",
-      "Si iPhone pregunta “Abrir en Google”, toca Abrir.",
-      "Si no se abre, usa Lens web, Cámara/Live Text o una captura en Fotos.",
-      "Toca Traducir o selecciona el texto.",
+      "Toca “Abrir Apple Translate en iPhone”.",
+      "Si se abre Apple Translate, apunta la cámara o usa Live Text.",
+      "Si no se abre, instala o ábrela desde App Store.",
       "Elige tu idioma y regresa a Leonix.",
     ],
-    openLensCta: "Abrir Google Lens en iPhone",
+    openLensCta: "Abrir Apple Translate en iPhone",
     translateCta: "Traducir LeonixMedia.com con Google",
   },
   web: {
@@ -165,8 +167,7 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
       ...TRANSLATOR_EN.iphone,
       title: "iPhone / Apple",
       bestFor:
-        "Tốt nhất để dùng ứng dụng Google, Camera/Live Text, Apple Translate hoặc ảnh chụp từ Photos.",
-      openLensCta: "Mở Google Lens trên iPhone",
+        "Tốt nhất để dùng Apple Translate, Camera/Live Text hoặc ảnh chụp từ Photos.",
       translateCta: "Dịch LeonixMedia.com bằng Google",
     },
     web: {
@@ -204,8 +205,7 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
       ...TRANSLATOR_EN.iphone,
       title: "iPhone / Apple",
       bestFor:
-        "Melhor para usar o app Google, Câmera/Live Text, Apple Translate ou capturas do Fotos.",
-      openLensCta: "Abrir Google Lens no iPhone",
+        "Melhor para usar Apple Translate, Câmera/Live Text ou capturas do Fotos.",
       translateCta: "Traduzir LeonixMedia.com com Google",
     },
     web: {
@@ -243,8 +243,7 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
       ...TRANSLATOR_EN.iphone,
       title: "iPhone / Apple",
       bestFor:
-        "Googleアプリ、カメラ/Live Text、Apple Translate、またはPhotosのスクリーンショットに最適です。",
-      openLensCta: "iPhoneでGoogle Lensを開く",
+        "Apple Translate、カメラ/Live Text、またはPhotosのスクリーンショットに最適です。",
       translateCta: "GoogleでLeonixMedia.comを翻訳",
     },
     web: {
@@ -271,7 +270,6 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
     },
     iphone: {
       ...TRANSLATOR_EN.iphone,
-      openLensCta: "Buksan ang Google Lens sa iPhone",
       translateCta: "Isalin ang LeonixMedia.com gamit ang Google",
     },
     web: {
@@ -287,7 +285,7 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
     intro: "首先选择您的设备。然后打开 Google Lens 处理视觉页面，或使用 Google Translate 浏览 LeonixMedia.com。",
     nativeFormsNote: "联系、广告、newsletter 和报价请使用 Leonix 原生表单。",
     android: { ...TRANSLATOR_EN.android, openLensCta: "在 Android 上打开 Google Lens", translateCta: "用 Google 翻译 LeonixMedia.com" },
-    iphone: { ...TRANSLATOR_EN.iphone, openLensCta: "在 iPhone 上打开 Google Lens", translateCta: "用 Google 翻译 LeonixMedia.com" },
+    iphone: { ...TRANSLATOR_EN.iphone, translateCta: "用 Google 翻译 LeonixMedia.com" },
     web: { ...TRANSLATOR_EN.web, translateCta: "用 Google 翻译 LeonixMedia.com" },
     fullQrGuideCta: "查看完整 QR 指南",
   },
@@ -297,7 +295,7 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
     title: "번역 경로 선택",
     intro: "먼저 기기를 선택하세요. 시각 페이지는 Google Lens, LeonixMedia.com 탐색은 Google Translate를 여세요.",
     android: { ...TRANSLATOR_EN.android, openLensCta: "Android에서 Google Lens 열기", translateCta: "Google로 LeonixMedia.com 번역" },
-    iphone: { ...TRANSLATOR_EN.iphone, openLensCta: "iPhone에서 Google Lens 열기", translateCta: "Google로 LeonixMedia.com 번역" },
+    iphone: { ...TRANSLATOR_EN.iphone, translateCta: "Google로 LeonixMedia.com 번역" },
     web: { ...TRANSLATOR_EN.web, translateCta: "Google로 LeonixMedia.com 번역" },
     fullQrGuideCta: "전체 QR 가이드 보기",
   },

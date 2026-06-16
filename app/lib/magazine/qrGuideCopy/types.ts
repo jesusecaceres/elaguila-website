@@ -80,6 +80,7 @@ export type TranslatorPageCopy = {
   deviceChoiceIphone: string;
   deviceChoiceWeb: string;
   lensWebFallback: string;
+  appleTranslateFallback: string;
   android: DevicePathSectionCopy;
   iphone: DevicePathSectionCopy;
   web: WebPathSectionCopy;

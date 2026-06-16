@@ -78,18 +78,54 @@ export const PRINT_TRANSLATOR_OPEN = {
   },
 } as const;
 
-export const LENS_WEB_URL = "https://lens.google/";
+export const GOOGLE_LENS_WEB_URL = "https://lens.google.com";
+
+/** @deprecated Alias for GOOGLE_LENS_WEB_URL */
+export const LENS_WEB_URL = GOOGLE_LENS_WEB_URL;
+
 export const TRANSLATE_WEB_URL = "https://translate.google.com/";
 
-/** Android Google app Lens activity with web fallback. */
-export const ANDROID_LENS_APP_INTENT =
-  "intent://#Intent;action=android.intent.action.VIEW;component=com.google.android.googlequicksearchbox/com.google.android.apps.search.lens.LensActivity;S.browser_fallback_url=https%3A%2F%2Flens.google%2F;end";
+/** Android Google Lens native intent with Lens web fallback (user gesture required). */
+export const ANDROID_GOOGLE_LENS_INTENT =
+  "intent://#Intent;scheme=googlelens;package=com.google.ar.lens;S.browser_fallback_url=https%3A%2F%2Flens.google.com;end";
 
-/** @deprecated Legacy package intent — prefer ANDROID_LENS_APP_INTENT for visible CTAs. */
+/** @deprecated Prefer ANDROID_GOOGLE_LENS_INTENT for visible CTAs. */
+export const ANDROID_LENS_APP_INTENT = ANDROID_GOOGLE_LENS_INTENT;
+
+/** @deprecated Legacy package intent. */
 export const ANDROID_LENS_INTENT =
   "intent:///#Intent;scheme=https;package=com.google.ar.lens;S.browser_fallback_url=https%3A%2F%2Flens.google%2F;end";
 
+export const IOS_APPLE_TRANSLATE_SCHEME = "translate://";
+
+export const APPLE_TRANSLATE_APP_STORE_URL =
+  "https://apps.apple.com/us/app/translate/id1514844618";
+
+/** @deprecated Prefer IOS_APPLE_TRANSLATE_SCHEME on /qr/translator iPhone CTA. */
 export const IOS_GOOGLE_LENS_SCHEME = "google://lens";
+
+const APPLE_TRANSLATE_FALLBACK_MS = 1000;
+
+/** Attempt Apple Translate via custom scheme; App Store if still visible after delay. Not guaranteed. */
+export function openAppleTranslate(): void {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  let didHide = false;
+
+  const onVisibilityChange = () => {
+    if (document.hidden) didHide = true;
+  };
+
+  document.addEventListener("visibilitychange", onVisibilityChange, { once: true });
+  window.location.href = IOS_APPLE_TRANSLATE_SCHEME;
+
+  window.setTimeout(() => {
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+    if (!didHide && !document.hidden) {
+      window.location.href = APPLE_TRANSLATE_APP_STORE_URL;
+    }
+  }, APPLE_TRANSLATE_FALLBACK_MS);
+}
 
 export type TranslatorDeviceKind = "android" | "ios" | "desktop";
 
@@ -100,14 +136,14 @@ export function detectTranslatorDevice(userAgent: string): TranslatorDeviceKind 
 }
 
 export function getGoogleLensHrefForDevice(device: "android" | "ios" | "desktop"): string {
-  if (device === "android") return ANDROID_LENS_APP_INTENT;
-  if (device === "ios") return IOS_GOOGLE_LENS_SCHEME;
-  return LENS_WEB_URL;
+  if (device === "android") return ANDROID_GOOGLE_LENS_INTENT;
+  if (device === "ios") return IOS_APPLE_TRANSLATE_SCHEME;
+  return GOOGLE_LENS_WEB_URL;
 }
 
 /** One safe auto-open attempt URL for mobile; null on desktop. */
 export function getTranslatorAutoOpenUrl(device: TranslatorDeviceKind): string | null {
-  if (device === "android") return ANDROID_LENS_APP_INTENT;
-  if (device === "ios") return IOS_GOOGLE_LENS_SCHEME;
+  if (device === "android") return ANDROID_GOOGLE_LENS_INTENT;
+  if (device === "ios") return IOS_APPLE_TRANSLATE_SCHEME;
   return null;
 }

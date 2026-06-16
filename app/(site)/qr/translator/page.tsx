@@ -5,9 +5,10 @@ import { Suspense, useCallback, useMemo, type MouseEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import {
-  ANDROID_LENS_APP_INTENT,
-  IOS_GOOGLE_LENS_SCHEME,
-  LENS_WEB_URL,
+  ANDROID_GOOGLE_LENS_INTENT,
+  APPLE_TRANSLATE_APP_STORE_URL,
+  GOOGLE_LENS_WEB_URL,
+  openAppleTranslate,
 } from "@/app/lib/magazine/translatorGateway";
 import { getTranslatorPageCopy } from "@/app/lib/magazine/qrGuideCopy";
 import {
@@ -31,25 +32,16 @@ const sectionShell =
 const fallbackLinkClass =
   "text-xs font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm";
 
-function IPhoneLensButton({ label }: { label: string }) {
-  const handleClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      const openedAt = Date.now();
-      window.location.href = IOS_GOOGLE_LENS_SCHEME;
-      window.setTimeout(() => {
-        if (document.visibilityState === "visible" && Date.now() - openedAt >= 1400) {
-          window.open(LENS_WEB_URL, "_blank", "noopener,noreferrer");
-        }
-      }, 1500);
-    },
-    [],
-  );
+function IPhoneAppleTranslateButton({ label }: { label: string }) {
+  const handleClick = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    openAppleTranslate();
+  }, []);
 
   return (
-    <a href={IOS_GOOGLE_LENS_SCHEME} onClick={handleClick} className={btnExternal}>
+    <button type="button" onClick={handleClick} className={btnExternal}>
       {label}
-    </a>
+    </button>
   );
 }
 
@@ -69,7 +61,7 @@ function TranslatorGatewayContent() {
   const copy = useMemo(() => getTranslatorPageCopy(lang), [lang]);
   const leonixTranslateHref = leonixHomeGoogleTranslateUrl(lang, {
     sourcePage: "qr_translator",
-    sourceCta: "google_translate_website",
+    sourceCta: "google_translate",
     returnTo: "/qr/translator",
   });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
@@ -126,11 +118,11 @@ function TranslatorGatewayContent() {
           <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{copy.android.bestFor}</p>
           <DeviceSectionSteps steps={copy.android.steps} />
           <div className="mt-4 grid min-w-0 gap-2.5">
-            <a href={ANDROID_LENS_APP_INTENT} className={btnExternal}>
+            <a href={ANDROID_GOOGLE_LENS_INTENT} className={btnExternal}>
               {copy.android.openLensCta}
             </a>
             <a
-              href={LENS_WEB_URL}
+              href={GOOGLE_LENS_WEB_URL}
               target="_blank"
               rel="noopener noreferrer"
               className={fallbackLinkClass}
@@ -149,15 +141,18 @@ function TranslatorGatewayContent() {
           <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{copy.iphone.bestFor}</p>
           <DeviceSectionSteps steps={copy.iphone.steps} />
           <div className="mt-4 grid min-w-0 gap-2.5">
-            <IPhoneLensButton label={copy.iphone.openLensCta} />
-            <a
-              href={LENS_WEB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={fallbackLinkClass}
-            >
-              {copy.lensWebFallback}
-            </a>
+            <IPhoneAppleTranslateButton label={copy.iphone.openLensCta} />
+            <p className="text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
+              {copy.appleTranslateFallback}{" "}
+              <a
+                href={APPLE_TRANSLATE_APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={fallbackLinkClass}
+              >
+                App Store
+              </a>
+            </p>
             <Link href={leonixTranslateHref} className={btnGold}>
               {copy.iphone.translateCta}
             </Link>
