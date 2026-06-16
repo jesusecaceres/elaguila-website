@@ -26,6 +26,10 @@ import {
 } from "@/app/(site)/magazine/components/MagazineReaderActionBar";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
 import { resolveRouteLang } from "@/app/lib/language";
+import {
+  getCompanionOpenLabel,
+  magazineCompanionHref,
+} from "@/app/lib/magazine/june2026CompanionContent";
 import Image from "next/image";
 
 function JuneReaderContent() {
@@ -44,6 +48,13 @@ function JuneReaderContent() {
   const [flipOpen, setFlipOpen] = useState(false);
   const openFlipbook = useCallback(() => setFlipOpen(true), []);
   const closeFlipbook = useCallback(() => setFlipOpen(false), []);
+  const companionHref = magazineCompanionHref(lang, {
+    sourcePage: "magazine_read",
+    sourceCta: "open_companion",
+  });
+  const companionLabel = getCompanionOpenLabel(lang);
+  const companionBtnClass =
+    "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#2A4536] px-5 py-3 text-center text-sm font-bold text-[#F8F4EA] transition hover:bg-[#223528] sm:min-h-[3.125rem]";
 
   return (
     <main lang={lang} className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -64,6 +75,11 @@ function JuneReaderContent() {
               afterActions={
                 <>
                   <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
+                  <div className="mt-4">
+                    <Link href={companionHref} className={companionBtnClass}>
+                      {companionLabel}
+                    </Link>
+                  </div>
                   <section
                     id="leonix-quick-summary"
                     className="mt-8 scroll-mt-28 min-w-0 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-7"
@@ -112,6 +128,11 @@ function JuneReaderContent() {
               <p className="mt-3 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
                 {ui.futureFlipbookNote}
               </p>
+              <div className="mt-4">
+                <Link href={companionHref} className={`${companionBtnClass} sm:w-auto sm:px-6`}>
+                  {companionLabel}
+                </Link>
+              </div>
             </header>
 
             <section

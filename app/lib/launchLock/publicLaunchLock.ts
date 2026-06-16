@@ -23,6 +23,7 @@ const ALLOWED_PUBLIC_PREFIXES = [
   "/newsletter",
   "/media-kit",
   "/magazine/2026/june/read",
+  "/magazine/2026/june/companion",
   "/productos-promocion",
   "/tienda/contacto",
   "/translate-site",
