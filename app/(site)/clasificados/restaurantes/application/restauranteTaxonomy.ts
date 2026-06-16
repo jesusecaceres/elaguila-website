@@ -186,6 +186,6 @@ export const RESTAURANTE_CONTACT_PLACEHOLDERS: Record<string, string> = {
   menuUrl: "https://tusitio.com/menu",
   verUbicacionUrl: "https://maps.google.com/?q=...",
   videoUrl: "https://youtube.com/watch?v=…",
-  googleReviewUrl: "https://maps.google.com/...",
+  googleReviewUrl: "https://google.com/search?...",
   yelpReviewUrl: "https://yelp.com/biz/...",
 };

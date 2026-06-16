@@ -240,5 +240,7 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   merged.languageOtherCustom = withLangs.languageOtherCustom;
   merged.languagesSpoken = withLangs.languagesSpoken ?? merged.languagesSpoken;
 
+  if (!merged.state?.trim()) merged.state = "CA";
+
   return merged;
 }

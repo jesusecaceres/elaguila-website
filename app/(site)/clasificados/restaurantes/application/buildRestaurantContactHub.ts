@@ -5,6 +5,7 @@ import { normalizeActionableUrl } from "../lib/urlNormalization";
 import { computeShellHoursPreview } from "./restauranteHoursPreview";
 import {
   buildCateringInquiryPrefill,
+  formatRestauranteCityStateZipLine,
   isValidExternalHttpUrl,
   nonEmpty,
   normalizeRestaurantUrl,
@@ -362,7 +363,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
   }
 
   const showStreet = shouldShowRestaurantStreetAddress(d);
-  const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
+  const cityLine = formatRestauranteCityStateZipLine(d);
   const mapsHref = resolveRestaurantMapsHref(d, showStreet);
   const home = d.homeBasedStack;
   const pickupNote = d.homeBasedBusiness && nonEmpty(home?.pickupInstructions) ? home!.pickupInstructions!.trim() : undefined;
@@ -376,11 +377,9 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
   let location: RestaurantContactHubData["location"];
   if (showStreet || mapsHref || pickupNote || serviceArea) {
     location = {
-      addressLine1: showStreet ? d.addressLine1!.trim() : undefined,
+      addressLine1: showStreet && nonEmpty(d.addressLine1) ? d.addressLine1!.trim() : undefined,
       addressLine2: showStreet
-        ? nonEmpty(d.addressLine2)
-          ? d.addressLine2!.trim()
-          : cityLine || undefined
+        ? [d.addressLine2?.trim(), cityLine].filter(nonEmpty).join(", ") || cityLine || undefined
         : serviceArea,
       supportingText: pickupNote,
       mapsHref,

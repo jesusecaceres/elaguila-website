@@ -13,7 +13,6 @@ import {
   RESTAURANTE_EVENT_SIZES,
   RESTAURANTE_HIGHLIGHTS,
   RESTAURANTE_LANGUAGES,
-  RESTAURANTE_LOCATION_PRIVACY,
   RESTAURANTE_PRICE_LEVELS,
   TAXONOMY_KEY_OTHER,
   TAXONOMY_KEY_OTHER_LANG,
@@ -40,6 +39,7 @@ import {
   RESTAURANTE_FORM_BUSINESS_TYPES,
   RESTAURANTE_FORM_SERVICE_OPTIONS,
   RESTAURANTE_MAX_CUSTOM_LANGUAGES,
+  RESTAURANTE_US_STATE_OPTIONS,
   resolveRestauranteCustomLanguages,
 } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
@@ -1119,7 +1119,10 @@ export default function RestauranteApplicationClient() {
               </HelperText>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <FieldLabel optional>Google (reseñas o perfil)</FieldLabel>
+                  <FieldLabel optional>Google reseñas o perfil</FieldLabel>
+                  <HelperText>
+                    Enlace a tu perfil de Google o reseñas públicas. Aparece como acceso de opiniones cuando lo completas.
+                  </HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.googleReviewUrl}
@@ -1233,30 +1236,15 @@ export default function RestauranteApplicationClient() {
         {/* E */}
         {activeSectionId === "restaurantes-section-e" ? (
         <section id="restaurantes-section-e" className={stepPanel}>
-          <SectionTitle>E · Ubicación y privacidad</SectionTitle>
+          <SectionTitle>E · Ubicación del establecimiento</SectionTitle>
           <HelperText>
-            La <strong className="text-[color:var(--lx-text-2)]">ciudad canónica</strong> (sección A) sigue siendo el campo
-            estructurado para filtros NorCal. Aquí defines <strong className="text-[color:var(--lx-text-2)]">cómo se ve</strong>{" "}
-            la ubicación en la ficha: dirección, mapa y privacidad. Un restaurante con fachura fija suele mostrar dirección
-            exacta; food trucks, pop-ups, cocina en casa o catering suelen combinar privacidad + área de servicio.
+            Esta dirección se usa para mostrar a los clientes dónde está tu restaurante y para generar el botón de mapa /
+            direcciones en la ficha.
           </HelperText>
           <div className="mt-4 grid gap-3">
             <div>
-              <FieldLabel optional>Ciudad (canónica NorCal)</FieldLabel>
-              <HelperText>
-                Ciudad estructurada de NorCal: es la que usamos para filtros y resultados coherentes. Complementa la dirección libre si la proporcionas.
-              </HelperText>
-              <CityAutocomplete
-                lang="es"
-                variant="light"
-                value={draft.cityCanonical}
-                onChange={(v) => setDraftPatch({ cityCanonical: v })}
-                placeholder="Ej. San José"
-              />
-            </div>
-            <div>
-              <FieldLabel optional>Dirección línea 1</FieldLabel>
-              <HelperText>Calle y número cuando quieras anclar el pin o el bloque de contacto; respeta lo que elijas en privacidad.</HelperText>
+              <FieldLabel optional>Dirección / número y calle</FieldLabel>
+              <HelperText>Calle y número del local.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.addressLine1 ?? ""}
@@ -1273,17 +1261,37 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Estado</FieldLabel>
-              <HelperText>Complementa la línea de dirección junto a la ciudad canónica y el CP.</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.state ?? ""}
-                onChange={(e) => setDraftPatch({ state: e.target.value || undefined })}
+              <FieldLabel optional>Ciudad</FieldLabel>
+              <HelperText>
+                Sugerencias de ciudades de California cuando coinciden; puedes escribir cualquier ciudad.
+              </HelperText>
+              <CityAutocomplete
+                lang="es"
+                variant="light"
+                freeText
+                value={draft.cityCanonical}
+                onChange={(v) => setDraftPatch({ cityCanonical: v })}
+                placeholder="Ej. San José, Portland, Austin…"
               />
             </div>
             <div>
+              <FieldLabel optional>Estado</FieldLabel>
+              <HelperText>Estado de EE. UU. donde opera el restaurante.</HelperText>
+              <select
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                value={draft.state?.trim() || "CA"}
+                onChange={(e) => setDraftPatch({ state: e.target.value || "CA" })}
+              >
+                {RESTAURANTE_US_STATE_OPTIONS.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <FieldLabel optional>Código postal</FieldLabel>
-              <HelperText>Código postal de 5 dígitos; usado con la ciudad canónica para filtros y resultados.</HelperText>
+              <HelperText>Código postal de 5 dígitos; se incluye en la dirección y en la búsqueda del mapa.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 inputMode="numeric"
@@ -1291,38 +1299,7 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
               />
             </div>
-            <div className="sm:col-span-2">
-              <FieldLabel optional>Ver en el mapa (URL personalizada)</FieldLabel>
-              <HelperText>
-                Opcional. Usa este campo solo si quieres controlar el pin exacto de Google Maps, food truck, pop-up o ubicación
-                especial. Si lo dejas vacío, generaremos el enlace desde la dirección pública.
-              </HelperText>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                Si ocultas la dirección exacta, el mapa puede mostrar una zona aproximada en lugar del número exacto.
-              </p>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.verUbicacionUrl}
-                value={draft.verUbicacionUrl ?? ""}
-                onChange={(e) => setDraftPatch({ verUbicacionUrl: e.target.value || undefined })}
-              />
-            </div>
-            <div>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={Boolean(draft.showExactAddress)}
-                  onChange={(e) => setDraftPatch({ showExactAddress: e.target.checked })}
-                />
-                <span className="font-semibold text-[color:var(--lx-text)]">Mostrar dirección exacta cuando aplique</span>
-              </label>
-              <HelperText>
-                <strong className="text-[color:var(--lx-text-2)]">Encendido:</strong> típico de local con dirección pública.{" "}
-                <strong className="text-[color:var(--lx-text-2)]">Apagado:</strong> el mapa puede mostrar zona aproximada o cruce en lugar del número exacto — útil para móvil, pop-up o casa.
-              </HelperText>
-            </div>
-                                  </div>
+          </div>
         </section>
         ) : null}
 

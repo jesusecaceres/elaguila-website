@@ -80,18 +80,34 @@ export function shouldShowRestaurantStreetAddress(d: RestauranteListingDraft): b
   return true;
 }
 
+/** City, state, ZIP line — e.g. "San José, CA 95112". */
+export function formatRestauranteCityStateZipLine(d: {
+  cityCanonical?: string;
+  state?: string;
+  zipCode?: string;
+}): string {
+  const city = d.cityCanonical?.trim();
+  const state = d.state?.trim();
+  const zip = d.zipCode?.trim();
+  if (!city && !state && !zip) return "";
+  if (city && state && zip) return `${city}, ${state} ${zip}`;
+  if (city && state) return `${city}, ${state}`;
+  if (city && zip) return `${city} ${zip}`;
+  return [city, state, zip].filter(nonEmpty).join(", ");
+}
+
 /** Public address string for maps search (street when allowed, else city/area). */
 export function buildRestaurantPublicAddressQuery(
   d: RestauranteListingDraft,
   allowStreetAddress: boolean,
 ): string | undefined {
-  const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
-  if (allowStreetAddress) {
-    const parts = [d.addressLine1?.trim(), d.addressLine2?.trim(), cityLine].filter(nonEmpty);
+  const cityLine = formatRestauranteCityStateZipLine(d);
+  if (allowStreetAddress && nonEmpty(d.addressLine1)) {
+    const parts = [d.addressLine1!.trim(), d.addressLine2?.trim(), cityLine].filter(nonEmpty);
     const q = parts.join(", ");
     if (nonEmpty(q)) return q;
   }
-  if (nonEmpty(d.cityCanonical) && nonEmpty(cityLine)) return cityLine.trim();
+  if (nonEmpty(cityLine)) return cityLine;
   if (nonEmpty(d.serviceAreaText)) return d.serviceAreaText!.trim();
   return undefined;
 }

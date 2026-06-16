@@ -13,7 +13,7 @@ export function buildRestauranteApplicationSectionNavItems(draft: RestauranteLis
     { id: "restaurantes-section-b", letter: "B", shortTitle: "Modelo de operación" },
     { id: "restaurantes-section-c", letter: "C", shortTitle: "Horarios" },
     { id: "restaurantes-section-d", letter: "D", shortTitle: "Contacto y CTAs" },
-    { id: "restaurantes-section-e", letter: "E", shortTitle: "Ubicación y privacidad" },
+    { id: "restaurantes-section-e", letter: "E", shortTitle: "Ubicación del establecimiento" },
     { id: "restaurantes-section-f", letter: "F", shortTitle: "Platos destacados" },
     { id: "restaurantes-section-g", letter: "G", shortTitle: "Galería y medios" },
     { id: "restaurantes-section-h", letter: "H", shortTitle: "Destacados del lugar" },

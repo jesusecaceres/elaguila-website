@@ -38,7 +38,9 @@ import {
 import { formatPlatilloPriceBadge } from "./restauranteShellDisplayFormat";
 import { buildRestaurantContactHub, type RestaurantContactHubData } from "./buildRestaurantContactHub";
 import {
+  buildRestaurantPublicAddressQuery,
   isValidExternalHttpUrl,
+  formatRestauranteCityStateZipLine,
   resolveRestaurantMapsHref,
   shouldShowRestaurantStreetAddress,
 } from "./restauranteContactHref";
@@ -437,12 +439,17 @@ function buildVenueGalleryFromDraft(d: RestauranteListingDraft): ShellVenueGalle
 function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined {
   const c: ShellContactBlock = {};
   if (shouldShowRestaurantStreetAddress(d)) c.addressLine1 = d.addressLine1!.trim();
-  const cityLine = [d.cityCanonical, d.state, d.zipCode].filter(nonEmpty).join(", ");
-  if (nonEmpty(d.addressLine2)) c.addressLine2 = d.addressLine2!.trim();
-  else if (cityLine) c.addressLine2 = cityLine;
-  const mapsQ = shouldShowRestaurantStreetAddress(d)
-    ? [d.addressLine1, cityLine].filter(nonEmpty).join(", ")
-    : cityLine || (nonEmpty(d.serviceAreaText) ? d.serviceAreaText!.trim() : "");
+  const cityLine = formatRestauranteCityStateZipLine(d);
+  if (shouldShowRestaurantStreetAddress(d)) {
+    const line2Parts = [d.addressLine2?.trim(), cityLine].filter(nonEmpty);
+    if (line2Parts.length) c.addressLine2 = line2Parts.join(", ");
+  } else if (cityLine) {
+    c.addressLine2 = cityLine;
+  }
+  const mapsQ = buildRestaurantPublicAddressQuery(
+    d,
+    shouldShowRestaurantStreetAddress(d),
+  ) ?? (nonEmpty(d.serviceAreaText) ? d.serviceAreaText!.trim() : "");
   if (nonEmpty(mapsQ)) c.mapsSearchQuery = mapsQ;
   if (nonEmpty(d.phoneNumber)) {
     c.phoneDisplay = d.phoneNumber!.trim();
