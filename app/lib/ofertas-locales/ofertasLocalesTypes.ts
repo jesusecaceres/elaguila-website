@@ -359,6 +359,16 @@ export type OfertaLocalAiNormalizerProvider =
   | "gemini"
   | "manual";
 
+/** Candidate lane from OCR normalizer (OL-7B). */
+export type OfertaLocalCandidateType = "product_deal" | "coupon" | "promo";
+
+export type OfertaLocalSourceBoundingBox = {
+  xMin: number;
+  yMin: number;
+  xMax: number;
+  yMax: number;
+};
+
 export type OfertaLocalSearchableItemDraft = {
   /** Draft or DB id when persisted. */
   id?: string;
@@ -378,16 +388,25 @@ export type OfertaLocalSearchableItemDraft = {
   subcategory: string;
   priceText: string;
   priceAmount: number | null;
+  regularPriceText?: string;
   unit: string;
   dealType: string;
   quantity: string;
   searchTags: string[];
+  candidateType?: OfertaLocalCandidateType;
+  couponTitle?: string;
+  offerText?: string;
+  terms?: string;
   validFrom?: string;
   validUntil?: string;
   sourceAssetId: string;
   sourceAssetUrl?: string;
+  sourceFileName?: string;
   sourcePage: number | null;
+  sourceContext?: string;
+  sourceBbox?: OfertaLocalSourceBoundingBox | null;
   sourceCropUrl?: string;
+  extractedJson?: Record<string, unknown>;
   confidence: number | null;
   reviewStatus: OfertaLocalSearchableItemReviewStatus;
   reviewerNote?: string;
@@ -533,6 +552,11 @@ export type OfertaLocalScanJobDbRow = {
   pages_processed: number;
   items_extracted_count: number;
   confidence_average: number | null;
+  source_storage_path?: string | null;
+  source_mime_type?: string | null;
+  source_asset_kind?: string | null;
+  draft_session_id?: string | null;
+  raw_ocr_summary?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };
@@ -576,6 +600,15 @@ export type OfertaLocalItemDbRow = {
   source_asset_url: string | null;
   source_page: number | null;
   source_crop_url: string | null;
+  source_file_name: string | null;
+  source_context: string | null;
+  source_bbox: Record<string, unknown> | null;
+  candidate_type: OfertaLocalCandidateType;
+  regular_price_text: string | null;
+  coupon_title: string | null;
+  offer_text: string | null;
+  terms: string | null;
+  extracted_json: Record<string, unknown>;
   confidence: number | null;
   review_status: OfertaLocalSearchableItemReviewStatus;
   reviewer_note: string | null;
@@ -634,12 +667,21 @@ export type OfertaLocalItemReviewViewModel = {
   dealType: string;
   quantity: string;
   searchTags: string[];
+  description: string;
+  regularPriceText: string;
+  candidateType: OfertaLocalCandidateType;
+  couponTitle: string;
+  offerText: string;
+  terms: string;
   reviewStatus: OfertaLocalItemReviewStatus;
   confidence: number | null;
   confidenceLabel: "high" | "medium" | "low" | "unknown";
   sourceAssetId: string;
   sourceAssetUrl: string;
+  sourceFileName: string;
   sourcePage: number | null;
+  sourceContext: string;
+  sourceBbox: OfertaLocalSourceBoundingBox | null;
   sourceCropUrl: string;
   businessName: string;
   businessCity: string;
@@ -662,6 +704,11 @@ export type OfertaLocalItemReviewPatch = {
   unit?: string;
   dealType?: string;
   quantity?: string;
+  description?: string;
+  regularPriceText?: string;
+  couponTitle?: string;
+  offerText?: string;
+  terms?: string;
   searchTags?: string[];
   reviewStatus?: OfertaLocalItemReviewStatus;
 };

@@ -17,6 +17,10 @@ import {
   processOfertaLocalAssetWithDocumentAi,
 } from "./ofertasLocalesDocumentAiClient";
 import { resolveOfertasLocalesOwnerOrAdminAuth } from "./ofertasLocalesReviewAuth";
+import {
+  isSupabaseSchemaCacheMissingTableError,
+  ofertasLocalesAiSchemaMissingDetail,
+} from "./ofertasLocalesSupabaseSchema";
 import type {
   OfertaLocalPublishStatus,
   OfertaLocalScanApiRequest,
@@ -47,11 +51,6 @@ function isScanRequest(v: unknown): v is OfertaLocalScanApiRequest {
     typeof o.storagePath === "string" &&
     typeof o.mimeType === "string"
   );
-}
-
-function isDbTableMissingError(message: string | undefined): boolean {
-  const m = (message ?? "").toLowerCase();
-  return m.includes("does not exist") || m.includes("could not find the table");
 }
 
 async function fetchAssetBytes(assetUrl: string): Promise<Buffer> {
@@ -168,14 +167,14 @@ export async function handleOfertaLocalScanPost(
   const now = new Date().toISOString();
 
   const tableProbe = await supabase.from("oferta_local_scan_jobs").select("id").limit(1);
-  if (tableProbe.error && isDbTableMissingError(tableProbe.error.message)) {
+  if (tableProbe.error && isSupabaseSchemaCacheMissingTableError(tableProbe.error.message)) {
     return NextResponse.json<OfertaLocalScanApiResponse>(
       {
         ok: false,
-        error: "ai_scan_tables_unavailable",
-        detail: "AI scan database tables are not available yet. Apply Stack 11 migration first.",
+        error: "ai_scan_schema_not_applied",
+        detail: ofertasLocalesAiSchemaMissingDetail("oferta_local_scan_jobs"),
         configurationMissing: false,
-        message: "AI scan database tables are not available yet.",
+        message: ofertasLocalesAiSchemaMissingDetail("oferta_local_scan_jobs"),
       },
       { status: 503 }
     );
@@ -190,13 +189,14 @@ export async function handleOfertaLocalScanPost(
     .maybeSingle();
 
   if (parentError) {
-    if (isDbTableMissingError(parentError.message)) {
+    if (isSupabaseSchemaCacheMissingTableError(parentError.message)) {
       return NextResponse.json<OfertaLocalScanApiResponse>(
         {
           ok: false,
-          error: "ai_scan_tables_unavailable",
-          detail: "Parent offer table is not available.",
+          error: "ai_scan_schema_not_applied",
+          detail: ofertasLocalesAiSchemaMissingDetail("ofertas_locales"),
           configurationMissing: false,
+          message: ofertasLocalesAiSchemaMissingDetail("ofertas_locales"),
         },
         { status: 503 }
       );
@@ -281,6 +281,9 @@ export async function handleOfertaLocalScanPost(
       ...scanInsert,
       source_asset_url: body.assetUrl,
       source_asset_type: body.assetKind,
+      source_storage_path: storagePath,
+      source_mime_type: mimeType,
+      source_asset_kind: body.assetKind,
       status: "processing",
       started_at: now,
       updated_at: now,
@@ -289,13 +292,14 @@ export async function handleOfertaLocalScanPost(
     .single();
 
   if (scanInsertError || !scanJob) {
-    if (isDbTableMissingError(scanInsertError?.message)) {
+    if (isSupabaseSchemaCacheMissingTableError(scanInsertError?.message)) {
       return NextResponse.json<OfertaLocalScanApiResponse>(
         {
           ok: false,
-          error: "ai_scan_tables_unavailable",
-          detail: "AI scan database tables are not available yet.",
+          error: "ai_scan_schema_not_applied",
+          detail: ofertasLocalesAiSchemaMissingDetail("oferta_local_scan_jobs"),
           configurationMissing: false,
+          message: ofertasLocalesAiSchemaMissingDetail("oferta_local_scan_jobs"),
         },
         { status: 503 }
       );
@@ -327,6 +331,8 @@ export async function handleOfertaLocalScanPost(
       extraction,
       sourceAssetId: body.assetId,
       sourceAssetUrl: body.assetUrl,
+      sourceFileName: storagePath.split("/").pop() ?? body.assetId,
+      assetKind: body.assetKind,
       businessName: parentOffer.business_name ?? "",
       businessAddress: parentOffer.address ?? "",
       businessCity: parentOffer.city ?? "",
@@ -344,7 +350,7 @@ export async function handleOfertaLocalScanPost(
       const { error: itemsError } = await supabase.from("oferta_local_items").insert(
         itemRows.map((row) => ({
           ...row,
-          review_status: row.review_status === "approved" ? "pending" : row.review_status,
+          review_status: "needs_review",
           is_active: false,
           is_sponsored: false,
           created_at: now,
@@ -367,6 +373,14 @@ export async function handleOfertaLocalScanPost(
         confidence_average: extraction.confidenceAverage,
         raw_result_storage_path: `pending-object-storage://${scanJobId}`,
         normalized_result_storage_path: `inline-summary://${scanJobId}`,
+        raw_ocr_summary: {
+          textLength: extraction.text.length,
+          pagesProcessed: extraction.pagesProcessed,
+          pageLineCount: extraction.pageLines.length,
+          entityCount: extraction.entities.length,
+          mimeType,
+          assetKind: body.assetKind,
+        },
         error_message: null,
         updated_at: completedAt,
       })

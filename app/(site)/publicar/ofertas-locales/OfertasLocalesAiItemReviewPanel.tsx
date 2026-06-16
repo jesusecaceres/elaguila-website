@@ -32,22 +32,54 @@ type ItemDraft = {
   itemName: string;
   priceText: string;
   priceAmount: string;
+  regularPriceText: string;
   unit: string;
   category: string;
+  description: string;
+  terms: string;
   dealType: string;
   searchTags: string;
 };
 
 function toDraft(item: OfertaLocalItemReviewViewModel): ItemDraft {
   return {
-    itemName: item.itemName,
-    priceText: item.priceText,
+    itemName: isCouponItem(item) ? item.couponTitle || item.itemName : item.itemName,
+    priceText: isCouponItem(item) ? item.offerText || item.priceText : item.priceText,
     priceAmount: item.priceAmount != null ? String(item.priceAmount) : "",
+    regularPriceText: item.regularPriceText,
     unit: item.unit,
     category: item.category,
+    description: item.description,
+    terms: item.terms || item.dealType,
     dealType: item.dealType,
     searchTags: item.searchTags.join(", "),
   };
+}
+
+function isCouponItem(item: OfertaLocalItemReviewViewModel): boolean {
+  return item.candidateType === "coupon" || item.candidateType === "promo";
+}
+
+function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
+  const base = {
+    itemName: draft.itemName,
+    priceText: draft.priceText,
+    priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
+    regularPriceText: draft.regularPriceText,
+    unit: draft.unit,
+    category: draft.category,
+    description: draft.description,
+    couponTitle: isCouponMode ? draft.itemName : undefined,
+    offerText: isCouponMode ? draft.priceText : undefined,
+    terms: isCouponMode ? draft.terms : undefined,
+    dealType: draft.dealType,
+    searchTags: draft.searchTags
+      .split(/[,;]+/)
+      .map((t) => t.trim())
+      .filter(Boolean),
+    reviewStatus,
+  };
+  return base;
 }
 
 function statusBadgeClass(status: OfertaLocalItemReviewStatus): string {
@@ -150,40 +182,18 @@ export function OfertasLocalesAiItemReviewPanel({
     async (itemId: string) => {
       const draft = drafts[itemId];
       if (!draft) return;
-      await applyPatch(itemId, {
-        itemName: draft.itemName,
-        priceText: draft.priceText,
-        priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
-        unit: draft.unit,
-        category: draft.category,
-        dealType: draft.dealType,
-        searchTags: draft.searchTags
-          .split(/[,;]+/)
-          .map((t) => t.trim())
-          .filter(Boolean),
-      });
+      await applyPatch(itemId, patchFromDraft(draft, isCouponMode));
     },
-    [applyPatch, drafts]
+    [applyPatch, drafts, isCouponMode]
   );
 
   const handleStatusAction = useCallback(
     async (itemId: string, reviewStatus: OfertaLocalItemReviewStatus) => {
       const draft = drafts[itemId];
-      await applyPatch(itemId, {
-        itemName: draft?.itemName,
-        priceText: draft?.priceText,
-        priceAmount: draft?.priceAmount.trim() ? Number(draft.priceAmount) : null,
-        unit: draft?.unit,
-        category: draft?.category,
-        dealType: draft?.dealType,
-        searchTags: draft?.searchTags
-          .split(/[,;]+/)
-          .map((t) => t.trim())
-          .filter(Boolean),
-        reviewStatus,
-      });
+      if (!draft) return;
+      await applyPatch(itemId, patchFromDraft(draft, isCouponMode, reviewStatus));
     },
-    [applyPatch, drafts]
+    [applyPatch, drafts, isCouponMode]
   );
 
   const countLabels = useMemo(() => {
@@ -255,7 +265,7 @@ export function OfertasLocalesAiItemReviewPanel({
       ) : null}
 
       {!loading && !error && items.length === 0 ? (
-        <p className="text-xs text-[#1E1814]/60">{c.aiReviewEmpty}</p>
+        <p className="text-xs text-[#1E1814]/60">{scanJobId ? c.aiReviewNoSuggestions : c.aiReviewEmpty}</p>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -307,6 +317,14 @@ export function OfertasLocalesAiItemReviewPanel({
                 {!isCouponMode ? (
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                    {c.aiReviewRegularPrice}
+                    <input
+                      className={`${INPUT} mt-1`}
+                      value={draft.regularPriceText}
+                      onChange={(e) => updateDraftField(item.id, "regularPriceText", e.target.value)}
+                    />
+                  </label>
+                  <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
                     {c.aiReviewUnit}
                     <input
                       className={`${INPUT} mt-1`}
@@ -314,25 +332,28 @@ export function OfertasLocalesAiItemReviewPanel({
                       onChange={(e) => updateDraftField(item.id, "unit", e.target.value)}
                     />
                   </label>
-                  <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                    {c.aiReviewCategory}
-                    <input
-                      className={`${INPUT} mt-1`}
-                      value={draft.category}
-                      onChange={(e) => updateDraftField(item.id, "category", e.target.value)}
-                    />
-                  </label>
                 </div>
-                ) : (
+                ) : null}
+                {!isCouponMode ? (
                 <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                  {lang === "en" ? "Terms / details" : "Términos / detalles"}
+                  {c.aiReviewCategory}
                   <input
                     className={`${INPUT} mt-1`}
-                    value={draft.dealType}
-                    onChange={(e) => updateDraftField(item.id, "dealType", e.target.value)}
+                    value={draft.category}
+                    onChange={(e) => updateDraftField(item.id, "category", e.target.value)}
                   />
                 </label>
-                )}
+                ) : null}
+                <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                  {isCouponMode ? c.aiReviewTerms : c.aiReviewDescription}
+                  <textarea
+                    className={`${INPUT} mt-1 min-h-[56px]`}
+                    value={isCouponMode ? draft.terms : draft.description}
+                    onChange={(e) =>
+                      updateDraftField(item.id, isCouponMode ? "terms" : "description", e.target.value)
+                    }
+                  />
+                </label>
                 <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
                   {c.aiReviewTags}
                   <input
@@ -345,11 +366,16 @@ export function OfertasLocalesAiItemReviewPanel({
               </div>
 
               <p className="mt-3 text-[10px] text-[#1E1814]/50">
-                {c.aiReviewSource}:{" "}
-                {item.sourceAssetId || item.sourceAssetUrl
-                  ? `${item.sourceAssetId || "asset"}${item.sourcePage != null ? ` · p.${item.sourcePage}` : ""}`
-                  : c.aiReviewSourceUnknown}
+                {c.aiReviewSourceContext}:{" "}
+                {item.sourceContext ||
+                  (item.sourceFileName ? item.sourceFileName : "") ||
+                  (item.sourceAssetId || item.sourceAssetUrl
+                    ? `${item.sourceAssetId || "asset"}${item.sourcePage != null ? ` · p.${item.sourcePage}` : ""}`
+                    : c.aiReviewSourceUnknown)}
               </p>
+              {item.sourceBbox ? (
+                <p className="mt-1 text-[10px] text-[#1E1814]/45">{c.aiReviewSourceBboxNote}</p>
+              ) : null}
               {item.validFrom || item.validUntil ? (
                 <p className="mt-1 text-[10px] text-[#1E1814]/50">
                   {lang === "en" ? "Valid dates" : "Fechas de validez"}:{" "}

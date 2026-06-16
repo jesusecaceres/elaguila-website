@@ -7,6 +7,10 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanPersist";
 import { mapOfertaLocalDraftToInsertPayload } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
 import { OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
+import {
+  isSupabaseSchemaCacheMissingTableError,
+  ofertasLocalesAiSchemaMissingDetail,
+} from "@/app/lib/ofertas-locales/ofertasLocalesSupabaseSchema";
 import type { OfertaLocalDraft, OfertaLocalPublishStatus } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -31,6 +35,11 @@ function detectHeavyMedia(value: unknown): boolean {
       .some((key) => detectHeavyMedia((value as Record<string, unknown>)[key]));
   }
   return false;
+}
+
+function schemaMissingResponse(table: string) {
+  const detail = ofertasLocalesAiSchemaMissingDetail(table);
+  return NextResponse.json({ ok: false, error: "schema_not_applied", detail }, { status: 503 });
 }
 
 /**
@@ -102,6 +111,11 @@ export async function POST(req: NextRequest) {
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
+  const tableProbe = await supabase.from("ofertas_locales").select("id").limit(1);
+  if (tableProbe.error && isSupabaseSchemaCacheMissingTableError(tableProbe.error.message)) {
+    return schemaMissingResponse("ofertas_locales");
+  }
+
   if (existingId) {
     const { data: existing, error: fetchError } = await supabase
       .from("ofertas_locales")
@@ -109,6 +123,9 @@ export async function POST(req: NextRequest) {
       .eq("id", existingId)
       .maybeSingle();
 
+    if (fetchError && isSupabaseSchemaCacheMissingTableError(fetchError.message)) {
+      return schemaMissingResponse("ofertas_locales");
+    }
     if (fetchError || !existing) {
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
     }
@@ -132,6 +149,9 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error || !data) {
+      if (isSupabaseSchemaCacheMissingTableError(error?.message)) {
+        return schemaMissingResponse("ofertas_locales");
+      }
       return NextResponse.json(
         { ok: false, error: "update_failed", detail: error?.message ?? "unknown" },
         { status: 500 }
@@ -158,6 +178,9 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !data) {
+    if (isSupabaseSchemaCacheMissingTableError(error?.message)) {
+      return schemaMissingResponse("ofertas_locales");
+    }
     return NextResponse.json(
       { ok: false, error: "insert_failed", detail: error?.message ?? "unknown" },
       { status: 500 }
