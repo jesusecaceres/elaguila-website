@@ -258,7 +258,7 @@ export const PUBLIC_CHROME_COPY: Record<SupportedLang, PublicChromeCopy> = {
 
 /** Footer and shared public chrome copy — native for all active non-RTL languages. */
 export function getPublicChromeCopy(lang: SupportedLang): PublicChromeCopy {
-  return PUBLIC_CHROME_COPY[lang] ?? EN;
+  return PUBLIC_CHROME_COPY[lang];
 }
 
 export type { PublicChromeCopy } from "./types";

@@ -122,5 +122,5 @@ export const COOKIE_CONSENT_COPY: Record<SupportedLang, CookieConsentCopy> = {
 };
 
 export function getCookieConsentCopy(lang: SupportedLang): CookieConsentCopy {
-  return COOKIE_CONSENT_COPY[lang] ?? EN;
+  return COOKIE_CONSENT_COPY[lang];
 }

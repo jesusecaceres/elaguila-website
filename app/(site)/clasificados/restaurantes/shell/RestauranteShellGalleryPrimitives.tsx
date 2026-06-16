@@ -1,37 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { FiVideo } from "react-icons/fi";
-import { isRestauranteLocalVideoDataUrl } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";
-import type { ShellGalleryItem } from "./restaurantDetailShellTypes";
+import { FiPlay } from "react-icons/fi";
+import { isRestauranteLocalVideoDataUrl } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";import type { ShellGalleryItem } from "./restaurantDetailShellTypes";
 
-function safeVideoHost(raw: string | undefined): string {
-  const t = raw?.trim();
-  if (!t) return "";
-  try {
-    return new URL(t).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
+import {
+  detectRestauranteVideoPlatform,
+  extractRestauranteYoutubeId,
+  extractRestauranteVimeoId,
+  resolveRestauranteVideoThumbnailUrl,
+  restauranteVimeoEmbedSrc,
+  restauranteYoutubeEmbedSrc,
+  platformDisplayName,
+} from "./restauranteVideoPreview";
+import { RestauranteVideoPreviewCard } from "./RestauranteVideoPreviewCard";
 
 export function youtubeEmbedId(raw: string): string | null {
-  try {
-    const u = new URL(raw.trim());
-    const host = u.hostname.replace(/^www\./, "");
-    if (host === "youtu.be") {
-      const id = u.pathname.replace(/^\//, "").split("/")[0];
-      return id || null;
-    }
-    if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
-      if (u.pathname.startsWith("/embed/")) return u.pathname.slice("/embed/".length).split("/")[0] || null;
-      const v = u.searchParams.get("v");
-      if (v) return v;
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
+  return extractRestauranteYoutubeId(raw);
 }
 
 export type ShellMediaSlide =
@@ -72,22 +57,35 @@ export function ShellVideoSlide({ item }: { item: ShellGalleryItem }) {
         <iframe
           title={item.alt}
           className="aspect-video h-auto min-h-[240px] w-full max-w-5xl rounded-lg border border-white/10"
-          src={`https://www.youtube-nocookie.com/embed/${yid}`}
+          src={restauranteYoutubeEmbedSrc(yid)}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
       );
     }
+    const vimeoId = extractRestauranteVimeoId(remote);
+    if (vimeoId) {
+      return (
+        <iframe
+          title={item.alt}
+          className="aspect-video h-auto min-h-[240px] w-full max-w-5xl rounded-lg border border-white/10"
+          src={restauranteVimeoEmbedSrc(vimeoId)}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    const platform = detectRestauranteVideoPlatform(remote);
     return (
-      <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
-        <p className="text-sm text-white/85">Abre el video en una nueva pestaña.</p>
+      <div className="flex w-full max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
+        <RestauranteVideoPreviewCard videoRemoteUrl={remote} label={item.alt} compact />
         <a
           href={remote}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15"
         >
-          Ver video
+          {platform === "generic" ? "Ver video" : `Abrir en ${platformDisplayName(platform)}`}
         </a>
       </div>
     );
@@ -102,6 +100,23 @@ export function ShellGalleryThumb({
   g: ShellGalleryItem;
   onOpen: () => void;
 }) {
+  if (g.category === "video" && !g.imageUrl && (g.videoRemoteUrl?.trim() || g.videoSrc?.trim())) {
+    return (
+      <RestauranteVideoPreviewCard
+        videoRemoteUrl={g.videoRemoteUrl}
+        videoSrc={g.videoSrc}
+        label={g.alt}
+        compact
+        onClick={onOpen}
+      />
+    );
+  }
+
+  const thumbUrl =
+    g.category === "video" && g.videoRemoteUrl?.trim()
+      ? resolveRestauranteVideoThumbnailUrl(g.videoRemoteUrl)
+      : null;
+
   return (
     <button
       type="button"
@@ -120,6 +135,11 @@ export function ShellGalleryThumb({
           sizes="(max-width:640px) 50vw, 33vw"
           draggable={false}
         />
+      ) : thumbUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thumbUrl} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" decoding="async" />
+        </>
       ) : g.category === "video" && g.videoSrc && isRestauranteLocalVideoDataUrl(g.videoSrc) ? (
         <video
           className="absolute inset-0 h-full w-full object-cover"
@@ -128,16 +148,6 @@ export function ShellGalleryThumb({
           preload="metadata"
           src={g.videoSrc}
         />
-      ) : g.category === "video" && g.videoRemoteUrl?.trim() ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#1f1c17] via-[#2a2620] to-[#141210] p-3 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/12 text-white shadow-lg ring-1 ring-white/20">
-            <FiVideo className="h-6 w-6" aria-hidden />
-          </span>
-          <p className="mt-3 line-clamp-2 px-1 text-[11px] font-semibold leading-snug text-white/92">
-            {safeVideoHost(g.videoRemoteUrl) || "Video enlazado"}
-          </p>
-          <p className="mt-1 text-[10px] font-medium text-white/55">Se abre al ampliar</p>
-        </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-[#2a2620] to-[#1a1814]" aria-hidden />
       )}
@@ -147,10 +157,10 @@ export function ShellGalleryThumb({
         </span>
       ) : null}
       {g.category === "video" &&
-      (g.imageUrl || (g.videoSrc && isRestauranteLocalVideoDataUrl(g.videoSrc))) ? (
+      (g.imageUrl || thumbUrl || (g.videoSrc && isRestauranteLocalVideoDataUrl(g.videoSrc))) ? (
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/92 text-[color:var(--lx-text)] shadow-lg sm:h-12 sm:w-12">
-            <FiVideo className="h-5 w-5" aria-hidden />
+            <FiPlay className="ml-0.5 h-5 w-5" aria-hidden />
           </span>
         </span>
       ) : null}

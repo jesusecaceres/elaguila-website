@@ -78,13 +78,6 @@ export function buildGoogleTranslateWebsitesModeUrl(lang?: string | null): strin
   return `https://translate.google.com/?${params.toString()}`;
 }
 
-/** Shown when Google may not prefill the Website input box. */
-export function getGoogleTranslateWebsitesPasteHint(lang: SupportedLang): string {
-  return lang === "es"
-    ? "Si Google no llena el campo automáticamente, pega: leonixmedia.com"
-    : "If Google does not fill the field automatically, paste: leonixmedia.com";
-}
-
 export const googleTranslateWebsitesPasteHintClass =
   "mt-1.5 text-[0.65rem] leading-snug text-[#3D3428]/80 sm:text-xs";
 
@@ -188,12 +181,76 @@ const TRANSLATE_SITE_STEPS_JA: TranslateSitePageCopy["steps"] = [
   "希望の言語を選択します。",
 ];
 
-const TRANSLATE_SITE_STEPS_BY_LANG: Partial<Record<SupportedLang, TranslateSitePageCopy["steps"]>> = {
+const TRANSLATE_SITE_STEPS_TL: TranslateSitePageCopy["steps"] = [
+  "Kopyahin ang leonixmedia.com.",
+  "Buksan ang Google Translate Websites.",
+  "I-paste ang leonixmedia.com sa Website field.",
+  "Piliin ang iyong gustong wika.",
+];
+
+const TRANSLATE_SITE_STEPS_KM: TranslateSitePageCopy["steps"] = [
+  "ចម្លង leonixmedia.com។",
+  "បើក Google Translate Websites។",
+  "បិទភ្ជាប់ leonixmedia.com ទៅក្នុងវាល Website។",
+  "ជ្រើសរើសភាសាដែលអ្នកចង់បាន។",
+];
+
+const TRANSLATE_SITE_STEPS_ZH: TranslateSitePageCopy["steps"] = [
+  "复制 leonixmedia.com。",
+  "打开 Google Translate Websites。",
+  "将 leonixmedia.com 粘贴到 Website 字段。",
+  "选择您的首选语言。",
+];
+
+const TRANSLATE_SITE_STEPS_KO: TranslateSitePageCopy["steps"] = [
+  "leonixmedia.com을 복사합니다.",
+  "Google Translate Websites를 엽니다.",
+  "Website 필드에 leonixmedia.com을 붙여넣습니다.",
+  "원하는 언어를 선택합니다.",
+];
+
+const TRANSLATE_SITE_STEPS_HI: TranslateSitePageCopy["steps"] = [
+  "leonixmedia.com कॉपी करें।",
+  "Google Translate Websites खोलें।",
+  "Website फ़ील्ड में leonixmedia.com पेस्ट करें।",
+  "अपनी पसंदीदा भाषा चुनें।",
+];
+
+const TRANSLATE_SITE_STEPS_HY: TranslateSitePageCopy["steps"] = [
+  "Պատճենել leonixmedia.com։",
+  "Բացել Google Translate Websites։",
+  "Website դաշտում տեղադրել leonixmedia.com։",
+  "Ընտրել ձեր նախընտրած լեզուն։",
+];
+
+const TRANSLATE_SITE_STEPS_RU: TranslateSitePageCopy["steps"] = [
+  "Скопируйте leonixmedia.com.",
+  "Откройте Google Translate Websites.",
+  "Вставьте leonixmedia.com в поле Website.",
+  "Выберите предпочитаемый язык.",
+];
+
+const TRANSLATE_SITE_STEPS_PA: TranslateSitePageCopy["steps"] = [
+  "leonixmedia.com ਕਾਪੀ ਕਰੋ।",
+  "Google Translate Websites ਖੋਲ੍ਹੋ।",
+  "Website ਫੀਲਡ ਵਿੱਚ leonixmedia.com ਪੇਸਟ ਕਰੋ।",
+  "ਆਪਣੀ ਪਸੰਦੀਦਾ ਭਾਸ਼ਾ ਚੁਣੋ।",
+];
+
+const TRANSLATE_SITE_STEPS_BY_LANG: Record<SupportedLang, TranslateSitePageCopy["steps"]> = {
   es: TRANSLATE_SITE_STEPS_ES,
   en: TRANSLATE_SITE_STEPS_EN,
   vi: TRANSLATE_SITE_STEPS_VI,
   pt: TRANSLATE_SITE_STEPS_PT,
   ja: TRANSLATE_SITE_STEPS_JA,
+  tl: TRANSLATE_SITE_STEPS_TL,
+  km: TRANSLATE_SITE_STEPS_KM,
+  zh: TRANSLATE_SITE_STEPS_ZH,
+  ko: TRANSLATE_SITE_STEPS_KO,
+  hi: TRANSLATE_SITE_STEPS_HI,
+  hy: TRANSLATE_SITE_STEPS_HY,
+  ru: TRANSLATE_SITE_STEPS_RU,
+  pa: TRANSLATE_SITE_STEPS_PA,
 };
 
 const TRANSLATE_SITE_PAGE_ES: TranslateSitePageCopy = {
@@ -279,6 +336,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   tl: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Isalin ang LeonixMedia.com gamit ang Google",
+    stepsHeading: "Mga hakbang",
+    steps: TRANSLATE_SITE_STEPS_TL,
     copyButton: "Kopyahin ang leonixmedia.com",
     copiedButton: "Nakopya",
     openGoogleCta: "Buksan ang Google Translate Websites",
@@ -289,6 +348,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   zh: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "用 Google 翻译 LeonixMedia.com",
+    stepsHeading: "步骤",
+    steps: TRANSLATE_SITE_STEPS_ZH,
     websiteLabel: "网站",
     copyButton: "复制 leonixmedia.com",
     copiedButton: "已复制",
@@ -299,6 +360,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   ko: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Google로 LeonixMedia.com 번역",
+    stepsHeading: "단계",
+    steps: TRANSLATE_SITE_STEPS_KO,
     copyButton: "leonixmedia.com 복사",
     copiedButton: "복사됨",
     openGoogleCta: "Google Translate Websites 열기",
@@ -307,6 +370,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   hi: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Google से LeonixMedia.com अनुवाद करें",
+    stepsHeading: "चरण",
+    steps: TRANSLATE_SITE_STEPS_HI,
     copyButton: "leonixmedia.com कॉपी करें",
     copiedButton: "कॉपी हो गया",
     openGoogleCta: "Google Translate Websites खोलें",
@@ -315,6 +380,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   hy: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Google-ով թարգմանել LeonixMedia.com-ը",
+    stepsHeading: "Քայլեր",
+    steps: TRANSLATE_SITE_STEPS_HY,
     copyButton: "Պատճենել leonixmedia.com",
     copiedButton: "Պատճենված է",
     openGoogleCta: "Բացել Google Translate Websites",
@@ -323,6 +390,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   ru: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Перевести LeonixMedia.com через Google",
+    stepsHeading: "Шаги",
+    steps: TRANSLATE_SITE_STEPS_RU,
     copyButton: "Скопировать leonixmedia.com",
     copiedButton: "Скопировано",
     openGoogleCta: "Открыть Google Translate Websites",
@@ -331,6 +400,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   pa: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "Google ਨਾਲ LeonixMedia.com ਅਨੁਵਾਦ ਕਰੋ",
+    stepsHeading: "ਕਦਮ",
+    steps: TRANSLATE_SITE_STEPS_PA,
     copyButton: "leonixmedia.com ਕਾਪੀ ਕਰੋ",
     copiedButton: "ਕਾਪੀ ਹੋ ਗਿਆ",
     openGoogleCta: "Google Translate Websites ਖੋਲ੍ਹੋ",
@@ -339,6 +410,8 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
   km: {
     ...TRANSLATE_SITE_PAGE_EN,
     title: "បកប្រែ LeonixMedia.com ជាមួយ Google",
+    stepsHeading: "ជំហាន",
+    steps: TRANSLATE_SITE_STEPS_KM,
     copyButton: "ចម្លង leonixmedia.com",
     copiedButton: "បានចម្លង",
     openGoogleCta: "បើក Google Translate Websites",
@@ -348,13 +421,17 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
 
 export function getTranslateSitePageCopy(lang: SupportedLang): TranslateSitePageCopy {
   const copy = TRANSLATE_SITE_PAGE_BY_LANG[lang] ?? TRANSLATE_SITE_PAGE_EN;
-  const steps = copy.steps ?? TRANSLATE_SITE_STEPS_BY_LANG[lang] ?? TRANSLATE_SITE_STEPS_EN;
   return {
     ...TRANSLATE_SITE_PAGE_EN,
     ...copy,
-    steps,
+    steps: copy.steps ?? TRANSLATE_SITE_STEPS_BY_LANG[lang],
     stepsHeading: copy.stepsHeading ?? TRANSLATE_SITE_PAGE_EN.stepsHeading,
   };
+}
+
+/** Shown when Google may not prefill the Website input box. */
+export function getGoogleTranslateWebsitesPasteHint(lang: SupportedLang): string {
+  return getTranslateSitePageCopy(lang).pasteInstruction;
 }
 
 export type TranslateSiteHrefOpts = {

@@ -10,18 +10,18 @@ const QR_GUIDE_REGISTRY: Record<SupportedLang, QrGuideCopy> = {
   vi: QR_GUIDE_COMMUNITY.vi!,
   pt: QR_GUIDE_COMMUNITY.pt!,
   tl: QR_GUIDE_COMMUNITY.tl!,
-  km: QR_GUIDE_COMMUNITY.km ?? QR_GUIDE_EN,
-  zh: QR_GUIDE_COMMUNITY.zh ?? QR_GUIDE_EN,
+  km: QR_GUIDE_COMMUNITY.km!,
+  zh: QR_GUIDE_COMMUNITY.zh!,
   ja: QR_GUIDE_COMMUNITY.ja!,
-  ko: QR_GUIDE_COMMUNITY.ko ?? QR_GUIDE_EN,
-  hi: QR_GUIDE_COMMUNITY.hi ?? QR_GUIDE_EN,
-  hy: QR_GUIDE_COMMUNITY.hy ?? QR_GUIDE_EN,
-  ru: QR_GUIDE_COMMUNITY.ru ?? QR_GUIDE_EN,
-  pa: QR_GUIDE_COMMUNITY.pa ?? QR_GUIDE_EN,
+  ko: QR_GUIDE_COMMUNITY.ko!,
+  hi: QR_GUIDE_COMMUNITY.hi!,
+  hy: QR_GUIDE_COMMUNITY.hy!,
+  ru: QR_GUIDE_COMMUNITY.ru!,
+  pa: QR_GUIDE_COMMUNITY.pa!,
 };
 
 export function getQrGuideCopy(lang: SupportedLang): QrGuideCopy {
-  return QR_GUIDE_REGISTRY[lang] ?? QR_GUIDE_EN;
+  return QR_GUIDE_REGISTRY[lang];
 }
 
 const TRANSLATOR_EN: TranslatorPageCopy = {
@@ -138,7 +138,7 @@ const TRANSLATOR_ES: TranslatorPageCopy = {
   fullQrGuideCta: "Ver guía completa QR",
 };
 
-const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
+const TRANSLATOR_BY_LANG: Record<SupportedLang, TranslatorPageCopy> = {
   es: TRANSLATOR_ES,
   en: TRANSLATOR_EN,
   vi: {
@@ -351,7 +351,7 @@ const TRANSLATOR_BY_LANG: Partial<Record<SupportedLang, TranslatorPageCopy>> = {
 };
 
 export function getTranslatorPageCopy(lang: SupportedLang): TranslatorPageCopy {
-  return TRANSLATOR_BY_LANG[lang] ?? TRANSLATOR_EN;
+  return TRANSLATOR_BY_LANG[lang];
 }
 
 export type ComingSoonQrCtaCopy = {
@@ -380,7 +380,7 @@ const COMING_SOON_QR_EN: ComingSoonQrCtaCopy = {
     "Google Lens helps with printed pages, screens, and screenshots. Google Translate helps browse LeonixMedia.com in another language.",
 };
 
-const COMING_SOON_QR_BY_LANG: Partial<Record<SupportedLang, ComingSoonQrCtaCopy>> = {
+const COMING_SOON_QR_BY_LANG: Record<SupportedLang, ComingSoonQrCtaCopy> = {
   es: COMING_SOON_QR_ES,
   en: COMING_SOON_QR_EN,
   vi: {
@@ -464,7 +464,7 @@ const COMING_SOON_QR_BY_LANG: Partial<Record<SupportedLang, ComingSoonQrCtaCopy>
 };
 
 export function getComingSoonQrCtaCopy(lang: SupportedLang): ComingSoonQrCtaCopy {
-  return COMING_SOON_QR_BY_LANG[lang] ?? COMING_SOON_QR_EN;
+  return COMING_SOON_QR_BY_LANG[lang];
 }
 
 export { QR_GUIDE_ES, QR_GUIDE_EN };

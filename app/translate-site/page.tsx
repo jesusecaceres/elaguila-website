@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
+import { replaceLangInHref } from "@/app/lib/language";
 import {
   buildGoogleTranslateWebsitesModeUrl,
   getTranslateSitePageCopy,
@@ -23,7 +24,7 @@ function TranslateSiteContent() {
   const copy = useMemo(() => getTranslateSitePageCopy(lang), [lang]);
   const googleUrl = buildGoogleTranslateWebsitesModeUrl(lang);
   const safeReturnTo = sanitizeTranslateReturnTo(searchParams?.get("returnTo"));
-  const backHref = safeReturnTo ?? `/coming-soon-v2?lang=${lang}`;
+  const backHref = safeReturnTo ?? replaceLangInHref("/coming-soon-v2", lang);
   const [copied, setCopied] = useState(false);
 
   const onCopy = useCallback(async () => {

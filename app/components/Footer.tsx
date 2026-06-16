@@ -116,7 +116,7 @@ function FooterInner() {
             {t.dataDeletion}
           </Link>
         </nav>
-        <CookiePreferencesTrigger labelEs={t.cookiePrefs} labelEn={t.cookiePrefs} />
+        <CookiePreferencesTrigger label={t.cookiePrefs} />
         <p className="max-w-xl text-sm text-[color:var(--lx-muted)]">{LEONIX_MEDIA_SLOGAN}</p>
         <p className="text-sm text-[color:var(--lx-muted)]">
           © {new Date().getFullYear()} {LEONIX_MEDIA_BRAND} · {LEONIX_GLOBAL_LLC}

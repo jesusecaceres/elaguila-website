@@ -239,17 +239,7 @@ export function RestauranteAdStoryPreview({
         </section>
       )}
 
-      {/* D. Hook / Quick Understanding Zone */}
-      {data.groupedFeatures && (
-        <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
-      )}
-
-      {data.amenitiesSection && data.amenitiesSection.groups.length > 0 ? (
-        <RestauranteAmenitiesShellSection section={data.amenitiesSection} lang={lang} />
-      ) : null}
-
-      
-      {/* D. Proof / Featured Menu Zone */}
+      {/* 1. Especialidades de la Casa — food/media priority */}
       {hasMenuHighlights && (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
@@ -306,8 +296,18 @@ export function RestauranteAdStoryPreview({
         </section>
       )}
 
-      {/* E. Proof / Media Gallery Zone */}
-      <RestauranteLockedGallerySection galleryBundle={data.venueGallery} />
+      {/* 2. Galería y Videos */}
+      <RestauranteLockedGallerySection galleryBundle={data.venueGallery} lang={lang} />
+
+      {/* 3. Servicios y Características */}
+      {data.groupedFeatures ? (
+        <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
+      ) : null}
+
+      {/* 4. Amenidades y más */}
+      {data.amenitiesSection && data.amenitiesSection.groups.length > 0 ? (
+        <RestauranteAmenitiesShellSection section={data.amenitiesSection} lang={lang} />
+      ) : null}
 
       
       

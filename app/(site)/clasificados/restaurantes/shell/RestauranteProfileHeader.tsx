@@ -21,7 +21,10 @@ const HEADER_SHELL =
   "relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-gradient-to-br from-[#1E1814] via-[#3B2117] to-[#2A2620] text-[#FFFCF7] shadow-[0_12px_40px_rgba(30,24,16,0.18)] sm:rounded-2xl";
 
 const LOGO_FRAME =
-  "relative mx-auto h-[5.25rem] w-[5.25rem] shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/85 bg-[#FFFCF7] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] sm:h-24 sm:w-24 lg:mx-0";
+  "relative mx-auto h-[5.25rem] w-[5.25rem] shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/85 bg-[#FFFCF7] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] sm:h-24 sm:w-24 lg:mx-0 lg:h-[5.5rem] lg:w-[5.5rem]";
+
+const HERO_IMAGE_FRAME =
+  "relative hidden w-full overflow-hidden lg:block lg:max-h-[300px] lg:min-h-[200px] lg:flex-[1.15] lg:rounded-xl lg:border lg:border-[#C9A84A]/35";
 
 const CHIP =
   "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/45 bg-[#FFFCF7]/12 px-2.5 py-1 text-[11px] font-semibold leading-tight text-[#FFFCF7] sm:text-xs";
@@ -89,6 +92,8 @@ export function RestauranteProfileHeader({
     data.contactHub?.location?.addressLine2?.trim() ||
     "";
 
+  const heroImage = data.heroImageUrl?.trim() ?? "";
+
   return (
     <section className={HEADER_SHELL} aria-label={lang === "en" ? "Restaurant profile" : "Perfil del restaurante"}>
       <div
@@ -101,8 +106,26 @@ export function RestauranteProfileHeader({
         aria-hidden
       />
 
-      <div className="relative px-4 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-7">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5 lg:gap-6">
+      <div className="relative px-4 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6">
+          {heroImage ? (
+            <div className={HERO_IMAGE_FRAME}>
+              <div className="relative aspect-[16/10] h-full min-h-[200px] w-full lg:aspect-auto lg:min-h-[220px]">
+                <Image
+                  src={heroImage}
+                  alt={data.heroImageAlt || data.businessName}
+                  fill
+                  className="object-cover"
+                  sizes="(min-width: 1024px) 42vw, 0px"
+                  priority
+                  unoptimized={heroImage.startsWith("data:") || heroImage.startsWith("blob:")}
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1E1814]/50 via-transparent to-transparent" aria-hidden />
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
           <div className={LOGO_FRAME}>
             {data.businessLogo?.trim() ? (
               <Image
@@ -127,7 +150,7 @@ export function RestauranteProfileHeader({
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFFCF7]/65">
               {lang === "en" ? "Restaurant" : "Restaurante"}
             </p>
-            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight tracking-tight text-[#FFFCF7] sm:text-3xl lg:text-[2rem]">
+            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight tracking-tight text-[#FFFCF7] sm:text-3xl lg:text-[2.15rem]">
               {data.businessName}
             </h1>
 
@@ -221,6 +244,7 @@ export function RestauranteProfileHeader({
               />
             </div>
           ) : null}
+          </div>
         </div>
       </div>
     </section>

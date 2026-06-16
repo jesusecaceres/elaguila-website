@@ -5,13 +5,16 @@ import Image from "next/image";
 import { FiX, FiChevronLeft, FiChevronRight, FiExternalLink } from "react-icons/fi";
 import type { ShellVenueGalleryBundle } from "./restaurantDetailShellTypes";
 import { ShellVideoSlide } from "./RestauranteShellGalleryPrimitives";
+import { RestauranteVideoPreviewCard } from "./RestauranteVideoPreviewCard";
 
 interface RestauranteLockedGallerySectionProps {
   galleryBundle?: ShellVenueGalleryBundle;
+  lang?: "es" | "en";
 }
 
-export function RestauranteLockedGallerySection({ 
-  galleryBundle 
+export function RestauranteLockedGallerySection({
+  galleryBundle,
+  lang = "es",
 }: RestauranteLockedGallerySectionProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<"comida" | "interior" | "exterior" | "video">("comida");
@@ -20,7 +23,9 @@ export function RestauranteLockedGallerySection({
   // Find the food category (key: "food") - this is the default
   const foodCategory = galleryBundle?.categories?.find(cat => cat.key === "food");
   const foodImages = foodCategory?.items ?? [];
-  
+  const videoCategory = galleryBundle?.categories?.find((cat) => cat.key === "video");
+  const videoItems = videoCategory?.items ?? [];
+
   const previewImages = foodImages.slice(0, 7);
   
   const hasContent = foodImages.length > 0 || 
@@ -92,9 +97,9 @@ export function RestauranteLockedGallerySection({
       <section className="rounded-2xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_4px_20px_-8px_rgba(212,165,116,0.14)] overflow-hidden">
         <div className="p-4 sm:p-5">
           <h2 className="mb-3 text-lg font-bold leading-tight tracking-tight text-[#1F1A17] md:text-xl">
-            Galería
+            {lang === "en" ? "Gallery & Videos" : "Galería y Videos"}
           </h2>
-          
+
           {previewImages.length > 0 && (
             <div className="space-y-3">
               <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-7 md:gap-2">
@@ -118,17 +123,40 @@ export function RestauranteLockedGallerySection({
                   </button>
                 ))}
               </div>
-              
-              <div className="flex justify-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => openModal("comida", 0)}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-4 py-2 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0]"
-                >
-                  Explorar fotos y videos
-                  <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-                </button>
+            </div>
+          )}
+
+          {videoItems.length > 0 ? (
+            <div className={previewImages.length > 0 ? "mt-4 space-y-2" : "space-y-2"}>
+              <h3 className="text-sm font-semibold text-[#1F1A17]">
+                {videoItems.length > 1 ? (lang === "en" ? "Videos" : "Videos") : lang === "en" ? "Video" : "Video"}
+              </h3>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                {videoItems.map((item, index) => (
+                  <RestauranteVideoPreviewCard
+                    key={`video-preview-${index}`}
+                    videoRemoteUrl={item.videoRemoteUrl}
+                    videoSrc={item.videoSrc}
+                    label={item.alt}
+                    lang={lang}
+                    compact
+                    onClick={() => openModal("video", index)}
+                  />
+                ))}
               </div>
+            </div>
+          ) : null}
+
+          {(previewImages.length > 0 || videoItems.length > 0) && (
+            <div className="mt-3 flex justify-center pt-1">
+              <button
+                type="button"
+                onClick={() => openModal(previewImages.length > 0 ? "comida" : "video", 0)}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-4 py-2 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0]"
+              >
+                {lang === "en" ? "Explore photos & videos" : "Explorar fotos y videos"}
+                <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+              </button>
             </div>
           )}
         </div>
@@ -209,17 +237,17 @@ export function RestauranteLockedGallerySection({
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {activeCategory === "video" && currentItems.length > 1 ? (
                 <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-white/10 px-3 py-2 sm:px-4">
-                  {currentItems.map((_, idx) => (
-                    <button
+                  {currentItems.map((item, idx) => (
+                    <RestauranteVideoPreviewCard
                       key={idx}
-                      type="button"
+                      videoRemoteUrl={item.videoRemoteUrl}
+                      videoSrc={item.videoSrc}
+                      label={item.alt}
+                      lang={lang}
+                      compact
+                      selected={activeIndex === idx}
                       onClick={() => setActiveIndex(idx)}
-                      className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                        activeIndex === idx ? "bg-white/20 text-white" : "text-white/60 hover:bg-white/10"
-                      }`}
-                    >
-                      Video {idx + 1}
-                    </button>
+                    />
                   ))}
                 </div>
               ) : null}
