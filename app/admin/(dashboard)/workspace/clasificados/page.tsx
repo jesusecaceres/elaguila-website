@@ -259,6 +259,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         </AdminSectionCard>
       ) : (
         <>
+      <div id="queue" className="scroll-mt-24">
       <div className={`${adminCardBase} mb-6 p-4`}>
         <form className="flex flex-col gap-3" method="get" aria-describedby="clasificados-filter-hint">
           {scopeParam === "live" ? <input type="hidden" name="scope" value="live" /> : null}
@@ -375,6 +376,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           staffQueueMode
         />
       )}
+      </div>
         </>
       )}
 

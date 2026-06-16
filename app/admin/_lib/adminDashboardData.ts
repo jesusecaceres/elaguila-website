@@ -515,6 +515,33 @@ export function adminDashboardReviewReasonLabel(reason: string | null): string {
   return trimmed ? trimmed : "Reason unavailable — inspect review source";
 }
 
+/** Honest review/flag source — never implies AI unless data proves it (ADMIN-REVIEW-QUEUE-TRUTH-02). */
+export function adminDashboardReviewSourceLabel(row: AdminDashboardPendingReviewQueueRow): string {
+  const reason = row.reason?.trim();
+  if (reason) {
+    if (row.source === "empleos_public_listings") return "Review source: empleos moderation fields";
+    if (row.source === "viajes_staged_listings") return "Review source: viajes staged lifecycle";
+    return "Review source: stored moderation note";
+  }
+  if (row.source === "generic_listings") {
+    const st = row.status.toLowerCase();
+    if (st === "flagged") {
+      return "Review source: listings.status = flagged (no AI/moderation reason column on generic listings)";
+    }
+    if (st === "pending") {
+      return "Review source: listings.status = pending (awaiting staff review)";
+    }
+    return `Review source: listings.status = ${row.status}`;
+  }
+  if (row.source === "empleos_public_listings") {
+    return "Review source: empleos lifecycle_status = pending_review";
+  }
+  if (row.source === "viajes_staged_listings") {
+    return "Review source: viajes lifecycle in_review";
+  }
+  return "AI/moderation reason field not present on this row";
+}
+
 export function isAdminDashboardUrgentReviewRow(row: AdminDashboardPendingReviewQueueRow): boolean {
   const status = row.status.toLowerCase();
   return status === "flagged" || status === "changes_requested" || status.includes("flag");

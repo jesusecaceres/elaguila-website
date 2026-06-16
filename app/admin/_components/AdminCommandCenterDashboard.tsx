@@ -15,6 +15,7 @@ import {
 import {
   ADMIN_DASHBOARD_EXPIRING_SOON_DAYS,
   adminDashboardReviewReasonLabel,
+  adminDashboardReviewSourceLabel,
   isAdminDashboardUrgentReviewRow,
   splitAdminDashboardExpiringQueue,
   type AdminDashboardExpiringQueueRow,
@@ -92,6 +93,7 @@ function ReviewRow({
 }) {
   const urgent = isAdminDashboardUrgentReviewRow(row);
   const reason = adminDashboardReviewReasonLabel(row.reason);
+  const reviewSource = adminDashboardReviewSourceLabel(row);
 
   return (
     <li className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-3 py-3 text-sm break-words">
@@ -113,6 +115,7 @@ function ReviewRow({
           <p className="mt-1 text-xs text-[#5C5346]">
             {m("dashboard.reasonLabel")} {reason}
           </p>
+          <p className="mt-0.5 text-[10px] leading-snug text-[#9A9084]">{reviewSource}</p>
         </div>
         <span className="rounded-md border border-[#C9B46A]/40 bg-[#FFFCF7] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
           {row.status}
@@ -202,7 +205,7 @@ export function AdminCommandCenterDashboard({
           label={m("dashboard.pendingAdsTitle")}
           value={snap.pendingListingsReview}
           hint={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : m("dashboard.pendingAdsHint")}
-          href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue}
+          href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
           ctaLabel={m("dashboard.reviewAds")}
           variant="warning"
         />

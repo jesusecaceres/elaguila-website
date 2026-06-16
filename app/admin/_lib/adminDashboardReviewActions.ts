@@ -4,7 +4,17 @@ import type { AdminDashboardPendingReviewQueueRow } from "./adminDashboardData";
 export const ADMIN_DASHBOARD_REVIEW_SECTION_ID = "review";
 export const ADMIN_DASHBOARD_REVIEW_HREF = `/admin#${ADMIN_DASHBOARD_REVIEW_SECTION_ID}`;
 
+/** Clasificados queue table anchor (ADMIN-REVIEW-QUEUE-TRUTH-02). */
+export const ADMIN_CLASIFICADOS_QUEUE_ANCHOR = "queue";
+
 const GENERIC_STAFF_EDIT_PREFIX = "/admin/workspace/clasificados/listings/";
+
+export function appendClasificadosQueueAnchor(href: string): string {
+  const hash = `#${ADMIN_CLASIFICADOS_QUEUE_ANCHOR}`;
+  if (href.includes(hash)) return href;
+  const base = href.split("#")[0] ?? href;
+  return `${base}${hash}`;
+}
 
 /**
  * Staff content edit exists only for generic `listings` rows today.
@@ -16,7 +26,13 @@ export function staffEditHrefForReviewRow(row: AdminDashboardPendingReviewQueueR
 }
 
 export function buildReviewQueueHref(row: AdminDashboardPendingReviewQueueRow): string {
-  return row.adminHref;
+  if (row.source === "generic_listings") {
+    const q = row.leonixAdId?.trim() || row.internalId;
+    const st = row.status.trim().toLowerCase();
+    const statusQ = st === "pending" || st === "flagged" ? `&status=${encodeURIComponent(st)}` : "";
+    return `/admin/workspace/clasificados?q=${encodeURIComponent(q)}${statusQ}#${ADMIN_CLASIFICADOS_QUEUE_ANCHOR}`;
+  }
+  return appendClasificadosQueueAnchor(row.adminHref);
 }
 
 export function buildSellerMailtoForReviewRow(row: AdminDashboardPendingReviewQueueRow): string | null {
@@ -31,9 +47,11 @@ export function buildSellerMailtoForReviewRow(row: AdminDashboardPendingReviewQu
 export function enrichReviewRowActionFields(
   row: AdminDashboardPendingReviewQueueRow,
 ): AdminDashboardPendingReviewQueueRow {
+  const queueActionsHref = buildReviewQueueHref(row);
   return {
     ...row,
     editHref: staffEditHrefForReviewRow(row),
-    queueActionsHref: buildReviewQueueHref(row),
+    adminHref: queueActionsHref,
+    queueActionsHref,
   };
 }

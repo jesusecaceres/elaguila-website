@@ -5,6 +5,8 @@ export const ADMIN_DASHBOARD_ROUTES = {
   newsletter: "/admin/leads/newsletter",
   mediaKit: "/admin/leads/media-kit",
   classifiedsQueue: "/admin/workspace/clasificados",
+  /** Filtered review queue — lands on queue table, not category hub (ADMIN-REVIEW-QUEUE-TRUTH-02). */
+  classifiedsReviewQueue: "/admin/workspace/clasificados?status=flagged#queue",
   categories: "/admin/workspace/clasificados",
   team: "/admin/team",
   teamRoster: "/admin/team/roster",

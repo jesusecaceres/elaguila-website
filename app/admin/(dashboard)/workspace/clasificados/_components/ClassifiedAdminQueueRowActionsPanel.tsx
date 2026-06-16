@@ -111,7 +111,26 @@ export function ClassifiedAdminQueueRowActionsPanel({
           }}
           layout={layout}
         />
-      ) : (
+      ) : null}
+      {staffQueueMode && (row.status ?? "").toLowerCase() !== "removed" ? (
+        <div>
+          <p className={adminQueueActionGroupLabel}>Danger</p>
+          <AdminDashboardCtaGrid columns={gridCols}>
+            <AdminDashboardCtaButton
+              label={deletingId === row.id ? "…" : t("listings.deleteStaff")}
+              variant="danger"
+              disabled={deletingId === row.id}
+              title={t("listings.deleteTitle")}
+              onClick={() => void onDelete(row)}
+              className={compact}
+            />
+          </AdminDashboardCtaGrid>
+          <p className="mt-1 text-[10px] leading-snug text-[#9A9084]">
+            Soft delete — sets status to removed (not permanent hard delete).
+          </p>
+        </div>
+      ) : null}
+      {!staffQueueMode ? (
         <>
           <div>
             <p className={adminQueueActionGroupLabel}>Lifecycle</p>
@@ -154,7 +173,7 @@ export function ClassifiedAdminQueueRowActionsPanel({
             </div>
           ) : null}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

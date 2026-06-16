@@ -3,12 +3,15 @@ import { notFound } from "next/navigation";
 
 import { updateListingCoreFieldsStaffAdminAction } from "@/app/admin/actions";
 import { ClasificadosQueueHeader } from "@/app/admin/(dashboard)/workspace/clasificados/_components/ClasificadosQueueHeader";
+import { AdminListingReviewSnapshot } from "@/app/admin/(dashboard)/workspace/clasificados/_components/AdminListingReviewSnapshot";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const LISTING_EDIT_SELECT_FULL =
+  "id, leonix_ad_id, title, description, city, category, price, is_free, status, is_published, owner_id, created_at, detail_pairs, images";
+const LISTING_EDIT_SELECT_NO_IMAGES =
   "id, leonix_ad_id, title, description, city, category, price, is_free, status, is_published, owner_id, created_at, detail_pairs";
 const LISTING_EDIT_SELECT_FALLBACK =
   "id, leonix_ad_id, title, description, city, category, price, is_free, status, is_published, owner_id, created_at";
@@ -19,7 +22,7 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
   const { id } = await props.params;
   const supabase = getAdminSupabase();
   let row: Record<string, unknown> | null = null;
-  for (const cols of [LISTING_EDIT_SELECT_FULL, LISTING_EDIT_SELECT_FALLBACK]) {
+  for (const cols of [LISTING_EDIT_SELECT_FULL, LISTING_EDIT_SELECT_NO_IMAGES, LISTING_EDIT_SELECT_FALLBACK]) {
     const res = await supabase.from("listings").select(cols).eq("id", id).maybeSingle();
     if (!res.error && res.data) {
       row = res.data as unknown as Record<string, unknown>;
@@ -27,6 +30,20 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
     }
   }
   if (!row) notFound();
+
+  const ownerId = String(row.owner_id ?? "").trim();
+  let ownerEmail: string | null = null;
+  let ownerName: string | null = null;
+  if (ownerId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", ownerId)
+      .maybeSingle();
+    ownerEmail = profile?.email?.trim() ?? null;
+    ownerName = profile?.display_name?.trim() || null;
+  }
+
   const r = row;
   const title = String(r.title ?? "");
   const description = String(r.description ?? "");
@@ -37,9 +54,9 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
   const isFree = Boolean(r.is_free);
   const isPublished = Boolean(r.is_published);
   const leonixAdId = String(r.leonix_ad_id ?? "").trim();
-  const ownerId = String(r.owner_id ?? "").trim();
   const detailPairsJson =
     r.detail_pairs != null ? JSON.stringify(r.detail_pairs, null, 2) : "[]";
+  const queueBackHref = `/admin/workspace/clasificados?q=${encodeURIComponent(leonixAdId || id)}&status=${encodeURIComponent(status.toLowerCase())}#queue`;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -48,6 +65,8 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
         sourceTable="public.listings"
         subtitle={`Staff — category “${category}”. Core fields + detail_pairs (JSON). ID: ${id}`}
       />
+
+      <AdminListingReviewSnapshot listing={r} ownerEmail={ownerEmail} ownerName={ownerName} />
 
       <form action={updateListingCoreFieldsStaffAdminAction} className={`${adminCardBase} space-y-4 p-5`}>
         <input type="hidden" name="listing_id" value={id} />
@@ -112,9 +131,14 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
         </button>
       </form>
 
-      <Link href="/admin/workspace/clasificados" className="text-sm font-semibold text-[#6B5B2E] underline">
-        ← Clasificados hub
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link href={queueBackHref} className="text-sm font-semibold text-[#6B5B2E] underline">
+          ← Back to review queue
+        </Link>
+        <Link href="/admin/workspace/clasificados" className="text-sm font-semibold text-[#6B5B2E] underline">
+          Clasificados hub
+        </Link>
+      </div>
     </div>
   );
 }
