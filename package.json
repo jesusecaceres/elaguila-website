@@ -31,6 +31,7 @@
     "verify:admin-review-queue-truth": "node scripts/verify-admin-review-queue-truth.mjs",
     "verify:admin-bulk-flagged-cleanup": "node scripts/verify-admin-bulk-flagged-cleanup.mjs",
     "verify:admin-leads-style": "node scripts/verify-admin-leads-style.mjs",
+    "verify:admin-categories-command-center": "node scripts/verify-admin-categories-command-center.mjs",
     "verify:staff-admin-sales-access": "node scripts/verify-staff-admin-sales-access.mjs",
     "verify:staff-admin-supabase-activation": "node scripts/verify-staff-admin-supabase-activation.mjs",
     "verify:admin-staff-auth-boundary": "node scripts/verify-admin-staff-auth-boundary.mjs",
