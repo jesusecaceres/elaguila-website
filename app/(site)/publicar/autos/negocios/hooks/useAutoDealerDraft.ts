@@ -32,9 +32,10 @@ import {
   clearInventoryAddContextFromSession,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import {
-  autosNegociosEditorReturnStepFallback,
   clearAutosNegociosEditorReturnContext,
+  readAutosNegociosEditorReturnContext,
 } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
+import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
 import {
   clampAutosEditorMaxReached,
   clampAutosEditorStep,
@@ -111,10 +112,16 @@ export function useAutoDealerDraft() {
   }, []);
 
   const applyDraftPayload = useCallback(
-    (d: AutosNegociosDraftV1) => {
+    (d: AutosNegociosDraftV1, opts?: { fromResolvedLoad?: boolean }) => {
       setVehicleTitleOverride(d.vehicleTitleOverride);
-      setListing(safeNormalizeAutosDraftListing(d.listing, "negocios"));
-      const additional = normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles);
+      setListing(
+        opts?.fromResolvedLoad
+          ? { ...d.listing, heroImages: d.listing.heroImages ?? [] }
+          : safeNormalizeAutosDraftListing(d.listing, "negocios"),
+      );
+      const additional = opts?.fromResolvedLoad
+        ? d.additionalInventoryVehicles ?? []
+        : normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles);
       additionalInventoryRef.current = additional;
       setAdditionalInventoryVehicles(additional);
       const inProgress = d.inProgressInventoryVehicleDraft ?? null;
@@ -131,11 +138,32 @@ export function useAutoDealerDraft() {
     [applyEditorProgress],
   );
 
+  const applyEditorReturnContextAfterHydrate = useCallback(
+    (d: AutosNegociosDraftV1 | null) => {
+      const returnCtx = readAutosNegociosEditorReturnContext();
+      if (!returnCtx) return;
+      const step =
+        typeof d?.editorStep === "number"
+          ? clampAutosEditorStep(d.editorStep)
+          : clampAutosEditorStep(returnCtx.returnStep);
+      const max = clampAutosEditorMaxReached(d?.editorMaxReached ?? step, step);
+      applyEditorProgress(step, max);
+      if (returnCtx.returnMode === "child-preview" && returnCtx.childId?.trim()) {
+        inventoryDrawerEditingIdRef.current = returnCtx.childId.trim();
+        setInventoryDrawerEditingId(returnCtx.childId.trim());
+        inventoryDrawerOpenRef.current = false;
+        setInventoryDrawerOpenState(false);
+      }
+    },
+    [applyEditorProgress],
+  );
+
   const hydrateFromNamespace = useCallback(async (namespace: string) => {
     migrateLegacyAutosNegociosDraftJsonToNamespace(namespace);
-    const d = await loadAutosNegociosDraftResolved(namespace);
+    const d = await loadAutosNegociosCanonicalActiveDraft();
     if (d) {
-      applyDraftPayload(d);
+      applyDraftPayload(d, { fromResolvedLoad: true });
+      applyEditorReturnContextAfterHydrate(d);
       setRestoredFromSession(true);
     } else {
       setVehicleTitleOverride(false);
@@ -143,7 +171,13 @@ export function useAutoDealerDraft() {
       applyEditorProgress(0, 0);
       setRestoredFromSession(false);
     }
-  }, [applyDraftPayload, applyEditorProgress]);
+  }, [applyDraftPayload, applyEditorProgress, applyEditorReturnContextAfterHydrate]);
+
+  const rehydrateFromStorage = useCallback(async () => {
+    const ns = namespaceRef.current;
+    if (!ns) return;
+    await hydrateFromNamespace(ns);
+  }, [hydrateFromNamespace]);
 
   const emptyListing = useCallback(() => {
     setVehicleTitleOverride(false);
@@ -181,13 +215,6 @@ export function useAutoDealerDraft() {
       /** Preview return or publish confirm — always restore persisted draft. */
       if (confirmRoute || resume) {
         await hydrateFromNamespace(ns);
-        if (resume) {
-          const d = await loadAutosNegociosDraftResolved(ns);
-          if (d && d.editorStep === undefined) {
-            const fallback = autosNegociosEditorReturnStepFallback();
-            applyEditorProgress(fallback, Math.max(d.editorMaxReached ?? fallback, fallback));
-          }
-        }
         if (!cancelled) setHydrated(true);
         return;
       }
@@ -197,7 +224,7 @@ export function useAutoDealerDraft() {
         writeInventoryAddContextToSession(inventoryAdd.context);
         const existing = await loadAutosNegociosDraftResolved(ns);
         if (existing) {
-          applyDraftPayload(existing);
+          applyDraftPayload(existing, { fromResolvedLoad: true });
           setRestoredFromSession(true);
           if (!cancelled) setHydrated(true);
           return;
@@ -416,6 +443,7 @@ export function useAutoDealerDraft() {
     replaceListing,
     resetDraft,
     flushDraft,
+    rehydrateFromStorage,
     updateDealerHourRow,
     removeDealerHourRow,
     inventoryAddMode: inventoryAdd.inventoryModeAdd,

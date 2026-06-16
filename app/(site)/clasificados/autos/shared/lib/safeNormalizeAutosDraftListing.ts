@@ -24,10 +24,14 @@ export function safeNormalizeAutosDraftListing(raw: unknown, lane?: AutosDraftNo
       return normalizeLoadedListing(asPartial);
     } catch {
       try {
+        const preservedMedia = Array.isArray(asPartial.mediaImages) ? asPartial.mediaImages : [];
+        const preservedHero = Array.isArray(asPartial.heroImages) ? asPartial.heroImages : [];
+        const preservedVideoUrls = Array.isArray(asPartial.videoUrls) ? asPartial.videoUrls : asPartial.videoUrls;
         return normalizeLoadedListing({
           ...asPartial,
-          mediaImages: [],
-          heroImages: [],
+          mediaImages: preservedMedia,
+          heroImages: preservedHero,
+          videoUrls: preservedVideoUrls,
           dealerHours: [],
           relatedDealerListings: [],
           badges: [],

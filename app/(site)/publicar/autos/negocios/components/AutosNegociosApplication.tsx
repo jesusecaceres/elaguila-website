@@ -78,6 +78,7 @@ export function AutosNegociosApplication() {
     setListingPatch,
     resetDraft,
     flushDraft,
+    rehydrateFromStorage,
     updateDealerHourRow,
     removeDealerHourRow,
     inventoryAddMode,
@@ -540,6 +541,7 @@ export function AutosNegociosApplication() {
                     removeAdditionalInventoryVehicle(id);
                   }}
                   flushDraft={flushDraft}
+                  rehydrateFromStorage={rehydrateFromStorage}
                   {...inventoryDrawerProps}
                 />
                 <AutosNegociosInventoryValueModule

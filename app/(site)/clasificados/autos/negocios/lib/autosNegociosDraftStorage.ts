@@ -166,9 +166,7 @@ export async function loadAutosNegociosDraftResolved(namespace: string): Promise
     try {
       listing = await inlineDraftListingAssetsFromIdb(namespace, listing);
     } catch {
-      listing = stripUnresolvedIdbRefsFromListing(
-        stripDraftMuxFields(safeNormalizeAutosDraftListing(sync.listing, "negocios")),
-      );
+      listing = stripDraftMuxFields(safeNormalizeAutosDraftListing(sync.listing, "negocios"));
     }
 
     listing = stripDraftMuxFields(safeNormalizeAutosDraftListing(listing, "negocios"));

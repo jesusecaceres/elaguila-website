@@ -136,6 +136,7 @@ export function AutosNegociosInventoryBundlePreview({
   flushDraft,
   editorStep = 6,
   editorMaxReached = 6,
+  rehydrateFromStorage,
   inventoryAddMode = false,
   inventoryAddContext = null,
   backToEditLabel,
@@ -154,6 +155,7 @@ export function AutosNegociosInventoryBundlePreview({
   onSaveVehicle: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   onRemoveVehicle: (id: string) => void;
   flushDraft?: (opts?: { editorStep?: number; editorMaxReached?: number }) => Promise<void>;
+  rehydrateFromStorage?: () => Promise<void>;
   editorStep?: number;
   editorMaxReached?: number;
   inventoryAddMode?: boolean;
@@ -275,7 +277,10 @@ export function AutosNegociosInventoryBundlePreview({
           child={previewVehicle}
           allAdditional={additionalVehicles}
           backToEditLabel={backToEditLabel ?? (lang === "es" ? "Volver a editar" : "Back to edit")}
-          onBackToEdit={() => setPreviewId(null)}
+          onBackToEdit={async () => {
+            await rehydrateFromStorage?.();
+            setPreviewId(null);
+          }}
         />
       ) : null}
     </>

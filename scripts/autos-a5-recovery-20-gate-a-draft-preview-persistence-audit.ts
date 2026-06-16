@@ -120,7 +120,11 @@ function run() {
   assert.ok(addFlow.includes("stripAutosNegociosEditorResumeQueryParams"), "Resume query strip helper");
 
   const previewClient = read("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
-  assert.ok(previewClient.includes("loadAutosNegociosDraftResolved"), "Preview reads active draft");
+  assert.ok(
+    previewClient.includes("loadAutosNegociosDraftResolved") ||
+      previewClient.includes("loadAutosNegociosCanonicalActiveDraft"),
+    "Preview reads active draft",
+  );
 
   const childOverlay = read("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
   assert.ok(childOverlay.includes("backToEditLabel") || childOverlay.includes("Volver a editar"), "Child Volver a editar");

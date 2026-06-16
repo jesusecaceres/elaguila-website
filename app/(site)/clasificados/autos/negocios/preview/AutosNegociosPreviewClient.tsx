@@ -4,23 +4,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
-import { loadAutosNegociosDraftResolved } from "../lib/autosNegociosDraftStorage";
-import {
-  migrateLegacyAutosNegociosDraftJsonToNamespace,
-  resolveAutosNegociosDraftNamespace,
-  storageEventAffectsAutosNegociosDraft,
-} from "../lib/autosNegociosDraftNamespace";
+import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
+import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
 import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { buildAutosNegociosEditorResumeHref } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
-import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/lib/safeNormalizeAutosDraftListing";
-import { peekAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import {
+  migrateLegacyAutosNegociosDraftJsonToNamespace,
+  storageEventAffectsAutosNegociosDraft,
+} from "../lib/autosNegociosDraftNamespace";
 import { AutosNegociosPreviewInventorySection } from "../components/AutosNegociosPreviewInventorySection";
 import { AutosNegociosPreviewCaptureBanner } from "../components/AutosNegociosPreviewCaptureBanner";
 import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
-import { normalizeAdditionalInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { mapAutosNegociosBuyerPreviewViewModel } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
 
@@ -53,29 +50,16 @@ async function resolvePreviewState(): Promise<{
       };
     }
 
-    const hint = peekAutosDraftNamespaceHint("negocios");
-    const resolved = await resolveAutosNegociosDraftNamespace();
-    migrateLegacyAutosNegociosDraftJsonToNamespace(resolved);
-
-    let d = null as Awaited<ReturnType<typeof loadAutosNegociosDraftResolved>>;
-    if (hint) {
-      migrateLegacyAutosNegociosDraftJsonToNamespace(hint);
-      d = await loadAutosNegociosDraftResolved(hint);
-    }
-    if (!d) {
-      migrateLegacyAutosNegociosDraftJsonToNamespace(resolved);
-      d = await loadAutosNegociosDraftResolved(resolved);
-    }
+    const d = await loadAutosNegociosCanonicalActiveDraft();
 
     if (!d) {
       return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios"), additionalInventoryVehicles: [] };
     }
 
-    const normalized = safeNormalizeAutosDraftListing(d.listing, "negocios");
     return {
       mode: "draft",
-      listing: normalized,
-      additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles),
+      listing: d.listing,
+      additionalInventoryVehicles: d.additionalInventoryVehicles ?? [],
     };
   } catch {
     return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios"), additionalInventoryVehicles: [] };
