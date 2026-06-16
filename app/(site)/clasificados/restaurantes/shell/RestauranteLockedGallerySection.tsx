@@ -21,8 +21,7 @@ export function RestauranteLockedGallerySection({
   const foodCategory = galleryBundle?.categories?.find(cat => cat.key === "food");
   const foodImages = foodCategory?.items ?? [];
   
-  // Desktop: 4x2 grid (8 images), Mobile: 2x3 grid (6 images)
-  const previewImages = foodImages.slice(0, typeof window !== 'undefined' && window.innerWidth >= 768 ? 8 : 6);
+  const previewImages = foodImages.slice(0, 7);
   
   const hasContent = foodImages.length > 0 || 
                      (galleryBundle?.categories?.find(cat => cat.key === "interior")?.items.length ?? 0) > 0 ||
@@ -90,22 +89,20 @@ export function RestauranteLockedGallerySection({
   return (
     <>
       {/* Gallery Section */}
-      <section className="rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)] overflow-hidden">
-        <div className="p-4 sm:p-6 md:p-8">
-          <h2 className="mb-4 text-xl font-bold leading-tight tracking-tight text-[#1F1A17] md:mb-8 md:text-2xl lg:text-3xl">
+      <section className="rounded-2xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_4px_20px_-8px_rgba(212,165,116,0.14)] overflow-hidden">
+        <div className="p-4 sm:p-5">
+          <h2 className="mb-3 text-lg font-bold leading-tight tracking-tight text-[#1F1A17] md:text-xl">
             Galería
           </h2>
           
-          {/* Preview Grid - Comida by default */}
           {previewImages.length > 0 && (
-            <div className="space-y-4 md:space-y-6">
-              {/* Desktop: 4x2 grid, Mobile: 2x3 grid */}
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
+            <div className="space-y-3">
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-7 md:gap-2">
                 {previewImages.map((item, index) => (
                   <button
                     key={index}
                     onClick={() => openModal("comida", index)}
-                    className="relative aspect-[16/10] rounded-xl overflow-hidden group hover:opacity-90 transition-opacity"
+                    className="relative aspect-[4/3] rounded-lg overflow-hidden group hover:opacity-90 transition-opacity"
                   >
                     <Image
                       src={item.imageUrl!}
@@ -122,11 +119,11 @@ export function RestauranteLockedGallerySection({
                 ))}
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center pt-1">
                 <button
                   type="button"
                   onClick={() => openModal("comida", 0)}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-5 py-2.5 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0] md:px-6 md:py-3 md:text-base"
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-4 py-2 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0]"
                 >
                   Explorar fotos y videos
                   <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />

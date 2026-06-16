@@ -32,11 +32,10 @@ const LEONIX_SUCCESS_GREEN = "#1A4D2E";
 const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
-const SECTION_CARD = "rounded-3xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_8px_32px_-8px_rgba(212,165,116,0.15)] overflow-hidden";
-const SECTION_PADDING = "p-4 sm:p-6 md:p-8";
-const SECTION_TITLE = "text-xl font-bold text-[#1F1A17] mb-4 tracking-tight md:mb-6 md:text-2xl";
-const SECTION_DESCRIPTION = "text-base text-[#5A5148] leading-relaxed";
-const SUBSECTION_TITLE = "text-lg font-semibold text-[#1F1A17] mb-4";
+const SECTION_CARD = "rounded-2xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_4px_20px_-8px_rgba(212,165,116,0.14)] overflow-hidden";
+const SECTION_PADDING = "p-4 sm:p-5";
+const SECTION_TITLE = "text-lg font-bold text-[#1F1A17] mb-3 tracking-tight md:text-xl";
+const SUBSECTION_TITLE = "text-sm font-semibold text-[#1F1A17] mb-2 md:text-base";
 const DETAIL_LABEL = "text-sm font-semibold text-[#5A5148] mb-2";
 const DETAIL_VALUE = "text-base text-[#1F1A17]";
 
@@ -126,11 +125,17 @@ export function RestauranteAdStoryPreview({
     });
   };
   const hasContactInfo = Boolean(data.contactHub?.hasAny);
+  const hubHasHours = Boolean(
+    data.contactHub?.hours?.weeklyRows?.length ||
+      data.contactHub?.hours?.specialNote ||
+      data.contactHub?.hours?.todayHoursLine,
+  );
   const hasMenuHighlights = proseData.menuHighlights && proseData.menuHighlights.length > 0;
   const hasGallery = data.venueGallery || data.gallery;
-  const hasHoursSection = Boolean(data.hoursPreview);
+  const showStandaloneHours = Boolean(data.hoursPreview) && !hubHasHours;
   const hasTrustInfo = data.trustRating || data.trustLight;
   const hasStackSections = proseData.stackSections && proseData.stackSections.length > 0;
+  const hasMoreInfo = hasTrustInfo || hasStackSections;
 
   const todayHoursRow = useMemo(() => {
     const rows = data.hoursDetail?.rows;
@@ -169,7 +174,7 @@ export function RestauranteAdStoryPreview({
   };
 
   return (
-    <div className="space-y-4 md:space-y-8" style={{ background: LEONIX_PAGE_BG }}>
+    <div className="space-y-3 md:space-y-5" style={{ background: LEONIX_PAGE_BG }}>
       
       <RestauranteProfileHeader
         data={data}
@@ -211,9 +216,9 @@ export function RestauranteAdStoryPreview({
 
       {/* C. Contact and Location Zone */}
       {hasContactInfo && (
-        <section className="overflow-hidden rounded-3xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-sm">
           <div className={SECTION_PADDING}>
-            <h2 className="mb-4 text-xl font-bold tracking-tight text-[color:var(--lx-text)] md:mb-6 md:text-2xl">
+            <h2 className="mb-3 text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">
               {ui.contactHeading}
             </h2>
             {data.contactHub ? (
@@ -274,20 +279,22 @@ export function RestauranteAdStoryPreview({
                 </div>
               ))}
             </div>
-            {/* Desktop: grid (md+) */}
-            <div className="hidden gap-6 md:grid md:grid-cols-2">
+            {/* Desktop: up to 4 cards per row */}
+            <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
               {proseData.menuHighlights!.map((dish, index) => (
-                <div key={index} className="rounded-2xl border border-[#D8C2A0] bg-white p-4 shadow-sm">
+                <div key={index} className="rounded-xl border border-[#D8C2A0] bg-white p-3 shadow-sm">
                   {dish.imageUrl && (
-                    <div className="relative mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl">
-                      <Image src={dish.imageUrl} alt={dish.name} fill className="object-cover" />
+                    <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg">
+                      <Image src={dish.imageUrl} alt={dish.name} fill className="object-cover" sizes="(max-width:1024px) 50vw, 25vw" />
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-[#1F1A17]">{dish.name}</h3>
-                    {dish.supportingLine && <p className="text-sm text-[#5A5148]">{dish.supportingLine}</p>}
+                  <div className="space-y-1">
+                    <h3 className="line-clamp-1 text-sm font-semibold text-[#1F1A17]">{dish.name}</h3>
+                    {dish.supportingLine && (
+                      <p className="line-clamp-2 text-xs leading-snug text-[#5A5148]">{dish.supportingLine}</p>
+                    )}
                     {dish.badge && (
-                      <span className="inline-block rounded-full bg-[#F6EBDD] px-2 py-1 text-xs font-semibold text-[#1F1A17]">
+                      <span className="inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
                         {dish.badge}
                       </span>
                     )}
@@ -304,12 +311,12 @@ export function RestauranteAdStoryPreview({
 
       
       
-      {/* H. Details / Hours Zone */}
-      {hasHoursSection && (
+      {/* Hours — only when not already in Business Hub */}
+      {showStandaloneHours && data.hoursPreview ? (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             <h2 className={SECTION_TITLE}>Horarios</h2>
-            <div className="space-y-3 md:space-y-4">
+            <div className="space-y-2 md:space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <span
                   className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-semibold md:px-4 md:py-2 md:text-sm ${
@@ -391,119 +398,94 @@ export function RestauranteAdStoryPreview({
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
-      
-      
-      {/* J. Trust / External Proof Zone */}
-      {hasTrustInfo && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Prueba Externa</h2>
-            
-            {/* Rating display */}
-            {data.trustRating && (
-              <div className="mb-4 rounded-2xl border border-[#D8C2A0] bg-white p-4 md:mb-6 md:p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <FiStar 
-                        key={i} 
-                        className={`w-5 h-5 ${
-                          i < Math.floor(data.trustRating!.average) 
-                            ? 'text-yellow-400 fill-current' 
-                            : 'text-gray-300'
-                        }`} 
-                      />
-                    ))}
+      {/* Más información — trust, catering stacks, extra details (compact) */}
+      {hasMoreInfo ? (
+        <details className={`${SECTION_CARD} group`}>
+          <summary className={`${SECTION_PADDING} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-bold tracking-tight text-[#1F1A17] md:text-xl">
+                {lang === "en" ? "More information" : "Más información"}
+              </h2>
+              <span className="text-xs font-semibold text-[#8B7E70] group-open:hidden">
+                {lang === "en" ? "Show" : "Ver"}
+              </span>
+              <span className="hidden text-xs font-semibold text-[#8B7E70] group-open:inline">
+                {lang === "en" ? "Hide" : "Ocultar"}
+              </span>
+            </div>
+          </summary>
+          <div className="space-y-4 border-t border-[#D8C2A0]/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+            {hasTrustInfo ? (
+              <div>
+                <h3 className={SUBSECTION_TITLE}>{lang === "en" ? "External proof" : "Prueba Externa"}</h3>
+                {data.trustRating ? (
+                  <div className="mb-3 rounded-xl border border-[#D8C2A0] bg-white p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <FiStar
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(data.trustRating!.average) ? "fill-current text-yellow-400" : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#1F1A17]">{data.trustRating.average.toFixed(1)} de 5</p>
+                        <p className="text-xs text-[#5A5148]">{data.trustRating.count} reseñas</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-lg font-semibold text-[#1F1A17]">
-                      {data.trustRating.average.toFixed(1)} de 5
+                ) : null}
+                {data.trustLight ? (
+                  <div className="rounded-xl border border-[#D8C2A0] bg-white p-3">
+                    <p className="text-sm leading-relaxed text-[#1F1A17]">
+                      {proseData.trustLight?.summaryLine ?? data.trustLight.summaryLine}
                     </p>
-                    <p className="text-sm text-[#5A5148]">
-                      {data.trustRating.count} reseñas
-                    </p>
+                    {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel ? (
+                      <a
+                        href={data.trustLight.externalTrustHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#BEA98E] px-4 py-2 text-xs font-semibold text-[#1F1A17] hover:bg-[#D8C2A0]"
+                      >
+                        {data.trustLight.externalTrustLabel}
+                        <FiExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    ) : null}
                   </div>
-                </div>
+                ) : null}
               </div>
-            )}
-            
-            {/* Trust light information */}
-            {data.trustLight && (
-              <div className="rounded-2xl border border-[#D8C2A0] bg-white p-4 md:p-6">
-                <p className="text-base text-[#1F1A17] leading-relaxed mb-4">
-                  {proseData.trustLight?.summaryLine ?? data.trustLight.summaryLine}
-                </p>
-                
-                {data.trustLight.externalTrustHref && data.trustLight.externalTrustLabel && (
-                  <a
-                    href={data.trustLight.externalTrustHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#BEA98E] text-[#1F1A17] rounded-full font-semibold hover:bg-[#D8C2A0] transition-colors"
-                  >
-                    {data.trustLight.externalTrustLabel}
-                    <FiExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+            ) : null}
 
-      {/* K. Conditional Stack Zones */}
-      {hasStackSections && (
-        <section className={SECTION_CARD}>
-          <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Información Adicional</h2>
-            <div className="space-y-3 md:space-y-6">
-              {proseData.stackSections!.map((stack) => (
-                <div key={stack.id}>
-                  <div className="hidden rounded-2xl border border-[#D8C2A0] bg-white p-6 md:block">
+            {hasStackSections ? (
+              <div className="space-y-3">
+                {proseData.stackSections!.map((stack) => (
+                  <div key={stack.id} className="rounded-xl border border-[#D8C2A0] bg-white p-3 sm:p-4">
                     <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
-                    <dl className="mt-4 space-y-0">
+                    <dl className="mt-2 space-y-0">
                       {stack.rows.map((row, rowIndex) => (
                         <div
                           key={rowIndex}
-                          className="flex items-start justify-between gap-4 border-b border-[#D8C2A0]/30 py-2.5 last:border-0"
+                          className="flex flex-col gap-0.5 border-b border-[#D8C2A0]/25 py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
                         >
-                          <dt className="max-w-[40%] shrink-0 font-semibold text-[#1F1A17]">{row.label}</dt>
-                          <dd className="min-w-0 text-right text-sm text-[#5A5148]">{renderStackValue(row)}</dd>
+                          <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70] sm:max-w-[40%] sm:normal-case sm:text-sm sm:text-[#1F1A17]">
+                            {row.label}
+                          </dt>
+                          <dd className="min-w-0 text-sm text-[#5A5148] sm:text-right">{renderStackValue(row)}</dd>
                         </div>
                       ))}
                     </dl>
                   </div>
-
-                  <details className="group rounded-2xl border border-[#D8C2A0] bg-white md:hidden">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
-                      <span className="text-base font-semibold text-[#1F1A17]">{stack.title}</span>
-                      <span className="text-xs font-semibold text-[#8B7E70] group-open:hidden">Ver</span>
-                      <span className="hidden text-xs font-semibold text-[#8B7E70] group-open:inline">Ocultar</span>
-                    </summary>
-                    <div className="border-t border-[#D8C2A0]/40 px-4 pb-4 pt-1">
-                      <dl className="space-y-0">
-                        {stack.rows.map((row, rowIndex) => (
-                          <div
-                            key={rowIndex}
-                            className="border-b border-[#D8C2A0]/25 py-3 last:border-0"
-                          >
-                            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">
-                              {row.label}
-                            </dt>
-                            <dd className="mt-1.5 min-w-0 text-sm leading-snug text-[#5A5148]">{renderStackValue(row)}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </div>
-                  </details>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : null}
           </div>
-        </section>
-      )}
+        </details>
+      ) : null}
     </div>
   );
 }

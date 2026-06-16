@@ -180,6 +180,36 @@ export function hasAnyRestauranteAmenities(x: RestauranteAmenitiesSelection | un
   return RESTAURANTE_AMENITY_GROUP_ORDER.some((g) => (x[g]?.length ?? 0) > 0);
 }
 
+/** Resolve chip leading icon from public shell labels (display-only lookup). */
+export function lookupRestauranteAmenityLeading(
+  labelEs: string,
+  labelEn: string,
+): RestaurantePublishChipLeading | undefined {
+  for (const def of ITEM_LOOKUP.values()) {
+    if (def.labelEs === labelEs || def.labelEn === labelEn) return def.leading;
+  }
+  return undefined;
+}
+
+const GROUP_EMOJI: Record<string, string> = {
+  Pagos: "💳",
+  Payments: "💳",
+  Servicio: "🍽️",
+  Service: "🍽️",
+  Accesibilidad: "♿",
+  Accessibility: "♿",
+  Ambiente: "✨",
+  Atmosphere: "✨",
+  Comodidades: "🛋️",
+  Amenities: "🛋️",
+  "Opciones de comida": "🥗",
+  "Food options": "🥗",
+};
+
+export function emojiForRestauranteAmenityGroupTitle(title: string): string {
+  return GROUP_EMOJI[title] ?? "✓";
+}
+
 export function buildShellAmenitiesSection(
   raw: RestauranteAmenitiesSelection | undefined,
 ): { amenitiesSection?: ShellAmenitiesSection } {

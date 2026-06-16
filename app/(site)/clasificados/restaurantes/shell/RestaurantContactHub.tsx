@@ -46,14 +46,10 @@ import {
 
 function HubSectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="border-b border-[#E8D9C4]/80 pb-2 text-sm font-bold tracking-tight text-[#1E1814] sm:text-base">
+    <h3 className="border-b border-[#E8D9C4]/80 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#1E1814] sm:text-sm">
       {children}
     </h3>
   );
-}
-
-function HubDivider() {
-  return <hr className="my-4 border-0 border-t sm:my-5" style={{ borderColor: RCH_LX.divider }} />;
 }
 
 function parseWhatsAppHref(href: string): { digits: string; message: string } {
@@ -100,13 +96,15 @@ function CopyChip({ value }: { value: string }) {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, [value]);
   return (
     <button
       type="button"
       onClick={copy}
-      className="ml-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-[#6F6254] transition hover:text-[#1E1814]"
+      className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-[#6F6254] transition hover:text-[#1E1814]"
       aria-label="Copy"
       title="Copy"
     >
@@ -146,6 +144,9 @@ function hubButtonToCtaType(
       return "general";
   }
 }
+
+const COMPACT_CTA =
+  "inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/55";
 
 export function RestaurantContactHub({
   hub,
@@ -281,15 +282,13 @@ export function RestaurantContactHub({
 
   const contactGridClass =
     gridContact.length === 1
-      ? "mt-3 grid max-w-full grid-cols-1 gap-2.5"
+      ? "mt-2 grid max-w-full grid-cols-1 gap-2"
       : gridContact.length === 3
-        ? "mt-3 grid grid-cols-2 gap-2.5 [&>*:last-child]:col-span-2"
-        : "mt-3 grid grid-cols-2 gap-2.5";
+        ? "mt-2 grid grid-cols-2 gap-2 [&>*:last-child]:col-span-2"
+        : "mt-2 grid grid-cols-2 gap-2";
 
   const orderGridClass =
-    hub.orderReserve.length === 1
-      ? "mt-3 flex flex-col gap-2.5"
-      : "mt-3 grid grid-cols-2 gap-2.5";
+    hub.orderReserve.length === 1 ? "mt-2 flex flex-col gap-2" : "mt-2 grid grid-cols-2 gap-2";
 
   const showLocation =
     hub.location &&
@@ -299,21 +298,17 @@ export function RestaurantContactHub({
     hub.hours?.weeklyRows?.length || hub.hours?.specialNote || hub.hours?.todayHoursLine,
   );
 
+  const showSecondary = hub.reviews.length > 0 || hub.social.length > 0 || findUsLinks.length > 0;
+
   const renderOrderButton = (btn: RestaurantHubButton) => {
     const Icon = iconForButton(btn);
     const isPrimaryAction = btn.id === "order" && btn.fullWidth;
-    const className = isPrimaryAction ? RCH_CTA_PRIMARY : RCH_LINK_CARD;
+    const className = isPrimaryAction ? `${COMPACT_CTA} border-0 text-[#FFFCF7]` : `${RCH_LINK_CARD} min-h-[44px] py-2.5`;
     const style = isPrimaryAction
-      ? { backgroundColor: RCH_LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.28)" }
+      ? { backgroundColor: RCH_LX.burgundy, boxShadow: "0 6px 18px rgba(92, 22, 34, 0.24)" }
       : undefined;
     return (
-      <button
-        key={btn.id}
-        type="button"
-        className={className}
-        style={style}
-        onClick={(e) => openButton(btn, e)}
-      >
+      <button key={btn.id} type="button" className={className} style={style} onClick={(e) => openButton(btn, e)}>
         <Icon className="h-4 w-4 shrink-0" style={{ color: isPrimaryAction ? RCH_LX.gold : RCH_LX.burgundy }} aria-hidden />
         <span className="min-w-0 flex-1">{btn.label}</span>
       </button>
@@ -324,163 +319,86 @@ export function RestaurantContactHub({
     <>
       <article className={RCH_HUB_CARD} data-restaurant-contact-hub="1">
         <div
-          className="pointer-events-none -mx-4 -mt-4 mb-4 h-1 bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent sm:-mx-5 sm:-mt-5"
+          className="pointer-events-none -mx-4 -mt-4 mb-3 h-0.5 bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent sm:-mx-5 sm:-mt-5"
           aria-hidden
         />
 
-        {showContact ? (
-          <section aria-labelledby="rest-hub-contact-heading">
-            <HubSectionTitle>
-              <span id="rest-hub-contact-heading">{labels.contact}</span>
-            </HubSectionTitle>
-            {callBtn ? (
-              <button
-                type="button"
-                className={`${RCH_CTA_PRIMARY} mt-3 w-full border-0`}
-                style={{ backgroundColor: RCH_LX.burgundy, boxShadow: "0 10px 28px rgba(92, 22, 34, 0.3)" }}
-                onClick={(e) => openButton(callBtn, e)}
-              >
-                <FiPhone className="h-5 w-5 shrink-0" aria-hidden />
-                <span>{callBtn.label}</span>
-              </button>
-            ) : null}
-            {gridContact.length > 0 ? (
-              <div className={contactGridClass}>
-                {gridContact.map((btn) => {
-                  const Icon = iconForButton(btn);
-                  const isWhatsApp = btn.id === "whatsapp";
-                  const isSecondary = btn.id === "sms" || btn.id === "email";
-                  return (
+        {/* Primary Business Hub — 3 columns on desktop, stacked on mobile */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-4 lg:items-start">
+          {/* Column 1: Contact + order actions */}
+          {(showContact || hub.orderReserve.length > 0) ? (
+            <div className="min-w-0 space-y-3">
+              {showContact ? (
+                <section aria-labelledby="rest-hub-contact-heading">
+                  <HubSectionTitle>
+                    <span id="rest-hub-contact-heading">{labels.contact}</span>
+                  </HubSectionTitle>
+                  {callBtn ? (
                     <button
-                      key={btn.id}
                       type="button"
-                      className={
-                        isSecondary
-                          ? RCH_CTA_SECONDARY
-                          : isWhatsApp
-                            ? RCH_CTA_WHATSAPP
-                            : RCH_CTA_PRIMARY
-                      }
-                      style={
-                        isSecondary
-                          ? undefined
-                          : isWhatsApp
-                            ? { backgroundColor: RCH_LX.whatsApp, boxShadow: RCH_LX.whatsAppShadow }
-                            : { backgroundColor: RCH_LX.burgundy, boxShadow: "0 6px 16px rgba(92, 22, 34, 0.2)" }
-                      }
-                      onClick={(e) => openButton(btn, e)}
+                      className={`${COMPACT_CTA} mt-2 w-full border-0 text-[#FFFCF7]`}
+                      style={{ backgroundColor: RCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
+                      onClick={(e) => openButton(callBtn, e)}
                     >
-                      <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                      <span>{btn.label}</span>
+                      <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+                      <span>{callBtn.label}</span>
                     </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
+                  ) : null}
+                  {gridContact.length > 0 ? (
+                    <div className={contactGridClass}>
+                      {gridContact.map((btn) => {
+                        const Icon = iconForButton(btn);
+                        const isWhatsApp = btn.id === "whatsapp";
+                        const isSecondary = btn.id === "sms" || btn.id === "email";
+                        return (
+                          <button
+                            key={btn.id}
+                            type="button"
+                            className={
+                              isSecondary
+                                ? `${RCH_CTA_SECONDARY} min-h-[44px] py-2`
+                                : isWhatsApp
+                                  ? `${RCH_CTA_WHATSAPP} min-h-[44px] py-2`
+                                  : `${COMPACT_CTA} border-0 text-[#FFFCF7]`
+                            }
+                            style={
+                              isSecondary
+                                ? undefined
+                                : isWhatsApp
+                                  ? { backgroundColor: RCH_LX.whatsApp, boxShadow: RCH_LX.whatsAppShadow }
+                                  : { backgroundColor: RCH_LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.18)" }
+                            }
+                            onClick={(e) => openButton(btn, e)}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                            <span>{btn.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
 
-        {hub.orderReserve.length > 0 ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="rest-hub-order-heading">
-              <HubSectionTitle>
-                <span id="rest-hub-order-heading">{labels.orderReserve}</span>
-              </HubSectionTitle>
-              <div className={orderGridClass}>{hub.orderReserve.map(renderOrderButton)}</div>
-            </section>
-          </>
-        ) : null}
+              {hub.orderReserve.length > 0 ? (
+                <section aria-labelledby="rest-hub-order-heading">
+                  <HubSectionTitle>
+                    <span id="rest-hub-order-heading">{labels.orderReserve}</span>
+                  </HubSectionTitle>
+                  <div className={orderGridClass}>{hub.orderReserve.map(renderOrderButton)}</div>
+                </section>
+              ) : null}
+            </div>
+          ) : null}
 
-        {hub.reviews.length > 0 ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="rest-hub-reviews-heading">
-              <HubSectionTitle>
-                <span id="rest-hub-reviews-heading">{labels.reviews}</span>
-              </HubSectionTitle>
-              <div className="mt-3 flex flex-col gap-2.5">
-                {hub.reviews.map((btn) => (
-                  <RestaurantHubReviewLinkButton
-                    key={btn.id}
-                    reviewId={btn.id}
-                    label={btn.label}
-                    lang={lang}
-                    onClick={() => openButton(btn)}
-                  />
-                ))}
-              </div>
-            </section>
-          </>
-        ) : null}
-
-        {hub.social.length > 0 ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="rest-hub-social-heading">
-              <HubSectionTitle>
-                <span id="rest-hub-social-heading">{labels.social}</span>
-              </HubSectionTitle>
-              <div className="mt-3 flex max-w-full flex-wrap gap-2.5">
-                {hub.social.map((s) => {
-                  const platform = restaurantSocialIdToPlatform(s.id);
-                  if (!platform) return null;
-                  const brand = restaurantHubSocialBrandStyle(platform);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={(e) => openSocial(s.url, e)}
-                      className={RCH_SOCIAL_CHIP}
-                      style={{
-                        background: brand.background,
-                        color: brand.color,
-                        border: brand.border ?? "2px solid transparent",
-                      }}
-                      aria-label={s.label}
-                    >
-                      <span className="inline-flex" style={{ color: brand.color }}>
-                        <RestaurantHubSocialBrandIcon platform={platform} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          </>
-        ) : null}
-
-        {findUsLinks.length > 0 ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="rest-hub-find-heading">
-              <HubSectionTitle>
-                <span id="rest-hub-find-heading">{labels.find}</span>
-              </HubSectionTitle>
-              <div className="mt-3 flex flex-col gap-2.5">
-                {findUsLinks.map((btn) => {
-                  const Icon = iconForButton(btn);
-                  return (
-                    <button key={btn.id} type="button" className={RCH_LINK_CARD} onClick={(e) => openButton(btn, e)}>
-                      <Icon className="h-4 w-4 shrink-0" style={{ color: RCH_LX.burgundy }} aria-hidden />
-                      <span className="min-w-0 flex-1 break-words">{btn.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          </>
-        ) : null}
-
-        {showLocation ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="rest-hub-location-heading">
+          {/* Column 2: Location + map */}
+          {showLocation ? (
+            <section aria-labelledby="rest-hub-location-heading" className="min-w-0">
               <HubSectionTitle>
                 <span id="rest-hub-location-heading">{labels.location}</span>
               </HubSectionTitle>
               {hub.location!.addressLine1 ? (
-                <p className="mt-3 flex items-start gap-1 text-sm font-medium leading-relaxed text-[#1E1814]">
+                <p className="mt-2 flex items-start gap-1 text-sm font-medium leading-snug text-[#1E1814]">
                   <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
                   <span className="flex-1">{hub.location!.addressLine1}</span>
                   <CopyChip
@@ -489,46 +407,44 @@ export function RestaurantContactHub({
                 </p>
               ) : null}
               {hub.location!.addressLine2 ? (
-                <p className="mt-1 text-sm text-[#6F6254]">{hub.location!.addressLine2}</p>
+                <p className="mt-0.5 text-xs text-[#6F6254]">{hub.location!.addressLine2}</p>
               ) : null}
               {hub.location!.supportingText ? (
                 <p
-                  className="mt-2 rounded-lg border-2 px-3 py-2 text-sm text-[#1E1814]"
+                  className="mt-2 rounded-lg border px-2.5 py-1.5 text-xs text-[#1E1814]"
                   style={{ borderColor: RCH_LX.goldBorder, backgroundColor: RCH_LX.ivory }}
                 >
                   {hub.location!.supportingText}
                 </p>
               ) : null}
               {(hub.location!.mapsHref || hub.location!.addressLine1) && (
-                <div className="mt-3 overflow-hidden rounded-lg border-2 border-[#D4C4A8] shadow-md ring-1 ring-[#C9A84A]/20">
+                <div className="mt-2 overflow-hidden rounded-lg border border-[#D4C4A8] shadow-sm ring-1 ring-[#C9A84A]/15">
                   <RestaurantContactHubFauxMap />
                 </div>
               )}
               {hub.location!.mapsHref ? (
                 <button
                   type="button"
-                  className={`${RCH_CTA_PRIMARY} mt-3 w-full border-2 border-[#C9A84A]/40`}
-                  style={{ backgroundColor: RCH_LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.28)" }}
+                  className={`${COMPACT_CTA} mt-2 w-full border-2 border-[#C9A84A]/40 text-[#FFFCF7]`}
+                  style={{ backgroundColor: RCH_LX.burgundy, boxShadow: "0 6px 18px rgba(92, 22, 34, 0.24)" }}
                   onClick={(e) => openMaps(hub.location!.mapsHref!, e)}
                 >
-                  <FiMapPin className="h-5 w-5 shrink-0" aria-hidden />
+                  <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
                   {hub.location!.mapsLabel}
                 </button>
               ) : null}
             </section>
-          </>
-        ) : null}
+          ) : null}
 
-        {showHours && hub.hours ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="rest-hub-hours-heading">
+          {/* Column 3: Hours */}
+          {showHours && hub.hours ? (
+            <section aria-labelledby="rest-hub-hours-heading" className="min-w-0">
               <HubSectionTitle>
                 <span id="rest-hub-hours-heading">{labels.hours}</span>
               </HubSectionTitle>
               {hub.hours.openNowLabel && hub.hours.todayHoursLine ? (
-                <p className="mt-3 flex items-start gap-2 text-xs text-[#6F6254]">
-                  <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: RCH_LX.burgundy }} aria-hidden />
+                <p className="mt-2 flex items-start gap-1.5 text-xs text-[#6F6254]">
+                  <FiClock className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: RCH_LX.burgundy }} aria-hidden />
                   <span>
                     <span className="font-semibold text-[#1E1814]">{hub.hours.openNowLabel}:</span>{" "}
                     {hub.hours.todayHoursLine}
@@ -536,15 +452,13 @@ export function RestaurantContactHub({
                 </p>
               ) : null}
               {hub.hours.weeklyRows.length > 0 ? (
-                <ul className="mt-3 space-y-1.5">
+                <ul className="mt-2 space-y-0.5">
                   {hub.hours.weeklyRows.map((r, i) => (
                     <li
                       key={`${r.dayLabel}-${i}`}
-                      className={`flex justify-between gap-3 text-xs ${r.isToday ? "rounded-md bg-[#F5F0E8]/80 px-2 py-1" : ""}`}
+                      className={`flex justify-between gap-2 text-[11px] sm:text-xs ${r.isToday ? "rounded bg-[#F5F0E8]/90 px-1.5 py-0.5" : ""}`}
                     >
-                      <span
-                        className={`min-w-0 shrink font-medium ${r.isToday ? "text-[#1E1814]" : "text-[#1E1814]"}`}
-                      >
+                      <span className="min-w-0 shrink font-medium text-[#1E1814]">
                         {r.dayLabel}
                         {r.isToday ? (lang === "en" ? " · Today" : " · Hoy") : ""}
                       </span>
@@ -554,10 +468,96 @@ export function RestaurantContactHub({
                 </ul>
               ) : null}
               {hub.hours.specialNote ? (
-                <p className="mt-2 text-xs font-medium text-[#6F6254]">{hub.hours.specialNote}</p>
+                <p className="mt-2 rounded-lg bg-[#F6EBDD]/80 px-2 py-1.5 text-[11px] font-medium text-[#6F6254]">
+                  {hub.hours.specialNote}
+                </p>
               ) : null}
             </section>
-          </>
+          ) : null}
+        </div>
+
+        {/* Secondary row: reviews, social, find-us — compact below hub */}
+        {showSecondary ? (
+          <div
+            className="mt-4 grid grid-cols-1 gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4"
+            style={{ borderColor: RCH_LX.divider }}
+          >
+            {hub.reviews.length > 0 ? (
+              <section aria-labelledby="rest-hub-reviews-heading" className="min-w-0">
+                <HubSectionTitle>
+                  <span id="rest-hub-reviews-heading">{labels.reviews}</span>
+                </HubSectionTitle>
+                <div className="mt-2 flex flex-col gap-2">
+                  {hub.reviews.map((btn) => (
+                    <RestaurantHubReviewLinkButton
+                      key={btn.id}
+                      reviewId={btn.id}
+                      label={btn.label}
+                      lang={lang}
+                      onClick={() => openButton(btn)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {hub.social.length > 0 ? (
+              <section aria-labelledby="rest-hub-social-heading" className="min-w-0">
+                <HubSectionTitle>
+                  <span id="rest-hub-social-heading">{labels.social}</span>
+                </HubSectionTitle>
+                <div className="mt-2 flex max-w-full flex-wrap gap-2">
+                  {hub.social.map((s) => {
+                    const platform = restaurantSocialIdToPlatform(s.id);
+                    if (!platform) return null;
+                    const brand = restaurantHubSocialBrandStyle(platform);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={(e) => openSocial(s.url, e)}
+                        className={RCH_SOCIAL_CHIP}
+                        style={{
+                          background: brand.background,
+                          color: brand.color,
+                          border: brand.border ?? "2px solid transparent",
+                        }}
+                        aria-label={s.label}
+                      >
+                        <span className="inline-flex" style={{ color: brand.color }}>
+                          <RestaurantHubSocialBrandIcon platform={platform} />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {findUsLinks.length > 0 ? (
+              <section aria-labelledby="rest-hub-find-heading" className="min-w-0 sm:col-span-2 lg:col-span-1">
+                <HubSectionTitle>
+                  <span id="rest-hub-find-heading">{labels.find}</span>
+                </HubSectionTitle>
+                <div className="mt-2 flex flex-col gap-2">
+                  {findUsLinks.map((btn) => {
+                    const Icon = iconForButton(btn);
+                    return (
+                      <button
+                        key={btn.id}
+                        type="button"
+                        className={`${RCH_LINK_CARD} min-h-[44px] py-2.5`}
+                        onClick={(e) => openButton(btn, e)}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" style={{ color: RCH_LX.burgundy }} aria-hidden />
+                        <span className="min-w-0 flex-1 break-words">{btn.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+          </div>
         ) : null}
       </article>
 
