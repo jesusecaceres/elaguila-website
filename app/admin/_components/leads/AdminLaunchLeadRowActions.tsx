@@ -1,6 +1,14 @@
 "use client";
 
-import { adminBtnPrimary } from "@/app/admin/_components/adminTheme";
+import {
+  adminDashboardCtaPrimary,
+  adminDashboardCtaView,
+  adminDashboardCtaActive,
+  adminDashboardCtaDanger,
+  adminDashboardCtaNeutral,
+  adminQueueActionCompact,
+} from "@/app/admin/_components/adminTheme";
+import { AdminDashboardCtaButton, AdminDashboardCtaGrid } from "@/app/admin/_components/AdminDashboardCta";
 import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 
 export type LaunchLeadFolder = "active" | "archived";
@@ -18,8 +26,7 @@ type Props = {
   onDelete: () => void;
 };
 
-const actionBtn =
-  "inline-flex min-h-[44px] items-center justify-center rounded border px-2 py-1 text-xs font-semibold transition disabled:opacity-50 sm:min-h-0";
+const compact = adminQueueActionCompact;
 
 export function AdminLaunchLeadRowActions({
   folder,
@@ -37,73 +44,61 @@ export function AdminLaunchLeadRowActions({
   const tel = phone?.trim() ? phoneTelHref(phone) : null;
 
   return (
-    <div className="flex min-w-[220px] flex-col gap-1.5" data-testid="launch-lead-row-actions">
-      <button
-        type="button"
-        onClick={onView}
-        className={`${adminBtnPrimary} min-h-[44px] w-full justify-center px-3 py-1.5 text-xs sm:min-h-0`}
-      >
-        View
-      </button>
-      <div className="flex flex-wrap gap-1">
+    <div className="min-w-0 space-y-2" data-testid="launch-lead-row-actions">
+      <AdminDashboardCtaGrid columns={2}>
+        <AdminDashboardCtaButton
+          label="View"
+          variant="view"
+          onClick={onView}
+          className={compact}
+          title="Open lead details"
+        />
         <a
           href={mailtoHref}
-          className={`${actionBtn} border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100`}
+          className={`${adminDashboardCtaPrimary} ${compact}`}
+          title="Reply via mailto helper"
         >
           Reply
         </a>
-        <button
-          type="button"
+        <AdminDashboardCtaButton
+          label="Copy reply"
+          variant="neutral"
           onClick={onCopyReply}
-          className={`${actionBtn} border-[#E8DFD0] text-[#3D3629] hover:bg-[#FAF7F2]`}
-        >
-          Copy reply
-        </button>
-        <button
-          type="button"
-          onClick={onEmail}
-          className={`${actionBtn} border-[#E8DFD0] text-[#3D3629] hover:bg-[#FAF7F2]`}
-        >
-          Email
-        </button>
+          className={compact}
+        />
+        <AdminDashboardCtaButton label="Email" variant="neutral" onClick={onEmail} className={compact} />
         {tel ? (
-          <a
-            href={tel}
-            className={`${actionBtn} border-[#E8DFD0] text-[#3D3629] hover:bg-[#FAF7F2]`}
-          >
+          <a href={tel} className={`${adminDashboardCtaNeutral} ${compact}`}>
             Phone
           </a>
         ) : null}
-      </div>
-      <div className="flex flex-wrap gap-1">
+      </AdminDashboardCtaGrid>
+      <AdminDashboardCtaGrid columns={2}>
         {folder === "active" ? (
-          <button
-            type="button"
+          <AdminDashboardCtaButton
+            label="Archive"
+            variant="active"
             disabled={busy}
             onClick={onArchive}
-            className={`${actionBtn} border-violet-200 bg-violet-50 text-violet-900 hover:bg-violet-100`}
-          >
-            Archive
-          </button>
+            className={compact}
+          />
         ) : (
-          <button
-            type="button"
+          <AdminDashboardCtaButton
+            label="Restore"
+            variant="active"
             disabled={busy}
             onClick={onRestore}
-            className={`${actionBtn} border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100`}
-          >
-            Restore
-          </button>
+            className={compact}
+          />
         )}
-        <button
-          type="button"
+        <AdminDashboardCtaButton
+          label="Delete"
+          variant="danger"
           disabled={busy}
           onClick={onDelete}
-          className={`${actionBtn} border-rose-200 bg-rose-50 text-rose-900 hover:bg-rose-100`}
-        >
-          Delete
-        </button>
-      </div>
+          className={compact}
+        />
+      </AdminDashboardCtaGrid>
     </div>
   );
 }

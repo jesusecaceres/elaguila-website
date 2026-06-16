@@ -3,13 +3,18 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  adminBtnSecondary,
   adminCardBase,
+  adminCardMuted,
   adminDesktopTableOnly,
   adminFilterRow,
+  adminInputClass,
   adminMobileCardList,
   adminTableWrap,
   adminTableZebraRow,
+  adminDashboardCtaView,
+  adminDashboardMetricChip,
+  adminLinkAccent,
+  adminInfoCallout,
 } from "@/app/admin/_components/adminTheme";
 import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
 import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
@@ -190,6 +195,18 @@ export function AdminLeonixLeadsInboxClient({
     });
   }, [rows, opsView, search, statusFilter, launchFilter]);
 
+  const loadedOpsCounts = useMemo(() => {
+    const active = activeRows.filter((r) => !r.archived_at);
+    return {
+      all: activeTotal,
+      needs_reply: active.filter((r) => matchesOpsView(r, "needs_reply")).length,
+      promo: active.filter((r) => matchesOpsView(r, "promo")).length,
+      advertising: active.filter((r) => matchesOpsView(r, "advertising")).length,
+      media_kit: active.filter((r) => matchesOpsView(r, "media_kit")).length,
+      archived: archivedTotal,
+    };
+  }, [activeRows, activeTotal, archivedTotal]);
+
   function showToast(msg: string, kind: "ok" | "err" = "ok") {
     setToast({ msg, kind });
     window.setTimeout(() => setToast(null), 2800);
@@ -251,6 +268,19 @@ export function AdminLeonixLeadsInboxClient({
   const emptyStateMessage =
     opsView === "promo" ? ADMIN_LEADS_PROMO_EMPTY_STATE : "No leads match the current view and filters.";
 
+  function EmptyResultsPanel() {
+    return (
+      <div
+        className={`${adminCardMuted} px-6 py-12 text-center`}
+        data-testid="launch-leads-empty-state"
+        role="status"
+      >
+        <p className="text-sm font-semibold text-[#3D3629]">{emptyStateMessage}</p>
+        <p className="mt-2 text-xs leading-relaxed text-[#7A7164]">Try All Leads or clear search.</p>
+      </div>
+    );
+  }
+
   async function runLifecycle(
     row: LeonixLeadRow,
     action: "archive" | "restore" | "delete" | "mark_contacted",
@@ -304,23 +334,65 @@ export function AdminLeonixLeadsInboxClient({
 
 
   return (
-    <div className="space-y-6">
-      <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
-        <strong>Launch Leads command center.</strong> Use reply helpers (mailto / copy) — emails are not sent from the
-        server. Archive when done; restore from Archived.{" "}
+    <div className="min-w-0 space-y-6 overflow-x-hidden" data-testid="launch-leads-command-center">
+      <section className={`${adminCardBase} space-y-4 px-4 py-5 sm:px-6`}>
+        <div>
+          <h2 className="text-lg font-bold text-[#1E1810]">Launch Leads command center</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-[#5C5346]">
+            Advertising, promo quotes, media kit requests, newsletter follow-ups, and contact inquiries — reply with
+            mailto/copy helpers (emails are not sent from the server). Archive when done; restore from Archived.
+          </p>
+        </div>
+
+        <div
+          className="flex flex-wrap gap-2"
+          data-testid="launch-leads-ops-chips"
+          aria-label="Lead operations summary"
+        >
+          {OPS_VIEWS.map((view) => {
+            const count = loadedOpsCounts[view.id];
+            const active = opsView === view.id;
+            return (
+              <button
+                key={view.id}
+                type="button"
+                onClick={() => {
+                  setOpsView(view.id);
+                  setStatusFilter("all");
+                }}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-semibold transition sm:min-h-0 ${
+                  active
+                    ? "border-[#C9B46A] bg-[#FFFCF7] text-[#2C2416] ring-1 ring-[#C9B46A]/40"
+                    : "border-[#E8DFD0] bg-[#FAF7F2] text-[#5C5346] hover:border-[#C9B46A]/50 hover:bg-[#FBF7EF]"
+                }`}
+                aria-pressed={active}
+              >
+                <span>{view.label}</span>
+                <span className={adminDashboardMetricChip}>{count}</span>
+              </button>
+            );
+          })}
+          <Link
+            href="/admin/leads/newsletter"
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold sm:min-h-0 ${adminDashboardMetricChip} hover:bg-[#FBF7EF]`}
+          >
+            Newsletter
+          </Link>
+        </div>
+
         {opsView === "promo" ? (
-          <span className="block mt-1 text-xs text-[#5C5346]">
-            <strong>Promocionales view:</strong> showing promotional product / print quote leads from public forms
-            (`/productos-promocion`, `/tienda/contacto?service=cotizacion-general`). Not a separate quote system.
-          </span>
-        ) : null}{" "}
-        <Link href="/admin/leads/newsletter" className="font-semibold text-[#6B5B2E] underline">
-          Newsletter subscribers →
-        </Link>
-      </div>
+          <div className={adminInfoCallout}>
+            <strong>Promocionales view:</strong> promotional product / print quote leads from public forms (
+            <span className="font-mono text-[11px]">/productos-promocion</span>,{" "}
+            <span className="font-mono text-[11px]">/tienda/contacto?service=cotizacion-general</span>). Not a separate
+            quote system.
+          </div>
+        ) : null}
+      </section>
 
       <AdminResponsiveTabs
         ariaLabel="Launch leads views"
+        variant="rectangular"
         items={[
           ...OPS_VIEWS.map((view) => ({
             key: view.id,
@@ -330,10 +402,9 @@ export function AdminLeonixLeadsInboxClient({
               setOpsView(view.id);
               setStatusFilter("all");
             },
-            badge:
-              view.id === "archived" ? (
-                <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] text-violet-900">{archivedTotal}</span>
-              ) : undefined,
+            badge: (
+              <span className={adminDashboardMetricChip}>{loadedOpsCounts[view.id]}</span>
+            ),
           })),
           {
             key: "newsletter-link",
@@ -344,54 +415,62 @@ export function AdminLeonixLeadsInboxClient({
         ]}
       />
 
-      <div className={adminFilterRow}>
-        <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs font-semibold text-[#5C5346]">
-          Search
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name, email, inquiry, source, promo_quote…"
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
-          Status
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-          >
-            <option value="all">All</option>
-            {statusOptions.map((s) => (
-              <option key={s} value={s}>
-                {s.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
-          Launch updates
-          <select
-            value={launchFilter}
-            onChange={(e) => setLaunchFilter(e.target.value as "all" | "yes" | "no")}
-            className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-          >
-            <option value="all">All</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </label>
-      </div>
+      <section className={`${adminCardBase} px-4 py-4 sm:px-5`} data-testid="launch-leads-filter-panel">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Search &amp; filters</p>
+        <div className={adminFilterRow}>
+          <label className="flex w-full min-w-0 flex-1 flex-col gap-1.5 text-xs font-semibold text-[#5C5346]">
+            Search
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name, email, inquiry, source, promo_quote…"
+              className={adminInputClass}
+            />
+          </label>
+          <label className="flex w-full min-w-0 flex-col gap-1.5 text-xs font-semibold text-[#5C5346] sm:w-auto">
+            Status
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={adminInputClass}
+            >
+              <option value="all">All</option>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex w-full min-w-0 flex-col gap-1.5 text-xs font-semibold text-[#5C5346] sm:w-auto">
+            Launch updates
+            <select
+              value={launchFilter}
+              onChange={(e) => setLaunchFilter(e.target.value as "all" | "yes" | "no")}
+              className={adminInputClass}
+            >
+              <option value="all">All</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+        </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Link href="/api/admin/leads/inbox/export" className={adminBtnSecondary}>
-          Export CSV
-        </Link>
-        <span className="self-center text-sm text-[#7A7164]">
-          Showing {filtered.length} of {rows.length} loaded ({total} {folder}, newest {limit})
-        </span>
-      </div>
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#E8DFD0]/70 pt-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <Link
+            href="/api/admin/leads/inbox/export"
+            className={`${adminDashboardCtaView} w-full sm:w-auto`}
+            data-testid="launch-leads-export-csv"
+          >
+            Export CSV
+          </Link>
+          <p className="text-sm text-[#7A7164]">
+            Showing <strong className="text-[#3D3629]">{filtered.length}</strong> of{" "}
+            <strong className="text-[#3D3629]">{rows.length}</strong> loaded ({total} {folder}, newest {limit})
+          </p>
+        </div>
+      </section>
 
       {toast ? (
         <div
@@ -405,10 +484,10 @@ export function AdminLeonixLeadsInboxClient({
         </div>
       ) : null}
 
-      <div className={`${adminTableWrap} ${adminDesktopTableOnly} w-full max-w-none`}>
+      <div className={`${adminTableWrap} ${adminDesktopTableOnly} w-full max-w-none`} data-testid="launch-leads-desktop-table">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1050px] text-left text-sm">
-            <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
+            <thead className="border-b-2 border-[#C9B46A]/40 bg-[#FAF7F2] text-xs font-bold uppercase tracking-wide text-[#5C4E2E]">
               <tr>
                 <th className="whitespace-nowrap px-3 py-3">Created</th>
                 <th className="whitespace-nowrap px-3 py-3">Status</th>
@@ -423,8 +502,8 @@ export function AdminLeonixLeadsInboxClient({
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-[#7A7164]">
-                    {emptyStateMessage}
+                  <td colSpan={8} className="p-0">
+                    <EmptyResultsPanel />
                   </td>
                 </tr>
               ) : (
@@ -460,11 +539,11 @@ export function AdminLeonixLeadsInboxClient({
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex flex-col gap-1 text-xs">
-                          <a href={mailto} className="font-semibold text-[#6B5B2E] underline">
+                          <a href={mailto} className={`${adminLinkAccent} text-xs`}>
                             Email
                           </a>
                           {row.phone ? (
-                            <a href={phoneTelHref(row.phone)} className="text-[#6B5B2E] underline">
+                            <a href={phoneTelHref(row.phone)} className={`${adminLinkAccent} text-xs`}>
                               Call
                             </a>
                           ) : (
@@ -510,11 +589,9 @@ export function AdminLeonixLeadsInboxClient({
         </div>
       </div>
 
-      <div className={adminMobileCardList} data-testid="launch-leads-mobile-list">
+      <div className={`${adminMobileCardList} min-w-0 overflow-x-hidden`} data-testid="launch-leads-mobile-list">
         {filtered.length === 0 ? (
-          <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-8 text-center text-sm text-[#7A7164]">
-            {emptyStateMessage}
-          </p>
+          <EmptyResultsPanel />
         ) : (
           filtered.map((row) => {
             const mailto = buildLeadMailtoUrl(row);

@@ -47,7 +47,10 @@ export function AdminLaunchLeadMobileCard({
   onDelete,
 }: Props) {
   return (
-    <article className={`${adminCardBase} break-words p-4`} data-testid="launch-lead-mobile-card">
+    <article
+      className={`${adminCardBase} min-w-0 overflow-x-hidden break-words border-[#C9B46A]/30 p-4`}
+      data-testid="launch-lead-mobile-card"
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-bold text-[#1E1810] break-words">{title}</p>
@@ -72,7 +75,7 @@ export function AdminLaunchLeadMobileCard({
         {contactPhone ? <span>Phone: {contactPhone}</span> : null}
       </div>
 
-      <div className="mt-3">
+      <div className="mt-3 border-t border-[#E8DFD0]/80 pt-3">
         <AdminLaunchLeadRowActions
           folder={folder}
           mailtoHref={mailtoHref}

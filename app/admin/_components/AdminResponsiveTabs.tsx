@@ -19,8 +19,15 @@ const pillBase =
 const pillActive = "border-[#6B5B2E] bg-[#FAF3E6] text-[#2C2416] ring-2 ring-[#C9B46A]/40";
 const pillIdle = "border-[#E8DFD0] text-[#5C5346] hover:bg-[#FAF7F2] active:bg-[#FAF3E6]";
 
-function TabPill({ item }: { item: AdminResponsiveTabItem }) {
-  const className = `${pillBase} ${item.active ? pillActive : pillIdle}`;
+const rectBase =
+  "inline-flex min-h-[44px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-4 py-2.5 text-sm font-semibold transition";
+
+const rectActive = "border-[#C9B46A] bg-[#FFFCF7] text-[#2C2416] shadow-sm ring-1 ring-[#C9B46A]/40";
+const rectIdle = "border-[#E8DFD0] bg-[#FAF7F2] text-[#5C5346] hover:border-[#C9B46A]/50 hover:bg-[#FBF7EF]";
+
+function TabPill({ item, variant }: { item: AdminResponsiveTabItem; variant: "pill" | "rectangular" }) {
+  const isRect = variant === "rectangular";
+  const className = `${isRect ? rectBase : pillBase} ${item.active ? (isRect ? rectActive : pillActive) : isRect ? rectIdle : pillIdle}`;
 
   if (item.href) {
     return (
@@ -47,15 +54,17 @@ function TabPill({ item }: { item: AdminResponsiveTabItem }) {
 export function AdminResponsiveTabs({
   items,
   ariaLabel,
+  variant = "pill",
 }: {
   items: AdminResponsiveTabItem[];
   ariaLabel: string;
+  variant?: "pill" | "rectangular";
 }) {
   return (
     <div className={adminResponsiveTabsOuter} data-testid="admin-responsive-tabs">
       <nav className={adminResponsiveTabsScroll} aria-label={ariaLabel}>
         {items.map((item) => (
-          <TabPill key={item.key} item={item} />
+          <TabPill key={item.key} item={item} variant={variant} />
         ))}
       </nav>
     </div>

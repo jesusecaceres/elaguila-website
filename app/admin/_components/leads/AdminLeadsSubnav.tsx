@@ -24,6 +24,7 @@ export function AdminLeadsSubnav() {
     <div data-testid="admin-leads-top-tabs">
       <AdminResponsiveTabs
       ariaLabel="Lead inboxes"
+      variant="rectangular"
       items={TABS.map((tab) => {
         const onInbox = pathname === ADMIN_LAUNCH_LEADS_INBOX_HREF || pathname.startsWith(`${ADMIN_LAUNCH_LEADS_INBOX_HREF}/`);
         let active = false;

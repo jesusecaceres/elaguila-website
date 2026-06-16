@@ -30,6 +30,7 @@
     "verify:admin-analytics-monetization-table-audit": "node scripts/verify-admin-analytics-monetization-table-audit.mjs",
     "verify:admin-review-queue-truth": "node scripts/verify-admin-review-queue-truth.mjs",
     "verify:admin-bulk-flagged-cleanup": "node scripts/verify-admin-bulk-flagged-cleanup.mjs",
+    "verify:admin-leads-style": "node scripts/verify-admin-leads-style.mjs",
     "verify:staff-admin-sales-access": "node scripts/verify-staff-admin-sales-access.mjs",
     "verify:staff-admin-supabase-activation": "node scripts/verify-staff-admin-supabase-activation.mjs",
     "verify:admin-staff-auth-boundary": "node scripts/verify-admin-staff-auth-boundary.mjs",
