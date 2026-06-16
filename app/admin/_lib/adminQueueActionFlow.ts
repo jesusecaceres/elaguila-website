@@ -32,6 +32,8 @@ const ACTION_PAST_TENSE: Record<string, string> = {
   verify_off: "Removed verified",
   republish: "Republished",
   delete: "Deleted",
+  bulk_soft_delete: "Soft deleted",
+  bulk_permanent_delete: "Permanently deleted",
   hide_public: "Hidden",
   show_public: "Published",
 };
@@ -142,6 +144,8 @@ export type BuildAdminActionReturnUrlInput = {
   action_error?: string | null;
   /** Custom proof label for republish (Move to top / Republish / …). */
   proof_action?: string | null;
+  /** Bulk cleanup returns to `#queue` instead of row anchor. */
+  hash_anchor?: "queue" | "row";
 };
 
 export function buildAdminActionReturnUrl(input: BuildAdminActionReturnUrlInput): string {
@@ -166,7 +170,8 @@ export function buildAdminActionReturnUrl(input: BuildAdminActionReturnUrlInput)
   }
 
   const qs = params.toString();
-  const hash = `#${adminQueueRowAnchorId(input.target)}`;
+  const hash =
+    input.hash_anchor === "queue" ? "#queue" : `#${adminQueueRowAnchorId(input.target)}`;
   return qs ? `${path}?${qs}${hash}` : `${path}${hash}`;
 }
 

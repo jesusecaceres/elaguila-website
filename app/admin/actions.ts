@@ -69,6 +69,92 @@ export async function deleteListingAction(listingId: string) {
   return { ok: true };
 }
 
+export type BulkListingCleanupResult = {
+  deleted: number;
+  failed: number;
+  errors: string[];
+  sampleIds: string[];
+};
+
+function normalizeBulkListingIds(listingIds: string[]): string[] {
+  return [...new Set(listingIds.map((id) => id.trim()).filter(Boolean))];
+}
+
+/** Soft delete selected `public.listings` rows (status → removed). Not permanent. */
+export async function bulkSoftDeleteListingsAction(listingIds: string[]): Promise<BulkListingCleanupResult> {
+  await requireLeonixAdminPermission("can_manage_ads");
+  const ids = normalizeBulkListingIds(listingIds);
+  if (ids.length === 0) throw new Error("no_ids");
+  if (ids.length > 500) throw new Error("max_500_per_batch");
+
+  let deleted = 0;
+  let failed = 0;
+  const errors: string[] = [];
+  const sampleIds: string[] = [];
+
+  for (const id of ids) {
+    try {
+      await deleteListingAction(id);
+      deleted += 1;
+      if (sampleIds.length < 5) sampleIds.push(id);
+    } catch (e) {
+      failed += 1;
+      const msg = e instanceof Error ? e.message : "unknown_error";
+      errors.push(`${id.slice(0, 8)}…: ${msg}`);
+    }
+  }
+
+  return { deleted, failed, errors: errors.slice(0, 10), sampleIds };
+}
+
+/** Hard delete selected rows from `public.listings` only. Requires can_manage_ads. */
+export async function permanentlyDeleteListingsAction(listingIds: string[]): Promise<BulkListingCleanupResult> {
+  await requireLeonixAdminPermission("can_manage_ads");
+  const supabase = getAdminSupabase();
+  const ids = normalizeBulkListingIds(listingIds);
+  if (ids.length === 0) throw new Error("no_ids");
+  if (ids.length > 500) throw new Error("max_500_per_batch");
+
+  const { data: rows, error: fetchErr } = await supabase
+    .from("listings")
+    .select("id, mux_asset_id, mux_asset_id_2")
+    .in("id", ids);
+  if (fetchErr) throw new Error(fetchErr.message);
+
+  const found = rows ?? [];
+  const foundIds = new Set(found.map((r) => r.id));
+  let failed = ids.filter((id) => !foundIds.has(id)).length;
+  const errors: string[] = ids
+    .filter((id) => !foundIds.has(id))
+    .slice(0, 5)
+    .map((id) => `${id.slice(0, 8)}…: not_found`);
+
+  for (const row of found) {
+    const muxIds = [row.mux_asset_id, row.mux_asset_id_2].filter(Boolean) as string[];
+    if (muxIds.length) {
+      await deleteMuxAssetsBestEffort(muxIds);
+    }
+  }
+
+  if (found.length === 0) {
+    return { deleted: 0, failed: ids.length, errors, sampleIds: [] };
+  }
+
+  const { error: delErr, count } = await supabase.from("listings").delete({ count: "exact" }).in(
+    "id",
+    found.map((r) => r.id),
+  );
+  if (delErr) throw new Error(delErr.message);
+
+  const deleted = count ?? found.length;
+  const sampleIds = found.slice(0, 5).map((r) => r.id);
+  for (const row of found) {
+    auditAdminWrite("listing_permanently_deleted_by_admin", "listings", row.id, {});
+  }
+
+  return { deleted, failed, errors, sampleIds };
+}
+
 /** Staff edit: only columns that exist on `public.listings` (no invented fields). */
 export async function updateListingCoreFieldsStaffAdminAction(formData: FormData) {
   await requireLeonixAdminPermission("can_manage_ads");

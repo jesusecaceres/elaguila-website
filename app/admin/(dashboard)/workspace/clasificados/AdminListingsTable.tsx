@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { deleteListingAction, setListingPublishedAction } from "../../../actions";
-import { Suspense, useMemo, useState } from "react";
+import { deleteListingAction, setListingPublishedAction, bulkSoftDeleteListingsAction, permanentlyDeleteListingsAction, type BulkListingCleanupResult } from "../../../actions";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { adminTableWrap, adminCardBase, adminDesktopTableOnly, adminMobileCardList } from "../../../_components/adminTheme";
 import {
   adminQueueRowAnchorId,
@@ -24,6 +24,7 @@ import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/com
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
 import { ClassifiedAdminQueueRowActionsPanel } from "./_components/ClassifiedAdminQueueRowActionsPanel";
+import { ClassifiedAdminQueueBulkBar } from "./_components/ClassifiedAdminQueueBulkBar";
 import { AdminListingMonetizationSummary } from "./_components/AdminListingMonetizationSummary";
 
 type Row = {
@@ -198,7 +199,131 @@ export default function AdminListingsTable({
   const locale = "en-US";
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
+
+  const queueStatusFilter = (searchParams?.get("status") ?? "").trim();
+  const visibleRowIds = useMemo(() => listings.map((r) => r.id), [listings]);
+  const visibleRowIdsKey = visibleRowIds.join(",");
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [visibleRowIdsKey]);
+
+  const selectedCount = selectedIds.size;
+  const allVisibleSelected =
+    visibleRowIds.length > 0 && visibleRowIds.every((id) => selectedIds.has(id));
+  const someVisibleSelected = visibleRowIds.some((id) => selectedIds.has(id));
+
+  const selectedRows = useMemo(
+    () => listings.filter((r) => selectedIds.has(r.id)),
+    [listings, selectedIds],
+  );
+
+  function toggleRowSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllVisibleSelected() {
+    if (allVisibleSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(visibleRowIds));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function buildBulkProofLabel(result: BulkListingCleanupResult, rows: Row[], verb: string): string {
+    const idToLeonix = new Map(rows.map((r) => [r.id, adminDisplayLeonixAdId(r)]));
+    const samples = result.sampleIds
+      .map((id) => {
+        const lx = idToLeonix.get(id);
+        return lx && lx !== "—" ? lx : id.slice(0, 8) + "…";
+      })
+      .join(", ");
+    if (result.failed > 0) {
+      return `${verb} ${result.deleted}, failed ${result.failed}${samples ? ` — ${samples}` : ""} — see details`;
+    }
+    return `${verb} ${result.deleted} listing(s)${samples ? ` — ${samples}` : ""}`;
+  }
+
+  function redirectAfterBulkAction(
+    rows: Row[],
+    action: "bulk_soft_delete" | "bulk_permanent_delete",
+    result: BulkListingCleanupResult,
+    verb: string,
+  ) {
+    const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    const anchorRow = rows[0] ?? listings[0];
+    if (!anchorRow) return;
+    const meta = rowProofMeta(anchorRow);
+    const summary = buildBulkProofLabel(result, rows, verb);
+    const status = result.deleted > 0 ? "success" : "error";
+    const url = buildAdminActionReturnUrl({
+      returnTo,
+      action_status: status,
+      action,
+      target: anchorRow.id,
+      target_label: summary,
+      target_ad_id: meta.leonixAdId !== "—" ? meta.leonixAdId : undefined,
+      scroll_y: scrollY,
+      action_error: result.failed > 0 ? result.errors.join("; ") : undefined,
+      hash_anchor: "queue",
+    });
+    window.location.assign(url);
+  }
+
+  async function handleBulkSoftDelete() {
+    const rows = selectedRows.filter((r) => r.status !== "removed");
+    if (rows.length === 0) {
+      setError("Selected rows are already removed.");
+      return;
+    }
+    const msg = `Soft delete ${rows.length} listing(s)?\n\nSets status to removed. Not permanent.`;
+    if (!confirm(msg)) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const result = await bulkSoftDeleteListingsAction(rows.map((r) => r.id));
+      clearSelection();
+      redirectAfterBulkAction(rows, "bulk_soft_delete", result, "Deleted");
+    } catch (e) {
+      const msgErr = e instanceof Error ? e.message : t("listings.errDelete");
+      setError(msgErr);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function handleBulkPermanentDelete() {
+    const rows = selectedRows;
+    if (rows.length === 0) return;
+    const typed = window.prompt(
+      `Permanent delete ${rows.length} listing(s). This cannot be undone.\n\nType PERMANENTLY DELETE to confirm.`,
+    );
+    if (typed?.trim() !== "PERMANENTLY DELETE") return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const result = await permanentlyDeleteListingsAction(rows.map((r) => r.id));
+      clearSelection();
+      redirectAfterBulkAction(rows, "bulk_permanent_delete", result, "Permanently deleted");
+    } catch (e) {
+      const msgErr = e instanceof Error ? e.message : "Permanent delete failed";
+      setError(msgErr);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   const highlightTargetId = useMemo(() => {
     if (!searchParams) return "";
@@ -338,6 +463,22 @@ export default function AdminListingsTable({
         className={`${adminCardBase} mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs text-[#5C5346]`}
         data-testid="clasificados-queue-summary"
       >
+        {staffQueueMode ? (
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-2 sm:min-h-0">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
+              }}
+              onChange={toggleAllVisibleSelected}
+              className="size-4 shrink-0 rounded border-[#C9B46A] accent-[#5C4E2E]"
+              aria-label="Select all visible listings"
+              data-testid="clasificados-select-all-visible"
+            />
+            <span className="font-semibold text-[#5C4E2E]">Select all visible</span>
+          </label>
+        ) : null}
         <span className="font-bold text-[#1E1810]">
           {listings.length} {listings.length === 1 ? "listing" : "listings"}
         </span>
@@ -346,12 +487,34 @@ export default function AdminListingsTable({
             category: {listingsCategorySlug}
           </span>
         ) : null}
+        {queueStatusFilter === "flagged" ? (
+          <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-900">
+            flagged filter active
+          </span>
+        ) : null}
         <span>
           pending {listings.filter((r) => r.status === "pending").length} · flagged{" "}
           {listings.filter((r) => r.status === "flagged").length} · removed{" "}
           {listings.filter((r) => r.status === "removed").length}
         </span>
+        {staffQueueMode && selectedCount > 0 ? (
+          <span className="font-bold text-[#1E1810]" data-testid="clasificados-summary-selected-count">
+            {selectedCount} selected
+          </span>
+        ) : null}
       </div>
+
+      {staffQueueMode ? (
+        <ClassifiedAdminQueueBulkBar
+          selectedCount={selectedCount}
+          onClear={clearSelection}
+          onSoftDelete={handleBulkSoftDelete}
+          onPermanentDelete={handleBulkPermanentDelete}
+          busy={bulkBusy}
+          showPermanentDelete
+          statusFilter={queueStatusFilter}
+        />
+      ) : null}
 
       {error && <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
 
@@ -362,6 +525,9 @@ export default function AdminListingsTable({
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
               {staffQueueMode ? (
                 <>
+                  <th className="w-10 p-2 font-semibold text-[#5C4E2E]">
+                    <span className="sr-only">Select</span>
+                  </th>
                   <th className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.title")}</th>
                   <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.category")}</th>
                   <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.status")}</th>
@@ -422,6 +588,16 @@ export default function AdminListingsTable({
               >
                 {staffQueueMode ? (
                   <>
+                    <td className="w-10 p-2 align-top">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(row.id)}
+                        onChange={() => toggleRowSelected(row.id)}
+                        className="size-4 rounded border-[#C9B46A] accent-[#5C4E2E]"
+                        aria-label={`Select ${row.title ?? row.id}`}
+                        data-testid="clasificados-row-checkbox"
+                      />
+                    </td>
                     <td className="max-w-[280px] p-3 align-top">
                       <p className="font-semibold text-[#1E1810] break-words" title={row.title ?? ""}>
                         {row.title ?? "—"}
@@ -596,6 +772,19 @@ export default function AdminListingsTable({
               className={`${adminCardBase} break-words p-4 ${highlighted ? "ring-2 ring-[#C9B46A]" : ""}`}
               data-testid="clasificados-mobile-card"
             >
+              {staffQueueMode ? (
+                <div className="mb-3 flex items-center gap-2 border-b border-[#E8DFD0]/70 pb-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(row.id)}
+                    onChange={() => toggleRowSelected(row.id)}
+                    className="size-5 shrink-0 rounded border-[#C9B46A] accent-[#5C4E2E]"
+                    aria-label={`Select ${row.title ?? row.id}`}
+                    data-testid="clasificados-mobile-row-checkbox"
+                  />
+                  <span className="text-xs font-semibold text-[#5C5346]">Select row</span>
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <h3 className="min-w-0 flex-1 text-base font-bold text-[#1E1810] break-words">{row.title ?? "—"}</h3>
                 <span
