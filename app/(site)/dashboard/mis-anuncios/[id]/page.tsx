@@ -34,6 +34,13 @@ import {
   type Lang,
 } from "../../lib/listingDisplayStatus";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
+import { dashboardCanRepublishListingsRow } from "../../lib/dashboardRepublishUi";
+import {
+  computeEnVentaVisibilityRenewalVm,
+  EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL,
+  mergeDetailPairValue,
+} from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
+import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 
 type Plan = "free" | "pro";
 type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "status";
@@ -54,6 +61,7 @@ type ListingRow = {
   images?: unknown;
   detail_pairs?: unknown;
   republished_at?: unknown;
+  republish_count?: number | null;
   is_published?: boolean | null;
   original_price?: number | string | null;
   current_price?: number | string | null;
@@ -133,6 +141,7 @@ export default function ListingWorkspacePage() {
               messages: "Mensajes",
               edit: "Editar",
               promotion: "Promoción",
+              visibility: "Visibilidad",
               status: "Estado",
             },
             publicLink: "Ver público",
@@ -166,6 +175,15 @@ export default function ListingWorkspacePage() {
             editCta: "Ir a editar",
             editHint: "Título, precio, fotos y descripción según ventana de edición.",
             promoHint: "Aumenta alcance con Leonix Pro y republica cuando corresponda (ventana de visibilidad).",
+            visibilityHint: "Mejora la visibilidad de tu anuncio cuando corresponda.",
+            refreshAd: "Refrescar anuncio",
+            refreshNotReady: "Este anuncio todavía no está listo para refrescarse.",
+            refreshHelper:
+              "Refrescar vuelve a subir tu anuncio entre los listados recientes (misma publicación, mismo ID Leonix).",
+            visibilityWindowActive: "Ventana de visibilidad activa hasta",
+            visibilityWindowInactive: "Sin ventana de visibilidad activa tras el último refresco.",
+            lastRefresh: "Último refresco",
+            refreshCount: "Veces refrescado",
             upgrade: "Mejorar a Pro",
             renew: "Republicar en Mis anuncios",
             markSold: "Marcar vendido",
@@ -190,6 +208,7 @@ export default function ListingWorkspacePage() {
               messages: "Messages",
               edit: "Edit",
               promotion: "Promotion",
+              visibility: "Visibility",
               status: "Status",
             },
             publicLink: "Public view",
@@ -223,6 +242,15 @@ export default function ListingWorkspacePage() {
             editCta: "Go to edit",
             editHint: "Title, price, photos, and description within the edit window.",
             promoHint: "Reach more buyers with Leonix Pro and republish when eligible (visibility window).",
+            visibilityHint: "Improve your listing’s visibility when eligible.",
+            refreshAd: "Refresh listing",
+            refreshNotReady: "This listing is not ready to refresh yet.",
+            refreshHelper:
+              "Refreshing moves your listing back among recent results (same listing, same Leonix ad ID).",
+            visibilityWindowActive: "Visibility window active until",
+            visibilityWindowInactive: "No active visibility window after the last refresh.",
+            lastRefresh: "Last refresh",
+            refreshCount: "Times refreshed",
             upgrade: "Upgrade to Pro",
             renew: "Republish from My ads",
             markSold: "Mark sold",
@@ -463,6 +491,117 @@ export default function ListingWorkspacePage() {
     ];
   }, [isEnVentaListing, stats, t]);
 
+  const visibleTabs = useMemo((): Array<{ k: Tab; label: string }> => {
+    if (isEnVentaListing) {
+      return [
+        { k: "overview", label: t.tabs.overview },
+        { k: "analytics", label: t.tabs.analytics },
+        { k: "edit", label: t.tabs.edit },
+        { k: "promotion", label: t.tabs.visibility },
+        { k: "status", label: t.tabs.status },
+      ];
+    }
+    return [
+      { k: "overview", label: t.tabs.overview },
+      { k: "analytics", label: t.tabs.analytics },
+      { k: "messages", label: t.tabs.messages },
+      { k: "edit", label: t.tabs.edit },
+      { k: "promotion", label: t.tabs.promotion },
+      { k: "status", label: t.tabs.status },
+    ];
+  }, [isEnVentaListing, t]);
+
+  useEffect(() => {
+    if (isEnVentaListing && tab === "messages") setTab("overview");
+  }, [isEnVentaListing, tab]);
+
+  const enVentaVisibilityVm = useMemo(() => {
+    if (!isEnVentaListing || !row || listingPlan !== "pro") return null;
+    return computeEnVentaVisibilityRenewalVm({
+      plan: "pro",
+      republishedAt: row.republished_at,
+      detailPairs: row.detail_pairs,
+      nowMs: Date.now(),
+    });
+  }, [isEnVentaListing, row, listingPlan]);
+
+  const canEnVentaRefresh = useMemo(() => {
+    if (!isEnVentaListing || !row || listingPlan !== "pro") return false;
+    const rec = row as unknown as Record<string, unknown>;
+    if (!dashboardCanRepublishListingsRow(rec, "en-venta")) return false;
+    return enVentaVisibilityVm?.canRenewNow ?? false;
+  }, [isEnVentaListing, row, listingPlan, enVentaVisibilityVm]);
+
+  const enVentaRefreshBlockedReason = useMemo(() => {
+    if (!isEnVentaListing || !row) return null;
+    if (listingPlan !== "pro") {
+      return lang === "es"
+        ? "Refrescar anuncio está disponible solo en anuncios Pro activos."
+        : "Refreshing is available only on active Pro listings.";
+    }
+    const rec = row as unknown as Record<string, unknown>;
+    if (!dashboardCanRepublishListingsRow(rec, "en-venta")) return t.refreshNotReady;
+    if (enVentaVisibilityVm && !enVentaVisibilityVm.canRenewNow) {
+      const next = new Date(enVentaVisibilityVm.nextRenewEligibleAt);
+      if (Number.isFinite(next.getTime())) {
+        return lang === "es"
+          ? `Podrás refrescar de nuevo después del ${next.toLocaleString("es-MX")}.`
+          : `You can refresh again after ${next.toLocaleString()}.`;
+      }
+      return t.refreshNotReady;
+    }
+    return null;
+  }, [isEnVentaListing, row, listingPlan, enVentaVisibilityVm, lang, t.refreshNotReady]);
+
+  async function refreshEnVentaListing() {
+    if (!row || !isEnVentaListing || listingPlan !== "pro" || !canEnVentaRefresh) return;
+    const rec = row as unknown as Record<string, unknown>;
+    if (!dashboardCanRepublishListingsRow(rec, "en-venta")) return;
+
+    const nowMs = Date.now();
+    const vm = computeEnVentaVisibilityRenewalVm({
+      plan: "pro",
+      republishedAt: row.republished_at,
+      detailPairs: row.detail_pairs,
+      nowMs,
+    });
+    if (!vm?.canRenewNow) return;
+
+    const sb = createSupabaseBrowserClient();
+    setBusy(true);
+    const renewedAtIso = new Date(nowMs).toISOString();
+    const newPairs = mergeDetailPairValue(row.detail_pairs, EN_VENTA_VISIBILITY_LAST_RENEWAL_LABEL, renewedAtIso);
+    const nextCount = Number(row.republish_count ?? 0) + 1;
+    const live = listingsRowIsPublicLive(rec);
+    const patch: Record<string, unknown> = {
+      republished_at: renewedAtIso,
+      republish_count: nextCount,
+      detail_pairs: newPairs,
+      last_republished_source: "dashboard",
+      ...(userId ? { last_republished_by: userId } : {}),
+    };
+    if (!live) {
+      patch.is_published = true;
+      patch.status = "active";
+    }
+
+    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    if (!error) {
+      setRow((r) =>
+        r
+          ? {
+              ...r,
+              republished_at: renewedAtIso,
+              republish_count: nextCount,
+              detail_pairs: newPairs,
+              ...(live ? {} : { is_published: true, status: "active" }),
+            }
+          : r,
+      );
+    }
+    setBusy(false);
+  }
+
   async function markStatus(status: "active" | "sold") {
     if (!row) return;
     const sb = createSupabaseBrowserClient();
@@ -615,12 +754,7 @@ export default function ListingWorkspacePage() {
           </header>
 
           <div className="mt-6 flex flex-wrap gap-2 border-b border-[#E8DFD0]/80 pb-4">
-            {tabBtn("overview", t.tabs.overview)}
-            {tabBtn("analytics", t.tabs.analytics)}
-            {tabBtn("messages", t.tabs.messages)}
-            {tabBtn("edit", t.tabs.edit)}
-            {tabBtn("promotion", t.tabs.promotion)}
-            {tabBtn("status", t.tabs.status)}
+            {visibleTabs.map(({ k, label }) => tabBtn(k, label))}
           </div>
 
           {tab === "overview" ? (
@@ -737,23 +871,31 @@ export default function ListingWorkspacePage() {
                   {lang === "es" ? "Siguiente paso sugerido" : "Suggested next step"}
                 </p>
                 <p className="mt-2 text-sm text-[#3D3428]/95">
-                  {(stats?.views ?? 0) === 0
-                    ? lang === "es"
-                      ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
-                      : "No views recorded yet: share the public link and review photos and title."
-                    : (stats?.messages ?? 0) === 0
+                  {isEnVentaListing
+                    ? (stats?.views ?? 0) === 0
                       ? lang === "es"
-                        ? "Hay vistas pero pocos mensajes: responde rápido en la bandeja y mejora la descripción de contacto."
-                        : "You have views but few messages: reply quickly in the inbox and improve contact details."
+                        ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
+                        : "No views recorded yet: share the public link and review photos and title."
                       : lang === "es"
-                        ? "Buen tráfico: revisa mensajes sin leer y republica (subir de nuevo) cuando aplique."
-                        : "Solid traffic: check unread messages and republish (move to top) when eligible."}
+                        ? "Hay tráfico: revisa contactos en analíticas y refresca el anuncio cuando corresponda."
+                        : "You have traffic: check contact metrics in analytics and refresh when eligible."
+                    : (stats?.views ?? 0) === 0
+                      ? lang === "es"
+                        ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
+                        : "No views recorded yet: share the public link and review photos and title."
+                      : (stats?.messages ?? 0) === 0
+                        ? lang === "es"
+                          ? "Hay vistas pero pocos mensajes: responde rápido en la bandeja y mejora la descripción de contacto."
+                          : "You have views but few messages: reply quickly in the inbox and improve contact details."
+                        : lang === "es"
+                          ? "Buen tráfico: revisa mensajes sin leer y republica (subir de nuevo) cuando aplique."
+                          : "Solid traffic: check unread messages and republish (move to top) when eligible."}
                 </p>
               </div>
             </div>
           ) : null}
 
-          {tab === "messages" ? (
+          {tab === "messages" && !isEnVentaListing ? (
             <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
               <p className="text-sm text-[#3D3428]/95">{t.msgPlaceholder}</p>
               {listingMessages.length === 0 ? (
@@ -807,28 +949,57 @@ export default function ListingWorkspacePage() {
           ) : null}
 
           {tab === "promotion" ? (
+            isEnVentaListing ? (
+              <div className="mt-6 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">{t.tabs.visibility}</p>
+                <p className="mt-2 text-sm text-[#3D3428]/95">{t.visibilityHint}</p>
+                <p className="mt-3 text-[11px] leading-relaxed text-[#5C5346]/95">{t.refreshHelper}</p>
+                {listingPlan === "pro" && enVentaVisibilityVm ? (
+                  <p className="mt-3 text-sm text-[#3D3428]">
+                    {enVentaVisibilityVm.republishWindowActive && visibilityWindowEndIso
+                      ? `${t.visibilityWindowActive} ${new Date(visibilityWindowEndIso).toLocaleString(lang === "es" ? "es-MX" : "en-US")}`
+                      : t.visibilityWindowInactive}
+                  </p>
+                ) : null}
+                {row.republished_at ? (
+                  <p className="mt-2 text-[11px] text-[#3D3428]">
+                    {t.lastRefresh}:{" "}
+                    <span className="font-semibold">
+                      {new Date(String(row.republished_at)).toLocaleString(lang === "es" ? "es-MX" : "en-US")}
+                    </span>
+                    {row.republish_count != null && row.republish_count > 0 ? (
+                      <span className="text-[#5C5346]">
+                        {" "}
+                        · {t.refreshCount}: {row.republish_count}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {canEnVentaRefresh ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void refreshEnVentaListing()}
+                    className="mt-4 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md disabled:opacity-50"
+                  >
+                    {t.refreshAd}
+                  </button>
+                ) : (
+                  <p className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#5C5346]">
+                    {enVentaRefreshBlockedReason ?? t.refreshNotReady}
+                  </p>
+                )}
+              </div>
+            ) : (
             <div className="mt-6 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
               <p className="text-sm text-[#3D3428]/95">{t.promoHint}</p>
-              {(row.category ?? "").toLowerCase() === "en-venta" ? (
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Link
-                    href={`/clasificados/publicar/en-venta/pro?${q}`}
-                    className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
-                  >
-                    {t.upgrade}
-                  </Link>
-                  <Link href={`/dashboard/mis-anuncios?${q}`} className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416]">
-                    {t.renew}
-                  </Link>
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-[#5C5346]/95">
-                  {lang === "es"
-                    ? "Las opciones de promoción dependen de la categoría del anuncio. Gestiona visibilidad y plan desde Mis anuncios o el flujo de publicación de tu categoría."
-                    : "Promotion options depend on this listing’s category. Manage visibility from My ads or your category’s publish flow."}
-                </p>
-              )}
+              <p className="mt-4 text-sm text-[#5C5346]/95">
+                {lang === "es"
+                  ? "Las opciones de promoción dependen de la categoría del anuncio. Gestiona visibilidad y plan desde Mis anuncios o el flujo de publicación de tu categoría."
+                  : "Promotion options depend on this listing’s category. Manage visibility from My ads or your category’s publish flow."}
+              </p>
             </div>
+            )
           ) : null}
 
           {tab === "status" ? (
