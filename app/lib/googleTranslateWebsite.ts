@@ -141,6 +141,8 @@ export function leonixHomeGoogleTranslateUrl(
 
 export type TranslateSitePageCopy = {
   title: string;
+  stepsHeading: string;
+  steps: readonly [string, string, string, string];
   websiteLabel: string;
   copyButton: string;
   copiedButton: string;
@@ -151,8 +153,24 @@ export type TranslateSitePageCopy = {
   googleLangNote: string;
 };
 
+const TRANSLATE_SITE_STEPS_ES: TranslateSitePageCopy["steps"] = [
+  "Copia leonixmedia.com.",
+  "Abre Google Translate Websites.",
+  "Pega leonixmedia.com en el campo Website.",
+  "Selecciona tu idioma preferido.",
+];
+
+const TRANSLATE_SITE_STEPS_EN: TranslateSitePageCopy["steps"] = [
+  "Copy leonixmedia.com.",
+  "Open Google Translate Websites.",
+  "Paste leonixmedia.com into the Website field.",
+  "Select your preferred language.",
+];
+
 const TRANSLATE_SITE_PAGE_ES: TranslateSitePageCopy = {
   title: "Traducir LeonixMedia.com con Google",
+  stepsHeading: "Pasos",
+  steps: TRANSLATE_SITE_STEPS_ES,
   websiteLabel: "Sitio web",
   copyButton: "Copiar leonixmedia.com",
   copiedButton: "Copiado",
@@ -167,6 +185,8 @@ const TRANSLATE_SITE_PAGE_ES: TranslateSitePageCopy = {
 
 const TRANSLATE_SITE_PAGE_EN: TranslateSitePageCopy = {
   title: "Translate LeonixMedia.com with Google",
+  stepsHeading: "Steps",
+  steps: TRANSLATE_SITE_STEPS_EN,
   websiteLabel: "Website",
   copyButton: "Copy leonixmedia.com",
   copiedButton: "Copied",
@@ -292,7 +312,13 @@ const TRANSLATE_SITE_PAGE_BY_LANG: Partial<Record<SupportedLang, TranslateSitePa
 };
 
 export function getTranslateSitePageCopy(lang: SupportedLang): TranslateSitePageCopy {
-  return TRANSLATE_SITE_PAGE_BY_LANG[lang] ?? TRANSLATE_SITE_PAGE_EN;
+  const copy = TRANSLATE_SITE_PAGE_BY_LANG[lang] ?? TRANSLATE_SITE_PAGE_EN;
+  return {
+    ...TRANSLATE_SITE_PAGE_EN,
+    ...copy,
+    steps: copy.steps ?? TRANSLATE_SITE_PAGE_EN.steps,
+    stepsHeading: copy.stepsHeading ?? TRANSLATE_SITE_PAGE_EN.stepsHeading,
+  };
 }
 
 export type TranslateSiteHrefOpts = {

@@ -43,44 +43,86 @@ function TranslateSiteContent() {
           <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/translate-site" />
         </div>
 
-        <section className="rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#FFFDF7] via-[#FFFDF7] to-[#FBF7EF] p-5 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.15)] ring-1 ring-[#C9A84A]/25 sm:p-7">
+        <section className="rounded-2xl border border-[#2A4536]/25 bg-gradient-to-br from-[#FFFDF7] via-[#FFFDF7] to-[#FBF7EF] p-5 shadow-[0_12px_32px_-18px_rgba(31,36,28,0.15)] ring-1 ring-[#C9A84C]/25 sm:p-7">
           <h1 className="font-serif text-xl font-bold leading-tight text-[#2A4536] sm:text-2xl">
             {copy.title}
           </h1>
 
-          <div className="mt-5 rounded-xl border border-[#C9A84A]/45 bg-[#FFFDF7] p-4">
+          <div className="mt-5">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
-              {copy.websiteLabel}
+              {copy.stepsHeading}
             </p>
-            <p
-              className="mt-2 select-all break-all font-mono text-lg font-bold text-[#7A1E2C] sm:text-xl"
-              aria-label={WEBSITE_HOST}
-            >
-              {WEBSITE_HOST}
-            </p>
-            <button
-              type="button"
-              onClick={onCopy}
-              className="mt-3 inline-flex min-h-[2.5rem] items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#2A4536] px-4 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#223528]"
-            >
-              {copied ? copy.copiedButton : copy.copyButton}
-            </button>
+            <ol className="mt-3 list-none space-y-4">
+              <li className="rounded-xl border border-[#C9A84C]/45 bg-[#FFFDF7] p-4">
+                <p className="text-sm font-semibold leading-snug text-[#2A4536] sm:text-[0.9375rem]">
+                  <span className="mr-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] text-xs font-bold text-[#FFFDF7]">
+                    1
+                  </span>
+                  {copy.steps[0]}
+                </p>
+                <div className="mt-3 pl-8 sm:pl-9">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#556B3E]">
+                    {copy.websiteLabel}
+                  </p>
+                  <p
+                    className="mt-2 select-all break-all font-mono text-lg font-bold text-[#7A1E2C] sm:text-xl"
+                    aria-label={WEBSITE_HOST}
+                  >
+                    {WEBSITE_HOST}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onCopy}
+                    className="mt-3 inline-flex min-h-[2.5rem] items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#2A4536] px-4 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#223528]"
+                  >
+                    {copied ? copy.copiedButton : copy.copyButton}
+                  </button>
+                </div>
+              </li>
+
+              <li className="rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
+                <p className="text-sm font-semibold leading-snug text-[#2A4536] sm:text-[0.9375rem]">
+                  <span className="mr-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] text-xs font-bold text-[#FFFDF7]">
+                    2
+                  </span>
+                  {copy.steps[1]}
+                </p>
+                <div className="mt-3 pl-8 sm:pl-9">
+                  <a
+                    href={googleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-full bg-[#7A1E2C] px-5 py-3 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[3.125rem]"
+                  >
+                    {copy.openGoogleCta}
+                  </a>
+                </div>
+              </li>
+
+              <li className="rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
+                <p className="text-sm font-semibold leading-snug text-[#2A4536] sm:text-[0.9375rem]">
+                  <span className="mr-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] text-xs font-bold text-[#FFFDF7]">
+                    3
+                  </span>
+                  {copy.steps[2]}
+                </p>
+                <p className="mt-2 pl-8 text-xs leading-relaxed text-[#3D3428]/85 sm:pl-9 sm:text-sm">
+                  {copy.pasteInstruction}
+                </p>
+              </li>
+
+              <li className="rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
+                <p className="text-sm font-semibold leading-snug text-[#2A4536] sm:text-[0.9375rem]">
+                  <span className="mr-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] text-xs font-bold text-[#FFFDF7]">
+                    4
+                  </span>
+                  {copy.steps[3]}
+                </p>
+              </li>
+            </ol>
           </div>
 
-          <p className="mt-4 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
-            {copy.pasteInstruction}
-          </p>
-
-          <a
-            href={googleUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-[3rem] w-full items-center justify-center rounded-full bg-[#7A1E2C] px-5 py-3 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[3.125rem]"
-          >
-            {copy.openGoogleCta}
-          </a>
-
-          <p className="mt-3 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
+          <p className="mt-4 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
             {copy.nativeFormsWarning}
           </p>
         </section>
