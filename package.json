@@ -122,6 +122,8 @@
     "autos:a5-recovery-21-volver-editar-media-video-persistence-audit": "tsx scripts/autos-a5-recovery-21-volver-editar-media-video-persistence-audit.ts",
     "autos:a5-recovery-23-added-inventory-reuse-main-media-pipeline-audit": "tsx scripts/autos-a5-recovery-23-added-inventory-reuse-main-media-pipeline-audit.ts",
     "autos:a5-recovery-24-added-inventory-media-hydration-smoke-escape-audit": "tsx scripts/autos-a5-recovery-24-added-inventory-media-hydration-smoke-escape-audit.ts",
+    "autos:a5-recovery-25-browser-proof-child-media-persistence-audit": "tsx scripts/autos-a5-recovery-25-browser-proof-child-media-persistence-audit.ts",
+    "autos:a5-recovery-25-browser-proof": "npx playwright test -c playwright.autos-recovery-25.config.mjs",
     "autos:a5-polish-01-preview-business-hub-audit": "tsx scripts/autos-a5-polish-01-preview-business-hub-audit.ts",
     "autos:a5-final-acceptance-live-completion-audit": "tsx scripts/autos-a5-final-acceptance-live-completion-audit.ts",
     "autos:a5-vdata-01-shared-vehicle-data-coverage-audit": "tsx scripts/autos-a5-vdata-01-shared-vehicle-data-coverage-audit.ts",

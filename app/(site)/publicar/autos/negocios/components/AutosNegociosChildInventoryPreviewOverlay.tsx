@@ -87,7 +87,11 @@ export function AutosNegociosChildInventoryPreviewOverlay({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <AutosNegociosPreviewLocaleProvider lang={lang}>
           <AutosNegociosPreviewCaptureBanner lang={lang} />
-          <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
+          <div
+            className="mx-auto max-w-[1200px] px-4 sm:px-6"
+            data-autos-preview-media-count={merged.mediaImages?.length ?? 0}
+            data-autos-preview-video-count={merged.videoUrls?.length ?? 0}
+          >
             <AutosNegociosResultsCardPreview lang={lang} listing={merged} additionalCount={allAdditional.length} />
           </div>
           <AutoDealerPreviewPage data={merged} relatedPreviewOnly />

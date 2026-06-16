@@ -254,6 +254,8 @@ export function AutosNegociosMediaManager({
   return (
     <section
       id={sectionId}
+      data-autos-editor-media-count={images.length}
+      data-autos-editor-video-count={listing.videoUrls?.length ?? 0}
       className="min-w-0 scroll-mt-24 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6"
     >
       <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{copy.app.sections.media}</h2>

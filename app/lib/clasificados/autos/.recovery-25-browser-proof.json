@@ -1,0 +1,183 @@
+{
+  "beforeFixReference": "Pre-R24/R25: resolveDrawerInitialDraft preferred stale inProgressInventoryVehicleDraft; editor mediaImagesCount=0 while card/preview showed saved media.",
+  "afterFix": [
+    {
+      "label": "A",
+      "source": "child drawer form before save / AutosNegociosMediaManager",
+      "childId": null,
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 0,
+      "imageUrlCount": 0,
+      "coverId": null,
+      "sortOrders": [],
+      "videoUrlsCount": 0,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": 2,
+      "editorVideoCount": 1,
+      "previewMediaCount": null
+    },
+    {
+      "label": "B",
+      "source": "saved additionalInventoryVehicles / upsertAdditionalInventoryVehicle",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": null,
+      "editorVideoCount": null,
+      "previewMediaCount": null
+    },
+    {
+      "label": "C",
+      "source": "sessionStorage active draft after save / flushDraft",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": null,
+      "editorVideoCount": null,
+      "previewMediaCount": null
+    },
+    {
+      "label": "D",
+      "source": "child preview / mapInheritedDealerPreviewListing + inventoryVehicleDraftToListingSlice",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": null,
+      "editorVideoCount": null,
+      "previewMediaCount": 2
+    },
+    {
+      "label": "E",
+      "source": "sessionStorage after Volver a editar / rehydrateFromStorage",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": null,
+      "editorVideoCount": null,
+      "previewMediaCount": null
+    },
+    {
+      "label": "F",
+      "source": "child editor after Editar / resolveCanonicalChildInventoryEditorDraft",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": 2,
+      "editorVideoCount": 1,
+      "previewMediaCount": null
+    },
+    {
+      "label": "G",
+      "source": "sessionStorage after refresh / loadAutosNegociosDraftResolved",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": null,
+      "editorVideoCount": null,
+      "previewMediaCount": null
+    },
+    {
+      "label": "H",
+      "source": "child editor after refresh + Editar / reconcileInProgressInventoryWithSavedChildren",
+      "childId": "6c6b7213-c9cd-4f48-8b0c-a01b2ff95020",
+      "year": 2021,
+      "make": "Honda",
+      "model": "Civic",
+      "mediaField": "mediaImages",
+      "mediaImagesCount": 2,
+      "imageUrlCount": 2,
+      "coverId": "18cc34bd-6211-4059-9754-6e290029f9b7",
+      "sortOrders": [
+        0,
+        1
+      ],
+      "videoUrlsCount": 1,
+      "isReducedObject": false,
+      "inProgressMediaImagesCount": null,
+      "drawerEditingId": null,
+      "editorMediaCount": 2,
+      "editorVideoCount": 1,
+      "previewMediaCount": null
+    }
+  ]
+}
