@@ -7,9 +7,20 @@ import { useAdminT } from "./AdminI18nProvider";
 
 export type WorkspaceNavItem = { href: string; labelKey: string; hintKey: string };
 
-export const ADMIN_WORKSPACE_NAV_SECTIONS: WorkspaceNavItem[] = [
+export const ADMIN_WORKSPACE_CONTENT_NAV: WorkspaceNavItem[] = [
   { href: "/admin/workspace/home", labelKey: "workspaceNav.link.home", hintKey: "workspaceNav.home.hint" },
   { href: "/admin/workspace/clasificados", labelKey: "workspaceNav.link.clasificados", hintKey: "workspaceNav.clasificados.hint" },
+  { href: "/admin/workspace/tienda", labelKey: "workspaceNav.link.tienda", hintKey: "workspaceNav.tienda.hint" },
+  { href: "/admin/workspace/nosotros", labelKey: "workspaceNav.link.nosotros", hintKey: "workspaceNav.nosotros.hint" },
+  { href: "/admin/workspace/revista", labelKey: "workspaceNav.link.revista", hintKey: "workspaceNav.revista.hint" },
+  { href: "/admin/workspace/contacto", labelKey: "workspaceNav.link.contacto", hintKey: "workspaceNav.contacto.hint" },
+  { href: "/admin/workspace/noticias", labelKey: "workspaceNav.link.noticias", hintKey: "workspaceNav.noticias.hint" },
+  { href: "/admin/workspace/iglesias", labelKey: "workspaceNav.link.iglesias", hintKey: "workspaceNav.iglesias.hint" },
+  { href: "/admin/workspace/cupones", labelKey: "workspaceNav.link.cupones", hintKey: "workspaceNav.cupones.hint" },
+  { href: "/admin/workspace/anunciate", labelKey: "workspaceNav.link.anunciate", hintKey: "workspaceNav.anunciate.hint" },
+];
+
+export const ADMIN_WORKSPACE_MONETIZATION_NAV: WorkspaceNavItem[] = [
   {
     href: "/admin/workspace/package-entitlements",
     labelKey: "workspaceNav.link.packageEntitlements",
@@ -35,14 +46,12 @@ export const ADMIN_WORKSPACE_NAV_SECTIONS: WorkspaceNavItem[] = [
     labelKey: "workspaceNav.link.paymentTracker",
     hintKey: "workspaceNav.paymentTracker.hint",
   },
-  { href: "/admin/workspace/tienda", labelKey: "workspaceNav.link.tienda", hintKey: "workspaceNav.tienda.hint" },
-  { href: "/admin/workspace/nosotros", labelKey: "workspaceNav.link.nosotros", hintKey: "workspaceNav.nosotros.hint" },
-  { href: "/admin/workspace/revista", labelKey: "workspaceNav.link.revista", hintKey: "workspaceNav.revista.hint" },
-  { href: "/admin/workspace/contacto", labelKey: "workspaceNav.link.contacto", hintKey: "workspaceNav.contacto.hint" },
-  { href: "/admin/workspace/noticias", labelKey: "workspaceNav.link.noticias", hintKey: "workspaceNav.noticias.hint" },
-  { href: "/admin/workspace/iglesias", labelKey: "workspaceNav.link.iglesias", hintKey: "workspaceNav.iglesias.hint" },
-  { href: "/admin/workspace/cupones", labelKey: "workspaceNav.link.cupones", hintKey: "workspaceNav.cupones.hint" },
-  { href: "/admin/workspace/anunciate", labelKey: "workspaceNav.link.anunciate", hintKey: "workspaceNav.anunciate.hint" },
+];
+
+/** Flat list — all workspace nav hrefs (preserved for access control + legacy imports). */
+export const ADMIN_WORKSPACE_NAV_SECTIONS: WorkspaceNavItem[] = [
+  ...ADMIN_WORKSPACE_CONTENT_NAV,
+  ...ADMIN_WORKSPACE_MONETIZATION_NAV,
 ];
 
 const TIENDA_CRUD_PREFIX = "/admin/tienda";
@@ -65,41 +74,24 @@ function cx(...p: Array<string | false | undefined>) {
   return p.filter(Boolean).join(" ");
 }
 
-export function AdminWorkspaceNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
-  const pathname = usePathname() ?? "";
-  const searchParams = useSearchParams();
-  const searchView = searchParams?.get("view") ?? null;
-  const t = useAdminT();
-  const sections =
-    allowedHrefs && allowedHrefs.length > 0
-      ? ADMIN_WORKSPACE_NAV_SECTIONS.filter((item) => allowedHrefs.includes(item.href))
-      : ADMIN_WORKSPACE_NAV_SECTIONS;
-
+function WorkspaceNavGroup({
+  title,
+  items,
+  pathname,
+  searchView,
+  t,
+}: {
+  title: string;
+  items: WorkspaceNavItem[];
+  pathname: string;
+  searchView: string | null;
+  t: (key: string) => string;
+}) {
   return (
-    <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-r from-[#FFF8F0]/95 to-[#FFFCF7]/90 px-2 py-3 shadow-sm sm:mb-8 sm:px-4">
-      <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-        <div className="min-w-0 pr-1">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{t("workspaceNav.kicker")}</p>
-          <p className="text-xs text-[#5C5346]/90">{t("workspaceNav.sub")}</p>
-        </div>
-        <Link
-          href="/admin/workspace"
-          className={cx(
-            "flex h-10 min-w-[44px] shrink-0 items-center justify-center rounded-xl px-3 py-2 text-xs font-bold transition sm:h-auto sm:min-h-0 sm:px-2.5 sm:py-1",
-            pathname === "/admin/workspace"
-              ? "bg-[#2A2620] text-[#FAF7F2]"
-              : "text-[#6B5B2E] underline decoration-[#C9B46A]/60 underline-offset-2 hover:text-[#2A2620]",
-          )}
-        >
-          {t("workspaceNav.overview")}
-        </Link>
-      </div>
-      <nav
-        className="-mx-1 flex max-w-full gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-1 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible sm:pb-0"
-        aria-label={t("workspaceNav.aria")}
-        data-testid="admin-workspace-nav"
-      >
-        {sections.map((item) => {
+    <div className="min-w-0 space-y-1.5">
+      <p className="px-1 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{title}</p>
+      <div className="flex gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-webkit-overflow-scrolling:touch] sm:flex-wrap sm:overflow-visible">
+        {items.map((item) => {
           const active = isSectionActive(pathname, item, searchView);
           return (
             <Link
@@ -109,16 +101,68 @@ export function AdminWorkspaceNav({ allowedHrefs }: { allowedHrefs?: string[] })
               aria-current={active ? "page" : undefined}
               data-testid={isPromotionsInboxHref(item.href) ? "admin-workspace-promotions-tab" : undefined}
               className={cx(
-                "inline-flex shrink-0 snap-start items-center rounded-xl border px-3 py-2.5 text-xs font-semibold transition sm:min-h-[2.25rem] sm:py-1.5 sm:text-sm",
+                "inline-flex shrink-0 snap-start items-center rounded-lg border px-3 py-2 text-xs font-semibold transition sm:min-h-[2.25rem] sm:text-sm",
                 active
-                  ? "border-[#C9B46A]/50 bg-[#FBF7EF] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
-                  : "border-transparent bg-white/60 text-[#3D3428]/90 hover:border-[#E8DFD0] hover:bg-white",
+                  ? "border-[#C9B46A] bg-[#FBF7EF] text-[#1E1810] shadow-[inset_0_0_0_1px_rgba(201,180,106,0.35)]"
+                  : "border-[#E8DFD0] bg-[#FFFCF7] text-[#3D3428]/90 hover:border-[#C9B46A]/50 hover:bg-white",
               )}
             >
               {t(item.labelKey)}
             </Link>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+export function AdminWorkspaceNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
+  const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
+  const searchView = searchParams?.get("view") ?? null;
+  const t = useAdminT();
+
+  const filterItems = (items: WorkspaceNavItem[]) =>
+    allowedHrefs && allowedHrefs.length > 0 ? items.filter((item) => allowedHrefs.includes(item.href)) : items;
+
+  const contentItems = filterItems(ADMIN_WORKSPACE_CONTENT_NAV);
+  const monetizationItems = filterItems(ADMIN_WORKSPACE_MONETIZATION_NAV);
+
+  return (
+    <div
+      className="mb-6 min-w-0 rounded-lg border border-[#C9B46A]/35 bg-gradient-to-r from-[#FFF8F0]/95 to-[#FFFCF7]/90 px-2 py-3 shadow-sm sm:mb-8 sm:px-4"
+      data-testid="admin-workspace-nav-ribbon"
+    >
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div className="min-w-0 pr-1">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{t("workspaceNav.kicker")}</p>
+          <p className="text-xs text-[#5C5346]/90">{t("workspaceNav.sub")}</p>
+        </div>
+        <Link
+          href="/admin/workspace"
+          className={cx(
+            "flex h-10 min-w-[44px] shrink-0 items-center justify-center rounded-lg border px-3 py-2 text-xs font-bold transition sm:h-auto sm:min-h-0 sm:px-2.5 sm:py-1.5",
+            pathname === "/admin/workspace"
+              ? "border-[#2A2620] bg-[#2A2620] text-[#FAF7F2]"
+              : "border-[#E8DFD0] bg-[#FFFCF7] text-[#6B5B2E] hover:border-[#C9B46A]/50",
+          )}
+        >
+          {t("workspaceNav.overview")}
+        </Link>
+      </div>
+      <nav className="-mx-1 min-w-0 space-y-3 px-1" aria-label={t("workspaceNav.aria")} data-testid="admin-workspace-nav">
+        {contentItems.length ? (
+          <WorkspaceNavGroup title={t("workspaceNav.groupContent")} items={contentItems} pathname={pathname} searchView={searchView} t={t} />
+        ) : null}
+        {monetizationItems.length ? (
+          <WorkspaceNavGroup
+            title={t("workspaceNav.groupMonetization")}
+            items={monetizationItems}
+            pathname={pathname}
+            searchView={searchView}
+            t={t}
+          />
+        ) : null}
       </nav>
     </div>
   );

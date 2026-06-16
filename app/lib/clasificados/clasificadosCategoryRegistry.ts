@@ -39,21 +39,50 @@ const EXCLUDE: CategoryKey[] = ["all"];
  * LIVE = public/client-ready; STAGED = admin pipeline / partial public readiness; COMING SOON = not client-ready by rule.
  */
 function defaultOperationalStatus(slug: string): ClasificadosCategoryOperationalStatus {
-  if (slug === "en-venta" || slug === "restaurantes" || slug === "rentas" || slug === "bienes-raices" || slug === "empleos") {
+  if (
+    slug === "en-venta" ||
+    slug === "restaurantes" ||
+    slug === "rentas" ||
+    slug === "bienes-raices" ||
+    slug === "empleos" ||
+    slug === "servicios"
+  ) {
     return "live";
   }
-  if (slug === "servicios" || slug === "autos" || slug === "travel") return "staged";
-  if (slug === "comunidad" || slug === "clases" || slug === "busco" || slug === "mascotas-y-perdidos") {
-    return "coming_soon";
+  if (
+    slug === "autos" ||
+    slug === "travel" ||
+    slug === "comunidad" ||
+    slug === "clases" ||
+    slug === "busco" ||
+    slug === "mascotas-y-perdidos"
+  ) {
+    return "staged";
   }
   return "coming_soon";
 }
 
 function defaultReadiness(slug: string): "full" | "partial" | "scaffold" {
-  if (slug === "en-venta" || slug === "restaurantes" || slug === "rentas" || slug === "bienes-raices" || slug === "empleos") {
+  if (
+    slug === "en-venta" ||
+    slug === "restaurantes" ||
+    slug === "rentas" ||
+    slug === "bienes-raices" ||
+    slug === "empleos" ||
+    slug === "servicios"
+  ) {
     return "full";
   }
-  if (slug === "servicios" || slug === "autos" || slug === "travel") return "partial";
+  if (
+    slug === "autos" ||
+    slug === "travel" ||
+    slug === "comunidad" ||
+    slug === "clases" ||
+    slug === "busco" ||
+    slug === "mascotas-y-perdidos"
+  ) {
+    return "partial";
+  }
   return "scaffold";
 }
 
@@ -103,11 +132,25 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
         landingTarget:
           slug === "restaurantes"
             ? `/clasificados/restaurantes`
-            : slug === "busco"
-              ? `/clasificados/busco`
-              : slug === "mascotas-y-perdidos"
-                ? `/clasificados/mascotas-y-perdidos`
-                : `/clasificados/publicar/${slug}`,
+            : slug === "travel"
+              ? `/clasificados/viajes`
+              : slug === "busco"
+                ? `/clasificados/busco`
+                : slug === "mascotas-y-perdidos"
+                  ? `/clasificados/mascotas-y-perdidos`
+                  : slug === "servicios"
+                    ? `/clasificados/servicios`
+                    : slug === "autos"
+                      ? `/clasificados/autos`
+                      : slug === "empleos"
+                        ? `/clasificados/empleos`
+                        : slug === "comunidad" ||
+                            slug === "clases" ||
+                            slug === "en-venta" ||
+                            slug === "rentas" ||
+                            slug === "bienes-raices"
+                          ? `/clasificados/${slug}`
+                          : `/clasificados/publicar/${slug}`,
         notes:
           slug === "mascotas-y-perdidos"
             ? "Avisos gratuitos y sencillos para mascotas perdidas o encontradas, adopciones y objetos perdidos o encontrados en tu comunidad."

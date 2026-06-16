@@ -33,6 +33,7 @@
     "verify:admin-leads-style": "node scripts/verify-admin-leads-style.mjs",
     "verify:admin-categories-command-center": "node scripts/verify-admin-categories-command-center.mjs",
     "verify:admin-ops-global-lookup": "node scripts/verify-admin-ops-global-lookup.mjs",
+    "verify:admin-category-live-truth-style": "node scripts/verify-admin-category-live-truth-style.mjs",
     "verify:staff-admin-sales-access": "node scripts/verify-staff-admin-sales-access.mjs",
     "verify:staff-admin-supabase-activation": "node scripts/verify-staff-admin-supabase-activation.mjs",
     "verify:admin-staff-auth-boundary": "node scripts/verify-admin-staff-auth-boundary.mjs",

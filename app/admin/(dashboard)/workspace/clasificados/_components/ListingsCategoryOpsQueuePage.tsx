@@ -18,6 +18,7 @@ import {
 import AdminListingsTable, { type AdminListingsTableRow } from "../AdminListingsTable";
 import { ClasificadosQueueHeader } from "./ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "./ClasificadosScopeNav";
+import { ClasificadosLiveScopePanel } from "./ClasificadosLiveScopePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -73,15 +74,28 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
     scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
 
   return (
-    <div className="max-w-[1200px] space-y-6">
+    <div className="min-w-0 max-w-[1200px] space-y-6 overflow-x-hidden">
       <ClasificadosQueueHeader
         title={pageTitle}
         sourceTable={surface.sourceTable}
         subtitle={pageSubtitle}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
+        scopeLabel={scope === "live" ? m("listingsCategoryOps.scopeLive") : m("listingsCategoryOps.scopeQueue")}
         rightSlot={<ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />}
       />
+
+      {scope === "live" ? (
+        <ClasificadosLiveScopePanel
+          categorySlug={categorySlug}
+          lang={lang}
+          queueHref={queueHref}
+          liveHref={liveHref}
+          rowCount={rows.length}
+          configured={configured}
+          fetchError={fetchRes.error?.message ?? null}
+        />
+      ) : null}
 
       {configured ? (
         <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>

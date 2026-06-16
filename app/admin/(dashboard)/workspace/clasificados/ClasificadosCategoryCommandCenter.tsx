@@ -37,7 +37,7 @@ export function ClasificadosCategoryCommandCenter({
   }
 
   return (
-    <section className="mb-8 min-w-0" aria-labelledby="clasificados-command-center-heading" data-testid="clasificados-category-command-center">
+    <section className="mb-8 min-w-0 overflow-x-hidden" aria-labelledby="clasificados-command-center-heading" data-testid="clasificados-category-command-center">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <h2 id="clasificados-command-center-heading" className="text-lg font-bold text-[#1E1810]">
@@ -57,6 +57,9 @@ export function ClasificadosCategoryCommandCenter({
                 </>
               );
             })()}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-[#7A7164]" data-testid="clasificados-category-status-helper">
+            {m("hub.statusHelper")}
           </p>
         </div>
         {showRegistryLink ? (
