@@ -14,6 +14,10 @@ export type ListingAnalyticsBucket = {
   /** New engagement metrics */
   likes: number;
   ctaClicks: number;
+  phoneClicks: number;
+  whatsappClicks: number;
+  emailClicks: number;
+  messageClicks: number;
   leads: number;
   applications: number;
   lastEngagement?: string;
@@ -29,6 +33,10 @@ export const emptyListingAnalyticsBucket = (): ListingAnalyticsBucket => ({
   listingOpens: 0,
   likes: 0,
   ctaClicks: 0,
+  phoneClicks: 0,
+  whatsappClicks: 0,
+  emailClicks: 0,
+  messageClicks: 0,
   leads: 0,
   applications: 0,
 });
@@ -67,7 +75,19 @@ export function aggregateListingAnalyticsEvents(
     // New event types
     else if (type === "listing_like") b.likes += 1;
     else if (type === "listing_unlike") b.likes -= 1;
-    else if (type === "cta_click" || type === "phone_click" || type === "whatsapp_click" || type === "website_click" || type === "directions_click") b.ctaClicks += 1;
+    else if (type === "phone_click") {
+      b.ctaClicks += 1;
+      b.phoneClicks += 1;
+    } else if (type === "whatsapp_click") {
+      b.ctaClicks += 1;
+      b.whatsappClicks += 1;
+    } else if (type === "email_click") {
+      b.ctaClicks += 1;
+      b.emailClicks += 1;
+    } else if (type === "message_click") {
+      b.ctaClicks += 1;
+      b.messageClicks += 1;
+    } else if (type === "cta_click" || type === "website_click" || type === "directions_click") b.ctaClicks += 1;
     else if (type === "lead_created") b.leads += 1;
     else if (type === "apply_started" || type === "apply_submitted") b.applications += 1;
   }
@@ -112,8 +132,19 @@ export function rollupListingAnalyticsEvents(
     else if (type === "listing_open") b.listingOpens += 1;
     else if (type === "listing_like") b.likes += 1;
     else if (type === "listing_unlike") b.likes -= 1;
-    else if (type === "cta_click" || type === "phone_click" || type === "whatsapp_click" || type === "website_click" || type === "directions_click")
+    else if (type === "phone_click") {
       b.ctaClicks += 1;
+      b.phoneClicks += 1;
+    } else if (type === "whatsapp_click") {
+      b.ctaClicks += 1;
+      b.whatsappClicks += 1;
+    } else if (type === "email_click") {
+      b.ctaClicks += 1;
+      b.emailClicks += 1;
+    } else if (type === "message_click") {
+      b.ctaClicks += 1;
+      b.messageClicks += 1;
+    } else if (type === "cta_click" || type === "website_click" || type === "directions_click") b.ctaClicks += 1;
     else if (type === "lead_created") b.leads += 1;
     else if (type === "apply_started" || type === "apply_submitted") b.applications += 1;
   }

@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
+  trackEnVentaReportSubmitGlobal,
+  type EnVentaGlobalAnalyticsContext,
+} from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
+import {
   EN_VENTA_REPORT_DISCLAIMER,
   EN_VENTA_REPORT_REASONS,
   type EnVentaReportReasonCode,
@@ -40,9 +44,11 @@ const COPY = {
 export function EnVentaListingReportDrawer({
   listingId,
   lang,
+  analyticsCtx,
 }: {
   listingId: string;
   lang: Lang;
+  analyticsCtx?: EnVentaGlobalAnalyticsContext;
 }) {
   const t = COPY[lang];
   const disclaimer = EN_VENTA_REPORT_DISCLAIMER[lang];
@@ -94,6 +100,9 @@ export function EnVentaListingReportDrawer({
       if (!res.ok || !json.ok) {
         setErr(json.error ?? t.err);
         return;
+      }
+      if (analyticsCtx?.listingUuid.trim()) {
+        trackEnVentaReportSubmitGlobal(analyticsCtx);
       }
       setDone(true);
     } catch {

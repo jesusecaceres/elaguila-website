@@ -131,3 +131,19 @@ export function trackEnVentaLikeGlobal(ctx: EnVentaGlobalAnalyticsContext, isLik
 export function trackEnVentaSaveGlobal(ctx: EnVentaGlobalAnalyticsContext, isSave: boolean): void {
   void trackEnVentaGlobalEvent(ctx, isSave ? "listing_save" : "listing_unsave", "detail");
 }
+
+export function trackEnVentaReportSubmitGlobal(ctx: EnVentaGlobalAnalyticsContext): void {
+  void trackEnVentaGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "report_submit" } });
+}
+
+export type EnVentaContactAnalyticsKind = "call" | "whatsapp" | "email" | "sms";
+
+export function trackEnVentaContactClickGlobal(
+  ctx: EnVentaGlobalAnalyticsContext,
+  kind: EnVentaContactAnalyticsKind,
+): void {
+  if (kind === "call") trackEnVentaPhoneClickGlobal(ctx);
+  else if (kind === "whatsapp") trackEnVentaWhatsAppClickGlobal(ctx);
+  else if (kind === "email") trackEnVentaEmailClickGlobal(ctx);
+  else trackEnVentaMessageClickGlobal(ctx);
+}

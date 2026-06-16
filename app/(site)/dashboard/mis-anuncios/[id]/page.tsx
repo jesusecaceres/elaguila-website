@@ -153,7 +153,11 @@ export default function ListingWorkspacePage() {
             opens: "Aperturas de ficha",
             likes: "Me gusta",
             cta: "Clics en CTA",
-            leads: "Leads / contacto",
+            phone: "Llamadas",
+            whatsapp: "WhatsApp",
+            email: "Correo",
+            sms: "SMS / Texto",
+            leads: "Contactos",
             apps: "Solicitudes",
             lastEng: "Última interacción",
             msgPlaceholder: "Mensajes que mencionan este anuncio (misma tabla de mensajes que la bandeja).",
@@ -206,7 +210,11 @@ export default function ListingWorkspacePage() {
             opens: "Listing opens",
             likes: "Likes",
             cta: "CTA clicks",
-            leads: "Leads / contact",
+            phone: "Phone calls",
+            whatsapp: "WhatsApp",
+            email: "Email",
+            sms: "SMS / Text",
+            leads: "Contacts",
             apps: "Applications",
             lastEng: "Last interaction",
             msgPlaceholder: "Messages tied to this listing ID (same messages table as your inbox).",
@@ -249,6 +257,10 @@ export default function ListingWorkspacePage() {
     listingOpens: number;
     likes: number;
     ctaClicks: number;
+    phoneClicks: number;
+    whatsappClicks: number;
+    emailClicks: number;
+    messageClicks: number;
     leads: number;
     applications: number;
     lastEngagement?: string;
@@ -346,6 +358,10 @@ export default function ListingWorkspacePage() {
         listingOpens: 0,
         likes: 0,
         ctaClicks: 0,
+        phoneClicks: 0,
+        whatsappClicks: 0,
+        emailClicks: 0,
+        messageClicks: 0,
         leads: 0,
         applications: 0,
       });
@@ -362,6 +378,10 @@ export default function ListingWorkspacePage() {
         listingOpens: rolled.listingOpens,
         likes: rolled.likes,
         ctaClicks: rolled.ctaClicks,
+        phoneClicks: rolled.phoneClicks,
+        whatsappClicks: rolled.whatsappClicks,
+        emailClicks: rolled.emailClicks,
+        messageClicks: rolled.messageClicks,
         leads: rolled.leads,
         applications: rolled.applications,
         lastEngagement: rolled.lastEngagement,
@@ -402,6 +422,46 @@ export default function ListingWorkspacePage() {
   const listingExpireIso =
     row?.expires_at != null ? (typeof row.expires_at === "string" ? row.expires_at : String(row.expires_at)) : null;
   const listingExpireChip = expiresInDaysLabel(listingExpireIso, lang);
+  const isEnVentaListing = (row?.category ?? "").toLowerCase() === "en-venta";
+
+  const analyticsMetricCards = useMemo(() => {
+    const contactTotal =
+      (stats?.phoneClicks ?? 0) +
+      (stats?.whatsappClicks ?? 0) +
+      (stats?.emailClicks ?? 0) +
+      (stats?.messageClicks ?? 0);
+
+    if (isEnVentaListing) {
+      const cards: Array<{ k: string; v: number }> = [
+        { k: t.views, v: stats?.views ?? 0 },
+        { k: t.uniq, v: stats?.uniqueViews ?? 0 },
+        { k: t.likes, v: stats?.likes ?? 0 },
+        { k: t.shares, v: stats?.shares ?? 0 },
+        { k: t.phone, v: stats?.phoneClicks ?? 0 },
+        { k: t.whatsapp, v: stats?.whatsappClicks ?? 0 },
+        { k: t.email, v: stats?.emailClicks ?? 0 },
+        { k: t.leads, v: contactTotal },
+        { k: t.opens, v: stats?.listingOpens ?? 0 },
+      ];
+      if ((stats?.messageClicks ?? 0) > 0) {
+        cards.splice(7, 0, { k: t.sms, v: stats?.messageClicks ?? 0 });
+      }
+      return cards;
+    }
+
+    return [
+      { k: t.views, v: stats?.views ?? 0 },
+      { k: t.uniq, v: stats?.uniqueViews ?? 0 },
+      { k: t.msg, v: stats?.messages ?? 0 },
+      { k: t.leads, v: (stats?.leads ?? 0) + contactTotal },
+      { k: t.shares, v: stats?.shares ?? 0 },
+      { k: t.likes, v: stats?.likes ?? 0 },
+      { k: t.cta, v: stats?.ctaClicks ?? 0 },
+      { k: t.opens, v: stats?.listingOpens ?? 0 },
+      { k: t.prof, v: stats?.profileClicks ?? 0 },
+      { k: t.apps, v: stats?.applications ?? 0 },
+    ];
+  }, [isEnVentaListing, stats, t]);
 
   async function markStatus(status: "active" | "sold") {
     if (!row) return;
@@ -494,7 +554,10 @@ export default function ListingWorkspacePage() {
           city={cityLine}
           views={stats?.views ?? 0}
           saves={stats?.saves ?? 0}
+          likes={stats?.likes ?? 0}
           messages={(stats?.messages ?? 0) + (stats?.leads ?? 0)}
+          showSaves={!isEnVentaListing}
+          showMessages={!isEnVentaListing}
         />
       }
     >
@@ -652,18 +715,7 @@ export default function ListingWorkspacePage() {
                   </p>
                 ) : null}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {[
-                    { k: t.views, v: stats?.views ?? 0 },
-                    { k: t.uniq, v: stats?.uniqueViews ?? 0 },
-                    { k: t.msg, v: stats?.messages ?? 0 },
-                    { k: t.leads, v: stats?.leads ?? 0 },
-                    { k: t.shares, v: stats?.shares ?? 0 },
-                    { k: t.likes, v: stats?.likes ?? 0 },
-                    { k: t.cta, v: stats?.ctaClicks ?? 0 },
-                    { k: t.opens, v: stats?.listingOpens ?? 0 },
-                    { k: t.prof, v: stats?.profileClicks ?? 0 },
-                    { k: t.apps, v: stats?.applications ?? 0 },
-                  ].map((x) => (
+                  {analyticsMetricCards.map((x) => (
                     <div key={x.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.k}</p>
                       <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{x.v}</p>

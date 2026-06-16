@@ -40,6 +40,10 @@ export type DashboardAnalyticsSummaryResponse = {
       saves: number;
       shares: number;
       messages: number;
+      phone_clicks?: number;
+      whatsapp_clicks?: number;
+      email_clicks?: number;
+      message_clicks?: number;
       profile_views?: number;
       listing_opens?: number;
       cta_clicks_other?: number;
@@ -180,6 +184,10 @@ export async function fetchDashboardListingAnalytics(
         listingOpens: m.listing_opens ?? 0,
         likes: m.likes,
         ctaClicks,
+        phoneClicks: m.phone_clicks ?? 0,
+        whatsappClicks: m.whatsapp_clicks ?? 0,
+        emailClicks: m.email_clicks ?? 0,
+        messageClicks: m.message_clicks ?? 0,
         leads: m.leads ?? 0,
         applications: m.applications ?? 0,
         lastEngagement: m.last_engagement,
@@ -203,6 +211,10 @@ function emptyStats(): ListingAnalyticsBucket & { lastEngagement?: string } {
     listingOpens: 0,
     likes: 0,
     ctaClicks: 0,
+    phoneClicks: 0,
+    whatsappClicks: 0,
+    emailClicks: 0,
+    messageClicks: 0,
     leads: 0,
     applications: 0,
   };
@@ -230,6 +242,10 @@ export function hubListingMetricsFromSummary(
       listingOpens: m.listing_opens ?? 0,
       likes: m.likes,
       ctaClicks: m.cta_clicks_other ?? 0,
+      phoneClicks: m.phone_clicks ?? 0,
+      whatsappClicks: m.whatsapp_clicks ?? 0,
+      emailClicks: m.email_clicks ?? 0,
+      messageClicks: m.message_clicks ?? 0,
       leads: m.leads ?? 0,
       applications: m.applications ?? 0,
       lastEngagement: m.last_engagement,

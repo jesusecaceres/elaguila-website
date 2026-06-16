@@ -61,6 +61,10 @@ import {
   buildBrPublicLocationForLiveDetail,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
+import {
+  trackEnVentaContactClickGlobal,
+  type EnVentaGlobalAnalyticsContext,
+} from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
 import {
@@ -76,6 +80,7 @@ import { EnVentaDetailContentStack } from "../shared/components/EnVentaDetailCon
 import { buildEnVentaContentStackFromLiveListing } from "../shared/utils/buildEnVentaContentStackModel";
 import { EnVentaContactButtons } from "../shared/components/EnVentaContactButtons";
 import { EnVentaListingHero } from "../shared/components/EnVentaListingHero";
+import type { EnVentaContactAction } from "../shared/utils/enVentaContactActions";
 import { enVentaLiveContactPrefs, buildEnVentaLiveContactActions } from "../shared/utils/enVentaContactActions";
 import { enVentaWhatsappFromDetailPairs } from "../shared/utils/enVentaPhoneDisplay";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
@@ -447,6 +452,20 @@ export function EnVentaAnuncioLayout({
   }, [listing.id]);
 
   const ownerId = listing.owner_id?.trim() || null;
+
+  const enVentaAnalyticsCtx = useMemo((): EnVentaGlobalAnalyticsContext => {
+    const listingUuid = listing.id.trim();
+    const leonixAdId = (listing.leonix_ad_id ?? "").trim() || undefined;
+    return { listingUuid, leonixAdId };
+  }, [listing.id, listing.leonix_ad_id]);
+
+  const trackEvContactClick = useCallback(
+    (action: EnVentaContactAction) => {
+      if (surface !== "en-venta" || premiumBr) return;
+      trackEnVentaContactClickGlobal(enVentaAnalyticsCtx, action.id);
+    },
+    [enVentaAnalyticsCtx, premiumBr, surface],
+  );
 
   const onToggleSave = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -930,11 +949,14 @@ export function EnVentaAnuncioLayout({
                     <EnVentaContactButtons
                       actions={evLiveContactActions}
                       lang={lang}
-                      onAction={openLiveContactAction}
+                      behavior="direct"
+                      onAction={trackEvContactClick}
                     />
                   }
                 />
-                {showListingReport ? <EnVentaListingReportDrawer listingId={listing.id} lang={lang} /> : null}
+                {showListingReport ? (
+                  <EnVentaListingReportDrawer listingId={listing.id} lang={lang} analyticsCtx={enVentaAnalyticsCtx} />
+                ) : null}
               </div>
             ) : (
               <>
@@ -1162,7 +1184,9 @@ export function EnVentaAnuncioLayout({
                         : "“Send message” opens share, copy, and email options without forcing an app immediately."}
                   </p>
                 ) : null}
-                {showListingReport ? <EnVentaListingReportDrawer listingId={listing.id} lang={lang} /> : null}
+                {showListingReport ? (
+                  <EnVentaListingReportDrawer listingId={listing.id} lang={lang} analyticsCtx={enVentaAnalyticsCtx} />
+                ) : null}
               </div>
               </>
             )}

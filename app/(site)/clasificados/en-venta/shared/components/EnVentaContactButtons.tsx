@@ -7,7 +7,10 @@ import { EN_VENTA_SURFACE } from "../styles/enVentaBrand";
 type Props = {
   actions: EnVentaContactAction[];
   lang: "es" | "en";
-  onAction: (action: EnVentaContactAction) => void;
+  /** Preview/sheet flow — opens CTA sheet. Ignored when `behavior="direct"`. */
+  onAction?: (action: EnVentaContactAction) => void;
+  /** Live public detail: real tel/mailto/wa.me/sms links. Preview keeps sheet buttons. */
+  behavior?: "sheet" | "direct";
   layout?: "stack" | "wrap";
 };
 
@@ -69,7 +72,7 @@ function smsLabel(lang: "es" | "en"): string {
   return lang === "es" ? "Mensaje" : "Message";
 }
 
-export function EnVentaContactButtons({ actions, lang, onAction, layout = "stack" }: Props) {
+export function EnVentaContactButtons({ actions, lang, onAction, behavior = "sheet", layout = "stack" }: Props) {
   if (actions.length === 0) {
     return (
       <p className="text-sm font-normal leading-relaxed text-[#3D3428]/85">
@@ -87,13 +90,9 @@ export function EnVentaContactButtons({ actions, lang, onAction, layout = "stack
       {actions.map((action) => {
         const Icon = actionIcon(action.id);
         const label = action.id === "sms" ? smsLabel(lang) : action.label.replace(/\s*\(recomendado\)|\s*\(recommended\)/i, "");
-        return (
-          <button
-            key={action.id}
-            type="button"
-            onClick={() => onAction(action)}
-            className={layout === "wrap" ? actionClass(action.id).replace("w-full", "") : actionClass(action.id)}
-          >
+        const className = layout === "wrap" ? actionClass(action.id).replace("w-full", "") : actionClass(action.id);
+        const inner = (
+          <>
             <Icon className="shrink-0" />
             <span className="flex flex-col items-start text-left leading-tight">
               <span>{label}</span>
@@ -101,6 +100,33 @@ export function EnVentaContactButtons({ actions, lang, onAction, layout = "stack
                 <span className="text-[10px] font-normal opacity-85">{action.displayNumber}</span>
               ) : null}
             </span>
+          </>
+        );
+
+        if (behavior === "direct" && action.href) {
+          const external = action.id === "whatsapp";
+          return (
+            <a
+              key={action.id}
+              href={action.href}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noopener noreferrer" : undefined}
+              onClick={() => onAction?.(action)}
+              className={className}
+            >
+              {inner}
+            </a>
+          );
+        }
+
+        return (
+          <button
+            key={action.id}
+            type="button"
+            onClick={() => onAction?.(action)}
+            className={className}
+          >
+            {inner}
           </button>
         );
       })}

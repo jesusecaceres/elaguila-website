@@ -14,7 +14,10 @@ export function DashboardMobilePreview({
   city,
   views,
   saves,
+  likes,
   messages,
+  showSaves = true,
+  showMessages = true,
 }: {
   lang: Lang;
   mode?: "listing" | "placeholder";
@@ -23,7 +26,10 @@ export function DashboardMobilePreview({
   city?: string;
   views?: number;
   saves?: number;
+  likes?: number;
   messages?: number;
+  showSaves?: boolean;
+  showMessages?: boolean;
 }) {
   const L =
     lang === "es"
@@ -31,6 +37,7 @@ export function DashboardMobilePreview({
           preview: "Vista móvil",
           views: "Visualizaciones",
           saves: "Favoritos",
+          likes: "Me gusta",
           msgs: "Mensajes",
           hint: "Así ven tus compradores el anuncio en el teléfono.",
           placeholder: "Selecciona un anuncio para la vista previa.",
@@ -39,6 +46,7 @@ export function DashboardMobilePreview({
           preview: "Mobile view",
           views: "Views",
           saves: "Favorites",
+          likes: "Likes",
           msgs: "Messages",
           hint: "How buyers see your listing on mobile.",
           placeholder: "Select a listing to preview.",
@@ -71,19 +79,32 @@ export function DashboardMobilePreview({
             <p className="line-clamp-2 text-[13px] font-bold leading-tight text-[#1E1810]">{title ?? "—"}</p>
             <p className="text-[15px] font-bold text-[#1E1810]">{priceLine ?? "—"}</p>
             <p className="text-[11px] text-[#5C5346]">{city ?? "—"}</p>
-            <div className="mt-auto grid grid-cols-3 gap-1 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-2 text-center">
+            <div
+              className={`mt-auto grid gap-1 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-2 text-center ${
+                !showSaves && !showMessages ? "grid-cols-2" : "grid-cols-3"
+              }`}
+            >
               <div>
                 <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.views}</p>
                 <p className="text-sm font-bold text-[#1E1810]">{views ?? 0}</p>
               </div>
-              <div>
-                <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.saves}</p>
-                <p className="text-sm font-bold text-[#1E1810]">{saves ?? 0}</p>
-              </div>
-              <div>
-                <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.msgs}</p>
-                <p className="text-sm font-bold text-[#1E1810]">{messages ?? 0}</p>
-              </div>
+              {showSaves ? (
+                <div>
+                  <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.saves}</p>
+                  <p className="text-sm font-bold text-[#1E1810]">{saves ?? 0}</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.likes}</p>
+                  <p className="text-sm font-bold text-[#1E1810]">{likes ?? 0}</p>
+                </div>
+              )}
+              {showMessages ? (
+                <div>
+                  <p className="text-[9px] font-semibold uppercase text-[#7A7164]">{L.msgs}</p>
+                  <p className="text-sm font-bold text-[#1E1810]">{messages ?? 0}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
