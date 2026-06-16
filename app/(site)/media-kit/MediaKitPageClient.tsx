@@ -6,9 +6,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
+import { replaceLangInHref } from "@/app/lib/language";
 import {
-  getGoogleTranslatePlacementCopy,
-  getGoogleTranslateWebsitesPasteHint,
+  getTranslateSitePageCopy,
   googleTranslateWebsitesPasteHintClass,
   translateSiteHref,
 } from "@/app/lib/googleTranslateWebsite";
@@ -21,7 +21,6 @@ import {
   primaryMediaKitPdfHref,
 } from "@/app/lib/leonix/mediaKitRoutes";
 import { showDualMediaKitPdfButtons } from "@/app/lib/magazine/qrBridge";
-import { getMagazineUi } from "@/app/(site)/magazine/2026/june/issueContent";
 const btnPrimary =
   "inline-flex min-h-[2.75rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-[#5e1721] sm:text-base";
 const btnSecondary =
@@ -38,20 +37,26 @@ export default function MediaKitPageClient() {
   const pathname = usePathname() ?? "/media-kit";
   const lang = useMemo(() => parseGateLang(searchParams?.get("lang")), [searchParams]);
   const copy = getMediaKitPageCopy(lang);
-  const googleCopy = getGoogleTranslatePlacementCopy(lang);
+  const translateSiteCopy = getTranslateSitePageCopy(lang);
   const dualPdf = showDualMediaKitPdfButtons(lang);
-  const magazineUi = getMagazineUi(lang);
   const primaryPdf = primaryMediaKitPdfHref(lang);
+  const mediaKitReturnTo = replaceLangInHref("/media-kit", lang);
   const googleHref = translateSiteHref({
     lang,
     sourcePage: "media-kit",
     sourceCta: "media_kit_google_translate",
-    returnTo: "/media-kit",
+    returnTo: mediaKitReturnTo,
   });
-  const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
-  const adContactHref = mediaKitAdvertisingContactHref(lang);
-  const mediaKitContactHref = mediaKitInterestContactHref(lang);
-  const homeHref = `/coming-soon-v2?lang=${lang}`;
+  const websitesPasteHint = translateSiteCopy.pasteInstruction;
+  const adContactHref = mediaKitAdvertisingContactHref(lang, {
+    sourcePage: "media-kit",
+    sourceCta: "media_kit_ad_info",
+  });
+  const mediaKitContactHref = mediaKitInterestContactHref(lang, {
+    sourcePage: "media-kit",
+    sourceCta: "media_kit_interest",
+  });
+  const homeHref = replaceLangInHref("/coming-soon-v2", lang);
 
   return (
     <main lang={lang} className="min-h-screen overflow-x-hidden bg-[#F8F4EA] text-[#1F241C]">
@@ -113,8 +118,8 @@ export default function MediaKitPageClient() {
           <div className="mt-5 flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap">
             {dualPdf ? (
               <>
-                <PdfDownloadLink label={magazineUi.mediaKitPdfEsLabel} href={MAGAZINE_KIT_PDF_ES} action={copy.downloads.downloadAction} />
-                <PdfDownloadLink label={magazineUi.mediaKitPdfEnLabel} href={MAGAZINE_KIT_PDF_EN} action={copy.downloads.downloadAction} />
+                <PdfDownloadLink label={copy.downloads.esPdfLabel} href={MAGAZINE_KIT_PDF_ES} action={copy.downloads.downloadAction} />
+                <PdfDownloadLink label={copy.downloads.enPdfLabel} href={MAGAZINE_KIT_PDF_EN} action={copy.downloads.downloadAction} />
               </>
             ) : (
               <PdfDownloadLink
@@ -146,7 +151,7 @@ export default function MediaKitPageClient() {
             href={googleHref}
             className="mt-2 inline-flex min-h-[2.25rem] items-center text-xs font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm"
           >
-            {googleCopy.comingSoonCta}
+            {copy.googleTranslate.cta}
           </Link>
           <p className={`mt-1.5 ${googleTranslateWebsitesPasteHintClass} text-[#3D3428]/85`}>
             {websitesPasteHint}

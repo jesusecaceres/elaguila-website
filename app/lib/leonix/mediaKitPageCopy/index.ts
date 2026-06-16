@@ -1,7 +1,6 @@
 import type { SupportedLang } from "@/app/lib/language";
 import { MEDIA_KIT_PAGE_EN } from "./en";
-import { MEDIA_KIT_PAGE_ES } from "./es";
-import { MEDIA_KIT_PAGE_VI } from "./vi";
+import { MEDIA_KIT_PAGE_ES } from "./es";import { MEDIA_KIT_PAGE_VI } from "./vi";
 import { MEDIA_KIT_PAGE_PT } from "./pt";
 import { MEDIA_KIT_PAGE_TL } from "./tl";
 import { MEDIA_KIT_PAGE_KM } from "./km";
@@ -14,7 +13,7 @@ import { MEDIA_KIT_PAGE_RU } from "./ru";
 import { MEDIA_KIT_PAGE_PA } from "./pa";
 import type { MediaKitPageCopy } from "./types";
 
-export const MEDIA_KIT_PAGE_REGISTRY: Partial<Record<SupportedLang, MediaKitPageCopy>> = {
+export const MEDIA_KIT_PAGE_REGISTRY: Record<SupportedLang, MediaKitPageCopy> = {
   es: MEDIA_KIT_PAGE_ES,
   en: MEDIA_KIT_PAGE_EN,
   vi: MEDIA_KIT_PAGE_VI,
@@ -32,7 +31,7 @@ export const MEDIA_KIT_PAGE_REGISTRY: Partial<Record<SupportedLang, MediaKitPage
 
 /** Live Media Kit page copy — native for all active non-RTL languages. */
 export function getMediaKitPageCopy(lang: SupportedLang): MediaKitPageCopy {
-  return MEDIA_KIT_PAGE_REGISTRY[lang] ?? MEDIA_KIT_PAGE_EN;
+  return MEDIA_KIT_PAGE_REGISTRY[lang];
 }
 
 export type { MediaKitPageCopy } from "./types";
