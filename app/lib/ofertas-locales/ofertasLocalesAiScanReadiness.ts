@@ -3,6 +3,7 @@ import {
   assetHasUploadedWithUrl,
 } from "./ofertasLocalesDraftAssetHelpers";
 import { isOfertaLocalCouponPromotionFlow, isOfertaLocalWeeklyFlyerFlow } from "./ofertasLocalesApplicationHelpers";
+import { canOfertaLocalDraftPersistForAiScan } from "./ofertasLocalesAiScanPersist";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "./ofertasLocalesTypes";
 
 export type OfertaLocalAiScanReadinessStatus =
@@ -27,8 +28,9 @@ export type OfertaLocalAiScanReadiness = {
   missingPrerequisites: string[];
   infoNotes: string[];
   eligibleAssets: OfertaLocalScanEligibleAsset[];
-  requiresSubmittedOffer: boolean;
+  requiresScanRecord: boolean;
   hasOfertaLocalId: boolean;
+  canPersistForScan: boolean;
 };
 
 export type OfertaLocalAiScanReadinessContext = {
@@ -36,6 +38,8 @@ export type OfertaLocalAiScanReadinessContext = {
   lang?: "es" | "en";
   /** Set after a scan attempt when server reports missing Google config. */
   serverConfigurationMissing?: boolean;
+  /** When true, user is signed in and core draft fields allow scan-prep persist. */
+  signedIn?: boolean;
 };
 
 const AI_SCAN_READY_MIMES = new Set([
@@ -106,18 +110,24 @@ export function getOfertaLocalAiScanReadiness(
   if (eligibleAssets.length === 0) {
     missing.push(
       lang === "en"
-        ? "Upload a flyer or coupon file with a public URL."
-        : "Sube un volante o cupón con URL pública."
+        ? "Upload a PDF, JPG, or PNG to activate AI scanning."
+        : "Sube un PDF, JPG o PNG para activar el escaneo AI."
     );
   }
 
-  const requiresSubmittedOffer = true;
   const hasOfertaLocalId = Boolean(context.ofertaLocalId?.trim());
-  if (requiresSubmittedOffer && !hasOfertaLocalId) {
+  const signedIn = context.signedIn !== false;
+  const canPersistForScan = signedIn && canOfertaLocalDraftPersistForAiScan(draft);
+
+  if (!signedIn) {
+    missing.push(
+      lang === "en" ? "Sign in to scan with AI." : "Inicia sesión para escanear con AI."
+    );
+  } else if (!hasOfertaLocalId && !canPersistForScan) {
     missing.push(
       lang === "en"
-        ? "Submit your offer for review first (Step 7) to link a record ID."
-        : "Envía tu oferta para revisión primero (Paso 7) para obtener un ID."
+        ? "Complete business details in Steps 2–4 before scanning."
+        : "Completa los datos del negocio en los Pasos 2–4 antes de escanear."
     );
   }
 
@@ -131,20 +141,35 @@ export function getOfertaLocalAiScanReadiness(
 
   const infoNotes = [
     lang === "en"
-      ? "Google Document AI configuration is verified when you scan."
-      : "La configuración de Google Document AI se verifica al escanear.",
+      ? "Scanning may take a few moments. Afterward, you can review and edit suggestions before publishing."
+      : "El escaneo puede tardar unos momentos. Después podrás revisar y editar las sugerencias antes de publicarlas.",
     lang === "en"
       ? "Only uploaded PDF, JPG, or PNG files are AI scan-ready. External links are reference-only."
       : "Solo archivos subidos PDF, JPG o PNG están listos para escaneo AI. Los enlaces externos son solo referencia.",
+    ...(eligibleAssets.length > 1
+      ? [
+          lang === "en"
+            ? "Only one file can be scanned at a time. Scan the main flyer first, then additional coupon files if needed."
+            : "Solo se puede escanear un archivo a la vez. Escanea primero el volante principal y luego archivos de cupón adicionales si aplica.",
+        ]
+      : []),
   ];
 
+  const scanReady =
+    draft.wantsAiSearchableSpecials &&
+    eligibleAssets.length > 0 &&
+    signedIn &&
+    (hasOfertaLocalId || canPersistForScan) &&
+    !context.serverConfigurationMissing;
+
   return {
-    status: missing.length === 0 ? "ready" : "not_ready",
-    ready: missing.length === 0,
+    status: scanReady ? "ready" : "not_ready",
+    ready: scanReady,
     missingPrerequisites: missing,
     infoNotes,
     eligibleAssets,
-    requiresSubmittedOffer,
+    requiresScanRecord: !hasOfertaLocalId,
     hasOfertaLocalId,
+    canPersistForScan,
   };
 }

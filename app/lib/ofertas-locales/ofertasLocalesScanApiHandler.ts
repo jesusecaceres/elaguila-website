@@ -44,6 +44,7 @@ function isScanRequest(v: unknown): v is OfertaLocalScanApiRequest {
     typeof o.assetId === "string" &&
     (o.assetKind === "flyer" || o.assetKind === "coupon") &&
     typeof o.assetUrl === "string" &&
+    typeof o.storagePath === "string" &&
     typeof o.mimeType === "string"
   );
 }
@@ -143,6 +144,19 @@ export async function handleOfertaLocalScanPost(
   }
 
   const mimeType = body.mimeType.trim().toLowerCase();
+  const storagePath = body.storagePath.trim();
+  if (!storagePath) {
+    return NextResponse.json<OfertaLocalScanApiResponse>(
+      {
+        ok: false,
+        error: "missing_storage_path",
+        detail: "Uploaded storage metadata is required. External URLs cannot be scanned.",
+        configurationMissing: false,
+      },
+      { status: 400 }
+    );
+  }
+
   if (!ALLOWED_MIMES.has(mimeType)) {
     return NextResponse.json<OfertaLocalScanApiResponse>(
       { ok: false, error: "unsupported_mime", configurationMissing: false },

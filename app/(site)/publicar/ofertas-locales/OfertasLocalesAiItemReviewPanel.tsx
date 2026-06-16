@@ -25,6 +25,7 @@ type Props = {
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
   scanJobId?: string | null;
+  reviewMode?: "weekly" | "coupon";
 };
 
 type ItemDraft = {
@@ -33,6 +34,7 @@ type ItemDraft = {
   priceAmount: string;
   unit: string;
   category: string;
+  dealType: string;
   searchTags: string;
 };
 
@@ -43,6 +45,7 @@ function toDraft(item: OfertaLocalItemReviewViewModel): ItemDraft {
     priceAmount: item.priceAmount != null ? String(item.priceAmount) : "",
     unit: item.unit,
     category: item.category,
+    dealType: item.dealType,
     searchTags: item.searchTags.join(", "),
   };
 }
@@ -69,8 +72,14 @@ function confidenceLabelText(
   return (lang === "en" ? en : es)[label];
 }
 
-export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId }: Props) {
+export function OfertasLocalesAiItemReviewPanel({
+  lang,
+  ofertaLocalId,
+  scanJobId,
+  reviewMode = "weekly",
+}: Props) {
   const c = ofertasLocalesAppCopy(lang);
+  const isCouponMode = reviewMode === "coupon";
   const [items, setItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
   const [scanJobs, setScanJobs] = useState<OfertaLocalScanJobSummary[]>([]);
   const [summary, setSummary] = useState<Record<OfertaLocalItemReviewStatus, number> | null>(null);
@@ -147,6 +156,7 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
         priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
         unit: draft.unit,
         category: draft.category,
+        dealType: draft.dealType,
         searchTags: draft.searchTags
           .split(/[,;]+/)
           .map((t) => t.trim())
@@ -165,6 +175,7 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
         priceAmount: draft?.priceAmount.trim() ? Number(draft.priceAmount) : null,
         unit: draft?.unit,
         category: draft?.category,
+        dealType: draft?.dealType,
         searchTags: draft?.searchTags
           .split(/[,;]+/)
           .map((t) => t.trim())
@@ -193,7 +204,15 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
         <div>
           <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiReviewPanelTitle}</p>
           <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiReviewBeforePublish}</p>
+          {isCouponMode ? (
+            <p className="mt-2 text-xs text-amber-900/80">{c.aiReviewCouponPartialNote}</p>
+          ) : null}
           <p className="mt-2 text-xs text-[#1E1814]/60">{c.aiReviewApprovedNotPublic}</p>
+          {items.length > 0 ? (
+            <p className="mt-2 text-xs font-semibold text-[#7A1E2C]">
+              {c.aiReviewSuggestionsFound} {items.length}
+            </p>
+          ) : null}
           {scanJobs.length > 0 ? (
             <ul className="mt-2 space-y-1 text-[10px] text-[#1E1814]/55">
               {scanJobs.map((job) => (
@@ -256,7 +275,7 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
 
               <div className="space-y-2">
                 <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                  {c.aiReviewItemName}
+                  {isCouponMode ? (lang === "en" ? "Coupon title" : "Título del cupón") : c.aiReviewItemName}
                   <input
                     className={`${INPUT} mt-1`}
                     value={draft.itemName}
@@ -265,7 +284,11 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                    {c.aiReviewPriceText}
+                    {isCouponMode
+                      ? lang === "en"
+                        ? "Offer text"
+                        : "Texto de oferta"
+                      : c.aiReviewPriceText}
                     <input
                       className={`${INPUT} mt-1`}
                       value={draft.priceText}
@@ -281,6 +304,7 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
                     />
                   </label>
                 </div>
+                {!isCouponMode ? (
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
                     {c.aiReviewUnit}
@@ -299,6 +323,16 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
                     />
                   </label>
                 </div>
+                ) : (
+                <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                  {lang === "en" ? "Terms / details" : "Términos / detalles"}
+                  <input
+                    className={`${INPUT} mt-1`}
+                    value={draft.dealType}
+                    onChange={(e) => updateDraftField(item.id, "dealType", e.target.value)}
+                  />
+                </label>
+                )}
                 <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
                   {c.aiReviewTags}
                   <input
@@ -316,6 +350,12 @@ export function OfertasLocalesAiItemReviewPanel({ lang, ofertaLocalId, scanJobId
                   ? `${item.sourceAssetId || "asset"}${item.sourcePage != null ? ` · p.${item.sourcePage}` : ""}`
                   : c.aiReviewSourceUnknown}
               </p>
+              {item.validFrom || item.validUntil ? (
+                <p className="mt-1 text-[10px] text-[#1E1814]/50">
+                  {lang === "en" ? "Valid dates" : "Fechas de validez"}:{" "}
+                  {[item.validFrom, item.validUntil].filter(Boolean).join(" — ")}
+                </p>
+              ) : null}
 
               {item.reviewStatus === "approved" ? (
                 <p className="mt-2 text-[10px] font-medium text-emerald-800">

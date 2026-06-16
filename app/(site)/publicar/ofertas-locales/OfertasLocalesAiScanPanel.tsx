@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { ensureOfertaLocalRecordForAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanPersistClient";
 import {
   getOfertaLocalAiScanReadiness,
   type OfertaLocalAiScanReadinessStatus,
+  type OfertaLocalScanEligibleAsset,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
 import { submitOfertaLocalAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanSubmit";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
@@ -13,38 +15,55 @@ import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 const CARD = "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3";
 const BTN_PRIMARY =
   "rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+const BTN_SECONDARY =
+  "rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 
 function statusLabel(status: OfertaLocalAiScanReadinessStatus, lang: OfertasLocalesAppLang): string {
   const es: Record<OfertaLocalAiScanReadinessStatus, string> = {
     not_ready: "No listo",
     ready: "Listo para escanear",
-    processing: "Procesando…",
-    needs_review: "Necesita revisión",
-    failed: "Falló",
+    processing: "Escaneando archivo...",
+    needs_review: "Revisión necesaria",
+    failed: "No se pudo escanear",
   };
   const en: Record<OfertaLocalAiScanReadinessStatus, string> = {
     not_ready: "Not ready",
     ready: "Ready to scan",
-    processing: "Processing…",
-    needs_review: "Needs review",
-    failed: "Failed",
+    processing: "Scanning file...",
+    needs_review: "Review needed",
+    failed: "Could not scan",
   };
   return (lang === "en" ? en : es)[status];
+}
+
+function assetKindLabel(kind: "flyer" | "coupon", lang: OfertasLocalesAppLang): string {
+  if (kind === "flyer") return lang === "en" ? "Main flyer" : "Volante principal";
+  return lang === "en" ? "Coupon file" : "Archivo de cupón";
 }
 
 type Props = {
   draft: OfertaLocalDraft;
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
+  signedIn?: boolean;
   onScanComplete?: (scanJobId: string) => void;
+  onOfertaLocalIdChange?: (id: string) => void;
 };
 
-export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId, onScanComplete }: Props) {
+export function OfertasLocalesAiScanPanel({
+  draft,
+  lang,
+  ofertaLocalId,
+  signedIn = true,
+  onScanComplete,
+  onOfertaLocalIdChange,
+}: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const [serverConfigurationMissing, setServerConfigurationMissing] = useState(false);
   const [scanStatus, setScanStatus] = useState<OfertaLocalAiScanReadinessStatus>("not_ready");
   const [scanMessage, setScanMessage] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [scanningAssetId, setScanningAssetId] = useState<string | null>(null);
+  const [lastCompletedMessage, setLastCompletedMessage] = useState<string | null>(null);
 
   const readiness = useMemo(
     () =>
@@ -52,9 +71,12 @@ export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId, onScanCo
         ofertaLocalId,
         lang,
         serverConfigurationMissing,
+        signedIn,
       }),
-    [draft, ofertaLocalId, lang, serverConfigurationMissing]
+    [draft, ofertaLocalId, lang, serverConfigurationMissing, signedIn]
   );
+
+  const scanning = scanningAssetId !== null;
 
   const displayStatus: OfertaLocalAiScanReadinessStatus = scanning
     ? "processing"
@@ -62,41 +84,78 @@ export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId, onScanCo
       ? scanStatus
       : readiness.status;
 
-  const handleScan = useCallback(async () => {
-    if (!readiness.ready || readiness.eligibleAssets.length === 0 || !ofertaLocalId) return;
-    const asset = readiness.eligibleAssets[0];
-    setScanning(true);
-    setScanMessage(null);
-    setScanStatus("processing");
+  const sortedAssets = useMemo(() => {
+    const flyers = readiness.eligibleAssets.filter((a) => a.assetKind === "flyer");
+    const coupons = readiness.eligibleAssets.filter((a) => a.assetKind === "coupon");
+    return [...flyers, ...coupons];
+  }, [readiness.eligibleAssets]);
 
-    const result = await submitOfertaLocalAiScan({
-      ofertaLocalId,
-      assetId: asset.assetId,
-      assetKind: asset.assetKind,
-      assetUrl: asset.assetUrl,
-      storagePath: asset.storagePath,
-      mimeType: asset.mimeType,
-    });
+  const handleScanAsset = useCallback(
+    async (asset: OfertaLocalScanEligibleAsset) => {
+      if (!readiness.ready || scanning) return;
 
-    setScanning(false);
+      setScanningAssetId(asset.assetId);
+      setScanMessage(null);
+      setScanStatus("processing");
 
-    if (result.configurationMissing) {
-      setServerConfigurationMissing(true);
-      setScanStatus("not_ready");
-      setScanMessage(result.message ?? result.detail ?? c.aiScanConfigMissing);
-      return;
-    }
+      let recordId = ofertaLocalId?.trim() || null;
+      if (!recordId) {
+        const persist = await ensureOfertaLocalRecordForAiScan(draft, null);
+        if (!persist.ok) {
+          setScanningAssetId(null);
+          setScanStatus("failed");
+          const issueText = persist.issues?.map((i) => i.message).join(" ") ?? persist.detail;
+          setScanMessage(issueText ?? c.aiScanFailed);
+          return;
+        }
+        recordId = persist.id;
+        onOfertaLocalIdChange?.(recordId);
+      } else {
+        const persist = await ensureOfertaLocalRecordForAiScan(draft, recordId);
+        if (!persist.ok) {
+          setScanningAssetId(null);
+          setScanStatus("failed");
+          setScanMessage(persist.detail ?? persist.error ?? c.aiScanFailed);
+          return;
+        }
+      }
 
-    if (!result.ok) {
-      setScanStatus("failed");
-      setScanMessage(result.message ?? result.detail ?? c.aiScanFailed);
-      return;
-    }
+      const result = await submitOfertaLocalAiScan({
+        ofertaLocalId: recordId,
+        assetId: asset.assetId,
+        assetKind: asset.assetKind,
+        assetUrl: asset.assetUrl,
+        storagePath: asset.storagePath,
+        mimeType: asset.mimeType,
+      });
 
-    setScanStatus(result.status === "needs_review" ? "needs_review" : "ready");
-    setScanMessage(result.message ?? c.aiScanSuccess);
-    if (result.scanJobId) onScanComplete?.(result.scanJobId);
-  }, [readiness, ofertaLocalId, c, onScanComplete]);
+      setScanningAssetId(null);
+
+      if (result.configurationMissing) {
+        setServerConfigurationMissing(true);
+        setScanStatus("not_ready");
+        setScanMessage(result.message ?? result.detail ?? c.aiScanConfigMissing);
+        return;
+      }
+
+      if (!result.ok) {
+        setScanStatus("failed");
+        setScanMessage(result.message ?? result.detail ?? c.aiScanFailed);
+        return;
+      }
+
+      const completedMsg = c.aiScanCompleted;
+      setScanStatus("needs_review");
+      setLastCompletedMessage(completedMsg);
+      setScanMessage(
+        result.itemsExtractedCount != null && result.itemsExtractedCount > 0
+          ? `${completedMsg} ${lang === "en" ? "Review the suggestions below." : "Revisa las sugerencias abajo."}`
+          : result.message ?? completedMsg
+      );
+      if (result.scanJobId) onScanComplete?.(result.scanJobId);
+    },
+    [readiness.ready, scanning, ofertaLocalId, draft, c, lang, onScanComplete, onOfertaLocalIdChange]
+  );
 
   if (!draft.wantsAiSearchableSpecials) return null;
 
@@ -105,11 +164,50 @@ export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId, onScanCo
       <div>
         <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiScanPanelTitle}</p>
         <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiScanReviewBeforePublish}</p>
+        <p className="mt-1 text-xs text-[#1E1814]/60">{c.aiScanHelperWait}</p>
       </div>
 
       <p className="text-xs font-medium text-[#1E1814]">
         {lang === "en" ? "Status" : "Estado"}: {statusLabel(displayStatus, lang)}
+        {displayStatus === "needs_review" && lastCompletedMessage ? (
+          <span className="ml-1 font-normal text-[#1E1814]/65">({lastCompletedMessage})</span>
+        ) : null}
       </p>
+
+      {sortedAssets.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
+            {lang === "en" ? "Scan-ready files" : "Archivos listos para escanear"}
+          </p>
+          <ul className="space-y-2">
+            {sortedAssets.map((asset) => {
+              const isThisScanning = scanningAssetId === asset.assetId;
+              const fileLabel = asset.fileName || assetKindLabel(asset.assetKind, lang);
+              return (
+                <li
+                  key={asset.assetId}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-[#1E1814]">{fileLabel}</p>
+                    <p className="text-[10px] text-[#1E1814]/55">
+                      {assetKindLabel(asset.assetKind, lang)} · {asset.mimeType.split("/").pop()?.toUpperCase()}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className={BTN_SECONDARY}
+                    disabled={!readiness.ready || scanning}
+                    onClick={() => void handleScanAsset(asset)}
+                  >
+                    {isThisScanning ? c.aiScanProcessing : c.aiScanButton}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
 
       <ul className="list-inside list-disc space-y-1 text-xs text-[#1E1814]/70">
         {readiness.missingPrerequisites.map((item) => (
@@ -128,14 +226,16 @@ export function OfertasLocalesAiScanPanel({ draft, lang, ofertaLocalId, onScanCo
         </p>
       ) : null}
 
-      <button
-        type="button"
-        className={BTN_PRIMARY}
-        disabled={!readiness.ready || scanning}
-        onClick={() => void handleScan()}
-      >
-        {scanning ? c.aiScanProcessing : c.aiScanButton}
-      </button>
+      {sortedAssets.length === 1 ? (
+        <button
+          type="button"
+          className={BTN_PRIMARY}
+          disabled={!readiness.ready || scanning}
+          onClick={() => void handleScanAsset(sortedAssets[0])}
+        >
+          {scanning ? c.aiScanProcessing : c.aiScanButton}
+        </button>
+      ) : null}
     </div>
   );
 }

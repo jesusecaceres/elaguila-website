@@ -182,12 +182,16 @@ const COPY = {
     wizardReviewStep: "Revisar antes de enviar",
     aiScanPanelTitle: "Preparación para escaneo AI",
     aiScanButton: "Escanear con AI",
-    aiScanProcessing: "Escaneando…",
+    aiScanProcessing: "Escaneando archivo...",
+    aiScanCompleted: "Escaneo completado",
+    aiScanHelperWait:
+      "El escaneo puede tardar unos momentos. Después podrás revisar y editar las sugerencias antes de publicarlas.",
     aiScanReviewBeforePublish:
       "Los productos extraídos deberán revisarse antes de publicarse.",
     aiScanConfigMissing: "Google Document AI no está configurado en el servidor.",
-    aiScanFailed: "No se pudo completar el escaneo.",
+    aiScanFailed: "No se pudo escanear",
     aiScanSuccess: "Escaneo completado. Los artículos deben revisarse antes de publicarse.",
+    aiReviewSuggestionsFound: "Sugerencias encontradas:",
     aiReviewPanelTitle: "Revisión de productos extraídos",
     aiReviewBeforePublish: "Revisa los productos antes de publicarlos.",
     aiReviewApprovedNotPublic:
@@ -202,7 +206,9 @@ const COPY = {
     aiReviewSave: "Guardar cambios",
     aiReviewApprove: "Aprobar",
     aiReviewNeedsReview: "Necesita revisión",
-    aiReviewReject: "Rechazar",
+    aiReviewReject: "Quitar",
+    aiReviewCouponPartialNote:
+      "La extracción de cupones usa el mismo motor de productos: revisa título y texto de oferta en los campos editables. No prometemos recorte automático de hojas de cupones.",
     aiReviewItemName: "Producto",
     aiReviewPriceText: "Precio (texto)",
     aiReviewPriceAmount: "Precio (número)",
@@ -426,12 +432,16 @@ const COPY = {
     wizardReviewStep: "Review before submitting",
     aiScanPanelTitle: "AI scan readiness",
     aiScanButton: "Scan with AI",
-    aiScanProcessing: "Scanning…",
+    aiScanProcessing: "Scanning file...",
+    aiScanCompleted: "Scan complete",
+    aiScanHelperWait:
+      "Scanning may take a few moments. Afterward, you can review and edit suggestions before publishing.",
     aiScanReviewBeforePublish:
       "Extracted items must be reviewed before they can be published.",
     aiScanConfigMissing: "Google Document AI is not configured on the server.",
-    aiScanFailed: "The scan could not be completed.",
+    aiScanFailed: "Could not scan",
     aiScanSuccess: "Scan completed. Items must be reviewed before they can go live.",
+    aiReviewSuggestionsFound: "Suggestions found:",
     aiReviewPanelTitle: "Extracted item review",
     aiReviewBeforePublish: "Review extracted items before they can be published.",
     aiReviewApprovedNotPublic:
@@ -446,7 +456,9 @@ const COPY = {
     aiReviewSave: "Save changes",
     aiReviewApprove: "Approve",
     aiReviewNeedsReview: "Needs review",
-    aiReviewReject: "Reject",
+    aiReviewReject: "Remove",
+    aiReviewCouponPartialNote:
+      "Coupon extraction uses the same product engine: review title and offer text in the editable fields. Automatic coupon-sheet clipping is not promised.",
     aiReviewItemName: "Item",
     aiReviewPriceText: "Price (text)",
     aiReviewPriceAmount: "Price (amount)",

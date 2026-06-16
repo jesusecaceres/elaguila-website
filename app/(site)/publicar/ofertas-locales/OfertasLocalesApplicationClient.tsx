@@ -40,8 +40,13 @@ import {
   getSubtypeOptionsForBusinessCategory,
 } from "@/app/lib/ofertas-locales/ofertasLocalesBusinessCategoryUx";
 import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
+import {
+  loadOfertaLocalAiScanSession,
+  saveOfertaLocalAiScanSession,
+} from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
 import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type {
   OfertaLocalBusinessCategory,
   OfertaLocalMarketType,
@@ -167,7 +172,37 @@ export default function OfertasLocalesApplicationClient() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
-  const [lastScanJobId, setLastScanJobId] = useState<string | null>(null);
+  const [aiScanRecordId, setAiScanRecordId] = useState<string | null>(
+    () => loadOfertaLocalAiScanSession().ofertaLocalId
+  );
+  const [lastScanJobId, setLastScanJobId] = useState<string | null>(
+    () => loadOfertaLocalAiScanSession().lastScanJobId
+  );
+  const [signedIn, setSignedIn] = useState(true);
+
+  const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
+
+  useEffect(() => {
+    saveOfertaLocalAiScanSession({
+      ofertaLocalId: effectiveOfertaLocalId,
+      lastScanJobId,
+    });
+  }, [effectiveOfertaLocalId, lastScanJobId]);
+
+  useEffect(() => {
+    const sb = createSupabaseBrowserClient();
+    void sb.auth.getSession().then(({ data }) => {
+      setSignedIn(Boolean(data.session?.access_token));
+    });
+    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session?.access_token));
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const handleAiScanRecordId = useCallback((id: string) => {
+    setAiScanRecordId(id);
+  }, []);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
@@ -245,6 +280,7 @@ export default function OfertasLocalesApplicationClient() {
         return;
       }
       setSubmitSuccess({ id: result.id, status: result.status });
+      setAiScanRecordId(result.id);
     } catch {
       setSubmitError(c.submitFailed);
     } finally {
@@ -766,17 +802,20 @@ export default function OfertasLocalesApplicationClient() {
                 <OfertasLocalesAiScanPanel
                   draft={draft}
                   lang={lang}
-                  ofertaLocalId={submitSuccess?.id}
+                  ofertaLocalId={effectiveOfertaLocalId}
+                  signedIn={signedIn}
                   onScanComplete={setLastScanJobId}
+                  onOfertaLocalIdChange={handleAiScanRecordId}
                 />
                 <OfertasLocalesAiItemReviewPanel
                   lang={lang}
-                  ofertaLocalId={submitSuccess?.id}
+                  ofertaLocalId={effectiveOfertaLocalId}
                   scanJobId={lastScanJobId}
+                  reviewMode={isCouponsLane ? "coupon" : "weekly"}
                 />
                 <OfertasLocalesClickableItemPreviewPanel
                   lang={lang}
-                  ofertaLocalId={submitSuccess?.id}
+                  ofertaLocalId={effectiveOfertaLocalId}
                   scanJobId={lastScanJobId}
                   draft={draft}
                 />
@@ -964,17 +1003,20 @@ export default function OfertasLocalesApplicationClient() {
                 <OfertasLocalesAiScanPanel
                   draft={draft}
                   lang={lang}
-                  ofertaLocalId={submitSuccess?.id}
+                  ofertaLocalId={effectiveOfertaLocalId}
+                  signedIn={signedIn}
                   onScanComplete={setLastScanJobId}
+                  onOfertaLocalIdChange={handleAiScanRecordId}
                 />
                 <OfertasLocalesAiItemReviewPanel
                   lang={lang}
-                  ofertaLocalId={submitSuccess?.id}
+                  ofertaLocalId={effectiveOfertaLocalId}
                   scanJobId={lastScanJobId}
+                  reviewMode={isCouponsLane ? "coupon" : "weekly"}
                 />
                 <OfertasLocalesClickableItemPreviewPanel
                   lang={lang}
-                  ofertaLocalId={submitSuccess?.id}
+                  ofertaLocalId={effectiveOfertaLocalId}
                   scanJobId={lastScanJobId}
                   draft={draft}
                 />

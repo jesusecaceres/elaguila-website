@@ -601,7 +601,7 @@ export type OfertaLocalScanApiRequest = {
   assetId: string;
   assetKind: "flyer" | "coupon";
   assetUrl: string;
-  storagePath?: string;
+  storagePath: string;
   mimeType: string;
 };
 
