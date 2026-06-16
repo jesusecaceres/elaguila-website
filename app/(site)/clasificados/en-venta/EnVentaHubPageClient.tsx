@@ -20,6 +20,8 @@ import {
   CATEGORY_STANDARD_PAGE_BG,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { EnVentaHubRecentListings } from "./hub/EnVentaHubRecentListings";
+import { EnVentaHubHorizontalScroll } from "./hub/EnVentaHubHorizontalScroll";
+import { EnVentaHubMoreFilters } from "./hub/EnVentaHubMoreFilters";
 
 /** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
 const DEFAULT_HERO_BACKDROP =
@@ -153,7 +155,7 @@ export function EnVentaHubPageClient({
   const chipFeaturedCls =
     "inline-flex min-h-[44px] max-w-full items-center gap-1.5 justify-center text-balance rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3 py-2 text-center text-[12px] font-semibold leading-tight text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
 
-  const landingQuickChips: Array<{ key: string; label: string; href: string }> = [
+  const popularCategoryChips: Array<{ key: string; label: string; href: string }> = [
     {
       key: "electronicos",
       label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "electronicos")!.label[lang],
@@ -170,21 +172,27 @@ export function EnVentaHubPageClient({
       href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "muebles" }),
     },
     {
-      key: "free",
-      label: lang === "es" ? "Gratis / regalo" : "Free / gift",
-      href: buildEnVentaResultsUrl(routeLang as Lang, { free: "1" }),
+      key: "ropa",
+      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "ropa-accesorios")!.label[lang],
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "ropa-accesorios" }),
     },
     {
-      key: "pickup",
-      label: lang === "es" ? "Recogida" : "Pickup",
-      href: buildEnVentaResultsUrl(routeLang as Lang, { pickup: "1" }),
-    },
-    {
-      key: "ship",
-      label: lang === "es" ? "Envío" : "Shipping",
-      href: buildEnVentaResultsUrl(routeLang as Lang, { ship: "1" }),
+      key: "deportes",
+      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "deportes")!.label[lang],
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "deportes" }),
     },
   ];
+
+  const quickFilterChips: Array<{ key: string; label: string; href: string; featured?: boolean }> = [
+    { key: "newest", label: t.browseChipNewest, href: hrefBrowseNewest },
+    { key: "near", label: t.browseChipNear, href: hrefBrowseNear },
+    { key: "free", label: lang === "es" ? "Gratis / regalo" : "Free / gift", href: buildEnVentaResultsUrl(routeLang as Lang, { free: "1" }) },
+    { key: "pickup", label: t.browseChipPickup, href: hrefBrowsePickup },
+    { key: "ship", label: t.browseChipShip, href: hrefBrowseShip },
+    { key: "featured", label: t.browseChipFeatured, href: hrefBrowseFeatured, featured: true },
+  ];
+
+  const swipeHint = lang === "es" ? "Desliza →" : "Swipe →";
 
   const enVentaSearchForm = (
     <div className="w-full min-w-0 space-y-2 text-left">
@@ -249,12 +257,21 @@ export function EnVentaHubPageClient({
           </div>
         </div>
       </form>
-      <div className="flex flex-wrap gap-1.5" aria-label={lang === "es" ? "Búsquedas rápidas" : "Quick searches"}>
-        {landingQuickChips.map((chip) => (
-          <Link key={chip.key} href={chip.href} className={chipNeutral}>
-            {chip.label}
-          </Link>
-        ))}
+      <div className="mt-3 space-y-3">
+        <EnVentaHubHorizontalScroll
+          label={lang === "es" ? "Categorías populares" : "Popular categories"}
+          swipeHint={swipeHint}
+        >
+          {popularCategoryChips.map((chip) => (
+            <Link key={chip.key} href={chip.href} className={`${chipNeutral} shrink-0 snap-start`}>
+              {chip.label}
+            </Link>
+          ))}
+        </EnVentaHubHorizontalScroll>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />
+        </div>
       </div>
     </div>
   );
@@ -285,60 +302,6 @@ export function EnVentaHubPageClient({
           searchSlot={enVentaSearchForm}
         />
 
-        {/* Success layer: seller trust + browse chips + results handoff (all links real) */}
-        <section
-          className="mt-5 sm:mt-6"
-          aria-label={lang === "es" ? `Cómo explorar ${enVentaPublicLabel("es")}` : `How to explore ${enVentaPublicLabel("en")}`}
-        >
-          <div className="rounded-[20px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-3 shadow-[0_6px_24px_-14px_rgba(47,74,101,0.12)] sm:px-5 sm:py-4">
-            <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href={hrefSellerIndividual}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
-              >
-                {t.sellerLinkInd}
-              </Link>
-              <Link
-                href={hrefSellerBusiness}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
-              >
-                {t.sellerLinkBiz}
-              </Link>
-            </div>
-          </div>
-
-          <h3 className="mb-2 mt-4 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5C5346] sm:mb-2.5 sm:mt-5 sm:tracking-[0.16em]">
-            {t.browseSectionLabel}
-          </h3>
-          <div className="flex w-full min-w-0 flex-wrap justify-center gap-2 px-0.5 sm:gap-2.5">
-            <Link href={hrefBrowseNewest} className={chipNeutral}>
-              {t.browseChipNewest}
-            </Link>
-            <Link href={hrefBrowseNear} className={chipNeutral}>
-              {t.browseChipNear}
-            </Link>
-            <Link href={hrefBrowseShip} className={chipNeutral}>
-              {t.browseChipShip}
-            </Link>
-            <Link href={hrefBrowsePickup} className={chipNeutral}>
-              {t.browseChipPickup}
-            </Link>
-            <Link href={hrefBrowseFeatured} className={chipFeaturedCls}>
-              <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0 text-[#B8891A]" aria-hidden fill="currentColor">
-                <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
-              </svg>
-              {t.browseChipFeatured}
-            </Link>
-          </div>
-
-          <p className="mx-auto mt-3 max-w-xl text-center text-[11px] leading-relaxed text-[#5C5346] sm:mt-4 sm:text-[12px]">{t.exposureHint}</p>
-
-          <p className="mx-auto mt-4 max-w-2xl text-center text-[13px] leading-relaxed text-[#4A6678] sm:mt-5 sm:text-sm">
-            {t.handoff}
-          </p>
-        </section>
-
         <EnVentaHubRecentListings
           listings={initialLiveListings}
           lang={lang}
@@ -346,52 +309,127 @@ export function EnVentaHubPageClient({
           allListingsLabel={t.lista}
         />
 
-        {/* Categories */}
-        <section className="mt-7 sm:mt-10">
+        <section className="mt-5 sm:mt-6" aria-label={lang === "es" ? "Filtros rápidos" : "Quick filters"}>
+          <EnVentaHubHorizontalScroll
+            label={lang === "es" ? "Filtros rápidos" : "Quick filters"}
+            swipeHint={swipeHint}
+          >
+            {quickFilterChips.map((chip) => (
+              <Link
+                key={chip.key}
+                href={chip.href}
+                className={chip.featured ? `${chipFeaturedCls} shrink-0 snap-start` : `${chipNeutral} shrink-0 snap-start`}
+              >
+                {chip.featured ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0 text-[#B8891A]" aria-hidden fill="currentColor">
+                    <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
+                  </svg>
+                ) : null}
+                {chip.label}
+              </Link>
+            ))}
+          </EnVentaHubHorizontalScroll>
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-[#5C5346] sm:text-[12px]">{t.exposureHint}</p>
+        </section>
+
+        {/* Categories — compact horizontal on mobile */}
+        <section className="mt-6 sm:mt-8">
           <h2 className="text-center font-serif text-[1.25rem] font-bold tracking-tight text-[#1E1810] sm:text-2xl">
             {t.categoriesTitle}
           </h2>
-          <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:mt-7 sm:gap-4 lg:gap-5 xl:grid-cols-4">
-            {EN_VENTA_DEPARTMENTS.map((d) => {
-              const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
-              const title = d.label[lang];
-              const hint = d.browseHint[lang];
-              const vis = DEPT_VISUAL[d.key];
-              const cool = vis.cool;
-
-              return (
-                <Link
-                  key={d.key}
-                  href={href}
-                  className={cx(
-                    "group flex min-h-[136px] flex-col items-center rounded-[20px] border border-white/70 bg-[#FFFCF7]/95 p-3.5 text-center shadow-[0_12px_36px_-16px_rgba(47,74,101,0.2)] ring-1 ring-transparent transition sm:min-h-[140px] sm:p-4",
-                    "hover:-translate-y-0.5 hover:border-[#C9B46A]/38 hover:shadow-[0_20px_48px_-14px_rgba(201,180,106,0.26)] hover:ring-[#C9B46A]/22",
-                    "focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
-                  )}
-                >
-                  <span
-                    className={cx(
-                      "mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shadow-inner transition group-hover:scale-[1.04]",
-                      cool
-                        ? "border border-[#D4E0EA]/90 bg-gradient-to-br from-[#EEF3F7] to-[#E2EBF2] text-[#2F4A65]"
-                        : "border border-[#F0E8D8] bg-gradient-to-br from-[#FFF9EE] to-[#F3E9D4]"
-                    )}
-                    aria-hidden
+          <div className="mt-4 sm:mt-6">
+            <EnVentaHubHorizontalScroll
+              label={lang === "es" ? "Todas las categorías" : "All categories"}
+              swipeHint={swipeHint}
+              className="sm:hidden"
+            >
+              {EN_VENTA_DEPARTMENTS.map((d) => {
+                const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
+                const title = d.label[lang];
+                const vis = DEPT_VISUAL[d.key];
+                return (
+                  <Link
+                    key={d.key}
+                    href={href}
+                    className="flex w-[min(42vw,160px)] shrink-0 snap-start flex-col items-center rounded-[16px] border border-white/70 bg-[#FFFCF7]/95 p-3 text-center shadow-sm transition hover:border-[#C9B46A]/38"
                   >
-                    {vis.icon}
-                  </span>
-                  <span className="text-[14px] font-bold leading-tight text-[#1E1810] min-[420px]:text-[15px]">{title}</span>
-                  <span className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#5C5346] min-[420px]:text-[12px] sm:text-[13px]">{hint}</span>
-                </Link>
-              );
-            })}
+                    <span className="text-2xl" aria-hidden>{vis.icon}</span>
+                    <span className="mt-2 text-[12px] font-bold leading-tight text-[#1E1810]">{title}</span>
+                  </Link>
+                );
+              })}
+            </EnVentaHubHorizontalScroll>
+            <div className="hidden sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
+              {EN_VENTA_DEPARTMENTS.map((d) => {
+                const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
+                const title = d.label[lang];
+                const hint = d.browseHint[lang];
+                const vis = DEPT_VISUAL[d.key];
+                const cool = vis.cool;
+
+                return (
+                  <Link
+                    key={d.key}
+                    href={href}
+                    className={cx(
+                      "group flex min-h-[136px] flex-col items-center rounded-[20px] border border-white/70 bg-[#FFFCF7]/95 p-3.5 text-center shadow-[0_12px_36px_-16px_rgba(47,74,101,0.2)] ring-1 ring-transparent transition sm:min-h-[140px] sm:p-4",
+                      "hover:-translate-y-0.5 hover:border-[#C9B46A]/38 hover:shadow-[0_20px_48px_-14px_rgba(201,180,106,0.26)] hover:ring-[#C9B46A]/22",
+                      "focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        "mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shadow-inner transition group-hover:scale-[1.04]",
+                        cool
+                          ? "border border-[#D4E0EA]/90 bg-gradient-to-br from-[#EEF3F7] to-[#E2EBF2] text-[#2F4A65]"
+                          : "border border-[#F0E8D8] bg-gradient-to-br from-[#FFF9EE] to-[#F3E9D4]"
+                      )}
+                      aria-hidden
+                    >
+                      {vis.icon}
+                    </span>
+                    <span className="text-[14px] font-bold leading-tight text-[#1E1810] min-[420px]:text-[15px]">{title}</span>
+                    <span className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#5C5346] min-[420px]:text-[12px] sm:text-[13px]">{hint}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        {/* Trust */}
-        <section className="mt-7 sm:mt-10">
-          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-4 py-5 shadow-[0_10px_36px_-16px_rgba(42,36,22,0.14)] sm:px-6 sm:py-6">
-            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 md:gap-8">
+        {/* Trust — horizontal strip on mobile */}
+        <section className="mt-6 sm:mt-8" aria-label={lang === "es" ? "Confianza y seguridad" : "Trust and safety"}>
+          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-3 py-4 shadow-[0_10px_36px_-16px_rgba(42,36,22,0.14)] sm:px-6 sm:py-6">
+            <EnVentaHubHorizontalScroll
+              label={lang === "es" ? "Compra con confianza" : "Shop with confidence"}
+              swipeHint={swipeHint}
+              className="sm:hidden"
+            >
+              {[
+                { icon: TrustIconGift, title: t.trust1Title, sub: t.trust1Sub, warm: true },
+                { icon: TrustIconShield, title: t.trust2Title, sub: t.trust2Sub, warm: false },
+                { icon: TrustIconPeople, title: t.trust3Title, sub: t.trust3Sub, warm: true },
+              ].map((card) => (
+                <div
+                  key={card.title}
+                  className="flex w-[min(78vw,260px)] shrink-0 snap-start flex-col rounded-2xl border border-[#E8DFD0]/80 bg-white/60 p-4 text-left"
+                >
+                  <span
+                    className={cx(
+                      "mb-2 flex h-10 w-10 items-center justify-center rounded-xl",
+                      card.warm
+                        ? "bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/50 text-[#B8891A]"
+                        : "bg-gradient-to-br from-[#E8EEF3] to-[#D4E0EA]/70 text-[#2F4A65]"
+                    )}
+                  >
+                    <card.icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="text-[14px] font-bold text-[#1E1810]">{card.title}</h3>
+                  <p className="mt-1 text-[12px] leading-relaxed text-[#3d556b]">{card.sub}</p>
+                </div>
+              ))}
+            </EnVentaHubHorizontalScroll>
+            <div className="hidden sm:grid sm:grid-cols-2 sm:gap-6 md:grid-cols-3 md:gap-8">
               <div className="flex flex-col items-center text-center md:items-start md:text-left">
                 <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FFF3D6] to-[#E8C96A]/50 text-[#B8891A]">
                   <TrustIconGift className="h-6 w-6" />
@@ -417,8 +455,30 @@ export function EnVentaHubPageClient({
           </div>
         </section>
 
+        {/* Seller trust + publish CTA */}
+        <section className="mt-6 sm:mt-8">
+          <div className="rounded-[20px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-4 shadow-[0_6px_24px_-14px_rgba(47,74,101,0.12)] sm:px-5 sm:py-5">
+            <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href={hrefSellerIndividual}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              >
+                {t.sellerLinkInd}
+              </Link>
+              <Link
+                href={hrefSellerBusiness}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              >
+                {t.sellerLinkBiz}
+              </Link>
+            </div>
+            <p className="mx-auto mt-4 max-w-2xl text-center text-[13px] leading-relaxed text-[#4A6678] sm:text-sm">{t.handoff}</p>
+          </div>
+        </section>
+
         {/* Bottom sell CTA */}
-        <section className="mt-7 sm:mt-10">
+        <section className="mt-6 sm:mt-8">
           <div className="flex flex-col items-start justify-between gap-5 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-5 py-7 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
             <div className="min-w-0 max-w-xl flex-1">
               <h2 className="font-serif text-[1.15rem] font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>

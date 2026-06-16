@@ -49,7 +49,7 @@ export function EnVentaHubRecentListings({
       : "No published For Sale listings yet. Be the first to post.";
 
   return (
-    <section className="mt-11 sm:mt-16" aria-labelledby="enventa-hub-recent">
+    <section className="mt-6 sm:mt-8" aria-labelledby="enventa-hub-recent">
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end sm:gap-4">
         <div>
           <h2 id="enventa-hub-recent" className="font-serif text-[1.35rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
@@ -74,7 +74,10 @@ export function EnVentaHubRecentListings({
           {empty}
         </p>
       ) : (
-        <ul className="mt-6 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+          className="mt-4 -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-pl-3 scroll-pr-3 pb-2 pt-0.5 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:mt-6 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-3 xl:grid-cols-4 [&::-webkit-scrollbar]:hidden"
+          aria-label={title}
+        >
           {recent.map(({ row, dto }) => {
             const effectiveDept = resolveEffectiveDept(dto);
             const returnParams = new URLSearchParams({ lang, sort: "newest" });
@@ -86,7 +89,7 @@ export function EnVentaHubRecentListings({
               row,
             });
             return (
-              <li key={dto.id}>
+              <div key={dto.id} className="w-[min(88vw,280px)] shrink-0 snap-start sm:w-auto sm:min-w-0">
                 <EnVentaResultListingCard
                   model={model}
                   lang={lang}
@@ -96,10 +99,10 @@ export function EnVentaHubRecentListings({
                   onToggleFav={toggleListingSaved}
                   href={href}
                 />
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
     </section>
   );
