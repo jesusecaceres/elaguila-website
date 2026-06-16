@@ -4,6 +4,7 @@ import {
   clearRestauranteDraftMediaNamespace,
   inlineRestauranteDraftMedia,
   offloadRestauranteDraftMedia,
+  restauranteDraftMediaNamespace,
 } from "./restauranteDraftMedia";
 
 /**
@@ -30,7 +31,12 @@ function removeLegacyLocalDraft(): void {
 }
 
 function draftMediaNamespace(d: RestauranteListingDraft): string {
-  return `rt-${d.draftListingId}`;
+  return restauranteDraftMediaNamespace(d.draftListingId);
+}
+
+/** Fast editor hydrate: JSON + IDB refs only (no bulk data URL inline). */
+export function loadRestauranteDraftFromStorageForEditor(): RestauranteListingDraft | null {
+  return loadRestauranteDraftFromStorage();
 }
 
 /** Sync read: compact JSON (may contain `__LX_RT_IDB__` refs or legacy inline data URLs). */

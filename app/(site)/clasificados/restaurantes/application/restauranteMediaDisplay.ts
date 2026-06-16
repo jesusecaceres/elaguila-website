@@ -1,10 +1,11 @@
 import { isRestauranteIdbRef } from "./restauranteDraftMedia";
 
-/** True if string is usable as a gallery/general image src (data URL or remote). */
+/** True if string is usable as a gallery/general image src (data URL, remote, or IDB ref). */
 export function isRestauranteDisplayableImageRef(s: string | undefined | null): boolean {
   if (typeof s !== "string") return false;
   const t = s.trim();
   if (!t) return false;
+  if (isRestauranteIdbRef(t)) return true;
   if (/^data:image\//i.test(t)) return true;
   if (/^https?:\/\//i.test(t)) return true;
   return false;

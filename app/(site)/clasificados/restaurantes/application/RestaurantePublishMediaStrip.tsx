@@ -14,7 +14,7 @@ import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortab
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { isRestauranteDisplayableImageRef, isRestauranteLocalVideoDataUrl } from "./restauranteMediaDisplay";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
-import { readRestauranteImageAsDataUrl } from "./compressRestauranteImage";
+import { readRestauranteImageAsDataUrl, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS } from "./compressRestauranteImage";
 import type { RestauranteDraftPatch } from "./useRestauranteDraft";
 import {
   computePublishGallerySequence,
@@ -22,6 +22,7 @@ import {
   resolveRestauranteGallerySequence,
   type RestauranteGallerySeqEntry,
 } from "./restauranteGalleryMediaSequence";
+import { RestauranteMediaPreviewImg } from "./RestauranteMediaPreviewImg";
 import { RestauranteSortableMediaTile } from "./RestauranteSortableMediaTile";
 import { RestauranteUploadRow } from "./RestauranteUploadRow";
 
@@ -126,7 +127,7 @@ export function RestaurantePublishMediaStrip({
     const list = files ? Array.from(files) : [];
     const toRead = list.slice(0, MAX_GALLERY);
     for (const f of toRead) {
-      const u = await readRestauranteImageAsDataUrl(f);
+      const u = await readRestauranteImageAsDataUrl(f, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS);
       if (!isRestauranteDisplayableImageRef(u)) continue;
       const trimmed = u.trim();
       setDraftPatch((prev) => {
@@ -294,15 +295,16 @@ export function RestaurantePublishMediaStrip({
                         onRemove={() => removeGalleryAt(entry)}
                       >
                         <div className="relative aspect-square w-full min-h-[100px] bg-[color:var(--lx-section)]">
-                          { }
-                          <img
+                          <RestauranteMediaPreviewImg
                             src={url}
+                            draftListingId={draft.draftListingId}
                             alt=""
                             className="absolute inset-0 h-full w-full object-cover"
-                            draggable={false}
                             loading={loadHint}
                             decoding="async"
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            width={200}
+                            height={200}
                           />
                           {isCoverHint ? (
                             <span className="absolute bottom-2 left-2 rounded bg-[color:var(--lx-gold)]/95 px-1.5 py-0.5 text-[10px] font-bold text-[#1a1814]">

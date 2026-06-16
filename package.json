@@ -218,6 +218,7 @@
     "restaurantes:form-cleanup1b-audit": "tsx scripts/restaurante-cleanup1b-audit.ts",
     "restaurantes:form-cleanup2-audit": "tsx scripts/restaurantes-form-cleanup2-audit.ts",
     "restaurantes:form-cleanup3-audit": "tsx scripts/restaurantes-form-cleanup3-audit.ts",
+    "restaurantes:media-perf1-audit": "tsx scripts/restaurantes-media-perf1-audit.ts",
     "restaurantes:video-url1-audit": "tsx scripts/restaurantes-video-url1-audit.ts",
     "comida-local:food-l2-scaffold-audit": "tsx scripts/comida-local-food-l2-scaffold-audit.ts",
     "comida-local:food-l3-field-draft-audit": "tsx scripts/comida-local-food-l3-field-draft-audit.ts",

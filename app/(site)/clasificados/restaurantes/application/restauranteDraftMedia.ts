@@ -39,6 +39,46 @@ export function isRestauranteIdbRef(s: string | undefined): boolean {
   return typeof s === "string" && s.startsWith(RT_IDB_PREFIX);
 }
 
+/** Lazy display resolver: IDB ref → data URL; https/data passthrough. */
+export async function resolveRestauranteMediaRefForDisplay(
+  namespace: string,
+  ref: string | undefined,
+): Promise<string | null> {
+  if (typeof ref !== "string") return null;
+  const t = ref.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^data:image\//i.test(t)) return t;
+  const pr = parseRef(t);
+  if (!pr) return null;
+  switch (pr.k) {
+    case "hero":
+      return idbRestauranteGetDataUrl(namespace, "hero", undefined);
+    case "vid":
+      return idbRestauranteGetDataUrl(namespace, "vid", undefined);
+    case "menu":
+      return idbRestauranteGetDataUrl(namespace, "menu", undefined);
+    case "bro":
+      return idbRestauranteGetDataUrl(namespace, "bro", undefined);
+    case "g":
+      return idbRestauranteGetDataUrl(namespace, "g", String(pr.i));
+    case "food":
+      return idbRestauranteGetDataUrl(namespace, "food", String(pr.i));
+    case "int":
+      return idbRestauranteGetDataUrl(namespace, "int", String(pr.i));
+    case "ext":
+      return idbRestauranteGetDataUrl(namespace, "ext", String(pr.i));
+    case "fd":
+      return idbRestauranteGetDataUrl(namespace, "fd", String(pr.i));
+    default:
+      return null;
+  }
+}
+
+export function restauranteDraftMediaNamespace(draftListingId: string): string {
+  return `rt-${draftListingId}`;
+}
+
 function parseRef(s: string):
   | { k: "hero" }
   | { k: "vid" }

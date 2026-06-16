@@ -5,6 +5,7 @@ import { createEmptyRestauranteDraft } from "./createEmptyRestauranteDraft";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import {
   clearRestauranteDraftStorageAndIdb,
+  loadRestauranteDraftFromStorageForEditor,
   loadRestauranteDraftFromStorageResolved,
   resetRestauranteDraftInStorage,
   saveRestauranteDraftToStorageResolved,
@@ -64,7 +65,13 @@ function trimDraftStrings(d: RestauranteListingDraft): RestauranteListingDraft {
   };
 }
 
-export function useRestauranteDraft() {
+export type UseRestauranteDraftOptions = {
+  /** Preview/publish: inline all IDB blobs into data URLs. Form editor defaults false for speed. */
+  resolveMediaOnLoad?: boolean;
+};
+
+export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
+  const resolveMediaOnLoad = options.resolveMediaOnLoad ?? false;
   const [hydrated, setHydrated] = useState(false);
   const [draft, setDraft] = useState<RestauranteListingDraft>(() => createEmptyRestauranteDraft());
   const draftRef = useRef(draft);
@@ -73,14 +80,16 @@ export function useRestauranteDraft() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const loaded = await loadRestauranteDraftFromStorageResolved();
+      const loaded = resolveMediaOnLoad
+        ? await loadRestauranteDraftFromStorageResolved()
+        : loadRestauranteDraftFromStorageForEditor();
       if (!cancelled && loaded) setDraft(loaded);
       if (!cancelled) setHydrated(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [resolveMediaOnLoad]);
 
   const persist = useCallback((next: RestauranteListingDraft) => {
     void saveRestauranteDraftToStorageResolved(next);

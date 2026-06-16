@@ -14,6 +14,7 @@ import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortab
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import type { RestauranteDraftPatch } from "./useRestauranteDraft";
 import { isRestauranteDisplayableImageRef } from "./restauranteMediaDisplay";
+import { RestauranteMediaPreviewImg } from "./RestauranteMediaPreviewImg";
 import { RestauranteSortableMediaTile } from "./RestauranteSortableMediaTile";
 
 export type RestauranteBucketField = "interiorImages" | "foodImages" | "exteriorImages";
@@ -78,14 +79,15 @@ export function RestauranteBucketSortableGrid({ field, draft, setDraftPatch }: P
                   }
                 >
                   <div className="relative aspect-square w-full min-h-[88px] bg-[color:var(--lx-section)]">
-                    { }
-                    <img
+                    <RestauranteMediaPreviewImg
                       src={url}
+                      draftListingId={draft.draftListingId}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
-                      draggable={false}
                       loading="lazy"
                       decoding="async"
+                      width={160}
+                      height={160}
                     />
                     <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                       Aceptada

@@ -3,7 +3,10 @@
 import { useCallback, type ReactNode } from "react";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { isRestauranteDisplayableImageRef } from "./restauranteMediaDisplay";
-import { readRestauranteImageAsDataUrl } from "./compressRestauranteImage";
+import {
+  readRestauranteImageAsDataUrl,
+  RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS,
+} from "./compressRestauranteImage";
 import type { RestauranteDraftPatch } from "./useRestauranteDraft";
 import { RestauranteBucketSortableGrid } from "./RestauranteBucketSortableGrid";
 import { RestauranteUploadRow } from "./RestauranteUploadRow";
@@ -19,49 +22,37 @@ export function RestaurantePublishMediaBuckets({
   draft,
   onChange,
 }: RestaurantePublishMediaBucketsProps) {
+  const appendBucketImages = useCallback(
+    async (
+      field: "foodImages" | "interiorImages" | "exteriorImages",
+      files: FileList | null,
+    ) => {
+      if (!files || files.length === 0) return;
+      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      for (const f of imageFiles) {
+        const dataUrl = await readRestauranteImageAsDataUrl(f, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS);
+        if (!isRestauranteDisplayableImageRef(dataUrl)) continue;
+        onChange((prev) => {
+          const current = (prev[field] as string[] | undefined) ?? [];
+          if (current.length >= MAX_IMAGES_PER_BUCKET) return {};
+          return { [field]: [...current, dataUrl.trim()] } as Partial<RestauranteListingDraft>;
+        });
+      }
+    },
+    [onChange],
+  );
+
   const addFoodImages = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-
-      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      const processed = await Promise.all(imageFiles.map(async (f) => await readRestauranteImageAsDataUrl(f)));
-
-      const current = draft.foodImages ?? [];
-      onChange({
-        foodImages: [...current, ...processed].slice(0, MAX_IMAGES_PER_BUCKET),
-      });
-    },
-    [draft.foodImages, onChange],
+    (files: FileList | null) => void appendBucketImages("foodImages", files),
+    [appendBucketImages],
   );
-
   const addInteriorImages = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-
-      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      const processed = await Promise.all(imageFiles.map(async (f) => await readRestauranteImageAsDataUrl(f)));
-
-      const current = draft.interiorImages ?? [];
-      onChange({
-        interiorImages: [...current, ...processed].slice(0, MAX_IMAGES_PER_BUCKET),
-      });
-    },
-    [draft.interiorImages, onChange],
+    (files: FileList | null) => void appendBucketImages("interiorImages", files),
+    [appendBucketImages],
   );
-
   const addExteriorImages = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-
-      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      const processed = await Promise.all(imageFiles.map(async (f) => await readRestauranteImageAsDataUrl(f)));
-
-      const current = draft.exteriorImages ?? [];
-      onChange({
-        exteriorImages: [...current, ...processed].slice(0, MAX_IMAGES_PER_BUCKET),
-      });
-    },
-    [draft.exteriorImages, onChange],
+    (files: FileList | null) => void appendBucketImages("exteriorImages", files),
+    [appendBucketImages],
   );
 
   const foodCount = draft.foodImages?.length ?? 0;
@@ -89,7 +80,9 @@ export function RestaurantePublishMediaBuckets({
           />
         }
         emptyHint="Aún no hay fotos de comida."
-        sortable={<RestauranteBucketSortableGrid field="foodImages" draft={draft} setDraftPatch={onChange} />}
+        sortable={
+          <RestauranteBucketSortableGrid field="foodImages" draft={draft} setDraftPatch={onChange} />
+        }
         showEmptyHint={foodOk === 0}
       />
 
@@ -109,7 +102,9 @@ export function RestaurantePublishMediaBuckets({
           />
         }
         emptyHint="Aún no hay fotos del interior."
-        sortable={<RestauranteBucketSortableGrid field="interiorImages" draft={draft} setDraftPatch={onChange} />}
+        sortable={
+          <RestauranteBucketSortableGrid field="interiorImages" draft={draft} setDraftPatch={onChange} />
+        }
         showEmptyHint={interiorOk === 0}
       />
 
@@ -129,7 +124,9 @@ export function RestaurantePublishMediaBuckets({
           />
         }
         emptyHint="Aún no hay fotos del exterior."
-        sortable={<RestauranteBucketSortableGrid field="exteriorImages" draft={draft} setDraftPatch={onChange} />}
+        sortable={
+          <RestauranteBucketSortableGrid field="exteriorImages" draft={draft} setDraftPatch={onChange} />
+        }
         showEmptyHint={exteriorOk === 0}
       />
     </div>

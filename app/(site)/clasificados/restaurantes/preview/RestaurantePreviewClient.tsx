@@ -39,7 +39,7 @@ const EDIT_HREF = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();
-  const { hydrated, draft } = useRestauranteDraft();
+  const { hydrated, draft } = useRestauranteDraft({ resolveMediaOnLoad: true });
   const [pub, setPub] = useState<{
     busy: boolean;
     url?: string;

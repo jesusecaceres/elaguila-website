@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -25,7 +24,13 @@ import {
   satisfiesRestauranteServiceModes,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
-import { readRestauranteImageAsDataUrl } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
+import {
+  readRestauranteImageAsDataUrl,
+  readRestauranteImageAsDataUrlWithInstantPreview,
+  RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS,
+  RESTAURANTE_HERO_IMAGE_COMPRESSION_OPTS,
+} from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
+import { RestauranteMediaPreviewImg } from "@/app/clasificados/restaurantes/application/RestauranteMediaPreviewImg";
 import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
@@ -319,16 +324,18 @@ export default function RestauranteApplicationClient() {
   }, []);
 
   const [featuredUploading, setFeaturedUploading] = useState<Record<number, boolean>>({});
+  const [heroPreviewSrc, setHeroPreviewSrc] = useState<string | null>(null);
+  const [logoPreviewSrc, setLogoPreviewSrc] = useState<string | null>(null);
 
   const uploadFeaturedImage = useCallback(async (index: number, file: File) => {
     setFeaturedUploading((prev) => ({ ...prev, [index]: true }));
     setUploadLabels((p) => ({ ...p, [`featured-${index}`]: file.name }));
-    
+
     try {
-      const imageDataUrl = await readRestauranteImageAsDataUrl(file);
+      const imageDataUrl = await readRestauranteImageAsDataUrl(file, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS);
       patchFeatured(index, { image: imageDataUrl });
     } catch (error) {
-      console.error('Failed to upload featured image:', error);
+      console.error("Failed to upload featured image:", error);
       setUploadLabels((p) => {
         const n = { ...p };
         delete n[`featured-${index}`];
@@ -344,9 +351,13 @@ export default function RestauranteApplicationClient() {
   const uploadLogoImage = useCallback(async (file: File) => {
     setMediaUploading((prev) => ({ ...prev, logo: true }));
     setUploadLabels((p) => ({ ...p, logo: file.name }));
-    
+
     try {
-      const dataUrl = await readRestauranteImageAsDataUrl(file);
+      const dataUrl = await readRestauranteImageAsDataUrlWithInstantPreview(
+        file,
+        setLogoPreviewSrc,
+        RESTAURANTE_HERO_IMAGE_COMPRESSION_OPTS,
+      );
       if (dataUrl?.trim().startsWith("data:image")) {
         setDraftPatch({ businessLogo: dataUrl });
         setUploadLabels((p) => ({ ...p, logo: file.name }));
@@ -359,6 +370,7 @@ export default function RestauranteApplicationClient() {
         return n;
       });
     } finally {
+      setLogoPreviewSrc(null);
       setMediaUploading((prev) => ({ ...prev, logo: false }));
     }
   }, [setDraftPatch]);
@@ -366,21 +378,26 @@ export default function RestauranteApplicationClient() {
   const uploadHeroImage = useCallback(async (file: File) => {
     setMediaUploading((prev) => ({ ...prev, hero: true }));
     setUploadLabels((p) => ({ ...p, hero: file.name }));
-    
+
     try {
-      const dataUrl = await readRestauranteImageAsDataUrl(file);
+      const dataUrl = await readRestauranteImageAsDataUrlWithInstantPreview(
+        file,
+        setHeroPreviewSrc,
+        RESTAURANTE_HERO_IMAGE_COMPRESSION_OPTS,
+      );
       if (!dataUrl?.trim().startsWith("data:image")) {
-        throw new Error('Invalid image format');
+        throw new Error("Invalid image format");
       }
       setDraftPatch({ heroImage: dataUrl });
     } catch (error) {
-      console.error('Failed to upload hero image:', error);
+      console.error("Failed to upload hero image:", error);
       setUploadLabels((p) => {
         const n = { ...p };
         delete n.hero;
         return n;
       });
     } finally {
+      setHeroPreviewSrc(null);
       setMediaUploading((prev) => ({ ...prev, hero: false }));
     }
   }, [setDraftPatch]);
@@ -1390,7 +1407,16 @@ export default function RestauranteApplicationClient() {
                           <div className="absolute top-1 right-1 z-10 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
                             ✅ Lista
                           </div>
-                          <Image src={dish.image} alt="" fill className="object-cover" unoptimized />
+                          <RestauranteMediaPreviewImg
+                            src={dish.image}
+                            draftListingId={draft.draftListingId}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            width={320}
+                            height={180}
+                          />
                         </div>
                       ) : null}
                     </div>
@@ -1475,16 +1501,19 @@ export default function RestauranteApplicationClient() {
                   </div>
                 )}
               </div>
-              {draft.heroImage?.trim() ? (
+              {(heroPreviewSrc || draft.heroImage?.trim()) ? (
                 <>
                   <div className="relative mt-3 w-full max-w-md overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
                     <div className="relative aspect-[16/9] min-h-[120px] w-full">
-                      { }
-                      <img
-                        src={draft.heroImage}
+                      <RestauranteMediaPreviewImg
+                        src={heroPreviewSrc ?? draft.heroImage}
+                        draftListingId={draft.draftListingId}
                         alt=""
                         className="absolute inset-0 h-full w-full object-cover"
-                        draggable={false}
+                        loading="eager"
+                        decoding="async"
+                        width={640}
+                        height={360}
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 border-t border-[color:var(--lx-nav-border)] bg-white/80 px-3 py-2">
@@ -1523,12 +1552,17 @@ export default function RestauranteApplicationClient() {
                         const file = list?.[0];
                         if (!file) return;
                         try {
-                          const dataUrl = await readRestauranteImageAsDataUrl(file);
+                          const dataUrl = await readRestauranteImageAsDataUrlWithInstantPreview(
+                            file,
+                            setHeroPreviewSrc,
+                            RESTAURANTE_HERO_IMAGE_COMPRESSION_OPTS,
+                          );
                           if (dataUrl?.trim().startsWith("data:image")) {
                             setDraftPatch({ heroImage: dataUrl });
                             setUploadLabels((p) => ({ ...p, hero: file.name }));
                           }
                         } finally {
+                          setHeroPreviewSrc(null);
                           e.target.value = "";
                         }
                       })();
@@ -1592,15 +1626,19 @@ export default function RestauranteApplicationClient() {
                   </div>
                 )}
               </div>
-              {draft.businessLogo?.trim() ? (
+              {(logoPreviewSrc || draft.businessLogo?.trim()) ? (
                 <>
                   <div className="relative mt-3 w-32 h-32 overflow-hidden rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] shadow-sm">
                     <div className="relative aspect-[1/1] w-full h-full">
-                      <img
-                        src={draft.businessLogo}
+                      <RestauranteMediaPreviewImg
+                        src={logoPreviewSrc ?? draft.businessLogo}
+                        draftListingId={draft.draftListingId}
                         alt="Logo del negocio"
                         className="absolute inset-0 h-full w-full object-contain"
-                        draggable={false}
+                        loading="lazy"
+                        decoding="async"
+                        width={128}
+                        height={128}
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 border-t border-[color:var(--lx-nav-border)] bg-white/80 px-3 py-2">
@@ -1639,12 +1677,17 @@ export default function RestauranteApplicationClient() {
                         const file = list?.[0];
                         if (!file) return;
                         try {
-                          const dataUrl = await readRestauranteImageAsDataUrl(file);
+                          const dataUrl = await readRestauranteImageAsDataUrlWithInstantPreview(
+                            file,
+                            setLogoPreviewSrc,
+                            RESTAURANTE_HERO_IMAGE_COMPRESSION_OPTS,
+                          );
                           if (dataUrl?.trim().startsWith("data:image")) {
                             setDraftPatch({ businessLogo: dataUrl });
                             setUploadLabels((p) => ({ ...p, logo: file.name }));
                           }
                         } finally {
+                          setLogoPreviewSrc(null);
                           e.target.value = "";
                         }
                       })();
