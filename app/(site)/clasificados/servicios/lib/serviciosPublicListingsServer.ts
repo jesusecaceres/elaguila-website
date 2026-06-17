@@ -329,8 +329,10 @@ export type ServiciosAdminQueueFilters = {
  */
 export async function listServiciosPublicListingsAdminQueueFromDb(
   opts: ServiciosAdminQueueFilters = {},
-): Promise<{ rows: ServiciosPublicListingAdminDbRow[]; fullSchema: boolean; unavailable: boolean }> {
-  if (!isSupabaseAdminConfigured()) return { rows: [], fullSchema: true, unavailable: true };
+): Promise<{ rows: ServiciosPublicListingAdminDbRow[]; fullSchema: boolean; unavailable: boolean; readError?: string | null }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { rows: [], fullSchema: true, unavailable: true, readError: "Supabase admin not configured (service role)." };
+  }
   const limit = Math.min(Math.max(opts.limit ?? 500, 1), 800);
   const slug = opts.slug?.trim();
   const id = opts.id?.trim();
@@ -353,8 +355,10 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
       if (leonixParam) rowQuery = rowQuery.eq("leonix_ad_id", leonixParam);
       const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
       if (error) {
-        if (/column|does not exist|schema cache/i.test(error.message)) return { rows: [], fullSchema: false, unavailable: true };
-        return { rows: [], fullSchema: true, unavailable: true };
+        if (/column|does not exist|schema cache/i.test(error.message)) {
+          return { rows: [], fullSchema: false, unavailable: true, readError: "Column missing on servicios_public_listings." };
+        }
+        return { rows: [], fullSchema: true, unavailable: true, readError: "Service role read failed." };
       }
       const rows = (data ?? []) as ServiciosPublicListingAdminDbRow[];
       return { rows, fullSchema: true, unavailable: false };
@@ -421,7 +425,7 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
           .select("id, slug, business_name, city, published_at, leonix_verified")
           .order("published_at", { ascending: false })
           .limit(limit);
-        if (leg.error) return { rows: [], fullSchema: false, unavailable: true };
+        if (leg.error) return { rows: [], fullSchema: false, unavailable: true, readError: "Table servicios_public_listings missing or unreadable." };
         return {
           rows: (leg.data ?? []).map((r) => ({
             ...(r as ServiciosPublicListingAdminDbRow),
@@ -436,10 +440,10 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
           unavailable: false,
         };
       }
-      return { rows: [], fullSchema: true, unavailable: true };
+      return { rows: [], fullSchema: true, unavailable: true, readError: "Service role read failed." };
     }
     return { rows: (data ?? []) as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
   } catch {
-    return { rows: [], fullSchema: false, unavailable: true };
+    return { rows: [], fullSchema: false, unavailable: true, readError: "Service role read failed." };
   }
 }
