@@ -150,6 +150,15 @@ export function EnVentaHubPageClient({
     "inline-flex min-h-[48px] min-w-[44px] items-center justify-center rounded-full border border-white/80 bg-[#FFFCF7] px-6 text-[15px] font-semibold text-[#2C2416] " +
     "shadow-[0_8px_24px_-10px_rgba(42,36,22,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] transition hover:bg-white active:scale-[0.99]";
 
+  const mobileStickyGoldBtn =
+    "inline-flex min-h-[42px] min-w-[44px] flex-1 items-center justify-center rounded-full px-3 text-[14px] font-semibold text-[#1E1810] " +
+    "bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] shadow-[0_6px_18px_-8px_rgba(196,140,50,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] " +
+    "transition hover:brightness-[1.04] active:scale-[0.99]";
+
+  const mobileStickyIvoryBtn =
+    "inline-flex min-h-[42px] min-w-[44px] flex-1 items-center justify-center rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-[14px] font-semibold text-[#2C2416] " +
+    "shadow-[0_4px_14px_-8px_rgba(42,36,22,0.12)] transition hover:bg-white active:scale-[0.99]";
+
   const chipNeutral =
     "inline-flex min-h-[44px] max-w-full items-center justify-center text-balance rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 text-center text-[12px] font-semibold leading-snug text-[#2C2416] shadow-[0_2px_8px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3.5 sm:text-[13px]";
   const chipFeaturedCls =
@@ -192,7 +201,7 @@ export function EnVentaHubPageClient({
     { key: "featured", label: t.browseChipFeatured, href: hrefBrowseFeatured, featured: true },
   ];
 
-  const swipeHint = lang === "es" ? "Desliza →" : "Swipe →";
+  const swipeHint = lang === "es" ? "Desliza" : "Swipe";
 
   const enVentaSearchForm = (
     <div className="w-full min-w-0 space-y-2 text-left">
@@ -286,7 +295,7 @@ export function EnVentaHubPageClient({
         aria-hidden
       />
 
-      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-20 sm:pt-5 md:px-6 lg:px-10 lg:pt-6 xl:px-14">
+      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-20 sm:pt-5 md:px-6 lg:px-10 lg:pt-6 xl:px-14">
         <CategoryStandardLandingBlock
           category="en-venta"
           lang={lang}
@@ -398,12 +407,13 @@ export function EnVentaHubPageClient({
         </section>
 
         {/* Trust — horizontal strip on mobile */}
-        <section className="mt-6 sm:mt-8" aria-label={lang === "es" ? "Confianza y seguridad" : "Trust and safety"}>
-          <div className="rounded-[22px] border border-white/75 bg-[#FFFCF7]/90 px-3 py-4 shadow-[0_10px_36px_-16px_rgba(42,36,22,0.14)] sm:px-6 sm:py-6">
+        <section className="mt-5 sm:mt-8" aria-label={lang === "es" ? "Confianza y seguridad" : "Trust and safety"}>
+          <div className="rounded-[20px] border border-white/75 bg-[#FFFCF7]/90 px-3 py-3 shadow-[0_10px_36px_-16px_rgba(42,36,22,0.14)] sm:rounded-[22px] sm:px-6 sm:py-6">
             <EnVentaHubHorizontalScroll
               label={lang === "es" ? "Compra con confianza" : "Shop with confidence"}
               swipeHint={swipeHint}
               className="sm:hidden"
+              edgeFadeFromClass="from-[#FFFCF7]"
             >
               {[
                 { icon: TrustIconGift, title: t.trust1Title, sub: t.trust1Sub, warm: true },
@@ -456,8 +466,8 @@ export function EnVentaHubPageClient({
         </section>
 
         {/* Seller trust + publish CTA */}
-        <section className="mt-6 sm:mt-8">
-          <div className="rounded-[20px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-4 shadow-[0_6px_24px_-14px_rgba(47,74,101,0.12)] sm:px-5 sm:py-5">
+        <section className="mt-5 sm:mt-8">
+          <div className="rounded-[18px] border border-white/70 bg-[#FFFCF7]/92 px-4 py-3.5 shadow-[0_6px_24px_-14px_rgba(47,74,101,0.12)] sm:rounded-[20px] sm:px-5 sm:py-5">
             <p className="text-center text-[14px] leading-snug text-[#2C2416] sm:text-[15px] sm:leading-relaxed">{t.sellerTrust}</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -478,8 +488,8 @@ export function EnVentaHubPageClient({
         </section>
 
         {/* Bottom sell CTA */}
-        <section className="mt-6 sm:mt-8">
-          <div className="flex flex-col items-start justify-between gap-5 rounded-[24px] border border-white/75 bg-[#FFFCF7]/95 px-5 py-7 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-10">
+        <section className="mt-5 sm:mt-8">
+          <div className="flex flex-col items-start justify-between gap-4 rounded-[20px] border border-white/75 bg-[#FFFCF7]/95 px-4 py-5 shadow-[0_16px_48px_-20px_rgba(47,74,101,0.18)] sm:flex-row sm:items-center sm:gap-8 sm:rounded-[24px] sm:px-10 sm:py-10">
             <div className="min-w-0 max-w-xl flex-1">
               <h2 className="font-serif text-[1.15rem] font-bold text-[#1E1810] sm:text-2xl">{t.bottomSellTitle}</h2>
               <p className="mt-2 text-[13px] leading-relaxed text-[#3d556b] sm:text-base">{t.bottomSellSub}</p>
@@ -502,24 +512,18 @@ export function EnVentaHubPageClient({
         ) : null}
       </main>
 
-      {/* Mobile: persistent publish + browse — high visibility without duplicating full hero labels */}
+      {/* Mobile: compact publish + browse dock */}
       <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E8DFD0]/90 bg-[#FFFCF7]/96 shadow-[0_-10px_40px_-12px_rgba(42,36,22,0.18)] backdrop-blur-md md:hidden"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E8DFD0]/75 bg-[#FFFCF7]/94 shadow-[0_-4px_20px_-8px_rgba(42,36,22,0.14)] backdrop-blur-sm md:hidden"
+        style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom, 0px))" }}
         role="navigation"
         aria-label={lang === "es" ? "Acciones rápidas" : "Quick actions"}
       >
-        <div className="mx-auto flex max-w-[min(100%,90rem)] gap-2 px-3 py-2.5">
-          <Link
-            href={publishHref}
-            className={cx(goldBtn, "min-h-[48px] flex-1 justify-center px-4 text-[15px] font-semibold")}
-          >
+        <div className="mx-auto flex max-w-[min(100%,90rem)] gap-1.5 px-2.5 py-1.5">
+          <Link href={publishHref} className={mobileStickyGoldBtn}>
             {t.mobileStickyPublish}
           </Link>
-          <Link
-            href={allListingsHref}
-            className={cx(ivoryBtn, "min-h-[48px] flex-1 justify-center px-4 text-[15px] font-semibold")}
-          >
+          <Link href={allListingsHref} className={mobileStickyIvoryBtn}>
             {t.mobileStickyBrowse}
           </Link>
         </div>

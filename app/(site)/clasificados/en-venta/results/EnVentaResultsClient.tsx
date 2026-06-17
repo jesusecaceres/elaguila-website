@@ -658,7 +658,7 @@ export function EnVentaResultsClient() {
     [lang, sp]
   );
 
-  const swipeHint = lang === "es" ? "Desliza →" : "Swipe →";
+  const swipeHint = lang === "es" ? "Desliza" : "Swipe";
 
   const applyFiltersFromDrawer = () => {
     setFiltersPanelOpen(false);
