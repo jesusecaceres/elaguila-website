@@ -41,6 +41,7 @@ import {
   mergeDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
+import { EV_SELLER_DETAIL, evDetailClass } from "../enVentaSellerDetailTheme";
 
 type Plan = "free" | "pro";
 type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "status";
@@ -652,11 +653,11 @@ export default function ListingWorkspacePage() {
       type="button"
       key={k}
       onClick={() => setTab(k)}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm ${
+      className={
         tab === k
-          ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-          : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
-      }`}
+          ? evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.tabActive, "rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35")
+          : evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.tabInactive, "rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm text-[#5C5346] hover:bg-[#FFFCF7]/80")
+      }
     >
       {label}
     </button>
@@ -685,9 +686,11 @@ export default function ListingWorkspacePage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      sidebarTone={isEnVentaListing ? "varios" : "default"}
       rightPanel={
         <DashboardMobilePreview
           lang={lang}
+          variant={isEnVentaListing ? "varios" : "default"}
           title={previewTitle}
           priceLine={priceLine}
           city={cityLine}
@@ -718,112 +721,125 @@ export default function ListingWorkspacePage() {
         </div>
       ) : (
         <>
-          <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{row.title?.trim() || "—"}</h1>
+          <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 space-y-3">
+              {isEnVentaListing ? (
+                <p className={EV_SELLER_DETAIL.contextLabel}>
+                  {lang === "es" ? "Varios · Centro del vendedor" : "For Sale · Seller workspace"}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1
+                  className={evDetailClass(
+                    isEnVentaListing,
+                    EV_SELLER_DETAIL.title,
+                    "text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl",
+                  )}
+                >
+                  {row.title?.trim() || "—"}
+                </h1>
                 <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(uiStatus)}`}>
                   {listingUiStatusLabel(uiStatus, lang)}
                 </span>
               </div>
-              <p className="mt-2 font-mono text-[11px] text-[#7A7164]">
-                {t.listingRef}: {shortListingRef(row.id)}
-              </p>
-              {displayLeonixAdId ? (
-                <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
-                  {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {displayLeonixAdId}
-                </p>
-              ) : null}
-              {(row.category ?? "").trim() ? (
-                <p className="mt-1 text-[11px] text-[#7A7164]">
-                  {lang === "es" ? "Categoría" : "Category"}: {(row.category ?? "").trim()}
-                </p>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metaChip, "font-mono text-[11px] text-[#7A7164]")}>
+                  {t.listingRef}: {shortListingRef(row.id)}
+                </span>
+                {displayLeonixAdId ? (
+                  <span className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metaChip, "font-mono text-[11px] text-[#7A7164]")}>
+                    {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {displayLeonixAdId}
+                  </span>
+                ) : null}
+                {(row.category ?? "").trim() ? (
+                  <span className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.categoryChip, "text-[11px] text-[#7A7164]")}>
+                    {lang === "es" ? "Categoría" : "Category"}: {(row.category ?? "").trim()}
+                  </span>
+                ) : null}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href={publicListingHref} className="inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]">
+            <div className="flex shrink-0 flex-wrap gap-2.5 lg:pt-1">
+              <Link
+                href={publicListingHref}
+                className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.btnPrimary, "inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]")}
+              >
                 {t.publicLink} →
               </Link>
               <Link
                 href={`/dashboard/mis-anuncios/${row.id}/editar?${q}`}
-                className="inline-flex rounded-2xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2]"
+                className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.btnSecondary, "inline-flex rounded-2xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2]")}
               >
                 {t.editCta}
               </Link>
             </div>
           </header>
 
-          <div className="mt-6 flex flex-wrap gap-2 border-b border-[#E8DFD0]/80 pb-4">
+          <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.tabBar, "mt-6 flex flex-wrap gap-2 border-b border-[#E8DFD0]/80 pb-4")}>
             {visibleTabs.map(({ k, label }) => tabBtn(k, label))}
           </div>
 
           {tab === "overview" ? (
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.tabs.overview}</p>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{lang === "es" ? "Precio" : "Price"}</dt>
-                    <dd className="font-semibold text-[#1E1810]">{priceLine}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{lang === "es" ? "Ciudad" : "City"}</dt>
-                    <dd className="font-semibold text-[#1E1810]">{cityLine}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.created}</dt>
-                    <dd className="text-[#1E1810]">
-                      {row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.updated}</dt>
-                    <dd className="text-[#1E1810]">
-                      {row.updated_at ? new Date(row.updated_at).toLocaleString() : "—"}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.published}</dt>
-                    <dd className="text-[#1E1810]">
-                      {row.published_at ? new Date(row.published_at).toLocaleString() : "—"}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.listingExpires}</dt>
-                    <dd className="text-right text-[#1E1810]">
-                      {listingExpireIso ? new Date(listingExpireIso).toLocaleString() : "—"}
-                      {listingExpireChip ? (
-                        <span className="ml-2 inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900">
-                          {listingExpireChip}
-                        </span>
-                      ) : null}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.expires}</dt>
-                    <dd className="text-right text-[#1E1810]">
-                      {visibilityWindowEndIso ? new Date(visibilityWindowEndIso).toLocaleString() : "—"}
-                      {expireChip ? (
-                        <span className="ml-2 inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900">
-                          {expireChip}
-                        </span>
-                      ) : null}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.plan}</dt>
-                    <dd className="font-semibold uppercase text-[#1E1810]">{listingPlan}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[#5C5346]">{t.visibilityState}</dt>
-                    <dd className="text-[#1E1810]">
-                      {visibilityWindowActive ? (lang === "es" ? "Activo" : "Active") : lang === "es" ? "Sin ventana activa" : "No active window"}
-                    </dd>
-                  </div>
+              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
+                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
+                  {t.tabs.overview}
+                </p>
+                <dl className={evDetailClass(isEnVentaListing, "mt-5", "mt-4 space-y-3 text-sm")}>
+                  {[
+                    { label: lang === "es" ? "Precio" : "Price", value: priceLine, strong: true },
+                    { label: lang === "es" ? "Ciudad" : "City", value: cityLine, strong: true },
+                    { label: t.created, value: row.created_at ? new Date(row.created_at).toLocaleDateString() : "—" },
+                    { label: t.updated, value: row.updated_at ? new Date(row.updated_at).toLocaleString() : "—" },
+                    { label: t.published, value: row.published_at ? new Date(row.published_at).toLocaleString() : "—" },
+                    {
+                      label: t.listingExpires,
+                      value: listingExpireIso ? new Date(listingExpireIso).toLocaleString() : "—",
+                      chip: listingExpireChip,
+                    },
+                    {
+                      label: t.expires,
+                      value: visibilityWindowEndIso ? new Date(visibilityWindowEndIso).toLocaleString() : "—",
+                      chip: expireChip,
+                    },
+                    { label: t.plan, value: listingPlan, strong: true, upper: true },
+                    {
+                      label: t.visibilityState,
+                      value: visibilityWindowActive
+                        ? lang === "es"
+                          ? "Activo"
+                          : "Active"
+                        : lang === "es"
+                          ? "Sin ventana activa"
+                          : "No active window",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.dlRow, "flex justify-between gap-4")}
+                    >
+                      <dt className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.dlLabel, "text-[#5C5346]")}>{item.label}</dt>
+                      <dd
+                        className={evDetailClass(
+                          isEnVentaListing,
+                          EV_SELLER_DETAIL.dlValue,
+                          item.strong ? "font-semibold text-[#1E1810]" : "text-[#1E1810]",
+                        ) + (item.upper ? " uppercase" : "")}
+                      >
+                        {item.value}
+                        {item.chip ? (
+                          <span className="ml-2 inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900">
+                            {item.chip}
+                          </span>
+                        ) : null}
+                      </dd>
+                    </div>
+                  ))}
                 </dl>
               </div>
-              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 lg:hidden">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{lang === "es" ? "Vista previa" : "Preview"}</p>
+              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panelAccent, "rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 lg:hidden")}>
+                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
+                  {lang === "es" ? "Vista previa" : "Preview"}
+                </p>
                 <p className="mt-2 text-sm text-[#5C5346]/95">
                   {lang === "es" ? "En escritorio la vista móvil aparece a la derecha." : "On desktop, the mobile preview is on the right."}
                 </p>
@@ -833,8 +849,10 @@ export default function ListingWorkspacePage() {
 
           {tab === "analytics" ? (
             <div className="mt-6 space-y-6">
-              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.tabs.analytics}</p>
+              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
+                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
+                  {t.tabs.analytics}
+                </p>
                 <p className="mt-2 text-sm text-[#5C5346]/95">
                   {lang === "es"
                     ? "Cada métrica cuenta eventos reales guardados en analíticas para este anuncio (incluye el ID del anuncio y tu Leonix ad ID si aplica)."
@@ -848,11 +866,22 @@ export default function ListingWorkspacePage() {
                     {t.analyticsDegraded}
                   </p>
                 ) : null}
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {analyticsMetricCards.map((x) => (
-                    <div key={x.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{x.k}</p>
-                      <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{x.v}</p>
+                    <div
+                      key={x.k}
+                      className={evDetailClass(
+                        isEnVentaListing,
+                        EV_SELLER_DETAIL.metricCard,
+                        "rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4",
+                      )}
+                    >
+                      <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metricLabel, "text-[11px] font-bold uppercase tracking-wide text-[#7A7164]")}>
+                        {x.k}
+                      </p>
+                      <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metricValue, "mt-2 text-2xl font-bold tabular-nums text-[#1E1810]")}>
+                        {x.v}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -866,8 +895,8 @@ export default function ListingWorkspacePage() {
                   </p>
                 ) : null}
               </div>
-              <div className="rounded-3xl border border-[#C9B46A]/30 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">
+              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panelAccent, "rounded-3xl border border-[#C9B46A]/30 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6")}>
+                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#6B5B2E]")}>
                   {lang === "es" ? "Siguiente paso sugerido" : "Suggested next step"}
                 </p>
                 <p className="mt-2 text-sm text-[#3D3428]/95">
@@ -931,18 +960,25 @@ export default function ListingWorkspacePage() {
           ) : null}
 
           {tab === "edit" ? (
-            <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
+            <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
               <p className="text-sm text-[#3D3428]/95">{t.editHint}</p>
               <Link
                 href={`/dashboard/mis-anuncios/${row.id}/editar?${q}`}
-                className="mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2]"
+                className={evDetailClass(isEnVentaListing, `${EV_SELLER_DETAIL.btnPrimary} mt-4`, "mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2]")}
               >
                 {t.editCta} →
               </Link>
               {thumbUrl ? (
                 <div className="mt-6">
-                  { }
-                  <img src={thumbUrl} alt="" className="h-40 w-full max-w-sm rounded-2xl border border-[#E8DFD0] object-cover" />
+                  <img
+                    src={thumbUrl}
+                    alt=""
+                    className={evDetailClass(
+                      isEnVentaListing,
+                      "h-40 w-full max-w-sm rounded-xl border border-[#D6C7AD]/70 object-cover ring-1 ring-[#C9A84A]/10",
+                      "h-40 w-full max-w-sm rounded-2xl border border-[#E8DFD0] object-cover",
+                    )}
+                  />
                 </div>
               ) : null}
             </div>
@@ -950,12 +986,12 @@ export default function ListingWorkspacePage() {
 
           {tab === "promotion" ? (
             isEnVentaListing ? (
-              <div className="mt-6 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">{t.tabs.visibility}</p>
-                <p className="mt-2 text-sm text-[#3D3428]/95">{t.visibilityHint}</p>
+              <div className={`mt-6 ${EV_SELLER_DETAIL.panelAccent}`}>
+                <p className={EV_SELLER_DETAIL.sectionLabel}>{t.tabs.visibility}</p>
+                <p className="mt-3 text-sm leading-relaxed text-[#3D3428]/95">{t.visibilityHint}</p>
                 <p className="mt-3 text-[11px] leading-relaxed text-[#5C5346]/95">{t.refreshHelper}</p>
                 {listingPlan === "pro" && enVentaVisibilityVm ? (
-                  <p className="mt-3 text-sm text-[#3D3428]">
+                  <p className="mt-4 text-sm font-medium text-[#3D3428]">
                     {enVentaVisibilityVm.republishWindowActive && visibilityWindowEndIso
                       ? `${t.visibilityWindowActive} ${new Date(visibilityWindowEndIso).toLocaleString(lang === "es" ? "es-MX" : "en-US")}`
                       : t.visibilityWindowInactive}
@@ -980,14 +1016,12 @@ export default function ListingWorkspacePage() {
                     type="button"
                     disabled={busy}
                     onClick={() => void refreshEnVentaListing()}
-                    className="mt-4 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md disabled:opacity-50"
+                    className={EV_SELLER_DETAIL.refreshBtn}
                   >
                     {t.refreshAd}
                   </button>
                 ) : (
-                  <p className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#5C5346]">
-                    {enVentaRefreshBlockedReason ?? t.refreshNotReady}
-                  </p>
+                  <p className={EV_SELLER_DETAIL.helperBox}>{enVentaRefreshBlockedReason ?? t.refreshNotReady}</p>
                 )}
               </div>
             ) : (
@@ -1003,17 +1037,23 @@ export default function ListingWorkspacePage() {
           ) : null}
 
           {tab === "status" ? (
-            <div className="mt-6 space-y-6">
-              <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.modNote}</p>
+            <div className="mt-6 space-y-5">
+              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
+                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
+                  {t.modNote}
+                </p>
                 <p className="mt-2 text-sm text-[#5C5346]/95">{t.modPlaceholder}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleWrap, "")}>
+                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "mb-3 text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
+                  {t.tabs.status}
+                </p>
+                <div className="flex flex-wrap gap-2.5">
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void markStatus("sold")}
-                  className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                  className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtn, "rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50")}
                 >
                   {t.markSold}
                 </button>
@@ -1021,7 +1061,7 @@ export default function ListingWorkspacePage() {
                   type="button"
                   disabled={busy}
                   onClick={() => void markStatus("active")}
-                  className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] disabled:opacity-50"
+                  className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnPrimary, "rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] disabled:opacity-50")}
                 >
                   {t.reactivate}
                 </button>
@@ -1029,7 +1069,7 @@ export default function ListingWorkspacePage() {
                   type="button"
                   disabled={busy || String(row?.status ?? "").toLowerCase() === "removed"}
                   onClick={() => void archiveListing()}
-                  className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                  className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnMuted, "rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold disabled:opacity-50")}
                 >
                   {t.archive}
                 </button>
@@ -1038,7 +1078,7 @@ export default function ListingWorkspacePage() {
                     type="button"
                     disabled={busy}
                     onClick={() => void pauseListing()}
-                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
+                    className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnWarn, "rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50")}
                   >
                     {t.pauseAd}
                   </button>
@@ -1048,16 +1088,20 @@ export default function ListingWorkspacePage() {
                     type="button"
                     disabled={busy}
                     onClick={() => void resumeListing()}
-                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
+                    className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnPrimary, "rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50")}
                   >
                     {t.resumeAd}
                   </button>
                 ) : null}
+                </div>
               </div>
             </div>
           ) : null}
 
-          <Link href={`/dashboard/mis-anuncios?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
+          <Link
+            href={`/dashboard/mis-anuncios?${q}`}
+            className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.backLink, "mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline")}
+          >
             ← {t.back}
           </Link>
         </>

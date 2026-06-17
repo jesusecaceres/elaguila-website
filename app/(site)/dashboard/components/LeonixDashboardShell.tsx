@@ -55,6 +55,8 @@ export function LeonixDashboardShell({
   accountType,
   children,
   rightPanel,
+  /** Optional Leonix Varios accent for seller listing workspace (detail page only). */
+  sidebarTone = "default",
 }: {
   lang: Lang;
   activeNav: ActiveNav;
@@ -68,6 +70,7 @@ export function LeonixDashboardShell({
   accountType?: string | null;
   children: ReactNode;
   rightPanel?: ReactNode;
+  sidebarTone?: "default" | "varios";
 }) {
   const router = useRouter();
   const [navCounts, setNavCounts] = useState<{ messages: number | null; drafts: number | null; expiring: number | null }>({
@@ -157,6 +160,7 @@ export function LeonixDashboardShell({
   // present profile membership as an account-wide ad/listing capability. Listing plans live on rows.
   void plan;
   const q = `lang=${lang}`;
+  const varioSidebar = sidebarTone === "varios";
 
   const signOut = useCallback(async () => {
     try {
@@ -188,8 +192,12 @@ export function LeonixDashboardShell({
       className={cx(
         "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
         activeNav === key
-          ? "bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.80)] ring-1 ring-[color:var(--lx-border)]/40"
-          : "text-[color:var(--lx-text-2)]/90 hover:bg-[color:var(--lx-card)]"
+          ? varioSidebar
+            ? "bg-[#FBF7EF] text-[#1F241C] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9A84A]/35"
+            : "bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.80)] ring-1 ring-[color:var(--lx-border)]/40"
+          : varioSidebar
+            ? "text-[#5C5346] hover:bg-[#FBF7EF]/80"
+            : "text-[color:var(--lx-text-2)]/90 hover:bg-[color:var(--lx-card)]",
       )}
     >
       <span className="min-w-0 flex-1 leading-snug">{label}</span>
@@ -227,7 +235,14 @@ export function LeonixDashboardShell({
               : "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]"
           )}
         >
-          <aside className="h-fit rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/90 p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-5">
+          <aside
+            className={cx(
+              "h-fit rounded-3xl p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-5",
+              varioSidebar
+                ? "border border-[#D6C7AD]/85 bg-[#FFFDF7]/95 ring-1 ring-[#C9A84A]/10"
+                : "border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/90",
+            )}
+          >
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.accountStatus}</span>
               <span className="rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-muted)]">
@@ -275,10 +290,15 @@ export function LeonixDashboardShell({
             <Link
               href={`/clasificados/publicar?${q}`}
               className={cx(
-                "mt-6 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)]",
-                "bg-[color:var(--lx-cta-primary-bg)]",
-                "shadow-[0_8px_28px_-4px_rgba(201,120,47,0.30)]",
-                "transition hover:opacity-90 active:scale-[0.99]"
+                "mt-6 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99]",
+                varioSidebar
+                  ? "border border-[#7A1E2C]/15 bg-[#7A1E2C] text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
+                  : cx(
+                      "text-[color:var(--lx-cta-primary-fg)]",
+                      "bg-[color:var(--lx-cta-primary-bg)]",
+                      "shadow-[0_8px_28px_-4px_rgba(201,120,47,0.30)]",
+                      "hover:opacity-90",
+                    ),
               )}
             >
               {L.publish}
