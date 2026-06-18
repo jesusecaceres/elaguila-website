@@ -167,7 +167,7 @@ export async function handleOfertaLocalScanPost(
   const now = new Date().toISOString();
 
   const tableProbe = await supabase.from("oferta_local_scan_jobs").select("id").limit(1);
-  if (tableProbe.error && isSupabaseSchemaCacheMissingTableError(tableProbe.error.message)) {
+  if (tableProbe.error && isSupabaseSchemaCacheMissingTableError(tableProbe.error.message, tableProbe.error.code)) {
     return NextResponse.json<OfertaLocalScanApiResponse>(
       {
         ok: false,
@@ -189,7 +189,7 @@ export async function handleOfertaLocalScanPost(
     .maybeSingle();
 
   if (parentError) {
-    if (isSupabaseSchemaCacheMissingTableError(parentError.message)) {
+    if (isSupabaseSchemaCacheMissingTableError(parentError.message, parentError.code)) {
       return NextResponse.json<OfertaLocalScanApiResponse>(
         {
           ok: false,
@@ -292,7 +292,7 @@ export async function handleOfertaLocalScanPost(
     .single();
 
   if (scanInsertError || !scanJob) {
-    if (isSupabaseSchemaCacheMissingTableError(scanInsertError?.message)) {
+    if (isSupabaseSchemaCacheMissingTableError(scanInsertError?.message, scanInsertError?.code)) {
       return NextResponse.json<OfertaLocalScanApiResponse>(
         {
           ok: false,

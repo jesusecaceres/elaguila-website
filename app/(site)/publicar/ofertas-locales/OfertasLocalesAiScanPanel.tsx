@@ -62,6 +62,7 @@ export function OfertasLocalesAiScanPanel({
   const [serverConfigurationMissing, setServerConfigurationMissing] = useState(false);
   const [scanStatus, setScanStatus] = useState<OfertaLocalAiScanReadinessStatus>("not_ready");
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [scanPhase, setScanPhase] = useState<"idle" | "prep" | "scan">("idle");
   const [scanningAssetId, setScanningAssetId] = useState<string | null>(null);
   const [lastCompletedMessage, setLastCompletedMessage] = useState<string | null>(null);
 
@@ -76,7 +77,9 @@ export function OfertasLocalesAiScanPanel({
     [draft, ofertaLocalId, lang, serverConfigurationMissing, signedIn]
   );
 
-  const scanning = scanningAssetId !== null;
+  const scanning = scanPhase !== "idle";
+
+  const prepLabel = lang === "en" ? "Preparing scan..." : "Preparando escaneo...";
 
   const displayStatus: OfertaLocalAiScanReadinessStatus = scanning
     ? "processing"
@@ -95,30 +98,47 @@ export function OfertasLocalesAiScanPanel({
       if (!readiness.ready || scanning) return;
 
       setScanningAssetId(asset.assetId);
+      setScanPhase("prep");
       setScanMessage(null);
+      setLastCompletedMessage(null);
+      setServerConfigurationMissing(false);
       setScanStatus("processing");
 
       let recordId = ofertaLocalId?.trim() || null;
       if (!recordId) {
+        setScanMessage(prepLabel);
         const persist = await ensureOfertaLocalRecordForAiScan(draft, null);
         if (!persist.ok) {
           setScanningAssetId(null);
+          setScanPhase("idle");
           setScanStatus("failed");
           const issueText = persist.issues?.map((i) => i.message).join(" ") ?? persist.detail;
-          setScanMessage(issueText ?? c.aiScanFailed);
+          setScanMessage(
+            [issueText, persist.code ? `(${persist.code})` : null].filter(Boolean).join(" ") ||
+              c.aiScanFailed
+          );
           return;
         }
         recordId = persist.id;
         onOfertaLocalIdChange?.(recordId);
       } else {
+        setScanMessage(prepLabel);
         const persist = await ensureOfertaLocalRecordForAiScan(draft, recordId);
         if (!persist.ok) {
           setScanningAssetId(null);
+          setScanPhase("idle");
           setScanStatus("failed");
-          setScanMessage(persist.detail ?? persist.error ?? c.aiScanFailed);
+          setScanMessage(
+            [persist.detail ?? persist.error, persist.code ? `(${persist.code})` : null]
+              .filter(Boolean)
+              .join(" ") || c.aiScanFailed
+          );
           return;
         }
       }
+
+      setScanPhase("scan");
+      setScanMessage(c.aiScanProcessing);
 
       const result = await submitOfertaLocalAiScan({
         ofertaLocalId: recordId,
@@ -130,6 +150,7 @@ export function OfertasLocalesAiScanPanel({
       });
 
       setScanningAssetId(null);
+      setScanPhase("idle");
 
       if (result.configurationMissing) {
         setServerConfigurationMissing(true);
@@ -154,7 +175,7 @@ export function OfertasLocalesAiScanPanel({
       );
       if (result.scanJobId) onScanComplete?.(result.scanJobId);
     },
-    [readiness.ready, scanning, ofertaLocalId, draft, c, lang, onScanComplete, onOfertaLocalIdChange]
+    [readiness.ready, scanning, ofertaLocalId, draft, c, lang, onScanComplete, onOfertaLocalIdChange, prepLabel]
   );
 
   if (!draft.wantsAiSearchableSpecials) return null;
@@ -200,7 +221,11 @@ export function OfertasLocalesAiScanPanel({
                     disabled={!readiness.ready || scanning}
                     onClick={() => void handleScanAsset(asset)}
                   >
-                    {isThisScanning ? c.aiScanProcessing : c.aiScanButton}
+                    {isThisScanning
+                      ? scanPhase === "prep"
+                        ? prepLabel
+                        : c.aiScanProcessing
+                      : c.aiScanButton}
                   </button>
                 </li>
               );
@@ -233,7 +258,7 @@ export function OfertasLocalesAiScanPanel({
           disabled={!readiness.ready || scanning}
           onClick={() => void handleScanAsset(sortedAssets[0])}
         >
-          {scanning ? c.aiScanProcessing : c.aiScanButton}
+          {scanning ? (scanPhase === "prep" ? prepLabel : c.aiScanProcessing) : c.aiScanButton}
         </button>
       ) : null}
     </div>

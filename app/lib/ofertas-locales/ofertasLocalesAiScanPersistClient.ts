@@ -9,6 +9,7 @@ export type OfertaLocalAiScanPersistResult =
       ok: false;
       error: string;
       detail?: string;
+      code?: string | null;
       issues?: { field: string; message: string }[];
     };
 
@@ -55,11 +56,15 @@ export async function ensureOfertaLocalRecordForAiScan(
       body && typeof body === "object" && "detail" in body
         ? String((body as { detail?: string }).detail)
         : undefined;
+    const code =
+      body && typeof body === "object" && "code" in body
+        ? (body as { code?: string | null }).code ?? null
+        : null;
     const issues =
       body && typeof body === "object" && Array.isArray((body as { issues?: unknown }).issues)
         ? ((body as { issues: { field: string; message: string }[] }).issues ?? undefined)
         : undefined;
-    return { ok: false, error: err, detail, issues };
+    return { ok: false, error: err, detail, code, issues };
   }
 
   const parsed = body as { ok?: boolean; id?: string; status?: string; created?: boolean };

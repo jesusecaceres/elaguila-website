@@ -1,15 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getBearerUserId } from "@/app/api/_lib/bearerUser";
-import {
-  mapOfertaLocalDraftToScanPrepUpdatePayload,
-  validateOfertaLocalDraftForAiScanPersist,
-} from "@/app/lib/ofertas-locales/ofertasLocalesAiScanPersist";
-import { mapOfertaLocalDraftToInsertPayload } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
+import { validateOfertaLocalDraftForAiScanPersist } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanPersist";
 import { OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 import {
+  buildOfertasLocalesScanPrepInsertRow,
+  buildOfertasLocalesScanPrepUpdateRow,
+  OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS,
+  pickScanPrepSubmittedAt,
+  sanitizeSupabaseWriteError,
+} from "@/app/lib/ofertas-locales/ofertasLocalesProductionRowAdapter";
+import {
+  isSupabaseMissingColumnError,
   isSupabaseSchemaCacheMissingTableError,
-  ofertasLocalesAiSchemaMissingDetail,
+  OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
+  parseSupabaseProjectRefFromUrl,
+  probeOfertasLocalesAiTables,
+  schemaProbeFailureResponse,
 } from "@/app/lib/ofertas-locales/ofertasLocalesSupabaseSchema";
 import type { OfertaLocalDraft, OfertaLocalPublishStatus } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -37,9 +44,25 @@ function detectHeavyMedia(value: unknown): boolean {
   return false;
 }
 
-function schemaMissingResponse(table: string) {
-  const detail = ofertasLocalesAiSchemaMissingDetail(table);
-  return NextResponse.json({ ok: false, error: "schema_not_applied", detail }, { status: 503 });
+function writeFailure(
+  action: "scan_prep_insert_failed" | "scan_prep_update_failed",
+  error: { message?: string; code?: string; hint?: string; details?: string },
+  supabaseUrl: string | undefined
+) {
+  const sanitized = sanitizeSupabaseWriteError(error);
+  return NextResponse.json(
+    {
+      ok: false,
+      error: action,
+      detail: sanitized.message,
+      code: sanitized.code,
+      hint: sanitized.hint,
+      columnMismatch: isSupabaseMissingColumnError(sanitized.message, sanitized.code),
+      supabaseProjectRef: parseSupabaseProjectRefFromUrl(supabaseUrl),
+      routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
+    },
+    { status: 500 }
+  );
 }
 
 /**
@@ -52,12 +75,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json(
       {
         ok: false,
         error: "supabase_admin_unconfigured",
         detail: "Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+        hasSupabaseUrl: Boolean(supabaseUrl),
+        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
       },
       { status: 503 }
     );
@@ -111,9 +139,17 @@ export async function POST(req: NextRequest) {
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
-  const tableProbe = await supabase.from("ofertas_locales").select("id").limit(1);
-  if (tableProbe.error && isSupabaseSchemaCacheMissingTableError(tableProbe.error.message)) {
-    return schemaMissingResponse("ofertas_locales");
+  const tableProbe = await probeOfertasLocalesAiTables(supabase);
+  if (!tableProbe.ok) {
+    const failure = schemaProbeFailureResponse(tableProbe, supabaseUrl);
+    return NextResponse.json(
+      {
+        ok: false,
+        ...failure,
+        routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
+      },
+      { status: 503 }
+    );
   }
 
   if (existingId) {
@@ -123,10 +159,39 @@ export async function POST(req: NextRequest) {
       .eq("id", existingId)
       .maybeSingle();
 
-    if (fetchError && isSupabaseSchemaCacheMissingTableError(fetchError.message)) {
-      return schemaMissingResponse("ofertas_locales");
+    if (fetchError) {
+      if (isSupabaseSchemaCacheMissingTableError(fetchError.message, fetchError.code)) {
+        const failure = schemaProbeFailureResponse(
+          {
+            ok: false,
+            tables: [
+              {
+                table: "ofertas_locales",
+                ok: false,
+                code: fetchError.code ?? null,
+                message: fetchError.message ?? null,
+                hint: fetchError.hint ?? null,
+              },
+            ],
+            failedTables: ["ofertas_locales"],
+          },
+          supabaseUrl
+        );
+        return NextResponse.json({ ok: false, ...failure, routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION }, { status: 503 });
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "scan_prep_lookup_failed",
+          detail: fetchError.message,
+          code: fetchError.code ?? null,
+          routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
+        },
+        { status: 500 }
+      );
     }
-    if (fetchError || !existing) {
+
+    if (!existing) {
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
     }
 
@@ -139,23 +204,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "edit_not_allowed" }, { status: 403 });
     }
 
-    const updatePayload = mapOfertaLocalDraftToScanPrepUpdatePayload(draft, ownerId);
+    const updatePayload = buildOfertasLocalesScanPrepUpdateRow(draft, ownerId);
     const { data, error } = await supabase
       .from("ofertas_locales")
       .update(updatePayload)
       .eq("id", existingId)
       .eq("owner_id", ownerId)
-      .select("id, status")
+      .select(OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS)
       .single();
 
     if (error || !data) {
-      if (isSupabaseSchemaCacheMissingTableError(error?.message)) {
-        return schemaMissingResponse("ofertas_locales");
+      if (isSupabaseSchemaCacheMissingTableError(error?.message, error?.code)) {
+        const failure = schemaProbeFailureResponse(
+          {
+            ok: false,
+            tables: [
+              {
+                table: "ofertas_locales",
+                ok: false,
+                code: error?.code ?? null,
+                message: error?.message ?? null,
+                hint: error?.hint ?? null,
+              },
+            ],
+            failedTables: ["ofertas_locales"],
+          },
+          supabaseUrl
+        );
+        return NextResponse.json({ ok: false, ...failure, routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION }, { status: 503 });
       }
-      return NextResponse.json(
-        { ok: false, error: "update_failed", detail: error?.message ?? "unknown" },
-        { status: 500 }
-      );
+      return writeFailure("scan_prep_update_failed", error ?? { message: "unknown" }, supabaseUrl);
     }
 
     return NextResponse.json({
@@ -164,27 +242,39 @@ export async function POST(req: NextRequest) {
       status: data.status,
       created: false,
       updatedAt: now,
+      submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
+      routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
     });
   }
 
-  const row = mapOfertaLocalDraftToInsertPayload(draft, ownerId);
+  const row = buildOfertasLocalesScanPrepInsertRow(draft, ownerId);
   const { data, error } = await supabase
     .from("ofertas_locales")
-    .insert({
-      ...row,
-      updated_at: now,
-    })
-    .select("id, status, submitted_at")
+    .insert(row)
+    .select(OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS)
     .single();
 
   if (error || !data) {
-    if (isSupabaseSchemaCacheMissingTableError(error?.message)) {
-      return schemaMissingResponse("ofertas_locales");
+    if (isSupabaseSchemaCacheMissingTableError(error?.message, error?.code)) {
+      const failure = schemaProbeFailureResponse(
+        {
+          ok: false,
+          tables: [
+            {
+              table: "ofertas_locales",
+              ok: false,
+              code: error?.code ?? null,
+              message: error?.message ?? null,
+              hint: error?.hint ?? null,
+            },
+          ],
+          failedTables: ["ofertas_locales"],
+        },
+        supabaseUrl
+      );
+      return NextResponse.json({ ok: false, ...failure, routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION }, { status: 503 });
     }
-    return NextResponse.json(
-      { ok: false, error: "insert_failed", detail: error?.message ?? "unknown" },
-      { status: 500 }
-    );
+    return writeFailure("scan_prep_insert_failed", error ?? { message: "unknown" }, supabaseUrl);
   }
 
   return NextResponse.json({
@@ -192,6 +282,7 @@ export async function POST(req: NextRequest) {
     id: data.id,
     status: data.status,
     created: true,
-    submittedAt: data.submitted_at ?? now,
+    submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
+    routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
   });
 }
