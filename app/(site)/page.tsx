@@ -1,35 +1,39 @@
 "use client";
 
-import React from "react";
+import { Suspense } from "react";
 import { motion } from "framer-motion";
+import { RootIntroLanguagePanel } from "@/app/components/RootIntroLanguagePanel";
+
+function RootIntroPanelFallback() {
+  return (
+    <div
+      className="absolute inset-x-0 bottom-[6%] z-20 flex justify-center px-4 sm:bottom-[8%]"
+      aria-hidden
+    >
+      <div className="h-[10.5rem] w-full max-w-md rounded-2xl border border-[#C9A84A]/25 bg-black/40" />
+    </div>
+  );
+}
 
 export default function Home() {
-  const handleClick = (lang: string) => {
-    setTimeout(() => {
-      window.location.href = `/home?lang=${lang}`;
-    }, 250);
-  };
-
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black text-white">
-      {/* CINEMATIC BACKGROUND */}
+    <main className="relative h-screen w-screen overflow-hidden bg-black text-white">
       <motion.img
         src="/cinema-flags-final-v2.png"
         alt="Cinematic Flags Background"
         initial={{ scale: 1.15 }}
         animate={{ scale: 1 }}
         transition={{ duration: 8, ease: "easeInOut" }}
-        className="absolute inset-0 w-full h-full object-cover z-0"
+        className="absolute inset-0 z-0 h-full w-full object-cover"
       />
 
-      {/* LOGO */}
       <motion.img
         src="/logo-layer-new.png"
         alt="Leonix Media logo"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1.5, y: 0 }}
         transition={{ delay: 1, duration: 1.8, ease: "easeOut" }}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[58%] z-10"
+        className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-[58%]"
         style={{
           width: "clamp(420px, 65vmin, 1300px)",
           height: "auto",
@@ -37,80 +41,15 @@ export default function Home() {
         }}
       />
 
-      {/* BUTTONS */}
       <motion.div
-        className="absolute left-1/2 bottom-[10%] flex gap-12 -translate-x-1/2 z-20"
+        className="absolute inset-x-0 bottom-0 z-20"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.6, duration: 1.2, ease: "easeOut" }}
       >
-        {/* Spanish Button */}
-        <motion.button
-          whileHover={{
-            scale: 1.06,
-            boxShadow: "0 0 70px rgba(255,215,0,1)",
-          }}
-          transition={{ type: "spring", stiffness: 150, damping: 12 }}
-          onClick={() => handleClick("es")}
-          className="relative text-black font-serif font-bold
-                     px-16 py-6
-                     text-[2.2vmin]
-                     rounded-xl overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, #FFD700 0%, #FFC107 40%, #B8860B 100%)",
-            border: "2px solid #C99700",
-            filter:
-              "drop-shadow(0 0 32px rgba(255,215,0,0.6)) drop-shadow(0 0 16px rgba(255,215,0,0.4))",
-            clipPath:
-              "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)",
-            boxShadow:
-              "inset 0 4px 8px rgba(255,255,255,0.3), inset 0 -4px 8px rgba(0,0,0,0.5)",
-          }}
-        >
-          <span
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 hover:opacity-70 animate-pulse"
-            style={{
-              mixBlendMode: "overlay",
-              transition: "opacity 0.5s ease-in-out",
-            }}
-          ></span>
-          <span className="relative z-10">Bienvenidos — Entre</span>
-        </motion.button>
-
-        {/* English Button */}
-        <motion.button
-          whileHover={{
-            scale: 1.06,
-            boxShadow: "0 0 70px rgba(255,215,0,1)",
-          }}
-          transition={{ type: "spring", stiffness: 150, damping: 12 }}
-          onClick={() => handleClick("en")}
-          className="relative text-black font-serif font-bold
-                     px-16 py-6
-                     text-[2.2vmin]
-                     rounded-xl overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, #FFD700 0%, #FFC107 40%, #B8860B 100%)",
-            border: "2px solid #C99700",
-            filter:
-              "drop-shadow(0 0 32px rgba(255,215,0,0.6)) drop-shadow(0 0 16px rgba(255,215,0,0.4))",
-            clipPath:
-              "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)",
-            boxShadow:
-              "inset 0 4px 8px rgba(255,255,255,0.3), inset 0 -4px 8px rgba(0,0,0,0.5)",
-          }}
-        >
-          <span
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 hover:opacity-70 animate-pulse"
-            style={{
-              mixBlendMode: "overlay",
-              transition: "opacity 0.5s ease-in-out",
-            }}
-          ></span>
-          <span className="relative z-10">Welcome — Enter</span>
-        </motion.button>
+        <Suspense fallback={<RootIntroPanelFallback />}>
+          <RootIntroLanguagePanel />
+        </Suspense>
       </motion.div>
     </main>
   );
