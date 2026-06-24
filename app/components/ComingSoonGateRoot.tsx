@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import { hasPreviewBypassCookie } from "@/app/lib/launchLock/previewBypass";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 
 import { ComingSoonGate } from "./ComingSoonGate";
@@ -7,8 +8,8 @@ import { ComingSoonGate } from "./ComingSoonGate";
 const COMING_SOON_LOCKED = process.env.NEXT_PUBLIC_COMING_SOON_LOCK === "true";
 
 /**
- * Public lock overlay — skipped when `leonix_admin` cookie is set so authorized
- * staff can preview locked pages (STAFF-ADMIN-01). Anonymous visitors stay gated.
+ * Public lock overlay — skipped when `leonix_admin` or `leonix_preview_access` cookie
+ * is set so authorized staff/owner can preview locked pages. Anonymous visitors stay gated.
  */
 export async function ComingSoonGateRoot({ children }: { children: React.ReactNode }) {
   if (!COMING_SOON_LOCKED) {
@@ -16,7 +17,7 @@ export async function ComingSoonGateRoot({ children }: { children: React.ReactNo
   }
 
   const cookieStore = await cookies();
-  if (requireAdminCookie(cookieStore)) {
+  if (requireAdminCookie(cookieStore) || hasPreviewBypassCookie(cookieStore)) {
     return <>{children}</>;
   }
 

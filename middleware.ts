@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ADMIN_UI_LANG_COOKIE } from "@/app/admin/_lib/adminI18nCookie";
+import { hasPreviewBypassCookie } from "@/app/lib/launchLock/previewBypass";
 import {
   isAllowedPublicLaunchPath,
   isBypassPath,
@@ -73,6 +74,10 @@ export function middleware(req: NextRequest) {
   }
 
   if (req.cookies.get(ADMIN_COOKIE)?.value === "1") {
+    return NextResponse.next();
+  }
+
+  if (hasPreviewBypassCookie(req.cookies)) {
     return NextResponse.next();
   }
 
