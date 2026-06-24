@@ -9,6 +9,7 @@ import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificado
 import {
   additionalInventoryVehicleTitle,
   computeInventoryVehicleStatus,
+  findSavedAdditionalInventoryVehicle,
   inventoryVehicleCoverUrl,
   inventoryVehiclePhotoCount,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
@@ -32,7 +33,10 @@ import {
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { AutosNegociosAddInventoryDrawer } from "./AutosNegociosAddInventoryDrawer";
 import { AutosNegociosChildInventoryPreviewOverlay } from "./AutosNegociosChildInventoryPreviewOverlay";
-import { writeAutosNegociosEditorReturnContext } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
+import {
+  clearAutosNegociosEditorReturnContext,
+  writeAutosNegociosEditorReturnContext,
+} from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
 function formatPrice(n?: number): string | null {
@@ -169,11 +173,9 @@ export function AutosNegociosInventoryBundlePreview({
   onEditParentDealerStep?: () => void;
 }) {
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const editOpen = drawerOpen && Boolean(drawerEditingId);
-  const editingVehicle = drawerEditingId
-    ? (additionalVehicles.find((v) => v.id === drawerEditingId) ?? null)
-    : null;
-  const previewVehicle = previewId ? (additionalVehicles.find((v) => v.id === previewId) ?? null) : null;
+  const editOpen = drawerOpen && Boolean(drawerEditingId?.trim());
+  const editingVehicle = findSavedAdditionalInventoryVehicle(additionalVehicles, drawerEditingId);
+  const previewVehicle = findSavedAdditionalInventoryVehicle(additionalVehicles, previewId);
 
   const mainTitle =
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
@@ -279,6 +281,7 @@ export function AutosNegociosInventoryBundlePreview({
           backToEditLabel={backToEditLabel ?? (lang === "es" ? "Volver a editar" : "Back to edit")}
           onBackToEdit={async () => {
             await rehydrateFromStorage?.();
+            clearAutosNegociosEditorReturnContext();
             setPreviewId(null);
           }}
         />

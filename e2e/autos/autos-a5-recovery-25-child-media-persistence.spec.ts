@@ -171,12 +171,27 @@ function childMediaSection(scope: import("@playwright/test").Locator) {
   return scope.locator("#autos-inventory-child-media");
 }
 
-async function goToChildMediaStep(scope: import("@playwright/test").Locator) {
-  await fillChildIdentity(scope);
+async function goToChildMediaStep(scope: import("@playwright/test").Locator, opts?: { skipIdentityFill?: boolean }) {
+  if (!opts?.skipIdentityFill) {
+    await fillChildIdentity(scope);
+  }
   for (let i = 0; i < 3; i++) {
     await clickNextInScope(scope);
   }
   await expect(childMediaSection(scope)).toBeVisible({ timeout: 30_000 });
+}
+
+async function assertEditorIsEditMode(drawer: import("@playwright/test").Locator) {
+  await expect(drawer).toHaveAttribute("data-autos-inventory-drawer-mode", "edit");
+  await expect(drawer.getByRole("heading", { name: "Editar vehículo adicional" })).toBeVisible();
+}
+
+async function assertEditorStep1Filled(scope: import("@playwright/test").Locator) {
+  const cb = scope.getByRole("combobox");
+  await expect(cb.nth(0)).toHaveValue("2021");
+  await expect(cb.nth(1)).toHaveValue("Honda");
+  await expect(cb.nth(2)).toHaveValue("Civic");
+  await expect(scope.getByLabel("Precio (USD)")).toHaveValue(/18,?000|18000/);
 }
 
 async function addChildMedia(scope: import("@playwright/test").Locator) {
@@ -275,7 +290,9 @@ test.describe("A5.RECOVERY-25 child inventory media browser proof", () => {
 
     await childCard.getByRole("button", { name: "Editar" }).click();
     await expect(drawer).toBeVisible();
-    await goToChildMediaStep(drawer);
+    await assertEditorIsEditMode(drawer);
+    await assertEditorStep1Filled(drawer);
+    await goToChildMediaStep(drawer, { skipIdentityFill: true });
     await assertEditorHasMedia(drawer);
     proof.afterFix.push(
       await captureProof(page, "F", "child editor after Editar / resolveCanonicalChildInventoryEditorDraft"),
@@ -294,7 +311,9 @@ test.describe("A5.RECOVERY-25 child inventory media browser proof", () => {
     await expect(childCardAfterRefresh.locator("img")).toBeVisible({ timeout: 15_000 });
     await childCardAfterRefresh.getByRole("button", { name: "Editar" }).click();
     await expect(drawer).toBeVisible();
-    await goToChildMediaStep(drawer);
+    await assertEditorIsEditMode(drawer);
+    await assertEditorStep1Filled(drawer);
+    await goToChildMediaStep(drawer, { skipIdentityFill: true });
     await assertEditorHasMedia(drawer);
     proof.afterFix.push(
       await captureProof(page, "H", "child editor after refresh + Editar / reconcileInProgressInventoryWithSavedChildren"),

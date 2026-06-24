@@ -253,7 +253,7 @@ export function getJune2026CompanionCopy(lang: SupportedLang): June2026Companion
 
 /** CTA label for read page → companion entry. */
 export function getCompanionOpenLabel(lang: SupportedLang): string {
-  const labels: Partial<Record<SupportedLang, string>> = {
+  const labels: Record<SupportedLang, string> = {
     es: "Abrir versión legible",
     en: "Open readable companion",
     vi: "Mở bản đọc được",
@@ -268,7 +268,7 @@ export function getCompanionOpenLabel(lang: SupportedLang): string {
     ru: "Открыть читаемую версию",
     pa: "ਪੜ੍ਹਨ ਯੋਗ ਸਾਥੀ ਖੋਲ੍ਹੋ",
   };
-  return labels[lang] ?? "Open readable companion";
+  return labels[lang];
 }
 
 export function magazineCompanionHref(

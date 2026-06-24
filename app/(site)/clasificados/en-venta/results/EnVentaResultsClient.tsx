@@ -667,8 +667,8 @@ export function EnVentaResultsClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-4 sm:px-6 sm:pt-6 lg:px-8">
-        <header className="space-y-1 border-b border-[#D6C7AD]/50 pb-3">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-2 sm:px-6 sm:pt-6 lg:px-8">
+        <header className="space-y-0.5 border-b border-[#D6C7AD]/50 pb-2 sm:space-y-1 sm:pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
             className="inline-flex text-xs font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
@@ -680,7 +680,7 @@ export function EnVentaResultsClient() {
             <p className="text-xs font-semibold text-[#556B3E] sm:text-sm">{loading ? t.loading : countLine}</p>
           </div>
           {searchSummaryLine || locationSummaryLine ? (
-            <p className="text-xs text-[#3D3428]/85 sm:text-sm">
+            <p className="text-[11px] text-[#3D3428]/85 max-sm:line-clamp-1 sm:text-sm">
               {[searchSummaryLine, locationSummaryLine].filter(Boolean).join(" · ")}
             </p>
           ) : null}
@@ -690,7 +690,7 @@ export function EnVentaResultsClient() {
           id="ev-results-form"
           onSubmit={onSubmitSearch}
           role="search"
-          className="mt-3 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:p-3"
+          className="mt-2 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-1.5 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:mt-3 sm:p-3"
         >
           <input type="hidden" name="lang" value={lang} />
           <input type="hidden" name="view" value={view} readOnly />
@@ -751,11 +751,11 @@ export function EnVentaResultsClient() {
           </div>
         </form>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:mt-2 sm:gap-2">
           <button
             type="button"
             onClick={() => setFiltersPanelOpen(true)}
-            className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3.5 py-2 text-xs font-semibold text-[#2F4A65] shadow-sm hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+            className="inline-flex min-h-[34px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-1.5 text-xs font-semibold text-[#2F4A65] shadow-sm hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[36px] sm:px-3.5 sm:py-2"
             aria-haspopup="dialog"
             aria-expanded={filtersPanelOpen}
           >
@@ -766,7 +766,7 @@ export function EnVentaResultsClient() {
             <select
               value={sort}
               onChange={(e) => applySort(e.target.value as SortId)}
-              className="min-h-[36px] max-w-[11rem] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              className="min-h-[34px] max-w-[11rem] rounded-full border border-[#E8DFD0] bg-white px-3 py-1 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[36px] sm:py-1.5"
               aria-label={t.sort}
             >
               {EN_VENTA_SORT_OPTIONS.map((o) => (
@@ -781,7 +781,7 @@ export function EnVentaResultsClient() {
             <select
               value={perPage}
               onChange={(e) => applyPerPage(Number(e.target.value))}
-              className="min-h-[36px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+              className="min-h-[34px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[36px] sm:py-1.5"
               aria-label={`${t.perPage} ${t.perPageSuffix}`}
             >
               {EN_VENTA_PER_PAGE_OPTIONS.map((n) => (
@@ -820,7 +820,7 @@ export function EnVentaResultsClient() {
         </div>
 
         {activeChips.length > 0 ? (
-          <div className="mt-2 w-full">
+          <div className="mt-1.5 w-full sm:mt-2">
             <EnVentaResultsChipsRow
               label={t.activeFilters}
               clearLabel={t.clearAll}
@@ -885,7 +885,7 @@ export function EnVentaResultsClient() {
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
-          <div className="mt-4 w-full sm:mt-5">
+          <div className="mt-2 w-full sm:mt-5">
             <EnVentaResultsListingSections
               lang={lang}
               featuredOnly={featuredOnly}

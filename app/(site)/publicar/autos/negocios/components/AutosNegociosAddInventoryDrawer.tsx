@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -9,6 +9,7 @@ import {
   applicationCanAddInventoryVehicle,
   countApplicationInventoryVehicles,
   createEmptyInventoryVehicleDraft,
+  findSavedAdditionalInventoryVehicle,
   prepareInventoryVehicleForSave,
   resolveCanonicalChildInventoryEditorDraft,
   validateInventoryVehicleDraftForSave,
@@ -20,6 +21,7 @@ import {
   autosAddInventoryCountLabel,
   autosAddInventoryDrawerHelper,
   autosAddInventoryDrawerTitle,
+  autosAddInventorySavedChildMissing,
   autosAddInventorySaveAndAnotherCta,
   autosAddInventorySaveCta,
   autosAddInventorySaveRequiresFields,
@@ -60,8 +62,14 @@ function resolveDrawerInitialDraft(
   editingVehicle: AutosAdditionalInventoryVehicleDraft | null,
   inProgressDraft: AutosAdditionalInventoryVehicleDraft | null,
   drawerEditingId: string | null,
+  additionalVehicles: AutosAdditionalInventoryVehicleDraft[],
 ): AutosAdditionalInventoryVehicleDraft {
-  return resolveCanonicalChildInventoryEditorDraft(editingVehicle, inProgressDraft, drawerEditingId);
+  return resolveCanonicalChildInventoryEditorDraft(
+    editingVehicle,
+    inProgressDraft,
+    drawerEditingId,
+    additionalVehicles,
+  );
 }
 
 export function AutosNegociosAddInventoryDrawer({
@@ -88,10 +96,21 @@ export function AutosNegociosAddInventoryDrawer({
   const initialFingerprint = useRef("");
   const inProgressDraftRef = useRef(inProgressDraft);
   inProgressDraftRef.current = inProgressDraft;
+  const additionalVehiclesRef = useRef(additionalVehicles);
+  additionalVehiclesRef.current = additionalVehicles;
   const shellCopy = getAutosApplicationStepShellCopy(lang);
   const finalStepIndex = 6;
 
-  const isEditing = Boolean(editingVehicle?.id);
+  const editChildId = drawerEditingId?.trim() || null;
+  const savedEditingVehicle = useMemo(
+    () =>
+      findSavedAdditionalInventoryVehicle(additionalVehicles, editChildId) ??
+      (editingVehicle?.id ? editingVehicle : null),
+    [additionalVehicles, editChildId, editingVehicle],
+  );
+  const isEditMode = Boolean(editChildId);
+  const isEditing = Boolean(isEditMode && savedEditingVehicle);
+  const missingSavedChild = isEditMode && !savedEditingVehicle;
   const used = countApplicationInventoryVehicles(additionalCount);
   const canAddNew = applicationCanAddInventoryVehicle(additionalCount);
 
@@ -99,10 +118,12 @@ export function AutosNegociosAddInventoryDrawer({
     if (!open) return;
     setError(null);
     setUnsavedModalOpen(false);
+    if (missingSavedChild) return;
     const next = resolveDrawerInitialDraft(
-      editingVehicle,
+      savedEditingVehicle,
       inProgressDraftRef.current,
-      drawerEditingId,
+      editChildId,
+      additionalVehiclesRef.current,
     );
     setDraft(next);
     initialFingerprint.current = inventoryDraftFingerprint(next);
@@ -111,7 +132,7 @@ export function AutosNegociosAddInventoryDrawer({
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open, editingVehicle, drawerEditingId]);
+  }, [open, savedEditingVehicle, editChildId, missingSavedChild]);
 
   useEffect(() => {
     if (!open || !onInProgressChange) return;
@@ -206,8 +227,9 @@ export function AutosNegociosAddInventoryDrawer({
     }
   };
 
-  const showForm = isEditing || canAddNew;
+  const showForm = !missingSavedChild && (isEditing || canAddNew);
   const onFinalStep = stepNav?.activeStep === finalStepIndex;
+  const drawerMode = isEditing ? "edit" : isEditMode ? "edit-missing" : "add";
 
   return (
     <>
@@ -216,6 +238,7 @@ export function AutosNegociosAddInventoryDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="autos-add-inventory-title"
+        data-autos-inventory-drawer-mode={drawerMode}
         onMouseDown={handleBackdropClose}
       >
         <div
@@ -244,7 +267,11 @@ export function AutosNegociosAddInventoryDrawer({
           </div>
 
           <div className="autos-drawer-scroll min-h-0 flex-1 overscroll-contain px-4 py-4 sm:px-5">
-            {!showForm ? (
+            {missingSavedChild ? (
+              <p className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950" role="alert">
+                {autosAddInventorySavedChildMissing(lang)}
+              </p>
+            ) : !showForm ? (
               <p className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950">
                 {autosAddInventoryAtLimitHelper(lang)}
               </p>

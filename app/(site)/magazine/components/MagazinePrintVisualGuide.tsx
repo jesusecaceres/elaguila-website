@@ -108,7 +108,7 @@ export function MagazinePrintVisualGuide({
   const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang, {
     sourcePage: "magazine_read",
     sourceCta: "qr_guide_google_translate",
-    returnTo: "/magazine/2026/june/read",
+    returnTo: `/magazine/2026/june/read?lang=${lang}`,
   });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
 

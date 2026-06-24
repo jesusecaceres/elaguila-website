@@ -109,6 +109,12 @@ export function autosAddInventorySaveRequiresFields(lang: AutosClassifiedsLang):
     : "Enter at least year, make, or model to save this vehicle to inventory.";
 }
 
+export function autosAddInventorySavedChildMissing(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "No encontramos este vehículo adicional guardado. Vuelve al Paso 7 e intenta de nuevo."
+    : "We could not find this saved additional vehicle. Return to Step 7 and try again.";
+}
+
 export function autosAddInventorySectionComingSoon(lang: AutosClassifiedsLang, section: string): string {
   return lang === "es"
     ? `${section} — próximamente en este formulario`

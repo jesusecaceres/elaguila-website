@@ -7,8 +7,30 @@ import {
 
 export { MAGAZINE_KIT_PDF_EN, MAGAZINE_KIT_PDF_ES, primaryMediaKitPdfHref };
 
-export function mediaKitPageHref(lang: SupportedLang): string {
-  return `/media-kit?lang=${lang}`;
+export function mediaKitPageHref(
+  lang: SupportedLang,
+  opts?: { sourcePage?: string; sourceCta?: string },
+): string {
+  const params = new URLSearchParams({ lang });
+  if (opts?.sourcePage) params.set("sourcePage", opts.sourcePage);
+  if (opts?.sourceCta) params.set("sourceCta", opts.sourceCta);
+  return `/media-kit?${params.toString()}`;
+}
+
+/** Media Kit CTA from magazine reader routes. */
+export function magazineReadMediaKitHref(lang: SupportedLang): string {
+  return mediaKitPageHref(lang, {
+    sourcePage: "magazine_read",
+    sourceCta: "media_kit",
+  });
+}
+
+/** Contact CTA from magazine reader routes. */
+export function magazineReadContactHref(lang: SupportedLang): string {
+  return mediaKitAdvertisingContactHref(lang, {
+    sourcePage: "magazine_read",
+    sourceCta: "magazine_contact",
+  });
 }
 
 export function mediaKitAdvertisingContactHref(

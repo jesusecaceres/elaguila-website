@@ -118,6 +118,16 @@ export function newAdditionalInventoryVehicleId(): string {
   return `inv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Same lookup used by Step 7 card, child preview, and editor hydrate. */
+export function findSavedAdditionalInventoryVehicle(
+  additional: AutosAdditionalInventoryVehicleDraft[] | null | undefined,
+  childId: string | null | undefined,
+): AutosAdditionalInventoryVehicleDraft | null {
+  const id = childId?.trim();
+  if (!id || !additional?.length) return null;
+  return additional.find((v) => v.id === id) ?? null;
+}
+
 export function createEmptyInventoryVehicleDraft(id = newAdditionalInventoryVehicleId()): AutosAdditionalInventoryVehicleDraft {
   const now = new Date().toISOString();
   return {
@@ -385,19 +395,29 @@ export function resolveCanonicalChildInventoryEditorDraft(
   editingVehicle: AutosAdditionalInventoryVehicleDraft | null,
   inProgressDraft: AutosAdditionalInventoryVehicleDraft | null,
   drawerEditingId: string | null,
+  additionalVehicles: AutosAdditionalInventoryVehicleDraft[] = [],
 ): AutosAdditionalInventoryVehicleDraft {
-  if (!editingVehicle) {
-    if (inProgressDraft && (!drawerEditingId || drawerEditingId === inProgressDraft.id)) {
+  const savedFromBundle =
+    editingVehicle ?? findSavedAdditionalInventoryVehicle(additionalVehicles, drawerEditingId);
+
+  if (!savedFromBundle) {
+    if (drawerEditingId?.trim()) {
+      if (inProgressDraft?.id === drawerEditingId) {
+        return hydrateChildInventoryEditorDraft(inProgressDraft);
+      }
+      return createEmptyInventoryVehicleDraft(drawerEditingId.trim());
+    }
+    if (inProgressDraft) {
       return hydrateChildInventoryEditorDraft(inProgressDraft);
     }
     return createEmptyInventoryVehicleDraft();
   }
 
-  const saved = hydrateChildInventoryEditorDraft(editingVehicle);
+  const saved = hydrateChildInventoryEditorDraft(savedFromBundle);
   if (
     !inProgressDraft ||
-    drawerEditingId !== editingVehicle.id ||
-    inProgressDraft.id !== editingVehicle.id
+    drawerEditingId !== savedFromBundle.id ||
+    inProgressDraft.id !== savedFromBundle.id
   ) {
     return saved;
   }

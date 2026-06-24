@@ -66,7 +66,7 @@ export function EnVentaHubRecentListings({
     return (
       <div
         key={dto.id}
-        className="w-[min(84vw,280px)] shrink-0 snap-start sm:w-auto sm:min-w-0"
+        className="w-[min(78vw,260px)] shrink-0 snap-start sm:w-auto sm:min-w-0"
       >
         <EnVentaResultListingCard
           model={model}
@@ -82,13 +82,13 @@ export function EnVentaHubRecentListings({
   });
 
   return (
-    <section className="mt-6 sm:mt-8" aria-labelledby="enventa-hub-recent">
-      <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-end sm:gap-4">
+    <section className="mt-4 sm:mt-8" aria-labelledby="enventa-hub-recent">
+      <div className="flex flex-col items-start justify-between gap-1.5 sm:flex-row sm:items-end sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h2 id="enventa-hub-recent" className="font-serif text-[1.35rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
+          <h2 id="enventa-hub-recent" className="font-serif text-[1.2rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
             {title}
           </h2>
-          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#5C5346] sm:text-sm">
+          <p className="mt-1 max-w-xl text-[12px] leading-snug text-[#5C5346] max-sm:line-clamp-2 sm:mt-1.5 sm:text-sm sm:leading-relaxed">
             {lang === "es"
               ? "Anuncios reales publicados en Varios — el mismo catálogo que en resultados."
               : "Real listings published in For Sale — the same catalog as results."}
@@ -111,7 +111,7 @@ export function EnVentaHubRecentListings({
         </p>
       ) : (
         <EnVentaHubMobileScrollRail
-          className="mt-3 gap-3"
+          className="mt-2 gap-3 sm:mt-3"
           ariaLabel={title}
           desktopGridClass="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >

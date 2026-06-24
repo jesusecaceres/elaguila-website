@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import type { MagazineLang } from "@/app/(site)/magazine/2026/june/issueContent";
-import { mediaKitPageHref } from "@/app/lib/leonix/mediaKitRoutes";
+import {
+  magazineReadContactHref,
+  magazineReadMediaKitHref,
+} from "@/app/lib/leonix/mediaKitRoutes";
 import { getQrGuideCopy } from "@/app/lib/magazine/qrGuideCopy";
 import {
   getMagazineVisualAsset,
@@ -20,8 +23,8 @@ export function MagazinePrintPrimaryActions({
 }: MagazinePrintPrimaryActionsProps) {
   const copy = getQrGuideCopy(lang);
   const visual = getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang);
-  const mediaKit = mediaKitPageHref(lang);
-  const contactHref = `/contacto?inquiryType=advertising&sourceCta=magazine-qr&sourcePage=magazine_read&lang=${lang}`;
+  const mediaKit = magazineReadMediaKitHref(lang);
+  const contactHref = magazineReadContactHref(lang);
 
   const btnPrimary =
     "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full bg-[#7A1E2C] px-5 py-3 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[3.125rem] sm:text-[0.9375rem]";

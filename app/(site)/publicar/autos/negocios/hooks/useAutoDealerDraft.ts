@@ -156,12 +156,13 @@ export function useAutoDealerDraft() {
           : clampAutosEditorStep(returnCtx.returnStep);
       const max = clampAutosEditorMaxReached(d?.editorMaxReached ?? step, step);
       applyEditorProgress(step, max);
-      if (returnCtx.returnMode === "child-preview" && returnCtx.childId?.trim()) {
-        inventoryDrawerEditingIdRef.current = returnCtx.childId.trim();
-        setInventoryDrawerEditingId(returnCtx.childId.trim());
+      if (returnCtx.returnMode === "child-preview") {
+        inventoryDrawerEditingIdRef.current = null;
+        setInventoryDrawerEditingId(null);
         inventoryDrawerOpenRef.current = false;
         setInventoryDrawerOpenState(false);
       }
+      clearAutosNegociosEditorReturnContext();
     },
     [applyEditorProgress],
   );

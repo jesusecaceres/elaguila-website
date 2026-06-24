@@ -9,7 +9,7 @@ import {
   MAGAZINE_KIT_PDF_ES,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
-import { mediaKitPageHref } from "@/app/lib/leonix/mediaKitRoutes";
+import { mediaKitPageHref, magazineReadMediaKitHref } from "@/app/lib/leonix/mediaKitRoutes";
 import {
   getMagazineVisualAsset,
   MAGAZINE_ISSUE_IDS,
@@ -19,15 +19,19 @@ type MagazineReaderActionBarProps = {
   lang: MagazineLang;
   onOpenFlipbook: () => void;
   layout?: "stack" | "grid";
+  /** When true, Media Kit link includes magazine_read source tracking. */
+  fromMagazineRead?: boolean;
 };
 
 export function MagazineReaderActionBar({
   lang,
   onOpenFlipbook,
   layout = "grid",
+  fromMagazineRead = false,
 }: MagazineReaderActionBarProps) {
   const ui = getMagazineUi(lang);
   const visual = getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang);
+  const mediaKitHref = fromMagazineRead ? magazineReadMediaKitHref(lang) : mediaKitPageHref(lang);
   const wrapClass =
     layout === "stack"
       ? "flex min-w-0 flex-col gap-3"
@@ -70,7 +74,7 @@ export function MagazineReaderActionBar({
           </a>
         </>
       ) : (
-        <Link href={mediaKitPageHref(lang)} className={btnGold}>
+        <Link href={mediaKitHref} className={btnGold}>
           {ui.viewMediaKit}
         </Link>
       )}

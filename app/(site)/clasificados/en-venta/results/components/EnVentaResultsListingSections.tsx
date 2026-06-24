@@ -64,8 +64,8 @@ export function EnVentaResultsListingSections({
   return (
     <>
       {!featuredOnly && promotedPool.length > 0 ? (
-        <section className="mt-6 w-full sm:mt-8" aria-labelledby="ev-promoted-heading">
-          <div className="mb-5 border-b border-[#E8DFD0]/80 pb-4">
+        <section className="mt-3 w-full sm:mt-8" aria-labelledby="ev-promoted-heading">
+          <div className="mb-3 border-b border-[#E8DFD0]/80 pb-3 sm:mb-5 sm:pb-4">
             <h2 id="ev-promoted-heading" className="text-lg font-bold tracking-tight text-[#1E1810] sm:text-xl">
               {t.promoted}
             </h2>
@@ -93,27 +93,27 @@ export function EnVentaResultsListingSections({
       ) : null}
 
       <section
-        className={`w-full ${!featuredOnly && promotedPool.length > 0 ? "mt-12 sm:mt-14" : "mt-10 sm:mt-12"}`}
+        className={`w-full ${!featuredOnly && promotedPool.length > 0 ? "mt-6 sm:mt-14" : "mt-3 sm:mt-12"}`}
         aria-labelledby="ev-catalog-heading"
       >
         {featuredOnly ? (
-          <div className="mb-5 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/95 to-[#F5F8FB]/90 px-4 py-3 sm:px-5">
+          <div className="mb-3 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/95 to-[#F5F8FB]/90 px-4 py-2.5 sm:mb-5 sm:px-5 sm:py-3">
             <p className="text-sm font-medium leading-relaxed text-[#2F4A65]">{t.featuredBanner}</p>
           </div>
         ) : null}
 
-        <div className="mb-5 flex flex-col gap-3 border-b border-[#E8DFD0]/80 pb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="mb-3 flex flex-col gap-2 border-b border-[#E8DFD0]/80 pb-3 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3 sm:pb-4">
           <div className="min-w-0">
             {!featuredOnly ? (
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#7A7164]">{t.latest}</p>
             ) : null}
-            <h2 id="ev-catalog-heading" className={`font-bold tracking-tight text-[#1E1810] sm:text-xl ${featuredOnly ? "text-lg" : "mt-1 text-lg"}`}>
+            <h2 id="ev-catalog-heading" className={`font-bold tracking-tight text-[#1E1810] sm:text-xl ${featuredOnly ? "text-base sm:text-lg" : "mt-0.5 text-base sm:mt-1 sm:text-lg"}`}>
               {featuredOnly ? t.featuredMode : t.catalog}
             </h2>
-            {!featuredOnly ? <p className="mt-1 max-w-2xl text-sm text-[#5C5346]">{t.catalogSub}</p> : null}
-            <p className="mt-2 text-xs font-medium text-[#5C5346]/95">{sortSectionCaption(sort, lang)}</p>
+            {!featuredOnly ? <p className="mt-0.5 max-w-2xl text-[13px] text-[#5C5346] max-sm:line-clamp-1 sm:mt-1 sm:text-sm">{t.catalogSub}</p> : null}
+            <p className="mt-1 text-[11px] font-medium text-[#5C5346]/95 max-sm:hidden sm:text-xs">{sortSectionCaption(sort, lang)}</p>
             {!featuredOnly ? (
-              <p className="mt-1.5 max-w-2xl text-[11px] leading-relaxed text-[#7A7164]">{t.standardEngineLine}</p>
+              <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#7A7164] max-sm:hidden sm:mt-1.5">{t.standardEngineLine}</p>
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2 text-xs font-medium text-[#5C5346]">

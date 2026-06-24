@@ -7,7 +7,8 @@ import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import type { PublicMagazineManifest } from "@/app/lib/magazine/magazineManifestTypes";
 import { staticPageCopyLang } from "@/app/lib/language";
 import {
-  JUNE_2026,
+  getJune2026MonthLabel,
+  getJune2026Title,
   getMagazineUi,
   resolveMagazineLang,
   type MagazineLang,
@@ -280,13 +281,17 @@ function EditionActions({
 }
 
 function editionDisplayTitle(edition: MagazineEdition, lang: MagazineLang): string {
-  if (lang === "vi") return JUNE_2026.title.vi;
+  if (edition.monthKey === "june" && edition.year === "2026") {
+    return getJune2026Title(lang);
+  }
   if (lang === "en") return edition.titleEn;
   return edition.titleEs;
 }
 
 function editionMonthLabel(edition: MagazineEdition, lang: MagazineLang): string {
-  if (lang === "vi") return JUNE_2026.monthLabel.vi;
+  if (edition.monthKey === "june" && edition.year === "2026") {
+    return getJune2026MonthLabel(lang);
+  }
   if (lang === "en") return edition.monthEn;
   return edition.monthEs;
 }
