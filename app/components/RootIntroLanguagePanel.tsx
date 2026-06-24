@@ -66,11 +66,10 @@ export function RootIntroLanguagePanel() {
   const additionalActive = isAdditionalLanguageActive(lang);
 
   return (
-    <div className="absolute inset-x-0 bottom-[6%] z-20 flex justify-center px-4 sm:bottom-[8%]">
-      <div
-        ref={rootRef}
-        className="w-full max-w-md min-w-0 rounded-2xl border border-[#C9A84A]/45 bg-black/60 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.45)] backdrop-blur-sm sm:p-5"
-      >
+    <div
+      ref={rootRef}
+      className="w-full min-w-0 rounded-2xl border border-[#C9A84A]/45 bg-black/70 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-md sm:p-5 md:bg-black/75"
+    >
         <p className="text-center text-xs font-semibold leading-snug text-[#F8F4EA] sm:text-sm">
           Elige tu idioma / Choose your language
         </p>
@@ -160,7 +159,6 @@ export function RootIntroLanguagePanel() {
         >
           {enterLabel(lang)}
         </Link>
-      </div>
     </div>
   );
 }
