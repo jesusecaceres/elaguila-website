@@ -31,6 +31,10 @@ function line(label: string, value: string): string {
   return value ? `${label}: ${value}` : `${label}: (not provided)`;
 }
 
+function locationLabel(lang: string): string {
+  return lang === "en" ? "Location" : "Ubicación";
+}
+
 function isComingSoonSourcePage(sourcePage: string): boolean {
   const page = sourcePage.toLowerCase();
   return page.includes("coming-soon") || page === "/coming-soon-v2";
@@ -88,7 +92,7 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
     line("Phone", fields.phone),
     line("Business", fields.businessName),
     line("Preferred contact", fields.preferredContactMethod),
-    line("City / area", fields.cityArea),
+    line(locationLabel(lang), fields.cityArea),
     line("Website / social", fields.websiteOrSocial),
     line("Business category", fields.businessCategory),
     "",
@@ -115,7 +119,7 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
   <p><strong>Phone:</strong> ${fields.phone ? escapeHtml(fields.phone) : "<em>not provided</em>"}</p>
   <p><strong>Business:</strong> ${fields.businessName ? escapeHtml(fields.businessName) : "<em>not provided</em>"}</p>
   <p><strong>Preferred contact:</strong> ${escapeHtml(fields.preferredContactMethod)}</p>
-  <p><strong>City / area:</strong> ${fields.cityArea ? escapeHtml(fields.cityArea) : "<em>not provided</em>"}</p>
+  <p><strong>${escapeHtml(locationLabel(lang))}:</strong> ${fields.cityArea ? escapeHtml(fields.cityArea) : "<em>not provided</em>"}</p>
   <p><strong>Website / social:</strong> ${fields.websiteOrSocial ? escapeHtml(fields.websiteOrSocial) : "<em>not provided</em>"}</p>
   <p><strong>Business category:</strong> ${fields.businessCategory ? escapeHtml(fields.businessCategory) : "<em>not provided</em>"}</p>
   <h3 style="margin:20px 0 8px;">Message</h3>
@@ -164,7 +168,7 @@ export function buildLaunchSignupEmail(fields: {
     line("Email", fields.email),
     line("Name", fields.name),
     line("Business", fields.businessName),
-    line("City", fields.city),
+    line(locationLabel(lang), fields.city),
     line("ZIP code", fields.zipCode),
     line("Preferred language", fields.preferredLanguage),
     line("Interests", fields.interests),
@@ -189,7 +193,7 @@ export function buildLaunchSignupEmail(fields: {
   <p><strong>Email:</strong> ${escapeHtml(fields.email)}</p>
   <p><strong>Name:</strong> ${fields.name ? escapeHtml(fields.name) : "<em>not provided</em>"}</p>
   <p><strong>Business:</strong> ${fields.businessName ? escapeHtml(fields.businessName) : "<em>not provided</em>"}</p>
-  <p><strong>City:</strong> ${fields.city ? escapeHtml(fields.city) : "<em>not provided</em>"}</p>
+  <p><strong>${escapeHtml(locationLabel(lang))}:</strong> ${fields.city ? escapeHtml(fields.city) : "<em>not provided</em>"}</p>
   <p><strong>ZIP code:</strong> ${fields.zipCode ? escapeHtml(fields.zipCode) : "<em>not provided</em>"}</p>
   <p><strong>Preferred language:</strong> ${fields.preferredLanguage ? escapeHtml(fields.preferredLanguage) : "<em>not provided</em>"}</p>
   <p><strong>Interests:</strong> ${fields.interests ? escapeHtml(fields.interests) : "<em>not provided</em>"}</p>

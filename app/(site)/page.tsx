@@ -45,7 +45,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.6, duration: 1.2, ease: "easeOut" }}
       >
-        <div className="pointer-events-auto w-full max-w-md min-w-0">
+        <div className="pointer-events-auto w-full max-w-md min-w-0 overflow-visible">
           <Suspense fallback={<RootIntroPanelFallback />}>
             <RootIntroLanguagePanel />
           </Suspense>

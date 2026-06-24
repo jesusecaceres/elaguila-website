@@ -113,7 +113,18 @@ export type AutosAdditionalInventoryVehicleDraft = AutosInventoryVehicleFields &
   photos?: MediaImageEntry[];
   /** @deprecated Session/API alias — canonical field is videoUrls (video URL editor). */
   videoLinks?: string[];
+  /** @deprecated Session/API alias — use `id` for saved child lookup. */
+  childId?: string;
 };
+
+/** Resolve stable saved-child id from canonical or alias fields. */
+export function resolveAdditionalInventoryVehicleId(
+  vehicle: { id?: string; childId?: string } | null | undefined,
+): string | null {
+  if (!vehicle) return null;
+  const id = vehicle.id?.trim() || vehicle.childId?.trim();
+  return id || null;
+}
 
 export function newAdditionalInventoryVehicleId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -129,7 +140,7 @@ export function findSavedAdditionalInventoryVehicle(
 ): AutosAdditionalInventoryVehicleDraft | null {
   const id = childId?.trim();
   if (!id || !additional?.length) return null;
-  return additional.find((v) => v.id === id) ?? null;
+  return additional.find((v) => resolveAdditionalInventoryVehicleId(v) === id) ?? null;
 }
 
 export function createEmptyInventoryVehicleDraft(id = newAdditionalInventoryVehicleId()): AutosAdditionalInventoryVehicleDraft {
@@ -199,7 +210,7 @@ function migrateLegacyImageUrl(o: Record<string, unknown>): MediaImageEntry[] | 
 function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
-  const id = strOrUndef(o.id) ?? newAdditionalInventoryVehicleId();
+  const id = strOrUndef(o.id) ?? strOrUndef(o.childId) ?? newAdditionalInventoryVehicleId();
   const createdAt = strOrUndef(o.createdAt) ?? new Date().toISOString();
   const updatedAt = strOrUndef(o.updatedAt) ?? createdAt;
   const mediaImages = migrateLegacyImageUrl(o);
@@ -324,9 +335,13 @@ export function prepareInventoryVehicleForSave(
   const withTitle = applyVehicleTitleToDraft(expanded, expanded.vehicleTitleOverride === true);
   const media = normalizeAutosVehicleMediaDraft(withTitle);
   const now = new Date().toISOString();
+  const id = resolveAdditionalInventoryVehicleId(withTitle) ?? newAdditionalInventoryVehicleId();
   return {
     ...withTitle,
     ...media,
+    id,
+    childId: id,
+    inventoryRole: "additional",
     photos: media.mediaImages,
     videoLinks: media.videoUrls,
     updatedAt: now,
@@ -348,14 +363,95 @@ export function hydrateChildInventoryEditorDraft(
 ): AutosAdditionalInventoryVehicleDraft {
   const expanded = expandAutosVehicleMediaSourceFields(draft) as AutosAdditionalInventoryVehicleDraft;
   const media = normalizeAutosVehicleMediaDraft(expanded);
+  const id = resolveAdditionalInventoryVehicleId(expanded) ?? expanded.id;
   return {
     ...draft,
     ...expanded,
     ...media,
+    id,
+    childId: id,
+    inventoryRole: "additional",
     photos: media.mediaImages,
     videoLinks: media.videoUrls,
     status: computeInventoryVehicleStatus({ ...draft, ...media }),
   };
+}
+
+/** Alias export for child editor hydrator (Gemini / gate naming). */
+export function hydrateChildVehicle(draft: AutosAdditionalInventoryVehicleDraft): AutosAdditionalInventoryVehicleDraft {
+  return hydrateChildInventoryEditorDraft(draft);
+}
+
+/** Merge saved child with incoming save payload without letting empty partial paths wipe media/video. */
+export function mergeFullInventoryVehicle(
+  existing: AutosAdditionalInventoryVehicleDraft,
+  incoming: AutosAdditionalInventoryVehicleDraft,
+): AutosAdditionalInventoryVehicleDraft {
+  const existingHydrated = hydrateChildInventoryEditorDraft(existing);
+  const incomingHydrated = hydrateChildInventoryEditorDraft(incoming);
+  const existingMedia = normalizeAutosVehicleMediaDraft(existingHydrated);
+  const incomingMedia = normalizeAutosVehicleMediaDraft(incomingHydrated);
+  const incomingHasMedia =
+    (incomingMedia.mediaImages?.length ?? 0) > 0 || (incomingMedia.videoUrls?.length ?? 0) > 0;
+  const existingHasMedia =
+    (existingMedia.mediaImages?.length ?? 0) > 0 || (existingMedia.videoUrls?.length ?? 0) > 0;
+  const media = incomingHasMedia ? incomingMedia : existingHasMedia ? existingMedia : incomingMedia;
+  const id = resolveAdditionalInventoryVehicleId(existingHydrated) ?? existingHydrated.id;
+  return hydrateChildInventoryEditorDraft({
+    ...existingHydrated,
+    ...incomingHydrated,
+    ...media,
+    id,
+    childId: id,
+    inventoryRole: "additional",
+    createdAt: existingHydrated.createdAt,
+  });
+}
+
+/** Dedupe, hydrate, and preserve full saved-child rows for editable draft storage. */
+export function sanitizeAdditionalInventoryVehiclesForDraft(
+  raw: AutosAdditionalInventoryVehicleDraft[] | null | undefined,
+): AutosAdditionalInventoryVehicleDraft[] {
+  if (!raw?.length) return [];
+  const out: AutosAdditionalInventoryVehicleDraft[] = [];
+  const indexById = new Map<string, number>();
+
+  for (const item of raw) {
+    const hydrated = hydrateChildInventoryEditorDraft({ ...item, inventoryRole: "additional" });
+    const id = resolveAdditionalInventoryVehicleId(hydrated);
+    if (!id) continue;
+    const normalized = { ...hydrated, id, childId: id, inventoryRole: "additional" as const };
+    const existingIdx = indexById.get(id);
+    if (existingIdx === undefined) {
+      indexById.set(id, out.length);
+      out.push(normalized);
+      continue;
+    }
+    out[existingIdx] = mergeFullInventoryVehicle(out[existingIdx]!, normalized);
+  }
+
+  return out;
+}
+
+/** Update one child by id and preserve siblings — never replace the whole array on normal save. */
+export function upsertAdditionalInventoryVehicleInArray(
+  prev: AutosAdditionalInventoryVehicleDraft[],
+  vehicle: AutosAdditionalInventoryVehicleDraft,
+): { next: AutosAdditionalInventoryVehicleDraft[]; ok: boolean } {
+  if (!validateInventoryVehicleDraftForSave(vehicle)) return { next: prev, ok: false };
+  const prepared = prepareInventoryVehicleForSave(vehicle);
+  const preparedId = resolveAdditionalInventoryVehicleId(prepared);
+  if (!preparedId) return { next: prev, ok: false };
+
+  const existsIdx = prev.findIndex((v) => resolveAdditionalInventoryVehicleId(v) === preparedId);
+  if (existsIdx < 0 && !applicationCanAddInventoryVehicle(prev.length)) return { next: prev, ok: false };
+
+  const next =
+    existsIdx >= 0
+      ? prev.map((v, j) => (j === existsIdx ? mergeFullInventoryVehicle(v, prepared) : v))
+      : [...prev, prepared];
+
+  return { next: sanitizeAdditionalInventoryVehiclesForDraft(next), ok: true };
 }
 
 /** True when saved child has media/video but in-progress draft lost them (smoke escape). */
@@ -415,7 +511,10 @@ export function resolveCanonicalChildInventoryEditorDraft(
 
   if (!savedFromBundle) {
     if (drawerEditingId?.trim()) {
-      if (inProgressDraft?.id === drawerEditingId) {
+      if (
+        inProgressDraft &&
+        resolveAdditionalInventoryVehicleId(inProgressDraft) === drawerEditingId.trim()
+      ) {
         return hydrateChildInventoryEditorDraft(inProgressDraft);
       }
       return createEmptyInventoryVehicleDraft(drawerEditingId.trim());
@@ -427,10 +526,11 @@ export function resolveCanonicalChildInventoryEditorDraft(
   }
 
   const saved = hydrateChildInventoryEditorDraft(savedFromBundle);
+  const savedId = resolveAdditionalInventoryVehicleId(saved);
   if (
     !inProgressDraft ||
-    drawerEditingId !== savedFromBundle.id ||
-    inProgressDraft.id !== savedFromBundle.id
+    resolveAdditionalInventoryVehicleId(inProgressDraft) !== savedId ||
+    drawerEditingId?.trim() !== savedId
   ) {
     return saved;
   }
@@ -453,10 +553,10 @@ export function reconcileInProgressInventoryWithSavedChildren(
   drawerEditingId: string | null,
 ): AutosAdditionalInventoryVehicleDraft | null {
   if (!inProgress) return null;
-  if (!drawerEditingId || inProgress.id !== drawerEditingId) {
+  if (!drawerEditingId || resolveAdditionalInventoryVehicleId(inProgress) !== drawerEditingId) {
     return hydrateChildInventoryEditorDraft(inProgress);
   }
-  const saved = additional.find((v) => v.id === drawerEditingId);
+  const saved = additional.find((v) => resolveAdditionalInventoryVehicleId(v) === drawerEditingId);
   if (!saved) return hydrateChildInventoryEditorDraft(inProgress);
   if (inProgressChildMediaIsStaleVsSaved(saved, inProgress)) {
     return mergeSavedChildInventoryWithInProgress(saved, inProgress);

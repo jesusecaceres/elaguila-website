@@ -22,8 +22,13 @@ import {
   type InquiryType,
 } from "@/app/lib/leonix/inquiryTypes";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
-import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
-import { normalizeNorCalCityForSubmit, normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
+import { GlobalLocationInput } from "@/app/components/forms/GlobalLocationInput";
+import {
+  getGlobalLocationHelper,
+  getGlobalLocationLabel,
+  normalizeLocationForSubmit,
+} from "@/app/lib/leonix/globalLocationFieldCopy";
+import { normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
 import { getPhoneValidationMessage, isValidUsPhone } from "@/app/lib/leonix/phoneFormat";
 import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
@@ -104,7 +109,7 @@ export function GlobalContactForm(props: {
         businessName: businessName.trim(),
         inquiryType,
         preferredContactMethod,
-        cityArea: normalizeNorCalCityForSubmit(cityArea, formLang),
+        cityArea: normalizeLocationForSubmit(cityArea),
         websiteOrSocial: websiteOrSocial.trim(),
         businessCategory: businessCategory.trim(),
         message,
@@ -252,15 +257,16 @@ export function GlobalContactForm(props: {
 
         <div>
           <label className="block mb-1 text-[color:var(--lx-text-2)]/90">
-            {t.fields.cityArea} ({t.optional})
+            {getGlobalLocationLabel(formLang)} ({t.optional})
           </label>
-          <NorCalCitySelect
+          <GlobalLocationInput
             lang={formLang}
             disabled={loading}
             value={cityArea}
             onChange={setCityArea}
             className={INPUT}
           />
+          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{getGlobalLocationHelper(formLang)}</p>
         </div>
 
         <div>

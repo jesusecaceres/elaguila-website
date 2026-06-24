@@ -227,6 +227,7 @@ export function AutosNegociosInventoryBundlePreview({
                 statusLabel={ready ? autosInventoryBundleStatusReady(lang) : autosInventoryBundleStatusDraft(lang)}
                 photoLabel={photos > 0 ? autosInventoryBundlePhotoCount(lang, photos) : null}
                 onPreview={async () => {
+                  onInProgressChange?.(null);
                   writeAutosNegociosEditorReturnContext({
                     returnStep: editorStep,
                     returnMode: "child-preview",

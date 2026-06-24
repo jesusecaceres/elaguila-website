@@ -7,8 +7,13 @@ import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
-import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
-import { normalizeNorCalCityForSubmit, type LeadLang } from "@/app/lib/leonix/leadCaptureValidation";
+import { GlobalLocationInput } from "@/app/components/forms/GlobalLocationInput";
+import {
+  getGlobalLocationHelper,
+  getGlobalLocationLabel,
+  normalizeLocationForSubmit,
+} from "@/app/lib/leonix/globalLocationFieldCopy";
+import type { LeadLang } from "@/app/lib/leonix/leadCaptureValidation";
 import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
 import { getLanguageLabel } from "@/app/lib/language";
 
@@ -58,7 +63,7 @@ export default function NewsletterPageClient() {
         email: fd.get("email"),
         name: fd.get("name"),
         businessName: fd.get("business"),
-        city: normalizeNorCalCityForSubmit(city, formLang),
+        city: normalizeLocationForSubmit(city),
         zipCode: fd.get("zip"),
         audienceType: fd.get("audienceType"),
         preferredLanguage: fd.get("preferredLanguage"),
@@ -138,14 +143,15 @@ export default function NewsletterPageClient() {
           />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={`${t.fields.city} (${locale.contactForm.optional})`}>
-            <NorCalCitySelect
+          <Field label={`${getGlobalLocationLabel(formLang)} (${locale.contactForm.optional})`}>
+            <GlobalLocationInput
               lang={formLang}
               disabled={loading}
               value={city}
               onChange={setCity}
               className={inputClass}
             />
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{getGlobalLocationHelper(formLang)}</p>
           </Field>
           <Field label={`${t.fields.zip} (${locale.contactForm.optional})`}>
             <input

@@ -99,6 +99,7 @@ export function mapAutosNegociosBuyerPreviewViewModel(
   additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[],
   lang: AutosNegociosLang,
 ): AutosNegociosBuyerPreviewViewModel {
+  /** Read-only presentation VM — must never be written back into editable session draft. */
   const title =
     nonEmpty(listing.vehicleTitle) ??
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ??

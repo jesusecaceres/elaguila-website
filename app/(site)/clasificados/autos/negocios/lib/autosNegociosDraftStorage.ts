@@ -18,6 +18,7 @@ import { safeNormalizeAutosDraftListing } from "@/app/clasificados/autos/shared/
 import { buildAutosNegociosActiveDraftSessionKey } from "@/app/lib/clasificados/autos/autosSessionDraftKeys";
 import {
   normalizeAdditionalInventoryVehicles,
+  sanitizeAdditionalInventoryVehiclesForDraft,
   type AutosAdditionalInventoryVehicleDraft,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
@@ -195,6 +196,7 @@ export async function loadAutosNegociosDraftResolved(namespace: string): Promise
     } catch {
       /* keep JSON refs */
     }
+    additionalInventoryVehicles = sanitizeAdditionalInventoryVehiclesForDraft(additionalInventoryVehicles);
 
     let inProgressInventoryVehicleDraft = sync.inProgressInventoryVehicleDraft ?? null;
     if (inProgressInventoryVehicleDraft) {
@@ -226,9 +228,8 @@ export async function saveAutosNegociosDraftResolved(namespace: string, draft: A
   listing = await offloadDraftListingAssetsToIdb(namespace, listing);
   let toStore = listing;
 
-  const additionalInventoryVehicles = await offloadAdditionalInventoryVehiclesToIdb(
-    namespace,
-    draft.additionalInventoryVehicles,
+  const additionalInventoryVehicles = sanitizeAdditionalInventoryVehiclesForDraft(
+    await offloadAdditionalInventoryVehiclesToIdb(namespace, draft.additionalInventoryVehicles),
   );
   let inProgressInventoryVehicleDraft = draft.inProgressInventoryVehicleDraft ?? null;
   if (inProgressInventoryVehicleDraft) {

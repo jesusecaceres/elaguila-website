@@ -4,8 +4,11 @@ import { useState, type FormEvent } from "react";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
-import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
-import { normalizeNorCalCityForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
+import { GlobalLocationInput } from "@/app/components/forms/GlobalLocationInput";
+import {
+  getGlobalLocationLabel,
+  normalizeLocationForSubmit,
+} from "@/app/lib/leonix/globalLocationFieldCopy";
 import type { LeonixSiteLang } from "@/app/lib/lang";
 
 const COPY = {
@@ -13,7 +16,8 @@ const COPY = {
     emailLabel: "Correo electrónico",
     nameLabel: "Nombre (opcional)",
     businessLabel: "Negocio (opcional)",
-    cityLabel: "Ciudad o zona (opcional)",
+    cityLabel: "Ciudad, estado/región y país (opcional)",
+    cityPlaceholder: "Ej. San José, California, Estados Unidos",
     audienceLabel: "Me interesa como",
     audience: {
       "": "Seleccionar…",
@@ -32,7 +36,8 @@ const COPY = {
     emailLabel: "Email",
     nameLabel: "Name (optional)",
     businessLabel: "Business (optional)",
-    cityLabel: "City or area (optional)",
+    cityLabel: "City, state/region, and country (optional)",
+    cityPlaceholder: "Example: San Jose, California, United States",
     audienceLabel: "I'm interested as",
     audience: {
       "": "Select…",
@@ -98,7 +103,7 @@ export function ComingSoonLaunchSignupForm({
         email,
         name: name.trim() || undefined,
         businessName: businessName.trim() || undefined,
-        city: normalizeNorCalCityForSubmit(cityArea, lang === "en" ? "en" : "es") || undefined,
+        city: normalizeLocationForSubmit(cityArea) || undefined,
         audienceType: audienceType || undefined,
         source,
         sourceCta: "join_launch",
@@ -172,12 +177,14 @@ export function ComingSoonLaunchSignupForm({
               autoComplete="organization"
               className={inputClass}
             />
-            <NorCalCitySelect
+            <GlobalLocationInput
               lang={lang === "en" ? "en" : "es"}
               disabled={loading}
               value={cityArea}
               onChange={setCityArea}
               className={inputClass}
+              placeholder={t.cityPlaceholder}
+              aria-label={t.cityLabel}
             />
             <select
               disabled={loading}

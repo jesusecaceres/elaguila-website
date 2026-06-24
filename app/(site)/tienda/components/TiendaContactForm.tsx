@@ -6,8 +6,13 @@ import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContac
 import { LEONIX_PHONE_DISPLAY, LEONIX_PHONE_TEL, LEONIX_TIENDA_EMAIL } from "../data/leonixContact";
 import { getLeadSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
-import { NorCalCitySelect } from "@/app/components/forms/NorCalCitySelect";
-import { normalizeNorCalCityForSubmit, normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
+import { GlobalLocationInput } from "@/app/components/forms/GlobalLocationInput";
+import {
+  getGlobalLocationHelper,
+  getGlobalLocationLabel,
+  normalizeLocationForSubmit,
+} from "@/app/lib/leonix/globalLocationFieldCopy";
+import { normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
 import { getPhoneValidationMessage, isValidUsPhone } from "@/app/lib/leonix/phoneFormat";
 import { getPublicLocaleCopy, type PublicFormLang } from "@/app/lib/leonix/publicFormCopy";
 
@@ -79,7 +84,7 @@ export function TiendaContactForm(props: {
         email,
         phone: phoneSubmit,
         businessName: businessName.trim(),
-        cityArea: normalizeNorCalCityForSubmit(cityArea, formLang),
+        cityArea: normalizeLocationForSubmit(cityArea),
         inquiryType: "promotionalProducts",
         preferredContactMethod: phoneSubmit ? "either" : "email",
         message: buildPromoMessage({
@@ -206,14 +211,17 @@ export function TiendaContactForm(props: {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">{t.cityArea}</label>
-          <NorCalCitySelect
+          <label className="block text-xs font-medium text-[color:var(--lx-muted)]">
+            {getGlobalLocationLabel(formLang)} ({locale.contactForm.optional})
+          </label>
+          <GlobalLocationInput
             lang={formLang}
             disabled={loading}
             value={cityArea}
             onChange={setCityArea}
             className="mt-1.5 w-full rounded-xl border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-4 py-3 text-sm"
           />
+          <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{getGlobalLocationHelper(formLang)}</p>
         </div>
 
         <div>

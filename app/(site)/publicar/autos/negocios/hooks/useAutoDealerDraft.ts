@@ -45,12 +45,12 @@ import type {
   AutosAdditionalInventoryVehicleDraft,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
-  applicationCanAddInventoryVehicle,
   normalizeAdditionalInventoryVehicles,
-  prepareInventoryVehicleForSave,
   reconcileInProgressInventoryWithSavedChildren,
   hydrateChildInventoryEditorDraft,
-  validateInventoryVehicleDraftForSave,
+  resolveAdditionalInventoryVehicleId,
+  sanitizeAdditionalInventoryVehiclesForDraft,
+  upsertAdditionalInventoryVehicleInArray,
 } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 function applyAutoTitle(listing: AutoDealerListing, override: boolean): AutoDealerListing {
@@ -121,10 +121,9 @@ export function useAutoDealerDraft() {
           ? { ...d.listing, heroImages: d.listing.heroImages ?? [] }
           : safeNormalizeAutosDraftListing(d.listing, "negocios"),
       );
-      const additionalRaw = opts?.fromResolvedLoad
-        ? d.additionalInventoryVehicles ?? []
-        : normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles);
-      const additional = additionalRaw.map(hydrateChildInventoryEditorDraft);
+      const additional = sanitizeAdditionalInventoryVehiclesForDraft(
+        normalizeAdditionalInventoryVehicles(d.additionalInventoryVehicles).map(hydrateChildInventoryEditorDraft),
+      );
       additionalInventoryRef.current = additional;
       setAdditionalInventoryVehicles(additional);
       const drawerEditingId = d.inventoryDrawerEditingId ?? null;
@@ -385,7 +384,7 @@ export function useAutoDealerDraft() {
       listing: normalized,
       editorStep: step,
       editorMaxReached: max,
-      additionalInventoryVehicles: additionalInventoryRef.current,
+      additionalInventoryVehicles: sanitizeAdditionalInventoryVehiclesForDraft(additionalInventoryRef.current),
       inProgressInventoryVehicleDraft: inProgressInventoryRef.current,
       inventoryDrawerEditingId: inventoryDrawerEditingIdRef.current,
       inventoryDrawerOpen: inventoryDrawerOpenRef.current,
@@ -410,15 +409,13 @@ export function useAutoDealerDraft() {
   }, []);
 
   const upsertAdditionalInventoryVehicle = useCallback((vehicle: AutosAdditionalInventoryVehicleDraft) => {
-    if (!validateInventoryVehicleDraftForSave(vehicle)) return false;
-    const prepared = prepareInventoryVehicleForSave(vehicle);
     const prev = additionalInventoryRef.current;
-    const i = prev.findIndex((v) => v.id === prepared.id);
-    if (i < 0 && !applicationCanAddInventoryVehicle(prev.length)) return false;
-    const next = i >= 0 ? prev.map((v, j) => (j === i ? prepared : v)) : [...prev, prepared];
+    const { next, ok } = upsertAdditionalInventoryVehicleInArray(prev, vehicle);
+    if (!ok) return false;
     additionalInventoryRef.current = next;
     setAdditionalInventoryVehicles(next);
-    if (inProgressInventoryRef.current?.id === prepared.id) {
+    const savedId = resolveAdditionalInventoryVehicleId(vehicle);
+    if (savedId && resolveAdditionalInventoryVehicleId(inProgressInventoryRef.current) === savedId) {
       inProgressInventoryRef.current = null;
       setInProgressInventoryVehicleDraft(null);
     }
@@ -427,7 +424,7 @@ export function useAutoDealerDraft() {
 
   const removeAdditionalInventoryVehicle = useCallback((id: string) => {
     setAdditionalInventoryVehicles((prev) => {
-      const next = prev.filter((v) => v.id !== id);
+      const next = prev.filter((v) => resolveAdditionalInventoryVehicleId(v) !== id);
       additionalInventoryRef.current = next;
       return next;
     });
