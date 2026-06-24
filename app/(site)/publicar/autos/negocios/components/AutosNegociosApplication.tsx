@@ -179,6 +179,8 @@ export function AutosNegociosApplication() {
     >
       {(ctx) => {
         const { activeStep } = ctx;
+        const customLinkRows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
+        const customLinksAtMax = customLinkRows.length >= 2;
         return (
         <>
           <AutosNegociosVehicleApplicationSteps
@@ -389,15 +391,20 @@ export function AutosNegociosApplication() {
               {t.app.dealer.usefulDealershipLinksHeading}
             </p>
             <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.usefulDealershipLinksHelper}</p>
-            {normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).length === 0 ? (
+            {customLinkRows.length === 0 ? (
               <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
                 {t.app.dealer.customLinksEmptyHelper}
               </p>
             ) : null}
-            <div className="mt-4 space-y-3">
-              {normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).map((row) => (
+            <div
+              className="mt-4 space-y-3"
+              data-autos-dealer-custom-links-section="1"
+              data-autos-dealer-custom-links-count={customLinkRows.length}
+            >
+              {customLinkRows.map((row) => (
                 <div
                   key={row.id}
+                  data-autos-dealer-custom-link-row={row.id}
                   className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3"
                 >
                   <div className={`${GRID2}`}>
@@ -408,9 +415,8 @@ export function AutosNegociosApplication() {
                         placeholder={t.app.dealer.customLinkLabelPlaceholder}
                         value={row.label ?? ""}
                         onChange={(e) => {
-                          const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
                           setListingPatch({
-                            dealerCustomLinks: rows.map((r) =>
+                            dealerCustomLinks: customLinkRows.map((r) =>
                               r.id === row.id ? { ...r, label: autosDraftTextValue(e.target.value) } : r,
                             ),
                           });
@@ -424,9 +430,8 @@ export function AutosNegociosApplication() {
                         placeholder={t.app.placeholders.https}
                         value={row.url ?? ""}
                         onChange={(e) => {
-                          const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
                           setListingPatch({
-                            dealerCustomLinks: rows.map((r) =>
+                            dealerCustomLinks: customLinkRows.map((r) =>
                               r.id === row.id ? { ...r, url: autosDraftUrlValue(e.target.value) } : r,
                             ),
                           });
@@ -438,10 +443,9 @@ export function AutosNegociosApplication() {
                     type="button"
                     className="mt-3 min-h-[44px] text-xs font-bold text-red-700 hover:underline"
                     onClick={() => {
-                      const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).filter(
-                        (r) => r.id !== row.id,
-                      );
-                      setListingPatch({ dealerCustomLinks: rows });
+                      setListingPatch({
+                        dealerCustomLinks: customLinkRows.filter((r) => r.id !== row.id),
+                      });
                     }}
                   >
                     {t.app.dealer.removeCustomLink}
@@ -451,17 +455,25 @@ export function AutosNegociosApplication() {
             </div>
             <button
               type="button"
-              disabled={normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true }).length >= 2}
+              disabled={customLinksAtMax}
+              aria-disabled={customLinksAtMax}
               className="mt-3 rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => {
-                const rows = normalizeDealerCustomLinks(listing.dealerCustomLinks, { keepEmptyRows: true });
-                if (rows.length >= 2) return;
+                if (customLinksAtMax) return;
                 const next: DealerCustomLink = { id: newHourRowId(), label: undefined, url: undefined };
-                setListingPatch({ dealerCustomLinks: [...rows, next] });
+                setListingPatch({ dealerCustomLinks: [...customLinkRows, next] });
               }}
             >
               {t.app.dealer.addDealershipLink}
             </button>
+            {customLinksAtMax ? (
+              <p
+                className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]"
+                data-autos-dealer-custom-links-max="1"
+              >
+                {t.app.dealer.customLinksMaxReached}
+              </p>
+            ) : null}
 
             <div className="mt-6 flex flex-wrap gap-2">
               <button

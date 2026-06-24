@@ -184,7 +184,10 @@ export function normalizeLoadedListing(
     dealerSocials: raw.dealerSocials && typeof raw.dealerSocials === "object" ? raw.dealerSocials : base.dealerSocials,
     googleReviewsUrl: liveDraft ? raw.googleReviewsUrl || undefined : raw.googleReviewsUrl?.trim() || undefined,
     yelpReviewsUrl: liveDraft ? raw.yelpReviewsUrl || undefined : raw.yelpReviewsUrl?.trim() || undefined,
-    dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks, { liveDraft }),
+    dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks, {
+      liveDraft,
+      keepEmptyRows: liveDraft,
+    }),
     dealerLanguages: normalizeDealerLanguages(raw.dealerLanguages, { liveDraft }),
     relatedDealerListings: Array.isArray(raw.relatedDealerListings) ? raw.relatedDealerListings : base.relatedDealerListings,
   };

@@ -85,6 +85,7 @@ export type AutosNegociosCopy = {
       addCustomLink: string;
       addDealershipLink: string;
       removeCustomLink: string;
+      customLinksMaxReached: string;
       languages: {
         heading: string;
         helper: string;
@@ -456,6 +457,7 @@ const ES: AutosNegociosCopy = {
       addCustomLink: "Añadir website",
       addDealershipLink: "Añadir website",
       removeCustomLink: "Eliminar",
+      customLinksMaxReached: "Puedes agregar hasta 2 websites importantes.",
       languages: {
         heading: "Idiomas que hablamos",
         helper:
@@ -902,6 +904,7 @@ const EN: AutosNegociosCopy = {
       addCustomLink: "Add website",
       addDealershipLink: "Add website",
       removeCustomLink: "Remove",
+      customLinksMaxReached: "You can add up to 2 important websites.",
       languages: {
         heading: "Languages we speak",
         helper: "Select up to 3 languages so buyers know how they can communicate with you.",
