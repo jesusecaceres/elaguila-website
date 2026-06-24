@@ -51,6 +51,7 @@ export function RestauranteProfileHeader({
   const ownerUid = (analyticsOwnerUserId ?? "").trim() || undefined;
   const listingKey = (listingId ?? "").trim() || data.id;
   const sourceId = (listingSourceId ?? "").trim();
+  const allowEngagement = persistListingEngagement && Boolean(sourceId);
   const slug = (listingSlug ?? "").trim();
   const saveExtras = sourceId
     ? restaurantesSavedListingExtras({
@@ -207,7 +208,7 @@ export function RestauranteProfileHeader({
                 variant="small"
                 lang={lang}
                 category="restaurantes"
-                persistEngagement={persistListingEngagement}
+                persistEngagement={allowEngagement}
                 recordLikeEvent={
                   globalListing ? restaurantesGlobalLikeRecorder(globalListing) : undefined
                 }
@@ -220,7 +221,7 @@ export function RestauranteProfileHeader({
                 variant="small"
                 lang={lang}
                 category="restaurantes"
-                persistEngagement={persistListingEngagement}
+                persistEngagement={allowEngagement}
                 saveExtras={saveExtras}
                 recordSaveEvent={
                   globalListing ? restaurantesGlobalSaveRecorder(globalListing) : undefined
@@ -236,7 +237,7 @@ export function RestauranteProfileHeader({
                 lang={lang}
                 category="restaurantes"
                 directNativeShare
-                persistEngagement={persistListingEngagement}
+                persistEngagement={allowEngagement}
                 recordShareEvent={
                   globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
                 }

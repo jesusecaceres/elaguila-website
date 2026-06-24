@@ -73,7 +73,8 @@ export default function DashboardPage() {
             expSoon: "Por expirar (7 días)",
             quickOpenMsg: "Abrir mensajes",
             quickDrafts: "Borradores",
-            quickServicios: "Servicios (prueba)",
+            quickDraftsHint: "Retoma anuncios que aún no publicaste",
+            managePublishedHint: "Revisa estado, analíticas y acciones por anuncio",
             quickProfile: "Completar perfil",
             quickAnalytics: "Analíticas",
             attention: "Requiere atención",
@@ -137,7 +138,8 @@ export default function DashboardPage() {
             expSoon: "Expiring soon (7 days)",
             quickOpenMsg: "Open messages",
             quickDrafts: "Drafts",
-            quickServicios: "Servicios (test)",
+            quickDraftsHint: "Pick up listings you have not published yet",
+            managePublishedHint: "Review status, analytics, and per-listing actions",
             quickProfile: "Complete profile",
             quickAnalytics: "Analytics",
             attention: "Needs attention",
@@ -174,10 +176,8 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<Plan>("free");
   const [activeListings, setActiveListings] = useState<number | null>(null);
   const [totalViews, setTotalViews] = useState<number | null>(null);
-  const [totalSaves, setTotalSaves] = useState<number | null>(null);
   const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
   const [brActiveCount, setBrActiveCount] = useState<number | null>(null);
-  const [totalMessages, setTotalMessages] = useState<number | null>(null);
   const [expiringSoon, setExpiringSoon] = useState<number | null>(null);
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
   const [draftCount, setDraftCount] = useState<number | null>(null);
@@ -268,17 +268,11 @@ export default function DashboardPage() {
           if (mounted) {
             setListingAnalyticsDegraded(summary?.listingAnalyticsUnavailable ?? true);
             setTotalViews(summary?.totals.listingViews ?? null);
-            setTotalSaves(summary?.totals.saves ?? null);
-            setTotalMessages(
-              summary ? summary.totals.messages + summary.totals.leads : null,
-            );
           }
         } catch {
           if (mounted) {
             setListingAnalyticsDegraded(true);
             setTotalViews(null);
-            setTotalSaves(null);
-            setTotalMessages(null);
           }
         }
 
@@ -397,8 +391,8 @@ export default function DashboardPage() {
             ) : null}
           </header>
 
-          {/* Real stats only */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+          {/* Real stats only — hide unready Mensajes/Guardados until productized */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.activeAds}</p>
@@ -418,23 +412,14 @@ export default function DashboardPage() {
               </div>
               <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalViews)}</p>
             </Link>
-            <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
+            <Link href={`/dashboard/drafts?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.totalMsg}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.quickDrafts}</p>
                 <span className="text-lg opacity-80" aria-hidden>
-                  💬
+                  📝
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalMessages)}</p>
-            </Link>
-            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.totalSaves}</p>
-                <span className="text-lg opacity-80" aria-hidden>
-                  ★
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalSaves)}</p>
+              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(draftCount)}</p>
             </Link>
             <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
               <div className="flex items-start justify-between gap-2">
@@ -729,7 +714,7 @@ export default function DashboardPage() {
                 </span>
                 <div>
                   <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Gestionar anuncios publicados" : "Manage published listings"}</p>
-                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Revisa estado, analíticas y promociona" : "Review status, analytics, and promote"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{t.managePublishedHint}</p>
                 </div>
               </Link>
               <Link
@@ -741,19 +726,7 @@ export default function DashboardPage() {
                 </span>
                 <div>
                   <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Continuar borradores" : "Continue drafts"}</p>
-                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Completa y publica anuncios incompletos" : "Complete and publish incomplete listings"}</p>
-                </div>
-              </Link>
-              <Link
-                href={`/dashboard/mensajes?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>
-                  💬
-                </span>
-                <div>
-                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Ver mensajes" : "View messages"}</p>
-                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Responde a consultas de interesados" : "Respond to interested buyers"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{t.quickDraftsHint}</p>
                 </div>
               </Link>
               <Link

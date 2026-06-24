@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
-import { resolveSavedListingsForDashboard } from "@/app/lib/savedListingsDashboardResolve";
-import { listSavedListingIdsForUser } from "@/app/lib/savedListingsRuntime";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { dashboardSavedComingSoonCopy } from "../lib/dashboardProductTruth";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -35,41 +32,20 @@ export default function GuardadosPage() {
       lang === "es"
         ? {
             title: "Anuncios guardados",
-            subtitle: "Los anuncios que guardaste desde Leonix aparecen aquí.",
+            subtitle: "Tus favoritos en Leonix (en preparación).",
             back: "Volver al resumen",
-            emptyTitle: "Aún no hay guardados",
-            emptyBody: "Abre un anuncio y pulsa «Guardar» para verlo en esta lista.",
-            browse: "Explorar clasificados",
-            view: "Ver anuncio",
             loading: "Cargando…",
-            category: "Categoría",
           }
         : {
             title: "Saved listings",
-            subtitle: "Listings you saved on Leonix show up here.",
+            subtitle: "Your Leonix favorites (in preparation).",
             back: "Back to overview",
-            emptyTitle: "Nothing saved yet",
-            emptyBody: "Open a listing and tap Save to see it in this list.",
-            browse: "Browse classifieds",
-            view: "View listing",
             loading: "Loading…",
-            category: "Category",
           },
     [lang]
   );
 
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState<
-    Array<{
-      listing_id: string;
-      title?: string | null;
-      city?: string | null;
-      category?: string | null;
-      thumb?: string | null;
-      price?: number | string | null;
-      href?: string;
-    }>
-  >([]);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
@@ -77,7 +53,9 @@ export default function GuardadosPage() {
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/guardados?${q}`)}`);
       return;
@@ -105,33 +83,12 @@ export default function GuardadosPage() {
       /* ignore */
     }
 
-    const ids = await listSavedListingIdsForUser(supabase, user.id);
-    if (ids.length === 0) {
-      setSaved([]);
-      setLoading(false);
-      return;
-    }
-    const resolved = await resolveSavedListingsForDashboard(supabase, ids, lang);
-    setSaved(
-      resolved.map((r) => ({
-        listing_id: r.listing_id,
-        title: r.title,
-        city: r.city,
-        category: r.category,
-        thumb: r.thumb,
-        price: r.price,
-        href: r.href,
-      }))
-    );
     setLoading(false);
   }, [router, q]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  const listLinkClass =
-    "flex gap-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-3 text-left shadow-sm transition hover:border-[#C9B46A]/45 hover:bg-[#FAF7F2]";
 
   return (
     <LeonixDashboardShell
@@ -151,53 +108,18 @@ export default function GuardadosPage() {
             <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
           </header>
 
-          {saved.length === 0 ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FBF7EF] p-8 text-center shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)] sm:p-10">
-              <p className="text-lg font-bold text-[#6B5B2E]">{t.emptyTitle}</p>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]">{t.emptyBody}</p>
-              <Link
-                href={`/clasificados?${q}`}
-                className="mt-6 inline-flex items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-[1.03]"
-              >
-                {t.browse}
-              </Link>
-            </div>
-          ) : (
-            <ul className="mt-8 space-y-3">
-              {saved.map(({ listing_id, title, city, category, thumb, price, href }) => (
-                <li key={listing_id}>
-                  <Link href={href ?? `/clasificados/anuncio/${encodeURIComponent(listing_id)}?${q}`} className={listLinkClass}>
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]">
-                      {thumb ? (
-                        <Image src={thumb} alt="" fill className="object-cover" sizes="64px" unoptimized />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-[10px] text-[#7A7164]">LX</span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="line-clamp-2 font-semibold text-[#1E1810]">{title || listing_id}</span>
-                      <span className="mt-1 block text-sm text-[#5C5346]">
-                        {formatListingPrice(price ?? null, { lang })} · {(city ?? "").trim() || "—"}
-                      </span>
-                      {category ? (
-                        <span className="mt-1 block text-[11px] font-medium uppercase tracking-wide text-[#7A7164]">
-                          {t.category}: {category}
-                        </span>
-                      ) : null}
-                      <span className="mt-1 block text-xs font-medium text-[#6B5B2E]">{t.view} →</span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <Link
-            href={`/dashboard?${q}`}
-            className="mt-8 inline-flex rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] px-4 py-2.5 text-sm font-semibold text-[#3D3428] transition hover:bg-[#FAF7F2]"
+          <div
+            className="mt-8 rounded-3xl border border-[#D6C7AD]/85 bg-gradient-to-br from-[#FFFCF7] to-[#FBF7EF] p-8 text-center shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)] sm:p-10"
+            role="status"
           >
-            {t.back}
-          </Link>
+            <p className="mx-auto max-w-lg text-sm leading-relaxed text-[#3D3428]">{dashboardSavedComingSoonCopy(lang)}</p>
+            <Link
+              href={`/dashboard?${q}`}
+              className="mt-6 inline-flex rounded-2xl border border-[#C9A84A]/45 bg-[#FFFDF7] px-5 py-2.5 text-sm font-semibold text-[#3D3428] transition hover:bg-[#FBF7EF]"
+            >
+              {t.back}
+            </Link>
+          </div>
         </>
       )}
     </LeonixDashboardShell>

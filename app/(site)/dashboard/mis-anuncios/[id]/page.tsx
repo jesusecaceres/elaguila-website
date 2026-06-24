@@ -481,14 +481,9 @@ export default function ListingWorkspacePage() {
     return [
       { k: t.views, v: stats?.views ?? 0 },
       { k: t.uniq, v: stats?.uniqueViews ?? 0 },
-      { k: t.msg, v: stats?.messages ?? 0 },
-      { k: t.leads, v: (stats?.leads ?? 0) + contactTotal },
       { k: t.shares, v: stats?.shares ?? 0 },
-      { k: t.likes, v: stats?.likes ?? 0 },
       { k: t.cta, v: stats?.ctaClicks ?? 0 },
       { k: t.opens, v: stats?.listingOpens ?? 0 },
-      { k: t.prof, v: stats?.profileClicks ?? 0 },
-      { k: t.apps, v: stats?.applications ?? 0 },
     ];
   }, [isEnVentaListing, stats, t]);
 
@@ -505,7 +500,6 @@ export default function ListingWorkspacePage() {
     return [
       { k: "overview", label: t.tabs.overview },
       { k: "analytics", label: t.tabs.analytics },
-      { k: "messages", label: t.tabs.messages },
       { k: "edit", label: t.tabs.edit },
       { k: "promotion", label: t.tabs.promotion },
       { k: "status", label: t.tabs.status },
@@ -513,8 +507,8 @@ export default function ListingWorkspacePage() {
   }, [isEnVentaListing, t]);
 
   useEffect(() => {
-    if (isEnVentaListing && tab === "messages") setTab("overview");
-  }, [isEnVentaListing, tab]);
+    if (tab === "messages") setTab("overview");
+  }, [tab]);
 
   const enVentaVisibilityVm = useMemo(() => {
     if (!isEnVentaListing || !row || listingPlan !== "pro") return null;
@@ -697,9 +691,8 @@ export default function ListingWorkspacePage() {
           views={stats?.views ?? 0}
           saves={stats?.saves ?? 0}
           likes={stats?.likes ?? 0}
-          messages={(stats?.messages ?? 0) + (stats?.leads ?? 0)}
-          showSaves={!isEnVentaListing}
-          showMessages={!isEnVentaListing}
+          showSaves={false}
+          showMessages={false}
         />
       }
     >
@@ -912,50 +905,11 @@ export default function ListingWorkspacePage() {
                       ? lang === "es"
                         ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
                         : "No views recorded yet: share the public link and review photos and title."
-                      : (stats?.messages ?? 0) === 0
-                        ? lang === "es"
-                          ? "Hay vistas pero pocos mensajes: responde rápido en la bandeja y mejora la descripción de contacto."
-                          : "You have views but few messages: reply quickly in the inbox and improve contact details."
-                        : lang === "es"
-                          ? "Buen tráfico: revisa mensajes sin leer y republica (subir de nuevo) cuando aplique."
-                          : "Solid traffic: check unread messages and republish (move to top) when eligible."}
+                      : lang === "es"
+                        ? "Hay tráfico: revisa analíticas y acciones de estado cuando corresponda."
+                        : "You have traffic: review analytics and lifecycle actions when needed."}
                 </p>
               </div>
-            </div>
-          ) : null}
-
-          {tab === "messages" && !isEnVentaListing ? (
-            <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6">
-              <p className="text-sm text-[#3D3428]/95">{t.msgPlaceholder}</p>
-              {listingMessages.length === 0 ? (
-                <p className="mt-4 text-sm font-medium text-[#5C5346]">{t.msgEmpty}</p>
-              ) : (
-                <ul className="mt-4 max-h-[min(60vh,480px)] space-y-3 overflow-y-auto">
-                  {listingMessages.map((m) => (
-                    <li key={m.id} className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4 text-sm">
-                      <div className="flex flex-wrap justify-between gap-2 text-[11px] text-[#7A7164]">
-                        <span>
-                          {m.sender_id === userId
-                            ? lang === "es"
-                              ? "Tú →"
-                              : "You →"
-                            : lang === "es"
-                              ? "Recibido"
-                              : "Inbound"}
-                        </span>
-                        <time dateTime={m.created_at}>{new Date(m.created_at).toLocaleString()}</time>
-                      </div>
-                      <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-[#2C2416]">{m.message}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link
-                href={`/dashboard/mensajes?${q}`}
-                className="mt-6 inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md"
-              >
-                {t.openMessages} →
-              </Link>
             </div>
           ) : null}
 

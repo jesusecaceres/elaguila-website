@@ -75,9 +75,10 @@ function shellCtaKeyToAnalyticsType(key: ShellPrimaryCta["key"]): RestaurantesCt
     case "directions":
       return "directions";
     case "website":
+      return "website";
     case "menu":
     case "menuAsset":
-      return "website";
+      return "menu";
     case "order":
       return "order";
     case "reserve":

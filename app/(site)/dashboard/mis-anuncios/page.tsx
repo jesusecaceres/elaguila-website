@@ -829,18 +829,6 @@ export default function MyListingsPage() {
     return s;
   }, [listings, analyticsByListing]);
 
-  const totalMessages = useMemo(() => {
-    let s = 0;
-    for (const x of listings) s += analyticsByListing[x.id]?.messages ?? 0;
-    return s;
-  }, [listings, analyticsByListing]);
-
-  const totalSavesSum = useMemo(() => {
-    let s = 0;
-    for (const x of listings) s += analyticsByListing[x.id]?.saves ?? 0;
-    return s;
-  }, [listings, analyticsByListing]);
-
   const totalSharesSum = useMemo(() => {
     let s = 0;
     for (const x of listings) s += analyticsByListing[x.id]?.shares ?? 0;
@@ -1132,12 +1120,10 @@ export default function MyListingsPage() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             {[
               { label: t.statActive, value: totalActive },
               { label: t.statViews, value: totalViewsSum },
-              { label: t.statMsg, value: totalMessages },
-              { label: t.statSaves, value: totalSavesSum },
               { label: t.statShares, value: totalSharesSum },
             ].map((c) => (
               <DashboardStatsCard key={c.label} label={c.label} value={c.value} />
@@ -1308,7 +1294,6 @@ export default function MyListingsPage() {
                         : []),
                       { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
                       { href: item.analyticsHref ?? undefined, label: analyticsActionLabel(lang), tone: "subtle" as const },
-                      { href: item.messagesHref ?? undefined, label: lang === "es" ? "Mensajes" : "Messages", tone: "subtle" as const },
                     ].filter((action) => Boolean(action.href))}
                   />
                 ))}
@@ -1726,7 +1711,6 @@ export default function MyListingsPage() {
                       }
                       updatedLine={formatUpdatedLine(x, lang)}
                       workspaceHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
-                      messagesHref={`/dashboard/mensajes?${q}`}
                       analyticsHref={`/dashboard/mis-anuncios/${x.id}?${q}`}
                       onArchive={() => void softArchiveListing(x.id)}
                       onDuplicate={() => {
@@ -1822,8 +1806,7 @@ export default function MyListingsPage() {
                         ) : null}
                         {stats ? (
                           <p className="mt-2 text-sm text-[#7A7164]">
-                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}:{" "}
-                            {stats.messages}
+                            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal}
                           </p>
                         ) : null}
                       </div>

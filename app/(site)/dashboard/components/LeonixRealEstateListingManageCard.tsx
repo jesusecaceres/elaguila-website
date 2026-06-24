@@ -227,7 +227,7 @@ export function LeonixRealEstateListingManageCard({
           )}
           <p className="mt-1 text-[10px] leading-snug text-[#7A7164]/90">{planFoot}</p>
           <p className="mt-1 text-sm text-[#7A7164]">
-            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal} · {lang === "es" ? "Mensajes" : "Messages"}: {messagesTotal}
+            {lang === "es" ? "Vistas" : "Views"}: {viewsTotal}
           </p>
           {rentasRx?.listingStatus ? (
             <p className="mt-1 text-xs font-semibold text-[#4A6680]">

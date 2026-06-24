@@ -7,6 +7,10 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import newLogo from "../../../../public/logo.png";
 import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
+import {
+  DASHBOARD_INTERNAL_INBOX_READY,
+  DASHBOARD_SAVED_LISTINGS_READY,
+} from "../lib/dashboardProductTruth";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -273,9 +277,11 @@ export function LeonixDashboardShell({
             <nav className="mt-5 space-y-1">
               {navItem("home", `/dashboard?${q}`, L.home)}
               {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring)}
-              {navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)}
+              {DASHBOARD_INTERNAL_INBOX_READY
+                ? navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)
+                : null}
               {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
-              {navItem("saved", `/dashboard/guardados?${q}`, L.saved)}
+              {DASHBOARD_SAVED_LISTINGS_READY ? navItem("saved", `/dashboard/guardados?${q}`, L.saved) : null}
               {navItem("analytics", `/dashboard/analytics?${q}`, L.analytics)}
               {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
               {navItem("security", `/dashboard/seguridad?${q}`, L.security)}

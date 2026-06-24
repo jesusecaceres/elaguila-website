@@ -1,6 +1,12 @@
 /**
- * Ofertas Locales AI extraction quality — junk filters, price patterns, scoring (Gate OFERTAS-AI-QUALITY-1).
+ * Ofertas Locales AI extraction quality — junk filters, price patterns, scoring.
+ * Gate OFERTAS-AI-QUALITY-1 + OFERTAS-AI-QUALITY-2.
  */
+
+import {
+  lineHasNormalizedRetailPrice,
+  normalizeOfertaLocalRetailPrice,
+} from "./ofertasLocalesAiPriceNormalizer";
 
 export type OfertaLocalAiExtractionRejectReason =
   | "junk_header"
@@ -12,7 +18,10 @@ export type OfertaLocalAiExtractionRejectReason =
   | "numeric_only"
   | "duplicate"
   | "weak_coupon"
-  | "footer_header_zone";
+  | "footer_header_zone"
+  | "package_fine_print"
+  | "low_confidence"
+  | "weak_name";
 
 /** Exact or near-exact junk phrases (normalized uppercase compare). */
 export const OFERTAS_LOCALES_AI_JUNK_EXACT = new Set([
@@ -40,7 +49,29 @@ export const OFERTAS_LOCALES_AI_JUNK_EXACT = new Set([
   "WHEN YOU BUY",
   "SAVE MORE",
   "LOW PRICES",
+  "GOLD",
 ]);
+
+/** Package/legal fine print — not ad product labels. */
+export const OFERTAS_LOCALES_AI_PACKAGE_FINE_PRINT = [
+  /\bNET\s*WT\b/i,
+  /\bNET\s+\d/i,
+  /\bCAUTION\b/i,
+  /\bINGREDIENTS\b/i,
+  /\bNUTRITION\b/i,
+  /\bDISTRIBUTED\s+BY\b/i,
+  /\bKEEP\s+REFRIGERATED\b/i,
+  /\bTOTAL\s*NET\b/i,
+  /\bTOTALNE/i,
+  /\(\s*\d+\s*g\s*\)/i,
+  /\bFL\s*OZ\b.*\b(L\d+|GAL|CAUTION)\b/i,
+  /\bSERVING\s+SIZE\b/i,
+  /\bCONTAINS\b/i,
+  /\bMAY\s+CONTAIN\b/i,
+  /\bU\.?\s*P\.?\s*C\.?\b/i,
+  /\bSKU\b/i,
+  /\bLOT\s*#/i,
+];
 
 /** Substrings that indicate header/footer/legal — reject if line is mostly this. */
 export const OFERTAS_LOCALES_AI_JUNK_CONTAINS = [
@@ -85,17 +116,23 @@ export const OFERTAS_LOCALES_AI_PRICE_PATTERNS: ReadonlyArray<{
 }> = [
   { id: "multi_for", re: /\b(\d+)\s+FOR\s+\$?\s*(\d+(?:\.\d{2})?)\b/i, weight: 0.95 },
   { id: "dollar_ea", re: /\$\s*(\d+(?:\.\d{2})?)\s*(?:EA|EA\.|EACH)\b/i, weight: 0.9 },
+  { id: "bare_ea", re: /\b(\d{2,4})\s*(?:EA|EA\.|EACH)\b/i, weight: 0.88 },
   { id: "dollar_unit", re: /\$\s*(\d+(?:\.\d{2})?)\s*(?:\/|PER\s+)?(LB|OZ|CT|PK|BAG|BOX)\b/i, weight: 0.88 },
   { id: "cent_lb", re: /\b(\d+(?:\.\d{1,2})?)\s*¢\s*(?:\/\s*)?(LB|OZ|CT)?\b/i, weight: 0.88 },
   { id: "bogo", re: /\bBUY\s+(\d+)\s+GET\s+(\d+)\s+FREE\b/i, weight: 0.92 },
   { id: "digital_sale", re: /DIGITAL\s+-?\$?\s*(\d+(?:\.\d{2})?).*?(?:SALE\s+PRICE\s+\$?\s*(\d+(?:\.\d{2})?))?/i, weight: 0.9 },
   { id: "sale_price", re: /\bSALE\s+PRICE\s+\$?\s*(\d+(?:\.\d{2})?)\b/i, weight: 0.85 },
-  { id: "when_you_buy", re: /\bWHEN\s+YOU\s+BUY\s+(\d+)\b/i, weight: 0.7 },
-  { id: "plain_dollar", re: /\$\s*(\d+(?:\.\d{2})?)\b/, weight: 0.75 },
+  { id: "when_you_buy", re: /\bWHEN\s+YOU\s+BUY\s+(\d+)\b/i, weight: 0.55 },
+  { id: "plain_dollar", re: /\$\s*(\d{2,4}(?:\.\d{2})?)\b/, weight: 0.72 },
   { id: "percent_off", re: /\b(\d{1,2})\s*%\s*OFF\b/i, weight: 0.8 },
   { id: "save_amount", re: /\bSAVE\s+\$?\s*(\d+(?:\.\d{2})?)\b/i, weight: 0.78 },
   { id: "free", re: /\bFREE\b/i, weight: 0.65 },
 ];
+
+const GROCERY_PRODUCT_TERMS =
+  /\b(chile|chili|queso|cheese|tortilla|tostada|botana|chip|agua|water|bebida|electrolit|cono|drumstick|helado|carne|pollo|res|pan|frijol|rice|arroz|leche|milk|limpiador|cleaner|paleta|snack|fresco|secos|pods|size|ma[ií]z|corn)\b/i;
+
+const QUANTITY_PACK_RE = /\b(\d+\s*(?:pk|pack|ct|count))\b/i;
 
 const SIZE_UNIT_RE =
   /\b(\d+(?:\.\d+)?\s*(?:-\s*\d+(?:\.\d+)?)?\s*(?:oz|lb|lbs|ct|pk|pack|ml|l|g|kg|gal|fl\.?\s*oz|count|botellas?|bottles?))\b/i;
@@ -107,11 +144,15 @@ export type ParsedPriceEvidence = {
   priceText: string;
   priceAmount: number | null;
   regularPriceText: string;
+  salePriceText: string;
+  savingsText: string;
   offerText: string;
   quantity: string;
   unit: string;
+  dealType: string;
   patternId: string;
   weight: number;
+  priceRepaired: boolean;
 };
 
 export function normalizeAiTextKey(text: string): string {
@@ -124,116 +165,153 @@ export function normalizeAiTextKey(text: string): string {
 }
 
 export function lineHasPriceEvidence(text: string): boolean {
-  return OFERTAS_LOCALES_AI_PRICE_PATTERNS.some((p) => p.re.test(text));
+  return lineHasNormalizedRetailPrice(text) || OFERTAS_LOCALES_AI_PRICE_PATTERNS.some((p) => p.re.test(text));
 }
 
 export function parsePriceEvidence(text: string): ParsedPriceEvidence | null {
-  let best: ParsedPriceEvidence | null = null;
-
-  for (const pattern of OFERTAS_LOCALES_AI_PRICE_PATTERNS) {
-    const match = text.match(pattern.re);
-    if (!match) continue;
-
-    let priceText = "";
-    let priceAmount: number | null = null;
-    let regularPriceText = "";
-    let offerText = text.trim();
-    let quantity = "";
-    let unit = "";
-
-    switch (pattern.id) {
-      case "multi_for": {
-        quantity = `${match[1]} for`;
-        priceText = `${match[1]} for $${match[2]}`;
-        priceAmount = Number.parseFloat(match[2]);
-        break;
-      }
-      case "dollar_ea": {
-        priceText = `$${match[1]} EA`;
-        priceAmount = Number.parseFloat(match[1]);
-        unit = "EA";
-        break;
-      }
-      case "dollar_unit": {
-        priceText = `$${match[1]} ${match[2].toUpperCase()}`;
-        priceAmount = Number.parseFloat(match[1]);
-        unit = match[2].toUpperCase();
-        break;
-      }
-      case "cent_lb": {
-        priceText = `${match[1]}¢${match[2] ? ` ${match[2].toUpperCase()}` : ""}`.trim();
-        priceAmount = Number.parseFloat(match[1]) / 100;
-        unit = (match[2] ?? "LB").toUpperCase();
-        break;
-      }
-      case "bogo": {
-        quantity = `buy ${match[1]} get ${match[2]}`;
-        priceText = `Buy ${match[1]} Get ${match[2]} Free`;
-        break;
-      }
-      case "digital_sale": {
-        const sale = match[2] ?? match[1];
-        priceText = `$${sale} EA`;
-        priceAmount = Number.parseFloat(sale);
-        regularPriceText = match[1] ? `Digital -$${match[1]}` : "";
-        unit = "EA";
-        break;
-      }
-      case "sale_price": {
-        priceText = `$${match[1]} EA`;
-        priceAmount = Number.parseFloat(match[1]);
-        unit = "EA";
-        break;
-      }
-      case "when_you_buy": {
-        quantity = `when you buy ${match[1]}`;
-        priceText = `When you buy ${match[1]}`;
-        break;
-      }
-      case "plain_dollar": {
-        priceText = `$${match[1]}`;
-        priceAmount = Number.parseFloat(match[1]);
-        break;
-      }
-      case "percent_off": {
-        priceText = `${match[1]}% OFF`;
-        break;
-      }
-      case "save_amount": {
-        priceText = `Save $${match[1]}`;
-        priceAmount = Number.parseFloat(match[1]);
-        break;
-      }
-      case "free": {
-        priceText = "FREE";
-        break;
-      }
-      default:
-        priceText = match[0]?.trim() ?? "";
-    }
-
-    const candidate: ParsedPriceEvidence = {
-      priceText,
-      priceAmount,
-      regularPriceText,
-      offerText,
-      quantity,
-      unit,
-      patternId: pattern.id,
-      weight: pattern.weight,
-    };
-
-    if (!best || candidate.weight > best.weight) {
-      best = candidate;
-    }
-  }
-
-  return best;
+  const normalized = normalizeOfertaLocalRetailPrice(text);
+  if (!normalized) return null;
+  return {
+    priceText: normalized.priceText,
+    priceAmount: normalized.priceAmount,
+    regularPriceText: "",
+    salePriceText: normalized.salePriceText,
+    savingsText: normalized.savingsText,
+    offerText: normalized.offerText,
+    quantity: normalized.quantity,
+    unit: normalized.unit,
+    dealType: normalized.dealType,
+    patternId: normalized.patternId,
+    weight: normalized.weight,
+    priceRepaired: normalized.priceRepaired,
+  };
 }
 
 export function extractSizeUnitSnippet(text: string): string {
-  const match = text.match(SIZE_UNIT_RE);
+  const sizeRe = new RegExp(SIZE_UNIT_RE.source, "gi");
+  const matches = [...text.matchAll(sizeRe)];
+  if (!matches.length) return "";
+  return matches.map((m) => m[1]?.trim()).filter(Boolean).join(" · ");
+}
+
+export function extractQuantitySnippet(text: string): string {
+  const match = text.match(QUANTITY_PACK_RE);
   return match?.[1]?.trim() ?? "";
+}
+
+export function isPackageFinePrint(text: string): boolean {
+  const raw = text.trim();
+  if (!raw) return false;
+  if (lineHasPriceEvidence(raw)) return false;
+  for (const re of OFERTAS_LOCALES_AI_PACKAGE_FINE_PRINT) {
+    if (re.test(raw)) return true;
+  }
+  if (raw.length < 20) return false;
+  const digitRatio = (raw.match(/\d/g)?.length ?? 0) / Math.max(raw.length, 1);
+  const symbolRatio = (raw.match(/[^a-zA-Z0-9\sáéíóúñ]/g)?.length ?? 0) / Math.max(raw.length, 1);
+  if (digitRatio > 0.35 && symbolRatio > 0.12) return true;
+  if (/^[A-Z0-9\s\-().,/]{12,}$/.test(raw) && !GROCERY_PRODUCT_TERMS.test(raw)) return true;
+  if (/\b\d+\s+[A-Z]{4,}\b/.test(raw) && /\(\s*\d+\s*g\s*\)/i.test(raw)) return true;
+  return false;
+}
+
+const SPANISH_AD_HEADLINE_RE =
+  /\b(secos|botanas|queso|tortillas?|tostadas?|bebidas|conos|paletas|ma[ií]z|fresco|carne|polino|res|agua|limpiador)\b/i;
+
+const ENGLISH_SUBTITLE_RE =
+  /\b(select varieties|pods|with|flavor|flavors|assorted|description|size)\b/i;
+
+export function scoreProductNameLine(text: string): number {
+  const raw = text.trim();
+  if (!raw || isJunkOcrLine(raw) || isPackageFinePrint(raw) || isBrandOnlyName(raw)) return -1;
+
+  let score = 0.2;
+  const words = raw.split(/\s+/).filter(Boolean);
+  if (words.length >= 2 && words.length <= 8) score += 0.25;
+  if (GROCERY_PRODUCT_TERMS.test(raw)) score += 0.25;
+  if (SPANISH_AD_HEADLINE_RE.test(raw)) score += 0.15;
+  if (/[a-záéíóúñ]/.test(raw) && /[A-ZÁÉÍÓÚÑ]/.test(raw)) score += 0.08;
+  if (extractSizeUnitSnippet(raw)) score += 0.05;
+  if (words.length >= 4 && (raw.match(/,/g)?.length ?? 0) <= 1) score += 0.08;
+  if (lineHasPriceEvidence(raw)) score -= 0.35;
+  if (raw.length > 90) score -= 0.2;
+  if (words.length === 1) score -= 0.25;
+  if (/^[\d\s\-().,/]+$/.test(raw)) score -= 0.5;
+  if (/(\b\w+\b)(?:\s*-\s*\1\b)/i.test(raw)) score -= 0.15;
+  if (ENGLISH_SUBTITLE_RE.test(raw)) score -= 0.18;
+  if ((raw.match(/,/g)?.length ?? 0) >= 2) score -= 0.12;
+  if (/^[A-Za-z\s]+,\s*\d/.test(raw)) score -= 0.1;
+  return score;
+}
+
+export function splitProductLabelAndSize(text: string): {
+  itemName: string;
+  description: string;
+  unit: string;
+  quantity: string;
+} {
+  let working = text.trim().replace(/\s+/g, " ");
+  const sizes: string[] = [];
+  let match: RegExpExecArray | null;
+  const sizeRe = new RegExp(SIZE_UNIT_RE.source, "gi");
+  while ((match = sizeRe.exec(working)) !== null) {
+    if (match[1]) sizes.push(match[1].trim());
+  }
+
+  working = working
+    .replace(/\s*[-–,|]\s*\d+(?:\.\d+)?\s*(?:oz|lb|lbs|ct|pk|pack|ml|l|g|kg|gal|fl\.?\s*oz|count|botellas?|bottles?).*$/i, "")
+    .replace(/\(\s*\d+(?:\.\d+)?\s*g\s*\)/gi, "")
+    .replace(/\bNET\s*WT\b.*$/i, "")
+    .replace(/\bCAUTION\b.*$/i, "")
+    .trim();
+
+  working = working.replace(/^\d+\s+/, "").trim();
+
+  const quantity = extractQuantitySnippet(text);
+  const unit = sizes[0] ?? extractSizeUnitSnippet(text);
+  const description = [...new Set(sizes)].join(" · ").slice(0, 240);
+
+  return {
+    itemName: working.slice(0, 160),
+    description,
+    unit,
+    quantity,
+  };
+}
+
+export function pickBestProductLabel(lines: string[]): {
+  itemName: string;
+  description: string;
+  unit: string;
+  quantity: string;
+  supportingLines: string[];
+} {
+  const scored = lines
+    .map((text, index) => ({ text: text.trim(), index, score: scoreProductNameLine(text) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (!scored.length) {
+    return { itemName: "", description: "", unit: "", quantity: "", supportingLines: [] };
+  }
+
+  const primary = scored[0].text;
+  const split = splitProductLabelAndSize(primary);
+  const supporting = scored.slice(1, 3).map((s) => s.text).filter((t) => !isPackageFinePrint(t));
+
+  const extraSizes = supporting.flatMap((t) => extractSizeUnitSnippet(t).split(" · ").filter(Boolean));
+  const descriptionParts = [split.description, ...extraSizes, ...supporting.filter((t) => t !== primary)]
+    .filter(Boolean);
+  const description = [...new Set(descriptionParts)].join(" · ").slice(0, 240);
+  const unit = split.unit || extraSizes[0] || extractSizeUnitSnippet(supporting.join(" "));
+
+  return {
+    itemName: split.itemName,
+    description,
+    unit,
+    quantity: split.quantity || extractQuantitySnippet(supporting.join(" ")),
+    supportingLines: [primary, ...supporting],
+  };
 }
 
 export function isJunkOcrLine(text: string): boolean {
@@ -251,6 +329,7 @@ export function isJunkOcrLine(text: string): boolean {
   for (const fragment of OFERTAS_LOCALES_AI_JUNK_CONTAINS) {
     if (key.includes(normalizeAiTextKey(fragment))) return true;
   }
+  if (isPackageFinePrint(raw)) return true;
 
   return false;
 }
@@ -283,22 +362,26 @@ export function scoreProductCandidate(params: {
   quantity: string;
   contextLineCount: number;
   ocrConfidence: number | null;
+  priceRepaired?: boolean;
 }): number {
-  let score = 0.35;
+  let score = 0.3;
 
-  if (params.priceText) score += 0.25 * Math.min(1, params.priceWeight);
-  if (params.itemName.length >= 12) score += 0.12;
-  if (params.description || params.unit) score += 0.08;
+  if (params.priceText) score += 0.28 * Math.min(1, params.priceWeight);
+  if (params.priceRepaired) score += 0.04;
+  if (params.itemName.length >= 10) score += 0.14;
+  if (params.description || params.unit) score += 0.1;
   if (params.quantity) score += 0.05;
   if (params.contextLineCount >= 2) score += 0.05;
-  if (params.ocrConfidence != null) score += Math.min(0.15, params.ocrConfidence * 0.15);
+  if (params.ocrConfidence != null) score += Math.min(0.12, params.ocrConfidence * 0.12);
+  if (GROCERY_PRODUCT_TERMS.test(`${params.itemName} ${params.description}`)) score += 0.08;
 
   const nameKey = normalizeAiTextKey(params.itemName);
-  if (nameKey.length < 8) score -= 0.15;
-  if (nameKey === nameKey.toUpperCase() && nameKey.split(" ").length <= 2) score -= 0.1;
-  if (!params.priceText) score -= 0.35;
-  if (isBrandOnlyName(params.itemName)) score -= 0.4;
-  if (isJunkOcrLine(params.itemName)) score -= 0.5;
+  if (nameKey.length < 8) score -= 0.2;
+  if (nameKey === nameKey.toUpperCase() && nameKey.split(" ").length <= 2) score -= 0.12;
+  if (!params.priceText) score -= 0.4;
+  if (isBrandOnlyName(params.itemName)) score -= 0.45;
+  if (isJunkOcrLine(params.itemName)) score -= 0.55;
+  if (isPackageFinePrint(params.itemName)) score -= 0.6;
 
   return Math.max(0, Math.min(1, score));
 }
@@ -337,7 +420,12 @@ export type OfertaLocalAiExtractionDebugStats = {
   candidatesGenerated: number;
   rejectedReasonCounts: Record<string, number>;
   insertedCount: number;
+  priceRepairsApplied: number;
+  duplicateRemovals: number;
+  averageConfidence: number | null;
 };
+
+export const OFERTAS_LOCALES_AI_MIN_INSERT_CONFIDENCE = 0.48;
 
 export function logOfertaLocalAiExtraction(phase: string, payload: Record<string, unknown>): void {
   console.info(`[ofertas-locales ai] ${phase}`, payload);

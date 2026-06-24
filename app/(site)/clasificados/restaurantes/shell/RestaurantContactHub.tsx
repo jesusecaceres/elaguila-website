@@ -121,7 +121,7 @@ function CopyChip({ value }: { value: string }) {
 
 function hubButtonToCtaType(
   action: RestaurantHubButton["action"],
-): "phone" | "whatsapp" | "email" | "website" | "directions" | "order" | "reserve" | "message" | "general" {
+): "phone" | "whatsapp" | "email" | "website" | "directions" | "order" | "reserve" | "menu" | "review" | "message" | "general" {
   switch (action) {
     case "call":
       return "phone";
@@ -134,15 +134,24 @@ function hubButtonToCtaType(
     case "directions":
       return "directions";
     case "website":
-    case "menu":
       return "website";
+    case "menu":
+      return "menu";
     case "order":
       return "order";
     case "booking":
       return "reserve";
+    case "review":
+      return "review";
     default:
       return "general";
   }
+}
+
+function reviewProviderFromButtonId(id: string): string | undefined {
+  if (id === "google-reviews") return "google";
+  if (id === "yelp") return "yelp";
+  return undefined;
 }
 
 const COMPACT_CTA =
@@ -194,11 +203,14 @@ export function RestaurantContactHub({
     source: "contact_hub",
   });
 
-  const emitCtaAnalytics = (btn: RestaurantHubButton) => {
+  const emitCtaAnalytics = (btn: RestaurantHubButton, extra?: Record<string, unknown>) => {
     if (!(listingSourceId ?? "").trim()) return;
-    trackRestaurantesListingCta(hubButtonToCtaType(btn.action), {
+    const ctaType = hubButtonToCtaType(btn.action);
+    trackRestaurantesListingCta(ctaType, {
       ...analyticsBase,
       hubButtonId: btn.id,
+      ...(ctaType === "review" ? { provider: reviewProviderFromButtonId(btn.id) } : {}),
+      ...(extra ?? {}),
     });
   };
 
@@ -262,9 +274,13 @@ export function RestaurantContactHub({
     window.open(href, "_blank", "noopener,noreferrer");
   };
 
-  const openSocial = (url: string, e?: React.MouseEvent) => {
+  const openSocial = (socialId: string, url: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    emitCtaAnalytics({ id: "social", label: "", href: url, action: "social" });
+    const platform = restaurantSocialIdToPlatform(socialId);
+    emitCtaAnalytics(
+      { id: socialId, label: "", href: url, action: "social" },
+      platform ? { platform } : undefined,
+    );
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -515,7 +531,7 @@ export function RestaurantContactHub({
                       <button
                         key={s.id}
                         type="button"
-                        onClick={(e) => openSocial(s.url, e)}
+                        onClick={(e) => openSocial(s.id, s.url, e)}
                         className={RCH_SOCIAL_CHIP}
                         style={{
                           background: brand.background,

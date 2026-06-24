@@ -18,6 +18,10 @@ import { RestauranteProfileHeader } from "./RestauranteProfileHeader";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRestauranteShellTranslation } from "@/app/clasificados/restaurantes/lib/useRestauranteShellTranslation";
+import {
+  restaurantesAnalyticsTrackMeta,
+  trackRestaurantesListingCta,
+} from "@/app/clasificados/restaurantes/lib/restaurantesCtaTracking";
 
 // Leonix premium visual tokens
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -159,11 +163,24 @@ export function RestauranteAdStoryPreview({
       row.label.includes("cotización");
     const actionableUrl = isClickableField ? normalizeActionableUrl(row.value) : null;
     if (actionableUrl) {
+      const trackStackCta = () => {
+        if (!sourceId) return;
+        trackRestaurantesListingCta("general", {
+          ...restaurantesAnalyticsTrackMeta({
+            listingSlug,
+            sourceId,
+            engagementListingId: listingKeyResolved,
+            source: "stack_section",
+            extra: { stackLabel: row.label, cta: "catering_quote_click" },
+          }),
+        });
+      };
       return (
         <a
           href={actionableUrl}
           target={row.value.startsWith("http") ? "_blank" : undefined}
           rel={row.value.startsWith("http") ? "noopener noreferrer" : undefined}
+          onClick={trackStackCta}
           className="break-words text-[color:var(--lx-olive)] underline decoration-[color:var(--lx-border)] underline-offset-2 transition-colors hover:text-[color:var(--lx-text)] hover:decoration-[color:var(--lx-border)]"
         >
           {row.value}

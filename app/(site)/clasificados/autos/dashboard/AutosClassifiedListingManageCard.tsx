@@ -83,7 +83,7 @@ export function AutosClassifiedListingManageCard({
           shares: "Compartidos",
           prof: "Perfil",
           perf: "Rendimiento",
-          insights: "Misma métrica que en En Venta: vistas, guardados, compartidos y mensajes.",
+          insights: "Vistas y compartidos registrados en analíticas de Leonix.",
           ctaFuture: "CTA (próx.)",
           wa: "WA",
           web: "Web",
@@ -104,7 +104,7 @@ export function AutosClassifiedListingManageCard({
           shares: "Shares",
           prof: "Profile",
           perf: "Performance",
-          insights: "Same metrics as En Venta: views, saves, shares, and messages.",
+          insights: "Views and shares recorded in Leonix analytics.",
           ctaFuture: "CTAs (soon)",
           wa: "WA",
           web: "Web",
@@ -173,34 +173,9 @@ export function AutosClassifiedListingManageCard({
                 {L.views}: {v}
               </span>
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
-                {L.msg}: {analytics.messages}
-              </span>
-              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
-                {L.saves}: {analytics.saves}
-              </span>
-              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
                 {L.shares}: {analytics.shares}
               </span>
-              <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
-                {L.uniq}: {analytics.uniqueViews}
-              </span>
-              <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
-                {L.prof}: {analytics.profileClicks}
-              </span>
             </div>
-          </div>
-
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]/85">{L.ctaFuture}</p>
-          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-[#5C5346]/95">
-            <span className="rounded-md border border-[#E8DFD0]/80 bg-white/80 px-2 py-0.5">
-              {L.wa}: {analytics.whatsappClicks ?? 0}
-            </span>
-            <span className="rounded-md border border-[#E8DFD0]/80 bg-white/80 px-2 py-0.5">
-              {L.web}: {analytics.websiteClicks ?? 0}
-            </span>
-            <span className="rounded-md border border-[#E8DFD0]/80 bg-white/80 px-2 py-0.5">
-              {L.cita}: {analytics.appointmentClicks ?? 0}
-            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

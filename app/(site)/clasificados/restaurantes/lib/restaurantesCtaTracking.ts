@@ -40,9 +40,40 @@ export type RestaurantesCtaType =
   | "order"
   | "reserve"
   | "menu"
+  | "social"
+  | "review"
   | "message"
   | "contact"
   | "general";
+
+const CTA_CLICK_KINDS = new Set<RestaurantesCtaType>([
+  "order",
+  "reserve",
+  "menu",
+  "social",
+  "review",
+  "general",
+]);
+
+function metadataForRestaurantesCta(
+  ctaType: RestaurantesCtaType,
+  slug: string,
+  meta?: RestaurantesAnalyticsTrackMeta,
+): Record<string, unknown> {
+  const base = {
+    contact_method: ctaType,
+    restaurantesCtaType: ctaType,
+    ...restaurantesListingAnalyticsMetadata(slug, meta),
+    ...(meta ?? {}),
+  };
+  if (!CTA_CLICK_KINDS.has(ctaType)) return base;
+  const ctaKey =
+    typeof meta?.cta === "string" && meta.cta.trim() ? meta.cta.trim() : `${ctaType}_click`;
+  return {
+    ...base,
+    cta: ctaKey,
+  };
+}
 
 /**
  * Restaurant contact / shell CTA — global /api/analytics/events only (REST1).
@@ -58,12 +89,7 @@ export function trackRestaurantesListingCta(
   const slug = (meta?.listingSlug ?? "").trim();
   recordRestaurantesGlobalAnalyticsEvent(listing, globalType, {
     event_source: eventSourceForMeta(meta),
-    metadata: {
-      contact_method: ctaType,
-      restaurantesCtaType: ctaType,
-      ...restaurantesListingAnalyticsMetadata(slug, meta),
-      ...(meta ?? {}),
-    },
+    metadata: metadataForRestaurantesCta(ctaType, slug, meta),
   });
 }
 

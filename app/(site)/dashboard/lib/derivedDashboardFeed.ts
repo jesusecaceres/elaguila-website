@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingRepublishVisibilityWindowEndIso } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { fetchDashboardAnalyticsSummary } from "@/app/(site)/dashboard/lib/fetchDashboardAnalyticsApi";
+import { DASHBOARD_INTERNAL_INBOX_READY } from "@/app/(site)/dashboard/lib/dashboardProductTruth";
 
 export type DerivedFeedKind =
   | "expire_visibility"
@@ -100,7 +101,7 @@ export async function fetchDerivedDashboardFeed(
     /* ignore */
   }
 
-  if (unreadInbox > 0) {
+  if (DASHBOARD_INTERNAL_INBOX_READY && unreadInbox > 0) {
     items.push({
       id: "inbox-unread",
       kind: "inbox",
