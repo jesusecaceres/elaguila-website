@@ -102,7 +102,7 @@ export function EnVentaResultsListingSections({
           </div>
         ) : null}
 
-        <div className="mb-2 flex flex-col gap-1.5 border-b border-[#E8DFD0]/80 pb-2 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3 sm:pb-4">
+        <div className="mb-2 flex flex-col gap-1 border-b border-[#E8DFD0]/80 pb-2 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3 sm:pb-4">
           <div className="min-w-0">
             {!featuredOnly ? (
               <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-[#7A7164] sm:block">{t.latest}</p>

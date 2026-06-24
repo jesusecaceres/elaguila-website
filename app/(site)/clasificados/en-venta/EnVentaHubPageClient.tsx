@@ -296,9 +296,9 @@ export function EnVentaHubPageClient({
         aria-hidden
       />
 
-      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-1 sm:px-6 sm:pb-20 sm:pt-5 md:px-6 lg:px-10 lg:pt-6 xl:px-14">
+      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-6 sm:pb-20 sm:pt-3 md:px-6 lg:px-10 lg:pt-4 xl:px-14">
         <div
-          className="max-sm:[&>div]:space-y-2 max-sm:[&_section]:rounded-lg max-sm:[&_section>div]:gap-1.5 max-sm:[&_section>div]:px-2.5 max-sm:[&_section>div]:py-2 max-sm:[&_section_span.inline-flex.h-14]:hidden max-sm:[&_section>div>div>p:first-child]:hidden max-sm:[&_section_h1]:mt-0 max-sm:[&_section_h1]:text-lg max-sm:[&_section_p.max-w-2xl]:hidden max-sm:[&_section_div.mt-4]:mt-2 max-sm:[&_section_div.mt-4>div.mt-3]:hidden"
+          className="max-sm:[&>div]:space-y-1 max-sm:[&_section]:rounded-lg max-sm:[&_section]:border-0 max-sm:[&_section]:bg-transparent max-sm:[&_section]:shadow-none max-sm:[&_section>div]:gap-1 max-sm:[&_section>div]:px-2 max-sm:[&_section>div]:py-1.5 max-sm:[&_section_span.inline-flex.h-14]:hidden max-sm:[&_section>div>div>p:first-child]:hidden max-sm:[&_section_h1]:mt-0 max-sm:[&_section_h1]:text-lg max-sm:[&_section_p.max-w-2xl]:hidden max-sm:[&_section_div.mt-4]:mt-1.5 max-sm:[&_section_div.mt-4>div.mt-3]:hidden"
         >
         <CategoryStandardLandingBlock
           category="en-venta"

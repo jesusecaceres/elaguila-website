@@ -668,8 +668,8 @@ export function EnVentaResultsClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-1 sm:px-6 sm:pt-6 lg:px-8">
-        <header className="space-y-0 border-b border-[#D6C7AD]/50 pb-1.5 sm:space-y-1 sm:pb-3">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-0 sm:px-6 sm:pt-4 lg:px-8">
+        <header className="space-y-0 border-b border-[#D6C7AD]/50 pb-1 sm:space-y-1 sm:pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
             className="inline-flex text-[11px] font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
@@ -691,7 +691,7 @@ export function EnVentaResultsClient() {
           id="ev-results-form"
           onSubmit={onSubmitSearch}
           role="search"
-          className="mt-1.5 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-1 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:mt-3 sm:p-3"
+          className="mt-1 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-1 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:mt-2 sm:p-3"
         >
           <input type="hidden" name="lang" value={lang} />
           <input type="hidden" name="view" value={view} readOnly />
@@ -887,7 +887,7 @@ export function EnVentaResultsClient() {
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
-          <div className="mt-1.5 w-full sm:mt-5">
+          <div className="mt-1 w-full sm:mt-4">
             <EnVentaResultsListingSections
               lang={lang}
               featuredOnly={featuredOnly}

@@ -13,5 +13,9 @@ export default async function EnVentaHubPage(props: { searchParams?: Promise<{ l
     getMergedEnVentaHubLanding(copyLang),
     fetchEnVentaPublicListingsForBrowse(),
   ]);
-  return <EnVentaHubPageClient hub={hub} initialLiveListings={initialLiveListings} />;
+  return (
+    <div className="pt-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:pt-0">
+      <EnVentaHubPageClient hub={hub} initialLiveListings={initialLiveListings} />
+    </div>
+  );
 }
