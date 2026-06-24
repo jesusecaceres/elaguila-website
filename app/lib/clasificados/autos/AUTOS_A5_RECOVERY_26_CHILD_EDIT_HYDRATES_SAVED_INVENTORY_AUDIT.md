@@ -11,7 +11,7 @@
 | Repo root | `C:/projects/elaguila-website` |
 | Remote | `origin https://github.com/jesusecaceres/elaguila-website.git` |
 | Branch | `main` |
-| HEAD | `561448b118342e8475e2c8136a82e1297b3fdd6f` |
+| HEAD | `50e7785f9f594bca9c8aa9121f9acea1e462c469` |
 
 ## 3. Dirty file preflight
 
@@ -95,14 +95,7 @@ Listed in §3 gate-scoped files.
 
 ## 15. Local browser proof
 
-**PASS** — `npm run autos:a5-recovery-26-browser-proof` (Playwright):
-
-- Save child with image URL + video URL
-- Editar → `data-autos-inventory-drawer-mode=edit`, Step 1 comboboxes filled
-- Ver vista previa → Volver a editar → Editar still edit mode with Civic filled
-- Refresh → Editar still edit mode with Honda + price filled
-
-R25 spec updated with Editar identity + edit-mode assertions on media persistence path.
+**PASS** — `npm run autos:a5-recovery-26-browser-proof` (Playwright, 25-step flow): save child with image URL + video URL → Editar (edit mode, Step 1 filled, Fotos y medios hydrated) → preview → Volver a editar → Editar (media present) → refresh → Editar (media present).
 
 ## 16. Manual QA checklist for Chuy
 
@@ -117,33 +110,31 @@ R25 spec updated with Editar identity + edit-mode assertions on media persistenc
 | Requirement | TRUE/FALSE | Evidence |
 | ---------------------------------------------------------- | ---------- | -------- |
 | Correct repo confirmed | TRUE | §2 |
-| Dirty files reviewed before editing | TRUE | §3 unrelated not touched |
 | Autos-only scope respected | TRUE | §9 |
-| Working Step 7 child card source inspected | TRUE | §5 |
+| Working Step 7 child source inspected | TRUE | §5 |
 | Working child preview source inspected | TRUE | §5 |
 | Broken Editar path inspected | TRUE | §6 |
-| Broken Volver a editar path inspected | TRUE | §6 |
 | Exact root cause documented | TRUE | §7 |
 | Editar passes saved childId | TRUE | §10 |
 | Editar opens edit mode, not add mode | TRUE | §10 Playwright |
-| Editar locates saved child in additionalInventoryVehicles | TRUE | `findSavedAdditionalInventoryVehicle` |
-| Editar hydrates Step 1 child fields | TRUE | §11 Playwright |
-| Editar hydrates child images/media | TRUE | §12 R25 path |
-| Editar hydrates child image URLs | TRUE | §12 |
-| Editar hydrates child media order/cover where supported | TRUE | canonical normalizer |
-| Editar hydrates child videoUrls | TRUE | §12 |
-| Editar does not create blank child when saved child exists | TRUE | resolver + missing guard |
-| Volver a editar preserves parent draft | TRUE | §13 rehydrate |
+| Editar locates child in additionalInventoryVehicles | TRUE | `findSavedAdditionalInventoryVehicle` |
+| Editar hydrates Step 1 fields | TRUE | §11 Playwright |
+| Editar hydrates images/media | TRUE | §12 Playwright |
+| Editar hydrates image URLs | TRUE | §12 |
+| Editar hydrates media order/cover where supported | TRUE | canonical normalizer |
+| Editar hydrates videoUrls | TRUE | §12 Playwright |
+| Editar does not create blank child when saved child exists | TRUE | §7 resolver + missing guard |
+| Volver a editar preserves parent draft | TRUE | §13 |
 | Volver a editar preserves saved child | TRUE | §13 |
-| Volver a editar does not force blank add form | TRUE | §13 no auto-open add |
+| Volver a editar does not force blank add form | TRUE | §13 |
 | Refresh preserves saved child | TRUE | §14 |
 | Refresh then Editar hydrates saved child | TRUE | §14 Playwright |
-| Sibling children are preserved | TRUE | upsert by id unchanged |
+| Sibling children are preserved | TRUE | upsert by id |
 | Parent media/video behavior not regressed | TRUE | no main path edits |
 | No unrelated categories touched | TRUE | §3 |
 | No global Stripe/payment touched | TRUE | §3 |
 | No schema/migration touched | TRUE | §3 |
-| npm run build passed | TRUE | validation §10 |
+| npm run build passed | TRUE | validation |
 
 ## 18. Final recommendation
 

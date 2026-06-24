@@ -34,6 +34,17 @@ async function seedSupabaseSession(args: {
     },
     [storageKey, persisted] as const,
   );
+  await args.page.goto("/");
+  await args.page.evaluate(
+    ({ k, v }) => {
+      try {
+        localStorage.setItem(k, v);
+      } catch {
+        /* ignore */
+      }
+    },
+    { k: storageKey, v: persisted },
+  );
 }
 
 async function dismissConsentIfPresent(page: import("@playwright/test").Page) {
@@ -45,6 +56,20 @@ async function dismissConsentIfPresent(page: import("@playwright/test").Page) {
 
 function inventoryDrawer(page: import("@playwright/test").Page) {
   return page.getByRole("dialog", { name: /Agregar vehículo al inventario|Editar vehículo adicional/i });
+}
+
+async function goToChildMediaStep(drawer: import("@playwright/test").Locator) {
+  for (let i = 0; i < 3; i++) {
+    await drawer.getByRole("button", { name: "Siguiente" }).click();
+  }
+  await expect(drawer.locator("#autos-inventory-child-media")).toBeVisible({ timeout: 30_000 });
+}
+
+async function assertEditorMediaPresent(drawer: import("@playwright/test").Locator) {
+  const media = drawer.locator("#autos-inventory-child-media");
+  await expect(media).toHaveAttribute("data-autos-editor-media-count", /[1-9]/);
+  await expect(media).toHaveAttribute("data-autos-editor-video-count", /[1-9]/);
+  await expect(drawer.getByText("Aún no hay fotos en el borrador")).toHaveCount(0);
 }
 
 test.describe("A5.RECOVERY-26 child edit hydrates saved inventory", () => {
@@ -90,6 +115,7 @@ test.describe("A5.RECOVERY-26 child edit hydrates saved inventory", () => {
     await childCb.nth(2).selectOption("Civic");
     await drawer.getByLabel("Precio (USD)").fill("18000");
     for (let i = 0; i < 3; i++) {
+      await expect(drawer.getByRole("button", { name: "Siguiente" })).toBeEnabled({ timeout: 15_000 });
       await drawer.getByRole("button", { name: "Siguiente" }).click();
     }
     const media = drawer.locator("#autos-inventory-child-media");
@@ -113,6 +139,10 @@ test.describe("A5.RECOVERY-26 child edit hydrates saved inventory", () => {
     await expect(drawer.getByRole("heading", { name: "Editar vehículo adicional" })).toBeVisible();
     await expect(drawer.getByRole("combobox").nth(0)).toHaveValue("2021");
     await expect(drawer.getByRole("combobox").nth(1)).toHaveValue("Honda");
+    await expect(drawer.getByRole("combobox").nth(2)).toHaveValue("Civic");
+    await expect(drawer.getByLabel("Precio (USD)")).toHaveValue(/18,?000|18000/);
+    await goToChildMediaStep(drawer);
+    await assertEditorMediaPresent(drawer);
     await drawer.getByRole("button", { name: "Cancelar" }).click();
     await expect(drawer).toBeHidden();
 
@@ -125,7 +155,8 @@ test.describe("A5.RECOVERY-26 child edit hydrates saved inventory", () => {
     await childCard.getByRole("button", { name: "Editar" }).click();
     await expect(drawer).toHaveAttribute("data-autos-inventory-drawer-mode", "edit");
     await expect(drawer.getByRole("combobox").nth(2)).toHaveValue("Civic");
-
+    await goToChildMediaStep(drawer);
+    await assertEditorMediaPresent(drawer);
     await drawer.getByRole("button", { name: "Cancelar" }).click();
     await page.reload();
     await dismissConsentIfPresent(page);
@@ -136,5 +167,7 @@ test.describe("A5.RECOVERY-26 child edit hydrates saved inventory", () => {
     await expect(drawer).toHaveAttribute("data-autos-inventory-drawer-mode", "edit");
     await expect(drawer.getByRole("combobox").nth(1)).toHaveValue("Honda");
     await expect(drawer.getByLabel("Precio (USD)")).toHaveValue(/18,?000|18000/);
+    await goToChildMediaStep(drawer);
+    await assertEditorMediaPresent(drawer);
   });
 });
