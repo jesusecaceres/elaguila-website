@@ -8,6 +8,7 @@ import {
   buildOfertasLocalesScanPrepUpdateRow,
   OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS,
   pickScanPrepSubmittedAt,
+  readExistingDraftSnapshotFromRow,
   sanitizeSupabaseWriteError,
 } from "@/app/lib/ofertas-locales/ofertasLocalesProductionRowAdapter";
 import {
@@ -155,7 +156,7 @@ export async function POST(req: NextRequest) {
   if (existingId) {
     const { data: existing, error: fetchError } = await supabase
       .from("ofertas_locales")
-      .select("id, owner_id, status")
+      .select("id, owner_id, status, draft_snapshot")
       .eq("id", existingId)
       .maybeSingle();
 
@@ -204,7 +205,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "edit_not_allowed" }, { status: 403 });
     }
 
-    const updatePayload = buildOfertasLocalesScanPrepUpdateRow(draft, ownerId);
+    const updatePayload = buildOfertasLocalesScanPrepUpdateRow(
+      draft,
+      ownerId,
+      readExistingDraftSnapshotFromRow(existing)
+    );
     const { data, error } = await supabase
       .from("ofertas_locales")
       .update(updatePayload)

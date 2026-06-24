@@ -26,6 +26,11 @@ import type {
   OfertaLocalPublishStatus,
 } from "./ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "./useOfertasLocalesAppLang";
+import {
+  OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT,
+  parseOfertaLocalDraftSnapshot,
+  readDraftSnapshotMembershipFields,
+} from "./ofertasLocalesDbSchema";
 
 const INTERNAL_METADATA_PREFIX = "[ofertas_locales_metadata]";
 const PUBLIC_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set(["approved"]);
@@ -59,11 +64,11 @@ export type OfertaLocalPublicSearchParentRow = {
   valid_until: string;
   membership_url: string | null;
   membership_note: string | null;
-  requires_membership_for_deals: boolean;
   digital_coupon_url: string | null;
   digital_coupon_note: string | null;
   flyer_assets: unknown;
   coupon_assets: unknown;
+  draft_snapshot: unknown;
   internal_notes: string | null;
 };
 
@@ -198,6 +203,7 @@ export function mapOfertaLocalPublicSearchRowToItem(
   lang: OfertasLocalesAppLang = "es"
 ): OfertaLocalPublicSearchItem {
   const parent = row.ofertas_locales;
+  const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(parent.draft_snapshot));
   const source = resolveOfertaLocalPublicSourceAsset(row, parent);
   const itemFrom = row.valid_from?.trim() || parent.valid_from;
   const itemUntil = row.valid_until?.trim() || parent.valid_until;
@@ -252,7 +258,7 @@ export function mapOfertaLocalPublicSearchRowToItem(
     directionsHref,
     membershipUrl: safePublicHref(parent.membership_url),
     membershipNote: sanitizePublicText(parent.membership_note, 300),
-    requiresMembership: Boolean(parent.requires_membership_for_deals),
+    requiresMembership: snapshotFields.requiresMembershipForDeals,
     digitalCouponUrl: safePublicHref(parent.digital_coupon_url),
     digitalCouponNote: sanitizePublicText(parent.digital_coupon_note, 300),
     offerType: sanitizePublicText(parent.offer_type, 64),

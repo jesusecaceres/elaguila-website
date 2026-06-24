@@ -620,6 +620,27 @@ export function isAdditionalLanguageActive(lang: SupportedLang): boolean {
   return (ADDITIONAL_LANGUAGES as readonly SupportedLang[]).includes(lang);
 }
 
+export type PublicTrackingParams = {
+  lang: SupportedLang;
+  sourcePage?: string;
+  sourceCta?: string;
+  service?: string;
+  inquiryType?: string;
+  source?: string;
+  id?: string;
+  category?: string;
+  returnTo?: string;
+};
+
+/** Set lang + optional tracking params on internal hrefs; preserves existing query + hash. */
+export function withPublicLangAndTracking(
+  href: string,
+  params: PublicTrackingParams,
+): string {
+  const { lang, ...extra } = params;
+  return withLang(href, lang, extra);
+}
+
 /** Public language persistence — URL wins, then cookie, then localStorage. */
 export const LEONIX_LANG_COOKIE = "leonix_lang";
 export const LEONIX_LANG_STORAGE_KEY = "leonix_lang";

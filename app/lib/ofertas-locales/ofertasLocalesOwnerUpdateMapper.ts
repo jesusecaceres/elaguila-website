@@ -4,6 +4,12 @@
 
 import type { OfertaLocalAdminRow } from "./ofertasLocalesAdminHelpers";
 import {
+  filterToOfertasLocalesProductionColumns,
+  mergeOfertaLocalDraftSnapshot,
+  parseOfertaLocalDraftSnapshot,
+  readDraftSnapshotMembershipFields,
+} from "./ofertasLocalesDbSchema";
+import {
   normalizeOfertaLocalPhoneInput,
   normalizeOfertaLocalUrlInput,
   normalizeOfertaLocalZipInput,
@@ -160,6 +166,7 @@ export function buildOfertaLocalOwnerUpdatePayload(
     }
   }
   const existingSocial = (parsedMeta.socialLinks ?? {}) as Record<string, string>;
+  const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot));
 
   const wantsFeatured =
     input.wantsFeaturedPlacement !== undefined
@@ -168,28 +175,38 @@ export function buildOfertaLocalOwnerUpdatePayload(
   const featuredScope =
     input.featuredPlacementScope !== undefined
       ? String(input.featuredPlacementScope)
-      : String(parsedMeta.featuredPlacementScope ?? "none");
+      : String(row.featured_placement_scope ?? parsedMeta.featuredPlacementScope ?? "none");
   const wantsAi =
     input.wantsAiSearchableSpecials !== undefined
       ? Boolean(input.wantsAiSearchableSpecials)
-      : Boolean(parsedMeta.wantsAiSearchableSpecials);
+      : Boolean(row.wants_ai_searchable_specials ?? parsedMeta.wantsAiSearchableSpecials);
 
   const internalInput: OfertaLocalOwnerUpdateInput = {
-    facebookUrl: input.facebookUrl ?? existingSocial.facebookUrl ?? "",
-    instagramUrl: input.instagramUrl ?? existingSocial.instagramUrl ?? "",
-    tiktokUrl: input.tiktokUrl ?? existingSocial.tiktokUrl ?? "",
-    youtubeUrl: input.youtubeUrl ?? existingSocial.youtubeUrl ?? "",
-    googleBusinessUrl: input.googleBusinessUrl ?? existingSocial.googleBusinessUrl ?? "",
-    googleReviewUrl: input.googleReviewUrl ?? existingSocial.googleReviewUrl ?? "",
-    yelpUrl: input.yelpUrl ?? existingSocial.yelpUrl ?? "",
+    facebookUrl: input.facebookUrl ?? existingSocial.facebookUrl ?? row.facebook_url ?? "",
+    instagramUrl: input.instagramUrl ?? existingSocial.instagramUrl ?? row.instagram_url ?? "",
+    tiktokUrl: input.tiktokUrl ?? existingSocial.tiktokUrl ?? row.tiktok_url ?? "",
+    youtubeUrl: input.youtubeUrl ?? existingSocial.youtubeUrl ?? row.youtube_url ?? "",
+    googleBusinessUrl: input.googleBusinessUrl ?? existingSocial.googleBusinessUrl ?? row.google_business_url ?? "",
+    googleReviewUrl: input.googleReviewUrl ?? existingSocial.googleReviewUrl ?? row.google_review_url ?? "",
+    yelpUrl: input.yelpUrl ?? existingSocial.yelpUrl ?? row.yelp_url ?? "",
     wantsAiSearchableSpecials: wantsAi,
     wantsFeaturedPlacement: wantsFeatured,
     featuredPlacementScope: featuredScope,
   };
 
   const now = new Date().toISOString();
+  const draftSnapshot = mergeOfertaLocalDraftSnapshot(row.draft_snapshot, {
+    membershipCtaLabel:
+      input.membershipCtaLabel !== undefined
+        ? sanitizeText(input.membershipCtaLabel, 80)
+        : snapshotFields.membershipCtaLabel,
+    requiresMembershipForDeals:
+      input.requiresMembershipForDeals !== undefined
+        ? Boolean(input.requiresMembershipForDeals)
+        : snapshotFields.requiresMembershipForDeals,
+  });
 
-  return {
+  const payload: Record<string, unknown> = {
     title: input.title !== undefined ? sanitizeRequiredText(input.title) : row.title,
     description: input.description !== undefined ? sanitizeText(input.description) : row.description,
     coupon_text: input.couponText !== undefined ? sanitizeText(input.couponText) : row.coupon_text,
@@ -208,16 +225,8 @@ export function buildOfertaLocalOwnerUpdatePayload(
       input.directionsUrl !== undefined ? sanitizeOptionalUrl(input.directionsUrl) : row.directions_url,
     membership_url:
       input.membershipUrl !== undefined ? sanitizeOptionalUrl(input.membershipUrl) : row.membership_url,
-    membership_cta_label:
-      input.membershipCtaLabel !== undefined
-        ? sanitizeText(input.membershipCtaLabel, 80)
-        : row.membership_cta_label,
     membership_note:
       input.membershipNote !== undefined ? sanitizeText(input.membershipNote) : row.membership_note,
-    requires_membership_for_deals:
-      input.requiresMembershipForDeals !== undefined
-        ? Boolean(input.requiresMembershipForDeals)
-        : row.requires_membership_for_deals,
     digital_coupon_url:
       input.digitalCouponUrl !== undefined
         ? sanitizeOptionalUrl(input.digitalCouponUrl)
@@ -226,12 +235,25 @@ export function buildOfertaLocalOwnerUpdatePayload(
       input.digitalCouponNote !== undefined
         ? sanitizeText(input.digitalCouponNote)
         : row.digital_coupon_note,
+    facebook_url: sanitizeOptionalUrl(internalInput.facebookUrl),
+    instagram_url: sanitizeOptionalUrl(internalInput.instagramUrl),
+    tiktok_url: sanitizeOptionalUrl(internalInput.tiktokUrl),
+    youtube_url: sanitizeOptionalUrl(internalInput.youtubeUrl),
+    google_business_url: sanitizeOptionalUrl(internalInput.googleBusinessUrl),
+    google_review_url: sanitizeOptionalUrl(internalInput.googleReviewUrl),
+    yelp_url: sanitizeOptionalUrl(internalInput.yelpUrl),
+    wants_ai_searchable_specials: wantsAi,
+    wants_featured_placement: wantsFeatured,
+    featured_placement_scope: featuredScope !== "none" ? featuredScope : null,
     is_featured_requested: wantsFeatured,
+    draft_snapshot: draftSnapshot,
     internal_notes: buildInternalNotesForOwnerUpdate(row.internal_notes, internalInput),
     status: "pending_review",
     updated_at: now,
     submitted_at: now,
   };
+
+  return filterToOfertasLocalesProductionColumns(payload);
 }
 
 export function validateOfertaLocalOwnerUpdateInput(

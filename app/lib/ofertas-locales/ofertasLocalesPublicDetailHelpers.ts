@@ -6,6 +6,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { parseOfertaLocalAdminMetadataFromInternalNotes } from "./ofertasLocalesAdminHelpers";
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
+import {
+  OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT,
+  parseOfertaLocalDraftSnapshot,
+  readDraftSnapshotMembershipFields,
+} from "./ofertasLocalesDbSchema";
 import { isOfertaLocalExpired } from "./ofertasLocalesFormatting";
 import { buildOfertaLocalWhatsAppHref } from "./ofertasLocalesPreviewHelpers";
 import {
@@ -19,50 +24,16 @@ import type {
   OfertaLocalPublicOfferDetail,
 } from "./ofertasLocalesTypes";
 
-/** Server-only select — internal_notes parsed server-side, never returned raw. */
-export const OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT = `
-  id,
-  status,
-  offer_type,
-  business_category,
-  market_type,
-  business_name,
-  title,
-  description,
-  coupon_text,
-  flyer_title,
-  valid_from,
-  valid_until,
-  address,
-  city,
-  state,
-  zip_code,
-  phone,
-  whatsapp,
-  website_url,
-  directions_url,
-  membership_url,
-  membership_cta_label,
-  membership_note,
-  requires_membership_for_deals,
-  digital_coupon_url,
-  digital_coupon_note,
-  flyer_assets,
-  coupon_assets,
-  internal_notes,
-  submitted_at,
-  updated_at
-`;
+export { OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT } from "./ofertasLocalesDbSchema";
 
 export type OfertaLocalPublicDetailRow = OfertaLocalPublicOfferRow & {
   coupon_text: string | null;
   flyer_title: string | null;
   membership_url: string | null;
-  membership_cta_label: string | null;
   membership_note: string | null;
-  requires_membership_for_deals: boolean;
   digital_coupon_url: string | null;
   digital_coupon_note: string | null;
+  draft_snapshot: unknown;
   internal_notes: string | null;
 };
 
@@ -108,6 +79,7 @@ export function mapOfertaLocalPublicDetailRowToDetail(
   const card = mapOfertaLocalPublicOfferRowToCard(row);
   const meta = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const socialLinks = parseOfertaLocalPublishedSocialLinksFromInternalNotes(row.internal_notes);
+  const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot));
   const phone = sanitizeText(row.phone, 40);
   const whatsapp = sanitizeText(row.whatsapp, 40);
   const businessName = sanitizeText(row.business_name, 200);
@@ -121,9 +93,9 @@ export function mapOfertaLocalPublicDetailRowToDetail(
     flyerAssets: mapAssetList(row.flyer_assets, "flyer"),
     couponAssets: mapAssetList(row.coupon_assets, "coupon"),
     membershipUrl: getSafeOfertaLocalSourceAssetHref(row.membership_url),
-    membershipCtaLabel: sanitizeText(row.membership_cta_label, 80) || null,
+    membershipCtaLabel: snapshotFields.membershipCtaLabel,
     membershipNote: sanitizeText(row.membership_note, 500) || null,
-    requiresMembershipForDeals: Boolean(row.requires_membership_for_deals),
+    requiresMembershipForDeals: snapshotFields.requiresMembershipForDeals,
     digitalCouponUrl: getSafeOfertaLocalSourceAssetHref(row.digital_coupon_url),
     digitalCouponNote: sanitizeText(row.digital_coupon_note, 500) || null,
     socialLinks,

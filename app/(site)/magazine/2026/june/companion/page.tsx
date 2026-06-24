@@ -54,6 +54,11 @@ function JuneCompanionContent() {
           <p className="mt-3 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
             {copy.visualTruthNote}
           </p>
+          {copy.bodyLanguageNote ? (
+            <p className="mt-3 rounded-lg border border-[#D6C7AD]/70 bg-[#FAF6EE] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
+              {copy.bodyLanguageNote}
+            </p>
+          ) : null}
         </section>
 
         <div className="mt-5 space-y-4">

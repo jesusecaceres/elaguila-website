@@ -1,7 +1,7 @@
 import { JUNE_2026 } from "@/app/(site)/magazine/2026/june/issueContent";
-import { mediaKitPageHref, mediaKitAdvertisingContactHref } from "@/app/lib/leonix/mediaKitRoutes";
-import { translateSiteHref } from "@/app/lib/googleTranslateWebsite";
 import type { SupportedLang } from "@/app/lib/language";
+import { withPublicLangAndTracking } from "@/app/lib/language";
+import { COMPANION_CHROME_BY_LANG } from "@/app/lib/magazine/june2026CompanionChrome";
 import { magazinePrintGuideHref, translatorGatewayHref } from "@/app/lib/magazine/qrRouteHelpers";
 
 export const JUNE_2026_COMPANION_PATH = "/magazine/2026/june/companion";
@@ -29,6 +29,7 @@ export type June2026CompanionCopy = {
   issueLabel: string;
   introSummary: string;
   visualTruthNote: string;
+  bodyLanguageNote?: string;
   sections: readonly CompanionSection[];
   ctas: {
     actionsTitle: string;
@@ -248,7 +249,9 @@ export function companionCopyLang(lang: SupportedLang): CompanionCopyLang {
 }
 
 export function getJune2026CompanionCopy(lang: SupportedLang): June2026CompanionCopy {
-  return COMPANION_BY_LANG[companionCopyLang(lang)];
+  const chrome = COMPANION_CHROME_BY_LANG[lang];
+  const sections = COMPANION_BY_LANG[companionCopyLang(lang)].sections;
+  return { ...chrome, sections };
 }
 
 /** CTA label for read page → companion entry. */
@@ -282,6 +285,7 @@ export function magazineCompanionHref(
 }
 
 export function getJune2026CompanionLinks(lang: SupportedLang): June2026CompanionLinks {
+  const companionReturnTo = `${JUNE_2026_COMPANION_PATH}?lang=${lang}`;
   return {
     visualMagazineHref: magazinePrintGuideHref(lang, {
       sourcePage: "magazine_companion",
@@ -291,16 +295,22 @@ export function getJune2026CompanionLinks(lang: SupportedLang): June2026Companio
       sourcePage: "magazine_companion",
       sourceCta: "qr_guide",
     }),
-    mediaKitHref: mediaKitPageHref(lang),
-    advertiseHref: mediaKitAdvertisingContactHref(lang, {
+    mediaKitHref: withPublicLangAndTracking("/media-kit", {
+      lang,
+      sourcePage: "magazine_companion",
+      sourceCta: "media_kit",
+    }),
+    advertiseHref: withPublicLangAndTracking("/contacto", {
+      lang,
       sourcePage: "magazine_companion",
       sourceCta: "advertise",
+      inquiryType: "advertising",
     }),
-    googleTranslateHref: translateSiteHref({
+    googleTranslateHref: withPublicLangAndTracking("/translate-site", {
       lang,
       sourcePage: "magazine_companion",
       sourceCta: "google_translate",
-      returnTo: JUNE_2026_COMPANION_PATH,
+      returnTo: companionReturnTo,
     }),
     qrReadGuideHref: magazinePrintGuideHref(lang, {
       sourcePage: "magazine_companion",

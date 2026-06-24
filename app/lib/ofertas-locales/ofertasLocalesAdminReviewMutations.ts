@@ -6,11 +6,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   appendOfertaLocalAdminReviewNote,
-  OFERTAS_LOCALES_ADMIN_SELECT,
   OFERTAS_LOCALES_LIVE_STATUS,
   OFERTAS_LOCALES_QUEUE_STATUSES,
   type OfertaLocalAdminRow,
 } from "./ofertasLocalesAdminHelpers";
+import { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
 export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive";

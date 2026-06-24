@@ -2,9 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getBearerUserId } from "@/app/api/_lib/bearerUser";
 import {
-  mapOfertaLocalDraftToInsertPayload,
-  validateOfertaLocalDraftForServerPublish,
-} from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
+  buildOfertasLocalesProductionInsertRow,
+  OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS,
+  pickScanPrepSubmittedAt,
+} from "@/app/lib/ofertas-locales/ofertasLocalesProductionRowAdapter";
+import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -86,17 +88,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const row = mapOfertaLocalDraftToInsertPayload(draft, ownerId);
+  const row = buildOfertasLocalesProductionInsertRow(draft, ownerId);
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("ofertas_locales")
-    .insert({
-      ...row,
-      updated_at: now,
-    })
-    .select("id, status, submitted_at")
+    .insert(row)
+    .select(OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS)
     .single();
 
   if (error || !data) {
@@ -110,6 +109,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     id: data.id,
     status: data.status,
-    submittedAt: data.submitted_at ?? now,
+    submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
   });
 }

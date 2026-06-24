@@ -40,6 +40,8 @@ export {
   resolvePublicLangFromSearchParams,
   ACTIVE_PUBLIC_LANGS,
   withLang,
+  withPublicLangAndTracking,
+  type PublicTrackingParams,
   replaceLangInHref as withLeonixLang,
   staticPageCopyLang,
   type FutureLanguage,

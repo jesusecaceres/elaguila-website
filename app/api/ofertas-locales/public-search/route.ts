@@ -7,6 +7,7 @@ import {
   parseOfertaLocalPublicSearchQuery,
   type OfertaLocalPublicSearchJoinedRow,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers";
+import { OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT } from "@/app/lib/ofertas-locales/ofertasLocalesDbSchema";
 import type { OfertaLocalPublicSearchApiResponse } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -35,37 +36,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("oferta_local_items")
-    .select(
-      `
-      *,
-      ofertas_locales!inner (
-        id,
-        status,
-        offer_type,
-        business_category,
-        market_type,
-        business_name,
-        address,
-        city,
-        state,
-        zip_code,
-        phone,
-        whatsapp,
-        website_url,
-        directions_url,
-        valid_from,
-        valid_until,
-        membership_url,
-        membership_note,
-        requires_membership_for_deals,
-        digital_coupon_url,
-        digital_coupon_note,
-        flyer_assets,
-        coupon_assets,
-        internal_notes
-      )
-    `
-    )
+    .select(OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT)
     .eq("review_status", "approved")
     .eq("is_active", true)
     .eq("ofertas_locales.status", "approved")

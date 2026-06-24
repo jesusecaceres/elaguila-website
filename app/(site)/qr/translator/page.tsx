@@ -62,7 +62,7 @@ function TranslatorGatewayContent() {
   const leonixTranslateHref = leonixHomeGoogleTranslateUrl(lang, {
     sourcePage: "qr_translator",
     sourceCta: "google_translate",
-    returnTo: "/qr/translator",
+    returnTo: `/qr/translator?lang=${lang}`,
   });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
   const guideHref = magazinePrintGuideHref(lang, {

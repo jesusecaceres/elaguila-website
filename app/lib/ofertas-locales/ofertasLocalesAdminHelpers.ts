@@ -5,6 +5,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
+import {
+  OFERTAS_LOCALES_ADMIN_SELECT,
+  parseOfertaLocalDraftSnapshot,
+  readDraftSnapshotMembershipFields,
+} from "./ofertasLocalesDbSchema";
 import { parseOfertaLocalPublishedSocialLinksFromInternalNotes } from "./ofertasLocalesPublicSearchHelpers";
 import type {
   OfertaLocalFeaturedPlacementScope,
@@ -15,58 +20,21 @@ import type {
 const INTERNAL_METADATA_PREFIX = "[ofertas_locales_metadata]";
 const ADMIN_REVIEW_PREFIX = "[admin_review]";
 
-export const OFERTAS_LOCALES_ADMIN_SELECT = `
-  id,
-  owner_id,
-  status,
-  offer_type,
-  business_category,
-  market_type,
-  business_name,
-  title,
-  description,
-  coupon_text,
-  flyer_title,
-  valid_from,
-  valid_until,
-  address,
-  city,
-  state,
-  zip_code,
-  service_zip_codes,
-  phone,
-  whatsapp,
-  website_url,
-  directions_url,
-  membership_url,
-  membership_cta_label,
-  membership_note,
-  requires_membership_for_deals,
-  digital_coupon_url,
-  digital_coupon_note,
-  is_magazine_pickup_partner,
-  magazine_distribution_status,
-  magazine_monthly_drop_estimate,
-  magazine_pickup_notes,
-  flyer_assets,
-  coupon_assets,
-  is_featured_requested,
-  language_tags,
-  internal_notes,
-  submitted_at,
-  created_at,
-  updated_at
-`;
+export { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
 
 export type OfertaLocalAdminRow = {
   id: string;
   owner_id: string;
   status: OfertaLocalPublishStatus;
   offer_type: string;
+  product_type?: string | null;
   business_category: string;
+  business_subcategory?: string | null;
   market_type: string | null;
+  custom_market_type?: string | null;
   business_name: string;
   title: string;
+  offer_title?: string | null;
   description: string | null;
   coupon_text: string | null;
   flyer_title: string | null;
@@ -76,23 +44,30 @@ export type OfertaLocalAdminRow = {
   city: string;
   state: string | null;
   zip_code: string;
-  service_zip_codes: string[];
+  service_zips: string[];
   phone: string | null;
   whatsapp: string | null;
   website_url: string | null;
   directions_url: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
+  youtube_url?: string | null;
+  google_business_url?: string | null;
+  google_review_url?: string | null;
+  yelp_url?: string | null;
   membership_url: string | null;
-  membership_cta_label: string | null;
   membership_note: string | null;
-  requires_membership_for_deals: boolean;
   digital_coupon_url: string | null;
   digital_coupon_note: string | null;
+  wants_ai_searchable_specials?: boolean;
+  wants_featured_placement?: boolean;
+  featured_placement_scope?: string | null;
   is_magazine_pickup_partner: boolean;
-  magazine_distribution_status: string;
-  magazine_monthly_drop_estimate: string | null;
-  magazine_pickup_notes: string | null;
   flyer_assets: unknown;
   coupon_assets: unknown;
+  external_urls?: unknown;
+  draft_snapshot: unknown;
   is_featured_requested: boolean;
   language_tags: string[];
   internal_notes: string | null;
@@ -309,9 +284,11 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
     validUntil: row.valid_until,
     submittedAt: row.submitted_at,
     assetCount: flyerAssets.length + couponAssets.length,
-    wantsAiSearchableSpecials: metadata.wantsAiSearchableSpecials,
+    wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials ?? metadata.wantsAiSearchableSpecials),
     featuredRequested: row.is_featured_requested,
-    featuredPlacementScope: metadata.featuredPlacementScope,
+    featuredPlacementScope:
+      (row.featured_placement_scope as OfertaLocalFeaturedPlacementScope | null) ??
+      metadata.featuredPlacementScope,
     ownerIdShort: shortOwnerId(row.owner_id),
   };
 }
@@ -320,6 +297,7 @@ export function mapOfertaLocalAdminRowToDetailVm(row: OfertaLocalAdminRow): Ofer
   const flyerAssets = parseAssetArray(row.flyer_assets);
   const couponAssets = parseAssetArray(row.coupon_assets);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
+  const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot));
   const list = mapRowToListVm(row);
 
   return {
@@ -330,21 +308,21 @@ export function mapOfertaLocalAdminRowToDetailVm(row: OfertaLocalAdminRow): Ofer
     marketType: row.market_type,
     address: row.address,
     state: row.state,
-    serviceZipCodes: row.service_zip_codes ?? [],
+    serviceZipCodes: row.service_zips ?? [],
     phone: row.phone,
     whatsapp: row.whatsapp,
     websiteHref: getSafeOfertaLocalSourceAssetHref(row.website_url),
     directionsHref: getSafeOfertaLocalSourceAssetHref(row.directions_url),
     membershipUrl: getSafeOfertaLocalSourceAssetHref(row.membership_url),
-    membershipCtaLabel: row.membership_cta_label,
+    membershipCtaLabel: snapshotFields.membershipCtaLabel,
     membershipNote: row.membership_note,
-    requiresMembershipForDeals: row.requires_membership_for_deals,
+    requiresMembershipForDeals: snapshotFields.requiresMembershipForDeals,
     digitalCouponUrl: getSafeOfertaLocalSourceAssetHref(row.digital_coupon_url),
     digitalCouponNote: row.digital_coupon_note,
     isMagazinePickupPartner: row.is_magazine_pickup_partner,
-    magazineDistributionStatus: row.magazine_distribution_status,
-    magazineMonthlyDropEstimate: row.magazine_monthly_drop_estimate,
-    magazinePickupNotes: row.magazine_pickup_notes,
+    magazineDistributionStatus: snapshotFields.magazineDistributionStatus,
+    magazineMonthlyDropEstimate: snapshotFields.magazineMonthlyDropEstimate,
+    magazinePickupNotes: snapshotFields.magazinePickupNotes,
     languageTags: row.language_tags ?? [],
     internalNotes: row.internal_notes,
     metadata,

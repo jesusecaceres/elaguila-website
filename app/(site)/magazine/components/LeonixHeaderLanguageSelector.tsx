@@ -7,6 +7,7 @@ import {
   LANGUAGE_LABELS,
   LANGUAGE_SHORT,
   PRIMARY_LANGUAGES,
+  buildPathWithLang,
   getLanguageLabel,
   isAdditionalLanguageActive,
   languageAriaLabel,
@@ -55,7 +56,12 @@ export function LeonixHeaderLanguageSelector({
     lang,
     sourcePage: pathname.replace(/^\//, "") || "site",
     sourceCta: "language_dropdown_google_translate",
-    returnTo: pathname,
+    returnTo: buildPathWithLang(
+      pathname,
+      new URLSearchParams(searchParams?.toString() ?? ""),
+      lang,
+      typeof window !== "undefined" ? window.location.hash : "",
+    ),
   });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
 
