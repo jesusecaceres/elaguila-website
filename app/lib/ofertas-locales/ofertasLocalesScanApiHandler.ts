@@ -363,6 +363,15 @@ export async function handleOfertaLocalScanPost(
       validUntil: parentOffer.valid_until ?? undefined,
     });
 
+    if (normalized.debug) {
+      console.info("[ofertas-locales ai] scan normalization summary", {
+        scanJobId,
+        assetKind: body.assetKind,
+        mimeType,
+        ...normalized.debug,
+      });
+    }
+
     const itemRows = normalized.items.map((item) =>
       mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId)
     );
