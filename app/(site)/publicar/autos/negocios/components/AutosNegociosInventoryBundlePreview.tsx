@@ -254,7 +254,7 @@ export function AutosNegociosInventoryBundlePreview({
       </section>
       <AutosNegociosAddInventoryDrawer
         open={editOpen}
-        onClose={() => onDrawerOpenChange?.(false)}
+        onClose={() => onDrawerOpenChange?.(false, null)}
         lang={lang}
         copy={copy}
         parentListing={listing}

@@ -10,6 +10,7 @@ import {
   countApplicationInventoryVehicles,
   createEmptyInventoryVehicleDraft,
   findSavedAdditionalInventoryVehicle,
+  hydrateChildInventoryEditorDraft,
   prepareInventoryVehicleForSave,
   resolveCanonicalChildInventoryEditorDraft,
   validateInventoryVehicleDraftForSave,
@@ -118,7 +119,12 @@ export function AutosNegociosAddInventoryDrawer({
     if (!open) return;
     setError(null);
     setUnsavedModalOpen(false);
-    if (missingSavedChild) return;
+    if (missingSavedChild) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[autos-negocios] Editar missing saved child", { editChildId });
+      }
+      return;
+    }
     const next = resolveDrawerInitialDraft(
       savedEditingVehicle,
       inProgressDraftRef.current,
@@ -141,7 +147,7 @@ export function AutosNegociosAddInventoryDrawer({
   }, [draft, open, onInProgressChange]);
 
   const patchDraft = useCallback((patch: Partial<AutosAdditionalInventoryVehicleDraft>) => {
-    setDraft((prev) => ({ ...prev, ...patch }));
+    setDraft((prev) => hydrateChildInventoryEditorDraft({ ...prev, ...patch }));
   }, []);
 
   const isDirty = useCallback(

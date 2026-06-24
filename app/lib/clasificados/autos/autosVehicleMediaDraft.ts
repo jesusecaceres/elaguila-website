@@ -31,16 +31,42 @@ function mediaEntryUrl(raw: unknown): string | null {
   return raw;
 }
 
+function stringUrlsToMediaImageEntries(raw: unknown): MediaImageEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: MediaImageEntry[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string" || !item.trim()) continue;
+    out.push({
+      id: `image-url-${out.length}`,
+      url: item.trim(),
+      sourceType: "url",
+      isPrimary: out.length === 0,
+      sortOrder: out.length,
+    });
+  }
+  return normalizeMediaImagesOrder(out);
+}
+
 /** Coerce persisted/in-memory gallery rows (URL, data URL, or IDB ref) without dropping valid entries. */
 export function coerceAutosVehicleMediaImageEntries(raw: unknown): MediaImageEntry[] {
   if (!Array.isArray(raw)) return [];
   const out: MediaImageEntry[] = [];
   for (const item of raw) {
+    if (typeof item === "string" && item.trim()) {
+      out.push({
+        id: `image-url-${out.length}`,
+        url: item.trim(),
+        sourceType: "url",
+        isPrimary: out.length === 0,
+        sortOrder: out.length,
+      });
+      continue;
+    }
     if (!item || typeof item !== "object") continue;
     const m = item as Record<string, unknown>;
-    const id = mediaEntryId(m.id);
     const url = mediaEntryUrl(m.url);
-    if (!id || !url) continue;
+    if (!url) continue;
+    const id = mediaEntryId(m.id) ?? `media-row-${out.length}`;
     out.push({
       id,
       url,
@@ -53,15 +79,57 @@ export function coerceAutosVehicleMediaImageEntries(raw: unknown): MediaImageEnt
 }
 
 /**
+ * Map saved-child / session / API alias fields onto canonical mediaImages + videoUrls
+ * before editor hydrate or save normalization.
+ */
+export function expandAutosVehicleMediaSourceFields(
+  raw: (Partial<AutoDealerListing> & Record<string, unknown>) | null | undefined,
+): Partial<AutoDealerListing> & Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Partial<AutoDealerListing> & Record<string, unknown> = { ...raw };
+
+  const canonicalImages = coerceAutosVehicleMediaImageEntries(raw.mediaImages);
+  const aliasPhotos = canonicalImages.length ? [] : coerceAutosVehicleMediaImageEntries(raw.photos);
+  const aliasImageUrls = canonicalImages.length || aliasPhotos.length ? [] : stringUrlsToMediaImageEntries(raw.imageUrls);
+  const resolvedImages = canonicalImages.length ? canonicalImages : aliasPhotos.length ? aliasPhotos : aliasImageUrls;
+  if (resolvedImages.length) {
+    out.mediaImages = resolvedImages;
+  }
+
+  const canonicalVideos = dedupeAutosVideoUrls(
+    migrateLegacyAutosVideoUrl(
+      Array.isArray(raw.videoUrls) ? raw.videoUrls.filter((x): x is string => typeof x === "string") : undefined,
+      typeof raw.videoUrl === "string" ? raw.videoUrl : undefined,
+    ),
+  );
+  const aliasVideos = canonicalVideos.length
+    ? []
+    : dedupeAutosVideoUrls(
+        migrateLegacyAutosVideoUrl(
+          Array.isArray(raw.videoLinks) ? raw.videoLinks.filter((x): x is string => typeof x === "string") : undefined,
+          undefined,
+        ),
+      );
+  const resolvedVideos = canonicalVideos.length ? canonicalVideos : aliasVideos;
+  if (resolvedVideos.length) {
+    out.videoUrls = resolvedVideos;
+    out.videoUrl = resolvedVideos[0];
+  }
+
+  return out;
+}
+
+/**
  * Single normalization path for main vehicle + additional inventory child media/video draft fields.
  * Matches main `normalizeLoadedListing` media/video behavior without dealer-only fields.
  */
 export function normalizeAutosVehicleMediaDraft(
   raw: Partial<AutoDealerListing> | null | undefined,
 ): AutosVehicleMediaDraftFields {
-  const baseImages = coerceAutosVehicleMediaImageEntries(raw?.mediaImages);
-  const legacyHero = Array.isArray(raw?.heroImages)
-    ? raw!.heroImages!.filter((x): x is string => typeof x === "string" && x.length > 0)
+  const expanded = expandAutosVehicleMediaSourceFields(raw as (Partial<AutoDealerListing> & Record<string, unknown>) | null | undefined);
+  const baseImages = coerceAutosVehicleMediaImageEntries(expanded.mediaImages);
+  const legacyHero = Array.isArray(expanded.heroImages)
+    ? expanded.heroImages!.filter((x): x is string => typeof x === "string" && x.length > 0)
     : [];
   const mediaImages =
     baseImages.length > 0
@@ -72,8 +140,8 @@ export function normalizeAutosVehicleMediaDraft(
 
   const videoUrls = dedupeAutosVideoUrls(
     migrateLegacyAutosVideoUrl(
-      Array.isArray(raw?.videoUrls) ? raw!.videoUrls!.filter((x): x is string => typeof x === "string") : undefined,
-      typeof raw?.videoUrl === "string" ? raw.videoUrl : undefined,
+      Array.isArray(expanded.videoUrls) ? expanded.videoUrls!.filter((x): x is string => typeof x === "string") : undefined,
+      typeof expanded.videoUrl === "string" ? expanded.videoUrl : undefined,
     ),
   );
 

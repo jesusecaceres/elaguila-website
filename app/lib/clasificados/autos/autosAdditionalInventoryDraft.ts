@@ -5,7 +5,7 @@ import type {
 } from "@/app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { normalizeMediaImagesOrder } from "@/app/(site)/clasificados/autos/negocios/lib/autoDealerHeroImages";
-import { normalizeAutosVehicleMediaDraft, coerceAutosVehicleMediaImageEntries } from "./autosVehicleMediaDraft";
+import { normalizeAutosVehicleMediaDraft, coerceAutosVehicleMediaImageEntries, expandAutosVehicleMediaSourceFields } from "./autosVehicleMediaDraft";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPolicy";
 
 export type AutosInventoryVehicleDraftStatus = "draft" | "ready_for_preview";
@@ -109,6 +109,10 @@ export type AutosAdditionalInventoryVehicleDraft = AutosInventoryVehicleFields &
   updatedAt: string;
   /** @deprecated Migrated to mediaImages on load. */
   imageUrl?: string;
+  /** @deprecated Session/API alias — canonical field is mediaImages (Fotos y medios editor). */
+  photos?: MediaImageEntry[];
+  /** @deprecated Session/API alias — canonical field is videoUrls (video URL editor). */
+  videoLinks?: string[];
 };
 
 export function newAdditionalInventoryVehicleId(): string {
@@ -272,8 +276,10 @@ function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | 
     videoFileDataUrl: media.videoFileDataUrl,
     videoFileName: media.videoFileName,
     videoUploadStatus: media.videoUploadStatus,
+    photos: media.mediaImages,
+    videoLinks: media.videoUrls,
   };
-  return { ...withMedia, status: computeInventoryVehicleStatus(withMedia) };
+  return hydrateChildInventoryEditorDraft(withMedia);
 }
 
 export function normalizeAdditionalInventoryVehicles(raw: unknown): AutosAdditionalInventoryVehicleDraft[] {
@@ -314,12 +320,15 @@ export function applyVehicleTitleToDraft(
 export function prepareInventoryVehicleForSave(
   draft: AutosAdditionalInventoryVehicleDraft,
 ): AutosAdditionalInventoryVehicleDraft {
-  const withTitle = applyVehicleTitleToDraft(draft, draft.vehicleTitleOverride === true);
+  const expanded = expandAutosVehicleMediaSourceFields(draft) as AutosAdditionalInventoryVehicleDraft;
+  const withTitle = applyVehicleTitleToDraft(expanded, expanded.vehicleTitleOverride === true);
   const media = normalizeAutosVehicleMediaDraft(withTitle);
   const now = new Date().toISOString();
   return {
     ...withTitle,
     ...media,
+    photos: media.mediaImages,
+    videoLinks: media.videoUrls,
     updatedAt: now,
     status: computeInventoryVehicleStatus(withTitle),
   };
@@ -337,10 +346,14 @@ function inventoryDraftContentFingerprint(v: AutosAdditionalInventoryVehicleDraf
 export function hydrateChildInventoryEditorDraft(
   draft: AutosAdditionalInventoryVehicleDraft,
 ): AutosAdditionalInventoryVehicleDraft {
-  const media = normalizeAutosVehicleMediaDraft(draft);
+  const expanded = expandAutosVehicleMediaSourceFields(draft) as AutosAdditionalInventoryVehicleDraft;
+  const media = normalizeAutosVehicleMediaDraft(expanded);
   return {
     ...draft,
+    ...expanded,
     ...media,
+    photos: media.mediaImages,
+    videoLinks: media.videoUrls,
     status: computeInventoryVehicleStatus({ ...draft, ...media }),
   };
 }
