@@ -36,6 +36,7 @@ import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
 import { EnVentaResultsChipsRow } from "./components/EnVentaResultsChipsRow";
 import { EnVentaResultsFiltersDrawer } from "./components/EnVentaResultsFiltersDrawer";
 import { EnVentaResultsListingSections } from "./components/EnVentaResultsListingSections";
+import { enVentaSwipeHintLabel } from "../hub/EnVentaHubHorizontalScroll";
 import {
   buildLocationSummaryLine,
   buildSearchSummaryLine,
@@ -658,7 +659,7 @@ export function EnVentaResultsClient() {
     [lang, sp]
   );
 
-  const swipeHint = lang === "es" ? "Desliza" : "Swipe";
+  const swipeHint = enVentaSwipeHintLabel(lang);
 
   const applyFiltersFromDrawer = () => {
     setFiltersPanelOpen(false);
@@ -667,20 +668,20 @@ export function EnVentaResultsClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-2 sm:px-6 sm:pt-6 lg:px-8">
-        <header className="space-y-0.5 border-b border-[#D6C7AD]/50 pb-2 sm:space-y-1 sm:pb-3">
+      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-1 sm:px-6 sm:pt-6 lg:px-8">
+        <header className="space-y-0 border-b border-[#D6C7AD]/50 pb-1.5 sm:space-y-1 sm:pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
-            className="inline-flex text-xs font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
+            className="inline-flex text-[11px] font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
           >
             {lang === "es" ? `← ${enVentaPublicLabel("es")}` : `← ${enVentaPublicLabel("en")}`}
           </Link>
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{t.title}</h1>
-            <p className="text-xs font-semibold text-[#556B3E] sm:text-sm">{loading ? t.loading : countLine}</p>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+            <h1 className="font-serif text-base font-bold text-[#2A4536] sm:text-xl">{t.title}</h1>
+            <p className="text-[11px] font-semibold text-[#556B3E] sm:text-sm">{loading ? t.loading : countLine}</p>
           </div>
           {searchSummaryLine || locationSummaryLine ? (
-            <p className="text-[11px] text-[#3D3428]/85 max-sm:line-clamp-1 sm:text-sm">
+            <p className="hidden text-[11px] text-[#3D3428]/85 sm:block sm:text-sm">
               {[searchSummaryLine, locationSummaryLine].filter(Boolean).join(" · ")}
             </p>
           ) : null}
@@ -690,13 +691,13 @@ export function EnVentaResultsClient() {
           id="ev-results-form"
           onSubmit={onSubmitSearch}
           role="search"
-          className="mt-2 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-1.5 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:mt-3 sm:p-3"
+          className="mt-1.5 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-1 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:mt-3 sm:p-3"
         >
           <input type="hidden" name="lang" value={lang} />
           <input type="hidden" name="view" value={view} readOnly />
 
           <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#D6C7AD] bg-white sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 px-3 sm:col-span-5">
+            <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 px-3 sm:col-span-5 sm:min-h-[2.5rem]">
               <span className="shrink-0 text-[#556B3E]" aria-hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="7" />
@@ -712,7 +713,7 @@ export function EnVentaResultsClient() {
                 className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[#1E1810] outline-none"
               />
             </label>
-            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:border-l sm:border-t-0">
+            <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
               <input
                 name="city"
                 type="text"
@@ -728,7 +729,7 @@ export function EnVentaResultsClient() {
                 ))}
               </datalist>
             </label>
-            <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:border-l sm:border-t-0">
+            <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
               <span className="text-[#4A6678]" aria-hidden>#</span>
               <input
                 name="zip"
@@ -827,6 +828,7 @@ export function EnVentaResultsClient() {
               chips={activeChips}
               onClearAll={resetFilters}
               swipeHint={swipeHint}
+              lang={lang}
             />
           </div>
         ) : null}
@@ -885,7 +887,7 @@ export function EnVentaResultsClient() {
         ) : null}
 
         {!loading && !loadErr && total > 0 ? (
-          <div className="mt-2 w-full sm:mt-5">
+          <div className="mt-1.5 w-full sm:mt-5">
             <EnVentaResultsListingSections
               lang={lang}
               featuredOnly={featuredOnly}

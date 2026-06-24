@@ -93,7 +93,7 @@ export function EnVentaResultsListingSections({
       ) : null}
 
       <section
-        className={`w-full ${!featuredOnly && promotedPool.length > 0 ? "mt-6 sm:mt-14" : "mt-3 sm:mt-12"}`}
+        className={`w-full ${!featuredOnly && promotedPool.length > 0 ? "mt-4 sm:mt-14" : "mt-2 sm:mt-12"}`}
         aria-labelledby="ev-catalog-heading"
       >
         {featuredOnly ? (
@@ -102,15 +102,15 @@ export function EnVentaResultsListingSections({
           </div>
         ) : null}
 
-        <div className="mb-3 flex flex-col gap-2 border-b border-[#E8DFD0]/80 pb-3 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3 sm:pb-4">
+        <div className="mb-2 flex flex-col gap-1.5 border-b border-[#E8DFD0]/80 pb-2 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3 sm:pb-4">
           <div className="min-w-0">
             {!featuredOnly ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#7A7164]">{t.latest}</p>
+              <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-[#7A7164] sm:block">{t.latest}</p>
             ) : null}
-            <h2 id="ev-catalog-heading" className={`font-bold tracking-tight text-[#1E1810] sm:text-xl ${featuredOnly ? "text-base sm:text-lg" : "mt-0.5 text-base sm:mt-1 sm:text-lg"}`}>
+            <h2 id="ev-catalog-heading" className={`font-bold tracking-tight text-[#1E1810] sm:text-xl ${featuredOnly ? "text-sm sm:text-lg" : "text-sm sm:mt-1 sm:text-lg"}`}>
               {featuredOnly ? t.featuredMode : t.catalog}
             </h2>
-            {!featuredOnly ? <p className="mt-0.5 max-w-2xl text-[13px] text-[#5C5346] max-sm:line-clamp-1 sm:mt-1 sm:text-sm">{t.catalogSub}</p> : null}
+            {!featuredOnly ? <p className="hidden max-w-2xl text-[13px] text-[#5C5346] sm:mt-1 sm:block sm:text-sm">{t.catalogSub}</p> : null}
             <p className="mt-1 text-[11px] font-medium text-[#5C5346]/95 max-sm:hidden sm:text-xs">{sortSectionCaption(sort, lang)}</p>
             {!featuredOnly ? (
               <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#7A7164] max-sm:hidden sm:mt-1.5">{t.standardEngineLine}</p>

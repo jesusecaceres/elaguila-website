@@ -20,7 +20,7 @@ import {
   CATEGORY_STANDARD_PAGE_BG,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { EnVentaHubRecentListings } from "./hub/EnVentaHubRecentListings";
-import { EnVentaHubHorizontalScroll } from "./hub/EnVentaHubHorizontalScroll";
+import { EnVentaHubHorizontalScroll, enVentaSwipeHintLabel } from "./hub/EnVentaHubHorizontalScroll";
 import { EnVentaHubMoreFilters } from "./hub/EnVentaHubMoreFilters";
 
 /** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
@@ -201,10 +201,10 @@ export function EnVentaHubPageClient({
     { key: "featured", label: t.browseChipFeatured, href: hrefBrowseFeatured, featured: true },
   ];
 
-  const swipeHint = lang === "es" ? "Desliza" : "Swipe";
+  const swipeHint = enVentaSwipeHintLabel(lang);
 
   const enVentaSearchForm = (
-    <div className="w-full min-w-0 space-y-2 text-left">
+    <div className="w-full min-w-0 space-y-1.5 text-left sm:space-y-2">
       <form action="/clasificados/en-venta/results" method="get" role="search">
         <input type="hidden" name="lang" value={routeLang} />
         <div
@@ -213,7 +213,7 @@ export function EnVentaHubPageClient({
             "sm:grid sm:grid-cols-12 sm:items-stretch",
           )}
         >
-          <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 px-3 sm:col-span-5">
+          <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 px-3 sm:col-span-5 sm:min-h-[2.5rem]">
             <span className="shrink-0 text-[#556B3E]" aria-hidden>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="7" />
@@ -228,7 +228,7 @@ export function EnVentaHubPageClient({
               className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
             />
           </label>
-          <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:border-l sm:border-t-0">
+          <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
             <input
               name="city"
               type="text"
@@ -243,7 +243,7 @@ export function EnVentaHubPageClient({
               ))}
             </datalist>
           </label>
-          <label className="flex min-h-[2.5rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:border-l sm:border-t-0">
+          <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
             <span className="text-[#4A6678]" aria-hidden>
               #
             </span>
@@ -270,6 +270,7 @@ export function EnVentaHubPageClient({
         <EnVentaHubHorizontalScroll
           label={lang === "es" ? "Categorías populares" : "Popular categories"}
           swipeHint={swipeHint}
+          lang={lang}
         >
           {popularCategoryChips.map((chip) => (
             <Link key={chip.key} href={chip.href} className={`${chipNeutral} shrink-0 snap-start`}>
@@ -295,9 +296,9 @@ export function EnVentaHubPageClient({
         aria-hidden
       />
 
-      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-2 sm:px-6 sm:pb-20 sm:pt-5 md:px-6 lg:px-10 lg:pt-6 xl:px-14">
+      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-1 sm:px-6 sm:pb-20 sm:pt-5 md:px-6 lg:px-10 lg:pt-6 xl:px-14">
         <div
-          className="max-sm:[&>div]:space-y-3 [&_section]:max-sm:rounded-lg [&_section>div]:max-sm:gap-2 [&_section>div]:max-sm:px-3 [&_section>div]:max-sm:py-3 [&_section_span.inline-flex.h-14]:max-sm:h-10 [&_section_span.inline-flex.h-14]:max-sm:w-10 [&_section_h1]:max-sm:mt-1 [&_section_h1]:max-sm:text-xl [&_section_p.max-w-2xl]:max-sm:mt-1 [&_section_p.max-w-2xl]:max-sm:text-[13px] [&_section_p.max-w-2xl]:max-sm:leading-snug [&_section_div.mt-4>div.mt-3]:max-sm:hidden"
+          className="max-sm:[&>div]:space-y-2 max-sm:[&_section]:rounded-lg max-sm:[&_section>div]:gap-1.5 max-sm:[&_section>div]:px-2.5 max-sm:[&_section>div]:py-2 max-sm:[&_section_span.inline-flex.h-14]:hidden max-sm:[&_section>div>div>p:first-child]:hidden max-sm:[&_section_h1]:mt-0 max-sm:[&_section_h1]:text-lg max-sm:[&_section_p.max-w-2xl]:hidden max-sm:[&_section_div.mt-4]:mt-2 max-sm:[&_section_div.mt-4>div.mt-3]:hidden"
         >
         <CategoryStandardLandingBlock
           category="en-venta"
@@ -322,10 +323,11 @@ export function EnVentaHubPageClient({
           allListingsLabel={t.lista}
         />
 
-        <section className="mt-4 sm:mt-6" aria-label={lang === "es" ? "Filtros rápidos" : "Quick filters"}>
+        <section className="mt-3 sm:mt-6" aria-label={lang === "es" ? "Filtros rápidos" : "Quick filters"}>
           <EnVentaHubHorizontalScroll
             label={lang === "es" ? "Filtros rápidos" : "Quick filters"}
             swipeHint={swipeHint}
+            lang={lang}
           >
             {quickFilterChips.map((chip) => (
               <Link
@@ -346,14 +348,15 @@ export function EnVentaHubPageClient({
         </section>
 
         {/* Categories — compact horizontal on mobile */}
-        <section className="mt-4 sm:mt-8">
-          <h2 className="text-center font-serif text-[1.25rem] font-bold tracking-tight text-[#1E1810] sm:text-2xl">
+        <section className="mt-3 sm:mt-8">
+          <h2 className="text-center font-serif text-[1.1rem] font-bold tracking-tight text-[#1E1810] sm:text-2xl">
             {t.categoriesTitle}
           </h2>
-          <div className="mt-4 sm:mt-6">
+          <div className="mt-2 sm:mt-6">
             <EnVentaHubHorizontalScroll
               label={lang === "es" ? "Todas las categorías" : "All categories"}
               swipeHint={swipeHint}
+              lang={lang}
               className="sm:hidden"
             >
               {EN_VENTA_DEPARTMENTS.map((d) => {
@@ -364,7 +367,7 @@ export function EnVentaHubPageClient({
                   <Link
                     key={d.key}
                     href={href}
-                    className="flex w-[min(40vw,148px)] shrink-0 snap-start flex-col items-center rounded-[16px] border border-white/70 bg-[#FFFCF7]/95 p-3 text-center shadow-sm transition hover:border-[#C9B46A]/38"
+                    className="flex w-[min(36vw,132px)] shrink-0 snap-start flex-col items-center rounded-[16px] border border-white/70 bg-[#FFFCF7]/95 p-2.5 text-center shadow-sm transition hover:border-[#C9B46A]/38"
                   >
                     <span className="text-2xl" aria-hidden>{vis.icon}</span>
                     <span className="mt-2 text-[12px] font-bold leading-tight text-[#1E1810]">{title}</span>
@@ -416,6 +419,7 @@ export function EnVentaHubPageClient({
             <EnVentaHubHorizontalScroll
               label={lang === "es" ? "Compra con confianza" : "Shop with confidence"}
               swipeHint={swipeHint}
+              lang={lang}
               className="sm:hidden"
               edgeFadeFromClass="from-[#FFFCF7]"
             >
@@ -426,7 +430,7 @@ export function EnVentaHubPageClient({
               ].map((card) => (
                 <div
                   key={card.title}
-                  className="flex w-[min(72vw,248px)] shrink-0 snap-start flex-col rounded-2xl border border-[#E8DFD0]/80 bg-white/60 p-4 text-left"
+                  className="flex w-[min(68vw,232px)] shrink-0 snap-start flex-col rounded-2xl border border-[#E8DFD0]/80 bg-white/60 p-3.5 text-left"
                 >
                   <span
                     className={cx(
