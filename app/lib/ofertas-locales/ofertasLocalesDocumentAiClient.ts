@@ -1,13 +1,17 @@
 import "server-only";
 
+import { assertOfertaLocalAiScanSizeWithinLimit } from "./ofertasLocalesAiScanSizeLimits";
 import {
   assertOfertaLocalDocumentAiConfig,
   getOfertaLocalDocumentAiProcessorName,
   isOfertaLocalDocumentAiConfigured,
 } from "./ofertasLocalesDocumentAiConfig";
 
-/** Max bytes aligned with flyer client upload limit (Stack 12 guardrail). */
-export const OFERTA_LOCAL_DOCUMENT_AI_MAX_BYTES = 15 * 1024 * 1024;
+export {
+  getOfertaLocalAiScanMaxBytes,
+  getOfertaLocalAiScanMaxMb,
+  OfertaLocalAiScanSizeExceededError,
+} from "./ofertasLocalesAiScanSizeLimits";
 
 export type OfertaLocalDocumentAiBoundingBox = {
   xMin: number;
@@ -147,9 +151,11 @@ export async function processOfertaLocalAssetWithDocumentAi(
   if (params.fileBuffer.byteLength < 1) {
     throw new Error("Asset file is empty.");
   }
-  if (params.fileBuffer.byteLength > OFERTA_LOCAL_DOCUMENT_AI_MAX_BYTES) {
-    throw new Error("Asset file exceeds the maximum scan size.");
-  }
+  assertOfertaLocalAiScanSizeWithinLimit({
+    sizeBytes: params.fileBuffer.byteLength,
+    mimeType: params.mimeType,
+    assetId: params.assetId,
+  });
 
   const config = assertOfertaLocalDocumentAiConfig();
   const processorName = getOfertaLocalDocumentAiProcessorName(config);

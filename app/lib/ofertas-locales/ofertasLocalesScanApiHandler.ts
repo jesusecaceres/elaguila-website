@@ -8,11 +8,15 @@ import {
   mapOfertaLocalScanJobRecordDraftToDbInsert,
 } from "./ofertasLocalesAiDbMapper";
 import {
+  assertOfertaLocalAiScanSizeWithinLimit,
+  getOfertaLocalAiScanMaxBytes,
+  OfertaLocalAiScanSizeExceededError,
+} from "./ofertasLocalesAiScanSizeLimits";
+import {
   getMissingOfertaLocalDocumentAiEnvLabels,
   isOfertaLocalDocumentAiConfigured,
 } from "./ofertasLocalesDocumentAiConfig";
 import {
-  OFERTA_LOCAL_DOCUMENT_AI_MAX_BYTES,
   OfertaLocalDocumentAiNotConfiguredError,
   processOfertaLocalAssetWithDocumentAi,
 } from "./ofertasLocalesDocumentAiClient";
@@ -53,11 +57,16 @@ function isScanRequest(v: unknown): v is OfertaLocalScanApiRequest {
   );
 }
 
-async function fetchAssetBytes(assetUrl: string): Promise<Buffer> {
+async function fetchAssetBytes(
+  assetUrl: string,
+  context: { mimeType: string; assetKind: "flyer" | "coupon"; assetId: string }
+): Promise<Buffer> {
   const url = assetUrl.trim();
   if (!url.startsWith("https://")) {
     throw new Error("Asset URL must be a secure HTTPS URL.");
   }
+
+  const maxBytes = getOfertaLocalAiScanMaxBytes(context.mimeType);
 
   const res = await fetch(url, { method: "GET", cache: "no-store" });
   if (!res.ok) {
@@ -65,14 +74,22 @@ async function fetchAssetBytes(assetUrl: string): Promise<Buffer> {
   }
 
   const len = Number(res.headers.get("content-length") ?? "0");
-  if (len > OFERTA_LOCAL_DOCUMENT_AI_MAX_BYTES) {
-    throw new Error("Asset file exceeds the maximum scan size.");
+  if (len > 0) {
+    assertOfertaLocalAiScanSizeWithinLimit({
+      sizeBytes: len,
+      mimeType: context.mimeType,
+      assetKind: context.assetKind,
+      assetId: context.assetId,
+    });
   }
 
   const arrayBuffer = await res.arrayBuffer();
-  if (arrayBuffer.byteLength > OFERTA_LOCAL_DOCUMENT_AI_MAX_BYTES) {
-    throw new Error("Asset file exceeds the maximum scan size.");
-  }
+  assertOfertaLocalAiScanSizeWithinLimit({
+    sizeBytes: arrayBuffer.byteLength,
+    mimeType: context.mimeType,
+    assetKind: context.assetKind,
+    assetId: context.assetId,
+  });
   if (arrayBuffer.byteLength < 1) {
     throw new Error("Asset file is empty.");
   }
@@ -318,7 +335,11 @@ export async function handleOfertaLocalScanPost(
   const scanJobId = scanJob.id as string;
 
   try {
-    const fileBuffer = await fetchAssetBytes(body.assetUrl);
+    const fileBuffer = await fetchAssetBytes(body.assetUrl, {
+      mimeType,
+      assetKind: body.assetKind,
+      assetId: body.assetId,
+    });
     const extraction = await processOfertaLocalAssetWithDocumentAi({
       fileBuffer,
       mimeType,
@@ -396,6 +417,7 @@ export async function handleOfertaLocalScanPost(
       configurationMissing: false,
     });
   } catch (err) {
+    const sizeExceeded = err instanceof OfertaLocalAiScanSizeExceededError;
     const message = err instanceof Error ? err.message : "Scan failed.";
     const configurationMissing = err instanceof OfertaLocalDocumentAiNotConfiguredError;
     const completedAt = new Date().toISOString();
@@ -415,12 +437,16 @@ export async function handleOfertaLocalScanPost(
         ok: false,
         scanJobId,
         status: "failed",
-        error: configurationMissing ? "document_ai_not_configured" : "scan_failed",
+        error: configurationMissing
+          ? "document_ai_not_configured"
+          : sizeExceeded
+            ? "scan_size_exceeded"
+            : "scan_failed",
         detail: message,
         message,
         configurationMissing,
       },
-      { status: configurationMissing ? 503 : 500 }
+      { status: configurationMissing ? 503 : sizeExceeded ? 413 : 500 }
     );
   }
 }
