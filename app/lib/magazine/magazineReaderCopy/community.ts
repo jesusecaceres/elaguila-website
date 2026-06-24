@@ -167,7 +167,7 @@ export const COMMUNITY_READER_COPY: Record<
       openFullReader: "Buksan ang buong reader",
       backToMagazine: "Bumalik sa magasin",
       backToComingSoon: "Bumalik sa Malapit Na",
-      readPageTitle: "Reader — Hunyo 2026",
+      readPageTitle: "Mambabasa — Hunyo 2026",
       readPageSubtitle:
         "Tinutulungan ka ng reader na ito na maunawaan ang pangunahing impormasyon mula sa Hunyo edition sa Filipino. Ang orihinal na visual na magasin ay nananatiling Espanyol.",
       issuePageTitle: "Hunyo 2026 Edition",
@@ -1013,7 +1013,7 @@ export const COMMUNITY_READER_COPY: Record<
       openFullReader: "Բացել ամբողջ reader-ը",
       backToMagazine: "Վերադառնալ ամսագրին",
       backToComingSoon: "Վերադառնալ Coming Soon",
-      readPageTitle: "Reader — Հունիս 2026",
+      readPageTitle: "Ընթերցող — Հունիս 2026",
       readPageSubtitle:
         "Այս reader-ը օգնում է հունիսյան համարի հիմնական տեղեկությունը հասկանալ ընտրված լեզվով։ Բնօրինակ տեսողական ամսագիրը մնում է իսպաներեն։",
       issuePageTitle: "2026-ի հունիսյան համար",
@@ -1155,7 +1155,7 @@ export const COMMUNITY_READER_COPY: Record<
       openFullReader: "Открыть полный reader",
       backToMagazine: "Назад к журналу",
       backToComingSoon: "Назад к Coming Soon",
-      readPageTitle: "Reader — Июнь 2026",
+      readPageTitle: "Читатель — Июнь 2026",
       readPageSubtitle:
         "Этот reader помогает понять ключевую информацию июньского выпуска на выбранном языке. Оригинальный визуальный журнал остается на испанском.",
       issuePageTitle: "Выпуск за июнь 2026",
@@ -1297,7 +1297,7 @@ export const COMMUNITY_READER_COPY: Record<
       openFullReader: "ਪੂਰਾ reader ਖੋਲ੍ਹੋ",
       backToMagazine: "ਮੈਗਜ਼ੀਨ ਵੱਲ ਵਾਪਸ",
       backToComingSoon: "Coming Soon ਵੱਲ ਵਾਪਸ",
-      readPageTitle: "Reader — ਜੂਨ 2026",
+      readPageTitle: "ਪਠਕ — ਜੂਨ 2026",
       readPageSubtitle:
         "ਇਹ reader ਜੂਨ ਅੰਕ ਦੀ ਮੁੱਖ ਜਾਣਕਾਰੀ ਤੁਹਾਡੀ ਚੁਣੀ ਭਾਸ਼ਾ ਵਿੱਚ ਸਮਝਣ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ। ਅਸਲ ਵਿਜ਼ੂਅਲ ਮੈਗਜ਼ੀਨ ਸਪੇਨੀ ਵਿੱਚ ਹੀ ਰਹਿੰਦਾ ਹੈ।",
       issuePageTitle: "ਜੂਨ 2026 ਸੰਸਕਰਣ",

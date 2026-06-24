@@ -3,8 +3,7 @@
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
-import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
+import { MagazineReaderAdvertiseDropdown } from "@/app/(site)/magazine/components/MagazineReaderAdvertiseDropdown";
 import {
   getMagazineUi,
   getJune2026Title,
@@ -42,7 +41,6 @@ function JuneReaderContent() {
     () => getMagazineVisualAsset(MAGAZINE_ISSUE_IDS.june2026, lang),
     [lang],
   );
-  const advertiseLang: AdvertiseLang = lang === "en" ? "en" : "es";
   const issueHref = `/magazine/2026/june?lang=${lang}`;
   const backMagazineHref = magazineGuideBackHref(lang);
   const [flipOpen, setFlipOpen] = useState(false);
@@ -163,7 +161,7 @@ function JuneReaderContent() {
         )}
 
         <section className="mt-10 rounded-2xl border border-[#2A4536]/20 bg-gradient-to-br from-[#2A4536] via-[#2A4536] to-[#1a2d24] p-6 sm:p-8">
-          <AdvertiseDropdown lang={advertiseLang} variant="primary" className="mt-2" />
+          <MagazineReaderAdvertiseDropdown lang={lang} className="mt-2" />
         </section>
 
         <MagazineReaderFooterNav lang={lang} showReaderLink={false} />
