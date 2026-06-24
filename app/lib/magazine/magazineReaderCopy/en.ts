@@ -25,7 +25,7 @@ export const MAGAZINE_READER_EN: MagazineReaderLangBundle = {
     backToComingSoon: "Back to Coming Soon",
     readPageTitle: "Reader — June 2026",
     readPageSubtitle:
-      "Key information from the June edition in Spanish, English, and Vietnamese. The original visual magazine remains in Spanish.",
+      "The original visual magazine remains in Spanish. This reader helps you understand key information in your selected language.",
     issuePageTitle: "June 2026 Edition",
     issuePageIntro:
       "Leonix Media’s launch edition connects local businesses, community, culture, and opportunities. Choose how to explore it.",

@@ -25,7 +25,7 @@ export const MAGAZINE_READER_VI: MagazineReaderLangBundle = {
     backToComingSoon: "Quay lại Trang sắp ra mắt",
     readPageTitle: "Trình đọc — Tháng 6 năm 2026",
     readPageSubtitle:
-      "Thông tin chính của số tháng 6 bằng tiếng Tây Ban Nha, Anh và Việt. Tạp chí hình ảnh gốc vẫn là tiếng Tây Ban Nha.",
+      "Tạp chí hình ảnh gốc vẫn là tiếng Tây Ban Nha. Trình đọc này giúp bạn hiểu thông tin chính bằng ngôn ngữ đã chọn.",
     issuePageTitle: "Số Tháng 6 năm 2026",
     issuePageIntro:
       "Số ra mắt Leonix Media kết nối doanh nghiệp địa phương, cộng đồng, văn hóa và cơ hội. Chọn cách khám phá.",

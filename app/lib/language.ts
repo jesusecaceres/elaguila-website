@@ -26,8 +26,22 @@ export const DEFAULT_LANG: SupportedLang = "es";
 
 export const PRIMARY_LANGUAGES = ["es", "en"] as const satisfies readonly SupportedLang[];
 
-/** Magazine hub + reader: only languages with reader UI copy (es/en/vi). */
-export const MAGAZINE_ROUTE_LANGUAGES = ["es", "en", "vi"] as const satisfies readonly SupportedLang[];
+/** Magazine hub + June 2026 HTML reader — all active public languages. */
+export const MAGAZINE_ROUTE_LANGUAGES = [
+  "es",
+  "en",
+  "vi",
+  "pt",
+  "tl",
+  "km",
+  "zh",
+  "ja",
+  "ko",
+  "hi",
+  "hy",
+  "ru",
+  "pa",
+] as const satisfies readonly SupportedLang[];
 
 export type MagazineRouteLang = (typeof MAGAZINE_ROUTE_LANGUAGES)[number];
 
@@ -58,6 +72,9 @@ export const ADDITIONAL_LANGUAGES = [
 export const ACTIVE_ADDITIONAL_LANGUAGES = ADDITIONAL_LANGUAGES;
 
 export const ALL_SUPPORTED_LANGS = [...PRIMARY_LANGUAGES, ...ADDITIONAL_LANGUAGES] as const satisfies readonly SupportedLang[];
+
+/** Alias for public-site active language list (LANG-MAG-FINALLOCK1). */
+export const ACTIVE_PUBLIC_LANGS = ALL_SUPPORTED_LANGS;
 
 export type HeldRtlLanguageEntry = {
   code: HeldRtlLang;
@@ -548,16 +565,53 @@ export function heldLanguageNote(currentLang: SupportedLang): string {
   return "RTL — después";
 }
 
+/** Valid active lang from raw input; null for held/unknown. */
+export function normalizePublicLang(value: string | null | undefined): SupportedLang | null {
+  return normalizeSelectableLang(value);
+}
+
+/** Resolve lang from search params with safe fallback. */
+export function resolvePublicLangFromSearchParams(
+  searchParams: URLSearchParams | Record<string, string | string[] | undefined> | undefined,
+  fallback: SupportedLang = DEFAULT_LANG,
+): SupportedLang {
+  if (!searchParams) return fallback;
+
+  const raw =
+    searchParams instanceof URLSearchParams
+      ? searchParams.get("lang")
+      : Array.isArray(searchParams.lang)
+        ? searchParams.lang[0]
+        : searchParams.lang;
+
+  return normalizePublicLang(raw) ?? fallback;
+}
+
 /** Replace or append lang query param on internal hrefs; preserves other query params and hash. */
 export function replaceLangInHref(pathOrUrl: string, lang: SupportedLang): string {
-  if (!pathOrUrl.startsWith("/") || pathOrUrl.startsWith("//")) return pathOrUrl;
-  const hashIndex = pathOrUrl.indexOf("#");
-  const withoutHash = hashIndex >= 0 ? pathOrUrl.slice(0, hashIndex) : pathOrUrl;
-  const hash = hashIndex >= 0 ? pathOrUrl.slice(hashIndex) : "";
+  return withLang(pathOrUrl, lang);
+}
+
+/** Set lang on internal href; optional extra query params; preserves hash. */
+export function withLang(
+  href: string,
+  lang: SupportedLang,
+  extraParams?: Record<string, string | number | boolean | null | undefined>,
+): string {
+  if (!href.startsWith("/") || href.startsWith("//")) return href;
+  const hashIndex = href.indexOf("#");
+  const withoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+  const hash = hashIndex >= 0 ? href.slice(hashIndex) : "";
   const qIndex = withoutHash.indexOf("?");
   const path = qIndex >= 0 ? withoutHash.slice(0, qIndex) : withoutHash;
   const params = new URLSearchParams(qIndex >= 0 ? withoutHash.slice(qIndex + 1) : "");
   params.set("lang", lang);
+  if (extraParams) {
+    Object.entries(extraParams).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") return;
+      params.set(key, String(value));
+    });
+  }
   const qs = params.toString();
   return `${path}${qs ? `?${qs}` : ""}${hash}`;
 }
@@ -604,9 +658,9 @@ function readClientLocalStorageLang(): SupportedLang | null {
   }
 }
 
-/** Cookie first, then localStorage — client only. */
+/** localStorage first, then cookie — client only (LANG-MAG-FINALLOCK1). */
 export function readClientStoredLangPreference(): SupportedLang | null {
-  return readClientCookieLang() ?? readClientLocalStorageLang();
+  return readClientLocalStorageLang() ?? readClientCookieLang();
 }
 
 /** @deprecated Alias for readClientStoredLangPreference. */

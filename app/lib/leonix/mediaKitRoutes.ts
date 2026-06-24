@@ -29,7 +29,7 @@ export function magazineReadMediaKitHref(lang: SupportedLang): string {
 export function magazineReadContactHref(lang: SupportedLang): string {
   return mediaKitAdvertisingContactHref(lang, {
     sourcePage: "magazine_read",
-    sourceCta: "magazine_contact",
+    sourceCta: "contact_leonix",
   });
 }
 

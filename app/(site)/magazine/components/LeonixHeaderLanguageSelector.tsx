@@ -67,7 +67,9 @@ export function LeonixHeaderLanguageSelector({
       const next = new URLSearchParams(searchParams?.toString() ?? "");
       next.set("lang", target);
       const q = next.toString();
-      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      const nextPath = q ? `${pathname}?${q}${hash}` : `${pathname}${hash}`;
+      router.replace(nextPath, { scroll: false });
       writePersistedLangPreference(target);
       setDropdownOpen(false);
     },

@@ -13,9 +13,9 @@ import {
 } from "@/app/lib/googleTranslateWebsite";
 import {
   deviceStepsHash,
-  leonixGoogleTranslateWebsiteUrl,
   magazinePrintGuideHref,
-  translatorGatewayHref,
+  magazineReadTranslateSiteHref,
+  magazineReadTranslatorHref,
 } from "@/app/lib/magazine/qrRouteHelpers";
 import type { SupportedLang } from "@/app/lib/language";
 
@@ -101,15 +101,8 @@ export function MagazinePrintVisualGuide({
   afterActions,
 }: MagazinePrintVisualGuideProps) {
   const copy = useMemo(() => getQrGuideCopy(lang), [lang]);
-  const translatorHref = translatorGatewayHref(lang, {
-    sourcePage: "magazine_read",
-    sourceCta: "translation_options",
-  });
-  const websiteTranslateUrl = leonixGoogleTranslateWebsiteUrl(lang, {
-    sourcePage: "magazine_read",
-    sourceCta: "qr_guide_google_translate",
-    returnTo: `/magazine/2026/june/read?lang=${lang}`,
-  });
+  const translatorHref = magazineReadTranslatorHref(lang);
+  const websiteTranslateUrl = magazineReadTranslateSiteHref(lang);
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
 
   return (

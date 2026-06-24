@@ -25,7 +25,7 @@ export const MAGAZINE_READER_ES: MagazineReaderLangBundle = {
     backToComingSoon: "Volver a Próximamente",
     readPageTitle: "Lector — Junio 2026",
     readPageSubtitle:
-      "Información principal de la edición de junio en español, inglés y vietnamita. La revista visual original sigue en español.",
+      "La revista visual original sigue en español. Este lector te ayuda a entender la información principal en tu idioma seleccionado.",
     issuePageTitle: "Edición Junio 2026",
     issuePageIntro:
       "La edición de lanzamiento de Leonix Media conecta negocios locales, comunidad, cultura y oportunidades. Elija cómo explorarla.",

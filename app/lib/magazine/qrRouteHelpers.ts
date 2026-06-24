@@ -64,3 +64,20 @@ export function withRouteLang(href: string, lang: SupportedLang): string {
 export function deviceStepsHash(platform: "iphone" | "android"): string {
   return platform === "iphone" ? "iphone-translation-steps" : "android-translation-steps";
 }
+
+/** QR translator gateway from June 2026 magazine reader. */
+export function magazineReadTranslatorHref(lang: SupportedLang): string {
+  return translatorGatewayHref(lang, {
+    sourcePage: "magazine_read",
+    sourceCta: "qr_translation_options",
+  });
+}
+
+/** Google Translate helper from June 2026 magazine reader. */
+export function magazineReadTranslateSiteHref(lang: SupportedLang): string {
+  return leonixGoogleTranslateWebsiteUrl(lang, {
+    sourcePage: "magazine_read",
+    sourceCta: "google_translate",
+    returnTo: `/magazine/2026/june/read?lang=${lang}`,
+  });
+}
