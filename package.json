@@ -40,6 +40,7 @@
     "verify:admin-staff-auth-boundary": "node scripts/verify-admin-staff-auth-boundary.mjs",
     "verify:admin-staff-launch-readiness": "node scripts/verify-admin-staff-launch-readiness.mjs",
     "verify:production-preview-bypass": "node scripts/verify-production-preview-bypass.mjs",
+    "verify:coming-soon-email-alerts": "node scripts/verify-coming-soon-email-alerts.mjs",
     "seed:owner-admin-auth": "node scripts/seed-owner-admin-auth.mjs",
     "verify:category-plan-boundaries": "node scripts/verify-category-plan-boundaries.mjs",
     "verify:category-listing-monetization": "node scripts/verify-category-listing-monetization-read-model.mjs",

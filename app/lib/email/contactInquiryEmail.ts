@@ -1,7 +1,9 @@
 import { escapeHtml } from "./escapeHtml";
 import {
   leonixAdminLeadInboxUrl,
+  leonixAdminMediaKitInboxUrl,
   leonixAdminNewsletterInboxUrl,
+  leonixAdminPromoInboxUrl,
 } from "./leonixInternalNotificationUrls";
 import { inquiryTypeLabel, type InquiryType } from "@/app/lib/leonix/inquiryTypes";
 import { normalizeLang } from "@/app/lib/language";
@@ -29,22 +31,31 @@ function line(label: string, value: string): string {
   return value ? `${label}: ${value}` : `${label}: (not provided)`;
 }
 
-function leadNotificationSubject(inquiryType: InquiryType, lang: string): string {
-  const en = lang === "en";
+function isComingSoonSourcePage(sourcePage: string): boolean {
+  const page = sourcePage.toLowerCase();
+  return page.includes("coming-soon") || page === "/coming-soon-v2";
+}
+
+function resolveLeadAdminInboxUrl(fields: Pick<ContactInquiryEmailFields, "inquiryType" | "sourceCta">): string {
+  if (fields.inquiryType === "promotionalProducts" || fields.sourceCta === "promo_quote") {
+    return leonixAdminPromoInboxUrl();
+  }
+  if (fields.inquiryType === "mediaKit") {
+    return leonixAdminMediaKitInboxUrl();
+  }
+  return leonixAdminLeadInboxUrl();
+}
+
+function leadNotificationSubject(inquiryType: InquiryType, sourcePage: string): string {
   switch (inquiryType) {
     case "mediaKit":
-      return en ? "New Leonix Media Kit interest" : "Nuevo interés en Media Kit de Leonix";
+      return "New Leonix media kit request";
     case "promotionalProducts":
-      return en
-        ? "New promotional products / print quote request"
-        : "Nueva cotización de productos promocionales";
-    case "advertising":
-    case "general":
-    case "businessListing":
-    case "partnership":
-    case "launch":
+      return "New Leonix promotional quote lead";
     default:
-      return en ? "New Leonix Media lead" : "Nuevo lead de Leonix Media";
+      return isComingSoonSourcePage(sourcePage)
+        ? "New Leonix lead from Coming Soon"
+        : "New Leonix Media lead";
   }
 }
 
@@ -55,8 +66,8 @@ export function buildContactInquiryEmail(fields: ContactInquiryEmailFields): {
 } {
   const lang = normalizeLang(fields.lang);
   const topicText = inquiryTypeLabel(fields.inquiryType, lang);
-  const subject = leadNotificationSubject(fields.inquiryType, lang);
-  const adminInbox = leonixAdminLeadInboxUrl();
+  const subject = leadNotificationSubject(fields.inquiryType, fields.sourcePage);
+  const adminInbox = resolveLeadAdminInboxUrl(fields);
 
   const text = [
     "Leonix internal lead notification",
@@ -132,8 +143,7 @@ export function buildLaunchSignupEmail(fields: {
   updated?: boolean;
 }): { subject: string; text: string; html: string } {
   const lang = normalizeLang(fields.lang);
-  const subject =
-    lang === "en" ? "New Leonix launch signup" : "Nuevo registro de lanzamiento Leonix";
+  const subject = "New Leonix newsletter signup";
   const adminInbox = leonixAdminNewsletterInboxUrl();
 
   const text = [
@@ -184,6 +194,63 @@ export function buildLaunchSignupEmail(fields: {
   <p><strong>Preferred language:</strong> ${fields.preferredLanguage ? escapeHtml(fields.preferredLanguage) : "<em>not provided</em>"}</p>
   <p><strong>Interests:</strong> ${fields.interests ? escapeHtml(fields.interests) : "<em>not provided</em>"}</p>
   <p><strong>Wants launch updates:</strong> ${fields.wantsLaunchUpdates ? "yes" : "no"}</p>
+</body></html>`;
+
+  return { subject, text, html };
+}
+
+export function buildMediaKitLeadEmail(fields: {
+  name: string;
+  email: string;
+  phone: string;
+  business: string;
+  message: string;
+  source: string;
+  lang: string;
+  submittedAt: string;
+  leadId: string;
+}): { subject: string; text: string; html: string } {
+  const lang = normalizeLang(fields.lang);
+  const subject = "New Leonix media kit request";
+  const adminInbox = leonixAdminMediaKitInboxUrl();
+
+  const text = [
+    "Leonix internal media kit lead notification",
+    `Submitted (UTC): ${fields.submittedAt}`,
+    `Lead ID: ${fields.leadId}`,
+    "",
+    "Review in admin:",
+    adminInbox,
+    "",
+    line("Language", lang),
+    line("Source", fields.source),
+    "",
+    line("Name", fields.name),
+    line("Email", fields.email),
+    line("Phone", fields.phone),
+    line("Business", fields.business),
+    "",
+    "Message:",
+    fields.message || "(not provided)",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const html = `
+<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;line-height:1.5;color:#222;">
+  <h2 style="margin:0 0 12px;">Leonix media kit request</h2>
+  <p><strong>Submitted (UTC):</strong> ${escapeHtml(fields.submittedAt)}</p>
+  <p><strong>Lead ID:</strong> ${escapeHtml(fields.leadId)}</p>
+  <p><strong>Admin inbox:</strong> <a href="${escapeHtml(adminInbox)}">${escapeHtml(adminInbox)}</a></p>
+  <p><strong>Language:</strong> ${escapeHtml(lang)}</p>
+  <p><strong>Source:</strong> ${escapeHtml(fields.source)}</p>
+  <hr style="border:none;border-top:1px solid #ddd;margin:16px 0;" />
+  <p><strong>Name:</strong> ${escapeHtml(fields.name)}</p>
+  <p><strong>Email:</strong> ${escapeHtml(fields.email)}</p>
+  <p><strong>Phone:</strong> ${fields.phone ? escapeHtml(fields.phone) : "<em>not provided</em>"}</p>
+  <p><strong>Business:</strong> ${fields.business ? escapeHtml(fields.business) : "<em>not provided</em>"}</p>
+  <h3 style="margin:20px 0 8px;">Message</h3>
+  <pre style="white-space:pre-wrap;font-family:inherit;background:#f7f7f7;padding:12px;border-radius:8px;">${escapeHtml(fields.message || "(not provided)")}</pre>
 </body></html>`;
 
   return { subject, text, html };

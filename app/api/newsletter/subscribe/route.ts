@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
 import { buildLaunchSignupEmail } from "@/app/lib/email/contactInquiryEmail";
+import { resolveLeonixNotificationEmail } from "@/app/lib/email/leonixNotificationRecipient";
 import { resolveLeonixResendConfig } from "@/app/lib/email/leonixResendConfig";
 import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
 import { saveNewsletterSubscriber } from "@/app/lib/leonix/leadCaptureServer";
@@ -133,7 +133,8 @@ export async function POST(req: Request) {
 
   let emailSent = false;
 
-  if (saved && emailConfigured && email.trim()) {
+  if (saved && !updated && emailConfigured && email.trim()) {
+    const notificationTo = resolveLeonixNotificationEmail();
     const mail = buildLaunchSignupEmail({
       email: email.trim(),
       name: String(name ?? "").trim(),
@@ -153,7 +154,7 @@ export async function POST(req: Request) {
     });
 
     const sent = await sendLeonixResendEmail({
-      to: LEONIX_GLOBAL_EMAIL,
+      to: notificationTo,
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
@@ -164,7 +165,7 @@ export async function POST(req: Request) {
     if (sent.ok) {
       console.info("[newsletter] email notification accepted by provider", {
         subscriberId: savedId,
-        to: LEONIX_GLOBAL_EMAIL,
+        to: notificationTo,
         source: String(source ?? "newsletter_page"),
         sourceCta: sourceCta || "(none)",
         updated,
@@ -173,21 +174,22 @@ export async function POST(req: Request) {
       console.warn("[newsletter] subscriber saved without team email notification", {
         code: sent.code,
         subscriberId: savedId,
-        to: LEONIX_GLOBAL_EMAIL,
+        to: notificationTo,
         sourceCta: sourceCta || "(none)",
         hint:
           sent.code === "NOT_CONFIGURED"
-            ? "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production"
-            : "Verify Resend domain/sender for LEONIX_RESEND_FROM",
+            ? "Set RESEND_API_KEY and LEONIX_EMAIL_FROM in Vercel Production"
+            : "Verify Resend domain/sender for LEONIX_EMAIL_FROM or LEONIX_RESEND_FROM",
       });
     }
-  } else if (saved && !emailConfigured) {
+  } else if (saved && !updated && !emailConfigured) {
     const config = resolveLeonixResendConfig();
+    const notificationTo = resolveLeonixNotificationEmail();
     console.warn("[newsletter] email not configured — subscriber saved without team notification", {
       subscriberId: savedId,
-      to: LEONIX_GLOBAL_EMAIL,
+      to: notificationTo,
       missing: config.ok ? [] : config.missing,
-      hint: "Set RESEND_API_KEY and LEONIX_RESEND_FROM in Vercel Production, then redeploy",
+      hint: "Set RESEND_API_KEY and LEONIX_EMAIL_FROM in Vercel Production, then redeploy",
     });
   }
 

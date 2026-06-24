@@ -13,6 +13,16 @@ export function leonixAdminNewsletterInboxUrl(): string {
   return `${base}/admin/leads/newsletter`;
 }
 
+export function leonixAdminPromoInboxUrl(): string {
+  const base = siteBaseUrl();
+  return `${base}/admin/leads/inbox?view=promo`;
+}
+
+export function leonixAdminMediaKitInboxUrl(): string {
+  const base = siteBaseUrl();
+  return `${base}/admin/leads/media-kit`;
+}
+
 function siteBaseUrl(): string {
   const explicit = process.env.LEONIX_SITE_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (explicit) return explicit.replace(/\/$/, "");
