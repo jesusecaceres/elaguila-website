@@ -181,6 +181,10 @@ export default function OfertasLocalesApplicationClient() {
   const [signedIn, setSignedIn] = useState(true);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
+  const showFullWidthReviewDesk =
+    (step === 5 || step === 7) &&
+    draft.wantsAiSearchableSpecials &&
+    Boolean(effectiveOfertaLocalId?.trim());
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -807,13 +811,6 @@ export default function OfertasLocalesApplicationClient() {
                   onScanComplete={setLastScanJobId}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
-                <OfertasLocalesAiScanReviewWorkspace
-                  lang={lang}
-                  draft={draft}
-                  ofertaLocalId={effectiveOfertaLocalId}
-                  lastScanJobId={lastScanJobId}
-                  reviewMode={isCouponsLane ? "coupon" : "weekly"}
-                />
                 <OfertasLocalesClickableItemPreviewPanel
                   lang={lang}
                   ofertaLocalId={effectiveOfertaLocalId}
@@ -1009,13 +1006,6 @@ export default function OfertasLocalesApplicationClient() {
                   onScanComplete={setLastScanJobId}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
-                <OfertasLocalesAiScanReviewWorkspace
-                  lang={lang}
-                  draft={draft}
-                  ofertaLocalId={effectiveOfertaLocalId}
-                  lastScanJobId={lastScanJobId}
-                  reviewMode={isCouponsLane ? "coupon" : "weekly"}
-                />
                 <OfertasLocalesClickableItemPreviewPanel
                   lang={lang}
                   ofertaLocalId={effectiveOfertaLocalId}
@@ -1195,6 +1185,23 @@ export default function OfertasLocalesApplicationClient() {
           {draft.magazineMonthlyDropEstimate}
         </span>
       </div>
+
+      {showFullWidthReviewDesk ? (
+        <section
+          aria-label={lang === "en" ? "AI scan review desk" : "Mesa de revisión de escaneo AI"}
+          className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-8 sm:px-6 lg:py-10"
+        >
+          <div className="mx-auto w-full max-w-[min(100vw-2rem,1600px)]">
+            <OfertasLocalesAiScanReviewWorkspace
+              lang={lang}
+              draft={draft}
+              ofertaLocalId={effectiveOfertaLocalId}
+              lastScanJobId={lastScanJobId}
+              reviewMode={isCouponsLane ? "coupon" : "weekly"}
+            />
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

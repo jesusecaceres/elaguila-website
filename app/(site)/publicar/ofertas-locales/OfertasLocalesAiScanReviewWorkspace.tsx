@@ -1,17 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getOfertaLocalScanEligibleAssets } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
-import {
-  fetchOfertaLocalReviewItems,
-  patchOfertaLocalReviewItem,
-} from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
-import type {
-  OfertaLocalDraft,
-  OfertaLocalItemReviewStatus,
-  OfertaLocalItemReviewViewModel,
-  OfertaLocalScanJobSummary,
-} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OfertasLocalesSourceAdPreviewPanel } from "./OfertasLocalesSourceAdPreviewPanel";
 import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
@@ -37,6 +28,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [mobilePreviewCollapsed, setMobilePreviewCollapsed] = useState(true);
 
+  const selectedAsset = eligibleAssets.find((a) => a.assetId === selectedAssetId);
+
   useEffect(() => {
     if (selectedAssetId && eligibleAssets.some((a) => a.assetId === selectedAssetId)) return;
     const flyer = eligibleAssets.find((a) => a.assetKind === "flyer");
@@ -46,10 +39,28 @@ export function OfertasLocalesAiScanReviewWorkspace({
   if (!ofertaLocalId?.trim()) return null;
 
   return (
-    <div className="space-y-4 rounded-xl border border-[#7A1E2C]/20 bg-[#FDF8F0] p-4">
-      <div>
-        <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiReviewWorkspaceTitle}</p>
-        <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiReviewBeforePublish}</p>
+    <div className="w-full min-w-0 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-semibold text-[#7A1E2C] sm:text-lg">{c.aiReviewWorkspaceTitle}</p>
+          <p className="mt-1 text-sm text-[#1E1814]/70">{c.aiReviewBeforePublish}</p>
+        </div>
+        {selectedAsset ? (
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-3 py-2 text-right text-xs text-[#1E1814]/70">
+            <p className="font-semibold uppercase tracking-wide text-[#7A1E2C]">
+              {selectedAsset.assetKind === "flyer"
+                ? lang === "en"
+                  ? "Main flyer"
+                  : "Volante principal"
+                : lang === "en"
+                  ? "Coupon file"
+                  : "Archivo de cupón"}
+            </p>
+            <p className="mt-0.5 max-w-[280px] truncate font-medium text-[#1E1814]">
+              {selectedAsset.fileName || selectedAsset.assetId}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {eligibleAssets.length > 1 ? (
@@ -65,14 +76,14 @@ export function OfertasLocalesAiScanReviewWorkspace({
                   ? "Main flyer"
                   : "Volante principal"
                 : lang === "en"
-                  ? "Coupon file"
-                  : "Archivo de cupón";
+                  ? "Coupon / additional"
+                  : "Cupón / adicional";
             return (
               <button
                 key={asset.assetId}
                 type="button"
                 onClick={() => setSelectedAssetId(asset.assetId)}
-                className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                className={`max-w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
                   active
                     ? "border-[#7A1E2C] bg-[#7A1E2C]/10 font-semibold text-[#7A1E2C]"
                     : "border-[#D4C4A8] bg-white text-[#1E1814]/75 hover:border-[#7A1E2C]/30"
@@ -88,17 +99,18 @@ export function OfertasLocalesAiScanReviewWorkspace({
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="min-w-0 lg:sticky lg:top-4">
-          <div className="hidden lg:block">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,63fr)_minmax(0,37fr)] xl:items-start">
+        <div className="min-w-0 xl:sticky xl:top-20 xl:self-start">
+          <div className="hidden xl:block">
             <OfertasLocalesSourceAdPreviewPanel
               lang={lang}
               draft={draft}
               selectedAssetId={selectedAssetId}
               eligibleAssets={eligibleAssets}
+              deskMode
             />
           </div>
-          <div className="lg:hidden">
+          <div className="xl:hidden">
             <OfertasLocalesSourceAdPreviewPanel
               lang={lang}
               draft={draft}
@@ -111,7 +123,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
           </div>
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden">
           <OfertasLocalesAiItemReviewPanel
             lang={lang}
             ofertaLocalId={ofertaLocalId}

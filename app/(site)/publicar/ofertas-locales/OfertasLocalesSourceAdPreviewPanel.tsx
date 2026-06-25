@@ -13,8 +13,9 @@ import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
 const BTN =
   "rounded-lg border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+const BTN_ACTIVE = "border-[#7A1E2C] bg-[#7A1E2C]/10 font-semibold text-[#7A1E2C]";
 
-type ZoomLevel = "fit" | "125" | "150";
+type ZoomLevel = "fit" | "100" | "125" | "150";
 
 function resolveDraftAsset(
   draft: OfertaLocalDraft,
@@ -47,11 +48,24 @@ function roleLabelForAsset(
   return ofertaLocalDraftAssetRoleLabel({ asset, bucket, sectionMode, lang });
 }
 
+function zoomWidth(zoom: ZoomLevel): string {
+  switch (zoom) {
+    case "fit":
+    case "100":
+      return "100%";
+    case "125":
+      return "125%";
+    case "150":
+      return "150%";
+  }
+}
+
 type Props = {
   lang: OfertasLocalesAppLang;
   draft: OfertaLocalDraft;
   selectedAssetId: string | null;
   eligibleAssets: OfertaLocalScanEligibleAsset[];
+  deskMode?: boolean;
   collapsible?: boolean;
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
@@ -62,6 +76,7 @@ export function OfertasLocalesSourceAdPreviewPanel({
   draft,
   selectedAssetId,
   eligibleAssets,
+  deskMode = false,
   collapsible = false,
   collapsed = false,
   onCollapsedChange,
@@ -91,8 +106,15 @@ export function OfertasLocalesSourceAdPreviewPanel({
         ? "Source file"
         : "Archivo fuente";
 
-  const zoomStyle =
-    zoom === "fit" ? { width: "100%" } : { width: `${zoom}%`, minWidth: "100%" };
+  const viewerHeightClass = deskMode
+    ? "h-[min(78vh,920px)] min-h-[70vh]"
+    : "h-[min(60vh,560px)] min-h-[320px]";
+  const zoomButtons: { id: ZoomLevel; label: string }[] = [
+    { id: "fit", label: lang === "en" ? "Fit width" : "Ajustar" },
+    { id: "100", label: "100%" },
+    { id: "125", label: "125%" },
+    { id: "150", label: "150%" },
+  ];
 
   const body = (
     <div className="space-y-3">
@@ -101,11 +123,11 @@ export function OfertasLocalesSourceAdPreviewPanel({
           <span className="inline-flex rounded-full bg-[#7A1E2C]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
             {role}
           </span>
-          <p className="mt-2 truncate text-sm font-semibold text-[#1E1814]">
+          <p className="mt-2 truncate text-sm font-semibold text-[#1E1814] sm:text-base">
             {asset?.fileName || asset?.title || "—"}
           </p>
           {asset?.mimeType ? (
-            <p className="text-[10px] text-[#1E1814]/55">
+            <p className="text-[10px] text-[#1E1814]/55 sm:text-xs">
               {asset.mimeType}
               {asset.sizeBytes != null ? ` · ${formatOfertaLocalFileSize(asset.sizeBytes)}` : ""}
             </p>
@@ -132,33 +154,38 @@ export function OfertasLocalesSourceAdPreviewPanel({
       ) : isPdf ? (
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={BTN} onClick={() => setZoom("fit")}>
-              Fit
-            </button>
-            <button type="button" className={BTN} onClick={() => setZoom("125")}>
-              125%
-            </button>
-            <button type="button" className={BTN} onClick={() => setZoom("150")}>
-              150%
-            </button>
+            {zoomButtons.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                className={`${BTN} ${zoom === id ? BTN_ACTIVE : ""}`}
+                onClick={() => setZoom(id)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          <div className="max-h-[min(70vh,640px)] overflow-auto rounded-xl border border-[#D4C4A8] bg-[#1E1814]/5">
+          <div
+            className={`overflow-auto rounded-xl border border-[#D4C4A8] bg-[#FDF8F0] shadow-inner ${viewerHeightClass}`}
+          >
             <iframe
               title={asset?.fileName || "PDF preview"}
               src={previewUrl}
-              className="min-h-[min(60vh,560px)] border-0 bg-white"
-              style={zoomStyle}
+              className="h-full min-h-[inherit] border-0 bg-white"
+              style={{ width: zoomWidth(zoom), minWidth: "100%" }}
             />
           </div>
         </div>
       ) : isImage ? (
-        <div className="max-h-[min(70vh,640px)] overflow-auto rounded-xl border border-[#D4C4A8] bg-white p-2">
+        <div
+          className={`overflow-auto rounded-xl border border-[#D4C4A8] bg-white p-2 ${viewerHeightClass}`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
             alt={asset?.title || asset?.fileName || "Preview"}
-            className="mx-auto max-h-[min(65vh,600px)] w-full object-contain"
-            style={zoom === "fit" ? undefined : { width: `${zoom}%` }}
+            className="mx-auto h-full max-h-[inherit] w-full object-contain"
+            style={zoom === "fit" || zoom === "100" ? undefined : { width: zoomWidth(zoom) }}
           />
         </div>
       ) : (
@@ -183,10 +210,12 @@ export function OfertasLocalesSourceAdPreviewPanel({
     </div>
   );
 
+  const shellClass = deskMode
+    ? "rounded-xl border border-[#D4C4A8]/70 bg-white p-4 shadow-sm sm:p-5"
+    : "rounded-xl border border-[#D4C4A8]/70 bg-white p-4 shadow-sm";
+
   if (!collapsible) {
-    return (
-      <div className="rounded-xl border border-[#D4C4A8]/70 bg-white p-4 shadow-sm">{body}</div>
-    );
+    return <div className={shellClass}>{body}</div>;
   }
 
   return (
