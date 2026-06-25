@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
@@ -22,21 +23,18 @@ export type ClassifiedStaffOpsVariant =
 type Props = {
   variant: ClassifiedStaffOpsVariant;
   rowId: string;
-  /** True when the listing is publicly live (published / active / approved+public, etc.). */
   publicLive: boolean;
   promoted: boolean;
   verified: boolean;
-  /** When false, hide archive (e.g. row already archived). */
   canArchive?: boolean;
-  /** Staff / owner edit surface for this row (dashboard, perfil, etc.). */
   staffEditBoardHref?: string;
-  /** When set with `republishRow`, shows Move to top / Republish / No republish (listings + verticals). */
   republishCategory?: string;
   republishRow?: Record<string, unknown>;
   leonixAdId?: string | null;
   displayLabel?: string | null;
-  /** Desktop table uses compact single-column groups; mobile cards use 2-col grid. */
   layout?: "compact" | "card";
+  /** Mobile card queue — collapse lifecycle/monetization into details sections. */
+  collapseSections?: boolean;
 };
 
 function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
@@ -64,6 +62,39 @@ function safeErrorMessage(j: { error?: string }, status: number): string {
   return raw.slice(0, 200);
 }
 
+function ActionSection({
+  title,
+  children,
+  collapseSections,
+  testId,
+}: {
+  title: string;
+  children: ReactNode;
+  collapseSections?: boolean;
+  testId?: string;
+}) {
+  if (!collapseSections) {
+    return (
+      <div data-testid={testId}>
+        <p className={adminQueueActionGroupLabel}>{title}</p>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <details
+      className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80"
+      data-testid={testId}
+    >
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center px-3 py-2.5 text-xs font-bold uppercase text-[#5C5346] [&::-webkit-details-marker]:hidden">
+        {title}
+      </summary>
+      <div className="border-t border-[#E8DFD0]/60 p-2">{children}</div>
+    </details>
+  );
+}
+
 export function ClassifiedAdminRowActions({
   variant,
   rowId,
@@ -76,6 +107,7 @@ export function ClassifiedAdminRowActions({
   leonixAdId,
   displayLabel,
   layout = "compact",
+  collapseSections = false,
 }: Props) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -160,9 +192,8 @@ export function ClassifiedAdminRowActions({
   const gridCols = layout === "card" ? 2 : 1;
 
   return (
-    <div className="min-w-0 space-y-3" data-testid="classified-admin-row-actions">
-      <div>
-        <p className={adminQueueActionGroupLabel}>Lifecycle</p>
+    <div className="min-w-0 space-y-2 overflow-x-hidden" data-testid="classified-admin-row-actions">
+      <ActionSection title="Lifecycle" collapseSections={collapseSections} testId="admin-row-actions-lifecycle">
         <AdminDashboardCtaGrid columns={gridCols}>
           {republish ? (
             <AdminDashboardCtaButton
@@ -207,10 +238,13 @@ export function ClassifiedAdminRowActions({
             />
           ) : null}
         </AdminDashboardCtaGrid>
-      </div>
+      </ActionSection>
 
-      <div>
-        <p className={adminQueueActionGroupLabel}>Monetization &amp; trust</p>
+      <ActionSection
+        title="Monetization & trust"
+        collapseSections={collapseSections}
+        testId="admin-row-actions-monetization"
+      >
         <AdminDashboardCtaGrid columns={gridCols}>
           {promoted ? (
             <AdminDashboardCtaButton
@@ -247,7 +281,7 @@ export function ClassifiedAdminRowActions({
             />
           )}
         </AdminDashboardCtaGrid>
-      </div>
+      </ActionSection>
     </div>
   );
 }

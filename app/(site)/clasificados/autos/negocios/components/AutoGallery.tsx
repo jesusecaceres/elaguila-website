@@ -16,9 +16,9 @@ import {
 } from "../lib/autoDealerVideo";
 import { MediaImage } from "./MediaImage";
 import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
+import { autosPreviewPremiumCardClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
-const CARD =
-  "min-w-0 overflow-x-hidden rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
+const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-4`;
 
 export function AutoGallery({
   data,

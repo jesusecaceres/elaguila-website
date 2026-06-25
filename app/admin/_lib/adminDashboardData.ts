@@ -17,6 +17,12 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
 import { normalizeGenericListingForAdmin, type GenericListingAdminInput } from "@/app/admin/_lib/adminAdIdentity";
 import { enrichReviewRowActionFields } from "@/app/admin/_lib/adminDashboardReviewActions";
+import {
+  ADMIN_REVIEW_REASON_SECONDARY_FALLBACK,
+  adminDashboardReviewReasonLabel,
+  classifyDashboardReviewRowFlagTruth,
+} from "@/app/admin/_lib/adminReviewFlagTruth";
+import { fetchListingFlagContextMaps } from "@/app/admin/_lib/adminReviewFlagContext";
 
 /** Ads expiring within this window surface under “Expiring soon” (dashboard MOBILE-01). */
 export const ADMIN_DASHBOARD_EXPIRING_SOON_MS = 3 * 24 * 60 * 60 * 1000;
@@ -312,6 +318,9 @@ async function fetchListingsPendingReview(
     .limit(40);
   if (error || !data) return [];
 
+  const listingIds = (data as unknown as ListingsPendingReviewDbRow[]).map((r) => r.id).filter(Boolean);
+  const { reportsByListingId } = await fetchListingFlagContextMaps(supabase, listingIds, []);
+
   const out: AdminDashboardPendingReviewQueueRow[] = [];
   for (const row of (data as unknown) as ListingsPendingReviewDbRow[]) {
     const internalId = nonEmptyString(row.id);
@@ -319,6 +328,11 @@ async function fetchListingsPendingReview(
     if (!internalId || !status) continue;
     const category = nonEmptyString(row.category) ?? "unknown";
     const norm = normalizeGenericListingForAdmin(row as unknown as GenericListingAdminInput);
+    const reportCtx = reportsByListingId[internalId];
+    const truth = classifyDashboardReviewRowFlagTruth(
+      { source: "generic_listings", status, reason: null },
+      reportCtx,
+    );
     out.push(
       enrichReviewRowActionFields({
         source: "generic_listings",
@@ -330,7 +344,7 @@ async function fetchListingsPendingReview(
         ownerEmail: null,
         ownerPhone: null,
         status,
-        reason: null,
+        reason: truth.reasonText,
         updatedAtIso: nonEmptyString(row.updated_at) ?? nonEmptyString(row.created_at),
         adminHref: norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
         publicHref: `/clasificados/anuncio/${encodeURIComponent(internalId)}`,
@@ -510,36 +524,21 @@ export function splitAdminDashboardExpiringQueue(items: AdminDashboardExpiringQu
   return { expiringSoon, expired, otherActive };
 }
 
-export function adminDashboardReviewReasonLabel(reason: string | null): string {
-  const trimmed = reason?.trim();
-  return trimmed ? trimmed : "Reason unavailable — inspect review source";
-}
+export { adminDashboardReviewReasonLabel, ADMIN_REVIEW_REASON_SECONDARY_FALLBACK };
 
-/** Honest review/flag source — never implies AI unless data proves it (ADMIN-REVIEW-QUEUE-TRUTH-02). */
+/** Honest review/flag source — never implies AI unless data proves it. */
 export function adminDashboardReviewSourceLabel(row: AdminDashboardPendingReviewQueueRow): string {
-  const reason = row.reason?.trim();
-  if (reason) {
-    if (row.source === "empleos_public_listings") return "Review source: empleos moderation fields";
-    if (row.source === "viajes_staged_listings") return "Review source: viajes staged lifecycle";
-    return "Review source: stored moderation note";
+  const truth = classifyDashboardReviewRowFlagTruth(
+    { source: row.source, status: row.status, reason: row.reason },
+  );
+  if (truth.sourceKind === "ai_moderation") return "Review source: AI moderation (stored result)";
+  if (truth.sourceKind === "user_report") return "Review source: listing_reports (user report)";
+  if (truth.sourceKind === "manual_admin") return "Review source: stored admin moderation note";
+  if (truth.sourceKind === "status_flagged") {
+    return "Review source: listings.status (no AI/moderation reason column on generic listings)";
   }
-  if (row.source === "generic_listings") {
-    const st = row.status.toLowerCase();
-    if (st === "flagged") {
-      return "Review source: listings.status = flagged (no AI/moderation reason column on generic listings)";
-    }
-    if (st === "pending") {
-      return "Review source: listings.status = pending (awaiting staff review)";
-    }
-    return `Review source: listings.status = ${row.status}`;
-  }
-  if (row.source === "empleos_public_listings") {
-    return "Review source: empleos lifecycle_status = pending_review";
-  }
-  if (row.source === "viajes_staged_listings") {
-    return "Review source: viajes lifecycle in_review";
-  }
-  return "AI/moderation reason field not present on this row";
+  if (truth.sourceKind === "unknown_legacy") return "Review source: legacy flag — reason not stored";
+  return ADMIN_REVIEW_REASON_SECONDARY_FALLBACK;
 }
 
 export function isAdminDashboardUrgentReviewRow(row: AdminDashboardPendingReviewQueueRow): boolean {

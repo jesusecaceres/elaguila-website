@@ -41,11 +41,14 @@ export function AutosDealerInventoryVehicleCard({
   lang,
   ctaLabel,
   previewOnly = false,
+  shelfLayout = false,
 }: {
   car: AutosDealerInventoryVehicleCardRow;
   lang: AutosNegociosLang;
   ctaLabel: string;
   previewOnly?: boolean;
+  /** Fixed-ratio shelf card for mobile horizontal snap. */
+  shelfLayout?: boolean;
 }) {
   const title = `${new Intl.NumberFormat("en-US").format(car.year)} ${car.make} ${car.model}${car.trim ? ` ${car.trim}` : ""}`;
   const loc = formatCityStateLabel(car.city, car.state);
@@ -55,7 +58,7 @@ export function AutosDealerInventoryVehicleCard({
 
   const body = (
     <>
-      <div className="relative aspect-[16/11] w-full overflow-hidden bg-[#F5F0E8] sm:aspect-[5/3]">
+      <div className={`relative w-full overflow-hidden bg-[#F5F0E8] ${shelfLayout ? "aspect-[4/3]" : "aspect-[16/11] sm:aspect-[5/3]"}`}>
         {heroSrc ? (
           <Image
             src={heroSrc}

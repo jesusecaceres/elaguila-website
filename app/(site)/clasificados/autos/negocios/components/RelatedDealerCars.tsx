@@ -5,10 +5,18 @@ import type { RelatedDealerListing as RelatedRow } from "../types/autoDealerList
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { withLangParam } from "../lib/autosNegociosLang";
 import { AutosDealerInventoryVehicleCard } from "./AutosDealerInventoryVehicleCard";
-import { autosPreviewInventorySectionHelper } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
-
-const SECTION =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)] sm:p-5";
+import {
+  autosPreviewInventorySectionHelper,
+  autosRelatedInventoryFullDraftDeferral,
+} from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import {
+  AUTOS_PREVIEW_MAX_RELATED_VISIBLE,
+  autosPreviewPremiumCardClass,
+  autosPreviewSectionEyebrowClass,
+  autosPreviewSectionTitleClass,
+  autosRelatedInventoryShelfCardShellClass,
+  autosRelatedInventoryShelfScrollClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 export function RelatedDealerCars({
   listings,
@@ -25,46 +33,66 @@ export function RelatedDealerCars({
   const { lang, t } = useAutosNegociosPreviewCopy();
   const { title, details } = t.preview.related;
   const subtitle = previewOnly ? autosPreviewInventorySectionHelper(lang) : t.preview.related.subtitle;
+  const visible = listings.slice(0, AUTOS_PREVIEW_MAX_RELATED_VISIBLE);
+  const hiddenCount = Math.max(0, listings.length - visible.length);
+  const showDraftDeferral = previewOnly && (hiddenCount > 0 || Boolean(hasMore));
 
-  if (listings.length === 0) return null;
+  if (visible.length === 0) return null;
 
   return (
-    <section className={SECTION} data-autos-related-inventory-preview-only={previewOnly ? "1" : undefined}>
+    <section
+      className={`${autosPreviewPremiumCardClass} p-4 sm:p-5`}
+      data-autos-related-inventory-preview-only={previewOnly ? "1" : undefined}
+      data-autos-related-inventory-shelf="1"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] sm:text-xl">{title}</h2>
-          <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
+        <div className="min-w-0">
+          <p className={autosPreviewSectionEyebrowClass}>
+            {lang === "es" ? "Inventario del dealer" : "Dealer inventory"}
+          </p>
+          <h2 className={`mt-1 ${autosPreviewSectionTitleClass}`}>{title}</h2>
+          <p className="mt-1 text-sm text-[#5C5346]">{subtitle}</p>
         </div>
         {!previewOnly && hasMore && fullInventoryHref ? (
           <Link
             href={withLangParam(fullInventoryHref, lang)}
-            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-[12px] border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border-2 border-[#C9A84A] bg-[#FFFDF7] px-4 text-sm font-bold text-[#1F241C] transition hover:border-[#b89742] hover:bg-[#FBF7EF]"
           >
             {lang === "es" ? "Ver inventario completo" : "View full inventory"}
           </Link>
         ) : null}
       </div>
-      <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:gap-5">
-        {listings.map((car) => (
-          <AutosDealerInventoryVehicleCard
-            key={car.id}
-            car={{
-              id: car.id,
-              imageUrl: car.imageUrl,
-              year: car.year,
-              make: car.make,
-              model: car.model,
-              trim: car.trim,
-              price: car.price,
-              mileage: car.mileage,
-              city: car.city,
-              state: car.state,
-              href: car.href,
-            }}
-            lang={lang}
-            ctaLabel={details}
-            previewOnly={previewOnly}
-          />
+      {showDraftDeferral ? (
+        <p
+          className="mt-4 inline-flex max-w-full rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-3 py-1.5 text-[11px] font-semibold text-[#5C5346]"
+          data-autos-related-inventory-draft-deferral="1"
+        >
+          {autosRelatedInventoryFullDraftDeferral(lang)}
+        </p>
+      ) : null}
+      <div className={`mt-5 ${autosRelatedInventoryShelfScrollClass}`}>
+        {visible.map((car) => (
+          <div key={car.id} className={autosRelatedInventoryShelfCardShellClass}>
+            <AutosDealerInventoryVehicleCard
+              car={{
+                id: car.id,
+                imageUrl: car.imageUrl,
+                year: car.year,
+                make: car.make,
+                model: car.model,
+                trim: car.trim,
+                price: car.price,
+                mileage: car.mileage,
+                city: car.city,
+                state: car.state,
+                href: car.href,
+              }}
+              lang={lang}
+              ctaLabel={details}
+              previewOnly={previewOnly}
+              shelfLayout
+            />
+          </div>
         ))}
       </div>
     </section>

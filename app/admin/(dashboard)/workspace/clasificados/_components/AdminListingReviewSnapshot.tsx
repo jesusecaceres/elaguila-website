@@ -1,6 +1,11 @@
 import Link from "next/link";
 
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
+import {
+  ADMIN_REVIEW_REASON_SECONDARY_FALLBACK,
+  classifyGenericListingFlagTruth,
+} from "@/app/admin/_lib/adminReviewFlagTruth";
+import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
 function parseListingImageUrls(images: unknown): string[] {
@@ -20,28 +25,22 @@ function parseListingImageUrls(images: unknown): string[] {
   return [];
 }
 
-function reviewSourceForListing(status: string): string {
-  const st = status.toLowerCase();
-  if (st === "flagged") {
-    return "Review source: listings.status = flagged (no AI/moderation reason column on generic listings)";
-  }
-  if (st === "pending") {
-    return "Review source: listings.status = pending (awaiting staff review)";
-  }
-  return `Review source: listings.status = ${status || "—"}`;
-}
-
-function reviewReasonFallback(status: string): string {
-  return "Reason unavailable — inspect review source";
-}
+const BADGE_STYLES = {
+  ai_moderation: "border-[#1E4A7A]/40 bg-[#EEF4FC] text-[#1E4A7A]",
+  user_report: "border-[#C9782F]/50 bg-[#FFF4E8] text-[#8B4A12]",
+  manual_admin: "border-[#7A1E2C]/35 bg-[#FDF2F4] text-[#7A1E2C]",
+  status_flagged: "border-[#C9B46A]/50 bg-[#FFFCF7] text-[#5C4E2E]",
+  unknown_legacy: "border-[#E8DFD0] bg-[#FAF7F2] text-[#7A7164]",
+} as const;
 
 type Props = {
   listing: Record<string, unknown>;
   ownerEmail?: string | null;
   ownerName?: string | null;
+  reportContext?: ListingFlagReportContext | null;
 };
 
-export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName }: Props) {
+export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, reportContext }: Props) {
   const id = String(listing.id ?? "");
   const title = String(listing.title ?? "").trim() || "(no title)";
   const description = String(listing.description ?? "").trim();
@@ -57,13 +56,14 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName }: P
   const publicHref =
     categoryLower === "rentas" ? rentasListingPublicPath(id) : `/clasificados/anuncio/${encodeURIComponent(id)}`;
   const queueHref = `/admin/workspace/clasificados?q=${encodeURIComponent(leonixAdId || id)}&status=${encodeURIComponent(status.toLowerCase())}#queue`;
+  const truth = classifyGenericListingFlagTruth(status, reportContext ?? undefined);
 
   return (
     <section className={`${adminCardBase} space-y-4 p-5`} data-testid="admin-listing-review-snapshot">
       <div>
         <h2 className="text-lg font-bold text-[#1E1810]">Review snapshot</h2>
         <p className="mt-1 text-xs text-[#5C5346]">
-          Ad content for moderation — read-only preview. AI/moderation reason field not present on generic listings.
+          Ad content for moderation — read-only preview. Flag source is shown from stored status, reports, and moderation fields only.
         </p>
       </div>
 
@@ -96,11 +96,21 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName }: P
         </div>
         <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Review / flag source</dt>
-          <dd className="text-xs text-[#5C5346]">{reviewSourceForListing(status)}</dd>
+          <dd className="text-xs text-[#5C5346]">
+            <span
+              className={`mr-2 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase ${BADGE_STYLES[truth.sourceKind]}`}
+              data-testid="admin-flag-source-badge"
+            >
+              {truth.sourceLabel}
+            </span>
+            {truth.ownerFacingExplanation}
+          </dd>
         </div>
         <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Reason</dt>
-          <dd className="text-xs text-[#5C5346]">{reviewReasonFallback(status)}</dd>
+          <dd className="text-xs text-[#5C5346]">
+            {truth.reasonText ?? truth.secondaryFallback ?? ADMIN_REVIEW_REASON_SECONDARY_FALLBACK}
+          </dd>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <div>

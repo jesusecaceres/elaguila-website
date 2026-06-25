@@ -26,6 +26,8 @@ import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvid
 import { ClassifiedAdminQueueRowActionsPanel } from "./_components/ClassifiedAdminQueueRowActionsPanel";
 import { ClassifiedAdminQueueBulkBar } from "./_components/ClassifiedAdminQueueBulkBar";
 import { AdminListingMonetizationSummary } from "./_components/AdminListingMonetizationSummary";
+import { AdminListingFlagTruthBlock } from "./_components/AdminListingFlagTruthBlock";
+import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
 
 type Row = {
   id: string;
@@ -181,6 +183,8 @@ export default function AdminListingsTable({
   republishColsAvailable = true,
   listingsCategorySlug,
   staffQueueMode = false,
+  flagReportByListingId = {},
+  ownerEmailByUserId = {},
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
@@ -191,6 +195,8 @@ export default function AdminListingsTable({
   listingsCategorySlug?: string;
   /** Restaurante-style staff PATCH actions (Leonix ops). */
   staffQueueMode?: boolean;
+  flagReportByListingId?: Record<string, ListingFlagReportContext>;
+  ownerEmailByUserId?: Record<string, string>;
 }) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -634,6 +640,11 @@ export default function AdminListingsTable({
                       >
                         {row.status ?? "active"}
                       </span>
+                      <AdminListingFlagTruthBlock
+                        status={row.status}
+                        report={flagReportByListingId[row.id]}
+                        compact
+                      />
                     </td>
                     <td className="p-3 align-top">
                       {row.owner_id ? (
@@ -659,6 +670,7 @@ export default function AdminListingsTable({
                         deletingId={deletingId}
                         onSetPublished={handleSetPublished}
                         onDelete={handleDelete}
+                        ownerEmail={row.owner_id ? ownerEmailByUserId[row.owner_id] ?? null : null}
                       />
                     </td>
                   </>
@@ -701,6 +713,7 @@ export default function AdminListingsTable({
                     deletingId={deletingId}
                     onSetPublished={handleSetPublished}
                     onDelete={handleDelete}
+                    ownerEmail={row.owner_id ? ownerEmailByUserId[row.owner_id] ?? null : null}
                   />
                 </td>
                 <td className="p-3">
@@ -817,6 +830,7 @@ export default function AdminListingsTable({
                   </span>
                 ) : null}
               </div>
+              <AdminListingFlagTruthBlock status={row.status} report={flagReportByListingId[row.id]} />
               <div className="mt-4 border-t border-[#E8DFD0]/80 pt-3">
                 <ClassifiedAdminQueueRowActionsPanel
                   row={row}
@@ -827,6 +841,7 @@ export default function AdminListingsTable({
                   deletingId={deletingId}
                   onSetPublished={handleSetPublished}
                   onDelete={handleDelete}
+                  ownerEmail={row.owner_id ? ownerEmailByUserId[row.owner_id] ?? null : null}
                 />
               </div>
             </article>

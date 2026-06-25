@@ -29,9 +29,15 @@ import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
+import {
+  autosPreviewHeroPriceClass,
+  autosPreviewHeroTitleClass,
+  autosPreviewPageCanvasClass,
+  autosPreviewPremiumCardClass,
+  autosPreviewSectionEyebrowClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
-const MAIN_CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
+const MAIN_CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -110,27 +116,28 @@ export function AutoDealerPreviewPage({
   const orderGallery = showGallery ? ord++ : undefined;
   const orderAnalytics = showAnalyticsStrip ? ord++ : undefined;
   const orderAside = ord++;
-  const orderDesc = showDesc ? ord++ : undefined;
   const orderSpecs = showSpecs ? ord++ : undefined;
   const orderHi = showHighlights ? ord++ : undefined;
+  const orderDesc = showDesc ? ord++ : undefined;
   const orderRelated = (data.relatedDealerListings ?? []).length > 0 ? ord++ : undefined;
 
   const mainContent = (
     <main
-      className={`mx-auto max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] md:px-5 lg:px-6 ${
+      className={`mx-auto max-w-[1280px] ${autosPreviewPageCanvasClass} px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] md:px-5 lg:px-6 ${
         embeddedInShell ? "pt-2 sm:pt-3" : "pt-1 sm:mt-8 sm:pb-10"
       }`}
+      data-autos-premium-preview-page="1"
     >
       <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
         {showTitle ? (
           <section
-            className={`${MAIN_CARD} border-l-[3px] border-l-[color:var(--lx-gold)]/70 lg:col-span-7 lg:col-start-1 ${
+            className={`${MAIN_CARD} border-l-[3px] border-l-[#C9A84A]/80 lg:col-span-7 lg:col-start-1 ${
               draftPreviewMode ? "shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14)]" : ""
             }`}
             style={{ gridRowStart: titleRow, order: orderTitle }}
           >
             {draftPreviewMode ? (
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-gold)]">
+              <p className={autosPreviewSectionEyebrowClass}>
                 {lang === "es" ? "Vista previa del anuncio" : "Listing preview"}
               </p>
             ) : null}
@@ -138,9 +145,7 @@ export function AutoDealerPreviewPage({
                 {showLeft ? (
                   <div className="min-w-0 max-w-full flex-1">
                     {h1 ? (
-                      <h1 className="text-pretty text-[1.75rem] font-extrabold leading-[1.1] tracking-tight text-[color:var(--lx-text)] sm:text-[2rem] md:text-[2.35rem]">
-                        {h1}
-                      </h1>
+                      <h1 className={autosPreviewHeroTitleClass}>{h1}</h1>
                     ) : null}
                     {badges.length > 0 ? (
                       <ul className="mt-3 flex flex-wrap gap-2">
@@ -191,7 +196,7 @@ export function AutoDealerPreviewPage({
                     {priceOk ? (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-pretty text-3xl font-extrabold tabular-nums leading-none tracking-tight text-[#6E5418] sm:text-4xl lg:text-[2.5rem]">
+                        <p className={`mt-1 ${autosPreviewHeroPriceClass}`}>
                           {formatUsd(data.price)}
                         </p>
                       </>
@@ -238,7 +243,7 @@ export function AutoDealerPreviewPage({
               order: orderAside,
             }}
           >
-            <div className="overflow-hidden rounded-[22px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] max-lg:shadow-[0_14px_48px_-18px_rgba(42,36,22,0.16)] lg:rounded-[20px] lg:shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]">
+            <div className={`overflow-hidden ${autosPreviewPremiumCardClass} lg:sticky lg:top-28`}>
               <DealerBusinessStack
                 data={data}
                 buyerInventoryHref={publicPlaybackOnly ? data.relatedDealerInventoryHref : undefined}

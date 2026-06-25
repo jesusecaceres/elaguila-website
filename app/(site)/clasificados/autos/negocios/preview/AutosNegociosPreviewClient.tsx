@@ -98,6 +98,7 @@ function AutosNegociosPreviewInner({
   if (isDraftCapture) {
     return (
       <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
+        <div className="min-h-[50vh] bg-[#FAF7F2] text-[#1F241C]">
         <AutoDealerPreviewChrome editBackHref={editBackHref} showSiteLogo={false} hideBackToEdit>
           <AutosNegociosPreviewCaptureBanner lang={lang} editBackHref={editBackHref} />
           <div className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
@@ -116,6 +117,7 @@ function AutosNegociosPreviewInner({
             viewModelCards={viewModel.additionalInventory}
           />
         </AutoDealerPreviewChrome>
+        </div>
       </AutosDraftPreviewErrorBoundary>
     );
   }

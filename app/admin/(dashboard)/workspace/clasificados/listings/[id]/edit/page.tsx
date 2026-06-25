@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { updateListingCoreFieldsStaffAdminAction } from "@/app/admin/actions";
 import { ClasificadosQueueHeader } from "@/app/admin/(dashboard)/workspace/clasificados/_components/ClasificadosQueueHeader";
 import { AdminListingReviewSnapshot } from "@/app/admin/(dashboard)/workspace/clasificados/_components/AdminListingReviewSnapshot";
+import { fetchListingFlagContextMaps } from "@/app/admin/_lib/adminReviewFlagContext";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
@@ -57,6 +58,7 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
   const detailPairsJson =
     r.detail_pairs != null ? JSON.stringify(r.detail_pairs, null, 2) : "[]";
   const queueBackHref = `/admin/workspace/clasificados?q=${encodeURIComponent(leonixAdId || id)}&status=${encodeURIComponent(status.toLowerCase())}#queue`;
+  const { reportsByListingId } = await fetchListingFlagContextMaps(supabase, [id], ownerId ? [ownerId] : []);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -66,7 +68,12 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
         subtitle={`Staff — category “${category}”. Core fields + detail_pairs (JSON). ID: ${id}`}
       />
 
-      <AdminListingReviewSnapshot listing={r} ownerEmail={ownerEmail} ownerName={ownerName} />
+      <AdminListingReviewSnapshot
+        listing={r}
+        ownerEmail={ownerEmail}
+        ownerName={ownerName}
+        reportContext={reportsByListingId[id] ?? null}
+      />
 
       <form action={updateListingCoreFieldsStaffAdminAction} className={`${adminCardBase} space-y-4 p-5`}>
         <input type="hidden" name="listing_id" value={id} />

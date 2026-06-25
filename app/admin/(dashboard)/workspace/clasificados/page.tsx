@@ -2,6 +2,10 @@ import Link from "next/link";
 import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
+import {
+  fetchListingFlagContextMaps,
+  type ListingFlagContextMaps,
+} from "@/app/admin/_lib/adminReviewFlagContext";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   fetchListingsForAdminWorkspaceFiltered,
@@ -138,6 +142,15 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const workspaceBase = "/admin/workspace/clasificados";
   const queueNavHref = appendPreservedSearchParams(workspaceBase, sp, null);
   const liveNavHref = appendPreservedSearchParams(workspaceBase, sp, "live");
+
+  let flagContext: ListingFlagContextMaps = { reportsByListingId: {}, ownerEmailByUserId: {} };
+  if (rows.length > 0) {
+    flagContext = await fetchListingFlagContextMaps(
+      supabase,
+      rows.map((r) => r.id),
+      rows.map((r) => r.owner_id ?? "").filter(Boolean),
+    );
+  }
 
   return (
     <>
@@ -364,6 +377,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
                 republishColsAvailable={republishColsAvailable}
                 listingsCategorySlug={catFilter}
                 staffQueueMode
+                flagReportByListingId={flagContext.reportsByListingId}
+                ownerEmailByUserId={flagContext.ownerEmailByUserId}
               />
             )}
           </div>

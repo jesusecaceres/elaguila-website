@@ -31,11 +31,15 @@ import {
   type AutosPublicListingAnalyticsProps,
 } from "../../lib/autosAnalyticsIdentity";
 import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
+import {
+  autosPreviewBurgundyPrimaryBtnClass,
+  autosPreviewSecondaryBtnClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
-const BTN_PRIMARY =
+const BTN_PRIMARY_LEGACY =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99] max-lg:min-h-[54px]";
 
-const BTN_SECONDARY =
+const BTN_SECONDARY_LEGACY =
   "inline-flex min-h-[52px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 text-center text-[13px] font-semibold leading-tight text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] active:scale-[0.99] max-lg:min-h-[50px]";
 
 const SECTION_HEAD =
@@ -94,6 +98,8 @@ export function DealerBusinessStack({
   const showBuyerInventory = Boolean(buyerInventoryHref?.trim());
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
   const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
+  const BTN_PRIMARY = showPremiumHubHeader ? autosPreviewBurgundyPrimaryBtnClass : BTN_PRIMARY_LEGACY;
+  const BTN_SECONDARY = showPremiumHubHeader ? autosPreviewSecondaryBtnClass : BTN_SECONDARY_LEGACY;
 
   const c = hub.contact;
   const sheetProps = autosSheetCtaAnalyticsProps(publicAnalytics);

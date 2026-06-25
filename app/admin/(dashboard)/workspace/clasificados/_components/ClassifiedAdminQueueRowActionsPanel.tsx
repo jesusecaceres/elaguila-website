@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { AdminDashboardCta, AdminDashboardCtaButton, AdminDashboardCtaGrid } from "@/app/admin/_components/AdminDashboardCta";
 import { adminQueueActionCompact, adminQueueActionGroupLabel } from "@/app/admin/_components/adminTheme";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
@@ -20,7 +21,97 @@ type Props = {
   row: AdminListingsTableRow;
   displayLeonixAdId: string;
   layout: "compact" | "card";
+  ownerEmail?: string | null;
 } & LegacyHandlers;
+
+function DangerSection({
+  children,
+  collapseSections,
+}: {
+  children: React.ReactNode;
+  collapseSections: boolean;
+}) {
+  if (!collapseSections) {
+    return (
+      <div data-testid="admin-row-actions-danger">
+        <p className={adminQueueActionGroupLabel}>Danger</p>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <details
+      className="rounded-lg border border-red-200/80 bg-red-50/40"
+      data-testid="admin-row-actions-danger"
+    >
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center px-3 py-2.5 text-xs font-bold uppercase text-red-800 [&::-webkit-details-marker]:hidden">
+        Danger
+      </summary>
+      <div className="border-t border-red-200/60 p-2">{children}</div>
+    </details>
+  );
+}
+
+function ContactSellerSection({
+  ownerEmail,
+  listingTitle,
+  leonixAdId,
+  collapseSections,
+}: {
+  ownerEmail: string;
+  listingTitle: string | null;
+  leonixAdId: string | null;
+  collapseSections: boolean;
+}) {
+  const [copyState, setCopyState] = useState<"idle" | "ok" | "err">("idle");
+  const compact = adminQueueActionCompact;
+  const subject = "Leonix Media listing review";
+  const idPart = leonixAdId ? `\nLeonix Ad ID: ${leonixAdId}` : "";
+  const body = `Hello,\n\nWe are reviewing your listing "${listingTitle ?? "your listing"}".${idPart}\n\n— Leonix Media team`;
+  const mailto = `mailto:${ownerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  const copyEmail = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(ownerEmail);
+      setCopyState("ok");
+      window.setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      setCopyState("err");
+      window.setTimeout(() => setCopyState("idle"), 2500);
+    }
+  }, [ownerEmail]);
+
+  const inner = (
+    <AdminDashboardCtaGrid columns={2}>
+      <AdminDashboardCtaButton
+        label={copyState === "ok" ? "Copied" : copyState === "err" ? "Copy failed" : "Copy email"}
+        variant="neutral"
+        onClick={() => void copyEmail()}
+        className={compact}
+        title={`Copy ${ownerEmail}`}
+      />
+      <AdminDashboardCta href={mailto} label="Email seller" variant="active" className={compact} title="Opens mailto" />
+    </AdminDashboardCtaGrid>
+  );
+
+  if (!collapseSections) {
+    return (
+      <div data-testid="admin-row-actions-contact">
+        <p className={adminQueueActionGroupLabel}>Contact seller</p>
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <details className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80" data-testid="admin-row-actions-contact">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center px-3 py-2.5 text-xs font-bold uppercase text-[#5C5346] [&::-webkit-details-marker]:hidden">
+        Contact seller
+      </summary>
+      <div className="border-t border-[#E8DFD0]/60 p-2">{inner}</div>
+    </details>
+  );
+}
 
 export function ClassifiedAdminQueueRowActionsPanel({
   row,
@@ -31,15 +122,164 @@ export function ClassifiedAdminQueueRowActionsPanel({
   deletingId,
   onSetPublished,
   onDelete,
+  ownerEmail = null,
 }: Props) {
   const t = useAdminT();
   const category = (row.category ?? "").toLowerCase();
   const isRentas = category === "rentas";
   const compact = adminQueueActionCompact;
   const gridCols = layout === "card" ? 2 : 1;
+  const collapseSections = layout === "card";
   const editHref = `/admin/workspace/clasificados/listings/${encodeURIComponent(row.id)}/edit`;
   const sellerHref = row.owner_id ? `/admin/usuarios/${row.owner_id}` : null;
   const publicHref = isRentas ? rentasListingPublicPath(row.id) : `/clasificados/anuncio/${row.id}`;
+
+  if (collapseSections) {
+    return (
+      <div className="min-w-0 space-y-2 overflow-x-hidden" data-testid="classified-queue-row-actions">
+        <AdminDashboardCtaGrid columns={2}>
+          <AdminDashboardCta
+            href={editHref}
+            label={t("audit.th.editAd")}
+            variant="primary"
+            title="Staff edit listing"
+            className={compact}
+          />
+          <AdminDashboardCta
+            href={publicHref}
+            label={isRentas ? t("listings.viewRentas") : t("listings.viewPublic")}
+            variant="view"
+            external
+            title={isRentas ? t("listings.publicRentasTitle") : t("listings.publicGenericTitle")}
+            className={compact}
+          />
+        </AdminDashboardCtaGrid>
+
+        <AdminDashboardCtaGrid columns={2}>
+          {sellerHref ? (
+            <AdminDashboardCta
+              href={sellerHref}
+              label={t("listings.ownerCard")}
+              variant="active"
+              title={t("listings.ownerCard")}
+              className={compact}
+            />
+          ) : (
+            <span className="min-h-[40px]" aria-hidden />
+          )}
+          {isRentas ? (
+            <AdminDashboardCta
+              href={`/admin/workspace/clasificados/rentas/${row.id}`}
+              label={t("listings.inspectorRentas")}
+              variant="view"
+              title={t("listings.inspectorRentas")}
+              className={compact}
+            />
+          ) : null}
+        </AdminDashboardCtaGrid>
+
+        {staffQueueMode ? (
+          <ClassifiedAdminRowActions
+            variant="listings"
+            rowId={row.id}
+            leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+            displayLabel={row.title}
+            publicLive={listingsRowIsPublicLive(row as Record<string, unknown>)}
+            promoted={Boolean(row.admin_promoted)}
+            verified={Boolean(row.leonix_verified)}
+            canArchive={(row.status ?? "").toLowerCase() !== "removed"}
+            republishCategory={String(row.category ?? "").trim() || "listings"}
+            republishRow={{
+              category: row.category,
+              is_free: row.is_free,
+              detail_pairs: row.detail_pairs,
+              is_published: row.is_published,
+              status: row.status,
+              republish_override: row.republish_override,
+              republish_count: row.republish_count,
+            }}
+            layout={layout}
+            collapseSections
+          />
+        ) : null}
+
+        {staffQueueMode && (row.status ?? "").toLowerCase() !== "removed" ? (
+          <DangerSection collapseSections>
+            <AdminDashboardCtaGrid columns={2}>
+              <AdminDashboardCtaButton
+                label={deletingId === row.id ? "…" : t("listings.deleteStaff")}
+                variant="danger"
+                disabled={deletingId === row.id}
+                title={t("listings.deleteTitle")}
+                onClick={() => void onDelete(row)}
+                className={compact}
+              />
+            </AdminDashboardCtaGrid>
+            <p className="mt-1 text-[10px] leading-snug text-[#9A9084]">
+              Soft delete — sets status to removed (not permanent hard delete).
+            </p>
+          </DangerSection>
+        ) : null}
+
+        {!staffQueueMode ? (
+          <>
+            <details className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80" data-testid="admin-row-actions-lifecycle">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center px-3 py-2.5 text-xs font-bold uppercase text-[#5C5346] [&::-webkit-details-marker]:hidden">
+                Lifecycle
+              </summary>
+              <div className="border-t border-[#E8DFD0]/60 p-2">
+                <AdminDashboardCtaGrid columns={2}>
+                  {row.status !== "removed" && row.is_published !== false ? (
+                    <AdminDashboardCtaButton
+                      label={publishBusyId === row.id ? "…" : t("listings.hidePublic")}
+                      variant="warning"
+                      disabled={publishBusyId === row.id}
+                      title={t("listings.hidePublicTitle")}
+                      onClick={() => void onSetPublished(row, false)}
+                      className={compact}
+                    />
+                  ) : null}
+                  {row.status !== "removed" && row.is_published === false ? (
+                    <AdminDashboardCtaButton
+                      label={publishBusyId === row.id ? "…" : t("listings.republish")}
+                      variant="active"
+                      disabled={publishBusyId === row.id}
+                      title={t("listings.republishTitle")}
+                      onClick={() => void onSetPublished(row, true)}
+                      className={compact}
+                    />
+                  ) : null}
+                </AdminDashboardCtaGrid>
+              </div>
+            </details>
+            {row.status !== "removed" ? (
+              <DangerSection collapseSections>
+                <AdminDashboardCtaGrid columns={2}>
+                  <AdminDashboardCtaButton
+                    label={deletingId === row.id ? "…" : t("listings.deleteStaff")}
+                    variant="danger"
+                    disabled={deletingId === row.id}
+                    title={t("listings.deleteTitle")}
+                    onClick={() => void onDelete(row)}
+                    className={compact}
+                  />
+                </AdminDashboardCtaGrid>
+              </DangerSection>
+            ) : null}
+          </>
+        ) : null}
+
+        {ownerEmail ? (
+          <ContactSellerSection
+            ownerEmail={ownerEmail}
+            listingTitle={row.title}
+            leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+            collapseSections
+          />
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-3" data-testid="classified-queue-row-actions">
@@ -113,8 +353,7 @@ export function ClassifiedAdminQueueRowActionsPanel({
         />
       ) : null}
       {staffQueueMode && (row.status ?? "").toLowerCase() !== "removed" ? (
-        <div>
-          <p className={adminQueueActionGroupLabel}>Danger</p>
+        <DangerSection collapseSections={false}>
           <AdminDashboardCtaGrid columns={gridCols}>
             <AdminDashboardCtaButton
               label={deletingId === row.id ? "…" : t("listings.deleteStaff")}
@@ -128,7 +367,7 @@ export function ClassifiedAdminQueueRowActionsPanel({
           <p className="mt-1 text-[10px] leading-snug text-[#9A9084]">
             Soft delete — sets status to removed (not permanent hard delete).
           </p>
-        </div>
+        </DangerSection>
       ) : null}
       {!staffQueueMode ? (
         <>
@@ -158,8 +397,7 @@ export function ClassifiedAdminQueueRowActionsPanel({
             </AdminDashboardCtaGrid>
           </div>
           {row.status !== "removed" ? (
-            <div>
-              <p className={adminQueueActionGroupLabel}>Danger</p>
+            <DangerSection collapseSections={false}>
               <AdminDashboardCtaGrid columns={gridCols}>
                 <AdminDashboardCtaButton
                   label={deletingId === row.id ? "…" : t("listings.deleteStaff")}
@@ -170,9 +408,17 @@ export function ClassifiedAdminQueueRowActionsPanel({
                   className={compact}
                 />
               </AdminDashboardCtaGrid>
-            </div>
+            </DangerSection>
           ) : null}
         </>
+      ) : null}
+      {ownerEmail ? (
+        <ContactSellerSection
+          ownerEmail={ownerEmail}
+          listingTitle={row.title}
+          leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+          collapseSections={false}
+        />
       ) : null}
     </div>
   );

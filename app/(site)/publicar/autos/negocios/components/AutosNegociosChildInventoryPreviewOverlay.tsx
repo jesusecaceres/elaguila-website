@@ -60,7 +60,7 @@ export function AutosNegociosChildInventoryPreviewOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex flex-col bg-[color:var(--lx-page)]"
+      className="fixed inset-0 z-[90] flex flex-col bg-[#FAF7F2] text-[#1F241C]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="autos-child-inventory-preview-title"

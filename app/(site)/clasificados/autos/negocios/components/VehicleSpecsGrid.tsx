@@ -29,9 +29,9 @@ import { SpecIconRow } from "./SpecIconRow";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { resolveEngineForDisplay } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
+import { autosPreviewPremiumCardClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
-const CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
+const CARD = `${autosPreviewPremiumCardClass} p-4`;
 
 export function VehicleSpecsGrid({
   data,

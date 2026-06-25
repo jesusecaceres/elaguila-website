@@ -58,9 +58,9 @@ assert("queue section scroll margin", pageSrc.includes("scroll-mt-"), clasificad
 
 assert("does not fake AI in title", !stringsSrc.includes("real review only"), strings);
 assert("status-based queue copy", stringsSrc.includes("status-based queue") || stringsSrc.includes("cola por estado"), strings);
-assert("reason fallback preserved", dataSrc.includes("Reason unavailable — inspect review source"), data);
+assert("reason fallback preserved", dataSrc.includes("ADMIN_REVIEW_REASON_SECONDARY_FALLBACK") || dataSrc.includes("Reason unavailable — inspect review source"), data);
 assert("review source label helper", dataSrc.includes("adminDashboardReviewSourceLabel"), data);
-assert("no AI reason claim for generic listings", dataSrc.includes("no AI/moderation reason column"), data);
+assert("flag truth helper", exists("app/admin/_lib/adminReviewFlagTruth.ts"), data);
 assert("dashboard shows review source", dashSrc.includes("adminDashboardReviewSourceLabel"), dashboard);
 
 assert("delete in queue CTA exists", actionsSrc.includes("Delete in queue"), reviewActions);
@@ -76,8 +76,8 @@ assert("edit page renders snapshot", editSrc.includes("AdminListingReviewSnapsho
 assert("snapshot title field", snapshotSrc.includes("Title") && snapshotSrc.includes("title"), snapshot);
 assert("snapshot description handling", snapshotSrc.includes("Description") && snapshotSrc.includes("No description"), snapshot);
 assert("snapshot image handling", snapshotSrc.includes("No images available") && snapshotSrc.includes("image(s)"), snapshot);
-assert("snapshot reason fallback", snapshotSrc.includes("Reason unavailable — inspect review source"), snapshot);
-assert("snapshot review source", snapshotSrc.includes("Review source:"), snapshot);
+assert("snapshot reason fallback", snapshotSrc.includes("ADMIN_REVIEW_REASON_SECONDARY_FALLBACK") || snapshotSrc.includes("Reason unavailable — inspect review source"), snapshot);
+assert("snapshot flag truth badge", snapshotSrc.includes("admin-flag-source-badge"), snapshot);
 assert("snapshot seller link", snapshotSrc.includes("/admin/usuarios/"), snapshot);
 
 assert("no public page changes", !editSrc.includes("app/(site)/clasificados/page"), editPage);

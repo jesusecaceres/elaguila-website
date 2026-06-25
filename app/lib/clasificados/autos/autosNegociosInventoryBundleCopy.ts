@@ -272,3 +272,9 @@ export function autosRelatedInventoryWillPublishWithRequest(lang: AutosClassifie
     ? "Se publicará junto con la solicitud."
     : "Will publish with this request.";
 }
+
+export function autosRelatedInventoryFullDraftDeferral(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "El inventario completo estará disponible después de publicar."
+    : "Full inventory will be available after publishing.";
+}

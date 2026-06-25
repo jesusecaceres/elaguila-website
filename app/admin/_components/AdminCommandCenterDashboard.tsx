@@ -12,7 +12,6 @@ import {
 } from "./adminTheme";
 import {
   ADMIN_DASHBOARD_EXPIRING_SOON_DAYS,
-  adminDashboardReviewReasonLabel,
   adminDashboardReviewSourceLabel,
   isAdminDashboardUrgentReviewRow,
   splitAdminDashboardExpiringQueue,
@@ -21,6 +20,7 @@ import {
   type AdminDashboardPendingReviewQueueRow,
   type AdminDashboardSnapshot,
 } from "../_lib/adminDashboardData";
+import { classifyDashboardReviewRowFlagTruth } from "../_lib/adminReviewFlagTruth";
 import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
 import type { adminMessages } from "../_lib/adminI18n";
 
@@ -131,7 +131,11 @@ function CompactReviewRow({
   locale: string;
 }) {
   const urgent = isAdminDashboardUrgentReviewRow(row);
-  const reason = adminDashboardReviewReasonLabel(row.reason);
+  const truth = classifyDashboardReviewRowFlagTruth({
+    source: row.source,
+    status: row.status,
+    reason: row.reason,
+  });
   const reviewSource = adminDashboardReviewSourceLabel(row);
 
   return (
@@ -146,7 +150,13 @@ function CompactReviewRow({
             {row.categorySource} · flagged/review status: {row.status}
           </p>
           <p className="mt-1 text-xs text-[#5C5346]">
-            {m("dashboard.reasonLabel")} {reason}
+            <span
+              className="mr-1.5 inline-block rounded-md border border-[#C9B46A]/50 bg-[#FFFCF7] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]"
+              data-testid="admin-flag-source-badge"
+            >
+              {truth.sourceLabel}
+            </span>
+            {m("dashboard.reasonLabel")} {truth.ownerFacingExplanation}
           </p>
           <p className="mt-0.5 text-[10px] text-[#9A9084]">{reviewSource}</p>
         </div>
