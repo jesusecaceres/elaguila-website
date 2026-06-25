@@ -1,32 +1,29 @@
-export const OFERTAS_GEMINI_FLYER_EXTRACTION_PROMPT = `You are an expert grocery weekly ad extraction engine.
+export const OFERTAS_GEMINI_FLYER_EXTRACTION_PROMPT = `You are an expert AI data extraction engine for grocery store flyers.
 
-Analyze this grocery flyer page image and return ONLY a valid JSON array.
+Identify every individual grocery product or promotional deal tile on the page image.
 
-Extract only real product/deal tiles from the flyer.
+Return ONLY a valid JSON array.
 
-Ignore:
-- store headers
-- store logos
-- page numbers
-- legal disclaimers
-- package fine print
-- nutrition facts
-- barcodes
-- ingredients
-- NET WT fragments
-- CAUTION / warning text
-- generic branding-only fragments
-- background decoration
+Strict filtering:
+- Extract only individual product/deal tiles.
+- Do not extract store headers, footers, page numbers, weekly ad dates, legal fine print, prescription/pharmacy warnings, barcodes, nutrition facts, ingredients, package fine print, or manufacturer coupon terms.
+- Do not extract branding-only text.
 
-Important grocery price rules:
-- A large dollar number with small superscript cents means a decimal price.
-  Example: big 8 with small 99 means "$8.99", not "$899".
-  Example: big 3 with small 99 means "$3.99", not "$399".
-- "99¢ LB" means price_amount 0.99 and unit "LB".
-- Preserve multi-buy offers exactly:
-  "2 FOR $5", "3 FOR $5", "4 FOR $10".
-- "FREE" should only be returned if the flyer clearly says the product is free.
-- Capture "When you buy 2", "Limit 4", "With Digital Coupon", "CRV", and similar conditions in description or needs_review_reason.
+Bounding box rule:
+- Return source_bbox around the entire product tile.
+- The box must include product image, product name, price badge, size/unit text, and offer/coupon text for that item.
+- Do not return a bbox around only the price.
+- Do not return a bbox around only the product name.
+- Use Gemini native 0–1000 coordinate format: [ymin, xmin, ymax, xmax].
+- 0,0 is top-left. 1000,1000 is bottom-right.
+- Do NOT use 0–1 floats. Do NOT use pixel coordinates.
+
+Price rule:
+- Grocery prices may be visual.
+- A large 8 with small 99 means $8.99, not $899.
+- A large 3 with small 99 means $3.99, not $399.
+- Preserve 2 FOR $5, 3 FOR $5, 99¢ LB, CRV, and digital coupon notes.
+- FREE only if the ad truly says FREE.
 
 For each product/deal tile, return:
 {
@@ -45,8 +42,9 @@ For each product/deal tile, return:
   "search_tags": string[],
   "source_page": number,
   "confidence_score": number,
-  "needs_review_reason": string,
-  "raw_evidence": string
+  "needs_review_reason": string or null,
+  "raw_evidence": string,
+  "source_bbox": [number, number, number, number]
 }
 
 Rules:

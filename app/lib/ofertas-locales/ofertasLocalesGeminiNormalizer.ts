@@ -65,6 +65,7 @@ function toItemDraft(
     sourceFileName: params.sourceFileName,
     sourcePage: candidate.sourcePage,
     sourceContext: params.sourceStoragePath,
+    sourceBbox: candidate.sourceBbox ?? undefined,
     extractedJson: {
       provider: "gemini_multimodal",
       brand: candidate.brand,
@@ -74,6 +75,7 @@ function toItemDraft(
       rawEvidence: candidate.rawEvidence,
       priceRepaired: candidate.priceRepaired,
       needsReviewReason: candidate.needsReviewReason,
+      sourceBboxGemini: candidate.sourceBboxGemini,
     },
     confidence: candidate.confidenceScore,
     reviewStatus: "needs_review",

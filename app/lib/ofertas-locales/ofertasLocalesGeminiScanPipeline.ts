@@ -11,6 +11,7 @@ import {
   prepareOfertaLocalScanPageImages,
   type OfertaLocalPageImage,
 } from "./ofertasLocalesPdfPageImages";
+import { applyOfertaLocalScanItemCrops } from "./ofertasLocalesScanCropGenerator";
 import type { OfertaLocalSearchableItemDraft } from "./ofertasLocalesTypes";
 
 export type RunGeminiMultimodalScanParams = {
@@ -18,6 +19,9 @@ export type RunGeminiMultimodalScanParams = {
   mimeType: string;
   assetId: string;
   assetKind: "flyer" | "coupon";
+  ofertaLocalId: string;
+  scanJobId: string;
+  ownerId: string;
   sourceAssetUrl: string;
   sourceFileName: string;
   sourceStoragePath: string;
@@ -46,6 +50,8 @@ export type GeminiMultimodalScanResult = {
   pageErrors: string[];
   renderWarnings: string[];
   rasterizationFallback: boolean;
+  cropsGenerated: number;
+  cropErrors: string[];
   items: OfertaLocalSearchableItemDraft[];
   note: string;
 };
@@ -110,6 +116,17 @@ export async function runGeminiMultimodalOfertaLocalScan(
     validUntil: params.validUntil,
   });
 
+  const cropResult = await applyOfertaLocalScanItemCrops({
+    items,
+    ofertaLocalId: params.ofertaLocalId,
+    scanJobId: params.scanJobId,
+    sourceAssetId: params.assetId,
+    pageImages: prepared.pages,
+  });
+  if (cropResult.cropErrors.length > 0) {
+    pageErrors.push(...cropResult.cropErrors.slice(0, 10).map((e) => `crop: ${e}`));
+  }
+
   const confidenceValues = items
     .map((item) => item.confidence)
     .filter((v): v is number => v != null && Number.isFinite(v));
@@ -150,6 +167,8 @@ export async function runGeminiMultimodalOfertaLocalScan(
     pageErrors,
     renderWarnings: prepared.renderWarnings,
     rasterizationFallback: prepared.rasterizationFallback,
+    cropsGenerated: cropResult.cropsGenerated,
+    cropErrors: cropResult.cropErrors,
     items,
     note,
   };

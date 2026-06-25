@@ -353,6 +353,7 @@ export async function handleOfertaLocalScanPost(
       assetKind: body.assetKind,
       ofertaLocalId: body.ofertaLocalId,
       ownerId,
+      scanJobId,
       sourceAssetUrl: body.assetUrl,
       sourceFileName,
       sourceStoragePath: storagePath,

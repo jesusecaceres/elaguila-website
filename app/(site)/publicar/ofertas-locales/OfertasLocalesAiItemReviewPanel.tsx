@@ -35,6 +35,7 @@ type Props = {
   draft?: OfertaLocalDraft;
   selectedSourceAssetId?: string | null;
   highlightScanJobId?: string | null;
+  onFocusedItemChange?: (item: OfertaLocalItemReviewViewModel | null) => void;
 };
 
 type ItemDraft = {
@@ -141,6 +142,7 @@ function ItemReviewCard({
   onFieldChange,
   onSave,
   onStatus,
+  onGoNext,
 }: {
   item: OfertaLocalItemReviewViewModel;
   draft?: OfertaLocalDraft;
@@ -152,6 +154,7 @@ function ItemReviewCard({
   onFieldChange: (field: keyof ItemDraft, value: string) => void;
   onSave: () => void;
   onStatus: (status: OfertaLocalItemReviewStatus) => void;
+  onGoNext?: () => void;
 }) {
   const c = ofertasLocalesAppCopy(lang);
   const [ocrOpen, setOcrOpen] = useState(false);
@@ -309,6 +312,11 @@ function ItemReviewCard({
         <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => onStatus("rejected")}>
           {c.aiReviewReject}
         </button>
+        {onGoNext ? (
+          <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={onGoNext}>
+            {c.aiReviewNextItem}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -323,6 +331,7 @@ export function OfertasLocalesAiItemReviewPanel({
   draft,
   selectedSourceAssetId,
   highlightScanJobId,
+  onFocusedItemChange,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const isCouponMode = reviewMode === "coupon";
@@ -338,6 +347,7 @@ export function OfertasLocalesAiItemReviewPanel({
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ReviewFilter>("all");
   const [focusIndex, setFocusIndex] = useState(0);
+  const [previousScansOpen, setPreviousScansOpen] = useState(false);
 
   const loadItems = useCallback(async () => {
     if (!ofertaLocalId?.trim()) return;
@@ -444,14 +454,22 @@ export function OfertasLocalesAiItemReviewPanel({
   const displayItems = isWorkspace && highlightScanJobId ? currentScanItems : filteredItems;
 
   useEffect(() => {
-    setFocusIndex(0);
-  }, [selectedSourceAssetId, statusFilter, highlightScanJobId]);
+    const needsReviewIdx = displayItems.findIndex((i) => i.reviewStatus === "needs_review");
+    setFocusIndex(needsReviewIdx >= 0 ? needsReviewIdx : 0);
+    setPreviousScansOpen(false);
+  }, [selectedSourceAssetId, statusFilter, highlightScanJobId, displayItems.length]);
 
   useEffect(() => {
     if (focusIndex >= displayItems.length) {
       setFocusIndex(Math.max(0, displayItems.length - 1));
     }
   }, [displayItems.length, focusIndex]);
+
+  const focusedItem = displayItems[focusIndex];
+
+  useEffect(() => {
+    onFocusedItemChange?.(focusedItem ?? null);
+  }, [focusedItem, onFocusedItemChange]);
 
   const countLabels = useMemo(() => {
     if (!summary) return null;
@@ -472,7 +490,9 @@ export function OfertasLocalesAiItemReviewPanel({
 
   if (!ofertaLocalId?.trim()) return null;
 
-  const focusedItem = displayItems[focusIndex];
+  const goNextItem = () => {
+    setFocusIndex((i) => Math.min(displayItems.length - 1, i + 1));
+  };
 
   const summaryBar = countLabels ? (
     <div className={`grid grid-cols-2 gap-1.5 sm:grid-cols-4 ${isWorkspace ? "" : ""}`}>
@@ -608,6 +628,48 @@ export function OfertasLocalesAiItemReviewPanel({
                 </button>
               </div>
             </div>
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
+              {displayItems.map((item, idx) => {
+                const active = idx === focusIndex;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setFocusIndex(idx)}
+                    className={`flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
+                      active
+                        ? "bg-[#7A1E2C]/10 ring-1 ring-[#7A1E2C]/25"
+                        : "hover:bg-[#FDF8F0]"
+                    }`}
+                  >
+                    {item.sourceCropUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.sourceCropUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded border border-[#D4C4A8]/60 object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0] text-[9px] text-[#1E1814]/40">
+                        —
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-[#1E1814]">{item.itemName}</span>
+                      <span className="block truncate text-[10px] text-[#1E1814]/55">
+                        {item.priceText || "—"}
+                        {item.sourcePage != null ? ` · p${item.sourcePage}` : ""}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}
+                    >
+                      {item.reviewStatus.replace("_", " ").slice(0, 8)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </>
         ) : null}
       </div>
@@ -627,25 +689,35 @@ export function OfertasLocalesAiItemReviewPanel({
               onFieldChange={(field, value) => updateDraftField(focusedItem.id, field, value)}
               onSave={() => void handleSave(focusedItem.id)}
               onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
+              onGoNext={focusIndex < displayItems.length - 1 ? goNextItem : undefined}
             />
           ) : null}
 
           {highlightScanJobId && previousScanItems.length > 0 ? (
-            <div className="mt-4 space-y-2 border-t border-[#D4C4A8]/50 pt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
-                {c.aiReviewPreviousScans} ({previousScanItems.length})
-              </p>
-              <div className="max-h-36 space-y-1.5 overflow-y-auto">
-                {previousScanItems.slice(0, 5).map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-md border border-[#D4C4A8]/50 bg-[#FDF8F0] px-2.5 py-1.5 text-xs text-[#1E1814]/70"
-                  >
-                    <span className="font-medium">{item.itemName}</span>
-                    {item.priceText ? ` · ${item.priceText}` : ""}
-                  </div>
-                ))}
-              </div>
+            <div className="mt-4 border-t border-[#D4C4A8]/50 pt-3">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-left text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55"
+                onClick={() => setPreviousScansOpen((v) => !v)}
+              >
+                <span>
+                  {c.aiReviewPreviousScans} ({previousScanItems.length})
+                </span>
+                <span>{previousScansOpen ? "−" : "+"}</span>
+              </button>
+              {previousScansOpen ? (
+                <div className="mt-2 max-h-36 space-y-1.5 overflow-y-auto">
+                  {previousScanItems.slice(0, 8).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-md border border-[#D4C4A8]/50 bg-[#FDF8F0] px-2.5 py-1.5 text-xs text-[#1E1814]/70"
+                    >
+                      <span className="font-medium">{item.itemName}</span>
+                      {item.priceText ? ` · ${item.priceText}` : ""}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>

@@ -22,6 +22,7 @@ export type OfertaLocalAiScanExtractionParams = {
   assetKind: "flyer" | "coupon";
   ofertaLocalId: string;
   ownerId: string;
+  scanJobId: string;
   sourceAssetUrl: string;
   sourceFileName: string;
   sourceStoragePath: string;
@@ -71,6 +72,9 @@ export async function runOfertaLocalAiScanExtraction(
         mimeType: params.mimeType,
         assetId: params.assetId,
         assetKind: params.assetKind,
+        ofertaLocalId: params.ofertaLocalId,
+        scanJobId: params.scanJobId,
+        ownerId: params.ownerId,
         sourceAssetUrl: params.sourceAssetUrl,
         sourceFileName: params.sourceFileName,
         sourceStoragePath: params.sourceStoragePath,
@@ -193,6 +197,8 @@ function buildGeminiSummary(
     rejected_reason_counts: gemini.rejectedReasonCounts,
     average_confidence: gemini.averageConfidence,
     price_repairs_applied: gemini.priceRepairsApplied,
+    crops_generated: gemini.cropsGenerated,
+    crop_errors: gemini.cropErrors,
     rasterization_fallback: gemini.rasterizationFallback,
     page_errors: gemini.pageErrors,
   };

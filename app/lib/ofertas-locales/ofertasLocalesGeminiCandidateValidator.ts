@@ -7,7 +7,9 @@ import {
   normalizeOfertaLocalRetailPrice,
   repairRetailPriceDigits,
 } from "./ofertasLocalesAiPriceNormalizer";
+import { validateGeminiSourceBbox, type GeminiSourceBbox } from "./ofertasLocalesGeminiBbox";
 import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import type { OfertaLocalSourceBoundingBox } from "./ofertasLocalesTypes";
 
 export const OFERTAS_GEMINI_SUPPORTED_UNITS = [
   "LB",
@@ -52,6 +54,7 @@ export type OfertaLocalGeminiRawCandidate = {
   confidence_score?: unknown;
   needs_review_reason?: unknown;
   raw_evidence?: unknown;
+  source_bbox?: unknown;
 };
 
 export type OfertaLocalGeminiValidatedCandidate = {
@@ -73,6 +76,8 @@ export type OfertaLocalGeminiValidatedCandidate = {
   needsReviewReason: string;
   rawEvidence: string;
   priceRepaired: boolean;
+  sourceBbox: OfertaLocalSourceBoundingBox | null;
+  sourceBboxGemini: GeminiSourceBbox | null;
 };
 
 export type OfertaLocalGeminiValidationStats = {
@@ -308,6 +313,8 @@ export function validateAndSanitizeGeminiCandidates(
     });
     if (repaired.priceRepaired) priceRepairsApplied += 1;
 
+    const bboxValidated = validateGeminiSourceBbox(raw.source_bbox);
+
     const candidate: OfertaLocalGeminiValidatedCandidate = {
       productName,
       brand: sanitizeString(raw.brand, 80),
@@ -327,6 +334,8 @@ export function validateAndSanitizeGeminiCandidates(
       needsReviewReason: sanitizeString(raw.needs_review_reason, 240),
       rawEvidence,
       priceRepaired: repaired.priceRepaired,
+      sourceBbox: bboxValidated?.normalized ?? null,
+      sourceBboxGemini: bboxValidated?.geminiBbox ?? null,
     };
 
     const key = candidateDedupeKey(candidate);

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /** Native modules used by Ofertas Locales Gemini PDF rasterization (server-only). */
-  serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist", "@google/generative-ai"],
+  serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist", "@google/generative-ai", "sharp"],
   /** Reduce parallel manifest writers on Windows (intermittent ENOENT during `collecting page data`). */
   experimental: {
     webpackBuildWorker: false,

@@ -51,7 +51,7 @@ export async function extractOfertasPageWithGemini(
       model: params.modelName,
       generationConfig: {
         responseMimeType: "application/json",
-        temperature: 0.1,
+        temperature: 0,
       },
     });
 

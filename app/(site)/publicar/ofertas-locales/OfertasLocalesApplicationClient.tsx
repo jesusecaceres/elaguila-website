@@ -73,6 +73,7 @@ import { OfertasLocalesAiScanReviewWorkspace } from "./OfertasLocalesAiScanRevie
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
 import { OfertasLocalesClickableItemPreviewPanel } from "./OfertasLocalesClickableItemPreviewPanel";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
+import { OfertasLocalesUploadedFilesSummary } from "./OfertasLocalesUploadedFilesSummary";
 import {
   OFERTAS_LOCALES_SHELL_COPY,
   ofertasLocalesAppCopy,
@@ -178,6 +179,7 @@ export default function OfertasLocalesApplicationClient() {
   const [lastScanJobId, setLastScanJobId] = useState<string | null>(
     () => loadOfertaLocalAiScanSession().lastScanJobId
   );
+  const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
@@ -185,6 +187,7 @@ export default function OfertasLocalesApplicationClient() {
     (step === 5 || step === 7) &&
     draft.wantsAiSearchableSpecials &&
     Boolean(effectiveOfertaLocalId?.trim());
+  const collapseUploadForReview = showFullWidthReviewDesk && Boolean(lastScanJobId);
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -714,20 +717,9 @@ export default function OfertasLocalesApplicationClient() {
         const { supporting: supportingFlyerAssets } = splitOfertaLocalPrimaryFlyerAssets(
           draft.flyerAssets
         );
-        return (
-          <div className="space-y-4">
-            {!primaryFormat ? (
-              <p className="text-sm text-[#1E1814]/55">
-                {lang === "en"
-                  ? "Choose your primary format in Step 1 first."
-                  : "Elige el formato principal en el Paso 1."}
-              </p>
-            ) : (
-              <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
-                <p>{c.step5UploadWeeklyFlyerHint}</p>
-                <p className="mt-2">{c.step5UploadLimitsHint}</p>
-              </div>
-            )}
+        const showCompactUploads = collapseUploadForReview && !uploadEditorOpen;
+        const assetUploadSections = (
+          <>
             {isShoppingLane ? (
               <>
                 <OfertasLocalesDraftAssetSection
@@ -798,6 +790,42 @@ export default function OfertasLocalesApplicationClient() {
                 </div>
               </>
             ) : null}
+          </>
+        );
+        return (
+          <div className="space-y-4">
+            {!primaryFormat ? (
+              <p className="text-sm text-[#1E1814]/55">
+                {lang === "en"
+                  ? "Choose your primary format in Step 1 first."
+                  : "Elige el formato principal en el Paso 1."}
+              </p>
+            ) : showCompactUploads ? (
+              <OfertasLocalesUploadedFilesSummary
+                lang={lang}
+                draft={draft}
+                onEditFiles={() => setUploadEditorOpen(true)}
+              />
+            ) : (
+              <>
+                {!collapseUploadForReview ? (
+                  <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
+                    <p>{c.step5UploadWeeklyFlyerHint}</p>
+                    <p className="mt-2">{c.step5UploadLimitsHint}</p>
+                  </div>
+                ) : null}
+                {assetUploadSections}
+                {collapseUploadForReview && uploadEditorOpen ? (
+                  <button
+                    type="button"
+                    className={BTN_SECONDARY}
+                    onClick={() => setUploadEditorOpen(false)}
+                  >
+                    {c.uploadedFilesHideEditor}
+                  </button>
+                ) : null}
+              </>
+            )}
             {step5BlocksContinue ? (
               <p className={HINT_BOX}>{c.step5UploadBeforeContinueWarning}</p>
             ) : null}
@@ -811,12 +839,14 @@ export default function OfertasLocalesApplicationClient() {
                   onScanComplete={setLastScanJobId}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
-                <OfertasLocalesClickableItemPreviewPanel
-                  lang={lang}
-                  ofertaLocalId={effectiveOfertaLocalId}
-                  scanJobId={lastScanJobId}
-                  draft={draft}
-                />
+                {!showFullWidthReviewDesk ? (
+                  <OfertasLocalesClickableItemPreviewPanel
+                    lang={lang}
+                    ofertaLocalId={effectiveOfertaLocalId}
+                    scanJobId={lastScanJobId}
+                    draft={draft}
+                  />
+                ) : null}
               </>
             ) : null}
           </div>
@@ -1006,12 +1036,14 @@ export default function OfertasLocalesApplicationClient() {
                   onScanComplete={setLastScanJobId}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
-                <OfertasLocalesClickableItemPreviewPanel
-                  lang={lang}
-                  ofertaLocalId={effectiveOfertaLocalId}
-                  scanJobId={lastScanJobId}
-                  draft={draft}
-                />
+                {!showFullWidthReviewDesk ? (
+                  <OfertasLocalesClickableItemPreviewPanel
+                    lang={lang}
+                    ofertaLocalId={effectiveOfertaLocalId}
+                    scanJobId={lastScanJobId}
+                    draft={draft}
+                  />
+                ) : null}
               </>
             ) : null}
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getOfertaLocalScanEligibleAssets } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
-import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
-import { OfertasLocalesSourceAdPreviewPanel } from "./OfertasLocalesSourceAdPreviewPanel";
+import { OfertasLocalesProductClipPanel } from "./OfertasLocalesProductClipPanel";
 import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
@@ -26,7 +26,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
   const c = ofertasLocalesAppCopy(lang);
   const eligibleAssets = useMemo(() => getOfertaLocalScanEligibleAssets(draft), [draft]);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-  const [mobilePreviewCollapsed, setMobilePreviewCollapsed] = useState(true);
+  const [focusedItem, setFocusedItem] = useState<OfertaLocalItemReviewViewModel | null>(null);
 
   const selectedAsset = eligibleAssets.find((a) => a.assetId === selectedAssetId);
 
@@ -35,6 +35,13 @@ export function OfertasLocalesAiScanReviewWorkspace({
     const flyer = eligibleAssets.find((a) => a.assetKind === "flyer");
     setSelectedAssetId(flyer?.assetId ?? eligibleAssets[0]?.assetId ?? null);
   }, [eligibleAssets, selectedAssetId]);
+
+  const handleFocusedItemChange = useCallback(
+    (item: OfertaLocalItemReviewViewModel | null) => {
+      setFocusedItem(item);
+    },
+    []
+  );
 
   if (!ofertaLocalId?.trim()) return null;
 
@@ -54,7 +61,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
                   : "Volante principal"
                 : lang === "en"
                   ? "Coupon file"
-                  : "Archivo de cupón"}
+                  : "Cupón / adicional"}
             </p>
             <p className="mt-0.5 max-w-[280px] truncate font-medium text-[#1E1814]">
               {selectedAsset.fileName || selectedAsset.assetId}
@@ -99,28 +106,15 @@ export function OfertasLocalesAiScanReviewWorkspace({
         </div>
       ) : null}
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,63fr)_minmax(0,37fr)] xl:items-start">
-        <div className="min-w-0 xl:sticky xl:top-20 xl:self-start">
-          <div className="hidden xl:block">
-            <OfertasLocalesSourceAdPreviewPanel
-              lang={lang}
-              draft={draft}
-              selectedAssetId={selectedAssetId}
-              eligibleAssets={eligibleAssets}
-              deskMode
-            />
-          </div>
-          <div className="xl:hidden">
-            <OfertasLocalesSourceAdPreviewPanel
-              lang={lang}
-              draft={draft}
-              selectedAssetId={selectedAssetId}
-              eligibleAssets={eligibleAssets}
-              collapsible
-              collapsed={mobilePreviewCollapsed}
-              onCollapsedChange={setMobilePreviewCollapsed}
-            />
-          </div>
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,62fr)_minmax(0,38fr)] xl:items-start">
+        <div className="min-w-0 xl:sticky xl:top-20 xl:max-h-[calc(100vh-5.5rem)] xl:self-start">
+          <OfertasLocalesProductClipPanel
+            lang={lang}
+            draft={draft}
+            focusedItem={focusedItem}
+            selectedAssetId={selectedAssetId}
+            eligibleAssets={eligibleAssets}
+          />
         </div>
 
         <div className="min-w-0 xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden">
@@ -133,6 +127,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
             draft={draft}
             selectedSourceAssetId={selectedAssetId}
             highlightScanJobId={lastScanJobId}
+            onFocusedItemChange={handleFocusedItemChange}
           />
         </div>
       </div>
