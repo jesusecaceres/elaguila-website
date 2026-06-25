@@ -7,7 +7,7 @@ import { RootIntroLanguagePanel } from "@/app/components/RootIntroLanguagePanel"
 function RootIntroPanelFallback() {
   return (
     <div
-      className="h-[10.5rem] w-full rounded-2xl border border-[#C9A84A]/25 bg-black/40"
+      className="h-[14rem] w-full rounded-2xl border border-amber-400/25 bg-black/40"
       aria-hidden
     />
   );
@@ -45,7 +45,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2.6, duration: 1.2, ease: "easeOut" }}
       >
-        <div className="pointer-events-auto w-full max-w-md min-w-0 overflow-visible">
+        <div className="pointer-events-auto w-full max-w-[92%] min-w-0 overflow-visible sm:max-w-[440px] md:max-w-[520px]">
           <Suspense fallback={<RootIntroPanelFallback />}>
             <RootIntroLanguagePanel />
           </Suspense>
