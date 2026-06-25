@@ -5,7 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { dashboardInboxComingSoonCopy } from "../lib/dashboardProductTruth";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
+import {
+  dashboardInboxComingSoonCopy,
+  dashboardInboxNextActionCopy,
+} from "../lib/dashboardProductTruth";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -34,12 +38,14 @@ export default function MensajesPage() {
             title: "Mensajes",
             subtitle: "Bandeja interna del vendedor (en preparación).",
             back: "Volver al resumen",
+            next: "Ir a Mis anuncios",
             loading: "Cargando…",
           }
         : {
             title: "Messages",
             subtitle: "Seller inbox (in preparation).",
             back: "Back to overview",
+            next: "Go to My listings",
             loading: "Loading…",
           },
     [lang]
@@ -99,25 +105,26 @@ export default function MensajesPage() {
   return (
     <LeonixDashboardShell lang={lang} activeNav="messages" plan={plan} userName={name} email={email} accountRef={accountRef}>
       {loading ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
+        <div className={`${LX_DASH.panel} p-10 text-center text-sm text-[#5C5346]`}>{t.loading}</div>
       ) : (
         <>
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
-            <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
+            <p className={LX_DASH.contextLabel}>{lang === "es" ? "Función en preparación" : "Feature in preparation"}</p>
+            <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
+            <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
           </header>
 
-          <div
-            className="mt-8 rounded-3xl border border-[#D6C7AD]/85 bg-gradient-to-br from-[#FFFCF7] to-[#FBF7EF] p-8 text-center shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)] sm:p-10"
-            role="status"
-          >
+          <div className={`mt-8 ${LX_DASH.disabledPanel}`} role="status">
             <p className="mx-auto max-w-lg text-sm leading-relaxed text-[#3D3428]">{dashboardInboxComingSoonCopy(lang)}</p>
-            <Link
-              href={`/dashboard?${q}`}
-              className="mt-6 inline-flex rounded-2xl border border-[#C9A84A]/45 bg-[#FFFDF7] px-5 py-2.5 text-sm font-semibold text-[#3D3428] transition hover:bg-[#FBF7EF]"
-            >
-              {t.back}
-            </Link>
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-[#5C5346]">{dashboardInboxNextActionCopy(lang)}</p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link href={`/dashboard/mis-anuncios?${q}`} className={LX_DASH.btnPrimary}>
+                {t.next}
+              </Link>
+              <Link href={`/dashboard?${q}`} className={LX_DASH.btnSecondary}>
+                {t.back}
+              </Link>
+            </div>
           </div>
         </>
       )}

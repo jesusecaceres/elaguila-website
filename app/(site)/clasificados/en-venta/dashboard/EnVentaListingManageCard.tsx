@@ -97,6 +97,8 @@ export function EnVentaListingManageCard({
   onDuplicate,
   listingLifecycle = "active",
   onRepublicarListing,
+  /** Hide in-card plan upsell on dashboard (publish flow remains available elsewhere). */
+  hidePlanUpsell = true,
 }: {
   row: EnVentaManageRow;
   lang: Lang;
@@ -145,6 +147,7 @@ export function EnVentaListingManageCard({
   listingLifecycle?: EnVentaDashboardListingLifecycle;
   /** Opens prefilled publish flow after confirmation (inactive listings only). */
   onRepublicarListing?: () => void;
+  hidePlanUpsell?: boolean;
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -380,7 +383,7 @@ export function EnVentaListingManageCard({
               </p>
             ) : null}
 
-            {!isPro ? (
+            {!isPro && !hidePlanUpsell ? (
               <div className="mt-3 rounded-2xl border border-[#C9B46A]/30 bg-[#FBF7EF]/80 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.upgradeTitle}</p>
                 <ul className="mt-2 grid gap-1 text-xs text-[#5C5346]/95">{L.upgradeBullets.map((b) => (
@@ -458,13 +461,10 @@ export function EnVentaListingManageCard({
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5">
                 {L.shares}: {analytics.shares}
               </span>
-              {isPro ? (
+              {isPro && !hidePlanUpsell ? (
                 <>
                   <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
                     {L.uniq}: {analytics.uniqueViews}
-                  </span>
-                  <span className="rounded-full border border-[#C9B46A]/35 bg-[#FFFCF7] px-2 py-0.5">
-                    {L.prof}: {analytics.profileClicks}
                   </span>
                 </>
               ) : null}
@@ -474,7 +474,11 @@ export function EnVentaListingManageCard({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
-              className="inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#F3EBDD]"
+              className={
+                hidePlanUpsell
+                  ? "inline-flex rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-4px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
+                  : "inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#F3EBDD]"
+              }
             >
               {L.details} →
             </Link>
@@ -488,7 +492,7 @@ export function EnVentaListingManageCard({
                 {L.analytics}
               </Link>
             ) : null}
-            {!isPro ? (
+            {!isPro && !hidePlanUpsell ? (
               <Link
                 href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
                 className="inline-flex rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#6B5B2E]"

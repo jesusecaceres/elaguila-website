@@ -198,10 +198,10 @@ export function LeonixDashboardShell({
         activeNav === key
           ? varioSidebar
             ? "bg-[#FBF7EF] text-[#1F241C] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9A84A]/35"
-            : "bg-[color:var(--lx-canvas)] text-[color:var(--lx-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.80)] ring-1 ring-[color:var(--lx-border)]/40"
+            : "bg-[#FBF7EF] text-[#1F241C] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9A84A]/35"
           : varioSidebar
             ? "text-[#5C5346] hover:bg-[#FBF7EF]/80"
-            : "text-[color:var(--lx-text-2)]/90 hover:bg-[color:var(--lx-card)]",
+            : "text-[#5C5346] hover:bg-[#FBF7EF]/80",
       )}
     >
       <span className="min-w-0 flex-1 leading-snug">{label}</span>
@@ -244,7 +244,7 @@ export function LeonixDashboardShell({
               "h-fit rounded-3xl p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-5",
               varioSidebar
                 ? "border border-[#D6C7AD]/85 bg-[#FFFDF7]/95 ring-1 ring-[#C9A84A]/10"
-                : "border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/90",
+                : "border border-[#D6C7AD]/85 bg-[#FFFDF7]/95 ring-1 ring-[#C9A84A]/10",
             )}
           >
             <div className="flex items-center justify-between gap-2">
@@ -295,17 +295,7 @@ export function LeonixDashboardShell({
 
             <Link
               href={`/clasificados/publicar?${q}`}
-              className={cx(
-                "mt-6 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99]",
-                varioSidebar
-                  ? "border border-[#7A1E2C]/15 bg-[#7A1E2C] text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
-                  : cx(
-                      "text-[color:var(--lx-cta-primary-fg)]",
-                      "bg-[color:var(--lx-cta-primary-bg)]",
-                      "shadow-[0_8px_28px_-4px_rgba(201,120,47,0.30)]",
-                      "hover:opacity-90",
-                    ),
-              )}
+              className="mt-6 flex w-full items-center justify-center rounded-2xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] transition hover:bg-[#5e1721] active:scale-[0.99]"
             >
               {L.publish}
             </Link>
@@ -313,7 +303,7 @@ export function LeonixDashboardShell({
             <button
               type="button"
               onClick={() => void signOut()}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[color:var(--lx-border)] bg-transparent py-2.5 text-sm font-semibold text-[color:var(--lx-muted)] transition hover:bg-[color:var(--lx-section)]"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#D6C7AD]/70 bg-transparent py-2.5 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FBF7EF]"
             >
               <span aria-hidden className="text-lg leading-none">
                 ⊖

@@ -26,6 +26,8 @@ import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstat
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
+import { DashboardCategoryLauncherCard } from "../components/DashboardCategoryLauncherCard";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
@@ -961,11 +963,7 @@ export default function MyListingsPage() {
     <button
       type="button"
       onClick={() => setTab(id)}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-        tab === id
-          ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-          : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
-      }`}
+      className={tab === id ? LX_DASH.chipActive : LX_DASH.chipInactive}
     >
       {label}
     </button>
@@ -985,35 +983,31 @@ export default function MyListingsPage() {
       ) : (
         <>
           <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
-              <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
-              <p
-                className="mt-3 max-w-3xl rounded-xl border border-sky-200/90 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-950"
-                role="status"
-              >
-                {t.analyticsNotice}
-                {listingAnalyticsDegraded ? (
-                  <span className="mt-2 block text-xs text-sky-900/85">
-                    {lang === "es"
-                      ? "Los eventos detallados aún no están en la base; los totales pueden mostrarse en cero."
-                      : "Detailed events are not in the database yet; totals may show as zero."}
-                  </span>
-                ) : null}
-              </p>
+            <div className="min-w-0">
+              <p className={LX_DASH.contextLabel}>{lang === "es" ? "Inventario del vendedor" : "Seller inventory"}</p>
+              <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
+              <p className={`mt-2 max-w-2xl ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
             </div>
-            <Link
-              href={`/clasificados/publicar?${q}`}
-              className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-            >
+            <Link href={`/clasificados/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
               {t.cta}
             </Link>
           </header>
 
-          <div className="mt-5 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-[0_8px_28px_-14px_rgba(42,36,22,0.08)]">
-            <h2 className="text-base font-bold text-[#1E1810]">{t.categoryMgmt}</h2>
-            <p className="mt-2 text-sm text-[#5C5346]/95">{t.categoryMgmtHint}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <p className={`mt-5 ${LX_DASH.notice}`} role="status">
+            {t.analyticsNotice}
+            {listingAnalyticsDegraded ? (
+              <span className="mt-2 block text-xs text-[#5C5346]/90">
+                {lang === "es"
+                  ? "Los eventos detallados aún no están en la base; los totales pueden mostrarse en cero."
+                  : "Detailed events are not in the database yet; totals may show as zero."}
+              </span>
+            ) : null}
+          </p>
+
+          <div className={`mt-8 ${LX_DASH.panel}`}>
+            <h2 className={LX_DASH.sectionTitle}>{t.categoryMgmt}</h2>
+            <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.categoryMgmtHint}</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {[
                 {
                   key: "restaurantes" as const,
@@ -1081,46 +1075,32 @@ export default function MyListingsPage() {
               ].map((c) => {
                 const hasOwned = c.owned > 0;
                 return (
-                  <div
+                  <DashboardCategoryLauncherCard
                     key={c.key}
-                    className={`rounded-2xl border p-4 ${
-                      hasOwned ? "border-[#C9B46A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA]" : "border-[#E8DFD0]/80 bg-[#FAF7F2]/60"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-[#1E1810]">{c.title}</h3>
-                      <span
-                        className={`text-xs font-bold tabular-nums ${hasOwned ? "text-[#1E1810]" : "text-[#7A7164]"}`}
-                        title={lang === "es" ? "Tuyos" : "Yours"}
-                      >
-                        {c.owned}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href={c.manage}
-                        className={`inline-flex rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                          hasOwned
-                            ? "bg-[#2A2620] text-[#FAF7F2] hover:bg-[#1a1814]"
-                            : "border border-[#E8DFD0] bg-white text-[#7A7164] hover:bg-[#FFFCF7]"
-                        }`}
-                      >
-                        {t.manage}
-                      </Link>
-                      <Link
-                        href={c.publish}
-                        className="inline-flex rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
-                      >
-                        {t.publish}
-                      </Link>
-                    </div>
-                  </div>
+                    title={c.title}
+                    description={
+                      hasOwned
+                        ? lang === "es"
+                          ? `${c.owned} publicación${c.owned === 1 ? "" : "es"} en esta categoría.`
+                          : `${c.owned} listing${c.owned === 1 ? "" : "s"} in this category.`
+                        : lang === "es"
+                          ? "Aún no tienes anuncios aquí."
+                          : "You don't have listings here yet."
+                    }
+                    ready
+                    manageHref={c.manage}
+                    publishHref={c.publish}
+                    manageLabel={t.manage}
+                    publishLabel={t.publish}
+                    readyLabel={lang === "es" ? "Listo" : "Ready"}
+                    soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
+                  />
                 );
               })}
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
               { label: t.statActive, value: totalActive },
               { label: t.statViews, value: totalViewsSum },
@@ -1139,11 +1119,7 @@ export default function MyListingsPage() {
               <button
                 type="button"
                 onClick={() => setCategoryFilterAndUrl("all")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  categoryFilter === "all"
-                    ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-                    : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
-                }`}
+                className={categoryFilter === "all" ? LX_DASH.chipActive : LX_DASH.chipInactive}
               >
                 {t.chipAll}
               </button>
@@ -1199,11 +1175,7 @@ export default function MyListingsPage() {
                     key={fk}
                     type="button"
                     onClick={() => setCategoryFilterAndUrl(fk)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                      categoryFilter === fk
-                        ? "bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35"
-                        : "text-[#5C5346] hover:bg-[#FFFCF7]/80"
-                    }`}
+                    className={categoryFilter === fk ? LX_DASH.chipActive : LX_DASH.chipInactive}
                   >
                     {label}{" "}
                     <span className="tabular-nums opacity-80">({categoryCounts[fk]})</span>
@@ -1213,22 +1185,24 @@ export default function MyListingsPage() {
             </div>
           ) : null}
 
-          <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-inner sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2">
+          <div className={`mt-6 ${LX_DASH.filterBar}`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap gap-2">
               {tabBtn("all", t.tabAll)}
               {tabBtn("active", t.tabActive)}
               {tabBtn("expired", t.tabExpired)}
               {tabBtn("moderation", t.tabMod)}
-            </div>
-            <div className="relative w-full min-w-[200px] flex-1 sm:max-w-sm">
+              </div>
+            <div className="relative w-full min-w-[200px] flex-1 lg:max-w-sm">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t.searchPh}
-                className="w-full rounded-full border border-[#E8DFD0] bg-white py-2 pl-4 pr-4 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/60"
+                className="w-full rounded-xl border border-[#D6C7AD]/70 bg-white py-2.5 pl-4 pr-4 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/55 focus:ring-2 focus:ring-[#C9A84A]/15"
                 type="search"
                 aria-label={t.searchPh}
               />
+            </div>
             </div>
           </div>
 
@@ -1241,8 +1215,8 @@ export default function MyListingsPage() {
 
           {hasAnyInventory ? (
             <div className="mt-10">
-              <h2 className="text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">{t.yourListings}</h2>
-              <p className="mt-2 max-w-3xl text-[10px] leading-snug text-[#7A7164]/95">{listingPlanFootnote(lang)}</p>
+              <h2 className={LX_DASH.sectionTitle}>{t.yourListings}</h2>
+              <p className="mt-2 max-w-3xl text-xs leading-snug text-[#7A7164]">{listingPlanFootnote(lang)}</p>
             </div>
           ) : null}
 

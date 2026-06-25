@@ -1,30 +1,34 @@
 "use client";
 
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
 
-export function DashboardStatsCard({
+export function DashboardMetricLinkCard({
+  href,
   label,
   value,
   hint,
-  icon,
+  accent,
 }: {
+  href: string;
   label: string;
-  value: number | string;
+  value: ReactNode;
   hint?: string;
-  icon?: string;
+  accent?: string;
 }) {
   return (
-    <div className={`${LX_DASH.metricCard} pointer-events-none cursor-default hover:border-[#D6C7AD]/80 hover:shadow-[0_10px_32px_-14px_rgba(31,36,28,0.12)]`}>
+    <Link href={href} className={LX_DASH.metricCard}>
       <div className="flex items-start justify-between gap-2">
         <p className={LX_DASH.metricLabel}>{label}</p>
-        {icon ? (
+        {accent ? (
           <span className="text-lg opacity-75" aria-hidden>
-            {icon}
+            {accent}
           </span>
         ) : null}
       </div>
       <p className={LX_DASH.metricValue}>{value}</p>
       {hint ? <p className={LX_DASH.metricHint}>{hint}</p> : null}
-    </div>
+    </Link>
   );
 }

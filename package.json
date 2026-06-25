@@ -42,6 +42,7 @@
     "verify:production-preview-bypass": "node scripts/verify-production-preview-bypass.mjs",
     "verify:coming-soon-email-alerts": "node scripts/verify-coming-soon-email-alerts.mjs",
     "verify:contact-location-global-sweep": "node scripts/verify-contact-location-global-sweep.mjs",
+    "verify:leonix-admin-command-center-master-audit": "node scripts/verify-leonix-admin-command-center-master-audit.mjs",
     "seed:owner-admin-auth": "node scripts/seed-owner-admin-auth.mjs",
     "verify:category-plan-boundaries": "node scripts/verify-category-plan-boundaries.mjs",
     "verify:category-listing-monetization": "node scripts/verify-category-listing-monetization-read-model.mjs",

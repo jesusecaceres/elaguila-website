@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
+import { DashboardMetricLinkCard } from "./components/DashboardMetricLinkCard";
+import { DashboardCategoryLauncherCard } from "./components/DashboardCategoryLauncherCard";
+import { DashboardQuickActionCard } from "./components/DashboardQuickActionCard";
+import { LX_DASH } from "./lib/dashboardLeonixTheme";
+import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { supabase } from "../../lib/supabaseClient";
 import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
@@ -37,7 +42,7 @@ export default function DashboardPage() {
       lang === "es"
         ? {
             title: "Resumen de cuenta",
-            subtitle: "Tu actividad y accesos rápidos en Leonix.",
+            subtitle: "Tu panel de vendedor Leonix.",
             activeAds: "Anuncios activos",
             totalViews: "Vistas totales",
             totalSaves: "Guardados",
@@ -68,7 +73,14 @@ export default function DashboardPage() {
             brPost: "Publicar BR",
             brResults: "Ver resultados BR",
             freeHint: "En Gratis: menos fotos por anuncio y sin video. Pro desbloquea más medios, visibilidad y métricas por publicación.",
-            cmdSubtitle: "Tu centro de comando Leonix: publica, mide y haz crecer tus anuncios.",
+            cmdSubtitle: "Tu centro de comando Leonix: publica, mide y gestiona tus anuncios.",
+            categorySectionTitle: "Gestión por categoría",
+            categorySectionHint: "Publica o administra por categoría. Solo verás acciones que funcionan hoy.",
+            quickSectionTitle: "Qué puedes hacer ahora",
+            publishNewHint: "Elige una categoría lista y publica en minutos",
+            expiringHint: "Ventana de visibilidad en los próximos 7 días",
+            viewsHint: "Interacciones reales registradas en analíticas",
+            draftsHint: "Anuncios guardados sin publicar",
             totalMsg: "Mensajes totales",
             expSoon: "Por expirar (7 días)",
             quickOpenMsg: "Abrir mensajes",
@@ -133,7 +145,14 @@ export default function DashboardPage() {
             brResults: "Browse BR results",
             freeHint:
               "Free: fewer photos per listing and no video. Pro unlocks more media, visibility, and metrics per listing.",
-            cmdSubtitle: "Your Leonix command center: publish, measure, and grow your ads.",
+            cmdSubtitle: "Your Leonix command center: publish, measure, and manage your listings.",
+            categorySectionTitle: "Manage by category",
+            categorySectionHint: "Publish or manage by category. Only actions that work today are shown.",
+            quickSectionTitle: "What you can do now",
+            publishNewHint: "Pick a ready category and publish in minutes",
+            expiringHint: "Visibility window ending in the next 7 days",
+            viewsHint: "Real interactions recorded in analytics",
+            draftsHint: "Saved listings not yet published",
             totalMsg: "Total messages",
             expSoon: "Expiring soon (7 days)",
             quickOpenMsg: "Open messages",
@@ -350,8 +369,92 @@ export default function DashboardPage() {
   const fmtExpiringSoon = (n: number | null) =>
     n == null ? (lang === "es" ? "Aún no registrado" : "Not tracked yet") : fmtNum(n);
 
-  const summaryCardClass =
-    "block rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.08)] transition hover:border-[color:var(--lx-border)] hover:shadow-[0_14px_40px_-12px_rgba(42,36,22,0.12)]";
+  const soonLabel = lang === "es" ? "Próximamente" : "Coming soon";
+  const manageLabel = lang === "es" ? "Gestionar" : "Manage";
+  const publishLabel = lang === "es" ? "Publicar" : "Publish";
+  const resultsLabel = lang === "es" ? "Ver resultados" : "View results";
+  const readyLabel = lang === "es" ? "Listo" : "Ready";
+
+  const homeCategories = useMemo(
+    () => [
+      {
+        title: "Restaurantes",
+        description: lang === "es" ? "Gestiona restaurantes publicados." : "Manage published restaurants.",
+        ready: true,
+        manageHref: `/dashboard/restaurantes?${q}`,
+        publishHref: `/publicar/restaurantes?${q}`,
+      },
+      {
+        title: "Servicios",
+        description:
+          lang === "es" ? "Perfiles de servicios en Mis anuncios o hub dedicado." : "Service profiles in My listings or dedicated hub.",
+        ready: true,
+        manageHref: `/dashboard/servicios?${q}`,
+        publishHref: `/clasificados/publicar/servicios?${q}`,
+      },
+      {
+        title: lang === "es" ? "Comida Local" : "Local Food",
+        description: lang === "es" ? "Locales de comida en Mis anuncios." : "Food listings in My listings.",
+        ready: true,
+        manageHref: `/dashboard/mis-anuncios?${q}&cat=comida-local`,
+        publishHref: `/publicar/comida-local?${q}`,
+      },
+      {
+        title: enVentaPublicLabel(lang),
+        description: lang === "es" ? "Varios — gestionado en Mis anuncios." : "For Sale — managed in My listings.",
+        ready: true,
+        manageHref: `/dashboard/mis-anuncios?${q}&cat=en-venta`,
+        publishHref: `/clasificados/publicar/en-venta?${q}`,
+      },
+      {
+        title: "Autos",
+        description: lang === "es" ? "Clasificados y autos de pago Leonix." : "Classified and Leonix paid Autos.",
+        ready: true,
+        manageHref: `/dashboard/mis-anuncios?${q}&cat=autos`,
+        publishHref: `/publicar/autos?${q}`,
+      },
+      {
+        title: lang === "es" ? "Empleos" : "Jobs",
+        description: lang === "es" ? "Vacantes con gestión dedicada." : "Job listings with dedicated management.",
+        ready: true,
+        manageHref: `/dashboard/empleos?${q}`,
+        publishHref: `/clasificados/publicar/empleos?${q}`,
+      },
+      {
+        title: lang === "es" ? "Rentas" : "Rentals",
+        description: lang === "es" ? "Anuncios de renta en Mis anuncios." : "Rental listings in My listings.",
+        ready: true,
+        manageHref: `/dashboard/mis-anuncios?${q}&cat=rentas`,
+        publishHref: `/publicar/rentas/privado?${q}`,
+      },
+      {
+        title: lang === "es" ? "Bienes Raíces" : "Real estate",
+        description: lang === "es" ? "Propiedades privadas y de negocio." : "Private and business properties.",
+        ready: true,
+        manageHref: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
+        publishHref: `${BR_PUBLICAR_HUB}?${q}`,
+        resultsHref: `${BR_RESULTS}?${q}`,
+      },
+      {
+        title: lang === "es" ? "Viajes" : "Travel",
+        description: lang === "es" ? "Ofertas de viaje con hub dedicado." : "Travel offers with dedicated hub.",
+        ready: true,
+        manageHref: `/dashboard/viajes?${q}`,
+        publishHref: `/publicar/viajes?${q}`,
+      },
+      {
+        title: lang === "es" ? "Clases" : "Classes",
+        description: lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
+        ready: false,
+      },
+      {
+        title: lang === "es" ? "Comunidad" : "Community",
+        description: lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
+        ready: false,
+      },
+    ],
+    [lang, q],
+  );
 
   return (
     <LeonixDashboardShell
@@ -380,367 +483,100 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <header className="rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.10)] sm:p-8">
-            <h1 className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-muted)]/95">{t.subtitle}</p>
-            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-[color:var(--lx-text-2)]/90">{t.cmdSubtitle}</p>
+          <header className={LX_DASH.pageHero}>
+            <p className={LX_DASH.contextLabel}>{lang === "es" ? "Centro del vendedor" : "Seller command center"}</p>
+            <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
+            <p className={`mt-2 max-w-2xl ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-relaxed text-[#3D3428]">{t.cmdSubtitle}</p>
             {homeCity ? (
-              <p className="mt-3 text-sm font-medium text-[color:var(--lx-text-2)]/90">
+              <p className="mt-3 inline-flex rounded-full border border-[#C9A84A]/35 bg-[#FBF7EF]/90 px-3 py-1 text-xs font-semibold text-[#5C5346]">
                 {lang === "es" ? "Ciudad" : "City"}: {homeCity}
               </p>
             ) : null}
           </header>
 
-          {/* Real stats only — hide unready Mensajes/Guardados until productized */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.activeAds}</p>
-                <span className="text-lg opacity-80" aria-hidden>
-                  📣
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(activeListings)}</p>
-              <p className="mt-2 text-[11px] leading-snug text-[color:var(--lx-muted)]/95">{t.activeListingsFootnote}</p>
-            </Link>
-            <Link href={`/dashboard/analytics?${q}`} className={summaryCardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.totalViews}</p>
-                <span className="text-lg opacity-80" aria-hidden>
-                  👁
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(totalViews)}</p>
-            </Link>
-            <Link href={`/dashboard/drafts?${q}`} className={summaryCardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.quickDrafts}</p>
-                <span className="text-lg opacity-80" aria-hidden>
-                  📝
-                </span>
-              </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]">{fmtNum(draftCount)}</p>
-            </Link>
-            <Link href={`/dashboard/mis-anuncios?${q}`} className={summaryCardClass}>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{t.expSoon}</p>
-                <span className="text-lg opacity-80" aria-hidden>
-                  ⏱
-                </span>
-              </div>
-              <p
-                className={
-                  expiringSoon === null
-                    ? "mt-3 text-sm font-semibold leading-snug text-[color:var(--lx-muted)]"
-                    : "mt-3 text-2xl font-bold tabular-nums text-[color:var(--lx-text)]"
-                }
-              >
-                {fmtExpiringSoon(expiringSoon)}
-              </p>
-            </Link>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <DashboardMetricLinkCard
+              href={`/dashboard/mis-anuncios?${q}`}
+              label={t.activeAds}
+              value={fmtNum(activeListings)}
+              hint={t.activeListingsFootnote}
+              accent="📣"
+            />
+            <DashboardMetricLinkCard
+              href={`/dashboard/analytics?${q}`}
+              label={t.totalViews}
+              value={fmtNum(totalViews)}
+              hint={t.viewsHint}
+              accent="👁"
+            />
+            <DashboardMetricLinkCard
+              href={`/dashboard/drafts?${q}`}
+              label={t.quickDrafts}
+              value={fmtNum(draftCount)}
+              hint={t.draftsHint}
+              accent="📝"
+            />
+            <DashboardMetricLinkCard
+              href={`/dashboard/mis-anuncios?${q}`}
+              label={t.expSoon}
+              value={fmtExpiringSoon(expiringSoon)}
+              hint={t.expiringHint}
+              accent="⏱"
+            />
           </div>
           {listingAnalyticsDegraded ? (
-            <p className="mt-4 rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950" role="status">
+            <p className={`mt-4 ${LX_DASH.notice}`} role="status">
               {t.analyticsDegraded}
             </p>
           ) : null}
-          <p className="mt-4 max-w-4xl text-xs leading-relaxed text-[color:var(--lx-muted)]/95">{t.metricsFootnote}</p>
-          <p className="mt-2 max-w-4xl text-xs leading-relaxed text-[color:var(--lx-muted)]/95">{t.expiringFootnote}</p>
+          <p className="mt-4 max-w-4xl text-xs leading-relaxed text-[#7A7164]">{t.metricsFootnote}</p>
 
-          {/* Category management overview */}
-          <div className="mt-8 rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.08)]">
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{lang === "es" ? "Gestión de Categorías" : "Category Management"}</h2>
-            <p className="mt-2 text-sm text-[color:var(--lx-muted)]/95">
-              {lang === "es" 
-                ? "Administra tus anuncios por categoría. El estado muestra lo que está disponible ahora."
-                : "Manage your listings by category. Status shows what's available now."
-              }
-            </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Restaurantes - READY */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Restaurantes</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    Listo
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestiona restaurantes publicados" : "Manage published restaurants"}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/restaurantes?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Gestionar" : "Manage"}
-                  </Link>
-                  <Link
-                    href={`/publicar/restaurantes?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Publicar" : "Publish"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Servicios */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Servicios</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    {lang === "es" ? "Listo" : "Ready"}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestiona en Mis anuncios o en el hub dedicado." : "Manage from My listings or the dedicated hub."}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/servicios?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Gestionar" : "Manage"}
-                  </Link>
-                  <Link
-                    href={`/clasificados/publicar/servicios?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Publicar" : "Publish"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* En venta - READY */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">{t.enVentaTitle}</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    Listo
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestionado en Mis anuncios" : "Managed in My listings"}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/mis-anuncios?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {t.enVentaCta}
-                  </Link>
-                  <Link
-                    href={`/clasificados/publicar/en-venta?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {t.enVentaPost}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Autos */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Autos</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    {lang === "es" ? "Listo" : "Ready"}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Incluye anuncios en tabla y autos de pago Leonix." : "Includes table listings and Leonix paid Autos."}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/mis-anuncios?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Gestionar" : "Manage"}
-                  </Link>
-                  <Link
-                    href={`/publicar/autos?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Publicar" : "Publish"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Empleos - READY */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Empleos</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    Listo
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestión dedicada disponible" : "Dedicated management available"}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/empleos?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Gestionar" : "Manage"}
-                  </Link>
-                  <Link
-                    href={`/clasificados/publicar/empleos?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Publicar" : "Publish"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Rentas - READY */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Rentas</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    Listo
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestionado en Mis anuncios" : "Managed in My listings"}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/mis-anuncios?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Gestionar" : "Manage"}
-                  </Link>
-                  <Link
-                    href={`/publicar/rentas/privado?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Publicar privado" : "Publish private"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Bienes Raíces - READY */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Bienes Raíces</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    Listo
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestión completa disponible" : "Full management available"}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`${BR_PUBLICAR_HUB}?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Publicar" : "Publish"}
-                  </Link>
-                  <Link
-                    href={`${BR_RESULTS}?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Ver resultados" : "View results"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Viajes - READY */}
-              <div className="rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-text)]">Viajes</h3>
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                    Listo
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Gestión dedicada disponible" : "Dedicated management available"}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    href={`/dashboard/viajes?${q}`}
-                    className="inline-flex rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-canvas)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]"
-                  >
-                    {lang === "es" ? "Gestionar" : "Manage"}
-                  </Link>
-                  <Link
-                    href={`/publicar/viajes?${q}`}
-                    className="inline-flex rounded-lg bg-[color:var(--lx-cta-primary-bg)] px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-cta-primary-fg)] hover:opacity-90"
-                  >
-                    {lang === "es" ? "Publicar" : "Publish"}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Clases — not client-ready (no owner dashboard inventory). */}
-              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-muted)]">Clases</h3>
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                    {lang === "es" ? "Próximamente" : "Coming soon"}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet."}
-                </p>
-              </div>
-
-              {/* Comunidad — not client-ready (no owner dashboard inventory). */}
-              <div className="rounded-2xl border border-gray-200/60 bg-gray-50/80 p-4 opacity-75">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-[color:var(--lx-muted)]">Comunidad</h3>
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                    {lang === "es" ? "Próximamente" : "Coming soon"}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet."}
-                </p>
-              </div>
+          <div className={`mt-10 ${LX_DASH.panel}`}>
+            <h2 className={LX_DASH.sectionTitle}>{t.categorySectionTitle}</h2>
+            <p className={`mt-2 max-w-3xl ${LX_DASH.bodyMuted}`}>{t.categorySectionHint}</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {homeCategories.map((c) => (
+                <DashboardCategoryLauncherCard
+                  key={c.title}
+                  title={c.title}
+                  description={c.description}
+                  ready={c.ready}
+                  manageHref={c.manageHref}
+                  publishHref={c.publishHref}
+                  resultsHref={c.resultsHref}
+                  manageLabel={manageLabel}
+                  publishLabel={publishLabel}
+                  resultsLabel={resultsLabel}
+                  readyLabel={readyLabel}
+                  soonLabel={soonLabel}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Next actions */}
-          <div className="mt-8 rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)]/95 p-6 shadow-inner">
-            <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{lang === "es" ? "Qué puedes hacer ahora" : "What you can do now"}</h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Link
+          <div className={`mt-10 ${LX_DASH.panel}`}>
+            <h2 className={LX_DASH.sectionTitle}>{t.quickSectionTitle}</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <DashboardQuickActionCard
                 href={`/dashboard/mis-anuncios?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>
-                  📋
-                </span>
-                <div>
-                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Gestionar anuncios publicados" : "Manage published listings"}</p>
-                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{t.managePublishedHint}</p>
-                </div>
-              </Link>
-              <Link
+                icon="📋"
+                title={lang === "es" ? "Gestionar anuncios publicados" : "Manage published listings"}
+                description={t.managePublishedHint}
+              />
+              <DashboardQuickActionCard
                 href={`/dashboard/drafts?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>
-                  📝
-                </span>
-                <div>
-                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Continuar borradores" : "Continue drafts"}</p>
-                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{t.quickDraftsHint}</p>
-                </div>
-              </Link>
-              <Link
+                icon="📝"
+                title={lang === "es" ? "Continuar borradores" : "Continue drafts"}
+                description={t.quickDraftsHint}
+              />
+              <DashboardQuickActionCard
                 href={`/clasificados/publicar?${q}`}
-                className="flex items-center gap-3 rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/80 p-4 text-left text-sm text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-border)] hover:bg-[color:var(--lx-card)]"
-              >
-                <span className="text-[#C9A84A]" aria-hidden>
-                  ➕
-                </span>
-                <div>
-                  <p className="font-semibold text-[color:var(--lx-text)]">{lang === "es" ? "Publicar nuevo anuncio" : "Publish new listing"}</p>
-                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{lang === "es" ? "Crea un nuevo anuncio en cualquier categoría lista" : "Create a new listing in any ready category"}</p>
-                </div>
-              </Link>
+                icon="➕"
+                title={lang === "es" ? "Publicar nuevo anuncio" : "Publish new listing"}
+                description={t.publishNewHint}
+                primary
+              />
             </div>
           </div>
         </>
