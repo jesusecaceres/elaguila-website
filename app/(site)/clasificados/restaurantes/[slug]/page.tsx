@@ -7,6 +7,8 @@ import { getRestaurantePublicListingBySlugFromDb } from "@/app/clasificados/rest
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestauranteProfileViewAnalytics } from "@/app/clasificados/restaurantes/components/RestauranteProfileViewAnalytics";
+import { fetchRestauranteLinkedOffersForPublicPage } from "@/app/lib/clasificados/restaurantes/restaurantesLinkedOffersQuery";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 
 type Lang = "es" | "en";
@@ -51,6 +53,11 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
   const shellData = mapRestauranteDraftToShellData(draft);
   const shellForPublic = { ...shellData, id: row.id };
 
+  const linkedOffers =
+    isSupabaseAdminConfigured()
+      ? await fetchRestauranteLinkedOffersForPublicPage(getAdminSupabase(), row.id, lang)
+      : [];
+
   return (
     <RestaurantesShellChrome lang={lang}>
       <div className="mx-auto max-w-[1280px] space-y-3 px-4 pt-4 md:px-5 lg:px-6">
@@ -77,6 +84,7 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
             lang={lang}
             analyticsOwnerUserId={row.owner_user_id}
             persistListingEngagement
+            linkedOffers={linkedOffers}
           />
         </ClasificadosPreviewAdCanvas>
         {row.leonix_ad_id ? (

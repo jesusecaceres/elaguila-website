@@ -243,6 +243,7 @@
     "restaurantes:polish1-audit": "tsx scripts/restaurantes-polish1-audit.ts",
     "restaurantes:polish2-audit": "tsx scripts/restaurantes-polish2-audit.ts",
     "restaurantes:analytics1-audit": "tsx scripts/restaurantes-analytics1-audit.ts",
+    "restaurantes:offers1-audit": "tsx scripts/restaurantes-offers1-audit.ts",
     "restaurantes:video-url1-audit": "tsx scripts/restaurantes-video-url1-audit.ts",
     "comida-local:food-l2-scaffold-audit": "tsx scripts/comida-local-food-l2-scaffold-audit.ts",
     "comida-local:food-l3-field-draft-audit": "tsx scripts/comida-local-food-l3-field-draft-audit.ts",

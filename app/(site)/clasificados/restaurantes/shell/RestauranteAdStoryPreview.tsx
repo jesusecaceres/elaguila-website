@@ -15,6 +15,8 @@ import { RestauranteLockedGallerySection } from "./RestauranteLockedGallerySecti
 import { normalizeActionableUrl } from "../lib/urlNormalization";
 import { RestaurantContactHub } from "./RestaurantContactHub";
 import { RestauranteProfileHeader } from "./RestauranteProfileHeader";
+import { RestauranteOffersPreviewStrip } from "./RestauranteOffersPreviewStrip";
+import type { RestauranteLinkedOfferPreview } from "@/app/lib/clasificados/restaurantes/restaurantesLinkedOffersTypes";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRestauranteShellTranslation } from "@/app/clasificados/restaurantes/lib/useRestauranteShellTranslation";
@@ -73,6 +75,8 @@ interface RestauranteAdStoryPreviewProps {
   analyticsOwnerUserId?: string | null;
   /** When false, engagement buttons do not write analytics or saved/liked tables. */
   persistListingEngagement?: boolean;
+  /** Explicitly linked published Ofertas Locales — strip hidden when empty (REST-OFFERS1). */
+  linkedOffers?: RestauranteLinkedOfferPreview[];
 }
 
 export function RestauranteAdStoryPreview({
@@ -83,6 +87,7 @@ export function RestauranteAdStoryPreview({
   lang = "es",
   analyticsOwnerUserId,
   persistListingEngagement = true,
+  linkedOffers = [],
 }: RestauranteAdStoryPreviewProps) {
   const ownerUid = (analyticsOwnerUserId ?? "").trim() || undefined;
   const listingKeyResolved = (listingId ?? "").trim() || data.id;
@@ -255,6 +260,8 @@ export function RestauranteAdStoryPreview({
           </div>
         </section>
       )}
+
+      <RestauranteOffersPreviewStrip offers={linkedOffers} lang={lang} />
 
       {/* 1. Especialidades de la Casa — food/media priority */}
       {hasMenuHighlights && (
