@@ -61,6 +61,7 @@
     "verify:admin-leads-inbox-ui-lifecycle": "node scripts/verify-admin-leads-inbox-ui-lifecycle.mjs",
     "verify:admin-leads-crm": "node scripts/verify-admin-leads-crm.mjs",
     "verify:admin-mobile-shell": "node scripts/verify-admin-mobile-shell.mjs",
+    "verify:admin-mobile-shell-hamburger": "node scripts/verify-admin-mobile-shell-hamburger.mjs",
     "verify:admin-nav-ops": "node scripts/verify-admin-nav-ops.mjs",
     "verify:admin-leads-promocionales-tab": "node scripts/verify-admin-leads-promocionales-tab.mjs",
     "verify:entitlement-redemption-attachment": "node scripts/verify-entitlement-redemption-attachment.mjs",

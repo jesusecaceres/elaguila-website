@@ -50,6 +50,7 @@ assert("sidebar hidden below lg", /hidden w-64 shrink-0 lg:block/.test(shell), s
 assert("drawer overlay close", /mobile\.closeOverlay/.test(drawer) && /onClick=\{close\}/.test(drawer), drawer);
 assert("drawer X close button", /mobile\.close/.test(drawer), drawer);
 assert("drawer closes on route change", /pathname.*close/.test(drawer), drawer);
+assert("drawer portaled to body", /createPortal/.test(drawer), drawer);
 
 // 4. Admin content wrapper mobile-safe
 assert("adminContentArea export", /export const adminContentArea/.test(theme), theme);
