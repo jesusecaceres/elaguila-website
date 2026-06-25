@@ -2,7 +2,7 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import { normalizeDocumentAiResultToOfertaLocalItems } from "./ofertasLocalesAiNormalizer";
+import { runOfertaLocalAiScanExtraction } from "./ofertasLocalesAiScanOrchestrator";
 import {
   mapOfertaLocalSearchableItemDraftToDbInsert,
   mapOfertaLocalScanJobRecordDraftToDbInsert,
@@ -13,12 +13,12 @@ import {
   OfertaLocalAiScanSizeExceededError,
 } from "./ofertasLocalesAiScanSizeLimits";
 import {
-  getMissingOfertaLocalDocumentAiEnvLabels,
-  isOfertaLocalDocumentAiConfigured,
-} from "./ofertasLocalesDocumentAiConfig";
+  getMissingOfertaLocalAiScanEnvLabels,
+  isAnyOfertaLocalAiScanProviderConfigured,
+  resolveOfertasAiExtractionProvider,
+} from "./ofertasLocalesGeminiConfig";
 import {
   OfertaLocalDocumentAiNotConfiguredError,
-  processOfertaLocalAssetWithDocumentAi,
 } from "./ofertasLocalesDocumentAiClient";
 import { resolveOfertasLocalesOwnerOrAdminAuth } from "./ofertasLocalesReviewAuth";
 import {
@@ -109,15 +109,16 @@ export async function handleOfertaLocalScanPost(
     );
   }
 
-  if (!isOfertaLocalDocumentAiConfigured()) {
-    const missing = getMissingOfertaLocalDocumentAiEnvLabels();
+  if (!isAnyOfertaLocalAiScanProviderConfigured()) {
+    const missing = getMissingOfertaLocalAiScanEnvLabels();
     return NextResponse.json<OfertaLocalScanApiResponse>(
       {
         ok: false,
-        error: "document_ai_not_configured",
-        detail: `Missing server configuration: ${missing.join(", ")}`,
+        error: "ai_scan_not_configured",
+        detail: `Missing server configuration: ${missing.join(" ")}`,
         configurationMissing: true,
-        message: "Google Document AI is not configured on the server.",
+        message:
+          "No Ofertas Locales AI scan provider is configured. Set GEMINI_API_KEY or Google Document AI credentials.",
       },
       { status: 503 }
     );
@@ -267,6 +268,10 @@ export async function handleOfertaLocalScanPost(
   }
 
   const ownerId = parentOffer.owner_id as string;
+  const resolvedProvider = resolveOfertasAiExtractionProvider();
+  const scanProvider =
+    resolvedProvider === "gemini_multimodal" ? "gemini_multimodal" : "google_document_ai";
+  const normalizerProvider = resolvedProvider === "gemini_multimodal" ? "gemini" : "leonix_normalizer";
 
   const scanInsert = mapOfertaLocalScanJobRecordDraftToDbInsert(
     {
@@ -276,8 +281,8 @@ export async function handleOfertaLocalScanPost(
       sourceAssetId: body.assetId,
       sourceAssetType: body.assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf",
       sourceAssetUrl: body.assetUrl,
-      provider: "google_document_ai",
-      normalizerProvider: "leonix_normalizer",
+      provider: scanProvider,
+      normalizerProvider,
       status: "processing",
       startedAt: now,
       completedAt: "",
@@ -340,20 +345,17 @@ export async function handleOfertaLocalScanPost(
       assetKind: body.assetKind,
       assetId: body.assetId,
     });
-    const extraction = await processOfertaLocalAssetWithDocumentAi({
+    const sourceFileName = storagePath.split("/").pop() ?? body.assetId;
+    const scanResult = await runOfertaLocalAiScanExtraction({
       fileBuffer,
       mimeType,
       assetId: body.assetId,
+      assetKind: body.assetKind,
       ofertaLocalId: body.ofertaLocalId,
       ownerId,
-    });
-
-    const normalized = normalizeDocumentAiResultToOfertaLocalItems({
-      extraction,
-      sourceAssetId: body.assetId,
       sourceAssetUrl: body.assetUrl,
-      sourceFileName: storagePath.split("/").pop() ?? body.assetId,
-      assetKind: body.assetKind,
+      sourceFileName,
+      sourceStoragePath: storagePath,
       businessName: parentOffer.business_name ?? "",
       businessAddress: parentOffer.address ?? "",
       businessCity: parentOffer.city ?? "",
@@ -363,16 +365,26 @@ export async function handleOfertaLocalScanPost(
       validUntil: parentOffer.valid_until ?? undefined,
     });
 
-    if (normalized.debug) {
-      console.info("[ofertas-locales ai] scan normalization summary", {
+    if (scanResult.pageErrors.length > 0) {
+      console.warn("[ofertas-locales ai] scan page errors", {
         scanJobId,
-        assetKind: body.assetKind,
-        mimeType,
-        ...normalized.debug,
+        pageErrors: scanResult.pageErrors.slice(0, 10),
       });
     }
 
-    const itemRows = normalized.items.map((item) =>
+    console.info("[ofertas-locales ai] scan extraction summary", {
+      scanJobId,
+      providerUsed: scanResult.providerUsed,
+      modelUsed: scanResult.modelUsed,
+      pagesProcessed: scanResult.pagesProcessed,
+      rawCandidateCount: scanResult.rawCandidateCount,
+      insertedCount: scanResult.insertedCandidateCount,
+      rejectedCount: scanResult.rejectedCount,
+      priceRepairsApplied: scanResult.priceRepairsApplied,
+      averageConfidence: scanResult.averageConfidence,
+    });
+
+    const itemRows = scanResult.items.map((item) =>
       mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId)
     );
 
@@ -398,20 +410,21 @@ export async function handleOfertaLocalScanPost(
       .update({
         status: "needs_review",
         completed_at: completedAt,
-        pages_processed: extraction.pagesProcessed,
+        pages_processed: scanResult.pagesProcessed,
         items_extracted_count: itemRows.length,
-        confidence_average: extraction.confidenceAverage,
+        confidence_average: scanResult.confidenceAverage,
+        provider: scanResult.providerUsed === "gemini_multimodal" ? "gemini_multimodal" : "google_document_ai",
+        normalizer_provider:
+          scanResult.providerUsed === "gemini_multimodal" ? "gemini" : "leonix_normalizer",
         raw_result_storage_path: `pending-object-storage://${scanJobId}`,
         normalized_result_storage_path: `inline-summary://${scanJobId}`,
         raw_ocr_summary: {
-          textLength: extraction.text.length,
-          pagesProcessed: extraction.pagesProcessed,
-          pageLineCount: extraction.pageLines.length,
-          entityCount: extraction.entities.length,
+          ...scanResult.rawOcrSummary,
           mimeType,
           assetKind: body.assetKind,
+          pageErrors: scanResult.pageErrors.slice(0, 20),
         },
-        error_message: null,
+        error_message: scanResult.pageErrors.length > 0 ? scanResult.pageErrors.join(" | ").slice(0, 2000) : null,
         updated_at: completedAt,
       })
       .eq("id", scanJobId);
@@ -420,9 +433,9 @@ export async function handleOfertaLocalScanPost(
       ok: true,
       scanJobId,
       status: "needs_review",
-      pagesProcessed: extraction.pagesProcessed,
+      pagesProcessed: scanResult.pagesProcessed,
       itemsExtractedCount: itemRows.length,
-      message: normalized.note,
+      message: scanResult.note,
       configurationMissing: false,
     });
   } catch (err) {
@@ -447,7 +460,7 @@ export async function handleOfertaLocalScanPost(
         scanJobId,
         status: "failed",
         error: configurationMissing
-          ? "document_ai_not_configured"
+          ? "ai_scan_not_configured"
           : sizeExceeded
             ? "scan_size_exceeded"
             : "scan_failed",

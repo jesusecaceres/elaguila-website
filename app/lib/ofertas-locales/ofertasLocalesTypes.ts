@@ -344,6 +344,7 @@ export type OfertaLocalSearchableItemReviewStatus =
 /** AI scan provider — planning only (Stack 10). */
 export type OfertaLocalAiScanProvider =
   | "google_document_ai"
+  | "gemini_multimodal"
   | "leonix_manual"
   | "future_provider";
 
