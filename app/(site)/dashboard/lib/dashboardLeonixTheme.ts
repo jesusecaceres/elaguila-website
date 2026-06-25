@@ -44,4 +44,10 @@ export const LX_DASH = {
     "rounded-lg px-3.5 py-2 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FBF7EF]/90",
   disabledPanel:
     "rounded-2xl border border-[#D6C7AD]/85 bg-gradient-to-br from-[#FFFCF7] to-[#FBF7EF] p-8 text-center shadow-[0_14px_40px_-18px_rgba(31,36,28,0.1)] ring-1 ring-[#C9A84A]/10 sm:p-10",
+  /** Mis anuncios workbench — compact panel, full width within grid column */
+  panelCompact:
+    "rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 shadow-[0_10px_32px_-16px_rgba(31,36,28,0.1)] ring-1 ring-[#C9A84A]/10 sm:p-5",
+  workbenchCanvas: "w-full min-w-0 max-w-none",
+  filterBarCompact:
+    "rounded-xl border border-[#D6C7AD]/75 bg-[#FFFDF7]/95 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] ring-1 ring-[#C9A84A]/8",
 } as const;

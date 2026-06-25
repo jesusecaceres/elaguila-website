@@ -52,27 +52,48 @@ function DangerSection({
   );
 }
 
-function ContactSellerSection({
+function SellerSection({
+  sellerHref,
+  sellerLabel,
   ownerEmail,
   listingTitle,
   leonixAdId,
+  isRentas,
+  rentasInspectorHref,
   collapseSections,
+  t,
 }: {
-  ownerEmail: string;
+  sellerHref: string | null;
+  sellerLabel: string;
+  ownerEmail: string | null;
   listingTitle: string | null;
   leonixAdId: string | null;
+  isRentas: boolean;
+  rentasInspectorHref: string | null;
   collapseSections: boolean;
+  t: (key: string) => string;
 }) {
   const [copyState, setCopyState] = useState<"idle" | "ok" | "err">("idle");
   const compact = adminQueueActionCompact;
-  const subject = "Leonix Media listing review";
-  const idPart = leonixAdId ? `\nLeonix Ad ID: ${leonixAdId}` : "";
-  const body = `Hello,\n\nWe are reviewing your listing "${listingTitle ?? "your listing"}".${idPart}\n\n— Leonix Media team`;
-  const mailto = `mailto:${ownerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const hasSeller = Boolean(sellerHref);
+  const hasContact = Boolean(ownerEmail?.trim());
+  if (!hasSeller && !hasContact) return null;
+
+  const mailto = hasContact
+    ? (() => {
+        const email = ownerEmail!.trim();
+        const subject = "Leonix Media listing review";
+        const idPart = leonixAdId ? `\nLeonix Ad ID: ${leonixAdId}` : "";
+        const body = `Hello,\n\nWe are reviewing your listing "${listingTitle ?? "your listing"}".${idPart}\n\n— Leonix Media team`;
+        return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      })()
+    : null;
 
   const copyEmail = useCallback(async () => {
+    const email = ownerEmail?.trim();
+    if (!email) return;
     try {
-      await navigator.clipboard.writeText(ownerEmail);
+      await navigator.clipboard.writeText(email);
       setCopyState("ok");
       window.setTimeout(() => setCopyState("idle"), 2000);
     } catch {
@@ -82,31 +103,57 @@ function ContactSellerSection({
   }, [ownerEmail]);
 
   const inner = (
-    <AdminDashboardCtaGrid columns={2}>
-      <AdminDashboardCtaButton
-        label={copyState === "ok" ? "Copied" : copyState === "err" ? "Copy failed" : "Copy email"}
-        variant="neutral"
-        onClick={() => void copyEmail()}
-        className={compact}
-        title={`Copy ${ownerEmail}`}
-      />
-      <AdminDashboardCta href={mailto} label="Email seller" variant="active" className={compact} title="Opens mailto" />
-    </AdminDashboardCtaGrid>
+    <div className="space-y-2">
+      <AdminDashboardCtaGrid columns={2}>
+        {sellerHref ? (
+          <AdminDashboardCta
+            href={sellerHref}
+            label={sellerLabel}
+            variant="active"
+            title={sellerLabel}
+            className={compact}
+          />
+        ) : null}
+        {isRentas && rentasInspectorHref ? (
+          <AdminDashboardCta
+            href={rentasInspectorHref}
+            label={t("listings.inspectorRentas")}
+            variant="view"
+            title={t("listings.inspectorRentas")}
+            className={compact}
+          />
+        ) : null}
+      </AdminDashboardCtaGrid>
+      {hasContact ? (
+        <AdminDashboardCtaGrid columns={2}>
+          <AdminDashboardCtaButton
+            label={copyState === "ok" ? "Copied" : copyState === "err" ? "Copy failed" : "Copy email"}
+            variant="neutral"
+            onClick={() => void copyEmail()}
+            className={compact}
+            title={`Copy ${ownerEmail}`}
+          />
+          {mailto ? (
+            <AdminDashboardCta href={mailto} label="Email seller" variant="active" className={compact} title="Opens mailto" />
+          ) : null}
+        </AdminDashboardCtaGrid>
+      ) : null}
+    </div>
   );
 
   if (!collapseSections) {
     return (
-      <div data-testid="admin-row-actions-contact">
-        <p className={adminQueueActionGroupLabel}>Contact seller</p>
+      <div data-testid="admin-row-actions-seller">
+        <p className={adminQueueActionGroupLabel}>Seller</p>
         {inner}
       </div>
     );
   }
 
   return (
-    <details className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80" data-testid="admin-row-actions-contact">
+    <details className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80" data-testid="admin-row-actions-seller">
       <summary className="flex min-h-[44px] cursor-pointer list-none items-center px-3 py-2.5 text-xs font-bold uppercase text-[#5C5346] [&::-webkit-details-marker]:hidden">
-        Contact seller
+        Seller
       </summary>
       <div className="border-t border-[#E8DFD0]/60 p-2">{inner}</div>
     </details>
@@ -155,28 +202,17 @@ export function ClassifiedAdminQueueRowActionsPanel({
           />
         </AdminDashboardCtaGrid>
 
-        <AdminDashboardCtaGrid columns={2}>
-          {sellerHref ? (
-            <AdminDashboardCta
-              href={sellerHref}
-              label={t("listings.ownerCard")}
-              variant="active"
-              title={t("listings.ownerCard")}
-              className={compact}
-            />
-          ) : (
-            <span className="min-h-[40px]" aria-hidden />
-          )}
-          {isRentas ? (
-            <AdminDashboardCta
-              href={`/admin/workspace/clasificados/rentas/${row.id}`}
-              label={t("listings.inspectorRentas")}
-              variant="view"
-              title={t("listings.inspectorRentas")}
-              className={compact}
-            />
-          ) : null}
-        </AdminDashboardCtaGrid>
+        <SellerSection
+          sellerHref={sellerHref}
+          sellerLabel={t("listings.ownerCard")}
+          ownerEmail={ownerEmail}
+          listingTitle={row.title}
+          leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+          isRentas={isRentas}
+          rentasInspectorHref={isRentas ? `/admin/workspace/clasificados/rentas/${row.id}` : null}
+          collapseSections
+          t={t}
+        />
 
         {staffQueueMode ? (
           <ClassifiedAdminRowActions
@@ -269,14 +305,17 @@ export function ClassifiedAdminQueueRowActionsPanel({
           </>
         ) : null}
 
-        {ownerEmail ? (
-          <ContactSellerSection
-            ownerEmail={ownerEmail}
-            listingTitle={row.title}
-            leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
-            collapseSections
-          />
-        ) : null}
+        <SellerSection
+          sellerHref={sellerHref}
+          sellerLabel={t("listings.ownerCard")}
+          ownerEmail={ownerEmail}
+          listingTitle={row.title}
+          leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+          isRentas={isRentas}
+          rentasInspectorHref={isRentas ? `/admin/workspace/clasificados/rentas/${row.id}` : null}
+          collapseSections
+          t={t}
+        />
       </div>
     );
   }
@@ -412,12 +451,17 @@ export function ClassifiedAdminQueueRowActionsPanel({
           ) : null}
         </>
       ) : null}
-      {ownerEmail ? (
-        <ContactSellerSection
+      {ownerEmail || sellerHref ? (
+        <SellerSection
+          sellerHref={sellerHref}
+          sellerLabel={t("listings.ownerCard")}
           ownerEmail={ownerEmail}
           listingTitle={row.title}
           leonixAdId={displayLeonixAdId !== "—" ? displayLeonixAdId : null}
+          isRentas={isRentas}
+          rentasInspectorHref={isRentas ? `/admin/workspace/clasificados/rentas/${row.id}` : null}
           collapseSections={false}
+          t={t}
         />
       ) : null}
     </div>

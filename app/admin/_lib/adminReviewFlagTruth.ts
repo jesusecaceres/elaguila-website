@@ -8,7 +8,8 @@ export type AdminReviewFlagSourceKind =
   | "user_report"
   | "manual_admin"
   | "status_flagged"
-  | "unknown_legacy";
+  | "unknown_legacy"
+  | "unknown";
 
 export type AdminReviewFlagTruth = {
   sourceKind: AdminReviewFlagSourceKind;
@@ -150,8 +151,8 @@ export function classifyAdminReviewFlagTruth(input: AdminReviewFlagTruthInput): 
   }
 
   return {
-    sourceKind: "unknown_legacy",
-    sourceLabel: "Legacy",
+    sourceKind: "unknown",
+    sourceLabel: "Unknown",
     reasonText: null,
     ownerFacingExplanation: ADMIN_REVIEW_REASON_SECONDARY_FALLBACK,
     secondaryFallback: ADMIN_REVIEW_REASON_SECONDARY_FALLBACK,

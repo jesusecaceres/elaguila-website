@@ -73,8 +73,13 @@ if (!panel.includes("deleteStaff") || !panel.includes("Soft delete")) fail("dang
 if (!panel.includes("border-red-200")) fail("danger section not separated");
 ok("danger action preserved and separated");
 
-if (!panel.includes("Contact seller") || !panel.includes("Copy email")) fail("contact seller helpers missing");
-ok("contact seller helpers preserved");
+if (!panel.includes("admin-row-actions-seller") || !panel.includes("Copy email")) fail("seller section helpers missing");
+ok("seller actions preserved in collapsed section");
+
+const bulkBar = read("app/admin/(dashboard)/workspace/clasificados/_components/ClassifiedAdminQueueBulkBar.tsx");
+if (!table.includes("ClassifiedAdminQueueBulkBar")) fail("bulk action bar missing");
+if (!bulkBar.includes("bulk") && !bulkBar.includes("Permanent delete")) fail("bulk bar actions missing");
+ok("bulk action bar preserved");
 
 if (!table.includes("adminDesktopTableOnly") || !table.includes('layout="compact"')) fail("desktop table risk");
 ok("desktop table behavior preserved");

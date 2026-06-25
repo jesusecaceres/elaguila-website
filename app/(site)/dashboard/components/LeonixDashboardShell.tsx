@@ -61,6 +61,8 @@ export function LeonixDashboardShell({
   rightPanel,
   /** Optional Leonix Varios accent for seller listing workspace (detail page only). */
   sidebarTone = "default",
+  /** Wider main canvas for seller listing workbench (Mis anuncios). */
+  contentLayout = "default",
 }: {
   lang: Lang;
   activeNav: ActiveNav;
@@ -75,6 +77,7 @@ export function LeonixDashboardShell({
   children: ReactNode;
   rightPanel?: ReactNode;
   sidebarTone?: "default" | "varios";
+  contentLayout?: "default" | "workbench";
 }) {
   const router = useRouter();
   const [navCounts, setNavCounts] = useState<{ messages: number | null; drafts: number | null; expiring: number | null }>({
@@ -209,6 +212,8 @@ export function LeonixDashboardShell({
     </Link>
   );
 
+  const workbench = contentLayout === "workbench";
+
   return (
     <div className="relative min-h-screen text-[color:var(--lx-text)]" style={PAGE_BG}>
       <div
@@ -218,7 +223,12 @@ export function LeonixDashboardShell({
         }}
         aria-hidden
       />
-      <main className="relative mx-auto max-w-7xl px-4 pb-20 pt-24 sm:px-6 lg:px-8">
+      <main
+        className={cx(
+          "relative mx-auto px-4 pb-20 pt-24 sm:px-6 lg:px-8",
+          workbench ? "max-w-[90rem]" : "max-w-7xl",
+        )}
+      >
         <div className="mb-8 flex flex-col items-center text-center sm:mb-10">
           <Image
             src={newLogo}
@@ -233,10 +243,15 @@ export function LeonixDashboardShell({
 
         <div
           className={cx(
-            "grid gap-6 sm:gap-8 lg:gap-10",
+            "grid gap-6 sm:gap-8",
+            workbench ? "lg:gap-6 xl:gap-8" : "lg:gap-10",
             rightPanel
-              ? "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,280px)]"
-              : "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]"
+              ? workbench
+                ? "lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,280px)]"
+                : "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,280px)]"
+              : workbench
+                ? "lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]"
+                : "lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]",
           )}
         >
           <aside
@@ -312,7 +327,7 @@ export function LeonixDashboardShell({
             </button>
           </aside>
 
-          <div className="min-w-0">{children}</div>
+          <div className={cx("min-w-0", workbench && "w-full max-w-none overflow-visible")}>{children}</div>
 
           {rightPanel ? (
             <div className="hidden min-w-0 2xl:block 2xl:pt-0" aria-hidden={false}>

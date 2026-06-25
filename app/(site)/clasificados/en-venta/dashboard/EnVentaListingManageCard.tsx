@@ -307,7 +307,7 @@ export function EnVentaListingManageCard({
 
   return (
     <div className={`${frame} ${compactDashboard ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
-      <div className={`flex flex-col gap-3 ${compactDashboard ? "" : "lg:flex-row lg:items-stretch lg:gap-4"}`}>
+      <div className={`flex flex-col gap-3 ${compactDashboard ? "lg:flex-row lg:items-start lg:gap-4" : "lg:flex-row lg:items-stretch lg:gap-4"}`}>
         <div className="flex min-w-0 gap-3">
           <div
             className={`relative shrink-0 overflow-hidden rounded-xl border ${
@@ -458,7 +458,7 @@ export function EnVentaListingManageCard({
           </div>
         </div>
 
-        <div className={`flex flex-1 flex-col gap-2 ${compactDashboard ? "border-t border-[#E8DFD0]/70 pt-3" : "gap-3 border-t border-[#E8DFD0]/70 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"}`}>
+        <div className={`flex flex-1 flex-col gap-2 ${compactDashboard ? "border-t border-[#E8DFD0]/70 pt-3 lg:min-w-[14rem] lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0 xl:min-w-[16rem]" : "gap-3 border-t border-[#E8DFD0]/70 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"}`}>
           <div className="flex flex-wrap items-center gap-2">
             {!compactDashboard ? <MiniBars value={v} max={maxViews} /> : null}
             <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold text-[#3D3428]">

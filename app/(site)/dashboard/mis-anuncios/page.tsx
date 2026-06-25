@@ -983,7 +983,7 @@ export default function MyListingsPage() {
     <button
       type="button"
       onClick={() => setTab(id)}
-      className={tab === id ? LX_DASH.chipActive : LX_DASH.chipInactive}
+      className={`shrink-0 whitespace-nowrap ${tab === id ? LX_DASH.chipActive : LX_DASH.chipInactive}`}
     >
       {label}
     </button>
@@ -997,12 +997,14 @@ export default function MyListingsPage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      contentLayout="workbench"
     >
       {showLoading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
         <>
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className={LX_DASH.workbenchCanvas}>
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className={LX_DASH.contextLabel}>{lang === "es" ? "Inventario del vendedor" : "Seller inventory"}</p>
               <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
@@ -1013,7 +1015,7 @@ export default function MyListingsPage() {
             </Link>
           </header>
 
-          <p className={`mt-5 ${LX_DASH.notice}`} role="status">
+          <p className={`mt-4 ${LX_DASH.notice}`} role="status">
             {t.analyticsNotice}
             {listingAnalyticsDegraded ? (
               <span className="mt-2 block text-xs text-[#5C5346]/90">
@@ -1034,11 +1036,13 @@ export default function MyListingsPage() {
             soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
           />
 
-          <div className={`mt-4 min-w-0 ${LX_DASH.panel}`}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className={`mt-3 min-w-0 overflow-visible ${LX_DASH.panelCompact}`}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className={LX_DASH.sectionTitle}>{selectedCategoryDef.title(lang)}</h2>
+                  <h2 className="font-serif text-lg font-semibold tracking-tight text-[#1F241C] sm:text-xl">
+                    {selectedCategoryDef.title(lang)}
+                  </h2>
                   <span className={selectedCategoryDef.ready ? LX_DASH.badgeReady : LX_DASH.badgeSoon}>
                     {selectedCategoryDef.ready
                       ? lang === "es"
@@ -1049,16 +1053,8 @@ export default function MyListingsPage() {
                         : "Coming soon"}
                   </span>
                 </div>
-                <p className={`mt-1 max-w-2xl text-sm ${LX_DASH.bodyMuted}`}>{selectedCategoryDef.description(lang)}</p>
-                <p className="mt-2 text-sm font-semibold tabular-nums text-[#3D3428]">
-                  {selectedCategoryCount}{" "}
-                  {lang === "es"
-                    ? selectedCategoryCount === 1
-                      ? "publicación gestionada"
-                      : "publicaciones gestionadas"
-                    : selectedCategoryCount === 1
-                      ? "managed listing"
-                      : "managed listings"}
+                <p className={`mt-0.5 line-clamp-2 text-sm ${LX_DASH.bodyMuted}`}>
+                  {selectedCategoryDef.description(lang)}
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
@@ -1081,14 +1077,14 @@ export default function MyListingsPage() {
             </div>
 
             {selectedCategoryCount > 0 ? (
-              <div className="mt-4">
+              <div className="mt-3">
                 <DashboardCompactMetricStrip metrics={categoryMetricStrip} />
               </div>
             ) : null}
 
-            <div className={`mt-4 ${LX_DASH.filterBar}`}>
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className={`mt-3 ${LX_DASH.filterBarCompact}`}>
+              <div className="flex flex-col gap-2.5">
+                <div className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {tabBtn("all", t.tabAll)}
                   {tabBtn("active", t.tabActive)}
                   {tabBtn("expired", t.tabExpired)}
@@ -1113,14 +1109,14 @@ export default function MyListingsPage() {
             ) : null}
 
             {!hasAnyInventory ? (
-              <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center">
+              <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
                 <Link href={`/clasificados/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
                   {t.cta}
                 </Link>
               </div>
             ) : !hasSelectedCategoryListings ? (
-              <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center">
+              <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">
                   {lang === "es"
                     ? `Aún no tienes anuncios en ${selectedCategoryDef.title(lang)}.`
@@ -1139,12 +1135,12 @@ export default function MyListingsPage() {
                 ) : null}
               </div>
             ) : showListingsTableSection && visible.length === 0 ? (
-              <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center text-sm text-[#5C5346]">
+              <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center text-sm text-[#5C5346]">
                 {t.empty}
               </div>
             ) : null}
 
-            <div className="mt-4 flex min-w-0 flex-col gap-3">
+            <div className="mt-3 flex min-w-0 flex-col gap-2.5">
           {showRestSection ? (
                 restaurantInventory.map((item) => (
                   <DashboardCategoryListingCard
@@ -1740,9 +1736,10 @@ export default function MyListingsPage() {
             </div>
           </div>
 
-          <Link href={`/dashboard?${q}`} className="mt-6 inline-flex text-sm font-semibold text-[#2A2620] underline">
+          <Link href={`/dashboard?${q}`} className="mt-5 inline-flex text-sm font-semibold text-[#2A2620] underline">
             ← {t.back}
           </Link>
+          </div>
         </>
       )}
     </LeonixDashboardShell>

@@ -32,14 +32,9 @@ export function DashboardCategoryListingCard({
   actions,
 }: DashboardCategoryListingCardProps) {
   const visibleMeta = compact ? metaItems.slice(0, 3) : metaItems;
-  return (
-    <article
-      className={
-        compact
-          ? "rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-3.5 shadow-[0_6px_20px_-10px_rgba(42,36,22,0.08)]"
-          : "rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.08)]"
-      }
-    >
+
+  const body = (
+    <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-[color:var(--lx-section)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
           {categoryLabel}
@@ -73,9 +68,32 @@ export function DashboardCategoryListingCard({
         </dl>
       ) : null}
       {footerHint ? <p className="mt-2 text-[10px] leading-snug text-[color:var(--lx-muted)]/95">{footerHint}</p> : null}
-      <div className={compact ? "mt-3" : "mt-4"}>
-        <DashboardListingActionBar actions={actions} />
-      </div>
+    </>
+  );
+
+  return (
+    <article
+      className={
+        compact
+          ? "rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-3.5 shadow-[0_6px_20px_-10px_rgba(42,36,22,0.08)] lg:p-4"
+          : "rounded-3xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.08)]"
+      }
+    >
+      {compact ? (
+        <div className="lg:flex lg:items-start lg:justify-between lg:gap-4">
+          <div className="min-w-0 flex-1">{body}</div>
+          <div className="mt-3 shrink-0 lg:mt-0 lg:max-w-md">
+            <DashboardListingActionBar actions={actions} />
+          </div>
+        </div>
+      ) : (
+        <>
+          {body}
+          <div className="mt-4">
+            <DashboardListingActionBar actions={actions} />
+          </div>
+        </>
+      )}
     </article>
   );
 }

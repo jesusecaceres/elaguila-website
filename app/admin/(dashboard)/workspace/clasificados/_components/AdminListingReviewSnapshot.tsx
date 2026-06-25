@@ -31,6 +31,7 @@ const BADGE_STYLES = {
   manual_admin: "border-[#7A1E2C]/35 bg-[#FDF2F4] text-[#7A1E2C]",
   status_flagged: "border-[#C9B46A]/50 bg-[#FFFCF7] text-[#5C4E2E]",
   unknown_legacy: "border-[#E8DFD0] bg-[#FAF7F2] text-[#7A7164]",
+  unknown: "border-[#E8DFD0] bg-[#FAF7F2] text-[#9A9084]",
 } as const;
 
 type Props = {

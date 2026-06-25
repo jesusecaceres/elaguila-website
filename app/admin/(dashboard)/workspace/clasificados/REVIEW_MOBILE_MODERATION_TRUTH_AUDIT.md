@@ -50,20 +50,25 @@ Generic listings only store `status = flagged`. There is no `moderation_reason` 
 - **Manual** — empleos/viajes/servicios stored moderation notes
 - **Status** — `status=flagged|pending` without stored reason
 - **Legacy** — review state with no provable source
+- **Unknown** — no reliable source when not in review
 
 ## 6. Mobile action collapse architecture
 
 Mobile cards (`layout=card`):
 
-- Always visible: Edit listing + View public; Seller profile row
-- Collapsed `<details>`: Lifecycle, Monetization & trust, Danger, Contact seller
+- Always visible: checkbox + listing summary + flag truth + Edit listing + View public
+- Collapsed `<details>`: **Seller** (profile + copy/email when available), Lifecycle, Monetization & trust, Danger
 - Desktop table (`layout=compact`): expanded groups preserved
 
 ## 7. Actions preserved
 
-Republish, Restore/Suspend, Archive, Feature, Verify Leonix, soft Delete, bulk selection, action proof banners, contact copy/email — all preserved.
+Republish, Restore/Suspend, Archive, Feature, Verify Leonix, soft Delete, seller profile, contact helpers — all preserved.
 
-## 8–9. Desktop / mobile result
+## 8. Bulk cleanup preserved
+
+Row/mobile checkboxes, select all visible, selected count, bulk bar, soft delete, protected permanent delete, action proof banners — unchanged.
+
+## 9–10. Desktop / mobile result
 
 - Desktop: table columns + expanded action groups unchanged
 - Mobile: shorter default cards, 44px tappable summaries, `overflow-x-hidden`
