@@ -273,7 +273,7 @@ export function AutoDealerPreviewPage({
                 listings={data.relatedDealerListings ?? []}
                 fullInventoryHref={data.relatedDealerInventoryHref}
                 hasMore={data.relatedDealerInventoryHasMore}
-                previewOnly={relatedPreviewOnly}
+                previewOnly={relatedPreviewOnly || draftPreviewMode}
               />
             </div>
           ) : null}

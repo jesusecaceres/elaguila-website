@@ -138,6 +138,8 @@
     "autos:a5-recovery-28-browser-proof": "npx playwright test -c playwright.autos-recovery-28.config.mjs",
     "autos:a5-recovery-29-inventory-array-preview-overwrite-audit": "tsx scripts/autos-a5-recovery-29-inventory-array-preview-overwrite-audit.ts",
     "autos:a5-recovery-29-browser-proof": "npx playwright test -c playwright.autos-recovery-29.config.mjs",
+    "autos:a5-recovery-30-draft-preview-carousel-cta-guardrail-audit": "tsx scripts/autos-a5-recovery-30-draft-preview-carousel-cta-guardrail-audit.ts",
+    "autos:a5-recovery-30-browser-proof": "npx playwright test -c playwright.autos-recovery-30.config.mjs",
     "autos:a5-polish-01-preview-business-hub-audit": "tsx scripts/autos-a5-polish-01-preview-business-hub-audit.ts",
     "autos:a5-final-acceptance-live-completion-audit": "tsx scripts/autos-a5-final-acceptance-live-completion-audit.ts",
     "autos:a5-vdata-01-shared-vehicle-data-coverage-audit": "tsx scripts/autos-a5-vdata-01-shared-vehicle-data-coverage-audit.ts",

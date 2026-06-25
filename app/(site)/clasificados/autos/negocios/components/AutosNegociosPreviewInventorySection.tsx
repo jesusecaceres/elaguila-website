@@ -8,6 +8,9 @@ import {
   autosInventoryBundleAdditionalLabel,
   autosPreviewInventorySectionHelper,
   autosPreviewInventorySectionTitle,
+  autosRelatedInventoryAvailableAfterPublish,
+  autosRelatedInventoryDraftCardLabel,
+  autosRelatedInventoryWillPublishWithRequest,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 
 export function AutosNegociosPreviewInventorySection({
@@ -38,7 +41,10 @@ export function AutosNegociosPreviewInventorySection({
     }));
 
   return (
-    <section className="mx-auto mb-10 max-w-[1280px] px-4 md:px-5 lg:px-6">
+    <section
+      className="mx-auto mb-10 max-w-[1280px] px-4 md:px-5 lg:px-6"
+      data-autos-related-inventory-preview-only="1"
+    >
       <h2 className="text-xl font-extrabold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
         {autosPreviewInventorySectionTitle(lang)}
       </h2>
@@ -61,7 +67,7 @@ export function AutosNegociosPreviewInventorySection({
             </div>
             <div className="p-4">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-gold)]">
-                {autosInventoryBundleAdditionalLabel(lang)} · {lang === "es" ? "Vista previa / borrador" : "Preview / draft"}
+                {autosInventoryBundleAdditionalLabel(lang)} · {autosRelatedInventoryDraftCardLabel(lang)}
               </p>
               <h3 className="mt-1 text-base font-bold text-[color:var(--lx-text)]">{card.title}</h3>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[color:var(--lx-text-2)]">
@@ -70,7 +76,15 @@ export function AutosNegociosPreviewInventorySection({
                 {card.location ? <span>{card.location}</span> : null}
               </div>
               {card.specLine ? <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{card.specLine}</p> : null}
+              <p className="mt-2 text-[10px] text-[color:var(--lx-muted)]">{autosRelatedInventoryWillPublishWithRequest(lang)}</p>
               <p className="mt-3 text-[10px] text-[color:var(--lx-muted)]">{card.draftNote}</p>
+              <span
+                className="mt-3 inline-flex min-h-[36px] w-full cursor-default items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-[11px] font-semibold text-[color:var(--lx-muted)]"
+                aria-disabled="true"
+                data-autos-related-inventory-draft-cta="1"
+              >
+                {autosRelatedInventoryAvailableAfterPublish(lang)}
+              </span>
             </div>
           </article>
         ))}

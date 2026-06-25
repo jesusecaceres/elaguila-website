@@ -5,6 +5,7 @@ import type { RelatedDealerListing as RelatedRow } from "../types/autoDealerList
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { withLangParam } from "../lib/autosNegociosLang";
 import { AutosDealerInventoryVehicleCard } from "./AutosDealerInventoryVehicleCard";
+import { autosPreviewInventorySectionHelper } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 
 const SECTION =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)] sm:p-5";
@@ -22,18 +23,19 @@ export function RelatedDealerCars({
   previewOnly?: boolean;
 }) {
   const { lang, t } = useAutosNegociosPreviewCopy();
-  const { title, subtitle, details } = t.preview.related;
+  const { title, details } = t.preview.related;
+  const subtitle = previewOnly ? autosPreviewInventorySectionHelper(lang) : t.preview.related.subtitle;
 
   if (listings.length === 0) return null;
 
   return (
-    <section className={SECTION}>
+    <section className={SECTION} data-autos-related-inventory-preview-only={previewOnly ? "1" : undefined}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] sm:text-xl">{title}</h2>
           <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
         </div>
-        {hasMore && fullInventoryHref ? (
+        {!previewOnly && hasMore && fullInventoryHref ? (
           <Link
             href={withLangParam(fullInventoryHref, lang)}
             className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-[12px] border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"

@@ -258,3 +258,17 @@ export function autosRelatedInventoryDraftNote(lang: AutosClassifiedsLang): stri
     ? "Vista previa — los enlaces finales se generan al publicar."
     : "Preview — final links are generated when published.";
 }
+
+export function autosRelatedInventoryDraftCardLabel(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Vista previa / borrador" : "Preview / draft";
+}
+
+export function autosRelatedInventoryAvailableAfterPublish(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Disponible después de publicar" : "Available after publishing";
+}
+
+export function autosRelatedInventoryWillPublishWithRequest(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Se publicará junto con la solicitud."
+    : "Will publish with this request.";
+}
