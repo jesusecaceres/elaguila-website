@@ -6,6 +6,7 @@ import {
   patchOfertaLocalReviewItem,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import type {
+  OfertaLocalDraft,
   OfertaLocalItemReviewStatus,
   OfertaLocalItemReviewViewModel,
   OfertaLocalScanJobSummary,
@@ -20,12 +21,20 @@ const BTN_PRIMARY =
   "rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_SECONDARY =
   "rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+const BTN_FILTER =
+  "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide";
+
+type ReviewFilter = "all" | OfertaLocalItemReviewStatus;
 
 type Props = {
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
   scanJobId?: string | null;
   reviewMode?: "weekly" | "coupon";
+  variant?: "grid" | "workspace";
+  draft?: OfertaLocalDraft;
+  selectedSourceAssetId?: string | null;
+  highlightScanJobId?: string | null;
 };
 
 type ItemDraft = {
@@ -61,7 +70,7 @@ function isCouponItem(item: OfertaLocalItemReviewViewModel): boolean {
 }
 
 function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
-  const base = {
+  return {
     itemName: draft.itemName,
     priceText: draft.priceText,
     priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
@@ -79,7 +88,6 @@ function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: 
       .filter(Boolean),
     reviewStatus,
   };
-  return base;
 }
 
 function statusBadgeClass(status: OfertaLocalItemReviewStatus): string {
@@ -104,14 +112,212 @@ function confidenceLabelText(
   return (lang === "en" ? en : es)[label];
 }
 
+function sourceFileLabel(
+  item: OfertaLocalItemReviewViewModel,
+  draft: OfertaLocalDraft | undefined,
+  lang: OfertasLocalesAppLang
+): string {
+  if (item.sourceFileName) return item.sourceFileName;
+  if (!draft || !item.sourceAssetId) return item.sourceAssetId || "";
+  const flyer = draft.flyerAssets.find((a) => a.id === item.sourceAssetId);
+  if (flyer) {
+    return flyer.fileName || (lang === "en" ? "Main flyer" : "Volante principal");
+  }
+  const coupon = draft.couponAssets.find((a) => a.id === item.sourceAssetId);
+  if (coupon) {
+    return coupon.fileName || (lang === "en" ? "Coupon file" : "Archivo de cupón");
+  }
+  return item.sourceAssetId;
+}
+
+function ItemReviewCard({
+  item,
+  draft,
+  draftFields,
+  lang,
+  isCouponMode,
+  busy,
+  showOcrDefaultOpen,
+  onFieldChange,
+  onSave,
+  onStatus,
+}: {
+  item: OfertaLocalItemReviewViewModel;
+  draft?: OfertaLocalDraft;
+  draftFields: ItemDraft;
+  lang: OfertasLocalesAppLang;
+  isCouponMode: boolean;
+  busy: boolean;
+  showOcrDefaultOpen?: boolean;
+  onFieldChange: (field: keyof ItemDraft, value: string) => void;
+  onSave: () => void;
+  onStatus: (status: OfertaLocalItemReviewStatus) => void;
+}) {
+  const c = ofertasLocalesAppCopy(lang);
+  const [ocrOpen, setOcrOpen] = useState(Boolean(showOcrDefaultOpen));
+  const ocrContext = item.sourceContext?.trim();
+
+  return (
+    <div className={CARD}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}
+        >
+          {item.reviewStatus.replace("_", " ")}
+        </span>
+        <span className="text-[10px] text-[#1E1814]/55">
+          {c.aiReviewConfidence}: {confidenceLabelText(item.confidenceLabel, lang)}
+        </span>
+      </div>
+
+      <div className="mb-3 rounded-lg border border-[#D4C4A8]/50 bg-[#FDF8F0]/80 px-2.5 py-2 text-[10px] text-[#1E1814]/65">
+        <p>
+          <span className="font-semibold uppercase text-[#1E1814]/50">{c.aiReviewSourceFile}:</span>{" "}
+          {sourceFileLabel(item, draft, lang)}
+        </p>
+        {item.sourcePage != null ? (
+          <p className="mt-0.5">
+            <span className="font-semibold uppercase text-[#1E1814]/50">{c.aiReviewSourcePage}:</span>{" "}
+            {item.sourcePage}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+          {isCouponMode ? (lang === "en" ? "Coupon title" : "Título del cupón") : c.aiReviewItemName}
+          <input
+            className={`${INPUT} mt-1`}
+            value={draftFields.itemName}
+            onChange={(e) => onFieldChange("itemName", e.target.value)}
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+            {isCouponMode
+              ? lang === "en"
+                ? "Offer text"
+                : "Texto de oferta"
+              : c.aiReviewPriceText}
+            <input
+              className={`${INPUT} mt-1`}
+              value={draftFields.priceText}
+              onChange={(e) => onFieldChange("priceText", e.target.value)}
+            />
+          </label>
+          <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+            {c.aiReviewPriceAmount}
+            <input
+              className={`${INPUT} mt-1`}
+              value={draftFields.priceAmount}
+              onChange={(e) => onFieldChange("priceAmount", e.target.value)}
+            />
+          </label>
+        </div>
+        {!isCouponMode ? (
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+              {c.aiReviewRegularPrice}
+              <input
+                className={`${INPUT} mt-1`}
+                value={draftFields.regularPriceText}
+                onChange={(e) => onFieldChange("regularPriceText", e.target.value)}
+              />
+            </label>
+            <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+              {c.aiReviewUnit}
+              <input
+                className={`${INPUT} mt-1`}
+                value={draftFields.unit}
+                onChange={(e) => onFieldChange("unit", e.target.value)}
+              />
+            </label>
+          </div>
+        ) : null}
+        {!isCouponMode ? (
+          <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+            {c.aiReviewCategory}
+            <input
+              className={`${INPUT} mt-1`}
+              value={draftFields.category}
+              onChange={(e) => onFieldChange("category", e.target.value)}
+            />
+          </label>
+        ) : null}
+        <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+          {isCouponMode ? c.aiReviewTerms : c.aiReviewDescription}
+          <textarea
+            className={`${INPUT} mt-1 min-h-[56px]`}
+            value={isCouponMode ? draftFields.terms : draftFields.description}
+            onChange={(e) => onFieldChange(isCouponMode ? "terms" : "description", e.target.value)}
+          />
+        </label>
+        <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+          {c.aiReviewTags}
+          <input
+            className={`${INPUT} mt-1`}
+            value={draftFields.searchTags}
+            onChange={(e) => onFieldChange("searchTags", e.target.value)}
+            placeholder={lang === "en" ? "comma separated" : "separadas por coma"}
+          />
+        </label>
+      </div>
+
+      {ocrContext ? (
+        <div className="mt-3">
+          <button
+            type="button"
+            className="text-[10px] font-semibold text-[#7A1E2C] underline"
+            onClick={() => setOcrOpen((v) => !v)}
+          >
+            {ocrOpen ? c.aiReviewHideOcrContext : c.aiReviewViewOcrContext}
+          </button>
+          {ocrOpen ? (
+            <p className="mt-1 max-h-24 overflow-y-auto rounded border border-[#D4C4A8]/50 bg-[#FDF8F0] px-2 py-1.5 text-[10px] leading-relaxed text-[#1E1814]/60">
+              {ocrContext}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {item.reviewStatus === "approved" ? (
+        <p className="mt-2 text-[10px] font-medium text-emerald-800">
+          {item.isActive ? c.aiReviewApprovedPublic : c.aiReviewApprovedNote}
+        </p>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={onSave}>
+          {c.aiReviewSave}
+        </button>
+        <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={() => onStatus("approved")}>
+          {c.aiReviewApprove}
+        </button>
+        <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => onStatus("needs_review")}>
+          {c.aiReviewNeedsReview}
+        </button>
+        <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => onStatus("rejected")}>
+          {c.aiReviewReject}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function OfertasLocalesAiItemReviewPanel({
   lang,
   ofertaLocalId,
   scanJobId,
   reviewMode = "weekly",
+  variant = "grid",
+  draft,
+  selectedSourceAssetId,
+  highlightScanJobId,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const isCouponMode = reviewMode === "coupon";
+  const isWorkspace = variant === "workspace";
+
   const [items, setItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
   const [scanJobs, setScanJobs] = useState<OfertaLocalScanJobSummary[]>([]);
   const [summary, setSummary] = useState<Record<OfertaLocalItemReviewStatus, number> | null>(null);
@@ -120,12 +326,17 @@ export function OfertasLocalesAiItemReviewPanel({
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<ReviewFilter>("all");
+  const [focusIndex, setFocusIndex] = useState(0);
 
   const loadItems = useCallback(async () => {
     if (!ofertaLocalId?.trim()) return;
     setLoading(true);
     setError(null);
-    const result = await fetchOfertaLocalReviewItems(ofertaLocalId, scanJobId);
+    const result = await fetchOfertaLocalReviewItems(
+      ofertaLocalId,
+      isWorkspace ? null : scanJobId
+    );
     setLoading(false);
 
     if (!result.ok) {
@@ -145,7 +356,7 @@ export function OfertasLocalesAiItemReviewPanel({
       nextDrafts[item.id] = toDraft(item);
     }
     setDrafts(nextDrafts);
-  }, [ofertaLocalId, scanJobId, c.aiReviewLoadFailed]);
+  }, [ofertaLocalId, scanJobId, isWorkspace, c.aiReviewLoadFailed]);
 
   useEffect(() => {
     void loadItems();
@@ -180,21 +391,57 @@ export function OfertasLocalesAiItemReviewPanel({
 
   const handleSave = useCallback(
     async (itemId: string) => {
-      const draft = drafts[itemId];
-      if (!draft) return;
-      await applyPatch(itemId, patchFromDraft(draft, isCouponMode));
+      const itemDraft = drafts[itemId];
+      if (!itemDraft) return;
+      await applyPatch(itemId, patchFromDraft(itemDraft, isCouponMode));
     },
     [applyPatch, drafts, isCouponMode]
   );
 
   const handleStatusAction = useCallback(
     async (itemId: string, reviewStatus: OfertaLocalItemReviewStatus) => {
-      const draft = drafts[itemId];
-      if (!draft) return;
-      await applyPatch(itemId, patchFromDraft(draft, isCouponMode, reviewStatus));
+      const itemDraft = drafts[itemId];
+      if (!itemDraft) return;
+      await applyPatch(itemId, patchFromDraft(itemDraft, isCouponMode, reviewStatus));
     },
     [applyPatch, drafts, isCouponMode]
   );
+
+  const filteredItems = useMemo(() => {
+    let list = items;
+    if (selectedSourceAssetId) {
+      list = list.filter((item) => item.sourceAssetId === selectedSourceAssetId);
+    }
+    if (statusFilter !== "all") {
+      list = list.filter((item) => item.reviewStatus === statusFilter);
+    }
+    return list;
+  }, [items, selectedSourceAssetId, statusFilter]);
+
+  const { currentScanItems, previousScanItems } = useMemo(() => {
+    if (!isWorkspace || !highlightScanJobId) {
+      return { currentScanItems: filteredItems, previousScanItems: [] as OfertaLocalItemReviewViewModel[] };
+    }
+    const current = filteredItems.filter(
+      (item) => !item.scanJobId || item.scanJobId === highlightScanJobId
+    );
+    const previous = filteredItems.filter(
+      (item) => item.scanJobId && item.scanJobId !== highlightScanJobId
+    );
+    return { currentScanItems: current, previousScanItems: previous };
+  }, [filteredItems, highlightScanJobId, isWorkspace]);
+
+  const displayItems = isWorkspace && highlightScanJobId ? currentScanItems : filteredItems;
+
+  useEffect(() => {
+    setFocusIndex(0);
+  }, [selectedSourceAssetId, statusFilter, highlightScanJobId]);
+
+  useEffect(() => {
+    if (focusIndex >= displayItems.length) {
+      setFocusIndex(Math.max(0, displayItems.length - 1));
+    }
+  }, [displayItems.length, focusIndex]);
 
   const countLabels = useMemo(() => {
     if (!summary) return null;
@@ -206,222 +453,199 @@ export function OfertasLocalesAiItemReviewPanel({
     ];
   }, [summary, c]);
 
+  const filterButtons: { key: ReviewFilter; label: string }[] = [
+    { key: "all", label: c.aiReviewFilterAll },
+    { key: "needs_review", label: c.aiReviewCountNeedsReview },
+    { key: "approved", label: c.aiReviewCountApproved },
+    { key: "rejected", label: c.aiReviewCountRejected },
+  ];
+
   if (!ofertaLocalId?.trim()) return null;
 
-  return (
-    <div className="space-y-4 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiReviewPanelTitle}</p>
-          <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiReviewBeforePublish}</p>
-          {isCouponMode ? (
-            <p className="mt-2 text-xs text-amber-900/80">{c.aiReviewCouponPartialNote}</p>
-          ) : null}
-          <p className="mt-2 text-xs text-[#1E1814]/60">{c.aiReviewApprovedNotPublic}</p>
-          {items.length > 0 ? (
-            <p className="mt-2 text-xs font-semibold text-[#7A1E2C]">
-              {c.aiReviewSuggestionsFound} {items.length}
-            </p>
-          ) : null}
-          {scanJobs.length > 0 ? (
-            <ul className="mt-2 space-y-1 text-[10px] text-[#1E1814]/55">
-              {scanJobs.map((job) => (
-                <li key={job.id}>
-                  {lang === "en" ? "Scan" : "Escaneo"} {job.status} · {job.itemsExtractedCount}{" "}
-                  {lang === "en" ? "items" : "artículos"}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
-          {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
-        </button>
-      </div>
+  const focusedItem = displayItems[focusIndex];
 
-      {countLabels ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {countLabels.map(({ key, label, count }) => (
-            <div key={key} className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-center">
-              <p className="text-lg font-bold text-[#1E1814]">{count}</p>
-              <p className="text-[10px] uppercase tracking-wide text-[#1E1814]/55">{label}</p>
-            </div>
+  const summaryBar = countLabels ? (
+    <div className={`grid grid-cols-2 gap-2 sm:grid-cols-4 ${isWorkspace ? "sticky top-0 z-10 bg-[#FDF8F0] pb-2" : ""}`}>
+      {countLabels.map(({ key, label, count }) => (
+        <div key={key} className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-center">
+          <p className="text-lg font-bold text-[#1E1814]">{count}</p>
+          <p className="text-[10px] uppercase tracking-wide text-[#1E1814]/55">{label}</p>
+        </div>
+      ))}
+    </div>
+  ) : null;
+
+  const headerBlock = !isWorkspace ? (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiReviewPanelTitle}</p>
+        <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiReviewBeforePublish}</p>
+        {isCouponMode ? (
+          <p className="mt-2 text-xs text-amber-900/80">{c.aiReviewCouponPartialNote}</p>
+        ) : null}
+        <p className="mt-2 text-xs text-[#1E1814]/60">{c.aiReviewApprovedNotPublic}</p>
+        {items.length > 0 ? (
+          <p className="mt-2 text-xs font-semibold text-[#7A1E2C]">
+            {c.aiReviewSuggestionsFound} {items.length}
+          </p>
+        ) : null}
+        {scanJobs.length > 0 ? (
+          <ul className="mt-2 space-y-1 text-[10px] text-[#1E1814]/55">
+            {scanJobs.map((job) => (
+              <li key={job.id}>
+                {lang === "en" ? "Scan" : "Escaneo"} {job.status} · {job.itemsExtractedCount}{" "}
+                {lang === "en" ? "items" : "artículos"}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
+        {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
+      </button>
+    </div>
+  ) : (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <p className="text-xs font-semibold text-[#1E1814]">
+        {c.aiReviewSuggestionsFound} {displayItems.length}
+        {selectedSourceAssetId ? ` · ${c.aiReviewSelectSourceFile}` : ""}
+      </p>
+      <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
+        {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
+      </button>
+    </div>
+  );
+
+  return (
+    <div className={`space-y-4 ${isWorkspace ? "" : "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4"}`}>
+      {headerBlock}
+      {summaryBar}
+
+      {isWorkspace ? (
+        <div className="flex flex-wrap gap-2">
+          {filterButtons.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={`${BTN_FILTER} ${
+                statusFilter === key
+                  ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#7A1E2C]"
+                  : "border-[#D4C4A8] bg-white text-[#1E1814]/60"
+              }`}
+              onClick={() => setStatusFilter(key)}
+            >
+              {label}
+            </button>
           ))}
         </div>
       ) : null}
 
-      {loading ? (
-        <p className="text-xs text-[#1E1814]/60">{c.aiReviewLoading}</p>
-      ) : null}
-
+      {loading ? <p className="text-xs text-[#1E1814]/60">{c.aiReviewLoading}</p> : null}
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</p>
       ) : null}
-
       {actionMessage ? (
         <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
           {actionMessage}
         </p>
       ) : null}
 
-      {!loading && !error && items.length === 0 ? (
-        <p className="text-xs text-[#1E1814]/60">{scanJobId ? c.aiReviewNoSuggestions : c.aiReviewEmpty}</p>
+      {!loading && !error && displayItems.length === 0 ? (
+        <p className="text-xs text-[#1E1814]/60">
+          {scanJobId || selectedSourceAssetId ? c.aiReviewNoSuggestions : c.aiReviewEmpty}
+        </p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {items.map((item) => {
-          const draft = drafts[item.id] ?? toDraft(item);
-          const busy = savingId === item.id;
-          return (
-            <div key={item.id} className={CARD}>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}>
-                  {item.reviewStatus.replace("_", " ")}
-                </span>
-                <span className="text-[10px] text-[#1E1814]/55">
-                  {c.aiReviewConfidence}: {confidenceLabelText(item.confidenceLabel, lang)}
-                </span>
-              </div>
+      {isWorkspace && displayItems.length > 0 ? (
+        <div className="space-y-3">
+          {highlightScanJobId && previousScanItems.length > 0 ? (
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
+              {c.aiReviewCurrentScan}
+            </p>
+          ) : null}
 
-              <div className="space-y-2">
-                <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                  {isCouponMode ? (lang === "en" ? "Coupon title" : "Título del cupón") : c.aiReviewItemName}
-                  <input
-                    className={`${INPUT} mt-1`}
-                    value={draft.itemName}
-                    onChange={(e) => updateDraftField(item.id, "itemName", e.target.value)}
-                  />
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                    {isCouponMode
-                      ? lang === "en"
-                        ? "Offer text"
-                        : "Texto de oferta"
-                      : c.aiReviewPriceText}
-                    <input
-                      className={`${INPUT} mt-1`}
-                      value={draft.priceText}
-                      onChange={(e) => updateDraftField(item.id, "priceText", e.target.value)}
-                    />
-                  </label>
-                  <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                    {c.aiReviewPriceAmount}
-                    <input
-                      className={`${INPUT} mt-1`}
-                      value={draft.priceAmount}
-                      onChange={(e) => updateDraftField(item.id, "priceAmount", e.target.value)}
-                    />
-                  </label>
-                </div>
-                {!isCouponMode ? (
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                    {c.aiReviewRegularPrice}
-                    <input
-                      className={`${INPUT} mt-1`}
-                      value={draft.regularPriceText}
-                      onChange={(e) => updateDraftField(item.id, "regularPriceText", e.target.value)}
-                    />
-                  </label>
-                  <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                    {c.aiReviewUnit}
-                    <input
-                      className={`${INPUT} mt-1`}
-                      value={draft.unit}
-                      onChange={(e) => updateDraftField(item.id, "unit", e.target.value)}
-                    />
-                  </label>
-                </div>
-                ) : null}
-                {!isCouponMode ? (
-                <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                  {c.aiReviewCategory}
-                  <input
-                    className={`${INPUT} mt-1`}
-                    value={draft.category}
-                    onChange={(e) => updateDraftField(item.id, "category", e.target.value)}
-                  />
-                </label>
-                ) : null}
-                <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                  {isCouponMode ? c.aiReviewTerms : c.aiReviewDescription}
-                  <textarea
-                    className={`${INPUT} mt-1 min-h-[56px]`}
-                    value={isCouponMode ? draft.terms : draft.description}
-                    onChange={(e) =>
-                      updateDraftField(item.id, isCouponMode ? "terms" : "description", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
-                  {c.aiReviewTags}
-                  <input
-                    className={`${INPUT} mt-1`}
-                    value={draft.searchTags}
-                    onChange={(e) => updateDraftField(item.id, "searchTags", e.target.value)}
-                    placeholder={lang === "en" ? "comma separated" : "separadas por coma"}
-                  />
-                </label>
-              </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2">
+            <p className="text-xs font-semibold text-[#1E1814]">
+              {c.aiReviewProductPosition} {focusIndex + 1} {c.aiReviewProductOf} {displayItems.length}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={BTN_SECONDARY}
+                disabled={focusIndex <= 0}
+                onClick={() => setFocusIndex((i) => Math.max(0, i - 1))}
+              >
+                {c.aiReviewPreviousItem}
+              </button>
+              <button
+                type="button"
+                className={BTN_SECONDARY}
+                disabled={focusIndex >= displayItems.length - 1}
+                onClick={() => setFocusIndex((i) => Math.min(displayItems.length - 1, i + 1))}
+              >
+                {c.aiReviewNextItem}
+              </button>
+            </div>
+          </div>
 
-              <p className="mt-3 text-[10px] text-[#1E1814]/50">
-                {c.aiReviewSourceContext}:{" "}
-                {item.sourceContext ||
-                  (item.sourceFileName ? item.sourceFileName : "") ||
-                  (item.sourceAssetId || item.sourceAssetUrl
-                    ? `${item.sourceAssetId || "asset"}${item.sourcePage != null ? ` · p.${item.sourcePage}` : ""}`
-                    : c.aiReviewSourceUnknown)}
+          <div className="max-h-[min(70vh,720px)] overflow-y-auto pr-1">
+            {focusedItem ? (
+              <ItemReviewCard
+                key={focusedItem.id}
+                item={focusedItem}
+                draft={draft}
+                draftFields={drafts[focusedItem.id] ?? toDraft(focusedItem)}
+                lang={lang}
+                isCouponMode={isCouponMode}
+                busy={savingId === focusedItem.id}
+                onFieldChange={(field, value) => updateDraftField(focusedItem.id, field, value)}
+                onSave={() => void handleSave(focusedItem.id)}
+                onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
+              />
+            ) : null}
+          </div>
+
+          {highlightScanJobId && previousScanItems.length > 0 ? (
+            <div className="space-y-2 border-t border-[#D4C4A8]/50 pt-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
+                {c.aiReviewPreviousScans} ({previousScanItems.length})
               </p>
-              {item.sourceBbox ? (
-                <p className="mt-1 text-[10px] text-[#1E1814]/45">{c.aiReviewSourceBboxNote}</p>
-              ) : null}
-              {item.validFrom || item.validUntil ? (
-                <p className="mt-1 text-[10px] text-[#1E1814]/50">
-                  {lang === "en" ? "Valid dates" : "Fechas de validez"}:{" "}
-                  {[item.validFrom, item.validUntil].filter(Boolean).join(" — ")}
-                </p>
-              ) : null}
-
-              {item.reviewStatus === "approved" ? (
-                <p className="mt-2 text-[10px] font-medium text-emerald-800">
-                  {item.isActive ? c.aiReviewApprovedPublic : c.aiReviewApprovedNote}
-                </p>
-              ) : null}
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => void handleSave(item.id)}>
-                  {c.aiReviewSave}
-                </button>
-                <button
-                  type="button"
-                  className={BTN_PRIMARY}
-                  disabled={busy}
-                  onClick={() => void handleStatusAction(item.id, "approved")}
-                >
-                  {c.aiReviewApprove}
-                </button>
-                <button
-                  type="button"
-                  className={BTN_SECONDARY}
-                  disabled={busy}
-                  onClick={() => void handleStatusAction(item.id, "needs_review")}
-                >
-                  {c.aiReviewNeedsReview}
-                </button>
-                <button
-                  type="button"
-                  className={BTN_SECONDARY}
-                  disabled={busy}
-                  onClick={() => void handleStatusAction(item.id, "rejected")}
-                >
-                  {c.aiReviewReject}
-                </button>
+              <div className="max-h-48 space-y-2 overflow-y-auto">
+                {previousScanItems.slice(0, 5).map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[#D4C4A8]/50 bg-white/80 px-3 py-2 text-xs text-[#1E1814]/70"
+                  >
+                    <span className="font-medium">{item.itemName}</span>
+                    {item.priceText ? ` · ${item.priceText}` : ""}
+                  </div>
+                ))}
               </div>
             </div>
-          );
-        })}
-      </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {displayItems.map((item) => {
+            const itemDraft = drafts[item.id] ?? toDraft(item);
+            const busy = savingId === item.id;
+            return (
+              <ItemReviewCard
+                key={item.id}
+                item={item}
+                draft={draft}
+                draftFields={itemDraft}
+                lang={lang}
+                isCouponMode={isCouponMode}
+                busy={busy}
+                onFieldChange={(field, value) => updateDraftField(item.id, field, value)}
+                onSave={() => void handleSave(item.id)}
+                onStatus={(status) => void handleStatusAction(item.id, status)}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

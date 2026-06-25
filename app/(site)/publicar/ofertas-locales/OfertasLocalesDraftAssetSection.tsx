@@ -17,7 +17,11 @@ import {
 import {
   activeOfertaLocalDraftAssets,
   assetHasUploadedStorage,
+  assetIsAiScanEligible,
+  findDuplicateOfertaLocalDraftAsset,
   labelForOfertaLocalDraftAssetType,
+  ofertaLocalDraftAssetRoleLabel,
+  ofertaLocalDraftAssetUploadStatusLabel,
 } from "@/app/lib/ofertas-locales/ofertasLocalesDraftAssetHelpers";
 import { normalizeOfertaLocalUrlInput } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
@@ -28,7 +32,7 @@ import {
   type OfertaLocalDraftAssetSectionMode,
 } from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
-import { OFERTAS_LOCALES_SHELL_COPY, ofertasLocalesAssetCopy } from "./ofertasLocalesApplicationCopy";
+import { OFERTAS_LOCALES_SHELL_COPY, ofertasLocalesAssetCopy, ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
 const INPUT =
   "w-full rounded-xl border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] placeholder:text-[#1E1814]/40 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/25";
@@ -68,41 +72,55 @@ function AssetEditor({
   asset,
   assetKind,
   lang,
+  roleLabel,
   localPreviewUrl,
   pendingFile,
   uploading,
   uploadError,
+  duplicateWarning,
+  replacedNotice,
   showPageSection,
   primaryFlyerMultiPageHelper,
   onChange,
   onRemove,
+  onPreview,
   onFileSelect,
   onUpload,
 }: {
   asset: OfertaLocalDraftAsset;
   assetKind: OfertaLocalClientAssetKind;
   lang: OfertasLocalesAppLang;
+  roleLabel: string;
   localPreviewUrl?: string;
   pendingFile?: File;
   uploading: boolean;
   uploadError?: string | null;
+  duplicateWarning?: string | null;
+  replacedNotice?: string | null;
   showPageSection: boolean;
   primaryFlyerMultiPageHelper?: string;
   onChange: (patch: Partial<OfertaLocalDraftAsset>) => void;
   onRemove: () => void;
-  onFileSelect: (file: File) => void;
+  onPreview: () => void;
+  onFileSelect: (file: File, isReplace: boolean) => void;
   onUpload: () => void;
 }) {
   const ac = ofertasLocalesAssetCopy(lang);
+  const c = ofertasLocalesAppCopy(lang);
   const types = assetKind === "flyer" ? OFERTAS_LOCALES_FLYER_DRAFT_ASSET_TYPES : OFERTAS_LOCALES_COUPON_DRAFT_ASSET_TYPES;
   const [fileError, setFileError] = useState<string | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const uploaded = assetHasUploadedStorage(asset);
+  const scanEligible = assetIsAiScanEligible(asset);
+  const uploadStatus = ofertaLocalDraftAssetUploadStatusLabel(asset, lang);
   const hasLocalSelection = Boolean(pendingFile) || (Boolean(asset.fileName.trim()) && !uploaded);
   const isPdf = asset.mimeType === "application/pdf" || asset.assetType.endsWith("_pdf");
   const externalUrlReady =
     asset.assetType === "external_url" && Boolean(normalizeOfertaLocalUrlInput(asset.url));
+  const previewUrl =
+    localPreviewUrl || (uploaded && asset.url && asset.mimeType.startsWith("image/") ? asset.url : asset.url);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isReplace: boolean) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -112,7 +130,7 @@ function AssetEditor({
       return;
     }
     setFileError(null);
-    onFileSelect(file);
+    onFileSelect(file, isReplace);
     onChange({
       assetType: result.assetType,
       fileName: file.name,
@@ -132,13 +150,69 @@ function AssetEditor({
   return (
     <div className={ASSET_CARD}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-[#1E1814]">
-          {labelForOfertaLocalDraftAssetType(asset.assetType, lang)}
-        </p>
-        <button type="button" className={BTN_DANGER} onClick={onRemove} disabled={uploading}>
-          {OFERTAS_LOCALES_SHELL_COPY.assetsRemove}
-        </button>
+        <div className="min-w-0 space-y-1">
+          <span className="inline-flex rounded-full bg-[#7A1E2C]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
+            {roleLabel}
+          </span>
+          <p className="text-sm font-semibold text-[#1E1814]">
+            {asset.fileName.trim() || asset.title.trim() || labelForOfertaLocalDraftAssetType(asset.assetType, lang)}
+          </p>
+          <p className="text-[10px] text-[#1E1814]/55">
+            {labelForOfertaLocalDraftAssetType(asset.assetType, lang)}
+            {asset.mimeType ? ` · ${asset.mimeType}` : ""}
+            {asset.sizeBytes != null ? ` · ${formatOfertaLocalFileSize(asset.sizeBytes)}` : ""}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {(uploaded || externalUrlReady) && previewUrl ? (
+            <button type="button" className={BTN_SECONDARY} onClick={onPreview} disabled={uploading}>
+              {c.assetsPreview}
+            </button>
+          ) : null}
+          {asset.assetType !== "external_url" ? (
+            <button
+              type="button"
+              className={BTN_SECONDARY}
+              onClick={() => replaceInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {c.assetsReplace}
+            </button>
+          ) : null}
+          <button type="button" className={BTN_DANGER} onClick={onRemove} disabled={uploading}>
+            {OFERTAS_LOCALES_SHELL_COPY.assetsRemove}
+          </button>
+        </div>
       </div>
+
+      <div className="flex flex-wrap gap-2 text-[10px]">
+        <span className="rounded-full border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 font-medium text-[#1E1814]/70">
+          {uploadStatus}
+        </span>
+        {asset.assetType !== "external_url" ? (
+          <span
+            className={`rounded-full px-2 py-0.5 font-medium ${
+              scanEligible
+                ? "border border-emerald-300 bg-emerald-50 text-emerald-900"
+                : "border border-[#D4C4A8] bg-white text-[#1E1814]/50"
+            }`}
+          >
+            {scanEligible ? c.assetsScanEligible : c.assetsScanNotEligible}
+          </span>
+        ) : null}
+      </div>
+
+      {duplicateWarning ? (
+        <p className="rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {duplicateWarning}
+        </p>
+      ) : null}
+      {replacedNotice ? (
+        <p className="rounded-lg border border-emerald-300/80 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+          {replacedNotice}
+        </p>
+      ) : null}
+
       <div>
         <label className={LABEL}>{OFERTAS_LOCALES_SHELL_COPY.assetsTitle}</label>
         <input
@@ -195,13 +269,21 @@ function AssetEditor({
         </div>
       ) : (
         <>
+          <input
+            ref={replaceInputRef}
+            type="file"
+            accept={FILE_ACCEPT}
+            className="hidden"
+            onChange={(e) => handleFileChange(e, true)}
+            disabled={uploading}
+          />
           <div>
             <label className={LABEL}>{ac.uploadFile}</label>
             <input
               type="file"
               accept={FILE_ACCEPT}
               className="w-full text-xs text-[#1E1814]/70 file:mr-3 file:rounded-lg file:border file:border-[#D4C4A8] file:bg-[#FDF8F0] file:px-3 file:py-1.5 file:text-xs"
-              onChange={handleFileChange}
+              onChange={(e) => handleFileChange(e, false)}
               disabled={uploading}
             />
             {fileError ? <p className="mt-1 text-xs text-red-700">{fileError}</p> : null}
@@ -329,9 +411,11 @@ export function OfertasLocalesDraftAssetSection({
   onPendingUploadsChange?: (pendingCount: number) => void;
 }) {
   const ac = ofertasLocalesAssetCopy(lang);
+  const c = ofertasLocalesAppCopy(lang);
   const assetKind = bucketToKind(bucket);
   const assets = draft[bucket];
   const allActive = activeOfertaLocalDraftAssets(assets);
+  const allDraftAssets = activeOfertaLocalDraftAssets([...draft.flyerAssets, ...draft.couponAssets]);
   const visibleActive = visibleAssetsForSectionMode(assets, sectionMode);
   const canAdd = canAddAssetInSectionMode(assets, sectionMode, maxAssets(bucket));
   const showPageSection = sectionMode !== "primaryMainFlyer";
@@ -340,6 +424,8 @@ export function OfertasLocalesDraftAssetSection({
   const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
   const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const [duplicateWarnings, setDuplicateWarnings] = useState<Record<string, string>>({});
+  const [replacedNotices, setReplacedNotices] = useState<Record<string, string>>({});
   const previewsRef = useRef(localPreviews);
   previewsRef.current = localPreviews;
 
@@ -376,28 +462,68 @@ export function OfertasLocalesDraftAssetSection({
     setAssets(assets.map((a) => (a.id === id ? { ...a, ...patch } : a)));
   };
 
-  const removeAsset = (id: string) => {
-    revokePreview(id);
-    setPendingFiles((prev) => {
-      const { [id]: _, ...rest } = prev;
-      return rest;
-    });
-    setAssets(assets.filter((a) => a.id !== id));
-  };
-
   const addAsset = (assetType: OfertaLocalDraftAsset["assetType"]) => {
     if (!canAdd) return;
     const next = createEmptyOfertaLocalDraftAsset(assetType, allActive.length);
     setAssets([...assets, next]);
   };
 
-  const handleFileSelect = (assetId: string, file: File) => {
+  const removeAsset = (id: string) => {
+    revokePreview(id);
+    setPendingFiles((prev) => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
+    setDuplicateWarnings((prev) => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
+    setReplacedNotices((prev) => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
+    setAssets(assets.filter((a) => a.id !== id));
+  };
+
+  const handleFileSelect = (assetId: string, file: File, isReplace: boolean) => {
+    const dup = findDuplicateOfertaLocalDraftAsset(allDraftAssets, file, assetId);
+    if (dup) {
+      setDuplicateWarnings((prev) => ({
+        ...prev,
+        [assetId]: c.assetsDuplicateWarning,
+      }));
+    } else {
+      setDuplicateWarnings((prev) => {
+        const { [assetId]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+    if (isReplace) {
+      const assetRecord = assets.find((a) => a.id === assetId);
+      if (assetRecord) {
+        const role = ofertaLocalDraftAssetRoleLabel({
+          asset: assetRecord,
+          bucket,
+          sectionMode,
+          lang,
+        });
+        setReplacedNotices((prev) => ({
+          ...prev,
+          [assetId]: `${c.assetsReplacedNotice} ${role}.`,
+        }));
+      }
+    }
     revokePreview(assetId);
     setPendingFiles((prev) => ({ ...prev, [assetId]: file }));
     if (file.type.startsWith("image/")) {
       const url = URL.createObjectURL(file);
       setLocalPreviews((prev) => ({ ...prev, [assetId]: url }));
     }
+  };
+
+  const openAssetPreview = (asset: OfertaLocalDraftAsset) => {
+    const url = asset.url.trim();
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleUpload = async (assetId: string) => {
@@ -476,21 +602,31 @@ export function OfertasLocalesDraftAssetSection({
             : OFERTAS_LOCALES_SHELL_COPY.uploadCouponPlaceholder}
         </p>
       ) : null}
+      {showAiScanFormatsHint && isPrimaryFlyerMode ? (
+        <div className="rounded-lg border border-[#7A1E2C]/15 bg-[#7A1E2C]/5 px-3 py-2 text-xs leading-relaxed text-[#1E1814]/70">
+          <p className="font-medium text-[#7A1E2C]">{c.assetsScanOrderMainFirst}</p>
+          <p className="mt-1">{c.assetsScanOrderCouponsAfter}</p>
+        </div>
+      ) : null}
       {visibleActive.map((asset) => (
         <AssetEditor
           key={asset.id}
           asset={asset}
           assetKind={assetKind}
           lang={lang}
+          roleLabel={ofertaLocalDraftAssetRoleLabel({ asset, bucket, sectionMode, lang })}
           localPreviewUrl={localPreviews[asset.id]}
           pendingFile={pendingFiles[asset.id]}
           uploading={uploadingIds.has(asset.id)}
           uploadError={uploadErrors[asset.id]}
+          duplicateWarning={duplicateWarnings[asset.id]}
+          replacedNotice={replacedNotices[asset.id]}
           showPageSection={showPageSection}
           primaryFlyerMultiPageHelper={isPrimaryFlyerMode ? primaryFlyerMultiPageHelper : undefined}
           onChange={(patch) => updateAsset(asset.id, patch)}
           onRemove={() => removeAsset(asset.id)}
-          onFileSelect={(file) => handleFileSelect(asset.id, file)}
+          onPreview={() => openAssetPreview(asset)}
+          onFileSelect={(file, isReplace) => handleFileSelect(asset.id, file, isReplace)}
           onUpload={() => void handleUpload(asset.id)}
         />
       ))}

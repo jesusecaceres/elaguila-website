@@ -69,7 +69,7 @@ import {
   validateOfertaLocalDraftForFuturePublish,
   validateOfertaLocalDraftForPreview,
 } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
-import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
+import { OfertasLocalesAiScanReviewWorkspace } from "./OfertasLocalesAiScanReviewWorkspace";
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
 import { OfertasLocalesClickableItemPreviewPanel } from "./OfertasLocalesClickableItemPreviewPanel";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
@@ -807,10 +807,11 @@ export default function OfertasLocalesApplicationClient() {
                   onScanComplete={setLastScanJobId}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
-                <OfertasLocalesAiItemReviewPanel
+                <OfertasLocalesAiScanReviewWorkspace
                   lang={lang}
+                  draft={draft}
                   ofertaLocalId={effectiveOfertaLocalId}
-                  scanJobId={lastScanJobId}
+                  lastScanJobId={lastScanJobId}
                   reviewMode={isCouponsLane ? "coupon" : "weekly"}
                 />
                 <OfertasLocalesClickableItemPreviewPanel
@@ -1008,10 +1009,11 @@ export default function OfertasLocalesApplicationClient() {
                   onScanComplete={setLastScanJobId}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
-                <OfertasLocalesAiItemReviewPanel
+                <OfertasLocalesAiScanReviewWorkspace
                   lang={lang}
+                  draft={draft}
                   ofertaLocalId={effectiveOfertaLocalId}
-                  scanJobId={lastScanJobId}
+                  lastScanJobId={lastScanJobId}
                   reviewMode={isCouponsLane ? "coupon" : "weekly"}
                 />
                 <OfertasLocalesClickableItemPreviewPanel
