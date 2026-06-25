@@ -37,6 +37,8 @@ export function OfertasLocalesProductClipPanel({
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const cropUrl = focusedItem?.sourceCropUrl?.trim();
+  const hasBbox = Boolean(focusedItem?.sourceBbox);
+  const cropPending = hasBbox && !cropUrl;
 
   if (cropUrl) {
     return (
@@ -70,8 +72,9 @@ export function OfertasLocalesProductClipPanel({
     <div className="space-y-3">
       {focusedItem ? (
         <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-xs text-amber-950/85">
-          {c.aiReviewNoClipAvailable}
+          {cropPending ? c.aiReviewCropPending : c.aiReviewNoClipAvailable}
           {focusedItem.sourcePage != null ? ` · ${c.aiReviewSourcePage} ${focusedItem.sourcePage}` : ""}
+          {focusedItem.sourceFileName ? ` · ${focusedItem.sourceFileName}` : ""}
         </p>
       ) : null}
       <OfertasLocalesSourceAdPreviewPanel

@@ -185,7 +185,8 @@ const COPY = {
     aiScanProcessing: "Escaneando archivo...",
     aiScanCompleted: "Escaneo completado",
     aiScanHelperWait:
-      "El escaneo puede tardar unos momentos. Después podrás revisar y editar las sugerencias antes de publicarlas.",
+      "El escaneo puede tardar unos momentos. Los resultados aparecerán abajo automáticamente — no necesitas pulsar Actualizar.",
+    aiScanElapsed: "Tiempo transcurrido",
     aiScanReviewBeforePublish:
       "Los productos extraídos deberán revisarse antes de publicarse.",
     aiScanConfigMissing: "Google Document AI no está configurado en el servidor.",
@@ -203,6 +204,11 @@ const COPY = {
     aiReviewSaved: "Cambios guardados.",
     aiReviewRefresh: "Actualizar",
     aiReviewRefreshing: "Actualizando…",
+    aiReviewAutoRefreshing: "Actualizando resultados…",
+    aiReviewScanInProgress:
+      "Escaneo en curso — los productos aparecerán aquí automáticamente.",
+    aiReviewReadyToReview: "Listo para revisar",
+    aiReviewCropPending: "Recorte pendiente — mostrando vista de página completa.",
     aiReviewSave: "Guardar revisión",
     aiReviewApprove: "Mantener",
     aiReviewNeedsReview: "Necesita revisión",
@@ -479,7 +485,8 @@ const COPY = {
     aiScanProcessing: "Scanning file...",
     aiScanCompleted: "Scan complete",
     aiScanHelperWait:
-      "Scanning may take a few moments. Afterward, you can review and edit suggestions before publishing.",
+      "Scanning may take a few moments. Results will appear below automatically — you do not need to click Refresh.",
+    aiScanElapsed: "Elapsed time",
     aiScanReviewBeforePublish:
       "Extracted items must be reviewed before they can be published.",
     aiScanConfigMissing: "Google Document AI is not configured on the server.",
@@ -497,6 +504,10 @@ const COPY = {
     aiReviewSaved: "Changes saved.",
     aiReviewRefresh: "Refresh",
     aiReviewRefreshing: "Refreshing…",
+    aiReviewAutoRefreshing: "Refreshing results…",
+    aiReviewScanInProgress: "Scan in progress — products will appear here automatically.",
+    aiReviewReadyToReview: "Ready to review",
+    aiReviewCropPending: "Clip pending — showing full page view.",
     aiReviewSave: "Save review",
     aiReviewApprove: "Keep",
     aiReviewNeedsReview: "Needs review",

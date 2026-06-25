@@ -13,6 +13,8 @@ type Props = {
   draft: OfertaLocalDraft;
   ofertaLocalId?: string | null;
   lastScanJobId?: string | null;
+  scanPollingActive?: boolean;
+  scanRefreshToken?: number;
   reviewMode?: "weekly" | "coupon";
 };
 
@@ -21,6 +23,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
   draft,
   ofertaLocalId,
   lastScanJobId,
+  scanPollingActive = false,
+  scanRefreshToken = 0,
   reviewMode = "weekly",
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
@@ -127,6 +131,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
             draft={draft}
             selectedSourceAssetId={selectedAssetId}
             highlightScanJobId={lastScanJobId}
+            scanPollingActive={scanPollingActive}
+            scanRefreshToken={scanRefreshToken}
             onFocusedItemChange={handleFocusedItemChange}
           />
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ensureOfertaLocalRecordForAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanPersistClient";
 import {
   getOfertaLocalAiScanReadiness,
@@ -8,6 +8,10 @@ import {
   type OfertaLocalScanEligibleAsset,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
 import { submitOfertaLocalAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanSubmit";
+import {
+  formatScanElapsed,
+  getOfertaLocalScanPhaseMessage,
+} from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
@@ -46,7 +50,9 @@ type Props = {
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
   signedIn?: boolean;
+  onScanStarted?: (asset: OfertaLocalScanEligibleAsset) => void;
   onScanComplete?: (scanJobId: string) => void;
+  onScanFinished?: (result: { ok: boolean; scanJobId?: string }) => void;
   onOfertaLocalIdChange?: (id: string) => void;
 };
 
@@ -55,7 +61,9 @@ export function OfertasLocalesAiScanPanel({
   lang,
   ofertaLocalId,
   signedIn = true,
+  onScanStarted,
   onScanComplete,
+  onScanFinished,
   onOfertaLocalIdChange,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
@@ -65,6 +73,8 @@ export function OfertasLocalesAiScanPanel({
   const [scanPhase, setScanPhase] = useState<"idle" | "prep" | "scan">("idle");
   const [scanningAssetId, setScanningAssetId] = useState<string | null>(null);
   const [lastCompletedMessage, setLastCompletedMessage] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const scanStartedAtRef = useRef<number | null>(null);
 
   const readiness = useMemo(
     () =>
@@ -78,6 +88,25 @@ export function OfertasLocalesAiScanPanel({
   );
 
   const scanning = scanPhase !== "idle";
+
+  useEffect(() => {
+    if (!scanning) {
+      scanStartedAtRef.current = null;
+      setElapsedSeconds(0);
+      return;
+    }
+    if (!scanStartedAtRef.current) scanStartedAtRef.current = Date.now();
+    const id = window.setInterval(() => {
+      const started = scanStartedAtRef.current ?? Date.now();
+      setElapsedSeconds(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [scanning]);
+
+  const phaseCopy = useMemo(() => {
+    if (!scanning) return null;
+    return getOfertaLocalScanPhaseMessage(elapsedSeconds * 1000, lang);
+  }, [scanning, elapsedSeconds, lang]);
 
   const prepLabel = lang === "en" ? "Preparing scan..." : "Preparando escaneo...";
 
@@ -103,6 +132,8 @@ export function OfertasLocalesAiScanPanel({
       setLastCompletedMessage(null);
       setServerConfigurationMissing(false);
       setScanStatus("processing");
+      scanStartedAtRef.current = Date.now();
+      onScanStarted?.(asset);
 
       let recordId = ofertaLocalId?.trim() || null;
       if (!recordId) {
@@ -117,6 +148,7 @@ export function OfertasLocalesAiScanPanel({
             [issueText, persist.code ? `(${persist.code})` : null].filter(Boolean).join(" ") ||
               c.aiScanFailed
           );
+          onScanFinished?.({ ok: false });
           return;
         }
         recordId = persist.id;
@@ -133,6 +165,7 @@ export function OfertasLocalesAiScanPanel({
               .filter(Boolean)
               .join(" ") || c.aiScanFailed
           );
+          onScanFinished?.({ ok: false });
           return;
         }
       }
@@ -156,12 +189,14 @@ export function OfertasLocalesAiScanPanel({
         setServerConfigurationMissing(true);
         setScanStatus("not_ready");
         setScanMessage(result.message ?? result.detail ?? c.aiScanConfigMissing);
+        onScanFinished?.({ ok: false });
         return;
       }
 
       if (!result.ok) {
         setScanStatus("failed");
         setScanMessage(result.message ?? result.detail ?? c.aiScanFailed);
+        onScanFinished?.({ ok: false, scanJobId: result.scanJobId });
         return;
       }
 
@@ -173,9 +208,26 @@ export function OfertasLocalesAiScanPanel({
           ? `${completedMsg} ${lang === "en" ? "Review the suggestions below." : "Revisa las sugerencias abajo."}`
           : result.message ?? completedMsg
       );
-      if (result.scanJobId) onScanComplete?.(result.scanJobId);
+      if (result.scanJobId) {
+        onScanComplete?.(result.scanJobId);
+        onScanFinished?.({ ok: true, scanJobId: result.scanJobId });
+      } else {
+        onScanFinished?.({ ok: true });
+      }
     },
-    [readiness.ready, scanning, ofertaLocalId, draft, c, lang, onScanComplete, onOfertaLocalIdChange, prepLabel]
+    [
+      readiness.ready,
+      scanning,
+      ofertaLocalId,
+      draft,
+      c,
+      lang,
+      onScanComplete,
+      onScanFinished,
+      onScanStarted,
+      onOfertaLocalIdChange,
+      prepLabel,
+    ]
   );
 
   if (!draft.wantsAiSearchableSpecials) return null;
@@ -194,6 +246,18 @@ export function OfertasLocalesAiScanPanel({
           <span className="ml-1 font-normal text-[#1E1814]/65">({lastCompletedMessage})</span>
         ) : null}
       </p>
+
+      {scanning && phaseCopy ? (
+        <div className="rounded-lg border border-[#7A1E2C]/20 bg-white px-3 py-2 text-xs text-[#1E1814]/80">
+          <p className="font-semibold text-[#7A1E2C]">{phaseCopy.message}</p>
+          <p className="mt-1 text-[#1E1814]/55">
+            {c.aiScanElapsed}: {formatScanElapsed(elapsedSeconds, lang)}
+          </p>
+          {phaseCopy.longWait ? (
+            <p className="mt-1 text-[#1E1814]/65">{c.aiReviewScanInProgress}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {sortedAssets.length > 0 ? (
         <div className="space-y-2">
@@ -224,7 +288,7 @@ export function OfertasLocalesAiScanPanel({
                     {isThisScanning
                       ? scanPhase === "prep"
                         ? prepLabel
-                        : c.aiScanProcessing
+                        : phaseCopy?.message ?? c.aiScanProcessing
                       : c.aiScanButton}
                   </button>
                 </li>
@@ -245,7 +309,7 @@ export function OfertasLocalesAiScanPanel({
         ))}
       </ul>
 
-      {scanMessage ? (
+      {scanMessage && !scanning ? (
         <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
           {scanMessage}
         </p>
@@ -258,7 +322,11 @@ export function OfertasLocalesAiScanPanel({
           disabled={!readiness.ready || scanning}
           onClick={() => void handleScanAsset(sortedAssets[0])}
         >
-          {scanning ? (scanPhase === "prep" ? prepLabel : c.aiScanProcessing) : c.aiScanButton}
+          {scanning
+            ? scanPhase === "prep"
+              ? prepLabel
+              : phaseCopy?.message ?? c.aiScanProcessing
+            : c.aiScanButton}
         </button>
       ) : null}
     </div>

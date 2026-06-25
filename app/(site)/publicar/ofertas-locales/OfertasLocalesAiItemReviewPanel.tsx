@@ -1,10 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchOfertaLocalReviewItems,
   patchOfertaLocalReviewItem,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
+import {
+  isOfertaLocalScanJobActive,
+  logOfertaLocalScanUi,
+  OFERTA_LOCAL_SCAN_REVIEW_POLL_MS,
+  OFERTA_LOCAL_SCAN_REVIEW_POLL_TIMEOUT_MS,
+  pickDefaultOfertaLocalReviewItemId,
+} from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
   OfertaLocalDraft,
   OfertaLocalItemReviewStatus,
@@ -35,6 +42,8 @@ type Props = {
   draft?: OfertaLocalDraft;
   selectedSourceAssetId?: string | null;
   highlightScanJobId?: string | null;
+  scanPollingActive?: boolean;
+  scanRefreshToken?: number;
   onFocusedItemChange?: (item: OfertaLocalItemReviewViewModel | null) => void;
 };
 
@@ -331,6 +340,8 @@ export function OfertasLocalesAiItemReviewPanel({
   draft,
   selectedSourceAssetId,
   highlightScanJobId,
+  scanPollingActive = false,
+  scanRefreshToken = 0,
   onFocusedItemChange,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
@@ -341,46 +352,161 @@ export function OfertasLocalesAiItemReviewPanel({
   const [scanJobs, setScanJobs] = useState<OfertaLocalScanJobSummary[]>([]);
   const [summary, setSummary] = useState<Record<OfertaLocalItemReviewStatus, number> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [autoRefreshing, setAutoRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ReviewFilter>("all");
-  const [focusIndex, setFocusIndex] = useState(0);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [previousScansOpen, setPreviousScansOpen] = useState(false);
 
-  const loadItems = useCallback(async () => {
-    if (!ofertaLocalId?.trim()) return;
-    setLoading(true);
-    setError(null);
-    const result = await fetchOfertaLocalReviewItems(
+  const selectionContextRef = useRef("");
+  const pollStartedAtRef = useRef<number | null>(null);
+  const formPanelRef = useRef<HTMLDivElement | null>(null);
+  const selectedItemIdRef = useRef<string | null>(null);
+  const itemCountRef = useRef(0);
+
+  useEffect(() => {
+    selectedItemIdRef.current = selectedItemId;
+  }, [selectedItemId]);
+
+  const mergeDraftsFromItems = useCallback(
+    (nextItems: OfertaLocalItemReviewViewModel[], preserveSelectedDraft: boolean) => {
+      setDrafts((prev) => {
+        const next: Record<string, ItemDraft> = { ...prev };
+        for (const item of nextItems) {
+          if (preserveSelectedDraft && item.id === selectedItemIdRef.current && prev[item.id]) {
+            continue;
+          }
+          next[item.id] = toDraft(item);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  const loadItems = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!ofertaLocalId?.trim()) return;
+      const silent = options?.silent ?? false;
+      if (silent) {
+        setAutoRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      const result = await fetchOfertaLocalReviewItems(
+        ofertaLocalId,
+        isWorkspace ? null : scanJobId
+      );
+
+      if (silent) {
+        setAutoRefreshing(false);
+      } else {
+        setLoading(false);
+      }
+
+      if (!result.ok) {
+        if (!silent) {
+          setError(result.detail ?? result.error ?? c.aiReviewLoadFailed);
+          setItems([]);
+          setScanJobs([]);
+          setSummary(null);
+        }
+        return;
+      }
+
+      const nextItems = result.items ?? [];
+      const prevCount = itemCountRef.current;
+      itemCountRef.current = nextItems.length;
+      setItems(nextItems);
+      setScanJobs(result.scanJobs ?? []);
+      setSummary(result.summary ?? null);
+      mergeDraftsFromItems(nextItems, silent);
+
+      if (nextItems.length > prevCount) {
+        logOfertaLocalScanUi("items received", {
+          count: nextItems.length,
+          added: nextItems.length - prevCount,
+          scanJobId: highlightScanJobId,
+        });
+      }
+    },
+    [
       ofertaLocalId,
-      isWorkspace ? null : scanJobId
-    );
-    setLoading(false);
-
-    if (!result.ok) {
-      setError(result.detail ?? result.error ?? c.aiReviewLoadFailed);
-      setItems([]);
-      setScanJobs([]);
-      setSummary(null);
-      return;
-    }
-
-    const nextItems = result.items ?? [];
-    setItems(nextItems);
-    setScanJobs(result.scanJobs ?? []);
-    setSummary(result.summary ?? null);
-    const nextDrafts: Record<string, ItemDraft> = {};
-    for (const item of nextItems) {
-      nextDrafts[item.id] = toDraft(item);
-    }
-    setDrafts(nextDrafts);
-  }, [ofertaLocalId, scanJobId, isWorkspace, c.aiReviewLoadFailed]);
+      scanJobId,
+      isWorkspace,
+      c.aiReviewLoadFailed,
+      highlightScanJobId,
+      mergeDraftsFromItems,
+    ]
+  );
 
   useEffect(() => {
     void loadItems();
   }, [loadItems]);
+
+  useEffect(() => {
+    if (!scanRefreshToken) return;
+    void loadItems({ silent: itemCountRef.current > 0 });
+  }, [scanRefreshToken, loadItems]);
+
+  const highlightedScanJob = useMemo(
+    () => scanJobs.find((job) => job.id === highlightScanJobId) ?? null,
+    [scanJobs, highlightScanJobId]
+  );
+
+  const scanJobStillActive = highlightedScanJob
+    ? isOfertaLocalScanJobActive(highlightedScanJob.status)
+    : scanPollingActive;
+
+  useEffect(() => {
+    const shouldPoll = Boolean(ofertaLocalId?.trim()) && (scanPollingActive || scanJobStillActive);
+    if (!shouldPoll) {
+      if (pollStartedAtRef.current != null) {
+        logOfertaLocalScanUi("polling stopped", { reason: "inactive" });
+        pollStartedAtRef.current = null;
+      }
+      return;
+    }
+
+    if (pollStartedAtRef.current == null) {
+      pollStartedAtRef.current = Date.now();
+      logOfertaLocalScanUi("polling started", {
+        ofertaLocalId,
+        highlightScanJobId,
+        scanPollingActive,
+      });
+    }
+
+    const tick = () => {
+      const startedAt = pollStartedAtRef.current ?? Date.now();
+      if (Date.now() - startedAt > OFERTA_LOCAL_SCAN_REVIEW_POLL_TIMEOUT_MS) {
+        logOfertaLocalScanUi("polling stopped", { reason: "timeout" });
+        pollStartedAtRef.current = null;
+        return;
+      }
+      void loadItems({ silent: true });
+    };
+
+    void loadItems({ silent: true });
+    const intervalId = window.setInterval(tick, OFERTA_LOCAL_SCAN_REVIEW_POLL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+      logOfertaLocalScanUi("polling stopped", { reason: "cleanup" });
+      pollStartedAtRef.current = null;
+    };
+  }, [
+    ofertaLocalId,
+    scanPollingActive,
+    scanJobStillActive,
+    highlightScanJobId,
+    loadItems,
+  ]);
 
   const updateDraftField = useCallback((itemId: string, field: keyof ItemDraft, value: string) => {
     setDrafts((prev) => ({
@@ -404,7 +530,7 @@ export function OfertasLocalesAiItemReviewPanel({
       setItems((prev) => prev.map((it) => (it.id === itemId ? result.item! : it)));
       setDrafts((prev) => ({ ...prev, [itemId]: toDraft(result.item!) }));
       setActionMessage(c.aiReviewSaved);
-      void loadItems();
+      void loadItems({ silent: true });
     },
     [c.aiReviewSaveFailed, c.aiReviewSaved, loadItems]
   );
@@ -453,23 +579,46 @@ export function OfertasLocalesAiItemReviewPanel({
 
   const displayItems = isWorkspace && highlightScanJobId ? currentScanItems : filteredItems;
 
-  useEffect(() => {
-    const needsReviewIdx = displayItems.findIndex((i) => i.reviewStatus === "needs_review");
-    setFocusIndex(needsReviewIdx >= 0 ? needsReviewIdx : 0);
-    setPreviousScansOpen(false);
-  }, [selectedSourceAssetId, statusFilter, highlightScanJobId, displayItems.length]);
+  const selectionContext = `${highlightScanJobId ?? ""}|${selectedSourceAssetId ?? ""}|${statusFilter}`;
+
+  const selectItem = useCallback((itemId: string) => {
+    logOfertaLocalScanUi("selected item changed", { itemId });
+    setSelectedItemId(itemId);
+  }, []);
 
   useEffect(() => {
-    if (focusIndex >= displayItems.length) {
-      setFocusIndex(Math.max(0, displayItems.length - 1));
+    if (selectionContextRef.current !== selectionContext) {
+      selectionContextRef.current = selectionContext;
+      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(displayItems));
+      setPreviousScansOpen(false);
+      return;
     }
-  }, [displayItems.length, focusIndex]);
+    if (selectedItemId && !displayItems.some((item) => item.id === selectedItemId)) {
+      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(displayItems));
+    } else if (!selectedItemId && displayItems.length > 0) {
+      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(displayItems));
+    }
+  }, [selectionContext, displayItems, selectedItemId]);
 
-  const focusedItem = displayItems[focusIndex];
+  const focusIndex = useMemo(() => {
+    if (!selectedItemId) return 0;
+    const idx = displayItems.findIndex((item) => item.id === selectedItemId);
+    return idx >= 0 ? idx : 0;
+  }, [displayItems, selectedItemId]);
+
+  const focusedItem = useMemo(
+    () => displayItems.find((item) => item.id === selectedItemId) ?? null,
+    [displayItems, selectedItemId]
+  );
 
   useEffect(() => {
     onFocusedItemChange?.(focusedItem ?? null);
   }, [focusedItem, onFocusedItemChange]);
+
+  useEffect(() => {
+    if (!isWorkspace || !selectedItemId) return;
+    formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [selectedItemId, isWorkspace]);
 
   const countLabels = useMemo(() => {
     if (!summary) return null;
@@ -490,8 +639,14 @@ export function OfertasLocalesAiItemReviewPanel({
 
   if (!ofertaLocalId?.trim()) return null;
 
+  const goPreviousItem = () => {
+    if (focusIndex <= 0) return;
+    selectItem(displayItems[focusIndex - 1].id);
+  };
+
   const goNextItem = () => {
-    setFocusIndex((i) => Math.min(displayItems.length - 1, i + 1));
+    if (focusIndex >= displayItems.length - 1) return;
+    selectItem(displayItems[focusIndex + 1].id);
   };
 
   const summaryBar = countLabels ? (
@@ -542,11 +697,14 @@ export function OfertasLocalesAiItemReviewPanel({
   ) : (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="text-xs font-semibold text-[#1E1814]">
-        {c.aiReviewSuggestionsFound} {displayItems.length}
+        {highlightScanJobId && previousScanItems.length > 0
+          ? `${c.aiReviewCurrentScan}: ${displayItems.length}`
+          : `${c.aiReviewSuggestionsFound} ${displayItems.length}`}
         {selectedSourceAssetId ? ` · ${c.aiReviewSelectSourceFile}` : ""}
+        {previousScanItems.length > 0 ? ` · ${c.aiReviewPreviousScans}: ${previousScanItems.length}` : ""}
       </p>
-      <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
-        {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
+      <button type="button" className={BTN_SECONDARY} disabled={loading || autoRefreshing} onClick={() => void loadItems()}>
+        {loading || autoRefreshing ? c.aiReviewRefreshing : c.aiReviewRefresh}
       </button>
     </div>
   );
@@ -583,6 +741,21 @@ export function OfertasLocalesAiItemReviewPanel({
         ) : null}
 
         {loading ? <p className="text-xs text-[#1E1814]/60">{c.aiReviewLoading}</p> : null}
+        {autoRefreshing && !loading ? (
+          <p className="text-xs text-[#1E1814]/55">{c.aiReviewAutoRefreshing}</p>
+        ) : null}
+        {isWorkspace && (scanPollingActive || scanJobStillActive) ? (
+          <p className="rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-3 py-2 text-xs text-[#1E1814]/75">
+            {c.aiReviewScanInProgress}
+          </p>
+        ) : null}
+        {isWorkspace &&
+        !scanPollingActive &&
+        !scanJobStillActive &&
+        highlightScanJobId &&
+        displayItems.length > 0 ? (
+          <p className="text-xs font-medium text-emerald-900/85">{c.aiReviewReadyToReview}</p>
+        ) : null}
         {error ? (
           <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</p>
         ) : null}
@@ -594,7 +767,11 @@ export function OfertasLocalesAiItemReviewPanel({
 
         {!loading && !error && displayItems.length === 0 ? (
           <p className="text-xs text-[#1E1814]/60">
-            {scanJobId || selectedSourceAssetId ? c.aiReviewNoSuggestions : c.aiReviewEmpty}
+            {scanPollingActive || scanJobStillActive
+              ? c.aiReviewScanInProgress
+              : scanJobId || selectedSourceAssetId
+                ? c.aiReviewNoSuggestions
+                : c.aiReviewEmpty}
           </p>
         ) : null}
 
@@ -614,7 +791,7 @@ export function OfertasLocalesAiItemReviewPanel({
                   type="button"
                   className={BTN_SECONDARY}
                   disabled={focusIndex <= 0}
-                  onClick={() => setFocusIndex((i) => Math.max(0, i - 1))}
+                  onClick={goPreviousItem}
                 >
                   {c.aiReviewPreviousItem}
                 </button>
@@ -622,20 +799,20 @@ export function OfertasLocalesAiItemReviewPanel({
                   type="button"
                   className={BTN_SECONDARY}
                   disabled={focusIndex >= displayItems.length - 1}
-                  onClick={() => setFocusIndex((i) => Math.min(displayItems.length - 1, i + 1))}
+                  onClick={goNextItem}
                 >
                   {c.aiReviewNextItem}
                 </button>
               </div>
             </div>
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
-              {displayItems.map((item, idx) => {
-                const active = idx === focusIndex;
+              {displayItems.map((item) => {
+                const active = item.id === selectedItemId;
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setFocusIndex(idx)}
+                    onClick={() => selectItem(item.id)}
                     className={`flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                       active
                         ? "bg-[#7A1E2C]/10 ring-1 ring-[#7A1E2C]/25"
@@ -675,7 +852,7 @@ export function OfertasLocalesAiItemReviewPanel({
       </div>
 
       {isWorkspace && displayItems.length > 0 ? (
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
+        <div ref={formPanelRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
           {focusedItem ? (
             <ItemReviewCard
               key={focusedItem.id}

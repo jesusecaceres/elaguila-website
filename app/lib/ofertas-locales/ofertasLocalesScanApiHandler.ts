@@ -338,6 +338,7 @@ export async function handleOfertaLocalScanPost(
   }
 
   const scanJobId = scanJob.id as string;
+  const scanStartedMs = Date.now();
 
   try {
     const fileBuffer = await fetchAssetBytes(body.assetUrl, {
@@ -429,6 +430,13 @@ export async function handleOfertaLocalScanPost(
         updated_at: completedAt,
       })
       .eq("id", scanJobId);
+
+    console.info("[ofertas-locales scan] duration ms", {
+      scanJobId,
+      durationMs: Date.now() - scanStartedMs,
+      pagesProcessed: scanResult.pagesProcessed,
+      itemsExtractedCount: itemRows.length,
+    });
 
     return NextResponse.json<OfertaLocalScanApiResponse>({
       ok: true,

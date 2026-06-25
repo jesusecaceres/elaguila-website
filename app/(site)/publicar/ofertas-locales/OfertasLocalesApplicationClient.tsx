@@ -179,6 +179,8 @@ export default function OfertasLocalesApplicationClient() {
   const [lastScanJobId, setLastScanJobId] = useState<string | null>(
     () => loadOfertaLocalAiScanSession().lastScanJobId
   );
+  const [scanPollingActive, setScanPollingActive] = useState(false);
+  const [scanRefreshToken, setScanRefreshToken] = useState(0);
   const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
 
@@ -209,6 +211,20 @@ export default function OfertasLocalesApplicationClient() {
 
   const handleAiScanRecordId = useCallback((id: string) => {
     setAiScanRecordId(id);
+  }, []);
+
+  const handleScanStarted = useCallback(() => {
+    setScanPollingActive(true);
+  }, []);
+
+  const handleScanComplete = useCallback((scanJobId: string) => {
+    setLastScanJobId(scanJobId);
+    setScanRefreshToken((token) => token + 1);
+  }, []);
+
+  const handleScanFinished = useCallback(() => {
+    setScanPollingActive(false);
+    setScanRefreshToken((token) => token + 1);
   }, []);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
@@ -836,7 +852,9 @@ export default function OfertasLocalesApplicationClient() {
                   lang={lang}
                   ofertaLocalId={effectiveOfertaLocalId}
                   signedIn={signedIn}
-                  onScanComplete={setLastScanJobId}
+                  onScanStarted={handleScanStarted}
+                  onScanComplete={handleScanComplete}
+                  onScanFinished={handleScanFinished}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
                 {!showFullWidthReviewDesk ? (
@@ -1033,7 +1051,9 @@ export default function OfertasLocalesApplicationClient() {
                   lang={lang}
                   ofertaLocalId={effectiveOfertaLocalId}
                   signedIn={signedIn}
-                  onScanComplete={setLastScanJobId}
+                  onScanStarted={handleScanStarted}
+                  onScanComplete={handleScanComplete}
+                  onScanFinished={handleScanFinished}
                   onOfertaLocalIdChange={handleAiScanRecordId}
                 />
                 {!showFullWidthReviewDesk ? (
@@ -1229,6 +1249,8 @@ export default function OfertasLocalesApplicationClient() {
               draft={draft}
               ofertaLocalId={effectiveOfertaLocalId}
               lastScanJobId={lastScanJobId}
+              scanPollingActive={scanPollingActive}
+              scanRefreshToken={scanRefreshToken}
               reviewMode={isCouponsLane ? "coupon" : "weekly"}
             />
           </div>
