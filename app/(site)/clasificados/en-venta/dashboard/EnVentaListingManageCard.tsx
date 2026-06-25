@@ -99,6 +99,8 @@ export function EnVentaListingManageCard({
   onRepublicarListing,
   /** Hide in-card plan upsell on dashboard (publish flow remains available elsewhere). */
   hidePlanUpsell = true,
+  /** Tighter layout for Mis anuncios seller management. */
+  compactDashboard = false,
 }: {
   row: EnVentaManageRow;
   lang: Lang;
@@ -148,6 +150,7 @@ export function EnVentaListingManageCard({
   /** Opens prefilled publish flow after confirmation (inactive listings only). */
   onRepublicarListing?: () => void;
   hidePlanUpsell?: boolean;
+  compactDashboard?: boolean;
 }) {
   const isPro = listingPlan === "pro";
   const isSold = (row.status || "active").toLowerCase() === "sold";
@@ -214,7 +217,7 @@ export function EnVentaListingManageCard({
           soldConfirmCancel: "Cancelar",
           soldConfirmOk: "Sí, marcar como vendido",
           perf: "Rendimiento",
-          insights: "Revisa vistas y guardados para afinar precio o fotos.",
+          insights: "Revisa vistas, compartidos y contactos para mejorar tu anuncio.",
           visH: "Visibilidad tras refrescar",
           leonixAd: "ID Leonix",
           visActive: "Ventana de visibilidad hasta",
@@ -271,7 +274,7 @@ export function EnVentaListingManageCard({
           soldConfirmCancel: "Cancel",
           soldConfirmOk: "Yes, mark as sold",
           perf: "Performance",
-          insights: "Compare views and saves to tune price or photos.",
+          insights: "Review views, shares, and contacts to improve your listing.",
           visH: "Visibility window (Pro)",
           leonixAd: "Leonix Ad ID",
           visActive: "Visibility window until",
@@ -303,11 +306,13 @@ export function EnVentaListingManageCard({
   };
 
   return (
-    <div className={`${frame} p-4 sm:p-5`}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-        <div className="flex min-w-0 gap-4">
+    <div className={`${frame} ${compactDashboard ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
+      <div className={`flex flex-col gap-3 ${compactDashboard ? "" : "lg:flex-row lg:items-stretch lg:gap-4"}`}>
+        <div className="flex min-w-0 gap-3">
           <div
-            className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border sm:h-28 sm:w-28 ${
+            className={`relative shrink-0 overflow-hidden rounded-xl border ${
+              compactDashboard ? "h-20 w-20" : "h-24 w-24 sm:h-28 sm:w-28 rounded-2xl"
+            } ${
               isPro ? "border-[#C9B46A]/50 bg-gradient-to-br from-[#FAF4EA] to-[#EDE4D4]" : "border-[#E8DFD0] bg-[#EDE6DC]"
             }`}
           >
@@ -403,11 +408,13 @@ export function EnVentaListingManageCard({
               </div>
             ) : (
               <>
-                <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
-                  <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
-                </p>
+                {!compactDashboard ? (
+                  <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/90">
+                    <span className="font-bold text-[#3D3428]">{L.perf}:</span> {L.insights}
+                  </p>
+                ) : null}
                 {visibilityRenewal && isActiveLifecycle ? (
-                  <div className="mt-3 rounded-2xl border border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3">
+                  <div className={`mt-2 rounded-xl border border-[#C9B46A]/40 bg-[#FFFCF7]/95 ${compactDashboard ? "p-2.5" : "rounded-2xl p-3 mt-3"}`}>
                     <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B5B2E]">{L.visH}</p>
                     <p className="mt-1 text-xs text-[#3D3428]">
                       {visibilityRenewal.republishWindowActive
@@ -451,10 +458,10 @@ export function EnVentaListingManageCard({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-3 border-t border-[#E8DFD0]/70 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <MiniBars value={v} max={maxViews} />
-            <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-[#3D3428]">
+        <div className={`flex flex-1 flex-col gap-2 ${compactDashboard ? "border-t border-[#E8DFD0]/70 pt-3" : "gap-3 border-t border-[#E8DFD0]/70 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0"}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            {!compactDashboard ? <MiniBars value={v} max={maxViews} /> : null}
+            <div className="flex flex-wrap gap-1.5 text-[11px] font-semibold text-[#3D3428]">
               <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[#1E1810]">
                 {L.views}: {v}
               </span>

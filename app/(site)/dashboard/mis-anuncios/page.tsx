@@ -25,11 +25,10 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
-import { DashboardStatsCard } from "../components/DashboardStatsCard";
+import { DashboardCompactMetricStrip } from "../components/DashboardCompactMetricStrip";
 import { DashboardMisAnunciosCategorySelector } from "../components/DashboardMisAnunciosCategorySelector";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import {
-  dashboardActiveVsTotalFootnote,
   dashboardCountLabelActivos,
   dashboardCountLabelCompartidos,
   dashboardCountLabelTotalGestionados,
@@ -312,7 +311,9 @@ export default function MyListingsPage() {
             statShares: dashboardCountLabelCompartidos("es"),
             loading: "Cargando…",
             empty: "No hay anuncios en esta vista.",
-            emptyCategory: "Aún no tienes publicaciones en esta categoría.",
+            emptyCategory: "Aún no tienes anuncios en esta categoría.",
+            emptyCategoryBody: "Publica uno cuando estés listo.",
+            publishInCategory: "Publicar en",
             emptyAll: "Aún no tienes anuncios.",
             restaurantSectionTitle: "Restaurantes",
             restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
@@ -345,6 +346,8 @@ export default function MyListingsPage() {
             loading: "Loading…",
             empty: "No listings in this view.",
             emptyCategory: "You don't have listings in this category yet.",
+            emptyCategoryBody: "Publish one when you're ready.",
+            publishInCategory: "Publish in",
             emptyAll: "You don't have any listings yet.",
             restaurantSectionTitle: "Restaurants",
             restaurantSectionHint: "Manage your published restaurants from dashboard.",
@@ -946,6 +949,34 @@ export default function MyListingsPage() {
       categoryFilter === "comunidad" ||
       categoryFilter === "busco");
 
+  /** selectedCategoryKey — URL `cat` param, drives all listing filters. */
+  const selectedCategoryKey = categoryFilter;
+  /** selectedCategoryCount — manageable records in the active category. */
+  const selectedCategoryCount = selectedCategoryManagedCount;
+
+  const showCategoryAnalyticsMetrics = showListingsTableSection && !listingAnalyticsDegraded;
+
+  const categoryMetricStrip = useMemo(() => {
+    const rows: Array<{ label: string; value: number | string }> = [
+      { label: t.statTotalManaged, value: selectedCategoryCount },
+    ];
+    if (showCategoryAnalyticsMetrics) {
+      rows.push({ label: t.statViews, value: selectedCategoryViewsSum });
+      rows.push({ label: t.statShares, value: selectedCategorySharesSum });
+    }
+    return rows;
+  }, [t.statTotalManaged, t.statViews, t.statShares, selectedCategoryCount, showCategoryAnalyticsMetrics, selectedCategoryViewsSum, selectedCategorySharesSum]);
+
+  const hasSelectedCategoryListings =
+    (showRestSection && restaurantInventory.length > 0) ||
+    (showEmpleosSection && empleosInventory.length > 0) ||
+    (showViajesSection && viajesInventory.length > 0) ||
+    (showServiciosSection && serviciosInventory.length > 0) ||
+    (showAutosPaidSection && autosPaidInventory.length > 0) ||
+    showBrInventorySection ||
+    (showComidaLocalBlock && comidaLocalDashboardItems.length > 0) ||
+    (showListingsTableSection && visible.length > 0);
+
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   const tabBtn = (id: Tab, label: string) => (
@@ -993,110 +1024,133 @@ export default function MyListingsPage() {
             ) : null}
           </p>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(240px,280px)_1fr] lg:items-start">
-            <DashboardMisAnunciosCategorySelector
-              lang={lang}
-              categories={MIS_ANUNCIOS_CATEGORY_DEFS}
-              counts={categoryCounts}
-              selected={categoryFilter}
-              onSelect={setCategoryFilterAndUrl}
-              readyLabel={lang === "es" ? "Listo" : "Ready"}
-              soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
-            />
+          <DashboardMisAnunciosCategorySelector
+            lang={lang}
+            categories={MIS_ANUNCIOS_CATEGORY_DEFS}
+            counts={categoryCounts}
+            selected={selectedCategoryKey}
+            onSelect={setCategoryFilterAndUrl}
+            readyLabel={lang === "es" ? "Listo" : "Ready"}
+            soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
+          />
 
-            <div className={`min-w-0 ${LX_DASH.panel}`}>
-              <div className="flex flex-col gap-4 border-b border-[#D6C7AD]/50 pb-5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className={LX_DASH.contextLabel}>{t.workspaceLabel}</p>
-                  <h2 className={`mt-1 ${LX_DASH.sectionTitle}`}>{selectedCategoryDef.title(lang)}</h2>
-                  <p className={`mt-2 max-w-2xl ${LX_DASH.bodyMuted}`}>{selectedCategoryDef.description(lang)}</p>
-                  <p className="mt-2 text-sm font-semibold tabular-nums text-[#3D3428]">
-                    {lang === "es" ? "En esta categoría:" : "In this category:"}{" "}
-                    {selectedCategoryManagedCount}{" "}
-                    {lang === "es"
-                      ? selectedCategoryManagedCount === 1
-                        ? "publicación gestionada"
-                        : "publicaciones gestionadas"
-                      : selectedCategoryManagedCount === 1
-                        ? "managed listing"
-                        : "managed listings"}
-                  </p>
+          <div className={`mt-4 min-w-0 ${LX_DASH.panel}`}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className={LX_DASH.sectionTitle}>{selectedCategoryDef.title(lang)}</h2>
+                  <span className={selectedCategoryDef.ready ? LX_DASH.badgeReady : LX_DASH.badgeSoon}>
+                    {selectedCategoryDef.ready
+                      ? lang === "es"
+                        ? "Listo"
+                        : "Ready"
+                      : lang === "es"
+                        ? "Próximamente"
+                        : "Coming soon"}
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCategoryDef.manageHref(q) && selectedCategoryDef.ready ? (
-                    <Link href={selectedCategoryDef.manageHref(q)!} className={LX_DASH.btnManage}>
-                      {t.manage}
-                    </Link>
-                  ) : null}
-                  {selectedCategoryDef.publishHref(q) && selectedCategoryDef.ready ? (
-                    <Link href={selectedCategoryDef.publishHref(q)!} className={LX_DASH.btnPrimary}>
-                      {t.publish}
-                    </Link>
-                  ) : null}
-                  {selectedCategoryDef.resultsHref?.(q) ? (
-                    <Link href={selectedCategoryDef.resultsHref(q)!} className={LX_DASH.btnSecondary}>
-                      {t.results}
-                    </Link>
-                  ) : null}
-                </div>
+                <p className={`mt-1 max-w-2xl text-sm ${LX_DASH.bodyMuted}`}>{selectedCategoryDef.description(lang)}</p>
+                <p className="mt-2 text-sm font-semibold tabular-nums text-[#3D3428]">
+                  {selectedCategoryCount}{" "}
+                  {lang === "es"
+                    ? selectedCategoryCount === 1
+                      ? "publicación gestionada"
+                      : "publicaciones gestionadas"
+                    : selectedCategoryCount === 1
+                      ? "managed listing"
+                      : "managed listings"}
+                </p>
               </div>
-
-              {showListingsTableSection ? (
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <DashboardStatsCard label={t.statTotalManaged} value={selectedCategoryManagedCount} />
-                  <DashboardStatsCard label={t.statViews} value={selectedCategoryViewsSum} />
-                  <DashboardStatsCard label={t.statShares} value={selectedCategorySharesSum} />
-                </div>
-              ) : null}
-
-              <p className="mt-4 max-w-3xl text-xs leading-relaxed text-[#7A7164]">
-                {dashboardActiveVsTotalFootnote(lang, totalManagedCount, unifiedActiveCount)}
-              </p>
-
-              <div className={`mt-6 ${LX_DASH.filterBar}`}>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex flex-wrap gap-2">
-                    {tabBtn("all", t.tabAll)}
-                    {tabBtn("active", t.tabActive)}
-                    {tabBtn("expired", t.tabExpired)}
-                    {tabBtn("moderation", t.tabMod)}
-                  </div>
-                  <div className="relative w-full min-w-0 flex-1 lg:max-w-sm">
-                    <input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder={t.searchPh}
-                      className="w-full rounded-xl border border-[#D6C7AD]/70 bg-white py-2.5 pl-4 pr-4 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/55 focus:ring-2 focus:ring-[#C9A84A]/15"
-                      type="search"
-                      aria-label={t.searchPh}
-                    />
-                  </div>
-                </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {selectedCategoryDef.manageHref(q) && selectedCategoryDef.ready ? (
+                  <Link href={selectedCategoryDef.manageHref(q)!} className={LX_DASH.btnManage}>
+                    {t.manage}
+                  </Link>
+                ) : null}
+                {selectedCategoryDef.publishHref(q) && selectedCategoryDef.ready ? (
+                  <Link href={selectedCategoryDef.publishHref(q)!} className={LX_DASH.btnPrimary}>
+                    {t.publish}
+                  </Link>
+                ) : null}
+                {selectedCategoryDef.resultsHref?.(q) ? (
+                  <Link href={selectedCategoryDef.resultsHref(q)!} className={LX_DASH.btnSecondary}>
+                    {t.results}
+                  </Link>
+                ) : null}
               </div>
             </div>
-          </div>
 
-          {error ? (
-            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/90 p-4 text-sm text-red-900">
-              <strong>{t.errorTitle}</strong>
-              <p className="mt-1 opacity-90">{error}</p>
+            {selectedCategoryCount > 0 ? (
+              <div className="mt-4">
+                <DashboardCompactMetricStrip metrics={categoryMetricStrip} />
+              </div>
+            ) : null}
+
+            <div className={`mt-4 ${LX_DASH.filterBar}`}>
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {tabBtn("all", t.tabAll)}
+                  {tabBtn("active", t.tabActive)}
+                  {tabBtn("expired", t.tabExpired)}
+                  {tabBtn("moderation", t.tabMod)}
+                </div>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t.searchPh}
+                  className="w-full min-w-0 rounded-xl border border-[#D6C7AD]/70 bg-white py-2 pl-3 pr-3 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/55 focus:ring-2 focus:ring-[#C9A84A]/15"
+                  type="search"
+                  aria-label={t.searchPh}
+                />
+              </div>
             </div>
-          ) : null}
 
-          <div className="mt-6 min-w-0 lg:ml-[calc(280px+1.5rem)]">
+            {error ? (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-900">
+                <strong>{t.errorTitle}</strong>
+                <p className="mt-1 opacity-90">{error}</p>
+              </div>
+            ) : null}
+
+            {!hasAnyInventory ? (
+              <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center">
+                <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
+                <Link href={`/clasificados/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
+                  {t.cta}
+                </Link>
+              </div>
+            ) : !hasSelectedCategoryListings ? (
+              <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center">
+                <p className="font-semibold text-[#1E1810]">
+                  {lang === "es"
+                    ? `Aún no tienes anuncios en ${selectedCategoryDef.title(lang)}.`
+                    : `You don't have listings in ${selectedCategoryDef.title(lang)} yet.`}
+                </p>
+                <p className="mt-2 text-sm text-[#5C5346]">{t.emptyCategoryBody}</p>
+                {selectedCategoryDef.publishHref(q) && selectedCategoryDef.ready ? (
+                  <Link href={selectedCategoryDef.publishHref(q)!} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
+                    {t.publishInCategory} {selectedCategoryDef.title(lang)}
+                  </Link>
+                ) : null}
+                {selectedCategoryDef.resultsHref?.(q) ? (
+                  <Link href={selectedCategoryDef.resultsHref(q)!} className={`mt-3 inline-flex ${LX_DASH.btnSecondary}`}>
+                    {t.results}
+                  </Link>
+                ) : null}
+              </div>
+            ) : showListingsTableSection && visible.length === 0 ? (
+              <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-6 text-center text-sm text-[#5C5346]">
+                {t.empty}
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex min-w-0 flex-col gap-3">
           {showRestSection ? (
-            <section className="mt-8">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-[#1E1810]">
-                  {t.restaurantSectionTitle} ({restaurantInventory.length})
-                </h2>
-                <p className="mt-1 text-sm text-[#5C5346]/90">{t.restaurantSectionHint}</p>
-              </div>
-              <div className="grid gap-4">
-                {restaurantInventory.map((item) => (
+                restaurantInventory.map((item) => (
                   <DashboardCategoryListingCard
                     key={item.id}
                     lang={lang}
+                    compact
                     categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
                     title={item.title}
                     status={item.status}
@@ -1142,28 +1196,15 @@ export default function MyListingsPage() {
                         : []),
                     ].filter((action) => Boolean(action.href))}
                   />
-                ))}
-              </div>
-            </section>
+                ))
           ) : null}
 
           {showEmpleosSection ? (
-            <section className="mt-8">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-[#1E1810]">
-                  {lang === "es" ? "Empleos" : "Jobs"} ({empleosInventory.length})
-                </h2>
-                <p className="mt-1 text-sm text-[#5C5346]/90">
-                  {lang === "es"
-                    ? "Tus vacantes publicadas en Leonix. Gestiona aplicaciones y estado."
-                    : "Your published job listings in Leonix. Manage applications and status."}
-                </p>
-              </div>
-              <div className="grid gap-4">
-                {empleosInventory.map((item) => (
+                empleosInventory.map((item) => (
                   <DashboardCategoryListingCard
                     key={item.id}
                     lang={lang}
+                    compact
                     categoryLabel={lang === "es" ? "Empleo" : "Job"}
                     title={item.title}
                     status={item.status}
@@ -1197,35 +1238,26 @@ export default function MyListingsPage() {
                         label: publicResultsActionLabel(lang),
                         tone: "subtle" as const,
                       },
-                      {
-                        href: provenInventoryAnalyticsHref(item) ?? undefined,
-                        label: analyticsActionLabel(lang),
-                        tone: "subtle" as const,
-                      },
+                      ...(provenInventoryAnalyticsHref(item)
+                        ? [
+                            {
+                              href: provenInventoryAnalyticsHref(item)!,
+                              label: analyticsActionLabel(lang),
+                              tone: "subtle" as const,
+                            },
+                          ]
+                        : []),
                     ].filter((action) => Boolean(action.href))}
                   />
-                ))}
-              </div>
-            </section>
+                ))
           ) : null}
 
           {showViajesSection ? (
-            <section className="mt-8">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-[#1E1810]">
-                  {lang === "es" ? "Viajes" : "Travel"} ({viajesInventory.length})
-                </h2>
-                <p className="mt-1 text-sm text-[#5C5346]/90">
-                  {lang === "es"
-                    ? "Tus ofertas de viaje publicadas. Gestiona estado y moderación."
-                    : "Your published travel offers. Manage status and moderation."}
-                </p>
-              </div>
-              <div className="grid gap-4">
-                {viajesInventory.map((item) => (
+                viajesInventory.map((item) => (
                   <DashboardCategoryListingCard
                     key={item.id}
                     lang={lang}
+                    compact
                     categoryLabel={lang === "es" ? "Viaje" : "Travel"}
                     title={item.title}
                     status={item.status}
@@ -1259,16 +1291,18 @@ export default function MyListingsPage() {
                         label: publicResultsActionLabel(lang),
                         tone: "subtle" as const,
                       },
-                      {
-                        href: provenInventoryAnalyticsHref(item) ?? undefined,
-                        label: analyticsActionLabel(lang),
-                        tone: "subtle" as const,
-                      },
+                      ...(provenInventoryAnalyticsHref(item)
+                        ? [
+                            {
+                              href: provenInventoryAnalyticsHref(item)!,
+                              label: analyticsActionLabel(lang),
+                              tone: "subtle" as const,
+                            },
+                          ]
+                        : []),
                     ].filter((action) => Boolean(action.href))}
                   />
-                ))}
-              </div>
-            </section>
+                ))
           ) : null}
 
           {showAutosPaidSection ? <AutosDealerInventoryDashboardSection lang={lang} /> : null}
@@ -1276,32 +1310,20 @@ export default function MyListingsPage() {
             <BrPropertyInventoryDashboardSection lang={lang} rows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]} />
           ) : null}
 
-          {showComidaLocalBlock &&
-          (comidaLocalDashboardItems.length > 0 || categoryFilter === "comida-local") ? (
+          {showComidaLocalBlock && comidaLocalDashboardItems.length > 0 ? (
             <ComidaLocalDashboardListings
               lang={lang}
               items={comidaLocalDashboardItems}
-              showEmpty={categoryFilter === "comida-local" && comidaLocalDashboardItems.length === 0}
+              showEmpty={false}
             />
           ) : null}
 
           {showServiciosSection ? (
-            <section className="mt-8">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-[#1E1810]">
-                  {lang === "es" ? "Servicios" : "Services"} ({serviciosInventory.length})
-                </h2>
-                <p className="mt-1 text-sm text-[#5C5346]/90">
-                  {lang === "es"
-                    ? "Perfiles publicados en la nube (misma fuente que el hub de Servicios)."
-                    : "Cloud-published profiles (same source as the Services hub)."}
-                </p>
-              </div>
-              <div className="grid gap-4">
-                {serviciosInventory.map((item) => (
+                serviciosInventory.map((item) => (
                   <DashboardCategoryListingCard
                     key={item.id}
                     lang={lang}
+                    compact
                     categoryLabel={lang === "es" ? "Servicio" : "Service"}
                     title={item.title}
                     status={item.status}
@@ -1346,45 +1368,11 @@ export default function MyListingsPage() {
                         : []),
                     ].filter((action) => Boolean(action.href))}
                   />
-                ))}
-              </div>
-            </section>
+                ))
           ) : null}
 
-          {!hasAnyInventory ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
-              <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
-              <Link
-                href={`/clasificados/publicar?${q}`}
-                className="mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2]"
-              >
-                {t.cta}
-              </Link>
-            </div>
-          ) : selectedCategoryManagedCount === 0 &&
-            !showRestSection &&
-            !showEmpleosSection &&
-            !showViajesSection &&
-            !showServiciosSection &&
-            !showAutosPaidSection &&
-            !showBrInventorySection &&
-            !(showComidaLocalBlock && comidaLocalDashboardItems.length > 0) &&
-            !showListingsTableSection ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
-              <p className="font-semibold text-[#1E1810]">{t.emptyCategory}</p>
-              {selectedCategoryDef.publishHref(q) ? (
-                <Link
-                  href={selectedCategoryDef.publishHref(q)!}
-                  className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}
-                >
-                  {t.publish}
-                </Link>
-              ) : null}
-            </div>
-          ) : showListingsTableSection && visible.length === 0 ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center text-[#5C5346]">{t.empty}</div>
-          ) : showListingsTableSection && visible.length > 0 ? (
-            <div className="mt-8 flex flex-col gap-5">
+          {showListingsTableSection && visible.length > 0 ? (
+            <>
               {visible.map((x) => {
                 const status = normalizeStatus(x.status);
                 const isSold = status === "sold";
@@ -1590,6 +1578,8 @@ export default function MyListingsPage() {
                       onDuplicate={() => {
                         void navigator.clipboard.writeText(x.id);
                       }}
+                      hidePlanUpsell
+                      compactDashboard
                     />
                   );
                 }
@@ -1744,12 +1734,13 @@ export default function MyListingsPage() {
                   </div>
                 );
               })}
-            </div>
+            </>
           ) : null}
 
+            </div>
           </div>
 
-          <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
+          <Link href={`/dashboard?${q}`} className="mt-6 inline-flex text-sm font-semibold text-[#2A2620] underline">
             ← {t.back}
           </Link>
         </>
