@@ -35,8 +35,8 @@ function isFeaturedPlacement(row: Record<string, unknown>): boolean {
 }
 
 function desktopGridClassForCount(count: number): string {
-  if (count <= 1) return "";
-  if (count === 2) return "mx-auto sm:max-w-3xl sm:grid-cols-2";
+  if (count === 1) return "mx-auto sm:max-w-[280px] sm:grid-cols-1";
+  if (count === 2) return "mx-auto sm:max-w-2xl sm:grid-cols-2";
   if (count === 3) return "sm:grid-cols-2 lg:grid-cols-3";
   return "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 }
@@ -56,11 +56,6 @@ export function EnVentaHubRecentListings({
 
   const title = lang === "es" ? "Últimas publicaciones" : "Latest listings";
   const swipeHint = enVentaSwipeHintLabel(lang);
-  const spotlightLabel = lang === "es" ? "Recién publicado" : "Just published";
-  const spotlightBody =
-    lang === "es"
-      ? "Este es el anuncio más reciente en Varios. Explora el catálogo completo para ver más publicaciones locales."
-      : "This is the newest listing in For Sale. Browse the full catalog for more local posts.";
   const empty =
     lang === "es"
       ? "Aún no hay anuncios publicados en Varios. Sé el primero en publicar."
@@ -83,6 +78,7 @@ export function EnVentaHubRecentListings({
           model={model}
           lang={lang}
           layout="grid"
+          density="compact"
           mode="live"
           isFav={isListingSaved(dto.id)}
           onToggleFav={toggleListingSaved}
@@ -92,20 +88,10 @@ export function EnVentaHubRecentListings({
     };
   });
 
-  const mobileCards = cardItems.map((item) => (
-    <div key={item.id} className="w-[min(72vw,248px)] shrink-0 snap-start">
-      {item.card}
-    </div>
-  ));
-
-  const isSpotlight = recent.length === 1;
   const desktopGrid = desktopGridClassForCount(recent.length);
 
   return (
-    <section
-      className="mt-3 sm:mt-8"
-      aria-labelledby="enventa-hub-recent"
-    >
+    <section className="mt-3 sm:mt-8" aria-labelledby="enventa-hub-recent">
       <div className="flex flex-col items-start justify-between gap-1 sm:flex-row sm:items-end sm:gap-4">
         <div className="min-w-0 flex-1">
           <h2 id="enventa-hub-recent" className="font-serif text-[1.1rem] font-bold tracking-tight text-[#1E1810] sm:text-3xl">
@@ -118,7 +104,7 @@ export function EnVentaHubRecentListings({
           </p>
         </div>
         <div className="flex w-full shrink-0 items-center justify-between gap-2 sm:w-auto sm:justify-end">
-          {recent.length > 0 && !isSpotlight ? <EnVentaHubSwipeHintBadge label={swipeHint} /> : null}
+          {recent.length > 0 ? <EnVentaHubSwipeHintBadge label={swipeHint} /> : null}
           <Link
             href={allListingsHref}
             className="shrink-0 text-[13px] font-semibold text-[#2F4A65] underline underline-offset-2 hover:text-[#1E1810] sm:text-sm"
@@ -132,39 +118,6 @@ export function EnVentaHubRecentListings({
         <p className="mt-4 rounded-[20px] border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-4 py-6 text-center text-[14px] leading-relaxed text-[#5C5346] sm:mt-6 sm:px-8 sm:py-8">
           {empty}
         </p>
-      ) : isSpotlight ? (
-        <>
-          <div className="mt-1.5 sm:hidden">
-            <EnVentaHubMobileScrollRail
-              className="gap-3"
-              ariaLabel={title}
-              lang={lang}
-              showRailDots={false}
-            >
-              {mobileCards}
-            </EnVentaHubMobileScrollRail>
-          </div>
-          <div
-            className="mt-3 hidden gap-5 rounded-[20px] border border-[#E8DFD0]/85 bg-[#FFFCF7]/95 p-4 shadow-[0_12px_36px_-16px_rgba(47,74,101,0.14)] sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] sm:items-stretch sm:p-5 lg:gap-6 lg:p-6"
-          >
-            <div className="min-w-0">{cardItems[0].card}</div>
-            <aside
-              className="flex flex-col justify-between gap-4 rounded-2xl border border-[#C9A84A]/28 bg-gradient-to-br from-[#FFFBF0] via-[#FFFDF7] to-[#F5F8FB]/90 p-4 shadow-inner"
-              aria-label={spotlightLabel}
-            >
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7A7164]">{spotlightLabel}</p>
-                <p className="mt-2 text-sm leading-relaxed text-[#5C5346]">{spotlightBody}</p>
-              </div>
-              <Link
-                href={allListingsHref}
-                className="inline-flex min-h-[40px] items-center justify-center rounded-full border border-[#7A1E2C]/20 bg-[#7A1E2C] px-4 text-sm font-semibold text-[#FFFDF7] shadow-sm transition hover:bg-[#5e1721] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
-              >
-                {allListingsLabel}
-              </Link>
-            </aside>
-          </div>
-        </>
       ) : (
         <EnVentaHubMobileScrollRail
           className="mt-1.5 gap-3 sm:mt-3"
@@ -173,7 +126,10 @@ export function EnVentaHubRecentListings({
           desktopGridClass={desktopGrid}
         >
           {cardItems.map((item) => (
-            <div key={item.id} className="w-[min(72vw,248px)] shrink-0 snap-start sm:w-auto sm:min-w-0">
+            <div
+              key={item.id}
+              className="w-[min(68vw,220px)] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:max-w-[280px]"
+            >
               {item.card}
             </div>
           ))}

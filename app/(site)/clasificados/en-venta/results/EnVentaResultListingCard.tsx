@@ -68,6 +68,7 @@ export function EnVentaResultListingCard({
   model,
   lang,
   layout,
+  density = "default",
   mode = "live",
   isFav,
   onToggleFav,
@@ -76,6 +77,7 @@ export function EnVentaResultListingCard({
   model: EnVentaResultsCardModel;
   lang: Lang;
   layout: "grid" | "list";
+  density?: "default" | "compact";
   mode?: CardMode;
   isFav: boolean;
   onToggleFav: (id: string) => void;
@@ -83,6 +85,7 @@ export function EnVentaResultListingCard({
 }) {
   const isPreview = mode === "preview";
   const isPro = model.plan === "pro";
+  const isCompact = !isPreview && density === "compact";
   const L =
     lang === "es"
       ? {
@@ -109,12 +112,19 @@ export function EnVentaResultListingCard({
     layout === "list" ? "flex-row items-stretch" : "flex-col",
     isPro ? EN_VENTA_SURFACE.resultsCardPro : EN_VENTA_SURFACE.resultsCard,
     !isPreview && EN_VENTA_SURFACE.resultsCardHover,
+    isCompact && "hover:translate-y-0",
     isPreview && "pointer-events-none select-none"
   );
 
   const imageShell = cx(
     "relative shrink-0 overflow-hidden bg-[#FBF7EF]",
-    layout === "list" ? "h-[168px] w-[148px] sm:h-[180px] sm:w-[192px]" : "aspect-[4/3] w-full"
+    layout === "list"
+      ? isCompact
+        ? "h-[88px] w-[88px] sm:h-[112px] sm:w-[112px]"
+        : "h-[168px] w-[148px] sm:h-[180px] sm:w-[192px]"
+      : isCompact
+        ? "h-[100px] w-full sm:h-[112px]"
+        : "aspect-[4/3] w-full"
   );
 
   const favBtn = null;
@@ -144,7 +154,14 @@ export function EnVentaResultListingCard({
     </div>
   );
 
-  const imagePadTop = isPro || isPreview ? (layout === "grid" || layout === "list" ? "pt-9" : "") : "";
+  const imagePadTop =
+    isPro || isPreview
+      ? layout === "grid" || layout === "list"
+        ? isCompact
+          ? "pt-7"
+          : "pt-9"
+        : ""
+      : "";
 
   const heroInner =
     model.heroImage != null ? (
@@ -188,47 +205,64 @@ export function EnVentaResultListingCard({
     <div
       className={cx(
         "flex min-w-0 flex-1 flex-col",
-        layout === "list" ? "justify-center p-4 sm:p-5" : "p-4",
-        layout === "grid" ? "pt-3" : ""
+        layout === "list"
+          ? isCompact
+            ? "justify-center p-2.5 sm:p-3"
+            : "justify-center p-4 sm:p-5"
+          : isCompact
+            ? "p-2.5 sm:p-3"
+            : "p-4",
+        layout === "grid" && !isCompact ? "pt-3" : ""
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
         <h3
           className={cx(
             "min-w-0 flex-1 font-bold leading-snug text-[#3D3428]",
-            layout === "list" ? "line-clamp-2 text-[17px] sm:text-lg" : "line-clamp-2 text-base sm:text-[17px]"
+            layout === "list"
+              ? isCompact
+                ? "line-clamp-2 text-[14px] sm:text-[15px]"
+                : "line-clamp-2 text-[17px] sm:text-lg"
+              : isCompact
+                ? "line-clamp-2 text-[14px] sm:text-[15px]"
+                : "line-clamp-2 text-base sm:text-[17px]"
           )}
         >
           {model.title}
         </h3>
-        <p className="shrink-0 text-right text-lg font-bold tabular-nums tracking-tight text-[#7A1E2C] sm:text-xl">
+        <p
+          className={cx(
+            "shrink-0 text-right font-bold tabular-nums tracking-tight text-[#7A1E2C]",
+            isCompact ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+          )}
+        >
           {model.priceText}
         </p>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#3D3428]/90">
-        <span className="inline-flex items-center gap-1">
-          <MapPinIcon className="text-[#8A8070]" />
-          <span className="font-medium">{model.locationText}</span>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-[#3D3428]/90 sm:mt-1.5 sm:text-sm">
+        <span className="inline-flex items-center gap-1 min-w-0">
+          <MapPinIcon className="shrink-0 text-[#8A8070]" />
+          <span className="truncate font-medium">{model.locationText}</span>
         </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:mt-2 sm:gap-2">
         {model.conditionLabel ? (
           <span className={EN_VENTA_SURFACE.resultsChipCondition}>
             <CheckIcon className="text-[#8A6B1F]" />
             {model.conditionLabel}
           </span>
         ) : null}
-        <span className="text-[11px] font-medium tabular-nums text-[#5C5346]/90">{model.postedAgo}</span>
-        {!isPro && !isPreview && model.featuredHighlight ? (
+        <span className="text-[10px] font-medium tabular-nums text-[#5C5346]/90 sm:text-[11px]">{model.postedAgo}</span>
+        {!isPro && !isPreview && model.featuredHighlight && !isCompact ? (
           <span className="rounded-full border border-[#C9A84A]/50 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">
             {L.dest}
           </span>
         ) : null}
       </div>
 
-      {model.categoryLine ? (
+      {model.categoryLine && !isCompact ? (
         <p className="mt-2 text-[11px] font-medium leading-snug text-[#5C5346]/95">{model.categoryLine}</p>
       ) : null}
 
@@ -242,14 +276,14 @@ export function EnVentaResultListingCard({
       ) : null}
 
       {model.fulfillmentChip ? (
-        <div className="mt-2">
+        <div className={cx("mt-1.5", !isCompact && "mt-2")}>
           {isPro ? (
             <span className={EN_VENTA_SURFACE.resultsChipFulfillment}>
               <CheckIcon className="shrink-0 text-[#2A4536]" />
               <span className="truncate">{model.fulfillmentChip}</span>
             </span>
           ) : (
-            <span className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-2.5 py-1 text-[11px] font-semibold text-[#3D3428]">
+            <span className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-semibold text-[#3D3428] sm:text-[11px]">
               <TruckIcon className="shrink-0 text-[#5C5346]" />
               <span className="leading-snug">{model.fulfillmentChip}</span>
             </span>
@@ -257,17 +291,17 @@ export function EnVentaResultListingCard({
         </div>
       ) : null}
 
-      {model.negotiableChip ? (
+      {model.negotiableChip && !isCompact ? (
         <span className="mt-2 inline-flex w-fit rounded-full border border-[#D6C7AD]/90 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5C5346]">
           {L.neg}
         </span>
       ) : null}
 
-      {model.sellerKindLabel ? (
+      {model.sellerKindLabel && !isCompact ? (
         <p className="mt-1 text-[11px] font-medium text-[#7A7164]">{model.sellerKindLabel}</p>
       ) : null}
 
-      {isPro ? thumbStrip : null}
+      {isPro && !isCompact ? thumbStrip : null}
 
       {layout === "list" && favBtn ? (
         <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#D6C7AD]/50 pt-3">{favBtn}</div>

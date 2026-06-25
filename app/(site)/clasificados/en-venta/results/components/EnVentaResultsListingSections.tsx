@@ -58,8 +58,8 @@ export function EnVentaResultsListingSections({
 }) {
   const gridClass =
     view === "grid"
-      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6"
-      : "flex flex-col gap-3 sm:gap-4";
+      ? "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3"
+      : "flex flex-col gap-2 sm:gap-2.5";
 
   return (
     <>
@@ -71,7 +71,7 @@ export function EnVentaResultsListingSections({
             </h2>
             <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-[#5C5346]">{promotedSectionHelp(lang)}</p>
           </div>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:gap-7">
+          <div className="flex flex-col gap-2 md:grid md:grid-cols-1 md:gap-2.5">
             {promotedPool.map((p) => (
               <EnVentaResultListingCard
                 key={p.dto.id}
@@ -85,7 +85,8 @@ export function EnVentaResultsListingSections({
                 isFav={isFav(p.dto.id)}
                 onToggleFav={onFav}
                 href={listingHref(p.dto.id)}
-                layout="grid"
+                layout="list"
+                density="compact"
               />
             ))}
           </div>
@@ -153,7 +154,8 @@ export function EnVentaResultsListingSections({
               isFav={isFav(p.dto.id)}
               onToggleFav={onFav}
               href={listingHref(p.dto.id)}
-              layout={view}
+              layout={view === "grid" ? "grid" : "list"}
+              density="compact"
             />
           ))}
         </div>
