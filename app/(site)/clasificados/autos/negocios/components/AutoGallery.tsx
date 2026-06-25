@@ -69,16 +69,13 @@ export function AutoGallery({
   }
   if (hasVideo) bottomCells.push({ kind: "video" });
 
-  const gridCols =
-    bottomCells.length >= 4 ? "md:grid-cols-4" : bottomCells.length === 3 ? "md:grid-cols-3" : bottomCells.length === 2 ? "md:grid-cols-2" : "md:grid-cols-1";
-
   const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
 
   return (
     <div className={CARD}>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
         {main ? (
-          <div className="relative aspect-[16/10] max-h-[min(520px,56vh)] overflow-hidden rounded-[14px] lg:max-h-[min(560px,48vh)]">
+          <div className="relative min-w-0 flex-1 aspect-[16/10] max-h-[min(520px,56vh)] overflow-hidden rounded-[16px] lg:max-h-[min(580px,52vh)]">
             <button
               type="button"
               className="relative block h-full w-full cursor-zoom-in text-left"
@@ -108,7 +105,11 @@ export function AutoGallery({
         ) : null}
 
         {bottomCells.length > 0 ? (
-          <div className={`grid grid-cols-2 gap-3 ${gridCols}`}>
+          <div
+            className={`flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 lg:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:hidden ${
+              bottomCells.length >= 3 ? "lg:w-[min(240px,32%)] lg:shrink-0" : "lg:w-[min(200px,28%)] lg:shrink-0"
+            }`}
+          >
             {bottomCells.map((cell, i) =>
               cell.kind === "img" ? (
                 <Thumb
@@ -116,6 +117,9 @@ export function AutoGallery({
                   src={cell.src}
                   alt={`${altBase}${g.viewAlt(i)}`}
                   onOpen={() => openAt(cell.galleryIndex)}
+                  stacked
+                  showMoreOverlay={i === bottomCells.length - 1 && extra > 3}
+                  moreLabel={i === bottomCells.length - 1 && extra > 3 ? g.morePhotos(extra - 3) : undefined}
                 />
               ) : publicPlaybackOnly ? (
                 <PublishedVideoTile
@@ -375,15 +379,38 @@ function VideoTile({
   );
 }
 
-function Thumb({ src, alt, onOpen }: { src: string; alt: string; onOpen: () => void }) {
+function Thumb({
+  src,
+  alt,
+  onOpen,
+  stacked = false,
+  showMoreOverlay = false,
+  moreLabel,
+}: {
+  src: string;
+  alt: string;
+  onOpen: () => void;
+  stacked?: boolean;
+  showMoreOverlay?: boolean;
+  moreLabel?: string;
+}) {
   return (
     <button
       type="button"
-      className="relative aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] text-left md:aspect-auto md:min-h-[140px]"
+      className={`relative w-full shrink-0 cursor-zoom-in overflow-hidden rounded-[14px] border border-[#D6C7AD]/70 text-left ${
+        stacked
+          ? "aspect-[4/3] w-[42vw] max-w-[160px] snap-start lg:aspect-auto lg:min-h-[120px] lg:w-full lg:max-w-none"
+          : "aspect-[4/3] md:aspect-auto md:min-h-[140px]"
+      }`}
       onClick={onOpen}
       aria-label={alt}
     >
-      <MediaImage src={src} alt={alt} fill className="object-cover" sizes="(min-width: 768px) 25vw, 50vw" />
+      <MediaImage src={src} alt={alt} fill className="object-cover" sizes="(min-width: 1024px) 240px, 42vw" />
+      {showMoreOverlay && moreLabel ? (
+        <span className="absolute inset-0 flex items-center justify-center bg-[#1F241C]/55 text-xs font-bold uppercase tracking-wide text-[#FFFCF7]">
+          +{moreLabel}
+        </span>
+      ) : null}
     </button>
   );
 }

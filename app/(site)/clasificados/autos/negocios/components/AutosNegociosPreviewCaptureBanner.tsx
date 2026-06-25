@@ -25,7 +25,7 @@ export function AutosNegociosPreviewCaptureBanner({
     >
       <section
         id="autos-negocios-preview-capture"
-        className="mx-auto max-w-[1280px] px-4 py-2 md:px-5 lg:px-6"
+        className="mx-auto max-w-[1320px] px-4 py-2 md:px-6 lg:px-8"
         aria-label={autosPreviewCaptureBannerTitle(lang)}
       >
         <div className={`${autosPreviewPremiumCardClass} px-3 py-2 sm:px-4 sm:py-2.5`}>

@@ -30,9 +30,12 @@ import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleCo
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import {
+  autosPreviewBusinessHubShellClass,
   autosPreviewHeroPriceClass,
   autosPreviewHeroTitleClass,
+  autosPreviewMainGridClass,
   autosPreviewPageCanvasClass,
+  autosPreviewPageMaxWidthClass,
   autosPreviewPremiumCardClass,
   autosPreviewSectionEyebrowClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
@@ -123,16 +126,16 @@ export function AutoDealerPreviewPage({
 
   const mainContent = (
     <main
-      className={`mx-auto max-w-[1280px] ${autosPreviewPageCanvasClass} px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] md:px-5 lg:px-6 ${
+      className={`mx-auto ${autosPreviewPageMaxWidthClass} ${autosPreviewPageCanvasClass} px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] md:px-6 lg:px-8 ${
         embeddedInShell ? "pt-2 sm:pt-3" : "pt-1 sm:mt-8 sm:pb-10"
       }`}
       data-autos-premium-preview-page="1"
     >
-      <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
+      <div className={autosPreviewMainGridClass}>
         {showTitle ? (
           <section
-            className={`${MAIN_CARD} border-l-[3px] border-l-[#C9A84A]/80 lg:col-span-7 lg:col-start-1 ${
-              draftPreviewMode ? "shadow-[0_12px_40px_-14px_rgba(42,36,22,0.14)]" : ""
+            className={`${MAIN_CARD} border-l-[4px] border-l-[#C9A84A] lg:col-start-1 ${
+              draftPreviewMode ? "shadow-[0_16px_48px_-16px_rgba(42,36,22,0.16)]" : ""
             }`}
             style={{ gridRowStart: titleRow, order: orderTitle }}
           >
@@ -214,13 +217,13 @@ export function AutoDealerPreviewPage({
           ) : null}
 
           {showGallery ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
+            <div className="lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
               <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
             </div>
           ) : null}
 
           {showAnalyticsStrip && analyticsMetrics ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: analyticsRow, order: orderAnalytics }}>
+            <div className="lg:col-start-1" style={{ gridRowStart: analyticsRow, order: orderAnalytics }}>
               <AutosListingAnalyticsRow
                 metrics={analyticsMetrics}
                 labels={{
@@ -236,44 +239,44 @@ export function AutoDealerPreviewPage({
           ) : null}
 
           <aside
-            className="autos-negocios-preview-dealer-aside flex min-w-0 flex-col gap-0 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:gap-6 lg:self-start"
+            className="autos-negocios-preview-dealer-aside flex min-w-0 flex-col lg:sticky lg:top-24 lg:col-start-2 lg:self-start"
             style={{
               gridRowStart: leftRowCount > 0 ? 1 : undefined,
               gridRowEnd: leftRowCount > 0 ? `span ${leftRowCount}` : undefined,
               order: orderAside,
             }}
           >
-            <div className={`overflow-hidden ${autosPreviewPremiumCardClass} lg:sticky lg:top-28`}>
+            <div className={`${autosPreviewBusinessHubShellClass} lg:sticky lg:top-28`}>
               <DealerBusinessStack
                 data={data}
                 buyerInventoryHref={publicPlaybackOnly ? data.relatedDealerInventoryHref : undefined}
                 publicAnalytics={publicAnalytics}
                 showPremiumHubHeader={draftPreviewMode || publicPlaybackOnly}
-                className="!rounded-none !border-0 !shadow-none bg-transparent p-5 sm:p-6 max-lg:!bg-transparent"
+                className="rounded-none border-0 bg-transparent p-0 shadow-none"
               />
             </div>
           </aside>
 
-          {showDesc ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: descRow, order: orderDesc }}>
-              <VehicleDescription data={data} />
-            </div>
-          ) : null}
-
           {showSpecs ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: specsRow, order: orderSpecs }}>
+            <div className="lg:col-start-1" style={{ gridRowStart: specsRow, order: orderSpecs }}>
               <VehicleSpecsGrid data={data} />
             </div>
           ) : null}
 
           {showHighlights ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ gridRowStart: highlightsRow, order: orderHi }}>
+            <div className="lg:col-start-1" style={{ gridRowStart: highlightsRow, order: orderHi }}>
               <VehicleHighlights data={data} />
             </div>
           ) : null}
 
+          {showDesc ? (
+            <div className="lg:col-start-1" style={{ gridRowStart: descRow, order: orderDesc }}>
+              <VehicleDescription data={data} />
+            </div>
+          ) : null}
+
           {(data.relatedDealerListings ?? []).length > 0 ? (
-            <div className="lg:col-span-7 lg:col-start-1" style={{ order: orderRelated }}>
+            <div className="lg:col-start-1" style={{ order: orderRelated }}>
               <RelatedDealerCars
                 listings={data.relatedDealerListings ?? []}
                 fullInventoryHref={data.relatedDealerInventoryHref}

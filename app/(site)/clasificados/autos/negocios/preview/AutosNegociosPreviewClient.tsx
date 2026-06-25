@@ -19,7 +19,12 @@ import { AutosNegociosPreviewCaptureBanner } from "../components/AutosNegociosPr
 import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
+import { AutosNegociosPreviewPromiseStrip } from "../components/AutosNegociosPreviewPromiseStrip";
 import { mapAutosNegociosBuyerPreviewViewModel } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
+import {
+  autosPreviewPageMaxWidthClass,
+  autosPreviewSectionEyebrowClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const EDIT_BASE = "/publicar/autos/negocios";
 
@@ -101,7 +106,20 @@ function AutosNegociosPreviewInner({
         <div className="min-h-[50vh] bg-[#FAF7F2] text-[#1F241C]">
         <AutoDealerPreviewChrome editBackHref={editBackHref} showSiteLogo={false} hideBackToEdit>
           <AutosNegociosPreviewCaptureBanner lang={lang} editBackHref={editBackHref} />
-          <div className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
+          <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 pt-4 text-center md:px-6 lg:px-8`}>
+            <p className={autosPreviewSectionEyebrowClass}>
+              {lang === "es" ? "Clasificados Premium" : "Premium Classifieds"}
+            </p>
+            <h1 className="font-serif text-pretty text-[1.85rem] font-bold tracking-tight text-[#7A1E2C] sm:text-[2.25rem] md:text-[2.5rem]">
+              {lang === "es" ? "Autos en Leonix" : "Autos on Leonix"}
+            </h1>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346] sm:text-[15px]">
+              {lang === "es"
+                ? "Concesionarios, inventario y contacto en una experiencia clara."
+                : "Dealers, inventory, and contact in one clear experience."}
+            </p>
+          </div>
+          <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
             <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
           </div>
           <AutoDealerPreviewPage
@@ -116,6 +134,7 @@ function AutosNegociosPreviewInner({
             additionalVehicles={additionalInventoryVehicles}
             viewModelCards={viewModel.additionalInventory}
           />
+          <AutosNegociosPreviewPromiseStrip lang={lang} />
         </AutoDealerPreviewChrome>
         </div>
       </AutosDraftPreviewErrorBoundary>

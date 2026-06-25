@@ -29,9 +29,9 @@ import { SpecIconRow } from "./SpecIconRow";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { resolveEngineForDisplay } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
-import { autosPreviewPremiumCardClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+import { autosPreviewPremiumCardClass, autosPreviewSectionEyebrowClass, autosPreviewSectionTitleClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
-const CARD = `${autosPreviewPremiumCardClass} p-4`;
+const CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
 
 export function VehicleSpecsGrid({
   data,
@@ -41,7 +41,7 @@ export function VehicleSpecsGrid({
   /** Optional row keys to omit (e.g. Privado shell hides inventory-only rows). */
   hiddenRowKeys?: readonly string[];
 }) {
-  const { t } = useAutosNegociosPreviewCopy();
+  const { t, lang } = useAutosNegociosPreviewCopy();
   const hidden = new Set(hiddenRowKeys ?? []);
   const rowsL = t.preview.specs.rows;
 
@@ -111,7 +111,8 @@ export function VehicleSpecsGrid({
 
   return (
     <section className={CARD}>
-      <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">{title}</h2>
+      <p className={autosPreviewSectionEyebrowClass}>{lang === "es" ? "Detalles del vehículo" : "Vehicle details"}</p>
+      <h2 className={`mt-1 ${autosPreviewSectionTitleClass}`}>{title}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
       <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {visible.map((r) => (

@@ -7,11 +7,12 @@ import type { ReactNode } from "react";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
-const CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)]";
+import { autosPreviewPremiumCardClass, autosPreviewSectionEyebrowClass, autosPreviewSectionTitleClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+
+const CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
 
 const PILL =
-  "flex items-start gap-3 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3 shadow-[0_2px_12px_rgba(42,36,22,0.04)]";
+  "flex items-start gap-3 rounded-[14px] border border-[#D6C7AD]/70 bg-[#FBF7EF] p-3 shadow-sm";
 
 function iconForFeature(label: string): ReactNode {
   const t = label.toLowerCase();
@@ -37,7 +38,7 @@ function BiCheckDecor() {
 }
 
 export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
-  const { t } = useAutosNegociosPreviewCopy();
+  const { t, lang } = useAutosNegociosPreviewCopy();
   const checklist = (data.features ?? []).map((f) => f.trim()).filter(Boolean);
   const custom = (data.customEquipment ?? []).map((f) => f.trim()).filter(Boolean);
   const feats = [...checklist, ...custom];
@@ -47,7 +48,8 @@ export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
 
   return (
     <section className={CARD}>
-      <h2 className="text-base font-bold tracking-tight text-[color:var(--lx-text)]">{title}</h2>
+      <p className={autosPreviewSectionEyebrowClass}>{lang === "es" ? "Equipamiento" : "Equipment"}</p>
+      <h2 className={`mt-1 ${autosPreviewSectionTitleClass}`}>{title}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {feats.map((f) => (
