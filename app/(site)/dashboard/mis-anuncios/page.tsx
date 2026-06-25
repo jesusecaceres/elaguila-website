@@ -26,8 +26,22 @@ import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstat
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
-import { DashboardCategoryLauncherCard } from "../components/DashboardCategoryLauncherCard";
+import { DashboardMisAnunciosCategorySelector } from "../components/DashboardMisAnunciosCategorySelector";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
+import {
+  dashboardActiveVsTotalFootnote,
+  dashboardCountLabelActivos,
+  dashboardCountLabelCompartidos,
+  dashboardCountLabelTotalGestionados,
+  dashboardCountLabelVistas,
+} from "../lib/dashboardCountDefinitions";
+import {
+  MIS_ANUNCIOS_CATEGORY_DEFS,
+  isMisAnunciosCategoryKey,
+  provenInventoryAnalyticsHref,
+  resolveMisAnunciosDefaultCategory,
+  type MisAnunciosCategoryKey,
+} from "../lib/dashboardMisAnunciosCategories";
 import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
@@ -44,7 +58,10 @@ import {
   fetchOwnerViajesListings,
   type DashboardInventoryItem,
 } from "../lib/dashboardInventory";
-import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
+import {
+  countOwnerActiveListingsAcrossSources,
+  countOwnerInventoryListings,
+} from "@/app/lib/ownerEngagementListingKeys";
 import {
   categoryAdPlanDisplayLabel,
   listingPlanFieldLabel,
@@ -239,43 +256,7 @@ function passesTab(row: ListingRow, tab: Tab): boolean {
   return true;
 }
 
-/** Category chips / filters — aligns inventory sections with one key per lane. */
-type MisAnunciosCategoryFilter =
-  | "all"
-  | "en-venta"
-  | "autos"
-  | "bienes-raices"
-  | "rentas"
-  | "restaurantes"
-  | "empleos"
-  | "viajes"
-  | "servicios"
-  | "comida-local"
-  | "clases"
-  | "comunidad"
-  | "busco";
-
-const MIS_ANUNCIOS_CATEGORY_FILTERS: MisAnunciosCategoryFilter[] = [
-  "all",
-  "en-venta",
-  "autos",
-  "bienes-raices",
-  "rentas",
-  "restaurantes",
-  "empleos",
-  "viajes",
-  "servicios",
-  "comida-local",
-  "clases",
-  "comunidad",
-  "busco",
-];
-
-function isMisAnunciosCategoryFilter(raw: string | null | undefined): raw is MisAnunciosCategoryFilter {
-  return Boolean(raw && (MIS_ANUNCIOS_CATEGORY_FILTERS as string[]).includes(raw));
-}
-
-function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryFilter | "other" {
+function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryKey | "other" {
   const cat = (row.category ?? "").toLowerCase();
   if (cat === "en-venta") return "en-venta";
   if (cat === "autos") return "autos";
@@ -319,67 +300,67 @@ export default function MyListingsPage() {
       lang === "es"
         ? {
             title: "Mis anuncios",
-            subtitle: "Gestiona tus anuncios, filtros y acciones por anuncio.",
+            subtitle: "Elige una categoría y gestiona solo esos anuncios.",
             searchPh: "Buscar por título…",
             tabAll: "Todos",
             tabActive: "Activos",
             tabExpired: "Expirados",
             tabMod: "Moderación",
-            statActive: "Activos",
-            statViews: "Vistas",
-            statMsg: "Mensajes",
-            statSaves: "Guardados",
-            statShares: "Compartidos",
+            statActive: dashboardCountLabelActivos("es"),
+            statTotalManaged: dashboardCountLabelTotalGestionados("es"),
+            statViews: dashboardCountLabelVistas("es"),
+            statShares: dashboardCountLabelCompartidos("es"),
             loading: "Cargando…",
             empty: "No hay anuncios en esta vista.",
+            emptyCategory: "Aún no tienes publicaciones en esta categoría.",
             emptyAll: "Aún no tienes anuncios.",
             restaurantSectionTitle: "Restaurantes",
             restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
             cta: "Publicar anuncio",
-            yourListings: "Tus anuncios",
-            categoryMgmt: "Categorías",
-            categoryMgmtHint: "Publica en una categoría nueva o abre la gestión de la que ya usas.",
-            activeCountNote:
-              "Los activos usan el mismo conteo que el resumen (todas las fuentes Leonix conectadas a tu cuenta).",
-            chipAll: "Todos",
+            yourListings: "Publicaciones",
+            categoryPanel: "Categorías",
+            workspaceLabel: "Área de gestión",
             manage: "Gestionar",
             publish: "Publicar",
+            results: "Ver resultados",
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
             analyticsNotice:
-              "Las analíticas de Leonix se actualizan cuando tus anuncios reciben actividad. Si un conteo aparece en cero, aún no hay interacciones registradas para ese anuncio.",
+              "Las analíticas se actualizan cuando tus anuncios reciben actividad real.",
+            countFootnote:
+              "Los totales por categoría incluyen registros gestionables (activos, pausados y archivados). Activos en el resumen = solo visibles hoy.",
           }
         : {
             title: "My listings",
-            subtitle: "Manage your ads, filters, and per-listing actions.",
+            subtitle: "Pick a category and manage only those listings.",
             searchPh: "Search by title…",
             tabAll: "All",
             tabActive: "Active",
             tabExpired: "Ended",
             tabMod: "Moderation",
-            statActive: "Active",
-            statViews: "Views",
-            statMsg: "Messages",
-            statSaves: "Saves",
-            statShares: "Shares",
+            statActive: dashboardCountLabelActivos("en"),
+            statTotalManaged: dashboardCountLabelTotalGestionados("en"),
+            statViews: dashboardCountLabelVistas("en"),
+            statShares: dashboardCountLabelCompartidos("en"),
             loading: "Loading…",
             empty: "No listings in this view.",
+            emptyCategory: "You don't have listings in this category yet.",
             emptyAll: "You don't have any listings yet.",
             restaurantSectionTitle: "Restaurants",
             restaurantSectionHint: "Manage your published restaurants from dashboard.",
             cta: "Publish listing",
-            yourListings: "Your listings",
-            categoryMgmt: "Categories",
-            categoryMgmtHint: "Publish in a new category or open management for one you already use.",
-            activeCountNote:
-              "Active count matches Overview (all Leonix channels tied to your account).",
-            chipAll: "All",
+            yourListings: "Listings",
+            categoryPanel: "Categories",
+            workspaceLabel: "Management area",
             manage: "Manage",
             publish: "Publish",
+            results: "View results",
             errorTitle: "We couldn't load your listings",
             back: "Back to overview",
             analyticsNotice:
-              "Leonix analytics update as your ads receive activity. If a count shows zero, that ad may not have recorded interactions yet.",
+              "Analytics update when your listings receive real activity.",
+            countFootnote:
+              "Category totals include manageable records (active, paused, archived). Overview Active = visible today only.",
           },
     [lang]
   );
@@ -404,10 +385,18 @@ export default function MyListingsPage() {
     ComidaLocalDashboardListingVm[]
   >([]);
   const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryFilter>(() => {
-    const raw = searchParams?.get("cat");
-    return isMisAnunciosCategoryFilter(raw) ? raw : "all";
-  });
+  const [totalManagedCount, setTotalManagedCount] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryKey>("en-venta");
+  const [inventoryReady, setInventoryReady] = useState(false);
+
+  function setCategoryFilterAndUrl(next: MisAnunciosCategoryKey) {
+    setCategoryFilter(next);
+    const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    sp.set("lang", lang);
+    sp.set("cat", next);
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
+
   const [error, setError] = useState<string | null>(null);
   const [republishColsAvailable, setRepublishColsAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
@@ -416,20 +405,6 @@ export default function MyListingsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    const raw = searchParams?.get("cat");
-    setCategoryFilter(isMisAnunciosCategoryFilter(raw) ? raw : "all");
-  }, [searchParams]);
-
-  function setCategoryFilterAndUrl(next: MisAnunciosCategoryFilter) {
-    setCategoryFilter(next);
-    const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    sp.set("lang", lang);
-    if (next === "all") sp.delete("cat");
-    else sp.set("cat", next);
-    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
-  }
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -500,11 +475,12 @@ export default function MyListingsPage() {
 
       const { data: sessData } = await supabase.auth.getSession();
       const accessToken = sessData.session?.access_token ?? null;
-      const [activeAcross, autosPaidRows, serviciosRows, comidaLocalRows] = await Promise.all([
+      const [activeAcross, autosPaidRows, serviciosRows, comidaLocalRows, managedTotal] = await Promise.all([
         countOwnerActiveListingsAcrossSources(supabase, u.id),
         fetchOwnerAutosClassifiedsListings(supabase, u.id),
         fetchOwnerServiciosListings(accessToken),
         fetchOwnerComidaLocalListings(supabase, u.id),
+        countOwnerInventoryListings(supabase, u.id),
       ]);
       const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
       const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
@@ -514,6 +490,7 @@ export default function MyListingsPage() {
 
       if (!mounted) return;
       setUnifiedActiveCount(activeAcross);
+      setTotalManagedCount(managedTotal);
       setRestaurantInventory(dedupeRestaurantInventoryWithListings(restaurantItems, list));
       setEmpleosInventory(empleosItems);
       setViajesInventory(viajesItems);
@@ -588,6 +565,8 @@ export default function MyListingsPage() {
         setListingAnalyticsDegraded(false);
         setAnalyticsByListing({});
       }
+
+      if (mounted) setInventoryReady(true);
     }
 
     void run();
@@ -799,7 +778,6 @@ export default function MyListingsPage() {
   );
 
   const categoryFilteredListings = useMemo(() => {
-    if (categoryFilter === "all") return filteredByTab;
     return filteredByTab.filter((row) => listingRowCategoryKey(row) === categoryFilter);
   }, [filteredByTab, categoryFilter]);
 
@@ -820,21 +798,6 @@ export default function MyListingsPage() {
       m = Math.max(m, resolveViews(x, analyticsByListing[x.id]));
     }
     return m;
-  }, [listings, analyticsByListing]);
-
-  const totalActive = unifiedActiveCount ?? listings.filter((x) => normalizeStatus(x.status) === "active").length;
-  const totalViewsSum = useMemo(() => {
-    let s = 0;
-    for (const x of listings) {
-      s += resolveViews(x, analyticsByListing[x.id]);
-    }
-    return s;
-  }, [listings, analyticsByListing]);
-
-  const totalSharesSum = useMemo(() => {
-    let s = 0;
-    for (const x of listings) s += analyticsByListing[x.id]?.shares ?? 0;
-    return s;
   }, [listings, analyticsByListing]);
 
   const showLoading = authLoading || listingsLoading;
@@ -878,7 +841,7 @@ export default function MyListingsPage() {
       viajes: viajesInventory.length,
       servicios: serviciosInventory.length,
       "comida-local": comidaLocalDashboardItems.length,
-    } as Record<Exclude<MisAnunciosCategoryFilter, "all">, number>;
+    } as Record<MisAnunciosCategoryKey, number>;
   }, [
     listings,
     autosPaidInventory,
@@ -889,24 +852,52 @@ export default function MyListingsPage() {
     comidaLocalDashboardItems,
   ]);
 
-  const filterChips = useMemo(() => {
-    const owned = (MIS_ANUNCIOS_CATEGORY_FILTERS.filter((c) => c !== "all") as Exclude<MisAnunciosCategoryFilter, "all">[]).filter(
-      (c) => (categoryCounts[c] ?? 0) > 0
-    );
-    return owned;
-  }, [categoryCounts]);
+  useEffect(() => {
+    if (!inventoryReady) return;
+    const raw = searchParams?.get("cat");
+    if (raw === "all" || !raw) {
+      const def = resolveMisAnunciosDefaultCategory(categoryCounts, null);
+      setCategoryFilter(def);
+      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+      sp.set("lang", lang);
+      sp.set("cat", def);
+      router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+      return;
+    }
+    if (isMisAnunciosCategoryKey(raw)) setCategoryFilter(raw);
+  }, [searchParams, inventoryReady, categoryCounts, lang, pathname, router]);
+
+  const selectedCategoryDef = useMemo(
+    () => MIS_ANUNCIOS_CATEGORY_DEFS.find((c) => c.key === categoryFilter) ?? MIS_ANUNCIOS_CATEGORY_DEFS[0],
+    [categoryFilter],
+  );
+
+  const selectedCategoryManagedCount = categoryCounts[categoryFilter] ?? 0;
+
+  const selectedCategoryViewsSum = useMemo(() => {
+    let s = 0;
+    for (const x of categoryFilteredListings) {
+      s += resolveViews(x, analyticsByListing[x.id]);
+    }
+    return s;
+  }, [categoryFilteredListings, analyticsByListing]);
+
+  const selectedCategorySharesSum = useMemo(() => {
+    let s = 0;
+    for (const x of categoryFilteredListings) s += analyticsByListing[x.id]?.shares ?? 0;
+    return s;
+  }, [categoryFilteredListings, analyticsByListing]);
 
   const showRestSection =
-    restaurantInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "restaurantes");
+    categoryFilter === "restaurantes" && restaurantInventory.length > 0;
   const showEmpleosSection =
-    empleosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "empleos");
-  const showViajesSection = viajesInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "viajes");
+    categoryFilter === "empleos" && empleosInventory.length > 0;
+  const showViajesSection = categoryFilter === "viajes" && viajesInventory.length > 0;
   const showServiciosSection =
-    serviciosInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "servicios");
+    categoryFilter === "servicios" && serviciosInventory.length > 0;
   const showAutosPaidSection =
-    autosPaidInventory.length > 0 && (categoryFilter === "all" || categoryFilter === "autos");
-  const showComidaLocalBlock =
-    categoryFilter === "all" || categoryFilter === "comida-local";
+    categoryFilter === "autos" && autosPaidInventory.length > 0;
+  const showComidaLocalBlock = categoryFilter === "comida-local";
 
   const brNegocioInventoryRows = useMemo(
     () =>
@@ -934,8 +925,7 @@ export default function MyListingsPage() {
   );
 
   const showBrInventorySection =
-    brNegocioInventoryRows.length > 0 &&
-    (categoryFilter === "all" || categoryFilter === "bienes-raices");
+    brNegocioInventoryRows.length > 0 && categoryFilter === "bienes-raices";
 
   const parentLeonixAdIdByListingId = useMemo(() => {
     const m = new Map<string, string>();
@@ -948,8 +938,7 @@ export default function MyListingsPage() {
 
   const showListingsTableSection =
     listings.length > 0 &&
-    (categoryFilter === "all" ||
-      categoryFilter === "en-venta" ||
+    (categoryFilter === "en-venta" ||
       categoryFilter === "autos" ||
       categoryFilter === "bienes-raices" ||
       categoryFilter === "rentas" ||
@@ -1004,205 +993,86 @@ export default function MyListingsPage() {
             ) : null}
           </p>
 
-          <div className={`mt-8 ${LX_DASH.panel}`}>
-            <h2 className={LX_DASH.sectionTitle}>{t.categoryMgmt}</h2>
-            <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.categoryMgmtHint}</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {[
-                {
-                  key: "restaurantes" as const,
-                  title: lang === "es" ? "Restaurantes" : "Restaurants",
-                  owned: categoryCounts.restaurantes,
-                  manage: `/dashboard/restaurantes?${q}`,
-                  publish: `/publicar/restaurantes?${q}`,
-                },
-                {
-                  key: "servicios" as const,
-                  title: lang === "es" ? "Servicios" : "Services",
-                  owned: categoryCounts.servicios,
-                  manage: `/dashboard/servicios?${q}`,
-                  publish: `/clasificados/publicar/servicios?${q}`,
-                },
-                {
-                  key: "comida-local" as const,
-                  title: lang === "es" ? "Comida Local" : "Local Food",
-                  owned: categoryCounts["comida-local"],
-                  manage: `/dashboard/mis-anuncios?${q}&cat=comida-local`,
-                  publish: `/publicar/comida-local?${q}`,
-                },
-                {
-                  key: "en-venta" as const,
-                  title: enVentaPublicLabel(lang),
-                  owned: categoryCounts["en-venta"],
-                  manage: `/dashboard/mis-anuncios?${q}&cat=en-venta`,
-                  publish: `/clasificados/publicar/en-venta?${q}`,
-                },
-                {
-                  key: "autos" as const,
-                  title: lang === "es" ? "Autos" : "Autos",
-                  owned: categoryCounts.autos,
-                  manage: `/dashboard/mis-anuncios?${q}&cat=autos`,
-                  publish: `/publicar/autos?${q}`,
-                },
-                {
-                  key: "empleos" as const,
-                  title: lang === "es" ? "Empleos" : "Jobs",
-                  owned: categoryCounts.empleos,
-                  manage: `/dashboard/empleos?${q}`,
-                  publish: `/clasificados/publicar/empleos?${q}`,
-                },
-                {
-                  key: "rentas" as const,
-                  title: lang === "es" ? "Rentas" : "Rentals",
-                  owned: categoryCounts.rentas,
-                  manage: `/dashboard/mis-anuncios?${q}&cat=rentas`,
-                  publish: `/publicar/rentas/privado?${q}`,
-                },
-                {
-                  key: "bienes-raices" as const,
-                  title: lang === "es" ? "Bienes raíces" : "Real estate",
-                  owned: categoryCounts["bienes-raices"],
-                  manage: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
-                  publish: `/publicar/bienes-raices?${q}`,
-                },
-                {
-                  key: "viajes" as const,
-                  title: lang === "es" ? "Viajes" : "Travel",
-                  owned: categoryCounts.viajes,
-                  manage: `/dashboard/viajes?${q}`,
-                  publish: `/publicar/viajes?${q}`,
-                },
-              ].map((c) => {
-                const hasOwned = c.owned > 0;
-                return (
-                  <DashboardCategoryLauncherCard
-                    key={c.key}
-                    title={c.title}
-                    description={
-                      hasOwned
-                        ? lang === "es"
-                          ? `${c.owned} publicación${c.owned === 1 ? "" : "es"} en esta categoría.`
-                          : `${c.owned} listing${c.owned === 1 ? "" : "s"} in this category.`
-                        : lang === "es"
-                          ? "Aún no tienes anuncios aquí."
-                          : "You don't have listings here yet."
-                    }
-                    ready
-                    manageHref={c.manage}
-                    publishHref={c.publish}
-                    manageLabel={t.manage}
-                    publishLabel={t.publish}
-                    readyLabel={lang === "es" ? "Listo" : "Ready"}
-                    soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(240px,280px)_1fr] lg:items-start">
+            <DashboardMisAnunciosCategorySelector
+              lang={lang}
+              categories={MIS_ANUNCIOS_CATEGORY_DEFS}
+              counts={categoryCounts}
+              selected={categoryFilter}
+              onSelect={setCategoryFilterAndUrl}
+              readyLabel={lang === "es" ? "Listo" : "Ready"}
+              soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
+            />
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {[
-              { label: t.statActive, value: totalActive },
-              { label: t.statViews, value: totalViewsSum },
-              { label: t.statShares, value: totalSharesSum },
-            ].map((c) => (
-              <DashboardStatsCard key={c.label} label={c.label} value={c.value} />
-            ))}
-          </div>
-          <p className="mt-3 max-w-3xl text-xs leading-relaxed text-[#7A7164]/95">{t.activeCountNote}</p>
-
-          {filterChips.length > 0 ? (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
-                {lang === "es" ? "Categoría" : "Category"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCategoryFilterAndUrl("all")}
-                className={categoryFilter === "all" ? LX_DASH.chipActive : LX_DASH.chipInactive}
-              >
-                {t.chipAll}
-              </button>
-              {filterChips.map((fk) => {
-                const label =
-                  fk === "en-venta"
-                    ? enVentaPublicLabel(lang)
-                    : fk === "bienes-raices"
-                      ? lang === "es"
-                        ? "BR"
-                        : "Real estate"
-                      : fk === "restaurantes"
-                        ? lang === "es"
-                          ? "Restaurantes"
-                          : "Restaurants"
-                        : fk === "rentas"
-                          ? lang === "es"
-                            ? "Rentas"
-                            : "Rentals"
-                          : fk === "empleos"
-                            ? lang === "es"
-                              ? "Empleos"
-                              : "Jobs"
-                            : fk === "viajes"
-                              ? lang === "es"
-                                ? "Viajes"
-                                : "Travel"
-                              : fk === "servicios"
-                                ? lang === "es"
-                                  ? "Servicios"
-                                  : "Services"
-                                : fk === "comida-local"
-                                  ? lang === "es"
-                                    ? "Comida Local"
-                                    : "Local Food"
-                                  : fk === "autos"
-                                  ? "Autos"
-                                  : fk === "clases"
-                                    ? lang === "es"
-                                      ? "Clases"
-                                      : "Classes"
-                                    : fk === "comunidad"
-                                      ? lang === "es"
-                                        ? "Comunidad"
-                                        : "Community"
-                                      : fk === "busco"
-                                        ? lang === "es"
-                                          ? "Busco / Se busca"
-                                          : "Looking for / Wanted"
-                                        : fk;
-                return (
-                  <button
-                    key={fk}
-                    type="button"
-                    onClick={() => setCategoryFilterAndUrl(fk)}
-                    className={categoryFilter === fk ? LX_DASH.chipActive : LX_DASH.chipInactive}
-                  >
-                    {label}{" "}
-                    <span className="tabular-nums opacity-80">({categoryCounts[fk]})</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
-          <div className={`mt-6 ${LX_DASH.filterBar}`}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap gap-2">
-              {tabBtn("all", t.tabAll)}
-              {tabBtn("active", t.tabActive)}
-              {tabBtn("expired", t.tabExpired)}
-              {tabBtn("moderation", t.tabMod)}
+            <div className={`min-w-0 ${LX_DASH.panel}`}>
+              <div className="flex flex-col gap-4 border-b border-[#D6C7AD]/50 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className={LX_DASH.contextLabel}>{t.workspaceLabel}</p>
+                  <h2 className={`mt-1 ${LX_DASH.sectionTitle}`}>{selectedCategoryDef.title(lang)}</h2>
+                  <p className={`mt-2 max-w-2xl ${LX_DASH.bodyMuted}`}>{selectedCategoryDef.description(lang)}</p>
+                  <p className="mt-2 text-sm font-semibold tabular-nums text-[#3D3428]">
+                    {lang === "es" ? "En esta categoría:" : "In this category:"}{" "}
+                    {selectedCategoryManagedCount}{" "}
+                    {lang === "es"
+                      ? selectedCategoryManagedCount === 1
+                        ? "publicación gestionada"
+                        : "publicaciones gestionadas"
+                      : selectedCategoryManagedCount === 1
+                        ? "managed listing"
+                        : "managed listings"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCategoryDef.manageHref(q) && selectedCategoryDef.ready ? (
+                    <Link href={selectedCategoryDef.manageHref(q)!} className={LX_DASH.btnManage}>
+                      {t.manage}
+                    </Link>
+                  ) : null}
+                  {selectedCategoryDef.publishHref(q) && selectedCategoryDef.ready ? (
+                    <Link href={selectedCategoryDef.publishHref(q)!} className={LX_DASH.btnPrimary}>
+                      {t.publish}
+                    </Link>
+                  ) : null}
+                  {selectedCategoryDef.resultsHref?.(q) ? (
+                    <Link href={selectedCategoryDef.resultsHref(q)!} className={LX_DASH.btnSecondary}>
+                      {t.results}
+                    </Link>
+                  ) : null}
+                </div>
               </div>
-            <div className="relative w-full min-w-[200px] flex-1 lg:max-w-sm">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t.searchPh}
-                className="w-full rounded-xl border border-[#D6C7AD]/70 bg-white py-2.5 pl-4 pr-4 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/55 focus:ring-2 focus:ring-[#C9A84A]/15"
-                type="search"
-                aria-label={t.searchPh}
-              />
-            </div>
+
+              {showListingsTableSection ? (
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <DashboardStatsCard label={t.statTotalManaged} value={selectedCategoryManagedCount} />
+                  <DashboardStatsCard label={t.statViews} value={selectedCategoryViewsSum} />
+                  <DashboardStatsCard label={t.statShares} value={selectedCategorySharesSum} />
+                </div>
+              ) : null}
+
+              <p className="mt-4 max-w-3xl text-xs leading-relaxed text-[#7A7164]">
+                {dashboardActiveVsTotalFootnote(lang, totalManagedCount, unifiedActiveCount)}
+              </p>
+
+              <div className={`mt-6 ${LX_DASH.filterBar}`}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap gap-2">
+                    {tabBtn("all", t.tabAll)}
+                    {tabBtn("active", t.tabActive)}
+                    {tabBtn("expired", t.tabExpired)}
+                    {tabBtn("moderation", t.tabMod)}
+                  </div>
+                  <div className="relative w-full min-w-0 flex-1 lg:max-w-sm">
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={t.searchPh}
+                      className="w-full rounded-xl border border-[#D6C7AD]/70 bg-white py-2.5 pl-4 pr-4 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/55 focus:ring-2 focus:ring-[#C9A84A]/15"
+                      type="search"
+                      aria-label={t.searchPh}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1213,13 +1083,7 @@ export default function MyListingsPage() {
             </div>
           ) : null}
 
-          {hasAnyInventory ? (
-            <div className="mt-10">
-              <h2 className={LX_DASH.sectionTitle}>{t.yourListings}</h2>
-              <p className="mt-2 max-w-3xl text-xs leading-snug text-[#7A7164]">{listingPlanFootnote(lang)}</p>
-            </div>
-          ) : null}
-
+          <div className="mt-6 min-w-0 lg:ml-[calc(280px+1.5rem)]">
           {showRestSection ? (
             <section className="mt-8">
               <div className="mb-4">
@@ -1267,7 +1131,15 @@ export default function MyListingsPage() {
                         ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
                         : []),
                       { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
-                      { href: item.analyticsHref ?? undefined, label: analyticsActionLabel(lang), tone: "subtle" as const },
+                      ...(provenInventoryAnalyticsHref(item)
+                        ? [
+                            {
+                              href: provenInventoryAnalyticsHref(item)!,
+                              label: analyticsActionLabel(lang),
+                              tone: "subtle" as const,
+                            },
+                          ]
+                        : []),
                     ].filter((action) => Boolean(action.href))}
                   />
                 ))}
@@ -1326,7 +1198,7 @@ export default function MyListingsPage() {
                         tone: "subtle" as const,
                       },
                       {
-                        href: item.analyticsHref ?? undefined,
+                        href: provenInventoryAnalyticsHref(item) ?? undefined,
                         label: analyticsActionLabel(lang),
                         tone: "subtle" as const,
                       },
@@ -1388,7 +1260,7 @@ export default function MyListingsPage() {
                         tone: "subtle" as const,
                       },
                       {
-                        href: item.analyticsHref ?? undefined,
+                        href: provenInventoryAnalyticsHref(item) ?? undefined,
                         label: analyticsActionLabel(lang),
                         tone: "subtle" as const,
                       },
@@ -1463,7 +1335,15 @@ export default function MyListingsPage() {
                         ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
                         : []),
                       { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
-                      { href: item.analyticsHref ?? undefined, label: analyticsActionLabel(lang), tone: "subtle" as const },
+                      ...(provenInventoryAnalyticsHref(item)
+                        ? [
+                            {
+                              href: provenInventoryAnalyticsHref(item)!,
+                              label: analyticsActionLabel(lang),
+                              tone: "subtle" as const,
+                            },
+                          ]
+                        : []),
                     ].filter((action) => Boolean(action.href))}
                   />
                 ))}
@@ -1480,6 +1360,26 @@ export default function MyListingsPage() {
               >
                 {t.cta}
               </Link>
+            </div>
+          ) : selectedCategoryManagedCount === 0 &&
+            !showRestSection &&
+            !showEmpleosSection &&
+            !showViajesSection &&
+            !showServiciosSection &&
+            !showAutosPaidSection &&
+            !showBrInventorySection &&
+            !(showComidaLocalBlock && comidaLocalDashboardItems.length > 0) &&
+            !showListingsTableSection ? (
+            <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center">
+              <p className="font-semibold text-[#1E1810]">{t.emptyCategory}</p>
+              {selectedCategoryDef.publishHref(q) ? (
+                <Link
+                  href={selectedCategoryDef.publishHref(q)!}
+                  className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}
+                >
+                  {t.publish}
+                </Link>
+              ) : null}
             </div>
           ) : showListingsTableSection && visible.length === 0 ? (
             <div className="mt-8 rounded-3xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-8 text-center text-[#5C5346]">{t.empty}</div>
@@ -1846,6 +1746,8 @@ export default function MyListingsPage() {
               })}
             </div>
           ) : null}
+
+          </div>
 
           <Link href={`/dashboard?${q}`} className="mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline">
             ← {t.back}

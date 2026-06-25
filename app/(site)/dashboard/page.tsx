@@ -11,7 +11,14 @@ import { DashboardQuickActionCard } from "./components/DashboardQuickActionCard"
 import { LX_DASH } from "./lib/dashboardLeonixTheme";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { supabase } from "../../lib/supabaseClient";
-import { countOwnerActiveListingsAcrossSources } from "@/app/lib/ownerEngagementListingKeys";
+import {
+  countOwnerActiveListingsAcrossSources,
+  countOwnerInventoryListings,
+} from "@/app/lib/ownerEngagementListingKeys";
+import {
+  dashboardActiveVsTotalFootnote,
+  dashboardCountLabelAnunciosActivos,
+} from "./lib/dashboardCountDefinitions";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
 import { fetchDashboardAnalyticsSummary } from "./lib/fetchDashboardAnalyticsApi";
@@ -43,7 +50,7 @@ export default function DashboardPage() {
         ? {
             title: "Resumen de cuenta",
             subtitle: "Tu panel de vendedor Leonix.",
-            activeAds: "Anuncios activos",
+            activeAds: dashboardCountLabelAnunciosActivos("es"),
             totalViews: "Vistas totales",
             totalSaves: "Guardados",
             earnings: "Ganado en total",
@@ -107,14 +114,15 @@ export default function DashboardPage() {
             expiringFootnote:
               "“Por expirar” usa el fin de la ventana de visibilidad tras republicar (`republished_at`) y la expiración del anuncio cuando exista. Otras categorías pueden no reflejarse aquí hasta que esos campos existan para ellas.",
             activeListingsFootnote:
-              "Mismo criterio que Mis anuncios: cuenta anuncios activos o publicados en todas las fuentes conectadas a tu cuenta (incluye viajes públicos y autos de pago cuando aplican).",
+              "Activos = anuncios visibles o publicados hoy en todas las fuentes conectadas. No incluye borradores.",
+            activeVsTotalFootnote: dashboardActiveVsTotalFootnote("es", null, null),
             analyticsDegraded:
               "Las analíticas de Leonix aún no están disponibles en la base de datos (o el caché de esquema está desactualizado). Los totales de vistas, guardados y contactos mostrados aquí son cero hasta que se restaure la tabla `listing_analytics`.",
           }
         : {
             title: "Account overview",
             subtitle: "Your activity and quick access in Leonix.",
-            activeAds: "Active listings",
+            activeAds: dashboardCountLabelAnunciosActivos("en"),
             totalViews: "Total views",
             totalSaves: "Saves",
             earnings: "Total earned",
@@ -179,7 +187,8 @@ export default function DashboardPage() {
             expiringFootnote:
               "“Expiring soon” uses the end of the post-republish visibility window (`republished_at`) and listing expiry when present on Leonix’s primary listings table. Other categories may not appear here until the same fields exist for them.",
             activeListingsFootnote:
-              "Same basis as My listings: counts active or published rows across every channel tied to your account (including public travel and paid Autos when applicable).",
+              "Active = listings visible or published today across connected sources. Excludes drafts.",
+            activeVsTotalFootnote: dashboardActiveVsTotalFootnote("en", null, null),
             analyticsDegraded:
               "Leonix analytics are not available in the database yet (or the schema cache is stale). View, save, and contact totals shown here stay at zero until `listing_analytics` is restored.",
           },
@@ -194,6 +203,7 @@ export default function DashboardPage() {
   const [homeCity, setHomeCity] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [activeListings, setActiveListings] = useState<number | null>(null);
+  const [totalManagedListings, setTotalManagedListings] = useState<number | null>(null);
   const [totalViews, setTotalViews] = useState<number | null>(null);
   const [enVentaActiveCount, setEnVentaActiveCount] = useState<number | null>(null);
   const [brActiveCount, setBrActiveCount] = useState<number | null>(null);
@@ -274,10 +284,19 @@ export default function DashboardPage() {
         }
 
         try {
-          const activeCt = await countOwnerActiveListingsAcrossSources(supabase, u.id);
-          if (mounted) setActiveListings(activeCt);
+          const [activeCt, managedCt] = await Promise.all([
+            countOwnerActiveListingsAcrossSources(supabase, u.id),
+            countOwnerInventoryListings(supabase, u.id),
+          ]);
+          if (mounted) {
+            setActiveListings(activeCt);
+            setTotalManagedListings(managedCt);
+          }
         } catch {
-          if (mounted) setActiveListings(null);
+          if (mounted) {
+            setActiveListings(null);
+            setTotalManagedListings(null);
+          }
         }
 
         try {
@@ -500,7 +519,7 @@ export default function DashboardPage() {
               href={`/dashboard/mis-anuncios?${q}`}
               label={t.activeAds}
               value={fmtNum(activeListings)}
-              hint={t.activeListingsFootnote}
+              hint={`${t.activeListingsFootnote} ${dashboardActiveVsTotalFootnote(lang, totalManagedListings, activeListings)}`}
               accent="📣"
             />
             <DashboardMetricLinkCard

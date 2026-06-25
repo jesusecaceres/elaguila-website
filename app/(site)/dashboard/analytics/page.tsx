@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { dashboardCountLabelTotalGestionados } from "../lib/dashboardCountDefinitions";
 import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
 import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import type { ListingViewRow } from "../lib/ownerListingAnalyticsInsights";
@@ -27,15 +28,10 @@ function isAllEngagementZero(totals: OwnerAnalyticsTotals): boolean {
   return (
     totals.listingViews === 0 &&
     totals.uniqueListingViewsEstimate === 0 &&
-    totals.saves === 0 &&
     totals.shares === 0 &&
-    totals.messages === 0 &&
-    totals.profileViews === 0 &&
     totals.listingOpens === 0 &&
     totals.likes === 0 &&
-    totals.ctaClicks === 0 &&
-    totals.leads === 0 &&
-    totals.applications === 0
+    totals.ctaClicks === 0
   );
 }
 
@@ -64,9 +60,11 @@ export default function DashboardAnalyticsPage() {
     () =>
       lang === "es"
         ? {
-            title: "Analíticas",
-            subtitle: "Mide el rendimiento de tus anuncios y ajusta tu estrategia.",
-            body: "Totales basados en vistas, guardados, compartidos, mensajes, clics en CTA y otras interacciones registradas para tus anuncios.",
+            title: "Analíticas de cuenta",
+            subtitle: "Resumen de interacciones registradas en tus anuncios con analíticas conectadas.",
+            body: "Solo mostramos métricas respaldadas por eventos reales en `listing_analytics`. Algunas categorías pueden reportar menos datos mientras termina su integración.",
+            categoryNotice:
+              "Estas métricas muestran interacciones registradas por los anuncios que ya tienen analíticas conectadas. Algunas categorías pueden mostrar menos datos mientras se termina su integración.",
             ctaListings: "Ir a Mis anuncios",
             ctaHome: "Volver al resumen",
             ctaNotif: "Avisos y recordatorios",
@@ -76,27 +74,24 @@ export default function DashboardAnalyticsPage() {
             loading: "Cargando…",
             views: "Vistas (eventos)",
             unique: "Vistas únicas (usuarios)",
-            saves: "Guardados",
             shares: "Compartidos",
-            msgs: "Mensajes (evento)",
-            profiles: "Vistas de perfil",
             opens: "Aperturas de ficha",
-            listings: "Anuncios",
+            listings: dashboardCountLabelTotalGestionados("es"),
             likes: "Me gusta",
             cta: "Clics en CTA",
-            leads: "Contactos / leads",
-            apps: "Solicitudes",
             setupNotice:
               "Las analíticas todavía se están configurando. Cuando se registren vistas, clics o interacciones, aparecerán aquí.",
             emptyActivity:
-              "Aún no hay actividad registrada. Comparte tus anuncios para empezar a ver vistas, guardados, compartidos y mensajes.",
+              "Aún no hay actividad registrada. Comparte tus anuncios para empezar a ver vistas, compartidos y clics en CTA.",
             listingsLoadFailed: "No pudimos cargar la lista de tus anuncios. Intenta de nuevo en unos minutos.",
             lastEngagement: "Última interacción registrada",
           }
         : {
-            title: "Analytics",
-            subtitle: "Measure listing performance and refine your strategy.",
-            body: "Totals are based on views, saves, shares, messages, CTA clicks, and other interactions recorded for your listings.",
+            title: "Account analytics",
+            subtitle: "Summary of recorded interactions on listings with connected analytics.",
+            body: "We only show metrics backed by real events in `listing_analytics`. Some categories may report less data while integration finishes.",
+            categoryNotice:
+              "These metrics show interactions recorded for listings that already have connected analytics. Some categories may show less data while integration is completed.",
             ctaListings: "Go to My ads",
             ctaHome: "Back to overview",
             ctaNotif: "Alerts & reminders",
@@ -106,20 +101,15 @@ export default function DashboardAnalyticsPage() {
             loading: "Loading…",
             views: "Views (events)",
             unique: "Unique viewers (users)",
-            saves: "Saves",
             shares: "Shares",
-            msgs: "Messages (event)",
-            profiles: "Profile views",
             opens: "Listing opens",
-            listings: "Listings",
+            listings: dashboardCountLabelTotalGestionados("en"),
             likes: "Likes",
             cta: "CTA clicks",
-            leads: "Leads / contact",
-            apps: "Applications",
             setupNotice:
               "Analytics are still being set up. Once views, clicks, or interactions are recorded, they will appear here.",
             emptyActivity:
-              "No activity recorded yet. Share your listings to start seeing views, saves, shares, and messages.",
+              "No activity recorded yet. Share your listings to start seeing views, shares, and CTA clicks.",
             listingsLoadFailed: "We could not load your listings list. Please try again in a few minutes.",
             lastEngagement: "Last recorded interaction",
           },
@@ -229,6 +219,7 @@ export default function DashboardAnalyticsPage() {
           </header>
           <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-inner">
             <p className="text-sm leading-relaxed text-[#3D3428]/95">{t.body}</p>
+            <p className="mt-3 text-xs leading-relaxed text-[#7A7164]">{t.categoryNotice}</p>
             {listingAnalyticsUnavailable ? (
               <p
                 className="mt-3 rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950"
@@ -247,15 +238,10 @@ export default function DashboardAnalyticsPage() {
                     { k: t.listings, v: listingCount ?? 0 },
                     { k: t.views, v: totals.listingViews },
                     { k: t.unique, v: totals.uniqueListingViewsEstimate },
-                    { k: t.saves, v: totals.saves },
                     { k: t.shares, v: totals.shares },
-                    { k: t.msgs, v: totals.messages },
-                    { k: t.profiles, v: totals.profileViews },
                     { k: t.opens, v: totals.listingOpens },
                     { k: t.likes, v: totals.likes },
                     { k: t.cta, v: totals.ctaClicks },
-                    { k: t.leads, v: totals.leads },
-                    { k: t.apps, v: totals.applications },
                   ].map((row) => (
                     <div key={row.k} className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-4 py-3">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{row.k}</p>
