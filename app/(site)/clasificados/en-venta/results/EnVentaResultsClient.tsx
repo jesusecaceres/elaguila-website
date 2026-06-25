@@ -752,7 +752,7 @@ export function EnVentaResultsClient() {
           </div>
         </form>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:mt-2 sm:gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:mt-2 sm:gap-2">
           <button
             type="button"
             onClick={() => setFiltersPanelOpen(true)}

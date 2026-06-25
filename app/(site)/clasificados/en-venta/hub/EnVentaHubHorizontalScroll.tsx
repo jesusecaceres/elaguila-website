@@ -25,7 +25,7 @@ function scrollButtonLabels(lang: Lang) {
 export function EnVentaHubSwipeHintBadge({ label }: { label: string }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded-full border border-[#C9A84A]/55 bg-gradient-to-r from-[#FFFBF0] to-[#FFFDF7] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#7A5C12] shadow-[0_2px_10px_-4px_rgba(201,168,74,0.45)] sm:hidden"
+      className="inline-flex shrink-0 items-center rounded-full border border-[#C9A84A]/40 bg-[#FFFBF0]/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-[#7A5C12] sm:hidden"
     >
       {label}
     </span>
@@ -79,9 +79,9 @@ function EnVentaHubScrollArrowButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#C9A84A]/40 bg-[#FFFCF7] text-[#B8891A] shadow-sm transition enabled:hover:border-[#C9A84A]/60 enabled:hover:bg-[#FFFBF0] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 disabled:opacity-30 sm:hidden"
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#D6C7AD]/80 bg-[#FFFCF7]/95 text-[#B8891A] transition enabled:hover:border-[#C9A84A]/50 enabled:hover:bg-[#FFFBF0] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 disabled:opacity-25 sm:hidden"
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
         {direction === "left" ? (
           <path d="M14 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
         ) : (
@@ -170,7 +170,7 @@ export function EnVentaHubMobileScrollRail({
   );
 
   const mobileScrollRow = (
-    <div className="flex items-stretch gap-1 sm:block">
+    <div className="flex items-stretch gap-0.5 sm:block">
       {controlsOn ? (
         <EnVentaHubScrollArrowButton
           direction="left"

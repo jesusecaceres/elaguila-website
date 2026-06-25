@@ -160,9 +160,9 @@ export function EnVentaHubPageClient({
     "shadow-[0_4px_14px_-8px_rgba(42,36,22,0.12)] transition hover:bg-white active:scale-[0.99]";
 
   const chipNeutral =
-    "inline-flex min-h-[44px] max-w-full items-center justify-center text-balance rounded-full border border-[#E8DFD0] bg-white/95 px-3 py-2 text-center text-[12px] font-semibold leading-snug text-[#2C2416] shadow-[0_2px_8px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_4px_14px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3.5 sm:text-[13px]";
+    "inline-flex min-h-[36px] max-w-full items-center justify-center text-balance rounded-full border border-[#E8DFD0] bg-white/95 px-2.5 py-1.5 text-center text-[11px] font-semibold leading-snug text-[#2C2416] shadow-[0_1px_6px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_3px_12px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[40px] sm:px-3 sm:py-2 sm:text-[12px]";
   const chipFeaturedCls =
-    "inline-flex min-h-[44px] max-w-full items-center gap-1.5 justify-center text-balance rounded-full border border-[#C9A84A]/45 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-3 py-2 text-center text-[12px] font-semibold leading-tight text-[#2F4A65] shadow-[0_4px_16px_-6px_rgba(201,168,74,0.35)] ring-1 ring-[#C9A84A]/25 transition hover:ring-[#C9A84A]/40 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-4 sm:text-[13px]";
+    "inline-flex min-h-[36px] max-w-full items-center gap-1 justify-center text-balance rounded-full border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-2.5 py-1.5 text-center text-[11px] font-semibold leading-tight text-[#2F4A65] shadow-[0_2px_12px_-6px_rgba(201,168,74,0.28)] ring-1 ring-[#C9A84A]/20 transition hover:ring-[#C9A84A]/35 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[40px] sm:px-3.5 sm:py-2 sm:text-[12px]";
 
   const popularCategoryChips: Array<{ key: string; label: string; href: string }> = [
     {
@@ -204,7 +204,7 @@ export function EnVentaHubPageClient({
   const swipeHint = enVentaSwipeHintLabel(lang);
 
   const enVentaSearchForm = (
-    <div className="w-full min-w-0 space-y-1.5 text-left sm:space-y-2">
+    <div className="w-full min-w-0 space-y-1 text-left sm:space-y-2">
       <form action="/clasificados/en-venta/results" method="get" role="search">
         <input type="hidden" name="lang" value={routeLang} />
         <div
@@ -266,7 +266,7 @@ export function EnVentaHubPageClient({
           </div>
         </div>
       </form>
-      <div className="mt-2 space-y-2 sm:mt-3 sm:space-y-3">
+      <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
         <EnVentaHubHorizontalScroll
           label={lang === "es" ? "Categorías populares" : "Popular categories"}
           swipeHint={swipeHint}

@@ -8,7 +8,7 @@ import {
 type Chip = { key: string; label: string; onRemove: () => void };
 
 const chipClass =
-  "inline-flex max-w-full shrink-0 snap-start items-center gap-1.5 rounded-full border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0] to-[#FFFDF7] px-3 py-1.5 text-left text-xs font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9A84A]/55 hover:bg-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45";
+  "inline-flex max-w-full shrink-0 snap-start items-center gap-1 rounded-full border border-[#C9A84A]/30 bg-gradient-to-br from-[#FFFBF0] to-[#FFFDF7] px-2.5 py-1 text-left text-[11px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9A84A]/50 hover:bg-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3 sm:py-1.5 sm:text-xs";
 
 export function EnVentaResultsChipsRow({
   label,
@@ -28,7 +28,7 @@ export function EnVentaResultsChipsRow({
   if (chips.length === 0) return null;
   const showSwipe = Boolean(swipeHint && chips.length > 2);
   return (
-    <div className="w-full rounded-xl border border-[#D6C7AD]/80 bg-[#FFFCF7]/95 px-2.5 py-2 shadow-sm sm:px-4 sm:py-3">
+    <div className="w-full rounded-xl border border-[#D6C7AD]/80 bg-[#FFFCF7]/95 px-2.5 py-1.5 shadow-sm sm:px-4 sm:py-2.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">{label}</span>
         {showSwipe && swipeHint ? <EnVentaHubSwipeHintBadge label={swipeHint} /> : null}
@@ -59,7 +59,7 @@ export function EnVentaResultsChipsRow({
           <button
             type="button"
             onClick={onClearAll}
-            className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9A84A]/40 hover:bg-[#FAF7F2] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+            className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9A84A]/40 hover:bg-[#FAF7F2] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3 sm:py-1.5 sm:text-xs"
           >
             {clearLabel}
           </button>
