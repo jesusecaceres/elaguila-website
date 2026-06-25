@@ -86,7 +86,7 @@ function run() {
   assert.doesNotMatch(constants, /CLIENT_UPLOAD_MAX_FLYER_MB\s*=\s*15/, "15 MB flyer constant removed");
   assert.match(constants, /flyer_pdf:\s*75/, "flyer PDF 75 MB");
   assert.match(constants, /flyer_image:\s*20/, "flyer image 20 MB");
-  assert.match(constants, /coupon_pdf:\s*30/, "coupon PDF 30 MB");
+  assert.match(constants, /coupon_pdf:\s*OFERTAS_LOCALES_AI_SCAN_PDF_MAX_MB|coupon_pdf:\s*40/, "coupon PDF 40 MB aligned with AI scan");
   assert.match(constants, /coupon_image:\s*15/, "coupon image 15 MB");
 
   assert.match(validation, /getOfertaLocalClientUploadMaxBytes/, "type-specific max bytes");

@@ -3,10 +3,12 @@ import "server-only";
 /** Gate OFERTAS-SCAN-SIZE-1 — Ofertas Locales AI scan size limits (not global upload limits). */
 // Scan compute cost should be covered by future store/client package pricing — not in this gate.
 
+import { OFERTAS_LOCALES_AI_SCAN_PDF_MAX_MB } from "./ofertasLocalesConstants";
+
 const PDF_MIME = "application/pdf";
 const IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-const DEFAULT_PDF_SCAN_MAX_MB = 40;
+const DEFAULT_PDF_SCAN_MAX_MB = OFERTAS_LOCALES_AI_SCAN_PDF_MAX_MB;
 const DEFAULT_IMAGE_SCAN_MAX_MB = 15;
 
 export const OFERTAS_LOCALES_AI_SCAN_SIZE_ERROR_ES =

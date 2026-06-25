@@ -57,6 +57,20 @@ export {
   type SupportedLang,
 } from "./language";
 
+export {
+  LEONIX_LANGUAGES,
+  LEONIX_LANGUAGE_METADATA,
+  LEONIX_ACTIVE_LANGUAGE_METADATA,
+  LEONIX_HELD_LANGUAGE_METADATA,
+  getLanguageMeta,
+  getActiveLanguageMeta,
+  mapRouteLangToGoogleTarget,
+  mapLangToGoogleTranslateTarget,
+  assertLeonixLanguageMetadataInvariants,
+  type LanguageMeta,
+  type LeonixLanguageStatus,
+} from "./leonix/languageMetadata";
+
 import { ADDITIONAL_LANGUAGES, PRIMARY_LANGUAGES, type SupportedLang } from "./language";
 
 /** @deprecated Use PRIMARY_LANGUAGES + ADDITIONAL_LANGUAGES */

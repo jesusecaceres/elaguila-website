@@ -337,11 +337,14 @@ export const OFERTAS_LOCALES_DRAFT_ASSET_STATUS_OPTIONS: ReadonlyArray<{
 export const OFERTAS_LOCALES_MAX_FLYER_ASSETS = 12;
 export const OFERTAS_LOCALES_MAX_COUPON_ASSETS = 6;
 
+/** PDF max for AI scan and coupon PDF client upload (Gate OFERTAS-COUPON-UPLOAD-SIZE-1). */
+export const OFERTAS_LOCALES_AI_SCAN_PDF_MAX_MB = 40;
+
 /** Client upload limits by asset type (Gate OL-5 — weekly flyer PDFs). */
 export const OFERTAS_LOCALES_CLIENT_UPLOAD_LIMITS_MB = {
   flyer_pdf: 75,
   flyer_image: 20,
-  coupon_pdf: 30,
+  coupon_pdf: OFERTAS_LOCALES_AI_SCAN_PDF_MAX_MB,
   coupon_image: 15,
 } as const;
 
