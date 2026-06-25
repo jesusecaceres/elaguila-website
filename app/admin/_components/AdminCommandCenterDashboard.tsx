@@ -3,9 +3,7 @@ import { AdminCommandCenterClient, type AdminCommandCenterSection } from "./Admi
 import { AdminDashboardCta, AdminDashboardCtaGrid } from "./AdminDashboardCta";
 import { AdminDashboardReviewCardActions } from "./AdminDashboardReviewCardActions";
 import { AdminMonetizationLinksCard } from "./AdminMonetizationLinksCard";
-import { AdminPageHeader } from "./AdminPageHeader";
 import { AdminSectionCard } from "./AdminSectionCard";
-import { AdminStatCard } from "./AdminStatCard";
 import {
   adminCardBase,
   adminDashboardMetricChip,
@@ -28,6 +26,9 @@ import type { adminMessages } from "../_lib/adminI18n";
 
 type Msg = ReturnType<typeof adminMessages>;
 
+const REVIEW_PREVIEW_LIMIT = 5;
+const EXPIRING_PREVIEW_LIMIT = 3;
+
 function fmt(iso: string, locale: string) {
   try {
     const d = new Date(iso);
@@ -37,52 +38,90 @@ function fmt(iso: string, locale: string) {
   }
 }
 
-function ExpiringRow({
-  row,
-  m,
-  locale,
+function displayCount(value: number | string, unavailable?: boolean): ReactNode {
+  if (unavailable) return "Unavailable";
+  return value;
+}
+
+function PriorityTile({
+  label,
+  value,
+  href,
+  ctaLabel,
+  variant,
+  hint,
 }: {
-  row: AdminDashboardExpiringQueueRow;
-  m: Msg;
-  locale: string;
+  label: string;
+  value: ReactNode;
+  href: string;
+  ctaLabel: string;
+  variant: "primary" | "warning" | "view" | "active" | "neutral" | "danger";
+  hint?: string;
 }) {
   return (
-    <li className="rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-3 text-sm break-words">
+    <div className={`${adminCardBase} min-w-0 border-[#C9B46A]/30 bg-white/95 p-3 sm:p-4`}>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums text-[#1E1810] sm:text-3xl">{value}</p>
+      {hint ? <p className="mt-1 text-[11px] leading-snug text-[#7A7164]">{hint}</p> : null}
+      <AdminDashboardCta href={href} label={ctaLabel} variant={variant} className="mt-2 !min-h-[40px] !py-2 !text-xs" />
+    </div>
+  );
+}
+
+function CommandCard({
+  title,
+  count,
+  nextAction,
+  href,
+  ctaLabel,
+  variant = "primary",
+  footnote,
+}: {
+  title: string;
+  count: ReactNode;
+  nextAction: string;
+  href: string;
+  ctaLabel: string;
+  variant?: "primary" | "warning" | "view" | "active" | "neutral";
+  footnote?: string;
+}) {
+  return (
+    <div className={`${adminCardBase} min-w-0 p-4`}>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{title}</p>
+      <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{count}</p>
+      <p className="mt-1 text-xs text-[#5C5346]">{nextAction}</p>
+      {footnote ? <p className="mt-1 text-[11px] text-[#9A9084]">{footnote}</p> : null}
+      <AdminDashboardCta href={href} label={ctaLabel} variant={variant} className="mt-3" />
+    </div>
+  );
+}
+
+function CompactExpiringRow({ row, m, locale }: { row: AdminDashboardExpiringQueueRow; m: Msg; locale: string }) {
+  return (
+    <li className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2.5 text-sm break-words">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-[#1E1810]">{row.title}</p>
           <p className="text-xs text-[#7A7164]">
-            {row.categorySource} · status: {row.status ?? "—"}
-          </p>
-          <p className="mt-1 text-xs text-[#5C5346]">
-            {m("dashboard.expiresLabel")}{" "}
-            <time dateTime={row.expiresAtIso}>{fmt(row.expiresAtIso, locale)}</time>
-            <span className="text-[#9A9084]"> ({row.expirationFieldLabel})</span>
+            {row.categorySource} · {fmt(row.expiresAtIso, locale)}
           </p>
         </div>
         {row.isExpired ? (
-          <span className={adminDashboardUrgentBadge}>❗ Expired</span>
-        ) : row.isExpiringSoon ? (
-          <span className="inline-flex shrink-0 rounded-md border border-[#C9782F]/50 bg-[#FFF4E8] px-2 py-0.5 text-[10px] font-bold uppercase text-[#8B4A12]">
-            Expiring soon
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <AdminDashboardCta href={row.adminHref} label={m("dashboard.adminQueue")} variant="view" className="!min-h-[40px] !w-auto !px-3 !py-2 !text-xs" />
-        {row.publicHref ? (
-          <AdminDashboardCta href={row.publicHref} label={m("dashboard.viewPublic")} variant="active" external className="!min-h-[40px] !w-auto !px-3 !py-2 !text-xs" />
+          <span className={adminDashboardUrgentBadge}>Expired</span>
         ) : (
-          <span className="rounded-lg border border-dashed border-[#D8D0C4] px-2 py-1 text-[10px] font-semibold text-[#9A9084]">
-            {m("dashboard.noPublicUrl")}
+          <span className="rounded-md border border-[#C9782F]/50 bg-[#FFF4E8] px-2 py-0.5 text-[10px] font-bold uppercase text-[#8B4A12]">
+            Soon
           </span>
         )}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <AdminDashboardCta href={row.adminHref} label={m("dashboard.adminQueue")} variant="view" className="!min-h-[36px] !w-auto !px-3 !py-1.5 !text-xs" />
       </div>
     </li>
   );
 }
 
-function ReviewRow({
+function CompactReviewRow({
   row,
   m,
   locale,
@@ -96,7 +135,7 @@ function ReviewRow({
   const reviewSource = adminDashboardReviewSourceLabel(row);
 
   return (
-    <li className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 px-3 py-3 text-sm break-words">
+    <li className="rounded-xl border border-[#E8DFD0]/80 bg-white/95 px-3 py-2.5 text-sm break-words">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -104,50 +143,16 @@ function ReviewRow({
             <p className="font-medium text-[#1E1810]">{row.title}</p>
           </div>
           <p className="text-xs text-[#7A7164]">
-            {row.categorySource} · status: {row.status}
+            {row.categorySource} · flagged/review status: {row.status}
           </p>
-          {row.updatedAtIso ? (
-            <p className="mt-1 text-xs text-[#5C5346]">
-              {m("dashboard.updatedLabel")}{" "}
-              <time dateTime={row.updatedAtIso}>{fmt(row.updatedAtIso, locale)}</time>
-            </p>
-          ) : null}
           <p className="mt-1 text-xs text-[#5C5346]">
             {m("dashboard.reasonLabel")} {reason}
           </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-[#9A9084]">{reviewSource}</p>
+          <p className="mt-0.5 text-[10px] text-[#9A9084]">{reviewSource}</p>
         </div>
-        <span className="rounded-md border border-[#C9B46A]/40 bg-[#FFFCF7] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-          {row.status}
-        </span>
       </div>
       <AdminDashboardReviewCardActions row={row} />
     </li>
-  );
-}
-
-function AttentionMetric({
-  label,
-  value,
-  hint,
-  href,
-  ctaLabel,
-  variant,
-}: {
-  label: string;
-  value: ReactNode;
-  hint?: string;
-  href: string;
-  ctaLabel: string;
-  variant: "primary" | "warning" | "view" | "active" | "neutral";
-}) {
-  return (
-    <div className={`${adminCardBase} break-words p-4`}>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
-      <p className="mt-2 text-3xl font-bold tabular-nums text-[#1E1810]">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-[#5C5346]/90">{hint}</p> : null}
-      <AdminDashboardCta href={href} label={ctaLabel} variant={variant} className="mt-3" />
-    </div>
   );
 }
 
@@ -175,123 +180,198 @@ export function AdminCommandCenterDashboard({
   showPaymentTracker: boolean;
 }) {
   const { expiringSoon, expired } = splitAdminDashboardExpiringQueue(snap.expiringQueueItems);
-  const urgentReview = snap.pendingReviewQueueItems.filter(isAdminDashboardUrgentReviewRow);
+  const reviewPreview = snap.pendingReviewQueueItems.slice(0, REVIEW_PREVIEW_LIMIT);
+  const expiringSoonPreview = expiringSoon.slice(0, EXPIRING_PREVIEW_LIMIT);
+  const expiredPreview = expired.slice(0, EXPIRING_PREVIEW_LIMIT);
+  const pendingReviewCount = snap.pendingListingsReview + snap.pendingReviewQueueItems.length;
 
-  const summary = (
-    <div className={`${adminCardBase} border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-4 sm:p-5`} data-testid="admin-dashboard-summary">
-      <h2 className="font-serif text-xl font-bold text-[#1E1810] sm:text-2xl">Today&apos;s command snapshot</h2>
-      <p className="mt-1 text-sm text-[#5C5346]">What needs attention, revenue follow-up, and urgent review — live Supabase counts only.</p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <span className={adminDashboardMetricChip}>Review {snap.pendingListingsReview + snap.pendingReviewQueueItems.length}</span>
-        <span className={adminDashboardMetricChip}>Reports {snap.pendingReports}</span>
-        <span className={adminDashboardMetricChip}>
-          Leads {leads.unavailable ? "—" : leads.leadsNeedingReply} need reply
-        </span>
-        <span className={adminDashboardMetricChip}>Expiring {expiringSoon.length}</span>
-        <span className={adminDashboardMetricChip}>Expired {expired.length}</span>
+  const hero = (
+    <header
+      className={`${adminCardBase} mb-5 border-[#C9B46A]/45 bg-gradient-to-br from-[#FFFCF7] to-[#FFF8F0] p-4 sm:p-5`}
+      data-testid="admin-command-hero"
+    >
+      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8B7355]">Leonix Command Center</p>
+      <h1 className="mt-1 font-serif text-2xl font-bold text-[#1E1810] sm:text-3xl">Owner dashboard</h1>
+      <p className="mt-1 max-w-3xl text-sm text-[#5C5346]">
+        Run launch, leads, listings, reports, content, and revenue from one place.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className={adminDashboardMetricChip}>Admin signed in</span>
+        <span className={adminDashboardMetricChip}>Real data only</span>
+        <span className={adminDashboardMetricChip}>No fake counts</span>
       </div>
+    </header>
+  );
+
+  const priorityStrip = (
+    <div className="mb-5 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6" data-testid="admin-ceo-priority-strip">
+      <PriorityTile
+        label="Leads need reply"
+        value={displayCount(leads.leadsNeedingReply, leads.unavailable)}
+        hint={leads.unavailable ? leads.unavailableNote ?? undefined : "Launch Leads — new or needs_reply"}
+        href={ADMIN_DASHBOARD_ROUTES.launchLeads}
+        ctaLabel="Open Launch Leads"
+        variant="primary"
+      />
+      <PriorityTile
+        label="Review / pending ads"
+        value={pendingReviewCount}
+        hint={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : "Flagged or pending listings"}
+        href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
+        ctaLabel={m("dashboard.reviewAds")}
+        variant="warning"
+      />
+      <PriorityTile
+        label="Reports"
+        value={snap.pendingReports}
+        hint={m("dashboard.reportsHint")}
+        href={ADMIN_DASHBOARD_ROUTES.reports}
+        ctaLabel={m("dashboard.viewReports")}
+        variant="warning"
+      />
+      <PriorityTile
+        label="Expired listings"
+        value={expired.length}
+        hint="Past expiration deadline"
+        href="#expiration"
+        ctaLabel="See expired"
+        variant="danger"
+      />
+      <PriorityTile
+        label="Promo / quote leads"
+        value={displayCount(leads.promoLeadsActive, leads.unavailable)}
+        href={ADMIN_DASHBOARD_ROUTES.promocionales}
+        ctaLabel="Open Promocionales"
+        variant="primary"
+      />
+      <PriorityTile
+        label="Newsletter"
+        value={displayCount(leads.newsletterActive, leads.unavailable)}
+        href={ADMIN_DASHBOARD_ROUTES.newsletter}
+        ctaLabel="Newsletter list"
+        variant="active"
+      />
     </div>
   );
 
-  const attentionSection = (
-    <AdminSectionCard title="Today's Attention" subtitle="Urgent review, pending ads, expiring listings, reports, and leads needing response.">
+  const todaysCommandSection = (
+    <AdminSectionCard
+      title="Today's Command"
+      subtitle="What needs action today — urgent review, reports, leads, expiring ads, and account signals. Live Supabase counts only."
+    >
       {leads.unavailable ? (
         <div className={adminWarningCallout}>
           <strong>Lead counts unavailable.</strong> {leads.unavailableNote}
         </div>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <AttentionMetric
-          label={m("dashboard.pendingAdsTitle")}
-          value={snap.pendingListingsReview}
-          hint={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : m("dashboard.pendingAdsHint")}
+        <CommandCard
+          title={m("dashboard.pendingAdsTitle")}
+          count={snap.pendingListingsReview}
+          nextAction="Review flagged or pending listings before launch."
+          footnote={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : undefined}
           href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
           ctaLabel={m("dashboard.reviewAds")}
           variant="warning"
         />
-        <AttentionMetric
-          label={m("dashboard.reportsTitle")}
-          value={snap.pendingReports}
-          hint={m("dashboard.reportsHint")}
+        <CommandCard
+          title={m("dashboard.reportsTitle")}
+          count={snap.pendingReports}
+          nextAction="Resolve listing reports and complaints."
           href={ADMIN_DASHBOARD_ROUTES.reports}
           ctaLabel={m("dashboard.viewReports")}
           variant="warning"
         />
-        <AttentionMetric
-          label="Leads needing response"
-          value={leads.unavailable ? "—" : leads.leadsNeedingReply}
-          hint={leads.unavailable ? leads.unavailableNote ?? undefined : "Active Launch Leads with status new or needs_reply."}
+        <CommandCard
+          title="Leads needing response"
+          count={displayCount(leads.leadsNeedingReply, leads.unavailable)}
+          nextAction="Follow up on Launch Leads inbox."
           href={ADMIN_DASHBOARD_ROUTES.launchLeads}
           ctaLabel="Open Launch Leads"
           variant="primary"
         />
-        <AttentionMetric
-          label="Expiring soon"
-          value={expiringSoon.length}
-          hint={`Real expiration within ${ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days.`}
-          href="#expiring"
-          ctaLabel="See expiring"
-          variant="view"
-        />
-        <AttentionMetric
-          label="Expired listings"
-          value={expired.length}
-          hint="Already past expiration timestamp."
-          href="#expiring"
+        <CommandCard
+          title="Expired listings"
+          count={expired.length}
+          nextAction="Renew or archive expired ads."
+          href="#expiration"
           ctaLabel="See expired"
           variant="view"
         />
-        <AttentionMetric
-          label={m("dashboard.usersHelpTitle")}
-          value={snap.usersNeedingHelpProxy}
-          hint={snap.usersNeedingHelpNote}
+        <CommandCard
+          title="Expiring soon"
+          count={expiringSoon.length}
+          nextAction={`Within ${ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days.`}
+          href="#expiration"
+          ctaLabel="See expiring"
+          variant="view"
+        />
+        <CommandCard
+          title={m("dashboard.usersHelpTitle")}
+          count={snap.usersNeedingHelpProxy}
+          nextAction={snap.usersNeedingHelpNote}
           href={ADMIN_DASHBOARD_ROUTES.users}
           ctaLabel={m("dashboard.viewUsers")}
           variant="neutral"
         />
       </div>
-      {urgentReview.length > 0 ? (
-        <p className="mt-4 text-xs font-semibold text-rose-900">
-          ❗ {urgentReview.length} urgent review item(s) — see Review section below.
-        </p>
-      ) : null}
     </AdminSectionCard>
   );
 
-  const moneySection = (
-    <AdminSectionCard title="Money Pipeline" subtitle="Revenue follow-up: leads, promo quotes, advertising, media kit, newsletter, and Tienda ops.">
+  const revenuePipelineSection = (
+    <AdminSectionCard
+      title="Revenue Pipeline"
+      subtitle="Money follow-up — leads, quotes, catalog, entitlements, and payment ops."
+    >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className={`${adminCardBase} p-4`}>
-          <p className="text-[11px] font-bold uppercase text-[#7A7164]">Launch Leads</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{leads.unavailable ? "—" : leads.launchLeadsActive}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.launchLeads} label="Open Launch Leads" variant="primary" className="mt-3" />
-        </div>
-        <div className={`${adminCardBase} p-4`}>
-          <p className="text-[11px] font-bold uppercase text-[#7A7164]">Promocionales</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{leads.unavailable ? "—" : leads.promoLeadsActive}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.promocionales} label="Open Promocionales" variant="primary" className="mt-3" />
-        </div>
-        <div className={`${adminCardBase} p-4`}>
-          <p className="text-[11px] font-bold uppercase text-[#7A7164]">Advertising leads</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{leads.unavailable ? "—" : leads.advertisingLeadsActive}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.launchLeads} label="Review advertising" variant="view" className="mt-3" />
-        </div>
-        <div className={`${adminCardBase} p-4`}>
-          <p className="text-[11px] font-bold uppercase text-[#7A7164]">Media kit</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{leads.unavailable ? "—" : leads.mediaKitActive}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.mediaKit} label="Media kit inbox" variant="view" className="mt-3" />
-        </div>
-        <div className={`${adminCardBase} p-4`}>
-          <p className="text-[11px] font-bold uppercase text-[#7A7164]">Newsletter</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{leads.unavailable ? "—" : leads.newsletterActive}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.newsletter} label="Newsletter list" variant="active" className="mt-3" />
-        </div>
-        <div className={`${adminCardBase} p-4`}>
-          <p className="text-[11px] font-bold uppercase text-[#7A7164]">Tienda catalog</p>
-          <p className="mt-2 text-2xl font-bold tabular-nums">{catalogStats.error ? "—" : catalogStats.live}</p>
-          <p className="mt-1 text-xs text-[#7A7164]">{catalogStats.error ? catalogStats.error : `${catalogStats.total} total items`}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.catalog} label="Open catalog" variant="active" className="mt-3" />
-        </div>
+        <CommandCard
+          title="Launch Leads"
+          count={displayCount(leads.launchLeadsActive, leads.unavailable)}
+          nextAction="Respond to new business inquiries."
+          href={ADMIN_DASHBOARD_ROUTES.launchLeads}
+          ctaLabel="Open Launch Leads"
+          variant="primary"
+        />
+        <CommandCard
+          title="Promo / print quotes"
+          count={displayCount(leads.promoLeadsActive, leads.unavailable)}
+          nextAction="Follow up on promotional product quotes."
+          href={ADMIN_DASHBOARD_ROUTES.promocionales}
+          ctaLabel="Open Promocionales"
+          variant="primary"
+        />
+        <CommandCard
+          title="Advertising leads"
+          count={displayCount(leads.advertisingLeadsActive, leads.unavailable)}
+          nextAction="Review advertising interest in Launch Leads."
+          href={ADMIN_DASHBOARD_ROUTES.launchLeads}
+          ctaLabel="Review advertising"
+          variant="view"
+        />
+        <CommandCard
+          title="Media kit requests"
+          count={displayCount(leads.mediaKitActive, leads.unavailable)}
+          nextAction="Reply to media kit interest."
+          href={ADMIN_DASHBOARD_ROUTES.mediaKit}
+          ctaLabel="Media kit inbox"
+          variant="view"
+        />
+        <CommandCard
+          title="Newsletter list"
+          count={displayCount(leads.newsletterActive, leads.unavailable)}
+          nextAction="Launch signup follow-up."
+          href={ADMIN_DASHBOARD_ROUTES.newsletter}
+          ctaLabel="Newsletter list"
+          variant="active"
+        />
+        <CommandCard
+          title="Tienda catalog (live)"
+          count={catalogStats.error ? "Unavailable" : catalogStats.live}
+          nextAction={catalogStats.error ? catalogStats.error : `${catalogStats.total} total catalog items`}
+          href={ADMIN_DASHBOARD_ROUTES.catalog}
+          ctaLabel="Open catalog"
+          variant="active"
+        />
       </div>
       <div className="mt-6">
         <AdminMonetizationLinksCard
@@ -316,135 +396,141 @@ export function AdminCommandCenterDashboard({
     </AdminSectionCard>
   );
 
-  const quickActionsSection = (
-    <AdminSectionCard title="Quick Actions" subtitle="Rectangular command CTAs — full-width on phone, grid on tablet+.">
+  const marketplaceSection = (
+    <AdminSectionCard title="Marketplace Operations" subtitle="Listings, categories, vertical ops, reports, and global lookup.">
       <AdminDashboardCtaGrid columns={2}>
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.launchLeads} label="Open Launch Leads" variant="primary" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.promocionales} label="Open Promocionales" variant="primary" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue} label="Open Classifieds Queue" variant="warning" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.createStaffUser} label="Create Staff User" variant="active" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.team} label="Manage Team" variant="active" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.websiteSections} label="Open Website Sections" variant="view" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.globalSettings} label="Open Global Settings" variant="view" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.tienda} label="Open Tienda" variant="active" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.catalog} label="Open Catalog" variant="active" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.viewSite} label="View Public Site" variant="view" external />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.categories} label="Categories / ad ops" variant="warning" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue} label="Review ads queue" variant="warning" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.serviciosOps} label="Servicios ops" variant="active" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.autosOps} label="Autos ops" variant="active" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.restaurantesOps} label="Restaurantes ops" variant="active" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.viajesOps} label="Viajes ops" variant="active" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.reports} label="Reports & complaints" variant="warning" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.customerOps} label="Global Search" variant="view" />
+      </AdminDashboardCtaGrid>
+      <div className="mt-4 rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7]/80 p-3 text-xs text-[#5C5346]">
+        Categories: {regSummary.live} live · {regSummary.staged} staged · {regSummary.comingSoon} coming soon (registry truth).
+      </div>
+    </AdminSectionCard>
+  );
+
+  const websiteSection = (
+    <AdminSectionCard title="Website & Content Control" subtitle="Public sections, settings, magazine, and language quality.">
+      <AdminDashboardCtaGrid columns={2}>
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.websiteSections} label="Site sections" variant="view" title={m("dashboard.linkWorkspaceTitle")} />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.siteSettings} label="Global site settings" variant="view" title={m("dashboard.linkSiteSettingsTitle")} />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.viewSite} label="View public site" variant="view" external />
+        <AdminDashboardCta href="/admin/workspace/revista" label="Magazine" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.newsletter} label="Newsletter" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.mediaKit} label="Media kit" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.languageAudit} label="Language audit" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.globalSettings} label="Admin settings" variant="neutral" />
+      </AdminDashboardCtaGrid>
+      {snap.magazineFeaturedLabel ? (
+        <p className="mt-4 text-xs text-[#7A7164]">
+          Featured magazine: {snap.magazineFeaturedLabel}
+          {snap.magazineUpdated ? ` · updated ${snap.magazineUpdated}` : ""}
+        </p>
+      ) : null}
+    </AdminSectionCard>
+  );
+
+  const systemSection = (
+    <AdminSectionCard title="Admin Team & System" subtitle="People, lookup, settings, audit trail, and support.">
+      <AdminDashboardCtaGrid columns={2}>
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.teamRoster} label="Team roster" variant="active" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.createStaffUser} label="Create staff user" variant="primary" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.users} label="Users" variant="view" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.customerOps} label="Global Search" variant="view" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.globalSettings} label="Settings" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.activityLog} label="Activity log" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.support} label="Support tickets" variant="neutral" />
+        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.tienda} label="Tienda" variant="active" />
       </AdminDashboardCtaGrid>
     </AdminSectionCard>
   );
 
-  const reviewSection = (
-    <AdminSectionCard title={m("dashboard.pendingReviewTitle")} subtitle={m("dashboard.pendingReviewSub")}>
-      <ul className="space-y-3">
-        {snap.pendingReviewQueueItems.length === 0 ? (
+  const reviewWorkbenchSection = (
+    <AdminSectionCard
+      title="Review workbench preview"
+      subtitle="Top flagged/review listings — reasons from persisted fields, not AI. Open the full queue for bulk work."
+    >
+      <ul className="space-y-2">
+        {reviewPreview.length === 0 ? (
           <li className="text-sm text-[#5C5346]/90">{m("dashboard.pendingReviewEmpty")}</li>
         ) : (
-          snap.pendingReviewQueueItems.map((row) => <ReviewRow key={`${row.source}-${row.internalId}`} row={row} m={m} locale={locale} />)
+          reviewPreview.map((row) => (
+            <CompactReviewRow key={`${row.source}-${row.internalId}`} row={row} m={m} locale={locale} />
+          ))
         )}
       </ul>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <AdminDashboardCta
+          href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
+          label="Open full review queue"
+          variant="warning"
+        />
+        <AdminDashboardCta href="#review" label="Stay on preview" variant="neutral" />
+      </div>
     </AdminSectionCard>
   );
 
-  const expiringSection = (
+  const expirationWorkbenchSection = (
     <AdminSectionCard
-      title={m("dashboard.expiringTitle")}
-      subtitle={`${m("dashboard.expiringSub")} Expiring soon = within ${ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days.`}
+      title="Expiration workbench preview"
+      subtitle={`Compact view — expiring soon = within ${ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days. Full lists live in classifieds queue.`}
     >
-      <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-2">
         <div>
-          <h3 className="text-sm font-bold text-[#1E1810]">Expiring soon ({ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days)</h3>
-          <ul className="mt-3 space-y-3">
-            {expiringSoon.length === 0 ? (
-              <li className="text-sm text-[#5C5346]/90">No ads expiring within {ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days.</li>
+          <h3 className="text-sm font-bold text-[#1E1810]">Expiring soon</h3>
+          <ul className="mt-2 space-y-2">
+            {expiringSoonPreview.length === 0 ? (
+              <li className="text-sm text-[#5C5346]/90">None within {ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days.</li>
             ) : (
-              expiringSoon.map((row) => <ExpiringRow key={`soon-${row.source}-${row.internalId}`} row={row} m={m} locale={locale} />)
+              expiringSoonPreview.map((row) => (
+                <CompactExpiringRow key={`soon-${row.source}-${row.internalId}`} row={row} m={m} locale={locale} />
+              ))
             )}
           </ul>
         </div>
         <div>
           <h3 className="text-sm font-bold text-[#1E1810]">Expired</h3>
-          <ul className="mt-3 space-y-3">
-            {expired.length === 0 ? (
-              <li className="text-sm text-[#5C5346]/90">No expired ads in the current queue sample.</li>
+          <ul className="mt-2 space-y-2">
+            {expiredPreview.length === 0 ? (
+              <li className="text-sm text-[#5C5346]/90">No expired ads in preview sample.</li>
             ) : (
-              expired.map((row) => <ExpiringRow key={`exp-${row.source}-${row.internalId}`} row={row} m={m} locale={locale} />)
+              expiredPreview.map((row) => (
+                <CompactExpiringRow key={`exp-${row.source}-${row.internalId}`} row={row} m={m} locale={locale} />
+              ))
             )}
           </ul>
         </div>
       </div>
-    </AdminSectionCard>
-  );
-
-  const operationsSection = (
-    <AdminSectionCard title="Operations" subtitle="Active admin areas — categories, leads, team, customer ops, Tienda, and site sections.">
-      <AdminDashboardCtaGrid columns={2}>
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.categories} label="Categories / ad ops" variant="warning" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.launchLeads} label="Launch Leads" variant="primary" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.promocionales} label="Promocionales" variant="primary" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.teamRoster} label="Team roster" variant="active" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.users} label="Users" variant="view" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.customerOps} label="Customer Ops" variant="view" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.tienda} label="Tienda" variant="active" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.websiteSections} label="Site sections" variant="view" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.newsletter} label="Newsletter" variant="neutral" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.mediaKit} label="Media kit" variant="neutral" />
-        <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.siteSettings} label="Site-wide settings" variant="neutral" />
-        <AdminDashboardCta href="/admin/workspace/revista" label="Magazine" variant="neutral" />
-      </AdminDashboardCtaGrid>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <AdminStatCard
-          title={m("dashboard.magazineTitle")}
-          value={snap.magazineFeaturedLabel ?? "—"}
-          hint={snap.magazineUpdated ? m("dashboard.magazineHintUpdated", { date: snap.magazineUpdated }) : m("dashboard.magazineHintApi")}
-          icon="📰"
-          actionLabel={m("dashboard.manageMagazines")}
-          actionHref="/admin/workspace/revista"
-          actionTitle={m("dashboard.manageMagazinesTitle")}
-        />
-        <AdminSectionCard
-          title={m("dashboard.categoriesCommandTitle")}
-          subtitle={m("dashboard.categoriesSub", {
-            live: String(regSummary.live),
-            staged: String(regSummary.staged),
-            comingSoon: String(regSummary.comingSoon),
-          })}
-          className="!p-4"
-        >
-          <p className="text-sm text-[#5C5346]">{m("dashboard.categoriesCommandBody")}</p>
-          <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.categories} label={`${m("dashboard.manageCategories")} →`} variant="warning" className="mt-4 !w-auto" />
-        </AdminSectionCard>
-      </div>
+      <AdminDashboardCta
+        href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue}
+        label="Open classifieds queue"
+        variant="view"
+        className="mt-4"
+      />
     </AdminSectionCard>
   );
 
   const sections: AdminCommandCenterSection[] = [
-    { id: "attention", label: "Today", content: attentionSection },
-    { id: "money", label: "Money", content: moneySection },
-    { id: "actions", label: "Actions", content: quickActionsSection },
-    { id: "review", label: "Review", content: reviewSection },
-    { id: "expiring", label: "Expiring", content: expiringSection },
-    { id: "operations", label: "Ops", content: operationsSection },
+    { id: "today", label: "Today", content: todaysCommandSection },
+    { id: "revenue", label: "Revenue", content: revenuePipelineSection },
+    { id: "marketplace", label: "Marketplace", content: marketplaceSection },
+    { id: "website", label: "Website", content: websiteSection },
+    { id: "system", label: "System", content: systemSection },
+    { id: "review", label: "Review", content: reviewWorkbenchSection },
+    { id: "expiration", label: "Expiration", content: expirationWorkbenchSection },
   ];
 
   return (
-    <div className="min-w-0 max-w-7xl">
-      <AdminPageHeader title={m("dashboard.title")} subtitle={m("dashboard.subtitle")} helperText={m("dashboard.helper")} />
-
-      <div className="mb-6 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFCF7]/95 p-4 text-sm text-[#5C5346] sm:p-5">
-        <p className="font-serif text-base font-bold text-[#1E1810]">{m("dashboard.editSectionsTitle")}</p>
-        <p className="mt-1.5 text-xs leading-relaxed text-[#7A7164]">{m("dashboard.editSectionsBody")}</p>
-        <div className="mt-4">
-          <AdminDashboardCtaGrid columns={2}>
-            <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.websiteSections} label={m("dashboard.linkWorkspace")} variant="view" title={m("dashboard.linkWorkspaceTitle")} />
-            <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.siteSettings} label={m("dashboard.linkSiteSettings")} variant="view" title={m("dashboard.linkSiteSettingsTitle")} />
-            <AdminDashboardCta href={ADMIN_DASHBOARD_ROUTES.customerOps} label={m("dashboard.linkOps")} variant="neutral" title={m("dashboard.linkOpsTitle")} />
-          </AdminDashboardCtaGrid>
-        </div>
-      </div>
-
-      <AdminCommandCenterClient summary={summary} sections={sections} />
-
-      <div className="mt-8 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164] break-words">
+    <div className="min-w-0 max-w-7xl overflow-x-hidden" data-testid="admin-ceo-command-center">
+      {hero}
+      {priorityStrip}
+      <AdminCommandCenterClient sections={sections} />
+      <div className="mt-6 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164] break-words">
         <p>
           <strong className="text-[#5C5346]">{m("dashboard.dataHonestyLabel")}</strong> {m("dashboard.dataHonestyBody")}
         </p>

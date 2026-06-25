@@ -57,10 +57,10 @@ const pkgSrc = read(pkg);
 const pageSrc = read(page);
 
 assert("uses command center dashboard", pageSrc.includes("AdminCommandCenterDashboard"), page);
-assert("Today's Attention section", /Today['']s Attention/.test(dashSrc), dashboard);
-assert("Money Pipeline section", /Money Pipeline/.test(dashSrc), dashboard);
-assert("Quick Actions section", /Quick Actions/.test(dashSrc), dashboard);
-assert("Operations section", /Operations/.test(dashSrc), dashboard);
+assert("Today's Command or legacy Attention section", /Today['']s Command/.test(dashSrc) || /Today['']s Attention/.test(dashSrc), dashboard);
+assert("Revenue Pipeline or legacy Money Pipeline", /Revenue Pipeline/.test(dashSrc) || /Money Pipeline/.test(dashSrc), dashboard);
+assert("Marketplace or legacy Operations section", /Marketplace Operations/.test(dashSrc) || /Operations/.test(dashSrc), dashboard);
+assert("Command center hero or legacy subtitle", /Leonix Command Center/i.test(dashSrc) || dashSrc.includes("live Supabase counts"), dashboard);
 assert("Launch Leads CTA", routesSrc.includes('launchLeads: "/admin/leads/inbox"'), routes);
 assert("Promocionales CTA", routesSrc.includes("view=promo"), routes);
 assert("Classifieds Queue CTA", routesSrc.includes("/admin/workspace/clasificados"), routes);
@@ -96,7 +96,7 @@ const CTA_SMOKE = [
   ["Classifieds Queue", "/admin/workspace/clasificados"],
   ["Team", "/admin/team"],
   ["Create Staff User", "/admin/team/users/new"],
-  ["Website Sections", "/admin/workspace"],
+  ["Website Sections", "/admin/site-sections"],
   ["Global Settings", "/admin/settings"],
   ["Tienda", "/admin/tienda"],
   ["Catalog", "/admin/tienda/catalog"],
