@@ -184,44 +184,72 @@ async function tryRenderPdfPageToPng(
   pageNumber: number,
   maxWidthPx: number = OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX
 ): Promise<{ bytes: Buffer; width: number; height: number } | null> {
+  console.info("[ofertas-locales ai] pdf page png render started", {
+    pageNumber,
+  });
+
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    await ensurePdfJsFakeWorkerLoaded();
     const canvasMod = await import("@napi-rs/canvas");
 
     const doc = await pdfjs.getDocument({
       data: new Uint8Array(singlePagePdfBytes),
       useSystemFonts: true,
       disableFontFace: true,
+      useWorkerFetch: false,
+      isOffscreenCanvasSupported: false,
+      isImageDecoderSupported: false,
     }).promise;
 
-    const page = await doc.getPage(1);
-    const baseViewport = page.getViewport({ scale: 1 });
-    const scaleFromDpi = OFERTAS_GEMINI_TARGET_DPI / 72;
-    const scaleFromMaxWidth = maxWidthPx / baseViewport.width;
-    const scale = Math.min(scaleFromDpi, scaleFromMaxWidth, 3);
+    try {
+      const page = await doc.getPage(1);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scaleFromDpi = OFERTAS_GEMINI_TARGET_DPI / 72;
+      const scaleFromMaxWidth = maxWidthPx / baseViewport.width;
+      const scale = Math.min(scaleFromDpi, scaleFromMaxWidth, 3);
 
-    const viewport = page.getViewport({ scale });
-    const canvas = canvasMod.createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-    const context = canvas.getContext("2d");
+      const viewport = page.getViewport({ scale });
+      const width = Math.ceil(viewport.width);
+      const height = Math.ceil(viewport.height);
+      const canvas = canvasMod.createCanvas(width, height);
+      const context = canvas.getContext("2d");
 
-    await page.render({
-      canvasContext: context as unknown as CanvasRenderingContext2D,
-      viewport,
-      canvas: canvas as unknown as HTMLCanvasElement,
-    }).promise;
+      await page.render({
+        canvasContext: context as unknown as CanvasRenderingContext2D,
+        viewport,
+        canvas: canvas as unknown as HTMLCanvasElement,
+      }).promise;
 
-    const bytes = canvas.toBuffer("image/png");
-    return {
-      bytes: Buffer.from(bytes),
-      width: Math.ceil(viewport.width),
-      height: Math.ceil(viewport.height),
-    };
+      const bytes = canvas.toBuffer("image/png");
+      console.info("[ofertas-locales ai] pdf page png render success", {
+        pageNumber,
+        width,
+        height,
+        renderMethod: "pdfjs_canvas_png",
+      });
+      return {
+        bytes: Buffer.from(bytes),
+        width,
+        height,
+      };
+    } finally {
+      await doc.destroy();
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "pdf render failed";
-    console.warn("[ofertas-locales ai] pdf page png render skipped", {
+    console.warn("[ofertas-locales ai] pdf page png render failed", {
       pageNumber,
       reason: message.slice(0, 200),
     });
     return null;
   }
+}
+
+async function ensurePdfJsFakeWorkerLoaded(): Promise<void> {
+  if (typeof globalThis === "object" && "pdfjsWorker" in globalThis) {
+    return;
+  }
+
+  await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
 }

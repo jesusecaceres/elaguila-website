@@ -84,8 +84,9 @@ export async function applyOfertaLocalScanItemCrops(
   const pageByNumber = new Map(params.pageImages.map((p) => [p.pageNumber, p]));
   let cropsGenerated = 0;
   const cropErrors: string[] = [];
-  const rasterCache = new Map<number, CropRasterSource>();
+  const rasterCache = new Map<number, CropRasterSource | null>();
   const pageReadyLogged = new Set<number>();
+  const pageUnavailableLogged = new Set<number>();
 
   let sharp: SharpModule | null = null;
   try {
@@ -114,15 +115,18 @@ export async function applyOfertaLocalScanItemCrops(
       continue;
     }
 
-    let raster: CropRasterSource | null = rasterCache.get(pageNumber) ?? null;
-    if (!raster) {
+    let raster: CropRasterSource | null;
+    if (rasterCache.has(pageNumber)) {
+      raster = rasterCache.get(pageNumber) ?? null;
+    } else {
       raster = await resolveCropRasterSource(page, params.scanJobId, sharp);
+      rasterCache.set(pageNumber, raster);
       if (raster) {
-        rasterCache.set(pageNumber, raster);
         if (!pageReadyLogged.has(pageNumber)) {
           pageReadyLogged.add(pageNumber);
           console.info("[ofertas-locales crop] page ready", {
-            pageNumber: page.pageNumber,
+            scanJobId: params.scanJobId,
+            sourcePage: page.pageNumber,
             renderMethod: page.renderMethod,
             hasImageBytes: raster.imageBytes.length > 0,
             width: raster.width,
@@ -133,6 +137,13 @@ export async function applyOfertaLocalScanItemCrops(
     }
     if (!raster) {
       cropErrors.push(`page_${pageNumber}_no_raster_image`);
+      if (!pageUnavailableLogged.has(pageNumber)) {
+        pageUnavailableLogged.add(pageNumber);
+        console.warn("[ofertas-locales crop] no_page_image_available_for_crop", {
+          scanJobId: params.scanJobId,
+          sourcePage: pageNumber,
+        });
+      }
       recordSkip("page_no_raster");
       continue;
     }
@@ -216,6 +227,8 @@ export async function applyOfertaLocalScanItemCrops(
     scanJobId: params.scanJobId,
     sourceAssetId: params.sourceAssetId,
     totalItems: summary.totalItems,
+    cropSuccessCount: summary.cropUploaded,
+    cropFailureCount: summary.cropSkipped,
     itemsWithBbox: summary.itemsWithBbox,
     cropAttempted: summary.cropAttempted,
     cropUploaded: summary.cropUploaded,
@@ -248,16 +261,7 @@ async function resolveCropRasterSource(
       };
     }
 
-    const sharpPdf = await trySharpPdfPageRaster(page.imageBytes, sharp);
-    if (sharpPdf) {
-      console.info("[ofertas-locales crop] sharp pdf raster fallback succeeded", {
-        scanJobId,
-        sourcePage: page.pageNumber,
-      });
-      return sharpPdf;
-    }
-
-    console.info("[ofertas-locales crop] fallback rasterization failed", {
+    console.warn("[ofertas-locales crop] pdfjs_page_render_failed", {
       scanJobId,
       sourcePage: page.pageNumber,
     });
@@ -300,29 +304,6 @@ async function resolveImageBytesRaster(
   }
 
   return null;
-}
-
-async function trySharpPdfPageRaster(
-  singlePagePdfBytes: Buffer,
-  sharp: SharpModule
-): Promise<CropRasterSource | null> {
-  try {
-    const result = await sharp(singlePagePdfBytes, { density: 200, page: 0 })
-      .png()
-      .toBuffer({ resolveWithObject: true });
-    if (!result.info.width || !result.info.height) return null;
-    return {
-      imageBytes: Buffer.from(result.data),
-      width: result.info.width,
-      height: result.info.height,
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "sharp_pdf_raster_failed";
-    console.info("[ofertas-locales crop] sharp pdf raster fallback failed", {
-      error: message.slice(0, 200),
-    });
-    return null;
-  }
 }
 
 function readGeminiBboxFromItem(item: OfertaLocalSearchableItemDraft): GeminiSourceBbox | null {
