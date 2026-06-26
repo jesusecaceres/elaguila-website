@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { fetchLatestListingModerationReviews } from "./listingModerationReviewsDb";
+import type { ListingModerationReviewSummary } from "./listingModerationReviewTypes";
+
 export type ListingFlagReportContext = {
   pendingReportReason: string | null;
   pendingReportCount: number;
@@ -9,6 +12,7 @@ export type ListingFlagReportContext = {
 export type ListingFlagContextMaps = {
   reportsByListingId: Record<string, ListingFlagReportContext>;
   ownerEmailByUserId: Record<string, string>;
+  aiReviewByListingId: Record<string, ListingModerationReviewSummary>;
 };
 
 /** Batch-load listing_reports + owner emails for admin queue truth (no schema changes). */
@@ -19,6 +23,7 @@ export async function fetchListingFlagContextMaps(
 ): Promise<ListingFlagContextMaps> {
   const reportsByListingId: Record<string, ListingFlagReportContext> = {};
   const ownerEmailByUserId: Record<string, string> = {};
+  const aiReviewByListingId: Record<string, ListingModerationReviewSummary> = {};
 
   const ids = [...new Set(listingIds.map((id) => id.trim()).filter(Boolean))];
   if (ids.length > 0) {
@@ -51,5 +56,10 @@ export async function fetchListingFlagContextMaps(
     }
   }
 
-  return { reportsByListingId, ownerEmailByUserId };
+  if (ids.length > 0) {
+    const aiMap = await fetchLatestListingModerationReviews(supabase, ids);
+    Object.assign(aiReviewByListingId, aiMap);
+  }
+
+  return { reportsByListingId, ownerEmailByUserId, aiReviewByListingId };
 }

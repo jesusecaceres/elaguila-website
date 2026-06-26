@@ -34,6 +34,8 @@ const ACTION_PAST_TENSE: Record<string, string> = {
   delete: "Deleted",
   bulk_soft_delete: "Soft deleted",
   bulk_permanent_delete: "Permanently deleted",
+  ai_review: "AI review completed",
+  bulk_ai_review: "AI review batch completed",
   hide_public: "Hidden",
   show_public: "Published",
 };

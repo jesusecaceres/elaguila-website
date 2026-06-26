@@ -28,6 +28,7 @@ import { ClassifiedAdminQueueBulkBar } from "./_components/ClassifiedAdminQueueB
 import { AdminListingMonetizationSummary } from "./_components/AdminListingMonetizationSummary";
 import { AdminListingFlagTruthBlock } from "./_components/AdminListingFlagTruthBlock";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
+import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
 
 type Row = {
   id: string;
@@ -185,6 +186,7 @@ export default function AdminListingsTable({
   staffQueueMode = false,
   flagReportByListingId = {},
   ownerEmailByUserId = {},
+  aiReviewByListingId = {},
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
@@ -197,6 +199,7 @@ export default function AdminListingsTable({
   staffQueueMode?: boolean;
   flagReportByListingId?: Record<string, ListingFlagReportContext>;
   ownerEmailByUserId?: Record<string, string>;
+  aiReviewByListingId?: Record<string, ListingModerationReviewSummary>;
 }) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -326,6 +329,54 @@ export default function AdminListingsTable({
     } catch (e) {
       const msgErr = e instanceof Error ? e.message : "Permanent delete failed";
       setError(msgErr);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function handleBulkAiReview() {
+    const rows = selectedRows;
+    if (rows.length === 0) return;
+    if (rows.length > 15) {
+      setError("Select at most 15 listings for bulk AI review.");
+      return;
+    }
+    const msg = `Run AI review on ${rows.length} selected listing(s)?\n\nDoes not change listing status. Human admin still decides final action.`;
+    if (!confirm(msg)) return;
+    setBulkBusy(true);
+    setError(null);
+    const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    try {
+      const res = await fetch("/api/admin/clasificados/listings/ai-review/bulk", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingIds: rows.map((r) => r.id) }),
+      });
+      const j = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        proofLabel?: string;
+        firstListingId?: string | null;
+      };
+      const anchorRow = rows.find((r) => r.id === j.firstListingId) ?? rows[0];
+      const meta = rowProofMeta(anchorRow);
+      const proofLabel = j.proofLabel?.trim() || (j.ok ? "AI review batch completed" : j.error?.trim() || "AI review batch failed");
+      clearSelection();
+      const url = buildAdminActionReturnUrl({
+        returnTo,
+        action_status: j.ok ? "success" : "error",
+        action: "bulk_ai_review",
+        target: anchorRow.id,
+        target_label: proofLabel,
+        target_ad_id: meta.leonixAdId !== "—" ? meta.leonixAdId : undefined,
+        scroll_y: scrollY,
+        action_error: j.ok ? undefined : j.error,
+        hash_anchor: "queue",
+      });
+      window.location.assign(url);
+    } catch {
+      setError("Bulk AI review failed — network error.");
     } finally {
       setBulkBusy(false);
     }
@@ -516,6 +567,7 @@ export default function AdminListingsTable({
           onClear={clearSelection}
           onSoftDelete={handleBulkSoftDelete}
           onPermanentDelete={handleBulkPermanentDelete}
+          onRunAiReview={handleBulkAiReview}
           busy={bulkBusy}
           showPermanentDelete
           statusFilter={queueStatusFilter}
@@ -641,8 +693,12 @@ export default function AdminListingsTable({
                         {row.status ?? "active"}
                       </span>
                       <AdminListingFlagTruthBlock
+                        listingId={row.id}
+                        leonixAdId={adminDisplayLeonixAdId(row)}
+                        listingTitle={row.title}
                         status={row.status}
                         report={flagReportByListingId[row.id]}
+                        aiReview={aiReviewByListingId[row.id]}
                         compact
                       />
                     </td>
@@ -830,7 +886,14 @@ export default function AdminListingsTable({
                   </span>
                 ) : null}
               </div>
-              <AdminListingFlagTruthBlock status={row.status} report={flagReportByListingId[row.id]} />
+              <AdminListingFlagTruthBlock
+                listingId={row.id}
+                leonixAdId={displayLeonixAdId}
+                listingTitle={row.title}
+                status={row.status}
+                report={flagReportByListingId[row.id]}
+                aiReview={aiReviewByListingId[row.id]}
+              />
               <div className="mt-4 border-t border-[#E8DFD0]/80 pt-3">
                 <ClassifiedAdminQueueRowActionsPanel
                   row={row}

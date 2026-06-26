@@ -1,5 +1,7 @@
 import { classifyGenericListingFlagTruth, type AdminReviewFlagSourceKind } from "@/app/admin/_lib/adminReviewFlagTruth";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
+import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
+import { AdminRunAiReviewButton } from "./AdminRunAiReviewButton";
 
 const BADGE_STYLES: Record<AdminReviewFlagSourceKind, string> = {
   ai_moderation: "border-[#1E4A7A]/40 bg-[#EEF4FC] text-[#1E4A7A]",
@@ -10,16 +12,47 @@ const BADGE_STYLES: Record<AdminReviewFlagSourceKind, string> = {
   unknown: "border-[#E8DFD0] bg-[#FAF7F2] text-[#9A9084]",
 };
 
+function formatReviewedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
+  } catch {
+    return null;
+  }
+}
+
 type Props = {
+  listingId: string;
+  leonixAdId?: string | null;
+  listingTitle?: string | null;
   status: string | null | undefined;
   report?: ListingFlagReportContext | null;
+  aiReview?: ListingModerationReviewSummary | null;
   compact?: boolean;
+  showRunButton?: boolean;
 };
 
-export function AdminListingFlagTruthBlock({ status, report, compact = false }: Props) {
-  const truth = classifyGenericListingFlagTruth(status, report ?? undefined);
+export function AdminListingFlagTruthBlock({
+  listingId,
+  leonixAdId,
+  listingTitle,
+  status,
+  report,
+  aiReview,
+  compact = false,
+  showRunButton = true,
+}: Props) {
+  const truth = classifyGenericListingFlagTruth(status, {
+    pendingReportReason: report?.pendingReportReason,
+    latestReportReason: report?.latestReportReason,
+    aiReview,
+  });
   const st = (status ?? "").toLowerCase();
   if (st !== "flagged" && st !== "pending") return null;
+
+  const reviewedAt = formatReviewedAt(aiReview?.reviewed_at);
+  const hasStoredAi = aiReview && aiReview.source === "ai" && aiReview.decision !== "unavailable";
 
   return (
     <div
@@ -33,6 +66,11 @@ export function AdminListingFlagTruthBlock({ status, report, compact = false }: 
         >
           {truth.sourceLabel}
         </span>
+        {hasStoredAi ? (
+          <span className="rounded-md border border-[#1E4A7A]/30 bg-[#EEF4FC] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]">
+            {aiReview!.decision.replace("_", " ")}
+          </span>
+        ) : null}
         {report?.pendingReportCount ? (
           <span className="text-[10px] font-semibold text-[#8B4A12]">{report.pendingReportCount} pending report(s)</span>
         ) : null}
@@ -40,8 +78,36 @@ export function AdminListingFlagTruthBlock({ status, report, compact = false }: 
       <p className={`${compact ? "mt-1 text-[11px]" : "mt-1.5 text-xs"} leading-snug text-[#5C5346] break-words`}>
         {truth.ownerFacingExplanation}
       </p>
-      {truth.secondaryFallback && truth.sourceKind !== "unknown_legacy" ? (
+      {hasStoredAi && aiReview?.reason_category ? (
+        <p className="mt-0.5 text-[10px] text-[#7A7164]">
+          Category: <span className="font-semibold">{aiReview.reason_category}</span>
+          {aiReview.confidence ? (
+            <>
+              {" "}
+              · Confidence: <span className="font-semibold">{aiReview.confidence}</span>
+            </>
+          ) : null}
+          {reviewedAt ? (
+            <>
+              {" "}
+              · Reviewed: <span className="font-semibold">{reviewedAt}</span>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {truth.secondaryFallback && truth.sourceKind !== "unknown_legacy" && truth.sourceKind !== "ai_moderation" ? (
         <p className="mt-0.5 text-[10px] text-[#9A9084]">{truth.secondaryFallback}</p>
+      ) : null}
+      {showRunButton ? (
+        <div className="mt-2">
+          <AdminRunAiReviewButton
+            listingId={listingId}
+            leonixAdId={leonixAdId}
+            displayLabel={listingTitle}
+            className="!min-h-[40px] !w-full sm:!w-auto"
+            label={hasStoredAi ? "Re-run AI review" : "Run AI review"}
+          />
+        </div>
       ) : null}
     </div>
   );

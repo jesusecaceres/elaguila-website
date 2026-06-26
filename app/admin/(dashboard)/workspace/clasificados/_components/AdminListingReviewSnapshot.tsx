@@ -6,7 +6,9 @@ import {
   classifyGenericListingFlagTruth,
 } from "@/app/admin/_lib/adminReviewFlagTruth";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
+import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { AdminRunAiReviewButton } from "./AdminRunAiReviewButton";
 
 function parseListingImageUrls(images: unknown): string[] {
   if (!images) return [];
@@ -39,9 +41,20 @@ type Props = {
   ownerEmail?: string | null;
   ownerName?: string | null;
   reportContext?: ListingFlagReportContext | null;
+  aiReview?: ListingModerationReviewSummary | null;
 };
 
-export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, reportContext }: Props) {
+function formatReviewedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, reportContext, aiReview }: Props) {
   const id = String(listing.id ?? "");
   const title = String(listing.title ?? "").trim() || "(no title)";
   const description = String(listing.description ?? "").trim();
@@ -57,7 +70,13 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, rep
   const publicHref =
     categoryLower === "rentas" ? rentasListingPublicPath(id) : `/clasificados/anuncio/${encodeURIComponent(id)}`;
   const queueHref = `/admin/workspace/clasificados?q=${encodeURIComponent(leonixAdId || id)}&status=${encodeURIComponent(status.toLowerCase())}#queue`;
-  const truth = classifyGenericListingFlagTruth(status, reportContext ?? undefined);
+  const truth = classifyGenericListingFlagTruth(status, {
+    pendingReportReason: reportContext?.pendingReportReason,
+    latestReportReason: reportContext?.latestReportReason,
+    aiReview,
+  });
+  const hasStoredAi = aiReview && aiReview.source === "ai" && aiReview.decision !== "unavailable";
+  const reviewedAt = formatReviewedAt(aiReview?.reviewed_at);
 
   return (
     <section className={`${adminCardBase} space-y-4 p-5`} data-testid="admin-listing-review-snapshot">
@@ -111,6 +130,60 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, rep
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Reason</dt>
           <dd className="text-xs text-[#5C5346]">
             {truth.reasonText ?? truth.secondaryFallback ?? ADMIN_REVIEW_REASON_SECONDARY_FALLBACK}
+          </dd>
+        </div>
+        <div data-testid="admin-listing-ai-review-snapshot">
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">AI moderation review</dt>
+          <dd className="mt-1 text-xs text-[#5C5346]">
+            {hasStoredAi ? (
+              <div className="space-y-1 rounded-lg border border-[#1E4A7A]/30 bg-[#EEF4FC]/60 p-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-md border border-[#1E4A7A]/40 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]">
+                    AI
+                  </span>
+                  <span className="rounded-md border border-[#1E4A7A]/30 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]">
+                    {aiReview!.decision.replace("_", " ")}
+                  </span>
+                </div>
+                {aiReview!.reason_category ? (
+                  <p>
+                    Category: <span className="font-semibold">{aiReview!.reason_category}</span>
+                    {aiReview!.confidence ? (
+                      <>
+                        {" "}
+                        · Confidence: <span className="font-semibold">{aiReview!.confidence}</span>
+                      </>
+                    ) : null}
+                    {reviewedAt ? (
+                      <>
+                        {" "}
+                        · Reviewed: <span className="font-semibold">{reviewedAt}</span>
+                      </>
+                    ) : null}
+                  </p>
+                ) : null}
+                {aiReview!.reason_text ? (
+                  <p className="leading-snug break-words">{aiReview!.reason_text}</p>
+                ) : null}
+              </div>
+            ) : aiReview?.decision === "unavailable" ? (
+              <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-2">
+                AI review unavailable{aiReview.error_message ? `: ${aiReview.error_message}` : "."}
+              </p>
+            ) : (
+              <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-2">
+                No AI review stored for this listing. Use Run AI review to generate one — does not change listing status.
+              </p>
+            )}
+            <div className="mt-2">
+              <AdminRunAiReviewButton
+                listingId={id}
+                leonixAdId={leonixAdId}
+                displayLabel={title}
+                label={hasStoredAi ? "Re-run AI review" : "Run AI review"}
+                className="!min-h-[40px] !w-full sm:!w-auto"
+              />
+            </div>
           </dd>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">

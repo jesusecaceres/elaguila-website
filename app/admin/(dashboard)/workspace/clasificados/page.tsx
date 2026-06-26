@@ -143,7 +143,11 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const queueNavHref = appendPreservedSearchParams(workspaceBase, sp, null);
   const liveNavHref = appendPreservedSearchParams(workspaceBase, sp, "live");
 
-  let flagContext: ListingFlagContextMaps = { reportsByListingId: {}, ownerEmailByUserId: {} };
+  let flagContext: ListingFlagContextMaps = {
+    reportsByListingId: {},
+    ownerEmailByUserId: {},
+    aiReviewByListingId: {},
+  };
   if (rows.length > 0) {
     flagContext = await fetchListingFlagContextMaps(
       supabase,
@@ -379,6 +383,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
                 staffQueueMode
                 flagReportByListingId={flagContext.reportsByListingId}
                 ownerEmailByUserId={flagContext.ownerEmailByUserId}
+                aiReviewByListingId={flagContext.aiReviewByListingId}
               />
             )}
           </div>

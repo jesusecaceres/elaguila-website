@@ -58,7 +58,11 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
   const detailPairsJson =
     r.detail_pairs != null ? JSON.stringify(r.detail_pairs, null, 2) : "[]";
   const queueBackHref = `/admin/workspace/clasificados?q=${encodeURIComponent(leonixAdId || id)}&status=${encodeURIComponent(status.toLowerCase())}#queue`;
-  const { reportsByListingId } = await fetchListingFlagContextMaps(supabase, [id], ownerId ? [ownerId] : []);
+  const { reportsByListingId, aiReviewByListingId } = await fetchListingFlagContextMaps(
+    supabase,
+    [id],
+    ownerId ? [ownerId] : [],
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -73,6 +77,7 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
         ownerEmail={ownerEmail}
         ownerName={ownerName}
         reportContext={reportsByListingId[id] ?? null}
+        aiReview={aiReviewByListingId[id] ?? null}
       />
 
       <form action={updateListingCoreFieldsStaffAdminAction} className={`${adminCardBase} space-y-4 p-5`}>

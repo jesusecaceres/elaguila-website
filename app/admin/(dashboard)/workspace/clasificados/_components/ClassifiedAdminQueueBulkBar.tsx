@@ -5,6 +5,7 @@ type Props = {
   onClear: () => void;
   onSoftDelete: () => void;
   onPermanentDelete: () => void;
+  onRunAiReview: () => void;
   busy: boolean;
   showPermanentDelete: boolean;
   statusFilter?: string;
@@ -15,6 +16,7 @@ export function ClassifiedAdminQueueBulkBar({
   onClear,
   onSoftDelete,
   onPermanentDelete,
+  onRunAiReview,
   busy,
   showPermanentDelete,
   statusFilter,
@@ -51,6 +53,20 @@ export function ClassifiedAdminQueueBulkBar({
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={onRunAiReview}
+          disabled={busy}
+          className="min-h-[44px] rounded-xl border border-[#1E4A7A]/40 bg-[#EEF4FC] px-4 py-3 text-sm font-bold text-[#1E4A7A] disabled:opacity-50 sm:col-span-2"
+          data-testid="clasificados-bulk-ai-review"
+          title="Runs server-side AI moderation on selected rows. Does not change listing status."
+        >
+          Run AI review on selected
+          <span className="mt-0.5 block text-[11px] font-semibold normal-case text-[#3D5A7A]">
+            Max 15 rows. Human admin still decides final action.
+          </span>
+        </button>
+
         <button
           type="button"
           onClick={onSoftDelete}

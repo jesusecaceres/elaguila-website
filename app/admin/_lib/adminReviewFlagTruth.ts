@@ -3,6 +3,8 @@
  * Never labels AI unless stored data proves an AI moderation result.
  */
 
+import type { ListingModerationReviewSummary } from "./listingModerationReviewTypes";
+
 export type AdminReviewFlagSourceKind =
   | "ai_moderation"
   | "user_report"
@@ -34,6 +36,8 @@ export type AdminReviewFlagTruthInput = {
   pendingReportReason?: string | null;
   pendingReportCount?: number;
   latestReportReason?: string | null;
+  /** Latest row from listing_moderation_reviews when source=ai. */
+  storedAiReview?: ListingModerationReviewSummary | null;
 };
 
 export const ADMIN_REVIEW_REASON_SECONDARY_FALLBACK = "Reason unavailable — inspect review source";
@@ -58,25 +62,28 @@ function isAiModerationProven(input: AdminReviewFlagTruthInput): boolean {
   return false;
 }
 
+function isStoredAiReviewProven(review: ListingModerationReviewSummary | null | undefined): boolean {
+  if (!review) return false;
+  if (review.source !== "ai") return false;
+  if (review.decision === "unavailable") return false;
+  return true;
+}
+
+function formatStoredAiReviewExplanation(review: ListingModerationReviewSummary): string {
+  const labels: Record<string, string> = {
+    approved: "Approved",
+    needs_review: "Needs review",
+    rejected: "Rejected",
+  };
+  const decisionLabel = labels[review.decision] ?? review.decision;
+  const cat = review.reason_category ? ` (${review.reason_category})` : "";
+  const reason = review.reason_text?.trim() || "No reason text stored.";
+  return `AI moderation: ${decisionLabel}${cat}. ${reason}`;
+}
+
 export function classifyAdminReviewFlagTruth(input: AdminReviewFlagTruthInput): AdminReviewFlagTruth {
   const status = (input.status ?? "").trim() || "—";
   const needsReview = isReviewStatus(status);
-
-  if (isAiModerationProven(input)) {
-    const reason = nonEmpty(input.moderationReason);
-    return {
-      sourceKind: "ai_moderation",
-      sourceLabel: "AI",
-      reasonText: reason,
-      ownerFacingExplanation: reason
-        ? `AI moderation flagged this listing. ${reason}`
-        : "AI moderation flagged this listing.",
-      secondaryFallback: null,
-      needsReview,
-      canExplain: Boolean(reason),
-      confidenceText: input.aiConfidence != null ? String(input.aiConfidence) : null,
-    };
-  }
 
   const pendingReport = nonEmpty(input.pendingReportReason);
   const latestReport = nonEmpty(input.latestReportReason);
@@ -92,6 +99,37 @@ export function classifyAdminReviewFlagTruth(input: AdminReviewFlagTruthInput): 
       needsReview,
       canExplain: true,
       confidenceText: null,
+    };
+  }
+
+  const storedAi = input.storedAiReview;
+  if (isStoredAiReviewProven(storedAi)) {
+    const review = storedAi!;
+    return {
+      sourceKind: "ai_moderation",
+      sourceLabel: "AI",
+      reasonText: review.reason_text,
+      ownerFacingExplanation: formatStoredAiReviewExplanation(review),
+      secondaryFallback: null,
+      needsReview: review.decision !== "approved" || needsReview,
+      canExplain: Boolean(review.reason_text?.trim()),
+      confidenceText: review.confidence,
+    };
+  }
+
+  if (isAiModerationProven(input)) {
+    const reason = nonEmpty(input.moderationReason);
+    return {
+      sourceKind: "ai_moderation",
+      sourceLabel: "AI",
+      reasonText: reason,
+      ownerFacingExplanation: reason
+        ? `AI moderation flagged this listing. ${reason}`
+        : "AI moderation flagged this listing.",
+      secondaryFallback: null,
+      needsReview,
+      canExplain: Boolean(reason),
+      confidenceText: input.aiConfidence != null ? String(input.aiConfidence) : null,
     };
   }
 
@@ -164,13 +202,18 @@ export function classifyAdminReviewFlagTruth(input: AdminReviewFlagTruthInput): 
 
 export function classifyGenericListingFlagTruth(
   status: string | null | undefined,
-  report?: { pendingReportReason?: string | null; latestReportReason?: string | null },
+  ctx?: {
+    pendingReportReason?: string | null;
+    latestReportReason?: string | null;
+    aiReview?: ListingModerationReviewSummary | null;
+  },
 ): AdminReviewFlagTruth {
   return classifyAdminReviewFlagTruth({
     sourceTable: "generic_listings",
     status: status ?? "—",
-    pendingReportReason: report?.pendingReportReason,
-    latestReportReason: report?.latestReportReason,
+    pendingReportReason: ctx?.pendingReportReason,
+    latestReportReason: ctx?.latestReportReason,
+    storedAiReview: ctx?.aiReview ?? null,
   });
 }
 
