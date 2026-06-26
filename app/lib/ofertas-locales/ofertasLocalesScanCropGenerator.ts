@@ -84,9 +84,9 @@ export async function applyOfertaLocalScanItemCrops(
   const pageByNumber = new Map(params.pageImages.map((p) => [p.pageNumber, p]));
   let cropsGenerated = 0;
   const cropErrors: string[] = [];
-  const rasterCache = new Map<number, CropRasterSource | null>();
+  const rasterCache = new Map<number, CropRasterSource>();
+  const rasterFailureCache = new Set<number>();
   const pageReadyLogged = new Set<number>();
-  const pageUnavailableLogged = new Set<number>();
 
   let sharp: SharpModule | null = null;
   try {
@@ -115,13 +115,11 @@ export async function applyOfertaLocalScanItemCrops(
       continue;
     }
 
-    let raster: CropRasterSource | null;
-    if (rasterCache.has(pageNumber)) {
-      raster = rasterCache.get(pageNumber) ?? null;
-    } else {
-      raster = await resolveCropRasterSource(page, params.scanJobId, sharp);
-      rasterCache.set(pageNumber, raster);
+    let raster: CropRasterSource | null = rasterCache.get(pageNumber) ?? null;
+    if (!raster && !rasterFailureCache.has(pageNumber)) {
+      raster = await resolveCropRasterSource(page, sharp);
       if (raster) {
+        rasterCache.set(pageNumber, raster);
         if (!pageReadyLogged.has(pageNumber)) {
           pageReadyLogged.add(pageNumber);
           console.info("[ofertas-locales crop] page ready", {
@@ -133,17 +131,17 @@ export async function applyOfertaLocalScanItemCrops(
             height: raster.height,
           });
         }
+      } else {
+        rasterFailureCache.add(pageNumber);
+        console.warn("[ofertas-locales crop] no_page_image_available_for_crop", {
+          scanJobId: params.scanJobId,
+          sourcePage: pageNumber,
+          renderMethod: page.renderMethod,
+        });
       }
     }
     if (!raster) {
       cropErrors.push(`page_${pageNumber}_no_raster_image`);
-      if (!pageUnavailableLogged.has(pageNumber)) {
-        pageUnavailableLogged.add(pageNumber);
-        console.warn("[ofertas-locales crop] no_page_image_available_for_crop", {
-          scanJobId: params.scanJobId,
-          sourcePage: pageNumber,
-        });
-      }
       recordSkip("page_no_raster");
       continue;
     }
@@ -227,11 +225,11 @@ export async function applyOfertaLocalScanItemCrops(
     scanJobId: params.scanJobId,
     sourceAssetId: params.sourceAssetId,
     totalItems: summary.totalItems,
-    cropSuccessCount: summary.cropUploaded,
-    cropFailureCount: summary.cropSkipped,
     itemsWithBbox: summary.itemsWithBbox,
     cropAttempted: summary.cropAttempted,
     cropUploaded: summary.cropUploaded,
+    cropSuccessCount: summary.cropUploaded,
+    cropFailureCount: summary.cropSkipped,
     cropSkipped: summary.cropSkipped,
     skipReasonCounts: summary.skipReasonCounts,
   });
@@ -241,7 +239,6 @@ export async function applyOfertaLocalScanItemCrops(
 
 async function resolveCropRasterSource(
   page: OfertaLocalPageImage,
-  scanJobId: string,
   sharp: SharpModule
 ): Promise<CropRasterSource | null> {
   if (page.renderMethod === "pdfjs_canvas_png" || page.renderMethod === "direct_image") {
@@ -262,7 +259,6 @@ async function resolveCropRasterSource(
     }
 
     console.warn("[ofertas-locales crop] pdfjs_page_render_failed", {
-      scanJobId,
       sourcePage: page.pageNumber,
     });
     return null;

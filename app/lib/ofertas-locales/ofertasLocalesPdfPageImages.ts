@@ -143,6 +143,8 @@ export type OfertaLocalPdfPageRasterForCrop = {
   renderMethod: "pdfjs_canvas_png";
 };
 
+let pdfjsWorkerLoadPromise: Promise<void> | null = null;
+
 /** On-demand single-page PDF → PNG rasterization for crop generation (Gate OFERTAS-CROP-PATCH-1). */
 export async function renderOfertaLocalPdfPageToPngForCrop(params: {
   pdfBytes: Buffer;
@@ -184,23 +186,24 @@ async function tryRenderPdfPageToPng(
   pageNumber: number,
   maxWidthPx: number = OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX
 ): Promise<{ bytes: Buffer; width: number; height: number } | null> {
-  console.info("[ofertas-locales ai] pdf page png render started", {
-    pageNumber,
-  });
-
   try {
-    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    await ensurePdfJsFakeWorkerLoaded();
-    const canvasMod = await import("@napi-rs/canvas");
+    console.info("[ofertas-locales ai] pdf page png render started", {
+      pageNumber,
+    });
 
-    const doc = await pdfjs.getDocument({
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const canvasMod = await import("@napi-rs/canvas");
+    await ensurePdfjsWorkerLoaded();
+
+    const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(singlePagePdfBytes),
       useSystemFonts: true,
       disableFontFace: true,
       useWorkerFetch: false,
       isOffscreenCanvasSupported: false,
       isImageDecoderSupported: false,
-    }).promise;
+    });
+    const doc = await loadingTask.promise;
 
     try {
       const page = await doc.getPage(1);
@@ -246,10 +249,7 @@ async function tryRenderPdfPageToPng(
   }
 }
 
-async function ensurePdfJsFakeWorkerLoaded(): Promise<void> {
-  if (typeof globalThis === "object" && "pdfjsWorker" in globalThis) {
-    return;
-  }
-
-  await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+async function ensurePdfjsWorkerLoaded(): Promise<void> {
+  pdfjsWorkerLoadPromise ??= import("pdfjs-dist/legacy/build/pdf.worker.mjs").then(() => undefined);
+  await pdfjsWorkerLoadPromise;
 }
