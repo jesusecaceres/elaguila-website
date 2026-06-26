@@ -20,6 +20,7 @@ import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { RestauranteOfertasLocalesUpsellCard } from "@/app/lib/clasificados/restaurantes/RestauranteOfertasLocalesUpsellCard";
 import { supabase } from "@/app/lib/supabaseClient";
 // Leonix premium visual tokens
 
@@ -269,6 +270,7 @@ export default function RestaurantePreviewClient() {
                   El servidor debe tener `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`; si falta, verás error 503 y no
                   se guardará nada.
                 </p>
+                <RestauranteOfertasLocalesUpsellCard lang={lang} />
                 <div className="mt-3 space-y-2 border-t border-[color:var(--lx-nav-border)]/50 pt-3">
                   <p className="text-[11px] font-semibold text-[color:var(--lx-text)]">Confirmaciones antes de publicar</p>
                   <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
