@@ -1,32 +1,38 @@
 # Translation Finish Backlog
 
-Lock document separating **static/native public UI translation** (completed in SITE-TRANSLATION-FINAL-SWEEP1) from **dynamic/database content** that must use the cache-first Google translation pipeline in later gates.
+Lock document separating **static/native public UI translation** from **dynamic/database content** that must use the cache-first Google translation pipeline.
 
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
+
+**Last verified:** REPO-TRANSLATION-COMPLETE-AUDIT1
 
 ---
 
 ## 1. Static / native UI — completed pages
 
-These routes have typed `Record<SupportedLang, …>` copy registries or equivalent native coverage for all 13 active languages. User-visible chrome, CTAs, and forms are native; dynamic body content may still be Spanish/English or database-sourced (see §3).
+These routes/surfaces have typed `Record<SupportedLang, …>` copy registries or equivalent native coverage for all 13 active languages.
 
 | Route / surface | Copy registry / module |
 |-----------------|------------------------|
 | `/` (root intro) | `app/lib/rootIntroCopy.ts` |
 | `/coming-soon-v2` | `app/components/leonix/coming-soon-v2/**` |
 | `/translate-site` | `app/lib/googleTranslateWebsite.ts` |
-| `/qr/translator` | `app/lib/magazine/qrGuideCopy/**` |
+| `/qr/translator` | `app/lib/magazine/qrGuideCopy/**` (hero/truth; some long-form steps still partial EN — see §2) |
 | `/magazine` (hub) | `app/lib/magazine/magazineHubPageCopy/**` |
 | `/magazine/2026/june/read` | `app/lib/magazine/magazineReaderCopy/**` |
-| `/magazine/2026/june/companion` (chrome) | `app/lib/magazine/june2026CompanionCopy/**` |
+| `/magazine/2026/june/companion` | Chrome: `june2026CompanionChrome.ts`; body: reader sections for community langs via `june2026CompanionContent.ts` |
 | `/media-kit` | `app/lib/leonix/mediaKitPageCopy/**` |
 | `/contacto` | `app/lib/leonix/publicFormCopy/**` |
 | `/newsletter` | `app/lib/leonix/publicFormCopy/**` |
 | `/tienda/contacto` | `app/lib/leonix/publicFormCopy/**` |
 | `/productos-promocion` | `app/lib/leonix/productosPromocionPageCopy/**` |
+| `/clasificados` (hub) | `app/lib/clasificados/clasificadosHubPageCopy/**` |
+| `/clasificados/publicar` (chooser shell) | `app/lib/clasificados/publishChooserCopy/**` |
+| **Public navbar / header** | `app/lib/leonix/publicNavCopy/**`, `app/lib/publicNavConfig.ts` |
+| **Advertise dropdown** | `app/lib/advertiseDropdownConfig.ts` |
 | Public header language selector | `app/components/LanguagePreferenceSync.tsx`, `app/lib/language.ts` |
-| Footer + cookie consent | `app/lib/leonix/publicChromeCopy/**`, `cookieConsentCopy.ts` |
+| Footer + cookie consent | `app/lib/leonix/publicChromeCopy/**` |
 
 **Lang carryover:** Priority funnels use `withPublicLangAndTracking`, `replaceLangInHref`, or route-specific helpers preserving `lang`, `sourcePage`, `sourceCta`, and related query params. Google website translation routes through `/translate-site` — not direct `translate.goog` proxy links.
 
@@ -36,16 +42,15 @@ These routes have typed `Record<SupportedLang, …>` copy registries or equivale
 
 Honest gaps that require dedicated later gates (not dynamic Google translation):
 
-| Area | Hold reason | Suggested gate |
-|------|-------------|----------------|
-| **Navbar nav labels** | `app/lib/publicNavConfig.ts` is ES/EN only; `navCopyLang()` collapses community langs to EN | `NAV-13LANG1` or fold into `CLASIFICADOS-LANG1` |
-| **Clasificados hub shell** | `clasificadosHubCopy.ts` — ES/EN only; category cards, hero, trust copy | `CLASIFICADOS-LANG1` |
-| **Clasificados category landings / results** | Mixed `lang === "es" ? … : …` patterns; large surface | `CLASIFICADOS-LANG1` |
-| **Publish / application flows** | `/clasificados/publicar/**`, `/publicar/**` — operational forms, validation, step copy | `PUBLISH-LANG1` |
-| **Negocios Locales public profiles** | Business profile pages, directory chrome | `NEGOCIOS-LOCALES-LANG1` |
-| **June companion article body** | `june2026CompanionContent.ts` — ES/EN editorial body; chrome is 13-lang | Document only until CMS/dynamic source |
-| **Cookie consent partial community strings** | Some community langs use `fromEn` partials in `cookieConsentCopy.ts` | Low priority polish gate |
-| **QR guide community entries** | Some community blocks spread EN for long-form sections | Low priority polish gate |
+| Area | Hold reason | Exact files | Suggested gate |
+|------|-------------|-------------|----------------|
+| **Clasificados category landings / results** | Mixed `navCopyLang()` / ES/EN ternary patterns across category shells | `app/(site)/clasificados/**/landing/**`, `*ShellCopy.ts`, `*LandingPage.tsx` | `CLASIFICADOS-CATEGORY-LANG1` |
+| **Publish / application wizards** | Operational form steps, validation, field labels beyond chooser shell | `app/(site)/clasificados/publicar/**`, `app/(site)/publicar/**` | `PUBLISH-LANG1` |
+| **Negocios Locales public profiles** | Business profile pages, directory chrome | `app/(site)/negocios-locales/**`, `app/(site)/clasificados/negocios/**` | `NEGOCIOS-LOCALES-LANG1` |
+| **Recently viewed section** | ES/EN listing chrome on hub | `app/(site)/clasificados/components/RecentlyViewedSection.tsx` | `CLASIFICADOS-CATEGORY-LANG1` |
+| **QR translator long-form blocks** | Some community langs inherit EN card steps via `g()` spread | `app/lib/magazine/qrGuideCopy/community.ts`, `qrGuideCopy/index.ts` (`TRANSLATOR_BY_LANG`) | `QR-GUIDE-LONGFORM-LANG1` |
+| **Cookie consent partial community strings** | Some community langs use `fromEn` partials | `app/lib/leonix/publicChromeCopy/index.ts` | Low priority polish |
+| **Legal pages** | ES/EN via `navCopyLang` | `app/(site)/legal/page.tsx` | `LEGAL-13LANG1` |
 
 **Visual assets (not UI copy):**
 
@@ -57,7 +62,7 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 
 ## 3. Dynamic / database content — cache-first translation
 
-These content types are **user-generated or database-sourced**. They must **not** be hand-translated in static copy registries. Use the existing translation pipeline:
+These content types are **user-generated or database-sourced**. They must **not** be hand-translated in static copy registries.
 
 ### Pipeline rule (mandatory)
 
@@ -67,12 +72,14 @@ These content types are **user-generated or database-sourced**. They must **not*
 4. **Write result once** to cache.
 5. **Repeat requests return from cache** — no duplicate Google calls for same source hash + target lang.
 
+### Duplicate table warning
+
+**Do not** introduce parallel translation tables (`ad_translations`, `listing_translations`, etc.). The architecture lock standardizes on **`translation_records`** with content-type + source hash keys.
+
 ### Language mapping (Google targets only)
 
 - `tl` (Leonix UI) → `fil` (Google target)
 - `zh` (Leonix UI) → `zh-CN` (Google target)
-- `fil` normalizes to `tl` for Leonix UI
-- `zh-CN` / `zh-Hans` normalize to `zh` for Leonix UI
 
 See `app/lib/leonix/languageMetadata.ts` and `docs/leonix-translation-architecture.md`.
 
@@ -82,40 +89,50 @@ See `app/lib/leonix/languageMetadata.ts` and `docs/leonix-translation-architectu
 |--------------|----------|----------------------|
 | Classified ads | Titles, descriptions, attributes | `/api/translate-ad` + `translation_records` |
 | Public ad / listing pages | Rendered ad body HTML | Cache-first; `ADS-HTML1` |
+| Category result listing content | DB listing cards, prices, blurbs | Cache-first per field |
 | Business profiles | Negocios Locales descriptions, hours text | Cache-first per field |
 | Application submissions | User-entered publish form data | Display-side cache on read |
-| Magazine companion body | If sourced from CMS/DB later | Cache-first per article |
 | Admin review summaries | Internal — out of public sweep scope | Separate admin gate |
-
-### Duplicate table warning
-
-**Do not** introduce parallel translation tables (`ad_translations`, `listing_translations`, etc.). The architecture lock (`GOOGLE-TRANSLATION-ARCH-LOCK1`) standardizes on **`translation_records`** with content-type + source hash keys. Adding duplicate tables risks cache inconsistency and double billing.
 
 ---
 
-## 4. Next dynamic gates (ordered)
+## 4. Google env blocker
+
+Live Google translation smoke is blocked until these are set locally (`.env.local`) and on Vercel:
+
+| Variable | Required |
+|----------|----------|
+| `TRANSLATION_PROVIDER` | `google` |
+| `TRANSLATION_CACHE_STORAGE` | `supabase` |
+| `GOOGLE_CLOUD_PROJECT_ID` | project ID |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` **or** `GOOGLE_APPLICATION_CREDENTIALS` | service account |
+
+Present today (verified): `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+See `docs/translation-env-setup.md`.
+
+---
+
+## 5. Next gates (ordered)
 
 | Gate | Purpose |
 |------|---------|
-| `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke (blocked until Google creds in `.env.local` / Vercel) |
+| `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
 | `TRANSLATE-AD-ALL-LANG-SMOKE1` | `/api/translate-ad` all 13 active langs + cache repeat |
-| `CLASIFICADOS-LANG1` | Clasificados hub + category shell 13-lang native UI |
+| `DYNAMIC-CONTENT-TRANSLATION-CACHE1` | End-to-end cache-first dynamic content |
+| `ADS-HTML1` | Public ad page HTML render + translation cache |
+| `CLASIFICADOS-CATEGORY-LANG1` | Category landing/results shell 13-lang native UI |
 | `PUBLISH-LANG1` | Publish/application operational copy 13-lang |
 | `NEGOCIOS-LOCALES-LANG1` | Business profile public pages + directory |
-| `ADS-HTML1` | Public ad page HTML render + translation cache integration |
-| `DYNAMIC-CONTENT-TRANSLATION-CACHE1` | End-to-end cache-first dynamic content across listings/ads/profiles |
+| `QR-GUIDE-LONGFORM-LANG1` | QR translator long-form instruction blocks all langs |
 
 ---
 
-## 5. References
+## 6. References
 
-- `docs/leonix-translation-architecture.md` — language metadata, Google routing
-- `docs/translation-env-setup.md` — required env vars
-- `docs/translation-safety-guardrails.md` — scope locks, no duplicate tables
-- `docs/translate-ad-gates.md` — ad translation gate sequence
+- `docs/leonix-translation-architecture.md`
+- `docs/translation-env-setup.md`
+- `docs/translation-safety-guardrails.md`
+- `docs/translate-ad-gates.md`
 - `app/lib/translation/provider.ts` — cache-first provider (do not bypass)
 - `app/api/translate-ad/route.ts` — ad translation API (do not modify in static sweeps)
-
----
-
-*Last updated: SITE-TRANSLATION-FINAL-SWEEP1*

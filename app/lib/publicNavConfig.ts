@@ -3,6 +3,10 @@
  * No Cupones. Iglesias only under Recursos dropdown. Nosotros/Contacto not in header.
  */
 
+import type { SupportedLang } from "@/app/lib/language";
+import { getPublicNavItemLabel } from "@/app/lib/leonix/publicNavCopy";
+
+/** @deprecated Use SupportedLang — retained for legacy imports. */
 export type PublicNavLang = "es" | "en";
 
 export type PublicNavItem = {
@@ -107,20 +111,23 @@ export const PUBLIC_NAV_ADVERTISE = {
   labelEn: "Advertise",
 } as const;
 
-export function publicNavLabel(item: Pick<PublicNavItem, "labelEs" | "labelEn">, lang: PublicNavLang): string {
-  return lang === "en" ? item.labelEn : item.labelEs;
+export function publicNavLabel(
+  item: Pick<PublicNavItem, "labelEs" | "labelEn" | "id">,
+  lang: SupportedLang,
+): string {
+  return getPublicNavItemLabel(item.id, lang);
 }
 
-export function publicNavItemLabel(item: PublicNavItem, lang: PublicNavLang, opts?: { short?: boolean }): string {
-  if (opts?.short) {
-    if (lang === "en" && item.labelEnShort) return item.labelEnShort;
-    if (lang === "es" && item.labelEsShort) return item.labelEsShort;
-  }
-  return publicNavLabel(item, lang);
+export function publicNavItemLabel(item: PublicNavItem, lang: SupportedLang, opts?: { short?: boolean }): string {
+  return getPublicNavItemLabel(item.id, lang, opts);
 }
 
-export function publicNavDropdownLabel(item: PublicNavDropdownItem, lang: PublicNavLang): string {
-  return lang === "en" ? item.labelEn : item.labelEs;
+export function publicNavDropdownLabel(item: PublicNavDropdownItem, lang: SupportedLang): string {
+  return getPublicNavItemLabel(item.id, lang);
+}
+
+export function publicNavCompactOverflowLabel(lang: SupportedLang): string {
+  return getPublicNavItemLabel("compact-overflow", lang);
 }
 
 /** @deprecated HEADER-3 — use PRIMARY_BEFORE + RECURSOS + PRIMARY_AFTER */

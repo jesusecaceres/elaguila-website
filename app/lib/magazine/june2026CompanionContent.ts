@@ -1,4 +1,5 @@
 import { JUNE_2026 } from "@/app/(site)/magazine/2026/june/issueContent";
+import { getMagazineReaderCopy } from "@/app/lib/magazine/magazineReaderCopy";
 import type { SupportedLang } from "@/app/lib/language";
 import { withPublicLangAndTracking } from "@/app/lib/language";
 import { COMPANION_CHROME_BY_LANG } from "@/app/lib/magazine/june2026CompanionChrome";
@@ -250,7 +251,15 @@ export function companionCopyLang(lang: SupportedLang): CompanionCopyLang {
 
 export function getJune2026CompanionCopy(lang: SupportedLang): June2026CompanionCopy {
   const chrome = COMPANION_CHROME_BY_LANG[lang];
-  const sections = COMPANION_BY_LANG[companionCopyLang(lang)].sections;
+  const sections =
+    lang === "es" || lang === "en"
+      ? COMPANION_BY_LANG[lang].sections
+      : getMagazineReaderCopy(lang).sections.map((section) => ({
+          id: section.id,
+          title: section.title,
+          summary: section.body,
+          bullets: section.bullets,
+        }));
   return { ...chrome, sections };
 }
 

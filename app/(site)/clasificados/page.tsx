@@ -7,13 +7,16 @@ import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constan
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { OfertasLocalesHubCategoryCard } from "./ofertas-locales/OfertasLocalesHubCategoryCard";
-import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
-import { getClasificadosHubCopy } from "./config/clasificadosHubCopy";
+import type { HubCategoryKey } from "./config/clasificadosHub";
+import {
+  getClasificadosCategoryCopy,
+  getClasificadosHubPageCopy,
+} from "@/app/lib/clasificados/clasificadosHubPageCopy";
+import { navCopyLang, type SupportedLang } from "@/app/lib/language";
 import {
   appendLangToPath,
   buildHubCategoryPageUrl,
   buildHubPostEntryHref,
-  resolveHubCopyLang,
   resolveRouteLang,
 } from "./lib/hubUrl";
 
@@ -49,139 +52,9 @@ const CATEGORY_PUBLISH_PATH: Record<HubCategoryKey, string> = {
   "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
 };
 
-type CategoryCardCopy = {
-  labelEs: string;
-  labelEn: string;
-  descEs: string;
-  descEn: string;
-  noteEs?: string;
-  noteEn?: string;
-};
-
-const C1_CATEGORY_COPY: Record<HubCategoryKey, CategoryCardCopy> = {
-  "en-venta": {
-    labelEs: "Varios",
-    labelEn: "Miscellaneous",
-    descEs: "Artículos, muebles, herramientas, ropa y cosas útiles para la comunidad.",
-    descEn: "Items, furniture, tools, clothing, and useful things for the community.",
-    noteEs: "Publicaciones comunitarias y artículos varios.",
-    noteEn: "Community posts and miscellaneous items.",
-  },
-  rentas: {
-    labelEs: "Rentas",
-    labelEn: "Rentals",
-    descEs: "Cuartos, apartamentos, espacios y oportunidades de vivienda.",
-    descEn: "Rooms, apartments, spaces, and housing opportunities.",
-  },
-  empleos: {
-    labelEs: "Empleos",
-    labelEn: "Jobs",
-    descEs: "Oportunidades de trabajo y negocios que están contratando.",
-    descEn: "Job opportunities and businesses that are hiring.",
-  },
-  autos: {
-    labelEs: "Autos",
-    labelEn: "Autos",
-    descEs: "Autos privados, vehículos y oportunidades de compra local.",
-    descEn: "Private autos, vehicles, and local buying opportunities.",
-  },
-  "bienes-raices": {
-    labelEs: "Bienes Raíces",
-    labelEn: "Real Estate",
-    descEs: "Casas, propiedades, terrenos y oportunidades inmobiliarias.",
-    descEn: "Homes, properties, land, and real estate opportunities.",
-  },
-  servicios: {
-    labelEs: "Servicios",
-    labelEn: "Services",
-    descEs: "Profesionales y servicios confiables cerca de ti.",
-    descEn: "Trusted professionals and services near you.",
-  },
-  restaurantes: {
-    labelEs: "Restaurantes",
-    labelEn: "Restaurants",
-    descEs: "Comida local, antojos, menús y lugares para visitar.",
-    descEn: "Local food, cravings, menus, and places to visit.",
-  },
-  travel: {
-    labelEs: "Viajes",
-    labelEn: "Travel",
-    descEs: "Ofertas, agencias y recursos para planear tu viaje.",
-    descEn: "Offers, agencies, and resources to plan your trip.",
-  },
-  comunidad: {
-    labelEs: "Comunidad y Eventos",
-    labelEn: "Community & Events",
-    descEs: "Eventos, actividades y conexiones locales.",
-    descEn: "Events, activities, and local connections.",
-  },
-  clases: {
-    labelEs: "Clases",
-    labelEn: "Classes",
-    descEs: "Cursos, talleres y aprendizaje para la comunidad.",
-    descEn: "Courses, workshops, and learning for the community.",
-  },
-  busco: {
-    labelEs: "Busco / Se busca",
-    labelEn: "Wanted / Looking for",
-    descEs: "Peticiones, necesidades, oportunidades y búsquedas locales.",
-    descEn: "Requests, needs, opportunities, and local searches.",
-  },
-  "mascotas-y-perdidos": {
-    labelEs: "Mascotas y Perdidos",
-    labelEn: "Pets & Lost",
-    descEs: "Mascotas, adopciones, objetos perdidos y apoyo comunitario.",
-    descEn: "Pets, adoptions, lost items, and community support.",
-  },
-};
-
-function buildCategoryPublishHref(category: HubCategoryKey, lang: Lang): string {
+function buildCategoryPublishHref(category: HubCategoryKey, lang: SupportedLang): string {
   return appendLangToPath(CATEGORY_PUBLISH_PATH[category], lang);
 }
-
-function postInCategoryLabel(lang: Lang, category: HubCategoryKey): string {
-  const label = lang === "es" ? C1_CATEGORY_COPY[category].labelEs : C1_CATEGORY_COPY[category].labelEn;
-  return lang === "es" ? `Publicar en ${label}` : `Post in ${label}`;
-}
-
-const PAGE_COPY = {
-  es: {
-    eyebrow: "LEONIX CLASIFICADOS",
-    title: "Clasificados",
-    subtitle: "Encuentra y publica oportunidades locales en un espacio hecho para nuestra comunidad.",
-    description:
-      "Explora artículos en venta, rentas, empleos, autos, servicios, eventos y más. Los anuncios comunitarios mantienen visible lo que nuestra gente busca, ofrece y comparte.",
-    ctaPost: "Publicar anuncio",
-    ctaExplore: "Explorar categorías",
-    sectionBrowse: "Explorar por categoría",
-    explore: "EXPLORAR",
-    trustLine:
-      "Un espacio confiable, familiar y comunitario. Los anuncios gratis siempre permanecen visibles en la búsqueda.",
-    ofertasLocalesTitle: "Ofertas Locales",
-    ofertasLocalesDesc:
-      "Encuentra especiales, cupones y ofertas semanales de negocios locales.",
-    ofertasLocalesBrowse: "Ver ofertas",
-    ofertasLocalesPublish: "Publica tus ofertas locales",
-  },
-  en: {
-    eyebrow: "LEONIX CLASSIFIEDS",
-    title: "Classifieds",
-    subtitle: "Find and post local opportunities in a space built for our community.",
-    description:
-      "Explore items for sale, rentals, jobs, autos, services, events, and more. Community listings keep visible what our people are looking for, offering, and sharing.",
-    ctaPost: "Post listing",
-    ctaExplore: "Explore categories",
-    sectionBrowse: "Browse by category",
-    explore: "EXPLORE",
-    trustLine:
-      "A trusted, family-safe, community-first marketplace. Free listings always remain visible in search.",
-    ofertasLocalesTitle: "Local Deals",
-    ofertasLocalesDesc:
-      "Find weekly specials, coupons, and local business offers.",
-    ofertasLocalesBrowse: "View deals",
-    ofertasLocalesPublish: "Publish your local deals",
-  },
-} as const;
 
 const PRIORITY_KEYS = new Set<HubCategoryKey>(["en-venta", "rentas", "empleos"]);
 
@@ -315,17 +188,15 @@ function CategoryCard({
   priority,
 }: {
   category: HubCategoryKey;
-  lang: Lang;
+  lang: SupportedLang;
   browseHref: string;
   publishHref: string;
   exploreLabel: string;
   priority?: boolean;
 }) {
-  const copy = C1_CATEGORY_COPY[category];
-  const label = lang === "es" ? copy.labelEs : copy.labelEn;
-  const desc = lang === "es" ? copy.descEs : copy.descEn;
-  const note = lang === "es" ? copy.noteEs : copy.noteEn;
-  const postLabel = postInCategoryLabel(lang, category);
+  const hubCopy = getClasificadosHubPageCopy(lang);
+  const copy = getClasificadosCategoryCopy(lang, category);
+  const postLabel = hubCopy.postInCategory(copy.label);
 
   return (
     <article
@@ -338,9 +209,9 @@ function CategoryCard({
       <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536]">
         <CategoryMark category={category} />
       </span>
-      <h3 className="mt-4 text-base font-bold text-[#1F241C]">{label}</h3>
-      {note ? <p className="mt-1 text-xs font-medium text-[#556B3E]">{note}</p> : null}
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{desc}</p>
+      <h3 className="mt-4 text-base font-bold text-[#1F241C]">{copy.label}</h3>
+      {copy.note ? <p className="mt-1 text-xs font-medium text-[#556B3E]">{copy.note}</p> : null}
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{copy.desc}</p>
       <div className="mt-auto flex flex-col gap-4 border-t border-[#D6C7AD]/50 pt-6">
         <Link
           href={browseHref}
@@ -362,12 +233,9 @@ function CategoryCard({
 export default function ClasificadosPage() {
   const params = useSearchParams();
   const routeLang = resolveRouteLang(params?.get("lang"));
-  const lang = resolveHubCopyLang(params?.get("lang"));
+  const t = useMemo(() => getClasificadosHubPageCopy(routeLang), [routeLang]);
 
-  const hub = useMemo(() => getClasificadosHubCopy(lang), [lang]);
-  const t = PAGE_COPY[lang];
-
-  const postEntryHref = buildHubPostEntryHref(routeLang as Lang);
+  const postEntryHref = buildHubPostEntryHref(routeLang);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -419,13 +287,13 @@ export default function ClasificadosPage() {
           <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/75">{t.ofertasLocalesDesc}</p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              href={appendLangToPath("/clasificados/ofertas-locales", routeLang as Lang)}
+              href={appendLangToPath("/clasificados/ofertas-locales", routeLang)}
               className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#6a1926]"
             >
               {t.ofertasLocalesBrowse}
             </Link>
             <Link
-              href={appendLangToPath("/publicar/ofertas-locales", routeLang as Lang)}
+              href={appendLangToPath("/publicar/ofertas-locales", routeLang)}
               className="inline-flex min-h-[2.5rem] items-center justify-center rounded-lg border border-[#7A1E2C]/35 bg-white px-4 py-2.5 text-sm font-bold text-[#7A1E2C] hover:bg-white/90"
             >
               {t.ofertasLocalesPublish}
@@ -444,18 +312,18 @@ export default function ClasificadosPage() {
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <li className="flex h-full">
-              <OfertasLocalesHubCategoryCard lang={lang} routeLang={routeLang as Lang} priority />
+              <OfertasLocalesHubCategoryCard routeLang={routeLang} priority />
             </li>
             {C1_CATEGORY_ORDER.map((k) => {
-              const browseHref = buildHubCategoryPageUrl(k, routeLang as Lang);
-              const publishHref = buildCategoryPublishHref(k, routeLang as Lang);
+              const browseHref = buildHubCategoryPageUrl(k, routeLang);
+              const publishHref = buildCategoryPublishHref(k, routeLang);
               const priority = PRIORITY_KEYS.has(k);
 
               return (
                 <li key={k} className="flex h-full">
                   <CategoryCard
                     category={k}
-                    lang={lang}
+                    lang={routeLang}
                     browseHref={browseHref}
                     publishHref={publishHref}
                     exploreLabel={t.explore}
@@ -469,11 +337,11 @@ export default function ClasificadosPage() {
 
         {/* Trust note */}
         <p className="mx-auto mt-10 max-w-2xl text-center text-xs font-medium leading-relaxed text-[#3D3428]/70 sm:text-sm">
-          {hub.trustLine}
+          {t.trustLine}
         </p>
 
         <section className="mt-12">
-          <RecentlyViewedSection lang={lang} />
+          <RecentlyViewedSection lang={navCopyLang(routeLang)} />
         </section>
       </div>
     </main>

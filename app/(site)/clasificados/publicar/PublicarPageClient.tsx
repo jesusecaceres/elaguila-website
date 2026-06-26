@@ -23,9 +23,10 @@ import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/cate
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisuals";
 import newLogo from "../../../../public/logo.png";
-import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
-
-type Lang = "es" | "en";
+import { normalizeLang, navCopyLang, replaceLangInHref } from "@/app/lib/language";
+import { getPublishChooserCopy } from "@/app/lib/clasificados/publishChooserCopy";
+import { getClasificadosCategoryCopy } from "@/app/lib/clasificados/clasificadosHubPageCopy";
+import type { HubCategoryKey } from "../config/clasificadosHub";
 
 type ChooserDeepLinkTarget = Exclude<CategoryKey, "all"> | "bienes-raices" | "";
 
@@ -58,6 +59,18 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+function chooserCategoryLabel(key: Exclude<CategoryKey, "all">, routeLang: ReturnType<typeof normalizeLang>): string {
+  if (key in categoryConfig) {
+    try {
+      return getClasificadosCategoryCopy(routeLang, key as HubCategoryKey).label;
+    } catch {
+      /* fall through */
+    }
+    return categoryConfig[key].label[navCopyLang(routeLang)];
+  }
+  return categoryConfig[key].label[navCopyLang(routeLang)];
+}
+
 /** Deep-link from hub/login (`?cat=` / `?categoria=`): forward to the right publish entry route (no wizard hosted here). */
 function normalizeChooserDeepLink(raw: string | null | undefined): ChooserDeepLinkTarget {
   const v = (raw ?? "").trim().toLowerCase();
@@ -77,11 +90,8 @@ export default function PublicarPageClient({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const otherLang: Lang = lang === "es" ? "en" : "es";
-  const qs = new URLSearchParams(searchParams?.toString() ?? "");
-  qs.set("lang", otherLang);
-  const toggleHref = `/clasificados/publicar?${qs.toString()}`;
+  const routeLang = normalizeLang(searchParams?.get("lang"));
+  const copy = getPublishChooserCopy(routeLang);
 
   const allowed = useMemo(() => new Set(chooserKeys), [chooserKeys]);
   const gridCategories = useMemo(
@@ -97,7 +107,7 @@ export default function PublicarPageClient({
     const p = new URLSearchParams(searchParams?.toString() ?? "");
     p.delete("cat");
     p.delete("categoria");
-    if (!p.get("lang")) p.set("lang", lang);
+    if (!p.get("lang")) p.set("lang", routeLang);
     const dest =
       deepLinkCat === "bienes-raices"
         ? `${BR_PUBLICAR_HUB}?${p.toString()}`
@@ -121,17 +131,7 @@ export default function PublicarPageClient({
                           ? `/publicar/mascotas-y-perdidos/quick?${p.toString()}`
                           : `/clasificados/publicar/${deepLinkCat}?${p.toString()}`;
     router.replace(dest);
-  }, [deepLinkCat, lang, router, searchParams]);
-
-  const copy = {
-    title: lang === "es" ? "Publicar anuncio" : "Post a listing",
-    subtitle:
-      lang === "es"
-        ? "Elige una categoría para continuar."
-        : "Choose a category to continue.",
-    back: lang === "es" ? "Volver a Clasificados" : "Back to Classifieds",
-    langToggle: lang === "es" ? "English" : "Español",
-  };
+  }, [deepLinkCat, routeLang, router, searchParams]);
 
   return (
     <main className="min-h-screen bg-[#F6F0E2] text-[#3D2C12] pt-28 pb-16">
@@ -145,13 +145,7 @@ export default function PublicarPageClient({
             </div>
             <div className="flex flex-wrap items-center gap-2 self-start rounded-xl border border-[#D8C79A]/65 bg-[#FFF6E7] p-1.5 shadow-sm">
               <Link
-                href={toggleHref}
-                className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF0DA]"
-              >
-                {copy.langToggle}
-              </Link>
-              <Link
-                href={`/clasificados?lang=${lang}`}
+                href={`/clasificados?lang=${routeLang}`}
                 className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
               >
                 {copy.back}
@@ -163,31 +157,29 @@ export default function PublicarPageClient({
           <div className="mt-6 md:hidden">
             <div className="overflow-hidden rounded-3xl border-2 border-[#C9B46A]/70 bg-gradient-to-br from-[#2A2620] via-[#352F28] to-[#1E1810] p-5 shadow-[0_24px_56px_rgba(24,20,16,0.4)]">
               <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[#C5A059]">
-                {lang === "es" ? "Publicar · destacado" : "Post · featured"}
+                {copy.featuredEyebrow}
               </p>
               <h2 className="mt-2 text-center text-2xl font-extrabold tracking-tight text-[#FAF7F2]">
-                🏘️ {lang === "es" ? "Bienes Raíces" : "Real estate"}
+                🏘️ {copy.featuredTitle}
               </h2>
               <p className="mt-2 text-center text-sm font-medium leading-relaxed text-[#E8DFD0]/92">
-                {lang === "es"
-                  ? "Profesional (Negocio) o particular (Privado). Toca para elegir tu camino."
-                  : "Professional (Business) or private seller. Tap to pick your path."}
+                {copy.featuredBody}
               </p>
               <Link
-                href={`${BR_PUBLICAR_HUB}?lang=${lang}`}
+                href={`${BR_PUBLICAR_HUB}?lang=${routeLang}`}
                 className="mt-5 flex min-h-[56px] w-full items-center justify-center rounded-2xl border-2 border-[#E8D9A8]/45 bg-gradient-to-br from-[#B8954A] to-[#8A6F3A] px-4 py-3.5 text-center text-base font-extrabold text-[#1E1810] shadow-lg active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-[#FAF7F2]/40 focus:ring-offset-2 focus:ring-offset-[#2A2620]"
               >
-                ✨ {lang === "es" ? "Entrar a publicar BR" : "Continue to BR posting"}
+                ✨ {copy.featuredCta}
               </Link>
               <p className="mt-3 text-center text-xs text-[#C9B89A]/90">
-                {lang === "es" ? "Privado + Negocio · un solo toque" : "Private + Business · one tap"}
+                {copy.featuredNote}
               </p>
             </div>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-7 lg:grid-cols-3">
             <Link
-              href={`${BR_PUBLICAR_HUB}?lang=${lang}`}
+              href={`${BR_PUBLICAR_HUB}?lang=${routeLang}`}
               className={cx(
                 "hidden md:block group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
@@ -204,17 +196,16 @@ export default function PublicarPageClient({
               <div className="mt-2 flex items-center gap-2">
                 <FiLayers className="h-5 w-5 shrink-0 text-[#5D4A25]" aria-hidden />
                 <span className="text-sm font-bold leading-tight text-[#3D2C12]">
-                  {LEONIX_CATEGORY_VISUALS["bienes-raices"].emoji}{" "}
-                  {lang === "es" ? "Bienes Raíces" : "Real estate"}
+                  {LEONIX_CATEGORY_VISUALS["bienes-raices"].emoji} {copy.featuredTitle}
                 </span>
               </div>
               <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
-                {lang === "es" ? "Continuar" : "Continue"}
+                {copy.continueLabel}
               </span>
               <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
             </Link>
             <Link
-              href={`/publicar/ofertas-locales?lang=${lang}`}
+              href={`/publicar/ofertas-locales?lang=${routeLang}`}
               className={cx(
                 "group relative overflow-hidden rounded-2xl border bg-gradient-to-br px-4 py-4 transition-all duration-150",
                 "focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/35",
@@ -229,39 +220,39 @@ export default function PublicarPageClient({
               <div className="mt-2 flex items-center gap-2">
                 <FiShoppingCart className="h-5 w-5 shrink-0 text-[#7A1E2C]" aria-hidden />
                 <span className="text-sm font-bold leading-tight text-[#3D2C12]">
-                  {lang === "es" ? "Ofertas Locales" : "Local Deals"}
+                  {copy.ofertasLocalesTitle}
                 </span>
               </div>
               <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
-                {lang === "es" ? "Publica tus ofertas locales" : "Publish your local deals"}
+                {copy.ofertasLocalesPublish}
               </span>
               <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
             </Link>
             {gridCategories.map(({ key, Icon }) => {
-              const label = categoryConfig[key].label[lang];
+              const label = chooserCategoryLabel(key, routeLang);
               const visual = LEONIX_CATEGORY_VISUALS[key];
               const href =
                 key === "autos"
-                  ? withLangParam("/publicar/autos", lang)
+                  ? replaceLangInHref("/publicar/autos", routeLang)
                   : key === "servicios"
-                    ? `/clasificados/publicar/servicios?lang=${lang}`
+                    ? `/clasificados/publicar/servicios?lang=${routeLang}`
                     : key === "restaurantes"
-                      ? withLangParam("/publicar/restaurantes", lang)
+                      ? replaceLangInHref("/publicar/restaurantes", routeLang)
                       : key === "travel"
-                        ? withLangParam("/publicar/viajes", lang)
+                        ? replaceLangInHref("/publicar/viajes", routeLang)
                         : key === "empleos"
-                          ? `/clasificados/publicar/empleos?lang=${lang}`
+                          ? `/clasificados/publicar/empleos?lang=${routeLang}`
                           : key === "rentas"
-                            ? `${RENTAS_PUBLICAR_HUB}?lang=${lang}`
+                            ? `${RENTAS_PUBLICAR_HUB}?lang=${routeLang}`
                             : key === "clases"
-                              ? `/publicar/clases/quick?lang=${lang}`
+                              ? `/publicar/clases/quick?lang=${routeLang}`
                               : key === "comunidad"
-                                ? `/publicar/comunidad/quick?lang=${lang}`
+                                ? `/publicar/comunidad/quick?lang=${routeLang}`
                                 : key === "busco"
-                                  ? `/publicar/busco/quick?lang=${lang}`
+                                  ? `/publicar/busco/quick?lang=${routeLang}`
                                   : key === "mascotas-y-perdidos"
-                                    ? `/publicar/mascotas-y-perdidos/quick?lang=${lang}`
-                                    : `/clasificados/publicar/${key}?lang=${lang}`;
+                                    ? `/publicar/mascotas-y-perdidos/quick?lang=${routeLang}`
+                                    : `/clasificados/publicar/${key}?lang=${routeLang}`;
               return (
                 <Link
                   key={key}
@@ -284,7 +275,7 @@ export default function PublicarPageClient({
                     </span>
                   </div>
                   <span className="mt-1 text-xs font-medium text-[#5D4A25]/80">
-                    {lang === "es" ? "Continuar" : "Continue"}
+                    {copy.continueLabel}
                   </span>
                   <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-white/20" />
                 </Link>

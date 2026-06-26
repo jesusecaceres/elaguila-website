@@ -35,7 +35,7 @@ export const HUB_CATEGORY_PATH: Record<HubCategoryKey, string> = {
 };
 
 /** Append `lang` to a path, preserving `#hash` if present. */
-export function appendLangToPath(path: string, lang: Lang): string {
+export function appendLangToPath(path: string, lang: SupportedLang): string {
   const [base, hash] = path.split("#");
   const joiner = base.includes("?") ? "&" : "?";
   const withParam = `${base}${joiner}lang=${lang}`;
@@ -43,7 +43,7 @@ export function appendLangToPath(path: string, lang: Lang): string {
 }
 
 /** Hub → category landing (replaces old `/clasificados/lista?cat=`). */
-export function buildHubCategoryPageUrl(cat: HubCategoryKey, lang: Lang): string {
+export function buildHubCategoryPageUrl(cat: HubCategoryKey, lang: SupportedLang): string {
   const base = HUB_CATEGORY_PATH[cat];
   return appendLangToPath(base, lang);
 }
@@ -54,7 +54,7 @@ export function buildHubCategoryPageUrl(cat: HubCategoryKey, lang: Lang): string
  */
 export function buildCategoryBrowseUrl(
   cat: string,
-  lang: Lang,
+  lang: SupportedLang,
   extra?: Record<string, string | undefined>
 ): string {
   const path =
@@ -70,6 +70,6 @@ export function buildCategoryBrowseUrl(
 }
 
 /** Post-login redirect: category chooser first (`/clasificados/publicar`), not a single category slug. */
-export function buildHubPostEntryHref(lang: Lang): string {
+export function buildHubPostEntryHref(lang: SupportedLang): string {
   return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?lang=${lang}`)}`;
 }

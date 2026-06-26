@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
-  ADVERTISE_DROPDOWN_COPY,
+  getAdvertiseDropdownCopy,
   getAdvertiseDropdownOptions,
   type AdvertiseLang,
 } from "@/app/lib/advertiseDropdownConfig";
@@ -51,7 +51,7 @@ export function AdvertiseDropdown({
   fullWidth = false,
   onNavigate,
 }: AdvertiseDropdownProps) {
-  const copy = ADVERTISE_DROPDOWN_COPY[lang];
+  const copy = getAdvertiseDropdownCopy(lang);
   const options = getAdvertiseDropdownOptions(lang);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);

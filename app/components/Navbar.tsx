@@ -8,29 +8,22 @@ import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } f
 import {
   PUBLIC_NAV_ADVERTISE,
   PUBLIC_NAV_COMPACT_OVERFLOW,
-  PUBLIC_NAV_COMPACT_OVERFLOW_LABEL,
   PUBLIC_NAV_MOBILE,
   PUBLIC_NAV_PRIMARY_AFTER_RECURSOS,
   PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS,
   PUBLIC_NAV_RECURSOS_DROPDOWN,
   PUBLIC_NAV_RECURSOS_TRIGGER,
+  publicNavCompactOverflowLabel,
   publicNavDropdownLabel,
   publicNavItemLabel,
   publicNavLabel,
-  type PublicNavLang,
 } from "../lib/publicNavConfig";
 import { AdvertiseDropdown } from "./AdvertiseDropdown";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
-import { leonixNavCopyLang } from "@/app/lib/lang";
+import { getNavbarChromeCopy } from "@/app/lib/leonix/publicNavCopy";
 import { resolveRouteLang } from "@/app/lib/language";
 
-type Lang = PublicNavLang;
-
 const HEADER_LOGO_SRC = "/logo.png";
-
-function accountBadgeLabel(lang: Lang) {
-  return lang === "es" ? "Cuenta" : "Account";
-}
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -56,8 +49,8 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const routeLang = resolveRouteLang(searchParams?.get("lang"));
-  const navLang: Lang = leonixNavCopyLang(routeLang);
+  const navLang = resolveRouteLang(searchParams?.get("lang"));
+  const L = getNavbarChromeCopy(navLang);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [recursosOpen, setRecursosOpen] = useState(false);
   const [compactOverflowOpen, setCompactOverflowOpen] = useState(false);
@@ -90,7 +83,7 @@ function NavbarContent() {
     setAccountOpen(false);
     setRecursosOpen(false);
     setCompactOverflowOpen(false);
-  }, [pathname, routeLang, searchParams?.toString()]);
+  }, [pathname, navLang, searchParams?.toString()]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -112,49 +105,7 @@ function NavbarContent() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [recursosOpen, compactOverflowOpen]);
 
-  const t = useMemo(
-    () => ({
-      es: {
-        brandName: "Leonix Media",
-        navAria: "Navegación principal",
-        recursosMenu: "Recursos Comunitarios",
-        langAria: "Idioma",
-        signIn: "Iniciar sesión",
-        createAccount: "Crear cuenta",
-        myAccount: "Mi cuenta",
-        myListings: "Mis anuncios",
-        signOut: "Cerrar sesión",
-        account: "Cuenta",
-        manageAccount: "Administrar mi cuenta",
-        signedOutToast: "Sesión cerrada correctamente",
-        openMenu: "Abrir menú",
-        closeMenu: "Cerrar menú",
-        menu: "Menú",
-      },
-      en: {
-        brandName: "Leonix Media",
-        navAria: "Main navigation",
-        recursosMenu: "Community Resources",
-        langAria: "Language",
-        signIn: "Sign in",
-        createAccount: "Create account",
-        myAccount: "My account",
-        myListings: "My listings",
-        signOut: "Sign out",
-        account: "Account",
-        manageAccount: "Manage account",
-        signedOutToast: "Signed out successfully",
-        openMenu: "Open menu",
-        closeMenu: "Close menu",
-        menu: "Menu",
-      },
-    }),
-    []
-  );
-
-  const L = t[navLang];
-
-  const buildLink = (href: string) => `${href.split("?")[0]}?lang=${routeLang}`;
+  const buildLink = (href: string) => `${href.split("?")[0]}?lang=${navLang}`;
 
   const isActive = (href: string) => {
     const cleanHref = href.split("?")[0];
@@ -176,13 +127,13 @@ function NavbarContent() {
     const onPublicar = currentPathWithQuery?.startsWith("/clasificados/publicar");
     if (onPublicar) {
       const redirect = encodeURIComponent(
-        currentPathWithQuery || `/clasificados/publicar?lang=${routeLang}`
+        currentPathWithQuery || `/clasificados/publicar?lang=${navLang}`
       );
-      router.push(`/login?mode=post&lang=${routeLang}&redirect=${redirect}`);
+      router.push(`/login?mode=post&lang=${navLang}&redirect=${redirect}`);
     } else {
-      router.push(`/login?mode=login&lang=${routeLang}`);
+      router.push(`/login?mode=login&lang=${navLang}`);
     }
-  }, [currentPathWithQuery, routeLang, router]);
+  }, [currentPathWithQuery, navLang, router]);
 
   useEffect(() => {
     let mounted = true;
@@ -252,9 +203,9 @@ function NavbarContent() {
     } finally {
       setUser(null);
       router.refresh();
-      router.replace(`/home?lang=${routeLang}&signed_out=1`);
+      router.replace(`/home?lang=${navLang}&signed_out=1`);
     }
-  }, [router, routeLang, user?.id]);
+  }, [router, navLang, user?.id]);
 
   const accountLabel = user?.fullName || user?.email || "User";
   const initials = getInitials(user?.fullName || user?.email);
@@ -321,18 +272,18 @@ function NavbarContent() {
                   <div className="mt-0.5 truncate text-xs text-[#3D3428]/75">{user.email}</div>
                 )}
                 <div className="mt-1.5 inline-flex items-center rounded-full border border-[#D6C7AD] bg-[#EDE6D6] px-2 py-0.5 text-[10px] text-[#1F241C]">
-                  {accountBadgeLabel(navLang)}
+                  {L.account}
                 </div>
               </div>
               <Link
-                href={`/dashboard?lang=${routeLang}`}
+                href={`/dashboard?lang=${navLang}`}
                 className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
                 onClick={() => setAccountOpen(false)}
               >
                 {L.manageAccount}
               </Link>
               <Link
-                href={`/dashboard/mis-anuncios?lang=${routeLang}`}
+                href={`/dashboard/mis-anuncios?lang=${navLang}`}
                 className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
                 onClick={() => setAccountOpen(false)}
               >
@@ -521,9 +472,7 @@ function NavbarContent() {
                     aria-expanded={compactOverflowOpen}
                     aria-haspopup="true"
                   >
-                    {navLang === "es"
-                      ? PUBLIC_NAV_COMPACT_OVERFLOW_LABEL.labelEs
-                      : PUBLIC_NAV_COMPACT_OVERFLOW_LABEL.labelEn}
+                    {publicNavCompactOverflowLabel(navLang)}
                     <span className="text-[0.6rem] leading-none" aria-hidden>
                       {compactOverflowOpen ? "▲" : "▼"}
                     </span>
@@ -629,14 +578,14 @@ function NavbarContent() {
                   <div className="truncate text-sm font-semibold text-[#1F241C]">{displayName}</div>
                   <div className="mt-2 flex flex-col gap-2">
                     <Link
-                      href={`/dashboard?lang=${routeLang}`}
+                      href={`/dashboard?lang=${navLang}`}
                       onClick={() => setMobileOpen(false)}
                       className="rounded-xl bg-[#7A1E2C] px-3 py-2.5 text-center text-sm font-semibold text-white"
                     >
                       {L.manageAccount}
                     </Link>
                     <Link
-                      href={`/dashboard/mis-anuncios?lang=${routeLang}`}
+                      href={`/dashboard/mis-anuncios?lang=${navLang}`}
                       onClick={() => setMobileOpen(false)}
                       className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-center text-sm font-medium text-[#1F241C]"
                     >
@@ -664,7 +613,7 @@ function NavbarContent() {
                     {L.signIn}
                   </button>
                   <Link
-                    href={`/login?mode=signup&lang=${routeLang}`}
+                    href={`/login?mode=signup&lang=${navLang}`}
                     onClick={() => setMobileOpen(false)}
                     className="block rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-center text-sm font-medium text-[#1F241C]"
                   >

@@ -1,21 +1,7 @@
 import Link from "next/link";
 import { appendLangToPath } from "@/app/(site)/clasificados/lib/hubUrl";
-import type { Lang } from "@/app/(site)/clasificados/config/clasificadosHub";
-
-const COPY = {
-  es: {
-    title: "Ofertas Locales",
-    desc: "Encuentra especiales, cupones y ofertas semanales de negocios locales.",
-    browse: "Ver ofertas",
-    publish: "Publica tus ofertas locales",
-  },
-  en: {
-    title: "Local Deals",
-    desc: "Find weekly specials, coupons, and local business offers.",
-    browse: "View deals",
-    publish: "Publish your local deals",
-  },
-} as const;
+import { getClasificadosHubPageCopy } from "@/app/lib/clasificados/clasificadosHubPageCopy";
+import type { SupportedLang } from "@/app/lib/language";
 
 function OfertasMark() {
   return (
@@ -37,13 +23,18 @@ function OfertasMark() {
 }
 
 type Props = {
-  lang: Lang;
-  routeLang: Lang;
+  routeLang: SupportedLang;
   priority?: boolean;
 };
 
-export function OfertasLocalesHubCategoryCard({ lang, routeLang, priority }: Props) {
-  const c = COPY[lang];
+export function OfertasLocalesHubCategoryCard({ routeLang, priority }: Props) {
+  const hub = getClasificadosHubPageCopy(routeLang);
+  const c = {
+    title: hub.ofertasLocalesTitle,
+    desc: hub.ofertasLocalesDesc,
+    browse: hub.ofertasLocalesBrowse,
+    publish: hub.ofertasLocalesPublish,
+  };
   const browseHref = appendLangToPath("/clasificados/ofertas-locales", routeLang);
   const publishHref = appendLangToPath("/publicar/ofertas-locales", routeLang);
 
