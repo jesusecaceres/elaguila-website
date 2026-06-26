@@ -74,14 +74,16 @@ function SectionBlock({
   children,
   showTopBorder,
   premium,
+  className,
 }: {
   children: ReactNode;
   showTopBorder: boolean;
   premium?: boolean;
+  className?: string;
 }) {
   const border = premium ? autosPreviewBusinessHubSectionDividerClass : "border-[color:var(--lx-nav-border)]";
   return (
-    <div className={showTopBorder ? `mt-6 border-t ${border} pt-6` : ""}>{children}</div>
+    <div className={`${showTopBorder ? `mt-6 border-t ${border} pt-6` : ""} ${className ?? ""}`.trim()}>{children}</div>
   );
 }
 
@@ -282,7 +284,9 @@ export function DealerBusinessStack({
       {showContactGrid ? (
         <SectionBlock showTopBorder={showIdentity ? true : nextSection()} premium={showPremiumHubHeader}>
           <p className={sectionLabelClass}>{sb.contactHeading}</p>
-          <div className="mt-4 flex flex-col gap-3">
+          <div
+            className={`mt-4 flex flex-col gap-3${showPremiumHubHeader && showReviews ? " pb-2" : ""}`}
+          >
             {showWhatsapp && c.whatsappHref ? (
               <AutosSheetCtaLink href={c.whatsappHref} className={BTN_WHATSAPP} {...sheetProps}>
                 <SiWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />
@@ -318,9 +322,13 @@ export function DealerBusinessStack({
       ) : null}
 
       {showReviews ? (
-        <SectionBlock showTopBorder={nextSection()} premium={showPremiumHubHeader}>
+        <SectionBlock
+          showTopBorder={nextSection()}
+          premium={showPremiumHubHeader}
+          className={showPremiumHubHeader ? "!mt-8 !pt-7" : ""}
+        >
           <p className={sectionLabelClass}>{sb.reviewsHeading}</p>
-          <div className="mt-4 flex flex-col gap-3">
+          <div className={`flex flex-col gap-3 ${showPremiumHubHeader ? "mt-5" : "mt-4"}`}>
             {hub.reviews.map((link) => (
               <AutosNegociosHubReviewLinkButton key={link.id} link={link} lang={lang} />
             ))}
