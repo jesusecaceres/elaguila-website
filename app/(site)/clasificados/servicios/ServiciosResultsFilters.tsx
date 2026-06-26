@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEventHandler, ReactNode } from "react";
+import type { FormEventHandler } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
@@ -16,29 +16,7 @@ import { CAT_STD_PER_PAGE_OPTIONS } from "@/app/(site)/clasificados/components/c
 
 const RESULTS_PATH = "/clasificados/servicios/results";
 
-const RESULTS_FORM_ID_DESKTOP = "servicios-results-filter-form-desktop";
 const RESULTS_FORM_ID_MOBILE = "servicios-results-filter-form-mobile";
-
-function GroupShell({
-  titleEs,
-  titleEn,
-  lang,
-  children,
-}: {
-  titleEs: string;
-  titleEn: string;
-  lang: ServiciosLang;
-  children: ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-[#dfe6ef]/90 bg-white/[0.97] p-4 shadow-[0_10px_32px_-24px_rgba(20,38,58,0.25)] sm:p-5">
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3d5a73]/90">
-        {lang === "en" ? titleEn : titleEs}
-      </p>
-      <div className="mt-3.5">{children}</div>
-    </div>
-  );
-}
 
 const sortSelectDefault = (current: ServiciosResultsFilterQuery) =>
   current.sort === "name"
