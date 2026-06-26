@@ -162,12 +162,12 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
 
         <div className="min-w-0">
-            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)]">
+            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2.5 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-3">
             <ServiciosResultsFilters lang={lang} current={filterQuery} perPage={perPage} />
 
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
-            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-3">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-2.5">
               <p className="text-sm font-semibold text-[#142a42]">
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
@@ -187,7 +187,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             </div>
 
             {displayRows.length > 0 && displayRows.length < 4 && hasActiveFilters ? (
-              <p className="mb-4 rounded-xl border border-[#dfe6ef] bg-white/90 px-4 py-3 text-[13px] leading-relaxed text-[#4a5d6e]">
+              <p className="mb-3 rounded-xl border border-[#dfe6ef] bg-white/90 px-3 py-2 text-[12px] leading-relaxed text-[#4a5d6e]">
                 {lang === "en"
                   ? "Few matches — try clearing one filter, removing keywords, or browsing all services from landing page."
                   : "Pocos resultados: prueba quitar un filtro, acortar palabras clave o volver al inicio para explorar todo."}
@@ -242,7 +242,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {destacadosRows.length > 0 ? (
-              <div className="mb-5">
+              <div className="mb-4">
                 <ServiciosDestacadosSection
                   rows={destacadosRows}
                   lang={lang}
@@ -255,7 +255,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 {destacadosRows.length > 0 ? (
                   <h2
                     id="servicios-res-listings"
-                    className="mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
+                    className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
                   >
                     {lang === "en" ? "All matching showcases" : "Todas las vitrinas coincidentes"}
                   </h2>

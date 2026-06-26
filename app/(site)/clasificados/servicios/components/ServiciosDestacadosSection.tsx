@@ -5,7 +5,7 @@ import {
   type ServiciosDestacadoDisplayMode,
 } from "../lib/serviciosDestacados";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
-import { ServiciosDestacadoCard } from "./ServiciosDestacadoCard";
+import { ServiciosHorizontalResultCard } from "./ServiciosHorizontalResultCard";
 
 function layoutClassForMode(mode: ServiciosDestacadoDisplayMode): string {
   switch (mode) {
@@ -104,7 +104,7 @@ export function ServiciosDestacadosSection({
       <ul className={`list-none ${layoutClass}`}>
         {rows.map((row) => (
           <li key={row.slug} className={itemClassForMode(displayMode)}>
-            <ServiciosDestacadoCard row={row} lang={lang} displayMode={displayMode} />
+            <ServiciosHorizontalResultCard row={row} lang={lang} density="compact" />
           </li>
         ))}
       </ul>

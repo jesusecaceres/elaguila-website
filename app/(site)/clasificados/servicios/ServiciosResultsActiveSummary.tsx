@@ -223,17 +223,17 @@ export function ServiciosResultsActiveSummary({
 
   return (
     <div
-      className="mb-4 rounded-xl border border-[#dfe6ef]/90 bg-white/95 px-3 py-3 shadow-sm sm:px-4"
+      className="mb-3 rounded-xl border border-[#dfe6ef]/90 bg-white/95 px-3 py-2.5 shadow-sm sm:px-3.5"
       aria-label={lang === "en" ? "Active filters" : "Filtros activos"}
     >
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#3d5a73]/90">
         {lang === "en" ? "Active refinements" : "Refinamientos activos"}
       </p>
-      <ul className="mt-2 flex flex-wrap gap-2">
+      <ul className="mt-1.5 flex flex-wrap gap-1.5">
         {items.map((it, idx) => (
           <li
             key={`${it.key}-${idx}`}
-            className="inline-flex max-w-full items-center rounded-full border border-[#1a3352]/12 bg-[#f8fafc] px-3 py-1.5 text-[12px] font-medium leading-snug text-[#142a42]"
+            className="inline-flex max-w-full items-center rounded-full border border-[#1a3352]/12 bg-[#f8fafc] px-2.5 py-1 text-[11px] font-medium leading-snug text-[#142a42]"
           >
             {it.label}
           </li>

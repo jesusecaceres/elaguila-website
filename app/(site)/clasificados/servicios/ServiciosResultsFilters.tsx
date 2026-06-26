@@ -183,7 +183,7 @@ function ServiciosResultsFiltersCompact({
           >
             {lang === "en" ? "Search" : "Buscar"}
           </button>
-          <p id="servicios-city-filter-hint-mobile" className="text-[11px] leading-snug text-[#64748b] lg:col-span-2">
+          <p id="servicios-city-filter-hint-mobile" className="sr-only">
             {lang === "en"
               ? "Matches city, ZIP, service areas, and location summary when published."
               : "Coincide con ciudad, CP, zonas de servicio y resumen de ubicación publicados."}
@@ -249,7 +249,7 @@ function ServiciosResultsFiltersCompact({
             role="dialog"
             aria-modal="true"
             aria-label={lang === "en" ? "Filters" : "Filtros"}
-            className={`relative z-[61] flex max-h-[min(92vh,760px)] w-full flex-col rounded-t-[22px] border border-[#e5ddd2] bg-[#FFFCF7] shadow-[0_-12px_40px_-8px_rgba(20,38,58,0.35)] transition-transform duration-300 ease-out sm:max-w-2xl sm:rounded-2xl ${drawerOpen ? "translate-y-0 sm:scale-100 sm:opacity-100" : "translate-y-[calc(100%+12px)] sm:translate-y-0 sm:scale-95 sm:opacity-0"}`}
+            className={`relative z-[61] flex max-h-[min(92vh,760px)] w-full flex-col rounded-t-[22px] border border-[#e5ddd2] bg-[#FFFCF7] shadow-[0_-12px_40px_-8px_rgba(20,38,58,0.35)] transition-transform duration-300 ease-out sm:max-w-xl sm:rounded-2xl ${drawerOpen ? "translate-y-0 sm:scale-100 sm:opacity-100" : "translate-y-[calc(100%+12px)] sm:translate-y-0 sm:scale-95 sm:opacity-0"}`}
           >
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ebe4d9] px-4 py-3">
               <p className="text-base font-bold text-[#142a42]">{lang === "en" ? "Filters" : "Filtros"}</p>
