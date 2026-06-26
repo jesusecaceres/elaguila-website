@@ -37,10 +37,15 @@ import {
 import {
   MIS_ANUNCIOS_CATEGORY_DEFS,
   isMisAnunciosCategoryKey,
-  provenInventoryAnalyticsHref,
   resolveMisAnunciosDefaultCategory,
   type MisAnunciosCategoryKey,
 } from "../lib/dashboardMisAnunciosCategories";
+import {
+  buildCategoryPanelActions,
+  buildInventoryListingActions,
+  categoryToolsTrustCopy,
+  listingAnalyticsIsProven,
+} from "../lib/dashboardMisAnunciosCategoryTools";
 import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
@@ -321,9 +326,9 @@ export default function MyListingsPage() {
             yourListings: "Publicaciones",
             categoryPanel: "Categorías",
             workspaceLabel: "Área de gestión",
-            manage: "Gestionar",
             publish: "Publicar",
             results: "Ver resultados",
+            toolsTrust: categoryToolsTrustCopy("es"),
             errorTitle: "No pudimos cargar tus anuncios",
             back: "Volver al resumen",
             analyticsNotice:
@@ -355,9 +360,9 @@ export default function MyListingsPage() {
             yourListings: "Listings",
             categoryPanel: "Categories",
             workspaceLabel: "Management area",
-            manage: "Manage",
             publish: "Publish",
             results: "View results",
+            toolsTrust: categoryToolsTrustCopy("en"),
             errorTitle: "We couldn't load your listings",
             back: "Back to overview",
             analyticsNotice:
@@ -875,6 +880,11 @@ export default function MyListingsPage() {
     [categoryFilter],
   );
 
+  const categoryPanelActions = useMemo(
+    () => buildCategoryPanelActions(selectedCategoryDef, lang, q),
+    [selectedCategoryDef, lang, q],
+  );
+
   const selectedCategoryManagedCount = categoryCounts[categoryFilter] ?? 0;
 
   const selectedCategoryViewsSum = useMemo(() => {
@@ -1057,24 +1067,26 @@ export default function MyListingsPage() {
                   {selectedCategoryDef.description(lang)}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
-                {selectedCategoryDef.manageHref(q) && selectedCategoryDef.ready ? (
-                  <Link href={selectedCategoryDef.manageHref(q)!} className={LX_DASH.btnManage}>
-                    {t.manage}
+              <div className="flex min-w-0 flex-wrap gap-2">
+                {categoryPanelActions.map((action) => (
+                  <Link
+                    key={action.key}
+                    href={action.href}
+                    className={
+                      action.tone === "primary"
+                        ? LX_DASH.btnPrimary
+                        : action.tone === "secondary"
+                          ? LX_DASH.btnSecondary
+                          : LX_DASH.btnManage
+                    }
+                  >
+                    {action.label}
                   </Link>
-                ) : null}
-                {selectedCategoryDef.publishHref(q) && selectedCategoryDef.ready ? (
-                  <Link href={selectedCategoryDef.publishHref(q)!} className={LX_DASH.btnPrimary}>
-                    {t.publish}
-                  </Link>
-                ) : null}
-                {selectedCategoryDef.resultsHref?.(q) ? (
-                  <Link href={selectedCategoryDef.resultsHref(q)!} className={LX_DASH.btnSecondary}>
-                    {t.results}
-                  </Link>
-                ) : null}
+                ))}
               </div>
             </div>
+
+            <p className="mt-2 text-xs leading-snug text-[#7A7164]">{t.toolsTrust}</p>
 
             {selectedCategoryCount > 0 ? (
               <div className="mt-3">
@@ -1123,16 +1135,25 @@ export default function MyListingsPage() {
                     : `You don't have listings in ${selectedCategoryDef.title(lang)} yet.`}
                 </p>
                 <p className="mt-2 text-sm text-[#5C5346]">{t.emptyCategoryBody}</p>
-                {selectedCategoryDef.publishHref(q) && selectedCategoryDef.ready ? (
-                  <Link href={selectedCategoryDef.publishHref(q)!} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
-                    {t.publishInCategory} {selectedCategoryDef.title(lang)}
-                  </Link>
-                ) : null}
-                {selectedCategoryDef.resultsHref?.(q) ? (
-                  <Link href={selectedCategoryDef.resultsHref(q)!} className={`mt-3 inline-flex ${LX_DASH.btnSecondary}`}>
-                    {t.results}
-                  </Link>
-                ) : null}
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {categoryPanelActions.map((action) => (
+                    <Link
+                      key={action.key}
+                      href={action.href}
+                      className={
+                        action.tone === "primary"
+                          ? LX_DASH.btnPrimary
+                          : action.tone === "secondary"
+                            ? LX_DASH.btnSecondary
+                            : LX_DASH.btnManage
+                      }
+                    >
+                      {action.key === "publish" && selectedCategoryDef.ready
+                        ? `${t.publishInCategory} ${selectedCategoryDef.title(lang)}`
+                        : action.label}
+                    </Link>
+                  ))}
+                </div>
               </div>
             ) : showListingsTableSection && visible.length === 0 ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center text-sm text-[#5C5346]">
@@ -1174,23 +1195,7 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      { href: "/dashboard/restaurantes?" + q, label: lang === "es" ? "Gestionar" : "Manage" },
-                      ...(item.previewHref
-                        ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
-                        : []),
-                      { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
-                      ...(provenInventoryAnalyticsHref(item)
-                        ? [
-                            {
-                              href: provenInventoryAnalyticsHref(item)!,
-                              label: analyticsActionLabel(lang),
-                              tone: "subtle" as const,
-                            },
-                          ]
-                        : []),
-                    ].filter((action) => Boolean(action.href))}
+                    actions={buildInventoryListingActions("restaurantes", item, lang, q)}
                   />
                 ))
           ) : null}
@@ -1214,36 +1219,7 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      {
-                        href: item.editHref,
-                        label: lang === "es" ? "Gestionar vacante" : "Manage listing",
-                      },
-                      ...(item.previewHref
-                        ? [
-                            {
-                              href: item.previewHref,
-                              label: lang === "es" ? "Vista previa" : "Preview",
-                              tone: "subtle" as const,
-                            },
-                          ]
-                        : []),
-                      {
-                        href: item.resultsHref ?? undefined,
-                        label: publicResultsActionLabel(lang),
-                        tone: "subtle" as const,
-                      },
-                      ...(provenInventoryAnalyticsHref(item)
-                        ? [
-                            {
-                              href: provenInventoryAnalyticsHref(item)!,
-                              label: analyticsActionLabel(lang),
-                              tone: "subtle" as const,
-                            },
-                          ]
-                        : []),
-                    ].filter((action) => Boolean(action.href))}
+                    actions={buildInventoryListingActions("empleos", item, lang, q)}
                   />
                 ))
           ) : null}
@@ -1267,36 +1243,7 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      {
-                        href: item.editHref,
-                        label: lang === "es" ? "Gestionar envío" : "Manage submission",
-                      },
-                      ...(item.previewHref
-                        ? [
-                            {
-                              href: item.previewHref,
-                              label: lang === "es" ? "Vista previa" : "Preview",
-                              tone: "subtle" as const,
-                            },
-                          ]
-                        : []),
-                      {
-                        href: item.resultsHref ?? undefined,
-                        label: publicResultsActionLabel(lang),
-                        tone: "subtle" as const,
-                      },
-                      ...(provenInventoryAnalyticsHref(item)
-                        ? [
-                            {
-                              href: provenInventoryAnalyticsHref(item)!,
-                              label: analyticsActionLabel(lang),
-                              tone: "subtle" as const,
-                            },
-                          ]
-                        : []),
-                    ].filter((action) => Boolean(action.href))}
+                    actions={buildInventoryListingActions("viajes", item, lang, q)}
                   />
                 ))
           ) : null}
@@ -1346,23 +1293,7 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={[
-                      { href: item.publicHref, label: lang === "es" ? "Ver público" : "View public", tone: "primary" as const },
-                      { href: item.editHref, label: lang === "es" ? "Gestionar" : "Manage" },
-                      ...(item.previewHref
-                        ? [{ href: item.previewHref, label: lang === "es" ? "Vista previa" : "Preview", tone: "subtle" as const }]
-                        : []),
-                      { href: item.resultsHref ?? undefined, label: publicResultsActionLabel(lang), tone: "subtle" as const },
-                      ...(provenInventoryAnalyticsHref(item)
-                        ? [
-                            {
-                              href: provenInventoryAnalyticsHref(item)!,
-                              label: analyticsActionLabel(lang),
-                              tone: "subtle" as const,
-                            },
-                          ]
-                        : []),
-                    ].filter((action) => Boolean(action.href))}
+                    actions={buildInventoryListingActions("servicios", item, lang, q)}
                   />
                 ))
           ) : null}
@@ -1687,12 +1618,14 @@ export default function MyListingsPage() {
                         >
                           {lang === "es" ? "Gestionar" : "Manage"}
                         </Link>
-                        <Link
-                          href={`/dashboard/mis-anuncios/${x.id}?${q}`}
-                          className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]"
-                        >
-                          {analyticsActionLabel(lang)}
-                        </Link>
+                        {listingAnalyticsIsProven(catLower) ? (
+                          <Link
+                            href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                            className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {analyticsActionLabel(lang)}
+                          </Link>
+                        ) : null}
                         {catLower === "clases" ? (
                           <Link
                             href={appendLangToPath("/clasificados/clases/resultados", lang)}

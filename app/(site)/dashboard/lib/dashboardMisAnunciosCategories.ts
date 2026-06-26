@@ -57,6 +57,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=en-venta`,
     publishHref: (q) => `/clasificados/publicar/en-venta?${q}`,
+    resultsHref: (q) => `/clasificados/en-venta/results?${q}`,
   },
   {
     key: "restaurantes",
@@ -163,6 +164,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=busco`,
     publishHref: (q) => `/clasificados/publicar/busco?${q}`,
+    resultsHref: (q) => `/clasificados/busco/resultados?${q}`,
   },
 ];
 
