@@ -184,7 +184,7 @@ function ServiciosResultsFiltersCompact({
           <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
           <button
             type="submit"
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#EA580C] to-[#C2410C] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.03]"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#8A2433] to-[#5C1622] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.05]"
           >
             {lang === "en" ? "Search" : "Buscar"}
           </button>
@@ -296,7 +296,7 @@ function ServiciosResultsFiltersCompact({
               <button
                 type="submit"
                 onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-[#3B66AD] px-6 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(30,58,95,0.45)] transition hover:bg-[#2f5699]"
+                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-6 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(92,22,34,0.5)] transition hover:bg-[#651825]"
               >
                 {lang === "en" ? "View results" : "Ver resultados"}
               </button>
