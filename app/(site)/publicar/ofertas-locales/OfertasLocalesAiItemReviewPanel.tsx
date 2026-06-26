@@ -6,12 +6,22 @@ import {
   patchOfertaLocalReviewItem,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import {
+  getOfertaLocalActiveScanCopy,
+  inferScanningAssetId,
   isOfertaLocalScanJobActive,
+  itemHasPendingCrop,
   logOfertaLocalScanUi,
+  OFERTA_LOCAL_CROP_POLL_GRACE_MS,
   OFERTA_LOCAL_SCAN_REVIEW_POLL_MS,
   OFERTA_LOCAL_SCAN_REVIEW_POLL_TIMEOUT_MS,
+  partitionItemsByActiveScanJob,
   pickDefaultOfertaLocalReviewItemId,
+  resolveActiveScanJobIdForReviewSession,
+  resolveAssetScanTabStatus,
+  resolveItemCropListStatus,
+  summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
+import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
   OfertaLocalDraft,
   OfertaLocalItemReviewStatus,
@@ -45,6 +55,13 @@ type Props = {
   scanPollingActive?: boolean;
   scanRefreshToken?: number;
   onFocusedItemChange?: (item: OfertaLocalItemReviewViewModel | null) => void;
+  onScopeChange?: (scope: {
+    scanActiveForAsset: boolean;
+    scanningAssetId: string | null;
+    selectedAssetRole: OfertaLocalSourceFileRole | null;
+    activeScanJobId: string | null;
+  }) => void;
+  onAssetTabStatuses?: (statuses: Record<string, string>) => void;
 };
 
 type ItemDraft = {
@@ -343,8 +360,11 @@ export function OfertasLocalesAiItemReviewPanel({
   scanPollingActive = false,
   scanRefreshToken = 0,
   onFocusedItemChange,
+  onScopeChange,
+  onAssetTabStatuses,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
+  const scanCopy = getOfertaLocalActiveScanCopy(lang);
   const isCouponMode = reviewMode === "coupon";
   const isWorkspace = variant === "workspace";
 
@@ -360,8 +380,10 @@ export function OfertasLocalesAiItemReviewPanel({
   const [statusFilter, setStatusFilter] = useState<ReviewFilter>("all");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [previousScansOpen, setPreviousScansOpen] = useState(false);
+  const [scanCompletedAt, setScanCompletedAt] = useState<number | null>(null);
 
   const selectionContextRef = useRef("");
+  const prevScanPollingRef = useRef(scanPollingActive);
   const pollStartedAtRef = useRef<number | null>(null);
   const formPanelRef = useRef<HTMLDivElement | null>(null);
   const selectedItemIdRef = useRef<string | null>(null);
@@ -454,59 +476,62 @@ export function OfertasLocalesAiItemReviewPanel({
     void loadItems({ silent: itemCountRef.current > 0 });
   }, [scanRefreshToken, loadItems]);
 
+  useEffect(() => {
+    if (prevScanPollingRef.current && !scanPollingActive) {
+      setScanCompletedAt(Date.now());
+    }
+    if (scanPollingActive) setScanCompletedAt(null);
+    prevScanPollingRef.current = scanPollingActive;
+  }, [scanPollingActive]);
+
+  const scanningAssetId = useMemo(
+    () => inferScanningAssetId(scanPollingActive, scanJobs, items, selectedSourceAssetId ?? null),
+    [scanPollingActive, scanJobs, items, selectedSourceAssetId]
+  );
+
+  const selectedAssetRole = useMemo((): OfertaLocalSourceFileRole | null => {
+    if (!selectedSourceAssetId || !draft) return null;
+    if (draft.flyerAssets.some((asset) => asset.id === selectedSourceAssetId)) return "flyer";
+    if (draft.couponAssets.some((asset) => asset.id === selectedSourceAssetId)) return "coupon";
+    return null;
+  }, [selectedSourceAssetId, draft]);
+
+  const activeScanJobId = useMemo(() => {
+    if (!isWorkspace || !selectedSourceAssetId) return highlightScanJobId ?? null;
+    return resolveActiveScanJobIdForReviewSession(
+      selectedSourceAssetId,
+      items,
+      scanJobs,
+      highlightScanJobId ?? null,
+      scanPollingActive,
+      scanningAssetId
+    );
+  }, [
+    isWorkspace,
+    selectedSourceAssetId,
+    items,
+    scanJobs,
+    highlightScanJobId,
+    scanPollingActive,
+    scanningAssetId,
+  ]);
+
   const highlightedScanJob = useMemo(
-    () => scanJobs.find((job) => job.id === highlightScanJobId) ?? null,
-    [scanJobs, highlightScanJobId]
+    () => (activeScanJobId ? scanJobs.find((job) => job.id === activeScanJobId) ?? null : null),
+    [scanJobs, activeScanJobId]
   );
 
   const scanJobStillActive = highlightedScanJob
     ? isOfertaLocalScanJobActive(highlightedScanJob.status)
-    : scanPollingActive;
+    : false;
 
-  useEffect(() => {
-    const shouldPoll = Boolean(ofertaLocalId?.trim()) && (scanPollingActive || scanJobStillActive);
-    if (!shouldPoll) {
-      if (pollStartedAtRef.current != null) {
-        logOfertaLocalScanUi("polling stopped", { reason: "inactive" });
-        pollStartedAtRef.current = null;
-      }
-      return;
-    }
+  const scanActiveForAsset = Boolean(
+    selectedSourceAssetId &&
+      ((scanPollingActive && scanningAssetId === selectedSourceAssetId) || scanJobStillActive)
+  );
 
-    if (pollStartedAtRef.current == null) {
-      pollStartedAtRef.current = Date.now();
-      logOfertaLocalScanUi("polling started", {
-        ofertaLocalId,
-        highlightScanJobId,
-        scanPollingActive,
-      });
-    }
-
-    const tick = () => {
-      const startedAt = pollStartedAtRef.current ?? Date.now();
-      if (Date.now() - startedAt > OFERTA_LOCAL_SCAN_REVIEW_POLL_TIMEOUT_MS) {
-        logOfertaLocalScanUi("polling stopped", { reason: "timeout" });
-        pollStartedAtRef.current = null;
-        return;
-      }
-      void loadItems({ silent: true });
-    };
-
-    void loadItems({ silent: true });
-    const intervalId = window.setInterval(tick, OFERTA_LOCAL_SCAN_REVIEW_POLL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-      logOfertaLocalScanUi("polling stopped", { reason: "cleanup" });
-      pollStartedAtRef.current = null;
-    };
-  }, [
-    ofertaLocalId,
-    scanPollingActive,
-    scanJobStillActive,
-    highlightScanJobId,
-    loadItems,
-  ]);
+  const cropGraceActive =
+    scanCompletedAt != null && Date.now() - scanCompletedAt < OFERTA_LOCAL_CROP_POLL_GRACE_MS;
 
   const updateDraftField = useCallback((itemId: string, field: keyof ItemDraft, value: string) => {
     setDrafts((prev) => ({
@@ -565,21 +590,115 @@ export function OfertasLocalesAiItemReviewPanel({
   }, [items, selectedSourceAssetId, statusFilter]);
 
   const { currentScanItems, previousScanItems } = useMemo(() => {
-    if (!isWorkspace || !highlightScanJobId) {
+    if (!isWorkspace || !selectedSourceAssetId) {
       return { currentScanItems: filteredItems, previousScanItems: [] as OfertaLocalItemReviewViewModel[] };
     }
-    const current = filteredItems.filter(
-      (item) => !item.scanJobId || item.scanJobId === highlightScanJobId
-    );
-    const previous = filteredItems.filter(
-      (item) => item.scanJobId && item.scanJobId !== highlightScanJobId
-    );
-    return { currentScanItems: current, previousScanItems: previous };
-  }, [filteredItems, highlightScanJobId, isWorkspace]);
+    return partitionItemsByActiveScanJob(filteredItems, activeScanJobId);
+  }, [filteredItems, activeScanJobId, isWorkspace, selectedSourceAssetId]);
 
-  const displayItems = isWorkspace && highlightScanJobId ? currentScanItems : filteredItems;
+  const displayItems = isWorkspace ? currentScanItems : filteredItems;
 
-  const selectionContext = `${highlightScanJobId ?? ""}|${selectedSourceAssetId ?? ""}|${statusFilter}`;
+  const itemsMissingCrop = displayItems.some(itemHasPendingCrop);
+  const shouldPollCrops = itemsMissingCrop && (scanActiveForAsset || cropGraceActive);
+
+  useEffect(() => {
+    const shouldPoll =
+      Boolean(ofertaLocalId?.trim()) && (scanPollingActive || scanJobStillActive || shouldPollCrops);
+    if (!shouldPoll) {
+      if (pollStartedAtRef.current != null) {
+        logOfertaLocalScanUi("polling stopped", { reason: "inactive" });
+        pollStartedAtRef.current = null;
+      }
+      return;
+    }
+
+    if (pollStartedAtRef.current == null) {
+      pollStartedAtRef.current = Date.now();
+      logOfertaLocalScanUi("polling started", {
+        ofertaLocalId,
+        activeScanJobId,
+        scanPollingActive,
+        shouldPollCrops,
+      });
+    }
+
+    const tick = () => {
+      const startedAt = pollStartedAtRef.current ?? Date.now();
+      if (Date.now() - startedAt > OFERTA_LOCAL_SCAN_REVIEW_POLL_TIMEOUT_MS) {
+        logOfertaLocalScanUi("polling stopped", { reason: "timeout" });
+        pollStartedAtRef.current = null;
+        return;
+      }
+      void loadItems({ silent: true });
+    };
+
+    void loadItems({ silent: true });
+    const intervalId = window.setInterval(tick, OFERTA_LOCAL_SCAN_REVIEW_POLL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+      logOfertaLocalScanUi("polling stopped", { reason: "cleanup" });
+      pollStartedAtRef.current = null;
+    };
+  }, [
+    ofertaLocalId,
+    scanPollingActive,
+    scanJobStillActive,
+    activeScanJobId,
+    loadItems,
+    shouldPollCrops,
+  ]);
+
+  useEffect(() => {
+    onScopeChange?.({
+      scanActiveForAsset: scanActiveForAsset || shouldPollCrops,
+      scanningAssetId,
+      selectedAssetRole,
+      activeScanJobId,
+    });
+  }, [
+    onScopeChange,
+    scanActiveForAsset,
+    shouldPollCrops,
+    scanningAssetId,
+    selectedAssetRole,
+    activeScanJobId,
+  ]);
+
+  useEffect(() => {
+    if (!isWorkspace || !onAssetTabStatuses || !draft) return;
+    const statuses: Record<string, string> = {};
+    const assets = [
+      ...draft.flyerAssets.map((asset) => ({ id: asset.id, kind: "flyer" as const })),
+      ...draft.couponAssets.map((asset) => ({ id: asset.id, kind: "coupon" as const })),
+    ];
+    for (const asset of assets) {
+      const label = resolveAssetScanTabStatus(
+        asset.id,
+        asset.kind,
+        items,
+        scanJobs,
+        highlightScanJobId ?? null,
+        scanPollingActive,
+        scanningAssetId,
+        lang
+      );
+      if (label) statuses[asset.id] = label;
+    }
+    onAssetTabStatuses(statuses);
+  }, [
+    isWorkspace,
+    onAssetTabStatuses,
+    draft,
+    items,
+    scanJobs,
+    highlightScanJobId,
+    scanPollingActive,
+    scanningAssetId,
+    lang,
+  ]);
+
+  const selectionContext = `${activeScanJobId ?? ""}|${selectedSourceAssetId ?? ""}|${statusFilter}|${scanPollingActive ? "poll" : "idle"}`;
 
   const selectItem = useCallback((itemId: string) => {
     logOfertaLocalScanUi("selected item changed", { itemId });
@@ -621,14 +740,15 @@ export function OfertasLocalesAiItemReviewPanel({
   }, [selectedItemId, isWorkspace]);
 
   const countLabels = useMemo(() => {
-    if (!summary) return null;
+    const scoped = isWorkspace ? summarizeScopedItemReviewCounts(displayItems) : summary;
+    if (!scoped) return null;
     return [
-      { key: "pending" as const, label: c.aiReviewCountPending, count: summary.pending },
-      { key: "needs_review" as const, label: c.aiReviewCountNeedsReview, count: summary.needs_review },
-      { key: "approved" as const, label: c.aiReviewCountApproved, count: summary.approved },
-      { key: "rejected" as const, label: c.aiReviewCountRejected, count: summary.rejected },
+      { key: "pending" as const, label: c.aiReviewCountPending, count: scoped.pending },
+      { key: "needs_review" as const, label: c.aiReviewCountNeedsReview, count: scoped.needs_review },
+      { key: "approved" as const, label: c.aiReviewCountApproved, count: scoped.approved },
+      { key: "rejected" as const, label: c.aiReviewCountRejected, count: scoped.rejected },
     ];
-  }, [summary, c]);
+  }, [summary, c, isWorkspace, displayItems]);
 
   const filterButtons: { key: ReviewFilter; label: string }[] = [
     { key: "all", label: c.aiReviewFilterAll },
@@ -695,17 +815,22 @@ export function OfertasLocalesAiItemReviewPanel({
       </button>
     </div>
   ) : (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <p className="text-xs font-semibold text-[#1E1814]">
-        {highlightScanJobId && previousScanItems.length > 0
-          ? `${c.aiReviewCurrentScan}: ${displayItems.length}`
-          : `${c.aiReviewSuggestionsFound} ${displayItems.length}`}
-        {selectedSourceAssetId ? ` · ${c.aiReviewSelectSourceFile}` : ""}
-        {previousScanItems.length > 0 ? ` · ${c.aiReviewPreviousScans}: ${previousScanItems.length}` : ""}
-      </p>
-      <button type="button" className={BTN_SECONDARY} disabled={loading || autoRefreshing} onClick={() => void loadItems()}>
-        {loading || autoRefreshing ? c.aiReviewRefreshing : c.aiReviewRefresh}
-      </button>
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-[#1E1814]">
+          {scanCopy.currentScan}: {displayItems.length}
+          {previousScanItems.length > 0 ? ` · ${scanCopy.previousScans}: ${previousScanItems.length}` : ""}
+        </p>
+        <button
+          type="button"
+          className={BTN_SECONDARY}
+          disabled={loading || autoRefreshing}
+          onClick={() => void loadItems()}
+        >
+          {loading || autoRefreshing ? c.aiReviewRefreshing : scanCopy.refreshNow}
+        </button>
+      </div>
+      <p className="text-[10px] text-[#1E1814]/55">{scanCopy.refreshBackupHint}</p>
     </div>
   );
 
@@ -744,17 +869,22 @@ export function OfertasLocalesAiItemReviewPanel({
         {autoRefreshing && !loading ? (
           <p className="text-xs text-[#1E1814]/55">{c.aiReviewAutoRefreshing}</p>
         ) : null}
-        {isWorkspace && (scanPollingActive || scanJobStillActive) ? (
-          <p className="rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-3 py-2 text-xs text-[#1E1814]/75">
-            {c.aiReviewScanInProgress}
-          </p>
+        {isWorkspace && scanActiveForAsset ? (
+          <div className="rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-3 py-2 text-xs text-[#1E1814]/75">
+            <p className="font-medium text-[#7A1E2C]">
+              {selectedAssetRole === "coupon" ? scanCopy.scanningCoupon : scanCopy.scanningFlyer}
+            </p>
+            <p className="mt-1">{scanCopy.autoResultsHint}</p>
+          </div>
         ) : null}
         {isWorkspace &&
-        !scanPollingActive &&
-        !scanJobStillActive &&
-        highlightScanJobId &&
+        !scanActiveForAsset &&
+        !shouldPollCrops &&
+        activeScanJobId &&
         displayItems.length > 0 ? (
-          <p className="text-xs font-medium text-emerald-900/85">{c.aiReviewReadyToReview}</p>
+          <p className="text-xs font-medium text-emerald-900/85">
+            {selectedAssetRole === "coupon" ? scanCopy.readyCoupon : scanCopy.readyFlyer}
+          </p>
         ) : null}
         {error ? (
           <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</p>
@@ -767,8 +897,8 @@ export function OfertasLocalesAiItemReviewPanel({
 
         {!loading && !error && displayItems.length === 0 ? (
           <p className="text-xs text-[#1E1814]/60">
-            {scanPollingActive || scanJobStillActive
-              ? c.aiReviewScanInProgress
+            {scanActiveForAsset
+              ? scanCopy.scanInProgressEmpty
               : scanJobId || selectedSourceAssetId
                 ? c.aiReviewNoSuggestions
                 : c.aiReviewEmpty}
@@ -777,9 +907,9 @@ export function OfertasLocalesAiItemReviewPanel({
 
         {isWorkspace && displayItems.length > 0 ? (
           <>
-            {highlightScanJobId && previousScanItems.length > 0 ? (
+            {activeScanJobId && previousScanItems.length > 0 ? (
               <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
-                {c.aiReviewCurrentScan}
+                {scanCopy.currentScan}
               </p>
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2">
@@ -808,6 +938,7 @@ export function OfertasLocalesAiItemReviewPanel({
             <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
               {displayItems.map((item) => {
                 const active = item.id === selectedItemId;
+                const cropStatus = resolveItemCropListStatus(item, scanActiveForAsset || shouldPollCrops);
                 return (
                   <button
                     key={item.id}
@@ -819,7 +950,7 @@ export function OfertasLocalesAiItemReviewPanel({
                         : "hover:bg-[#FDF8F0]"
                     }`}
                   >
-                    {item.sourceCropUrl ? (
+                    {cropStatus === "crop" ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.sourceCropUrl}
@@ -827,8 +958,14 @@ export function OfertasLocalesAiItemReviewPanel({
                         className="h-10 w-10 shrink-0 rounded border border-[#D4C4A8]/60 object-cover"
                       />
                     ) : (
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0] text-[9px] text-[#1E1814]/40">
-                        —
+                      <span
+                        className={`flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded border border-dashed px-0.5 text-center text-[8px] leading-tight ${
+                          cropStatus === "pending"
+                            ? "border-amber-300/80 bg-amber-50/80 text-amber-900/75"
+                            : "border-[#D4C4A8]/60 bg-[#FDF8F0] text-[#1E1814]/45"
+                        }`}
+                      >
+                        {cropStatus === "pending" ? scanCopy.listCropPending : scanCopy.listCropNone}
                       </span>
                     )}
                     <span className="min-w-0 flex-1">
@@ -870,7 +1007,7 @@ export function OfertasLocalesAiItemReviewPanel({
             />
           ) : null}
 
-          {highlightScanJobId && previousScanItems.length > 0 ? (
+          {activeScanJobId && previousScanItems.length > 0 ? (
             <div className="mt-4 border-t border-[#D4C4A8]/50 pt-3">
               <button
                 type="button"
@@ -878,7 +1015,7 @@ export function OfertasLocalesAiItemReviewPanel({
                 onClick={() => setPreviousScansOpen((v) => !v)}
               >
                 <span>
-                  {c.aiReviewPreviousScans} ({previousScanItems.length})
+                  {scanCopy.previousScans} ({previousScanItems.length})
                 </span>
                 <span>{previousScansOpen ? "−" : "+"}</span>
               </button>

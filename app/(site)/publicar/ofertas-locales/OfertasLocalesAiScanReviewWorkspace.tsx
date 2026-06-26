@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getOfertaLocalScanEligibleAssets } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
 import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import { OfertasLocalesProductClipPanel } from "./OfertasLocalesProductClipPanel";
 import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
@@ -16,6 +17,13 @@ type Props = {
   scanPollingActive?: boolean;
   scanRefreshToken?: number;
   reviewMode?: "weekly" | "coupon";
+};
+
+type ReviewScope = {
+  scanActiveForAsset: boolean;
+  scanningAssetId: string | null;
+  selectedAssetRole: OfertaLocalSourceFileRole | null;
+  activeScanJobId: string | null;
 };
 
 export function OfertasLocalesAiScanReviewWorkspace({
@@ -31,6 +39,13 @@ export function OfertasLocalesAiScanReviewWorkspace({
   const eligibleAssets = useMemo(() => getOfertaLocalScanEligibleAssets(draft), [draft]);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [focusedItem, setFocusedItem] = useState<OfertaLocalItemReviewViewModel | null>(null);
+  const [reviewScope, setReviewScope] = useState<ReviewScope>({
+    scanActiveForAsset: false,
+    scanningAssetId: null,
+    selectedAssetRole: null,
+    activeScanJobId: null,
+  });
+  const [assetTabStatus, setAssetTabStatus] = useState<Record<string, string>>({});
 
   const selectedAsset = eligibleAssets.find((a) => a.assetId === selectedAssetId);
 
@@ -46,6 +61,14 @@ export function OfertasLocalesAiScanReviewWorkspace({
     },
     []
   );
+
+  const handleScopeChange = useCallback((scope: ReviewScope) => {
+    setReviewScope(scope);
+  }, []);
+
+  const handleAssetStatuses = useCallback((statuses: Record<string, string>) => {
+    setAssetTabStatus(statuses);
+  }, []);
 
   if (!ofertaLocalId?.trim()) return null;
 
@@ -70,6 +93,11 @@ export function OfertasLocalesAiScanReviewWorkspace({
             <p className="mt-0.5 max-w-[280px] truncate font-medium text-[#1E1814]">
               {selectedAsset.fileName || selectedAsset.assetId}
             </p>
+            {assetTabStatus[selectedAsset.assetId] ? (
+              <p className="mt-1 text-[10px] font-medium text-[#7A1E2C]/85">
+                {assetTabStatus[selectedAsset.assetId]}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -89,6 +117,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
                 : lang === "en"
                   ? "Coupon / additional"
                   : "Cupón / adicional";
+            const tabStatus = assetTabStatus[asset.assetId];
             return (
               <button
                 key={asset.assetId}
@@ -104,6 +133,9 @@ export function OfertasLocalesAiScanReviewWorkspace({
                 <span className="mt-0.5 block truncate text-[10px] opacity-80">
                   {asset.fileName || asset.assetId}
                 </span>
+                {tabStatus ? (
+                  <span className="mt-1 block text-[10px] font-medium text-[#7A1E2C]/80">{tabStatus}</span>
+                ) : null}
               </button>
             );
           })}
@@ -118,6 +150,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
             focusedItem={focusedItem}
             selectedAssetId={selectedAssetId}
             eligibleAssets={eligibleAssets}
+            scanActiveForAsset={reviewScope.scanActiveForAsset}
           />
         </div>
 
@@ -134,6 +167,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
             scanPollingActive={scanPollingActive}
             scanRefreshToken={scanRefreshToken}
             onFocusedItemChange={handleFocusedItemChange}
+            onScopeChange={handleScopeChange}
+            onAssetTabStatuses={handleAssetStatuses}
           />
         </div>
       </div>
