@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createRequire } from "module";
 import { PDFDocument } from "pdf-lib";
 
 import {
@@ -144,6 +145,7 @@ export type OfertaLocalPdfPageRasterForCrop = {
 };
 
 let pdfjsWorkerLoadPromise: Promise<void> | null = null;
+const requirePdfjsWorker = createRequire(`${process.cwd()}/package.json`);
 
 /** On-demand single-page PDF → PNG rasterization for crop generation (Gate OFERTAS-CROP-PATCH-1). */
 export async function renderOfertaLocalPdfPageToPngForCrop(params: {
@@ -237,7 +239,7 @@ async function tryRenderPdfPageToPng(
         height,
       };
     } finally {
-      await doc.destroy();
+      await loadingTask.destroy();
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "pdf render failed";
@@ -250,6 +252,8 @@ async function tryRenderPdfPageToPng(
 }
 
 async function ensurePdfjsWorkerLoaded(): Promise<void> {
-  pdfjsWorkerLoadPromise ??= import("pdfjs-dist/legacy/build/pdf.worker.mjs").then(() => undefined);
+  pdfjsWorkerLoadPromise ??= Promise.resolve().then(() => {
+    requirePdfjsWorker("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  });
   await pdfjsWorkerLoadPromise;
 }
