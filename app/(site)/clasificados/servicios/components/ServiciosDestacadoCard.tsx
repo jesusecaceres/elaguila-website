@@ -38,12 +38,12 @@ export function ServiciosDestacadoCard({
   return (
     <article
       className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[#D4AF37]/35 bg-[#FFFCF7] shadow-[0_18px_48px_-28px_rgba(122,98,32,0.45)] ring-1 ring-[#C9A84A]/15 transition hover:border-[#C9A84A]/50 hover:shadow-[0_22px_56px_-26px_rgba(122,98,32,0.5)] ${
-        isHero ? "mx-auto max-w-2xl" : ""
+        isHero ? "mx-auto max-w-md" : ""
       }`}
     >
       <div
         className={`relative w-full overflow-hidden bg-[#EFE7DA] ${
-          isHero ? "aspect-[21/9] min-h-[200px]" : isCompact ? "aspect-[16/10]" : "aspect-[16/10] sm:aspect-[2/1]"
+          isHero ? "aspect-[16/7] max-h-[150px]" : isCompact ? "aspect-[16/9] max-h-[135px]" : "aspect-[16/9] sm:aspect-[2/1]"
         }`}
       >
         {imageUrl ? (
@@ -56,7 +56,7 @@ export function ServiciosDestacadoCard({
             unoptimized={serviciosImageUnoptimized(imageUrl)}
           />
         ) : (
-          <div className="flex h-full min-h-[140px] items-center justify-center bg-gradient-to-br from-[#FFFDF9] to-[#F4EBE3] text-sm font-semibold text-[#8B7E70]">
+          <div className="flex h-full min-h-[96px] items-center justify-center bg-gradient-to-br from-[#FFFDF9] to-[#F4EBE3] text-sm font-semibold text-[#8B7E70]">
             {lang === "en" ? "Leonix showcase" : "Vitrina Leonix"}
           </div>
         )}
@@ -80,7 +80,7 @@ export function ServiciosDestacadoCard({
           </div>
         ) : null}
       </div>
-      <div className={`flex flex-1 flex-col ${isHero ? "p-6 sm:p-8" : isCompact ? "p-3 sm:p-4" : "p-4 sm:p-5"}`}>
+      <div className={`flex flex-1 flex-col ${isHero ? "p-4" : isCompact ? "p-3" : "p-4 sm:p-5"}`}>
         {categoryLine ? (
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5a6b7c] sm:text-[11px]">
             {categoryLine}
@@ -88,18 +88,18 @@ export function ServiciosDestacadoCard({
         ) : null}
         <h3
           className={`mt-1 font-bold leading-snug tracking-tight text-[#142a42] ${
-            isHero ? "text-xl sm:text-2xl" : isCompact ? "text-base" : "text-lg"
+            isHero ? "text-lg" : isCompact ? "text-base" : "text-lg"
           }`}
         >
           {profile.identity.businessName}
         </h3>
         {locationLine ? (
-          <p className="mt-2 text-[13px] leading-snug text-[#4a5d6e] sm:text-sm">{locationLine}</p>
+          <p className="mt-1.5 line-clamp-1 text-[13px] leading-snug text-[#4a5d6e] sm:text-sm">{locationLine}</p>
         ) : null}
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-3">
           <Link
             href={href}
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#3B66AD] to-[#2f5699] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.04] sm:w-auto sm:min-w-[10rem]"
+            className="inline-flex min-h-[38px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#7A1E2C] to-[#5C1622] px-4 text-xs font-bold text-white shadow-md transition hover:brightness-[1.04] sm:w-auto sm:min-w-[8rem]"
           >
             {lang === "en" ? "View showcase" : "Ver vitrina"}
           </Link>

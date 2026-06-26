@@ -73,10 +73,10 @@ export function ServiciosLandingPage({
       searchAction={resultsHref}
       searchChips={quickChips}
     >
-      <div className="space-y-6 sm:space-y-7">
-        <div className="flex flex-col gap-6 sm:gap-7">
+      <div className="space-y-5 sm:space-y-6">
+        <div className="flex flex-col gap-5 sm:gap-6">
           <div
-            className={`${sectionShell} p-4 sm:p-5 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
+            className={`${sectionShell} p-3.5 sm:p-4 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
           >
             <ServiciosDestacadosSection
               lang={lang}
@@ -86,11 +86,11 @@ export function ServiciosLandingPage({
             />
           </div>
 
-          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-4 sm:p-5 order-2`}>
+          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3.5 sm:p-4 order-2`}>
             <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
           </div>
 
-          <div className={`${sectionShell} p-4 sm:p-5 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
+          <div className={`${sectionShell} p-3.5 sm:p-4 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
             <RecentServicesSection lang={lang} rows={recientesRows} />
           </div>
         </div>

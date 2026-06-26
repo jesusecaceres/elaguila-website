@@ -162,7 +162,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
 
         <div className="min-w-0">
-            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-4">
+            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)]">
             <ServiciosResultsFilters lang={lang} current={filterQuery} perPage={perPage} />
 
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
@@ -195,7 +195,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {displayRows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-4 py-14 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+              <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-4 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                 <p className="mx-auto max-w-md text-sm font-medium leading-relaxed text-[#142a42]">
                   {hasActiveFilters
                     ? lang === "en"
@@ -214,7 +214,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                       ? "When businesses publish, they will appear here automatically."
                       : "Cuando se publiquen negocios, aparecerán aquí automáticamente."}
                 </p>
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <div className="mt-5 flex flex-wrap justify-center gap-3">
                   {hasActiveFilters ? (
                     <Link
                       href={`${SERVICIOS_RESULTS_PATH}?lang=${lang}`}
@@ -242,7 +242,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {destacadosRows.length > 0 ? (
-              <div className="mb-8">
+              <div className="mb-5">
                 <ServiciosDestacadosSection
                   rows={destacadosRows}
                   lang={lang}
@@ -260,10 +260,10 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                     {lang === "en" ? "All matching showcases" : "Todas las vitrinas coincidentes"}
                   </h2>
                 ) : null}
-                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-4 sm:gap-5">
+                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3">
                   {pagedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
-                      <ServiciosHorizontalResultCard row={r} lang={lang} />
+                      <ServiciosHorizontalResultCard row={r} lang={lang} density="compact" />
                     </li>
                   ))}
                 </ul>

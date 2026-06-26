@@ -135,21 +135,21 @@ function ServiciosResultsFiltersCompact({
   }, [drawerOpen]);
 
   const inputClass =
-    "min-h-[44px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+    "min-h-[40px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
 
   return (
-    <div className="mb-4 border-b border-[#dcd3c7]/80 pb-4">
+    <div className="mb-3 border-b border-[#dcd3c7]/80 pb-3">
       <form
         id={RESULTS_FORM_ID_MOBILE}
         method="get"
         action={RESULTS_PATH}
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
-        className="space-y-3"
+        className="space-y-2.5"
         onSubmitCapture={onSubmitCapture}
       >
         <input type="hidden" name="lang" value={lang} />
 
-        <div className="space-y-2">
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.72fr)_auto_auto] lg:items-end">
           <label className="block min-w-0">
             <span className="text-xs font-semibold text-[#3d4f62]">
               {lang === "en" ? "Keywords" : "Palabras clave"}
@@ -176,18 +176,18 @@ function ServiciosResultsFiltersCompact({
               className={`mt-1 ${inputClass}`}
             />
           </label>
-          <p id="servicios-city-filter-hint-mobile" className="text-[11px] leading-snug text-[#64748b]">
+          <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
+          <button
+            type="submit"
+            className="inline-flex min-h-[40px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#8A2433] to-[#5C1622] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.05] lg:w-auto"
+          >
+            {lang === "en" ? "Search" : "Buscar"}
+          </button>
+          <p id="servicios-city-filter-hint-mobile" className="text-[11px] leading-snug text-[#64748b] lg:col-span-2">
             {lang === "en"
               ? "Matches city, ZIP, service areas, and location summary when published."
               : "Coincide con ciudad, CP, zonas de servicio y resumen de ubicación publicados."}
           </p>
-          <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
-          <button
-            type="submit"
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#8A2433] to-[#5C1622] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.05]"
-          >
-            {lang === "en" ? "Search" : "Buscar"}
-          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

@@ -77,10 +77,12 @@ export function ServiciosProfessionalResultCard({
   row,
   lang,
   embedded = false,
+  density = "default",
 }: {
   row: ServiciosPublicListingRow;
   lang: ServiciosLang;
   embedded?: boolean;
+  density?: "default" | "compact";
 }) {
   const wire = { ...row.profile_json };
   wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
@@ -215,19 +217,22 @@ export function ServiciosProfessionalResultCard({
   const cardSurface = promoted
     ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : LX_IVORY_CARD;
+  const isCompact = density === "compact";
+  const displayChips = isCompact && allChips.length > 4 ? [...allChips.slice(0, 4), `+${allChips.length - 4}`] : allChips;
 
   const body = (
     <>
       <article className={cardSurface}>
-        <div className="flex gap-3 p-4 sm:gap-4 sm:p-5">
+        <div className={isCompact ? "flex gap-3 p-3 sm:items-center sm:p-3.5" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
           <ServiciosAdaptiveLogoPlate
             src={thumb}
             alt={profile.hero.logoAlt || profile.identity.businessName}
             fallbackMonogram={profile.identity.businessName}
             variant="card"
+            className={isCompact ? "h-16 w-16 sm:h-20 sm:w-20" : ""}
           />
 
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>
             <div className="flex flex-wrap items-center gap-1.5">
               {promoted ? (
                 <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
@@ -249,7 +254,9 @@ export function ServiciosProfessionalResultCard({
               <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
             </div>
 
-            <h3 className={LX_COMPACT_CARD_TITLE}>{profile.identity.businessName}</h3>
+            <h3 className={isCompact ? "font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-base" : LX_COMPACT_CARD_TITLE}>
+              {profile.identity.businessName}
+            </h3>
 
             {category ? (
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-xs">{category}</p>
@@ -258,7 +265,7 @@ export function ServiciosProfessionalResultCard({
             {location ? (
               <p className="flex items-start gap-1.5 text-xs text-[#4A4A4A]">
                 <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className="line-clamp-2">{location}</span>
+                <span className={isCompact ? "line-clamp-1" : "line-clamp-2"}>{location}</span>
               </p>
             ) : null}
 
@@ -275,10 +282,10 @@ export function ServiciosProfessionalResultCard({
           </div>
         </div>
 
-        {allChips.length > 0 ? (
-          <div className="px-4 pb-3 sm:px-5">
+        {displayChips.length > 0 ? (
+          <div className={isCompact ? "px-3 pb-2 sm:px-3.5" : "px-4 pb-3 sm:px-5"}>
             <ServiciosServiceChipsRow
-              chips={allChips}
+              chips={displayChips}
               lang={lang}
               profileHref={href}
               servicesLabel={servicesLabel}
@@ -286,13 +293,13 @@ export function ServiciosProfessionalResultCard({
           </div>
         ) : null}
 
-        <div className="border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4">
-          <div className="flex flex-col gap-2">
+        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-3 py-2.5 sm:px-3.5" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
+          <div className={isCompact ? "flex flex-wrap gap-2 sm:items-center sm:justify-end" : "flex flex-col gap-2"}>
             {tel ? (
               <button
                 type="button"
                 onClick={onCallClick}
-                className={LX_CTA_CARD_PRIMARY}
+                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:w-auto sm:min-w-[5.75rem] sm:flex-none" : ""}`.trim()}
                 style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
               >
                 <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -304,7 +311,7 @@ export function ServiciosProfessionalResultCard({
                 <button
                   type="button"
                   onClick={onWhatsAppClick}
-                  className={LX_CTA_CARD_WHATSAPP}
+                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:flex-none" : ""}`.trim()}
                   style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
                 >
                   <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -312,7 +319,7 @@ export function ServiciosProfessionalResultCard({
                 </button>
               ) : null}
               {showDirections ? (
-                <button type="button" onClick={onDirectionsClick} className={LX_CTA_CARD_MAP}>
+                <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:flex-none" : ""}`.trim()}>
                   <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   {lang === "en" ? "Directions" : "Cómo llegar"}
                 </button>
@@ -321,7 +328,7 @@ export function ServiciosProfessionalResultCard({
             <Link
               href={href}
               onClick={() => trackServiciosResultCardClick(row)}
-              className={LX_CTA_CARD_OUTLINE}
+              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:w-auto sm:min-w-[5.75rem] sm:flex-none" : ""}`.trim()}
             >
               {secondaryLabel}
             </Link>

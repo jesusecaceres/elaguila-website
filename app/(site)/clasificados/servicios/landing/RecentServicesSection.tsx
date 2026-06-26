@@ -14,18 +14,18 @@ export function RecentServicesSection({
 
   return (
     <section className="relative" aria-labelledby="servicios-recientes-heading">
-      <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4 md:mb-10">
+      <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
         <div className="min-w-0 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d5a73]/85">
             {lang === "en" ? "New on Leonix" : "Novedades"}
           </p>
           <h2
             id="servicios-recientes-heading"
-            className="mt-1.5 text-[1.45rem] font-bold leading-tight tracking-tight text-[#142a42] sm:mt-2 sm:text-[1.85rem] md:text-[2rem]"
+            className="mt-1 text-xl font-bold leading-tight tracking-tight text-[#142a42] sm:text-2xl"
           >
             {lang === "en" ? "Recent services" : "Servicios recientes"}
           </h2>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[#4a5d6e] sm:mt-3 sm:text-[16px]">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#4a5d6e] sm:text-sm">
             {lang === "en"
               ? "The newest public service profiles — live data from published listings only."
               : "Los perfiles públicos más recientes: solo datos reales de anuncios publicados."}
@@ -49,7 +49,7 @@ export function RecentServicesSection({
         ) : null}
       </div>
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#c9b8a4]/90 bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-4 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:rounded-2xl sm:px-5 sm:py-12">
+        <div className="rounded-xl border border-dashed border-[#c9b8a4]/90 bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-4 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:rounded-2xl sm:px-5 sm:py-6">
           <p className="mx-auto max-w-lg text-[13px] font-medium leading-snug text-[#142a42] sm:text-sm sm:leading-relaxed">
             {lang === "en"
               ? "No public listings yet. When businesses publish, the newest will appear here first."
@@ -60,7 +60,7 @@ export function RecentServicesSection({
               ? "Browse all results or publish your service to show up in the marketplace."
               : "Abre todos los resultados o publica tu servicio para aparecer en el marketplace."}
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2 sm:mt-6 sm:gap-3">
+          <div className="mt-4 flex flex-wrap justify-center gap-2 sm:gap-3">
             <Link
               href={resultsHref}
               className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-xs font-bold text-white shadow-md transition hover:bg-[#2f5699] sm:min-h-[48px] sm:px-5 sm:text-sm"
@@ -76,10 +76,10 @@ export function RecentServicesSection({
           </div>
         </div>
       ) : (
-        <ul className="mx-auto flex max-w-[1100px] list-none flex-col gap-4 sm:gap-6">
+        <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3 lg:grid-cols-2">
           {rows.map((row) => (
             <li key={row.slug} className="min-w-0">
-              <ServiciosHorizontalResultCard row={row} lang={lang} />
+              <ServiciosHorizontalResultCard row={row} lang={lang} density="compact" />
             </li>
           ))}
         </ul>
