@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ProductCatalog } from "./ProductCatalog";
 import { normalizeLang } from "@/app/lib/language";
+import { getProductosPromocionPageCopy } from "@/app/lib/leonix/productosPromocionPageCopy";
 
 export const dynamic = "force-dynamic";
 
@@ -9,16 +10,10 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const sp = (await props.searchParams) ?? {};
   const routeLang = normalizeLang(sp.lang);
-  const copyLang = routeLang === "es" ? "es" : "en";
+  const copy = getProductosPromocionPageCopy(routeLang);
   return {
-    title:
-      copyLang === "en"
-        ? "Promotional Products | Leonix Media"
-        : "Productos para Promoción | Leonix Media",
-    description:
-      copyLang === "en"
-        ? "Business cards, flyers, banners, promotional products and more. Request a quote from Leonix Media."
-        : "Tarjetas de presentación, volantes, banners, productos promocionales y más. Solicita una cotización con Leonix Media.",
+    title: `${copy.heroTitle} | Leonix Media`,
+    description: copy.heroSubtitle,
   };
 }
 

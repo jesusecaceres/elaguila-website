@@ -1,0 +1,26 @@
+export type MagazineHubPageCopy = {
+  heroEyebrow: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  currentEyebrow: string;
+  currentTitle: string;
+  currentBody: string;
+  readMagazine: string;
+  downloadPdf: string;
+  archiveEyebrow: string;
+  archiveTitle: string;
+  archiveIntro: string;
+  newsletterTitle: string;
+  newsletterBody: string;
+  newsletterPlaceholder: string;
+  newsletterButton: string;
+  newsletterMicro: string;
+  newsletterAria: string;
+  emailLabel: string;
+  advertiseTitle: string;
+  advertiseBody: string;
+  advertiseCta: string;
+  flipModalTitle: string;
+  loading: string;
+};
