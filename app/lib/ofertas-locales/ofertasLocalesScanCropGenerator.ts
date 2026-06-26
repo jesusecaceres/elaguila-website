@@ -4,8 +4,11 @@ import { put } from "@vercel/blob";
 import { randomUUID } from "crypto";
 
 import { geminiBboxToPixelCropRect, type GeminiSourceBbox } from "./ofertasLocalesGeminiBbox";
+import {
+  renderOfertaLocalPdfPageToPngForCrop,
+  type OfertaLocalPageImage,
+} from "./ofertasLocalesPdfPageImages";
 import { sanitizeOfertaLocalStorageSegment } from "./ofertasLocalesStoragePaths";
-import type { OfertaLocalPageImage } from "./ofertasLocalesPdfPageImages";
 import type { OfertaLocalSearchableItemDraft, OfertaLocalSourceBoundingBox } from "./ofertasLocalesTypes";
 
 export type ApplyOfertaLocalScanItemCropsParams = {
@@ -19,6 +22,12 @@ export type ApplyOfertaLocalScanItemCropsParams = {
 export type ApplyOfertaLocalScanItemCropsResult = {
   cropsGenerated: number;
   cropErrors: string[];
+};
+
+type CropRasterSource = {
+  imageBytes: Buffer;
+  width: number;
+  height: number;
 };
 
 export function createOfertaLocalScanCropStoragePath(params: {
@@ -36,7 +45,7 @@ export function createOfertaLocalScanCropStoragePath(params: {
 
 /**
  * Crop product tiles from rendered page PNGs and upload to Vercel Blob.
- * Requires sharp + BLOB_READ_WRITE_TOKEN. Skips gracefully when unavailable.
+ * Rasterizes pdf_single_page fallback on demand when needed (Gate OFERTAS-CROP-PATCH-1).
  */
 export async function applyOfertaLocalScanItemCrops(
   params: ApplyOfertaLocalScanItemCropsParams
@@ -49,6 +58,7 @@ export async function applyOfertaLocalScanItemCrops(
   const pageByNumber = new Map(params.pageImages.map((p) => [p.pageNumber, p]));
   let cropsGenerated = 0;
   const cropErrors: string[] = [];
+  const rasterCache = new Map<number, CropRasterSource>();
 
   let sharp: typeof import("sharp") | null = null;
   try {
@@ -67,16 +77,27 @@ export async function applyOfertaLocalScanItemCrops(
     const normalizedBbox = item.sourceBbox;
     if (!geminiBbox || !normalizedBbox) continue;
 
-    const page = pageByNumber.get(item.sourcePage ?? 0);
-    if (!page || page.renderMethod !== "pdfjs_canvas_png" || !page.width || !page.height) {
-      cropErrors.push(`page_${item.sourcePage ?? 0}_no_raster_image`);
+    const pageNumber = item.sourcePage ?? 0;
+    const page = pageByNumber.get(pageNumber);
+    if (!page) {
+      cropErrors.push(`page_${pageNumber}_missing`);
+      continue;
+    }
+
+    let raster: CropRasterSource | null = rasterCache.get(pageNumber) ?? null;
+    if (!raster) {
+      raster = await resolveCropRasterSource(page, params.scanJobId);
+      if (raster) rasterCache.set(pageNumber, raster);
+    }
+    if (!raster) {
+      cropErrors.push(`page_${pageNumber}_no_raster_image`);
       continue;
     }
 
     const rect = geminiBboxToPixelCropRect({
       bbox: geminiBbox,
-      imageWidth: page.width,
-      imageHeight: page.height,
+      imageWidth: raster.width,
+      imageHeight: raster.height,
       paddingFraction: 0.08,
     });
     if (!rect) {
@@ -85,7 +106,7 @@ export async function applyOfertaLocalScanItemCrops(
     }
 
     try {
-      const cropped = await sharp(page.imageBytes)
+      const cropped = await sharp(raster.imageBytes)
         .extract({
           left: rect.left,
           top: rect.top,
@@ -109,13 +130,19 @@ export async function applyOfertaLocalScanItemCrops(
         token,
       });
 
+      console.info("[ofertas-locales crop] crop upload success", {
+        scanJobId: params.scanJobId,
+        itemIndex: index,
+        sourcePage: pageNumber,
+      });
+
       item.sourceCropUrl = blob.url;
       item.extractedJson = {
         ...(item.extractedJson ?? {}),
         sourceBboxGemini: geminiBbox,
         cropRect: rect,
-        cropPageWidth: page.width,
-        cropPageHeight: page.height,
+        cropPageWidth: raster.width,
+        cropPageHeight: raster.height,
         cropStoragePath: pathname,
       };
       item.sourceBbox = normalizedBbox;
@@ -135,6 +162,48 @@ export async function applyOfertaLocalScanItemCrops(
   }
 
   return { cropsGenerated, cropErrors };
+}
+
+async function resolveCropRasterSource(
+  page: OfertaLocalPageImage,
+  scanJobId: string
+): Promise<CropRasterSource | null> {
+  if (page.renderMethod === "pdfjs_canvas_png" && page.width && page.height) {
+    console.info("[ofertas-locales crop] using existing raster page", {
+      scanJobId,
+      sourcePage: page.pageNumber,
+    });
+    return {
+      imageBytes: page.imageBytes,
+      width: page.width,
+      height: page.height,
+    };
+  }
+
+  if (page.renderMethod === "pdf_single_page") {
+    console.info("[ofertas-locales crop] rasterizing pdf fallback page", {
+      scanJobId,
+      sourcePage: page.pageNumber,
+    });
+    const raster = await renderOfertaLocalPdfPageToPngForCrop({
+      pdfBytes: page.imageBytes,
+      pageNumber: page.pageNumber,
+    });
+    if (!raster) {
+      console.info("[ofertas-locales crop] fallback rasterization failed", {
+        scanJobId,
+        sourcePage: page.pageNumber,
+      });
+      return null;
+    }
+    return {
+      imageBytes: raster.imageBytes,
+      width: raster.width,
+      height: raster.height,
+    };
+  }
+
+  return null;
 }
 
 function readGeminiBboxFromItem(item: OfertaLocalSearchableItemDraft): GeminiSourceBbox | null {

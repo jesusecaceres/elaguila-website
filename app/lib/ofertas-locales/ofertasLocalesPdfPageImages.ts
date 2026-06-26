@@ -135,6 +135,35 @@ export function getOfertaLocalGeminiScanPageConcurrency(): number {
   return getOfertaLocalGeminiPageConcurrency();
 }
 
+export type OfertaLocalPdfPageRasterForCrop = {
+  imageBytes: Buffer;
+  mimeType: "image/png";
+  width: number;
+  height: number;
+  renderMethod: "pdfjs_canvas_png";
+};
+
+/** On-demand single-page PDF → PNG rasterization for crop generation (Gate OFERTAS-CROP-PATCH-1). */
+export async function renderOfertaLocalPdfPageToPngForCrop(params: {
+  pdfBytes: Buffer;
+  pageNumber: number;
+  maxWidth?: number;
+}): Promise<OfertaLocalPdfPageRasterForCrop | null> {
+  const png = await tryRenderPdfPageToPng(
+    params.pdfBytes,
+    params.pageNumber,
+    params.maxWidth ?? OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX
+  );
+  if (!png) return null;
+  return {
+    imageBytes: png.bytes,
+    mimeType: "image/png",
+    width: png.width,
+    height: png.height,
+    renderMethod: "pdfjs_canvas_png",
+  };
+}
+
 async function splitPdfToSinglePageBuffers(pdfBytes: Buffer, maxPages: number): Promise<Buffer[]> {
   const source = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
   const count = Math.min(source.getPageCount(), maxPages);
@@ -152,7 +181,8 @@ async function splitPdfToSinglePageBuffers(pdfBytes: Buffer, maxPages: number): 
 
 async function tryRenderPdfPageToPng(
   singlePagePdfBytes: Buffer,
-  pageNumber: number
+  pageNumber: number,
+  maxWidthPx: number = OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX
 ): Promise<{ bytes: Buffer; width: number; height: number } | null> {
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -167,7 +197,7 @@ async function tryRenderPdfPageToPng(
     const page = await doc.getPage(1);
     const baseViewport = page.getViewport({ scale: 1 });
     const scaleFromDpi = OFERTAS_GEMINI_TARGET_DPI / 72;
-    const scaleFromMaxWidth = OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX / baseViewport.width;
+    const scaleFromMaxWidth = maxWidthPx / baseViewport.width;
     const scale = Math.min(scaleFromDpi, scaleFromMaxWidth, 3);
 
     const viewport = page.getViewport({ scale });
