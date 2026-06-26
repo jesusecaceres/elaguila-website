@@ -25,7 +25,7 @@ export const autosPreviewBusinessHubSectionLabelClass =
   "text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]";
 
 export const autosPreviewWhatsappBtnClass =
-  "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#128C7E] px-4 text-sm font-bold tracking-tight text-white shadow-[0_8px_20px_-6px_rgba(18,140,126,0.45)] transition hover:bg-[#0E7368] active:scale-[0.99] max-lg:min-h-[54px]";
+  "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#128C7E] px-4 text-sm font-bold tracking-tight text-white shadow-[0_8px_20px_-6px_rgba(18,140,126,0.45)] transition hover:bg-[#0E7368] active:scale-[0.99] max-lg:min-h-[54px]";
 
 export const autosPreviewSectionEyebrowClass =
   "text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A6B1F]";
@@ -40,10 +40,10 @@ export const autosPreviewHeroPriceClass =
   "text-pretty text-3xl font-extrabold tabular-nums leading-none tracking-tight text-[#7A1E2C] sm:text-4xl lg:text-[2.5rem]";
 
 export const autosPreviewBurgundyPrimaryBtnClass =
-  "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#7A1E2C] px-4 text-sm font-bold tracking-tight text-white shadow-[0_8px_20px_-6px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] active:scale-[0.99] max-lg:min-h-[54px]";
+  "inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#7A1E2C] px-4 text-sm font-bold tracking-tight text-white shadow-[0_8px_20px_-6px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] active:scale-[0.99] max-lg:min-h-[54px]";
 
 export const autosPreviewSecondaryBtnClass =
-  "inline-flex min-h-[52px] w-full items-center justify-center gap-1.5 rounded-[14px] border border-[#D6C7AD]/90 bg-[#FFFDF7] px-3 text-center text-[13px] font-semibold leading-tight text-[#1F241C] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] active:scale-[0.99] max-lg:min-h-[50px]";
+  "inline-flex min-h-[52px] w-full items-center justify-center gap-1.5 rounded-[10px] border border-[#D6C7AD]/90 bg-[#FFFDF7] px-3 text-center text-[13px] font-semibold leading-tight text-[#1F241C] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] active:scale-[0.99] max-lg:min-h-[50px]";
 
 /** Mobile horizontal snap shelf — one card visible with next peeking. */
 export const autosRelatedInventoryShelfScrollClass =
@@ -57,4 +57,45 @@ export const autosPreviewPromiseStripClass =
   "mx-auto grid max-w-[1320px] grid-cols-2 gap-2 px-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-3 lg:px-8";
 
 export const autosPreviewPromiseStripItemClass =
-  "flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-[16px] border border-[#D6C7AD]/70 bg-[#FFFDF7] px-2 py-2 text-center shadow-sm";
+  "flex min-h-[72px] w-full flex-col items-center justify-center gap-1.5 rounded-[10px] border border-[#D6C7AD]/70 bg-[#FFFDF7] px-2 py-2 text-center shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
+
+/** Leonix rectangle shape language — lower radius than pill/bubble. */
+export const autosPreviewRectBadgeClass =
+  "inline-flex min-h-[28px] items-center rounded-[6px] border border-[#D6C7AD]/90 bg-[#FBF7EF] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1F241C]";
+
+export const autosPreviewRectSpecTileClass =
+  "rounded-[8px] border border-[#D6C7AD]/75 bg-[#FBF7EF] px-2.5 py-2.5 text-center min-h-[3.25rem]";
+
+export const autosPreviewRectSpecRowClass =
+  "flex gap-3 rounded-[10px] border border-[#D6C7AD]/75 bg-[#FFFDF7] p-3 shadow-sm min-h-[4.5rem]";
+
+export const autosPreviewRectIconBoxClass =
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-[#D6C7AD]/80 bg-[#FBF7EF] text-[#8A6B1F]";
+
+export const autosPreviewRectEquipmentClass =
+  "flex min-h-[3.25rem] items-start gap-3 rounded-[10px] border border-[#D6C7AD]/75 bg-[#FBF7EF] p-3 shadow-sm";
+
+export const autosPreviewRectLanguageBadgeClass =
+  "inline-flex items-center rounded-[6px] border border-[#D6C7AD]/80 bg-[#FBF7EF] px-2.5 py-1 text-sm font-semibold text-[#1F241C]";
+
+export const autosPreviewMediaTabClass =
+  "inline-flex min-h-[40px] items-center justify-center rounded-[8px] border border-[#D6C7AD]/85 bg-[#FFFDF7] px-4 text-xs font-bold uppercase tracking-[0.08em] text-[#1F241C] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] active:scale-[0.99] max-lg:min-h-[44px]";
+
+export const autosPreviewRectActionClass =
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-[10px] border border-[#D6C7AD]/90 bg-[#FFFDF7] px-3 text-center text-[13px] font-semibold leading-tight text-[#1F241C] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+
+export const autosPreviewRectReviewCardClass =
+  "flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[10px] border px-3.5 py-2.5 text-left shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40";
+
+/** Stable section ids for promise-strip anchor scroll (presentation only). */
+export const AUTOS_PREVIEW_SECTION_IDS = {
+  hero: "autos-preview-hero",
+  gallery: "autos-preview-gallery",
+  resultsCard: "autos-preview-results-card",
+  specs: "autos-preview-specs",
+  highlights: "autos-preview-highlights",
+  description: "autos-preview-description",
+  businessHub: "autos-preview-business-hub",
+  financing: "autos-preview-financing",
+  relatedInventory: "autos-preview-related-inventory",
+} as const;

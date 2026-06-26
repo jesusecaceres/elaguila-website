@@ -15,7 +15,9 @@ import {
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import {
   AUTOS_PREVIEW_MAX_RELATED_VISIBLE,
+  AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewPremiumCardClass,
+  autosPreviewRectBadgeClass,
   autosPreviewSectionEyebrowClass,
   autosPreviewSectionTitleClass,
   autosRelatedInventoryShelfCardShellClass,
@@ -54,7 +56,8 @@ export function AutosNegociosPreviewInventorySection({
 
   return (
     <section
-      className="mx-auto mb-10 max-w-[1280px] px-4 md:px-5 lg:px-6"
+      id={AUTOS_PREVIEW_SECTION_IDS.relatedInventory}
+      className="mx-auto mb-10 max-w-[1320px] scroll-mt-28 px-4 md:px-6 lg:px-8"
       data-autos-related-inventory-preview-only="1"
       data-autos-related-inventory-shelf="1"
     >
@@ -65,7 +68,7 @@ export function AutosNegociosPreviewInventorySection({
       <p className="mt-2 max-w-3xl text-sm text-[#5C5346]">{autosPreviewInventorySectionHelper(lang)}</p>
       {hiddenCount > 0 ? (
         <p
-          className="mt-3 inline-flex max-w-full rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-3 py-1.5 text-[11px] font-semibold text-[#5C5346]"
+          className={`mt-3 inline-flex max-w-full ${autosPreviewRectBadgeClass} text-[11px]`}
           data-autos-related-inventory-draft-deferral="1"
         >
           {autosRelatedInventoryFullDraftDeferral(lang)}
@@ -101,7 +104,7 @@ export function AutosNegociosPreviewInventorySection({
               <p className="mt-2 text-[10px] text-[#8A7A68]">{autosRelatedInventoryWillPublishWithRequest(lang)}</p>
               <p className="mt-2 text-[10px] text-[#8A7A68]">{card.draftNote}</p>
               <span
-                className="mt-3 inline-flex min-h-[36px] w-full cursor-default items-center justify-center rounded-full border border-[#D6C7AD]/70 bg-[#FBF7EF] px-3 text-[11px] font-semibold text-[#8A7A68]"
+                className="mt-3 inline-flex min-h-[36px] w-full cursor-default items-center justify-center rounded-[10px] border border-[#D6C7AD]/70 bg-[#FBF7EF] px-3 text-[11px] font-semibold text-[#8A7A68]"
                 aria-disabled="true"
                 data-autos-related-inventory-draft-cta="1"
               >

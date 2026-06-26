@@ -7,12 +7,9 @@ import type { ReactNode } from "react";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 
-import { autosPreviewPremiumCardClass, autosPreviewSectionEyebrowClass, autosPreviewSectionTitleClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+import { autosPreviewPremiumCardClass, autosPreviewRectEquipmentClass, autosPreviewSectionEyebrowClass, autosPreviewSectionTitleClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
-
-const PILL =
-  "flex items-start gap-3 rounded-[14px] border border-[#D6C7AD]/70 bg-[#FBF7EF] p-3 shadow-sm";
 
 function iconForFeature(label: string): ReactNode {
   const t = label.toLowerCase();
@@ -53,9 +50,9 @@ export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {feats.map((f) => (
-          <div key={f} className={PILL}>
+          <div key={f} className={autosPreviewRectEquipmentClass}>
             {iconForFeature(f)}
-            <span className="break-words text-sm font-semibold leading-snug text-[color:var(--lx-text)]">{f}</span>
+            <span className="break-words text-sm font-semibold leading-snug text-[#1F241C]">{f}</span>
           </div>
         ))}
       </div>

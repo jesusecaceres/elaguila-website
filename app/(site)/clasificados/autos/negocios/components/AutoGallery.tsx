@@ -16,7 +16,11 @@ import {
 } from "../lib/autoDealerVideo";
 import { MediaImage } from "./MediaImage";
 import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
-import { autosPreviewPremiumCardClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+import {
+  AUTOS_PREVIEW_SECTION_IDS,
+  autosPreviewMediaTabClass,
+  autosPreviewPremiumCardClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-4`;
 
@@ -51,10 +55,20 @@ export function AutoGallery({
     if (!images[idx]) return;
     setLightbox(idx);
   }, [images]);
+
   const publishedPb = resolvePublishedAutosVideoPlayback(data);
   const hasVideo = publicPlaybackOnly ? hasPublishedAutosListingVideo(data) : hasListingVideo(data);
   const videoSrc = publicPlaybackOnly ? undefined : getListingVideoSrcForElement(data);
   const videoHref = publicPlaybackOnly ? undefined : getListingVideoExternalHref(data);
+
+  const scrollToVideo = useCallback(() => {
+    const el = document.querySelector("[data-autos-gallery-video]");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    if (videoHref) window.open(videoHref, "_blank", "noopener,noreferrer");
+  }, [videoHref]);
   const main = images[0];
   const extra = Math.max(0, images.length - 1);
   const subImages = images.slice(1, 4);
@@ -72,7 +86,25 @@ export function AutoGallery({
   const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
 
   return (
-    <div className={CARD}>
+    <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={`${CARD} scroll-mt-28`}>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {main ? (
+          <button type="button" className={autosPreviewMediaTabClass} onClick={() => openAt(0)}>
+            {lang === "es" ? "Fotos" : "Photos"}
+            {images.length > 1 ? ` (${images.length})` : ""}
+          </button>
+        ) : null}
+        {hasVideo ? (
+          <button type="button" className={autosPreviewMediaTabClass} onClick={scrollToVideo}>
+            {lang === "es" ? "Video" : "Video"}
+          </button>
+        ) : null}
+        {extra > 0 ? (
+          <button type="button" className={autosPreviewMediaTabClass} onClick={() => openAt(1)}>
+            {lang === "es" ? `Ver todas (${images.length})` : `View all (${images.length})`}
+          </button>
+        ) : null}
+      </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
         {main ? (
           <div className="relative min-w-0 flex-1 aspect-[16/10] max-h-[min(520px,56vh)] overflow-hidden rounded-[16px] lg:max-h-[min(580px,52vh)]">
@@ -122,8 +154,8 @@ export function AutoGallery({
                   moreLabel={i === bottomCells.length - 1 && extra > 3 ? g.morePhotos(extra - 3) : undefined}
                 />
               ) : publicPlaybackOnly ? (
+                <div key="video-pub" data-autos-gallery-video>
                 <PublishedVideoTile
-                  key="video-pub"
                   mode={publishedPb.mode}
                   streamUrl={publishedPb.streamUrl}
                   externalHref={publishedPb.externalHref}
@@ -131,8 +163,11 @@ export function AutoGallery({
                   g={g}
                   lang={lang}
                 />
+                </div>
               ) : (
-                <VideoTile key="video" videoSrc={videoSrc} videoHref={videoHref} posterSrc={main} g={g} />
+                <div key="video" data-autos-gallery-video>
+                  <VideoTile videoSrc={videoSrc} videoHref={videoHref} posterSrc={main} g={g} />
+                </div>
               ),
             )}
           </div>

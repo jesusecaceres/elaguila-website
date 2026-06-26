@@ -13,6 +13,12 @@ import {
   autosResultsCardViewDetails,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import {
+  AUTOS_PREVIEW_SECTION_IDS,
+  autosPreviewPremiumCardClass,
+  autosPreviewRectBadgeClass,
+  autosPreviewSectionEyebrowClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+import {
   formatMileageInputDisplay,
   formatUsdIntegerInputDisplay,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
@@ -23,7 +29,7 @@ function coverUrl(listing: AutoDealerListing): string | null {
   return listing.heroImages?.[0]?.trim() || null;
 }
 
-function specLine(listing: AutoDealerListing, lang: AutosNegociosLang): string | null {
+function specLine(listing: AutoDealerListing): string | null {
   const parts: string[] = [];
   if (listing.transmission) parts.push(listing.transmission);
   if (listing.drivetrain) parts.push(listing.drivetrain);
@@ -49,64 +55,72 @@ export function AutosNegociosResultsCardPreview({
   const location = [listing.city, listing.state].filter(Boolean).join(", ");
   const used = countApplicationInventoryVehicles(additionalCount);
   const img = coverUrl(listing);
-  const specs = specLine(listing, lang);
+  const specs = specLine(listing);
   const priceUsd = formatUsdIntegerInputDisplay(listing.price);
   const price = priceUsd ? `$${priceUsd}` : null;
   const mileageRaw = formatMileageInputDisplay(listing.mileage);
-  const mileage = mileageRaw ? `${mileageRaw} ${lang === "es" ? "mi" : "mi"}` : null;
+  const mileage = mileageRaw ? `${mileageRaw} mi` : null;
+  const dealerName = listing.dealerName?.trim();
 
   return (
     <section
-      className="mb-6 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.1)] sm:p-5"
+      id={AUTOS_PREVIEW_SECTION_IDS.resultsCard}
+      className={`${autosPreviewPremiumCardClass} mb-6 scroll-mt-28 p-4 sm:p-5`}
       aria-label={autosResultsCardPreviewTitle(lang)}
     >
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[color:var(--lx-gold)]">
-        {autosResultsCardPreviewTitle(lang)}
-      </p>
-      <div className="mt-3 flex flex-col gap-4 sm:flex-row">
-        <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl bg-[color:var(--lx-section)] sm:max-w-[220px]">
+      <p className={autosPreviewSectionEyebrowClass}>{autosResultsCardPreviewTitle(lang)}</p>
+      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-stretch">
+        <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[10px] border border-[#D6C7AD]/70 bg-[#FBF7EF] sm:w-[220px]">
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={img} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full min-h-[120px] items-center justify-center text-xs text-[#8A7A68]">
+            <div className="flex h-full min-h-[120px] items-center justify-center text-xs font-medium text-[#8A6B1F]">
               {lang === "es" ? "Foto de portada" : "Cover photo"}
             </div>
           )}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#2A2620] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">
+            <span className={`${autosPreviewRectBadgeClass} bg-[#7A1E2C] text-[#FFFCF7] border-[#7A1E2C]`}>
               {autosResultsCardDealerBadge(lang)}
             </span>
-            {listing.dealerName ? (
-              <span className="truncate text-xs font-semibold text-[#5C5346]">{listing.dealerName}</span>
-            ) : null}
           </div>
-          <h3 className="mt-2 text-lg font-bold text-[#1E1810]">{title}</h3>
-          <div className="mt-1 flex flex-wrap gap-x-3 text-sm font-semibold text-[#1E1810]">
-            {price ? <span>{price}</span> : null}
-            {mileage ? <span>{mileage}</span> : null}
+          {dealerName || listing.dealerLogo ? (
+            <div className="mt-2.5 flex items-center gap-2.5 border-b border-[#D6C7AD]/55 pb-2.5">
+              {listing.dealerLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={listing.dealerLogo}
+                  alt=""
+                  className="h-9 w-9 shrink-0 rounded-[8px] border border-[#D6C7AD]/70 bg-[#FFFDF7] object-contain p-1"
+                />
+              ) : null}
+              {dealerName ? (
+                <span className="min-w-0 truncate text-sm font-bold text-[#1F241C]">{dealerName}</span>
+              ) : null}
+            </div>
+          ) : null}
+          <h3 className="mt-2 text-lg font-bold leading-snug text-[#1F241C] sm:text-xl">{title}</h3>
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            {price ? <span className="text-xl font-extrabold tabular-nums text-[#7A1E2C]">{price}</span> : null}
+            {mileage ? <span className="text-sm font-semibold text-[#5C5346]">{mileage}</span> : null}
           </div>
-          {location ? <p className="mt-1 text-xs text-[#5C5346]">{location}</p> : null}
-          {specs ? <p className="mt-1 text-xs text-[#5C5346]">{specs}</p> : null}
-          <p className="mt-2 text-xs font-medium text-[#6E5418]">
+          {location ? <p className="mt-1 text-sm text-[#5C5346]">{location}</p> : null}
+          {specs ? <p className="mt-1 text-xs leading-relaxed text-[#5C5346]">{specs}</p> : null}
+          <p className="mt-2 text-xs font-medium text-[#8A6B1F]">
             {autosResultsCardInventoryHint(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
           </p>
-          <p className="mt-3 text-[10px] text-[#8A7A68]">{autosResultsCardLeonixIdNote(lang)}</p>
+          <p className="mt-2 text-[10px] leading-relaxed text-[#8A7A68]">{autosResultsCardLeonixIdNote(lang)}</p>
+          <div className="mt-auto pt-3">
+            <span
+              className="inline-flex min-h-[44px] cursor-default items-center rounded-[10px] bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFCF7] opacity-95"
+              aria-disabled="true"
+            >
+              {autosResultsCardViewDetails(lang)}
+            </span>
+          </div>
         </div>
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-[#E8DFD0] pt-3">
-        <span
-          className="inline-flex min-h-[40px] cursor-default items-center rounded-xl bg-[#2A2620]/90 px-4 text-sm font-bold text-[#FAF7F2] opacity-90"
-          aria-disabled="true"
-        >
-          {autosResultsCardViewDetails(lang)}
-        </span>
-        {listing.dealerLogo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={listing.dealerLogo} alt="" className="h-8 max-w-[100px] object-contain" />
-        ) : null}
       </div>
     </section>
   );

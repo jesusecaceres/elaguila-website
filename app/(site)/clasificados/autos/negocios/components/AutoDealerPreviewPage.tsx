@@ -30,6 +30,7 @@ import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleCo
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import {
+  AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewBusinessHubShellClass,
   autosPreviewHeroPriceClass,
   autosPreviewHeroTitleClass,
@@ -37,6 +38,7 @@ import {
   autosPreviewPageCanvasClass,
   autosPreviewPageMaxWidthClass,
   autosPreviewPremiumCardClass,
+  autosPreviewRectBadgeClass,
   autosPreviewSectionEyebrowClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
@@ -134,7 +136,8 @@ export function AutoDealerPreviewPage({
       <div className={autosPreviewMainGridClass}>
         {showTitle ? (
           <section
-            className={`${MAIN_CARD} border-l-[4px] border-l-[#C9A84A] lg:col-start-1 ${
+            id={AUTOS_PREVIEW_SECTION_IDS.hero}
+            className={`${MAIN_CARD} scroll-mt-28 border-l-[4px] border-l-[#C9A84A] lg:col-start-1 ${
               draftPreviewMode ? "shadow-[0_16px_48px_-16px_rgba(42,36,22,0.16)]" : ""
             }`}
             style={{ gridRowStart: titleRow, order: orderTitle }}
@@ -153,10 +156,7 @@ export function AutoDealerPreviewPage({
                     {badges.length > 0 ? (
                       <ul className="mt-3 flex flex-wrap gap-2">
                         {badges.map((b) => (
-                          <li
-                            key={b}
-                            className="rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]"
-                          >
+                          <li key={b} className={autosPreviewRectBadgeClass}>
                             {badgeLabelFor(t, b)}
                           </li>
                         ))}
@@ -239,7 +239,8 @@ export function AutoDealerPreviewPage({
           ) : null}
 
           <aside
-            className="autos-negocios-preview-dealer-aside flex min-w-0 flex-col lg:sticky lg:top-24 lg:col-start-2 lg:self-start"
+            id={AUTOS_PREVIEW_SECTION_IDS.businessHub}
+            className="autos-negocios-preview-dealer-aside flex min-w-0 scroll-mt-28 flex-col lg:sticky lg:top-24 lg:col-start-2 lg:self-start"
             style={{
               gridRowStart: leftRowCount > 0 ? 1 : undefined,
               gridRowEnd: leftRowCount > 0 ? `span ${leftRowCount}` : undefined,
@@ -258,19 +259,19 @@ export function AutoDealerPreviewPage({
           </aside>
 
           {showSpecs ? (
-            <div className="lg:col-start-1" style={{ gridRowStart: specsRow, order: orderSpecs }}>
+            <div id={AUTOS_PREVIEW_SECTION_IDS.specs} className="scroll-mt-28 lg:col-start-1" style={{ gridRowStart: specsRow, order: orderSpecs }}>
               <VehicleSpecsGrid data={data} />
             </div>
           ) : null}
 
           {showHighlights ? (
-            <div className="lg:col-start-1" style={{ gridRowStart: highlightsRow, order: orderHi }}>
+            <div id={AUTOS_PREVIEW_SECTION_IDS.highlights} className="scroll-mt-28 lg:col-start-1" style={{ gridRowStart: highlightsRow, order: orderHi }}>
               <VehicleHighlights data={data} />
             </div>
           ) : null}
 
           {showDesc ? (
-            <div className="lg:col-start-1" style={{ gridRowStart: descRow, order: orderDesc }}>
+            <div id={AUTOS_PREVIEW_SECTION_IDS.description} className="scroll-mt-28 lg:col-start-1" style={{ gridRowStart: descRow, order: orderDesc }}>
               <VehicleDescription data={data} />
             </div>
           ) : null}

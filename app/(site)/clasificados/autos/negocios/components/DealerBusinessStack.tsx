@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { FiCalendar, FiClock, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
+import { FiCalendar, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import { SiWhatsapp } from "react-icons/si";
 import type { AutoDealerListing } from "../types/autoDealerListing";
@@ -32,10 +32,12 @@ import {
 } from "../../lib/autosAnalyticsIdentity";
 import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
 import {
+  AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewBurgundyPrimaryBtnClass,
   autosPreviewBusinessHubHeaderClass,
   autosPreviewBusinessHubSectionDividerClass,
   autosPreviewBusinessHubSectionLabelClass,
+  autosPreviewRectLanguageBadgeClass,
   autosPreviewSecondaryBtnClass,
   autosPreviewWhatsappBtnClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
@@ -245,25 +247,25 @@ export function DealerBusinessStack({
           {lang === "es" ? "Dealer / Negocio" : "Dealer / Business"}
         </div>
       ) : null}
-      <div className={showPremiumHubHeader ? "px-5 py-5 sm:px-6 sm:py-6" : ""}>
+      <div className={showPremiumHubHeader ? "px-5 py-6 sm:px-6 sm:py-7" : ""}>
       {showIdentity ? (
-        <div className="flex items-start gap-4 text-left">
-          <div className="relative h-[5.5rem] w-[5.5rem] shrink-0 overflow-hidden rounded-[18px] border border-[#D6C7AD]/80 bg-[#FFFCF7] shadow-[0_6px_20px_-6px_rgba(42,36,22,0.14)] sm:h-[6rem] sm:w-[6rem]">
+        <div className={`flex items-start gap-4 text-left ${showPremiumHubHeader ? "pb-5 border-b border-[#D6C7AD]/65" : ""}`}>
+          <div className="relative h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-[10px] border border-[#D6C7AD]/80 bg-[#FFFCF7] shadow-[0_6px_20px_-6px_rgba(42,36,22,0.14)] sm:h-[7.25rem] sm:w-[7.25rem]">
             {data.dealerLogo ? (
               data.dealerLogo.startsWith("data:") ? (
-                <img src={data.dealerLogo} alt={logoAlt} className="h-full w-full object-contain p-2.5" />
+                <img src={data.dealerLogo} alt={logoAlt} className="h-full w-full object-contain p-3" />
               ) : (
-                <MediaImage src={data.dealerLogo} alt={logoAlt} fill className="object-contain p-2.5" sizes="96px" />
+                <MediaImage src={data.dealerLogo} alt={logoAlt} fill className="object-contain p-3" sizes="116px" />
               )
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-lg font-bold text-[#8A6B1F]">
+              <div className="flex h-full w-full items-center justify-center text-xl font-bold text-[#8A6B1F]">
                 {(data.dealerName ?? "NA").slice(0, 2).toUpperCase()}
               </div>
             )}
           </div>
-          <div className="min-w-0 flex-1 pt-0.5">
+          <div className="min-w-0 flex-1 pt-1">
             {nonEmpty(data.dealerName) ? (
-              <h2 className="break-words text-lg font-extrabold leading-tight tracking-tight text-[#1F241C] sm:text-xl">
+              <h2 className="break-words text-xl font-extrabold leading-tight tracking-tight text-[#1F241C] sm:text-[1.35rem]">
                 {data.dealerName?.trim()}
               </h2>
             ) : null}
@@ -355,10 +357,7 @@ export function DealerBusinessStack({
           <p className={sectionLabelClass}>{sb.languagesHeading}</p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {hub.languages!.map((label) => (
-              <li
-                key={label}
-                className="rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-3 py-1 text-sm font-semibold text-[#1F241C]"
-              >
+              <li key={label} className={autosPreviewRectLanguageBadgeClass}>
                 {label}
               </li>
             ))}
@@ -369,7 +368,7 @@ export function DealerBusinessStack({
       {showSocial ? (
         <SectionBlock showTopBorder={nextSection()} premium={showPremiumHubHeader}>
           <p className={sectionLabelClass}>{sb.followHeading}</p>
-          <div className="mt-4 flex flex-wrap gap-2.5">
+          <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
             {hub.social.map((item) => {
               const brand = autosBusinessHubSocialBrandStyle(item.platform);
               return (
@@ -380,7 +379,7 @@ export function DealerBusinessStack({
                   rel="noopener noreferrer"
                   onClick={() => trackHref(item.url)}
                   title={socialHeadline(item.platform)}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-sm transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/50 [&_svg]:h-[18px] [&_svg]:w-[18px]"
                   style={{
                     background: brand.background,
                     color: brand.color,
@@ -398,7 +397,9 @@ export function DealerBusinessStack({
 
       {showFinance ? (
         <SectionBlock showTopBorder={nextSection()} premium={showPremiumHubHeader}>
-          <DealerFinanceContact data={data} embedded publicAnalytics={publicAnalytics} />
+          <div id={AUTOS_PREVIEW_SECTION_IDS.financing} className="scroll-mt-28">
+            <DealerFinanceContact data={data} embedded publicAnalytics={publicAnalytics} premium={showPremiumHubHeader} />
+          </div>
         </SectionBlock>
       ) : null}
 
@@ -406,21 +407,23 @@ export function DealerBusinessStack({
         <SectionBlock showTopBorder={nextSection()} premium={showPremiumHubHeader}>
           <p className={sectionLabelClass}>{d.hoursHeading}</p>
           {todaysHoursLine ? (
-            <p className="mt-3 rounded-xl border border-[color:var(--lx-gold-border)]/60 bg-[color:var(--lx-nav-hover)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)]">
+            <p className="mt-3 rounded-[8px] border border-[#D6C7AD]/70 bg-[#FBF7EF] px-3 py-2 text-sm font-semibold text-[#1F241C]">
               {todaysHoursLine}
             </p>
           ) : null}
-          <div className="mt-4 flex gap-3">
-            <FiClock className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-            <div className="min-w-0 flex-1 space-y-2.5">
-              {hours.map((row, idx) => (
-                <p key={row.rowId ?? `hour-${idx}`} className="text-[15px] leading-relaxed text-[color:var(--lx-text-2)]">
-                  <span className="font-bold text-[color:var(--lx-text)]">{row.day.trim()}:</span>{" "}
-                  <span className="font-medium">{formatDealerHoursTimeRange(row)}</span>
-                </p>
-              ))}
-            </div>
-          </div>
+          <ul className="mt-4 space-y-2">
+            {hours.map((row, idx) => (
+              <li
+                key={row.rowId ?? `hour-${idx}`}
+                className="flex items-baseline justify-between gap-4 border-b border-[#D6C7AD]/40 pb-2 text-sm last:border-b-0 last:pb-0"
+              >
+                <span className="min-w-0 font-semibold text-[#1F241C]">{row.day.trim()}</span>
+                <span className="shrink-0 text-right font-medium tabular-nums text-[#5C5346]">
+                  {formatDealerHoursTimeRange(row)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </SectionBlock>
       ) : null}
 

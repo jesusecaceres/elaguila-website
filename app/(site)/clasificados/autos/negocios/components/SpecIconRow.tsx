@@ -1,4 +1,8 @@
 import type { ReactNode } from "react";
+import {
+  autosPreviewRectIconBoxClass,
+  autosPreviewRectSpecRowClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 export function SpecIconRow({
   icon,
@@ -15,18 +19,13 @@ export function SpecIconRow({
   if (value === undefined || value.trim() === "") return null;
 
   return (
-    <div className="flex gap-3 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-3 shadow-[0_2px_12px_rgba(42,36,22,0.04)]">
-      <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] text-[color:var(--lx-text)]"
-        aria-hidden
-      >
+    <div className={autosPreviewRectSpecRowClass}>
+      <span className={autosPreviewRectIconBoxClass} aria-hidden>
         {icon}
       </span>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--lx-muted)]">{label}</p>
-        <p
-          className={`mt-0.5 break-words text-sm font-semibold leading-snug text-[color:var(--lx-text)] ${valueClassName ?? ""}`}
-        >
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8A6B1F]">{label}</p>
+        <p className={`mt-0.5 break-words text-sm font-bold leading-snug text-[#1F241C] ${valueClassName ?? ""}`}>
           {value}
         </p>
       </div>
