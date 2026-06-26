@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { selectLandingDestacadosRecientes } from "../lib/serviciosLandingBuild";
@@ -13,7 +12,6 @@ import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { TrustValueStrip } from "./TrustValueStrip";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
-import { CATEGORY_STANDARD_PAGE_BG } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } from "./serviciosLandingSampleData";
 
@@ -64,44 +62,46 @@ export function ServiciosLandingPage({
   const quickChips = <ServiciosQuickChips lang={lang} chips={landingChips} variant="standard" />;
 
   return (
-    <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
-      <CategoryStandardLandingPage
-        category="servicios"
-        lang={lang}
-        eyebrow={copy.eyebrow}
-        publishHref={publishHref}
-        browseHref={resultsHref}
-        publishLabel={copy.publish}
-        browseLabel={copy.browse}
-        searchAction={resultsHref}
-        searchChips={quickChips}
-      />
-
-      <main className="relative mx-auto w-full max-w-6xl px-4 pb-14 sm:px-6 sm:pb-16 lg:px-8">
-        <div className="mt-5 space-y-6 sm:mt-6 sm:space-y-7">
-          <div className="flex flex-col gap-8 sm:gap-10">
-            <div
-              className={`${sectionShell} p-4 sm:p-5 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
-            >
-              <ServiciosDestacadosSection lang={lang} rows={destacadosRows} id="servicios-landing-destacados" />
-            </div>
-
-            <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-4 sm:p-5 order-2`}>
-              <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
-            </div>
-
-            <div className={`${sectionShell} p-4 sm:p-5 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
-              <RecentServicesSection lang={lang} rows={recientesRows} />
-            </div>
+    <CategoryStandardLandingPage
+      category="servicios"
+      lang={lang}
+      eyebrow={copy.eyebrow}
+      publishHref={publishHref}
+      browseHref={resultsHref}
+      publishLabel={copy.publish}
+      browseLabel={copy.browse}
+      searchAction={resultsHref}
+      searchChips={quickChips}
+    >
+      <div className="space-y-6 sm:space-y-7">
+        <div className="flex flex-col gap-6 sm:gap-7">
+          <div
+            className={`${sectionShell} p-4 sm:p-5 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
+          >
+            <ServiciosDestacadosSection
+              lang={lang}
+              rows={destacadosRows}
+              id="servicios-landing-destacados"
+              showEmptyState
+            />
           </div>
 
-          <TrustValueStrip lang={lang} />
-          <PublishServiceCTA lang={lang} />
+          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-4 sm:p-5 order-2`}>
+            <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
+          </div>
 
-          <nav
-            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#D6C7AD]/80 pt-8 text-[13px] text-[#5C5346] sm:pt-10"
-            aria-label={lang === "en" ? "Legal and help" : "Legal y ayuda"}
-          >
+          <div className={`${sectionShell} p-4 sm:p-5 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
+            <RecentServicesSection lang={lang} rows={recientesRows} />
+          </div>
+        </div>
+
+        <TrustValueStrip lang={lang} />
+        <PublishServiceCTA lang={lang} />
+
+        <nav
+          className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#D6C7AD]/80 pt-8 text-[13px] text-[#5C5346] sm:pt-10"
+          aria-label={lang === "en" ? "Legal and help" : "Legal y ayuda"}
+        >
             <Link href={replaceLangInHref("/about", routeLang)} className="transition hover:text-[#7A1E2C]">
               {lang === "en" ? "About" : "Sobre Nosotros"}
             </Link>
@@ -111,12 +111,11 @@ export function ServiciosLandingPage({
             <Link href={replaceLangInHref("/clasificados/reglas", routeLang)} className="transition hover:text-[#7A1E2C]">
               {lang === "en" ? "Terms" : "Términos y Condiciones"}
             </Link>
-            <Link href={`${replaceLangInHref("/clasificados", routeLang)}#categorias`} className="transition hover:text-[#7A1E2C]">
-              {lang === "en" ? "FAQ" : "Preguntas Frecuentes"}
-            </Link>
-          </nav>
-        </div>
-      </main>
-    </div>
+          <Link href={`${replaceLangInHref("/clasificados", routeLang)}#categorias`} className="transition hover:text-[#7A1E2C]">
+            {lang === "en" ? "FAQ" : "Preguntas Frecuentes"}
+          </Link>
+        </nav>
+      </div>
+    </CategoryStandardLandingPage>
   );
 }
