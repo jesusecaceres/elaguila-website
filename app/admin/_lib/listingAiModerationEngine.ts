@@ -4,38 +4,52 @@ import type {
   ListingModerationAiResult,
   ListingModerationContentPayload,
   ListingModerationDecision,
-  ListingModerationReasonCategory,
 } from "./listingModerationReviewTypes";
+import {
+  getCategoryPolicyNotes,
+  LEONIX_MODERATION_POLICY_VERSION,
+  LEONIX_MODERATION_PROMPT_VERSION,
+  LEONIX_MODERATION_REASON_CATEGORIES,
+  normalizeLeonixReasonCategory,
+  normalizeRecommendedAction,
+  normalizeRiskLevel,
+  normalizeStringArray,
+  runListingModerationPolicyScan,
+  type PolicyScannerResult,
+} from "./listingModerationPolicy";
 
-const REASON_CATEGORIES: ListingModerationReasonCategory[] = [
-  "safe",
-  "spam",
-  "scam",
-  "prohibited_item",
-  "suspicious_price",
-  "duplicate",
-  "missing_info",
-  "unsafe_contact",
-  "policy_review",
-  "other",
-];
+function buildSystemPrompt(scanner: PolicyScannerResult, categoryNotes: string): string {
+  return `You are Leonix Safety & Trust moderation for Leonix Media classifieds (Spanish/English local marketplace).
+Policy version: ${LEONIX_MODERATION_POLICY_VERSION}
+Prompt version: ${LEONIX_MODERATION_PROMPT_VERSION}
 
-const SYSTEM_PROMPT = `You are Leonix Media classifieds moderation assistant.
-Review listing content for a local marketplace (Spanish/English).
-Return ONLY valid JSON with keys: decision, reason_category, reason_text, confidence.
+Return ONLY valid JSON with keys:
+decision, reason_category, reason_text, confidence, risk_level, recommended_action,
+policy_flags, keyword_flags, category_rules, admin_summary
 
-decision must be one of: approved, needs_review, rejected
-reason_category must be one of: ${REASON_CATEGORIES.join(", ")}
-confidence must be one of: low, medium, high
-reason_text must be a concise human-readable explanation (1-3 sentences).
+decision: approved | needs_review | rejected
+reason_category: ${LEONIX_MODERATION_REASON_CATEGORIES.join(", ")}
+confidence: low | medium | high
+risk_level: low | medium | high | critical
+recommended_action: approve | review_manually | contact_seller | request_more_info | edit_listing | archive | remove_listing
+policy_flags, keyword_flags, category_rules: string arrays (may include scanner findings plus any additional AI-detected flags)
+admin_summary: 1-2 sentence admin-facing summary in plain language
+
+Category policy notes: ${categoryNotes}
+
+Deterministic scanner findings (signal layer — interpret with context, do not ignore critical signals):
+${JSON.stringify(scanner)}
 
 Rules:
-- approved: content appears legitimate and policy-safe for a local classifieds marketplace.
-- needs_review: uncertain, borderline, or requires human judgment.
-- rejected: clear scam, prohibited item, dangerous content, or severe policy violation.
-- Do NOT recommend delete, archive, or auto-hide — human admin decides final action.
+- approved ONLY when no meaningful policy/trust issues are present.
+- needs_review for uncertainty, borderline cases, or when scanner risk is medium/high but content may be legitimate.
+- rejected ONLY for clearly prohibited, unsafe, scam, or severe policy violations.
+- NEVER recommend auto-delete, auto-hide, auto-archive, or auto-clear flags. Human admin makes final decision.
+- recommended_action is advisory only — admin performs actions manually.
 - Evaluate title, description, category, price, location, contact fields, image count/URLs.
-- Flag suspicious pricing, scam patterns, missing critical info, unsafe off-platform contact.`;
+- Flag suspicious pricing, scam patterns, missing critical info, unsafe off-platform contact, category-specific risks.
+- If scanner risk is critical but you would approve, use needs_review and explain the conflict in admin_summary.`;
+}
 
 export function getOpenAiModerationApiKey(): string | null {
   const key = process.env.OPENAI_API_KEY?.trim();
@@ -96,13 +110,6 @@ export function buildListingModerationContentPayload(
   };
 }
 
-function normalizeReasonCategory(raw: unknown): ListingModerationReasonCategory {
-  const s = String(raw ?? "")
-    .trim()
-    .toLowerCase() as ListingModerationReasonCategory;
-  return REASON_CATEGORIES.includes(s) ? s : "other";
-}
-
 function normalizeDecision(raw: unknown): ListingModerationAiResult["decision"] {
   const s = String(raw ?? "").trim().toLowerCase();
   if (s === "approved" || s === "needs_review" || s === "rejected") return s;
@@ -115,13 +122,66 @@ function normalizeConfidence(raw: unknown): ListingModerationAiResult["confidenc
   return "medium";
 }
 
+export function resolveAiResultWithScanner(
+  result: ListingModerationAiResult,
+  scanner: PolicyScannerResult,
+): ListingModerationAiResult {
+  let decision = result.decision;
+  let adminSummary = result.admin_summary;
+  let riskLevel = result.risk_level;
+  let recommendedAction = result.recommended_action;
+
+  if (scanner.riskLevel === "critical" && decision === "approved") {
+    decision = "needs_review";
+    adminSummary = `${adminSummary} Scanner critical risk (${scanner.scannerSummary}) conflicts with approved — escalated to needs_review.`.trim();
+  }
+
+  if (scanner.riskLevel === "high" && decision === "approved" && scanner.policyFlags.length > 0) {
+    decision = "needs_review";
+    adminSummary = `${adminSummary} High scanner risk with policy flags — needs manual review.`.trim();
+  }
+
+  const scannerRiskRank = { low: 0, medium: 1, high: 2, critical: 3 };
+  if (scannerRiskRank[scanner.riskLevel] > scannerRiskRank[riskLevel]) {
+    riskLevel = scanner.riskLevel;
+  }
+
+  if (scanner.riskLevel === "critical" && recommendedAction === "approve") {
+    recommendedAction = scanner.recommendedAction;
+  }
+
+  const mergedPolicyFlags = [...new Set([...scanner.policyFlags, ...result.policy_flags])];
+  const mergedKeywordFlags = [...new Set([...scanner.keywordFlags, ...result.keyword_flags])];
+  const mergedCategoryRules = [...new Set([...scanner.categoryRules, ...result.category_rules])];
+
+  return {
+    ...result,
+    decision,
+    risk_level: riskLevel,
+    recommended_action: recommendedAction,
+    policy_flags: mergedPolicyFlags,
+    keyword_flags: mergedKeywordFlags,
+    category_rules: mergedCategoryRules,
+    admin_summary: adminSummary,
+  };
+}
+
 export type RunListingAiModerationResult =
-  | { ok: true; result: ListingModerationAiResult; model: string; rawResult: unknown }
-  | { ok: false; decision: ListingModerationDecision; error: string; model: string | null };
+  | {
+      ok: true;
+      result: ListingModerationAiResult;
+      scanner: PolicyScannerResult;
+      model: string;
+      rawResult: unknown;
+      policyVersion: string;
+      promptVersion: string;
+    }
+  | { ok: false; decision: ListingModerationDecision; error: string; model: string | null; scanner: PolicyScannerResult | null };
 
 export async function runListingAiModeration(
   content: ListingModerationContentPayload,
 ): Promise<RunListingAiModerationResult> {
+  const scanner = runListingModerationPolicyScan(content);
   const apiKey = getOpenAiModerationApiKey();
   const model = getOpenAiModerationModel();
 
@@ -131,6 +191,7 @@ export async function runListingAiModeration(
       decision: "unavailable",
       error: "AI review unavailable: missing provider configuration (OPENAI_API_KEY).",
       model: null,
+      scanner,
     };
   }
 
@@ -140,8 +201,12 @@ export async function runListingAiModeration(
       decision: "unavailable",
       error: "AI review unavailable: listing content not found.",
       model,
+      scanner,
     };
   }
+
+  const categoryNotes = getCategoryPolicyNotes(content.category);
+  const systemPrompt = buildSystemPrompt(scanner, categoryNotes);
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -155,13 +220,14 @@ export async function runListingAiModeration(
         temperature: 0,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: JSON.stringify({
               listing: content,
+              scanner_findings: scanner,
               instructions:
-                "Moderate this classified listing for Leonix Media. Human admin makes final decision.",
+                "Moderate this classified listing for Leonix Safety & Trust. Human admin makes final decision. Do not auto-delete or auto-clear flags.",
             }),
           },
         ],
@@ -175,33 +241,51 @@ export async function runListingAiModeration(
 
     if (!res.ok) {
       const msg = body.error?.message?.trim() || `OpenAI HTTP ${res.status}`;
-      return { ok: false, decision: "unavailable", error: msg.slice(0, 500), model };
+      return { ok: false, decision: "unavailable", error: msg.slice(0, 500), model, scanner };
     }
 
     const text = body.choices?.[0]?.message?.content?.trim();
     if (!text) {
-      return { ok: false, decision: "unavailable", error: "Empty AI response", model };
+      return { ok: false, decision: "unavailable", error: "Empty AI response", model, scanner };
     }
 
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(text) as Record<string, unknown>;
     } catch {
-      return { ok: false, decision: "unavailable", error: "AI response was not valid JSON", model };
+      return { ok: false, decision: "unavailable", error: "AI response was not valid JSON", model, scanner };
     }
 
     const reasonText = String(parsed.reason_text ?? "").trim();
-    const result: ListingModerationAiResult = {
+    const adminSummary = String(parsed.admin_summary ?? "").trim() || reasonText || "AI review completed.";
+
+    const baseResult: ListingModerationAiResult = {
       decision: normalizeDecision(parsed.decision),
-      reason_category: normalizeReasonCategory(parsed.reason_category),
+      reason_category: normalizeLeonixReasonCategory(parsed.reason_category),
       reason_text: reasonText || "AI review completed without a detailed reason.",
       confidence: normalizeConfidence(parsed.confidence),
+      risk_level: normalizeRiskLevel(parsed.risk_level),
+      recommended_action: normalizeRecommendedAction(parsed.recommended_action),
+      policy_flags: normalizeStringArray(parsed.policy_flags),
+      keyword_flags: normalizeStringArray(parsed.keyword_flags),
+      category_rules: normalizeStringArray(parsed.category_rules),
+      admin_summary: adminSummary,
     };
 
-    return { ok: true, result, model, rawResult: parsed };
+    const result = resolveAiResultWithScanner(baseResult, scanner);
+
+    return {
+      ok: true,
+      result,
+      scanner,
+      model,
+      rawResult: { ai: parsed, scanner, resolved: result },
+      policyVersion: LEONIX_MODERATION_POLICY_VERSION,
+      promptVersion: LEONIX_MODERATION_PROMPT_VERSION,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "network_error";
-    return { ok: false, decision: "unavailable", error: msg.slice(0, 500), model };
+    return { ok: false, decision: "unavailable", error: msg.slice(0, 500), model, scanner };
   }
 }
 
@@ -209,11 +293,15 @@ export function formatAiReviewProofLabel(
   decision: ListingModerationDecision,
   reasonCategory: string | null,
   reasonText: string | null,
+  riskLevel?: string | null,
 ): string {
   if (decision === "unavailable") {
     return reasonText?.trim() || "AI review unavailable";
   }
   const cat = reasonCategory ? ` — ${reasonCategory}` : "";
+  const risk = riskLevel ? ` [${riskLevel} risk]` : "";
   const reason = reasonText?.trim() ? `: ${reasonText.trim()}` : "";
-  return `AI review completed: ${decision}${cat}${reason}`;
+  return `AI review completed: ${decision}${cat}${risk}${reason}`;
 }
+
+export { runListingModerationPolicyScan };

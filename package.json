@@ -46,6 +46,7 @@
     "verify:admin-dashboard-ceo-command-center": "node scripts/verify-admin-dashboard-ceo-command-center.mjs",
     "verify:admin-review-mobile-moderation-truth": "node scripts/verify-admin-review-mobile-moderation-truth.mjs",
     "verify:admin-ai-moderation-engine": "node scripts/verify-admin-ai-moderation-engine.mjs",
+    "verify:admin-ai-moderation-policy": "node scripts/verify-admin-ai-moderation-policy.mjs",
     "verify:leonix-user-dashboard-command-center-master-audit": "node scripts/verify-leonix-user-dashboard-command-center-master-audit.mjs",
     "seed:owner-admin-auth": "node scripts/seed-owner-admin-auth.mjs",
     "verify:category-plan-boundaries": "node scripts/verify-category-plan-boundaries.mjs",

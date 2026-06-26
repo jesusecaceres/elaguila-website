@@ -113,12 +113,23 @@ if (!runBtn.includes("/ai-review") || !runBtn.includes("admin-run-ai-review")) {
 ok("Run AI review CTA component");
 
 const flagBlock = read(flagBlockPath);
+const aiSummary = exists("app/admin/(dashboard)/workspace/clasificados/_components/AdminAiReviewSummary.tsx")
+  ? read("app/admin/(dashboard)/workspace/clasificados/_components/AdminAiReviewSummary.tsx")
+  : "";
+const uiAiDisplay = flagBlock + aiSummary;
 if (!flagBlock.includes("AdminRunAiReviewButton")) fail("queue flag block missing Run AI review");
-if (!flagBlock.includes("reason_category") || !flagBlock.includes("confidence")) {
-  fail("queue must show AI category/confidence when present");
+if (
+  !uiAiDisplay.includes("reason_category") ||
+  !uiAiDisplay.includes("confidence") ||
+  !uiAiDisplay.includes("risk_level")
+) {
+  fail("queue must show AI category/confidence/risk when present");
 }
-if (!flagBlock.includes("reviewed_at") && !flagBlock.includes("formatReviewedAt")) {
+if (!uiAiDisplay.includes("reviewed_at") && !uiAiDisplay.includes("formatReviewedAt")) {
   fail("queue must show reviewed_at");
+}
+if (!uiAiDisplay.includes("recommended_action") && !uiAiDisplay.includes("formatRecommendedAction")) {
+  fail("queue must show recommended action");
 }
 ok("queue displays AI result fields");
 
@@ -154,8 +165,8 @@ const editPage = read(editPagePath);
 if (!editPage.includes("aiReviewByListingId")) fail("edit page must load AI reviews");
 ok("edit page loads AI review");
 
-if (/auto-delete|auto delete|automatically delete/i.test(service + engine)) {
-  fail("must not auto-delete listings");
+if (/deleteListing|bulkSoftDelete|permanentlyDelete|from\("listings"\)[\s\S]{0,80}\.update/i.test(service)) {
+  fail("AI service must not delete or mutate listings");
 }
 if (!read(docsPath).includes("Human review") && !read(docsPath).includes("human admin")) {
   fail("human review requirement must be documented");
@@ -169,8 +180,8 @@ if (page.includes("app/(site)/clasificados") && page.includes("export")) {
 if (/stripe/i.test(engine + service + flagBlock + snapshot)) fail("no stripe in AI gate files");
 ok("no stripe/payment changes in AI gate");
 
-if (/category-specific|categoryLogic/i.test(engine)) fail("unexpected category logic in engine");
-ok("no category business logic changes");
+if (/categoryLogic/i.test(engine)) fail("unexpected category logic in engine");
+ok("no category business logic changes in engine");
 
 const pkg = read(pkgPath);
 if (!pkg.includes("verify:admin-ai-moderation-engine")) {

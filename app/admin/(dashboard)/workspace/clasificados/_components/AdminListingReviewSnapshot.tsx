@@ -7,7 +7,9 @@ import {
 } from "@/app/admin/_lib/adminReviewFlagTruth";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
 import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
+import { AI_REVIEW_ADVISORY_COPY } from "@/app/admin/_lib/listingModerationDisplay";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { AdminAiReviewSummary } from "./AdminAiReviewSummary";
 import { AdminRunAiReviewButton } from "./AdminRunAiReviewButton";
 
 function parseListingImageUrls(images: unknown): string[] {
@@ -44,16 +46,6 @@ type Props = {
   aiReview?: ListingModerationReviewSummary | null;
 };
 
-function formatReviewedAt(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    const d = new Date(iso);
-    return Number.isFinite(d.getTime()) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, reportContext, aiReview }: Props) {
   const id = String(listing.id ?? "");
   const title = String(listing.title ?? "").trim() || "(no title)";
@@ -76,7 +68,6 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, rep
     aiReview,
   });
   const hasStoredAi = aiReview && aiReview.source === "ai" && aiReview.decision !== "unavailable";
-  const reviewedAt = formatReviewedAt(aiReview?.reviewed_at);
 
   return (
     <section className={`${adminCardBase} space-y-4 p-5`} data-testid="admin-listing-review-snapshot">
@@ -135,36 +126,9 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, rep
         <div data-testid="admin-listing-ai-review-snapshot">
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">AI moderation review</dt>
           <dd className="mt-1 text-xs text-[#5C5346]">
-            {hasStoredAi ? (
-              <div className="space-y-1 rounded-lg border border-[#1E4A7A]/30 bg-[#EEF4FC]/60 p-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-md border border-[#1E4A7A]/40 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]">
-                    AI
-                  </span>
-                  <span className="rounded-md border border-[#1E4A7A]/30 bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]">
-                    {aiReview!.decision.replace("_", " ")}
-                  </span>
-                </div>
-                {aiReview!.reason_category ? (
-                  <p>
-                    Category: <span className="font-semibold">{aiReview!.reason_category}</span>
-                    {aiReview!.confidence ? (
-                      <>
-                        {" "}
-                        · Confidence: <span className="font-semibold">{aiReview!.confidence}</span>
-                      </>
-                    ) : null}
-                    {reviewedAt ? (
-                      <>
-                        {" "}
-                        · Reviewed: <span className="font-semibold">{reviewedAt}</span>
-                      </>
-                    ) : null}
-                  </p>
-                ) : null}
-                {aiReview!.reason_text ? (
-                  <p className="leading-snug break-words">{aiReview!.reason_text}</p>
-                ) : null}
+            {hasStoredAi && aiReview ? (
+              <div className="rounded-lg border border-[#1E4A7A]/30 bg-[#EEF4FC]/60 p-2">
+                <AdminAiReviewSummary review={aiReview} />
               </div>
             ) : aiReview?.decision === "unavailable" ? (
               <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-2">
@@ -175,7 +139,7 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, rep
                 No AI review stored for this listing. Use Run AI review to generate one — does not change listing status.
               </p>
             )}
-            <div className="mt-2">
+            <div className="mt-2 space-y-1">
               <AdminRunAiReviewButton
                 listingId={id}
                 leonixAdId={leonixAdId}
@@ -183,6 +147,7 @@ export function AdminListingReviewSnapshot({ listing, ownerEmail, ownerName, rep
                 label={hasStoredAi ? "Re-run AI review" : "Run AI review"}
                 className="!min-h-[40px] !w-full sm:!w-auto"
               />
+              <p className="text-[10px] leading-snug text-[#9A9084]">{AI_REVIEW_ADVISORY_COPY}</p>
             </div>
           </dd>
         </div>

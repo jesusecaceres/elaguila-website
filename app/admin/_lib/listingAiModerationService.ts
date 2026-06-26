@@ -64,9 +64,19 @@ export async function runListingAiReviewForId(listingId: string): Promise<RunLis
   const saved = await insertListingModerationReview(supabase, content, ai);
 
   const proofLabel = saved
-    ? formatAiReviewProofLabel(saved.decision, saved.reason_category, saved.reason_text ?? saved.error_message)
+    ? formatAiReviewProofLabel(
+        saved.decision,
+        saved.reason_category,
+        saved.reason_text ?? saved.error_message,
+        saved.risk_level,
+      )
     : ai.ok
-      ? formatAiReviewProofLabel(ai.result.decision, ai.result.reason_category, ai.result.reason_text)
+      ? formatAiReviewProofLabel(
+          ai.result.decision,
+          ai.result.reason_category,
+          ai.result.reason_text,
+          ai.result.risk_level,
+        )
       : formatAiReviewProofLabel("unavailable", null, ai.error);
 
   void appendAdminAuditLog({
@@ -76,6 +86,7 @@ export async function runListingAiReviewForId(listingId: string): Promise<RunLis
     meta: {
       decision: saved?.decision ?? (ai.ok ? ai.result.decision : "unavailable"),
       reason_category: saved?.reason_category ?? null,
+      risk_level: saved?.risk_level ?? (ai.ok ? ai.result.risk_level : null),
       model: saved?.model ?? null,
     },
   });

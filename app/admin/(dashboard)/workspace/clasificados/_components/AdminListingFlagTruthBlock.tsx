@@ -1,6 +1,8 @@
 import { classifyGenericListingFlagTruth, type AdminReviewFlagSourceKind } from "@/app/admin/_lib/adminReviewFlagTruth";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
+import { AI_REVIEW_ADVISORY_COPY } from "@/app/admin/_lib/listingModerationDisplay";
 import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
+import { AdminAiReviewSummary } from "./AdminAiReviewSummary";
 import { AdminRunAiReviewButton } from "./AdminRunAiReviewButton";
 
 const BADGE_STYLES: Record<AdminReviewFlagSourceKind, string> = {
@@ -11,16 +13,6 @@ const BADGE_STYLES: Record<AdminReviewFlagSourceKind, string> = {
   unknown_legacy: "border-[#E8DFD0] bg-[#FAF7F2] text-[#7A7164]",
   unknown: "border-[#E8DFD0] bg-[#FAF7F2] text-[#9A9084]",
 };
-
-function formatReviewedAt(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  try {
-    const d = new Date(iso);
-    return Number.isFinite(d.getTime()) ? d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
-  } catch {
-    return null;
-  }
-}
 
 type Props = {
   listingId: string;
@@ -51,7 +43,6 @@ export function AdminListingFlagTruthBlock({
   const st = (status ?? "").toLowerCase();
   if (st !== "flagged" && st !== "pending") return null;
 
-  const reviewedAt = formatReviewedAt(aiReview?.reviewed_at);
   const hasStoredAi = aiReview && aiReview.source === "ai" && aiReview.decision !== "unavailable";
 
   return (
@@ -66,11 +57,6 @@ export function AdminListingFlagTruthBlock({
         >
           {truth.sourceLabel}
         </span>
-        {hasStoredAi ? (
-          <span className="rounded-md border border-[#1E4A7A]/30 bg-[#EEF4FC] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]">
-            {aiReview!.decision.replace("_", " ")}
-          </span>
-        ) : null}
         {report?.pendingReportCount ? (
           <span className="text-[10px] font-semibold text-[#8B4A12]">{report.pendingReportCount} pending report(s)</span>
         ) : null}
@@ -78,28 +64,16 @@ export function AdminListingFlagTruthBlock({
       <p className={`${compact ? "mt-1 text-[11px]" : "mt-1.5 text-xs"} leading-snug text-[#5C5346] break-words`}>
         {truth.ownerFacingExplanation}
       </p>
-      {hasStoredAi && aiReview?.reason_category ? (
-        <p className="mt-0.5 text-[10px] text-[#7A7164]">
-          Category: <span className="font-semibold">{aiReview.reason_category}</span>
-          {aiReview.confidence ? (
-            <>
-              {" "}
-              · Confidence: <span className="font-semibold">{aiReview.confidence}</span>
-            </>
-          ) : null}
-          {reviewedAt ? (
-            <>
-              {" "}
-              · Reviewed: <span className="font-semibold">{reviewedAt}</span>
-            </>
-          ) : null}
-        </p>
+      {hasStoredAi && aiReview ? (
+        <div className="mt-1.5">
+          <AdminAiReviewSummary review={aiReview} compact={compact} />
+        </div>
       ) : null}
       {truth.secondaryFallback && truth.sourceKind !== "unknown_legacy" && truth.sourceKind !== "ai_moderation" ? (
         <p className="mt-0.5 text-[10px] text-[#9A9084]">{truth.secondaryFallback}</p>
       ) : null}
       {showRunButton ? (
-        <div className="mt-2">
+        <div className="mt-2 space-y-1">
           <AdminRunAiReviewButton
             listingId={listingId}
             leonixAdId={leonixAdId}
@@ -107,6 +81,7 @@ export function AdminListingFlagTruthBlock({
             className="!min-h-[40px] !w-full sm:!w-auto"
             label={hasStoredAi ? "Re-run AI review" : "Run AI review"}
           />
+          <p className="text-[10px] leading-snug text-[#9A9084]">{AI_REVIEW_ADVISORY_COPY}</p>
         </div>
       ) : null}
     </div>
