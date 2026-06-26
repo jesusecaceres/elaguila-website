@@ -30,6 +30,17 @@ type CropRasterSource = {
   height: number;
 };
 
+type SharpModule = typeof import("sharp");
+
+type CropSummary = {
+  totalItems: number;
+  itemsWithBbox: number;
+  cropAttempted: number;
+  cropUploaded: number;
+  cropSkipped: number;
+  skipReasonCounts: Record<string, number>;
+};
+
 export function createOfertaLocalScanCropStoragePath(params: {
   ofertaLocalId: string;
   scanJobId: string;
@@ -45,27 +56,43 @@ export function createOfertaLocalScanCropStoragePath(params: {
 
 /**
  * Crop product tiles from rendered page PNGs and upload to Vercel Blob.
- * Rasterizes pdf_single_page fallback on demand when needed (Gate OFERTAS-CROP-PATCH-1).
+ * Rasterizes pdf_single_page / direct_image on demand when needed.
  */
 export async function applyOfertaLocalScanItemCrops(
   params: ApplyOfertaLocalScanItemCropsParams
 ): Promise<ApplyOfertaLocalScanItemCropsResult> {
+  const summary: CropSummary = {
+    totalItems: params.items.length,
+    itemsWithBbox: 0,
+    cropAttempted: 0,
+    cropUploaded: 0,
+    cropSkipped: 0,
+    skipReasonCounts: {},
+  };
+
+  const recordSkip = (reason: string) => {
+    summary.cropSkipped += 1;
+    summary.skipReasonCounts[reason] = (summary.skipReasonCounts[reason] ?? 0) + 1;
+  };
+
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {
-    return { cropsGenerated: 0, cropErrors: ["blob_unconfigured"] };
+    console.warn("[ofertas-locales crop] disabled: missing BLOB_READ_WRITE_TOKEN");
+    return { cropsGenerated: 0, cropErrors: ["blob_token_missing"] };
   }
 
   const pageByNumber = new Map(params.pageImages.map((p) => [p.pageNumber, p]));
   let cropsGenerated = 0;
   const cropErrors: string[] = [];
   const rasterCache = new Map<number, CropRasterSource>();
+  const pageReadyLogged = new Set<number>();
 
-  let sharp: typeof import("sharp") | null = null;
+  let sharp: SharpModule | null = null;
   try {
     sharp = (await import("sharp")).default;
   } catch (err) {
     const message = err instanceof Error ? err.message : "sharp_unavailable";
-    console.warn("[ofertas-locales ai] crop generation skipped — sharp unavailable", {
+    console.warn("[ofertas-locales crop] disabled: sharp unavailable", {
       error: message.slice(0, 200),
     });
     return { cropsGenerated: 0, cropErrors: ["sharp_unavailable"] };
@@ -77,22 +104,40 @@ export async function applyOfertaLocalScanItemCrops(
     const normalizedBbox = item.sourceBbox;
     if (!geminiBbox || !normalizedBbox) continue;
 
-    const pageNumber = item.sourcePage ?? 0;
+    summary.itemsWithBbox += 1;
+
+    const pageNumber = item.sourcePage ?? 1;
     const page = pageByNumber.get(pageNumber);
     if (!page) {
       cropErrors.push(`page_${pageNumber}_missing`);
+      recordSkip("page_missing");
       continue;
     }
 
     let raster: CropRasterSource | null = rasterCache.get(pageNumber) ?? null;
     if (!raster) {
-      raster = await resolveCropRasterSource(page, params.scanJobId);
-      if (raster) rasterCache.set(pageNumber, raster);
+      raster = await resolveCropRasterSource(page, params.scanJobId, sharp);
+      if (raster) {
+        rasterCache.set(pageNumber, raster);
+        if (!pageReadyLogged.has(pageNumber)) {
+          pageReadyLogged.add(pageNumber);
+          console.info("[ofertas-locales crop] page ready", {
+            pageNumber: page.pageNumber,
+            renderMethod: page.renderMethod,
+            hasImageBytes: raster.imageBytes.length > 0,
+            width: raster.width,
+            height: raster.height,
+          });
+        }
+      }
     }
     if (!raster) {
       cropErrors.push(`page_${pageNumber}_no_raster_image`);
+      recordSkip("page_no_raster");
       continue;
     }
+
+    summary.cropAttempted += 1;
 
     const rect = geminiBboxToPixelCropRect({
       bbox: geminiBbox,
@@ -102,6 +147,12 @@ export async function applyOfertaLocalScanItemCrops(
     });
     if (!rect) {
       cropErrors.push(`item_${index}_invalid_crop_rect`);
+      console.warn("[ofertas-locales crop] invalid crop rectangle", {
+        scanJobId: params.scanJobId,
+        itemIndex: index,
+        sourcePage: pageNumber,
+      });
+      recordSkip("invalid_crop_rect");
       continue;
     }
 
@@ -120,7 +171,7 @@ export async function applyOfertaLocalScanItemCrops(
         ofertaLocalId: params.ofertaLocalId,
         scanJobId: params.scanJobId,
         sourceAssetId: params.sourceAssetId,
-        pageNumber: item.sourcePage ?? 1,
+        pageNumber,
         itemIndex: index,
       });
 
@@ -147,32 +198,82 @@ export async function applyOfertaLocalScanItemCrops(
       };
       item.sourceBbox = normalizedBbox;
       cropsGenerated += 1;
+      summary.cropUploaded += 1;
     } catch (err) {
       const message = err instanceof Error ? err.message : "crop_failed";
       cropErrors.push(`item_${index}:${message.slice(0, 120)}`);
+      console.warn("[ofertas-locales crop] crop upload failed", {
+        scanJobId: params.scanJobId,
+        itemIndex: index,
+        sourcePage: pageNumber,
+        error: message.slice(0, 200),
+      });
+      recordSkip("crop_upload_failed");
     }
   }
 
-  if (cropsGenerated > 0) {
-    console.info("[ofertas-locales ai] scan crops generated", {
-      scanJobId: params.scanJobId,
-      cropsGenerated,
-      cropErrors: cropErrors.length,
-    });
-  }
+  console.info("[ofertas-locales crop] summary", {
+    scanJobId: params.scanJobId,
+    sourceAssetId: params.sourceAssetId,
+    totalItems: summary.totalItems,
+    itemsWithBbox: summary.itemsWithBbox,
+    cropAttempted: summary.cropAttempted,
+    cropUploaded: summary.cropUploaded,
+    cropSkipped: summary.cropSkipped,
+    skipReasonCounts: summary.skipReasonCounts,
+  });
 
   return { cropsGenerated, cropErrors };
 }
 
 async function resolveCropRasterSource(
   page: OfertaLocalPageImage,
-  scanJobId: string
+  scanJobId: string,
+  sharp: SharpModule
 ): Promise<CropRasterSource | null> {
-  if (page.renderMethod === "pdfjs_canvas_png" && page.width && page.height) {
-    console.info("[ofertas-locales crop] using existing raster page", {
+  if (page.renderMethod === "pdfjs_canvas_png" || page.renderMethod === "direct_image") {
+    return resolveImageBytesRaster(page, sharp);
+  }
+
+  if (page.renderMethod === "pdf_single_page") {
+    const raster = await renderOfertaLocalPdfPageToPngForCrop({
+      pdfBytes: page.imageBytes,
+      pageNumber: page.pageNumber,
+    });
+    if (raster) {
+      return {
+        imageBytes: raster.imageBytes,
+        width: raster.width,
+        height: raster.height,
+      };
+    }
+
+    const sharpPdf = await trySharpPdfPageRaster(page.imageBytes, sharp);
+    if (sharpPdf) {
+      console.info("[ofertas-locales crop] sharp pdf raster fallback succeeded", {
+        scanJobId,
+        sourcePage: page.pageNumber,
+      });
+      return sharpPdf;
+    }
+
+    console.info("[ofertas-locales crop] fallback rasterization failed", {
       scanJobId,
       sourcePage: page.pageNumber,
     });
+    return null;
+  }
+
+  return null;
+}
+
+async function resolveImageBytesRaster(
+  page: OfertaLocalPageImage,
+  sharp: SharpModule
+): Promise<CropRasterSource | null> {
+  if (page.imageBytes.length === 0) return null;
+
+  if (page.width && page.height) {
     return {
       imageBytes: page.imageBytes,
       width: page.width,
@@ -180,30 +281,48 @@ async function resolveCropRasterSource(
     };
   }
 
-  if (page.renderMethod === "pdf_single_page") {
-    console.info("[ofertas-locales crop] rasterizing pdf fallback page", {
-      scanJobId,
-      sourcePage: page.pageNumber,
-    });
-    const raster = await renderOfertaLocalPdfPageToPngForCrop({
-      pdfBytes: page.imageBytes,
-      pageNumber: page.pageNumber,
-    });
-    if (!raster) {
-      console.info("[ofertas-locales crop] fallback rasterization failed", {
-        scanJobId,
-        sourcePage: page.pageNumber,
-      });
-      return null;
+  try {
+    const meta = await sharp(page.imageBytes).metadata();
+    if (meta.width && meta.height) {
+      return {
+        imageBytes: page.imageBytes,
+        width: meta.width,
+        height: meta.height,
+      };
     }
-    return {
-      imageBytes: raster.imageBytes,
-      width: raster.width,
-      height: raster.height,
-    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "metadata_failed";
+    console.info("[ofertas-locales crop] image metadata read failed", {
+      sourcePage: page.pageNumber,
+      renderMethod: page.renderMethod,
+      error: message.slice(0, 200),
+    });
   }
 
   return null;
+}
+
+async function trySharpPdfPageRaster(
+  singlePagePdfBytes: Buffer,
+  sharp: SharpModule
+): Promise<CropRasterSource | null> {
+  try {
+    const result = await sharp(singlePagePdfBytes, { density: 200, page: 0 })
+      .png()
+      .toBuffer({ resolveWithObject: true });
+    if (!result.info.width || !result.info.height) return null;
+    return {
+      imageBytes: Buffer.from(result.data),
+      width: result.info.width,
+      height: result.info.height,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "sharp_pdf_raster_failed";
+    console.info("[ofertas-locales crop] sharp pdf raster fallback failed", {
+      error: message.slice(0, 200),
+    });
+    return null;
+  }
 }
 
 function readGeminiBboxFromItem(item: OfertaLocalSearchableItemDraft): GeminiSourceBbox | null {
