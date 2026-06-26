@@ -48,6 +48,9 @@ function DestacadosHeader({ id, lang }: { id: string; lang: "es" | "en" }) {
 }
 
 function DestacadosEmptyState({ lang }: { lang: "es" | "en" }) {
+  const visibilityHref = `/contacto?lang=${lang}&source=servicios-destacados`;
+  const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
+
   return (
     <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-[#C9A84A]/55 bg-gradient-to-b from-[#FBF6EC] to-[#F6EFDF] px-4 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#7a6220] shadow-[0_6px_18px_-10px_rgba(122,98,32,0.6)] ring-1 ring-[#C9A84A]/40">
@@ -55,19 +58,27 @@ function DestacadosEmptyState({ lang }: { lang: "es" | "en" }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-[#142a42]">
-          {lang === "en" ? "Featured spots are available" : "Espacios destacados disponibles"}
+          {lang === "en" ? "Want to appear here?" : "¿Quieres aparecer aquí?"}
         </p>
         <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-[#5a4f3a]">
           {lang === "en"
-            ? "Put your service first when clients search on Leonix."
-            : "Haz que tu servicio aparezca primero cuando clientes buscan en Leonix."}
+            ? "Featured spots are reserved for Leonix visibility packages, magazine placement, digital promotion, or approved campaigns."
+            : "Los espacios destacados se reservan para negocios con paquetes de visibilidad Leonix, revista, promoción digital o campañas aprobadas."}
         </p>
+        <Link
+          href={publishHref}
+          className="mt-1.5 inline-flex text-[12px] font-semibold text-[#6F6254] underline underline-offset-3 hover:text-[#142a42]"
+        >
+          {lang === "en"
+            ? "You can also publish a standard service in Servicios."
+            : "También puedes publicar tu servicio normal en Servicios."}
+        </Link>
       </div>
       <Link
-        href={`/clasificados/publicar/servicios?lang=${lang}`}
+        href={visibilityHref}
         className="inline-flex min-h-[38px] shrink-0 items-center justify-center rounded-full bg-[#7A1E2C] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#651825]"
       >
-        {lang === "en" ? "Publish your service" : "Publica tu servicio"}
+        {lang === "en" ? "Explore visibility options" : "Conocer opciones de visibilidad"}
       </Link>
     </div>
   );
