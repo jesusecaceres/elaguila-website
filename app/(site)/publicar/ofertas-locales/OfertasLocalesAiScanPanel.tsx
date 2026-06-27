@@ -90,6 +90,14 @@ export function OfertasLocalesAiScanPanel({
   const scanning = scanPhase !== "idle";
 
   useEffect(() => {
+    if (scanning || readiness.eligibleAssets.length > 0) return;
+    setScanningAssetId(null);
+    setScanStatus("not_ready");
+    setScanMessage(null);
+    setLastCompletedMessage(null);
+  }, [readiness.eligibleAssets.length, scanning]);
+
+  useEffect(() => {
     if (!scanning) {
       scanStartedAtRef.current = null;
       setElapsedSeconds(0);

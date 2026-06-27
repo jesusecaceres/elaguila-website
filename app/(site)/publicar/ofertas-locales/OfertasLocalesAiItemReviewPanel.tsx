@@ -96,6 +96,24 @@ function isCouponItem(item: OfertaLocalItemReviewViewModel): boolean {
   return item.candidateType === "coupon" || item.candidateType === "promo";
 }
 
+function noActiveFileTitle(lang: OfertasLocalesAppLang, reviewMode: "weekly" | "coupon"): string {
+  if (reviewMode === "coupon") {
+    return lang === "en" ? "No active coupon uploaded." : "No hay cupón activo subido.";
+  }
+  return lang === "en" ? "No active flyer uploaded." : "No hay volante activo subido.";
+}
+
+function noActiveFileBody(lang: OfertasLocalesAppLang, reviewMode: "weekly" | "coupon"): string {
+  if (reviewMode === "coupon") {
+    return lang === "en"
+      ? "Upload and scan a coupon to review extracted products."
+      : "Sube y escanea un cupón para revisar los productos extraídos.";
+  }
+  return lang === "en"
+    ? "Upload and scan a flyer to review extracted products."
+    : "Sube y escanea un volante para revisar los productos extraídos.";
+}
+
 function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
   return {
     itemName: draft.itemName,
@@ -393,6 +411,43 @@ export function OfertasLocalesAiItemReviewPanel({
     selectedItemIdRef.current = selectedItemId;
   }, [selectedItemId]);
 
+  const activeSourceAssetIds = useMemo(() => {
+    if (!draft) return new Set<string>();
+    return new Set(
+      [...draft.flyerAssets, ...draft.couponAssets]
+        .filter((asset) => asset.status !== "removed")
+        .map((asset) => asset.id)
+    );
+  }, [draft]);
+
+  const hasActiveSourceAsset =
+    !isWorkspace || Boolean(selectedSourceAssetId && activeSourceAssetIds.has(selectedSourceAssetId));
+
+  const clearReviewState = useCallback(() => {
+    itemCountRef.current = 0;
+    selectionContextRef.current = "";
+    pollStartedAtRef.current = null;
+    setItems([]);
+    setScanJobs([]);
+    setSummary(null);
+    setDrafts({});
+    setSelectedItemId(null);
+    setPreviousScansOpen(false);
+    setScanCompletedAt(null);
+    setError(null);
+    setActionMessage(null);
+    setAutoRefreshing(false);
+    setLoading(false);
+    onFocusedItemChange?.(null);
+    onScopeChange?.({
+      scanActiveForAsset: false,
+      scanningAssetId: null,
+      selectedAssetRole: null,
+      activeScanJobId: null,
+    });
+    onAssetTabStatuses?.({});
+  }, [onAssetTabStatuses, onFocusedItemChange, onScopeChange]);
+
   const mergeDraftsFromItems = useCallback(
     (nextItems: OfertaLocalItemReviewViewModel[], preserveSelectedDraft: boolean) => {
       setDrafts((prev) => {
@@ -412,6 +467,10 @@ export function OfertasLocalesAiItemReviewPanel({
   const loadItems = useCallback(
     async (options?: { silent?: boolean }) => {
       if (!ofertaLocalId?.trim()) return;
+      if (!hasActiveSourceAsset) {
+        clearReviewState();
+        return;
+      }
       const silent = options?.silent ?? false;
       if (silent) {
         setAutoRefreshing(true);
@@ -461,11 +520,18 @@ export function OfertasLocalesAiItemReviewPanel({
       ofertaLocalId,
       scanJobId,
       isWorkspace,
+      hasActiveSourceAsset,
+      clearReviewState,
       c.aiReviewLoadFailed,
       highlightScanJobId,
       mergeDraftsFromItems,
     ]
   );
+
+  useEffect(() => {
+    if (hasActiveSourceAsset) return;
+    clearReviewState();
+  }, [clearReviewState, hasActiveSourceAsset]);
 
   useEffect(() => {
     void loadItems();
@@ -491,8 +557,12 @@ export function OfertasLocalesAiItemReviewPanel({
 
   const selectedAssetRole = useMemo((): OfertaLocalSourceFileRole | null => {
     if (!selectedSourceAssetId || !draft) return null;
-    if (draft.flyerAssets.some((asset) => asset.id === selectedSourceAssetId)) return "flyer";
-    if (draft.couponAssets.some((asset) => asset.id === selectedSourceAssetId)) return "coupon";
+    if (draft.flyerAssets.some((asset) => asset.id === selectedSourceAssetId && asset.status !== "removed")) {
+      return "flyer";
+    }
+    if (draft.couponAssets.some((asset) => asset.id === selectedSourceAssetId && asset.status !== "removed")) {
+      return "coupon";
+    }
     return null;
   }, [selectedSourceAssetId, draft]);
 
@@ -669,8 +739,12 @@ export function OfertasLocalesAiItemReviewPanel({
     if (!isWorkspace || !onAssetTabStatuses || !draft) return;
     const statuses: Record<string, string> = {};
     const assets = [
-      ...draft.flyerAssets.map((asset) => ({ id: asset.id, kind: "flyer" as const })),
-      ...draft.couponAssets.map((asset) => ({ id: asset.id, kind: "coupon" as const })),
+      ...draft.flyerAssets
+        .filter((asset) => asset.status !== "removed")
+        .map((asset) => ({ id: asset.id, kind: "flyer" as const })),
+      ...draft.couponAssets
+        .filter((asset) => asset.status !== "removed")
+        .map((asset) => ({ id: asset.id, kind: "coupon" as const })),
     ];
     for (const asset of assets) {
       const label = resolveAssetScanTabStatus(
@@ -758,6 +832,24 @@ export function OfertasLocalesAiItemReviewPanel({
   ];
 
   if (!ofertaLocalId?.trim()) return null;
+
+  if (isWorkspace && !hasActiveSourceAsset) {
+    return (
+      <div className="flex h-full min-h-[260px] flex-col justify-center rounded-xl border border-dashed border-[#D4C4A8]/80 bg-white px-4 py-8 text-center shadow-sm">
+        <p className="text-sm font-semibold text-[#7A1E2C]">
+          {noActiveFileTitle(lang, reviewMode)}
+        </p>
+        <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-[#1E1814]/65">
+          {noActiveFileBody(lang, reviewMode)}
+        </p>
+        <p className="mx-auto mt-2 max-w-sm text-[10px] leading-relaxed text-[#1E1814]/50">
+          {lang === "en"
+            ? "Previous scan results are hidden because the source file was removed."
+            : "Los resultados anteriores están ocultos porque se quitó el archivo fuente."}
+        </p>
+      </div>
+    );
+  }
 
   const goPreviousItem = () => {
     if (focusIndex <= 0) return;
