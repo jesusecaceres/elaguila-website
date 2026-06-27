@@ -3,7 +3,7 @@ import "server-only";
 import { put } from "@vercel/blob";
 import { randomUUID } from "crypto";
 
-import { geminiBboxToPixelCropRect, type GeminiSourceBbox } from "./ofertasLocalesGeminiBbox";
+import type { GeminiSourceBbox } from "./ofertasLocalesGeminiBbox";
 import {
   renderOfertaLocalPdfPageToPngForCrop,
   type OfertaLocalPageImage,
@@ -30,6 +30,13 @@ type CropRasterSource = {
   height: number;
 };
 
+type PixelCropRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 type SharpModule = typeof import("sharp");
 
 type CropSummary = {
@@ -51,7 +58,7 @@ export function createOfertaLocalScanCropStoragePath(params: {
   const ofertaId = sanitizeOfertaLocalStorageSegment(params.ofertaLocalId, 64);
   const jobId = sanitizeOfertaLocalStorageSegment(params.scanJobId, 64);
   const assetId = sanitizeOfertaLocalStorageSegment(params.sourceAssetId, 64);
-  return `ofertas-locales/scan-crops/${ofertaId}/${jobId}/${assetId}/p${params.pageNumber}-${params.itemIndex}-${randomUUID()}.webp`;
+  return `ofertas-locales/scan-crops/${ofertaId}/${jobId}/${assetId}/p${params.pageNumber}-${params.itemIndex}-${randomUUID()}.png`;
 }
 
 /**
@@ -117,7 +124,7 @@ export async function applyOfertaLocalScanItemCrops(
 
     let raster: CropRasterSource | null = rasterCache.get(pageNumber) ?? null;
     if (!raster && !rasterFailureCache.has(pageNumber)) {
-      raster = await resolveCropRasterSource(page, sharp);
+      raster = await resolveCropRasterSource(page, params.scanJobId, sharp);
       if (raster) {
         rasterCache.set(pageNumber, raster);
         if (!pageReadyLogged.has(pageNumber)) {
@@ -148,8 +155,8 @@ export async function applyOfertaLocalScanItemCrops(
 
     summary.cropAttempted += 1;
 
-    const rect = geminiBboxToPixelCropRect({
-      bbox: geminiBbox,
+    const rect = normalizedBboxToPixelCropRect({
+      bbox: normalizedBbox,
       imageWidth: raster.width,
       imageHeight: raster.height,
       paddingFraction: 0.08,
@@ -173,7 +180,7 @@ export async function applyOfertaLocalScanItemCrops(
           width: rect.width,
           height: rect.height,
         })
-        .webp({ quality: 85 })
+        .png()
         .toBuffer();
 
       const pathname = createOfertaLocalScanCropStoragePath({
@@ -186,7 +193,7 @@ export async function applyOfertaLocalScanItemCrops(
 
       const blob = await put(pathname, cropped, {
         access: "public",
-        contentType: "image/webp",
+        contentType: "image/png",
         token,
       });
 
@@ -194,6 +201,7 @@ export async function applyOfertaLocalScanItemCrops(
         scanJobId: params.scanJobId,
         itemIndex: index,
         sourcePage: pageNumber,
+        itemName: item.itemName,
       });
 
       item.sourceCropUrl = blob.url;
@@ -215,6 +223,8 @@ export async function applyOfertaLocalScanItemCrops(
         scanJobId: params.scanJobId,
         itemIndex: index,
         sourcePage: pageNumber,
+        itemName: item.itemName,
+        reason: message.slice(0, 200),
         error: message.slice(0, 200),
       });
       recordSkip("crop_upload_failed");
@@ -239,10 +249,20 @@ export async function applyOfertaLocalScanItemCrops(
 
 async function resolveCropRasterSource(
   page: OfertaLocalPageImage,
+  scanJobId: string,
   sharp: SharpModule
 ): Promise<CropRasterSource | null> {
   if (page.renderMethod === "pdfjs_canvas_png" || page.renderMethod === "direct_image") {
-    return resolveImageBytesRaster(page, sharp);
+    const raster = await resolveImageBytesRaster(page, sharp);
+    if (raster) {
+      console.info("[ofertas-locales crop] page render success", {
+        scanJobId,
+        sourcePage: page.pageNumber,
+        width: raster.width,
+        height: raster.height,
+      });
+    }
+    return raster;
   }
 
   if (page.renderMethod === "pdf_single_page") {
@@ -251,6 +271,12 @@ async function resolveCropRasterSource(
       pageNumber: page.pageNumber,
     });
     if (raster) {
+      console.info("[ofertas-locales crop] page render success", {
+        scanJobId,
+        sourcePage: page.pageNumber,
+        width: raster.width,
+        height: raster.height,
+      });
       return {
         imageBytes: raster.imageBytes,
         width: raster.width,
@@ -258,13 +284,52 @@ async function resolveCropRasterSource(
       };
     }
 
-    console.warn("[ofertas-locales crop] pdfjs_page_render_failed", {
+    console.warn("[ofertas-locales crop] page render failed", {
+      scanJobId,
       sourcePage: page.pageNumber,
+      reason: "pdfjs_page_render_failed",
     });
     return null;
   }
 
   return null;
+}
+
+function normalizedBboxToPixelCropRect(params: {
+  bbox: OfertaLocalSourceBoundingBox;
+  imageWidth: number;
+  imageHeight: number;
+  paddingFraction?: number;
+}): PixelCropRect | null {
+  const { bbox, imageWidth, imageHeight } = params;
+  const paddingFraction = params.paddingFraction ?? 0.08;
+  if (!Number.isFinite(imageWidth) || !Number.isFinite(imageHeight) || imageWidth < 1 || imageHeight < 1) {
+    return null;
+  }
+
+  const xMin = Math.max(0, Math.min(1, bbox.xMin));
+  const xMax = Math.max(0, Math.min(1, bbox.xMax));
+  const yMin = Math.max(0, Math.min(1, bbox.yMin));
+  const yMax = Math.max(0, Math.min(1, bbox.yMax));
+
+  let left = Math.round(Math.min(xMin, xMax) * imageWidth);
+  let top = Math.round(Math.min(yMin, yMax) * imageHeight);
+  let width = Math.round(Math.abs(xMax - xMin) * imageWidth);
+  let height = Math.round(Math.abs(yMax - yMin) * imageHeight);
+
+  const padX = Math.round(width * paddingFraction);
+  const padY = Math.round(height * paddingFraction);
+
+  left = Math.max(0, left - padX);
+  top = Math.max(0, top - padY);
+  width += padX * 2;
+  height += padY * 2;
+
+  if (left + width > imageWidth) width = imageWidth - left;
+  if (top + height > imageHeight) height = imageHeight - top;
+
+  if (width < 8 || height < 8) return null;
+  return { left, top, width, height };
 }
 
 async function resolveImageBytesRaster(

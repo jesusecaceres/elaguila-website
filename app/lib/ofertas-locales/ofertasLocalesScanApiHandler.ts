@@ -404,6 +404,20 @@ export async function handleOfertaLocalScanPost(
       if (itemsError) {
         throw new Error(itemsError.message);
       }
+
+      const persistedCropRows = itemRows.filter((row) => row.source_crop_url?.trim());
+      for (const row of persistedCropRows) {
+        console.info("[ofertas-locales crop] source_crop_url persisted", {
+          scanJobId,
+          sourcePage: row.source_page,
+          itemName: row.item_name,
+        });
+      }
+      console.info("[ofertas-locales crop] persistence summary", {
+        scanJobId,
+        totalItems: itemRows.length,
+        persistedCount: persistedCropRows.length,
+      });
     }
 
     const completedAt = new Date().toISOString();
