@@ -52,6 +52,9 @@ for (const file of diffFiles) {
 assert(!/\b(localStorage|sessionStorage)\b/.test(row), "no localStorage/sessionStorage count truth in AutosEngagementRow");
 assert(row.includes("LeonixLikeButton"), "AutosEngagementRow uses LeonixLikeButton");
 assert(row.includes("LeonixShareButton"), "AutosEngagementRow uses LeonixShareButton");
+assert(row.includes("onToggle={handleLikeToggle}"), "AutosEngagementRow wires LeonixLikeButton onToggle");
+assert(row.includes("setDisplayCount"), "AutosEngagementRow maintains live display count");
+assert(row.includes("Math.max(0"), "AutosEngagementRow clamps count at zero");
 assert(read("app/lib/clasificados/autos/autosClassifiedsListingService.ts").includes("user_liked_listings"), "like count uses user_liked_listings");
 
 if (failures.length > 0) {

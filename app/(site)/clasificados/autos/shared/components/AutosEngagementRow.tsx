@@ -1,7 +1,9 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
 import {
   autosEngagementListingKey,
   autosGlobalLikeRecorder,
@@ -48,12 +50,47 @@ export function AutosEngagementRow({
   className?: string;
 }) {
   const sourceId = listingSourceId?.trim() ?? "";
-  if (!sourceId || typeof likeCount !== "number" || !Number.isFinite(likeCount)) return null;
-
   const listing = autosGlobalListingFromRow({ id: sourceId, leonix_ad_id: leonixAdId });
   const engagementKey = autosEngagementListingKey({ id: sourceId, leonix_ad_id: leonixAdId });
   const copy = COPY[lang];
-  const safeCount = Math.max(0, Math.floor(likeCount));
+  const hasRealCount = typeof likeCount === "number" && Number.isFinite(likeCount);
+  const safeCount = hasRealCount ? Math.max(0, Math.floor(likeCount)) : 0;
+  const [displayCount, setDisplayCount] = useState(safeCount);
+  const [canUpdateDurableCount, setCanUpdateDurableCount] = useState(false);
+
+  useEffect(() => {
+    setDisplayCount(safeCount);
+  }, [safeCount, engagementKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const user = await getBrowserAuthUserForEngagement();
+      if (!cancelled) setCanUpdateDurableCount(Boolean(user));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [engagementKey]);
+
+  const handleLikeToggle = useCallback(
+    (isLiked: boolean) => {
+      const applyDelta = () => setDisplayCount((current) => Math.max(0, current + (isLiked ? 1 : -1)));
+      if (canUpdateDurableCount) {
+        applyDelta();
+        return;
+      }
+      void (async () => {
+        const user = await getBrowserAuthUserForEngagement();
+        if (!user) return;
+        setCanUpdateDurableCount(true);
+        applyDelta();
+      })();
+    },
+    [canUpdateDurableCount],
+  );
+
+  if (!sourceId || !hasRealCount) return null;
 
   return (
     <section
@@ -67,7 +104,7 @@ export function AutosEngagementRow({
             {copy.heading}
           </p>
           <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]" aria-live="polite">
-            {copy.countLabel(safeCount)}
+            {copy.countLabel(displayCount)}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -78,6 +115,7 @@ export function AutosEngagementRow({
             category="autos"
             persistEngagement={Boolean(engagementKey)}
             recordLikeEvent={listing ? autosGlobalLikeRecorder(listing) : undefined}
+            onToggle={handleLikeToggle}
           />
           <LeonixShareButton
             listingId={engagementKey}

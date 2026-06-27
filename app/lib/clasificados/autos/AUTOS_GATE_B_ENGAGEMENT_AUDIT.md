@@ -32,6 +32,9 @@ Autos detail engagement uses `LeonixShareButton`, which opens the existing `CtaA
 ## Like Count Source
 Live Autos detail now fetches a durable like count from `user_liked_listings` using the same engagement keys used by the existing Autos cards: `leonix_ad_id` when present, and the internal Autos listing id. No localStorage, sessionStorage, hardcoded, random, or demo value is used as count truth.
 
+## Gate B2 Live Count Refresh
+`AutosEngagementRow` starts from the durable DB-backed count passed by live detail. It uses the existing `LeonixLikeButton` `onToggle` callback, which fires after the existing like/unlike write path succeeds, to adjust the visible count by +1 or -1 without changing the like system. The decrement path is clamped at 0. The row checks for an authenticated engagement user before adjusting the durable visible count, so anonymous session-only heart state does not inflate the DB-backed count.
+
 ## Negocios Result
 Autos Negocios receives `AutosEngagementRow` above the existing dealer Business Hub shell in `AutoDealerPreviewPage`. `DealerBusinessStack` internals and all contact CTAs remain unchanged.
 
@@ -59,6 +62,7 @@ Public/live detail passes the Autos listing source id, optional Leonix Ad ID, ti
 | Share opens approved share-with-apps/native share behavior | TRUE | `LeonixShareButton` opens the existing `CtaActionSheet` share flow. |
 | Like uses existing LeonixLikeButton | TRUE | `AutosEngagementRow` imports and renders `LeonixLikeButton`. |
 | Like count is real DB/event-backed | TRUE | `autosClassifiedsListingService` counts `user_liked_listings`. |
+| Like count refreshes after confirmed toggle | TRUE | `AutosEngagementRow` uses `LeonixLikeButton` `onToggle` and adjusts from the DB-backed starting count. |
 | Zero-like state is safe | TRUE | Count is clamped to non-negative and displays `0` when DB count is zero. |
 | No localStorage count truth added | TRUE | `AutosEngagementRow` does not use localStorage/sessionStorage for counts. |
 | No fake analytics added | TRUE | Existing Autos global like/share recorders are reused. |
