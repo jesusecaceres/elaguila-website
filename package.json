@@ -43,6 +43,7 @@
     "verify:coming-soon-email-alerts": "node scripts/verify-coming-soon-email-alerts.mjs",
     "verify:contact-location-global-sweep": "node scripts/verify-contact-location-global-sweep.mjs",
     "verify:leonix-admin-command-center-master-audit": "node scripts/verify-leonix-admin-command-center-master-audit.mjs",
+    "verify:leonix-admin-os-master-audit-02": "node scripts/verify-leonix-admin-os-master-audit-02.mjs",
     "verify:admin-dashboard-ceo-command-center": "node scripts/verify-admin-dashboard-ceo-command-center.mjs",
     "verify:admin-review-mobile-moderation-truth": "node scripts/verify-admin-review-mobile-moderation-truth.mjs",
     "verify:admin-ai-moderation-engine": "node scripts/verify-admin-ai-moderation-engine.mjs",
