@@ -127,6 +127,7 @@ export function AutosLiveVehicleClient({
     leonixAdId,
     lane,
   };
+  const publicUrl = typeof window !== "undefined" ? window.location.href : "";
 
   if (lane === "privado") {
     return (
@@ -146,6 +147,7 @@ export function AutosLiveVehicleClient({
                 editBackHref={undefined}
                 publicPlaybackOnly
                 publicAnalytics={publicAnalytics}
+                publicUrl={publicUrl}
               />
             </>
           )}
@@ -185,6 +187,7 @@ export function AutosLiveVehicleClient({
               editBackHref={undefined}
               publicPlaybackOnly
               publicAnalytics={publicAnalytics}
+              publicUrl={publicUrl}
             />
           </>
         )}

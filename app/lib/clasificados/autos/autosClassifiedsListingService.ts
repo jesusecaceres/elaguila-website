@@ -8,6 +8,7 @@ import { sortDealerInventoryPublicListings } from "@/app/lib/clasificados/autos/
 import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPublicSampleTypes";
 import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
+import { aggregateRawListingAnalyticsEvents } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
 import type {
   AutosClassifiedsLane,
   AutosClassifiedsLang,
@@ -517,6 +518,51 @@ export async function markAutosListingCancelledFromCheckout(listingId: string): 
   return updateAutosListingStatus(listingId, "draft", { stripe_checkout_session_id: null });
 }
 
+async function fetchAutosLiveListingAnalytics(row: AutosClassifiedsListingRow): Promise<AutoDealerListing["listingAnalytics"]> {
+  if (!isSupabaseAdminConfigured()) return undefined;
+  const supabase = getAdminSupabase();
+  const leonixAdId = row.leonix_ad_id?.trim() || "";
+  const analyticsKeys = Array.from(
+    new Set([leonixAdId, row.id, `autos_classifieds_listings:${row.id}`].filter(Boolean)),
+  );
+  const likedKeys = Array.from(new Set([leonixAdId, row.id].filter(Boolean)));
+
+  let events: Array<{ event_type: string; user_id?: string | null }> = [];
+  if (analyticsKeys.length > 0) {
+    const { data, error } = await supabase
+      .from("listing_analytics")
+      .select("event_type,user_id")
+      .in("listing_id", analyticsKeys);
+    if (!error && Array.isArray(data)) {
+      events = data as Array<{ event_type: string; user_id?: string | null }>;
+    }
+  }
+
+  let likes: number | undefined;
+  if (likedKeys.length > 0) {
+    const { count, error } = await supabase
+      .from("user_liked_listings")
+      .select("listing_id", { count: "exact", head: true })
+      .in("listing_id", likedKeys);
+    if (!error && typeof count === "number") likes = count;
+  }
+
+  const eventSnapshot = aggregateRawListingAnalyticsEvents(events);
+  const liveSnapshot: NonNullable<AutoDealerListing["listingAnalytics"]> = {
+    views: eventSnapshot.views,
+    saves: eventSnapshot.saves,
+    shares: eventSnapshot.shares,
+    contacts: eventSnapshot.contacts,
+  };
+  if (typeof eventSnapshot.uniqueViews === "number") liveSnapshot.uniqueViews = eventSnapshot.uniqueViews;
+  if (typeof eventSnapshot.whatsappClicks === "number") liveSnapshot.whatsappClicks = eventSnapshot.whatsappClicks;
+  if (typeof eventSnapshot.websiteClicks === "number") liveSnapshot.websiteClicks = eventSnapshot.websiteClicks;
+  if (typeof eventSnapshot.appointmentClicks === "number") liveSnapshot.appointmentClicks = eventSnapshot.appointmentClicks;
+  if (typeof eventSnapshot.profileClicks === "number") liveSnapshot.profileClicks = eventSnapshot.profileClicks;
+  if (typeof likes === "number") liveSnapshot.likes = likes;
+  return liveSnapshot;
+}
+
 /** Live bundle: active listing only, with dealer related cards when lane is negocios. */
 export async function getActiveLiveAutosBundle(
   id: string,
@@ -546,6 +592,7 @@ export async function getActiveLiveAutosBundle(
     ...row.listing_payload,
     autosLane: row.lane,
   });
+  normalized.listingAnalytics = await fetchAutosLiveListingAnalytics(row);
   if (row.lane === "negocios" && publicPool.length > 0) {
     normalized.relatedDealerListings = buildRelatedPublicListings(currentPublic, publicPool, lang, { limit: 4 });
     normalized.relatedDealerInventoryHasMore = publicPool.length > 4;

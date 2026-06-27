@@ -18,6 +18,7 @@ import { AutoGallery } from "@/app/clasificados/autos/negocios/components/AutoGa
 import { VehicleDescription } from "@/app/clasificados/autos/negocios/components/VehicleDescription";
 import { VehicleHighlights } from "@/app/clasificados/autos/negocios/components/VehicleHighlights";
 import { VehicleSpecsGrid } from "@/app/clasificados/autos/negocios/components/VehicleSpecsGrid";
+import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/AutosEngagementRow";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import { PrivadoContactStrip } from "./PrivadoContactStrip";
 import { PrivadoPreviewChrome } from "./PrivadoPreviewChrome";
@@ -38,11 +39,13 @@ export function AutoPrivadoPreviewPage({
   editBackHref,
   publicPlaybackOnly = false,
   publicAnalytics,
+  publicUrl,
 }: {
   data: AutoDealerListing;
   editBackHref?: string;
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
+  publicUrl?: string;
 }) {
   const { lang, t } = useAutosPrivadoPreviewCopy();
   const pt = t.preview.title;
@@ -190,6 +193,16 @@ export function AutoPrivadoPreviewPage({
           </div>
 
           <aside className="flex min-w-0 flex-col gap-4 sm:gap-6 max-lg:order-4 lg:order-none lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start">
+            {publicPlaybackOnly && publicAnalytics?.listingSourceId ? (
+              <AutosEngagementRow
+                listingSourceId={publicAnalytics.listingSourceId}
+                leonixAdId={publicAnalytics.leonixAdId}
+                lang={lang}
+                listingTitle={h1}
+                listingUrl={publicUrl}
+                likeCount={liveMetrics?.likes}
+              />
+            ) : null}
             <PrivadoContactStrip
               data={display}
               lang={lang}

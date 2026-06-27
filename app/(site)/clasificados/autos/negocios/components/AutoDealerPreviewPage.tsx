@@ -27,6 +27,7 @@ import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
 import { VehicleHeroSpecsStrip } from "./VehicleHeroSpecsStrip";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/AutosEngagementRow";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import {
@@ -57,6 +58,7 @@ export function AutoDealerPreviewPage({
   editBackHref,
   publicPlaybackOnly = false,
   publicAnalytics,
+  publicUrl,
   relatedPreviewOnly = false,
   embeddedInShell = false,
   draftPreviewMode = false,
@@ -68,6 +70,7 @@ export function AutoDealerPreviewPage({
   /** Live published detail: gallery video uses durable URLs only. */
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
+  publicUrl?: string;
   /** Draft child preview: related cards are non-navigable placeholders. */
   relatedPreviewOnly?: boolean;
   /** Parent already rendered preview chrome — skip duplicate header/logo. */
@@ -240,13 +243,23 @@ export function AutoDealerPreviewPage({
 
           <aside
             id={AUTOS_PREVIEW_SECTION_IDS.businessHub}
-            className="autos-negocios-preview-dealer-aside flex min-w-0 scroll-mt-28 flex-col lg:sticky lg:top-24 lg:col-start-2 lg:self-start"
+            className="autos-negocios-preview-dealer-aside flex min-w-0 scroll-mt-28 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start"
             style={{
               gridRowStart: leftRowCount > 0 ? 1 : undefined,
               gridRowEnd: leftRowCount > 0 ? `span ${leftRowCount}` : undefined,
               order: orderAside,
             }}
           >
+            {publicPlaybackOnly && publicAnalytics?.listingSourceId ? (
+              <AutosEngagementRow
+                listingSourceId={publicAnalytics.listingSourceId}
+                leonixAdId={publicAnalytics.leonixAdId}
+                lang={lang}
+                listingTitle={h1}
+                listingUrl={publicUrl}
+                likeCount={analyticsMetrics?.likes}
+              />
+            ) : null}
             <div className={`${autosPreviewBusinessHubShellClass} lg:sticky lg:top-28`}>
               <DealerBusinessStack
                 data={data}

@@ -6,6 +6,8 @@ export type AutosListingAnalyticsSnapshot = {
   views: number;
   /** Distinct signed-in viewers when available; optional in draft shell. */
   uniqueViews?: number;
+  /** Durable current likes, sourced from `user_liked_listings` when present. */
+  likes?: number;
   saves: number;
   shares: number;
   /** Inquiry taps / messages — “Contactos” on surface. */
@@ -31,6 +33,7 @@ export function aggregateRawListingAnalyticsEvents(
   events: ReadonlyArray<{ event_type: string; user_id?: string | null }>,
 ): AutosListingAnalyticsSnapshot {
   let views = 0;
+  let likes = 0;
   let saves = 0;
   let shares = 0;
   let contacts = 0;
@@ -40,13 +43,16 @@ export function aggregateRawListingAnalyticsEvents(
     if (t === "listing_view") {
       views += 1;
       if (e.user_id) viewUserIds.add(e.user_id);
-    } else if (t === "listing_save") saves += 1;
+    } else if (t === "listing_like") likes += 1;
+    else if (t === "listing_unlike") likes = Math.max(0, likes - 1);
+    else if (t === "listing_save") saves += 1;
     else if (t === "listing_share") shares += 1;
     else if (t === "message_sent") contacts += 1;
   }
   return {
     views,
     uniqueViews: viewUserIds.size,
+    likes,
     saves,
     shares,
     contacts,
