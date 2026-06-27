@@ -108,13 +108,48 @@ export function VehicleSpecsGrid({
   if (visible.length === 0) return null;
 
   const { title, subtitle } = t.preview.specs;
+  const mobilePrimary = visible.slice(0, 6);
+  const mobileRest = visible.slice(6);
+  const moreLabel =
+    lang === "es"
+      ? `Ver más especificaciones (${mobileRest.length})`
+      : `View more specs (${mobileRest.length})`;
 
   return (
     <section className={CARD}>
       <p className={autosPreviewSectionEyebrowClass}>{lang === "es" ? "Detalles del vehículo" : "Vehicle details"}</p>
       <h2 className={`mt-1 ${autosPreviewSectionTitleClass}`}>{title}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
-      <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-4 grid min-w-0 gap-3 sm:hidden">
+        {mobilePrimary.map((r) => (
+          <SpecIconRow
+            key={r.key}
+            icon={r.icon}
+            label={r.label}
+            value={r.value}
+            valueClassName={r.key === "vin" ? "font-mono text-[13px] tracking-wide" : undefined}
+          />
+        ))}
+      </div>
+      {mobileRest.length > 0 ? (
+        <details className="mt-3 sm:hidden">
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFDF7] px-4 text-sm font-bold text-[color:var(--lx-text)] [&::-webkit-details-marker]:hidden">
+            {moreLabel}
+          </summary>
+          <div className="mt-3 grid min-w-0 gap-3">
+            {mobileRest.map((r) => (
+              <SpecIconRow
+                key={r.key}
+                icon={r.icon}
+                label={r.label}
+                value={r.value}
+                valueClassName={r.key === "vin" ? "font-mono text-[13px] tracking-wide" : undefined}
+              />
+            ))}
+          </div>
+        </details>
+      ) : null}
+      <div className="mt-4 hidden min-w-0 gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {visible.map((r) => (
           <SpecIconRow
             key={r.key}

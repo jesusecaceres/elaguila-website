@@ -22,7 +22,7 @@ import {
   autosPreviewPremiumCardClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
-const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-4`;
+const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-3 sm:p-4`;
 
 export function AutoGallery({
   data,
@@ -107,7 +107,7 @@ export function AutoGallery({
       </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
         {main ? (
-          <div className="relative min-w-0 flex-1 aspect-[16/10] max-h-[min(520px,56vh)] overflow-hidden rounded-[16px] lg:max-h-[min(580px,52vh)]">
+          <div className="relative min-w-0 flex-1 aspect-[16/9] max-h-[min(520px,48vh)] overflow-hidden rounded-[16px] sm:aspect-[16/10] lg:max-h-[min(580px,52vh)]">
             <button
               type="button"
               className="relative block h-full w-full cursor-zoom-in text-left"

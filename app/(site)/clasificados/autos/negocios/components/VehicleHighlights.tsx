@@ -42,13 +42,42 @@ export function VehicleHighlights({ data }: { data: AutoDealerListing }) {
   if (feats.length === 0) return null;
 
   const { title, subtitle } = t.preview.highlights;
+  const mobilePrimary = feats.slice(0, 6);
+  const mobileRest = feats.slice(6);
+  const moreLabel =
+    lang === "es"
+      ? `Ver todo el equipo (${mobileRest.length})`
+      : `View all equipment (${mobileRest.length})`;
 
   return (
     <section className={CARD}>
       <p className={autosPreviewSectionEyebrowClass}>{lang === "es" ? "Equipamiento" : "Equipment"}</p>
       <h2 className={`mt-1 ${autosPreviewSectionTitleClass}`}>{title}</h2>
       <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{subtitle}</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:hidden">
+        {mobilePrimary.map((f) => (
+          <div key={f} className={autosPreviewRectEquipmentClass}>
+            {iconForFeature(f)}
+            <span className="break-words text-sm font-semibold leading-snug text-[#1F241C]">{f}</span>
+          </div>
+        ))}
+      </div>
+      {mobileRest.length > 0 ? (
+        <details className="mt-3 sm:hidden">
+          <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFDF7] px-4 text-sm font-bold text-[color:var(--lx-text)] [&::-webkit-details-marker]:hidden">
+            {moreLabel}
+          </summary>
+          <div className="mt-3 grid gap-3">
+            {mobileRest.map((f) => (
+              <div key={f} className={autosPreviewRectEquipmentClass}>
+                {iconForFeature(f)}
+                <span className="break-words text-sm font-semibold leading-snug text-[#1F241C]">{f}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+      <div className="mt-4 hidden gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
         {feats.map((f) => (
           <div key={f} className={autosPreviewRectEquipmentClass}>
             {iconForFeature(f)}
