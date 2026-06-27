@@ -43,6 +43,13 @@ const BTN_FILTER =
 
 type ReviewFilter = "all" | OfertaLocalItemReviewStatus;
 
+export type OfertaLocalAiReviewGateState = {
+  activeSourceAssetId: string | null;
+  activeScanJobId: string | null;
+  totalItems: number;
+  needsReviewCount: number;
+};
+
 type Props = {
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
@@ -55,6 +62,7 @@ type Props = {
   scanPollingActive?: boolean;
   scanRefreshToken?: number;
   onFocusedItemChange?: (item: OfertaLocalItemReviewViewModel | null) => void;
+  onReviewGateChange?: (state: OfertaLocalAiReviewGateState) => void;
   onScopeChange?: (scope: {
     scanActiveForAsset: boolean;
     scanningAssetId: string | null;
@@ -112,6 +120,15 @@ function noActiveFileBody(lang: OfertasLocalesAppLang, reviewMode: "weekly" | "c
   return lang === "en"
     ? "Upload and scan a flyer to review extracted products."
     : "Sube y escanea un volante para revisar los productos extraídos.";
+}
+
+function isReviewTerminal(status: OfertaLocalItemReviewStatus): boolean {
+  return status === "approved" || status === "rejected";
+}
+
+function sourceRoleText(role: OfertaLocalSourceFileRole | null, lang: OfertasLocalesAppLang): string {
+  if (role === "coupon") return lang === "en" ? "Coupon" : "Cupón";
+  return lang === "en" ? "Main flyer" : "Volante principal";
 }
 
 function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
@@ -378,6 +395,7 @@ export function OfertasLocalesAiItemReviewPanel({
   scanPollingActive = false,
   scanRefreshToken = 0,
   onFocusedItemChange,
+  onReviewGateChange,
   onScopeChange,
   onAssetTabStatuses,
 }: Props) {
@@ -439,6 +457,12 @@ export function OfertasLocalesAiItemReviewPanel({
     setAutoRefreshing(false);
     setLoading(false);
     onFocusedItemChange?.(null);
+    onReviewGateChange?.({
+      activeSourceAssetId: null,
+      activeScanJobId: null,
+      totalItems: 0,
+      needsReviewCount: 0,
+    });
     onScopeChange?.({
       scanActiveForAsset: false,
       scanningAssetId: null,
@@ -446,7 +470,7 @@ export function OfertasLocalesAiItemReviewPanel({
       activeScanJobId: null,
     });
     onAssetTabStatuses?.({});
-  }, [onAssetTabStatuses, onFocusedItemChange, onScopeChange]);
+  }, [onAssetTabStatuses, onFocusedItemChange, onReviewGateChange, onScopeChange]);
 
   const mergeDraftsFromItems = useCallback(
     (nextItems: OfertaLocalItemReviewViewModel[], preserveSelectedDraft: boolean) => {
@@ -648,25 +672,30 @@ export function OfertasLocalesAiItemReviewPanel({
     [applyPatch, drafts, isCouponMode]
   );
 
-  const filteredItems = useMemo(() => {
+  const assetScopedItems = useMemo(() => {
     let list = items;
     if (selectedSourceAssetId) {
       list = list.filter((item) => item.sourceAssetId === selectedSourceAssetId);
     }
+    return list;
+  }, [items, selectedSourceAssetId]);
+
+  const { currentScanItems: allCurrentScanItems, previousScanItems } = useMemo(() => {
+    if (!isWorkspace || !selectedSourceAssetId) {
+      return { currentScanItems: assetScopedItems, previousScanItems: [] as OfertaLocalItemReviewViewModel[] };
+    }
+    return partitionItemsByActiveScanJob(assetScopedItems, activeScanJobId);
+  }, [activeScanJobId, assetScopedItems, isWorkspace, selectedSourceAssetId]);
+
+  const filteredItems = useMemo(() => {
+    let list = isWorkspace ? allCurrentScanItems : assetScopedItems;
     if (statusFilter !== "all") {
       list = list.filter((item) => item.reviewStatus === statusFilter);
     }
     return list;
-  }, [items, selectedSourceAssetId, statusFilter]);
+  }, [allCurrentScanItems, assetScopedItems, isWorkspace, statusFilter]);
 
-  const { currentScanItems, previousScanItems } = useMemo(() => {
-    if (!isWorkspace || !selectedSourceAssetId) {
-      return { currentScanItems: filteredItems, previousScanItems: [] as OfertaLocalItemReviewViewModel[] };
-    }
-    return partitionItemsByActiveScanJob(filteredItems, activeScanJobId);
-  }, [filteredItems, activeScanJobId, isWorkspace, selectedSourceAssetId]);
-
-  const displayItems = isWorkspace ? currentScanItems : filteredItems;
+  const displayItems = filteredItems;
 
   const itemsMissingCrop = displayItems.some(itemHasPendingCrop);
   const shouldPollCrops = itemsMissingCrop && (scanActiveForAsset || cropGraceActive);
@@ -804,9 +833,69 @@ export function OfertasLocalesAiItemReviewPanel({
     [displayItems, selectedItemId]
   );
 
+  const pageSummaries = useMemo(() => {
+    const pages = new Map<
+      number,
+      { page: number; total: number; approved: number; rejected: number; needsReview: number }
+    >();
+    const summaryItems = isWorkspace ? allCurrentScanItems : displayItems;
+    for (const item of summaryItems) {
+      const page = item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1;
+      const current = pages.get(page) ?? {
+        page,
+        total: 0,
+        approved: 0,
+        rejected: 0,
+        needsReview: 0,
+      };
+      current.total += 1;
+      if (item.reviewStatus === "approved") current.approved += 1;
+      if (item.reviewStatus === "rejected") current.rejected += 1;
+      if (!isReviewTerminal(item.reviewStatus)) current.needsReview += 1;
+      pages.set(page, current);
+    }
+    return [...pages.values()].sort((a, b) => a.page - b.page);
+  }, [allCurrentScanItems, displayItems, isWorkspace]);
+
+  const focusedPageItems = useMemo(() => {
+    if (!focusedItem?.sourcePage) return displayItems;
+    return displayItems.filter((item) => item.sourcePage === focusedItem.sourcePage);
+  }, [displayItems, focusedItem?.sourcePage]);
+
+  const focusedPageIndex = focusedItem
+    ? Math.max(0, focusedPageItems.findIndex((item) => item.id === focusedItem.id))
+    : 0;
+
+  const selectedAssetFileLabel = useMemo(() => {
+    if (!selectedSourceAssetId || !draft) return "";
+    const asset = [...draft.flyerAssets, ...draft.couponAssets].find(
+      (entry) => entry.id === selectedSourceAssetId && entry.status !== "removed"
+    );
+    return asset?.fileName || asset?.title || "";
+  }, [draft, selectedSourceAssetId]);
+
   useEffect(() => {
     onFocusedItemChange?.(focusedItem ?? null);
   }, [focusedItem, onFocusedItemChange]);
+
+  useEffect(() => {
+    if (!hasActiveSourceAsset) return;
+    const gateItems = isWorkspace ? allCurrentScanItems : displayItems;
+    onReviewGateChange?.({
+      activeSourceAssetId: selectedSourceAssetId ?? null,
+      activeScanJobId,
+      totalItems: gateItems.length,
+      needsReviewCount: gateItems.filter((item) => !isReviewTerminal(item.reviewStatus)).length,
+    });
+  }, [
+    activeScanJobId,
+    allCurrentScanItems,
+    displayItems,
+    hasActiveSourceAsset,
+    isWorkspace,
+    onReviewGateChange,
+    selectedSourceAssetId,
+  ]);
 
   useEffect(() => {
     if (!isWorkspace || !selectedItemId) return;
@@ -999,6 +1088,27 @@ export function OfertasLocalesAiItemReviewPanel({
 
         {isWorkspace && displayItems.length > 0 ? (
           <>
+            <div className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
+              <p className="font-semibold text-[#7A1E2C]">
+                {sourceRoleText(selectedAssetRole, lang)}
+                {selectedAssetFileLabel ? ` — ${selectedAssetFileLabel}` : ""}
+              </p>
+              {pageSummaries.length > 0 ? (
+                <div className="mt-2 space-y-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                    {lang === "en" ? "Pages found" : "Páginas encontradas"}
+                  </p>
+                  {pageSummaries.map((page) => (
+                    <p key={page.page} className="text-[10px] text-[#1E1814]/65">
+                      {lang === "en" ? "Page" : "Página"} {page.page}: {page.total}{" "}
+                      {lang === "en" ? "items" : "productos"} · {page.approved}{" "}
+                      {lang === "en" ? "approved" : "aprobados"} · {page.needsReview}{" "}
+                      {lang === "en" ? "need review" : "pendientes"}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             {activeScanJobId && previousScanItems.length > 0 ? (
               <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
                 {scanCopy.currentScan}
@@ -1006,7 +1116,13 @@ export function OfertasLocalesAiItemReviewPanel({
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2">
               <p className="text-xs font-semibold text-[#1E1814]">
-                {c.aiReviewProductPosition} {focusIndex + 1} {c.aiReviewProductOf} {displayItems.length}
+                {focusedItem?.sourcePage
+                  ? `${c.aiReviewProductPosition} ${focusedPageIndex + 1} ${c.aiReviewProductOf} ${
+                      focusedPageItems.length
+                    } ${lang === "en" ? "on page" : "en página"} ${focusedItem.sourcePage}`
+                  : `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${
+                      displayItems.length
+                    }`}
               </p>
               <div className="flex gap-1.5">
                 <button

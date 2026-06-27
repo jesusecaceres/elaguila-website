@@ -84,6 +84,7 @@ import {
   ofertaLocalDraftHasUnuploadedAssetMetadata,
 } from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
 import { OfertasLocalesWizardProgress } from "./OfertasLocalesWizardProgress";
+import type { OfertaLocalAiReviewGateState } from "./OfertasLocalesAiItemReviewPanel";
 
 const PAGE_BG = "bg-[#FFFCF7]";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm";
@@ -101,6 +102,8 @@ const CALLOUT =
   "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3 text-sm text-[#1E1814]/75";
 const HINT_BOX =
   "rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-xs text-amber-900";
+const ERROR_BOX =
+  "rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800";
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -181,6 +184,12 @@ export default function OfertasLocalesApplicationClient() {
   );
   const [scanPollingActive, setScanPollingActive] = useState(false);
   const [scanRefreshToken, setScanRefreshToken] = useState(0);
+  const [aiReviewGate, setAiReviewGate] = useState<OfertaLocalAiReviewGateState>({
+    activeSourceAssetId: null,
+    activeScanJobId: null,
+    totalItems: 0,
+    needsReviewCount: 0,
+  });
   const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
 
@@ -189,7 +198,7 @@ export default function OfertasLocalesApplicationClient() {
     (step === 5 || step === 7) &&
     draft.wantsAiSearchableSpecials &&
     Boolean(effectiveOfertaLocalId?.trim());
-  const collapseUploadForReview = showFullWidthReviewDesk && Boolean(lastScanJobId);
+  const collapseUploadForReview = false;
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -225,6 +234,10 @@ export default function OfertasLocalesApplicationClient() {
   const handleScanFinished = useCallback(() => {
     setScanPollingActive(false);
     setScanRefreshToken((token) => token + 1);
+  }, []);
+
+  const handleAiReviewGateChange = useCallback((state: OfertaLocalAiReviewGateState) => {
+    setAiReviewGate(state);
   }, []);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
@@ -315,16 +328,31 @@ export default function OfertasLocalesApplicationClient() {
     if (step === 5) {
       const hasPending =
         step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
-      if (hasPending) return;
+      const hasAiReviewPending = aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
+      if (hasPending || hasAiReviewPending) return;
     }
     setStep((s) => clampWizardStep(s + 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [aiReviewGate.needsReviewCount, aiReviewGate.totalItems, draft, step, step5PendingFileCount]);
+
+  const step5UploadBlocksContinue = useMemo(() => {
+    if (step !== 5) return false;
+    return step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
   }, [draft, step, step5PendingFileCount]);
 
   const step5BlocksContinue = useMemo(() => {
     if (step !== 5) return false;
-    return step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
-  }, [draft, step, step5PendingFileCount]);
+    const aiReviewBlocked = aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
+    return step5UploadBlocksContinue || aiReviewBlocked;
+  }, [aiReviewGate.needsReviewCount, aiReviewGate.totalItems, step, step5UploadBlocksContinue]);
+
+  const step5AiReviewBlocksContinue =
+    step === 5 && aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
+
+  const step5AiReviewBlockMessage =
+    lang === "en"
+      ? `Finish reviewing the AI suggestions before continuing. You still have ${aiReviewGate.needsReviewCount} item(s) that need review.`
+      : `Termina de revisar las sugerencias de AI antes de continuar. Todavía tienes ${aiReviewGate.needsReviewCount} producto(s) pendientes de revisión.`;
 
   const step5PendingBySectionRef = useRef<Map<string, number>>(new Map());
 
@@ -842,8 +870,11 @@ export default function OfertasLocalesApplicationClient() {
                 ) : null}
               </>
             )}
-            {step5BlocksContinue ? (
+            {step5UploadBlocksContinue ? (
               <p className={HINT_BOX}>{c.step5UploadBeforeContinueWarning}</p>
+            ) : null}
+            {step5AiReviewBlocksContinue ? (
+              <p className={ERROR_BOX}>{step5AiReviewBlockMessage}</p>
             ) : null}
             {draft.wantsAiSearchableSpecials ? (
               <>
@@ -1252,6 +1283,7 @@ export default function OfertasLocalesApplicationClient() {
               scanPollingActive={scanPollingActive}
               scanRefreshToken={scanRefreshToken}
               reviewMode={isCouponsLane ? "coupon" : "weekly"}
+              onReviewGateChange={handleAiReviewGateChange}
             />
           </div>
         </section>

@@ -130,6 +130,13 @@ export function OfertasLocalesAiScanPanel({
     return [...flyers, ...coupons];
   }, [readiness.eligibleAssets]);
 
+  const scanningAsset = sortedAssets.find((asset) => asset.assetId === scanningAssetId) ?? null;
+  const scanningAssetLabel = scanningAsset
+    ? `${assetKindLabel(scanningAsset.assetKind, lang)} — ${
+        scanningAsset.fileName || scanningAsset.assetId
+      }`
+    : "";
+
   const handleScanAsset = useCallback(
     async (asset: OfertaLocalScanEligibleAsset) => {
       if (!readiness.ready || scanning) return;
@@ -255,9 +262,22 @@ export function OfertasLocalesAiScanPanel({
         ) : null}
       </p>
 
+      {!scanning && sortedAssets.length === 0 ? (
+        <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
+          {lang === "en"
+            ? "Upload a PDF, JPG, or PNG flyer to activate AI scanning."
+            : "Sube un volante PDF, JPG o PNG para activar el escaneo AI."}
+        </p>
+      ) : null}
+
       {scanning && phaseCopy ? (
         <div className="rounded-lg border border-[#7A1E2C]/20 bg-white px-3 py-2 text-xs text-[#1E1814]/80">
-          <p className="font-semibold text-[#7A1E2C]">{phaseCopy.message}</p>
+          <p className="font-semibold text-[#7A1E2C]">
+            {scanningAssetLabel
+              ? `${lang === "en" ? "Scanning" : "Escaneando"} ${scanningAssetLabel}`
+              : phaseCopy.message}
+          </p>
+          {scanningAssetLabel ? <p className="mt-1 text-[#1E1814]/65">{phaseCopy.message}</p> : null}
           <p className="mt-1 text-[#1E1814]/55">
             {c.aiScanElapsed}: {formatScanElapsed(elapsedSeconds, lang)}
           </p>
@@ -284,7 +304,11 @@ export function OfertasLocalesAiScanPanel({
                   <div className="min-w-0">
                     <p className="truncate text-xs font-medium text-[#1E1814]">{fileLabel}</p>
                     <p className="text-[10px] text-[#1E1814]/55">
-                      {assetKindLabel(asset.assetKind, lang)} · {asset.mimeType.split("/").pop()?.toUpperCase()}
+                      {assetKindLabel(asset.assetKind, lang)} — {fileLabel}
+                    </p>
+                    <p className="text-[10px] font-medium text-emerald-800">
+                      {lang === "en" ? "Ready for AI scan" : "Listo para escaneo AI"} ·{" "}
+                      {asset.mimeType.split("/").pop()?.toUpperCase()}
                     </p>
                   </div>
                   <button

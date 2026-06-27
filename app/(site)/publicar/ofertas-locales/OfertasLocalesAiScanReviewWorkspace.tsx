@@ -6,7 +6,10 @@ import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import { OfertasLocalesProductClipPanel } from "./OfertasLocalesProductClipPanel";
-import { OfertasLocalesAiItemReviewPanel } from "./OfertasLocalesAiItemReviewPanel";
+import {
+  OfertasLocalesAiItemReviewPanel,
+  type OfertaLocalAiReviewGateState,
+} from "./OfertasLocalesAiItemReviewPanel";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
 type Props = {
@@ -17,6 +20,7 @@ type Props = {
   scanPollingActive?: boolean;
   scanRefreshToken?: number;
   reviewMode?: "weekly" | "coupon";
+  onReviewGateChange?: (state: OfertaLocalAiReviewGateState) => void;
 };
 
 type ReviewScope = {
@@ -34,6 +38,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
   scanPollingActive = false,
   scanRefreshToken = 0,
   reviewMode = "weekly",
+  onReviewGateChange,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const eligibleAssets = useMemo(() => getOfertaLocalScanEligibleAssets(draft), [draft]);
@@ -167,6 +172,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
             scanPollingActive={scanPollingActive}
             scanRefreshToken={scanRefreshToken}
             onFocusedItemChange={handleFocusedItemChange}
+            onReviewGateChange={onReviewGateChange}
             onScopeChange={handleScopeChange}
             onAssetTabStatuses={handleAssetStatuses}
           />
