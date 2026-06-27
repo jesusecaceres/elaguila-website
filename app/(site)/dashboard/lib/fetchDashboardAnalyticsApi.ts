@@ -5,10 +5,7 @@ import type { OwnerAnalyticsTotals } from "./dashboardAnalyticsSummary";
 import type { ListingViewRow } from "./ownerListingAnalyticsInsights";
 import type { ListingAnalyticsBucket } from "./listingAnalyticsAggregate";
 
-export type DashboardAnalyticsSummaryResponse = {
-  ok: true;
-  listing_count: number;
-  totals: {
+export type DashboardAnalyticsTotalsClient = {
     views: number;
     unique_views_estimate: number;
     likes: number;
@@ -29,8 +26,13 @@ export type DashboardAnalyticsSummaryResponse = {
     profile_views?: number;
     listing_opens?: number;
     cta_clicks_other?: number;
-  };
-  by_category: Record<string, unknown>;
+};
+
+export type DashboardAnalyticsSummaryResponse = {
+  ok: true;
+  listing_count: number;
+  totals: DashboardAnalyticsTotalsClient;
+  by_category: Record<string, DashboardAnalyticsTotalsClient>;
   by_listing: Record<
     string,
     {
@@ -62,6 +64,7 @@ export type DashboardAnalyticsSummaryResponse = {
 
 export type DashboardAnalyticsSummaryClientResult = {
   totals: OwnerAnalyticsTotals;
+  byCategoryTotals: Record<string, OwnerAnalyticsTotals>;
   listingCount: number;
   listingAnalyticsUnavailable: boolean;
   listingsQueryFailed: boolean;
@@ -72,6 +75,34 @@ export type DashboardAnalyticsSummaryClientResult = {
 
 function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
+}
+
+export function dashboardAnalyticsTotalsToOwnerTotals(
+  totals: DashboardAnalyticsTotalsClient,
+): OwnerAnalyticsTotals {
+  const ctaClicks =
+    (totals.phone_clicks ?? 0) +
+    (totals.whatsapp_clicks ?? 0) +
+    (totals.email_clicks ?? 0) +
+    (totals.message_clicks ?? 0) +
+    (totals.website_clicks ?? 0) +
+    (totals.directions_clicks ?? 0) +
+    (totals.contact_clicks ?? 0) +
+    (totals.cta_clicks_other ?? 0);
+
+  return {
+    listingViews: totals.views ?? 0,
+    uniqueListingViewsEstimate: totals.unique_views_estimate ?? 0,
+    saves: totals.saves ?? 0,
+    shares: totals.shares ?? 0,
+    messages: totals.messages ?? 0,
+    profileViews: totals.profile_views ?? 0,
+    listingOpens: totals.listing_opens ?? 0,
+    likes: totals.likes ?? 0,
+    ctaClicks,
+    leads: totals.leads ?? 0,
+    applications: totals.applications ?? 0,
+  };
 }
 
 export async function fetchDashboardAnalyticsSummary(
@@ -87,8 +118,15 @@ export async function fetchDashboardAnalyticsSummary(
     if (!res.ok) return null;
     const data = (await res.json()) as DashboardAnalyticsSummaryResponse;
     if (!data.ok) return null;
+    const byCategoryTotals = Object.fromEntries(
+      Object.entries(data.by_category ?? {}).map(([category, totals]) => [
+        category,
+        dashboardAnalyticsTotalsToOwnerTotals(totals),
+      ]),
+    );
     return {
       totals: data.legacy_totals,
+      byCategoryTotals,
       listingCount: data.listing_count,
       listingAnalyticsUnavailable: data.analytics_unavailable,
       listingsQueryFailed: data.listings_query_failed,

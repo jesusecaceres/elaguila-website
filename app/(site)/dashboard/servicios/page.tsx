@@ -28,6 +28,35 @@ type MergedRow = {
   metrics?: ServiciosListingEngagementMetricsClient;
 };
 
+function buildServiciosCategoryTotals(rows: MergedRow[]): OwnerAnalyticsTotals | null {
+  const metricRows = rows.filter((row) => row.source === "cloud" && row.metrics);
+  if (metricRows.length === 0) return null;
+  return metricRows.reduce<OwnerAnalyticsTotals>(
+    (totals, row) => {
+      const metrics = row.metrics!;
+      totals.listingViews += metrics.views;
+      totals.likes += metrics.likes;
+      totals.saves += metrics.saves;
+      totals.shares += metrics.shares;
+      totals.ctaClicks += metrics.ctaClicks;
+      return totals;
+    },
+    {
+      listingViews: 0,
+      uniqueListingViewsEstimate: 0,
+      saves: 0,
+      shares: 0,
+      messages: 0,
+      profileViews: 0,
+      listingOpens: 0,
+      likes: 0,
+      ctaClicks: 0,
+      leads: 0,
+      applications: 0,
+    },
+  );
+}
+
 function ServiciosListingMetricsPills({
   metrics,
   lang,
@@ -96,7 +125,7 @@ export default function DashboardServiciosPage() {
             sourceDev: "Archivo dev",
             sourceCloud: "Leonix (cuenta)",
             view: "Ver vitrina",
-            results: "Buscar en resultados",
+            results: "Ver en resultados públicos",
             edit: "Editar anuncio",
             publish: "Publicar otro",
             leadsTitle: "Solicitudes recientes",
@@ -130,7 +159,7 @@ export default function DashboardServiciosPage() {
             sourceDev: "Dev file",
             sourceCloud: "Leonix (account)",
             view: "View showcase",
-            results: "Search in results",
+            results: "View in public results",
             edit: "Edit listing",
             publish: "Publish another",
             leadsTitle: "Recent inquiries",
@@ -205,7 +234,6 @@ export default function DashboardServiciosPage() {
         if (engagementPayload?.ok) {
           serviciosMetricsBySlug = engagementPayload.serviciosBySlug ?? {};
           if (mounted) {
-            setEngagementTotals(engagementPayload.totals);
             setEngagementUnavailable(engagementPayload.listingAnalyticsUnavailable);
           }
         } else {
@@ -213,21 +241,7 @@ export default function DashboardServiciosPage() {
           const token = sess.session?.access_token ?? "";
           const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
           if (mounted) {
-            setEngagementTotals(
-              summary?.totals ?? {
-                listingViews: 0,
-                uniqueListingViewsEstimate: 0,
-                saves: 0,
-                shares: 0,
-                messages: 0,
-                profileViews: 0,
-                listingOpens: 0,
-                likes: 0,
-                ctaClicks: 0,
-                leads: 0,
-                applications: 0,
-              },
-            );
+            setEngagementTotals(summary?.byCategoryTotals.servicios ?? null);
             setEngagementUnavailable(summary?.listingAnalyticsUnavailable ?? true);
           }
         }
@@ -332,6 +346,9 @@ export default function DashboardServiciosPage() {
 
       if (!mounted) return;
       setRows(merged);
+      if (Object.keys(serviciosMetricsBySlug).length > 0) {
+        setEngagementTotals(buildServiciosCategoryTotals(merged));
+      }
       setLoading(false);
     }
     void run();

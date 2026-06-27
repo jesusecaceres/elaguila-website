@@ -12,6 +12,8 @@ import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsAp
 import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
 import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
 import { DashboardStatsCard } from "../components/DashboardStatsCard";
+import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
+import type { ListingMetrics } from "@/app/lib/clasificadosAnalytics";
 import type { DashboardRestaurantRow } from "../lib/dashboardInventory";
 import {
   categoryAdPlanDisplayLabel,
@@ -50,6 +52,23 @@ function fmt(ts: string, lang: Lang) {
   }
 }
 
+function ownerTotalsToListingMetrics(totals: OwnerAnalyticsTotals): ListingMetrics {
+  return {
+    views: totals.listingViews + totals.profileViews + totals.listingOpens,
+    uniqueViews: totals.uniqueListingViewsEstimate,
+    likes: totals.likes,
+    saves: totals.saves,
+    shares: totals.shares,
+    messages: totals.messages,
+    profileViews: totals.profileViews,
+    listingOpens: totals.listingOpens,
+    ctaClicks: totals.ctaClicks,
+    leads: totals.leads,
+    applications: totals.applications,
+    lastEngagement: totals.lastEngagement,
+  };
+}
+
 export default function DashboardRestaurantesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,7 +87,7 @@ export default function DashboardRestaurantesPage() {
             publishCta: "Publicar un restaurante",
             previewCta: "Vista previa (misma sesión)",
             linkPublic: "Ficha pública",
-            linkResults: "Buscar en resultados",
+            linkResults: "Ver en resultados públicos",
             linkForm: "Formulario",
             hydrate: "Editar restaurante",
             hydrateBusy: "Cargando borrador…",
@@ -97,7 +116,7 @@ export default function DashboardRestaurantesPage() {
             publishCta: "Publish a restaurant",
             previewCta: "Preview (this session)",
             linkPublic: "Public page",
-            linkResults: "Open in results",
+            linkResults: "View in public results",
             linkForm: "Form",
             hydrate: "Edit restaurant",
             hydrateBusy: "Loading draft…",
@@ -129,7 +148,7 @@ export default function DashboardRestaurantesPage() {
   const [accountRef, setAccountRef] = useState<string | null>(null);
   const [hydrateId, setHydrateId] = useState<string | null>(null);
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<ListingMetrics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
@@ -204,7 +223,8 @@ export default function DashboardRestaurantesPage() {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token ?? "";
       const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
-      setAnalytics(summary?.totals ?? null);
+      const categoryTotals = summary?.byCategoryTotals.restaurantes;
+      setAnalytics(categoryTotals ? ownerTotalsToListingMetrics(categoryTotals) : null);
     } catch (error) {
       console.warn('Failed to load analytics:', error);
       setAnalytics(null);
