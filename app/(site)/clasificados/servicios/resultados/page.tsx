@@ -164,12 +164,12 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
 
         <div className="min-w-0">
-            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2.5 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-3">
+            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-2.5">
             <ServiciosResultsFilters lang={lang} current={filterQuery} perPage={perPage} />
 
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-2.5">
+            <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-2">
               <p className="text-sm font-semibold text-[#142a42]">
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
@@ -244,7 +244,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {destacadosRows.length > 0 ? (
-              <div className="mb-4">
+              <div className="mb-3">
                 <ServiciosDestacadosSection
                   rows={destacadosRows}
                   lang={lang}
@@ -269,7 +269,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                       : "Todos los resultados actuales están destacados."}
                   </p>
                 ) : null}
-                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3">
+                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-2.5">
                   {pagedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
                       <ServiciosHorizontalResultCard row={r} lang={lang} density="compact" />

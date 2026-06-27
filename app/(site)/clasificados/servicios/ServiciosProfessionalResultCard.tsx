@@ -218,26 +218,26 @@ export function ServiciosProfessionalResultCard({
     ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : LX_IVORY_CARD;
   const isCompact = density === "compact";
-  const displayChips = isCompact && allChips.length > 4 ? [...allChips.slice(0, 4), `+${allChips.length - 4}`] : allChips;
+  const displayChips = isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips;
 
   const body = (
     <>
       <article
         className={`${cardSurface} ${
-          isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(10.5rem,auto)] sm:items-stretch" : ""
+          isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(9.25rem,auto)] sm:items-stretch" : ""
         }`.trim()}
       >
-        <div className={isCompact ? "flex gap-3 p-3 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3.5 sm:pb-2" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
+        <div className={isCompact ? "flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
           <ServiciosAdaptiveLogoPlate
             src={thumb}
             alt={profile.hero.logoAlt || profile.identity.businessName}
             fallbackMonogram={profile.identity.businessName}
             variant="card"
-            className={isCompact ? "!h-14 !w-14 sm:!h-16 sm:!w-16" : ""}
+            className={isCompact ? "!h-12 !w-12 sm:!h-14 sm:!w-14" : ""}
           />
 
           <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1">
               {promoted ? (
                 <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
                   {lang === "en" ? "Featured" : "Destacado"}
@@ -258,16 +258,16 @@ export function ServiciosProfessionalResultCard({
               <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
             </div>
 
-            <h3 className={isCompact ? "font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-base" : LX_COMPACT_CARD_TITLE}>
+            <h3 className={isCompact ? "font-serif text-[14px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-[15px]" : LX_COMPACT_CARD_TITLE}>
               {profile.identity.businessName}
             </h3>
 
             {category ? (
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-xs">{category}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{category}</p>
             ) : null}
 
             {location ? (
-              <p className="flex items-start gap-1.5 text-xs text-[#4A4A4A]">
+              <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
                 <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
                 <span className={isCompact ? "line-clamp-1" : "line-clamp-2"}>{location}</span>
               </p>
@@ -287,7 +287,7 @@ export function ServiciosProfessionalResultCard({
         </div>
 
         {displayChips.length > 0 ? (
-          <div className={isCompact ? "px-3 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3.5" : "px-4 pb-3 sm:px-5"}>
+          <div className={isCompact ? "px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "px-4 pb-3 sm:px-5"}>
             <ServiciosServiceChipsRow
               chips={displayChips}
               lang={lang}
@@ -297,25 +297,25 @@ export function ServiciosProfessionalResultCard({
           </div>
         ) : null}
 
-        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-3 py-2.5 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3.5" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
-          <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[10.5rem] sm:flex-col sm:items-stretch sm:justify-center" : "flex flex-col gap-2"}>
+        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
+          <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5" : "flex flex-col gap-2"}>
             {tel ? (
               <button
                 type="button"
                 onClick={onCallClick}
-                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
+                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
                 style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
               >
                 <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {primaryLabel}
               </button>
             ) : null}
-            <div className={isCompact ? "flex flex-wrap gap-2 sm:flex-col" : "flex flex-wrap gap-2"}>
+            <div className={isCompact ? "flex flex-wrap gap-2 sm:flex-col sm:gap-1.5" : "flex flex-wrap gap-2"}>
               {waHrefNormalized ? (
                 <button
                   type="button"
                   onClick={onWhatsAppClick}
-                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
+                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
                   style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
                 >
                   <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -323,7 +323,7 @@ export function ServiciosProfessionalResultCard({
                 </button>
               ) : null}
               {showDirections ? (
-                <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}>
+                <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}>
                   <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   {lang === "en" ? "Directions" : "Cómo llegar"}
                 </button>
@@ -332,7 +332,7 @@ export function ServiciosProfessionalResultCard({
             <Link
               href={href}
               onClick={() => trackServiciosResultCardClick(row)}
-              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
+              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
             >
               {secondaryLabel}
             </Link>

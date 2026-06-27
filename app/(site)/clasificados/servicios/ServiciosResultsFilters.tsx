@@ -135,7 +135,7 @@ function ServiciosResultsFiltersCompact({
   }, [drawerOpen]);
 
   const inputClass =
-    "min-h-[40px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+    "min-h-[38px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-1.5 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
 
   return (
     <div className="mb-3 border-b border-[#dcd3c7]/80 pb-3">
@@ -144,12 +144,12 @@ function ServiciosResultsFiltersCompact({
         method="get"
         action={RESULTS_PATH}
         aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
-        className="space-y-2.5"
+        className="space-y-2"
         onSubmitCapture={onSubmitCapture}
       >
         <input type="hidden" name="lang" value={lang} />
 
-        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.72fr)_auto_auto] lg:items-end">
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,0.64fr)_auto_auto] lg:items-end">
           <label className="block min-w-0">
             <span className="text-xs font-semibold text-[#3d4f62]">
               {lang === "en" ? "Keywords" : "Tipo de servicio"}
@@ -292,7 +292,7 @@ function ServiciosResultsFiltersCompact({
               <ServiciosResultsAdvancedFilterFields lang={lang} current={current} />
             </div>
 
-            <div className="shrink-0 space-y-3 border-t border-[#ebe4d9] bg-[#FFFCF7]/98 px-4 py-3 backdrop-blur-md">
+            <div className="shrink-0 space-y-2 border-t border-[#ebe4d9] bg-[#FFFCF7]/98 px-4 py-3 backdrop-blur-md">
               <button
                 type="submit"
                 onClick={() => setDrawerOpen(false)}
@@ -300,12 +300,12 @@ function ServiciosResultsFiltersCompact({
               >
                 {lang === "en" ? "View results" : "Ver resultados"}
               </button>
-              <p className="text-[11px] leading-relaxed text-neutral-500">
+              <p className="text-[11px] leading-snug text-neutral-500">
                 {lang === "en"
-                  ? "Provider type is inferred from published address/website fields. Keyword search includes services, trust lines, reviews, quick facts, and about. Submitting can save optional hints on this device — see Legal."
-                  : "El tipo de proveedor se infiere de dirección o web publicadas. La búsqueda incluye servicios, confianza, reseñas, datos rápidos y «Acerca». Al enviar se pueden guardar sugerencias opcionales en este dispositivo — ver Legal."}
+                  ? "Search uses public listing fields. Optional hints can be saved only on this device."
+                  : "La búsqueda usa datos públicos del anuncio. Las sugerencias opcionales se guardan solo en este dispositivo."}
               </p>
-              <p className="text-[11px] leading-relaxed text-neutral-500">
+              <p className="text-[11px] leading-snug text-neutral-500">
                 <Link href={`/legal?lang=${lang}`} className="font-semibold text-[#3B66AD] underline-offset-2 hover:underline">
                   {lang === "en" ? "Privacy & optional local preferences" : "Privacidad y preferencias locales opcionales"}
                 </Link>

@@ -29,15 +29,15 @@ function itemClassForMode(mode: ServiciosDestacadoDisplayMode): string {
 
 function DestacadosHeader({ id, lang }: { id: string; lang: "es" | "en" }) {
   return (
-    <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+    <div className="mb-2.5 flex flex-col gap-1.5 sm:mb-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
       <div className="min-w-0 max-w-2xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7a6220]">
           {lang === "en" ? "Sponsored visibility" : "Visibilidad patrocinada"}
         </p>
-        <h2 id={id} className="mt-1 text-lg font-bold tracking-tight text-[#142a42] sm:text-xl">
+        <h2 id={id} className="mt-1 text-lg font-bold tracking-tight text-[#142a42]">
           {lang === "en" ? "Featured services" : "Servicios destacados"}
         </h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-[#4a5d6e]">
+        <p className="mt-0.5 text-[12px] leading-snug text-[#4a5d6e] sm:text-[13px]">
           {lang === "en"
             ? "Leonix advertisers with highlighted visibility."
             : "Negocios Leonix con visibilidad destacada."}
@@ -52,7 +52,7 @@ function DestacadosEmptyState({ lang }: { lang: "es" | "en" }) {
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
 
   return (
-    <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-[#C9A84A]/55 bg-gradient-to-b from-[#FBF6EC] to-[#F6EFDF] px-4 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
+    <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-[#C9A84A]/55 bg-gradient-to-b from-[#FBF6EC] to-[#F6EFDF] px-3.5 py-4 text-center sm:flex-row sm:justify-between sm:text-left">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#7a6220] shadow-[0_6px_18px_-10px_rgba(122,98,32,0.6)] ring-1 ring-[#C9A84A]/40">
         <TbAward className="h-5 w-5" aria-hidden />
       </span>

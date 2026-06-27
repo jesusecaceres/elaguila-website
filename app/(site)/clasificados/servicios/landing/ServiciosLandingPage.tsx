@@ -72,9 +72,9 @@ export function ServiciosLandingPage({
       searchAction={resultsHref}
       searchChips={quickChips}
     >
-      <div className="space-y-5 sm:space-y-6">
-        <div className="flex flex-col gap-5 sm:gap-6">
-          <div className={`${sectionShell} p-3.5 sm:p-4`}>
+      <div className="space-y-4 sm:space-y-5">
+        <div className="flex flex-col gap-4 sm:gap-5">
+          <div className={`${sectionShell} p-3 sm:p-3.5`}>
             <ServiciosDestacadosSection
               lang={lang}
               rows={destacadosRows}
@@ -83,11 +83,11 @@ export function ServiciosLandingPage({
             />
           </div>
 
-          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3.5 sm:p-4`}>
+          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3 sm:p-3.5`}>
             <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
           </div>
 
-          <div className={`${sectionShell} p-3.5 sm:p-4`}>
+          <div className={`${sectionShell} p-3 sm:p-3.5`}>
             <RecentServicesSection lang={lang} rows={recientesRows} />
           </div>
         </div>
