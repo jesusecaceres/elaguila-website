@@ -24,6 +24,7 @@
     "verify:admin:listings-actions-column": "node scripts/verify-admin-listings-actions-column.mjs",
     "verify:admin-dashboard-cleanup": "node scripts/verify-admin-dashboard-cleanup.mjs",
     "verify:admin-dashboard-mobile-command-center": "node scripts/verify-admin-dashboard-mobile-command-center.mjs",
+    "verify:admin-dashboard-mobile-command-center-01": "node scripts/verify-admin-dashboard-mobile-command-center-01.mjs",
     "verify:admin-review-cta-actions": "node scripts/verify-admin-review-cta-actions.mjs",
     "verify:admin-reports-complaints-supabase": "node scripts/verify-admin-reports-complaints-supabase.mjs",
     "verify:admin-classifieds-queue-polish": "node scripts/verify-admin-classifieds-queue-polish.mjs",
