@@ -5,7 +5,7 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** REPO-TRANSLATION-COMPLETE-AUDIT1
+**Last verified:** MAGAZINE-VISUAL-TRANSLATION-PROOF1
 
 ---
 
@@ -57,6 +57,9 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - Original June 2026 **PDF** remains Spanish visual edition.
 - **FlipHTML5** flipbook remains Spanish visual edition.
 - Do **not** claim full PDF or flipbook translation until separate asset gates.
+- `MAGAZINE-VISUAL-TRANSLATION-PROOF1` added architecture guardrails in `docs/magazine-visual-translation-proof.md`.
+- Static proof types/examples live in `app/lib/magazine/magazineVisualTranslationManifest.ts` and are not imported into runtime UI.
+- Actual translated visual assets require future production, storage, source-hash validation, and QA approval before serving.
 
 ---
 
@@ -75,6 +78,16 @@ These content types are **user-generated or database-sourced**. They must **not*
 ### Duplicate table warning
 
 **Do not** introduce parallel translation tables (`ad_translations`, `listing_translations`, etc.). The architecture lock standardizes on **`translation_records`** with content-type + source hash keys.
+
+### Magazine translation architecture lock
+
+Digital magazine translation uses three separate systems:
+
+1. **Text Translation Memory** — use existing `translation_records` first for HTML companion copy, article summaries, recurring sections, recipes, advertiser descriptions, CTA phrases, and reusable business blurbs.
+2. **Magazine Visual Asset Cache** — separate from text memory; future cache keys should combine `sourcePdfHash`, `pageHash`, or `adAssetHash` with target language, provider, source version, and QA status.
+3. **Reusable Ad Asset Library** — separate from both text memory and visual page cache; stable advertiser ads should be translated and QA-approved once, then reused across issues when the source hash has not changed.
+
+The original PDF and FlipHTML5 magazine remain the Spanish visual edition. The HTML companion is an explanation and summary layer, not a claim that the visual magazine has been translated.
 
 ### Language mapping (Google targets only)
 
@@ -118,6 +131,9 @@ See `docs/translation-env-setup.md`.
 | Gate | Purpose |
 |------|---------|
 | `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
+| `MAGAZINE-ASSET-CACHE1` | Real asset registry/cache integration for QA-approved translated visual assets |
+| `MAGAZINE-AD-ASSET-LIBRARY1` | Reusable advertiser ad asset library with source-hash reuse rules |
+| `MAG-COMPANION-BODY-LANG1` | Stronger magazine companion body copy across active public languages |
 | `TRANSLATE-AD-ALL-LANG-SMOKE1` | `/api/translate-ad` all 13 active langs + cache repeat |
 | `DYNAMIC-CONTENT-TRANSLATION-CACHE1` | End-to-end cache-first dynamic content |
 | `ADS-HTML1` | Public ad page HTML render + translation cache |
@@ -131,6 +147,7 @@ See `docs/translation-env-setup.md`.
 ## 6. References
 
 - `docs/leonix-translation-architecture.md`
+- `docs/magazine-visual-translation-proof.md`
 - `docs/translation-env-setup.md`
 - `docs/translation-safety-guardrails.md`
 - `docs/translate-ad-gates.md`
