@@ -720,5 +720,5 @@ Key files inspected:
 - Website Control architecture included: TRUE
 - User Support View architecture included: TRUE
 - verify script added: TRUE
-- verify passed: PENDING
-- build passed: PENDING
+- verify passed: TRUE
+- build passed: FALSE
