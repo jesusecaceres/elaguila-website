@@ -35,6 +35,7 @@ import {
   clearServiciosDraftStorageAndIdb,
   saveClasificadosServiciosApplicationResolved,
 } from "../lib/clasificadosServiciosStorage";
+import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import {
   getServiciosApplicationStepLabels,
   getServiciosApplicationStepShortLabels,
@@ -118,6 +119,12 @@ import {
   SERVICIOS_CERTIFICATION_LABEL_MAX,
   SERVICIOS_CREDENTIAL_STRING_MAX,
 } from "@/app/servicios/lib/serviciosCredentialsCatalog";
+import { primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import {
+  serviciosPublishedToApplicationDraft,
+  type ServiciosEditIdentity,
+  type ServiciosPublishedListingHydrationSource,
+} from "../lib/serviciosPublishedToApplicationDraft";
 
 const DEBOUNCE_MS = 500;
 const GALLERY_MAX = 24;
@@ -129,6 +136,12 @@ const inputWarn = "border-amber-400 bg-amber-50/50";
 const sectionCard =
   "rounded-2xl border border-neutral-200/90 bg-white p-5 shadow-sm sm:p-6";
 const labelClass = "text-sm font-semibold text-neutral-800";
+
+type ServiciosEditHydrationState =
+  | { status: "idle"; message?: never }
+  | { status: "loading"; message?: never }
+  | { status: "ready"; message?: never }
+  | { status: "error"; message: string };
 
 function toggleId(list: string[], id: string, on: boolean): string[] {
   const set = new Set(list);
@@ -187,11 +200,19 @@ export function ClasificadosServiciosApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const editParam = searchParams?.get("edit") ?? "";
+  const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const editRequested = editParam === "1" && Boolean(editListingSlug || editListingId || editLeonixAdId);
   const copy = getClasificadosServiciosCopy(lang);
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
   const [state, setState] = useState<ClasificadosServiciosApplicationState>(() => createDefaultClasificadosServiciosState());
+  const [editHydration, setEditHydration] = useState<ServiciosEditHydrationState>({ status: editRequested ? "loading" : "idle" });
+  const [editIdentity, setEditIdentity] = useState<ServiciosEditIdentity | null>(null);
+  const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
 
   const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
   const stepShortLabels = useMemo(() => getServiciosApplicationStepShortLabels(lang), [lang]);
@@ -234,9 +255,72 @@ export function ClasificadosServiciosApplication() {
 
   useLayoutEffect(() => {
     clearLeonixReturningToEditSessionFlag();
+    if (editRequested) {
+      setHydrated(false);
+      return;
+    }
+    primeServiciosExistingPublicSlug(null);
+    setEditIdentity(null);
+    setNewFieldsMissing([]);
+    setEditHydration({ status: "idle" });
     setState(bootstrapServiciosApplicationStateSync());
     setHydrated(true);
-  }, []);
+  }, [editRequested]);
+
+  useEffect(() => {
+    if (!editRequested) return;
+    let cancelled = false;
+    setHydrated(false);
+    setEditHydration({ status: "loading" });
+
+    void (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        const accessToken = sess.session?.access_token ?? null;
+        if (!accessToken) {
+          throw new Error(lang === "en" ? "Log in to edit this published listing." : "Inicia sesión para editar este anuncio publicado.");
+        }
+
+        const q = new URLSearchParams();
+        if (editListingId) q.set("id", editListingId);
+        if (editListingSlug) q.set("slug", editListingSlug);
+        if (editLeonixAdId) q.set("leonixAdId", editLeonixAdId);
+        const res = await fetch(`/api/clasificados/servicios/my-listing?${q.toString()}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        });
+        const data = (await res.json()) as { ok?: boolean; listing?: ServiciosPublishedListingHydrationSource; error?: string };
+        if (!res.ok || !data.ok || !data.listing) {
+          throw new Error(
+            lang === "en"
+              ? "We could not load this listing for editing. Check that it belongs to your account."
+              : "No pudimos cargar este anuncio para editarlo. Confirma que pertenece a tu cuenta.",
+          );
+        }
+
+        const hydratedListing = serviciosPublishedToApplicationDraft(data.listing);
+        if (cancelled) return;
+        setState(hydratedListing.state);
+        setEditIdentity(hydratedListing.editIdentity);
+        setNewFieldsMissing(hydratedListing.newFieldsMissing);
+        primeServiciosExistingPublicSlug(hydratedListing.editIdentity.slug);
+        await saveClasificadosServiciosApplicationResolved(hydratedListing.state);
+        setEditHydration({ status: "ready" });
+        setHydrated(true);
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : lang === "en" ? "Listing edit load failed." : "No se pudo cargar el anuncio.";
+        setEditHydration({ status: "error", message });
+        setState(createDefaultClasificadosServiciosState());
+        setHydrated(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editRequested, editListingId, editListingSlug, editLeonixAdId, lang]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -347,6 +431,10 @@ export function ClasificadosServiciosApplication() {
     if (!window.confirm(copy.deleteConfirm)) return;
     clearServiciosPreviewReturnHandoff();
     await clearServiciosDraftStorageAndIdb();
+    primeServiciosExistingPublicSlug(null);
+    setEditIdentity(null);
+    setNewFieldsMissing([]);
+    setEditHydration({ status: "idle" });
     setState(createDefaultClasificadosServiciosState());
     setPreviewGateMissing(null);
   }, [copy.deleteConfirm]);
@@ -641,6 +729,54 @@ export function ClasificadosServiciosApplication() {
           >
             {copy.linkBack}
           </Link>
+
+          {editHydration.status === "loading" ? (
+            <div className="mt-4 rounded-xl border border-[#D8C79A]/70 bg-[#FBF7EF] px-3 py-2 text-sm font-semibold text-[#5D4A25]" role="status">
+              {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio guardado para editar…"}
+            </div>
+          ) : null}
+          {editHydration.status === "error" ? (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">
+              <p className="font-bold">{lang === "en" ? "Edit mode could not load" : "No se pudo cargar el modo edición"}</p>
+              <p className="mt-1">{editHydration.message}</p>
+            </div>
+          ) : null}
+          {editIdentity ? (
+            <div className="mt-4 rounded-xl border border-[#C9782F]/35 bg-[#FFF4E8] px-3 py-2 text-sm text-[#5D3418]" data-servicios-edit-mode="published">
+              <p className="font-bold">{lang === "en" ? "Editing published listing" : "Editando anuncio publicado"}</p>
+              <p className="mt-1 text-xs leading-relaxed">
+                {editIdentity.leonixAdId ? (
+                  <>
+                    <span className="font-semibold">{lang === "en" ? "Leonix Ad ID" : "ID Leonix"}:</span>{" "}
+                    <span className="font-mono">{editIdentity.leonixAdId}</span>
+                    <span> · </span>
+                  </>
+                ) : null}
+                <span className="font-semibold">Status:</span> {editIdentity.status}
+                {editIdentity.slug ? (
+                  <>
+                    <span> · </span>
+                    <span className="font-semibold">Slug:</span> <span className="font-mono">{editIdentity.slug}</span>
+                  </>
+                ) : null}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed">
+                {lang === "en"
+                  ? "Changes will update this listing after review/publish."
+                  : "Los cambios actualizarán este anuncio después de revisión/publicación."}
+              </p>
+            </div>
+          ) : null}
+          {newFieldsMissing.length > 0 ? (
+            <div className="mt-3 rounded-xl border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-950" data-servicios-new-fields-available="1">
+              <p className="font-bold">{lang === "en" ? "New fields available" : "Nuevos campos disponibles"}</p>
+              <p className="mt-1 text-xs leading-relaxed">
+                {lang === "en"
+                  ? "Review new fields before updating your public ad."
+                  : "Revisa los nuevos campos antes de actualizar tu anuncio público."}
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex justify-end">
             <Link

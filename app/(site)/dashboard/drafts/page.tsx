@@ -65,7 +65,7 @@ export default function DraftsPage() {
             ctaPublish: "Publicar anuncio",
             ref: "Ref.",
             open: "Abrir borrador",
-            edit: "Seguir editando",
+            edit: "Editar anuncio",
             copyId: "Copiar ID",
             del: "Archivar",
             pub: "Publicar",
@@ -73,7 +73,7 @@ export default function DraftsPage() {
           }
         : {
             title: "Drafts",
-            subtitle: "Continue editing, publish, or clean up drafts.",
+            subtitle: "Edit, publish, or clean up drafts.",
             searchPh: "Search…",
             loading: "Loading…",
             emptyTitle: "No drafts yet",
@@ -82,7 +82,7 @@ export default function DraftsPage() {
             ctaPublish: "Post an ad",
             ref: "Ref.",
             open: "Open draft",
-            edit: "Continue editing",
+            edit: "Edit listing",
             copyId: "Copy ID",
             del: "Archive",
             pub: "Publish",

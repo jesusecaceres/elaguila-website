@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     listings: rows.map((r) => ({
+      id: r.id ?? null,
       slug: r.slug,
       business_name: r.business_name,
       city: r.city,

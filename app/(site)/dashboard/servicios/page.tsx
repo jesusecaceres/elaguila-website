@@ -17,12 +17,14 @@ type Lang = "es" | "en";
 type Plan = "free" | "pro";
 
 type MergedRow = {
+  id?: string | null;
   slug: string;
   businessName: string;
   city: string;
   publishedAt: string;
   source: "browser" | "dev_server" | "cloud";
   listingStatus?: string | null;
+  leonixAdId?: string | null;
   metrics?: ServiciosListingEngagementMetricsClient;
 };
 
@@ -95,7 +97,7 @@ export default function DashboardServiciosPage() {
             sourceCloud: "Leonix (cuenta)",
             view: "Ver vitrina",
             results: "Buscar en resultados",
-            edit: "Seguir editando",
+            edit: "Editar anuncio",
             publish: "Publicar otro",
             leadsTitle: "Solicitudes recientes",
             leadsEmpty: "Aún no hay solicitudes registradas para tu cuenta.",
@@ -129,7 +131,7 @@ export default function DashboardServiciosPage() {
             sourceCloud: "Leonix (account)",
             view: "View showcase",
             results: "Search in results",
-            edit: "Continue editing",
+            edit: "Edit listing",
             publish: "Publish another",
             leadsTitle: "Recent inquiries",
             leadsEmpty: "No inquiries recorded for your account yet.",
@@ -163,6 +165,13 @@ export default function DashboardServiciosPage() {
   const [manageBusy, setManageBusy] = useState<string | null>(null);
   const [engagementTotals, setEngagementTotals] = useState<OwnerAnalyticsTotals | null>(null);
   const [engagementUnavailable, setEngagementUnavailable] = useState(false);
+
+  function serviciosEditHref(row: MergedRow): string {
+    const params = new URLSearchParams({ lang, edit: "1", source: "dashboard", listingSlug: row.slug });
+    if (row.id?.trim()) params.set("listingId", row.id.trim());
+    if (row.leonixAdId?.trim()) params.set("leonixAdId", row.leonixAdId.trim());
+    return `/clasificados/publicar/servicios?${params.toString()}`;
+  }
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -239,22 +248,26 @@ export default function DashboardServiciosPage() {
           const j = (await res.json()) as {
             ok?: boolean;
             listings?: {
+              id?: string | null;
               slug: string;
               business_name: string;
               city: string;
               published_at: string;
               listing_status?: string | null;
+              leonix_ad_id?: string | null;
             }[];
           };
           if (j.ok && Array.isArray(j.listings)) {
             for (const r of j.listings) {
               bySlug.set(r.slug, {
+                id: r.id ?? null,
                 slug: r.slug,
                 businessName: r.business_name,
                 city: r.city,
                 publishedAt: r.published_at,
                 source: "cloud",
                 listingStatus: r.listing_status ?? null,
+                leonixAdId: r.leonix_ad_id ?? null,
                 metrics: serviciosMetricsBySlug[r.slug],
               });
             }
@@ -450,7 +463,7 @@ export default function DashboardServiciosPage() {
                       <Link href={`/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
                         {t.results}
                       </Link>
-                      <Link href={`/clasificados/publicar/servicios?${q}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
+                      <Link href={serviciosEditHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
                         {t.edit}
                       </Link>
                       {r.source === "cloud" && r.listingStatus === "published" ? (
@@ -515,10 +528,7 @@ export default function DashboardServiciosPage() {
                           >
                             {t.results}
                           </Link>
-                          <Link
-                            href={`/clasificados/publicar/servicios?${q}`}
-                            className="text-xs font-semibold text-[#7A7164] underline"
-                          >
+                          <Link href={serviciosEditHref(r)} className="text-xs font-semibold text-[#7A7164] underline">
                             {t.edit}
                           </Link>
                         </div>

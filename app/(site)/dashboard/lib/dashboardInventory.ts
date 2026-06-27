@@ -3,6 +3,10 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import {
+  buildServiciosDashboardActionContract,
+  type CategoryDashboardActionContract,
+} from "./categoryDashboardActionContract";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -36,6 +40,7 @@ export type DashboardInventoryItem = {
   detailPairs?: unknown;
   /** e.g. `{ listing_json, lane }` for Viajes affiliate detection */
   planRaw?: Record<string, unknown> | null;
+  actionContract?: CategoryDashboardActionContract;
   source:
     | "listings"
     | "restaurantes_public_listings"
@@ -101,6 +106,7 @@ export type DashboardAutosClassifiedsRow = {
 
 /** Row shape returned by `GET /api/clasificados/servicios/my-listings` (cloud owner inventory only). */
 export type ServiciosMyListingApiRow = {
+  id?: string | null;
   slug: string;
   business_name: string;
   city: string | null;
@@ -226,27 +232,37 @@ export function buildAutosClassifiedsInventoryItems(
 export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], lang: "es" | "en"): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
   const L = lang as Lang;
-  return rows.map((row) => ({
-    id: `servicios:${row.slug}`,
-    category: "servicios",
-    title: row.business_name?.trim() || row.slug,
-    status: row.listing_status,
-    publicHref: `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
-    editHref: `/dashboard/servicios?${q}`,
-    previewHref: appendLangToPath("/clasificados/publicar/servicios/preview", L),
-    resultsHref: `/clasificados/servicios/resultados?${q}`,
-    analyticsHref: `/dashboard/analytics?${q}`,
-    publishedAt: row.published_at,
-    updatedAt: null,
-    image: null,
-    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
-    slug: row.slug,
-    packageTier: null,
-    promoted: false,
-    verified: row.leonix_verified,
-    draftListingId: null,
-    source: "servicios_public_listings",
-  }));
+  return rows.map((row) => {
+    const actionContract = buildServiciosDashboardActionContract({
+      id: row.id,
+      slug: row.slug,
+      leonixAdId: row.leonix_ad_id,
+      status: row.listing_status,
+      lang: L,
+    });
+    return {
+      id: row.id?.trim() || `servicios:${row.slug}`,
+      category: "servicios",
+      title: row.business_name?.trim() || row.slug,
+      status: row.listing_status,
+      publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
+      editHref: actionContract.editUrl ?? `/dashboard/servicios?${q}`,
+      previewHref: appendLangToPath("/clasificados/publicar/servicios/preview", L),
+      resultsHref: actionContract.resultsUrl ?? `/clasificados/servicios/resultados?${q}`,
+      analyticsHref: `/dashboard/analytics?${q}`,
+      publishedAt: row.published_at,
+      updatedAt: null,
+      image: null,
+      leonixAdId: actionContract.leonixAdId,
+      slug: row.slug,
+      packageTier: null,
+      promoted: false,
+      verified: row.leonix_verified,
+      draftListingId: null,
+      actionContract,
+      source: "servicios_public_listings",
+    };
+  });
 }
 
 /**
@@ -271,6 +287,7 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
       const slug = typeof o.slug === "string" ? o.slug.trim() : "";
       if (!slug) continue;
       out.push({
+        id: typeof o.id === "string" && o.id.trim() ? o.id.trim() : null,
         slug,
         business_name: typeof o.business_name === "string" && o.business_name.trim() ? o.business_name.trim() : slug,
         city: typeof o.city === "string" && o.city.trim() ? o.city.trim() : null,

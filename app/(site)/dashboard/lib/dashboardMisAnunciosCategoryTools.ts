@@ -155,7 +155,11 @@ export function categoryToolsTrustCopy(lang: Lang): string {
 }
 
 export function openPanelLabel(lang: Lang): string {
-  return lang === "es" ? "Abrir panel" : "Open panel";
+  return lang === "es" ? "Gestionar anuncio" : "Manage ad";
+}
+
+export function editListingLabel(lang: Lang): string {
+  return lang === "es" ? "Editar anuncio" : "Edit listing";
 }
 
 export function publishLabel(lang: Lang): string {
@@ -246,11 +250,19 @@ export function buildInventoryListingActions(
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
 
+  if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
+    actions.push({
+      href: item.editHref,
+      label: editListingLabel(lang),
+      tone: "primary",
+    });
+  }
+
   if (listingToolIsReady(category, "publicView")) {
     actions.push({
       href: item.publicHref,
       label: publicViewLabel(lang),
-      tone: "primary",
+      tone: category === "servicios" ? "secondary" : "primary",
     });
   }
 
@@ -261,9 +273,9 @@ export function buildInventoryListingActions(
     });
   }
 
-  if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
+  if (category === "servicios" && item.actionContract?.manageUrl) {
     actions.push({
-      href: item.editHref,
+      href: item.actionContract.manageUrl,
       label: openPanelLabel(lang),
     });
   }

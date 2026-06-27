@@ -27,7 +27,18 @@ export type ServiciosPublishApiResponse = {
   detail?: string;
 };
 
-const SESSION_SLUG_KEY = "servicios_last_published_slug";
+export const SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY = "servicios_last_published_slug";
+
+export function primeServiciosExistingPublicSlug(slug: string | null | undefined): void {
+  if (typeof window === "undefined") return;
+  const trimmed = slug?.trim();
+  try {
+    if (trimmed) window.sessionStorage.setItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY, trimmed);
+    else window.sessionStorage.removeItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 const MAX_TRANSPORT_BYTES = 1024 * 1024;
 
@@ -58,7 +69,9 @@ export async function postServiciosPublishApi(args: {
   }
 
   const existingPublicSlug =
-    typeof window !== "undefined" ? sessionStorage.getItem(SESSION_SLUG_KEY) ?? undefined : undefined;
+    typeof window !== "undefined"
+      ? sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) ?? undefined
+      : undefined;
 
   let resolved: ClasificadosServiciosApplicationState;
   let skippedOversizedVideos = false;
@@ -116,7 +129,7 @@ export async function postServiciosPublishApi(args: {
   }
 
   if (typeof window !== "undefined" && data.ok && data.slug) {
-    sessionStorage.setItem(SESSION_SLUG_KEY, data.slug);
+    sessionStorage.setItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY, data.slug);
   }
 
   return { res, data };
