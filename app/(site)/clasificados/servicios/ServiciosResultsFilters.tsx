@@ -152,20 +152,20 @@ function ServiciosResultsFiltersCompact({
         <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.72fr)_auto_auto] lg:items-end">
           <label className="block min-w-0">
             <span className="text-xs font-semibold text-[#3d4f62]">
-              {lang === "en" ? "Keywords" : "Palabras clave"}
+              {lang === "en" ? "Keywords" : "Tipo de servicio"}
             </span>
             <input
               name="q"
               type="search"
               defaultValue={current.q ?? ""}
               autoComplete="off"
-              placeholder={lang === "en" ? "Service, trade, business name…" : "Servicio, giro, nombre del negocio…"}
+              placeholder={lang === "en" ? "Service, business, category…" : "Servicio, negocio o categoría…"}
               className={`mt-1 ${inputClass}`}
             />
           </label>
           <label className="block min-w-0">
             <span className="text-xs font-semibold text-[#3d4f62]">
-              {lang === "en" ? "City, ZIP, or service area" : "Ciudad, código postal o zona"}
+              {lang === "en" ? "City, ZIP, or service area" : "Ciudad o ZIP"}
             </span>
             <input
               name="city"

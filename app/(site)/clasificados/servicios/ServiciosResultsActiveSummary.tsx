@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { formatServiciosInternalGroupForDiscovery } from "./lib/serviciosInternalGroupDisplay";
 import type { ServiciosResultsFilterQuery } from "./lib/serviciosResultsFilter";
@@ -13,6 +14,7 @@ export function ServiciosResultsActiveSummary({
   query: ServiciosResultsFilterQuery;
 }) {
   const items: { key: string; label: string }[] = [];
+  const resultsPath = "/clasificados/servicios/results";
 
   if (query.q?.trim()) {
     items.push({
@@ -33,18 +35,18 @@ export function ServiciosResultsActiveSummary({
     const g = formatServiciosInternalGroupForDiscovery(query.group, lang) ?? query.group;
     items.push({
       key: "group",
-      label: lang === "en" ? `Trade: ${g}` : `Giro: ${g}`,
+      label: lang === "en" ? `Category: ${g}` : `Categoría: ${g}`,
     });
   }
   if (query.seller === "business") {
     items.push({
       key: "seller",
-      label: lang === "en" ? "Seller: Business" : "Anunciante: Negocio",
+      label: lang === "en" ? "Provider: Business" : "Proveedor: Negocio",
     });
   } else if (query.seller === "independent") {
     items.push({
       key: "seller",
-      label: lang === "en" ? "Seller: Independent" : "Anunciante: Independiente",
+      label: lang === "en" ? "Provider: Independent" : "Proveedor: Independiente",
     });
   }
   if (query.sort === "name") {
@@ -221,6 +223,64 @@ export function ServiciosResultsActiveSummary({
 
   if (items.length === 0) return null;
 
+  const buildCurrentParams = () => {
+    const params = new URLSearchParams();
+    params.set("lang", lang);
+    if (query.q?.trim()) params.set("q", query.q.trim());
+    if (query.city?.trim()) params.set("city", query.city.trim());
+    if (query.group?.trim()) params.set("group", query.group.trim());
+    if (query.seller && query.seller !== "all") params.set("seller", query.seller);
+    if (query.sort && query.sort !== "newest") params.set("sort", query.sort);
+    if (query.whatsapp === "1") params.set("whatsapp", "1");
+    if (query.promo === "1") params.set("promo", "1");
+    if (query.call === "1") params.set("call", "1");
+    if (query.verified === "1") params.set("verified", "1");
+    if (query.web === "1") params.set("web", "1");
+    if (query.bilingual === "1") params.set("bilingual", "1");
+    if (query.email === "1") params.set("email", "1");
+    if (query.emergency === "1") params.set("emergency", "1");
+    if (query.mobileSvc === "1") params.set("mobileSvc", "1");
+    if (query.msg === "1") params.set("msg", "1");
+    if (query.phys === "1") params.set("phys", "1");
+    if (query.svcMulti === "1") params.set("svcMulti", "1");
+    if (query.offer === "1") params.set("offer", "1");
+    if (query.legal === "1") params.set("legal", "1");
+    if (query.langEs === "1") params.set("langEs", "1");
+    if (query.langEn === "1") params.set("langEn", "1");
+    if (query.langOt === "1") params.set("langOt", "1");
+    if (query.vint === "1") params.set("vint", "1");
+    if (query.wknd === "1") params.set("wknd", "1");
+    if (query.openNow === "1") params.set("open_now", "1");
+    if (query.licensed === "1") params.set("licensed", "1");
+    if (query.insured === "1") params.set("insured", "1");
+    if (query.freeEstimate === "1") params.set("free_estimate", "1");
+    if (query.freeConsultation === "1") params.set("free_consultation", "1");
+    if (query.hasPhotos === "1") params.set("has_photos", "1");
+    if (query.hasVideos === "1") params.set("has_videos", "1");
+    if (query.hasOffers === "1") params.set("has_offers", "1");
+    return params;
+  };
+
+  const removeParamByChipKey: Record<string, string[]> = {
+    freeEstimate: ["free_estimate"],
+    freeConsultation: ["free_consultation"],
+    hasPhotos: ["has_photos"],
+    hasVideos: ["has_videos"],
+    hasOffers: ["has_offers"],
+    mobileSvc: ["mobileSvc"],
+    openNow: ["open_now"],
+    wa: ["whatsapp"],
+  };
+
+  const removeHrefForItem = (key: string) => {
+    const params = buildCurrentParams();
+    for (const param of removeParamByChipKey[key] ?? [key]) {
+      params.delete(param);
+    }
+    params.delete("page");
+    return `${resultsPath}?${params.toString()}`;
+  };
+
   return (
     <div
       className="mb-3 rounded-xl border border-[#dfe6ef]/90 bg-white/95 px-3 py-2.5 shadow-sm sm:px-3.5"
@@ -233,9 +293,16 @@ export function ServiciosResultsActiveSummary({
         {items.map((it, idx) => (
           <li
             key={`${it.key}-${idx}`}
-            className="inline-flex max-w-full items-center rounded-full border border-[#1a3352]/12 bg-[#f8fafc] px-2.5 py-1 text-[11px] font-medium leading-snug text-[#142a42]"
+            className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#1a3352]/12 bg-[#f8fafc] px-2.5 py-1 text-[11px] font-medium leading-snug text-[#142a42]"
           >
-            {it.label}
+            <span className="min-w-0 truncate">{it.label}</span>
+            <Link
+              href={removeHrefForItem(it.key)}
+              className="ml-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-[#64748b] hover:bg-white hover:text-[#7A1E2C]"
+              aria-label={lang === "en" ? `Remove ${it.label}` : `Quitar ${it.label}`}
+            >
+              ×
+            </Link>
           </li>
         ))}
       </ul>

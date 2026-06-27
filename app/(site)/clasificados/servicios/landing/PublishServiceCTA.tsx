@@ -40,7 +40,7 @@ export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
             <span aria-hidden>→</span>
           </Link>
           <Link
-            href={`/clasificados/servicios/resultados?lang=${lang}`}
+            href={`/clasificados/servicios/results?lang=${lang}`}
             className="text-center text-[13px] font-semibold text-[#3B66AD] underline-offset-4 hover:underline lg:text-right"
           >
             {lang === "en" ? "Preview how listings look in results" : "Ver cómo se ven los anuncios en resultados"}

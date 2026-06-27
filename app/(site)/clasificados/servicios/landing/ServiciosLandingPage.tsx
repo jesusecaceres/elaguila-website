@@ -18,14 +18,14 @@ import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } f
 type Lang = "es" | "en";
 
 const LANDING_QUICK_CHIP_IDS = new Set([
-  "web",
-  "limpieza",
+  "abogado",
+  "contador",
   "plomeria",
   "electricista",
-  "jardineria",
+  "limpieza",
   "mecanica",
-  "reparaciones",
-  "consultoria",
+  "jardineria",
+  "dentista",
 ]);
 
 const sectionShell =
@@ -41,7 +41,6 @@ export function ServiciosLandingPage({
   const routeLang = normalizeLang(sp?.get("lang"));
   const lang = navCopyLang(routeLang) as Lang;
   const { destacadosRows, recientesRows } = selectLandingDestacadosRecientes(liveRows, lang);
-  const hasDestacados = destacadosRows.length > 0;
   const landingChips = SERVICIOS_LANDING_QUICK_CHIPS.filter((c) => LANDING_QUICK_CHIP_IDS.has(c.id));
   const resultsHref = buildCategoryResultsUrl("servicios", routeLang as Lang);
   const publishHref = replaceLangInHref("/clasificados/publicar/servicios", routeLang);
@@ -75,9 +74,7 @@ export function ServiciosLandingPage({
     >
       <div className="space-y-5 sm:space-y-6">
         <div className="flex flex-col gap-5 sm:gap-6">
-          <div
-            className={`${sectionShell} p-3.5 sm:p-4 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
-          >
+          <div className={`${sectionShell} p-3.5 sm:p-4`}>
             <ServiciosDestacadosSection
               lang={lang}
               rows={destacadosRows}
@@ -86,11 +83,11 @@ export function ServiciosLandingPage({
             />
           </div>
 
-          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3.5 sm:p-4 order-2`}>
+          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3.5 sm:p-4`}>
             <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
           </div>
 
-          <div className={`${sectionShell} p-3.5 sm:p-4 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
+          <div className={`${sectionShell} p-3.5 sm:p-4`}>
             <RecentServicesSection lang={lang} rows={recientesRows} />
           </div>
         </div>

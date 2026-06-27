@@ -143,14 +143,16 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
 
   const destacadosRows = getServiciosDestacadosRows(overlaid);
   const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort);
+  const destacadoSlugs = new Set(destacadosRows.map((r) => r.slug));
+  const normalRows = displayRows.filter((r) => !destacadoSlugs.has(r.slug));
 
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
   const landingHref = `/clasificados/servicios?lang=${lang}`;
   const perPage = parseCatStdPerPage(sp.perPage);
-  const pageCount = Math.max(1, Math.ceil(displayRows.length / perPage));
+  const pageCount = Math.max(1, Math.ceil(normalRows.length / perPage));
   const currentPage = Math.min(parseCatStdPage(sp.page), pageCount);
   const startIdx = (currentPage - 1) * perPage;
-  const pagedRows = displayRows.slice(startIdx, startIdx + perPage);
+  const pagedRows = normalRows.slice(startIdx, startIdx + perPage);
   const paginationParams = new URLSearchParams();
   paginationParams.set("lang", lang);
   for (const [k, v] of Object.entries(sp)) {
@@ -202,8 +204,8 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                       ? "No listings match these filters yet."
                       : "Aún no hay anuncios que coincidan con estos filtros."
                     : lang === "en"
-                      ? "No public Servicios showcases yet."
-                      : "Aún no hay vitrinas públicas en Servicios."}
+                      ? "No public Servicios listings yet."
+                      : "Aún no hay anuncios públicos en Servicios."}
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#4a5d6e]">
                   {hasActiveFilters
@@ -257,8 +259,15 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                     id="servicios-res-listings"
                     className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
                   >
-                    {lang === "en" ? "All matching showcases" : "Todas las vitrinas coincidentes"}
+                    {lang === "en" ? "Normal matching listings" : "Anuncios normales coincidentes"}
                   </h2>
+                ) : null}
+                {normalRows.length === 0 && destacadosRows.length > 0 ? (
+                  <p className="rounded-xl border border-[#dfe6ef] bg-white/90 px-3 py-2 text-[12px] leading-relaxed text-[#4a5d6e]">
+                    {lang === "en"
+                      ? "All current matches are featured."
+                      : "Todos los resultados actuales están destacados."}
+                  </p>
                 ) : null}
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3">
                   {pagedRows.map((r) => (
@@ -267,13 +276,15 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                     </li>
                   ))}
                 </ul>
-                <CategoryStandardPagination
-                  lang={lang}
-                  basePath={SERVICIOS_RESULTS_PATH}
-                  searchParams={paginationParams}
-                  currentPage={currentPage}
-                  pageCount={pageCount}
-                />
+                {normalRows.length > 0 ? (
+                  <CategoryStandardPagination
+                    lang={lang}
+                    basePath={SERVICIOS_RESULTS_PATH}
+                    searchParams={paginationParams}
+                    currentPage={currentPage}
+                    pageCount={pageCount}
+                  />
+                ) : null}
               </section>
             ) : null}
             </div>

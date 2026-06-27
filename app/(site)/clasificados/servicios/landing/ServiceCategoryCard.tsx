@@ -11,10 +11,10 @@ export function ServiceCategoryCard({
 }) {
   const qRaw = (lang === "en" ? cat.resultsQueryEn : cat.resultsQueryEs)?.trim() ?? "";
   const href = cat.resultsGroup
-    ? `/clasificados/servicios/resultados?lang=${lang}&group=${encodeURIComponent(cat.resultsGroup)}`
+    ? `/clasificados/servicios/results?lang=${lang}&group=${encodeURIComponent(cat.resultsGroup)}`
     : qRaw
-      ? `/clasificados/servicios/resultados?lang=${lang}&q=${encodeURIComponent(qRaw)}`
-      : `/clasificados/servicios/resultados?lang=${lang}`;
+      ? `/clasificados/servicios/results?lang=${lang}&q=${encodeURIComponent(qRaw)}`
+      : `/clasificados/servicios/results?lang=${lang}`;
 
   return (
     <Link

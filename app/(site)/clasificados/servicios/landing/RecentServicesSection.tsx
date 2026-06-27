@@ -9,7 +9,7 @@ export function RecentServicesSection({
   lang: "es" | "en";
   rows: ServiciosPublicListingRow[];
 }) {
-  const resultsHref = `/clasificados/servicios/resultados?lang=${lang}`;
+  const resultsHref = `/clasificados/servicios/results?lang=${lang}`;
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
 
   return (

@@ -42,7 +42,7 @@ export function ServiciosResultsAdvancedFilterFields({
 }) {
   return (
     <>
-      <GroupShell titleEs="Tipo de anunciante" titleEn="Provider type" lang={lang}>
+      <GroupShell titleEs="Tipo de servicio" titleEn="Provider type" lang={lang}>
         <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs font-semibold text-neutral-700">
             {lang === "en" ? "Seller presentation" : "Tipo de proveedor"}
@@ -55,9 +55,9 @@ export function ServiciosResultsAdvancedFilterFields({
         </label>
       </GroupShell>
 
-      <GroupShell titleEs="Categoría / giro" titleEn="Category / trade" lang={lang}>
+      <GroupShell titleEs="Categoría" titleEn="Category / trade" lang={lang}>
         <label className="flex min-w-0 flex-col gap-1">
-          <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Trade family" : "Familia de giro"}</span>
+          <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Category family" : "Categoría"}</span>
           <select name="group" defaultValue={current.group ?? ""} className={selectClass}>
             <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
             {SERVICIOS_INTERNAL_GROUP_IDS.map((id) => (

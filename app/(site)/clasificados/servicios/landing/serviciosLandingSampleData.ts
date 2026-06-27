@@ -75,18 +75,18 @@ export type ServiciosLandingRecentListing = {
 /** Popular shortcuts → `/resultados` with real `q=` keyword search (no counts, no fake rows). */
 export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
   {
-    id: "web",
-    labelEs: "Diseño web",
-    labelEn: "Web design",
-    resultsQueryEs: "diseño web",
-    resultsQueryEn: "web design",
+    id: "abogado",
+    labelEs: "Abogados",
+    labelEn: "Lawyers",
+    resultsQueryEs: "abogado",
+    resultsQueryEn: "lawyer",
   },
   {
-    id: "limpieza",
-    labelEs: "Limpieza",
-    labelEn: "Cleaning",
-    resultsQueryEs: "limpieza",
-    resultsQueryEn: "cleaning",
+    id: "contador",
+    labelEs: "Contadores",
+    labelEn: "Accountants",
+    resultsQueryEs: "contador",
+    resultsQueryEn: "accountant",
   },
   {
     id: "plomeria",
@@ -103,11 +103,11 @@ export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
     resultsQueryEn: "electrician",
   },
   {
-    id: "jardineria",
-    labelEs: "Jardinería",
-    labelEn: "Landscaping",
-    resultsQueryEs: "jardinería",
-    resultsQueryEn: "landscaping",
+    id: "limpieza",
+    labelEs: "Limpieza",
+    labelEn: "Cleaning",
+    resultsQueryEs: "limpieza",
+    resultsQueryEn: "cleaning",
   },
   {
     id: "mecanica",
@@ -117,18 +117,18 @@ export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
     resultsQueryEn: "mechanics",
   },
   {
-    id: "reparaciones",
-    labelEs: "Reparaciones",
-    labelEn: "Repairs",
-    resultsQueryEs: "reparaciones",
-    resultsQueryEn: "repairs",
+    id: "jardineria",
+    labelEs: "Jardinería",
+    labelEn: "Landscaping",
+    resultsQueryEs: "jardinería",
+    resultsQueryEn: "landscaping",
   },
   {
-    id: "consultoria",
-    labelEs: "Consultoría",
-    labelEn: "Consulting",
-    resultsQueryEs: "consultoría",
-    resultsQueryEn: "consulting",
+    id: "dentista",
+    labelEs: "Dentistas",
+    labelEn: "Dentists",
+    resultsQueryEs: "dentista",
+    resultsQueryEn: "dentist",
   },
   {
     id: "entretenimiento-musica",
@@ -148,13 +148,15 @@ export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
 ];
 
 export const SERVICIOS_LANDING_EXPLORE_CATEGORIES: ServiciosLandingExploreCategory[] = [
-  { id: "plomeria", labelEs: "Plomería", labelEn: "Plumbing", icon: "🔧", resultsGroup: "home_trade" },
-  { id: "electricista", labelEs: "Electricista", labelEn: "Electrical", icon: "⚡", resultsGroup: "home_trade" },
-  { id: "roof", labelEs: "Techado / techo", labelEn: "Roofing", icon: "🏠", resultsGroup: "home_trade" },
-  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", icon: "✨", resultsGroup: "home_trade" },
-  { id: "reparacion-auto", labelEs: "Reparación Auto", labelEn: "Auto repair", icon: "🚗", resultsGroup: "automotive" },
-  { id: "tutoria", labelEs: "Tutoría", labelEn: "Tutoring", icon: "📚", resultsGroup: "education_tutoring" },
-  { id: "jardineria", labelEs: "Jardinería", labelEn: "Landscaping", icon: "🌿", resultsGroup: "home_trade" },
-  { id: "mascotas", labelEs: "Mascotas", labelEn: "Pets", icon: "🐾", resultsQueryEs: "mascotas", resultsQueryEn: "pets" },
+  { id: "abogado", labelEs: "Abogados / Legal", labelEn: "Lawyers / Legal", icon: "scale", resultsQueryEs: "abogado", resultsQueryEn: "lawyer" },
+  { id: "contador", labelEs: "Contadores", labelEn: "Accountants", icon: "calculator", resultsQueryEs: "contador", resultsQueryEn: "accountant" },
+  { id: "dentista", labelEs: "Dentistas / Salud", labelEn: "Dentists / Health", icon: "health", resultsQueryEs: "dentista", resultsQueryEn: "dentist" },
+  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", icon: "spray", resultsQueryEs: "limpieza", resultsQueryEn: "cleaning" },
+  { id: "plomeria", labelEs: "Plomería", labelEn: "Plumbing", icon: "tool", resultsQueryEs: "plomería", resultsQueryEn: "plumbing" },
+  { id: "electricista", labelEs: "Electricista", labelEn: "Electrician", icon: "bolt", resultsQueryEs: "electricista", resultsQueryEn: "electrician" },
+  { id: "jardineria", labelEs: "Jardinería", labelEn: "Landscaping", icon: "plant", resultsQueryEs: "jardinería", resultsQueryEn: "landscaping" },
+  { id: "reparacion-auto", labelEs: "Mecánica / Reparación Auto", labelEn: "Mechanic / Auto repair", icon: "car", resultsQueryEs: "mecánica", resultsQueryEn: "auto repair" },
+  { id: "belleza-barberia", labelEs: "Belleza / Barbería", labelEn: "Beauty / Barber", icon: "scissors", resultsQueryEs: "barbería", resultsQueryEn: "barber" },
+  { id: "tutoria", labelEs: "Tutoría / Clases", labelEn: "Tutoring / Classes", icon: "book", resultsQueryEs: "tutoría", resultsQueryEn: "tutoring" },
 ];
 

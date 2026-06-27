@@ -3,10 +3,12 @@ import {
   TbBolt,
   TbBook,
   TbBuildingStore,
+  TbCalculator,
   TbCar,
-  TbHome,
-  TbPaw,
+  TbHeartbeat,
   TbPlant2,
+  TbScale,
+  TbScissors,
   TbSpray,
   TbTool,
 } from "react-icons/tb";
@@ -17,14 +19,16 @@ import {
  * Keyed by `ServiciosLandingExploreCategory.id`.
  */
 const CATEGORY_GLYPHS: Record<string, ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
+  abogado: TbScale,
+  contador: TbCalculator,
+  dentista: TbHeartbeat,
   plomeria: TbTool,
   electricista: TbBolt,
-  roof: TbHome,
   limpieza: TbSpray,
   "reparacion-auto": TbCar,
+  "belleza-barberia": TbScissors,
   tutoria: TbBook,
   jardineria: TbPlant2,
-  mascotas: TbPaw,
 };
 
 export function ServiceCategoryGlyph({ id, className }: { id: string; className?: string }) {

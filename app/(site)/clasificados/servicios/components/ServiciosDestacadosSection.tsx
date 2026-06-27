@@ -35,12 +35,12 @@ function DestacadosHeader({ id, lang }: { id: string; lang: "es" | "en" }) {
           {lang === "en" ? "Sponsored visibility" : "Visibilidad patrocinada"}
         </p>
         <h2 id={id} className="mt-1 text-lg font-bold tracking-tight text-[#142a42] sm:text-xl">
-          {lang === "en" ? "Featured / Sponsored" : "Destacados / Patrocinados"}
+          {lang === "en" ? "Featured services" : "Servicios destacados"}
         </h2>
         <p className="mt-1 text-[13px] leading-relaxed text-[#4a5d6e]">
           {lang === "en"
             ? "Leonix advertisers with highlighted visibility."
-            : "Anunciantes Leonix con visibilidad destacada."}
+            : "Negocios Leonix con visibilidad destacada."}
         </p>
       </div>
     </div>
@@ -58,7 +58,7 @@ function DestacadosEmptyState({ lang }: { lang: "es" | "en" }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-[#142a42]">
-          {lang === "en" ? "Want to appear here?" : "¿Quieres aparecer aquí?"}
+          {lang === "en" ? "Want to appear featured?" : "¿Quieres aparecer destacado?"}
         </p>
         <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-[#5a4f3a]">
           {lang === "en"

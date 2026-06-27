@@ -14,6 +14,7 @@ import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer"
 import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNewestFirst } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
+import { expandServiciosSearchTerms, normalizeServiciosSearchText } from "./serviciosSearchSynonyms";
 
 export type ServiciosResultsFilterQuery = {
   city?: string;
@@ -77,7 +78,12 @@ export type ServiciosResultsFilterQuery = {
 };
 
 function normalize(s: string | undefined): string {
-  return (s ?? "").trim().toLowerCase();
+  return normalizeServiciosSearchText(s);
+}
+
+function includesAnyNormalized(haystack: string | undefined, terms: string[]): boolean {
+  const hay = normalize(haystack);
+  return terms.some((term) => hay.includes(term));
 }
 
 export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery): boolean {
@@ -533,45 +539,45 @@ export function filterServiciosRowsByKeyword(
   lang: ServiciosLang,
   rawQ: string | undefined,
 ): ServiciosPublicListingRow[] {
-  const kw = normalize(rawQ);
-  if (!kw) return rows;
+  const terms = expandServiciosSearchTerms(rawQ);
+  if (terms.length === 0) return rows;
 
   return rows.filter((row) => {
-    if (normalize(row.business_name).includes(kw)) return true;
-    if (normalize(row.city).includes(kw)) return true;
+    if (includesAnyNormalized(row.business_name, terms)) return true;
+    if (includesAnyNormalized(row.city, terms)) return true;
     const profile = resolvedProfile(row, lang);
-    if (normalize(profile.hero.categoryLine).includes(kw)) return true;
-    if (normalize(profile.about?.text).includes(kw)) return true;
-    if (normalize(profile.about?.specialtiesLine).includes(kw)) return true;
+    if (includesAnyNormalized(profile.hero.categoryLine, terms)) return true;
+    if (includesAnyNormalized(profile.about?.text, terms)) return true;
+    if (includesAnyNormalized(profile.about?.specialtiesLine, terms)) return true;
     const pj = row.profile_json;
-    if (normalize(pj.contact?.physicalPostalCode ?? "").includes(kw)) return true;
-    if (normalize(pj.contact?.physicalCity ?? "").includes(kw)) return true;
-    if (normalize(pj.hero?.locationSummary ?? "").includes(kw)) return true;
+    if (includesAnyNormalized(pj.contact?.physicalPostalCode ?? "", terms)) return true;
+    if (includesAnyNormalized(pj.contact?.physicalCity ?? "", terms)) return true;
+    if (includesAnyNormalized(pj.hero?.locationSummary ?? "", terms)) return true;
     for (const item of pj.serviceAreas?.items ?? []) {
-      if (normalize(item.label).includes(kw)) return true;
+      if (includesAnyNormalized(item.label, terms)) return true;
     }
     for (const s of profile.services ?? []) {
-      if (normalize(s.title).includes(kw)) return true;
-      if (normalize(s.secondaryLine).includes(kw)) return true;
+      if (includesAnyNormalized(s.title, terms)) return true;
+      if (includesAnyNormalized(s.secondaryLine, terms)) return true;
     }
     for (const t of profile.trust ?? []) {
-      if (normalize(t.label).includes(kw)) return true;
+      if (includesAnyNormalized(t.label, terms)) return true;
     }
     for (const r of profile.reviews ?? []) {
-      if (normalize(r.quote).includes(kw) || normalize(r.authorName).includes(kw)) return true;
+      if (includesAnyNormalized(r.quote, terms) || includesAnyNormalized(r.authorName, terms)) return true;
     }
     for (const f of profile.quickFacts ?? []) {
-      if (normalize(f.label).includes(kw)) return true;
+      if (includesAnyNormalized(f.label, terms)) return true;
     }
     for (const h of profile.highlights ?? []) {
-      if (normalize(h.label).includes(kw)) return true;
+      if (includesAnyNormalized(h.label, terms)) return true;
     }
     for (const p of profile.promotions ?? []) {
-      if (normalize(p.headline).includes(kw)) return true;
-      if (normalize(p.footnote ?? "").includes(kw)) return true;
+      if (includesAnyNormalized(p.headline, terms)) return true;
+      if (includesAnyNormalized(p.footnote ?? "", terms)) return true;
     }
     for (const raw of wirePromotionalTextFields(pj)) {
-      if (normalize(raw).includes(kw)) return true;
+      if (includesAnyNormalized(raw, terms)) return true;
     }
     return false;
   });

@@ -6,14 +6,14 @@ type Lang = "es" | "en";
  * Explicit browse entry → results (shell). Search is primary; this supports discovery without typing.
  */
 export function ServiciosLandingBrowseRow({ lang }: { lang: Lang }) {
-  const href = `/clasificados/servicios/resultados?lang=${lang}`;
+  const href = `/clasificados/servicios/results?lang=${lang}`;
 
   return (
     <div className="mx-auto flex w-full max-w-[min(100%,920px)] flex-col items-stretch gap-2.5 rounded-[14px] border border-[#dfe6ef]/90 bg-white/80 px-3 py-3 shadow-[0_12px_36px_-28px_rgba(20,38,58,0.35)] ring-1 ring-[#1e3a5f]/[0.04] sm:rounded-[18px] sm:px-4 sm:py-4 md:flex-row md:items-center md:justify-between md:gap-6 md:px-6 md:py-4">
       <p className="text-center text-[13px] leading-snug text-[#4a5d6e] md:text-left md:text-[15px]">
         {lang === "en"
-          ? "Prefer to browse? Open the full Servicios directory — filter by city, trade, and contact options."
-          : "¿Prefieres explorar? Abre el directorio completo de Servicios: filtra por ciudad, giro y forma de contacto."}
+          ? "Prefer to browse? Open the full Servicios directory — filter by city, category, and contact options."
+          : "¿Prefieres explorar? Abre el directorio completo de Servicios: filtra por ciudad, categoría y forma de contacto."}
       </p>
       <Link
         href={href}
