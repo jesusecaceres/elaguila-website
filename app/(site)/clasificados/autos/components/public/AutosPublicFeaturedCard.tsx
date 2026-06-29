@@ -22,6 +22,7 @@ export function AutosPublicFeaturedCard({
   const loc = formatAutosLocation(listing.city, listing.state);
   const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
   const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
+  const imageUrl = listing.primaryImageUrl?.trim();
 
   return (
     <Link
@@ -35,14 +36,22 @@ export function AutosPublicFeaturedCard({
       className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/55 bg-[color:var(--lx-card)] shadow-[0_12px_36px_-22px_rgba(42,36,22,0.22)] ring-1 ring-[color:var(--lx-gold-border)]/25 transition hover:shadow-[0_16px_44px_-24px_rgba(42,36,22,0.26)] active:opacity-95"
     >
       <div className="relative h-36 w-full overflow-hidden bg-[color:var(--lx-section)] sm:h-40">
-        <Image
-          src={listing.primaryImageUrl}
-          alt=""
-          fill
-          className="object-cover transition duration-300 group-hover:scale-[1.02]"
-          sizes="(max-width:768px) 100vw, 28vw"
-          priority
-        />
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            className="object-cover transition duration-300 group-hover:scale-[1.02]"
+            sizes="(max-width:768px) 100vw, 28vw"
+            priority
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#F8F1E6,#EFE3D1)] px-4 text-center">
+            <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[#FFFEF7]/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-text-2)]">
+              {lang === "es" ? "Sin foto" : "No photo"}
+            </span>
+          </div>
+        )}
         <span className="absolute left-3 top-3 rounded-full border border-[color:var(--lx-gold-border)] bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#FFFCF7] shadow-sm">
           {copy.featuredBadge}
         </span>

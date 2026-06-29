@@ -10,7 +10,9 @@ import {
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { republishActionLabel } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { AdminDashboardCtaButton, AdminDashboardCtaGrid } from "@/app/admin/_components/AdminDashboardCta";
+import { AdminActionExplainerGrid } from "@/app/admin/_components/AdminActionExplainer";
 import { adminQueueActionCompact, adminQueueActionGroupLabel } from "@/app/admin/_components/adminTheme";
+import { getAdminActionContract } from "@/app/admin/_lib/adminOsActionRegistry";
 
 export type ClassifiedStaffOpsVariant =
   | "restaurante"
@@ -190,17 +192,26 @@ export function ClassifiedAdminRowActions({
 
   const compact = adminQueueActionCompact;
   const gridCols = layout === "card" ? 2 : 1;
+  const actionLabel = {
+    archive: getAdminActionContract("archive").label,
+    feature: getAdminActionContract("feature").label,
+    republish: getAdminActionContract("republish").label,
+    restore: getAdminActionContract("restore").label,
+    suspend: getAdminActionContract("suspend").label,
+    verifyLeonix: getAdminActionContract("verifyLeonix").label,
+  };
 
   return (
     <div className="min-w-0 space-y-2 overflow-x-hidden" data-testid="classified-admin-row-actions">
+      <AdminActionExplainerGrid actions={["republish", "suspend", "restore", "archive", "feature", "verifyLeonix"]} />
       <ActionSection title="Lifecycle" collapseSections={collapseSections} testId="admin-row-actions-lifecycle">
         <AdminDashboardCtaGrid columns={gridCols}>
           {republish ? (
             <AdminDashboardCtaButton
-              label={busy ? "…" : republish.label}
+              label={busy ? "…" : republish.label || actionLabel.republish}
               variant="neutral"
               disabled={busy || republish.disabled}
-              title={republish.disabled ? republish.reason : "Republish or move listing to top"}
+              title={republish.disabled ? republish.reason : getAdminActionContract("republish").helperCopy}
               onClick={() => {
                 if (republish.disabled) return;
                 void run("republish", "republish");
@@ -210,29 +221,29 @@ export function ClassifiedAdminRowActions({
           ) : null}
           {publicLive ? (
             <AdminDashboardCtaButton
-              label={busy ? "…" : "Suspend"}
+              label={busy ? "…" : actionLabel.suspend}
               variant="warning"
               disabled={busy}
-              title="Suspend public visibility"
+              title={getAdminActionContract("suspend").helperCopy}
               onClick={() => void run("suspend")}
               className={compact}
             />
           ) : (
             <AdminDashboardCtaButton
-              label={busy ? "…" : "Restore"}
+              label={busy ? "…" : actionLabel.restore}
               variant="active"
               disabled={busy}
-              title="Restore (unsuspend). Not Republish or Move to top."
+              title={getAdminActionContract("restore").helperCopy}
               onClick={() => void run("unsuspend")}
               className={compact}
             />
           )}
           {canArchive ? (
             <AdminDashboardCtaButton
-              label={busy ? "…" : "Archive"}
+              label={busy ? "…" : actionLabel.archive}
               variant="neutral"
               disabled={busy}
-              title="Archive this listing"
+              title={getAdminActionContract("archive").helperCopy}
               onClick={runArchive}
               className={compact}
             />
@@ -256,10 +267,11 @@ export function ClassifiedAdminRowActions({
             />
           ) : (
             <AdminDashboardCtaButton
-              label={busy ? "…" : "Feature"}
+              label={busy ? "…" : actionLabel.feature}
               variant="premium"
               disabled={busy}
               onClick={() => void run("promote_on")}
+              title={getAdminActionContract("feature").helperCopy}
               className={compact}
             />
           )}
@@ -273,10 +285,11 @@ export function ClassifiedAdminRowActions({
             />
           ) : (
             <AdminDashboardCtaButton
-              label={busy ? "…" : "Verify Leonix"}
+              label={busy ? "…" : actionLabel.verifyLeonix}
               variant="active"
               disabled={busy}
               onClick={() => void run("verify_on")}
+              title={getAdminActionContract("verifyLeonix").helperCopy}
               className={compact}
             />
           )}

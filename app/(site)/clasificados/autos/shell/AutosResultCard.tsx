@@ -11,6 +11,7 @@ import { trackAutosListingEvent } from "../lib/autosListingAnalyticsClient";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicListing } from "../data/autosPublicSampleTypes";
 import { autosLiveVehiclePath } from "../filters/autosBrowseFilterContract";
+import { formatAutosLocation } from "../components/public/autosPublicFormatters";
 
 const RESULT_CARD =
   "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden transition-all duration-200 hover:border-[#D4A574]/50 hover:shadow-[0_16px_56px_-24px_rgba(212,165,116,0.20)]";
@@ -89,7 +90,8 @@ export function AutosResultCard({
   if (listing.fuelType) vehicleFacts.push(listing.fuelType);
 
   // Format location
-  const locationDisplay = `${listing.city}, ${listing.state}`;
+  const locationDisplay = formatAutosLocation(listing.city, listing.state);
+  const imageUrl = listing.primaryImageUrl?.trim();
 
   // Format mileage
   const formatMileage = (miles: number) => {
@@ -122,13 +124,21 @@ export function AutosResultCard({
     >
       {/* Media Block */}
       <div className={MEDIA_CONTAINER}>
-        <Image
-          src={listing.primaryImageUrl}
-          alt={listing.vehicleTitle}
-          fill
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 26vw"
-        />
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={listing.vehicleTitle}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 26vw"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#F8F1E6,#EFE3D1)] px-4 text-center">
+            <span className="rounded-full border border-[#D4A574]/35 bg-[#FFFEF7]/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#7A7164]">
+              {lang === "es" ? "Sin foto" : "No photo"}
+            </span>
+          </div>
+        )}
         {listing.featured && (
           <span className="absolute left-2.5 top-2.5 rounded-full border border-[#D4A574]/50 bg-[#FFFAF0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#D4A574] shadow-sm">
             {copy.featuredBadge}
@@ -174,8 +184,8 @@ export function AutosResultCard({
         {/* Location and Mileage */}
         <div className={LOCATION_ROW}>
           <FiMapPin className="w-4 h-4 text-[#D4A574] flex-shrink-0" />
-          <span className="truncate">{locationDisplay}</span>
-          <span className="text-[#7A7A7A]">•</span>
+          {locationDisplay ? <span className="truncate">{locationDisplay}</span> : null}
+          {locationDisplay ? <span className="text-[#7A7A7A]">•</span> : null}
           <span>{formatMileage(listing.mileage)}</span>
         </div>
 

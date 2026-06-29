@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import type { AdminDashboardPendingReviewQueueRow } from "@/app/admin/_lib/adminDashboardData";
 import { buildSellerMailtoForReviewRow } from "@/app/admin/_lib/adminDashboardReviewActions";
 import { AdminDashboardCta } from "./AdminDashboardCta";
+import { AdminActionExplainerGrid } from "./AdminActionExplainer";
 import { adminDashboardCtaNeutral } from "./adminTheme";
 
 const COMPACT = "!min-h-[40px] !w-auto !px-3 !py-2 !text-xs";
@@ -28,6 +29,7 @@ export function AdminDashboardReviewCardActions({ row }: { row: AdminDashboardPe
 
   return (
     <div className="mt-3 space-y-2" data-testid="admin-review-card-actions">
+      <AdminActionExplainerGrid actions={["markReviewed", "archive", "delete"]} />
       <div className="flex flex-wrap gap-2">
         <AdminDashboardCta
           href={row.adminHref}

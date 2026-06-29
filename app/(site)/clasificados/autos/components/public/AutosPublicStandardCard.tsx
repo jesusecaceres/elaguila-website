@@ -55,6 +55,7 @@ export function AutosPublicStandardCard({
   });
   const listingShareUrl =
     typeof window !== "undefined" ? `${window.location.origin}${href}` : "";
+  const imageUrl = listing.primaryImageUrl?.trim();
 
   const isDealer = listing.sellerType === "dealer";
   const laneClass = isDealer
@@ -87,13 +88,21 @@ export function AutosPublicStandardCard({
       className={`${RESULT_CARD} ${laneClass} ${compact ? "max-w-full" : ""}`}
     >
       <div className={MEDIA_CONTAINER}>
-        <Image
-          src={listing.primaryImageUrl}
-          alt=""
-          fill
-          className="object-cover transition duration-300 group-hover:scale-[1.03]"
-          sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
-        />
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            className="object-cover transition duration-300 group-hover:scale-[1.03]"
+            sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#F8F1E6,#EFE3D1)] px-4 text-center">
+            <span className="rounded-full border border-[#D4A574]/35 bg-[#FFFEF7]/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#7A7164]">
+              {lang === "es" ? "Sin foto" : "No photo"}
+            </span>
+          </div>
+        )}
         {listing.featured ? (
           <span className="absolute left-2.5 top-2.5 rounded-full border border-[#D4A574]/50 bg-[#FFFAF0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#D4A574] shadow-sm">
             {copy.featuredBadge}

@@ -25,6 +25,7 @@ export function dashboardRepublishPrimaryKind(
 }
 
 export function dashboardRepublishPrimaryLabel(lang: "es" | "en", kind: "move_to_top" | "republish"): string {
-  if (kind === "move_to_top") return lang === "es" ? "Subir al inicio" : "Move to top";
-  return lang === "es" ? "Republicar" : "Republish";
+  void lang;
+  if (kind === "move_to_top") return "Move to top";
+  return "Republish";
 }

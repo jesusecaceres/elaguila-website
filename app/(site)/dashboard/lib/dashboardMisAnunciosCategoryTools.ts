@@ -149,41 +149,48 @@ export function listingToolIsReady(category: MisAnunciosCategoryKey | string, to
 }
 
 export function categoryToolsTrustCopy(lang: Lang): string {
-  return lang === "es"
-    ? "Solo mostramos herramientas disponibles para esta categoría."
-    : "We only show tools available for this category.";
+  void lang;
+  return "We only show tools available for this category.";
 }
 
 export function openPanelLabel(lang: Lang): string {
-  return lang === "es" ? "Gestionar anuncio" : "Manage ad";
+  void lang;
+  return "Manage ad";
 }
 
 export function editListingLabel(lang: Lang): string {
-  return lang === "es" ? "Editar anuncio" : "Edit listing";
+  void lang;
+  return "Edit listing";
 }
 
 export function publishLabel(lang: Lang): string {
-  return lang === "es" ? "Publicar" : "Publish";
+  void lang;
+  return "Publish";
 }
 
 export function publicResultsLabel(lang: Lang): string {
-  return lang === "es" ? "Ver resultados" : "View results";
+  void lang;
+  return "View results";
 }
 
 export function publicViewLabel(lang: Lang): string {
-  return lang === "es" ? "Ver público" : "View public";
+  void lang;
+  return "View public";
 }
 
 export function previewLabel(lang: Lang): string {
-  return lang === "es" ? "Vista previa" : "Preview";
+  void lang;
+  return "Preview";
 }
 
 export function analyticsLabel(lang: Lang): string {
-  return lang === "es" ? "Analíticas" : "Analytics";
+  void lang;
+  return "Analytics";
 }
 
 export function publicResultsListingLabel(lang: Lang): string {
-  return lang === "es" ? "Ver en resultados públicos" : "View in public results";
+  void lang;
+  return "View in public results";
 }
 
 /** Dedicated dashboard hub — not the Mis anuncios self-ref workspace. */

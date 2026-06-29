@@ -17,6 +17,7 @@ import type { AutosClassifiedsListingRow } from "./autosClassifiedsTypes";
 import { autosPublicSellerTypeFromLane } from "./autosPublicSellerFromLane";
 import { dealerAddressHaystackParts } from "./autosDealerStructuredAddress";
 import { resolveEngineForDisplay } from "./autosVehicleEngineOptions";
+import { dedupeAutosVideoUrls, normalizeAutosExternalVideoUrl } from "./autosExternalVideoUrlValidation";
 
 function parseDbTimeMs(value: string | null | undefined): number {
   if (value == null || value === "") return NaN;
@@ -85,7 +86,8 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
   const exteriorColor = resolveExteriorColor(L) ?? undefined;
   const interiorColor = resolveInteriorColor(L) ?? undefined;
   const titleStatus = resolveTitleStatus(L);
-  const durableVideo = Boolean(L.muxPlaybackId?.trim() || L.muxPlaybackUrl?.trim() || L.muxThumbnailUrl?.trim());
+  const externalVideo = dedupeAutosVideoUrls(L.videoUrls ?? []).length > 0 || Boolean(normalizeAutosExternalVideoUrl(L.videoUrl ?? ""));
+  const durableVideo = Boolean(L.muxPlaybackId?.trim() || L.muxPlaybackUrl?.trim() || L.muxThumbnailUrl?.trim() || externalVideo);
   const publishedMs = parseDbTimeMs(row.published_at);
   const updatedMs = parseDbTimeMs(row.updated_at);
   const createdMs = parseDbTimeMs(row.created_at);

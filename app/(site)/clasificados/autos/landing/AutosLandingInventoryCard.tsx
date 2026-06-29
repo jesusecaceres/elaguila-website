@@ -34,6 +34,7 @@ export function AutosLandingInventoryCard({
   const sellerLine = isDealer
     ? listing.dealerName ?? copy.sellerDealerFooter
     : listing.privateSellerLabel ?? copy.sellerPrivateFooter;
+  const imageUrl = listing.primaryImageUrl?.trim();
 
   return (
     <Link
@@ -51,13 +52,21 @@ export function AutosLandingInventoryCard({
           variant === "featured" ? "h-36 sm:h-40" : "h-32 sm:h-36"
         }`}
       >
-        <Image
-          src={listing.primaryImageUrl}
-          alt=""
-          fill
-          className="object-cover transition duration-300 group-hover:scale-[1.02]"
-          sizes="(max-width:640px) 92vw, (max-width:1280px) 33vw, 16vw"
-        />
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            className="object-cover transition duration-300 group-hover:scale-[1.02]"
+            sizes="(max-width:640px) 92vw, (max-width:1280px) 33vw, 16vw"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#F8F1E6,#EFE3D1)] px-4 text-center">
+            <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[#FFFEF7]/90 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-text-2)]">
+              {lang === "es" ? "Sin foto" : "No photo"}
+            </span>
+          </div>
+        )}
         <div className="absolute left-2 top-2 z-[1] flex max-w-[calc(100%-5rem)] flex-wrap gap-1">
           {listing.featured ? (
             <span className="rounded-full border border-[color:var(--lx-gold-border)] bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#FFFCF7] shadow-sm">

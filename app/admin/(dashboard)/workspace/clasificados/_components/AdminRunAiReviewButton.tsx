@@ -8,7 +8,9 @@ import {
   stripAdminQueueActionParams,
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { AdminDashboardCtaButton } from "@/app/admin/_components/AdminDashboardCta";
+import { AdminActionExplainer } from "@/app/admin/_components/AdminActionExplainer";
 import { adminQueueActionCompact } from "@/app/admin/_components/adminTheme";
+import { getAdminActionContract } from "@/app/admin/_lib/adminOsActionRegistry";
 
 export function AdminRunAiReviewButton({
   listingId,
@@ -75,16 +77,19 @@ export function AdminRunAiReviewButton({
       setBusy(false);
     }
   }, [displayLabel, leonixAdId, listingId, returnTo]);
+  const actionMeta = getAdminActionContract("runAiReview");
 
   return (
-    <AdminDashboardCtaButton
-      label={busy ? "…" : label}
-      variant="view"
-      disabled={busy}
-      onClick={() => void run()}
-      className={className ?? adminQueueActionCompact}
-      title="Runs server-side AI moderation. Human admin still decides final action."
-      data-testid="admin-run-ai-review"
-    />
+    <div className="space-y-2" data-testid="admin-run-ai-review">
+      <AdminActionExplainer action="runAiReview" compact />
+      <AdminDashboardCtaButton
+        label={busy ? "…" : label || actionMeta.label}
+        variant={actionMeta.variant}
+        disabled={busy}
+        onClick={() => void run()}
+        className={className ?? adminQueueActionCompact}
+        title={actionMeta.helperCopy}
+      />
+    </div>
   );
 }

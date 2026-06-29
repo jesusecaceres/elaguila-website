@@ -303,38 +303,38 @@ export default function MyListingsPage() {
     () =>
       lang === "es"
         ? {
-            title: "Mis anuncios",
-            subtitle: "Elige una categoría y gestiona solo esos anuncios.",
-            searchPh: "Buscar por título…",
-            tabAll: "Todos",
-            tabActive: "Activos",
-            tabExpired: "Expirados",
-            tabMod: "Moderación",
-            statActive: dashboardCountLabelActivos("es"),
-            statTotalManaged: dashboardCountLabelTotalGestionados("es"),
-            statViews: dashboardCountLabelVistas("es"),
-            statShares: dashboardCountLabelCompartidos("es"),
-            loading: "Cargando…",
-            empty: "No hay anuncios en esta vista.",
-            emptyCategory: "Aún no tienes anuncios en esta categoría.",
-            emptyCategoryBody: "Publica uno cuando estés listo.",
-            publishInCategory: "Publicar en",
-            emptyAll: "Aún no tienes anuncios.",
-            restaurantSectionTitle: "Restaurantes",
-            restaurantSectionHint: "Gestiona tus restaurantes publicados sin salir del dashboard.",
-            cta: "Publicar anuncio",
-            yourListings: "Publicaciones",
-            categoryPanel: "Categorías",
-            workspaceLabel: "Área de gestión",
-            publish: "Publicar",
-            results: "Ver resultados",
-            toolsTrust: categoryToolsTrustCopy("es"),
-            errorTitle: "No pudimos cargar tus anuncios",
-            back: "Volver al resumen",
+            title: "My listings",
+            subtitle: "Pick a category and manage only those listings.",
+            searchPh: "Search by title…",
+            tabAll: "All",
+            tabActive: "Active",
+            tabExpired: "Ended",
+            tabMod: "Moderation",
+            statActive: dashboardCountLabelActivos("en"),
+            statTotalManaged: dashboardCountLabelTotalGestionados("en"),
+            statViews: dashboardCountLabelVistas("en"),
+            statShares: dashboardCountLabelCompartidos("en"),
+            loading: "Loading…",
+            empty: "No listings in this view.",
+            emptyCategory: "You don't have listings in this category yet.",
+            emptyCategoryBody: "Publish one when you're ready.",
+            publishInCategory: "Publish in",
+            emptyAll: "You don't have any listings yet.",
+            restaurantSectionTitle: "Restaurants",
+            restaurantSectionHint: "Manage your published restaurants from dashboard.",
+            cta: "Publish listing",
+            yourListings: "Listings",
+            categoryPanel: "Categories",
+            workspaceLabel: "Management area",
+            publish: "Publish",
+            results: "View results",
+            toolsTrust: categoryToolsTrustCopy("en"),
+            errorTitle: "We couldn't load your listings",
+            back: "Back to overview",
             analyticsNotice:
-              "Las analíticas se actualizan cuando tus anuncios reciben actividad real.",
+              "Analytics update when your listings receive real activity.",
             countFootnote:
-              "Los totales por categoría incluyen registros gestionables (activos, pausados y archivados). Activos en el resumen = solo visibles hoy.",
+              "Category totals include manageable records (active, paused, archived). Overview Active = visible today only.",
           }
         : {
             title: "My listings",
@@ -1609,13 +1609,13 @@ export default function MyListingsPage() {
                           }
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
-                          {lang === "es" ? "Ver público" : "View public"}
+                          View public
                         </Link>
                         <Link
                           href={`/dashboard/mis-anuncios/${x.id}?${q}`}
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
-                          {lang === "es" ? "Gestionar" : "Manage"}
+                          Manage listing
                         </Link>
                         {listingAnalyticsIsProven(catLower) ? (
                           <Link
@@ -1646,7 +1646,7 @@ export default function MyListingsPage() {
                             href={appendLangToPath("/clasificados/busco/resultados", lang)}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
-                            {lang === "es" ? "Ver solicitudes" : "View requests"}
+                            View requests
                           </Link>
                         ) : null}
                         <button
@@ -1655,7 +1655,7 @@ export default function MyListingsPage() {
                           onClick={() => softArchiveListing(x.id)}
                           className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
                         >
-                          {lang === "es" ? "Archivar anuncio" : "Archive ad"}
+                          Archive ad
                         </button>
                       </div>
                     </div>
