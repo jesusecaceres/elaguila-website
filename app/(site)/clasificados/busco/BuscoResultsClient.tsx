@@ -30,6 +30,18 @@ function textMatch(hay: string, needle: string): boolean {
   return hay.toLowerCase().includes(needle.trim().toLowerCase());
 }
 
+function buscoLocationSearchBlob(row: BuscoListingBrowseRow, pairs: Record<string, string>): string {
+  return [
+    row.city,
+    pairs["Leonix:state"],
+    pairs["Leonix:zip"],
+    pairs["Leonix:buscoZone"],
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 const COPY = {
   es: {
     pageTitle: "Solicitudes publicadas",
@@ -117,7 +129,7 @@ export function BuscoResultsClient() {
       const pairs = detailPairsToMap(row.detail_pairs);
       const blob = buildBuscoSearchBlob(row, pairs, lang);
       if (!textMatch(blob, q)) return false;
-      if (city && !textMatch(String(row.city ?? ""), city)) return false;
+      if (city && !textMatch(buscoLocationSearchBlob(row, pairs), city)) return false;
       if (zone && !textMatch(pairs["Leonix:buscoZone"] ?? "", zone)) return false;
       if (budget && !textMatch(pairs["Leonix:buscoBudget"] ?? "", budget)) return false;
 

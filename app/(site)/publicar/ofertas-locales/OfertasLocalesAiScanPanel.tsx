@@ -18,9 +18,9 @@ import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
 const CARD = "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3";
 const BTN_PRIMARY =
-  "rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-11 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_SECONDARY =
-  "rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 
 function statusLabel(status: OfertaLocalAiScanReadinessStatus, lang: OfertasLocalesAppLang): string {
   const es: Record<OfertaLocalAiScanReadinessStatus, string> = {
@@ -281,6 +281,11 @@ export function OfertasLocalesAiScanPanel({
           <p className="mt-1 text-[#1E1814]/55">
             {c.aiScanElapsed}: {formatScanElapsed(elapsedSeconds, lang)}
           </p>
+          <p className="mt-1 text-[#1E1814]/65">
+            {lang === "en"
+              ? "Scanning may take a few minutes. Results will appear automatically."
+              : "El escaneo puede tardar unos minutos. Los resultados aparecerán automáticamente."}
+          </p>
           {phaseCopy.longWait ? (
             <p className="mt-1 text-[#1E1814]/65">{c.aiReviewScanInProgress}</p>
           ) : null}
@@ -299,11 +304,11 @@ export function OfertasLocalesAiScanPanel({
               return (
                 <li
                   key={asset.assetId}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2"
+                  className="flex flex-col gap-3 rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-[#1E1814]">{fileLabel}</p>
-                    <p className="text-[10px] text-[#1E1814]/55">
+                    <p className="break-words text-xs font-medium text-[#1E1814]">{fileLabel}</p>
+                    <p className="break-words text-[10px] text-[#1E1814]/55">
                       {assetKindLabel(asset.assetKind, lang)} — {fileLabel}
                     </p>
                     <p className="text-[10px] font-medium text-emerald-800">
@@ -313,7 +318,7 @@ export function OfertasLocalesAiScanPanel({
                   </div>
                   <button
                     type="button"
-                    className={BTN_SECONDARY}
+                    className={`${BTN_SECONDARY} w-full sm:w-auto`}
                     disabled={!readiness.ready || scanning}
                     onClick={() => void handleScanAsset(asset)}
                   >
@@ -350,7 +355,7 @@ export function OfertasLocalesAiScanPanel({
       {sortedAssets.length === 1 ? (
         <button
           type="button"
-          className={BTN_PRIMARY}
+          className={`${BTN_PRIMARY} w-full sm:w-auto`}
           disabled={!readiness.ready || scanning}
           onClick={() => void handleScanAsset(sortedAssets[0])}
         >

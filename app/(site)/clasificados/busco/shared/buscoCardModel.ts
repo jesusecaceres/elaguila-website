@@ -36,8 +36,11 @@ function excerptFromDescription(raw: string | null | undefined, max = 120): stri
 function formatLocationLine(city: string | null, pairs: BuscoListingPairMap): string {
   const c = String(city ?? "").trim();
   const zone = (pairs["Leonix:buscoZone"] ?? "").trim();
-  if (c && zone) return `${c} · ${zone}`;
-  return c || zone || "";
+  const st = (pairs["Leonix:state"] ?? "").trim();
+  const zip = (pairs["Leonix:zip"] ?? "").trim();
+  const place = [c, st && zip ? `${st} ${zip}` : st || zip].filter(Boolean).join(", ");
+  if (place && zone) return `${place} · ${zone}`;
+  return place || zone || "";
 }
 
 function contactChipLabel(row: BuscoListingBrowseRow, pairs: BuscoListingPairMap, lang: Lang): string | null {

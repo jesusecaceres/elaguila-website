@@ -94,7 +94,9 @@ export function filterRestaurantesBlueprintRows(
     if (s.q.trim() && !rowMatchesQuery(s.q, row)) return false;
     if (s.city) {
       const needle = foldRestaurantesDiscoverySearchText(normalizeDiscoveryLocationText(s.city));
-      const hay = foldRestaurantesDiscoverySearchText(row.city);
+      const hay = foldRestaurantesDiscoverySearchText(
+        [row.city, row.state ?? "", row.zip ?? "", row.neighborhood ?? "", row.serviceAreaText ?? ""].join(" "),
+      );
       if (needle && !hay.includes(needle)) return false;
     }
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;

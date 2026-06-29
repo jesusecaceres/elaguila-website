@@ -81,7 +81,7 @@ export function OfertasLocalesProductClipPanel({
           <img
             src={cropUrl}
             alt={focusedItem?.itemName ?? scanCopy.cropAdClipPage}
-            className="mx-auto max-h-[min(72vh,900px)] w-auto max-w-full rounded-lg border border-[#D4C4A8]/60 object-contain shadow-sm"
+            className="mx-auto max-h-[min(58vh,620px)] w-auto max-w-full rounded-lg border border-[#D4C4A8]/60 object-contain shadow-sm lg:max-h-[min(72vh,900px)]"
           />
         </div>
       </div>
@@ -119,7 +119,7 @@ export function OfertasLocalesProductClipPanel({
           <iframe
             title={selectedAsset?.fileName || "PDF preview"}
             src={fallbackPdfUrl}
-            className="h-[min(72vh,900px)] w-full bg-[#FDF8F0]/40"
+            className="h-[min(58vh,620px)] w-full bg-[#FDF8F0]/40 lg:h-[min(72vh,900px)]"
           />
         </div>
       ) : (

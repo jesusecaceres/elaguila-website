@@ -39,11 +39,11 @@ const INPUT =
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70";
 const ASSET_CARD = "rounded-xl border border-[#D4C4A8]/80 bg-white p-4 space-y-3";
 const BTN_SECONDARY =
-  "rounded-xl border border-[#D4C4A8] bg-[#FFFCF7] px-3 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-11 rounded-xl border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_PRIMARY =
-  "rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-3 py-2 text-sm font-medium text-white hover:bg-[#6a1a26] disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-11 rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#6a1a26] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_DANGER =
-  "rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-50";
+  "min-h-11 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-800 hover:bg-red-50";
 const FILE_ACCEPT = "application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp";
 
 type AssetBucket = "flyerAssets" | "couponAssets";
@@ -119,6 +119,25 @@ function AssetEditor({
     asset.assetType === "external_url" && Boolean(normalizeOfertaLocalUrlInput(asset.url));
   const previewUrl =
     localPreviewUrl || (uploaded && asset.url && asset.mimeType.startsWith("image/") ? asset.url : asset.url);
+  const uploadStateText = uploading
+    ? lang === "en"
+      ? "Uploading"
+      : "Subiendo"
+    : uploaded || externalUrlReady
+      ? scanEligible
+        ? lang === "en"
+          ? "Uploaded · Ready for AI scan"
+          : "Subido · Listo para escaneo AI"
+        : lang === "en"
+          ? "Uploaded"
+          : "Subido"
+      : hasLocalSelection
+        ? lang === "en"
+          ? "Selected · upload to save"
+          : "Seleccionado · sube para guardar"
+        : lang === "en"
+          ? "Not selected"
+          : "No seleccionado";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isReplace: boolean) => {
     const file = e.target.files?.[0];
@@ -138,7 +157,7 @@ function AssetEditor({
       status: "ready",
       storagePath: "",
       url: "",
-      sizeBytes: null,
+      sizeBytes: file.size,
       title: asset.title.trim() || file.name.replace(/\.[^.]+$/, ""),
     });
   };
@@ -149,21 +168,21 @@ function AssetEditor({
 
   return (
     <div className={ASSET_CARD}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <span className="inline-flex rounded-full bg-[#7A1E2C]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
             {roleLabel}
           </span>
-          <p className="text-sm font-semibold text-[#1E1814]">
+          <p className="break-words text-sm font-semibold text-[#1E1814]">
             {asset.fileName.trim() || asset.title.trim() || labelForOfertaLocalDraftAssetType(asset.assetType, lang)}
           </p>
-          <p className="text-[10px] text-[#1E1814]/55">
+          <p className="break-words text-[10px] text-[#1E1814]/55">
             {labelForOfertaLocalDraftAssetType(asset.assetType, lang)}
             {asset.mimeType ? ` · ${asset.mimeType}` : ""}
             {asset.sizeBytes != null ? ` · ${formatOfertaLocalFileSize(asset.sizeBytes)}` : ""}
           </p>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
           {(uploaded || externalUrlReady) && previewUrl ? (
             <button type="button" className={BTN_SECONDARY} onClick={onPreview} disabled={uploading}>
               {c.assetsPreview}
@@ -186,6 +205,9 @@ function AssetEditor({
       </div>
 
       <div className="flex flex-wrap gap-2 text-[10px]">
+        <span className="rounded-full border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-2 py-0.5 font-medium text-[#7A1E2C]">
+          {uploadStateText}
+        </span>
         <span className="rounded-full border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 font-medium text-[#1E1814]/70">
           {uploadStatus}
         </span>
@@ -291,7 +313,7 @@ function AssetEditor({
           {hasLocalSelection && !uploaded ? (
             <div className="rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-3 py-2 text-xs text-[#1E1814]/75">
               <p className="font-medium text-[#7A1E2C]">{ac.uploadPending}</p>
-              <p className="mt-2">
+              <p className="mt-2 break-words">
                 {pendingFile?.name ?? asset.fileName}
                 {(pendingFile?.type ?? asset.mimeType) ? ` · ${pendingFile?.type ?? asset.mimeType}` : ""}
                 {asset.sizeBytes != null ? ` · ${formatOfertaLocalFileSize(asset.sizeBytes)}` : ""}
@@ -312,7 +334,7 @@ function AssetEditor({
           {uploaded ? (
             <div className="rounded-lg border border-emerald-300/80 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
               <p className="font-medium">{ac.fileReceived}</p>
-              <p className="mt-1">{asset.fileName}</p>
+              <p className="mt-1 break-words">{asset.fileName}</p>
               {asset.mimeType ? <p className="text-emerald-800/80">{asset.mimeType}</p> : null}
               {asset.sizeBytes != null ? (
                 <p className="text-emerald-800/70">{formatOfertaLocalFileSize(asset.sizeBytes)}</p>
@@ -600,6 +622,9 @@ export function OfertasLocalesDraftAssetSection({
           {bucket === "flyerAssets"
             ? OFERTAS_LOCALES_SHELL_COPY.uploadFlyerPlaceholder
             : OFERTAS_LOCALES_SHELL_COPY.uploadCouponPlaceholder}
+          <span className="mt-1 block text-xs font-medium text-[#7A1E2C]/80">
+            {lang === "en" ? "Status: not selected" : "Estado: no seleccionado"}
+          </span>
         </p>
       ) : null}
       {showAiScanFormatsHint && isPrimaryFlyerMode ? (
@@ -631,7 +656,7 @@ export function OfertasLocalesDraftAssetSection({
         />
       ))}
       {canAdd ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 sm:flex sm:flex-wrap">
           {allowedTypes(bucket).map((t) => (
             <button
               key={t}

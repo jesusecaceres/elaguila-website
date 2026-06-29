@@ -41,6 +41,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesBusinessCategoryUx";
 import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import {
+  clearOfertaLocalAiScanSession,
   loadOfertaLocalAiScanSession,
   saveOfertaLocalAiScanSession,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
@@ -239,6 +240,31 @@ export default function OfertasLocalesApplicationClient() {
   const handleAiReviewGateChange = useCallback((state: OfertaLocalAiReviewGateState) => {
     setAiReviewGate(state);
   }, []);
+
+  const handleStartFresh = useCallback(() => {
+    const msg =
+      lang === "en"
+        ? "Are you sure? This will clear the current local draft, uploaded files, AI scan state, and extracted review results from this application view. You will start again at Step 1."
+        : "¿Estás seguro? Esto borrará el borrador local actual, los archivos subidos, el estado del escaneo AI y los resultados extraídos de esta vista de solicitud. Empezarás otra vez en el Paso 1.";
+    if (!window.confirm(msg)) return;
+    clearOfertaLocalAiScanSession();
+    resetDraft();
+    setSubmitSuccess(null);
+    setSubmitError(null);
+    setAiScanRecordId(null);
+    setLastScanJobId(null);
+    setScanPollingActive(false);
+    setScanRefreshToken((token) => token + 1);
+    setAiReviewGate({
+      activeSourceAssetId: null,
+      activeScanJobId: null,
+      totalItems: 0,
+      needsReviewCount: 0,
+    });
+    setUploadEditorOpen(false);
+    setStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [lang, resetDraft]);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
@@ -898,6 +924,23 @@ export default function OfertasLocalesApplicationClient() {
                 ) : null}
               </>
             ) : null}
+            <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
+                {lang === "en" ? "Need to start over?" : "¿Necesitas empezar de nuevo?"}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/65">
+                {lang === "en"
+                  ? "This clears only this application view and local draft state. It does not delete database rows."
+                  : "Esto solo limpia esta vista de solicitud y el borrador local. No borra registros de la base de datos."}
+              </p>
+              <button
+                type="button"
+                className="mt-3 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
+                onClick={handleStartFresh}
+              >
+                {lang === "en" ? "Delete this application and start over" : "Borrar esta solicitud y empezar de nuevo"}
+              </button>
+            </div>
           </div>
         );
       }

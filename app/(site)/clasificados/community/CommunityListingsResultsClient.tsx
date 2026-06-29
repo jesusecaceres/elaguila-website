@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  buildCategoryResultsUrl,
   categoryResultsPath,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 
@@ -32,8 +31,6 @@ import {
   COMUNIDAD_ACCESSIBILITY_OPTIONS,
   COMMUNITY_AUDIENCE_OPTIONS,
   COMMUNITY_REGISTRATION_OPTIONS,
-  labelClasesSkillLevel,
-  labelCommunityAudience,
   resolveClasesCategoryPublicLabel,
   resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
@@ -51,6 +48,19 @@ import { CommunityDiscoveryListingCard } from "./CommunityDiscoveryListingCard";
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
   return hay.toLowerCase().includes(needle.trim().toLowerCase());
+}
+
+function communityLocationSearchBlob(row: CommunityListingBrowseRow, pairs: Record<string, string>): string {
+  return [
+    row.city,
+    pairs["Leonix:state"],
+    pairs["Leonix:zip"],
+    pairs["Leonix:venue"],
+    pairs["Leonix:addressLine1"],
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 }
 
 type Props = {
@@ -111,7 +121,7 @@ export function CommunityListingsResultsClient({
       const quick = isCommunityQuickListing(pairs);
       const blob = buildCommunityDiscoverySearchBlob(row, category, pairs, lang);
       if (!textMatch(blob, q)) return false;
-      if (city && !(String(row.city ?? "").toLowerCase().includes(city.toLowerCase()))) return false;
+      if (city && !textMatch(communityLocationSearchBlob(row, pairs), city)) return false;
 
       if (!quick) return true;
 

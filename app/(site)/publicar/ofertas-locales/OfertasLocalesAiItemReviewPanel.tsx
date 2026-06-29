@@ -35,13 +35,14 @@ const CARD = "rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 shadow-sm
 const INPUT =
   "w-full rounded-lg border border-[#D4C4A8]/90 bg-white px-2.5 py-2 text-sm text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/20";
 const BTN_PRIMARY =
-  "rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-11 rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_SECONDARY =
-  "rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+  "min-h-11 rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_FILTER =
-  "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide";
+  "min-h-10 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide";
 
 type ReviewFilter = "all" | OfertaLocalItemReviewStatus;
+type PageFilter = "all" | number;
 
 export type OfertaLocalAiReviewGateState = {
   activeSourceAssetId: string | null;
@@ -360,7 +361,7 @@ function ItemReviewCard({
         </p>
       ) : null}
 
-      <div className={`flex flex-wrap gap-1.5 ${compact ? "mt-2" : "mt-3"}`}>
+      <div className={`grid gap-2 sm:flex sm:flex-wrap ${compact ? "mt-2" : "mt-3"}`}>
         <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={onSave}>
           {c.aiReviewSave}
         </button>
@@ -414,6 +415,7 @@ export function OfertasLocalesAiItemReviewPanel({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ReviewFilter>("all");
+  const [selectedPageFilter, setSelectedPageFilter] = useState<PageFilter>("all");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [previousScansOpen, setPreviousScansOpen] = useState(false);
   const [scanCompletedAt, setScanCompletedAt] = useState<number | null>(null);
@@ -456,6 +458,7 @@ export function OfertasLocalesAiItemReviewPanel({
     setActionMessage(null);
     setAutoRefreshing(false);
     setLoading(false);
+    setSelectedPageFilter("all");
     onFocusedItemChange?.(null);
     onReviewGateChange?.({
       activeSourceAssetId: null,
@@ -687,13 +690,21 @@ export function OfertasLocalesAiItemReviewPanel({
     return partitionItemsByActiveScanJob(assetScopedItems, activeScanJobId);
   }, [activeScanJobId, assetScopedItems, isWorkspace, selectedSourceAssetId]);
 
-  const filteredItems = useMemo(() => {
+  const pageFilteredItems = useMemo(() => {
     let list = isWorkspace ? allCurrentScanItems : assetScopedItems;
+    if (isWorkspace && selectedPageFilter !== "all") {
+      list = list.filter((item) => (item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1) === selectedPageFilter);
+    }
+    return list;
+  }, [allCurrentScanItems, assetScopedItems, isWorkspace, selectedPageFilter]);
+
+  const filteredItems = useMemo(() => {
+    let list = pageFilteredItems;
     if (statusFilter !== "all") {
       list = list.filter((item) => item.reviewStatus === statusFilter);
     }
     return list;
-  }, [allCurrentScanItems, assetScopedItems, isWorkspace, statusFilter]);
+  }, [pageFilteredItems, statusFilter]);
 
   const displayItems = filteredItems;
 
@@ -801,7 +812,7 @@ export function OfertasLocalesAiItemReviewPanel({
     lang,
   ]);
 
-  const selectionContext = `${activeScanJobId ?? ""}|${selectedSourceAssetId ?? ""}|${statusFilter}|${scanPollingActive ? "poll" : "idle"}`;
+  const selectionContext = `${activeScanJobId ?? ""}|${selectedSourceAssetId ?? ""}|${statusFilter}|${selectedPageFilter}|${scanPollingActive ? "poll" : "idle"}`;
 
   const selectItem = useCallback((itemId: string) => {
     logOfertaLocalScanUi("selected item changed", { itemId });
@@ -856,6 +867,17 @@ export function OfertasLocalesAiItemReviewPanel({
     }
     return [...pages.values()].sort((a, b) => a.page - b.page);
   }, [allCurrentScanItems, displayItems, isWorkspace]);
+
+  useEffect(() => {
+    setSelectedPageFilter("all");
+  }, [activeScanJobId, selectedSourceAssetId]);
+
+  useEffect(() => {
+    if (selectedPageFilter === "all") return;
+    if (!pageSummaries.some((page) => page.page === selectedPageFilter)) {
+      setSelectedPageFilter("all");
+    }
+  }, [pageSummaries, selectedPageFilter]);
 
   const focusedPageItems = useMemo(() => {
     if (!focusedItem?.sourcePage) return displayItems;
@@ -999,7 +1021,7 @@ export function OfertasLocalesAiItemReviewPanel({
     <div className="space-y-1">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold text-[#1E1814]">
-          {scanCopy.currentScan}: {displayItems.length}
+          {scanCopy.currentScan}: {isWorkspace ? allCurrentScanItems.length : displayItems.length}
           {previousScanItems.length > 0 ? ` · ${scanCopy.previousScans}: ${previousScanItems.length}` : ""}
         </p>
         <button
@@ -1019,7 +1041,7 @@ export function OfertasLocalesAiItemReviewPanel({
     <div
       className={
         isWorkspace
-          ? "flex h-full max-h-[calc(100vh-5.5rem)] min-h-0 flex-col overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm"
+          ? "flex min-h-0 flex-col rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm xl:h-full xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden"
           : "space-y-4 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4"
       }
     >
@@ -1108,13 +1130,47 @@ export function OfertasLocalesAiItemReviewPanel({
                   ))}
                 </div>
               ) : null}
+              {pageSummaries.length > 1 ? (
+                <div className="mt-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                    {lang === "en" ? "Review by page" : "Revisar por página"}
+                  </p>
+                  <div className="mt-1 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <button
+                      type="button"
+                      className={`${BTN_FILTER} ${
+                        selectedPageFilter === "all"
+                          ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#7A1E2C]"
+                          : "border-[#D4C4A8] bg-white text-[#1E1814]/60"
+                      }`}
+                      onClick={() => setSelectedPageFilter("all")}
+                    >
+                      {lang === "en" ? "All pages" : "Todas"}
+                    </button>
+                    {pageSummaries.map((page) => (
+                      <button
+                        key={page.page}
+                        type="button"
+                        className={`${BTN_FILTER} ${
+                          selectedPageFilter === page.page
+                            ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#7A1E2C]"
+                            : "border-[#D4C4A8] bg-white text-[#1E1814]/60"
+                        }`}
+                        onClick={() => setSelectedPageFilter(page.page)}
+                      >
+                        {lang === "en" ? "Page" : "Página"} {page.page}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
             {activeScanJobId && previousScanItems.length > 0 ? (
               <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
                 {scanCopy.currentScan}
               </p>
             ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2">
+            <div className="flex flex-col gap-3 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold text-[#1E1814]">
                 {focusedItem?.sourcePage
                   ? `${c.aiReviewProductPosition} ${focusedPageIndex + 1} ${c.aiReviewProductOf} ${
@@ -1124,7 +1180,7 @@ export function OfertasLocalesAiItemReviewPanel({
                       displayItems.length
                     }`}
               </p>
-              <div className="flex gap-1.5">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1.5">
                 <button
                   type="button"
                   className={BTN_SECONDARY}
@@ -1197,7 +1253,7 @@ export function OfertasLocalesAiItemReviewPanel({
       </div>
 
       {isWorkspace && displayItems.length > 0 ? (
-        <div ref={formPanelRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
+        <div ref={formPanelRef} className="p-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
           {focusedItem ? (
             <ItemReviewCard
               key={focusedItem.id}

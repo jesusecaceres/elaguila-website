@@ -136,6 +136,7 @@ export function buildCommunityDiscoverySearchBlob(
   }
   const venue = pairs["Leonix:venue"] ?? "";
   const addr = pairs["Leonix:addressLine1"] ?? "";
+  const city = String(row.city ?? "");
   const zip = pairs["Leonix:zip"] ?? "";
   const state = pairs["Leonix:state"] ?? "";
   const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
@@ -148,7 +149,7 @@ export function buildCommunityDiscoverySearchBlob(
   const dateBits = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"], pairs["Leonix:eventSessionStart"], pairs["Leonix:eventSessionEnd"]]
     .filter(Boolean)
     .join(" ");
-  return `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""} ${pairs["Leonix:bringNote"] ?? ""} ${typeLine} ${venue} ${addr} ${zip} ${state} ${mode} ${aud} ${lvl} ${sched} ${dateBits}`.toLowerCase();
+  return `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""} ${pairs["Leonix:bringNote"] ?? ""} ${typeLine} ${venue} ${addr} ${city} ${zip} ${state} ${mode} ${aud} ${lvl} ${sched} ${dateBits}`.toLowerCase();
 }
 
 export function buildCommunityDiscoveryCardModel(

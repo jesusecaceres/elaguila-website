@@ -3,7 +3,7 @@ import { stripLeonixPublishedDescriptionBody } from "@/app/(site)/clasificados/l
 import { resolveBuscoTypePublicLabel } from "@/app/(site)/clasificados/busco/shared/buscoPublicLabel";
 
 import type { BuscoListingBrowseRow } from "./loadBuscoListings";
-import { detailPairsToMap, type BuscoListingPairMap } from "./buscoListingDetailPairs";
+import type { BuscoListingPairMap } from "./buscoListingDetailPairs";
 
 const CONTACT_SEARCH = {
   es: {
@@ -39,6 +39,8 @@ export function buildBuscoSearchBlob(row: BuscoListingBrowseRow, pairs: BuscoLis
   const typeLabel = resolveBuscoTypePublicLabel(typeSlug, typeCustom, lang);
   const city = String(row.city ?? "");
   const zone = pairs["Leonix:buscoZone"] ?? "";
+  const state = pairs["Leonix:state"] ?? "";
+  const zip = pairs["Leonix:zip"] ?? "";
   const budget = pairs["Leonix:buscoBudget"] ?? "";
   const contactBits = CONTACT_SEARCH[lang];
   const contact =
@@ -49,5 +51,5 @@ export function buildBuscoSearchBlob(row: BuscoListingBrowseRow, pairs: BuscoLis
         : buscoRowHasEmail(row, pairs)
           ? contactBits.email
           : "";
-  return `${title} ${desc} ${typeLabel} ${typeCustom} ${typeSlug} ${city} ${zone} ${budget} ${contact}`.toLowerCase();
+  return `${title} ${desc} ${typeLabel} ${typeCustom} ${typeSlug} ${city} ${state} ${zip} ${zone} ${budget} ${contact}`.toLowerCase();
 }

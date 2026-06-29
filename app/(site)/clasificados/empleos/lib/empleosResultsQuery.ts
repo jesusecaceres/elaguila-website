@@ -116,12 +116,42 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
 
     if (qLower) {
       const blob =
-        `${j.title} ${j.company} ${j.summary} ${j.description} ${j.industryFocus ?? ""} ${j.scheduleLabel ?? ""} ${j.languagesSpoken ?? ""}`.toLowerCase();
+        [
+          j.title,
+          j.company,
+          j.summary,
+          j.description,
+          j.category,
+          j.categoryCustomLabel ?? "",
+          j.jobType,
+          j.modality,
+          j.experience,
+          j.companyType,
+          j.city,
+          j.state,
+          j.postalCode ?? "",
+          j.salaryLabel,
+          String(j.salaryMin),
+          String(j.salaryMax),
+          ...(j.requirements ?? []),
+          ...(j.benefits ?? []),
+          ...(j.benefitChips ?? []),
+          j.industryFocus ?? "",
+          j.scheduleLabel ?? "",
+          j.languagesSpoken ?? "",
+          j.feriaDateLine ?? "",
+          j.feriaTimeLine ?? "",
+          j.feriaVenue ?? "",
+          j.employerAddressLine ?? "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
       if (!blob.includes(qLower)) return false;
     }
 
     if (cityLower) {
-      const loc = `${j.city} ${j.state}`.toLowerCase();
+      const loc = `${j.city} ${j.state} ${j.postalCode ?? ""} ${j.feriaVenue ?? ""} ${j.employerAddressLine ?? ""}`.toLowerCase();
       if (!loc.includes(cityLower)) return false;
     }
 

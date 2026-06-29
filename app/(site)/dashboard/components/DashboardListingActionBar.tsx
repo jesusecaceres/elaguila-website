@@ -22,13 +22,13 @@ function actionClass(tone: ActionItem["tone"]): string {
 
 export function DashboardListingActionBar({ actions }: { actions: ActionItem[] }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex min-w-0 max-w-full flex-wrap gap-2">
       {actions.map((action) =>
         action.href ? (
           <Link
             key={`${action.label}-${action.href}`}
             href={action.href}
-            className={`inline-flex min-h-[40px] items-center rounded-xl border px-4 py-2 text-sm font-semibold ${actionClass(action.tone)}`}
+            className={`inline-flex min-h-[40px] max-w-full min-w-0 items-center justify-center rounded-xl border px-4 py-2 text-center text-sm font-semibold leading-snug break-words ${actionClass(action.tone)}`}
           >
             {action.label}
           </Link>
@@ -38,7 +38,7 @@ export function DashboardListingActionBar({ actions }: { actions: ActionItem[] }
             type="button"
             onClick={action.onClick}
             disabled={action.disabled}
-            className={`inline-flex min-h-[40px] items-center rounded-xl border px-4 py-2 text-sm font-semibold disabled:opacity-50 ${actionClass(action.tone)}`}
+            className={`inline-flex min-h-[40px] max-w-full min-w-0 items-center justify-center rounded-xl border px-4 py-2 text-center text-sm font-semibold leading-snug break-words disabled:opacity-50 ${actionClass(action.tone)}`}
           >
             {action.label}
           </button>

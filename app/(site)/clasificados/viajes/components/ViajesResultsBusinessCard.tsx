@@ -13,6 +13,8 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
   const sp = useSearchParams();
   const backHref = `/clasificados/viajes/resultados${sp?.toString() ? `?${sp.toString()}` : ""}`;
   const offerHref = row.href.includes("/oferta/") ? withViajesOfferBackParam(row.href, backHref) : row.href;
+  const whatsappDigits = row.whatsapp?.replace(/\D/g, "") ?? "";
+  const whatsappHref = whatsappDigits.length >= 10 ? `https://wa.me/${whatsappDigits}` : "";
 
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_10px_30px_-18px_rgba(42,36,22,0.2)]">
@@ -46,9 +48,9 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
           >
             {ui.cards.businessViewListing}
           </Link>
-          {row.whatsapp ? (
+          {whatsappHref ? (
             <ViajesSheetCtaLink
-              href={`https://wa.me/${row.whatsapp.replace(/\D/g, "")}`}
+              href={whatsappHref}
               lang={ui.lang}
               className="inline-flex min-h-[38px] flex-1 items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-sm font-bold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
             >

@@ -12,7 +12,7 @@ import { formatOfertaLocalFileSize } from "@/app/lib/ofertas-locales/ofertasLoca
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
 const BTN =
-  "rounded-lg border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+  "min-h-11 rounded-lg border border-[#D4C4A8] bg-white px-3 py-2.5 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
 const BTN_ACTIVE = "border-[#7A1E2C] bg-[#7A1E2C]/10 font-semibold text-[#7A1E2C]";
 
 type ZoomLevel = "fit" | "100" | "125" | "150";
@@ -107,7 +107,7 @@ export function OfertasLocalesSourceAdPreviewPanel({
         : "Archivo fuente";
 
   const viewerHeightClass = deskMode
-    ? "h-[min(78vh,920px)] min-h-[70vh]"
+    ? "h-[min(58vh,620px)] min-h-[340px] lg:h-[min(78vh,920px)] lg:min-h-[70vh]"
     : "h-[min(60vh,560px)] min-h-[320px]";
   const zoomButtons: { id: ZoomLevel; label: string }[] = [
     { id: "fit", label: lang === "en" ? "Fit width" : "Ajustar" },
@@ -118,12 +118,12 @@ export function OfertasLocalesSourceAdPreviewPanel({
 
   const body = (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <span className="inline-flex rounded-full bg-[#7A1E2C]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
             {role}
           </span>
-          <p className="mt-2 truncate text-sm font-semibold text-[#1E1814] sm:text-base">
+          <p className="mt-2 break-words text-sm font-semibold text-[#1E1814] sm:text-base">
             {asset?.fileName || asset?.title || "—"}
           </p>
           {asset?.mimeType ? (
@@ -138,7 +138,7 @@ export function OfertasLocalesSourceAdPreviewPanel({
             href={previewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${BTN} shrink-0 text-[#7A1E2C]`}
+            className={`${BTN} w-full shrink-0 text-center text-[#7A1E2C] sm:w-auto`}
           >
             {isPdf ? c.assetsOpenPdf : c.assetsOpenInNewTab}
           </a>

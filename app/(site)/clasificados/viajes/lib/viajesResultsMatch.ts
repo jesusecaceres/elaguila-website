@@ -6,7 +6,7 @@ function textHaystack(row: ViajesResultRow): string {
   if (row.kind === "affiliate") return `${row.title} ${row.destination} ${row.priceFrom}`.toLowerCase();
   if (row.kind === "business") {
     const x = row.listingSearchExtras?.trim();
-    return `${row.offerTitle} ${row.destination} ${row.departureCity} ${row.price} ${row.includedSummary}${x ? ` ${x}` : ""}`.toLowerCase();
+    return `${row.businessName} ${row.offerTitle} ${row.destination} ${row.departureCity} ${row.price} ${row.includedSummary}${x ? ` ${x}` : ""}`.toLowerCase();
   }
   return `${row.title} ${row.dek} ${row.destinationLabel}`.toLowerCase();
 }
