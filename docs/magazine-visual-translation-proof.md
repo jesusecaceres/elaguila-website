@@ -2,7 +2,7 @@
 
 Status: `MAGAZINE-VISUAL-TRANSLATION-PROOF1`
 
-Provider backend status: `MAGAZINE-PROVIDER-BACKEND-SMOKE1` reached `STOP_HOLD_FOR_PROVIDER_ENV`. The June 2026 Spanish source PDF exists and hashes locally to `8fa5ec5a9faa1c0cb689451b79477f60b2fc2e644048a9176bcc68d8be112986`, but neither DeepL nor Google document translation is ready to execute from this repo because provider credentials and document-translation dependencies are missing.
+Provider backend status: `MAGAZINE-PROVIDER-SETUP-AND-PT-SMOKE1` reached `STOP_HOLD_FOR_PROVIDER_ENV`. The June 2026 Spanish source PDF exists and hashes locally to `8fa5ec5a9faa1c0cb689451b79477f60b2fc2e644048a9176bcc68d8be112986`. Portuguese (`pt`) is now the locked first document/visual smoke target, but neither DeepL nor Google document translation is ready to execute because provider credentials are missing and document-translation dependencies are not installed.
 
 Leonix Media's digital and printed magazine is now the flagship multilingual product. Clasificados and Negocios Locales dynamic translation are postponed while magazine visual editions, HTML companions, QR bridge flows, and reusable advertiser assets move first.
 
@@ -45,6 +45,8 @@ Out of scope for this proof:
 DeepL and Google document translation must each be tested with one real magazine PDF before Leonix commits to either provider for visual magazine production. That proof belongs in a later provider-smoke gate.
 
 `MAGAZINE-PROVIDER-BACKEND-SMOKE1` did not call either provider. It added dry-run backend proof tooling under `scripts/magazine/`, ignored local proof output folders, and documented exact setup requirements. No produced translated visual asset exists from this gate.
+
+`MAGAZINE-PROVIDER-SETUP-AND-PT-SMOKE1` updated the local proof tooling to default to Portuguese (`pt`) and refused `ar`, `fa`, and broad/all-language targets. It did not install provider dependencies because no provider env was present. It did not call paid APIs, create translated output, publish assets, or mark any translated visual asset QA-approved.
 
 This gate must not:
 
@@ -223,7 +225,7 @@ The private proof route at `/magazine/poc-view` may use mock data to show the fu
 ## Future Gates
 
 - `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1`: verify Google env and cache read/write smoke when credentials are ready.
-- `MAGAZINE-PROVIDER-BACKEND-SMOKE1`: blocked on provider env/dependency setup; retry with one target language (`vi`) only after setup.
+- `MAGAZINE-PROVIDER-SETUP-AND-PT-SMOKE1`: blocked on provider env/dependency setup; retry with one target language (`pt`) only after setup.
 - `MAGAZINE-PROVIDER-SMOKE1`: compare one real magazine PDF through DeepL and Google document translation without public serving after backend smoke is ready.
 - `MAG-COMPANION-BODY-LANG1`: improve companion body copy for active public languages.
 - `QR-GUIDE-LONGFORM-LANG1`: polish QR translation instructions in all active public languages.

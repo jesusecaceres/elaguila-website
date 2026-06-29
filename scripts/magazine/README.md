@@ -1,6 +1,6 @@
 # Magazine Provider Proof Scripts
 
-Status: `MAGAZINE-PROVIDER-BACKEND-SMOKE1`
+Status: `MAGAZINE-PROVIDER-SETUP-AND-PT-SMOKE1`
 
 These scripts prepare a backend/provider smoke path for the digital magazine without publishing assets or forcing paid API calls. They default to dry-run behavior and must not print secret values.
 
@@ -21,7 +21,7 @@ node scripts/magazine/hash-source.mjs --dry-run
 node scripts/magazine/hash-source.mjs --write
 ```
 
-The `--write` command stores a local proof record under `.magazine-proof-output/`, which is ignored by git.
+The `--write` command stores a local proof record under `.magazine-proof-output/june-2026/pt/`, which is ignored by git.
 
 ## Local Proof Output
 
@@ -43,10 +43,10 @@ Blocked until both are true:
 Safe preflight:
 
 ```bash
-node scripts/magazine/proof-translate-deepl.mjs --dry-run --target=vi
+node scripts/magazine/proof-translate-deepl.mjs --dry-run --target=pt
 ```
 
-Execution remains held in this gate until the DeepL document API call is implemented and reviewed. The script refuses non-`vi` targets.
+Execution remains held until dependency/env are present and the DeepL document API call is implemented and reviewed. This gate is Portuguese-only; the script refuses non-`pt` targets, broad/all-language targets, and held inactive `ar`/`fa`.
 
 ## Google Document Smoke
 
@@ -60,7 +60,7 @@ Blocked until all are true:
 Safe preflight:
 
 ```bash
-node scripts/magazine/proof-translate-google.mjs --dry-run --target=vi
+node scripts/magazine/proof-translate-google.mjs --dry-run --target=pt
 ```
 
 The existing `app/lib/translation/provider.ts` path is a text `translateText` provider for `/api/translate-ad`; do not reuse or modify it for magazine document smoke in this gate.
@@ -76,7 +76,7 @@ node scripts/magazine/proof-render.mjs --dry-run
 After a real local provider output exists, create local proof metadata:
 
 ```bash
-node scripts/magazine/proof-manifest-from-output.mjs --write --target=vi --provider=deepl
+node scripts/magazine/proof-manifest-from-output.mjs --write --target=pt --provider=deepl
 ```
 
 The proof manifest is local-only and must keep:

@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 const DEFAULT_SOURCE = "public/magazine/2026/june/leonix_media_june.pdf";
-const DEFAULT_OUTPUT = ".magazine-proof-output/2026-june/source-hash.json";
+const DEFAULT_OUTPUT = ".magazine-proof-output/june-2026/pt/source-hash.json";
 
 function argValue(name, fallback) {
   const prefix = `${name}=`;

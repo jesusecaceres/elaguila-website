@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const DEFAULT_SOURCE = "public/magazine/2026/june/leonix_media_june.pdf";
-const DEFAULT_OUTPUT_DIR = ".magazine-proof-output/2026-june/rendered/vi";
+const DEFAULT_OUTPUT_DIR = ".magazine-proof-output/june-2026/pt/rendered";
 
 function argValue(name, fallback) {
   const prefix = `${name}=`;
