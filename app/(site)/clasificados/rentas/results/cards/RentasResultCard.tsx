@@ -6,6 +6,7 @@ import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingL
 import { rentasListingResultsHandoff } from "@/app/clasificados/rentas/landing/rentasListingResultsHandoff";
 import { IconBath, IconBed, IconRuler } from "@/app/clasificados/bienes-raices/resultados/cards/cardIcons";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
+import { trackRentasResultCardClick } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 import {
   buildRentasResultsCardSummaryEs,
   type RentasPublicListingFlowSlice,
@@ -292,10 +293,11 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
     : "rounded-2xl border border-[#D4A574]/18 bg-[#FFFAF0] shadow-[0_6px_24px_-16px_rgba(44,36,28,0.12)]";
 
   const aria = `${listing.title}. ${listing.rentDisplay}. ${lang === "es" ? "Ver anuncio" : "View listing"}`;
+  const trackOpen = () => trackRentasResultCardClick({ listingUuid: listing.id, leonixAdId: listing.leonixAdId });
 
   if (horizontal) {
     return (
-      <Link href={href} className={`group block w-full overflow-hidden ${cardRing}`} aria-label={aria}>
+      <Link href={href} className={`group block w-full overflow-hidden ${cardRing}`} aria-label={aria} onClick={trackOpen}>
         <article className="overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-stretch">
             <div className="relative w-full shrink-0 sm:w-[220px] lg:w-[240px]">
@@ -318,7 +320,7 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
   }
 
   return (
-    <Link href={href} className={`group block h-full w-full overflow-hidden ${cardRing}`} aria-label={aria}>
+    <Link href={href} className={`group block h-full w-full overflow-hidden ${cardRing}`} aria-label={aria} onClick={trackOpen}>
       <article className="flex h-full flex-col overflow-hidden">
         <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[#E8E0D4]">
           <img

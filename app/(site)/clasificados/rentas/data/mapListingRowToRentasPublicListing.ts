@@ -363,7 +363,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const muxPoster =
     muxThumbRow ||
     (muxPid ? `https://image.mux.com/${muxPid}/thumbnail.jpg` : "");
-  const videoUrlSan = sanitizeHttpUrl(rx.videoUrl);
+  const videoUrlList = (rx.videoUrls ?? []).map((u) => sanitizeHttpUrl(u)).filter((u): u is string => Boolean(u));
+  const videoUrlSan = sanitizeHttpUrl(rx.videoUrl) ?? videoUrlList[0];
   const pairVideo =
     videoUrlSan && rentasPublishedVideoShouldAppearInGallery(videoUrlSan) ? videoUrlSan : undefined;
   const muxVideo = muxHls && rentasPublishedVideoShouldAppearInGallery(muxHls) ? muxHls : undefined;
@@ -515,6 +516,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     virtualTourUrl: normalizeLeonixHttpsUrl(rx.virtualTourUrl) ?? undefined,
     mapUrl,
     videoUrl,
+    videoUrls: videoUrlList.length ? videoUrlList : videoUrl ? [videoUrl] : undefined,
     videoPosterUrl,
     categoriaPropiedad: categoria,
     branch: branchSeller,

@@ -76,10 +76,10 @@ export function buildRentasPrivadoTemplateVm(categoria: BrNegocioCategoriaPropie
     listingStatusLabel: "Disponible",
     operationSummary:
       categoria === "residencial"
-        ? "Renta residencial · plantilla Rentas Privado"
+        ? "Renta residencial · plantilla Rentas"
         : categoria === "comercial"
-          ? "Renta comercial · plantilla Rentas Privado"
-          : "Renta terreno / lote · plantilla Rentas Privado",
+          ? "Renta comercial · plantilla Rentas"
+          : "Renta terreno / lote · plantilla Rentas",
     quickFacts: [],
     seller: { ...SELLER_PLACEHOLDER },
     media: emptyMedia(metaLine),
@@ -98,7 +98,7 @@ export function buildRentasPrivadoTemplateVm(categoria: BrNegocioCategoriaPropie
       hasMeaningfulAddress: true,
     },
     mostrarDireccionExacta: false,
-    footerNote: `Plantilla de salida Rentas Privado · categoría: ${categoria}. Misma estructura que el listado publicado; sin persistencia ni datos reales en esta fase.`,
+    footerNote: `Plantilla de salida Rentas · categoría: ${categoria}. Misma estructura que el listado publicado; sin persistencia ni datos reales en esta fase.`,
   };
 
   if (categoria === "residencial") {

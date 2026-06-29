@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   publishLeonixListingFromRentasPrivadoDraft,
-  type RentasListingPublishMuxFields,
 } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
@@ -22,13 +21,11 @@ import {
   loadRentasPrivadoDraft,
 } from "@/app/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft";
 import { resolveRentasPrivadoDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
-import { hydrateRentasPrivadoDraftVideoFromIdb } from "@/app/clasificados/rentas/shared/rentasDraftVideoHydrate";
-import { rentasDraftVideoFileForMuxUpload, rentasMediaHasLocalMuxableVideo } from "@/app/clasificados/rentas/shared/rentasDraftVideoMuxSource";
+import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   rentasPublishStepTracePatch,
   rentasPublishStepTraceReset,
 } from "@/app/clasificados/rentas/lib/rentasPublishStepTrace";
-import { uploadRentasDraftVideoFileToMux } from "@/app/clasificados/rentas/shared/rentasMuxVideoClient";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
@@ -72,6 +69,13 @@ export default function RentasPrivadoPreviewClient() {
       setPublishBusy(false);
       return;
     }
+    const gate = gateRentasPrivadoPreview(d);
+    if (!gate.ok) {
+      setPublishBusy(false);
+      rentasPublishStepTracePatch({ finalErrorSet: true });
+      setPublishErr(gate.message);
+      return;
+    }
 
     let toPublish = d;
     const draftSessionId =
@@ -101,42 +105,8 @@ export default function RentasPrivadoPreviewClient() {
     ).length;
     rentasPublishStepTracePatch({ imagesUploadFinished: true, imagesDurableCount });
 
-    let muxFields: RentasListingPublishMuxFields | undefined;
-    if (rentasMediaHasLocalMuxableVideo(toPublish.media)) {
-      rentasPublishStepTracePatch({ videoSelected: true });
-      const file = await rentasDraftVideoFileForMuxUpload(toPublish.media);
-      if (!file) {
-        rentasPublishStepTracePatch({
-          muxDirectUploadStarted: false,
-          muxDirectUploadSucceeded: false,
-          muxUploadStatusSucceeded: false,
-        });
-      } else {
-        rentasPublishStepTracePatch({ muxDirectUploadStarted: true });
-        const muxRes = await uploadRentasDraftVideoFileToMux(file, lang);
-        if (!muxRes.ok) {
-          rentasPublishStepTracePatch({
-            muxDirectUploadSucceeded: false,
-            muxUploadStatusSucceeded: false,
-          });
-        } else {
-          rentasPublishStepTracePatch({
-            muxDirectUploadSucceeded: true,
-            muxUploadStatusSucceeded: true,
-            muxAssetId: muxRes.assetId,
-            muxPlaybackId: muxRes.playbackId,
-          });
-          muxFields = {
-            muxAssetId: muxRes.assetId,
-            muxPlaybackId: muxRes.playbackId,
-            muxThumbnailUrl: muxRes.thumbnailUrl,
-          };
-        }
-      }
-    }
-
     rentasPublishStepTracePatch({ finalPayloadBuildStarted: true });
-    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang, muxFields);
+    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang);
     rentasPublishStepTracePatch({
       finalPayloadBuildFinished: true,
       redirectStarted: r.ok,
@@ -153,7 +123,6 @@ export default function RentasPrivadoPreviewClient() {
 
   useEffect(() => {
     let cancelled = false;
-    let revokeUrl: string | null = null;
     void (async () => {
       const raw = loadRentasPrivadoDraft();
       if (!raw) {
@@ -163,18 +132,14 @@ export default function RentasPrivadoPreviewClient() {
         }
         return;
       }
-      const { state, revokeObjectUrl } = await hydrateRentasPrivadoDraftVideoFromIdb(raw);
       if (cancelled) {
-        if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl);
         return;
       }
-      revokeUrl = revokeObjectUrl;
-      setDraft(state);
+      setDraft(raw);
       setPhase("ready");
     })();
     return () => {
       cancelled = true;
-      if (revokeUrl) URL.revokeObjectURL(revokeUrl);
     };
   }, []);
 
@@ -205,7 +170,7 @@ export default function RentasPrivadoPreviewClient() {
               <span className="mx-2 opacity-40">·</span>
               Category template.{" "}
               <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
-                Go to publish — Private
+                Post a rental
               </Link>
             </>
           ) : (
@@ -214,7 +179,7 @@ export default function RentasPrivadoPreviewClient() {
               <span className="mx-2 opacity-40">·</span>
               Plantilla por categoría.{" "}
               <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
-                Ir a publicar — Privado
+                Publicar renta
               </Link>
             </>
           )}

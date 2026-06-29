@@ -274,7 +274,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                   }
                 />
                 <span className="min-w-0">
-                  {d.emoji} {d.label}
+                  {d.label}
                 </span>
               </label>
             ))}
@@ -296,7 +296,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                   })
                 }
               />
-              <span className="min-w-0">✏️ Otro</span>
+              <span className="min-w-0">Otro</span>
             </label>
           </div>
           {servicioOtro ? (

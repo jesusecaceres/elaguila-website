@@ -38,6 +38,9 @@ export const RENTAS_DP_LISTING_STATUS = "Leonix:rent:listing_status";
 export const RENTAS_DP_MAP_URL = "Leonix:rent:map_url";
 /** External video URL only (never data: URLs). */
 export const RENTAS_DP_VIDEO_URL = "Leonix:rent:video_url";
+export const RENTAS_DP_VIDEO_URL_2 = "Leonix:rent:video_url_2";
+export const RENTAS_DP_VIDEO_URL_3 = "Leonix:rent:video_url_3";
+export const RENTAS_DP_VIDEO_URL_4 = "Leonix:rent:video_url_4";
 export const RENTAS_DP_HALF_BATHS_COUNT = "Leonix:rent:half_baths_count";
 export const RENTAS_DP_RENTAL_TYPE_CODE = "Leonix:rent:rental_type_code";
 export const RENTAS_DP_RENTAL_TYPE_CUSTOM = "Leonix:rent:rental_type_custom";
@@ -96,6 +99,18 @@ function digitsUsd(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
 
+function rentasVideoUrls(media: { videoUrl?: string; videoUrls?: string[] }): string[] {
+  const raw = Array.isArray(media.videoUrls) && media.videoUrls.length ? media.videoUrls : [media.videoUrl ?? ""];
+  const out: string[] = [];
+  for (const item of raw) {
+    const u = String(item ?? "").trim();
+    if (!u || out.includes(u) || !/^https?:\/\//i.test(u)) continue;
+    out.push(u);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
 function mergeRentasCommonMachinePairs(
   state: RentasPersistCommon & RentasMapQueryState,
   base: Array<{ label: string; value: string }>,
@@ -138,12 +153,17 @@ export function mergeRentasPrivadoMachinePairs(
   if (state.estadoAnuncio) push(out, RENTAS_DP_LISTING_STATUS, state.estadoAnuncio);
   const mapAuto = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(state));
   if (mapAuto) push(out, RENTAS_DP_MAP_URL, mapAuto);
-  const vid = String(state.media.videoUrl ?? "").trim();
-  if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
+  const vids = rentasVideoUrls(state.media);
+  if (vids[0]) push(out, RENTAS_DP_VIDEO_URL, vids[0]);
+  if (vids[1]) push(out, RENTAS_DP_VIDEO_URL_2, vids[1]);
+  if (vids[2]) push(out, RENTAS_DP_VIDEO_URL_3, vids[2]);
+  if (vids[3]) push(out, RENTAS_DP_VIDEO_URL_4, vids[3]);
   const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
   if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
   const sms = digitsOnly15(state.seller.mensajesTexto ?? "");
   if (sms.length >= 10) push(out, RENTAS_DP_CONTACT_SMS_DIGITS, sms);
+  const wa = digitsOnly15(state.seller.whatsapp ?? "");
+  if (wa.length >= 10) push(out, RENTAS_DP_CONTACT_WHATSAPP_DIGITS, wa);
   const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(state.contactChannels, {
     instructionsNote: state.seller.notaContacto,
   });

@@ -121,6 +121,8 @@ export type RentasPrivadoFormState = {
     photoDataUrls: string[];
     primaryImageIndex: number;
     videoUrl: string;
+    /** Launch path: up to four external video URLs. `videoUrl` mirrors the first URL for existing output contracts. */
+    videoUrls: string[];
     /** Transient object/data URL used by preview runtime (never persisted as giant JSON). */
     videoLocalDataUrl: string;
     videoLocalDraftId: string;
@@ -155,6 +157,7 @@ export type RentasPrivadoFormState = {
 };
 
 const MAX_PHOTOS = 8;
+const MAX_VIDEO_URLS = 4;
 
 function coerceRentasListingStatus(raw: unknown): RentasPrivadoListingStatus {
   const v = typeof raw === "string" ? raw : "";
@@ -237,6 +240,26 @@ function coerceNumber(raw: unknown): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function coerceVideoUrls(raw: unknown, fallback?: unknown): string[] {
+  const values = Array.isArray(raw)
+    ? raw
+    : typeof raw === "string"
+      ? raw.split(/\r?\n/)
+      : [];
+  const out: string[] = [];
+  for (const item of values) {
+    if (typeof item !== "string") continue;
+    const v = item.trim();
+    if (!v || out.includes(v)) continue;
+    out.push(v);
+    if (out.length >= MAX_VIDEO_URLS) break;
+  }
+  if (!out.length && typeof fallback === "string" && fallback.trim()) {
+    out.push(fallback.trim());
+  }
+  return out.slice(0, MAX_VIDEO_URLS);
+}
+
 export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
   const br = mergePartialBienesRaicesPrivadoState({});
   return {
@@ -295,6 +318,8 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     estadoAnuncio: "disponible",
     media: {
       ...br.media,
+      videoUrl: "",
+      videoUrls: [],
       videoLocalDraftId: "",
       videoLocalFileName: "",
       videoLocalMimeType: "",
@@ -483,6 +508,14 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     estadoAnuncio: coerceRentasListingStatus(partial.estadoAnuncio ?? br.estadoAnuncio),
     media: {
       ...br.media,
+      videoUrl: coerceVideoUrls(
+        (partial.media as { videoUrls?: unknown } | undefined)?.videoUrls,
+        (partial.media as { videoUrl?: unknown } | undefined)?.videoUrl ?? br.media.videoUrl,
+      )[0] ?? "",
+      videoUrls: coerceVideoUrls(
+        (partial.media as { videoUrls?: unknown } | undefined)?.videoUrls,
+        (partial.media as { videoUrl?: unknown } | undefined)?.videoUrl ?? br.media.videoUrl,
+      ),
       videoLocalDraftId:
         typeof (partial.media as { videoLocalDraftId?: unknown } | undefined)?.videoLocalDraftId === "string"
           ? String((partial.media as { videoLocalDraftId: string }).videoLocalDraftId)

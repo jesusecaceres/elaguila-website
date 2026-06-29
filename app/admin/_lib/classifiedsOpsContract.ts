@@ -41,6 +41,11 @@ function listingPublicUrl(row: Record<string, unknown>): string {
   return `/clasificados/anuncio/${encodeURIComponent(id)}`;
 }
 
+function rentasPublicUrl(row: Record<string, unknown>): string {
+  const id = String(row.id ?? "").trim();
+  return `/clasificados/rentas/listing/${encodeURIComponent(id)}?lang=es`;
+}
+
 function listingStaffEditUrl(row: Record<string, unknown>): string {
   const id = String(row.id ?? "").trim();
   return `${GENERIC_HUB}/listings/${encodeURIComponent(id)}/edit`;
@@ -152,7 +157,7 @@ export const CLASSIFIEDS_OPS_CONTRACTS: ClassifiedsCategoryOpsContract[] = [
     fieldsNotesAdminPath: "/admin/workspace/clasificados/category/rentas#contenido",
     operationalSpaceAdminPath: "/admin/workspace/clasificados/category/rentas#operacion",
     adQueueAdminPath: "/admin/workspace/clasificados/rentas",
-    buildPublicUrl: listingPublicUrl,
+    buildPublicUrl: rentasPublicUrl,
     buildStaffEditUrl: listingStaffEditUrl,
   },
   {

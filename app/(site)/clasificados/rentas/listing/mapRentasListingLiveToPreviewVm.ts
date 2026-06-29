@@ -286,6 +286,18 @@ function buildPropertyRows(listing: RentasPublicListing, lang: "es" | "en"): Bie
   return [...filtered, ...ext];
 }
 
+function buildPublishedVideoRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
+  const urls = Array.isArray(listing.videoUrls) ? listing.videoUrls : listing.videoUrl ? [listing.videoUrl] : [];
+  const clean = urls
+    .map((u) => trim(u))
+    .filter((u, i, arr) => Boolean(u) && /^https?:\/\//i.test(u) && arr.indexOf(u) === i)
+    .slice(0, 4);
+  return clean.map((url, i) => ({
+    label: i === 0 ? "Video" : `Video ${i + 1}`,
+    value: url,
+  }));
+}
+
 function buildRentasLiveShowingCard(
   listing: RentasPublicListing,
   lang: "es" | "en",
@@ -460,7 +472,7 @@ export function mapRentasListingToPrivadoPreviewVm(
       virtualTourUrl: tourUrl ?? media.virtualTourUrl,
       hasVirtualTour: Boolean(tourUrl ?? media.hasVirtualTour),
     },
-    propertyDetailsRows: [...contract, ...property],
+    propertyDetailsRows: [...contract, ...property, ...buildPublishedVideoRows(listing, lang)],
     highlightsRows,
     hasHighlights: highlightsRows.length > 0,
     highlightsSectionTitle: lang === "es" ? "Destacados" : "Highlights",
@@ -613,7 +625,7 @@ export function mapRentasListingToNegocioPreviewVm(
       virtualTourUrl: tourUrl ?? media.virtualTourUrl,
       hasVirtualTour: Boolean(tourUrl ?? media.hasVirtualTour),
     },
-    propertyDetailsRows: [...contract, ...property],
+    propertyDetailsRows: [...contract, ...property, ...buildPublishedVideoRows(listing, lang)],
     highlightsRows,
     description: desc,
     hasDescription: Boolean(trim(desc)),

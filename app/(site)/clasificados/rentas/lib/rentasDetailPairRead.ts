@@ -29,6 +29,9 @@ import {
   RENTAS_DP_ROOM_MAX_OCC,
   RENTAS_DP_STORAGE_ACCESS_24H,
   RENTAS_DP_STORAGE_SECURITY,
+  RENTAS_DP_VIDEO_URL_2,
+  RENTAS_DP_VIDEO_URL_3,
+  RENTAS_DP_VIDEO_URL_4,
 } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import {
   RENTAS_DP_SHOWING_AVAILABILITY,
@@ -56,6 +59,7 @@ export type RentasDetailMachineRead = RentasShowingMachineRead & {
   listingStatus: string | null;
   mapUrl: string | null;
   videoUrl: string | null;
+  videoUrls: string[];
   halfBathsDigits: string | null;
   contactSmsDigits: string | null;
   contactWhatsappDigits: string | null;
@@ -75,6 +79,14 @@ function triBool(raw: string | null): boolean {
 }
 
 export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetailMachineRead {
+  const videoUrl = readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIDEO_URL);
+  const videoUrls = [
+    videoUrl,
+    readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIDEO_URL_2),
+    readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIDEO_URL_3),
+    readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIDEO_URL_4),
+  ].filter((u): u is string => Boolean(u?.trim()));
+
   return {
     depositUsdDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_DEPOSIT_USD),
     leaseTermCode: readLeonixDetailPairValue(detailPairs, RENTAS_DP_LEASE_TERM),
@@ -89,7 +101,8 @@ export function parseRentasDetailMachineRead(detailPairs: unknown): RentasDetail
     businessSocial: readLeonixDetailPairValue(detailPairs, RENTAS_DP_BUSINESS_SOCIAL),
     listingStatus: readLeonixDetailPairValue(detailPairs, RENTAS_DP_LISTING_STATUS),
     mapUrl: readLeonixDetailPairValue(detailPairs, RENTAS_DP_MAP_URL),
-    videoUrl: readLeonixDetailPairValue(detailPairs, RENTAS_DP_VIDEO_URL),
+    videoUrl,
+    videoUrls,
     halfBathsDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_HALF_BATHS_COUNT),
     contactSmsDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_CONTACT_SMS_DIGITS),
     contactWhatsappDigits: readLeonixDetailPairValue(detailPairs, RENTAS_DP_CONTACT_WHATSAPP_DIGITS),

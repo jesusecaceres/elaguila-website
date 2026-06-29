@@ -135,6 +135,8 @@ export type RentasPublicListing = {
   mapUrl?: string | null;
   /** External video URL (`Leonix:rent:video_url`) or Mux HLS `.m3u8` when served from Mux. */
   videoUrl?: string | null;
+  /** Up to four external video URLs published from the simple Rentas form. */
+  videoUrls?: string[] | null;
   /** Poster image for Mux-backed gallery video (optional). */
   videoPosterUrl?: string | null;
   /** Localized short copy for detail; sample-only until CMS/DB. */

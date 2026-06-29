@@ -67,6 +67,18 @@ function phoneDisplayFormatted(raw: string): string {
   return d.length >= 10 ? formatUsPhoneDisplay(d) : t;
 }
 
+function validVideoUrls(s: RentasPrivadoFormState): string[] {
+  const raw = s.media.videoUrls?.length ? s.media.videoUrls : [s.media.videoUrl];
+  const out: string[] = [];
+  for (const item of raw) {
+    const u = trim(item);
+    if (!u || out.includes(u) || !/^https?:\/\//i.test(u)) continue;
+    out.push(u);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
 const ESTADO_RENTAS: Record<RentasPrivadoFormState["estadoAnuncio"], string> = {
   disponible: "Disponible",
   pendiente: "Pendiente",
@@ -89,6 +101,7 @@ function formatUsdMonthly(precio: string): string {
 
 function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPrivadoFormState {
   const line1 = buildRentasStreetLine(s);
+  const videos = validVideoUrls(s);
   return mergePartialBienesRaicesPrivadoState({
     categoriaPropiedad: s.categoriaPropiedad,
     titulo: s.titulo,
@@ -101,8 +114,8 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
     media: {
       photoDataUrls: s.media.photoDataUrls,
       primaryImageIndex: s.media.primaryImageIndex,
-      videoUrl: s.media.videoUrl,
-      videoLocalDataUrl: s.media.videoLocalDataUrl,
+      videoUrl: videos[0] ?? "",
+      videoLocalDataUrl: "",
     },
     seller: {
       fotoDataUrl: s.seller.fotoDataUrl,
@@ -204,6 +217,10 @@ export function mapRentasPrivadoStateToPreviewVm(
     ? [{ label: lang === "en" ? "Posted by" : "Publica", value: postedBy }]
     : [];
   const propertyBody: BienesRaicesPreviewFact[] = buildRentasFlowPropertyBodyRows(s);
+  const videoRows: BienesRaicesPreviewFact[] = validVideoUrls(s).map((url, i) => ({
+    label: i === 0 ? (lang === "en" ? "Video" : "Video") : lang === "en" ? `Video ${i + 1}` : `Video ${i + 1}`,
+    value: url,
+  }));
 
   const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
   const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto);
@@ -236,7 +253,7 @@ export function mapRentasPrivadoStateToPreviewVm(
     listingStatusLabel: ESTADO_RENTAS[s.estadoAnuncio],
     operationSummary: rentOperationSummary(s.categoriaPropiedad),
     quickFacts,
-    propertyDetailsRows: [...postedByRows, ...rentRows, ...propertyBody],
+    propertyDetailsRows: [...postedByRows, ...rentRows, ...propertyBody, ...videoRows],
     highlightsRows,
     highlightsSectionTitle: "Destacados",
     seller: {

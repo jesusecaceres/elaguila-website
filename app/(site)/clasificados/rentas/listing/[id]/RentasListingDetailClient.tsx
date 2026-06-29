@@ -109,11 +109,15 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
 
   const leonixAdIdLine = listing.leonixAdId?.trim();
 
-  const onContactLinkClick = () => void trackRentasContactClick(listing.id, null);
+  const analyticsCtx = useMemo(
+    () => ({ listingUuid: listing.id, leonixAdId: listing.leonixAdId }),
+    [listing.id, listing.leonixAdId],
+  );
+  const onContactLinkClick = () => void trackRentasContactClick(analyticsCtx, null);
 
   useEffect(() => {
-    void trackRentasListingView(listing.id, null);
-  }, [listing.id]);
+    void trackRentasListingView(analyticsCtx, null);
+  }, [analyticsCtx]);
 
   return (
     <div className={"min-h-screen pb-16 pt-6 sm:pb-20 sm:pt-8 " + rentasLandingPaperBgClass}>
@@ -222,7 +226,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         listingId={listingUuid ? listing.id : null}
         listingIdDisplay={listing.id}
         inquiryApiPath="/api/clasificados/rentas/inquiry"
-        onMessageSentAnalytics={(lid, uid) => void trackRentasMessageSent(lid ?? listing.id, uid)}
+        onMessageSentAnalytics={(_lid, uid) => void trackRentasMessageSent(analyticsCtx, uid)}
       />
     </div>
   );

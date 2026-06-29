@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Vista previa — Rentas Privado | Leonix",
-  description: "Plantilla de salida para anuncios de renta (particular).",
+  title: "Vista previa — Rentas | Leonix",
+  description: "Vista previa de salida para anuncios de renta.",
   robots: { index: false, follow: false },
 };
 
