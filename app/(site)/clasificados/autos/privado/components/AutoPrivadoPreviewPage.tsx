@@ -73,7 +73,7 @@ export function AutoPrivadoPreviewPage({
   const showDesc = hasDescriptionSection(display);
 
   const liveMetrics = display.listingAnalytics;
-  const showAnalyticsStrip = Boolean(liveMetrics) && (showTitle || showGallery);
+  const showAnalyticsStrip = !publicPlaybackOnly && Boolean(liveMetrics) && (showTitle || showGallery);
 
   const h1 = canonicalTitle || display.vehicleTitle?.trim();
   const showYmmtSubline = Boolean(ymmtLine) && !canonicalTitle;
@@ -172,7 +172,7 @@ export function AutoPrivadoPreviewPage({
                   saves: pa.saves,
                   shares: pa.shares,
                   contacts: pa.contacts,
-                  footnote: pa.footnote,
+                  footnote: publicPlaybackOnly ? undefined : pa.footnote,
                 }}
               />
             </div>

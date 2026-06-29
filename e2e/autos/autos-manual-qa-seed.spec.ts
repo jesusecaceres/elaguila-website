@@ -135,7 +135,10 @@ async function publishFromConfirmPage(page: import("@playwright/test").Page, lan
   await page.goto(confirmPath);
   await postCreate;
 
-  await expect(page.getByRole("button", { name: /Continuar al pago/i })).toBeVisible({ timeout: 30_000 });
+  const publishButton = page.getByRole("button", {
+    name: /Continuar al pago|Publicar anuncio de prueba|Activar anuncio \(interno\)/i,
+  });
+  await expect(publishButton).toBeVisible({ timeout: 30_000 });
 
   const checks = page.getByRole("checkbox");
   await expect(checks).toHaveCount(3);
@@ -143,10 +146,10 @@ async function publishFromConfirmPage(page: import("@playwright/test").Page, lan
     await checks.nth(i).check();
   }
 
-  await expect(page.getByRole("button", { name: /Continuar al pago/i })).toBeEnabled({ timeout: 30_000 });
+  await expect(publishButton).toBeEnabled({ timeout: 30_000 });
 
   const payWait = page.waitForURL(/\/clasificados\/autos\/pago\/exito\b/i, { timeout: 120_000 });
-  await page.getByRole("button", { name: /Continuar al pago/i }).click();
+  await publishButton.click();
   await payWait;
 
   const exitoUrl = page.url();

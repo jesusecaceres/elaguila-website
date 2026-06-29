@@ -79,7 +79,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       dealerInventory?: AutosDealerInventoryCount;
     };
     if (r.ok && j.ok && Array.isArray(j.listings)) {
-      setRows(j.listings.filter((x) => x.lane === "negocios"));
+      setRows(j.listings);
       setDealerInventory(j.dealerInventory ?? null);
     } else {
       setRows([]);
@@ -94,7 +94,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
 
   const groups = useMemo((): InventoryGroup[] => {
     const byKey = new Map<string, InventoryGroup>();
-    for (const row of rows) {
+    for (const row of rows.filter((x) => x.lane === "negocios")) {
       const groupKey = row.dealer_inventory_group_id?.trim() || "owner:default";
       const existing = byKey.get(groupKey);
       const dealerName = row.sellerName.trim() || (lang === "es" ? "Dealer" : "Dealer");
@@ -133,6 +133,9 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           viewLive: "Ver público",
           unpublish: "Retirar",
           publish: "Publicar",
+          allListings: "Tus anuncios Autos",
+          privado: "Privado",
+          negocios: "Negocios",
         }
       : {
           title: "Autos Negocio inventory",
@@ -149,6 +152,9 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           viewLive: "View live",
           unpublish: "Unpublish",
           publish: "Publish",
+          allListings: "Your Autos listings",
+          privado: "Private",
+          negocios: "Dealer",
         };
 
   async function unpublish(id: string) {
@@ -230,6 +236,56 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       ) : (
         <p className="mt-3 text-xs text-[#5C5346]">{autosDealerInventoryUpgradePitch(lang)}</p>
       )}
+
+      <section className="mt-6 rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4">
+        <h3 className="font-bold text-[#1E1810]">{t.allListings}</h3>
+        <ul className="mt-4 flex flex-col gap-3">
+          {rows.map((row) => {
+            const editHref = withLangParam(row.lane === "negocios" ? "/publicar/autos/negocios" : "/publicar/autos/privado", row.lang);
+            const confirmHref = withLangParam(`${editHref}/confirm`, row.lang);
+            const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
+            const busy = busyId === row.id;
+            return (
+              <li key={row.id} className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[#1E1810]">{row.title}</p>
+                    <p className="mt-0.5 text-xs text-[#5C5346]">
+                      {row.lane === "negocios" ? t.negocios : t.privado} · {formatUsd(row.priceUsd, lang)} · {statusLabel(row.status, lang)}
+                      {row.leonix_ad_id ? ` · ${row.leonix_ad_id}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={editHref} className="rounded-lg border border-[#E8DFD0] px-2.5 py-1.5 text-[11px] font-bold">
+                      {t.edit}
+                    </Link>
+                    {row.status === "draft" || row.status === "pending_payment" || row.status === "payment_failed" ? (
+                      <Link href={confirmHref} className="rounded-lg bg-[#2A2620] px-2.5 py-1.5 text-[11px] font-bold text-[#FAF7F2]">
+                        {t.publish}
+                      </Link>
+                    ) : null}
+                    {row.status === "active" ? (
+                      <>
+                        <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
+                          {t.viewLive}
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void unpublish(row.id)}
+                          className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] font-bold text-red-900 disabled:opacity-50"
+                        >
+                          {t.unpublish}
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       <div className="mt-6 flex flex-col gap-6">
         {groups.map((group) => {

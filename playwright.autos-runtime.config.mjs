@@ -39,6 +39,7 @@ process.env.AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS = "0";
 
 const port = Number(process.env.AUTOS_E2E_PORT ?? "3022");
 const baseURL = process.env.AUTOS_E2E_BASE ?? `http://127.0.0.1:${port}`;
+process.env.NEXT_PUBLIC_SITE_URL = baseURL;
 
 export default defineConfig({
   testDir: path.join(root, "e2e", "autos"),
@@ -72,6 +73,7 @@ export default defineConfig({
       /** Phase 3: prove Autos-only test publish bypass (Stripe-free) on `next start`. */
       AUTOS_ALLOW_TEST_PUBLISH_BYPASS: "true",
       AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS: "0",
+      NEXT_PUBLIC_SITE_URL: baseURL,
     },
   },
 });

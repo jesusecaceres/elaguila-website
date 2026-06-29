@@ -235,7 +235,7 @@ export function AutoDealerPreviewPage({
                   saves: pa.saves,
                   shares: pa.shares,
                   contacts: pa.contacts,
-                  footnote: pa.footnote,
+                  footnote: publicPlaybackOnly ? undefined : pa.footnote,
                 }}
               />
             </div>

@@ -329,7 +329,7 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
 
     await seedSupabaseSession({ page, context, supabaseUrl: url!, anonKey: anon!, email: SELLER_EMAIL, password: SELLER_PASSWORD });
     await page.goto("/dashboard/mis-anuncios?lang=es");
-    await expect(page.getByRole("heading", { name: /^Autos$/i }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /Mis anuncios|My listings/i }).first()).toBeVisible({ timeout: 60_000 });
     await expect(page.locator(`a[href*="/clasificados/autos/vehiculo/${encodeURIComponent(negId)}"]`).first()).toBeVisible({
       timeout: 60_000,
     });
