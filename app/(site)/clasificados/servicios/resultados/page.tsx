@@ -143,16 +143,14 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
 
   const destacadosRows = getServiciosDestacadosRows(overlaid);
   const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort);
-  const destacadoSlugs = new Set(destacadosRows.map((r) => r.slug));
-  const normalRows = displayRows.filter((r) => !destacadoSlugs.has(r.slug));
 
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
   const landingHref = `/clasificados/servicios?lang=${lang}`;
   const perPage = parseCatStdPerPage(sp.perPage);
-  const pageCount = Math.max(1, Math.ceil(normalRows.length / perPage));
+  const pageCount = Math.max(1, Math.ceil(displayRows.length / perPage));
   const currentPage = Math.min(parseCatStdPage(sp.page), pageCount);
   const startIdx = (currentPage - 1) * perPage;
-  const pagedRows = normalRows.slice(startIdx, startIdx + perPage);
+  const pagedRows = displayRows.slice(startIdx, startIdx + perPage);
   const paginationParams = new URLSearchParams();
   paginationParams.set("lang", lang);
   for (const [k, v] of Object.entries(sp)) {
@@ -164,12 +162,12 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
         <ServiciosResultsViewAnalytics resultCount={displayRows.length} />
 
         <div className="min-w-0">
-            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-2.5">
+            <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2.5 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-3">
             <ServiciosResultsFilters lang={lang} current={filterQuery} perPage={perPage} />
 
             <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
 
-            <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-2">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-2.5">
               <p className="text-sm font-semibold text-[#142a42]">
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
@@ -204,8 +202,8 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                       ? "No listings match these filters yet."
                       : "Aún no hay anuncios que coincidan con estos filtros."
                     : lang === "en"
-                      ? "No public Servicios listings yet."
-                      : "Aún no hay anuncios públicos en Servicios."}
+                      ? "No public Servicios showcases yet."
+                      : "Aún no hay vitrinas públicas en Servicios."}
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#4a5d6e]">
                   {hasActiveFilters
@@ -244,7 +242,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {destacadosRows.length > 0 ? (
-              <div className="mb-3">
+              <div className="mb-4">
                 <ServiciosDestacadosSection
                   rows={destacadosRows}
                   lang={lang}
@@ -259,32 +257,23 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                     id="servicios-res-listings"
                     className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
                   >
-                    {lang === "en" ? "Normal matching listings" : "Anuncios normales coincidentes"}
+                    {lang === "en" ? "All matching showcases" : "Todas las vitrinas coincidentes"}
                   </h2>
                 ) : null}
-                {normalRows.length === 0 && destacadosRows.length > 0 ? (
-                  <p className="rounded-xl border border-[#dfe6ef] bg-white/90 px-3 py-2 text-[12px] leading-relaxed text-[#4a5d6e]">
-                    {lang === "en"
-                      ? "All current matches are featured."
-                      : "Todos los resultados actuales están destacados."}
-                  </p>
-                ) : null}
-                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-2.5">
+                <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3">
                   {pagedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
                       <ServiciosHorizontalResultCard row={r} lang={lang} density="compact" />
                     </li>
                   ))}
                 </ul>
-                {normalRows.length > 0 ? (
-                  <CategoryStandardPagination
-                    lang={lang}
-                    basePath={SERVICIOS_RESULTS_PATH}
-                    searchParams={paginationParams}
-                    currentPage={currentPage}
-                    pageCount={pageCount}
-                  />
-                ) : null}
+                <CategoryStandardPagination
+                  lang={lang}
+                  basePath={SERVICIOS_RESULTS_PATH}
+                  searchParams={paginationParams}
+                  currentPage={currentPage}
+                  pageCount={pageCount}
+                />
               </section>
             ) : null}
             </div>

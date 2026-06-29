@@ -11,7 +11,7 @@ import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfile
 import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   buildServiciosSendEmailIntentFromMailto,
   extractWaMeDigitsFromHref,
@@ -139,7 +139,6 @@ export function ServiciosHorizontalResultCard({
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-  const [ctaEventType, setCtaEventType] = useState<string>("cta_primary_click");
 
   const closeCta = useCallback(() => {
     setCtaOpen(false);
@@ -161,7 +160,6 @@ export function ServiciosHorizontalResultCard({
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
       trackServiciosListingCta(listingSlug || ctaAnalyticsListingKey, eventType, ctaTrackMeta);
-      setCtaEventType(eventType);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
@@ -262,8 +260,8 @@ export function ServiciosHorizontalResultCard({
     return out;
   })();
   const displayServiceChips =
-    isCompact && serviceChipList.length > 3
-      ? [...serviceChipList.slice(0, 3), `+${serviceChipList.length - 3}`]
+    isCompact && serviceChipList.length > 4
+      ? [...serviceChipList.slice(0, 4), `+${serviceChipList.length - 4}`]
       : serviceChipList;
 
   const vitrinaHref =
@@ -290,37 +288,25 @@ export function ServiciosHorizontalResultCard({
   const primaryCall = officeTel && officeDisplay ? { href: officeTel, label: L.callOffice, key: "callOffice" } : tel && phoneDisplay ? { href: tel, label: L.call, key: "call" } : null;
   const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const showDirections = Boolean(mapsHref && (addressQuery || /^https?:\/\//i.test(mapsHref)));
-  const trackSheetAction = useCallback<CtaActionCallback>(
-    (info) => {
-      trackServiciosListingCta(listingSlug || ctaAnalyticsListingKey, ctaEventType, {
-        ...ctaTrackMeta,
-        source: "servicios_horizontal_card_sheet",
-        sheetKind: info.kind,
-        actionId: info.actionId,
-        ...(info.meta ?? {}),
-      });
-    },
-    [ctaAnalyticsListingKey, ctaEventType, ctaTrackMeta, listingSlug],
-  );
 
   return (
     <>
       <article
         className={`${LX_IVORY_CARD} w-full min-w-0 ${
-          isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(9.25rem,auto)] sm:items-stretch" : ""
+          isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(10.5rem,auto)] sm:items-stretch" : ""
         } ${className}`.trim()}
       >
-        <div className={isCompact ? "flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
+        <div className={isCompact ? "flex gap-3 p-3 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3.5 sm:pb-2" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
           <ServiciosAdaptiveLogoPlate
             src={logoUrl}
             alt={logoAlt}
             fallbackMonogram={profile.identity.businessName}
             variant="card"
-            className={isCompact ? "!h-12 !w-12 sm:!h-14 sm:!w-14" : ""}
+            className={isCompact ? "!h-14 !w-14 sm:!h-16 sm:!w-16" : ""}
           />
 
           <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>
-            <div className="flex flex-wrap items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               {monetizationBadges.map((b) => (
                 <span
                   key={b.key}
@@ -338,16 +324,16 @@ export function ServiciosHorizontalResultCard({
               <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
             </div>
 
-            <h2 className={isCompact ? "font-serif text-[14px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-[15px]" : LX_COMPACT_CARD_TITLE}>
+            <h2 className={isCompact ? "font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-base" : LX_COMPACT_CARD_TITLE}>
               {profile.identity.businessName}
             </h2>
 
             {categoryChip ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{categoryChip}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-xs">{categoryChip}</p>
             ) : null}
 
             {locationLine ? (
-              <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
+              <p className="flex items-start gap-1.5 text-xs text-[#4A4A4A]">
                 <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
                 <span className={isCompact ? "line-clamp-1" : "line-clamp-2"}>{locationLine}</span>
               </p>
@@ -365,7 +351,7 @@ export function ServiciosHorizontalResultCard({
         </div>
 
         {displayServiceChips.length > 0 ? (
-          <div className={isCompact ? "px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "px-4 pb-3 sm:px-5"}>
+          <div className={isCompact ? "px-3 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3.5" : "px-4 pb-3 sm:px-5"}>
             <ServiciosServiceChipsRow
               chips={displayServiceChips}
               lang={lang}
@@ -375,12 +361,12 @@ export function ServiciosHorizontalResultCard({
           </div>
         ) : null}
 
-        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
-          <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5" : "flex flex-col gap-2"}>
+        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-3 py-2.5 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3.5" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
+          <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[10.5rem] sm:flex-col sm:items-stretch sm:justify-center" : "flex flex-col gap-2"}>
             {primaryCall ? (
               <button
                 type="button"
-                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
                 style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
                 onClick={() => openContactKey(primaryCall.key, primaryCall.href)}
               >
@@ -389,11 +375,11 @@ export function ServiciosHorizontalResultCard({
               </button>
             ) : null}
 
-            <div className={isCompact ? "flex flex-wrap gap-2 sm:flex-col sm:gap-1.5" : "flex flex-wrap gap-2"}>
+            <div className={isCompact ? "flex flex-wrap gap-2 sm:flex-col" : "flex flex-wrap gap-2"}>
               {wa ? (
                 <button
                   type="button"
-                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
                   style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
                   onClick={() => openContactKey("whatsapp", wa)}
                 >
@@ -404,7 +390,7 @@ export function ServiciosHorizontalResultCard({
               {showDirections ? (
                 <button
                   type="button"
-                  className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+                  className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
                   onClick={() => openContactKey("maps", mapsHref)}
                 >
                   <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -442,7 +428,7 @@ export function ServiciosHorizontalResultCard({
               onClick={() => {
                 if (row) trackServiciosResultCardClick(row);
               }}
-              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:!min-h-[32px] sm:!w-full sm:flex-none sm:!px-2.5 sm:!py-1.5 sm:!text-xs" : ""}`.trim()}
             >
               {vitrinaLabel}
             </Link>
@@ -458,7 +444,7 @@ export function ServiciosHorizontalResultCard({
           </div>
         </div>
       </article>
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </>
   );
 }

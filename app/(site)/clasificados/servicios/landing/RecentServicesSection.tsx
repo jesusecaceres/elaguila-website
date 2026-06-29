@@ -9,23 +9,23 @@ export function RecentServicesSection({
   lang: "es" | "en";
   rows: ServiciosPublicListingRow[];
 }) {
-  const resultsHref = `/clasificados/servicios/results?lang=${lang}`;
+  const resultsHref = `/clasificados/servicios/resultados?lang=${lang}`;
   const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
 
   return (
     <section className="relative" aria-labelledby="servicios-recientes-heading">
-      <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+      <div className="mb-4 flex flex-col gap-2 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
         <div className="min-w-0 max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d5a73]/85">
             {lang === "en" ? "New on Leonix" : "Novedades"}
           </p>
           <h2
             id="servicios-recientes-heading"
-            className="mt-1 text-lg font-bold leading-tight tracking-tight text-[#142a42] sm:text-xl"
+            className="mt-1 text-xl font-bold leading-tight tracking-tight text-[#142a42] sm:text-2xl"
           >
             {lang === "en" ? "Recent services" : "Servicios recientes"}
           </h2>
-          <p className="mt-1 max-w-2xl text-[12px] leading-snug text-[#4a5d6e] sm:text-[13px]">
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#4a5d6e] sm:text-sm">
             {lang === "en"
               ? "The newest public service profiles — live data from published listings only."
               : "Los perfiles públicos más recientes: solo datos reales de anuncios publicados."}
@@ -76,7 +76,7 @@ export function RecentServicesSection({
           </div>
         </div>
       ) : (
-        <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-2.5 lg:grid-cols-2">
+        <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3 lg:grid-cols-2">
           {rows.map((row) => (
             <li key={row.slug} className="min-w-0">
               <ServiciosHorizontalResultCard row={row} lang={lang} density="compact" />

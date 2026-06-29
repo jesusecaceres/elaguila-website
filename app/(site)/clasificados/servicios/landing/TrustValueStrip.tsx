@@ -3,22 +3,22 @@ type Lang = "es" | "en";
 const ITEMS: Record<Lang, { title: string; body: string; icon: "map" | "globe" | "shield" | "link" }[]> = {
   es: [
     {
-      title: "Negocios locales",
+      title: "Negocios Locales",
       body: "Priorizamos talento cercano y citas prácticas en tu zona.",
       icon: "map",
     },
     {
-      title: "Exposición bilingüe",
+      title: "Exposición Bilingüe",
       body: "Tu mensaje llega en español e inglés cuando lo publicas así.",
       icon: "globe",
     },
     {
-      title: "Contacto directo y seguro",
+      title: "Contacto Directo y Seguro",
       body: "Llamadas y mensajes claros — sin intermediarios innecesarios.",
       icon: "shield",
     },
     {
-      title: "Web, redes y videos",
+      title: "Web, Redes y Videos",
       body: "Leonix es el puente promocional hacia tus canales propios.",
       icon: "link",
     },
