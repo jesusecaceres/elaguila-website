@@ -255,7 +255,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
   }
-  const vm = mapRentasPrivadoStateToPreviewVm(state);
+  const vm = mapRentasPrivadoStateToPreviewVm(state, lang);
   let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const note = trim(state.seller.notaContacto);
   if (note) human = [...human, { label: "Mensaje del contacto", value: note }];

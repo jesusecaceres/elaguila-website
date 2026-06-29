@@ -37,9 +37,12 @@ export type RentasPlazoContratoCodigo =
 
 export type RentasPrivadoListingStatus = "disponible" | "pendiente" | "bajo_contrato" | "rentado";
 
+export type RentasPrivadoPosterType = "" | "owner_private" | "agent" | "property_manager" | "business";
+
 export type RentasPrivadoFormState = {
   v: typeof RENTAS_PRIVADO_FORM_VERSION;
   categoriaPropiedad: BrNegocioCategoriaPropiedad;
+  posterType: RentasPrivadoPosterType;
   titulo: string;
   /** Digits only, USD whole dollars per month */
   rentaMensual: string;
@@ -160,6 +163,12 @@ function coerceRentasListingStatus(raw: unknown): RentasPrivadoListingStatus {
   return "disponible";
 }
 
+function coercePosterType(raw: unknown): RentasPrivadoPosterType {
+  const v = typeof raw === "string" ? raw : "";
+  if (v === "owner_private" || v === "agent" || v === "property_manager" || v === "business") return v;
+  return "";
+}
+
 function coercePlazo(raw: unknown): RentasPlazoContratoCodigo {
   const v = typeof raw === "string" ? raw : "";
   if (v === "mes-a-mes" || v === "6-meses" || v === "12-meses" || v === "1-ano" || v === "2-anos" || v === "otro") return v;
@@ -233,6 +242,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
   return {
     v: RENTAS_PRIVADO_FORM_VERSION,
     categoriaPropiedad: br.categoriaPropiedad,
+    posterType: "",
     titulo: "",
     rentaMensual: "",
     deposito: "",
@@ -382,6 +392,7 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
   return {
     v: RENTAS_PRIVADO_FORM_VERSION,
     categoriaPropiedad: coerceBrNegocioCategoriaPropiedad(partial.categoriaPropiedad ?? br.categoriaPropiedad),
+    posterType: coercePosterType(partial.posterType),
     titulo: typeof partial.titulo === "string" ? partial.titulo : br.titulo,
     rentaMensual:
       typeof partial.rentaMensual === "string"

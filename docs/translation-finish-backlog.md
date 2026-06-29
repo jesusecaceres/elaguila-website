@@ -5,7 +5,7 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** MAGAZINE-VISUAL-TRANSLATION-PROOF1
+**Last verified:** MAGAZINE-ASSET-CACHE1
 
 ---
 
@@ -58,7 +58,8 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - **FlipHTML5** flipbook remains Spanish visual edition.
 - Do **not** claim full PDF or flipbook translation until separate asset gates.
 - `MAGAZINE-VISUAL-TRANSLATION-PROOF1` added architecture guardrails in `docs/magazine-visual-translation-proof.md`.
-- Static proof types/examples live in `app/lib/magazine/magazineVisualTranslationManifest.ts` and are not imported into runtime UI.
+- `MAGAZINE-ASSET-CACHE1` added static visual asset registry helpers in `app/lib/magazine/magazineVisualTranslationManifest.ts`.
+- The registry is not imported into runtime UI; public magazine behavior remains unchanged.
 - Actual translated visual assets require future production, storage, source-hash validation, and QA approval before serving.
 
 ---
@@ -131,7 +132,7 @@ See `docs/translation-env-setup.md`.
 | Gate | Purpose |
 |------|---------|
 | `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
-| `MAGAZINE-ASSET-CACHE1` | Real asset registry/cache integration for QA-approved translated visual assets |
+| `MAGAZINE-ASSET-CACHE1` | Done: static asset registry helpers; future storage/QA integration still required before serving translated visuals |
 | `MAGAZINE-AD-ASSET-LIBRARY1` | Reusable advertiser ad asset library with source-hash reuse rules |
 | `MAG-COMPANION-BODY-LANG1` | Stronger magazine companion body copy across active public languages |
 | `TRANSLATE-AD-ALL-LANG-SMOKE1` | `/api/translate-ad` all 13 active langs + cache repeat |

@@ -233,7 +233,7 @@ export default function RentasPrivadoPreviewClient() {
     );
   }
 
-  const vm = mapRentasPrivadoStateToPreviewVm(draft);
+  const vm = mapRentasPrivadoStateToPreviewVm(draft, lang);
 
   const editHref = `${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
 

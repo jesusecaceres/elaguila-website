@@ -164,7 +164,21 @@ function rentOperationSummary(cat: RentasPrivadoFormState["categoriaPropiedad"])
   return "Renta terreno / lote";
 }
 
-export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): BienesRaicesPrivadoPreviewVm {
+function posterTypeDisplay(
+  value: RentasPrivadoFormState["posterType"],
+  lang: "es" | "en",
+): string {
+  if (value === "owner_private") return lang === "en" ? "Owner / private person" : "Dueño / particular";
+  if (value === "agent") return lang === "en" ? "Agent" : "Agente";
+  if (value === "property_manager") return "Property manager";
+  if (value === "business") return lang === "en" ? "Business" : "Negocio";
+  return "";
+}
+
+export function mapRentasPrivadoStateToPreviewVm(
+  s: RentasPrivadoFormState,
+  lang: "es" | "en" = "es",
+): BienesRaicesPrivadoPreviewVm {
   const base = mapBienesRaicesPrivadoStateToPreviewVm(toBienesRaicesPrivadoShape(s));
   const exact = s.mostrarDireccionExacta === true;
   const cross = trim(s.direccionCruceCercano);
@@ -185,6 +199,10 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
   const rentFacts = rentalQuickFacts(s);
   const quickFacts = dedupeQuickFactsByLabel([...rentFacts, ...base.quickFacts]);
 
+  const postedBy = posterTypeDisplay(s.posterType, lang);
+  const postedByRows: BienesRaicesPreviewFact[] = postedBy
+    ? [{ label: lang === "en" ? "Posted by" : "Publica", value: postedBy }]
+    : [];
   const propertyBody: BienesRaicesPreviewFact[] = buildRentasFlowPropertyBodyRows(s);
 
   const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
@@ -218,7 +236,7 @@ export function mapRentasPrivadoStateToPreviewVm(s: RentasPrivadoFormState): Bie
     listingStatusLabel: ESTADO_RENTAS[s.estadoAnuncio],
     operationSummary: rentOperationSummary(s.categoriaPropiedad),
     quickFacts,
-    propertyDetailsRows: [...rentRows, ...propertyBody],
+    propertyDetailsRows: [...postedByRows, ...rentRows, ...propertyBody],
     highlightsRows,
     highlightsSectionTitle: "Destacados",
     seller: {

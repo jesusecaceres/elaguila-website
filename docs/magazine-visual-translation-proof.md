@@ -1,8 +1,8 @@
 # Magazine Visual Translation Proof
 
-Status: `MAGAZINE-VISUAL-TRANSLATION-PROOF1`
+Status: `MAGAZINE-ASSET-CACHE1`
 
-This document locks the first safe architecture proof for Leonix Media digital magazine translation. It does not translate PDFs, FlipHTML5 books, rendered page images, ads, or live database content. It separates text translation memory, visual asset cache, and reusable advertiser assets so future gates can add real production behavior without creating duplicate caches or false visual translation claims.
+This document locks the safe architecture proof and first code-level registry layer for Leonix Media digital magazine translation. It does not translate PDFs, FlipHTML5 books, rendered page images, ads, or live database content. It separates text translation memory, visual asset cache, and reusable advertiser assets so future gates can add real production behavior without creating duplicate caches or false visual translation claims.
 
 ## Scope Lock
 
@@ -10,6 +10,7 @@ In scope for this proof:
 
 - Magazine HTML reader and companion translation architecture.
 - Future visual asset registry concepts for translated PDFs, rendered page images, translated page images, and advertiser ad assets.
+- Static helper functions for visual asset availability/status.
 - Cost-control rules for repeated copy and repeated visual ads.
 - Honesty rules for the Spanish original PDF and FlipHTML5 edition.
 
@@ -83,11 +84,51 @@ Recommended visual cache identity:
 - `sourceVersion`.
 - `qaStatus`.
 
-The current Spanish source PDF and FlipHTML5 edition can be registered as source visual assets. Non-Spanish visual assets must stay `planned` or `unavailable` until real files exist and QA approves them.
+The current Spanish source PDF and FlipHTML5 edition are registered as `source_ready` source visual assets. Non-Spanish visual assets must stay `planned`, `unavailable`, `translated_pending_qa`, or `rejected` until real files exist and QA approves them.
 
 Do not send entire PDFs to Google or DeepL in this proof. Future production should translate extracted text or approved design source segments, then generate real visual assets through a controlled production path.
 
 Serving rule: do not serve a translated visual PDF, translated FlipHTML5 book, or translated page image until the asset exists, the source hash still matches, and QA status is approved.
+
+## Asset Registry Helpers
+
+`app/lib/magazine/magazineVisualTranslationManifest.ts` now exposes a static registry and helper functions:
+
+- `getMagazineVisualAssetStatus(issueId, targetLocale, assetKind)`
+- `hasQaApprovedMagazineVisualAsset(issueId, targetLocale, assetKind)`
+- `getAvailableMagazineVisualAsset(issueId, targetLocale, assetKind)`
+- `listMagazineVisualAssetsForIssue(issueId)`
+- `listMagazineVisualAssetsForLocale(issueId, targetLocale)`
+
+These helpers are not imported into public magazine UI in this gate. They are a safe integration layer for future gates that need to check whether a real translated visual asset can be served.
+
+`hasQaApprovedMagazineVisualAsset` can only return true when all of these are true:
+
+- `status` is `qa_approved`.
+- `qaApproved` is `true`.
+- `assetPath` is present.
+
+`getAvailableMagazineVisualAsset` can return:
+
+- The real Spanish source PDF or Spanish source FlipHTML5 record.
+- A translated visual asset only after the QA-approved rule above passes.
+
+It must not:
+
+- Invent asset paths.
+- Fall back to the Spanish PDF and label it translated.
+- Treat the HTML companion as a translated visual PDF or translated flipbook.
+- Use text translation memory as proof of a visual asset.
+
+## Registering Future Translated Assets
+
+A future asset-production gate may add a translated visual asset only after the file exists and source identity is known. Required checks:
+
+- Preserve `issueId`, `sourceLocale`, `targetLocale`, `assetKind`, `sourceVersion`, and source hash fields.
+- Set `assetPath` to the real translated file or approved translated flipbook URL.
+- Keep `status` as `translated_pending_qa` until editorial/visual QA passes.
+- Set `status: "qa_approved"` and `qaApproved: true` only after QA approval.
+- Reuse an existing approved asset when `sourcePdfHash`, `pageHash`, or `adAssetHash` has not changed for that target language and source version.
 
 ## System 3 - Reusable Ad Asset Library
 
@@ -126,16 +167,16 @@ Do not claim:
 
 Those claims are only allowed after a future asset gate verifies that real translated visual files exist and are served.
 
-## Proof Manifest
+## Registry Manifest
 
-`app/lib/magazine/magazineVisualTranslationManifest.ts` is a static, unimported proof file for future asset registry shape. It does not call APIs and does not alter runtime behavior.
+`app/lib/magazine/magazineVisualTranslationManifest.ts` is a static, unimported registry file for future asset cache behavior. It does not call APIs and does not alter runtime behavior.
 
-The proof manifest keeps non-Spanish translated visual assets unavailable until real production assets exist. It is intentionally separate from the existing live `languageAssets.ts` runtime helper, which currently serves Spanish visual originals with honest fallback messaging.
+The registry keeps non-Spanish translated visual assets unavailable until real production assets exist. It is intentionally separate from both text Translation Memory and the existing live `languageAssets.ts` runtime helper, which currently serves Spanish visual originals with honest fallback messaging.
 
 ## Future Gates
 
 - `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1`: verify Google env and cache read/write smoke when credentials are ready.
 - `MAG-COMPANION-BODY-LANG1`: improve companion body copy for active public languages.
 - `QR-GUIDE-LONGFORM-LANG1`: polish QR translation instructions in all active public languages.
-- `MAGAZINE-ASSET-CACHE1`: integrate a real asset registry/cache after asset storage and QA rules are approved.
+- `MAGAZINE-ASSET-CACHE1`: static registry helpers added; future work must still add real storage/QA integration before serving translated assets.
 - `MAGAZINE-AD-ASSET-LIBRARY1`: add reusable advertiser ad asset tracking after product rules are approved.

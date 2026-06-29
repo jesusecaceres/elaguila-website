@@ -13,7 +13,6 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   RENTAS_PREVIEW_PRIVADO,
-  RENTAS_PUBLICAR_NEGOCIO,
   RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
@@ -111,6 +110,16 @@ const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
   { id: "comercial", label: "Comercial" },
   { id: "terreno_lote", label: "Terreno / lote" },
+];
+
+const POSTER_TYPE_OPTIONS: {
+  id: Exclude<RentasPrivadoFormState["posterType"], "">;
+  label: { es: string; en: string };
+}[] = [
+  { id: "owner_private", label: { es: "Dueño / particular", en: "Owner / private person" } },
+  { id: "agent", label: { es: "Agente", en: "Agent" } },
+  { id: "property_manager", label: { es: "Property manager", en: "Property manager" } },
+  { id: "business", label: { es: "Negocio", en: "Business" } },
 ];
 
 const ESTADOS: { id: RentasPrivadoFormState["estadoAnuncio"]; label: string }[] = [
@@ -443,8 +452,8 @@ export function RentasPrivadoForm() {
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <header className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{lang === "en" ? "Leonix · Rentals · Private" : "Leonix · Rentas · Privado"}</p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">{lang === "en" ? "Post rental — Individual" : "Publicar renta — Particular"}</h1>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{lang === "en" ? "Leonix · Rentals" : "Leonix · Rentas"}</p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">{lang === "en" ? "Post a rental" : "Publicar renta"}</h1>
           <p className={aiSubClass}>
             {lang === "en"
               ? "The preview only shows what you fill in. The draft lives in this browser session (same tab)."
@@ -472,13 +481,32 @@ export function RentasPrivadoForm() {
           >
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
           </Link>
-          <Link
-            href={`${RENTAS_PUBLICAR_NEGOCIO}?lang=${lang}`}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#E8DFD0] px-6 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FFFCF7] sm:w-auto"
-          >
-            {lang === "en" ? "Business branch" : "Rama Negocio"}
-          </Link>
         </div>
+
+        <section className={`${aiCardClass} min-w-0`}>
+          <h2 className={aiTitleClass}>{lang === "en" ? "Who is posting this rental?" : "¿Quién publica esta renta?"}</h2>
+          <p className={aiSubClass}>
+            {lang === "en"
+              ? "We use this only to describe who is offering the rental. The form and price stay the same."
+              : "Usaremos esto solo para mostrar mejor quién ofrece la renta. El formulario y el precio son los mismos."}
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {POSTER_TYPE_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => setState((s) => ({ ...s, posterType: o.id }))}
+                className={`min-h-[48px] w-full rounded-xl border px-3 py-3 text-center text-sm font-semibold leading-snug transition sm:min-h-[44px] sm:py-2.5 ${
+                  state.posterType === o.id
+                    ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810] ring-1 ring-[#B8954A]/30"
+                    : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
+                }`}
+              >
+                {o.label[lang]}
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{lang === "en" ? "Category" : "Categoría"}</h2>
