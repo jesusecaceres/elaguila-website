@@ -36,6 +36,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Magazine provider proof outputs
+.magazine-proof-output/
+tmp/magazine-proof/
+.tmp-magazine-proof/
+
 # vercel
 .vercel
 

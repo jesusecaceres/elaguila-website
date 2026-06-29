@@ -2,6 +2,8 @@
 
 Status: `MAGAZINE-VISUAL-TRANSLATION-PROOF1`
 
+Provider backend status: `MAGAZINE-PROVIDER-BACKEND-SMOKE1` is blocked before paid provider execution. The June 2026 source PDF can be hashed locally, but DeepL and Google document translation are not executable until dependency and credential setup is complete.
+
 Leonix magazine translation uses three separate savings layers. This proof does not create storage buckets, database tables, migrations, paid provider calls, or generated assets.
 
 ## 1. Translation Memory For HTML Text
@@ -96,3 +98,10 @@ Before production provider selection, run a controlled one-PDF proof:
 5. Create a proof manifest with `qaApproved: false`.
 6. Review phone numbers, emails, URLs, QR codes, business names, prices, coupon codes, layout, and brand marks.
 7. Only after QA should any translated visual track become available.
+
+Current blocker:
+
+- DeepL document smoke requires `@deepl/deepl-node` and `DEEPL_AUTH_KEY`.
+- Google document smoke requires `@google-cloud/translate`, `GOOGLE_CLOUD_PROJECT_ID`, and `GOOGLE_APPLICATION_CREDENTIALS_JSON` or `GOOGLE_APPLICATION_CREDENTIALS`.
+- Local proof outputs must stay under ignored folders such as `.magazine-proof-output/`.
+- Any local proof manifest must remain `qaApproved: false` and must not set a public `assetPath` until manual visual QA approves real output.

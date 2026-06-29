@@ -5,7 +5,7 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** MAGAZINE-VISUAL-TRANSLATION-PROOF1
+**Last verified:** MAGAZINE-PROVIDER-BACKEND-SMOKE1
 
 ---
 
@@ -78,6 +78,8 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - `MAGAZINE-ASSET-CACHE1` added static visual asset registry helpers in `app/lib/magazine/magazineVisualTranslationManifest.ts`.
 - The registry is not imported into runtime UI; public magazine behavior remains unchanged.
 - Actual translated visual assets require future production, storage, source-hash validation, and QA approval before serving.
+- `MAGAZINE-PROVIDER-BACKEND-SMOKE1` computed the June source PDF hash and added safe dry-run provider proof scripts, but stopped before paid APIs because DeepL/Google document translation dependencies and credentials are not ready.
+- Next provider retry must start with target language `vi` only and keep generated outputs under ignored local proof folders.
 
 ---
 
@@ -149,7 +151,9 @@ See `docs/translation-env-setup.md`.
 | Gate | Purpose |
 |------|---------|
 | `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
+| `MAGAZINE-PROVIDER-BACKEND-SMOKE1-RETRY` | Add provider env/dependencies and rerun one-language (`vi`) magazine document smoke |
 | `MAGAZINE-ASSET-CACHE1` | Done: static asset registry helpers; future storage/QA integration still required before serving translated visuals |
+| `MAGAZINE-VISUAL-ASSET-QA1` | Manual QA for any real local provider output before public asset registration |
 | `MAGAZINE-AD-ASSET-LIBRARY1` | Reusable advertiser ad asset library with source-hash reuse rules |
 | `MAG-COMPANION-BODY-LANG1` | Stronger magazine companion body copy across active public languages |
 | `TRANSLATE-AD-ALL-LANG-SMOKE1` | `/api/translate-ad` all 13 active langs + cache repeat |
