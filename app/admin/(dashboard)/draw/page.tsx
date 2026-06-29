@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminCardBase, adminStubBadgeClass, adminCtaChipSecondary } from "../../_components/adminTheme";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
@@ -18,6 +19,15 @@ export default async function AdminDrawPlaceholderPage() {
         title="Draw"
         subtitle={m("drawPage.subtitle")}
         helperText={m("drawPage.helperText")}
+      />
+      <AdminPagePurposeCard
+        title="Draw legacy placeholder"
+        purpose="Keep the old bookmarked route honest while directing operators to real Admin OS surfaces."
+        dataSource="No dedicated Supabase table or action surface; this page is a static admin placeholder."
+        status="planned"
+        safeActions={["Open Dashboard", "Open Website Control"]}
+        nextGate="ADMIN-OS-NAV-ARCHITECTURE-01"
+        warningNote="This route is not linked from the primary admin nav and should not be treated as a working tool."
       />
       <div className={`${adminCardBase} p-6`}>
         <p className="text-sm leading-relaxed text-[#5C5346]">

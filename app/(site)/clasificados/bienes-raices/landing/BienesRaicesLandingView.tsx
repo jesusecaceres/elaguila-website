@@ -25,10 +25,6 @@ import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListin
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
 import { getBrLastCity, setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
-import {
-  brLuxuryBtnPrimaryClass,
-  brLuxuryBtnSecondaryClass,
-} from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { getBrLandingCopy, type BrLandingCopy } from "./bienesRaicesLandingCopy";
 
@@ -427,8 +423,8 @@ export function BienesRaicesLandingView() {
           }
         />
 
-        <section className="mt-16 sm:mt-[4.5rem]" aria-labelledby="br-featured-hero">
-          <div className="relative overflow-hidden rounded-[1.75rem] border-2 border-[#C9B46A]/35 bg-gradient-to-b from-[#FFF9F0]/95 via-[#FDFBF7] to-[#eef3f9]/25 p-5 shadow-[0_32px_90px_-40px_rgba(42,36,22,0.45)] ring-1 ring-[#C9B46A]/15 sm:rounded-[2rem] sm:p-8 lg:p-10">
+        <section className="mt-8 sm:mt-10" aria-labelledby="br-featured-hero">
+          <div className="relative overflow-hidden rounded-[1.5rem] border border-[#C9B46A]/35 bg-gradient-to-b from-[#FFF9F0]/95 via-[#FDFBF7] to-[#eef3f9]/25 p-4 shadow-[0_24px_70px_-44px_rgba(42,36,22,0.45)] ring-1 ring-[#C9B46A]/15 sm:p-5">
             <div
               className="pointer-events-none absolute -right-24 top-0 h-64 w-64 rounded-full bg-[#dfe9f4]/45 blur-3xl"
               aria-hidden
@@ -439,10 +435,10 @@ export function BienesRaicesLandingView() {
             />
             <div className="relative z-[1]">
               <FeaturedHeading id="br-featured-hero" title={copy.featuredTitle} subtitle={copy.featuredSubtitle} />
-              <div className="grid min-h-0 gap-7 lg:grid-cols-12 lg:items-stretch lg:gap-8">
+              <div className="grid min-h-0 gap-4 lg:grid-cols-12 lg:items-stretch">
                 <div className="min-h-0 min-w-0 lg:col-span-7 xl:col-span-8">
                   {bandsLoading ? (
-                    <div className="flex min-h-[280px] items-center justify-center rounded-[1.4rem] border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-6 text-center text-sm text-[#5C5346]">
+                    <div className="flex min-h-[180px] items-center justify-center rounded-[1.4rem] border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-6 text-center text-sm text-[#5C5346]">
                       {copy.inventoryLoading}
                     </div>
                   ) : sections.featured ? (
@@ -454,7 +450,7 @@ export function BienesRaicesLandingView() {
                       className="rounded-[1.4rem] border-[#E8DFD0]/80 shadow-[0_28px_80px_-30px_rgba(42,36,22,0.4)] ring-2 ring-[#C9B46A]/15 hover:shadow-[0_36px_96px_-32px_rgba(42,36,22,0.45)]"
                     />
                   ) : (
-                    <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-[1.4rem] border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-6 text-center">
+                    <div className="flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-[1.4rem] border border-[#E8DFD0]/80 bg-[#FDFBF7]/90 px-6 text-center">
                       <p className="font-serif text-lg font-semibold text-[#1E1810]">{copy.emptyFeaturedTitle}</p>
                       <p className="max-w-md text-sm leading-relaxed text-[#5C5346]/90">{copy.emptyFeaturedBody}</p>
                     </div>
@@ -469,7 +465,7 @@ export function BienesRaicesLandingView() {
               <div className="mt-6 min-w-0 lg:hidden">
                 <BienesRaicesMapPreview copy={mapCopy} clusterListingCount={mapClusterCount} />
               </div>
-              <div className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="mt-5 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link href={withLang(buildBrResultsUrl({ operationType: "venta", city: "Monterrey" }))} className={BTN_PRIMARY}>
                   {copy.featuredCtaProperties}
                 </Link>

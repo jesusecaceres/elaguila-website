@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import {
@@ -33,6 +32,7 @@ import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLay
 import { SV } from "./serviciosDesignTokens";
 import { LX_LINK_ACCENT } from "./serviciosLeonixBrand";
 import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
+import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 
 export function ServiciosProfileView({
   profile,
@@ -287,13 +287,18 @@ export function ServiciosProfileView({
         ) : null}
         {serviciosDiscoveryResultsHref?.trim() ? (
           <div className="mx-auto mt-4 flex max-w-3xl justify-center">
-            <Link
+            <ServiciosTrackedLink
+              listingSlug={analyticsListingSlug}
+              sourceId={listingSourceId}
+              engagementListingId={engagementListingId}
+              ownerUserId={engagementOwnerUserId}
+              eventType="cta_secondary_click"
               href={serviciosDiscoveryResultsHref.trim()}
               className={LX_LINK_ACCENT}
               data-servicios-results-cta="1"
             >
               {lang === "en" ? "View Servicios results" : "Ver resultados de Servicios"}
-            </Link>
+            </ServiciosTrackedLink>
           </div>
         ) : null}
       </main>

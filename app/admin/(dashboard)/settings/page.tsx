@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass, adminCtaChipSecondary } from "../../_components/adminTheme";
 import { SITE_THEME_PRESETS, type SiteThemePresetId } from "../../_lib/adminSettingsTheme";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
@@ -15,6 +16,15 @@ export default async function AdminSettingsPage() {
         <span className={adminStubBadgeClass}>{m("settingsPage.stub")}</span>
       </div>
       <AdminPageHeader title="Settings" subtitle={m("settingsPage.subtitle")} helperText={m("settingsPage.helperText")} />
+      <AdminPagePurposeCard
+        title="Settings"
+        purpose="Show safe admin configuration intent without pretending global settings, themes, or environment controls are fully writable."
+        dataSource="Code-defined settings copy, staged theme presets, admin access helpers, and links to real workspace/site settings routes."
+        status="planned"
+        safeActions={["Review environment notes", "Open Site Settings", "Open Website Control"]}
+        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        warningNote="Theme preference form is intentionally disabled; no secrets or production env values are displayed."
+      />
 
       <div className={`${adminCardBase} mb-6 border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}>
         <strong>{m("settingsPage.blockerLead")}</strong> {m("settingsPage.blockerBody")}

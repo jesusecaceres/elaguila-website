@@ -44,11 +44,11 @@ export function AutosLandingInventoryCard({
           leonixAdId: listing.leonixAdId,
         })
       }
-      className="group flex min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_10px_36px_-14px_rgba(42,36,22,0.2)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_14px_44px_-12px_rgba(42,36,22,0.24)] active:opacity-95"
+      className="group flex min-w-0 max-w-full flex-col overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_10px_30px_-18px_rgba(42,36,22,0.2)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_14px_38px_-18px_rgba(42,36,22,0.24)] active:opacity-95"
     >
       <div
         className={`relative w-full overflow-hidden bg-[color:var(--lx-section)] ${
-          variant === "featured" ? "aspect-[16/10]" : "aspect-[5/3]"
+          variant === "featured" ? "h-36 sm:h-40" : "h-32 sm:h-36"
         }`}
       >
         <Image
@@ -92,14 +92,14 @@ export function AutosLandingInventoryCard({
           </div>
         </div>
       </div>
-      <div className={`flex min-w-0 flex-1 flex-col ${variant === "featured" ? "gap-2 p-4" : "gap-1.5 p-3 sm:p-4"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col ${variant === "featured" ? "gap-1.5 p-3.5" : "gap-1.5 p-3"}`}>
         <div className="min-w-0">
           <p className="font-serif text-[15px] font-semibold leading-snug text-[color:var(--lx-text)] sm:text-base">{listing.vehicleTitle}</p>
           {listing.trim ? (
             <p className="mt-0.5 line-clamp-1 text-xs text-[color:var(--lx-muted)]">{listing.trim}</p>
           ) : null}
         </div>
-        <p className={`font-bold tabular-nums text-[color:var(--lx-gold)] ${variant === "featured" ? "text-xl sm:text-2xl" : "text-lg"}`}>
+        <p className={`font-bold tabular-nums text-[color:var(--lx-gold)] ${variant === "featured" ? "text-xl" : "text-lg"}`}>
           {formatAutosUsd(listing.price)}
         </p>
         {listing.monthlyEstimate && variant === "featured" ? (
@@ -108,11 +108,11 @@ export function AutosLandingInventoryCard({
         <p className="text-xs text-[color:var(--lx-text-2)]">
           {formatAutosMiles(listing.mileage)} · {loc}
         </p>
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--lx-nav-border)] pt-3">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--lx-nav-border)] pt-2.5">
           <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[color:var(--lx-text-2)]" title={sellerLine}>
             {sellerLine}
           </span>
-          <span className="inline-flex min-h-[40px] min-w-[6.5rem] shrink-0 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-xs font-bold text-[color:var(--lx-text)] transition group-hover:border-[color:var(--lx-gold-border)] group-hover:bg-[color:var(--lx-nav-hover)]">
+          <span className="inline-flex min-h-[36px] min-w-[6rem] shrink-0 items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 text-xs font-bold text-[color:var(--lx-text)] transition group-hover:border-[color:var(--lx-gold-border)] group-hover:bg-[color:var(--lx-nav-hover)]">
             {copy.cardViewDetails}
           </span>
         </div>

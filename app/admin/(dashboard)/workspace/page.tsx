@@ -5,6 +5,7 @@ import { requireAdminCookie } from "@/app/lib/supabase/server";
 import { getAdminLang, type AdminLang } from "../../_lib/adminI18n";
 import { workspaceHubT } from "../../_lib/adminWorkspaceHubLabels";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../../_components/adminTheme";
 import {
   WEBSITE_EDITING_TRUTH_ROWS,
@@ -182,6 +183,15 @@ export default async function AdminWorkspaceHubPage(props: {
         title={t.pageTitle}
         subtitle={t.pageSubtitle}
         eyebrow={t.eyebrow}
+      />
+      <AdminPagePurposeCard
+        title="Website Control / Site Sections"
+        purpose="Manage structured website content modules and show which public sections are editable, partial, missing, or intentionally locked."
+        dataSource="site_section_content, site_page_blocks, site_category_config, and code-controlled section payload contracts."
+        status="partial"
+        safeActions={["Open section editors", "Review editability matrix", "Use existing workspace routes only"]}
+        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        warningNote="/admin/site-sections is an alias to this real workspace. Rollback, preview, banners, announcements, and themes still need schema/workflow gates."
       />
 
       <div className="mb-4 flex flex-wrap gap-2">

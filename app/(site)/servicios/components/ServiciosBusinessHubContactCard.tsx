@@ -530,9 +530,10 @@ export function ServiciosBusinessHubContactCard({
         <ServiciosBusinessHubEngagementRow
           profile={profile}
           lang={lang}
+          listingSlug={listingSlug}
+          listingSourceId={listingSourceId}
           engagementListingId={engagementListingId}
           engagementOwnerUserId={engagementOwnerUserId}
-            listingSourceId={listingSourceId}
           listingShareUrl={listingShareUrl}
           persistListingEngagement={persistListingEngagement}
           publicLikeCount={publicLikeCount}
@@ -711,7 +712,16 @@ export function ServiciosBusinessHubContactCard({
         }}
       />
 
-      {showOfferSidebarTeaser ? <ServiciosOfferCard profile={profile} lang={lang} /> : null}
+      {showOfferSidebarTeaser ? (
+        <ServiciosOfferCard
+          profile={profile}
+          lang={lang}
+          listingSlug={listingSlug}
+          listingSourceId={listingSourceId}
+          engagementListingId={engagementListingId}
+          engagementOwnerUserId={engagementOwnerUserId}
+        />
+      ) : null}
 
       <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
     </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { AdminStatCard } from "../../_components/AdminStatCard";
 import { StaffTeamNav } from "../../_components/StaffTeamNav";
 import { adminCtaChip } from "../../_components/adminTheme";
@@ -41,6 +42,15 @@ export default async function StaffTeamHomePage({
             : "Leonix team tools for sales preparation, promo codes, and client onboarding."
         }
         helperText="Internal use only. Public site lock stays on for visitors without admin access."
+      />
+      <AdminPagePurposeCard
+        title="Staff workspace"
+        purpose="Give staff a safe launch workspace for preview, sales prep, promo codes, clients, and owner-only team controls."
+        dataSource="admin_team_members, admin_team_invites, Supabase Auth provisioning actions, promo codes, and payment/package read models."
+        status="partial"
+        safeActions={["Open preview hub", "Create sales promo codes", "View clients", "Manage roster if owner/admin"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Final owner/admin/moderator/sales/content/support/viewer role taxonomy still needs permission proof."
       />
 
       <div className="grid gap-4 sm:grid-cols-2">

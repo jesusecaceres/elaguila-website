@@ -178,7 +178,7 @@ export function ViajesResultsShell({
 
   const L = lang;
   const viajesHome = appendLangToPath("/clasificados/viajes", L);
-  const publicar = appendLangToPath("/clasificados/publicar", L);
+  const publicar = appendLangToPath("/publicar/viajes", L);
   const clearHref = buildViajesBrowseUrl(defaultViajesBrowseState(lang), pathname);
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -275,91 +275,22 @@ export function ViajesResultsShell({
 
         <ViajesTrustStrip ui={ui} className="mt-0 mb-6 sm:mb-7" />
 
-        <section className="mb-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/95 p-4 shadow-[0_20px_48px_-28px_rgba(25,50,70,0.12)] backdrop-blur-sm sm:p-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-12 xl:items-end xl:gap-3">
-            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
+        <section className="mb-4 rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/95 p-3 shadow-[0_16px_40px_-30px_rgba(25,50,70,0.12)] backdrop-blur-sm">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
+            <label className="min-w-0">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.destination}</span>
               <input
-                className="w-full min-w-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                className="min-h-[40px] w-full min-w-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={destInput}
                 onChange={(e) => setDestInput(e.target.value)}
                 placeholder={R.destPlaceholder}
                 autoComplete="off"
               />
             </label>
-            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.departureCity}</span>
-              <select
-                className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={browse.from}
-                onChange={(e) => patchBrowse({ from: e.target.value })}
-              >
-                <option value="">{R.any}</option>
-                <option value="san-jose">San José, CA (SJC)</option>
-                <option value="san-francisco">San Francisco (SFO)</option>
-                <option value="oakland">Oakland (OAK)</option>
-              </select>
-              <p className="mt-1.5 text-[10px] leading-snug text-[color:var(--lx-muted)]">{R.departureFieldNote}</p>
-            </label>
-            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.datesSeason}</span>
-              <select
-                className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={browse.season}
-                onChange={(e) => patchBrowse({ season: e.target.value })}
-              >
-                <option value="">{R.flexible}</option>
-                <option value="spring">{R.spring}</option>
-                <option value="summer">{R.summer}</option>
-                <option value="fall">{R.fall}</option>
-                <option value="winter">{R.winter}</option>
-                <option value="holidays">{R.holidays}</option>
-              </select>
-            </label>
-            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.tripType}</span>
-              <select
-                className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={browse.t}
-                onChange={(e) => patchBrowse({ t: e.target.value })}
-              >
-                {tripOptions.map((o) => (
-                  <option key={o.value || "all"} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="min-w-0 sm:col-span-1 xl:col-span-2">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.budget}</span>
-              <select
-                className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={browse.budget}
-                onChange={(e) => patchBrowse({ budget: e.target.value })}
-              >
-                <option value="">{R.flexible}</option>
-                <option value="economico">{R.economy}</option>
-                <option value="moderado">{R.moderate}</option>
-                <option value="premium">{R.premium}</option>
-              </select>
-            </label>
-            <label className="min-w-0 sm:col-span-1 xl:col-span-1">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.audience}</span>
-              <select
-                className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={browse.audience}
-                onChange={(e) => patchBrowse({ audience: e.target.value })}
-              >
-                <option value="">{R.audienceAll}</option>
-                <option value="familias">{R.audienceFamilies}</option>
-                <option value="parejas">{R.audienceCouples}</option>
-                <option value="grupos">{R.audienceGroups}</option>
-              </select>
-            </label>
-            <label className="min-w-0 sm:col-span-1 xl:col-span-1">
+            <label className="min-w-0 sm:w-40">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.sort}</span>
               <select
-                className="w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                className="min-h-[40px] w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
                 value={browse.sort}
                 onChange={(e) => patchBrowse({ sort: e.target.value as ViajesSortKey })}
               >
@@ -369,27 +300,25 @@ export function ViajesResultsShell({
                 <option value="priceDesc">{R.sortPriceDesc}</option>
               </select>
             </label>
-          </div>
-        </section>
-
-        <div className="flex min-w-0 gap-8 lg:gap-10">
-          <aside className="hidden w-[280px] min-w-0 shrink-0 lg:block">
-            <div className="sticky top-24 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm">
-              <p className="mb-4 text-sm font-bold text-[color:var(--lx-text)]">{R.refine}</p>
-              {filterPanel}
-            </div>
-          </aside>
-
-          <div className="min-w-0 flex-1">
             <button
               type="button"
-              className="mb-4 flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm lg:hidden"
+              className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm"
               onClick={() => setMobileFiltersOpen(true)}
             >
               {R.filters}
             </button>
+            <Link
+              href={clearHref}
+              className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-4 text-sm font-semibold text-[color:var(--lx-text)]"
+            >
+              {ui.filterRail.reset}
+            </Link>
+          </div>
+        </section>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">{sorted.map(renderCard)}</div>
+        <div className="flex min-w-0 gap-8 lg:gap-10">
+          <div className="min-w-0 flex-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{sorted.map(renderCard)}</div>
 
             {sorted.length === 0 ? (
               <div className="mt-8 space-y-4 rounded-2xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-10 text-center">
@@ -411,7 +340,7 @@ export function ViajesResultsShell({
       </div>
 
       {mobileFiltersOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={R.filtersDialog}>
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={R.filtersDialog}>
           <button
             type="button"
             className="absolute inset-0 bg-black/40"

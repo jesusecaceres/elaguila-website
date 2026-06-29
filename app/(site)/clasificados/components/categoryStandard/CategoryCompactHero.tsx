@@ -42,7 +42,7 @@ export function CategoryCompactHero({
 
   return (
     <section
-      className={`relative overflow-hidden rounded-xl border ${theme.accentBorder} bg-[#FFFDF7] shadow-[0_10px_32px_-20px_rgba(31,36,28,0.2)]`}
+      className={`relative overflow-hidden rounded-xl border ${theme.accentBorder} bg-[#FFFDF7] shadow-[0_8px_26px_-18px_rgba(31,36,28,0.2)]`}
       aria-labelledby="category-compact-hero-title"
     >
       {imageSrc ? (
@@ -61,9 +61,9 @@ export function CategoryCompactHero({
         style={{ background: theme.gradient }}
         aria-hidden
       />
-      <div className="relative flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-start sm:gap-5 sm:px-6 sm:py-6">
+      <div className="relative flex flex-col gap-3.5 px-4 py-4 sm:flex-row sm:items-start sm:gap-4 sm:px-5 sm:py-5">
         <span
-          className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border bg-[#FAF6EE]/90 ${theme.accentBorder}`}
+          className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border bg-[#FAF6EE]/90 sm:h-13 sm:w-13 ${theme.accentBorder}`}
         >
           <CategoryStandardMark category={category} />
         </span>
@@ -71,13 +71,13 @@ export function CategoryCompactHero({
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{displayEyebrow}</p>
           <h1
             id="category-compact-hero-title"
-            className="mt-2 font-serif text-2xl font-bold leading-tight text-[#2A4536] sm:text-[1.75rem]"
+            className="mt-1.5 font-serif text-[1.45rem] font-bold leading-tight text-[#2A4536] sm:text-[1.65rem]"
           >
             {displayTitle}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{displayDesc}</p>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[#3D3428]">{displayDesc}</p>
           {imageAlt && imageSrc ? <span className="sr-only">{imageAlt}</span> : null}
-          {children ? <div className="mt-4 min-w-0">{children}</div> : null}
+          {children ? <div className="mt-3 min-w-0">{children}</div> : null}
         </div>
       </div>
     </section>

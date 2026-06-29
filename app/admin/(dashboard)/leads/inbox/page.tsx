@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
 import { AdminLeonixLeadsInboxClient } from "@/app/admin/_components/leads/AdminLeonixLeadsInboxClient";
 import { adminCardBase, adminWarningCallout } from "@/app/admin/_components/adminTheme";
 import { parseAdminLeadsInboxViewParam } from "@/app/admin/_lib/adminNavOps";
@@ -25,6 +26,15 @@ export default async function AdminLeonixLeadsInboxPage(props: PageProps) {
         title="Launch Leads command center"
         subtitle="Track, reply to, and follow up on advertising, promo, media kit, and contact inquiries."
         helperText="Use mailto and copy-reply helpers — emails are not sent from the server. Archive when done. Export CSV includes all non-deleted leads."
+      />
+      <AdminPagePurposeCard
+        title="Launch Leads command center"
+        purpose="Triage business, advertising, promo, and launch inquiries so Chuy/staff know who needs response next."
+        dataSource="public.leonix_leads with lifecycle columns for active, archived, deleted, follow-up, and CRM status."
+        status={activeList.dataUnavailable || archivedList.dataUnavailable ? "needs live proof" : "real"}
+        safeActions={["Reply via mailto", "Copy reply", "Archive", "Restore", "Export CSV"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="This page does not send email server-side; it prepares safe operator follow-up."
       />
 
       {activeList.dataUnavailable || archivedList.dataUnavailable ? (

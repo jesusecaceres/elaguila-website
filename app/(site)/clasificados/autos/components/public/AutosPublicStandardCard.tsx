@@ -62,18 +62,18 @@ export function AutosPublicStandardCard({
     : "border-l-[3px] border-[#E5E5E5]";
 
   // Leonix design system classes
-  const RESULT_CARD = "group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] transition-all duration-200 hover:border-[#D4A574]/50 hover:shadow-[0_16px_56px_-24px_rgba(212,165,116,0.20)] active:opacity-95";
-  const MEDIA_CONTAINER = `relative w-full overflow-hidden bg-[#F5F0E8] ${compact ? "aspect-[4/3]" : "aspect-[16/11] sm:aspect-[5/3]"}`;
-  const INFO_SECTION = `flex min-w-0 flex-1 flex-col gap-2 ${compact ? "p-3 sm:p-3.5" : "p-4 sm:p-5"}`;
-  const VEHICLE_TITLE = `line-clamp-2 font-serif font-semibold leading-snug tracking-tight text-[#1A1A1A] ${compact ? "min-h-[2.35rem] text-sm" : "min-h-[2.75rem] text-[15px] sm:text-base"}`;
-  const PRICE_LINE = `font-bold tabular-nums text-[#2A7F3E] ${compact ? "text-lg" : "text-xl sm:text-2xl"}`;
+  const RESULT_CARD = "group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_10px_32px_-20px_rgba(212,165,116,0.15)] transition-all duration-200 hover:border-[#D4A574]/50 hover:shadow-[0_14px_44px_-24px_rgba(212,165,116,0.20)] active:opacity-95";
+  const MEDIA_CONTAINER = `relative w-full overflow-hidden bg-[#F5F0E8] ${compact ? "h-32" : "h-40 sm:h-44"}`;
+  const INFO_SECTION = `flex min-w-0 flex-1 flex-col gap-1.5 ${compact ? "p-3" : "p-3 sm:p-3.5"}`;
+  const VEHICLE_TITLE = `line-clamp-2 font-serif font-semibold leading-snug tracking-tight text-[#1A1A1A] ${compact ? "text-sm" : "text-[15px] sm:text-base"}`;
+  const PRICE_LINE = `font-bold tabular-nums text-[#2A7F3E] ${compact ? "text-lg" : "text-lg sm:text-xl"}`;
   const LOCATION_ROW = "flex items-center gap-2 text-sm text-[#4A4A4A]";
-  const SELLER_ROW = "mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E5E5]/50 pt-3";
+  const SELLER_ROW = "mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E5E5]/50 pt-2.5";
   const SELLER_CHIP = "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide";
   const DEALER_CHIP = "border border-[#D4A574]/50 bg-[#FFFAF0] text-[#1A1A1A]";
   const PRIVATE_CHIP = "border border-[#E5E5E5] bg-[#FFFEF7] text-[#4A4A4A]";
   const CTA_BUTTON = "inline-flex min-h-[40px] min-w-[6.5rem] items-center justify-center rounded-full border border-[#D4A574]/50 bg-[linear-gradient(135deg,rgba(212,165,116,0.12),rgba(193,154,107,0.08))] px-3 text-[11px] font-bold text-[#1A1A1A] transition-all duration-200 hover:border-[#D4A574] hover:bg-[linear-gradient(135deg,rgba(212,165,116,0.18),rgba(193,154,107,0.12))]";
-  const ENGAGEMENT_ROW = "flex items-center gap-3 mt-3 pt-3 border-t border-[#E5E5E5]/50";
+  const ENGAGEMENT_ROW = "flex items-center gap-3 mt-2 pt-2 border-t border-[#E5E5E5]/50";
 
   return (
     <Link

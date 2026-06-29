@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminBtnPrimary, adminBtnSecondary, adminCardBase, adminInputClass } from "../../_components/adminTheme";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
 import type { GlobalSitePayload } from "@/app/lib/siteSectionContent/payloadTypes";
@@ -30,6 +31,15 @@ export default async function AdminGlobalSiteSettingsPage(props: { searchParams?
             {m("globalSitePage.homeEditorCta")}
           </Link>
         }
+      />
+      <AdminPagePurposeCard
+        title="Global site settings"
+        purpose="Manage structured global website toggles and public notices without exposing secrets or replacing section editors."
+        dataSource="site_section_content row: global_site, merged with code defaults through the global site payload contract."
+        status={error ? "needs live proof" : "partial"}
+        safeActions={["Save global copy/toggles", "Open Home editor", "Open Classifieds workspace"]}
+        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        warningNote="This is persisted site configuration, but rollback/revision history and broader Website Control workflow remain future gates."
       />
 
       {sp.saved === "1" ? (

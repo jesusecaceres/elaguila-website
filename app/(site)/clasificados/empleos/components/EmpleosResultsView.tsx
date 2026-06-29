@@ -23,7 +23,6 @@ import { saveEmpleosFilterPrefs } from "../lib/empleosFunctionalStorage";
 import {
   EMPLEOS_SAMPLE_NOW_MS,
   type EmpleosSortKey,
-  type ParsedEmpleosResultsQuery,
   empleosParamsFromSearchParams,
   filterEmpleosJobs,
   normalizeZip5,
@@ -255,13 +254,6 @@ function chipLabel(lang: Lang, key: string, val: string): string {
   if (key === "industry" && val) return lang === "es" ? `Industria: ${val}` : `Industry: ${val}`;
   if (key === "bilingual" && val === "1") return lang === "es" ? "Bilingüe" : "Bilingual";
   return `${key}: ${val}`;
-}
-
-function countLine(lang: Lang, n: number): string {
-  if (lang === "es") {
-    return n === 1 ? "Se encontró 1 vacante" : `Se encontraron ${n} vacantes`;
-  }
-  return n === 1 ? "1 opening found" : `${n} openings found`;
 }
 
 function EmpleosFilterToggles({
@@ -577,9 +569,9 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
       <main className="mx-auto max-w-[min(100rem,calc(100%-1rem))] px-4 sm:px-6 lg:px-10">
         <EmpleosFunctionalPrefsNotice lang={lang} />
 
-        <form aria-label={t.formAria} onSubmit={submitSearch} className={`${EMPLEOS_RESULTS_FILTER_PANEL} mt-6`}>
-          <div className="mb-8">
-            <label className="block">
+        <form aria-label={t.formAria} onSubmit={submitSearch} className={`${EMPLEOS_RESULTS_FILTER_PANEL} mt-3`}>
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <label className="block min-w-0">
               <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#5B6F82]">{lang === "es" ? "Palabra clave" : "Keyword"}</span>
               <input
                 value={q}
@@ -587,11 +579,19 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 className={EMPLEOS_FIELD}
                 placeholder={lang === "es" ? "Ej. enfermero, ventas, bodega…" : "e.g. nurse, sales, warehouse…"}
               />
-              <p className="mt-2 text-[11px] leading-relaxed text-[#7A756E]">{t.keywordHint}</p>
             </label>
+            <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} min-h-[2.75rem] px-6 text-sm lg:min-w-[8rem]`}>
+              {t.search}
+            </button>
+            <p className="text-[11px] leading-relaxed text-[#7A756E] lg:col-span-2">{t.keywordHint}</p>
           </div>
 
-          <div className="space-y-6">
+          <details className="group mt-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7]/90 p-3">
+            <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 text-sm font-bold text-[#2A2826] [&::-webkit-details-marker]:hidden">
+              <span>{lang === "es" ? "Filtros" : "Filters"}</span>
+              <FaChevronDown className="h-4 w-4 shrink-0 text-[#5B6F82] transition group-open:rotate-180" aria-hidden />
+            </summary>
+            <div className="mt-4 space-y-6 border-t border-[#F0E8DC] pt-4">
             <div className={EMPLEOS_RESULTS_GROUP}>
               <h3 className="mb-4 text-sm font-bold text-[#2A2826]">{t.locationGroup}</h3>
               <p className="mb-3 text-[11px] leading-relaxed text-[#7A756E]">{t.fieldBlurHint}</p>
@@ -972,7 +972,8 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 {t.clear}
               </button>
             </div>
-          </div>
+            </div>
+          </details>
         </form>
 
         {activeChips.length > 0 ? (

@@ -32,9 +32,9 @@ export function AutosPublicFeaturedCard({
           leonixAdId: listing.leonixAdId,
         })
       }
-      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/55 bg-[color:var(--lx-card)] shadow-[0_16px_48px_-18px_rgba(42,36,22,0.22)] ring-1 ring-[color:var(--lx-gold-border)]/25 transition hover:shadow-[0_20px_56px_-16px_rgba(42,36,22,0.26)] active:opacity-95"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/55 bg-[color:var(--lx-card)] shadow-[0_12px_36px_-22px_rgba(42,36,22,0.22)] ring-1 ring-[color:var(--lx-gold-border)]/25 transition hover:shadow-[0_16px_44px_-24px_rgba(42,36,22,0.26)] active:opacity-95"
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-[color:var(--lx-section)]">
+      <div className="relative h-36 w-full overflow-hidden bg-[color:var(--lx-section)] sm:h-40">
         <Image
           src={listing.primaryImageUrl}
           alt=""
@@ -52,9 +52,9 @@ export function AutosPublicFeaturedCard({
           </span>
         ) : null}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-5 sm:p-6">
-        <h3 className="font-serif text-lg font-semibold leading-snug tracking-tight text-[color:var(--lx-text)] sm:text-xl">{listing.vehicleTitle}</h3>
-        <p className="text-[1.65rem] font-bold tabular-nums leading-none text-[color:var(--lx-gold)] sm:text-[1.85rem]">{formatAutosUsd(listing.price)}</p>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-3.5">
+        <h3 className="font-serif text-base font-semibold leading-snug tracking-tight text-[color:var(--lx-text)]">{listing.vehicleTitle}</h3>
+        <p className="text-xl font-bold tabular-nums leading-none text-[color:var(--lx-gold)]">{formatAutosUsd(listing.price)}</p>
         {listing.monthlyEstimate ? (
           <p className="text-xs font-medium text-[color:var(--lx-muted)]">{listing.monthlyEstimate}</p>
         ) : null}
@@ -78,8 +78,8 @@ export function AutosPublicFeaturedCard({
             </div>
           </div>
         ) : null}
-        <div className="mt-2 flex justify-end border-t border-[color:var(--lx-nav-border)] pt-3">
-          <span className="inline-flex min-h-[44px] min-w-[8rem] items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-4 text-xs font-bold text-[#FFFCF7] shadow-sm">
+        <div className="mt-1 flex justify-end border-t border-[color:var(--lx-nav-border)] pt-2.5">
+          <span className="inline-flex min-h-[38px] min-w-[7rem] items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(201,168,74,0.95),rgba(184,149,74,0.92))] px-3 text-xs font-bold text-[#FFFCF7] shadow-sm">
             {copy.cardViewDetails}
           </span>
         </div>

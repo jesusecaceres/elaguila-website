@@ -23,6 +23,7 @@ import {
   appendPreservedSearchParams,
   parseAdminScope,
 } from "../_lib/clasificadosAdminScopeUrls";
+import { AdminPagePurposeCard } from "../../../../_components/AdminPagePurposeCard";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,15 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
         rightSlot={
           <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
         }
+      />
+      <AdminPagePurposeCard
+        title="Restaurantes admin ops"
+        purpose="Operate paid Restaurante listings, public visibility, trust flags, package signals, and owner lookup."
+        dataSource="public.restaurantes_public_listings plus package entitlement and owner profile context."
+        status="partial"
+        safeActions={["View public", "View in results", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Paid-only category behavior is real, but package/payment alignment and action QA still need proof."
       />
 
       {configured ? (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import AdminReportsTable from "./AdminReportsTable";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminCardBase, adminInputClass, adminBtnSecondary } from "../../_components/adminTheme";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
@@ -81,6 +82,15 @@ export default async function AdminReportesPage(props: PageProps) {
         subtitle={m("reportsPage.subtitle")}
         eyebrow="Trust & safety"
         helperText={qRaw ? m("reportsPage.helperFiltered") : m("reportsPage.helperDefault")}
+      />
+      <AdminPagePurposeCard
+        title="Reports & complaints"
+        purpose="Inspect user-submitted listing reports and complaint signals without implying moderation actions are complete."
+        dataSource="public.listing_reports joined operationally with listing and owner context from admin tools."
+        status="partial"
+        safeActions={["Search reports", "Open related listing/user", "Review report rows"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Mark reviewed, clear flag, and resolution workflow need action QA before they are treated as complete."
       />
 
       <form method="get" className={`${adminCardBase} mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-end`}>

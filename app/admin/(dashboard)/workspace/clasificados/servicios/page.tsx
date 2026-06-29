@@ -10,6 +10,7 @@ import {
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
 import {
   isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
@@ -221,6 +222,16 @@ export default async function AdminServiciosWorkspacePage(props: {
         </p>
         <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
       </header>
+
+      <AdminPagePurposeCard
+        title="Servicios admin ops"
+        purpose="Operate Servicios listings, leads, reviews, analytics signals, and owner-facing listing health from one queue."
+        dataSource="public.servicios_public_listings, servicios_public_leads, servicios_listing_reviews, saved/liked engagement, and owner profile JSON."
+        status={unavailable || !fullSchema ? "needs live proof" : "partial"}
+        safeActions={["View public", "Manage listing", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Promote/Verify actions require the live schema drift migration. Analytics remain partial when engagement tables are unavailable."
+      />
 
       <section className={`${adminCardBase} border-[#C9B46A]/35 p-4 sm:p-5`} data-testid="servicios-admin-quick-actions">
         <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Quick actions</p>

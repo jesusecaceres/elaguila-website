@@ -14,11 +14,12 @@ type Props = {
   target?: string;
   rel?: string;
   "aria-label"?: string;
+  "data-servicios-results-cta"?: string;
   onClick?: MouseEventHandler<HTMLAnchorElement>;
   role?: AriaRole;
+  sourceId?: string | null;
   engagementListingId?: string | null;
   ownerUserId?: string | null;
-  sourceId?: string | null;
 };
 
 export function ServiciosTrackedLink({
@@ -33,9 +34,10 @@ export function ServiciosTrackedLink({
   "aria-label": ariaLabel,
   onClick: onClickProp,
   role,
+  sourceId,
   engagementListingId,
   ownerUserId,
-  sourceId,
+  "data-servicios-results-cta": dataServiciosResultsCta,
 }: Props) {
   const onClick: MouseEventHandler<HTMLAnchorElement> = (e) => {
     onClickProp?.(e);
@@ -43,9 +45,9 @@ export function ServiciosTrackedLink({
     const meta: ServiciosAnalyticsTrackMeta = {
       listingSlug,
       slug: listingSlug,
+      sourceId: sourceId ?? undefined,
       engagementId: (engagementListingId ?? listingSlug).trim(),
       ownerUserId: ownerUserId ?? undefined,
-      sourceId: sourceId ?? undefined,
       source: "tracked_link",
       href,
     };
@@ -60,6 +62,7 @@ export function ServiciosTrackedLink({
       target={target}
       rel={rel}
       aria-label={ariaLabel}
+      data-servicios-results-cta={dataServiciosResultsCta}
       role={role}
       onClick={onClick}
     >

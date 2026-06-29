@@ -99,6 +99,7 @@ export function ServiciosActionPanel({
   profile,
   lang,
   listingSlug,
+  listingSourceId = null,
   listingShareUrl,
   directContactFasterResponseHint = false,
   /** When false, omit `ServiciosOfferCard` (avoid duplicating promos already shown in `ServiciosPromocionesCard`). */
@@ -108,6 +109,8 @@ export function ServiciosActionPanel({
   lang: ServiciosLang;
   /** When set, outbound CTAs emit lightweight analytics events. */
   listingSlug?: string;
+  /** `servicios_public_listings.id` for global analytics writes when this panel is used on public listings. */
+  listingSourceId?: string | null;
   /** Canonical public profile URL (SSR) for share extras in sheets. */
   listingShareUrl?: string;
   /** Public listing: quote form hidden — suggest direct contact for faster response. */
@@ -120,11 +123,11 @@ export function ServiciosActionPanel({
 
   const openCtaSheet = useCallback(
     (intent: CtaSheetIntent, trackEvent?: string) => {
-      if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { source: "action_panel" });
+      if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { sourceId: listingSourceId, source: "action_panel" });
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [listingSlug],
+    [listingSlug, listingSourceId],
   );
 
   const closeCtaSheet = useCallback(() => {
@@ -527,7 +530,14 @@ export function ServiciosActionPanel({
         }}
       />
 
-      {showOfferSidebarTeaser ? <ServiciosOfferCard profile={profile} lang={lang} /> : null}
+      {showOfferSidebarTeaser ? (
+        <ServiciosOfferCard
+          profile={profile}
+          lang={lang}
+          listingSlug={listingSlug}
+          listingSourceId={listingSourceId}
+        />
+      ) : null}
 
       <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} />
     </div>

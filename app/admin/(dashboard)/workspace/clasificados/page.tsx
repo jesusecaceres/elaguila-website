@@ -26,6 +26,7 @@ import { ClasificadosCategoryUtilitiesCollapsible } from "./_components/Clasific
 import { EnVentaModerationFields } from "@/app/clasificados/en-venta/admin/EnVentaModerationFields";
 import { ClasificadosScopeNav } from "./_components/ClasificadosScopeNav";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../../_components/AdminPagePurposeCard";
 import { AdminSectionCard } from "../../../_components/AdminSectionCard";
 import { adminCardBase, adminCtaChipCompact, adminCtaChipSecondary } from "../../../_components/adminTheme";
 
@@ -163,6 +164,15 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         subtitle={m("clasificados.subtitle")}
         eyebrow={m("clasificados.eyebrow")}
         helperText={m("clasificados.helper", { limit: queueLimit })}
+      />
+      <AdminPagePurposeCard
+        title="Classifieds workspace"
+        purpose="Review, search, and act on listings across categories without pretending every category has the same backing."
+        dataSource="public.listings plus category source tables, listing_reports, and listing_moderation_reviews after live schema is applied."
+        status="needs live proof"
+        safeActions={["View public", "Edit listing where supported", "Suspend", "Archive", "Republish", "Run AI review after schema proof"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="AI review proof and promote/verify columns depend on the live schema drift migration being applied in production."
       />
 
       <div className={`${adminCardBase} mb-4 max-w-3xl space-y-2 p-4 text-sm text-[#5C5346]`}>

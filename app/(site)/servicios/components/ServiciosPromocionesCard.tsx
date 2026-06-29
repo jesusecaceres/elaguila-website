@@ -87,8 +87,6 @@ function PromoCtaButton({
   onImageOpen,
   listingSlug,
   analyticsMeta,
-  promoIndex,
-  promoTitle,
 }: {
   kind: ResourceKind;
   href: string;
@@ -99,8 +97,6 @@ function PromoCtaButton({
   onImageOpen: (src: string) => void;
   listingSlug?: string;
   analyticsMeta?: ReturnType<typeof serviciosAnalyticsTrackMeta>;
-  promoIndex?: number;
-  promoTitle?: string;
 }) {
   const premium = Boolean(premiumLeonixTone);
   const label = promoActionLabel(kind, variant, lang, L, premium);
@@ -117,15 +113,7 @@ function PromoCtaButton({
     if (!listingSlug) return;
     const eventType =
       kind === "pdf" ? "cta_secondary_click" : variant === "primary" ? "cta_primary_click" : "cta_secondary_click";
-    trackServiciosListingCta(listingSlug, eventType, {
-      ...analyticsMeta,
-      source: "promo_card",
-      promoKind: kind,
-      cta: kind === "pdf" ? "promo_pdf_click" : kind === "link" ? "promo_link_click" : "promo_image_click",
-      promoIndex,
-      promoTitle,
-      url_type: kind,
-    });
+    trackServiciosListingCta(listingSlug, eventType, { ...analyticsMeta, source: "promo_card", promoKind: kind });
   };
 
   if (kind === "image") {
@@ -166,7 +154,6 @@ function PromoInnerCard({
   onImageOpen,
   listingSlug,
   analyticsMeta,
-  promoIndex,
 }: {
   promo: PromoRow;
   lang: ServiciosLang;
@@ -175,30 +162,12 @@ function PromoInnerCard({
   onImageOpen: (src: string) => void;
   listingSlug?: string;
   analyticsMeta?: ReturnType<typeof serviciosAnalyticsTrackMeta>;
-  promoIndex?: number;
 }) {
   const L = getServiciosProfileLabels(lang);
   const hasImage = Boolean(promo.assetImageHrefSafe);
   const thumb = promo.assetImageHrefSafe;
   const footnote = promo.footnote?.trim() ?? "";
   const headline = promo.headline?.trim() ?? "";
-  const openTrackedImage = useCallback(
-    (src: string) => {
-      if (listingSlug) {
-        trackServiciosListingCta(listingSlug, "cta_secondary_click", {
-          ...analyticsMeta,
-          source: "promo_card",
-          promoKind: "image",
-          cta: "promo_image_click",
-          promoIndex,
-          promoTitle: headline || undefined,
-          url_type: "image",
-        });
-      }
-      onImageOpen(src);
-    },
-    [analyticsMeta, headline, listingSlug, onImageOpen, promoIndex],
-  );
 
   const { primary, secondary } = useMemo(
     () =>
@@ -244,7 +213,7 @@ function PromoInnerCard({
           <div className="w-full shrink-0 sm:max-w-[44%] sm:min-w-[10.5rem] lg:min-w-[12.5rem]">
             <button
               type="button"
-              onClick={() => openTrackedImage(thumb)}
+              onClick={() => onImageOpen(thumb)}
               className="group relative aspect-[5/4] w-full min-h-[140px] overflow-hidden rounded-lg border-2 border-[#D4C4A8] bg-[#F5F0E8] shadow-inner sm:min-h-[160px]"
               aria-label={L.promoViewImage}
             >
@@ -322,8 +291,6 @@ function PromoInnerCard({
                   onImageOpen={onImageOpen}
                   listingSlug={listingSlug}
                   analyticsMeta={analyticsMeta}
-                  promoIndex={promoIndex}
-                  promoTitle={headline || undefined}
                 />
               ) : null}
               {secondary.map((s) => (
@@ -338,8 +305,6 @@ function PromoInnerCard({
                   onImageOpen={onImageOpen}
                   listingSlug={listingSlug}
                   analyticsMeta={analyticsMeta}
-                  promoIndex={promoIndex}
-                  promoTitle={headline || undefined}
                 />
               ))}
             </div>
@@ -417,11 +382,10 @@ export function ServiciosPromocionesCard({
           {copy.sectionTitle}
         </h2>
         <div className={listClass}>
-          {profile.promotions.map((p, i) => (
+          {profile.promotions.map((p) => (
             <div key={p.id} className={premiumLeonixTone ? "w-full min-w-0" : n > 1 ? "w-[min(100%,340px)] shrink-0 snap-start md:w-auto md:shrink" : ""}>
               <PromoInnerCard
                 promo={p}
-                promoIndex={i}
                 lang={lang}
                 compact={!premiumLeonixTone}
                 premiumLeonixTone={premiumLeonixTone}

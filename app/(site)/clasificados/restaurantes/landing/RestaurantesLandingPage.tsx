@@ -73,7 +73,6 @@ function RestaurantesLandingPageInner({
     if (city || zip) setLocation(zip || city);
   }, [sp]);
 
-  const clasificadosHref = appendLangToPath("/clasificados", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
 
   const allResultsHref = useMemo(() => buildRestaurantesResultsHref(lang, {}), [lang]);
@@ -299,7 +298,7 @@ function RestaurantesLandingPageInner({
             </div>
           </div>
           {featuredCards.length ? (
-            <div className="mt-6 flex w-full min-w-0 flex-col gap-5 sm:gap-6">
+            <div className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:gap-4">
               {featuredCards.map((card) => {
                 const row = discoveryLookupRows.find((r) => r.id === card.id);
                 if (!row) return null;
@@ -335,7 +334,7 @@ function RestaurantesLandingPageInner({
             </div>
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.browseIntro}</p>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:grid-cols-6">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:grid-cols-6">
             {RESTAURANTES_BLUEPRINT_CATEGORY_TILES.map((tile) => (
               <Link
                 key={tile.id}
@@ -351,7 +350,7 @@ function RestaurantesLandingPageInner({
                     className="object-cover object-center transition duration-500 group-hover:scale-[1.05]"
                   />
                 </div>
-                <div className="p-3 text-center">
+                <div className="p-2.5 text-center">
                   <span className="text-xs font-semibold text-[color:var(--lx-text)] sm:text-sm">
                     {lang === "es" ? tile.labelEs : tile.labelEn}
                   </span>
@@ -372,7 +371,7 @@ function RestaurantesLandingPageInner({
             <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.recentIntro}</p>
           </div>
           {recentCards.length ? (
-            <div className="mt-6 flex w-full min-w-0 flex-col gap-5 sm:gap-6">
+            <div className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:gap-4">
               {recentCards.map((card) => {
                 const row = discoveryLookupRows.find((r) => r.id === card.id);
                 if (!row) return null;

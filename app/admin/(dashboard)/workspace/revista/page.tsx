@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../../_components/AdminPagePurposeCard";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminCardBase, adminBtnSecondary, adminInputClass, adminTableWrap } from "../../../_components/adminTheme";
 import { MagazineIssueCreateCard } from "../../../_components/magazine/MagazineIssueCreateCard";
@@ -209,6 +210,15 @@ export default async function AdminWorkspaceRevistaPage(props: {
         subtitle="The `/magazine` cover and public manifest come from Supabase when published or archived issues exist; if the table is empty or fails, `public/magazine/editions.json` is used as fallback."
         eyebrow="Workspace · Magazine"
         helperText="Upload cover/PDF to Blob (requires BLOB_READ_WRITE_TOKEN) or paste URLs. Only one published issue is “current”; marking another automatically archives the previous cover issue."
+      />
+      <AdminPagePurposeCard
+        title="Magazine manager"
+        purpose="Create, publish, archive, and feature Leonix magazine issues while keeping the public resolver truth visible."
+        dataSource="magazine_issues for issue metadata/assets, revista_spotlight in site_section_content for internal notes, and editions.json as fallback."
+        status={issuesErr ? "needs live proof" : "partial"}
+        safeActions={["Save issue data", "Publish issue", "Mark current issue", "Archive issue", "Delete draft only", "Preview public template"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Public static issue routes are not automatically generated from database rows yet; use the preview link and manifest truth before treating an issue as fully live."
       />
 
       <div className={`${adminCardBase} mb-6 max-w-3xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 p-4 text-xs text-[#5C5346]`}>

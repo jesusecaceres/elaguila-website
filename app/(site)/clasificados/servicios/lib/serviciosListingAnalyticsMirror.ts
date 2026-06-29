@@ -6,7 +6,7 @@ import { serviciosCanonicalListingAnalyticsId } from "@/app/(site)/servicios/lib
 import { getServiciosPublicListingBySlugFromDb } from "./serviciosPublicListingsServer";
 
 const OPS_TO_LISTING: Record<string, ListingAnalyticsEventType> = {
-  profile_view: "profile_view",
+  profile_view: "listing_view",
   cta_call_click: "phone_click",
   cta_whatsapp_click: "whatsapp_click",
   cta_email_click: "email_click",

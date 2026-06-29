@@ -3,6 +3,7 @@ import { AdminCommandCenterClient, type AdminCommandCenterSection } from "./Admi
 import { AdminDashboardCta, AdminDashboardCtaGrid } from "./AdminDashboardCta";
 import { AdminDashboardReviewCardActions } from "./AdminDashboardReviewCardActions";
 import { AdminMonetizationLinksCard } from "./AdminMonetizationLinksCard";
+import { AdminPagePurposeCard } from "./AdminPagePurposeCard";
 import { AdminSectionCard } from "./AdminSectionCard";
 import {
   adminCardBase,
@@ -832,6 +833,15 @@ export function AdminCommandCenterDashboard({
   return (
     <div className="min-w-0 max-w-7xl overflow-x-hidden" data-testid="admin-ceo-command-center">
       {hero}
+      <AdminPagePurposeCard
+        title="Leonix Command Center"
+        purpose="Daily operator view for leads, listings, reports, revenue signals, people, website control, and planned system health without fake counts."
+        dataSource="Live Supabase-backed snapshots where available: listings, leads, reports, package entitlements, promo codes, payment records, Tienda catalog, and category registry."
+        status="partial"
+        safeActions={["Open real queues", "Inspect reports and leads", "Navigate to existing admin tools"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Bug Finder, System Health, Concierge, and final Viajes affiliate ops remain planned until their schema/actions are proven."
+      />
       {priorityStrip}
       {quickActions}
       <AdminCommandCenterClient sections={sections} />

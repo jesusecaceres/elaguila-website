@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
 import { adminBtnPrimary, adminCardBase, adminInputClass, adminTableWrap } from "@/app/admin/_components/adminTheme";
 import { getAdminCatalogStats, listCatalogItemsAdmin } from "@/app/admin/_lib/tiendaCatalogAdminData";
 import { TIENDA_CATEGORY_SLUGS } from "@/app/tienda/data/tiendaCategories";
@@ -101,6 +102,15 @@ export default async function AdminTiendaCatalogListPage({
             + New catalog item
           </Link>
         }
+      />
+      <AdminPagePurposeCard
+        title="Tienda catalog"
+        purpose="Manage product records that power the Tienda storefront, including copy, CTA modes, pricing labels, images, and visibility."
+        dataSource="tienda_catalog_items, tienda_catalog_images, and tienda_catalog_pricing_rules."
+        status={stats.error || list.error ? "needs live proof" : "real"}
+        safeActions={["Create item", "Edit catalog item", "View public product", "Filter catalog"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Catalog CRUD is real; fulfillment/customer notification action proof belongs to the next action QA gate."
       />
 
       {stats.error ? (

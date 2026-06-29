@@ -1,11 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
+import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
@@ -23,7 +22,6 @@ import {
   buildRestaurantesResultsHref,
   clearRestaurantesDiscoveryFilters,
   parseRestaurantesResultsSearchParams,
-  restaurantesDiscoveryParamsForRowDeepLink,
   restaurantesDiscoveryStateToParams,
   splitLocationInput,
   type RestaurantesDiscoveryLang,
@@ -37,7 +35,6 @@ import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/c
 import { getRestaurantesDestacadosRows } from "@/app/clasificados/restaurantes/lib/restaurantesDestacados";
 import { applyRestaurantesVisibilityRanking } from "@/app/clasificados/restaurantes/lib/restaurantesVisibilityRanking";
 import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { RestaurantesResultsInventorySource } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
@@ -1288,7 +1285,7 @@ export function RestaurantesResultsShell({
         <div className="mt-4 min-w-0">
           <div className="min-w-0">
             {destacadosRows.length > 0 ? (
-              <div className="mb-6 sm:mb-8">
+              <div className="mb-4 sm:mb-5">
                 <RestaurantesDestacadosSection
                   rows={destacadosRows}
                   lang={lang}
@@ -1309,7 +1306,7 @@ export function RestaurantesResultsShell({
                 </Link>
               </div>
             ) : (
-              <ul className="flex list-none w-full min-w-0 flex-col gap-5 sm:gap-6">
+              <ul className="flex list-none w-full min-w-0 flex-col gap-3 sm:gap-4">
                 {shown.map((row) => (
                   <li key={row.id} className="min-w-0 w-full">
                     <RestaurantePublishedListingCard

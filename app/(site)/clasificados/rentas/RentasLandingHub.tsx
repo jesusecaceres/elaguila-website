@@ -142,7 +142,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         searchPlaceholder={categoryStandardSearchPlaceholder("rentas", lang)}
         publishHref={publishHref}
         browseHref={resultsBase}
-        publishLabel={copy.publishPrivado}
+        publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
         browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
         searchChips={<CategoryStandardQuickFilterChips category="rentas" lang={lang} />}
         searchSlot={
@@ -164,8 +164,8 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
           ) : (
             <p className="mb-3 text-center text-xs text-[#5C5346] sm:text-left">
               {lang === "es"
-                ? "Aún no hay rentas publicadas en catálogo. Publica desde Privado o Negocio."
-                : "No published rentals in the catalog yet. Publish from Private or Business."}
+                ? "Aún no hay rentas publicadas en catálogo. Empieza un anuncio de renta cuando estés listo."
+                : "No published rentals in the catalog yet. Start a rental listing when you are ready."}
             </p>
           )}
           {inventoryError ? (

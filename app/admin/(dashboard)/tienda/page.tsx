@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminBtnSecondary, adminCardBase } from "../../_components/adminTheme";
 import { ADMIN_LEADS_PROMO_INBOX_HREF } from "../../_lib/adminNavOps";
 
@@ -160,6 +161,15 @@ export default function AdminTiendaHubPage() {
             View public storefront ↗
           </Link>
         }
+      />
+      <AdminPagePurposeCard
+        title="Tienda command center"
+        purpose="Orient store operations around quote follow-up, catalog records, storefront content, and orders without inventing missing inventory/settings modules."
+        dataSource="tienda_catalog_items/images/pricing_rules, tienda_orders/assets, site_section_content storefront payload, and Launch Leads for quote intake."
+        status="partial"
+        safeActions={["Open promo leads", "Open catalog", "Open storefront editor", "Open orders when needed"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Dedicated inventory and Tienda-only settings routes are not in the repo and remain planned/missing."
       />
 
       <div className={`${adminCardBase} border-[#C9B46A]/35 bg-[#FFFCF7] p-4 text-sm text-[#5C5346]`}>

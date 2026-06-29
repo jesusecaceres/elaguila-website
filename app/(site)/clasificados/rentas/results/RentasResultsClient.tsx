@@ -105,7 +105,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [poolDraft, setPoolDraft] = useState(false);
   const [subtypeDraft, setSubtypeDraft] = useState("");
   const [kindDraft, setKindDraft] = useState("");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<"grid" | "list">("list");
 
   const resultsQueryString = searchParams?.toString() ?? "";
 
@@ -419,9 +419,14 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             />
           </div>
 
-          <div className="pt-6">
+          <details className="pt-4">
+            <summary className="flex min-h-[42px] cursor-pointer list-none items-center justify-between rounded-xl border border-[#D4C4A8]/70 bg-[#FFFCF7] px-3 text-sm font-bold text-[#1E1810] [&::-webkit-details-marker]:hidden">
+              <span>{lang === "es" ? "Filtros" : "Filters"}</span>
+              <span className="text-[#5B7C99]" aria-hidden>▾</span>
+            </summary>
+          <div className="pt-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.results.filterRefine}</p>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <label className="min-w-0">
                 <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.cityLabel}</span>
                 <input
@@ -690,6 +695,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
               </div>
             </div>
           </div>
+          </details>
         </div>
 
         <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} />
@@ -744,7 +750,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       />
 
       {safePage === 1 && featuredListing ? (
-        <section className="mt-10" aria-labelledby="rentas-feat-heading">
+        <section className="mt-6" aria-labelledby="rentas-feat-heading">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[#E4D9C8]/80 pb-3">
             <h2 id="rentas-feat-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
               {copy.featured.title}
@@ -755,7 +761,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         </section>
       ) : null}
 
-      <section className="mt-14 border-t border-[#E8DFD0]/90 pt-10" aria-labelledby="rentas-grid-heading">
+      <section className="mt-8 border-t border-[#E8DFD0]/90 pt-6" aria-labelledby="rentas-grid-heading">
         <h2 id="rentas-grid-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
           {copy.results.moreRentals}
         </h2>
@@ -767,13 +773,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             </Link>
           </p>
         ) : view === "list" ? (
-          <div className="mt-7 flex flex-col gap-6">
+          <div className="mt-4 flex flex-col gap-3">
             {displayedListings.map((l) => (
               <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
           </div>
         ) : (
-          <div className="mt-7 grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 xl:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {displayedListings.map((l) => (
               <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}

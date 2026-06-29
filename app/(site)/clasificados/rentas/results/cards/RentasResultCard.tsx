@@ -295,11 +295,11 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
 
   if (horizontal) {
     return (
-      <Link href={href} className={`group block max-w-[820px] overflow-hidden ${cardRing}`} aria-label={aria}>
+      <Link href={href} className={`group block w-full overflow-hidden ${cardRing}`} aria-label={aria}>
         <article className="overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-stretch">
-            <div className="relative w-full shrink-0 sm:w-[min(42%,360px)] sm:max-w-[360px]">
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E8E0D4]">
+            <div className="relative w-full shrink-0 sm:w-[220px] lg:w-[240px]">
+              <div className="relative h-36 w-full overflow-hidden bg-[#E8E0D4] sm:h-full sm:min-h-[150px]">
                 <img
                   src={listing.imageUrl}
                   alt=""

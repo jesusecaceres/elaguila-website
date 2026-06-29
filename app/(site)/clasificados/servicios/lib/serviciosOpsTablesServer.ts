@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { mirrorServiciosOpsEventToListingAnalytics } from "./serviciosListingAnalyticsMirror";
 
 export type ServiciosReviewRow = {
   id: string;
@@ -39,13 +38,7 @@ export async function insertServiciosAnalyticsEvent(args: {
       event_type: args.eventType,
       meta: args.meta ?? {},
     });
-    if (error) return false;
-    await mirrorServiciosOpsEventToListingAnalytics({
-      listingSlug: args.listingSlug ?? null,
-      eventType: args.eventType,
-      meta: args.meta,
-    });
-    return true;
+    return !error;
   } catch {
     return false;
   }

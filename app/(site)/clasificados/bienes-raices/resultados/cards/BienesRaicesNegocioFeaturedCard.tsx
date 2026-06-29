@@ -60,7 +60,7 @@ export function BienesRaicesNegocioFeaturedCard({
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-[#C5A059] to-transparent opacity-90" />
       <div className="flex flex-col lg:flex-row lg:items-stretch">
         <div className="relative lg:w-[54%]">
-          <div className="relative aspect-[16/11] overflow-hidden lg:aspect-auto lg:min-h-[300px] lg:h-full">
+          <div className="relative aspect-[16/9] overflow-hidden lg:aspect-auto lg:min-h-[220px] lg:h-full">
             <img
               src={listing.imageUrl}
               alt=""
@@ -82,8 +82,8 @@ export function BienesRaicesNegocioFeaturedCard({
               <IconHeart className="h-5 w-5" filled={fav} />
             </button>
           </div>
-          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#E8DFD0]/70 bg-[#FFFCF7]/95 px-5 py-4">
-            <p className="text-2xl font-bold tracking-tight text-[#B8954A] sm:text-3xl">{listing.price}</p>
+          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#E8DFD0]/70 bg-[#FFFCF7]/95 px-4 py-3">
+            <p className="text-xl font-bold tracking-tight text-[#B8954A] sm:text-2xl">{listing.price}</p>
             <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-[#3D3630]/88">
               {!isMissingBrCardFact(listing.beds) ? (
                 <span className="inline-flex items-center gap-1.5">
@@ -112,25 +112,25 @@ export function BienesRaicesNegocioFeaturedCard({
             </div>
           </div>
         </div>
-        <div className="flex flex-1 flex-col justify-between border-t border-[#E8DFD0]/60 bg-[#FDFBF7]/98 p-6 lg:min-h-[300px] lg:border-l lg:border-t-0 lg:p-8">
+        <div className="flex flex-1 flex-col justify-between border-t border-[#E8DFD0]/60 bg-[#FDFBF7]/98 p-4 lg:min-h-[220px] lg:border-l lg:border-t-0 lg:p-5">
           <div>
             <p className={brLuxuryOverlineClass}>{lang === "en" ? "Featured property" : "Propiedad destacada"}</p>
             {titleAsLink ? (
               <Link
                 href={detailHref}
-                className={`mt-3 block ${brLuxurySerifHeadingClass} text-2xl leading-tight hover:text-[#8A6F3A] sm:text-[1.85rem]`}
+                className={`mt-2 block ${brLuxurySerifHeadingClass} text-xl leading-tight hover:text-[#8A6F3A] sm:text-2xl`}
               >
                 {listing.title}
               </Link>
             ) : (
-              <p className={`mt-3 ${brLuxurySerifHeadingClass} text-2xl leading-tight sm:text-[1.85rem]`}>{listing.title}</p>
+              <p className={`mt-2 ${brLuxurySerifHeadingClass} text-xl leading-tight sm:text-2xl`}>{listing.title}</p>
             )}
-            <p className={`mt-3 flex items-start gap-2 ${brLuxuryBodyMutedClass}`}>
+            <p className={`mt-2 flex items-start gap-2 ${brLuxuryBodyMutedClass}`}>
               <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8954A]" />
               <span>{listing.addressLine}</span>
             </p>
             {listing.metaLines?.length ? (
-              <ul className="mt-4 space-y-1.5 text-sm text-[#5C5346]/85">
+              <ul className="mt-3 space-y-1 text-sm text-[#5C5346]/85">
                 {listing.metaLines.map((line) => (
                   <li key={line} className="flex gap-2">
                     <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#C5A059]" aria-hidden />
@@ -140,9 +140,9 @@ export function BienesRaicesNegocioFeaturedCard({
               </ul>
             ) : null}
           </div>
-          <div className="mt-8 space-y-5 border-t border-[#E8DFD0]/65 pt-6">
+          <div className="mt-4 space-y-3 border-t border-[#E8DFD0]/65 pt-4">
             <div className="flex items-center gap-4">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-md ring-2 ring-[#E8DFD0]/80">
+              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-md ring-2 ring-[#E8DFD0]/80">
                 {listing.advertiser.photoUrl ? (
                   <img src={listing.advertiser.photoUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -181,10 +181,10 @@ export function BienesRaicesNegocioFeaturedCard({
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Link href={detailHref} className={`${brLuxuryBtnPrimaryClass} flex-1 px-6 py-3 text-[15px]`}>
+              <Link href={detailHref} className={`${brLuxuryBtnPrimaryClass} flex-1 px-4 py-2.5 text-sm`}>
                 {lang === "en" ? "View property" : "Ver propiedad"}
               </Link>
-              <Link href={detailHref} className={`${brLuxuryBtnSecondaryClass} flex-1 px-6 py-3 text-[15px]`}>
+              <Link href={detailHref} className={`${brLuxuryBtnSecondaryClass} flex-1 px-4 py-2.5 text-sm`}>
                 {lang === "en" ? "Contact" : "Contactar"}
               </Link>
             </div>

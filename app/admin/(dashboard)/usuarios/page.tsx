@@ -6,6 +6,7 @@ import { fetchProfilesForAdminList } from "../../_lib/adminProfilesQuery";
 import { fetchAdminUserListCountsBatch } from "../../_lib/adminUserRollups";
 import AdminUserActions from "./AdminUserActions";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminCardBase, adminTableWrap, adminCtaChipCompact, adminTableZebraRow } from "../../_components/adminTheme";
 
 type ProfileRow = {
@@ -160,6 +161,15 @@ export default async function AdminUsuariosPage(props: PageProps) {
         title="Users"
         subtitle="Profiles (service role). Search uses Postgres when you type a query — not limited to the newest 200 rows. Ref-style IDs still merge matches from recent accounts."
         eyebrow="Accounts"
+      />
+      <AdminPagePurposeCard
+        title="Users and support lookup"
+        purpose="Find customer profiles, inspect account state, and open support-safe detail pages without impersonation."
+        dataSource="public.profiles plus listing, report, order, analytics, and package rollups when row limits allow."
+        status="partial"
+        safeActions={["Search by name/email/phone/reference", "Open user detail", "Open Customer Ops search"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Password reset and safe support sessions need an audited support-view gate; no passwords or raw cards are shown here."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

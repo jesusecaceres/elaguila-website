@@ -6,6 +6,7 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
 import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
+import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
 type ResourceKind = "image" | "pdf" | "link";
@@ -42,12 +43,14 @@ function SidebarPromoCta({
   variant,
   L,
   onImageOpen,
+  onTrack,
 }: {
   kind: ResourceKind;
   href: string;
   variant: "primary" | "secondary";
   L: ReturnType<typeof getServiciosProfileLabels>;
   onImageOpen: (src: string) => void;
+  onTrack: (kind: ResourceKind, variant: "primary" | "secondary") => void;
 }) {
   const label = kind === "image" ? L.promoViewImage : kind === "pdf" ? L.promoViewPdf : L.visitWebsite;
   const base =
@@ -57,24 +60,52 @@ function SidebarPromoCta({
 
   if (kind === "image") {
     return (
-      <button type="button" className={base} onClick={() => onImageOpen(href)}>
+      <button
+        type="button"
+        className={base}
+        onClick={() => {
+          onTrack(kind, variant);
+          onImageOpen(href);
+        }}
+      >
         {label}
       </button>
     );
   }
 
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={base}>
+    <a href={href} target="_blank" rel="noopener noreferrer" className={base} onClick={() => onTrack(kind, variant)}>
       {label}
     </a>
   );
 }
 
-export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
+export function ServiciosOfferCard({
+  profile,
+  lang,
+  listingSlug,
+  listingSourceId = null,
+  engagementListingId,
+  engagementOwnerUserId,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  listingSlug?: string;
+  listingSourceId?: string | null;
+  engagementListingId?: string | null;
+  engagementOwnerUserId?: string | null;
+}) {
   const L = getServiciosProfileLabels(lang);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const openLightbox = useCallback((src: string) => setLightboxSrc(src), []);
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
+  const analyticsMeta = serviciosAnalyticsTrackMeta({
+    listingSlug,
+    sourceId: listingSourceId,
+    engagementListingId,
+    ownerUserId: engagementOwnerUserId,
+    source: "offer_sidebar",
+  });
 
   if (!hasOfferSectionResolved(profile)) return null;
   /** Sidebar teaser: single-promo layouts keep the legacy sticky-panel offer; multiple promos render in main content only. */
@@ -104,7 +135,16 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
           {hasImage && thumb ? (
             <button
               type="button"
-              onClick={() => openLightbox(thumb)}
+              onClick={() => {
+                if (listingSlug) {
+                  trackServiciosListingCta(listingSlug, "cta_primary_click", {
+                    ...analyticsMeta,
+                    promoKind: "image",
+                    promoIndex: 0,
+                  });
+                }
+                openLightbox(thumb);
+              }}
               className="group relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-[#D4A574]/40 bg-[#F5EFE3]"
               aria-label={L.promoViewImage}
             >
@@ -135,6 +175,15 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
                   variant="primary"
                   L={L}
                   onImageOpen={openLightbox}
+                  onTrack={(kind, variant) => {
+                    if (!listingSlug) return;
+                    trackServiciosListingCta(listingSlug, "cta_primary_click", {
+                      ...analyticsMeta,
+                      promoKind: kind,
+                      promoVariant: variant,
+                      promoIndex: 0,
+                    });
+                  }}
                 />
               ) : null}
               {secondary.map((s) => (
@@ -145,6 +194,15 @@ export function ServiciosOfferCard({ profile, lang }: { profile: ServiciosProfil
                   variant="secondary"
                   L={L}
                   onImageOpen={openLightbox}
+                  onTrack={(kind, variant) => {
+                    if (!listingSlug) return;
+                    trackServiciosListingCta(listingSlug, "cta_secondary_click", {
+                      ...analyticsMeta,
+                      promoKind: kind,
+                      promoVariant: variant,
+                      promoIndex: 0,
+                    });
+                  }}
                 />
               ))}
             </div>

@@ -30,6 +30,10 @@ function MagazinePocViewContent() {
   const lang = proofLangFromSearch(params?.get("lang") ?? null);
   const magazineHref = `/magazine?lang=${lang}`;
   const readerHref = `/magazine/2026/june/read?lang=${lang}`;
+  const companionHref = `/magazine/2026/june/companion?lang=${lang}`;
+  const qrBridgeHref = `/qr/translator?lang=${lang}&sourcePage=magazine_poc&sourceCta=qa_qr_bridge`;
+  const mediaKitHref = `/media-kit?lang=${lang}&sourcePage=magazine_poc&sourceCta=qa_media_kit`;
+  const comingSoonHref = `/coming-soon-v2?lang=${lang}&sourcePage=magazine_poc&sourceCta=qa_coming_soon`;
 
   const proofTrack = useMemo(
     () => ({
@@ -53,7 +57,10 @@ function MagazinePocViewContent() {
             Back to magazine
           </Link>
           <Link className="text-[#2A4536] underline underline-offset-4" href={readerHref}>
-            Open readable companion
+            Open reader
+          </Link>
+          <Link className="text-[#2A4536] underline underline-offset-4" href={companionHref}>
+            Open companion
           </Link>
         </nav>
 
@@ -113,6 +120,30 @@ function MagazinePocViewContent() {
           </article>
         </section>
 
+        <section className="mt-6 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">
+            Clickable QA URLs
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { label: "Magazine hub", href: magazineHref },
+              { label: "June reader", href: readerHref },
+              { label: "Readable companion", href: companionHref },
+              { label: "QR / Lens / Translate bridge", href: qrBridgeHref },
+              { label: "Media Kit bridge", href: mediaKitHref },
+              { label: "Coming Soon CTA alignment", href: comingSoonHref },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-xl border border-[#D6C7AD] bg-[#FAF6EE] px-3 py-2 text-sm font-semibold text-[#2A4536] transition hover:border-[#C9A84A]"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="mt-6 rounded-2xl border border-[#C9A84A]/50 bg-[#FFFDF7] p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -141,6 +172,20 @@ function MagazinePocViewContent() {
               </p>
             </div>
           </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">
+            Ad asset reuse foundation
+          </p>
+          <h2 className="mt-2 font-serif text-2xl font-bold text-[#2A4536]">
+            Stable advertiser creative should be reused across issues
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">
+            Future translated ad assets should be keyed by source hash, advertiser, issue usage,
+            target language, provider, and QA status. If the source ad has not changed, Leonix
+            should reuse the approved translated asset instead of paying to translate it again.
+          </p>
         </section>
 
         <section className="mt-6 rounded-2xl border border-[#2A4536]/20 bg-[#2A4536] p-5 text-[#F8F4EA] sm:p-6">

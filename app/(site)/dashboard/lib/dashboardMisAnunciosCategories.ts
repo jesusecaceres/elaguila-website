@@ -195,6 +195,6 @@ export function resolveMisAnunciosDefaultCategory(
 /** Hide global /dashboard/analytics links for categories without per-listing proof. */
 export function provenInventoryAnalyticsHref(item: { category: string; analyticsHref?: string | null }): string | null {
   const cat = item.category.toLowerCase();
-  if (cat === "empleos" || cat === "viajes") return item.analyticsHref ?? null;
+  if (cat === "empleos" || cat === "viajes" || cat === "servicios") return item.analyticsHref ?? null;
   return null;
 }

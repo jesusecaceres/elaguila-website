@@ -1,5 +1,6 @@
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
+import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 
 const AUDIT_ROWS: { sectionKey: string; notesKey: string; enDefault: boolean; esToggle: boolean }[] = [
@@ -55,6 +56,15 @@ export default async function AdminLanguageAuditPage() {
   return (
     <div>
       <AdminPageHeader title={m("languageAudit.title")} subtitle={m("languageAudit.intro")} />
+      <AdminPagePurposeCard
+        title="Language Audit"
+        purpose="Give operators a QA map for English defaults and Spanish toggles across Admin OS sections."
+        dataSource="Static admin language audit rows plus translation_records/server translation cache where used elsewhere."
+        status="partial"
+        safeActions={["Review coverage", "Identify pages needing translation QA", "Keep public copy changes for separate gates"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="This is a QA/readout surface, not an automatic translation editor."
+      />
       <div className={`${adminCardBase} overflow-hidden p-0`}>
         <div className="overflow-x-auto">
           <table className="min-w-[720px] w-full border-collapse text-left text-sm text-[#3D3428]">

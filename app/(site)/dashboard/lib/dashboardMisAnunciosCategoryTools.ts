@@ -84,7 +84,7 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     openPanel: "ready",
     preview: "ready",
     publicResults: "ready",
-    analytics: "unproven",
+    analytics: "ready",
   },
   "comida-local": { publicView: "ready", analytics: "unproven" },
   autos: { publicView: "ready", archive: "ready", analytics: "unproven" },

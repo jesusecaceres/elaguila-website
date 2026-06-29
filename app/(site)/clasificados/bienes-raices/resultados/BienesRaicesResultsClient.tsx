@@ -22,7 +22,6 @@ import { BienesRaicesNegociosSpotlightBand } from "./components/BienesRaicesNego
 import { BienesRaicesPropiedadFilterChips } from "./components/BienesRaicesPropiedadFilterChips";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
-import { BienesRaicesResultsFilters } from "./components/BienesRaicesResultsFilters";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
 import { BienesRaicesResultsHero } from "./components/BienesRaicesResultsHero";
 import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
@@ -65,7 +64,7 @@ export function BienesRaicesResultsClient() {
   const mergeDemo = brShouldMergeDemoInventoryWithLive();
   const copy = useMemo(() => getBrResultsCopy(lang, { useDevInventoryCopy: mergeDemo }), [lang, mergeDemo]);
 
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<"grid" | "list">("list");
   const [showMap, setShowMap] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -213,7 +212,7 @@ export function BienesRaicesResultsClient() {
 
       <BienesRaicesResultsHero copy={copy} />
 
-      <div className="mt-8 max-w-[1280px] space-y-5">
+      <div className="mt-4 max-w-[1280px] space-y-4">
         <BienesRaicesBrConsentStrip lang={lang} />
         {liveFetchErr ? (
           <p className="rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950" role="status">
@@ -221,7 +220,7 @@ export function BienesRaicesResultsClient() {
             {liveFetchErr}
           </p>
         ) : null}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:hidden">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={() => setFilterDrawerOpen(true)}
@@ -229,10 +228,6 @@ export function BienesRaicesResultsClient() {
           >
             {copy.filterOpenMobile}
           </button>
-        </div>
-
-        <div className="hidden lg:block">
-          <BienesRaicesResultsFilters parsed={parsed} copy={copy} lang={lang} onPatch={(patch) => patchUrl(patch)} />
         </div>
 
         <BienesRaicesPropiedadFilterChips active={propiedadFilter} copy={copy} />
@@ -293,7 +288,7 @@ export function BienesRaicesResultsClient() {
 
       <BienesRaicesNegociosSpotlightBand listings={spotlight} copy={copy} lang={lang} />
 
-      <section className="mt-14" aria-labelledby="br-more-heading">
+      <section className="mt-8" aria-labelledby="br-more-heading">
         <h2 id="br-more-heading" className="font-serif text-xl font-semibold text-[#1E1810] sm:text-2xl">
           {copy.moreResultsTitle}
         </h2>
@@ -306,7 +301,7 @@ export function BienesRaicesResultsClient() {
             </Link>
           </p>
         ) : view === "list" ? (
-          <div className="mt-6 flex flex-col gap-5">
+          <div className="mt-4 flex flex-col gap-3">
             {displayedListings.map((listing) => (
               <BienesRaicesNegocioCard
                 key={listing.id}
@@ -317,7 +312,7 @@ export function BienesRaicesResultsClient() {
             ))}
           </div>
         ) : (
-          <div className="mt-8 grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
             {displayedListings.map((listing) => (
               <div
                 key={listing.id}

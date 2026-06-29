@@ -5,13 +5,6 @@ import { useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
-import {
-  brLuxuryBodyMutedClass,
-  brLuxuryBtnPrimaryClass,
-  brLuxuryBtnSecondaryClass,
-  brLuxuryCardHoverClass,
-  brLuxurySerifHeadingClass,
-} from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
@@ -199,7 +192,8 @@ export function BienesRaicesNegocioCard({
       </div>
 
       {/* Engagement Section */}
-      <div className="mt-6 pt-6 border-t border-[#E5E5E5]/50">
+      {!horizontal ? (
+      <div className="mt-4 pt-4 border-t border-[#E5E5E5]/50">
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
             {eg.title}
@@ -235,6 +229,7 @@ export function BienesRaicesNegocioCard({
           {eg.metricsNote}
         </div>
       </div>
+      ) : null}
     </>
   );
 
@@ -242,12 +237,12 @@ export function BienesRaicesNegocioCard({
     return (
       <article className={articleClass}>
         <div className="flex flex-col sm:flex-row sm:items-stretch">
-          <div className="relative sm:w-[44%] sm:max-w-[340px]">
-            <div className="relative aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[220px]">{imageBlock}</div>
+          <div className="relative sm:w-[240px] lg:w-[260px]">
+            <div className="relative h-40 sm:h-full sm:min-h-[170px]">{imageBlock}</div>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col p-6 sm:py-6 sm:pl-6 sm:pr-6">
-            <p className="text-2xl font-bold text-[#2A7F3E] leading-tight sm:text-[1.65rem]">{listing.price}</p>
-            <Link href={href} className="mt-2 block text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors sm:text-2xl">
+          <div className="flex min-w-0 flex-1 flex-col p-4">
+            <p className="text-xl font-bold text-[#2A7F3E] leading-tight">{listing.price}</p>
+            <Link href={href} className="mt-1.5 block text-lg font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors">
               {listing.title}
             </Link>
             <p className="mt-2 flex items-start gap-2 text-sm text-[#4A4A4A]">

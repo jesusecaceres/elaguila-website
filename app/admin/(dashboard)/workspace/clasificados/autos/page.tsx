@@ -28,6 +28,7 @@ import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
 import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { AdminPagePurposeCard } from "../../../../_components/AdminPagePurposeCard";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
@@ -165,6 +166,15 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         rightSlot={
           <ClasificadosScopeNav lang={lang} queueHref={queueNavHref} liveHref={liveNavHref} active={scope === "live" ? "live" : "queue"} />
         }
+      />
+      <AdminPagePurposeCard
+        title="Autos admin ops"
+        purpose="Review dealer and private Autos listings, inspect inventory identity, and run staff lifecycle/trust actions."
+        dataSource="public.autos_classifieds_listings plus owner profiles and package/analytics overlays where available."
+        status="partial"
+        safeActions={["View public", "Manage listing", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
+        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        warningNote="Public browse and dealer inventory are real; action confirmations/audit consistency still need QA proof."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">

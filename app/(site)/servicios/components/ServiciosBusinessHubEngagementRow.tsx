@@ -1,15 +1,19 @@
 "use client";
 
-import { serviciosSavedListingExtrasFromClient } from "@/app/lib/serviciosSavedListingIdentity";
+import {
+  serviciosSavedListingExtras,
+  serviciosSavedListingExtrasFromClient,
+} from "@/app/lib/serviciosSavedListingIdentity";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
+import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import {
   serviciosGlobalLikeRecorder,
+  serviciosGlobalListingFromRow,
   serviciosGlobalSaveRecorder,
   serviciosGlobalShareRecorder,
 } from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
-import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
-import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 const utilityCellClass =
   "flex min-h-[44px] min-w-0 items-stretch justify-center [&_button]:!w-full [&_button]:!max-w-none";
 
@@ -20,6 +24,7 @@ const utilityCellClass =
 export function ServiciosBusinessHubEngagementRow({
   profile,
   lang,
+  listingSlug,
   listingSourceId = null,
   engagementListingId = null,
   engagementOwnerUserId = null,
@@ -29,6 +34,7 @@ export function ServiciosBusinessHubEngagementRow({
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  listingSlug?: string;
   listingSourceId?: string | null;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
@@ -39,20 +45,25 @@ export function ServiciosBusinessHubEngagementRow({
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
   const sourceId = (listingSourceId ?? "").trim();
+  const slug = (listingSlug ?? profile.identity.slug).trim();
+  const globalListing =
+    sourceId && slug
+      ? serviciosGlobalListingFromRow({
+          id: sourceId,
+          slug,
+          leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
+        })
+      : null;
   const saveExtras = sourceId
-    ? {
-        category: "servicios",
-        source_table: "servicios_public_listings",
-        source_id: sourceId,
-        canonical_ad_id: lxListingId,
-      }
+    ? serviciosSavedListingExtras({
+        slug,
+        id: sourceId,
+        leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
+      })
     : serviciosSavedListingExtrasFromClient({
         slug: profile.identity.slug,
         engagementListingId: lxListingId,
       });
-  const globalListing = sourceId
-    ? { id: sourceId, slug: profile.identity.slug, leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null }
-    : null;
   const persistEngagement = persistListingEngagement;
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
@@ -99,8 +110,10 @@ export function ServiciosBusinessHubEngagementRow({
                 category="servicios"
                 className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
                 persistEngagement={persistEngagement}
+                recordShareEvent={
+                  globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
+                }
                 directNativeShare
-                recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
               />
             </div>
           ) : (
@@ -115,8 +128,8 @@ export function ServiciosBusinessHubEngagementRow({
               persistEngagement
               variant="default"
               tone="hub"
-              className="w-full [&_button]:!w-full"
               recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
+              className="w-full [&_button]:!w-full"
             />
           </div>
         </div>
@@ -132,8 +145,10 @@ export function ServiciosBusinessHubEngagementRow({
             category="servicios"
             className="!w-full !max-w-full !border-[color:var(--lx-border,#E8D7B8)]"
             persistEngagement={persistEngagement}
+            recordShareEvent={
+              globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
+            }
             directNativeShare
-            recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
           />
         </div>
       ) : null}

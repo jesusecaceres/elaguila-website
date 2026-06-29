@@ -122,7 +122,7 @@ export function AutosPublicResultsShell() {
   const resultCount = sorted.length;
   const L = lang as Lang;
   const autosHome = appendLangToPath("/clasificados/autos", L);
-  const publicar = appendLangToPath("/clasificados/publicar", L);
+  const publicar = appendLangToPath("/publicar/autos", L);
 
   const patchDraft = (patch: Partial<typeof draftFilters>) => setDraftFilters((f) => ({ ...f, ...patch }));
 
@@ -378,10 +378,10 @@ export function AutosPublicResultsShell() {
             ) : null}
 
             {loaded && featuredDealerBand.length > 0 ? (
-              <section className="mb-10 lg:mb-12">
+              <section className="mb-6 lg:mb-8">
                 <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{featuredTitle}</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneFeaturedSubtitle}</p>
-                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {featuredDealerBand.map((l) => (
                     <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
                   ))}
@@ -390,10 +390,10 @@ export function AutosPublicResultsShell() {
             ) : null}
 
             {recentLane.length > 0 ? (
-              <section className="mb-12 lg:mb-14">
+              <section className="mb-8 lg:mb-10">
                 <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsRecentSection}</h2>
                 <p className="mt-2 max-w-3xl text-sm text-[#7A7A7A]">{copy.resultsLaneRecentSubtitle}</p>
-                <div className="-mx-1 mt-6 flex gap-4 overflow-x-auto pb-2 pl-1 pr-2 pt-1 [scrollbar-width:thin]">
+                <div className="-mx-1 mt-4 flex gap-3 overflow-x-auto pb-2 pl-1 pr-2 pt-1 [scrollbar-width:thin]">
                   {recentLane.map((l) => (
                     <div key={l.id} className="w-[min(20rem,calc(100vw-2.5rem))] shrink-0">
                       <AutosPublicStandardCard listing={l} copy={copy} lang={lang} compact />
@@ -407,7 +407,7 @@ export function AutosPublicResultsShell() {
             <section>
               <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsMainSection}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneMainSubtitle}</p>
-              <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-2 2xl:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
                 {pagedGrid.map((l) => (
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
                 ))}

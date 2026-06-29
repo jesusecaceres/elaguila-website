@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useMemo, type ReactNode } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
@@ -47,6 +46,7 @@ import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
 import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
+import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
@@ -490,13 +490,18 @@ export function ServiciosProfessionalProfileShell({
             ) : null}
             {serviciosDiscoveryResultsHref?.trim() ? (
               <div className="mx-auto mt-4 flex max-w-3xl justify-center pb-2">
-                <Link
+                <ServiciosTrackedLink
+                  listingSlug={analyticsListingSlug}
+                  sourceId={sourceId || listingSourceId}
+                  engagementListingId={engagementListingId}
+                  ownerUserId={engagementOwnerUserId}
+                  eventType="cta_secondary_click"
                   href={serviciosDiscoveryResultsHref.trim()}
                   className="text-sm font-bold text-[#7A1E2C] underline-offset-4 hover:underline"
                   data-servicios-results-cta="1"
                 >
                   {lang === "en" ? "View Servicios results" : "Ver resultados de Servicios"}
-                </Link>
+                </ServiciosTrackedLink>
               </div>
             ) : null}
           </div>

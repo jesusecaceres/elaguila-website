@@ -3,25 +3,17 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import type { ServiciosLang, ServiciosProfileResolved, ServiciosServiceCard } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { resolveServiciosQuoteDestination, type ServiciosQuoteDestinationKind } from "../lib/serviciosContactActions";
+import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import { SV } from "./serviciosDesignTokens";
 import { LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 
 /** When count ≥ this, show expand/collapse (initially show {@link SERVICES_SECTION_INITIAL_VISIBLE}). */
 const SERVICES_SECTION_COLLAPSE_THRESHOLD = 19;
 const SERVICES_SECTION_INITIAL_VISIBLE = 18;
-
-function analyticsForQuoteKind(kind: ServiciosQuoteDestinationKind): string {
-  if (kind === "sms") return "cta_quote_sms_click";
-  if (kind === "whatsapp") return "cta_whatsapp_click";
-  if (kind === "tel") return "cta_call_click";
-  if (kind === "mailto") return "cta_email_click";
-  return "cta_website_click";
-}
 
 const getServiceType = (serviceName: string): "mobile" | "onsite" | "both" => {
   const name = serviceName.toLowerCase();
@@ -87,7 +79,6 @@ export function ServiciosOfferedSection({
   const [expanded, setExpanded] = useState(false);
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-  const [ctaEventType, setCtaEventType] = useState<string>("cta_quote_sms_click");
 
   const closeCta = useCallback(() => {
     setCtaOpen(false);
@@ -119,32 +110,15 @@ export function ServiciosOfferedSection({
         quoteMessage: message,
       });
       if (!intent) return;
-      const eventType = analyticsForQuoteKind(quoteDestination.kind);
-      trackServiciosListingCta(listingSlug, eventType, {
+      trackServiciosListingCta(listingSlug, "cta_quote_sms_click", {
         sourceId: listingSourceId,
         source: "services_grid",
         href: "sheet",
-        cta: "service_quote_open",
-        serviceName,
       });
-      setCtaEventType(eventType);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
-    [quoteDestination, lang, profileForQuote, listingSlug, listingShareUrl, listingSourceId],
-  );
-
-  const trackSheetAction = useCallback<CtaActionCallback>(
-    (info) => {
-      trackServiciosListingCta(listingSlug, ctaEventType, {
-        sourceId: listingSourceId,
-        source: "services_grid_sheet",
-        sheetKind: info.kind,
-        actionId: info.actionId,
-        ...(info.meta ?? {}),
-      });
-    },
-    [ctaEventType, listingSlug, listingSourceId],
+    [quoteDestination, lang, profileForQuote, listingSlug, listingShareUrl],
   );
 
   if (!services.length) return null;
@@ -238,7 +212,7 @@ export function ServiciosOfferedSection({
         </button>
       ) : null}
 
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </section>
   );
 }

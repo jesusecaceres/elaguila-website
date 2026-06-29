@@ -908,8 +908,7 @@ export default function MyListingsPage() {
   const showViajesSection = categoryFilter === "viajes" && viajesInventory.length > 0;
   const showServiciosSection =
     categoryFilter === "servicios" && serviciosInventory.length > 0;
-  const showAutosPaidSection =
-    categoryFilter === "autos" && autosPaidInventory.length > 0;
+  const showAutosPaidSection = categoryFilter === "autos";
   const showComidaLocalBlock = categoryFilter === "comida-local";
 
   const brNegocioInventoryRows = useMemo(
