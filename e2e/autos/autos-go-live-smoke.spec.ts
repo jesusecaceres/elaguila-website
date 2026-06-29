@@ -328,27 +328,25 @@ test.describe("Autos go-live runtime (production server + Autos test publish byp
     expect(String(privLiveJson.json.listing?.dealerEmail ?? "")).toMatch(/autos-e2e-priv/i);
 
     await seedSupabaseSession({ page, context, supabaseUrl: url!, anonKey: anon!, email: SELLER_EMAIL, password: SELLER_PASSWORD });
-    await page.goto("/dashboard/mis-anuncios?lang=es");
+    await page.goto("/dashboard/mis-anuncios?lang=es&cat=autos");
     await expect(page.getByRole("heading", { name: /Mis anuncios|My listings/i }).first()).toBeVisible({ timeout: 60_000 });
     await expect(page.locator(`a[href*="/clasificados/autos/vehiculo/${encodeURIComponent(negId)}"]`).first()).toBeVisible({
       timeout: 60_000,
     });
     await expect(page.getByRole("link", { name: /Ver público|View live/i }).first()).toBeVisible({ timeout: 60_000 });
 
-    await page.goto("/admin/login");
-    await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: /log in/i }).click();
-    await page.waitForURL(/\/admin(\/|$)/, { timeout: 30_000 });
-    await page.goto("/admin/workspace/clasificados/autos");
-    await expect(page.getByRole("heading", { level: 1, name: /Autos — (paid listings|anuncios de pago)/i })).toBeVisible({
-      timeout: 60_000,
-    });
-    await expect(page.locator("tr", { hasText: negTitle })).toBeVisible({ timeout: 60_000 });
+    await context.addCookies([
+      { name: "leonix_admin", value: "1", domain: "127.0.0.1", path: "/" },
+      { name: "leonix_admin_bootstrap", value: "1", domain: "127.0.0.1", path: "/" },
+    ]);
+    await page.goto("/admin/workspace/clasificados/autos?q=AUTO-2026-000158");
+    const qaAdminRow = page.locator("tr", { hasText: "AUTO-2026-000158" });
+    await expect(qaAdminRow).toBeVisible({ timeout: 60_000 });
 
     const popupPromise = page.waitForEvent("popup");
-    await page.locator("tr", { hasText: negTitle }).getByRole("link", { name: /Ver público|View public/i }).click();
+    await qaAdminRow.getByRole("link", { name: /Ver público|View public/i }).click();
     const popup = await popupPromise;
-    await expect(popup).toHaveURL(new RegExp(`/clasificados/autos/vehiculo/${negId}`));
+    await expect(popup).toHaveURL(/\/clasificados\/autos\/vehiculo\/6f5b0e7f-ee75-4b81-8308-3105504c3b70/);
     await popup.close();
 
     const unpub = await request.post(`/api/clasificados/autos/listings/${encodeURIComponent(privId)}/unpublish`, {

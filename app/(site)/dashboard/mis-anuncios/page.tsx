@@ -981,7 +981,7 @@ export default function MyListingsPage() {
     (showEmpleosSection && empleosInventory.length > 0) ||
     (showViajesSection && viajesInventory.length > 0) ||
     (showServiciosSection && serviciosInventory.length > 0) ||
-    (showAutosPaidSection && autosPaidInventory.length > 0) ||
+    showAutosPaidSection ||
     showBrInventorySection ||
     (showComidaLocalBlock && comidaLocalDashboardItems.length > 0) ||
     (showListingsTableSection && visible.length > 0);
