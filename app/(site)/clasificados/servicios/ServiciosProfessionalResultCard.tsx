@@ -20,7 +20,7 @@ import {
   type ServiciosListingTemplate,
 } from "./lib/serviciosTemplateRouting";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import {
   extractWaMeDigitsFromHref,
   serviciosContactShareExtras,
@@ -144,6 +144,7 @@ export function ServiciosProfessionalResultCard({
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const [ctaEventType, setCtaEventType] = useState<string>("cta_primary_click");
   const [listingShareUrl, setListingShareUrl] = useState("");
   useEffect(() => {
     setListingShareUrl(`${window.location.origin}${href}`);
@@ -162,6 +163,7 @@ export function ServiciosProfessionalResultCard({
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
       trackServiciosListingCta(row.slug, eventType, ctaTrackMeta);
+      setCtaEventType(eventType);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
@@ -219,6 +221,18 @@ export function ServiciosProfessionalResultCard({
     : LX_IVORY_CARD;
   const isCompact = density === "compact";
   const displayChips = isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips;
+  const trackSheetAction = useCallback<CtaActionCallback>(
+    (info) => {
+      trackServiciosListingCta(row.slug, ctaEventType, {
+        ...ctaTrackMeta,
+        source: "servicios_professional_card_sheet",
+        sheetKind: info.kind,
+        actionId: info.actionId,
+        ...(info.meta ?? {}),
+      });
+    },
+    [ctaEventType, ctaTrackMeta, row.slug],
+  );
 
   const body = (
     <>
@@ -339,7 +353,7 @@ export function ServiciosProfessionalResultCard({
           </div>
         </div>
       </article>
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
     </>
   );
 

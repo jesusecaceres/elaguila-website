@@ -18,6 +18,7 @@ type Props = {
   role?: AriaRole;
   engagementListingId?: string | null;
   ownerUserId?: string | null;
+  sourceId?: string | null;
 };
 
 export function ServiciosTrackedLink({
@@ -34,6 +35,7 @@ export function ServiciosTrackedLink({
   role,
   engagementListingId,
   ownerUserId,
+  sourceId,
 }: Props) {
   const onClick: MouseEventHandler<HTMLAnchorElement> = (e) => {
     onClickProp?.(e);
@@ -43,6 +45,7 @@ export function ServiciosTrackedLink({
       slug: listingSlug,
       engagementId: (engagementListingId ?? listingSlug).trim(),
       ownerUserId: ownerUserId ?? undefined,
+      sourceId: sourceId ?? undefined,
       source: "tracked_link",
       href,
     };

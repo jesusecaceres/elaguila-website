@@ -11,7 +11,7 @@ import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfile
 import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import {
   buildServiciosSendEmailIntentFromMailto,
   extractWaMeDigitsFromHref,
@@ -139,6 +139,7 @@ export function ServiciosHorizontalResultCard({
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const [ctaEventType, setCtaEventType] = useState<string>("cta_primary_click");
 
   const closeCta = useCallback(() => {
     setCtaOpen(false);
@@ -160,6 +161,7 @@ export function ServiciosHorizontalResultCard({
   const openOutbound = useCallback(
     (intent: CtaSheetIntent, eventType: string) => {
       trackServiciosListingCta(listingSlug || ctaAnalyticsListingKey, eventType, ctaTrackMeta);
+      setCtaEventType(eventType);
       setCtaIntent(intent);
       setCtaOpen(true);
     },
@@ -288,6 +290,18 @@ export function ServiciosHorizontalResultCard({
   const primaryCall = officeTel && officeDisplay ? { href: officeTel, label: L.callOffice, key: "callOffice" } : tel && phoneDisplay ? { href: tel, label: L.call, key: "call" } : null;
   const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const showDirections = Boolean(mapsHref && (addressQuery || /^https?:\/\//i.test(mapsHref)));
+  const trackSheetAction = useCallback<CtaActionCallback>(
+    (info) => {
+      trackServiciosListingCta(listingSlug || ctaAnalyticsListingKey, ctaEventType, {
+        ...ctaTrackMeta,
+        source: "servicios_horizontal_card_sheet",
+        sheetKind: info.kind,
+        actionId: info.actionId,
+        ...(info.meta ?? {}),
+      });
+    },
+    [ctaAnalyticsListingKey, ctaEventType, ctaTrackMeta, listingSlug],
+  );
 
   return (
     <>
@@ -444,7 +458,7 @@ export function ServiciosHorizontalResultCard({
           </div>
         </div>
       </article>
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
     </>
   );
 }

@@ -1,8 +1,10 @@
 # Magazine Visual Translation Proof
 
-Status: `MAGAZINE-ASSET-CACHE1`
+Status: `MAGAZINE-VISUAL-TRANSLATION-PROOF1`
 
-This document locks the safe architecture proof and first code-level registry layer for Leonix Media digital magazine translation. It does not translate PDFs, FlipHTML5 books, rendered page images, ads, or live database content. It separates text translation memory, visual asset cache, and reusable advertiser assets so future gates can add real production behavior without creating duplicate caches or false visual translation claims.
+Leonix Media's digital and printed magazine is now the flagship multilingual product. Clasificados and Negocios Locales dynamic translation are postponed while magazine visual editions, HTML companions, QR bridge flows, and reusable advertiser assets move first.
+
+This proof locks the foundation for multilingual visual magazine editions. It does not translate PDFs, FlipHTML5 books, rendered page images, ads, or live database content. It separates text translation memory, visual asset cache, and reusable advertiser assets so future gates can add real production behavior without duplicate caches or false visual translation claims.
 
 ## Scope Lock
 
@@ -11,7 +13,9 @@ In scope for this proof:
 - Magazine HTML reader and companion translation architecture.
 - Future visual asset registry concepts for translated PDFs, rendered page images, translated page images, and advertiser ad assets.
 - Static helper functions for visual asset availability/status.
+- Private proof route for internal evaluation before any public replacement.
 - Cost-control rules for repeated copy and repeated visual ads.
+- QR print-to-digital bridge strategy.
 - Honesty rules for the Spanish original PDF and FlipHTML5 edition.
 
 Out of scope for this proof:
@@ -22,7 +26,29 @@ Out of scope for this proof:
 - Supabase schema or migration changes.
 - New `ad_translations`, `listing_translations`, or duplicate translation memory tables.
 - PDF or FlipHTML5 asset edits.
+- Public route replacement.
 - Clasificados, publish wizards, Negocios Locales, admin auth, or team auth.
+
+## Current Product Truth
+
+- The current Spanish visual magazine remains available.
+- The HTML readable companion remains available as a helper and summary layer.
+- FlipHTML5 remains the fallback visual magazine viewer for now.
+- A Leonix-owned visual viewer can come later, after proof and QA.
+- Translated visual editions require real translated assets and QA approval.
+- Do not claim PDF or FlipHTML5 translation unless the translated visual asset exists and is served.
+
+## Provider Proof Rule
+
+DeepL and Google document translation must each be tested with one real magazine PDF before Leonix commits to either provider for visual magazine production. That proof belongs in a later provider-smoke gate.
+
+This gate must not:
+
+- Call DeepL.
+- Call Google.
+- Upload a live magazine to a paid provider.
+- Store or print provider credentials.
+- Mark a translated visual edition public.
 
 ## Language Rules
 
@@ -90,6 +116,8 @@ Do not send entire PDFs to Google or DeepL in this proof. Future production shou
 
 Serving rule: do not serve a translated visual PDF, translated FlipHTML5 book, or translated page image until the asset exists, the source hash still matches, and QA status is approved.
 
+Visual PDFs and rendered page images use asset-level caching, not word-level caching. Cache keys should be based on `sourcePdfHash`, `pageHash`, `adAssetHash`, target language, provider, source version, and QA status.
+
 ## Asset Registry Helpers
 
 `app/lib/magazine/magazineVisualTranslationManifest.ts` now exposes a static registry and helper functions:
@@ -152,6 +180,19 @@ Recommended identity:
 
 Cost-control rule: if an advertiser ad has not changed, do not pay to translate it again. If an approved translated asset already exists for the same source hash, target language, provider, and source version, reuse it.
 
+Most advertiser ads rarely change. Stable ads and pages should be hashed, translated once, QA-approved once, and reused across future issues until the source creative changes. Changed editorial/article/recipe/community pages can be translated per issue without reprocessing stable advertiser pages.
+
+## QR Print-To-Digital Bridge
+
+Printed magazine readers should have a stable language-aware helper route that explains the honest options:
+
+- Open the Spanish visual edition.
+- Read the HTML companion in the selected language when available.
+- Use Google Lens, Apple Translate, or Google Translate as user-side tools for printed pages.
+- Return to Leonix native forms and contact routes for actions.
+
+The QR bridge must preserve language where possible and must not imply that a translated PDF or translated FlipHTML5 edition exists.
+
 ## PDF / FlipHTML5 Honesty
 
 The original visual magazine remains the Spanish edition unless a real translated visual asset exists.
@@ -173,9 +214,12 @@ Those claims are only allowed after a future asset gate verifies that real trans
 
 The registry keeps non-Spanish translated visual assets unavailable until real production assets exist. It is intentionally separate from both text Translation Memory and the existing live `languageAssets.ts` runtime helper, which currently serves Spanish visual originals with honest fallback messaging.
 
+The private proof route at `/magazine/poc-view` may use mock data to show the future product model, but it does not replace `/magazine`, `/magazine/2026/june/read`, or the companion route.
+
 ## Future Gates
 
 - `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1`: verify Google env and cache read/write smoke when credentials are ready.
+- `MAGAZINE-PROVIDER-SMOKE1`: compare one real magazine PDF through DeepL and Google document translation without public serving.
 - `MAG-COMPANION-BODY-LANG1`: improve companion body copy for active public languages.
 - `QR-GUIDE-LONGFORM-LANG1`: polish QR translation instructions in all active public languages.
 - `MAGAZINE-ASSET-CACHE1`: static registry helpers added; future work must still add real storage/QA integration before serving translated assets.

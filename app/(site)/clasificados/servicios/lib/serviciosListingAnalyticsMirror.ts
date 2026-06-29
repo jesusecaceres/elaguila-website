@@ -9,10 +9,10 @@ const OPS_TO_LISTING: Record<string, ListingAnalyticsEventType> = {
   profile_view: "profile_view",
   cta_call_click: "phone_click",
   cta_whatsapp_click: "whatsapp_click",
-  cta_email_click: "cta_click",
+  cta_email_click: "email_click",
   cta_website_click: "website_click",
   cta_maps_click: "directions_click",
-  cta_quote_sms_click: "cta_click",
+  cta_quote_sms_click: "message_click",
   cta_review_click: "cta_click",
   cta_primary_click: "cta_click",
   cta_secondary_click: "cta_click",
@@ -48,6 +48,12 @@ export async function mirrorServiciosOpsEventToListingAnalytics(args: {
   const listingId = serviciosCanonicalListingAnalyticsId(row);
   const sourceId = (row.id ?? "").trim();
   if (!listingId || !sourceId) return false;
+  const eventSource =
+    eventType === "lead_created"
+      ? "lead_form"
+      : typeof args.meta?.source === "string" && args.meta.source.trim()
+        ? args.meta.source.trim()
+        : "unknown";
 
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("listing_analytics").insert({
@@ -56,7 +62,7 @@ export async function mirrorServiciosOpsEventToListingAnalytics(args: {
     source_table: "servicios_public_listings",
     source_id: sourceId,
     event_type: mapped,
-    event_source: "unknown",
+    event_source: eventSource,
     user_id: null,
     owner_user_id: row.owner_user_id ?? null,
     anonymous_session_id: null,

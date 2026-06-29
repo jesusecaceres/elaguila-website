@@ -3,6 +3,11 @@
 import { serviciosSavedListingExtrasFromClient } from "@/app/lib/serviciosSavedListingIdentity";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import {
+  serviciosGlobalLikeRecorder,
+  serviciosGlobalSaveRecorder,
+  serviciosGlobalShareRecorder,
+} from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 const utilityCellClass =
@@ -15,6 +20,7 @@ const utilityCellClass =
 export function ServiciosBusinessHubEngagementRow({
   profile,
   lang,
+  listingSourceId = null,
   engagementListingId = null,
   engagementOwnerUserId = null,
   listingShareUrl,
@@ -23,6 +29,7 @@ export function ServiciosBusinessHubEngagementRow({
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  listingSourceId?: string | null;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
   listingShareUrl?: string;
@@ -31,10 +38,21 @@ export function ServiciosBusinessHubEngagementRow({
 }) {
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
-  const saveExtras = serviciosSavedListingExtrasFromClient({
-    slug: profile.identity.slug,
-    engagementListingId: lxListingId,
-  });
+  const sourceId = (listingSourceId ?? "").trim();
+  const saveExtras = sourceId
+    ? {
+        category: "servicios",
+        source_table: "servicios_public_listings",
+        source_id: sourceId,
+        canonical_ad_id: lxListingId,
+      }
+    : serviciosSavedListingExtrasFromClient({
+        slug: profile.identity.slug,
+        engagementListingId: lxListingId,
+      });
+  const globalListing = sourceId
+    ? { id: sourceId, slug: profile.identity.slug, leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null }
+    : null;
   const persistEngagement = persistListingEngagement;
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
@@ -65,6 +83,7 @@ export function ServiciosBusinessHubEngagementRow({
               category="servicios"
               persistEngagement
               saveExtras={saveExtras}
+              recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
               className="!shadow-sm"
             />
           </div>
@@ -81,6 +100,7 @@ export function ServiciosBusinessHubEngagementRow({
                 className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
                 persistEngagement={persistEngagement}
                 directNativeShare
+                recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
               />
             </div>
           ) : (
@@ -96,6 +116,7 @@ export function ServiciosBusinessHubEngagementRow({
               variant="default"
               tone="hub"
               className="w-full [&_button]:!w-full"
+              recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
             />
           </div>
         </div>
@@ -112,6 +133,7 @@ export function ServiciosBusinessHubEngagementRow({
             className="!w-full !max-w-full !border-[color:var(--lx-border,#E8D7B8)]"
             persistEngagement={persistEngagement}
             directNativeShare
+            recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
           />
         </div>
       ) : null}

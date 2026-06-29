@@ -4,6 +4,7 @@ import type { CSSProperties, MouseEventHandler, ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { FiChevronDown, FiMail } from "react-icons/fi";
 import { ServiciosTrackedLink } from "@/app/(site)/servicios/components/ServiciosTrackedLink";
+import { trackServiciosListingCta } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 
 export type ContactEmailMenuLang = "es" | "en";
 
@@ -40,6 +41,7 @@ type Props = {
   showChevron?: boolean;
   /** Servicios listing analytics for “Open email”. */
   listingSlug?: string;
+  listingSourceId?: string | null;
   engagementListingId?: string | null;
   ownerUserId?: string | null;
   analyticsEventType?: string;
@@ -66,6 +68,7 @@ export function ContactEmailMenu({
   triggerStyle,
   showChevron = true,
   listingSlug,
+  listingSourceId,
   engagementListingId,
   ownerUserId,
   analyticsEventType,
@@ -102,9 +105,25 @@ export function ContactEmailMenu({
     window.setTimeout(() => setFeedback(null), 2200);
   }, []);
 
+  const trackEmailMenuAction = useCallback(
+    (cta: "email_copy" | "message_copy") => {
+      if (!listingSlug || !analyticsEventType) return;
+      trackServiciosListingCta(listingSlug, analyticsEventType, {
+        listingSlug,
+        sourceId: listingSourceId,
+        engagementId: (engagementListingId ?? listingSlug).trim(),
+        ownerUserId: ownerUserId ?? undefined,
+        source: "email_menu",
+        cta,
+      });
+    },
+    [analyticsEventType, engagementListingId, listingSlug, listingSourceId, ownerUserId],
+  );
+
   const onCopyEmail: MouseEventHandler = async (e) => {
     e.preventDefault();
     const ok = await writeClipboard(email);
+    if (ok) trackEmailMenuAction("email_copy");
     flash(ok ? t.copied : "");
     close();
   };
@@ -112,6 +131,7 @@ export function ContactEmailMenu({
   const onCopyMessage: MouseEventHandler = async (e) => {
     e.preventDefault();
     const ok = await writeClipboard(messagePlain);
+    if (ok) trackEmailMenuAction("message_copy");
     flash(ok ? t.copied : "");
     close();
   };
@@ -147,6 +167,7 @@ export function ContactEmailMenu({
           {listingSlug && analyticsEventType ? (
             <ServiciosTrackedLink
               listingSlug={listingSlug}
+              sourceId={listingSourceId}
               engagementListingId={engagementListingId}
               ownerUserId={ownerUserId}
               eventType={analyticsEventType}

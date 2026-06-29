@@ -27,6 +27,7 @@
     "verify:admin-dashboard-mobile-command-center-01": "node scripts/verify-admin-dashboard-mobile-command-center-01.mjs",
     "verify:dashboard-category-edit-hydration-01": "node scripts/verify-dashboard-category-edit-hydration-01.mjs",
     "verify:leonix-admin-supabase-backing-matrix-01": "node scripts/verify-leonix-admin-supabase-backing-matrix-01.mjs",
+    "verify:admin-live-schema-drift-fix-01": "node scripts/verify-admin-live-schema-drift-fix-01.mjs",
     "verify:admin-review-cta-actions": "node scripts/verify-admin-review-cta-actions.mjs",
     "verify:admin-reports-complaints-supabase": "node scripts/verify-admin-reports-complaints-supabase.mjs",
     "verify:admin-classifieds-queue-polish": "node scripts/verify-admin-classifieds-queue-polish.mjs",

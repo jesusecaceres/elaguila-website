@@ -97,6 +97,10 @@ export function ServiciosProfessionalHero({
 
   const scrollToContact = () => {
     if (!contactScrollTargetId) return;
+    trackServiciosListingCta(listingSlug, "cta_primary_click", {
+      ...analyticsBase,
+      cta: "contact_scroll",
+    });
     const desktop = typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
     let id = contactScrollTargetId ?? "";
     if (desktop) {

@@ -46,7 +46,7 @@ import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { SV } from "./serviciosDesignTokens";
 import {
   LX,
@@ -175,6 +175,7 @@ export function ServiciosBusinessHubContactCard({
   const vm = useMemo(() => mapServiciosProfileToBusinessHubContact(profile, lang), [profile, lang]);
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const [ctaEventType, setCtaEventType] = useState<string>("cta_primary_click");
 
   const analyticsBase = useMemo(
     () =>
@@ -191,6 +192,7 @@ export function ServiciosBusinessHubContactCard({
   const openCtaSheet = useCallback(
     (intent: CtaSheetIntent, trackEvent?: string) => {
       if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { ...analyticsBase, source: "business_hub" });
+      setCtaEventType(trackEvent || "cta_primary_click");
       setCtaIntent(intent);
       setCtaOpen(true);
     },
@@ -201,6 +203,19 @@ export function ServiciosBusinessHubContactCard({
     setCtaOpen(false);
     setCtaIntent(null);
   }, []);
+
+  const trackSheetAction = useCallback<CtaActionCallback>(
+    (info) => {
+      trackServiciosListingCta(listingSlug, ctaEventType, {
+        ...analyticsBase,
+        source: "business_hub_sheet",
+        sheetKind: info.kind,
+        actionId: info.actionId,
+        ...(info.meta ?? {}),
+      });
+    },
+    [analyticsBase, ctaEventType, listingSlug],
+  );
 
   const hours = profile.contact.hours;
   const quoteEarly = resolveServiciosQuoteDestination(profile, lang);
@@ -423,6 +438,7 @@ export function ServiciosBusinessHubContactCard({
             messagePlain={quoteMsgText}
             lang={lang}
             listingSlug={listingSlug}
+            listingSourceId={listingSourceId}
             engagementListingId={engagementListingId}
             ownerUserId={engagementOwnerUserId}
             analyticsEventType={analyticsForQuoteKind("mailto")}
@@ -516,6 +532,7 @@ export function ServiciosBusinessHubContactCard({
           lang={lang}
           engagementListingId={engagementListingId}
           engagementOwnerUserId={engagementOwnerUserId}
+            listingSourceId={listingSourceId}
           listingShareUrl={listingShareUrl}
           persistListingEngagement={persistListingEngagement}
           publicLikeCount={publicLikeCount}
@@ -696,7 +713,7 @@ export function ServiciosBusinessHubContactCard({
 
       {showOfferSidebarTeaser ? <ServiciosOfferCard profile={profile} lang={lang} /> : null}
 
-      <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} />
+      <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
     </div>
   );
 }

@@ -6,10 +6,19 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { resolveServiciosQuoteDestination, type ServiciosQuoteDestinationKind } from "../lib/serviciosContactActions";
 import { SV } from "./serviciosDesignTokens";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
+
+function analyticsForQuoteKind(kind: ServiciosQuoteDestinationKind): string {
+  if (kind === "sms") return "cta_quote_sms_click";
+  if (kind === "whatsapp") return "cta_whatsapp_click";
+  if (kind === "tel") return "cta_call_click";
+  if (kind === "mailto") return "cta_email_click";
+  return "cta_website_click";
+}
 
 function GalleryImage({ g, onQuoteClick, onOpen }: { 
   g: { id: string; url: string; alt: string }; 
@@ -190,6 +199,7 @@ export function ServiciosGalleryWithTabs({
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const [ctaEventType, setCtaEventType] = useState<string>("cta_quote_sms_click");
   const closeCta = useCallback(() => {
     setCtaOpen(false);
     setCtaIntent(null);
@@ -201,25 +211,48 @@ export function ServiciosGalleryWithTabs({
       : "Hola, vi tu perfil en Leonix y quiero algo como esto.";
 
   const handleGalleryQuoteClick = () => {
+    const quoteDestination = resolveServiciosQuoteDestination(profile, lang);
     const intent = buildServiciosGetQuoteIntent(profile, lang, {
       listingSlug,
       listingShareUrl,
       quoteMessage: galleryQuoteMessage,
     });
     if (!intent) return;
-    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", {
+    const eventType = quoteDestination ? analyticsForQuoteKind(quoteDestination.kind) : "cta_quote_sms_click";
+    trackServiciosListingCta(listingSlug, eventType, {
       sourceId: listingSourceId,
       source: "gallery_tabs",
       href: "sheet",
+      cta: "gallery_quote_open",
     });
+    setCtaEventType(eventType);
     setCtaIntent(intent);
     setCtaOpen(true);
   };
 
   const openModal = (index: number) => {
+    trackServiciosListingCta(listingSlug, "cta_secondary_click", {
+      sourceId: listingSourceId,
+      source: "gallery_tabs",
+      cta: "gallery_photo_open",
+      photoIndex: index,
+    });
     setCurrentModalIndex(index);
     setIsModalOpen(true);
   };
+
+  const trackSheetAction = useCallback<CtaActionCallback>(
+    (info) => {
+      trackServiciosListingCta(listingSlug, ctaEventType, {
+        sourceId: listingSourceId,
+        source: "gallery_tabs_sheet",
+        sheetKind: info.kind,
+        actionId: info.actionId,
+        ...(info.meta ?? {}),
+      });
+    },
+    [ctaEventType, listingSlug, listingSourceId],
+  );
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -246,7 +279,14 @@ export function ServiciosGalleryWithTabs({
             <nav className="inline-flex rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] p-1 shadow-sm" aria-label={L.gallery}>
               <button
                 type="button"
-                onClick={() => setActiveTab("photos")}
+                onClick={() => {
+                  trackServiciosListingCta(listingSlug, "cta_secondary_click", {
+                    sourceId: listingSourceId,
+                    source: "gallery_tabs",
+                    cta: "gallery_photos_tab",
+                  });
+                  setActiveTab("photos");
+                }}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === "photos"
                     ? "bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]"
@@ -257,7 +297,14 @@ export function ServiciosGalleryWithTabs({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("videos")}
+                onClick={() => {
+                  trackServiciosListingCta(listingSlug, "cta_secondary_click", {
+                    sourceId: listingSourceId,
+                    source: "gallery_tabs",
+                    cta: "gallery_videos_tab",
+                  });
+                  setActiveTab("videos");
+                }}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                   activeTab === "videos"
                     ? "bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]"
@@ -358,7 +405,7 @@ export function ServiciosGalleryWithTabs({
         setCurrentIndex={setCurrentModalIndex}
         lang={lang}
       />
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
+      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
     </>
   );
 }

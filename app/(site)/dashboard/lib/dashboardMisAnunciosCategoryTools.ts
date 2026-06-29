@@ -230,7 +230,7 @@ export function buildCategoryPanelActions(
   if (resultsHref && categoryPanelToolIsReady(key, "publicResults")) {
     actions.push({
       key: "publicResults",
-      label: publicResultsLabel(lang),
+      label: key === "servicios" ? publicResultsListingLabel(lang) : publicResultsLabel(lang),
       href: resultsHref,
       tone: "secondary",
     });

@@ -5,7 +5,24 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** MAGAZINE-ASSET-CACHE1
+**Last verified:** MAGAZINE-VISUAL-TRANSLATION-PROOF1
+
+---
+
+## 0. Digital Magazine Multilingual Visual Edition Priority
+
+Digital magazine is now the top multilingual priority for Leonix Media.
+
+- Magazine visual translation proof comes first.
+- Clasificados and Negocios Locales dynamic content translation are postponed.
+- Website static page/shell translation remains in the backlog.
+- QR print-to-digital translation bridge is part of the magazine strategy.
+- Translation Memory applies to HTML companion and text content.
+- Visual asset cache applies to translated visual PDFs and rendered page images.
+- Stable ad asset library applies to recurring advertiser pages.
+- Do not retranslate unchanged stable ads.
+- Do not serve unapproved translated visual assets.
+- Do not claim PDF or FlipHTML5 is translated unless a real translated asset exists and is served.
 
 ---
 
