@@ -11,7 +11,6 @@ import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasL
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
 import {
   rentasCtaPrimaryClass,
-  rentasCtaSecondaryClass,
   rentasResultsFilterCardClass,
 } from "@/app/clasificados/rentas/rentasLandingTheme";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
@@ -57,9 +56,6 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
 import {
   RENTAS_LANDING,
-  RENTAS_PREVIEW_NEGOCIO,
-  RENTAS_PREVIEW_PRIVADO,
-  RENTAS_PUBLICAR_NEGOCIO,
   RENTAS_PUBLICAR_PRIVADO,
   RENTAS_RESULTS,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -347,15 +343,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             </h1>
             <p className="mt-2 text-sm text-[#3D3428]/90">
               {copy.results.introPart1}
-              {copy.results.introPart2}
-              <Link href={withRentasLandingLang(RENTAS_PREVIEW_PRIVADO, routeLang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
-                {copy.card.sellerPrivado}
-              </Link>{" "}
-              /{" "}
-              <Link href={withRentasLandingLang(RENTAS_PREVIEW_NEGOCIO, routeLang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
-                {copy.card.sellerNegocio}
-              </Link>
-              .
             </p>
             {includeDemoPool ? (
               <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
@@ -404,10 +391,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             <p className="text-xs leading-snug text-[#3D3428]/85">{copy.publishHint}</p>
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}>
-                {copy.publishPrivado}
-              </Link>
-              <Link href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, routeLang)} className={`${rentasCtaSecondaryClass} w-full min-w-0 flex-1 text-center`}>
-                {copy.publishNegocio}
+                {lang === "es" ? "Publicar renta" : "Post a rental"}
               </Link>
             </div>
           </aside>

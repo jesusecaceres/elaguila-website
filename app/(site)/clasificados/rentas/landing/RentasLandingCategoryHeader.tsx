@@ -1,11 +1,8 @@
 import Link from "next/link";
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import { withRentasLandingLang, type RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
-import { rentasCtaPrimaryClass, rentasCtaSecondaryClass } from "@/app/clasificados/rentas/rentasLandingTheme";
-import {
-  RENTAS_PUBLICAR_NEGOCIO,
-  RENTAS_PUBLICAR_PRIVADO,
-} from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { rentasCtaPrimaryClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import { RENTAS_PUBLICAR_PRIVADO } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 
 type Props = {
   copy: RentasLandingCopy;
@@ -82,13 +79,7 @@ export function RentasLandingCategoryHeader({ copy, lang }: Props) {
               href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, lang)}
               className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}
             >
-              {copy.publishPrivado}
-            </Link>
-            <Link
-              href={withRentasLandingLang(RENTAS_PUBLICAR_NEGOCIO, lang)}
-              className={`${rentasCtaSecondaryClass} w-full min-w-0 flex-1 text-center`}
-            >
-              {copy.publishNegocio}
+              {lang === "es" ? "Publicar renta" : "Post a rental"}
             </Link>
           </div>
         </aside>
