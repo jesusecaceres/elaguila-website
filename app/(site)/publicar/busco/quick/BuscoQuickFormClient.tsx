@@ -183,7 +183,6 @@ export default function BuscoQuickFormClient() {
               lang={lang}
               variant="light"
               className={INPUT}
-              stripInvalidOnBlur
             />
           </label>
           <label className="block text-sm">

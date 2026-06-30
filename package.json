@@ -341,6 +341,7 @@
     "verify:rentas": "npx tsx scripts/rentas-launch-selftest.ts && npx tsx scripts/rentas-field-contract-selftest.ts",
     "verify:rentas:e2e": "npx tsx scripts/rentas-e2e-pipeline-smoke.ts",
     "verify:rentas:sample-browser-qa": "npx kill-port 3018 3019 && npx playwright test e2e/rentas/rentas-sample-content-full-qa.spec.ts --config playwright.rentas-start.config.mjs",
+    "july1:free-clasificados-shell-audit": "tsx scripts/july1-free-clasificados-application-public-shell-audit.ts",
     "verify:community-quick:contract": "npx tsx scripts/community-quick-publish-contract-smoke.ts",
     "verify:community-preview:e2e": "npm run build && npx playwright test -c playwright.community-preview.config.mjs",
     "smoke:auth": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-auth",

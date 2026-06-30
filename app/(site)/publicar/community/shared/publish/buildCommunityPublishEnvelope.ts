@@ -96,7 +96,7 @@ function commonSnapshot(d: CommunityCommonDraft): {
     addressLine1: d.addressLine1.trim(),
     publicCity: (() => {
       const t = d.publicCity.trim();
-      return t ? getCanonicalCityName(t) || "" : "";
+      return t ? getCanonicalCityName(t) || t : "";
     })(),
     state: d.state.trim(),
     zip: d.zip.trim(),

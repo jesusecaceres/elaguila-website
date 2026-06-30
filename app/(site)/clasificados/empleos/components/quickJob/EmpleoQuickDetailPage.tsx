@@ -165,6 +165,7 @@ export function EmpleoQuickDetailPage({
               labels={t.labels}
               showContactRow={hasAnyContact}
               contactAnalyticsMeta={contactAnalyticsMeta}
+              lang={lang}
             />
           </div>
         </div>

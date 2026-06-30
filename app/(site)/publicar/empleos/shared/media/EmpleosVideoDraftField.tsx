@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type EmpleosVideoDraftLabels = {
   sectionTitle: string;
@@ -10,6 +10,8 @@ export type EmpleosVideoDraftLabels = {
   applyUrl: string;
   pickFile: string;
   clear: string;
+  invalidUrl?: string;
+  localFileRemoved?: string;
 };
 
 type Props = {
@@ -21,13 +23,10 @@ type Props = {
   onPatch: (p: { videoObjectUrl?: string | null; videoFileName?: string; videoUrl?: string }) => void;
 };
 
-/**
- * Draft-only video: local file (object URL) or external URL for in-browser preview.
- * No Mux upload in this path.
- */
+/** External video URL only. Free/simple launch categories do not accept local video files. */
 export function EmpleosVideoDraftField({ objectUrl, fileName, externalUrl, labels, revokeIfBlob, onPatch }: Props) {
-  const fileRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState(externalUrl);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setUrlInput(externalUrl);
@@ -36,28 +35,23 @@ export function EmpleosVideoDraftField({ objectUrl, fileName, externalUrl, label
   const applyUrl = useCallback(() => {
     const u = urlInput.trim();
     if (!u) return;
+    if (!/^https?:\/\//i.test(u)) {
+      setError(labels.invalidUrl ?? "Use a public video URL that starts with http:// or https://.");
+      return;
+    }
+    setError(null);
     revokeIfBlob(objectUrl);
     onPatch({ videoObjectUrl: null, videoFileName: "", videoUrl: u });
   }, [objectUrl, onPatch, revokeIfBlob, urlInput]);
 
-  const onFile = useCallback(
-    (files: FileList | null) => {
-      const file = files?.[0];
-      if (!file) return;
-      revokeIfBlob(objectUrl);
-      setUrlInput("");
-      onPatch({ videoObjectUrl: URL.createObjectURL(file), videoFileName: file.name, videoUrl: "" });
-    },
-    [objectUrl, onPatch, revokeIfBlob]
-  );
-
   const clear = useCallback(() => {
     revokeIfBlob(objectUrl);
     setUrlInput("");
+    setError(null);
     onPatch({ videoObjectUrl: null, videoFileName: "", videoUrl: "" });
   }, [objectUrl, onPatch, revokeIfBlob]);
 
-  const src = (objectUrl ?? "").trim() || externalUrl.trim();
+  const src = externalUrl.trim();
   const hasVideo = Boolean(src);
 
   return (
@@ -67,7 +61,11 @@ export function EmpleosVideoDraftField({ objectUrl, fileName, externalUrl, label
       {hasVideo ? (
         <video src={src} controls className="mt-2 max-h-56 w-full rounded-lg border border-black/10 bg-black/5" />
       ) : null}
-      {fileName ? <p className="text-xs text-[color:var(--lx-muted)]">{fileName}</p> : null}
+      {fileName ? (
+        <p className="text-xs text-amber-800">
+          {labels.localFileRemoved ?? "Local video files are no longer publishable here. Add a public video link instead."}
+        </p>
+      ) : null}
       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
         <label className="block min-w-0 flex-1 text-xs font-semibold text-[color:var(--lx-text)]">
           {labels.urlField}
@@ -83,15 +81,8 @@ export function EmpleosVideoDraftField({ objectUrl, fileName, externalUrl, label
           {labels.applyUrl}
         </button>
       </div>
+      {error ? <p className="text-xs font-medium text-red-700">{error}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
-        <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => void onFile(e.target.files)} />
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="text-sm font-semibold text-[color:var(--lx-text)] underline"
-        >
-          {labels.pickFile}
-        </button>
         {hasVideo ? (
           <button type="button" onClick={clear} className="text-sm font-semibold text-red-800 underline">
             {labels.clear}

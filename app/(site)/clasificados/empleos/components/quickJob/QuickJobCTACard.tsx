@@ -37,6 +37,7 @@ type Props = {
   /** When false, omit the entire contact button stack (pay/description still show). */
   showContactRow: boolean;
   contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
+  lang: "es" | "en";
 };
 
 const GOLD_BTN = "bg-[#B8943F] hover:bg-[#9A7A32]";
@@ -62,6 +63,7 @@ export function QuickJobCTACard({
   labels,
   showContactRow,
   contactAnalyticsMeta,
+  lang,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const primary = primaryCta ?? "phone";
@@ -179,7 +181,7 @@ export function QuickJobCTACard({
         </div>
       ) : null}
 
-      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </div>
   );
 }

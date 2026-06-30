@@ -22,7 +22,7 @@ const COPY = {
     organizedBy: "Organizado por",
     adId: "ID de anuncio",
     previewNote:
-      "Vista previa: las acciones de guardar y reportar estarán disponibles cuando publiques el anuncio.",
+      "Vista previa: compartir, copiar enlace y copiar info estarán disponibles cuando publiques el anuncio.",
     views: "personas vieron este anuncio",
     viewsToday: "visitas hoy",
   },
@@ -33,7 +33,7 @@ const COPY = {
     copyInfo: "Copy info",
     organizedBy: "Organized by",
     adId: "Ad ID",
-    previewNote: "Preview: save and report actions will be available after you publish.",
+    previewNote: "Preview: share, copy link, and copy info will be available after you publish.",
     views: "people viewed this listing",
     viewsToday: "views today",
   },
@@ -45,8 +45,6 @@ type Props = {
   organizerName: string;
   listingId?: string;
   isOwner?: boolean;
-  saved?: boolean;
-  onSave?: () => void;
   onShare?: () => void;
   onCopyLink?: () => void;
   onCopyInfo?: () => void;
@@ -58,8 +56,6 @@ export function CommunityQuickPublicDetailSidebar({
   organizerName,
   listingId,
   isOwner = false,
-  saved = false,
-  onSave,
   onShare,
   onCopyLink,
   onCopyInfo,
@@ -111,16 +107,6 @@ export function CommunityQuickPublicDetailSidebar({
         <div className="text-xl font-bold text-[#111111]">{t.actionsTitle}</div>
 
         <div className="mt-4 space-y-3">
-          {!isPreview && onSave ? (
-            <button
-              type="button"
-              onClick={onSave}
-              className="w-full px-5 py-3 rounded-full font-semibold transition border border-black/10 bg-[#D9D9D9]/40 text-[#111111] hover:bg-[#D9D9D9]/55"
-            >
-              {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : lang === "es" ? "☆ Guardar" : "☆ Save"}
-            </button>
-          ) : null}
-
           <button
             type="button"
             onClick={onShare}

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
 import { trackEvent } from "@/app/lib/listingAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -92,8 +91,6 @@ export function CommunityQuickPublishedDetailPage({
 
   const organizerName = communityQuickPairMap?.["Leonix:organizer"]?.trim() ?? "";
 
-  const [saved, setSaved] = useState(false);
-  const [savedSyncDone, setSavedSyncDone] = useState(false);
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -124,31 +121,6 @@ export function CommunityQuickPublishedDetailPage({
       cancelled = true;
     };
   }, [listing.id, skipAnalytics]);
-
-  useEffect(() => {
-    if (skipAnalytics || !listing.id || savedSyncDone) return;
-    let mounted = true;
-    void (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!mounted) return;
-      if (user) {
-        const { data } = await supabase
-          .from("saved_listings")
-          .select("listing_id")
-          .eq("user_id", user.id)
-          .eq("listing_id", listing.id)
-          .maybeSingle();
-        if (mounted) setSaved(!!data);
-      }
-      setSavedSyncDone(true);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [listing.id, savedSyncDone, skipAnalytics]);
 
   useEffect(() => {
     let mounted = true;
@@ -217,29 +189,6 @@ export function CommunityQuickPublishedDetailPage({
 
     await copyText(url || buildShareMessage());
     if (!skipAnalytics) void trackEvent(listing.id, "listing_share", uid);
-  };
-
-  const handleGuardarAnuncio = async () => {
-    const supabase = createSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      const here = `${window.location.pathname}${window.location.search || ""}`;
-      window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
-      return;
-    }
-    if (saved) {
-      await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
-      setSaved(false);
-      void trackListingSave(listing.id, false, { ownerUserId: listing.owner_id ?? undefined });
-    } else {
-      await supabase
-        .from("saved_listings")
-        .upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
-      setSaved(true);
-      void trackListingSave(listing.id, true, { ownerUserId: listing.owner_id ?? undefined });
-    }
   };
 
   const handleReportSubmit = async () => {
@@ -327,8 +276,6 @@ export function CommunityQuickPublishedDetailPage({
             organizerName={organizerName}
             listingId={listing.id}
             isOwner={isOwner}
-            saved={saved}
-            onSave={skipAnalytics ? undefined : handleGuardarAnuncio}
             onShare={() => void handleShare()}
             onCopyLink={() => void copyText(typeof window !== "undefined" ? window.location.href : "")}
             onCopyInfo={() => void copyText(buildShareMessage())}
