@@ -118,10 +118,58 @@ Desktop detail layouts retain organized main/sidebar or content/CTA structure wi
 ## 21. Mobile 390px result
 Touched controls use stacked layout and tappable buttons. The Jobs video link list wraps in a one-column mobile grid and avoids horizontal overflow.
 
-## 22. Risks/deferred work
+## 22. True QA packet
+Use this packet for the single real QA pass. Start each flow with `?lang=es`, then repeat one smoke pass with `?lang=en` for language sanity.
+
+### Jobs / Empleos
+- Application URL/path: `/publicar/empleos/quick?lang=es`
+- Preview URL/path: `/clasificados/empleos/quick-preview?lang=es`
+- Results URL/path: `/clasificados/empleos/resultados?lang=es`
+- Public detail URL pattern: `/clasificados/empleos/[slug]?lang=es`
+- Test data: title `Cocinero de linea`, business `Taqueria La Plaza`, pay `$18-$25/hr`, city/address fields with a real city/state/ZIP, phone, WhatsApp, email, one image, and four video URLs from YouTube/TikTok/Instagram/Vimeo or other `https://` sources.
+- Steps: complete form, add one image, add four video links, try duplicate and invalid video URL, preview, return to edit, confirm videos remain, publish, open public detail, open each video link, use contact/apply CTAs, use share/copy link/copy info where available, check results image/title.
+- Expected result: image and all valid video links persist; no direct video file upload appears; public detail uses the warm video card; no Save/Guardar appears; mobile 390px has no horizontal overflow.
+
+### Pets / Mascotas y Perdidos
+- Application URL/path: `/publicar/mascotas-y-perdidos/quick?lang=es`
+- Preview URL/path: `/publicar/mascotas-y-perdidos/quick/preview?lang=es`
+- Results URL/path: `/clasificados/mascotas-y-perdidos/resultados?lang=es`
+- Public detail URL pattern: `/clasificados/anuncio/[id]?lang=es`
+- Test data: lost/found/adoption notice, open city input outside the old suggestion list, last-seen location, phone, optional email, one JPG/PNG/WebP image.
+- Steps: create notice, preview, return/edit, publish, open detail, verify image/result card, use contact CTAs, share/copy utilities, mobile 390px.
+- Expected result: city stays exactly as entered, image persists through storage, empty fields hide, no Save/Guardar appears.
+
+### Classes / Clases
+- Application URL/path: `/publicar/clases/quick?lang=es`
+- Preview URL/path: `/publicar/clases/quick/preview?lang=es`
+- Results URL/path: `/clasificados/clases/resultados?lang=es`
+- Public detail URL pattern: `/clasificados/anuncio/[id]?lang=es`
+- Test data: free class, title, instructor/organizer, category, audience, schedule, public city/state/ZIP, venue/address if public, phone/email/WhatsApp, one image.
+- Steps: create free class, preview, return/edit, publish, open detail/results, test instructor contact, sign-up/website if provided, share/copy utilities, no Save.
+- Expected result: free/price syntax reads naturally, image persists, simple listing contact card is used, paid class path remains product-blocked if attempted.
+
+### Wanted / Busco
+- Application URL/path: `/publicar/busco/quick?lang=es`
+- Preview URL/path: `/publicar/busco/quick/preview?lang=es`
+- Results URL/path: `/clasificados/busco/resultados?lang=es`
+- Public detail URL pattern: `/clasificados/anuncio/[id]?lang=es`
+- Test data: wanted request, open city input, optional zone/budget, phone/email, optional image.
+- Steps: create request with and without image, preview, return/edit, publish, open detail/results, contact poster, use share/copy utilities.
+- Expected result: optional image behavior is clean, no empty placeholders, no Save/Guardar, simple advertiser contact mode.
+
+### Comunidad / Eventos
+- Application URL/path: `/publicar/comunidad/quick?lang=es`
+- Preview URL/path: `/publicar/comunidad/quick/preview?lang=es`
+- Results URL/path: `/clasificados/comunidad/resultados?lang=es`
+- Public detail URL pattern: `/clasificados/anuncio/[id]?lang=es`
+- Test data: event title, organizer, real date/time, venue/address/city/state/ZIP, phone/email/WhatsApp, website/event page, Facebook, Instagram, TikTok, YouTube, one image.
+- Steps: create event, preview, return/edit, publish, open detail/results, verify Community/Event Hub, test website/social/map/contact links, share/copy utilities, mobile 390px.
+- Expected result: only filled socials render, no fake platforms, date/time/location are clear, map appears only with real location, no Save/Guardar.
+
+## 23. Risks/deferred work
 Manual browser QA is still recommended for live Supabase publish flows, but no launch-blocking code issue remains from this gate.
 
-## 23. Manual QA checklist
+## 24. Manual QA checklist
 - Jobs full flow QA
 - Pets full flow QA
 - Classes full flow QA
@@ -142,8 +190,8 @@ Manual browser QA is still recommended for live Supabase publish flows, but no l
 - Desktop QA
 - Mobile 390px QA
 
-## 24. READY TO COMMIT THIS GATE: YES
-YES. The static audit passed and `npm run build` exited 0. Build still reports an unrelated Ofertas Locales PDF scan warning.
+## 25. READY TO COMMIT THIS GATE: NO
+NO. The static audit passed. The fresh `npm run build` for this true QA-ready gate was manually backgrounded before completion, so this audit stays conservative until that build reports exit 0.
 
 ## PASS/FIXED/BLOCKED table
 | Requirement | PASS/FIXED/BLOCKED | Evidence |
@@ -189,7 +237,8 @@ YES. The static audit passed and `npm run build` exited 0. Build still reports a
 | Leonix brand colors applied intentionally | PASS | Jobs video card uses warm/gold/charcoal palette |
 | Desktop layout is organized | PASS | Existing layout retained |
 | Mobile 390px layout is clean and tappable | PASS | Jobs video links stack and buttons meet tap targets |
+| True QA packet was created | PASS | Section 22 includes category URLs, test data, steps, and expected results |
 | No unrelated categories edited | PASS | Static audit forbids locked category diffs |
 | No Stripe/payment files touched | PASS | Static audit forbids Stripe/payment diffs |
 | Audit script passed | PASS | `npm run july1:free-clasificados-shell-audit` |
-| npm run build passed | PASS | `npm run build` exited 0; unrelated Ofertas Locales PDF scan warning remains |
+| npm run build passed | BLOCKED | Fresh gate build is pending after manual backgrounding |

@@ -39,6 +39,21 @@ if (!/READY TO COMMIT THIS GATE:\s*(YES|NO)/.test(audit)) {
   fail("READY TO COMMIT value missing from audit");
 }
 
+if (!audit.includes("## 22. True QA packet") || !audit.includes("True QA packet was created")) {
+  fail("True QA packet missing from audit");
+}
+
+for (const requiredQaFragment of [
+  "/publicar/empleos/quick",
+  "/publicar/mascotas-y-perdidos/quick",
+  "/publicar/clases/quick",
+  "/publicar/busco/quick",
+  "/publicar/comunidad/quick",
+  "Expected result",
+]) {
+  if (!audit.includes(requiredQaFragment)) fail(`True QA packet missing: ${requiredQaFragment}`);
+}
+
 for (const label of ["Share", "Copy link", "Copy info", "Compartir", "Copiar enlace", "Copiar info"]) {
   if (!audit.includes(label) && !sidebar.includes(label)) fail(`Missing utility label: ${label}`);
 }
