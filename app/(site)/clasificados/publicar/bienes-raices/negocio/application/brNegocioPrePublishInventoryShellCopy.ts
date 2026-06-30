@@ -25,6 +25,8 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       cancel: "Cancelar",
       saveProperty: "Guardar propiedad",
       saveAndAddAnother: "Guardar y agregar otra",
+      saveAndGoToParentPreview: "Guardar e ir a vista previa principal",
+      previewThisProperty: "Vista previa de esta propiedad",
       edit: "Editar",
       remove: "Eliminar",
       removeConfirm: "¿Eliminar esta propiedad del borrador de inventario?",
@@ -73,7 +75,7 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       previewEmptyAdditional:
         "Agrega otra propiedad para ver cómo se verá tu inventario antes de publicar.",
       inheritedNotice:
-        "La información profesional, contacto, redes, reseñas, financiamiento y destinos de contacto se tomará de la solicitud principal.",
+        "Esta información se hereda de la aplicación principal y se usará para esta propiedad.",
       unsavedCloseConfirm:
         "Tienes cambios sin guardar en esta propiedad. ¿Quieres cerrar sin guardar?",
       childFullPreviewKicker: "Vista previa · Borrador",
@@ -114,6 +116,8 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
     cancel: "Cancel",
     saveProperty: "Save property",
     saveAndAddAnother: "Save and add another",
+    saveAndGoToParentPreview: "Save and go to parent preview",
+    previewThisProperty: "Preview this property",
     edit: "Edit",
     remove: "Remove",
     removeConfirm: "Remove this property from the inventory draft?",
@@ -161,7 +165,7 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       "These cards are only a preview for you. Additional properties will not publish until you publish the full application.",
     previewEmptyAdditional: "Add another property to see how your inventory will look before publishing.",
     inheritedNotice:
-      "Professional, contact, social, review, financing, and contact destination information will be inherited from the main application.",
+      "This information is inherited from the main application and will be used for this property.",
     unsavedCloseConfirm:
       "You have unsaved changes in this property. Close without saving?",
     childFullPreviewKicker: "Preview · Draft",

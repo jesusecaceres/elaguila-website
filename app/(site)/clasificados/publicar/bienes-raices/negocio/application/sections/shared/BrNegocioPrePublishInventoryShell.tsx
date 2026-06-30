@@ -21,6 +21,8 @@ type Props = {
   mainProperty: BrNegocioInventoryCardModel;
   items: BrNegocioAdditionalInventoryPropertyDraft[];
   onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void;
+  /** After child save — open parent full preview (step 10 publish review). */
+  onGoToParentPreview?: () => void;
 };
 
 /** BR-INV-B/C/D/E — CTA + owner preview cards + full child application (pre-publish only). */
@@ -32,6 +34,7 @@ export function BrNegocioPrePublishInventoryShell({
   mainProperty,
   items,
   onItemsChange,
+  onGoToParentPreview,
 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,7 +77,7 @@ export function BrNegocioPrePublishInventoryShell({
   }, []);
 
   const handleSave = useCallback(
-    (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother") => {
+    (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother" | "goToParentPreview") => {
       const normalized = draft;
       const nextItems = editingId
         ? items.map((x) => (x.id === editingId ? normalized : x))
@@ -127,9 +130,11 @@ export function BrNegocioPrePublishInventoryShell({
         onClose={closeDrawer}
         lang={lang}
         parentHubSnapshot={parentHubSnapshot}
+        parentFullState={packageState}
         editingId={editingId}
         initialDraft={editingDraft}
         onSave={handleSave}
+        onGoToParentPreview={onGoToParentPreview}
       />
 
       {previewDraft ? (

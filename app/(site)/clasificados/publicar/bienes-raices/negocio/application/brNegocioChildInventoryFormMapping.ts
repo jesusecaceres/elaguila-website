@@ -2,6 +2,7 @@
  * BR-INV-FIX-01D — child inventory ↔ full Agente property form mapping.
  */
 
+import { brCanonicalNorCalCity } from "@/app/(site)/clasificados/bienes-raices/shared/brNorCalCity";
 import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   createEmptyAgenteIndividualResidencialState,
@@ -109,15 +110,42 @@ export function pickParentHubSlice(
   });
 }
 
+/** Canonical NorCal city when known; otherwise preserve manual city text (matches parent typing UX). */
+export function resolveChildInventoryCity(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  return brCanonicalNorCalCity(trimmed) || trimmed;
+}
+
 export function mergeParentHubWithChildProperty(
   parentHub: AgenteIndividualResidencialFormState,
   childProperty: Partial<AgenteChildPropertyFormSlice>,
 ): AgenteIndividualResidencialFormState {
-  return mergePartialAgenteIndividualResidencial({
+  const merged = mergePartialAgenteIndividualResidencial({
     ...pickParentHubSlice(parentHub),
     ...childProperty,
     additionalInventoryProperties: [],
   });
+  if (typeof childProperty.ciudad === "string") {
+    return { ...merged, ciudad: resolveChildInventoryCity(childProperty.ciudad) };
+  }
+  return merged;
+}
+
+/** Live editor merge — parent setState does not canonicalize city on every keystroke. */
+export function mergeParentHubWithChildPropertyForEditor(
+  parentHub: AgenteIndividualResidencialFormState,
+  childProperty: Partial<AgenteChildPropertyFormSlice>,
+): AgenteIndividualResidencialFormState {
+  const merged = mergePartialAgenteIndividualResidencial({
+    ...pickParentHubSlice(parentHub),
+    ...childProperty,
+    additionalInventoryProperties: [],
+  });
+  if (typeof childProperty.ciudad === "string") {
+    return { ...merged, ciudad: childProperty.ciudad };
+  }
+  return merged;
 }
 
 function propertyTypeCodeFromSlice(slice: AgenteChildPropertyFormSlice): string {
@@ -153,7 +181,7 @@ function flatFieldsFromChildSlice(
     lotSqft: slice.tamanoLoteSqft.trim(),
     streetLine1: slice.direccionLinea1.trim() || slice.direccion.trim(),
     streetLine2: slice.direccionLinea2.trim(),
-    city: slice.ciudad.trim(),
+    city: resolveChildInventoryCity(slice.ciudad),
     state: slice.direccionEstado.trim(),
     zip: slice.direccionCodigoPostal.trim(),
     showExactAddress: slice.mostrarDireccionExacta,
@@ -177,7 +205,10 @@ export function childInventoryDraftFromEditorState(
 ): BrNegocioAdditionalInventoryPropertyDraft {
   const hub = pickParentHubSlice(parentHub);
   const merged = mergeParentHubWithChildProperty(hub, pickChildPropertySlice(editorState));
-  const slice = pickChildPropertySlice(merged);
+  const slice = {
+    ...pickChildPropertySlice(merged),
+    ciudad: resolveChildInventoryCity(merged.ciudad),
+  };
   const now = new Date().toISOString();
   const id = existing?.id ?? newBrLocalPropertyDraftId();
   return normalizeChildInventoryDraft({
@@ -204,10 +235,12 @@ export function buildChildInventoryEditorState(
   }
   const normalized = normalizeChildInventoryDraft(draft);
   if (normalized.propertyForm && typeof normalized.propertyForm === "object") {
-    return mergeParentHubWithChildProperty(
+    const merged = mergeParentHubWithChildProperty(
       hub,
       normalized.propertyForm as Partial<AgenteChildPropertyFormSlice>,
     );
+    const savedCity = resolveChildInventoryCity(normalized.city || String(normalized.propertyForm.ciudad ?? ""));
+    return savedCity ? { ...merged, ciudad: savedCity } : merged;
   }
   return applyInventoryDraftToAgenteFormState(hub, normalized, lang);
 }
@@ -223,7 +256,7 @@ export function validateAgenteChildInventoryForSave(
   if (!state.precio.trim()) {
     errors.precio = lang === "es" ? "El precio es obligatorio." : "Price is required.";
   }
-  if (!state.ciudad.trim()) {
+  if (!resolveChildInventoryCity(state.ciudad)) {
     errors.ciudad = lang === "es" ? "La ciudad es obligatoria." : "City is required.";
   }
   if (!state.direccionEstado.trim()) {

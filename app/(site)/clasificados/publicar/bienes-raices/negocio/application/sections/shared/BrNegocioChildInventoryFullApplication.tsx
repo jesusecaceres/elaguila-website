@@ -22,12 +22,13 @@ import {
   buildChildInventoryEditorState,
   childInventoryDraftFromEditorState,
   childInventorySaveHasErrors,
-  mergeParentHubWithChildProperty,
+  mergeParentHubWithChildPropertyForEditor,
   pickChildPropertySlice,
   pickParentHubSlice,
   validateAgenteChildInventoryForSave,
 } from "../../brNegocioChildInventoryFormMapping";
 import { BrNegocioChildInventoryInheritedHubPanel } from "./BrNegocioChildInventoryInheritedHubPanel";
+import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
 import { mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
 import {
@@ -38,14 +39,19 @@ import {
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 
+type ChildInventorySaveMode = "close" | "addAnother" | "goToParentPreview";
+
 type Props = {
   open: boolean;
   onClose: () => void;
   lang: BrNegocioPrePublishInventoryLang;
   parentHubSnapshot: AgenteIndividualResidencialFormState;
+  /** Full parent form for sibling preview cards. */
+  parentFullState?: AgenteIndividualResidencialFormState;
   editingId: string | null;
   initialDraft: BrNegocioAdditionalInventoryPropertyDraft | null;
-  onSave: (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother") => void;
+  onSave: (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: ChildInventorySaveMode) => void;
+  onGoToParentPreview?: () => void;
 };
 
 const CHILD_STEP_LABELS_ES = [
@@ -80,9 +86,11 @@ export function BrNegocioChildInventoryFullApplication({
   onClose,
   lang,
   parentHubSnapshot,
+  parentFullState,
   editingId,
   initialDraft,
   onSave,
+  onGoToParentPreview,
 }: Props) {
   const { t } = useBrAgenteResidencialCopy();
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
@@ -93,6 +101,7 @@ export function BrNegocioChildInventoryFullApplication({
     buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang),
   );
   const [errors, setErrors] = useState<ReturnType<typeof validateAgenteChildInventoryForSave>>({});
+  const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
 
   const stepLabels = lang === "en" ? CHILD_STEP_LABELS_EN : CHILD_STEP_LABELS_ES;
   const total = stepLabels.length;
@@ -115,7 +124,7 @@ export function BrNegocioChildInventoryFullApplication({
             lang,
           );
         } else {
-          bootState = mergeParentHubWithChildProperty(parentHubRef.current, session.propertyForm);
+          bootState = mergeParentHubWithChildPropertyForEditor(parentHubRef.current, session.propertyForm);
         }
         setStep(Math.min(session.step, total - 1));
       } else {
@@ -124,6 +133,7 @@ export function BrNegocioChildInventoryFullApplication({
       }
       setStateRaw(bootState);
       setErrors({});
+      setFullPreviewOpen(false);
       baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(bootState));
     });
     return () => {
@@ -171,7 +181,7 @@ export function BrNegocioChildInventoryFullApplication({
     (updater) => {
       setStateRaw((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        return mergeParentHubWithChildProperty(parentHubRef.current, pickChildPropertySlice(next));
+        return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, pickChildPropertySlice(next));
       });
     },
     [],
@@ -185,11 +195,31 @@ export function BrNegocioChildInventoryFullApplication({
     return () => clearTimeout(timer);
   }, [open, editingId, step, state]);
 
+  const previewDraft = useMemo(
+    () => childInventoryDraftFromEditorState(parentHubRef.current, state, initialDraft, lang),
+    [state, initialDraft, lang],
+  );
+
   const previewCard = useMemo(() => {
-    const draft = childInventoryDraftFromEditorState(parentHubRef.current, state, initialDraft, lang);
-    const merged = mergeChildInventoryWithMediaBridge([draft])[0];
+    const merged = mergeChildInventoryWithMediaBridge([previewDraft])[0];
     return mapAdditionalDraftToInventoryCard(merged, lang);
-  }, [state, initialDraft, lang]);
+  }, [previewDraft, lang]);
+
+  const packageStateForPreview = useMemo(
+    () =>
+      parentFullState ?? {
+        ...parentHubSnapshot,
+        additionalInventoryProperties: [],
+      },
+    [parentFullState, parentHubSnapshot],
+  );
+
+  const openFullPreview = useCallback(() => {
+    const nextErrors = validateAgenteChildInventoryForSave(state, lang);
+    setErrors(nextErrors);
+    if (childInventorySaveHasErrors(nextErrors)) return;
+    setFullPreviewOpen(true);
+  }, [state, lang]);
 
   const handleCancel = useCallback(() => {
     confirmClose(() => {
@@ -200,7 +230,7 @@ export function BrNegocioChildInventoryFullApplication({
   }, [confirmClose, onClose]);
 
   const attemptSave = useCallback(
-    (mode: "close" | "addAnother") => {
+    (mode: ChildInventorySaveMode) => {
       const nextErrors = validateAgenteChildInventoryForSave(state, lang);
       setErrors(nextErrors);
       if (childInventorySaveHasErrors(nextErrors)) return;
@@ -213,9 +243,11 @@ export function BrNegocioChildInventoryFullApplication({
       onSave(draft, mode);
       clearChildInventoryEditorSession();
       baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(state));
-      if (mode === "close") {
+      setFullPreviewOpen(false);
+      if (mode === "close" || mode === "goToParentPreview") {
         setErrors({});
         onClose();
+        if (mode === "goToParentPreview") onGoToParentPreview?.();
       } else {
         parentHubRef.current = pickParentHubSlice(parentHubSnapshot);
         setStateRaw(buildChildInventoryEditorState(parentHubRef.current, null, lang));
@@ -226,7 +258,7 @@ export function BrNegocioChildInventoryFullApplication({
         setErrors({});
       }
     },
-    [state, lang, initialDraft, onSave, onClose, parentHubSnapshot],
+    [state, lang, initialDraft, onSave, onClose, parentHubSnapshot, onGoToParentPreview],
   );
 
   if (!open) return null;
@@ -287,6 +319,13 @@ export function BrNegocioChildInventoryFullApplication({
               <h3 className="text-lg font-bold text-[#1E1810]">{copy.previewSaveTitle}</h3>
               <p className="text-sm text-[#5C5346]/88">{copy.previewSaveBody}</p>
               <BrNegocioPrePublishInventoryCard card={previewCard} lang={lang} />
+              <button
+                type="button"
+                onClick={openFullPreview}
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-5 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8] sm:min-h-0 sm:w-auto"
+              >
+                {copy.previewThisProperty}
+              </button>
             </section>
           ) : null}
 
@@ -332,6 +371,15 @@ export function BrNegocioChildInventoryFullApplication({
                 >
                   {copy.saveAndAddAnother}
                 </button>
+                {onGoToParentPreview ? (
+                  <button
+                    type="button"
+                    onClick={() => attemptSave("goToParentPreview")}
+                    className="min-h-[48px] rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
+                  >
+                    {copy.saveAndGoToParentPreview}
+                  </button>
+                ) : null}
               </>
             ) : (
               <button
@@ -346,6 +394,17 @@ export function BrNegocioChildInventoryFullApplication({
           </div>
         </div>
       </footer>
+
+      {fullPreviewOpen ? (
+        <BrNegocioChildInventoryFullPreviewOverlay
+          open={fullPreviewOpen}
+          onClose={() => setFullPreviewOpen(false)}
+          lang={lang}
+          parentHubSnapshot={parentHubSnapshot}
+          childDraft={previewDraft}
+          parentFullState={packageStateForPreview}
+        />
+      ) : null}
     </div>
   );
 }

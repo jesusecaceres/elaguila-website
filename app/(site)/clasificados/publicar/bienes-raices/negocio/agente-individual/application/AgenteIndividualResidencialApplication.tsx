@@ -336,6 +336,11 @@ export default function AgenteIndividualResidencialApplication() {
                   parentFullState={state}
                   mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                   items={state.additionalInventoryProperties}
+                  onGoToParentPreview={() => {
+                    queueMicrotask(() => {
+                      if (confirmAll) openPreview();
+                    });
+                  }}
                   onItemsChange={(items) => {
                     setChildInventoryMediaBridge(items);
                     setState((s) => {
