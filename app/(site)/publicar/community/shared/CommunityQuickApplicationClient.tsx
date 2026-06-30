@@ -7,7 +7,7 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { DayKey } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
-import { CommunityExtendedContactFields, ComunidadEventLinksSection } from "./components/CommunityExtendedContactFields";
+import { CommunityExtendedContactFields, ClasesClassLinksSection, ComunidadEventLinksSection } from "./components/CommunityExtendedContactFields";
 import { CommunityPublishConfirmationSection } from "./components/CommunityPublishConfirmationSection";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosCtaFieldGroup } from "@/app/publicar/empleos/shared/components/EmpleosCtaFieldGroup";
@@ -546,6 +546,15 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
               smsPhone={state.smsPhone}
               socialLinks={state.socialLinks}
               onChange={(p) => patch(p)}
+            />
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={lang === "es" ? "Enlaces de la clase" : "Class links"}>
+            <ClasesClassLinksSection
+              lang={lang}
+              registrationRequired={state.registrationRequired}
+              classLinks={state.classLinks}
+              onChangeLinks={(p) => patch({ classLinks: { ...state.classLinks, ...p } })}
             />
           </EmpleosSectionCard>
 

@@ -227,6 +227,24 @@ export function CommunityQuickAnuncioDetail({
       customLink2Label: pairs["Leonix:customLink2Label"] ?? "",
       customLink2Url: pairs["Leonix:customLink2Url"] ?? "",
     },
+    classLinks: {
+      registrationUrl: pairs["Leonix:clsRegistrationUrl"] ?? "",
+      paymentUrl: pairs["Leonix:clsPaymentUrl"] ?? "",
+      ticketsUrl: pairs["Leonix:clsTicketsUrl"] ?? "",
+      donationUrl: pairs["Leonix:clsDonationUrl"] ?? "",
+      classMaterialsUrl: pairs["Leonix:clsMaterialsUrl"] ?? "",
+      syllabusUrl: pairs["Leonix:clsSyllabusUrl"] ?? "",
+      classGuideUrl: pairs["Leonix:clsGuideUrl"] ?? "",
+      instructorPageUrl: pairs["Leonix:clsInstructorUrl"] ?? "",
+      studentPortalUrl: pairs["Leonix:clsStudentPortalUrl"] ?? "",
+      vendorsResourcesUrl: pairs["Leonix:clsVendorsUrl"] ?? "",
+      foodVendorsUrl: pairs["Leonix:clsFoodVendorsUrl"] ?? "",
+      sponsorsUrl: pairs["Leonix:clsSponsorsUrl"] ?? "",
+      customLink1Label: pairs["Leonix:clsCustom1Label"] ?? "",
+      customLink1Url: pairs["Leonix:clsCustom1Url"] ?? "",
+      customLink2Label: pairs["Leonix:clsCustom2Label"] ?? "",
+      customLink2Url: pairs["Leonix:clsCustom2Url"] ?? "",
+    },
   };
 
   const shareUrl =

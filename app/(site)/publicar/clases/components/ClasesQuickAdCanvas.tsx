@@ -71,8 +71,10 @@ export function ClasesQuickAdCanvas({
   const main = pickMainHeroImage(draft.images);
   const isPdf = main.kind === "pdf";
   const isPaid = draft.classCostType === "pagada";
+  const rawPrice = draft.priceAmount.trim();
+  const formattedPrice = rawPrice && /^\d/.test(rawPrice) && !rawPrice.startsWith("$") ? `$${rawPrice}` : rawPrice;
   const priceSummary = isPaid
-    ? [draft.priceAmount.trim(), draft.priceFrequency ? `· ${clasesFrequencyLabel(draft.priceFrequency, lang)}` : ""]
+    ? [formattedPrice, draft.priceFrequency ? `· ${clasesFrequencyLabel(draft.priceFrequency, lang)}` : ""]
         .filter(Boolean)
         .join(" ")
     : t.free;
