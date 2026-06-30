@@ -10,9 +10,9 @@ import {
   formatPhoneInputDisplay,
 } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
-import { FaFacebook, FaInstagram, FaLinkedin, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
+import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaSnapchat, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
-import { FiGlobe, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
+import { FiExternalLink, FiGlobe, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 
 import {
   buildCommunityMapQuery,
@@ -24,8 +24,8 @@ import {
   websiteHref,
   whatsAppUri,
 } from "../lib/communityContactCtas";
-import { normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
-import type { ClasesQuickDraft, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import { normalizeWebsiteForOpen, normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
+import type { ClasesQuickDraft, ComunidadEventLinks, ComunidadQuickDraft } from "../types/communityQuickDraft";
 
 const GH = {
   cream: "#FCF9F2",
@@ -72,7 +72,15 @@ const UI = {
     call: "Llamar",
     text: "Enviar texto",
     email: "Escribir correo",
-    website: "Sitio web / Registro",
+    website: "Sitio web del evento",
+    register: "Registrarse",
+    tickets: "Boletos",
+    donate: "Donar",
+    eventProgram: "Programa del evento",
+    eventGuide: "Guía del evento",
+    vendors: "Vendedores",
+    foodVendors: "Comida / puestos",
+    sponsors: "Patrocinadores",
     map: "Ver en el mapa",
     copyEmail: "Copiar correo",
     copyPhone: "Copiar teléfono",
@@ -86,7 +94,15 @@ const UI = {
     call: "Call",
     text: "Text message",
     email: "Email",
-    website: "Website / Register",
+    website: "Event website",
+    register: "Register",
+    tickets: "Tickets",
+    donate: "Donate",
+    eventProgram: "Event program",
+    eventGuide: "Event guide",
+    vendors: "Vendors",
+    foodVendors: "Food / vendors",
+    sponsors: "Sponsors",
     map: "View on map",
     copyEmail: "Copy email",
     copyPhone: "Copy phone",
@@ -101,6 +117,8 @@ const SOCIAL_ARIA = {
     youtube: "Abrir YouTube",
     x: "Abrir X / Twitter",
     linkedin: "Abrir LinkedIn",
+    snapchat: "Abrir Snapchat",
+    pinterest: "Abrir Pinterest",
   },
   en: {
     facebook: "Open Facebook",
@@ -109,6 +127,8 @@ const SOCIAL_ARIA = {
     youtube: "Open YouTube",
     x: "Open X / Twitter",
     linkedin: "Open LinkedIn",
+    snapchat: "Open Snapchat",
+    pinterest: "Open Pinterest",
   },
 } as const;
 
@@ -144,6 +164,9 @@ export function CommunityContactCanvas({
   const sms10 = usPhoneDigits10(smsRaw);
   const email = draft.email.trim();
   const web = websiteHref(draft.website);
+  const eventLinks: ComunidadEventLinks | null =
+    draft.kind === "comunidad" ? (draft as ComunidadQuickDraft).eventLinks : null;
+
   const mapQ = buildCommunityMapQuery({
     addressLine1: draft.addressLine1,
     publicCity: draft.publicCity,
@@ -176,46 +199,43 @@ export function CommunityContactCanvas({
     Icon: ComponentType<{ className?: string }>;
     ariaLabel: string;
   }[] = [
-    {
-      key: "fb",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"),
-      Icon: FaFacebook,
-      ariaLabel: sAria.facebook,
-    },
-    {
-      key: "ig",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"),
-      Icon: FaInstagram,
-      ariaLabel: sAria.instagram,
-    },
-    {
-      key: "tt",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"),
-      Icon: FaTiktok,
-      ariaLabel: sAria.tiktok,
-    },
-    {
-      key: "yt",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"),
-      Icon: FaYoutube,
-      ariaLabel: sAria.youtube,
-    },
-    {
-      key: "x",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"),
-      Icon: FaXTwitter,
-      ariaLabel: sAria.x,
-    },
-    {
-      key: "li",
-      href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"),
-      Icon: FaLinkedin,
-      ariaLabel: sAria.linkedin,
-    },
+    { key: "fb", href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"), Icon: FaFacebook, ariaLabel: sAria.facebook },
+    { key: "ig", href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"), Icon: FaInstagram, ariaLabel: sAria.instagram },
+    { key: "tt", href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"), Icon: FaTiktok, ariaLabel: sAria.tiktok },
+    { key: "yt", href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"), Icon: FaYoutube, ariaLabel: sAria.youtube },
+    { key: "x", href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"), Icon: FaXTwitter, ariaLabel: sAria.x },
+    { key: "li", href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"), Icon: FaLinkedin, ariaLabel: sAria.linkedin },
+    { key: "sc", href: normalizeSocialUrlForOpen(draft.socialLinks.snapchat ?? "", "snapchat"), Icon: FaSnapchat, ariaLabel: sAria.snapchat },
+    { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest },
   ].filter((x) => x.href);
+
+  /** Build the ordered list of event-specific useful link CTAs (Comunidad only). */
+  const eventLinkItems: { key: string; href: string; label: string }[] = [];
+  if (eventLinks) {
+    const el = eventLinks;
+    const push = (key: string, raw: string, label: string) => {
+      const href = normalizeWebsiteForOpen(raw);
+      if (href) eventLinkItems.push({ key, href, label });
+    };
+    push("reg", el.registrationUrl, t.register);
+    push("tix", el.ticketsUrl, t.tickets);
+    push("don", el.donationUrl, t.donate);
+    push("prg", el.eventProgramUrl, t.eventProgram);
+    push("gui", el.eventGuideUrl, t.eventGuide);
+    push("vnd", el.vendorListUrl, t.vendors);
+    push("fvd", el.foodVendorsUrl, t.foodVendors);
+    push("spo", el.sponsorsUrl, t.sponsors);
+    if (el.customLink1Label.trim() && normalizeWebsiteForOpen(el.customLink1Url)) {
+      push("c1", el.customLink1Url, el.customLink1Label.trim());
+    }
+    if (el.customLink2Label.trim() && normalizeWebsiteForOpen(el.customLink2Url)) {
+      push("c2", el.customLink2Url, el.customLink2Label.trim());
+    }
+  }
 
   const hasContactActions = !!(phone10 || wa10 || sms10 || email);
   const hasLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
+  const hasMoreInfo = !!(web || eventLinkItems.length);
 
   return (
     <section
@@ -326,8 +346,8 @@ export function CommunityContactCanvas({
           </div>
         ) : null}
 
-        {/* ── Section 3: Website / More information ───────────────────────── */}
-        {web ? (
+        {/* ── Section 3: More information / event links ───────────────────── */}
+        {hasMoreInfo ? (
           <div className="space-y-2">
             <h3
               className="text-[11px] font-bold uppercase tracking-widest"
@@ -335,16 +355,33 @@ export function CommunityContactCanvas({
             >
               {t.moreTitle}
             </h3>
-            <a
-              href={web}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={btnPrimaryClass()}
-              style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
-            >
-              <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
-              {t.website}
-            </a>
+            <div className="flex flex-wrap gap-2">
+              {web ? (
+                <a
+                  href={web}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnPrimaryClass()}
+                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                >
+                  <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
+                  {t.website}
+                </a>
+              ) : null}
+              {eventLinkItems.map(({ key, href, label }) => (
+                <a
+                  key={key}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnPrimaryClass()}
+                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                >
+                  <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                  {label}
+                </a>
+              ))}
+            </div>
           </div>
         ) : null}
 

@@ -240,6 +240,10 @@ function buildDetailPairs(
   if (sx) pairs.push({ label: "Leonix:socialXTwitter", value: sx });
   const sln = normalizeSocialUrlForOpen(sl.linkedin, "linkedin");
   if (sln) pairs.push({ label: "Leonix:socialLinkedin", value: sln });
+  const ssc = normalizeSocialUrlForOpen(sl.snapchat, "snapchat");
+  if (ssc) pairs.push({ label: "Leonix:socialSnapchat", value: ssc });
+  const spi = normalizeSocialUrlForOpen(sl.pinterest, "pinterest");
+  if (spi) pairs.push({ label: "Leonix:socialPinterest", value: spi });
   const pDig = digitsOnly(d.phone);
   if (pDig.length >= 10) pairs.push({ label: "Leonix:phoneDigits", value: pDig.slice(0, 10) });
   const wDig = digitsOnly(d.whatsapp);
@@ -248,6 +252,37 @@ function buildDetailPairs(
   if (d.audience.trim()) pairs.push({ label: "Leonix:audience", value: d.audience.trim() });
   if (d.registrationRequired.trim()) pairs.push({ label: "Leonix:registrationRequired", value: d.registrationRequired.trim() });
   if (d.bringNote.trim()) pairs.push({ label: "Leonix:bringNote", value: d.bringNote.trim() });
+  if (kind === "comunidad") {
+    const el = (d as ComunidadQuickDraft).eventLinks;
+    const pUrl = normalizeWebsiteForOpen(el.registrationUrl);
+    if (pUrl) pairs.push({ label: "Leonix:registrationUrl", value: pUrl });
+    const tkUrl = normalizeWebsiteForOpen(el.ticketsUrl);
+    if (tkUrl) pairs.push({ label: "Leonix:ticketsUrl", value: tkUrl });
+    const doUrl = normalizeWebsiteForOpen(el.donationUrl);
+    if (doUrl) pairs.push({ label: "Leonix:donationUrl", value: doUrl });
+    const pgUrl = normalizeWebsiteForOpen(el.eventProgramUrl);
+    if (pgUrl) pairs.push({ label: "Leonix:eventProgramUrl", value: pgUrl });
+    const egUrl = normalizeWebsiteForOpen(el.eventGuideUrl);
+    if (egUrl) pairs.push({ label: "Leonix:eventGuideUrl", value: egUrl });
+    const vlUrl = normalizeWebsiteForOpen(el.vendorListUrl);
+    if (vlUrl) pairs.push({ label: "Leonix:vendorListUrl", value: vlUrl });
+    const fvUrl = normalizeWebsiteForOpen(el.foodVendorsUrl);
+    if (fvUrl) pairs.push({ label: "Leonix:foodVendorsUrl", value: fvUrl });
+    const spUrl = normalizeWebsiteForOpen(el.sponsorsUrl);
+    if (spUrl) pairs.push({ label: "Leonix:sponsorsUrl", value: spUrl });
+    const c1l = el.customLink1Label.trim();
+    const c1u = normalizeWebsiteForOpen(el.customLink1Url);
+    if (c1l && c1u) {
+      pairs.push({ label: "Leonix:customLink1Label", value: c1l });
+      pairs.push({ label: "Leonix:customLink1Url", value: c1u });
+    }
+    const c2l = el.customLink2Label.trim();
+    const c2u = normalizeWebsiteForOpen(el.customLink2Url);
+    if (c2l && c2u) {
+      pairs.push({ label: "Leonix:customLink2Label", value: c2l });
+      pairs.push({ label: "Leonix:customLink2Url", value: c2u });
+    }
+  }
   if (kind === "clases") {
     const c = d as ClasesQuickDraft;
     pairs.push({ label: "Leonix:classCategory", value: c.category.trim() });

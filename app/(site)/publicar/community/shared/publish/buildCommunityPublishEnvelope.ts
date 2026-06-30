@@ -48,6 +48,8 @@ function snapshotSocialLinks(sl: CommunitySocialLinks): CommunitySocialLinks {
     youtube: normalizeSocialUrlForOpen(sl.youtube, "youtube") ?? "",
     xTwitter: normalizeSocialUrlForOpen(sl.xTwitter, "xTwitter") ?? "",
     linkedin: normalizeSocialUrlForOpen(sl.linkedin, "linkedin") ?? "",
+    snapchat: normalizeSocialUrlForOpen(sl.snapchat ?? "", "snapchat") ?? "",
+    pinterest: normalizeSocialUrlForOpen(sl.pinterest ?? "", "pinterest") ?? "",
   };
 }
 

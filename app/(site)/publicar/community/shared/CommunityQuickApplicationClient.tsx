@@ -7,7 +7,7 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { DayKey } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
-import { CommunityExtendedContactFields } from "./components/CommunityExtendedContactFields";
+import { CommunityExtendedContactFields, ComunidadEventLinksSection } from "./components/CommunityExtendedContactFields";
 import { CommunityPublishConfirmationSection } from "./components/CommunityPublishConfirmationSection";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosCtaFieldGroup } from "@/app/publicar/empleos/shared/components/EmpleosCtaFieldGroup";
@@ -947,6 +947,13 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
               onChange={(p) => patch(p)}
             />
           </EmpleosSectionCard>
+
+          <ComunidadEventLinksSection
+            lang={lang}
+            registrationRequired={state.registrationRequired}
+            eventLinks={state.eventLinks}
+            onChangeLinks={(p) => patch({ eventLinks: { ...state.eventLinks, ...p } })}
+          />
 
           <LocationSection
             lang={lang}

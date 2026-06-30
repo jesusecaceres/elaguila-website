@@ -203,6 +203,8 @@ export function CommunityQuickAnuncioDetail({
       youtube: pairs["Leonix:socialYoutube"] ?? "",
       xTwitter: pairs["Leonix:socialXTwitter"] ?? "",
       linkedin: pairs["Leonix:socialLinkedin"] ?? "",
+      snapchat: pairs["Leonix:socialSnapchat"] ?? "",
+      pinterest: pairs["Leonix:socialPinterest"] ?? "",
     },
     venue: venue,
     addressLine1: addr,
@@ -211,7 +213,21 @@ export function CommunityQuickAnuncioDetail({
     state: state,
     zip: zip,
     country: country,
-  } as const;
+    eventLinks: {
+      registrationUrl: pairs["Leonix:registrationUrl"] ?? "",
+      ticketsUrl: pairs["Leonix:ticketsUrl"] ?? "",
+      donationUrl: pairs["Leonix:donationUrl"] ?? "",
+      eventProgramUrl: pairs["Leonix:eventProgramUrl"] ?? "",
+      eventGuideUrl: pairs["Leonix:eventGuideUrl"] ?? "",
+      vendorListUrl: pairs["Leonix:vendorListUrl"] ?? "",
+      foodVendorsUrl: pairs["Leonix:foodVendorsUrl"] ?? "",
+      sponsorsUrl: pairs["Leonix:sponsorsUrl"] ?? "",
+      customLink1Label: pairs["Leonix:customLink1Label"] ?? "",
+      customLink1Url: pairs["Leonix:customLink1Url"] ?? "",
+      customLink2Label: pairs["Leonix:customLink2Label"] ?? "",
+      customLink2Url: pairs["Leonix:customLink2Url"] ?? "",
+    },
+  };
 
   const shareUrl =
     typeof window !== "undefined" && listingId
