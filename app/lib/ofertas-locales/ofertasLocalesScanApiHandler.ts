@@ -44,6 +44,11 @@ const SCAN_BLOCKED_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new 
   "archived",
 ]);
 
+function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
+  const logger = level === "warn" ? console.warn : console.info;
+  logger(`[ofertas-locales-ai] ${stage}`, payload);
+}
+
 function isScanRequest(v: unknown): v is OfertaLocalScanApiRequest {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
@@ -389,9 +394,19 @@ export async function handleOfertaLocalScanPost(
     const itemRows = scanResult.items.map((item) =>
       mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId)
     );
+    itemRows.forEach((row, itemIndex) => {
+      logAiStage("DB_MAPPING_PREPARED", {
+        scanJobId,
+        pageNumber: row.source_page,
+        itemIndex,
+        hasSourceBbox: Boolean(row.source_bbox),
+        hasSourceCropUrl: Boolean(row.source_crop_url),
+        mappedSourceCropUrl: row.source_crop_url ?? null,
+      });
+    });
 
     if (itemRows.length > 0) {
-      const { error: itemsError } = await supabase.from("oferta_local_items").insert(
+      const { data: insertedRows, error: itemsError } = await supabase.from("oferta_local_items").insert(
         itemRows.map((row) => ({
           ...row,
           review_status: "needs_review",
@@ -400,7 +415,7 @@ export async function handleOfertaLocalScanPost(
           created_at: now,
           updated_at: now,
         }))
-      );
+      ).select("id, source_page, source_crop_url");
       if (itemsError) {
         throw new Error(itemsError.message);
       }
@@ -411,6 +426,15 @@ export async function handleOfertaLocalScanPost(
           scanJobId,
           sourcePage: row.source_page,
           itemName: row.item_name,
+        });
+      }
+      for (const row of insertedRows ?? []) {
+        logAiStage("DB_PERSISTENCE_CONFIRMED", {
+          scanJobId,
+          pageNumber: row.source_page,
+          itemId: row.id,
+          hasSourceCropUrl: Boolean(row.source_crop_url),
+          persistedSourceCropUrl: row.source_crop_url ?? null,
         });
       }
       console.info("[ofertas-locales crop] persistence summary", {

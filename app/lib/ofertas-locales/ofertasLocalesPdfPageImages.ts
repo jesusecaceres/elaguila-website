@@ -147,16 +147,23 @@ export type OfertaLocalPdfPageRasterForCrop = {
 let pdfjsWorkerLoadPromise: Promise<void> | null = null;
 const requirePdfjsWorker = createRequire(`${process.cwd()}/package.json`);
 
+function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
+  const logger = level === "warn" ? console.warn : console.info;
+  logger(`[ofertas-locales-ai] ${stage}`, payload);
+}
+
 /** On-demand single-page PDF → PNG rasterization for crop generation (Gate OFERTAS-CROP-PATCH-1). */
 export async function renderOfertaLocalPdfPageToPngForCrop(params: {
   pdfBytes: Buffer;
   pageNumber: number;
   maxWidth?: number;
+  scanJobId?: string | null;
 }): Promise<OfertaLocalPdfPageRasterForCrop | null> {
   const png = await tryRenderPdfPageToPng(
     params.pdfBytes,
     params.pageNumber,
-    params.maxWidth ?? OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX
+    params.maxWidth ?? OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX,
+    params.scanJobId ?? null
   );
   if (!png) return null;
   return {
@@ -186,11 +193,17 @@ async function splitPdfToSinglePageBuffers(pdfBytes: Buffer, maxPages: number): 
 async function tryRenderPdfPageToPng(
   singlePagePdfBytes: Buffer,
   pageNumber: number,
-  maxWidthPx: number = OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX
+  maxWidthPx: number = OFERTAS_GEMINI_MAX_IMAGE_WIDTH_PX,
+  scanJobId: string | null = null
 ): Promise<{ bytes: Buffer; width: number; height: number } | null> {
   try {
     console.info("[ofertas-locales ai] pdf page png render started", {
       pageNumber,
+    });
+    logAiStage("PAGE_RENDER_START", {
+      scanJobId,
+      pageNumber,
+      renderMethod: "pdfjs_canvas_png",
     });
 
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -233,6 +246,15 @@ async function tryRenderPdfPageToPng(
         height,
         renderMethod: "pdfjs_canvas_png",
       });
+      logAiStage("PAGE_RENDER_SUCCESS", {
+        scanJobId,
+        pageNumber,
+        renderMethod: "pdfjs_canvas_png",
+        width,
+        height,
+        bufferSize: bytes.length,
+        mimeType: "image/png",
+      });
       return {
         bytes: Buffer.from(bytes),
         width,
@@ -247,6 +269,13 @@ async function tryRenderPdfPageToPng(
       pageNumber,
       reason: message.slice(0, 200),
     });
+    logAiStage("PAGE_RENDER_FAILED", {
+      scanJobId,
+      pageNumber,
+      renderMethod: "pdfjs_canvas_png",
+      errorName: err instanceof Error ? err.name : "Error",
+      errorMessage: message.slice(0, 200),
+    }, "warn");
     return null;
   }
 }

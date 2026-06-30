@@ -190,8 +190,8 @@ Manual browser QA is still recommended for live Supabase publish flows, but no l
 - Desktop QA
 - Mobile 390px QA
 
-## 25. READY TO COMMIT THIS GATE: NO
-NO. The static audit passed. The fresh `npm run build` for this true QA-ready gate was manually backgrounded before completion, so this audit stays conservative until that build reports exit 0.
+## 25. READY TO COMMIT THIS GATE: YES
+YES. The static audit passed and the fresh `npm run build` exited 0. Build still reports an unrelated Ofertas Locales PDF scan warning.
 
 ## PASS/FIXED/BLOCKED table
 | Requirement | PASS/FIXED/BLOCKED | Evidence |
@@ -241,4 +241,4 @@ NO. The static audit passed. The fresh `npm run build` for this true QA-ready ga
 | No unrelated categories edited | PASS | Static audit forbids locked category diffs |
 | No Stripe/payment files touched | PASS | Static audit forbids Stripe/payment diffs |
 | Audit script passed | PASS | `npm run july1:free-clasificados-shell-audit` |
-| npm run build passed | BLOCKED | Fresh gate build is pending after manual backgrounding |
+| npm run build passed | PASS | Fresh `npm run build` exited 0; unrelated Ofertas Locales PDF scan warning remains |

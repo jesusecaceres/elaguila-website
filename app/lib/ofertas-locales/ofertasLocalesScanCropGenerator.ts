@@ -48,6 +48,11 @@ type CropSummary = {
   skipReasonCounts: Record<string, number>;
 };
 
+function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
+  const logger = level === "warn" ? console.warn : console.info;
+  logger(`[ofertas-locales-ai] ${stage}`, payload);
+}
+
 export function createOfertaLocalScanCropStoragePath(params: {
   ofertaLocalId: string;
   scanJobId: string;
@@ -109,7 +114,7 @@ export async function applyOfertaLocalScanItemCrops(
   for (let index = 0; index < params.items.length; index++) {
     const item = params.items[index];
     const geminiBbox = readGeminiBboxFromItem(item);
-    const normalizedBbox = item.sourceBbox;
+    const normalizedBbox = readNormalizedBboxFromItem(item);
     if (!geminiBbox || !normalizedBbox) continue;
 
     summary.itemsWithBbox += 1;
@@ -161,13 +166,26 @@ export async function applyOfertaLocalScanItemCrops(
       imageHeight: raster.height,
       paddingFraction: 0.08,
     });
+    logAiStage("BBOX_NORMALIZATION", {
+      scanJobId: params.scanJobId,
+      pageNumber,
+      itemIndex: index,
+      rawBbox: geminiBbox,
+      bboxFormat: "normalized_object_or_gemini_1000",
+      imageWidth: raster.width,
+      imageHeight: raster.height,
+      pixelRect: rect,
+    });
     if (!rect) {
       cropErrors.push(`item_${index}_invalid_crop_rect`);
-      console.warn("[ofertas-locales crop] invalid crop rectangle", {
+      logAiStage("CROP_EXTRACTION_FAILED", {
         scanJobId: params.scanJobId,
+        pageNumber,
         itemIndex: index,
-        sourcePage: pageNumber,
-      });
+        rawBbox: geminiBbox,
+        errorName: "invalid_crop_rect",
+        errorMessage: "Invalid crop rectangle after normalization.",
+      }, "warn");
       recordSkip("invalid_crop_rect");
       continue;
     }
@@ -182,6 +200,15 @@ export async function applyOfertaLocalScanItemCrops(
         })
         .png()
         .toBuffer();
+
+      logAiStage("CROP_EXTRACTION_SUCCESS", {
+        scanJobId: params.scanJobId,
+        pageNumber,
+        itemIndex: index,
+        cropWidth: rect.width,
+        cropHeight: rect.height,
+        cropBufferSize: cropped.length,
+      });
 
       const pathname = createOfertaLocalScanCropStoragePath({
         ofertaLocalId: params.ofertaLocalId,
@@ -203,6 +230,13 @@ export async function applyOfertaLocalScanItemCrops(
         sourcePage: pageNumber,
         itemName: item.itemName,
       });
+      logAiStage("STORAGE_UPLOAD_SUCCESS", {
+        scanJobId: params.scanJobId,
+        pageNumber,
+        itemIndex: index,
+        sourceCropUrl: blob.url,
+        storagePath: pathname,
+      });
 
       item.sourceCropUrl = blob.url;
       item.extractedJson = {
@@ -219,6 +253,14 @@ export async function applyOfertaLocalScanItemCrops(
     } catch (err) {
       const message = err instanceof Error ? err.message : "crop_failed";
       cropErrors.push(`item_${index}:${message.slice(0, 120)}`);
+      logAiStage("CROP_EXTRACTION_FAILED", {
+        scanJobId: params.scanJobId,
+        pageNumber,
+        itemIndex: index,
+        rawBbox: geminiBbox,
+        errorName: err instanceof Error ? err.name : "Error",
+        errorMessage: message.slice(0, 200),
+      }, "warn");
       console.warn("[ofertas-locales crop] crop upload failed", {
         scanJobId: params.scanJobId,
         itemIndex: index,
@@ -243,6 +285,14 @@ export async function applyOfertaLocalScanItemCrops(
     cropSkipped: summary.cropSkipped,
     skipReasonCounts: summary.skipReasonCounts,
   });
+  logAiStage("CROP_SUMMARY", {
+    scanJobId: params.scanJobId,
+    totalItems: summary.totalItems,
+    itemsWithBbox: summary.itemsWithBbox,
+    cropSuccessCount: summary.cropUploaded,
+    cropFailureCount: summary.cropSkipped,
+    itemsWithSourceCropUrl: params.items.filter((item) => item.sourceCropUrl?.trim()).length,
+  });
 
   return { cropsGenerated, cropErrors };
 }
@@ -261,6 +311,15 @@ async function resolveCropRasterSource(
         width: raster.width,
         height: raster.height,
       });
+      logAiStage("PAGE_RENDER_SUCCESS", {
+        scanJobId,
+        pageNumber: page.pageNumber,
+        renderMethod: page.renderMethod,
+        width: raster.width,
+        height: raster.height,
+        bufferSize: raster.imageBytes.length,
+        mimeType: page.mimeType,
+      });
     }
     return raster;
   }
@@ -269,6 +328,7 @@ async function resolveCropRasterSource(
     const raster = await renderOfertaLocalPdfPageToPngForCrop({
       pdfBytes: page.imageBytes,
       pageNumber: page.pageNumber,
+      scanJobId,
     });
     if (raster) {
       console.info("[ofertas-locales crop] page render success", {
@@ -276,6 +336,15 @@ async function resolveCropRasterSource(
         sourcePage: page.pageNumber,
         width: raster.width,
         height: raster.height,
+      });
+      logAiStage("PAGE_RENDER_SUCCESS", {
+        scanJobId,
+        pageNumber: page.pageNumber,
+        renderMethod: raster.renderMethod,
+        width: raster.width,
+        height: raster.height,
+        bufferSize: raster.imageBytes.length,
+        mimeType: raster.mimeType,
       });
       return {
         imageBytes: raster.imageBytes,
@@ -289,6 +358,13 @@ async function resolveCropRasterSource(
       sourcePage: page.pageNumber,
       reason: "pdfjs_page_render_failed",
     });
+    logAiStage("PAGE_RENDER_FAILED", {
+      scanJobId,
+      pageNumber: page.pageNumber,
+      renderMethod: page.renderMethod,
+      errorName: "pdfjs_page_render_failed",
+      errorMessage: "PDF.js page render failed.",
+    }, "warn");
     return null;
   }
 
@@ -375,6 +451,57 @@ function readGeminiBboxFromItem(item: OfertaLocalSearchableItemDraft): GeminiSou
   if (item.sourceBbox) {
     return normalizedBboxToGemini(item.sourceBbox);
   }
+  return null;
+}
+
+function readNormalizedBboxFromItem(item: OfertaLocalSearchableItemDraft): OfertaLocalSourceBoundingBox | null {
+  const direct = coerceNormalizedBbox(item.sourceBbox);
+  if (direct) return direct;
+  const extracted = item.extractedJson ?? {};
+  return (
+    coerceNormalizedBbox((extracted as Record<string, unknown>).source_bbox) ||
+    coerceNormalizedBbox((extracted as Record<string, unknown>).sourceBbox) ||
+    coerceNormalizedBbox((extracted as Record<string, unknown>).sourceBboxGemini)
+  );
+}
+
+function parseFiniteNumber(v: unknown): number | null {
+  const n = typeof v === "number" ? v : Number.parseFloat(String(v ?? ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function coerceNormalizedBbox(raw: unknown): OfertaLocalSourceBoundingBox | null {
+  if (Array.isArray(raw) && raw.length === 4) {
+    const nums = raw.map(parseFiniteNumber);
+    if (nums.some((n) => n == null)) return null;
+    let yMin = nums[0] as number;
+    let xMin = nums[1] as number;
+    let yMax = nums[2] as number;
+    let xMax = nums[3] as number;
+    const scale = Math.max(yMin, xMin, yMax, xMax) > 1 ? 1000 : 1;
+    yMin /= scale;
+    xMin /= scale;
+    yMax /= scale;
+    xMax /= scale;
+    return { xMin, yMin, xMax, yMax };
+  }
+
+  if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    const xMin = parseFiniteNumber(o.xMin ?? o.x_min ?? o.xmin);
+    const xMax = parseFiniteNumber(o.xMax ?? o.x_max ?? o.xmax);
+    const yMin = parseFiniteNumber(o.yMin ?? o.y_min ?? o.ymin);
+    const yMax = parseFiniteNumber(o.yMax ?? o.y_max ?? o.ymax);
+    if (xMin == null || xMax == null || yMin == null || yMax == null) return null;
+    const scale = Math.max(xMin, xMax, yMin, yMax) > 1 ? 1000 : 1;
+    return {
+      xMin: xMin / scale,
+      xMax: xMax / scale,
+      yMin: yMin / scale,
+      yMax: yMax / scale,
+    };
+  }
+
   return null;
 }
 

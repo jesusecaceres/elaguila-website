@@ -14,6 +14,11 @@ import {
 import { applyOfertaLocalScanItemCrops } from "./ofertasLocalesScanCropGenerator";
 import type { OfertaLocalSearchableItemDraft } from "./ofertasLocalesTypes";
 
+function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
+  const logger = level === "warn" ? console.warn : console.info;
+  logger(`[ofertas-locales-ai] ${stage}`, payload);
+}
+
 export type RunGeminiMultimodalScanParams = {
   fileBuffer: Buffer;
   mimeType: string;
@@ -60,10 +65,24 @@ export async function runGeminiMultimodalOfertaLocalScan(
   params: RunGeminiMultimodalScanParams
 ): Promise<GeminiMultimodalScanResult> {
   console.info("[ofertas-locales ai] provider selected", { provider: "gemini_multimodal" });
+  logAiStage("FILE_READY", {
+    scanJobId: params.scanJobId,
+    ofertaLocalId: params.ofertaLocalId,
+    sourceFileName: params.sourceFileName,
+    sourceStoragePath: params.sourceStoragePath,
+    sourceAssetUrl: params.sourceAssetUrl,
+    mimeType: params.mimeType,
+    sizeBytes: params.fileBuffer.length,
+  });
 
   const prepared = await prepareOfertaLocalScanPageImages({
     fileBuffer: params.fileBuffer,
     mimeType: params.mimeType,
+  });
+  logAiStage("METADATA_DISCOVERED", {
+    scanJobId: params.scanJobId,
+    totalPages: prepared.totalPageCount,
+    sourceFileName: params.sourceFileName,
   });
 
   const modelUsed = selectGeminiModelForPageCount(prepared.pages.length);
@@ -91,6 +110,13 @@ export async function runGeminiMultimodalOfertaLocalScan(
     if (!result.ok && result.error) {
       pageErrors.push(`Page ${result.pageNumber}: ${result.error}`);
     }
+    logAiStage("GEMINI_RESPONSE_RECEIVED", {
+      scanJobId: params.scanJobId,
+      pageNumber: result.pageNumber,
+      candidatesCount: result.candidates.length,
+      model: modelUsed,
+      provider: "gemini_multimodal",
+    });
     rawCandidateCount += result.rawCandidateCount;
     rejectedCount += result.validationStats.rejectedCount;
     priceRepairsApplied += result.validationStats.priceRepairsApplied;
