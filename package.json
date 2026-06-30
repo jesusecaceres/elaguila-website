@@ -37,6 +37,7 @@
     "verify:admin-verifier-suite-triage-and-repair-01": "node scripts/verify-admin-verifier-suite-triage-and-repair-01.mjs",
     "verify:admin-live-proof-and-mobile-browser-smoke-01": "node scripts/verify-admin-live-proof-and-mobile-browser-smoke-01.mjs",
     "verify:admin-live-supabase-mutation-proof-01": "node scripts/verify-admin-live-supabase-mutation-proof-01.mjs",
+    "verify:stripe-revenue-os-placement-pricing-promo-blueprint-01": "node scripts/verify-stripe-revenue-os-placement-pricing-promo-blueprint-01.mjs",
     "verify:clasificados-preview-public-output-battlefield-qa-01": "node scripts/verify-clasificados-preview-public-output-battlefield-qa-01.mjs",
     "verify:admin-review-cta-actions": "node scripts/verify-admin-review-cta-actions.mjs",
     "verify:admin-reports-complaints-supabase": "node scripts/verify-admin-reports-complaints-supabase.mjs",
