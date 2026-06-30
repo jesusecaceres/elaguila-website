@@ -11,6 +11,14 @@ import {
 
 const ADMIN_COOKIE = "leonix_admin";
 
+function isOfertasLocalesQaPath(pathname: string): boolean {
+  return (
+    pathname === "/publicar/ofertas-locales" ||
+    pathname.startsWith("/publicar/ofertas-locales/") ||
+    pathname.startsWith("/api/ofertas-locales/")
+  );
+}
+
 function withAdminPathHeader(res: NextResponse, pathname: string): NextResponse {
   res.headers.set("x-admin-pathname", pathname);
   return res;
@@ -63,6 +71,10 @@ export function middleware(req: NextRequest) {
   }
 
   if (isBypassPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (isOfertasLocalesQaPath(pathname)) {
     return NextResponse.next();
   }
 
