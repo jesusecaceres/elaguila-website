@@ -27,7 +27,6 @@ import {
   type RestaurantesDiscoveryLang,
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
-import { requestCoarsePlaceFromBrowserGeolocation } from "@/app/clasificados/restaurantes/lib/restaurantesCoarseGeolocation";
 import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import { loadRestaurantesBuyerSavedIdSet } from "@/app/clasificados/restaurantes/lib/restaurantesBuyerSavedIds";
 import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
@@ -101,8 +100,6 @@ export function RestaurantesResultsShell({
 
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [geoNote, setGeoNote] = useState<string | null>(null);
-  const [geoLoading, setGeoLoading] = useState(false);
   const [dismissPublishFlash, setDismissPublishFlash] = useState(false);
 
   const [qInput, setQInput] = useState(parsed.q);
@@ -1072,40 +1069,8 @@ export function RestaurantesResultsShell({
 
   const locationToolbar = (
     <>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <button
-          type="button"
-          disabled={geoLoading}
-          aria-describedby="rx-geo-help"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[#D97706]/35 bg-[color:var(--lx-card)] px-4 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/55 disabled:opacity-60"
-          onClick={async () => {
-            setGeoNote(null);
-            setGeoLoading(true);
-            try {
-              const place = await requestCoarsePlaceFromBrowserGeolocation();
-              setGeoNote(lang === "es" ? place.noteEs : place.noteEn);
-              pushState(
-                mergeDiscovery(parsed, {
-                  city: place.cityLabel,
-                  near: false,
-                  page: 1,
-                }),
-              );
-              setLocInput(place.cityLabel);
-            } catch {
-              setGeoNote(
-                lang === "es"
-                  ? "No pudimos obtener tu ubicación. Usa ciudad o código postal."
-                  : "Could not get your location. Use city or ZIP.",
-              );
-            } finally {
-              setGeoLoading(false);
-            }
-          }}
-        >
-          {t.useLocation}
-        </button>
-        {activeChips.length > 0 ? (
+      {activeChips.length > 0 ? (
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <button
             type="button"
             className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[color:var(--lx-border)]/50 px-4 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)]"
@@ -1115,12 +1080,8 @@ export function RestaurantesResultsShell({
           >
             {t.clearAll}
           </button>
-        ) : null}
-      </div>
-      <p id="rx-geo-help" className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        {t.useLocationHelp}
-      </p>
-      {geoNote ? <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{geoNote}</p> : null}
+        </div>
+      ) : null}
       {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
         <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.nearHonest}</p>
       ) : null}
