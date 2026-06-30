@@ -1851,6 +1851,7 @@ export default function AnuncioDetallePage() {
                     priceLabel={listing.priceLabel[lang]}
                     listingId={listing.id}
                     ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
+                    contactEmail={(listing as { contact_email?: string | null }).contact_email ?? null}
                   />
                 )}
                 </>

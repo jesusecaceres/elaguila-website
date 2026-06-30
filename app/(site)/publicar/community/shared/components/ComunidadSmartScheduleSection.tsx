@@ -85,6 +85,9 @@ type Props = {
  * 3. Copies the main session start/end time into auto-activated rows (only if not manually customized).
  * 4. Marks which rows were auto-filled (stored in ref, not in session state).
  * 5. When main times change, updates auto-filled rows but never overwrites manually-changed ones.
+ *
+ * Key design: weeklySchedule and onChange are kept in refs so the effect only
+ * re-fires when date/time values actually change, avoiding infinite re-render loops.
  */
 export function ComunidadSmartScheduleSection({
   lang,
@@ -101,16 +104,16 @@ export function ComunidadSmartScheduleSection({
   /** Tracks the last auto-activated set of days so we can deactivate stale days on date change. */
   const lastActivatedRef = useRef<Set<DayKey>>(new Set());
 
-  /** Derive the target weekday set from current dates. */
-  const targetDays = useCallback((): DayKey[] => {
-    if (!date) return [];
-    return dayKeysBetween(date, eventEndDate && eventEndDate >= date ? eventEndDate : date);
-  }, [date, eventEndDate]);
-
   /**
-   * Run smart activation whenever date or eventEndDate changes.
-   * Also triggers when main times change (to update auto-filled rows).
+   * Keep live refs to schedule + onChange so the effect closure is always fresh
+   * without adding them to the dependency array (which would cause re-render loops).
    */
+  const scheduleRef = useRef(weeklySchedule);
+  scheduleRef.current = weeklySchedule;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  /** Prev-value refs for date/time — used to detect what actually changed. */
   const prevDateRef = useRef(date);
   const prevEndDateRef = useRef(eventEndDate);
   const prevStartTimeRef = useRef(eventSessionStart);
@@ -131,32 +134,27 @@ export function ComunidadSmartScheduleSection({
     if (!dateChanged && !timeChanged) return;
     if (!date) return;
 
-    const newTargetDays = new Set(targetDays());
+    const newTargetDays = new Set(
+      dayKeysBetween(date, eventEndDate && eventEndDate >= date ? eventEndDate : date),
+    );
     const prevActivated = lastActivatedRef.current;
+    const schedule = scheduleRef.current;
 
-    const updated = weeklySchedule.map((row): DayHoursRow => {
+    const updated = schedule.map((row): DayHoursRow => {
       const dayKey = row.day as DayKey;
       const wasAutoFilled = autoFilledRef.current.has(dayKey);
       const wasActivated = prevActivated.has(dayKey);
 
       if (newTargetDays.has(dayKey)) {
-        if (dateChanged) {
-          if (row.closed || (!wasActivated && wasAutoFilled)) {
-            const open = eventSessionStart.trim() || row.open.trim();
-            const close = eventSessionEnd.trim() || row.close.trim();
-            autoFilledRef.current.add(dayKey);
-            return { day: dayKey, closed: false, open, close };
-          }
-        }
-        if (timeChanged && wasAutoFilled && !wasActivated) {
-          return {
-            day: dayKey,
-            closed: false,
-            open: eventSessionStart.trim() || row.open.trim(),
-            close: eventSessionEnd.trim() || row.close.trim(),
-          };
+        if (dateChanged && row.closed) {
+          // Activate this row — it falls in the date range and is currently off.
+          const open = eventSessionStart.trim() || row.open.trim();
+          const close = eventSessionEnd.trim() || row.close.trim();
+          autoFilledRef.current.add(dayKey);
+          return { day: dayKey, closed: false, open, close };
         }
         if (timeChanged && autoFilledRef.current.has(dayKey)) {
+          // Update times on auto-filled rows only (manual overrides are removed from autoFilledRef).
           return {
             day: dayKey,
             closed: false,
@@ -167,6 +165,7 @@ export function ComunidadSmartScheduleSection({
         return row;
       } else {
         if (dateChanged && wasActivated && wasAutoFilled) {
+          // Day fell out of the date range — deactivate only if we auto-filled it.
           autoFilledRef.current.delete(dayKey);
           return { day: dayKey, closed: true, open: "", close: "" };
         }
@@ -177,25 +176,25 @@ export function ComunidadSmartScheduleSection({
     lastActivatedRef.current = newTargetDays;
 
     const hasChange = updated.some((r, i) => {
-      const orig = weeklySchedule[i];
+      const orig = schedule[i];
       return !orig || r.closed !== orig.closed || r.open !== orig.open || r.close !== orig.close;
     });
     if (hasChange) {
-      onChange({ weeklySchedule: updated });
+      onChangeRef.current({ weeklySchedule: updated });
     }
-  }, [date, eventEndDate, eventSessionStart, eventSessionEnd, targetDays, weeklySchedule, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, eventEndDate, eventSessionStart, eventSessionEnd]);
 
-  const handlePatchDay = useCallback(
-    (day: DayKey, patch: Partial<DayHoursRow>) => {
-      autoFilledRef.current.delete(day);
-      onChange({
-        weeklySchedule: weeklySchedule.map((r) =>
-          r.day === day ? { ...r, ...patch } : r,
-        ),
-      });
-    },
-    [weeklySchedule, onChange],
-  );
+  const handlePatchDay = useCallback((day: DayKey, patch: Partial<DayHoursRow>) => {
+    // User manually edited this day — remove from auto-filled set so future global time
+    // changes do not overwrite the user's custom value.
+    autoFilledRef.current.delete(day);
+    onChangeRef.current({
+      weeklySchedule: scheduleRef.current.map((r) =>
+        r.day === day ? { ...r, ...patch } : r,
+      ),
+    });
+  }, []);
 
   return (
     <div className="space-y-4">

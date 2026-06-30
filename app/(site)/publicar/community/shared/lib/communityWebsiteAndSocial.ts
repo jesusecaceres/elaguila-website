@@ -30,6 +30,10 @@ function hostAllowedForField(host: string, field: CommunitySocialField): boolean
       return isHostUnderRoot(h, "x.com") || isHostUnderRoot(h, "twitter.com");
     case "linkedin":
       return isHostUnderRoot(h, "linkedin.com");
+    case "snapchat":
+      return isHostUnderRoot(h, "snapchat.com");
+    case "pinterest":
+      return isHostUnderRoot(h, "pinterest.com") || isHostUnderRoot(h, "pin.it");
     default:
       return false;
   }

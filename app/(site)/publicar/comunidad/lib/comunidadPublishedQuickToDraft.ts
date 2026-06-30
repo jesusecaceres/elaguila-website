@@ -17,6 +17,7 @@ import { normalizeWeeklyScheduleArray } from "@/app/(site)/publicar/community/sh
 import { extractCommunityQuickUserDescriptionFromPublishedBlurb } from "@/app/(site)/publicar/community/shared/lib/communityPublishedBlurbExtract";
 import {
   emptyComunidadQuickDraft,
+  type ComunidadEventLinks,
   type ComunidadQuickDraft,
   type CommunityPrimaryCta,
 } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
@@ -110,6 +111,24 @@ export function comunidadPublishedQuickToDraft(
   d.socialLinks.youtube = (pairs["Leonix:socialYoutube"] ?? "").trim();
   d.socialLinks.xTwitter = (pairs["Leonix:socialXTwitter"] ?? "").trim();
   d.socialLinks.linkedin = (pairs["Leonix:socialLinkedin"] ?? "").trim();
+  d.socialLinks.snapchat = (pairs["Leonix:socialSnapchat"] ?? "").trim();
+  d.socialLinks.pinterest = (pairs["Leonix:socialPinterest"] ?? "").trim();
+
+  const el: ComunidadEventLinks = {
+    registrationUrl: (pairs["Leonix:registrationUrl"] ?? "").trim(),
+    ticketsUrl: (pairs["Leonix:ticketsUrl"] ?? "").trim(),
+    donationUrl: (pairs["Leonix:donationUrl"] ?? "").trim(),
+    eventProgramUrl: (pairs["Leonix:eventProgramUrl"] ?? "").trim(),
+    eventGuideUrl: (pairs["Leonix:eventGuideUrl"] ?? "").trim(),
+    vendorListUrl: (pairs["Leonix:vendorListUrl"] ?? "").trim(),
+    foodVendorsUrl: (pairs["Leonix:foodVendorsUrl"] ?? "").trim(),
+    sponsorsUrl: (pairs["Leonix:sponsorsUrl"] ?? "").trim(),
+    customLink1Label: (pairs["Leonix:customLink1Label"] ?? "").trim(),
+    customLink1Url: (pairs["Leonix:customLink1Url"] ?? "").trim(),
+    customLink2Label: (pairs["Leonix:customLink2Label"] ?? "").trim(),
+    customLink2Url: (pairs["Leonix:customLink2Url"] ?? "").trim(),
+  };
+  d.eventLinks = el;
 
   d.primaryCta = pickPrimaryCta(pairs["Leonix:primaryCta"]);
   d.description = extractCommunityQuickUserDescriptionFromPublishedBlurb(listing.blurb[lang] ?? listing.blurb.es ?? "");

@@ -25,6 +25,25 @@ export type CommunitySocialLinks = {
   youtube: string;
   xTwitter: string;
   linkedin: string;
+  snapchat: string;
+  pinterest: string;
+};
+
+/** Optional event-specific useful links for Comunidad/Eventos. */
+export type ComunidadEventLinks = {
+  /** Registration link (separate from registrationRequired flag). */
+  registrationUrl: string;
+  ticketsUrl: string;
+  donationUrl: string;
+  eventProgramUrl: string;
+  eventGuideUrl: string;
+  vendorListUrl: string;
+  foodVendorsUrl: string;
+  sponsorsUrl: string;
+  customLink1Label: string;
+  customLink1Url: string;
+  customLink2Label: string;
+  customLink2Url: string;
 };
 
 export type CommunityPublishConfirmations = {
@@ -115,6 +134,8 @@ export type ComunidadQuickDraft = CommunityCommonDraft & {
   weeklySchedule: DayHoursRow[];
   /** Subset of accessibility option values (multi). */
   accessibilityKeys: string[];
+  /** Optional event-specific useful links. */
+  eventLinks: ComunidadEventLinks;
 };
 
 export type CommunityQuickDraft = ClasesQuickDraft | ComunidadQuickDraft;
@@ -127,6 +148,25 @@ function emptySocialLinks(): CommunitySocialLinks {
     youtube: "",
     xTwitter: "",
     linkedin: "",
+    snapchat: "",
+    pinterest: "",
+  };
+}
+
+function emptyEventLinks(): ComunidadEventLinks {
+  return {
+    registrationUrl: "",
+    ticketsUrl: "",
+    donationUrl: "",
+    eventProgramUrl: "",
+    eventGuideUrl: "",
+    vendorListUrl: "",
+    foodVendorsUrl: "",
+    sponsorsUrl: "",
+    customLink1Label: "",
+    customLink1Url: "",
+    customLink2Label: "",
+    customLink2Url: "",
   };
 }
 
@@ -189,6 +229,7 @@ export function emptyComunidadQuickDraft(): ComunidadQuickDraft {
     eventSessionEnd: "",
     weeklySchedule: emptyCommunityWeeklySchedule(),
     accessibilityKeys: [],
+    eventLinks: emptyEventLinks(),
   };
 }
 
@@ -275,6 +316,29 @@ function normalizeSocialLinks(raw: unknown): CommunitySocialLinks {
     youtube: String(r.youtube ?? e.youtube).trim(),
     xTwitter: String(r.xTwitter ?? e.xTwitter).trim(),
     linkedin: String(r.linkedin ?? e.linkedin).trim(),
+    snapchat: String(r.snapchat ?? e.snapchat).trim(),
+    pinterest: String(r.pinterest ?? e.pinterest).trim(),
+  };
+}
+
+function normalizeEventLinks(raw: unknown): ComunidadEventLinks {
+  const e = emptyEventLinks();
+  if (!raw || typeof raw !== "object") return e;
+  const r = raw as Partial<ComunidadEventLinks>;
+  const s = (k: keyof ComunidadEventLinks) => String(r[k] ?? e[k]).trim();
+  return {
+    registrationUrl: s("registrationUrl"),
+    ticketsUrl: s("ticketsUrl"),
+    donationUrl: s("donationUrl"),
+    eventProgramUrl: s("eventProgramUrl"),
+    eventGuideUrl: s("eventGuideUrl"),
+    vendorListUrl: s("vendorListUrl"),
+    foodVendorsUrl: s("foodVendorsUrl"),
+    sponsorsUrl: s("sponsorsUrl"),
+    customLink1Label: s("customLink1Label"),
+    customLink1Url: s("customLink1Url"),
+    customLink2Label: s("customLink2Label"),
+    customLink2Url: s("customLink2Url"),
   };
 }
 
@@ -387,5 +451,6 @@ export function normalizeComunidadQuickDraft(raw: unknown): ComunidadQuickDraft 
     eventSessionEnd: String(p.eventSessionEnd ?? e.eventSessionEnd).trim(),
     weeklySchedule,
     accessibilityKeys,
+    eventLinks: normalizeEventLinks(p.eventLinks),
   };
 }

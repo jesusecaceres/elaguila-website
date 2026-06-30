@@ -11,6 +11,7 @@ import {
   resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { comunidadCostLabel } from "@/app/(site)/publicar/community/shared/copy/communityPublishCopy";
+import { formatAdmissionWithDollar } from "@/app/(site)/clasificados/community/CommunityQuickAnuncioDetail";
 import type { ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
 import { CommunityWeeklyScheduleAligned } from "@/app/(site)/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
@@ -171,7 +172,7 @@ export function ComunidadQuickAdCanvas({
             <dd className="mt-0.5 font-semibold">{comunidadCostLabel(draft.eventCost, lang)}</dd>
             {draft.admissionNote.trim() ? (
               <p className="text-[11px] text-[#5C564E]">
-                {t.admission}: {draft.admissionNote.trim()}
+                {t.admission}: {formatAdmissionWithDollar(draft.admissionNote.trim())}
               </p>
             ) : null}
           </div>
