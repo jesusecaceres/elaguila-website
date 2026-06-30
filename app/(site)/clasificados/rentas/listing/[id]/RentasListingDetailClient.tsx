@@ -11,9 +11,8 @@ import { TranslateAdControl } from "@/app/components/translation/TranslateAdCont
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRentasListingTranslation";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
-import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
-import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
-import { trackRentasContactClick, trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
+import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
+import { trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import {
   getRentasListingDetailExtra,
@@ -113,8 +112,6 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
     () => ({ listingUuid: listing.id, leonixAdId: listing.leonixAdId }),
     [listing.id, listing.leonixAdId],
   );
-  const onContactLinkClick = () => void trackRentasContactClick(analyticsCtx, null);
-
   useEffect(() => {
     void trackRentasListingView(analyticsCtx, null);
   }, [analyticsCtx]);
@@ -154,14 +151,9 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         {translateControl}
 
         {listing.branch === "privado" ? (
-          <BienesRaicesPrivadoPreviewView vm={vmPrivado} onContactLinkClick={onContactLinkClick} lang={lang} />
+          <RentasVisualMatchPreviewView vm={vmPrivado} lang={lang} videoUrls={proseListing.videoUrls} />
         ) : (
-          <BienesRaicesNegocioPreviewView
-            vm={vmNegocio}
-            rentasPolishedDuplexLayout
-            onContactLinkClick={onContactLinkClick}
-            lang={lang}
-          />
+          <RentasVisualMatchPreviewView vm={vmNegocio} lang={lang} videoUrls={proseListing.videoUrls} />
         )}
         {listingUuid ? (
           <div className="mx-auto mt-8 max-w-[1240px] px-4 sm:px-6 lg:px-8">

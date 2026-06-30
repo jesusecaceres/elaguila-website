@@ -11,10 +11,9 @@ import {
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
-import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
-import { RentasVideoLinksSection } from "@/app/clasificados/rentas/components/RentasVideoLinksSection";
+import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
 import { buildRentasResultCardPreviewListingFromPrivadoVm, rentasPreviewResultCardFlowOverlay } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
 import {
@@ -206,7 +205,7 @@ export default function RentasPrivadoPreviewClient() {
             {lang === "en" ? "Full listing preview" : "Vista previa completa"}
           </h2>
         </section>
-        <BienesRaicesPrivadoPreviewView vm={templateVm} lang={lang} />
+        <RentasVisualMatchPreviewView vm={templateVm} lang={lang} />
       </LeonixPreviewPageShell>
     );
   }
@@ -246,8 +245,7 @@ export default function RentasPrivadoPreviewClient() {
           {lang === "en" ? "Full listing preview" : "Vista previa completa"}
         </h2>
       </section>
-      <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
-      <RentasVideoLinksSection urls={draftVideoUrls(draft)} lang={lang} />
+      <RentasVisualMatchPreviewView vm={vm} lang={lang} videoUrls={draftVideoUrls(draft)} />
     </LeonixPreviewPageShell>
   );
 }
