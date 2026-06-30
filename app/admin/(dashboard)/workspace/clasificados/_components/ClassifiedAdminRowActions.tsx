@@ -187,6 +187,15 @@ export function ClassifiedAdminRowActions({
     void run("archive");
   }, [canArchive, run]);
 
+  const runConfirmed = useCallback(
+    (action: string, message: string, proofAction?: string) => {
+      const ok = window.confirm(message);
+      if (!ok) return;
+      void run(action, proofAction);
+    },
+    [run],
+  );
+
   const republish =
     republishCategory && republishRow ? republishActionLabel(republishRow, republishCategory) : null;
 
@@ -214,7 +223,11 @@ export function ClassifiedAdminRowActions({
               title={republish.disabled ? republish.reason : getAdminActionContract("republish").helperCopy}
               onClick={() => {
                 if (republish.disabled) return;
-                void run("republish", "republish");
+                runConfirmed(
+                  "republish",
+                  "Republish / move this listing to top? Confirm that the listing is safe and eligible before continuing.",
+                  "republish",
+                );
               }}
               className={compact}
             />
@@ -225,7 +238,12 @@ export function ClassifiedAdminRowActions({
               variant="warning"
               disabled={busy}
               title={getAdminActionContract("suspend").helperCopy}
-              onClick={() => void run("suspend")}
+              onClick={() =>
+                runConfirmed(
+                  "suspend",
+                  "Suspend this listing? It will stop showing publicly until restored.",
+                )
+              }
               className={compact}
             />
           ) : (
@@ -234,7 +252,12 @@ export function ClassifiedAdminRowActions({
               variant="active"
               disabled={busy}
               title={getAdminActionContract("restore").helperCopy}
-              onClick={() => void run("unsuspend")}
+              onClick={() =>
+                runConfirmed(
+                  "unsuspend",
+                  "Restore this listing to public visibility? Confirm that staff review is complete.",
+                )
+              }
               className={compact}
             />
           )}
@@ -262,7 +285,12 @@ export function ClassifiedAdminRowActions({
               label={busy ? "…" : "Remove featured"}
               variant="neutral"
               disabled={busy}
-              onClick={() => void run("promote_off")}
+              onClick={() =>
+                runConfirmed(
+                  "promote_off",
+                  "Remove featured placement from this listing?",
+                )
+              }
               className={compact}
             />
           ) : (
@@ -270,7 +298,12 @@ export function ClassifiedAdminRowActions({
               label={busy ? "…" : actionLabel.feature}
               variant="premium"
               disabled={busy}
-              onClick={() => void run("promote_on")}
+              onClick={() =>
+                runConfirmed(
+                  "promote_on",
+                  "Feature this listing? Confirm live schema/payment or package entitlement proof before launch use.",
+                )
+              }
               title={getAdminActionContract("feature").helperCopy}
               className={compact}
             />
@@ -280,7 +313,12 @@ export function ClassifiedAdminRowActions({
               label={busy ? "…" : "Remove verified"}
               variant="neutral"
               disabled={busy}
-              onClick={() => void run("verify_off")}
+              onClick={() =>
+                runConfirmed(
+                  "verify_off",
+                  "Remove Leonix verification from this listing?",
+                )
+              }
               className={compact}
             />
           ) : (
@@ -288,7 +326,12 @@ export function ClassifiedAdminRowActions({
               label={busy ? "…" : actionLabel.verifyLeonix}
               variant="active"
               disabled={busy}
-              onClick={() => void run("verify_on")}
+              onClick={() =>
+                runConfirmed(
+                  "verify_on",
+                  "Verify this listing with Leonix? Confirm staff/business review is complete before continuing.",
+                )
+              }
               title={getAdminActionContract("verifyLeonix").helperCopy}
               className={compact}
             />

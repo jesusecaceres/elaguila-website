@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { adminCardBase } from "./adminTheme";
 
-export type AdminTruthStatus = "real" | "partial" | "planned" | "needs live proof" | "needs schema gate";
+export type AdminTruthStatus = "real" | "partial" | "planned" | "needs live proof" | "needs schema gate" | "disabled";
 
 const STATUS_META: Record<AdminTruthStatus, { label: string; className: string }> = {
   real: {
@@ -23,6 +23,10 @@ const STATUS_META: Record<AdminTruthStatus, { label: string; className: string }
   "needs schema gate": {
     label: "NEEDS SCHEMA GATE",
     className: "border-rose-200 bg-rose-50 text-rose-950",
+  },
+  disabled: {
+    label: "DISABLED",
+    className: "border-slate-300 bg-slate-50 text-slate-700",
   },
 };
 

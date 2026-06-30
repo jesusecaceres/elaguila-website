@@ -31,6 +31,7 @@
     "verify:admin-live-schema-drift-fix-01": "node scripts/verify-admin-live-schema-drift-fix-01.mjs",
     "verify:admin-os-action-purpose-stack-01": "node scripts/verify-admin-os-action-purpose-stack-01.mjs",
     "verify:admin-os-battlefield-finish-to-qa-01": "node scripts/verify-admin-os-battlefield-finish-to-qa-01.mjs",
+    "verify:admin-action-qa-and-live-schema-proof-01": "node scripts/verify-admin-action-qa-and-live-schema-proof-01.mjs",
     "verify:clasificados-preview-public-output-battlefield-qa-01": "node scripts/verify-clasificados-preview-public-output-battlefield-qa-01.mjs",
     "verify:admin-review-cta-actions": "node scripts/verify-admin-review-cta-actions.mjs",
     "verify:admin-reports-complaints-supabase": "node scripts/verify-admin-reports-complaints-supabase.mjs",

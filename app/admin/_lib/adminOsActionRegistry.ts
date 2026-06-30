@@ -3,6 +3,15 @@ import type { AdminTruthStatus } from "../_components/AdminPagePurposeCard";
 
 export type AdminActionRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+export const ADMIN_OS_ACTION_STATUS_TAXONOMY = [
+  "REAL",
+  "PARTIAL",
+  "PLANNED",
+  "NEEDS LIVE PROOF",
+  "NEEDS SCHEMA GATE",
+  "DISABLED",
+] as const;
+
 export type AdminActionKey =
   | "viewPublic"
   | "editListing"
