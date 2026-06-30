@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useEffect, useState } from "react";
 import {
   FiCheckCircle,
   FiExternalLink,
@@ -33,8 +34,6 @@ type DetailGroup = {
 const BORDER = "rgba(201,168,74,0.32)";
 const BORDER_SOFT = "rgba(214,199,173,0.78)";
 const CREAM = "#FFFDF7";
-const IVORY = "#F8F4EA";
-const SOFT = "#FBF7EF";
 const CHARCOAL = "#1F241C";
 const BODY = "#3D3428";
 const MUTED = "#6E6252";
@@ -103,9 +102,16 @@ function mediaVideos(vm: Vm, videoUrls: readonly string[] | null | undefined, la
 }
 
 function photos(vm: Vm): string[] {
-  const all = vm.media?.allPhotoUrls?.filter(Boolean) ?? [];
-  if (all.length) return all;
-  return [vm.media?.heroUrl, ...(vm.media?.secondaryPhotoUrls ?? [])].filter((u): u is string => Boolean(u));
+  const source = vm.media?.allPhotoUrls?.filter(Boolean).length
+    ? vm.media.allPhotoUrls
+    : [vm.media?.heroUrl, ...(vm.media?.secondaryPhotoUrls ?? [])];
+  const out: string[] = [];
+  for (const raw of source) {
+    const url = text(raw);
+    if (!url || out.includes(url)) continue;
+    out.push(url);
+  }
+  return out;
 }
 
 function contact(vm: Vm) {
@@ -311,6 +317,41 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
   const featureText = uniqueFeatureText(cleanRows(vm.highlightsRows));
   const locationLine = isNegocio(vm) ? vm.location.fullAddress || vm.location.cityStateZip : vm.location.cityStateZip;
   const ctas = [c.mailHref, c.callHref, c.waHref, c.smsHref, c.websiteHref, c.mapHref].filter(Boolean);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const galleryCount = ph.length;
+  const galleryLabel =
+    galleryCount > 0
+      ? lang === "es"
+        ? `${galleryIndex + 1} de ${galleryCount}`
+        : `${galleryIndex + 1} of ${galleryCount}`
+      : "";
+
+  const openPhotoGallery = (index: number) => {
+    if (!galleryCount) return;
+    setGalleryIndex(Math.max(0, Math.min(index, galleryCount - 1)));
+    setGalleryOpen(true);
+  };
+
+  const closePhotoGallery = () => setGalleryOpen(false);
+  const prevPhoto = () => setGalleryIndex((i) => (galleryCount ? (i <= 0 ? galleryCount - 1 : i - 1) : 0));
+  const nextPhoto = () => setGalleryIndex((i) => (galleryCount ? (i >= galleryCount - 1 ? 0 : i + 1) : 0));
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePhotoGallery();
+      if (event.key === "ArrowLeft") prevPhoto();
+      if (event.key === "ArrowRight") nextPhoto();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [galleryOpen, galleryCount]);
+
+  useEffect(() => {
+    if (galleryIndex >= galleryCount) setGalleryIndex(Math.max(0, galleryCount - 1));
+    if (!galleryCount && galleryOpen) setGalleryOpen(false);
+  }, [galleryCount, galleryIndex, galleryOpen]);
 
   return (
     <div
@@ -391,16 +432,28 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
                 </h2>
               </div>
               {ph.length ? (
-                <span className="rounded-full border bg-[#FBF7EF] px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wide" style={{ borderColor: BORDER, color: BRONZE }}>
-                  {ph.length} {ph.length === 1 ? (lang === "es" ? "foto" : "photo") : lang === "es" ? "fotos" : "photos"}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => openPhotoGallery(0)}
+                  className="min-h-[36px] rounded-full border bg-[#FBF7EF] px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wide transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]"
+                  style={{ borderColor: BORDER, color: BRONZE }}
+                >
+                  {lang === "es" ? `Ver todas las fotos (${ph.length})` : `View all photos (${ph.length})`}
+                </button>
               ) : null}
             </div>
             <div className="grid gap-2.5 lg:grid-cols-12">
               <div className={rest.length ? "lg:col-span-8" : "lg:col-span-12"}>
                 {hero ? (
                   <div className="overflow-hidden rounded-2xl border shadow-[0_18px_42px_-24px_rgba(31,36,28,0.45)]" style={{ borderColor: BORDER }}>
-                    <img src={hero} alt="" className="aspect-[16/10] w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => openPhotoGallery(0)}
+                      className="group block w-full text-left"
+                      aria-label={lang === "es" ? "Abrir galería de fotos" : "Open photo gallery"}
+                    >
+                      <img src={hero} alt="" className="aspect-[16/10] w-full object-cover transition group-hover:scale-[1.01]" />
+                    </button>
                   </div>
                 ) : (
                   <div className="flex aspect-[16/10] items-center justify-center rounded-2xl border text-sm font-semibold" style={{ borderColor: BORDER, color: MUTED }}>
@@ -410,9 +463,16 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
               </div>
               {rest.length ? (
                 <div className="grid grid-cols-2 gap-2.5 lg:col-span-4">
-                  {rest.slice(0, 4).map((url) => (
+                  {rest.slice(0, 4).map((url, index) => (
                     <div key={url} className="overflow-hidden rounded-xl border bg-[#FBF7EF]" style={{ borderColor: BORDER }}>
-                      <img src={url} alt="" className="aspect-[4/3] w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => openPhotoGallery(index + 1)}
+                        className="group block w-full text-left"
+                        aria-label={lang === "es" ? `Abrir foto ${index + 2}` : `Open photo ${index + 2}`}
+                      >
+                        <img src={url} alt="" className="aspect-[4/3] w-full object-cover transition group-hover:scale-[1.02]" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -596,6 +656,79 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
           ) : null}
         </aside>
       </main>
+      {galleryOpen && galleryCount > 0 ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/88 px-3 py-4 sm:px-5"
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === "es" ? "Galería de fotos" : "Photo gallery"}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label={lang === "es" ? "Cerrar galería" : "Close gallery"}
+            onClick={closePhotoGallery}
+          />
+          <div className="relative z-10 flex h-full max-h-[92vh] w-full max-w-6xl flex-col">
+            <div className="mb-3 flex items-center justify-between gap-3 text-[#F8F4EA]">
+              <div>
+                <p className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#C9A84A]">
+                  {lang === "es" ? "Fotos de la renta" : "Rental photos"}
+                </p>
+                <p className="text-sm font-bold">{galleryLabel}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closePhotoGallery}
+                className="min-h-[44px] rounded-full border border-white/25 px-4 py-2 text-sm font-bold transition hover:bg-white/10"
+              >
+                {lang === "es" ? "Cerrar" : "Close"}
+              </button>
+            </div>
+            <div className="relative flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-white/15 bg-black/35 p-2 sm:p-4">
+              <img
+                src={ph[galleryIndex]}
+                alt=""
+                className="max-h-full max-w-full rounded-xl object-contain shadow-[0_24px_64px_-28px_rgba(0,0,0,0.85)]"
+              />
+              {galleryCount > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={prevPhoto}
+                    className="absolute left-2 top-1/2 min-h-[44px] -translate-y-1/2 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-black/70 sm:left-4"
+                  >
+                    {lang === "es" ? "Anterior" : "Prev"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextPhoto}
+                    className="absolute right-2 top-1/2 min-h-[44px] -translate-y-1/2 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-black/70 sm:right-4"
+                  >
+                    {lang === "es" ? "Siguiente" : "Next"}
+                  </button>
+                </>
+              ) : null}
+            </div>
+            {galleryCount > 1 ? (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {ph.map((url, index) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setGalleryIndex(index)}
+                    className="h-16 w-20 shrink-0 overflow-hidden rounded-xl border bg-black sm:h-20 sm:w-28"
+                    style={{ borderColor: index === galleryIndex ? GOLD : "rgba(255,255,255,0.22)" }}
+                    aria-label={lang === "es" ? `Ver foto ${index + 1}` : `View photo ${index + 1}`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
