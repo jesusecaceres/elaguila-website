@@ -24,6 +24,11 @@ function buildDraftSnapshotFromDraft(
   existingSnapshot?: unknown
 ): Record<string, unknown> {
   const patch: OfertaLocalDraftSnapshot = {
+    location: {
+      country: draft.country.trim() || null,
+      stateProvinceRegion: draft.state.trim() || null,
+      postalCode: draft.zipCode.trim() || null,
+    },
     membershipCtaLabel: draft.membershipCtaLabel.trim() || null,
     requiresMembershipForDeals: Boolean(draft.requiresMembershipForDeals),
     magazine: {

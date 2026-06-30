@@ -51,14 +51,14 @@ function sanitizeOptionalPhone(raw: string): string | null {
 
 function sanitizeOptionalState(raw: string): string | null {
   const t = normalizeOfertaLocalStateInput(raw);
-  return t.length === 2 ? t : null;
+  return t || null;
 }
 
 function sanitizeZipList(zips: string[]): string[] {
   const out: string[] = [];
   for (const z of zips) {
     const n = normalizeOfertaLocalZipInput(z);
-    if (n.length === 5 && !out.includes(n)) out.push(n);
+    if (n && !out.includes(n)) out.push(n);
   }
   return out.slice(0, 50);
 }

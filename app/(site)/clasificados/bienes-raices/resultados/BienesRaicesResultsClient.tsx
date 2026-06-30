@@ -29,6 +29,7 @@ import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell"
 import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
 import { BienesRaicesMapPreview } from "./map/BienesRaicesMapPreview";
 import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
   filterBrListings,
   paginateListings,
@@ -221,6 +222,9 @@ export function BienesRaicesResultsClient() {
           </p>
         ) : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <div className="w-full sm:mr-auto sm:max-w-2xl">
+            <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
+          </div>
           <button
             type="button"
             onClick={() => setFilterDrawerOpen(true)}

@@ -131,7 +131,11 @@ export function useAutoPrivadoDraft() {
       if (!cancelled) setHydrated(true);
     };
 
-    void bootstrap();
+    void bootstrap().catch(() => {
+      if (cancelled) return;
+      emptyPrivado();
+      setHydrated(true);
+    });
 
     const {
       data: { subscription },

@@ -21,21 +21,36 @@ function git(command: string): string {
   return execSync(command, { cwd: root, encoding: "utf8" });
 }
 
-const auditPath = "app/lib/clasificados/autos/AUTOS_LANDING_RESULTS_CROSS_NAV_SPLIT_AUDIT.md";
-assert(exists(auditPath), "final landing/results cross-nav audit file exists");
+const auditPath = "app/lib/clasificados/autos/AUTOS_FINAL_PRE_QA_SMOKE_PROOF_AUDIT.md";
+assert(exists(auditPath), "final pre-QA smoke proof audit file exists");
 
 const audit = exists(auditPath) ? read(auditPath) : "";
 for (const term of [
-  "/clasificados/autos/results?seller=private",
-  "/clasificados/autos/results?seller=dealer",
-  "cross-nav cards",
-  "Results cross-nav strip",
-  "filters",
-  "chips",
-  "Mobile/PWA",
-  "Privado preservation",
-  "Negocios preservation",
+  "What We Have vs What Is Left",
+  "Privado",
+  "Negocios",
+  "AutosPublishConfirmCore",
+  "Required tables/columns audited",
+  "SQL REQUIRED",
+  "RLS/auth",
+  "Storage/media",
+  "Stripe intentionally not wired",
+  "Promo codes intentionally not wired",
+  "stuck confirm root cause",
+  "Missing draft",
+  "API failure",
+  "Auth/session",
+  "persistWarnings",
   "URL-video-only",
+  "No Mux/local video",
+  "Success page",
+  "Leonix ID",
+  "Internal UUID",
+  "Public / Results / Dashboard / Admin",
+  "Analytics Truth",
+  "Visible CTAs work or are hidden",
+  "Fake dashboard metrics absent",
+  "Payment deferred/no-Stripe",
   "READY TO COMMIT AND PUSH",
 ]) {
   assert(audit.toLowerCase().includes(term.toLowerCase()), `audit mentions ${term}`);
@@ -47,8 +62,8 @@ const changedFiles = git("git status --short")
   .filter(Boolean);
 
 const preExistingUnrelatedParallelWork = new Set([
+  "app/(site)/clasificados/autos/components/public/AutosPublicResultsShell.tsx",
   "app/(site)/clasificados/bienes-raices/resultados/BienesRaicesResultsClient.tsx",
-  "app/(site)/clasificados/autos/pago/exito/AutosPagoExitoClient.tsx",
   "app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome.tsx",
   "app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader.tsx",
   "app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta.tsx",
@@ -67,7 +82,6 @@ const preExistingUnrelatedParallelWork = new Set([
   "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewCard.tsx",
   "app/components/leonix/coming-soon-v2/ComingSoonLaunchSignupForm.tsx",
   "app/components/leonix/coming-soon-v2/ComingSoonV2Shell.tsx",
-  "app/lib/clasificados/EMPLEOS_TWO_PATH_REROUTE_PREVIEW_AUDIT.md",
   "app/lib/ofertas-locales/OFERTAS_STEP5_GLOBAL_ADDRESS_REVIEW_WORKSPACE_AUDIT.md",
   "app/lib/ofertas-locales/createEmptyOfertaLocalDraft.ts",
   "app/lib/ofertas-locales/ofertasLocalesApplicationHelpers.ts",
@@ -81,12 +95,6 @@ const preExistingUnrelatedParallelWork = new Set([
   "app/lib/ofertas-locales/ofertasLocalesTypes.ts",
   "app/lib/ofertas-locales/ofertasLocalesValidation.ts",
   "app/lib/ofertas-locales/ofertasLocalesWizardSteps.ts",
-  "app/(site)/publicar/autos/negocios/hooks/useAutoDealerDraft.ts",
-  "app/(site)/publicar/autos/privado/hooks/useAutoPrivadoDraft.ts",
-  "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
-  "app/api/clasificados/autos/listings/[id]/route.ts",
-  "app/lib/clasificados/autos/AUTOS_FINAL_PRE_QA_SMOKE_PROOF_AUDIT.md",
-  "scripts/autos-final-pre-qa-smoke-proof-audit.ts",
   "docs/site-translation-word-by-word-smoke.md",
   "docs/translation-finish-backlog.md",
   "scripts/verify-ofertas-step5-global-address-review-workspace.mjs",
@@ -95,27 +103,35 @@ const preExistingUnrelatedParallelWork = new Set([
 const allowedExact = new Set([
   "package.json",
   auditPath,
-  "scripts/autos-landing-results-cross-nav-audit.ts",
   "scripts/autos-final-pre-qa-smoke-proof-audit.ts",
   "scripts/autos-application-war-room-audit.ts",
   "scripts/autos-final-war-room-closeout-audit.ts",
-  "app/(site)/clasificados/autos/components/public/AutosLaneCrossNav.tsx",
-  "app/(site)/clasificados/autos/components/public/AutosPublicResultsShell.tsx",
-  "app/(site)/clasificados/autos/landing/AutosLandingPage.tsx",
-  "app/(site)/clasificados/autos/lib/autosPublicBlueprintCopy.ts",
+  "scripts/autos-landing-results-cross-nav-audit.ts",
+  "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
+  "app/(site)/publicar/autos/negocios/hooks/useAutoDealerDraft.ts",
+  "app/(site)/publicar/autos/privado/hooks/useAutoPrivadoDraft.ts",
+  "app/(site)/clasificados/autos/pago/exito/AutosPagoExitoClient.tsx",
+  "app/api/clasificados/autos/listings/[id]/route.ts",
 ]);
 
 const allowedPrefixes = [
-  "app/(site)/clasificados/autos/resultados/",
-  "app/(site)/clasificados/autos/results/",
-  "app/(site)/clasificados/autos/landing/",
-  "app/(site)/clasificados/autos/shell/",
-  "app/(site)/clasificados/autos/components/public/",
-  "app/(site)/clasificados/autos/filters/",
-  "app/lib/clasificados/autos/",
+  "app/(site)/publicar/autos/negocios/confirm/",
+  "app/(site)/publicar/autos/negocios/components/",
+  "app/(site)/publicar/autos/negocios/hooks/",
+  "app/(site)/publicar/autos/privado/confirm/",
+  "app/(site)/publicar/autos/privado/components/",
+  "app/(site)/publicar/autos/privado/hooks/",
+  "app/(site)/clasificados/autos/pago/exito/",
+  "app/api/clasificados/autos/listings/",
   "app/api/clasificados/autos/public/",
-  "e2e/autos/",
+  "app/lib/clasificados/autos/",
 ];
+
+const lockedFiles = new Set([
+  "app/components/cta/CtaActionSheet.tsx",
+  "app/(site)/clasificados/autos/shared/components/AutosSheetCtaLink.tsx",
+  "app/(site)/clasificados/autos/shared/lib/autosCtaSheet.ts",
+]);
 
 const protectedPrefixes = [
   "app/(site)/clasificados/en-venta/",
@@ -132,55 +148,53 @@ const protectedPrefixes = [
   "supabase/",
 ];
 
-const lockedFiles = new Set([
-  "app/components/cta/CtaActionSheet.tsx",
-  "app/(site)/clasificados/autos/shared/components/AutosSheetCtaLink.tsx",
-  "app/(site)/clasificados/autos/shared/lib/autosCtaSheet.ts",
-]);
-
-const stripeOrPaymentPattern = /(^|\/)(checkout|stripe|webhook|pago|payment)(\/|\.|$)/i;
+const stripeOrPromoPattern = /(^|\/)(stripe|promo|coupon|coupons|webhook|payment-plan|revenue)(\/|\.|$)/i;
 
 for (const file of changedFiles) {
   if (preExistingUnrelatedParallelWork.has(file)) continue;
   const allowed = allowedExact.has(file) || allowedPrefixes.some((prefix) => file.startsWith(prefix));
-  assert(allowed, `modified file outside Autos landing/results scope: ${file}`);
-  assert(!protectedPrefixes.some((prefix) => file.startsWith(prefix)), `protected category/schema file modified: ${file}`);
+  assert(allowed, `modified file outside Autos pre-QA smoke scope: ${file}`);
   assert(!lockedFiles.has(file), `locked CTA file modified: ${file}`);
-  assert(!/migration/i.test(file), `migration file modified: ${file}`);
-  assert(!stripeOrPaymentPattern.test(file), `Stripe/payment file modified: ${file}`);
+  assert(!protectedPrefixes.some((prefix) => file.startsWith(prefix)), `protected category/schema file modified: ${file}`);
+  assert(!/migration/i.test(file), `schema/migration file modified: ${file}`);
+  assert(!stripeOrPromoPattern.test(file), `Stripe/promo/global payment file modified: ${file}`);
 }
 
-const landing = read("app/(site)/clasificados/autos/landing/AutosLandingPage.tsx");
-const results = read("app/(site)/clasificados/autos/components/public/AutosPublicResultsShell.tsx");
-const crossNav = read("app/(site)/clasificados/autos/components/public/AutosLaneCrossNav.tsx");
-const copy = read("app/(site)/clasificados/autos/lib/autosPublicBlueprintCopy.ts");
+const confirmCore = read("app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx");
+const privadoHook = read("app/(site)/publicar/autos/privado/hooks/useAutoPrivadoDraft.ts");
+const negociosHook = read("app/(site)/publicar/autos/negocios/hooks/useAutoDealerDraft.ts");
+const successClient = read("app/(site)/clasificados/autos/pago/exito/AutosPagoExitoClient.tsx");
+const ownerApi = read("app/api/clasificados/autos/listings/[id]/route.ts");
 
-assert(landing.includes("AutosLaneCrossNav"), "landing renders AutosLaneCrossNav");
-assert(results.includes("AutosLaneCrossNav"), "results renders AutosLaneCrossNav");
-assert(crossNav.includes("mode === \"landing\""), "cross-nav supports landing mode");
-assert(crossNav.includes("results-private") && crossNav.includes("results-dealer"), "cross-nav supports results lane modes");
-assert(copy.includes("Looking for a private seller car?"), "English private seller copy exists");
-assert(copy.includes("¿Buscas autos de dealer?"), "Spanish dealer copy exists");
+assert(confirmCore.includes("AUTOS_CONFIRM_PREPARE_TIMEOUT_MS"), "confirm core has no-hang timeout");
+assert(confirmCore.includes("hasConfirmableAutosDraft"), "confirm core detects missing draft");
+assert(confirmCore.includes("fetchAutosConfirm"), "confirm core wraps fetches with timeout");
+assert(confirmCore.includes("No pudimos preparar tu anuncio"), "confirm core has Spanish actionable error");
+assert(privadoHook.includes("bootstrap().catch"), "Privado hook catches hydration failures");
+assert(negociosHook.includes("bootstrap().catch"), "Negocios hook catches hydration failures");
+assert(successClient.includes("AUTOS_SUCCESS_VERIFY_TIMEOUT_MS"), "success page has verify timeout");
+assert(successClient.includes("leonixAdId"), "success page tracks Leonix ID");
+assert(ownerApi.includes("leonix_ad_id"), "owner API returns Leonix ID");
 
 const diff = git("git diff -U0");
 const addedLines = diff
   .split(/\r?\n/)
   .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
-  .filter((line) => !line.includes("AUTOS_LANDING_RESULTS_CROSS_NAV_SPLIT_AUDIT.md"))
-  .filter((line) => !line.includes("autos-landing-results-cross-nav-audit.ts"));
+  .filter((line) => !line.includes("AUTOS_FINAL_PRE_QA_SMOKE_PROOF_AUDIT.md"))
+  .filter((line) => !line.includes("autos-final-pre-qa-smoke-proof-audit.ts"));
 
 for (const term of ["Cifras de ejemplo", "Sample figures", "fake analytics", "demo metrics"]) {
   assert(!addedLines.some((line) => line.includes(term)), `fake metric string added: ${term}`);
 }
 
-for (const term of ["uploaded to Mux", "hosted by Leonix", "processed by Leonix", "upload video"]) {
-  assert(!addedLines.some((line) => line.toLowerCase().includes(term.toLowerCase())), `forbidden video launch copy added: ${term}`);
+for (const term of ["uploaded to Mux", "hosted by Leonix", "processed by Leonix", "upload video", "promo code"]) {
+  assert(!addedLines.some((line) => line.toLowerCase().includes(term.toLowerCase())), `forbidden Stripe/promo/video launch copy added: ${term}`);
 }
 
 if (failures.length) {
-  console.error("AUTOS LANDING RESULTS CROSS-NAV audit failed:");
+  console.error("AUTOS FINAL PRE-QA SMOKE PROOF audit failed:");
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log("AUTOS LANDING RESULTS CROSS-NAV audit passed");
+console.log("AUTOS FINAL PRE-QA SMOKE PROOF audit passed");

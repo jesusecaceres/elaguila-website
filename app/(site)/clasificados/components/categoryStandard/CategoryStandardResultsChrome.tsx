@@ -4,6 +4,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { CategoryCompactHero } from "./CategoryCompactHero";
 import { CategoryStandardCtaRow } from "./CategoryStandardCtaRow";
 import { CategoryStandardSearchRow } from "./CategoryStandardSearchRow";
+import { CategoryVisibilityCta, categorySupportsVisibilityCta } from "./CategoryVisibilityCta";
 import { CategoryStandardResultsPageShell } from "./CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "./CategoryStandardResultsHeader";
 import {
@@ -78,6 +79,8 @@ export function CategoryStandardResultsChrome({
           advancedFilters={advancedFilters}
           chips={chips}
         />
+
+        <CategoryVisibilityCta lang={lang} category={category} surface="results" compact />
 
         {activeFilterSummary ? (
           <div className="text-xs text-[#3D3428]/80">{activeFilterSummary}</div>
@@ -156,6 +159,11 @@ export function CategoryStandardLandingBlock({
             browseLabel={browseLabel}
           />
         </div>
+        {categorySupportsVisibilityCta(category) ? (
+          <div className="mt-3">
+            <CategoryVisibilityCta lang={lang} category={category} surface="landing" compact />
+          </div>
+        ) : null}
       </CategoryCompactHero>
       {belowHero}
       {children}

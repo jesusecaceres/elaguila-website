@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { CategoryStandardKey } from "./categoryStandardTheme";
+import { CategoryVisibilityCta } from "./CategoryVisibilityCta";
 import { categoryStandardUi } from "./categoryStandardTheme";
 
 type Props = {
@@ -14,6 +16,7 @@ type Props = {
   publishLabel?: string;
   clearHref?: string;
   resultCount?: number;
+  category?: CategoryStandardKey;
 };
 
 /** Compact results header — no full hero image band. */
@@ -28,6 +31,7 @@ export function CategoryStandardResultsHeader({
   publishLabel,
   clearHref,
   resultCount,
+  category,
 }: Props) {
   const ui = categoryStandardUi(lang);
 
@@ -64,6 +68,7 @@ export function CategoryStandardResultsHeader({
           ) : null}
         </div>
       </div>
+      {category ? <CategoryVisibilityCta lang={lang} category={category} surface="results" compact /> : null}
     </header>
   );
 }

@@ -5,11 +5,20 @@ import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm"
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
 import { AUDIENCE_TYPES } from "@/app/lib/leonix/inquiryTypes";
 import { GlobalLocationInput } from "@/app/components/forms/GlobalLocationInput";
-import {
-  getGlobalLocationLabel,
-  normalizeLocationForSubmit,
-} from "@/app/lib/leonix/globalLocationFieldCopy";
+import { normalizeLocationForSubmit } from "@/app/lib/leonix/globalLocationFieldCopy";
 import type { LeonixSiteLang } from "@/app/lib/lang";
+
+type LaunchSignupCopy = {
+  emailLabel: string;
+  nameLabel: string;
+  businessLabel: string;
+  cityLabel: string;
+  cityPlaceholder: string;
+  audienceLabel: string;
+  audience: Record<(typeof AUDIENCE_TYPES)[number] | "", string>;
+  submitting: string;
+  emailPlaceholder: string;
+};
 
 const COPY = {
   es: {
@@ -27,8 +36,6 @@ const COPY = {
       advertiser: "Anunciante",
       community: "Comunidad",
     },
-    consent: "Acepto recibir actualizaciones del lanzamiento de Leonix Media.",
-    submit: "Únete al lanzamiento",
     submitting: "Guardando…",
     emailPlaceholder: "tu@correo.com",
   },
@@ -47,12 +54,53 @@ const COPY = {
       advertiser: "Advertiser",
       community: "Community",
     },
-    consent: "I agree to receive Leonix Media launch updates.",
-    submit: "Join the launch",
     submitting: "Saving…",
     emailPlaceholder: "you@example.com",
   },
-} as const;
+  vi: {
+    emailLabel: "Email",
+    nameLabel: "Tên (không bắt buộc)",
+    businessLabel: "Doanh nghiệp (không bắt buộc)",
+    cityLabel: "Thành phố, tiểu bang/khu vực và quốc gia (không bắt buộc)",
+    cityPlaceholder: "Ví dụ: San Jose, California, Hoa Kỳ",
+    audienceLabel: "Tôi quan tâm với vai trò",
+    audience: {
+      "": "Chọn…",
+      business: "Doanh nghiệp",
+      reader: "Độc giả",
+      partner: "Đối tác",
+      advertiser: "Nhà quảng cáo",
+      community: "Cộng đồng",
+    },
+    submitting: "Đang lưu…",
+    emailPlaceholder: "ban@example.com",
+  },
+  pt: {
+    emailLabel: "Email",
+    nameLabel: "Nome (opcional)",
+    businessLabel: "Negócio (opcional)",
+    cityLabel: "Cidade, estado/região e país (opcional)",
+    cityPlaceholder: "Exemplo: San Jose, Califórnia, Estados Unidos",
+    audienceLabel: "Tenho interesse como",
+    audience: {
+      "": "Selecionar…",
+      business: "Negócio",
+      reader: "Leitor/a",
+      partner: "Parceiro/a",
+      advertiser: "Anunciante",
+      community: "Comunidade",
+    },
+    submitting: "Salvando…",
+    emailPlaceholder: "voce@example.com",
+  },
+} satisfies Record<"es" | "en" | "vi" | "pt", LaunchSignupCopy>;
+
+function copyForLang(lang: LeonixSiteLang): LaunchSignupCopy {
+  if (lang === "es" || lang === "en" || lang === "vi" || lang === "pt") {
+    return COPY[lang];
+  }
+  return COPY.en;
+}
 
 type Props = {
   lang: LeonixSiteLang;
@@ -75,7 +123,8 @@ export function ComingSoonLaunchSignupForm({
   consentErrorLabel,
   compact = false,
 }: Props) {
-  const t = COPY[lang === "en" ? "en" : "es"];
+  const t = copyForLang(lang);
+  const locationInputLang = lang === "en" ? "en" : "es";
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -109,7 +158,7 @@ export function ComingSoonLaunchSignupForm({
         sourceCta: "join_launch",
         consentToReceiveUpdates: true,
       },
-      lang === "en" ? "en" : "es"
+      lang,
     );
 
     setLoading(false);
@@ -119,7 +168,7 @@ export function ComingSoonLaunchSignupForm({
       return;
     }
 
-    setError(result.message || getPublicLeadErrorMessage(lang === "en" ? "en" : "es"));
+    setError(result.message || getPublicLeadErrorMessage(lang));
   }
 
   if (submitted) {
@@ -128,7 +177,7 @@ export function ComingSoonLaunchSignupForm({
         role="status"
         className="mt-4 rounded-xl border border-emerald-300/50 bg-emerald-50/95 px-4 py-3 text-sm text-emerald-950 sm:mt-5"
       >
-        <p className="font-semibold leading-relaxed">{getNewsletterSuccessMessage(lang === "en" ? "en" : "es")}</p>
+        <p className="font-semibold leading-relaxed">{getNewsletterSuccessMessage(lang)}</p>
       </div>
     );
   }
@@ -178,7 +227,7 @@ export function ComingSoonLaunchSignupForm({
               className={inputClass}
             />
             <GlobalLocationInput
-              lang={lang === "en" ? "en" : "es"}
+              lang={locationInputLang}
               disabled={loading}
               value={cityArea}
               onChange={setCityArea}

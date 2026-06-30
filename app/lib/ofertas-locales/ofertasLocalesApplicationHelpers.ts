@@ -8,7 +8,7 @@ import {
   businessCategoryUsesCustomTypeText,
   labelForBusinessSubtype,
 } from "./ofertasLocalesBusinessCategoryUx";
-import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalUrlInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
+import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft, OfertaLocalOfferType } from "./ofertasLocalesTypes";
 
 export function getOfertaLocalMarketDisplayLabel(
@@ -107,16 +107,14 @@ export function labelForCouponPromotionSubtype(
   return lang === "en" ? opt.labelEn : opt.labelEs;
 }
 
-export function hasOfertaLocalAddressAccepted(draft: Pick<OfertaLocalDraft, "address" | "city" | "zipCode">): boolean {
-  return Boolean(
-    draft.address.trim() &&
-      draft.city.trim() &&
-      normalizeOfertaLocalZipInput(draft.zipCode).length === 5
-  );
+export function hasOfertaLocalAddressAccepted(
+  draft: Pick<OfertaLocalDraft, "address" | "city" | "country" | "zipCode">
+): boolean {
+  return Boolean(draft.address.trim() && draft.city.trim() && draft.country.trim());
 }
 
 export function hasOfertaLocalDirectionsAccepted(
-  draft: Pick<OfertaLocalDraft, "directionsUrl" | "address" | "city" | "state" | "zipCode">
+  draft: Pick<OfertaLocalDraft, "directionsUrl" | "address" | "city" | "state" | "country" | "zipCode">
 ): boolean {
   return Boolean(
     buildOfertaLocalGoogleMapsSearchUrl(draft) || normalizeOfertaLocalUrlInput(draft.directionsUrl)

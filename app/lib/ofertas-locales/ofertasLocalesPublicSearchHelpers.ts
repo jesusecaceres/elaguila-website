@@ -290,9 +290,9 @@ function matchesCity(item: OfertaLocalPublicSearchItem, city: string): boolean {
 }
 
 function matchesZip(item: OfertaLocalPublicSearchItem, zip: string): boolean {
-  const digits = zip.replace(/\D/g, "").slice(0, 5);
-  if (!digits) return true;
-  return item.zipCode.replace(/\D/g, "").startsWith(digits);
+  const needle = normalizeOfertaLocalSearchText(zip).replace(/\s+/g, "");
+  if (!needle) return true;
+  return normalizeOfertaLocalSearchText(item.zipCode).replace(/\s+/g, "").startsWith(needle);
 }
 
 export function filterAndSortOfertaLocalPublicSearchItems(

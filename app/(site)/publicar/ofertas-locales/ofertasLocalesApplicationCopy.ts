@@ -109,10 +109,10 @@ const COPY = {
     customMarketLabel: "Escribe el tipo de mercado o negocio",
     customMarketHelper:
       "Ej. mercado brasileño, tienda orgánica, mercado africano, productos internacionales.",
-    cityHelper: "Usaremos la ciudad para filtros y búsquedas locales.",
-    zipHelper: "Agrega el ZIP donde los clientes encontrarán esta oferta.",
+    cityHelper: "Usaremos la ciudad para filtros y búsquedas locales. Ejemplos como San José/NorCal son sugerencias, no límites.",
+    zipHelper: "Agrega el ZIP o código postal donde los clientes encontrarán esta oferta.",
     addressHelper:
-      "Agrega la dirección si quieres mostrar ubicación. Generaremos \"Cómo llegar\" desde dirección, ciudad, estado y ZIP.",
+      "Agrega la dirección si quieres mostrar ubicación. Generaremos \"Cómo llegar\" desde dirección, ciudad, estado/provincia, país y código postal.",
     serviceZipHelper:
       "Opcional: agrega otros ZIPs donde esta oferta aplica, separados por comas.",
     directionsHelper:
@@ -409,10 +409,10 @@ const COPY = {
     customMarketLabel: "Enter the market or business type",
     customMarketHelper:
       "Example: Brazilian market, organic store, African market, international goods.",
-    cityHelper: "We'll use the city for local filters and search.",
-    zipHelper: "Add the ZIP where customers can find this offer.",
+    cityHelper: "We'll use the city for local filters and search. San Jose/NorCal examples are suggestions, not limits.",
+    zipHelper: "Add the ZIP or postal code where customers can find this offer.",
     addressHelper:
-      "Add the address if you want to show a location. We will generate Directions from address, city, state, and ZIP.",
+      "Add the address if you want to show a location. We will generate Directions from address, city, state/province, country, and postal code.",
     serviceZipHelper:
       "Optional: add other ZIP codes where this offer applies, separated by commas.",
     directionsHelper:

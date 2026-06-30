@@ -17,19 +17,27 @@ export function formatOfertaLocalPhoneDisplay(raw: string): string {
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
-/** Normalize US ZIP to 5 digits; returns empty if invalid length. */
-export function normalizeOfertaLocalZipInput(raw: string): string {
-  const digits = String(raw ?? "").replace(/\D/g, "").slice(0, 5);
-  return digits;
+/** Normalize ZIP/postal code without assuming a US-only format. */
+export function normalizeOfertaLocalPostalCodeInput(raw: string): string {
+  return String(raw ?? "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9 -]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 20);
 }
 
-/** Normalize US state to uppercase 2-letter code while typing. */
+/** Backward-compatible alias: Ofertas now accepts international postal codes. */
+export function normalizeOfertaLocalZipInput(raw: string): string {
+  return normalizeOfertaLocalPostalCodeInput(raw);
+}
+
+/** Normalize state/province/region without assuming a US-only 2-letter code. */
 export function normalizeOfertaLocalStateInput(raw: string): string {
   return String(raw ?? "")
     .trim()
-    .toUpperCase()
-    .replace(/[^A-Z]/g, "")
-    .slice(0, 2);
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
 }
 
 /** Safe Google Maps search URL from location fields — no Routes API. */
@@ -37,9 +45,10 @@ export function buildOfertaLocalGoogleMapsSearchUrl(parts: {
   address?: string;
   city?: string;
   state?: string;
+  country?: string;
   zipCode?: string;
 }): string {
-  const query = [parts.address, parts.city, parts.state, parts.zipCode]
+  const query = [parts.address, parts.city, parts.state, parts.country, parts.zipCode]
     .map((p) => String(p ?? "").trim())
     .filter(Boolean);
   if (query.length === 0) return "";

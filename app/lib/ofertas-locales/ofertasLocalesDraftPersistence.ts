@@ -132,6 +132,8 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
       : base.languageTags,
     customMarketType: String(stored.customMarketType ?? "").slice(0, 120),
     city: String(stored.city ?? "").slice(0, 120),
+    state: String(stored.state ?? "").slice(0, 80),
+    country: String(stored.country ?? "").slice(0, 80),
     zipCode: normalizeOfertaLocalZipInput(String(stored.zipCode ?? "")),
     wantsAiSearchableSpecials: Boolean(stored.wantsAiSearchableSpecials),
     wantsFeaturedPlacement: Boolean(stored.wantsFeaturedPlacement),

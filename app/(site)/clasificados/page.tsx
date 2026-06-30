@@ -7,7 +7,7 @@ import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constan
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { OfertasLocalesHubCategoryCard } from "./ofertas-locales/OfertasLocalesHubCategoryCard";
-import type { HubCategoryKey } from "./config/clasificadosHub";
+import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import {
   getClasificadosCategoryCopy,
   getClasificadosHubPageCopy,
@@ -19,6 +19,7 @@ import {
   buildHubPostEntryHref,
   resolveRouteLang,
 } from "./lib/hubUrl";
+import { CategoryVisibilityCta } from "./components/categoryStandard/CategoryVisibilityCta";
 
 /** Gate C1.1 — hub landing display order (browse routes unchanged). */
 const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
@@ -277,6 +278,9 @@ export default function ClasificadosPage() {
             >
               {t.ctaExplore}
             </a>
+          </div>
+          <div className="mt-4 max-w-2xl">
+            <CategoryVisibilityCta lang={navCopyLang(routeLang) as Lang} category="clasificados" surface="hub" compact />
           </div>
         </section>
 

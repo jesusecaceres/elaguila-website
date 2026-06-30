@@ -66,6 +66,7 @@ import { RentasPropiedadFilterChips } from "./components/RentasPropiedadFilterCh
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 
 const RENTAS_HIGHLIGHT_FACET_DEFS = BR_HIGHLIGHT_PRESET_DEFS.slice(0, 12);
 
@@ -382,6 +383,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             {inventoryLoading ? (
               <p className="mt-1 text-xs text-[#5B7C99]">{lang === "es" ? "Sincronizando inventario…" : "Syncing inventory…"}</p>
             ) : null}
+            <div className="mt-3">
+              <CategoryVisibilityCta lang={lang} category="rentas" surface="results" compact />
+            </div>
           </div>
           <aside
             className="flex w-full min-w-0 flex-shrink-0 flex-col gap-2 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 sm:p-4 lg:max-w-[min(100%,22rem)]"

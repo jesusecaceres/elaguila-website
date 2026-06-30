@@ -198,7 +198,7 @@ export function OfertasLocalesPreviewCard({
   const webHref = resolveOfertaLocalWebsiteHref(draft.websiteUrl);
   const directionsHref = resolveOfertaLocalDirectionsHref(draft);
 
-  const locationLine = [draft.address, draft.city, draft.state, draft.zipCode]
+  const locationLine = [draft.address, draft.city, draft.state, draft.country, draft.zipCode]
     .map((p) => p.trim())
     .filter(Boolean)
     .join(", ");

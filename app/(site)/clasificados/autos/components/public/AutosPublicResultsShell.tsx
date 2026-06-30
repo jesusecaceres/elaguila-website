@@ -279,6 +279,7 @@ export function AutosPublicResultsShell() {
           publishLabel={copy.postAd}
           clearHref={clearResultsHref}
           resultCount={loaded ? resultCount : undefined}
+          category="autos"
         />
         <p className="mt-2 text-sm text-[#5C5346]">{nearLine}</p>
 

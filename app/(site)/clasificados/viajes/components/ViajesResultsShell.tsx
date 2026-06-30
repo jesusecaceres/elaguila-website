@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 
 import { getViajesUi } from "../data/viajesUiCopy";
 import type { ViajesUi } from "../data/viajesUiCopy";
@@ -272,6 +273,9 @@ export function ViajesResultsShell({
         ) : null}
 
         <ViajesTrustStrip ui={ui} className="mt-0 mb-6 sm:mb-7" />
+        <div className="mb-4">
+          <CategoryVisibilityCta lang={lang} category="viajes" surface="results" compact />
+        </div>
 
         <section className="mb-4 rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/95 p-3 shadow-[0_16px_40px_-30px_rgba(25,50,70,0.12)] backdrop-blur-sm">
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">

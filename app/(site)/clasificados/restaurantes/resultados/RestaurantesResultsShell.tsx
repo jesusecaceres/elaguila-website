@@ -1135,6 +1135,7 @@ export function RestaurantesResultsShell({
           backLabel={t.backLanding}
           clearHref={clearHref}
           resultCount={sorted.length}
+          category="restaurantes"
         />
 
           <form
