@@ -7,8 +7,14 @@ export type OfertaLocalPublishSubmitResult =
   | { ok: true; id: string; status: string }
   | { ok: false; error: string; detail?: string; issues?: { field: string; message: string }[] };
 
+export type OfertaLocalPublishAiReviewContext = {
+  ofertaLocalId: string | null;
+  scanJobId: string | null;
+};
+
 export async function submitOfertaLocalDraftForReview(
-  draft: OfertaLocalDraft
+  draft: OfertaLocalDraft,
+  aiReview?: OfertaLocalPublishAiReviewContext
 ): Promise<OfertaLocalPublishSubmitResult> {
   const sb = createSupabaseBrowserClient();
   const { data } = await sb.auth.getSession();
@@ -23,7 +29,7 @@ export async function submitOfertaLocalDraftForReview(
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ draft }),
+    body: JSON.stringify({ draft, aiReview }),
   });
 
   let body: unknown;

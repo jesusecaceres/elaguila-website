@@ -331,7 +331,10 @@ export default function OfertasLocalesApplicationClient() {
     setSubmitting(true);
     try {
       saveOfertaLocalDraftToStorage(draft);
-      const result = await submitOfertaLocalDraftForReview(draft);
+      const result = await submitOfertaLocalDraftForReview(draft, {
+        ofertaLocalId: aiReviewGate.activeSourceAssetId ? effectiveOfertaLocalId ?? null : null,
+        scanJobId: aiReviewGate.activeScanJobId,
+      });
       if (!result.ok) {
         const msg =
           result.issues?.map((i) => i.message).join(" ") ||
@@ -348,7 +351,7 @@ export default function OfertasLocalesApplicationClient() {
     } finally {
       setSubmitting(false);
     }
-  }, [c.submitFailed, draft]);
+  }, [aiReviewGate.activeScanJobId, aiReviewGate.activeSourceAssetId, c.submitFailed, draft, effectiveOfertaLocalId]);
 
   const goNext = useCallback(() => {
     if (step === 5) {
@@ -366,11 +369,16 @@ export default function OfertasLocalesApplicationClient() {
     return step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
   }, [draft, step, step5PendingFileCount]);
 
+  const step5HasBlockingWork = useMemo(() => {
+    const uploadBlocked = step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
+    const aiReviewBlocked = aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
+    return uploadBlocked || aiReviewBlocked;
+  }, [aiReviewGate.needsReviewCount, aiReviewGate.totalItems, draft, step5PendingFileCount]);
+
   const step5BlocksContinue = useMemo(() => {
     if (step !== 5) return false;
-    const aiReviewBlocked = aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
-    return step5UploadBlocksContinue || aiReviewBlocked;
-  }, [aiReviewGate.needsReviewCount, aiReviewGate.totalItems, step, step5UploadBlocksContinue]);
+    return step5HasBlockingWork;
+  }, [step, step5HasBlockingWork]);
 
   const step5AiReviewBlocksContinue =
     step === 5 && aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
@@ -1250,6 +1258,7 @@ export default function OfertasLocalesApplicationClient() {
               lang={lang}
               progressLabel={progressLabel}
               onStepClick={(s) => {
+                if (step === 5 && s > 5 && step5HasBlockingWork) return;
                 setStep(s);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}

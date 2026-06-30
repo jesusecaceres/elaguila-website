@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { loadOfertaLocalAiScanSession } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
+import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import { hasOfertaLocalDraftContent } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
+import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OfertasLocalesPreviewCard } from "./OfertasLocalesPreviewCard";
@@ -14,6 +19,83 @@ const BTN_PRIMARY =
 export default function OfertasLocalesPreviewClient() {
   const { draft, hasLoadedDraft } = useOfertasLocalesDraft();
   const lang = useOfertasLocalesAppLang();
+  const [aiItems, setAiItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
+  const [aiReviewLoading, setAiReviewLoading] = useState(false);
+  const [aiReviewError, setAiReviewError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState<{ id: string; status: string } | null>(null);
+  const [aiSession, setAiSession] = useState<{ ofertaLocalId: string | null; lastScanJobId: string | null }>({
+    ofertaLocalId: null,
+    lastScanJobId: null,
+  });
+
+  useEffect(() => {
+    setAiSession(loadOfertaLocalAiScanSession());
+  }, []);
+
+  useEffect(() => {
+    if (!aiSession.ofertaLocalId) return;
+    let cancelled = false;
+    setAiReviewLoading(true);
+    setAiReviewError(null);
+    void fetchOfertaLocalReviewItems(aiSession.ofertaLocalId, aiSession.lastScanJobId).then((result) => {
+      if (cancelled) return;
+      setAiReviewLoading(false);
+      if (!result.ok) {
+        setAiReviewError(result.detail ?? result.error ?? "Could not load AI review items.");
+        setAiItems([]);
+        return;
+      }
+      setAiItems(result.items ?? []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [aiSession.ofertaLocalId, aiSession.lastScanJobId]);
+
+  const currentAiItems = useMemo(() => {
+    if (!aiSession.lastScanJobId) return aiItems;
+    return aiItems.filter((item) => item.scanJobId === aiSession.lastScanJobId);
+  }, [aiItems, aiSession.lastScanJobId]);
+
+  const approvedAiItems = useMemo(
+    () => currentAiItems.filter((item) => item.reviewStatus === "approved"),
+    [currentAiItems]
+  );
+
+  const needsReviewCount = useMemo(
+    () =>
+      currentAiItems.filter(
+        (item) => item.reviewStatus === "pending" || item.reviewStatus === "needs_review"
+      ).length,
+    [currentAiItems]
+  );
+
+  const handleSubmitForReview = useCallback(async () => {
+    if (needsReviewCount > 0) {
+      setPublishError(
+        lang === "en"
+          ? `Finish reviewing the AI suggestions before submitting. You still have ${needsReviewCount} item(s) that need review.`
+          : `Termina de revisar las sugerencias de AI antes de enviar. Todavía tienes ${needsReviewCount} producto(s) pendientes de revisión.`
+      );
+      return;
+    }
+    setPublishing(true);
+    setPublishError(null);
+    setPublishSuccess(null);
+    const result = await submitOfertaLocalDraftForReview(draft, {
+      ofertaLocalId: aiSession.ofertaLocalId,
+      scanJobId: aiSession.lastScanJobId,
+    });
+    setPublishing(false);
+    if (!result.ok) {
+      const issueText = result.issues?.map((issue) => issue.message).join(" ");
+      setPublishError(issueText || result.detail || result.error);
+      return;
+    }
+    setPublishSuccess({ id: result.id, status: result.status });
+  }, [aiSession.lastScanJobId, aiSession.ofertaLocalId, draft, lang, needsReviewCount]);
 
   if (!hasLoadedDraft) {
     return (
@@ -42,5 +124,19 @@ export default function OfertasLocalesPreviewClient() {
     );
   }
 
-  return <OfertasLocalesPreviewCard draft={draft} lang={lang} />;
+  return (
+    <OfertasLocalesPreviewCard
+      draft={draft}
+      lang={lang}
+      approvedAiItems={approvedAiItems}
+      aiReviewLoading={aiReviewLoading}
+      aiReviewError={aiReviewError}
+      aiNeedsReviewCount={needsReviewCount}
+      aiTotalCount={currentAiItems.length}
+      publishing={publishing}
+      publishError={publishError}
+      publishSuccess={publishSuccess}
+      onSubmitForReview={handleSubmitForReview}
+    />
+  );
 }
