@@ -580,6 +580,22 @@ function BienesRaicesNegocioDarkContactAside({
               ))}
             </div>
           ) : null}
+          {(vm.contact.usefulLinks?.length ?? 0) > 0 ? (
+            <div className="space-y-2">
+              {(vm.contact.usefulLinks ?? []).map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                  style={{ borderColor: "rgba(197,160,89,0.45)" }}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
           {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
             <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">{ui.ubicacion}</p>
@@ -834,6 +850,22 @@ export function BienesRaicesNegocioPreviewView({
             </div>
               ) : null}
           </div>
+          {(vm.media?.externalVideoLinks?.length ?? 0) > 0 ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {(vm.media.externalVideoLinks ?? []).map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border p-3 text-sm font-bold transition hover:bg-[#FFF6E7]"
+                  style={{ borderColor: BORDER, background: CREAM_CARD, color: CHARCOAL_DEEP }}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
           {(vm.media?.floorPlanUrls?.length ?? 0) > 1 ? (
             <div className="mt-3 overflow-hidden rounded-xl border" style={{ borderColor: BORDER }}>
               <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide" style={{ color: MUTED }}>

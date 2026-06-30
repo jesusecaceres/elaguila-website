@@ -25,6 +25,17 @@ function durableHttpUrl(raw: string): string {
   return "";
 }
 
+function durableUrlList(raw: readonly string[] | undefined, max: number): string[] {
+  const out: string[] = [];
+  for (const item of raw ?? []) {
+    const url = durableHttpUrl(item);
+    if (!url || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 function publicationTypeFromAgente(s: AgenteIndividualResidencialFormState): BienesRaicesPublicationType {
   if (s.categoriaPropiedad === "comercial") return "comercial";
   if (s.categoriaPropiedad === "terreno_lote") return "terreno";
@@ -82,7 +93,8 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
   const photos = (Array.isArray(s.fotosDataUrls) ? s.fotosDataUrls : []).map((u) => trim(String(u))).filter(Boolean);
   const primaryIdx = Math.min(Math.max(0, s.fotoPortadaIndex), Math.max(0, photos.length - 1));
   const tourUrl = durableHttpUrl(s.tourUrl);
-  const videoUrl = durableHttpUrl(s.videoUrl);
+  const videoUrls = durableUrlList(s.videoUrls?.length ? s.videoUrls : [s.videoUrl], 4);
+  const videoUrl = videoUrls[0] ?? "";
   const brochureUrl = durableHttpUrl(s.brochureUrl);
   const slot0 = base.media.listingVideoSlots[0];
   const slot1 = base.media.listingVideoSlots[1];
@@ -115,8 +127,12 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       primaryImageIndex: primaryIdx,
       virtualTourUrl: tourUrl,
       floorPlanUrls: brochureUrl ? [brochureUrl] : [],
-      listingVideoSlots: videoUrl
-        ? [{ ...slot0, fallbackUrl: videoUrl, status: "idle" as const }, slot1]
+      externalVideoUrls: videoUrls,
+      listingVideoSlots: videoUrls.length
+        ? [
+            videoUrl ? { ...slot0, fallbackUrl: videoUrl, status: "idle" as const } : slot0,
+            videoUrls[1] ? { ...slot1, fallbackUrl: videoUrls[1], status: "idle" as const } : slot1,
+          ]
         : base.media.listingVideoSlots,
     },
     identityAgente: {
@@ -170,6 +186,7 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       permitirWhatsapp: s.permitirWhatsApp,
     },
     contactChannels: contactChannelsFromAgente(s),
+    businessExtraUrls: durableUrlList(s.businessExtraUrls, 2),
     trust: {
       ...base.trust,
       mostrarLicencia: Boolean(trim(s.agenteLicencia) || trim(s.marcaLicencia)),

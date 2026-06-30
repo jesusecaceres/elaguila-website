@@ -145,6 +145,37 @@ export function resolveAnyHref(raw: string): string | null {
   return hrefFromUserInput(t);
 }
 
+export function externalVideoUrls(s: AgenteIndividualResidencialFormState): string[] {
+  const raw = s.videoUrls?.length ? s.videoUrls : s.videoUrl ? [s.videoUrl] : [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const url = hrefFromUserInput(item);
+    if (!url || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+export function defaultBusinessLinkLabel(index: number, locale: AgenteResPreviewLocale): string {
+  if (index <= 0) return locale === "en" ? "More information" : "Más información";
+  return locale === "en" ? `More information ${index + 1}` : `Más información ${index + 1}`;
+}
+
+export function additionalBusinessLinks(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale,
+): Array<{ label: string; href: string }> {
+  const out: Array<{ label: string; href: string }> = [];
+  for (const item of s.businessExtraUrls ?? []) {
+    const href = hrefFromUserInput(item);
+    if (!href || out.some((x) => x.href === href)) continue;
+    out.push({ label: defaultBusinessLinkLabel(out.length, locale), href });
+    if (out.length >= 2) break;
+  }
+  return out;
+}
+
 export function listadoBloqueHref(s: AgenteIndividualResidencialFormState): string | null {
   const url = hrefFromUserInput(s.listadoUrl);
   if (url) return url;
@@ -453,7 +484,7 @@ export function buildDestacadosLabels(
 }
 
 export function videoPlayableUrl(s: AgenteIndividualResidencialFormState): string | null {
-  const u = trim(s.videoUrl) || trim(s.videoDataUrl);
+  const u = externalVideoUrls(s)[0] || trim(s.videoDataUrl);
   return u || null;
 }
 
@@ -779,11 +810,15 @@ export type MainAgentBusinessHub = {
   googleReviewsUrl: string | null;
   yelpReviewsUrl: string | null;
   websiteHref: string | null;
+  businessExtraLinks: Array<{ label: string; href: string }>;
   hasSocialIcons: boolean;
   hasReviewCards: boolean;
 };
 
-export function buildMainAgentBusinessHub(s: AgenteIndividualResidencialFormState): MainAgentBusinessHub {
+export function buildMainAgentBusinessHub(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): MainAgentBusinessHub {
   const socialInstagram = resolveAnyHref(s.socialInstagram);
   const socialFacebook = resolveAnyHref(s.socialFacebook);
   const socialYoutube = resolveAnyHref(s.socialYoutube);
@@ -795,6 +830,7 @@ export function buildMainAgentBusinessHub(s: AgenteIndividualResidencialFormStat
   const googleReviewsUrl = resolveAnyHref(s.googleReviewsUrl);
   const yelpReviewsUrl = resolveAnyHref(s.yelpReviewsUrl);
   const websiteHref = hrefFromUserInput(s.agenteSitioWeb);
+  const businessExtraLinks = additionalBusinessLinks(s, locale);
   const hasSocialIcons = Boolean(
     socialInstagram ||
       socialFacebook ||
@@ -817,6 +853,7 @@ export function buildMainAgentBusinessHub(s: AgenteIndividualResidencialFormStat
     googleReviewsUrl,
     yelpReviewsUrl,
     websiteHref,
+    businessExtraLinks,
     hasSocialIcons,
     hasReviewCards: Boolean(googleReviewsUrl || yelpReviewsUrl),
   };

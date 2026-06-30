@@ -45,6 +45,7 @@ export function buildBrNegocioDesignerDemoState(): BienesRaicesNegocioFormState 
           fallbackUrl: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80&auto=format&fit=crop",
         },
       ],
+      externalVideoUrls: [],
       virtualTourUrl: "https://example.com/tour",
       floorPlanUrls: ["https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80&auto=format&fit=crop"],
       sitePlanUrl: "",

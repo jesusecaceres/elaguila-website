@@ -218,6 +218,44 @@ function extractLeonixImageUrlsFromDescription(description: string | null | unde
   return urls;
 }
 
+function parseBusinessMetaObject(raw: string | null | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function parseBusinessMetaUrlList(raw: unknown, max: number): string[] {
+  const source =
+    Array.isArray(raw)
+      ? raw
+      : typeof raw === "string"
+        ? (() => {
+            try {
+              const parsed = JSON.parse(raw);
+              return Array.isArray(parsed) ? parsed : [raw];
+            } catch {
+              return [raw];
+            }
+          })()
+        : [];
+  const out: string[] = [];
+  for (const item of source) {
+    const url = typeof item === "string" ? item.trim() : String(item ?? "").trim();
+    if (!/^https?:\/\/\S+/i.test(url) || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function numberedPublicCtaLabel(base: string, index: number): string {
+  return index === 0 ? base : `${base} ${index + 1}`;
+}
+
 function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   const rawDesc = String(row.description ?? "");
   const blurbText = stripLeonixPublishedDescriptionBody(rawDesc) || rawDesc.trim();
@@ -598,6 +636,23 @@ export default function AnuncioDetallePage() {
         : null,
     [listing],
   );
+
+  const bienesBusinessMetaLinks = useMemo(() => {
+    if (!listing || listing.category !== "bienes-raices" || listing.sellerType !== "business") {
+      return { videoLinks: [], usefulLinks: [] };
+    }
+    const meta = parseBusinessMetaObject(listing.business_meta ?? null);
+    return {
+      videoLinks: parseBusinessMetaUrlList(meta.negocioExternalVideoUrls, 4).map((href, index) => ({
+        href,
+        label: numberedPublicCtaLabel(lang === "en" ? "View video" : "Ver video", index),
+      })),
+      usefulLinks: parseBusinessMetaUrlList(meta.negocioBusinessExtraUrls, 2).map((href, index) => ({
+        href,
+        label: numberedPublicCtaLabel(lang === "en" ? "More information" : "Más información", index),
+      })),
+    };
+  }, [listing, lang]);
 
   const rentasLiveContactExtras = useMemo(() => {
     if (!listing || listing.category !== "rentas") return null;
@@ -1485,6 +1540,21 @@ export default function AnuncioDetallePage() {
                       )}
                     </div>
                   )}
+                  {bienesBusinessMetaLinks.videoLinks.length > 0 ? (
+                    <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {bienesBusinessMetaLinks.videoLinks.map((link) => (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] px-4 py-3 text-center text-sm font-bold text-[#111111] shadow-sm transition hover:bg-[#EFE8DC]"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
                   {listing.category === "autos" && <AutosAnuncioAnalyticsStrip listingId={listing.id} lang={lang} />}
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -2334,6 +2404,21 @@ export default function AnuncioDetallePage() {
                       : undefined
                   }
                 />
+                {bienesBusinessMetaLinks.usefulLinks.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    {bienesBusinessMetaLinks.usefulLinks.map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#C9B46A]/55 bg-white/70 px-3 py-3 text-center text-sm font-semibold text-[#111111] transition hover:bg-white"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               {!isCommunityCategory ? (

@@ -150,6 +150,8 @@ export type BienesRaicesNegocioFormState = {
     /** Cover photo index in `photoUrls` (visual portada in form). */
     primaryImageIndex: number;
     listingVideoSlots: [BienesRaicesMuxVideoSlotState, BienesRaicesMuxVideoSlotState];
+    /** External video URLs beyond the two legacy preview slots; used by the Agente business flow. */
+    externalVideoUrls?: string[];
     virtualTourUrl: string;
     floorPlanUrls: string[];
     sitePlanUrl: string;
@@ -293,6 +295,9 @@ export type BienesRaicesNegocioFormState = {
   /** Gate 12C — optional website/social URLs + channel toggles (shared with Rentas negocio contract). */
   contactChannels: LeonixContactChannelsFormSlice;
 
+  /** Additional business/profile URLs rendered as useful-link CTAs. */
+  businessExtraUrls?: string[];
+
   /** BR-INV-C — pre-publish additional properties (local draft only; not published). */
   additionalInventoryProperties: BrNegocioAdditionalInventoryPropertyDraft[];
 };
@@ -317,6 +322,18 @@ function coerceStringListToLen(raw: unknown, len: number, fallback: string[]): s
 function coerceStringArrayPreserveOrEmpty(raw: unknown, fallback: string[]): string[] {
   if (!Array.isArray(raw)) return [...fallback];
   return raw.map((x) => (x == null ? "" : typeof x === "string" ? x : String(x)));
+}
+
+function coerceUrlList(raw: unknown, max: number): string[] {
+  const source = Array.isArray(raw) ? raw : typeof raw === "string" ? [raw] : [];
+  const out: string[] = [];
+  for (const item of source) {
+    const url = item == null ? "" : typeof item === "string" ? item.trim() : String(item).trim();
+    if (!url || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 function emptyDeepDetails(): DeepDetailsState {
@@ -506,6 +523,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       photoUrls: [],
       primaryImageIndex: 0,
       listingVideoSlots: [createEmptyBienesRaicesMuxVideoSlot(0), createEmptyBienesRaicesMuxVideoSlot(1)],
+      externalVideoUrls: [],
       virtualTourUrl: "",
       floorPlanUrls: [],
       sitePlanUrl: "",
@@ -616,6 +634,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       openHouseNotas: "",
     },
     contactChannels: createEmptyLeonixContactChannelsFormSlice(),
+    businessExtraUrls: [],
     trust: {
       mostrarLicencia: true,
       mostrarBrokerage: true,
@@ -686,6 +705,7 @@ export function normalizeBienesRaicesNegocioMedia(
     photoUrls,
     primaryImageIndex,
     listingVideoSlots: [slot0, slot1],
+    externalVideoUrls: coerceUrlList(r.externalVideoUrls ?? r.videoUrls, 4),
     virtualTourUrl: typeof r.virtualTourUrl === "string" ? r.virtualTourUrl : base.virtualTourUrl,
     floorPlanUrls,
     sitePlanUrl: typeof r.sitePlanUrl === "string" ? r.sitePlanUrl : base.sitePlanUrl,
@@ -793,6 +813,7 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
       base.contactChannels,
       partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
     ),
+    businessExtraUrls: coerceUrlList((partial as Partial<BienesRaicesNegocioFormState>).businessExtraUrls, 2),
     trust: { ...base.trust, ...partial.trust },
     petsAllowed: coerceNegocioPetsAllowed(
       (partial as Partial<BienesRaicesNegocioFormState>).petsAllowed,

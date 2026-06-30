@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
+import { AGENTE_RES_MAX_VIDEO_URLS } from "../schema/agenteIndividualResidencialFormState";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/(site)/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
@@ -311,6 +312,85 @@ function UrlOrFileRow({
   );
 }
 
+function normalizedUrlFields(values: string[], max: number): string[] {
+  const next = Array.from({ length: max }, (_, i) => values[i] ?? "");
+  return next;
+}
+
+function validHttpUrl(raw: string): boolean {
+  return /^https?:\/\/\S+/i.test(raw.trim());
+}
+
+function VideoUrlAddRows({
+  state,
+  setState,
+}: {
+  state: AgenteIndividualResidencialFormState;
+  setState: React.Dispatch<React.SetStateAction<AgenteIndividualResidencialFormState>>;
+}) {
+  const { t } = useBrAgenteResidencialCopy();
+  const existing = normalizedUrlFields(state.videoUrls?.length ? state.videoUrls : state.videoUrl ? [state.videoUrl] : [], AGENTE_RES_MAX_VIDEO_URLS);
+  const filledCount = existing.filter((u) => u.trim()).length;
+  const [visibleCount, setVisibleCount] = useState(Math.min(AGENTE_RES_MAX_VIDEO_URLS, Math.max(1, filledCount + 1)));
+  const fileActive = Boolean(state.videoDataUrl);
+
+  const patchUrl = (index: number, value: string) => {
+    setState((s) => {
+      const next = normalizedUrlFields(s.videoUrls?.length ? s.videoUrls : s.videoUrl ? [s.videoUrl] : [], AGENTE_RES_MAX_VIDEO_URLS);
+      next[index] = value;
+      const compact = next.map((u) => u.trim()).filter(Boolean).slice(0, AGENTE_RES_MAX_VIDEO_URLS);
+      return { ...s, videoUrls: compact, videoUrl: compact[0] ?? "", videoDataUrl: "", videoArchivoNombre: "" };
+    });
+  };
+
+  return (
+    <AiField label={t.step03.video} hint={t.step03.videoHint}>
+      <div className="mt-3 space-y-3">
+        {existing.slice(0, visibleCount).map((value, index) => {
+          const ok = validHttpUrl(value);
+          return (
+            <div key={index} className="rounded-xl border border-[#E8DFD0] bg-white/70 p-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-[#5C5346]/90">
+                {t.step03.videoUrlLabel(index + 1)}
+              </label>
+              <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="url"
+                  className={`${aiInputClass} sm:flex-1`}
+                  value={value}
+                  onChange={(e) => patchUrl(index, e.target.value)}
+                  placeholder={t.step02.pegarUrl}
+                  autoComplete="off"
+                  disabled={fileActive}
+                />
+                {value.trim() ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-50 sm:min-h-0"
+                    onClick={() => patchUrl(index, "")}
+                  >
+                    {t.step02.quitar}
+                  </button>
+                ) : null}
+              </div>
+              {ok ? <p className="mt-2 text-xs font-bold text-[#2F6B3C]">{t.step03.videoAdded}</p> : null}
+            </div>
+          );
+        })}
+        {!fileActive && visibleCount < AGENTE_RES_MAX_VIDEO_URLS ? (
+          <button
+            type="button"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-dashed border-[#C9B46A]/70 bg-[#FFF6E7] px-4 py-2.5 text-xs font-bold text-[#5C4E2E] transition hover:border-[#B8954A] hover:bg-[#FFF0D6] sm:min-h-0"
+            onClick={() => setVisibleCount((n) => Math.min(AGENTE_RES_MAX_VIDEO_URLS, n + 1))}
+          >
+            {t.step03.addVideo}
+          </button>
+        ) : null}
+      </div>
+    </AiField>
+  );
+}
+
 export function Step02InformacionBasica({
   state,
   setState,
@@ -525,24 +605,41 @@ export function Step03Media({
           fileReadyLabel={t.step03.archivoListoPublicar}
           usarUrlLabel={t.step03.usarUrl}
         />
-        <UrlOrFileRow
-          label={t.step03.video}
-          hint={t.step03.videoHint}
-          urlValue={state.videoUrl}
-          onUrl={(v) => setState((s) => ({ ...s, videoUrl: v, videoDataUrl: "", videoArchivoNombre: "" }))}
-          fileAccept="video/*"
-          onPickFile={(dataUrl, name) =>
-            setState((s) => ({ ...s, videoDataUrl: dataUrl, videoUrl: "", videoArchivoNombre: name }))
-          }
-          clearFile={() => setState((s) => ({ ...s, videoDataUrl: "", videoArchivoNombre: "" }))}
-          fileActive={Boolean(state.videoDataUrl)}
-          fileName={state.videoArchivoNombre}
-          pegarUrl={t.step02.pegarUrl}
-          subirArchivo={t.step03.subirVideoDispositivo}
-          quitar={t.step02.quitar}
-          fileReadyLabel={t.step03.videoListoPublicar}
-          usarUrlLabel={t.step03.usarUrl}
-        />
+        <VideoUrlAddRows state={state} setState={setState} />
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{t.step03.subirVideoDispositivo}</p>
+          <label className="mt-2 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold text-[#5C4E2E] touch-manipulation sm:w-auto sm:min-h-0 sm:px-3 sm:py-2">
+            {t.step03.subirVideoDispositivo}
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                void readFileAsDataUrl(f)
+                  .then((dataUrl) =>
+                    setState((s) => ({ ...s, videoDataUrl: dataUrl, videoUrl: "", videoUrls: [], videoArchivoNombre: f.name })),
+                  )
+                  .catch(() => {});
+              }}
+            />
+          </label>
+          {state.videoDataUrl ? (
+            <div className="mt-2 rounded-xl border border-[#C9B46A]/45 bg-[#FFF9E8] px-3 py-2.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#6E5418]">{t.step03.videoListoPublicar}</p>
+              {state.videoArchivoNombre ? <p className="mt-1 text-sm font-semibold text-[#1E1810]">{state.videoArchivoNombre}</p> : null}
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-red-800 hover:underline"
+                onClick={() => setState((s) => ({ ...s, videoDataUrl: "", videoArchivoNombre: "" }))}
+              >
+                {t.step02.quitar}
+              </button>
+            </div>
+          ) : null}
+        </div>
         <UrlOrFileRow
           label={t.step03.tour}
           hint={t.step03.tourHint}

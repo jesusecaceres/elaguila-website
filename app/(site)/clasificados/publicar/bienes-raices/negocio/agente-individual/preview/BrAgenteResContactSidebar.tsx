@@ -148,7 +148,8 @@ export function BrAgenteResContactSidebar({
   p: PreviewUi;
 }) {
   const cr = buildContactModel(data);
-  const hub = buildMainAgentBusinessHub(data);
+  const locale = _locale;
+  const hub = buildMainAgentBusinessHub(data, locale);
   const showBrand = hasBrandBlockVisible(data);
   const showSecondAgentRail = hasSecondAgentRailContent(data);
   const agente2Social = buildSecondAgentSocialHrefs(data);
@@ -295,7 +296,7 @@ export function BrAgenteResContactSidebar({
           </div>
         ) : null}
 
-        {hub.hasSocialIcons || hub.hasReviewCards ? (
+        {hub.hasSocialIcons || hub.hasReviewCards || hub.businessExtraLinks.length ? (
           <div className="mt-3 space-y-2 border-t pt-3" style={{ borderColor: BORDER }}>
             {hub.hasSocialIcons ? (
               <div className="flex flex-wrap justify-center gap-1.5">
@@ -343,6 +344,9 @@ export function BrAgenteResContactSidebar({
             ) : null}
             {hub.googleReviewsUrl ? <ReviewCard href={hub.googleReviewsUrl} label={p.googleReviews} /> : null}
             {hub.yelpReviewsUrl ? <ReviewCard href={hub.yelpReviewsUrl} label={p.yelpReviews} /> : null}
+            {hub.businessExtraLinks.map((link) => (
+              <ReviewCard key={link.href} href={link.href} label={link.label} />
+            ))}
           </div>
         ) : null}
       </CardShell>

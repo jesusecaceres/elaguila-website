@@ -45,6 +45,8 @@ export type AgenteResOpenHouseSlot = {
 export type AgentePrincipalLlamadas = "personal" | "oficina";
 
 export const AGENTE_RES_MAX_OPEN_HOUSE_SLOTS = 4;
+export const AGENTE_RES_MAX_VIDEO_URLS = 4;
+export const AGENTE_RES_MAX_BUSINESS_URLS = 2;
 
 export type AgenteResidencialDestacadoId =
   | "piscina"
@@ -139,6 +141,8 @@ export type AgenteIndividualResidencialFormState = {
   fotoPortadaIndex: number;
 
   videoUrl: string;
+  /** External video links shown as clean media CTAs; first item mirrors legacy `videoUrl`. */
+  videoUrls: string[];
   videoDataUrl: string;
   /** Original filename when `videoDataUrl` is a local upload (preview UX only). */
   videoArchivoNombre: string;
@@ -217,6 +221,8 @@ export type AgenteIndividualResidencialFormState = {
   /** Yelp business reviews URL (main agent hub). */
   yelpReviewsUrl: string;
   socialOtro: string;
+  /** Additional professional/business URLs shown as useful links, not as social icons. */
+  businessExtraUrls: string[];
 
   agenteAreaServicio: string;
   agenteIdiomas: string;
@@ -327,6 +333,18 @@ function trim(s: unknown): string {
   return String(s).trim();
 }
 
+function coerceUrlList(raw: unknown, max: number): string[] {
+  const source = Array.isArray(raw) ? raw : typeof raw === "string" ? [raw] : [];
+  const out: string[] = [];
+  for (const item of source) {
+    const url = trim(item);
+    if (!url || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 function mapEstadoLegacy(raw: string): AgenteResidencialEstadoAnuncio {
   switch (raw) {
     case "disponible":
@@ -423,6 +441,7 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
     if (Array.isArray(media.photoUrls)) out.fotosDataUrls = media.photoUrls.filter((x) => typeof x === "string") as string[];
     if (typeof media.primaryImageIndex === "number") out.fotoPortadaIndex = media.primaryImageIndex;
     if (typeof media.videoUrl === "string") out.videoUrl = media.videoUrl;
+    if (Array.isArray(media.videoUrls)) out.videoUrls = coerceUrlList(media.videoUrls, AGENTE_RES_MAX_VIDEO_URLS);
     if (typeof media.videoDataUrl === "string") out.videoDataUrl = media.videoDataUrl;
     if (typeof media.tourUrl === "string") out.tourUrl = media.tourUrl;
     if (typeof media.tourDataUrl === "string") out.tourDataUrl = media.tourDataUrl;
@@ -570,6 +589,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     fotoPortadaIndex: 0,
 
     videoUrl: "",
+    videoUrls: [],
     videoDataUrl: "",
     videoArchivoNombre: "",
 
@@ -625,6 +645,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     googleReviewsUrl: "",
     yelpReviewsUrl: "",
     socialOtro: "",
+    businessExtraUrls: [],
 
     agenteAreaServicio: "",
     agenteIdiomas: "",
@@ -943,6 +964,17 @@ export function mergePartialAgenteIndividualResidencial(
     ? flat.fotosDataUrls
     : nested.fotosDataUrls ?? base.fotosDataUrls;
 
+  const videoUrlsFromFlat = coerceUrlList(flat.videoUrls, AGENTE_RES_MAX_VIDEO_URLS);
+  const videoUrlsFromNested = coerceUrlList(nested.videoUrls, AGENTE_RES_MAX_VIDEO_URLS);
+  const legacyVideoUrl = trim(flat.videoUrl) || trim(nested.videoUrl) || base.videoUrl;
+  const videoUrls = coerceUrlList(
+    [...(videoUrlsFromFlat.length ? videoUrlsFromFlat : videoUrlsFromNested), legacyVideoUrl],
+    AGENTE_RES_MAX_VIDEO_URLS,
+  );
+  const businessExtraUrlsFromFlat = coerceUrlList(flat.businessExtraUrls, AGENTE_RES_MAX_BUSINESS_URLS);
+  const businessExtraUrlsFromNested = coerceUrlList(nested.businessExtraUrls, AGENTE_RES_MAX_BUSINESS_URLS);
+  const businessExtraUrls = businessExtraUrlsFromFlat.length ? businessExtraUrlsFromFlat : businessExtraUrlsFromNested;
+
   const fotoPortadaIndexRaw =
     typeof flat.fotoPortadaIndex === "number" ? flat.fotoPortadaIndex : nested.fotoPortadaIndex ?? base.fotoPortadaIndex;
   const maxIdx = Math.max(0, fotosDataUrls.length - 1);
@@ -1025,6 +1057,9 @@ export function mergePartialAgenteIndividualResidencial(
     correoPrincipal,
     fotosDataUrls,
     fotoPortadaIndex,
+    videoUrl: videoUrls[0] ?? legacyVideoUrl,
+    videoUrls,
+    businessExtraUrls,
     destacados: {
       ...base.destacados,
       ...(nested.destacados ?? {}),

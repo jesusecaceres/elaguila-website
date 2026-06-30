@@ -14,6 +14,17 @@ function joinRedes(lines: string[]): string {
   return lines.map((x) => trim(x)).filter(Boolean).join("\n");
 }
 
+function cleanHttpUrls(raw: readonly string[] | undefined, max: number): string[] {
+  const out: string[] = [];
+  for (const item of raw ?? []) {
+    const url = trim(item);
+    if (!/^https?:\/\/\S+/i.test(url) || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 /**
  * Produces a JSON string suitable for `listings.business_meta`, or null when nothing to store.
  */
@@ -117,6 +128,11 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
   for (const [k, v] of Object.entries(gate)) {
     if (v) meta[k] = v;
   }
+
+  const externalVideoUrls = cleanHttpUrls(s.media?.externalVideoUrls, 4);
+  if (externalVideoUrls.length) meta.negocioExternalVideoUrls = JSON.stringify(externalVideoUrls);
+  const businessExtraUrls = cleanHttpUrls(s.businessExtraUrls, 2);
+  if (businessExtraUrls.length) meta.negocioBusinessExtraUrls = JSON.stringify(businessExtraUrls);
 
   return Object.keys(meta).length ? JSON.stringify(meta) : null;
 }

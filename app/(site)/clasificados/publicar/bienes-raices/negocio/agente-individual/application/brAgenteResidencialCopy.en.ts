@@ -106,6 +106,9 @@ export const BR_COPY_EN = {
     video: "Video (optional)",
     videoHint:
       "Public link (YouTube, Vimeo, etc.) or a short video file for preview. Nothing is uploaded to Mux until you publish.",
+    addVideo: "Add video",
+    videoAdded: "Video added",
+    videoUrlLabel: (n: number) => (n === 1 ? "Video URL" : `Video URL ${n}`),
     tour: "Virtual / 3D tour (optional)",
     tourHint:
       "Matterport, 3D or 360 tour URL, or another public tour link. You may also upload a compatible file (e.g. cover image/PDF, short clip, static HTML) for local draft preview.",
@@ -207,6 +210,11 @@ export const BR_COPY_EN = {
     googleReviews: "Google reviews (URL)",
     yelpReviews: "Yelp reviews (URL)",
     enlaceSocialAdicional: "Additional social link (optional)",
+    enlacesNegocio: "Additional business links",
+    enlacesNegocioSub: "Optional profile, portfolio, review, or business URLs. Shown as clean useful-link buttons only when filled.",
+    addLink: "Add link",
+    linkAdded: "Link added",
+    businessUrlLabel: (n: number) => (n === 1 ? "Additional business URL" : `Additional business URL ${n}`),
     areaServicio: "Service area (optional)",
     idiomas: "Languages (optional)",
     idiomasPh: "e.g. English and Spanish",

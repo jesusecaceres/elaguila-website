@@ -47,6 +47,7 @@ export type BienesRaicesPreviewMediaVm = {
   /** HLS / mp4 / direct URLs for inline preview */
   videoPlaybackUrls: [string | null, string | null];
   youtubeIds: [string | null, string | null];
+  externalVideoLinks?: Array<{ label: string; href: string }>;
   virtualTourUrl: string | null;
   floorPlanUrls: string[];
   sitePlanUrl: string | null;
@@ -92,6 +93,7 @@ export type BienesRaicesPreviewContactVm = {
   websiteHref?: string | null;
   /** Gate 12C — structured social icons (Instagram, etc.). */
   socialIconLinks?: Array<{ kind: "instagram" | "facebook" | "youtube" | "tiktok"; href: string }>;
+  usefulLinks?: Array<{ label: string; href: string }>;
   preferredContactLine?: string;
   secondAgent: null | {
     name: string;

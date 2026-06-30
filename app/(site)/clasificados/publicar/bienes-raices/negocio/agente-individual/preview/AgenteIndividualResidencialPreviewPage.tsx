@@ -29,6 +29,7 @@ import {
   buildOpenHouseSlotSummaries,
   buildPropertyDetailRows,
   buildQuickFacts,
+  externalVideoUrls,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
   formatPreviewPhoneDisplay,
@@ -193,6 +194,7 @@ export function AgenteIndividualResidencialPreviewPage({
 
   const hasVideoInLightbox = Boolean(g.videoDataUrl || g.videoExternalHref);
   const videoSlideIndex = photoUrlsOrdered.length;
+  const externalVideos = externalVideoUrls(data);
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -479,6 +481,35 @@ export function AgenteIndividualResidencialPreviewPage({
                   )}
                 </div>
               </div>
+
+              {externalVideos.length ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {externalVideos.map((href, index) => (
+                    <a
+                      key={href}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-xl border p-3 text-left transition hover:bg-[#FFF6E7]"
+                      style={{ borderColor: BORDER, background: CREAM, boxShadow: "0 2px 14px rgba(44,36,22,0.05)" }}
+                    >
+                      <span className={`${typo.kicker} flex items-center gap-1`} style={{ color: BRONZE }}>
+                        <FiVideo className="h-3.5 w-3.5" aria-hidden />
+                        {locale === "en" ? "Video" : "Video"}
+                      </span>
+                      <span className="mt-1 block text-sm font-bold text-[#1E1810] transition group-hover:text-[#7A5F22]">
+                        {locale === "en"
+                          ? index === 0
+                            ? "View video"
+                            : `View video ${index + 1}`
+                          : index === 0
+                            ? "Ver video"
+                            : `Ver video ${index + 1}`}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              ) : null}
 
               {g.showAllPhotosPill ? (
                 <div

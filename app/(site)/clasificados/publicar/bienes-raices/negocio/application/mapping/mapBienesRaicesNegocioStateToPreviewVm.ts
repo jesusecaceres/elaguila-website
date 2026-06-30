@@ -646,6 +646,21 @@ function buildSmsHref(phone: string): string | null {
   return `sms:${d}?body=${encodeURIComponent(body)}`;
 }
 
+function cleanHttpUrls(raw: readonly string[] | undefined, max: number): string[] {
+  const out: string[] = [];
+  for (const item of raw ?? []) {
+    const url = trim(item);
+    if (!/^https?:\/\/\S+/i.test(url) || out.includes(url)) continue;
+    out.push(url);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function numberedCtaLabel(base: string, index: number): string {
+  return index === 0 ? base : `${base} ${index + 1}`;
+}
+
 function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPreviewVm["contact"] {
   const adv = s.advertiserType;
   const email = primaryEmail(s, adv);
@@ -688,6 +703,10 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
   });
   const socialIconLinks = socialLinksFromChannelsPayload(ch);
   const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
+  const usefulLinks = cleanHttpUrls(s.businessExtraUrls, 2).map((href, index) => ({
+    label: numberedCtaLabel("Más información", index),
+    href,
+  }));
 
   return {
     showSolicitarInfo: Boolean(s.cta.permitirSolicitarInfo && solicitarInfoHref),
@@ -707,6 +726,7 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
     lender: buildLenderVm(s),
     websiteHref: ch?.website ?? null,
     socialIconLinks: socialIconLinks.length ? socialIconLinks : undefined,
+    usefulLinks: usefulLinks.length ? usefulLinks : undefined,
     preferredContactLine: preferredContactLine || undefined,
   };
 }
@@ -973,9 +993,10 @@ function mediaMetaLine(s: BienesRaicesNegocioFormState): string {
   const tour = trim(s.media?.virtualTourUrl) ? 1 : 0;
   const fpUrls = Array.isArray(s.media?.floorPlanUrls) ? s.media.floorPlanUrls : [];
   const nFp = fpUrls.filter((u) => trim(u)).length;
+  const externalVideos = cleanHttpUrls(s.media?.externalVideoUrls, 4);
   const parts: string[] = [];
   parts.push(`${nPhotos} fotos`);
-  parts.push(`${Math.min(nVid, 2)} videos`);
+  parts.push(`${Math.max(nVid, externalVideos.length)} videos`);
   if (tour) parts.push("Tour virtual");
   if (nFp) parts.push("Planos");
   if (trim(s.media?.sitePlanUrl) && s.advertiserType === "constructor_desarrollador") parts.push("Plano de sitio");
@@ -1009,6 +1030,10 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const youtubeIds: [string | null, string | null] = [r0.youtubeId, r1.youtubeId];
   const hasVideo1 = Boolean(r0.playback || r0.thumb || r0.youtubeId);
   const hasVideo2 = Boolean(r1.playback || r1.thumb || r1.youtubeId);
+  const externalVideoLinks = cleanHttpUrls(s.media?.externalVideoUrls, 4).map((href, index) => ({
+    label: numberedCtaLabel("Ver video", index),
+    href,
+  }));
 
   const descLong = trim(s.descripcionLarga);
   const descShort = trim(s.descripcionCorta);
@@ -1053,6 +1078,7 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
       videoThumbUrls,
       videoPlaybackUrls,
       youtubeIds,
+      externalVideoLinks: externalVideoLinks.length ? externalVideoLinks : undefined,
       virtualTourUrl,
       floorPlanUrls: floorPlans,
       sitePlanUrl,

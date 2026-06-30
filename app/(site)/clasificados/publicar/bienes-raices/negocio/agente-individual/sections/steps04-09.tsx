@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, type Dispatch, type SetStateAction } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import {
   AGENTE_RES_DESTACADOS_DEFS,
+  AGENTE_RES_MAX_BUSINESS_URLS,
   AGENTE_RES_MAX_OPEN_HOUSE_SLOTS,
   type AgenteResOpenHouseSlot,
 } from "../schema/agenteIndividualResidencialFormState";
@@ -500,6 +501,86 @@ function PhotoOrUrlBlock({
   );
 }
 
+function normalizedUrlFields(values: string[], max: number): string[] {
+  return Array.from({ length: max }, (_, i) => values[i] ?? "");
+}
+
+function validHttpUrl(raw: string): boolean {
+  return /^https?:\/\/\S+/i.test(raw.trim());
+}
+
+function AdditionalBusinessLinks({
+  state,
+  setState,
+}: {
+  state: AgenteIndividualResidencialFormState;
+  setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
+}) {
+  const { t } = useBrAgenteResidencialCopy();
+  const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
+  const existing = normalizedUrlFields(state.businessExtraUrls ?? [], AGENTE_RES_MAX_BUSINESS_URLS);
+  const filledCount = existing.filter((u) => u.trim()).length;
+  const [visibleCount, setVisibleCount] = useState(Math.min(AGENTE_RES_MAX_BUSINESS_URLS, Math.max(1, filledCount + 1)));
+
+  const patchUrl = (index: number, value: string) => {
+    setState((s) => {
+      const next = normalizedUrlFields(s.businessExtraUrls ?? [], AGENTE_RES_MAX_BUSINESS_URLS);
+      next[index] = value;
+      return {
+        ...s,
+        businessExtraUrls: next.map((u) => u.trim()).filter(Boolean).slice(0, AGENTE_RES_MAX_BUSINESS_URLS),
+      };
+    });
+  };
+
+  return (
+    <div className="sm:col-span-2">
+      <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.enlacesNegocio}</p>
+      <p className="mt-1 text-sm text-[#5C5346]/85">{s7.enlacesNegocioSub}</p>
+      <div className="mt-3 space-y-3">
+        {existing.slice(0, visibleCount).map((value, index) => {
+          const ok = validHttpUrl(value);
+          return (
+            <div key={index} className="rounded-xl border border-[#E8DFD0] bg-white/70 p-3">
+              <AiField label={s7.businessUrlLabel(index + 1)}>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className={`${aiInputClass} sm:flex-1`}
+                    type="url"
+                    value={value}
+                    onChange={(e) => patchUrl(index, e.target.value)}
+                    placeholder="https://"
+                    autoComplete="off"
+                  />
+                  {value.trim() ? (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-50 sm:min-h-0"
+                      onClick={() => patchUrl(index, "")}
+                    >
+                      {t.step02.quitar}
+                    </button>
+                  ) : null}
+                </div>
+              </AiField>
+              {ok ? <p className="mt-2 text-xs font-bold text-[#2F6B3C]">{s7.linkAdded}</p> : null}
+            </div>
+          );
+        })}
+        {visibleCount < AGENTE_RES_MAX_BUSINESS_URLS ? (
+          <button
+            type="button"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-dashed border-[#C9B46A]/70 bg-[#FFF6E7] px-4 py-2.5 text-xs font-bold text-[#5C4E2E] transition hover:border-[#B8954A] hover:bg-[#FFF0D6] sm:min-h-0"
+            onClick={() => setVisibleCount((n) => Math.min(AGENTE_RES_MAX_BUSINESS_URLS, n + 1))}
+          >
+            {s7.addLink}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function Step07InformacionProfesional({
   state,
   setState,
@@ -716,6 +797,7 @@ export function Step07InformacionProfesional({
             <AiField label={s7.enlaceSocialAdicional}>
               <input className={aiInputClass} type="url" value={state.socialOtro} onChange={(e) => setState((s) => ({ ...s, socialOtro: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
+            <AdditionalBusinessLinks state={state} setState={setState} />
           </div>
         </div>
       </div>
