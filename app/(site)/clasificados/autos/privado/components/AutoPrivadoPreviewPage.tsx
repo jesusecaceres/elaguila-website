@@ -213,12 +213,13 @@ export function AutoPrivadoPreviewPage({
                 messageSite: sb.messageSite,
                 emailSeller: sb.emailSeller,
                 sms: lang === "es" ? "Enviar SMS" : "Text seller",
-                sellerHeading: lang === "es" ? "Habla con el vendedor" : "Talk to the seller",
-                seller: lang === "es" ? "Vendedor" : "Seller",
-                socialDisclaimer:
+                sellerHeading: lang === "es" ? "Contactar vendedor" : "Contact seller",
+                seller: lang === "es" ? "Vendedor privado" : "Private seller",
+                safetyNote:
                   lang === "es"
-                    ? "Enlaces proporcionados por el vendedor (sin verificación de Leonix)."
-                    : "Seller-provided links (not verified by Leonix).",
+                    ? "Usa lugares públicos y seguros para revisar el vehículo."
+                    : "Meet in a safe public place when checking the vehicle.",
+                publishedOnLeonix: lang === "es" ? "Publicado en Leonix" : "Published on Leonix",
               }}
             />
           </aside>

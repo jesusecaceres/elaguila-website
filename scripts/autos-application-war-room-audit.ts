@@ -65,10 +65,13 @@ const lockedCtaFiles = new Set([
 const allowedExact = new Set([
   "package.json",
   auditPath,
+  "app/lib/clasificados/autos/AUTOS_PRIVADO_FINAL_SURGICAL_LAUNCH_AUDIT.md",
   "scripts/autos-application-war-room-audit.ts",
+  "scripts/autos-final-war-room-closeout-audit.ts",
   "playwright.autos-runtime.config.mjs",
   "app/(site)/dashboard/mis-anuncios/page.tsx",
   "app/admin/(dashboard)/workspace/clasificados/autos/page.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/_components/ClassifiedAdminRowActions.tsx",
 ]);
 
 const allowedPrefixes = [

@@ -3,8 +3,8 @@ import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/au
 /** Honest copy: local file uploads are session/tab draft only — not durable cloud storage until publish. */
 export function autosLocalFileTemporaryDraftNote(lang: AutosNegociosLang): string {
   return lang === "es"
-    ? "Los archivos locales se guardan solo en esta pestaña del navegador (borrador temporal). Las URLs de imagen permanecen guardadas. Al publicar, los archivos se suben a almacenamiento en la nube."
-    : "Local files are saved only in this browser tab (temporary draft). Image URLs stay saved. Files upload to cloud storage when you publish.";
+    ? "Los archivos locales se guardan como borrador temporal en este navegador. Si un archivo es demasiado pesado, se omitirá al guardar/publicar y te avisaremos; las URLs de imagen permanecen guardadas."
+    : "Local files are saved as a temporary draft in this browser. If a file is too large, it will be skipped during save/publish and we will warn you; image URLs stay saved.";
 }
 
 export const AUTOS_LOCAL_FILE_TEMPORARY_ES = "borrador temporal";

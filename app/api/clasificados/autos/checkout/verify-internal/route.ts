@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosSiteOrigin } from "@/app/lib/clasificados/autos/autosSiteOrigin";
-import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
+import { getAutosPublishUserFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
   assertAutosListingOwner,
   isAutosClassifiedsDbConfigured,
@@ -9,25 +9,23 @@ import {
 import { isAutosInternalPublishPaymentBypassEnabled } from "@/app/lib/clasificados/autos/autosInternalPublishConfig";
 import { isAutosAllowTestPublishBypassEnabled } from "@/app/lib/clasificados/autos/autosTestPublishBypass";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { isAutosNegociosQaPublishAllowlisted } from "@/app/lib/clasificados/autos/autosNegociosQaPublishAllowlist";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Confirms an internally or test-bypass-activated listing for the success page (no Stripe session).
- * Only when `AUTOS_INTERNAL_PUBLISH_PAYMENT_BYPASS` or `AUTOS_ALLOW_TEST_PUBLISH_BYPASS` is enabled
- * (non-production); requires owner Bearer auth.
+ * Confirms an internally, test-bypass, or Negocios QA-allowlist activated listing for the success page.
+ * This never creates fake Stripe payment state; it only verifies that the owner row is already active.
  */
 export async function GET(request: Request) {
-  if (!isAutosInternalPublishPaymentBypassEnabled() && !isAutosAllowTestPublishBypassEnabled()) {
-    return NextResponse.json({ ok: false, error: "disabled" }, { status: 404 });
-  }
   if (!isAutosClassifiedsDbConfigured()) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
-  const userId = await getAutosPublishUserIdFromRequest(request);
-  if (!userId) {
+  const user = await getAutosPublishUserFromRequest(request);
+  if (!user) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
+  const userId = user.id;
   const u = new URL(request.url);
   const listingId = u.searchParams.get("listing_id")?.trim();
   const lang: AutosClassifiedsLang = u.searchParams.get("lang") === "en" ? "en" : "es";
@@ -37,6 +35,11 @@ export async function GET(request: Request) {
   const row = await assertAutosListingOwner(listingId, userId);
   if (!row) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+  const allowlistedNegociosQa =
+    row.lane === "negocios" && isAutosNegociosQaPublishAllowlisted(user.id, user.email);
+  if (!isAutosInternalPublishPaymentBypassEnabled() && !isAutosAllowTestPublishBypassEnabled() && !allowlistedNegociosQa) {
+    return NextResponse.json({ ok: false, error: "disabled" }, { status: 404 });
   }
   if (row.status !== "active") {
     return NextResponse.json({ ok: false, error: "not_active" }, { status: 409 });

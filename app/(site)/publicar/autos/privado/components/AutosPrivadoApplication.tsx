@@ -31,7 +31,7 @@ import {
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
-import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import {
   autosVehicleCityHelper,
   autosVehicleCityPlaceholder,
@@ -441,8 +441,8 @@ export function AutosPrivadoApplication() {
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.dealer}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
               {lang === "es"
-                ? "Nombre y canales de contacto. Puedes añadir enlaces sociales opcionales (proporcionados por ti; Leonix no los verifica)."
-                : "Name and contact channels. Optional social links are seller-provided; Leonix does not verify them."}
+                ? "Nombre y canales de contacto reales para compradores. Privado no muestra perfil, redes o herramientas de dealer."
+                : "Real contact channels for buyers. Private listings do not show dealer profiles, socials, or business tools."}
             </p>
             <p className="mt-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
               <span className="text-red-800" aria-hidden>
@@ -497,42 +497,6 @@ export function AutosPrivadoApplication() {
                   value={listing.dealerEmail ?? ""}
                   onChange={(e) => setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })}
                 />
-              </div>
-              <div className="sm:col-span-2 border-t border-[color:var(--lx-nav-border)]/80 pt-5">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
-                  {t.app.dealer.socialHeading}
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
-                  {lang === "es"
-                    ? "Solo se muestran enlaces https válidos. Opcional."
-                    : "Only valid https links are shown. Optional."}
-                </p>
-                <div className={`${GRID2} mt-3`}>
-                  {(
-                    [
-                      ["facebook", t.app.dealer.socialLabels.facebook] as const,
-                      ["instagram", t.app.dealer.socialLabels.instagram] as const,
-                      ["tiktok", t.app.dealer.socialLabels.tiktok] as const,
-                      ["youtube", t.app.dealer.socialLabels.youtube] as const,
-                    ] as const
-                  ).map(([key, label]) => (
-                    <div key={key} className="sm:col-span-2">
-                      <label className={LABEL}>{label}</label>
-                      <input
-                        className={INPUT}
-                        type="url"
-                        inputMode="url"
-                        placeholder={t.app.placeholders.https}
-                        value={listing.dealerSocials?.[key] ?? ""}
-                        onChange={(e) =>
-                          setListingPatch({
-                            dealerSocials: { ...listing.dealerSocials, [key]: autosDraftUrlValue(e.target.value) },
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </section>

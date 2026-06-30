@@ -42,6 +42,29 @@ function formatUsd(n: number | undefined, lang: AutosPublishFlowLang) {
   }).format(n);
 }
 
+function autosPersistWarningMessage(code: string, lang: AutosPublishFlowLang): string {
+  const es = lang === "es";
+  switch (code) {
+    case "media_image_oversized_data_url_dropped":
+      return es
+        ? "Una imagen local era demasiado pesada y se omitió. Usa una imagen más ligera o una URL de imagen antes de publicar."
+        : "One local image was too large and was skipped. Use a smaller image or an image URL before publishing.";
+    case "dealer_logo_oversized_data_url_dropped":
+      return es
+        ? "El logo local era demasiado pesado y se omitió."
+        : "The local logo was too large and was skipped.";
+    case "video_file_data_url_stripped_for_persistence":
+    case "video_url_non_durable_stripped":
+      return es
+        ? "Se quitó un video local no publicable. Autos publica videos mediante enlaces externos."
+        : "A non-publishable local video was removed. Autos publishes videos through external links.";
+    default:
+      return es
+        ? "Se ajustó un archivo local no durable antes de guardar/publicar."
+        : "A non-durable local file was adjusted before save/publish.";
+  }
+}
+
 export function AutosPublishConfirmCore({
   lane,
   lang,
@@ -74,6 +97,7 @@ export function AutosPublishConfirmCore({
   const [payBusy, setPayBusy] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
   const [muxPublishWarnings, setMuxPublishWarnings] = useState<string[]>([]);
+  const [persistWarnings, setPersistWarnings] = useState<string[]>([]);
   const listingRef = useRef(listing);
   listingRef.current = listing;
 
@@ -108,6 +132,7 @@ export function AutosPublishConfirmCore({
         /* keep stripe copy */
       }
       if (!cancelled) setPublishConfirmMode(confirmMode);
+      if (!cancelled) setPersistWarnings([]);
 
       if (cancelled) return;
       if (!token) {
@@ -131,10 +156,12 @@ export function AutosPublishConfirmCore({
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
             });
+            const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
             if (cancelled) return;
             if (!sync.ok) {
               window.sessionStorage.removeItem(sk);
             } else {
+              setPersistWarnings(syncJson.persistWarnings ?? []);
               setListingId(cached);
               setPhase("ready");
               return;
@@ -159,7 +186,7 @@ export function AutosPublishConfirmCore({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(createBody),
       });
-      const j = (await res.json()) as { ok?: boolean; id?: string };
+      const j = (await res.json()) as { ok?: boolean; id?: string; persistWarnings?: string[] };
       if (cancelled) return;
       if (!res.ok || !j.id) {
         setErrorDetail(c.createError);
@@ -167,6 +194,7 @@ export function AutosPublishConfirmCore({
         return;
       }
       window.sessionStorage.setItem(sk, j.id);
+      setPersistWarnings(j.persistWarnings ?? []);
       setListingId(j.id);
       setPhase("ready");
     })();
@@ -253,6 +281,7 @@ export function AutosPublishConfirmCore({
     if (!token) return;
     setPayBusy(true);
     setMuxPublishWarnings([]);
+    setPersistWarnings([]);
     const muxLang = lang === "en" ? "en" : "es";
     const prepared = await prepareAutosListingOptionalMuxUpload(listingRef.current, muxLang);
     listingRef.current = prepared.listing;
@@ -263,12 +292,14 @@ export function AutosPublishConfirmCore({
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
     });
+    const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
     if (!sync.ok) {
       setPayBusy(false);
       setErrorDetail(c.createError);
       setPhase("error");
       return;
     }
+    setPersistWarnings(syncJson.persistWarnings ?? []);
     const res = await fetch("/api/clasificados/autos/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -410,6 +441,19 @@ export function AutosPublishConfirmCore({
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {muxPublishWarnings.map((w, i) => (
               <li key={`${i}-${w.slice(0, 48)}`}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {persistWarnings.length > 0 ? (
+        <div
+          className="mt-6 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          role="status"
+        >
+          <p className="font-semibold">{lang === "es" ? "Aviso de fotos / archivos" : "Photo / file notice"}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {persistWarnings.map((w, i) => (
+              <li key={`${i}-${w}`}>{autosPersistWarningMessage(w, lang)}</li>
             ))}
           </ul>
         </div>

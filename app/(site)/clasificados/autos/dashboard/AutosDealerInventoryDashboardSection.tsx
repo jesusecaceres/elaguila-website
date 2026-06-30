@@ -119,39 +119,41 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const t =
     lang === "es"
       ? {
-          title: "Inventario Autos Negocio",
-          subtitle: "Cada vehículo es su propio anuncio activo. Agrupa y gestiona tu inventario del dealer.",
+          title: "Anuncios Autos",
+          subtitle: "Tus publicaciones pagadas de Autos. Privado y Negocios se mantienen separados en el detalle público.",
           loading: "Cargando inventario…",
-          empty: "Aún no tienes vehículos Negocio en el flujo de pago Leonix.",
+          empty: "Aún no tienes anuncios de Autos en el flujo de pago Leonix.",
           activeCount: "activos",
           remaining: "espacios restantes",
           addVehicle: "Agregar vehículo al inventario",
           manage: "Gestionar inventario",
           main: "Principal",
           inventory: "Inventario",
-          edit: "Editar",
+          manageListing: "Gestión disponible desde vista pública / admin",
           viewLive: "Ver público",
           unpublish: "Retirar",
           publish: "Publicar",
+          publishAutos: "Publicar en Autos",
           allListings: "Tus anuncios Autos",
           privado: "Privado",
           negocios: "Negocios",
         }
       : {
-          title: "Autos Negocio inventory",
-          subtitle: "Each vehicle is its own live listing. Group and manage your dealer inventory.",
+          title: "Autos listings",
+          subtitle: "Your paid Autos listings. Private and Dealer stay separate on the public detail page.",
           loading: "Loading inventory…",
-          empty: "You do not have any Negocio vehicles in the Leonix paid flow yet.",
+          empty: "You do not have any Autos listings in the Leonix paid flow yet.",
           activeCount: "active",
           remaining: "slots remaining",
           addVehicle: "Add vehicle to inventory",
           manage: "Manage inventory",
           main: "Main",
           inventory: "Inventory",
-          edit: "Edit",
+          manageListing: "Manage from public view / admin",
           viewLive: "View live",
           unpublish: "Unpublish",
           publish: "Publish",
+          publishAutos: "Publish in Autos",
           allListings: "Your Autos listings",
           privado: "Private",
           negocios: "Dealer",
@@ -183,15 +185,16 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       <div className="mt-6 rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7]/80 p-5 text-sm text-[#5C5346]">
         <p className="font-bold text-[#1E1810]">{t.empty}</p>
         <Link
-          href={withLangParam("/publicar/autos/negocios", lang)}
+          href={withLangParam("/publicar/autos", lang)}
           className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2]"
         >
-          {lang === "es" ? "Publicar en Autos Negocio" : "Publish Autos Business"}
+          {t.publishAutos}
         </Link>
       </div>
     );
   }
 
+  const hasNegociosRows = rows.some((row) => row.lane === "negocios");
   const limit = dealerInventory?.limit ?? 10;
   const activeCount = dealerInventory?.activeCount ?? 0;
   const remaining = dealerInventory?.remainingSlots ?? Math.max(0, limit - activeCount);
@@ -201,23 +204,27 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     <div className="mt-6 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
       <h2 className="text-lg font-bold text-[#1E1810]">{t.title}</h2>
       <p className="mt-1 text-sm text-[#5C5346]/95">{t.subtitle}</p>
-      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-        {autosDealerInventoryValueBullets(lang).map((line) => (
-          <li key={line} className="flex gap-2 text-xs font-medium text-[#5C5346]">
-            <span className="text-[#C9B46A]" aria-hidden>
-              ✓
-            </span>
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-sm font-semibold text-[#1E1810]">
-        {autosDealerInventoryActiveCountLine(lang, activeCount, limit)}
-      </p>
-      <p className="mt-1 text-xs font-medium text-[#5C5346]">
-        {autosDealerInventoryRemainingSlotsLine(lang, remaining)}
-      </p>
-      {atLimit ? (
+      {hasNegociosRows ? (
+        <>
+          <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+            {autosDealerInventoryValueBullets(lang).map((line) => (
+              <li key={line} className="flex gap-2 text-xs font-medium text-[#5C5346]">
+                <span className="text-[#C9B46A]" aria-hidden>
+                  ✓
+                </span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm font-semibold text-[#1E1810]">
+            {autosDealerInventoryActiveCountLine(lang, activeCount, limit)}
+          </p>
+          <p className="mt-1 text-xs font-medium text-[#5C5346]">
+            {autosDealerInventoryRemainingSlotsLine(lang, remaining)}
+          </p>
+        </>
+      ) : null}
+      {hasNegociosRows && atLimit ? (
         <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
           <p>{autosDealerInventoryLimitMessage(lang)}</p>
           <div className="mt-3">
@@ -233,16 +240,14 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             />
           </div>
         </div>
-      ) : (
+      ) : hasNegociosRows ? (
         <p className="mt-3 text-xs text-[#5C5346]">{autosDealerInventoryUpgradePitch(lang)}</p>
-      )}
+      ) : null}
 
       <section className="mt-6 rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4">
         <h3 className="font-bold text-[#1E1810]">{t.allListings}</h3>
         <ul className="mt-4 flex flex-col gap-3">
           {rows.map((row) => {
-            const editHref = withLangParam(row.lane === "negocios" ? "/publicar/autos/negocios" : "/publicar/autos/privado", row.lang);
-            const confirmHref = withLangParam(`${editHref}/confirm`, row.lang);
             const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
             const busy = busyId === row.id;
             return (
@@ -256,14 +261,6 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Link href={editHref} className="rounded-lg border border-[#E8DFD0] px-2.5 py-1.5 text-[11px] font-bold">
-                      {t.edit}
-                    </Link>
-                    {row.status === "draft" || row.status === "pending_payment" || row.status === "payment_failed" ? (
-                      <Link href={confirmHref} className="rounded-lg bg-[#2A2620] px-2.5 py-1.5 text-[11px] font-bold text-[#FAF7F2]">
-                        {t.publish}
-                      </Link>
-                    ) : null}
                     {row.status === "active" ? (
                       <>
                         <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
@@ -278,7 +275,11 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           {t.unpublish}
                         </button>
                       </>
-                    ) : null}
+                    ) : (
+                      <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
+                        {t.manageListing}
+                      </span>
+                    )}
                   </div>
                 </div>
               </li>
@@ -333,8 +334,6 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               </div>
               <ul className="mt-4 flex flex-col gap-3">
                 {group.rows.map((row) => {
-                  const editHref = withLangParam("/publicar/autos/negocios", row.lang);
-                  const confirmHref = withLangParam(`${editHref}/confirm`, row.lang);
                   const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
                   const roleLabel =
                     row.inventory_role === "main"
@@ -355,14 +354,6 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <Link href={editHref} className="rounded-lg border border-[#E8DFD0] px-2.5 py-1.5 text-[11px] font-bold">
-                            {t.edit}
-                          </Link>
-                          {row.status === "draft" || row.status === "pending_payment" || row.status === "payment_failed" ? (
-                            <Link href={confirmHref} className="rounded-lg bg-[#2A2620] px-2.5 py-1.5 text-[11px] font-bold text-[#FAF7F2]">
-                              {t.publish}
-                            </Link>
-                          ) : null}
                           {row.status === "active" ? (
                             <>
                               <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
@@ -377,7 +368,11 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                                 {t.unpublish}
                               </button>
                             </>
-                          ) : null}
+                          ) : (
+                            <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
+                              {t.manageListing}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </li>

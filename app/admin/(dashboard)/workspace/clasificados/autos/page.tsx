@@ -175,7 +175,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         purpose="Review dealer and private Autos listings, inspect inventory identity, and run staff lifecycle/trust actions."
         dataSource="public.autos_classifieds_listings plus owner profiles and package/analytics overlays where available."
         status="partial"
-        safeActions={["View public", "Manage listing", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
+        safeActions={["View public", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
         nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
         warningNote="Public browse and dealer inventory are real; action confirmations/audit consistency still need QA proof."
       />
@@ -262,7 +262,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                 ].some((x) => x?.trim());
                 const mediaSignal = [
                   dash.thumbUrl ? "photo" : "",
-                  payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() ? "video" : "",
+                  payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() || (payload.videoUrls?.length ?? 0) > 0 ? "video" : "",
                 ].filter(Boolean).join(" + ");
                 const dealerActiveCount = r.lane === "negocios" ? dealerActiveCountByOwner.get(r.owner_user_id) ?? 0 : null;
                 const liveHref =
@@ -339,7 +339,6 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                           promoted={r.featured}
                           verified={Boolean(r.leonix_verified)}
                           canArchive={r.status !== "cancelled" && r.status !== "draft" && r.status !== "pending_payment"}
-                          staffEditBoardHref={`/dashboard/mis-anuncios/${encodeURIComponent(r.id)}`}
                           republishCategory="autos"
                           republishRow={{
                             lane: r.lane,

@@ -104,6 +104,7 @@ export function ClassifiedAdminRowActions({
   promoted,
   verified,
   canArchive = true,
+  staffEditBoardHref,
   republishCategory,
   republishRow,
   leonixAdId,
@@ -215,6 +216,14 @@ export function ClassifiedAdminRowActions({
       <AdminActionExplainerGrid actions={["republish", "suspend", "restore", "archive", "feature", "verifyLeonix"]} />
       <ActionSection title="Lifecycle" collapseSections={collapseSections} testId="admin-row-actions-lifecycle">
         <AdminDashboardCtaGrid columns={gridCols}>
+          {staffEditBoardHref ? (
+            <a
+              href={staffEditBoardHref}
+              className={`${compact} inline-flex min-h-[36px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-center text-xs font-bold text-[#2C2416] transition hover:border-[#C9B46A]`}
+            >
+              Open manage
+            </a>
+          ) : null}
           {republish ? (
             <AdminDashboardCtaButton
               label={busy ? "…" : republish.label || actionLabel.republish}

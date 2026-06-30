@@ -1,21 +1,19 @@
 "use client";
 
-import type { IconType } from "react-icons";
 import { FiMail, FiMessageCircle, FiPhone } from "react-icons/fi";
-import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiYoutube } from "react-icons/si";
+import { SiWhatsapp } from "react-icons/si";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { resolveDealerOfficePhone } from "@/app/clasificados/autos/negocios/lib/dealerContactResolve";
 import { formatUsPhoneDisplay, phoneDigitsForTel } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
-import { buildPrivadoSellerMailtoHref, buildPrivadoWhatsappInterestHref } from "../lib/privadoContactIntent";
-import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
+import { buildPrivadoSellerMailtoHref, buildPrivadoSiteMessageHref, buildPrivadoWhatsappInterestHref } from "../lib/privadoContactIntent";
 import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
 import {
   autosAnalyticsTrackMeta,
   autosSheetCtaAnalyticsProps,
   type AutosPublicListingAnalyticsProps,
 } from "../../lib/autosAnalyticsIdentity";
-import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
+import { trackAutosListingContactCta } from "../../lib/autosCtaTracking";
 
 const BTN_PRIMARY =
   "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold tracking-tight text-[#FFFCF7] shadow-[0_8px_24px_-6px_rgba(26,22,18,0.45)] transition hover:bg-[color:var(--lx-cta-dark-hover)] active:scale-[0.99]";
@@ -41,7 +39,8 @@ export function PrivadoContactStrip({
     sms: string;
     sellerHeading: string;
     seller: string;
-    socialDisclaimer: string;
+    safetyNote: string;
+    publishedOnLeonix: string;
   };
 }) {
   const office = resolveDealerOfficePhone(data);
@@ -59,21 +58,12 @@ export function PrivadoContactStrip({
 
   const smsHref = showCall ? `sms:${phoneForTel}` : undefined;
   const showSms = Boolean(smsHref);
+  const siteMessageHref = buildPrivadoSiteMessageHref(lang, data);
 
   const seller = data.dealerName?.trim();
-  const soc = data.dealerSocials ?? {};
-  const socialRows: Array<{ key: string; href: string; label: string; Icon: IconType }> = [];
-  const push = (key: "facebook" | "instagram" | "tiktok" | "youtube", label: string, Icon: IconType) => {
-    const href = safeExternalHref(soc[key]);
-    if (href) socialRows.push({ key, href, label, Icon });
-  };
-  push("facebook", "Facebook", SiFacebook);
-  push("instagram", "Instagram", SiInstagram);
-  push("tiktok", "TikTok", SiTiktok);
-  push("youtube", "YouTube", SiYoutube);
 
-  const hasAnyCta = showCall || showWa || showEmail || showSms;
-  if (!seller && !hasAnyCta && socialRows.length === 0) return null;
+  const hasAnyCta = showCall || showWa || showEmail || showSms || Boolean(siteMessageHref);
+  if (!seller && !hasAnyCta) return null;
 
   const sheetProps = autosSheetCtaAnalyticsProps(publicAnalytics);
   const contactMeta =
@@ -92,6 +82,7 @@ export function PrivadoContactStrip({
       <h2 className="mt-2 break-words text-xl font-extrabold leading-snug tracking-tight text-[color:var(--lx-text)] sm:text-2xl">
         {labels.sellerHeading}
       </h2>
+      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--lx-gold)]">{labels.publishedOnLeonix}</p>
       {seller ? <p className="mt-2 break-words text-base font-semibold text-[color:var(--lx-text-2)]">{seller}</p> : null}
       <div className={`flex flex-col gap-2.5 sm:gap-3 ${seller ? "mt-5" : "mt-4"}`}>
         {showCall && phoneForTel ? (
@@ -118,6 +109,18 @@ export function PrivadoContactStrip({
             {labels.whatsapp}
           </AutosSheetCtaLink>
         ) : null}
+        <AutosSheetCtaLink
+          href={siteMessageHref}
+          lang={lang}
+          className={`${BTN_SECONDARY} gap-2`}
+          {...sheetProps}
+          onClick={() => {
+            if (contactMeta) trackAutosListingContactCta("message", contactMeta);
+          }}
+        >
+          <FiMessageCircle className="h-5 w-5 shrink-0 text-[color:var(--lx-text)]" aria-hidden />
+          {labels.messageSite}
+        </AutosSheetCtaLink>
         {showEmail && mailtoHref ? (
           <AutosSheetCtaLink href={mailtoHref} lang={lang} className={`${BTN_SECONDARY} gap-2`} {...sheetProps}>
             <FiMail className="h-5 w-5 shrink-0" aria-hidden />
@@ -131,29 +134,9 @@ export function PrivadoContactStrip({
           </AutosSheetCtaLink>
         ) : null}
       </div>
-      {socialRows.length > 0 ? (
-        <div className="mt-6 border-t border-[color:var(--lx-nav-border)]/80 pt-5">
-          <p className="text-xs font-semibold text-[color:var(--lx-text)]">{labels.socialDisclaimer}</p>
-          <ul className="mt-3 space-y-2">
-            {socialRows.map(({ key, href, label, Icon }) => (
-              <li key={String(key)}>
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    if (contactMeta) trackAutosContactFromHref(href, contactMeta);
-                  }}
-                  className="inline-flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-2 text-sm font-semibold text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)]"
-                >
-                  <Icon className="h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate">{label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      <p className="mt-5 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-2 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
+        {labels.safetyNote}
+      </p>
     </section>
   );
 }
