@@ -52,6 +52,7 @@ export function applyInventoryDraftToAgenteFormState(
     titulo: normalized.title.trim(),
     precio: normalized.price.trim(),
     ciudad: normalized.city.trim(),
+    direccionPais: normalized.country.trim() || "United States",
     direccionEstado: normalized.state.trim(),
     direccionCodigoPostal: normalized.zip.trim(),
     direccionLinea1: normalized.streetLine1.trim(),

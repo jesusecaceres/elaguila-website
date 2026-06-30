@@ -25,7 +25,7 @@ import {
   TIPO_PROPIEDAD_OPCIONES,
 } from "../schema/agenteResidencialTipoMeta";
 import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
-import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BrAgenteLocationFormFields } from "@/app/lib/clasificados/bienes-raices/brLocationFormFields";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { formatPrecioUsd } from "../lib/agenteResidencialPreviewFormat";
 
@@ -472,43 +472,7 @@ export function Step02InformacionBasica({
             />
           </AiField>
         </div>
-        <AiField label={t.step02.ciudad} hint={t.step02.ciudadHint}>
-          <CityAutocomplete
-            value={state.ciudad}
-            onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
-            lang={lang}
-            variant="brForm"
-            stripInvalidOnBlur
-            placeholder={t.step02.ciudadPlaceholder}
-            className="w-full"
-          />
-        </AiField>
-        <AiField label={t.step02.direccionEstado} hint={t.step02.direccionEstadoHint}>
-          <input
-            className={aiInputClass}
-            value={state.direccionEstado}
-            onChange={(ev) => setState((s) => ({ ...s, direccionEstado: ev.target.value }))}
-            autoComplete="address-level1"
-            placeholder="CA"
-          />
-        </AiField>
-        <AiField label={t.step02.direccionCodigoPostal} hint={t.step02.direccionCodigoPostalHint}>
-          <input
-            className={aiInputClass}
-            value={state.direccionCodigoPostal}
-            onChange={(ev) => setState((s) => ({ ...s, direccionCodigoPostal: ev.target.value }))}
-            autoComplete="postal-code"
-            inputMode="numeric"
-          />
-        </AiField>
-        <AiField label={t.step02.area} hint={t.step02.areaHint}>
-          <input
-            className={aiInputClass}
-            value={state.areaCiudad}
-            onChange={(ev) => setState((s) => ({ ...s, areaCiudad: ev.target.value }))}
-            autoComplete="off"
-          />
-        </AiField>
+        <BrAgenteLocationFormFields state={state} setState={setState} lang={lang} copy={t.step02} />
         <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-black/10 bg-white/80 px-3 py-2.5">
           <input
             id="agente-mostrar-direccion-exacta"

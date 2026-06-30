@@ -1,4 +1,4 @@
-import { brCanonicalNorCalCity } from "@/app/clasificados/bienes-raices/shared/brNorCalCity";
+import { resolveBrListingCity, normalizeBrListingCountry } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 import { digitsOnly } from "../application/utils/phoneMask";
 import type {
   BrNegocioCategoriaPropiedad,
@@ -105,6 +105,7 @@ export type AgenteIndividualResidencialFormState = {
   direccionLinea1: string;
   /** Unit / apt / suite / space / lot (optional). */
   direccionLinea2: string;
+  direccionPais: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
   /** @deprecated Legacy single-line address; hydrated from `direccionLinea1` when missing. */
@@ -415,6 +416,7 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
   if (typeof p.direccion === "string") out.direccion = p.direccion;
   if (typeof p.direccionLinea1 === "string") out.direccionLinea1 = p.direccionLinea1;
   if (typeof p.direccionLinea2 === "string") out.direccionLinea2 = p.direccionLinea2;
+  if (typeof p.direccionPais === "string") out.direccionPais = p.direccionPais;
   if (typeof p.direccionEstado === "string") out.direccionEstado = p.direccionEstado;
   if (typeof p.direccionCodigoPostal === "string") out.direccionCodigoPostal = p.direccionCodigoPostal;
   if (typeof p.estadoAnuncio === "string") out.estadoAnuncio = mapEstadoLegacy(p.estadoAnuncio);
@@ -555,6 +557,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     areaCiudad: "",
     direccionLinea1: "",
     direccionLinea2: "",
+    direccionPais: "United States",
     direccionEstado: "",
     direccionCodigoPostal: "",
     direccion: "",
@@ -1000,7 +1003,7 @@ export function mergePartialAgenteIndividualResidencial(
           : base.ciudad,
     ),
   );
-  const ciudad = brCanonicalNorCalCity(ciudadRaw);
+  const ciudad = resolveBrListingCity(ciudadRaw);
 
   const sellerTipo = coerceBrNegocioSellerTipo(flat.sellerTipo ?? nested.sellerTipo ?? legacy.sellerTipo);
   const categoriaPropiedad = coerceBrNegocioCategoriaPropiedad(
@@ -1104,6 +1107,7 @@ function hydrateAgenteStructuredAddress(s: AgenteIndividualResidencialFormState)
     ...s,
     direccionLinea1: line1,
     direccionLinea2: trim(s.direccionLinea2),
+    direccionPais: normalizeBrListingCountry(s.direccionPais),
     direccionEstado: trim(s.direccionEstado),
     direccionCodigoPostal: trim(s.direccionCodigoPostal),
     direccion,

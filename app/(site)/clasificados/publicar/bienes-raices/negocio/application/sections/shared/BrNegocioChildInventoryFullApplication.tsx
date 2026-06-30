@@ -329,13 +329,14 @@ export function BrNegocioChildInventoryFullApplication({
             </section>
           ) : null}
 
-          {errors.titulo || errors.precio || errors.ciudad || errors.direccionEstado || errors.fotos ? (
+          {errors.titulo || errors.precio || errors.ciudad || errors.direccionPais || errors.direccionEstado || errors.fotos ? (
             <div className="mt-4 rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-4 py-3 text-sm text-[#B42318]">
               <p className="font-semibold">{copy.validationSummary}</p>
               <ul className="mt-2 list-inside list-disc space-y-0.5">
                 {errors.titulo ? <li>{errors.titulo}</li> : null}
                 {errors.precio ? <li>{errors.precio}</li> : null}
                 {errors.ciudad ? <li>{errors.ciudad}</li> : null}
+                {errors.direccionPais ? <li>{errors.direccionPais}</li> : null}
                 {errors.direccionEstado ? <li>{errors.direccionEstado}</li> : null}
                 {errors.fotos ? <li>{errors.fotos}</li> : null}
               </ul>

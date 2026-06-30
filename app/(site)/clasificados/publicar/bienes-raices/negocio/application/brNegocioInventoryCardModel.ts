@@ -19,6 +19,7 @@ import {
   formatSqftDisplay,
   formatUsdWhole,
 } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
+import { formatBrCityStatePostalLine } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 
 export type BrNegocioInventoryCardKind = "main" | "additional";
 
@@ -40,13 +41,6 @@ export type BrNegocioInventoryCardModel = {
   roleLabel: string;
   leonixDraftNote: string;
 };
-
-function cityStateLine(city: string, state: string): string {
-  const c = city.trim();
-  const st = state.trim();
-  if (c && st) return `${c}, ${st}`;
-  return c || st || "—";
-}
 
 function titleFallback(lang: BrNegocioPrePublishInventoryLang): string {
   return lang === "es" ? "Sin título" : "Untitled";
@@ -86,7 +80,7 @@ export function mapNegocioFormToMainInventoryCard(
     title: trim(state.titulo) || titleFallback(lang),
     priceDisplay: mainPriceDisplay(state.precio, lang),
     propertyTypeLine: negocioTypeLine(state),
-    cityState: cityStateLine(state.ciudad, state.estado),
+    cityState: formatBrCityStatePostalLine(state.ciudad, state.estado, "", "United States"),
     bedrooms: trim(state.recamaras),
     bathrooms: trim(state.banosCompletos),
     interiorSqft: trim(state.piesCuadrados),
@@ -117,7 +111,12 @@ export function mapAgenteFormToMainInventoryCard(
     title: trim(state.titulo) || titleFallback(lang),
     priceDisplay: mainPriceDisplay(state.precio, lang),
     propertyTypeLine: formatTipoPropiedadLine(state, locale),
-    cityState: cityStateLine(state.ciudad, state.direccionEstado),
+    cityState: formatBrCityStatePostalLine(
+      state.ciudad,
+      state.direccionEstado,
+      state.direccionCodigoPostal,
+      state.direccionPais,
+    ),
     bedrooms: trim(state.recamaras),
     bathrooms: trim(state.banos),
     interiorSqft: trim(state.tamanoInteriorSqft),

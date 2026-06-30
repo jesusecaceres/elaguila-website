@@ -1,5 +1,6 @@
-import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
+import { formatBrCityStatePostalLine } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 import { formatUsdWhole } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
+import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   labelForSubtipo,
   SUBTIPO_POR_TIPO,
@@ -33,6 +34,8 @@ export type BrNegocioAdditionalInventoryPropertyDraft = {
   city: string;
   state: string;
   zip: string;
+  /** Country / territory for worldwide listings (form-only; not a DB column). */
+  country: string;
   showExactAddress: boolean;
   description: string;
   /** @deprecated Use photoUrls + primaryPhotoIndex; kept for old drafts. */
@@ -84,6 +87,7 @@ export function createEmptyBrNegocioAdditionalInventoryPropertyDraft(
     city: "",
     state: "",
     zip: "",
+    country: "United States",
     showExactAddress: false,
     description: "",
     mainPhotoUrl: "",
@@ -183,6 +187,7 @@ export function sanitizeBrNegocioAdditionalInventoryPropertyDraft(
     city: str(o.city),
     state: str(o.state),
     zip: str(o.zip),
+    country: str(o.country) || "United States",
     showExactAddress: bool(o.showExactAddress, false),
     description: str(o.description),
     mainPhotoUrl: str(o.mainPhotoUrl),
@@ -282,10 +287,13 @@ export function brInventoryDraftPriceDisplay(price: string, lang: "es" | "en"): 
 }
 
 export function brInventoryDraftLocationLine(draft: BrNegocioAdditionalInventoryPropertyDraft): string {
-  const city = draft.city.trim();
-  const state = draft.state.trim();
-  if (city && state) return `${city}, ${state}`;
-  return city || state || "—";
+  const line = formatBrCityStatePostalLine(
+    draft.city,
+    draft.state,
+    draft.zip,
+    draft.country || "United States",
+  );
+  return line || "—";
 }
 
 export const BR_INVENTORY_DRAWER_PROPERTY_TYPES: ReadonlyArray<{

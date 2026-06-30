@@ -32,8 +32,11 @@ import {
   type TerrenoDestacadoId,
 } from "../schema/agenteComercialTerrenoMeta";
 import {
+  formatBrCityStatePostalLine,
+  isBrUsCountry,
+} from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
+import {
   buildRealEstateMapQuery,
-  formatApproxAddressDisplay,
   formatDetailCountDisplay,
   formatFullAddress,
   formatSqftDisplay,
@@ -231,10 +234,15 @@ export function buildLocationLine(s: AgenteIndividualResidencialFormState): stri
   const state = trim(s.direccionEstado);
   const zip = trim(s.direccionCodigoPostal);
   const neighborhood = trim(s.areaCiudad);
+  const country = trim(s.direccionPais);
   if (!s.mostrarDireccionExacta) {
-    return formatApproxAddressDisplay({ neighborhood, city, state, zip }) || "—";
+    const cityLine = formatBrCityStatePostalLine(city, state, zip, country);
+    if (neighborhood && cityLine) return `${cityLine} · ${neighborhood}`;
+    return cityLine || neighborhood || "—";
   }
-  return formatFullAddress({ street, unit, city, state, zip }) || "—";
+  const base = formatFullAddress({ street, unit, city, state, zip });
+  if (country && !isBrUsCountry(country) && base) return `${base}, ${country}`;
+  return base || "—";
 }
 
 export function buildMapQuery(s: AgenteIndividualResidencialFormState): string {
@@ -252,6 +260,7 @@ export function buildMapQuery(s: AgenteIndividualResidencialFormState): string {
     city,
     state,
     zip,
+    country: trim(s.direccionPais),
     legacyStreet: trim(s.direccion),
   });
   return q || city;

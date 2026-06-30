@@ -2,7 +2,11 @@
  * BR-INV-FIX-01D — child inventory ↔ full Agente property form mapping.
  */
 
-import { brCanonicalNorCalCity } from "@/app/(site)/clasificados/bienes-raices/shared/brNorCalCity";
+import {
+  normalizeBrListingCountry,
+  resolveBrListingCity,
+  isBrUsCountry,
+} from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   createEmptyAgenteIndividualResidencialState,
@@ -26,6 +30,7 @@ export const AGENTE_CHILD_PROPERTY_FIELD_KEYS = [
   "areaCiudad",
   "direccionLinea1",
   "direccionLinea2",
+  "direccionPais",
   "direccionEstado",
   "direccionCodigoPostal",
   "direccion",
@@ -54,6 +59,7 @@ export const AGENTE_CHILD_PROPERTY_FIELD_KEYS = [
   "fotosDataUrls",
   "fotoPortadaIndex",
   "videoUrl",
+  "videoUrls",
   "videoDataUrl",
   "videoArchivoNombre",
   "tourUrl",
@@ -110,11 +116,9 @@ export function pickParentHubSlice(
   });
 }
 
-/** Canonical NorCal city when known; otherwise preserve manual city text (matches parent typing UX). */
+/** Canonical city when NorCal match exists; otherwise preserve manual text. */
 export function resolveChildInventoryCity(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return "";
-  return brCanonicalNorCalCity(trimmed) || trimmed;
+  return resolveBrListingCity(raw);
 }
 
 export function mergeParentHubWithChildProperty(
@@ -126,26 +130,24 @@ export function mergeParentHubWithChildProperty(
     ...childProperty,
     additionalInventoryProperties: [],
   });
-  if (typeof childProperty.ciudad === "string") {
-    return { ...merged, ciudad: resolveChildInventoryCity(childProperty.ciudad) };
-  }
-  return merged;
+  return {
+    ...merged,
+    ciudad: resolveChildInventoryCity(String(childProperty.ciudad ?? merged.ciudad)),
+    direccionPais: normalizeBrListingCountry(String(childProperty.direccionPais ?? merged.direccionPais)),
+  };
 }
 
-/** Live editor merge — parent setState does not canonicalize city on every keystroke. */
+/** Live editor merge — no mergePartial; preserves raw typing (videoUrls, city, state, etc.). */
 export function mergeParentHubWithChildPropertyForEditor(
   parentHub: AgenteIndividualResidencialFormState,
   childProperty: Partial<AgenteChildPropertyFormSlice>,
 ): AgenteIndividualResidencialFormState {
-  const merged = mergePartialAgenteIndividualResidencial({
-    ...pickParentHubSlice(parentHub),
+  const hub = pickParentHubSlice(parentHub);
+  return {
+    ...hub,
     ...childProperty,
     additionalInventoryProperties: [],
-  });
-  if (typeof childProperty.ciudad === "string") {
-    return { ...merged, ciudad: childProperty.ciudad };
-  }
-  return merged;
+  };
 }
 
 function propertyTypeCodeFromSlice(slice: AgenteChildPropertyFormSlice): string {
@@ -184,6 +186,7 @@ function flatFieldsFromChildSlice(
     city: resolveChildInventoryCity(slice.ciudad),
     state: slice.direccionEstado.trim(),
     zip: slice.direccionCodigoPostal.trim(),
+    country: normalizeBrListingCountry(slice.direccionPais),
     showExactAddress: slice.mostrarDireccionExacta,
     description: slice.descripcionPrincipal.trim(),
     mainPhotoUrl: cover,
@@ -208,6 +211,7 @@ export function childInventoryDraftFromEditorState(
   const slice = {
     ...pickChildPropertySlice(merged),
     ciudad: resolveChildInventoryCity(merged.ciudad),
+    direccionPais: normalizeBrListingCountry(merged.direccionPais),
   };
   const now = new Date().toISOString();
   const id = existing?.id ?? newBrLocalPropertyDraftId();
@@ -240,7 +244,14 @@ export function buildChildInventoryEditorState(
       normalized.propertyForm as Partial<AgenteChildPropertyFormSlice>,
     );
     const savedCity = resolveChildInventoryCity(normalized.city || String(normalized.propertyForm.ciudad ?? ""));
-    return savedCity ? { ...merged, ciudad: savedCity } : merged;
+    const savedCountry = normalizeBrListingCountry(
+      String(normalized.country ?? normalized.propertyForm.direccionPais ?? ""),
+    );
+    return {
+      ...merged,
+      ciudad: savedCity || merged.ciudad,
+      direccionPais: savedCountry,
+    };
   }
   return applyInventoryDraftToAgenteFormState(hub, normalized, lang);
 }
@@ -248,8 +259,10 @@ export function buildChildInventoryEditorState(
 export function validateAgenteChildInventoryForSave(
   state: AgenteIndividualResidencialFormState,
   lang: "es" | "en",
-): Partial<Record<"titulo" | "precio" | "ciudad" | "direccionEstado" | "fotos", string>> {
-  const errors: Partial<Record<"titulo" | "precio" | "ciudad" | "direccionEstado" | "fotos", string>> = {};
+): Partial<Record<"titulo" | "precio" | "ciudad" | "direccionPais" | "direccionEstado" | "fotos", string>> {
+  const errors: Partial<
+    Record<"titulo" | "precio" | "ciudad" | "direccionPais" | "direccionEstado" | "fotos", string>
+  > = {};
   if (!state.titulo.trim()) {
     errors.titulo = lang === "es" ? "El título es obligatorio." : "Title is required.";
   }
@@ -259,7 +272,10 @@ export function validateAgenteChildInventoryForSave(
   if (!resolveChildInventoryCity(state.ciudad)) {
     errors.ciudad = lang === "es" ? "La ciudad es obligatoria." : "City is required.";
   }
-  if (!state.direccionEstado.trim()) {
+  if (!normalizeBrListingCountry(state.direccionPais)) {
+    errors.direccionPais = lang === "es" ? "El país es obligatorio." : "Country is required.";
+  }
+  if (isBrUsCountry(state.direccionPais) && !state.direccionEstado.trim()) {
     errors.direccionEstado = lang === "es" ? "El estado es obligatorio." : "State is required.";
   }
   const photos = (state.fotosDataUrls ?? []).filter((u) => String(u ?? "").trim());

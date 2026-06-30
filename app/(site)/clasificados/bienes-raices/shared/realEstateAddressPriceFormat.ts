@@ -1,7 +1,4 @@
-import {
-  composeBrApproximateMapQuery,
-  composeBrExactMapQuery,
-} from "@/app/(site)/clasificados/lib/leonixBrGate12d";
+import { buildBrListingMapQuery } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -172,18 +169,18 @@ export function buildRealEstateMapQuery(args: {
   city?: string;
   state?: string;
   zip?: string;
+  country?: string;
   legacyStreet?: string;
 }): string {
-  const street = trim(args.street ?? "") || trim(args.legacyStreet ?? "");
-  const unit = trim(args.unit ?? "");
-  const city = trim(args.city ?? "");
-  const state = trim(args.state ?? "");
-  const zip = String(args.zip ?? "")
-    .replace(/\D/g, "")
-    .slice(0, 10);
-  const neighborhood = trim(args.neighborhood ?? "");
-  if (args.exact) {
-    return composeBrExactMapQuery({ streetAddress: street, unit, neighborhood, city, state, zip });
-  }
-  return composeBrApproximateMapQuery({ neighborhood, city, state, zip });
+  return buildBrListingMapQuery({
+    exact: args.exact,
+    street: args.street,
+    unit: args.unit,
+    neighborhood: args.neighborhood,
+    city: args.city,
+    state: args.state,
+    postal: args.zip,
+    country: args.country,
+    legacyStreet: args.legacyStreet,
+  });
 }
