@@ -11,6 +11,18 @@ import {
 
 const ADMIN_COOKIE = "leonix_admin";
 
+function isPublicAdminLoginPath(pathname: string): boolean {
+  return pathname === "/admin/login" || pathname.startsWith("/admin/login/");
+}
+
+function isOfertasLocalesQaPath(pathname: string): boolean {
+  return (
+    pathname === "/publicar/ofertas-locales" ||
+    pathname.startsWith("/publicar/ofertas-locales/") ||
+    pathname.startsWith("/api/ofertas-locales/")
+  );
+}
+
 function withAdminPathHeader(res: NextResponse, pathname: string): NextResponse {
   res.headers.set("x-admin-pathname", pathname);
   return res;
@@ -19,6 +31,13 @@ function withAdminPathHeader(res: NextResponse, pathname: string): NextResponse 
 function handleAdminRequest(req: NextRequest): NextResponse {
   const { pathname, searchParams } = req.nextUrl;
   const lang = searchParams.get("lang");
+
+  if (!isPublicAdminLoginPath(pathname) && req.cookies.get(ADMIN_COOKIE)?.value !== "1") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/admin/login";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   if (lang === "es" || lang === "en") {
     const res = NextResponse.next();
@@ -63,6 +82,10 @@ export function middleware(req: NextRequest) {
   }
 
   if (isBypassPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (isOfertasLocalesQaPath(pathname)) {
     return NextResponse.next();
   }
 
