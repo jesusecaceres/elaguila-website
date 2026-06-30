@@ -29,9 +29,15 @@ import type { ClasesQuickDraft, ComunidadQuickDraft } from "../types/communityQu
 
 const GH = {
   cream: "#FCF9F2",
-  orange: "#E67E22",
+  burgundy: "#7B2D42",
+  burgundyLight: "#9B3A52",
+  gold: "#C9A84C",
+  goldBorder: "#C9B46A",
   amber: "#FFBF00",
-  charcoal: "#333333",
+  charcoal: "#2A2826",
+  muted: "#6B5E4E",
+  green: "#1B4332",
+  greenBg: "#E8F3EA",
 } as const;
 
 const SMS_BODY = {
@@ -58,22 +64,32 @@ const MAIL_SUBJECT = {
 
 const UI = {
   es: {
-    contactTitle: "Contacto",
-    locationTitle: "Ubicación",
+    contactTitle: "Contacto del organizador",
+    socialTitle: "Síguenos",
+    locationTitle: "Lugar del evento",
+    moreTitle: "Más información",
+    trustLabel: "Publicado en Leonix",
     call: "Llamar",
     text: "Enviar texto",
     email: "Escribir correo",
-    website: "Sitio web",
-    map: "Cómo llegar",
+    website: "Sitio web / Registro",
+    map: "Ver en el mapa",
+    copyEmail: "Copiar correo",
+    copyPhone: "Copiar teléfono",
   },
   en: {
-    contactTitle: "Contact",
-    locationTitle: "Location",
+    contactTitle: "Organizer contact",
+    socialTitle: "Follow us",
+    locationTitle: "Event location",
+    moreTitle: "More information",
+    trustLabel: "Published on Leonix",
     call: "Call",
     text: "Text message",
     email: "Email",
-    website: "Website",
-    map: "Get directions",
+    website: "Website / Register",
+    map: "View on map",
+    copyEmail: "Copy email",
+    copyPhone: "Copy phone",
   },
 } as const;
 
@@ -198,135 +214,188 @@ export function CommunityContactCanvas({
     },
   ].filter((x) => x.href);
 
+  const hasContactActions = !!(phone10 || wa10 || sms10 || email);
+  const hasLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
+
   return (
     <section
       id={sectionHtmlId}
       data-testid="community-contact-location"
-      className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-black/10 shadow-sm"
+      className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-[#C9B46A]/40 shadow-md"
       style={{ backgroundColor: GH.cream, color: GH.charcoal }}
     >
+      {/* Leonix brand accent bar */}
       <div
         className="h-1 w-full"
-        style={{
-          background: `linear-gradient(90deg, ${GH.orange}, ${GH.amber})`,
-        }}
+        style={{ background: `linear-gradient(90deg, ${GH.burgundy}, ${GH.gold})` }}
         aria-hidden
       />
-      <div className="grid gap-5 p-4 sm:grid-cols-2 sm:p-5 lg:gap-6">
-        <div className="min-w-0 space-y-3">
-          <h2 className="text-base font-extrabold tracking-tight" style={{ color: GH.charcoal }}>
-            {t.contactTitle}
-          </h2>
-          {draft.organizer.trim() ? (
-            <p className="text-sm font-semibold opacity-90">{draft.organizer.trim()}</p>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            {phone10 ? (
-              <a
-                href={telUriFromUs10(phone10)}
-                className={btnPrimaryClass()}
-                style={{ backgroundColor: GH.orange, color: "#FFFCF7" }}
-              >
-                <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
-                {t.call}{" "}
-                <span className="font-semibold">{formatPhoneInputDisplay(digitsOnly(draft.phone))}</span>
-              </a>
-            ) : null}
-            {wa10 ? (
-              <a
-                href={whatsAppUri(wa10, smsBody)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={btnPrimaryClass()}
-                style={{ backgroundColor: GH.amber, color: GH.charcoal }}
-              >
-                <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
-                WhatsApp
-              </a>
-            ) : null}
-            {sms10 ? (
-              <a
-                href={smsUri(sms10, smsBody)}
-                className={btnPrimaryClass()}
-                style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `2px solid ${GH.orange}` }}
-              >
-                <FiMessageSquare className="h-4 w-4 shrink-0" aria-hidden />
-                {t.text}
-              </a>
-            ) : null}
-            {email ? (
-              <button
-                type="button"
-                className={btnPrimaryClass()}
-                style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `2px solid ${GH.amber}` }}
-                onClick={() => setEmailOpen(true)}
-              >
-                <FiMail className="h-4 w-4 shrink-0" aria-hidden />
-                {t.email}
-              </button>
-            ) : null}
-            {web ? (
-              <a
-                href={web}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={btnPrimaryClass()}
-                style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `2px solid ${GH.orange}` }}
-              >
-                <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
-                {t.website}
-              </a>
-            ) : null}
-          </div>
 
-          {socialItems.length ? (
-            <div
-              className="space-y-2 rounded-xl border border-[#C9B46A]/35 bg-white/60 p-3 ring-1 ring-[#C9B46A]/15"
-              data-testid="community-contact-social-icons"
+      <div className="space-y-5 p-4 sm:p-6">
+
+        {/* ── Section 1: Organizer contact actions ───────────────────────── */}
+        {hasContactActions ? (
+          <div className="space-y-3">
+            <h2
+              className="text-sm font-extrabold uppercase tracking-widest"
+              style={{ color: GH.burgundy }}
             >
-              <div className="text-[11px] font-bold uppercase tracking-wide text-[#9a7b2c]">
-                {lang === "es" ? "Redes sociales" : "Social media"}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {socialItems.map(({ key, href, Icon, ariaLabel }) => (
-                  <a
-                    key={key}
-                    href={href!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={ariaLabel}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#C9B46A]/50 bg-[#FFFDF8] text-lg transition hover:border-[#C9B46A] hover:bg-[#FCF9F2]"
-                    style={{ color: GH.orange }}
-                  >
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </a>
-                ))}
-              </div>
+              {t.contactTitle}
+            </h2>
+            {draft.organizer.trim() ? (
+              <p className="text-sm font-semibold" style={{ color: GH.charcoal }}>
+                {draft.organizer.trim()}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {phone10 ? (
+                <a
+                  href={telUriFromUs10(phone10)}
+                  className={btnPrimaryClass()}
+                  style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
+                >
+                  <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+                  {t.call}{" "}
+                  <span className="font-semibold tabular-nums">{formatPhoneInputDisplay(digitsOnly(draft.phone))}</span>
+                </a>
+              ) : null}
+              {wa10 ? (
+                <a
+                  href={whatsAppUri(wa10, smsBody)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={btnPrimaryClass()}
+                  style={{ backgroundColor: "#25D366", color: "#FFFCF7" }}
+                >
+                  <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
+                  WhatsApp
+                </a>
+              ) : null}
+              {sms10 ? (
+                <a
+                  href={smsUri(sms10, smsBody)}
+                  className={btnPrimaryClass()}
+                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                >
+                  <FiMessageSquare className="h-4 w-4 shrink-0" aria-hidden />
+                  {t.text}
+                </a>
+              ) : null}
+              {email ? (
+                <button
+                  type="button"
+                  className={btnPrimaryClass()}
+                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.goldBorder}` }}
+                  onClick={() => setEmailOpen(true)}
+                >
+                  <FiMail className="h-4 w-4 shrink-0" aria-hidden />
+                  {t.email}
+                </button>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
-        <div className="min-w-0 space-y-2 rounded-xl border border-black/10 bg-white/70 p-3 sm:p-4">
-          <h3 className="text-sm font-extrabold uppercase tracking-wide" style={{ color: GH.orange }}>
-            {t.locationTitle}
-          </h3>
-          {draft.venue.trim() ? <p className="text-sm font-semibold">{draft.venue.trim()}</p> : null}
-          {draft.addressLine1.trim() ? <p className="text-sm">{draft.addressLine1.trim()}</p> : null}
-          {draft.addressLine2?.trim() ? <p className="text-sm">{draft.addressLine2.trim()}</p> : null}
-          {cityStateZip ? <p className="text-sm font-semibold">{cityStateZip}</p> : null}
-          {mapsUrl ? (
+        {/* ── Section 2: Social links (Síguenos) ──────────────────────────── */}
+        {socialItems.length ? (
+          <div
+            className="space-y-2 rounded-xl border border-[#C9B46A]/35 bg-white/55 p-3 ring-1 ring-[#C9B46A]/15"
+            data-testid="community-contact-social-icons"
+          >
+            <div
+              className="text-[11px] font-bold uppercase tracking-widest"
+              style={{ color: GH.burgundy }}
+            >
+              {t.socialTitle}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {socialItems.map(({ key, href, Icon, ariaLabel }) => (
+                <a
+                  key={key}
+                  href={href!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={ariaLabel}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#C9B46A]/50 bg-[#FFFDF8] text-lg transition hover:border-[#C9B46A] hover:bg-[#FCF9F2]"
+                  style={{ color: GH.burgundy }}
+                >
+                  <Icon className="h-5 w-5" aria-hidden />
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── Section 3: Website / More information ───────────────────────── */}
+        {web ? (
+          <div className="space-y-2">
+            <h3
+              className="text-[11px] font-bold uppercase tracking-widest"
+              style={{ color: GH.burgundy }}
+            >
+              {t.moreTitle}
+            </h3>
             <a
-              href={mapsUrl}
+              href={web}
               target="_blank"
               rel="noopener noreferrer"
               className={btnPrimaryClass()}
-              style={{ backgroundColor: GH.orange, color: "#FFFCF7" }}
+              style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
             >
-              <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-              {t.map}
+              <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
+              {t.website}
             </a>
-          ) : null}
+          </div>
+        ) : null}
+
+        {/* ── Section 4: Event location card ──────────────────────────────── */}
+        {hasLocation ? (
+          <div className="rounded-xl border border-[#C9B46A]/35 bg-white/70 p-3 sm:p-4 space-y-2">
+            <h3
+              className="text-[11px] font-bold uppercase tracking-widest"
+              style={{ color: GH.burgundy }}
+            >
+              {t.locationTitle}
+            </h3>
+            {draft.venue.trim() ? (
+              <p className="text-sm font-semibold" style={{ color: GH.charcoal }}>
+                {draft.venue.trim()}
+              </p>
+            ) : null}
+            {draft.addressLine1.trim() ? (
+              <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine1.trim()}</p>
+            ) : null}
+            {draft.addressLine2?.trim() ? (
+              <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine2.trim()}</p>
+            ) : null}
+            {cityStateZip ? (
+              <p className="text-sm font-medium" style={{ color: GH.charcoal }}>{cityStateZip}</p>
+            ) : null}
+            {mapsUrl ? (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${btnPrimaryClass()} mt-1`}
+                style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
+              >
+                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                {t.map}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* ── Section 6: Trust cue ────────────────────────────────────────── */}
+        <div className="flex items-center gap-2 pt-1">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold"
+            style={{ borderColor: GH.goldBorder, color: GH.green, backgroundColor: GH.greenBg }}
+          >
+            {t.trustLabel}
+          </span>
         </div>
+
       </div>
 
       {email ? (
