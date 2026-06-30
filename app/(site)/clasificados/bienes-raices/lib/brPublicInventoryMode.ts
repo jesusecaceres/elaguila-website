@@ -1,10 +1,11 @@
 /**
  * Public BR browse surfaces (landing + resultados) must not mix editorial demo rows
- * into user-visible inventory on production builds.
+ * into user-visible inventory unless demo mode is explicitly enabled.
  *
- * `next dev` keeps demo merge so designers and engineers can exercise filters without DB.
+ * Designers and engineers can opt in locally with `NEXT_PUBLIC_BR_INCLUDE_DEMO_POOL=1`.
  */
 
 export function brShouldMergeDemoInventoryWithLive(): boolean {
-  return process.env.NODE_ENV !== "production";
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.NEXT_PUBLIC_BR_INCLUDE_DEMO_POOL === "1";
 }

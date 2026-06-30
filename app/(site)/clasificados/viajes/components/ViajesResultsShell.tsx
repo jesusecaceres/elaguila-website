@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
@@ -216,8 +215,7 @@ export function ViajesResultsShell({
     <div className="relative min-h-screen overflow-x-hidden pb-24 text-[color:var(--lx-text)] sm:pb-28">
       <ViajesLandingAmbience />
       <div className="relative z-[2] min-w-0">
-      <Navbar />
-      <div className="border-b border-[color:var(--lx-gold-border)]/50 bg-[#fffdf9]/90 backdrop-blur-md">
+        <div className="border-b border-[color:var(--lx-gold-border)]/50 bg-[#fffdf9]/90 backdrop-blur-md">
         <div className="mx-auto flex min-w-0 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
           <nav className="min-w-0 flex-1 break-words text-[11px] font-medium text-[color:var(--lx-muted)]">
             <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[color:var(--lx-text)]">

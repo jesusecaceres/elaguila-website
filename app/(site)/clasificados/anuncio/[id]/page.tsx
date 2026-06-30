@@ -81,6 +81,11 @@ type Lang = "es" | "en";
 const ANUNCIO_LISTING_SELECT_BASE =
   "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at, mux_playback_id";
 
+function classifiedsSampleListingsEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.NEXT_PUBLIC_CLASSIFIEDS_SAMPLE_LISTINGS === "1";
+}
+
 type CategoryKey =
   | "en-venta"
   | "bienes-raices"
@@ -468,6 +473,7 @@ export default function AnuncioDetallePage() {
   }, []);
 
   const sampleListing: Listing | undefined = useMemo(() => {
+    if (!classifiedsSampleListingsEnabled()) return undefined;
     const id = params?.id;
     if (!id) return undefined;
     return (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
@@ -488,7 +494,9 @@ export default function AnuncioDetallePage() {
       setRemoteState("ready");
       return;
     }
-    const sample = (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id);
+    const sample = classifiedsSampleListingsEnabled()
+      ? (SAMPLE_LISTINGS as unknown as Listing[]).find((x) => x.id === id)
+      : undefined;
     if (sample) {
       setFetchedListing(undefined);
       setPublishedSourceRow(null);

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getRecentlyViewedIds } from "@/app/lib/recentlyViewed";
-import { SAMPLE_LISTINGS } from "../../../data/classifieds/sampleListings";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 
@@ -125,51 +124,44 @@ export default function RecentlyViewedSection({ lang }: { lang: Lang }) {
     let mounted = true;
     void getRecentlyViewedIds()
       .then(async (ids) => {
-      if (!mounted || ids.length === 0) return;
-      const allSample = SAMPLE_LISTINGS as unknown as Listing[];
-      const sampleById = new Map(allSample.map((l) => [l.id, l]));
+        if (!mounted || ids.length === 0) return;
 
-      const missing = [...new Set(ids.filter((id) => !sampleById.has(id)))];
+        const requestedIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
 
-      const dbById = new Map<string, Listing>();
-      if (missing.length > 0) {
-        try {
-          const supabase = createSupabaseBrowserClient();
-          const { data, error } = await supabase
-            .from("listings")
-            .select(
-              "id, title, description, city, category, price, is_free, images, created_at, seller_type, status"
-            )
-            .eq("status", "active")
-            .in("id", missing);
-          if (!error && data && mounted) {
-            const rows = data as Record<string, unknown>[];
-            for (const row of rows) {
-              const m = mapDbRowToRecentListing(row);
-              if (m) dbById.set(m.id, m);
+        const dbById = new Map<string, Listing>();
+        if (requestedIds.length > 0) {
+          try {
+            const supabase = createSupabaseBrowserClient();
+            const { data, error } = await supabase
+              .from("listings")
+              .select(
+                "id, title, description, city, category, price, is_free, images, created_at, seller_type, status"
+              )
+              .eq("status", "active")
+              .in("id", requestedIds);
+            if (!error && data && mounted) {
+              const rows = data as Record<string, unknown>[];
+              for (const row of rows) {
+                const m = mapDbRowToRecentListing(row);
+                if (m) dbById.set(m.id, m);
+              }
             }
+          } catch {
+            /* fail soft: leave unresolved ids hidden */
           }
-        } catch {
-          /* fail soft: sample-only for unresolved ids */
         }
-      }
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      const found: Listing[] = [];
-      const seen = new Set<string>();
-      for (const id of ids) {
-        if (seen.has(id)) continue;
-        seen.add(id);
-        const fromSample = sampleById.get(id);
-        if (fromSample) {
-          found.push(fromSample);
-          continue;
+        const found: Listing[] = [];
+        const seen = new Set<string>();
+        for (const id of ids) {
+          if (seen.has(id)) continue;
+          seen.add(id);
+          const fromDb = dbById.get(id);
+          if (fromDb) found.push(fromDb);
         }
-        const fromDb = dbById.get(id);
-        if (fromDb) found.push(fromDb);
-      }
-      setListings(found);
+        setListings(found);
       })
       .catch(() => {
         /* fail soft: leave listings empty */
