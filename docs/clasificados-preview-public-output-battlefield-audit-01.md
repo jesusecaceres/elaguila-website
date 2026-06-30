@@ -1,6 +1,78 @@
 # Clasificados Preview/Public Output Battlefield Audit 01
 
 Gate: `CLASIFICADOS-PREVIEW-PUBLIC-OUTPUT-BATTLEFIELD-QA-01`  
+Mode: controlled battlefield output audit. No Stripe work. No schema changes. No migrations.
+
+## Executive Summary
+
+The Clasificados output layer has broad route coverage across preview, public detail, results cards, owner dashboard, and admin. The strongest categories are Servicios, En Venta, Autos, Restaurantes, Bienes Raices, Rentas, Empleos, and the community-listings family because they have visible preview/result/public/dashboard/admin wiring. The primary launch risk is not total absence of routes; it is parity discipline: ensuring fields captured in applications appear consistently in preview, public detail, results cards, owner dashboard, and admin cards.
+
+Current battlefield status:
+- Preview surfaces inspected: routes/components under `app/(site)/clasificados/**/preview`, `publicar/**`, and shared preview shells.
+- Public detail surfaces inspected: slug/id detail routes such as Servicios, Restaurantes, Autos, Empleos, Rentas, Bienes Raices, En Venta/generic `anuncio`, Viajes, Ofertas/Comida Local.
+- Results card surfaces inspected: `results` / `resultados` routes and category card components.
+- Owner dashboard surfaces inspected: `mis-anuncios`, `servicios`, detail/edit pages, inventory helpers, and shared action cards.
+- Admin listing surfaces inspected: global workspace, category ops pages, admin tables/cards/actions.
+- Screenshots: no admin-specific screenshot package found in workspace. Existing audit notes and Tienda design references are used for visual QA guidance.
+
+## Status Legend
+
+- `GOOD`: route and output contract look strong enough for QA.
+- `NEEDS POLISH`: visible output works, but copy/layout/details need tighter QA.
+- `NEEDS PARITY FIX`: application fields may not fully match preview/public/results/dashboard/admin.
+- `NEEDS QA ONLY`: code looks intentionally wired; browser/manual proof remains.
+- `BLOCKER`: likely launch blocker or schema/action gap.
+
+## Surface Inventory Matrix
+
+| Category | Preview route/component | Publish route/API | Public detail route | Results card route/component | Owner dashboard card/action | Admin card/action | Battlefield status | Key risks |
+|---|---|---|---|---|---|---|---|---|
+| En Venta | `/clasificados/en-venta/preview`, `EnVentaPreviewShell`, `EnVentaPreviewResultsCardSample` | `/clasificados/publicar/en-venta/*`, En Venta publish helpers to `listings` | `/clasificados/anuncio/[id]`, `/clasificados/en-venta/results` cards link to generic detail | `/clasificados/en-venta/results`, `EnVentaResultListingCard` | `/dashboard/mis-anuncios`, `LeonixRealEstateListingManageCard`, `DashboardCategoryListingCard` | `/admin/workspace/clasificados/en-venta`, `AdminListingsTable`, row action panels | GOOD / NEEDS QA ONLY | Strong title/price/image hierarchy; verify Other/Otro condition/item-type custom values and edit identity for Pro/free flows. |
+| Servicios | `/clasificados/publicar/servicios/preview`, `ServiciosProfessionalPreviewShell`, `ServiciosPreviewCard` | `/clasificados/publicar/servicios`, Servicios publish client/API to `servicios_public_listings` | `/clasificados/servicios/[slug]` | `/clasificados/servicios/results`, `/resultados`, `ServiciosListingResultCard`, `ServiciosProfessionalResultCard`, `ServiciosHorizontalResultCard` | `/dashboard/mis-anuncios`, `/dashboard/servicios`, `buildServiciosDashboardActionContract` | `/admin/workspace/clasificados/servicios`, `ServiciosAdminOpsListingCard` | GOOD / NEEDS QA ONLY | Owner edit hydration is fixed enough for production; exact original application snapshot remains partial because public `profile_json` is the durable source. |
+| Autos | `/clasificados/autos/privado/preview`, `/autos/negocios/preview`, `AutosPreviewCard`, dealer preview chrome | Autos publish services to `autos_classifieds_listings` | `/clasificados/autos/vehiculo/[id]`, dealer inventory detail | `/clasificados/autos/resultados`, `AutosResultCard`, `AutosPublicFeaturedCard`, `AutosPublicStandardCard` | `/dashboard/mis-anuncios`, `dashboardInventory` Autos items | `/admin/workspace/clasificados/autos` | NEEDS QA ONLY | Many recent Autos changes exist; QA must verify year/make/model/trim/price/mileage/images/VIN/inventory parity without creating duplicate dealer inventory. |
+| Restaurantes | `/clasificados/restaurantes/preview`, `RestaurantePreviewCard`, video preview card | Restaurant application/publish flow to `restaurantes_public_listings` | `/clasificados/restaurantes/[slug]` | `/clasificados/restaurantes/resultados`, result shell/cards | `/dashboard/mis-anuncios`, `/dashboard/restaurantes`, restaurant inventory helper | `/admin/workspace/clasificados/restaurantes` | NEEDS POLISH | Verify hours, specialties, amenities, offers/coupons, website/social, gallery/video output parity and paid-only messaging. |
+| Rentas | `/clasificados/rentas/preview/privado`, `/preview/negocio`, `RentasPreviewCard` | Rentas publish flows to `listings` family | `/clasificados/rentas/listing/[id]`, `/rentas/anuncio/[id]` | `/clasificados/rentas/results`, `RentasResultCard` | `/dashboard/mis-anuncios`, generic listing manage cards | `/admin/workspace/clasificados/rentas` | NEEDS QA ONLY | Verify rent, beds/baths, availability, requirements, map/video/detail pairs, and no empty sections. |
+| Bienes Raices | `/clasificados/bienes-raices/preview`, `/preview/privado`, `/preview/negocio`, BR preview clients | BR publish core to `listings` with `detail_pairs` / `listing_json` | `/clasificados/bienes-raices/anuncio/[id]`, generic `/anuncio/[id]` | `/clasificados/bienes-raices/resultados`, `BienesRaicesNegocioCard`, featured card | `/dashboard/mis-anuncios`, real-estate manage card | `/admin/workspace/clasificados/bienes-raices` | NEEDS QA ONLY | Existing audits show strong inventory work; QA must verify price/beds/baths/property type/agent contact and child inventory identity. |
+| Empleos | `/clasificados/empleos/quick-preview`, `premium-preview`, `feria-preview` clients | Empleos publish to `empleos_public_listings` | `/clasificados/empleos/[slug]` | `/clasificados/empleos/results`, `/resultados`, `EmpleosJobResultCard` | `/dashboard/mis-anuncios`, `/dashboard/empleos`, `/dashboard/empleos/[listingId]` | `/admin/workspace/clasificados/empleos` | NEEDS QA ONLY | Verify pay/schedule/location/apply CTA, job lane preview parity, and application management links. |
+| Clases | generic quick/publish community-style flow | `publishCommunityQuickToListings` for `category: clases` | generic `/clasificados/anuncio/[id]` | `/clasificados/clases/results` and `/resultados` | `/dashboard/mis-anuncios` | `/admin/workspace/clasificados/clases` | NEEDS POLISH | Paid-class lane is intentionally constrained; verify free/paid labels, price if paid, schedule, online/location, instructor/contact. |
+| Comunidad | generic quick/publish community-style flow | `publishCommunityQuickToListings` for `category: comunidad` | generic `/clasificados/anuncio/[id]` | `/clasificados/comunidad/results` and `/resultados`, community cards | `/dashboard/mis-anuncios` | `/admin/workspace/clasificados/comunidad` | NEEDS POLISH | Verify event title/date/time/location/contact and no empty community blocks. |
+| Viajes | `/clasificados/viajes/preview`, `/preview/privado`, `/preview/negocios` | `POST /api/clasificados/viajes/submit` to `viajes_staged_listings` | `/clasificados/viajes/oferta/[slug]`, `/negocio/[slug]` when approved | `/clasificados/viajes/results`, `/resultados`, affiliate/business/editorial cards | `/dashboard/viajes`, dashboard inventory helper | `/admin/workspace/clasificados/travel` | NEEDS PARITY FIX | Affiliate ops final tables are missing; staged/public approval and affiliate status must be QA-proven. Do not present affiliate revenue as fully real. |
+| Mascotas y Perdidos | quick publish route under `/publicar/mascotas-y-perdidos` | `publishMascotasPerdidosQuickToListings` | generic `/clasificados/anuncio/[id]` | `/clasificados/mascotas-y-perdidos/results`, notice cards | `/dashboard/mis-anuncios` | `/admin/workspace/clasificados/mascotas-y-perdidos` | NEEDS POLISH | Verify pet type/status/location/contact/image and urgent/lost/found status clarity. |
+| Busco / Se busca | quick publish route under `/publicar/busco` | `publishBuscoQuickToListings` | generic `/clasificados/anuncio/[id]` | `/clasificados/busco/results`, request cards | `/dashboard/mis-anuncios` | `/admin/workspace/clasificados/busco` | NEEDS POLISH | Verify request title/category/location/contact and English dashboard labels. |
+| Comida Local | `/clasificados/comida-local/preview`, preview client | Comida Local publish/listings support | `/clasificados/comida-local/[slug]` | `/clasificados/comida-local`, listing cards | dashboard inventory source exists for `comida_local_public_listings` where used | `/admin/workspace/clasificados/comida-local` | NEEDS QA ONLY | Route exists but product maturity is partial; verify food/menu/contact fields and do not overstate readiness. |
+
+## Known Parity Risks
+
+- `Other/Otro`: category applications may store custom text under different sibling keys. QA must verify every category that exposes `Other/Otro` renders the custom value in preview, public detail, results card, owner dashboard, and admin where appropriate.
+- Edit identity: Servicios is the most explicit current owner edit contract (`listingSlug`, `listingId`, `leonixAdId`). Other categories need QA for `id`, `slug`, source table, and `Leonix Ad ID` preservation before large refactors.
+- Application snapshots: some categories store normalized public rows rather than exact original application state. This is acceptable for launch only if preview/public output remains truthful and edit flows do not blank forms.
+- Analytics/action risk: owner dashboard analytics must only show real counts or honest unavailable/partial states.
+
+## Mobile Risks
+
+- Dense admin tables remain scroll-based by design; mobile card views and action wrappers must stay readable at 390px.
+- Long `Leonix Ad ID`, UUIDs, slugs, URLs, custom Other/Otro text, and long business names must wrap or truncate intentionally.
+- Dashboard action bars should use wrapping classes and not force single-line CTAs.
+
+## CTA Risks
+
+- Primary public CTAs must be obvious and category-appropriate.
+- WhatsApp, phone, website, and social CTAs should render only when provided.
+- Dangerous owner/admin actions must stay separated from safe actions.
+- Admin/dashboard labels must stay English: `View public`, `Edit listing`, `Manage ad`, `View in results`, `Archive`, `Republish`.
+
+## Title / Price / Location / Image Hierarchy Risks
+
+- Public and results cards must never bury title, price/rate/status, and location below low-value chips.
+- Images/logos need a deliberate frame and cannot collapse layout when missing.
+- Cards should not use random emoji as a substitute for a missing image except where the existing category design intentionally uses a subtle placeholder.
+
+## Blockers Found
+
+No new schema, Stripe, auth, or payment blocker was found during this gate. The largest remaining blocker class is category-specific manual QA proof: Viajes affiliate ops readiness, category Other/Otro custom text output, and exact edit identity preservation outside Servicios/En Venta.
+# Clasificados Preview/Public Output Battlefield Audit 01
+
+Gate: `CLASIFICADOS-PREVIEW-PUBLIC-OUTPUT-BATTLEFIELD-QA-01`  
 Scope: output quality across preview, public detail, results cards, owner dashboard cards, and admin listing cards.  
 Mode: controlled QA/readiness gate. No Stripe work. No schema. No migrations.
 

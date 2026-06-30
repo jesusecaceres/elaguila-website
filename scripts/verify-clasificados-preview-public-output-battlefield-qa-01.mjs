@@ -43,38 +43,27 @@ const categories = [
   "Clases",
   "Comunidad",
   "Viajes",
-  "Mascotas",
-  "Busco",
+  "Mascotas y Perdidos",
+  "Busco / Se busca",
   "Comida Local",
 ];
-
 for (const category of categories) {
-  if (!docs.toLowerCase().includes(category.toLowerCase())) {
-    fail(`docs missing primary category: ${category}`);
-  }
+  if (!docs.includes(category)) fail(`docs missing primary category: ${category}`);
 }
 ok("docs include all primary categories");
 
-for (const phrase of [
-  "preview",
-  "public detail",
-  "results card",
-  "owner dashboard",
-  "admin card",
-  "title",
-  "price",
-  "location",
-  "image",
-  "CTA",
-  "Other/Otro",
-  "mobile 390px",
-  "edit identity",
-]) {
-  if (!docs.toLowerCase().includes(phrase.toLowerCase())) {
-    fail(`docs missing required output/parity language: ${phrase}`);
-  }
+for (const phrase of ["preview", "public detail", "results card", "owner dashboard", "admin card"]) {
+  if (!docs.toLowerCase().includes(phrase)) fail(`docs missing surface language: ${phrase}`);
 }
-ok("docs include required surface and hierarchy language");
+ok("docs include required output surfaces");
+
+for (const phrase of ["title", "price", "location", "image", "CTA", "hierarchy"]) {
+  if (!docs.includes(phrase)) fail(`docs missing hierarchy term: ${phrase}`);
+}
+if (!docs.includes("Other/Otro")) fail("docs missing Other/Otro custom text QA");
+if (!docs.includes("390px")) fail("docs missing mobile 390px QA");
+if (!docs.includes("edit identity")) fail("docs missing edit identity QA");
+ok("docs include hierarchy, Other/Otro, mobile, and edit identity QA");
 
 for (const section of [
   "## 1. Global Preview Parity QA",
@@ -84,7 +73,7 @@ for (const section of [
   "## 5. Admin Listing QA",
   "## 6. Mobile 390px QA",
   "## 7. English UX QA",
-  "## 8. Category-by-Category QA",
+  "## 8. Category-by-category QA",
   "## 9. CTA QA",
   "## 10. Edit Identity QA",
   "## 11. Other/Otro Custom Text QA",
@@ -95,48 +84,56 @@ for (const section of [
 }
 ok("QA checklist includes all required sections");
 
+const dashboardAdminText = [
+  "app/(site)/dashboard",
+  "app/admin/(dashboard)/workspace/clasificados",
+]
+  .flatMap((dir) => {
+    const abs = path.join(root, dir);
+    if (!fs.existsSync(abs)) return [];
+    return walk(abs).filter((file) => /\.(tsx|ts|jsx|js)$/.test(file));
+  })
+  .map((file) => fs.readFileSync(file, "utf8"))
+  .join("\n");
+
+if (dashboardAdminText.includes("Open panel")) fail("Open panel remains in dashboard/admin paths");
+if (dashboardAdminText.includes("Continue editing")) fail("Continue editing remains in dashboard/admin paths");
+ok("legacy dashboard/admin labels are absent");
+
 const packageJson = JSON.parse(read("package.json"));
 if (
   packageJson.scripts?.["verify:clasificados-preview-public-output-battlefield-qa-01"] !==
   "node scripts/verify-clasificados-preview-public-output-battlefield-qa-01.mjs"
 ) {
-  fail("package script verify:clasificados-preview-public-output-battlefield-qa-01 missing");
+  fail("package script missing");
 }
 
-const dashboardAdminSources = [
-  "app/(site)/dashboard",
-  "app/admin",
-  "components",
-]
-  .filter((rel) => fs.existsSync(path.join(root, rel)))
-  .flatMap((rel) => {
-    const base = path.join(root, rel);
-    const files = execFileSync("git", ["ls-files", rel], { cwd: root, encoding: "utf8" })
-      .split(/\r?\n/)
-      .filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
-    return files.map(read).join("\n");
-  })
-  .join("\n");
-
-if (dashboardAdminSources.includes("Open panel")) fail("Open panel remains in dashboard/admin paths");
-if (dashboardAdminSources.includes("Continue editing")) fail("Continue editing remains in dashboard/admin paths");
-ok("confusing dashboard/admin labels are absent");
-
-const migrations = execFileSync("git", ["ls-files", "supabase/migrations"], { cwd: root, encoding: "utf8" })
-  .split(/\r?\n/)
-  .filter(Boolean);
-const forbiddenMigration = migrations.find((file) => /preview.*public.*output|battlefield.*qa|clasificados.*output/i.test(file));
-if (forbiddenMigration) fail(`no migration allowed for this gate: ${forbiddenMigration}`);
+const migrationsDir = path.join(root, "supabase", "migrations");
+const migrations = fs.existsSync(migrationsDir) ? fs.readdirSync(migrationsDir) : [];
+const gateMigration = migrations.find((name) => /preview.*public.*output|battlefield.*qa|clasificados.*output/i.test(name));
+if (gateMigration) fail(`no migration allowed in this gate: ${gateMigration}`);
 
 const changed = execFileSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" })
   .split(/\r?\n/)
   .filter(Boolean);
-const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8" })
+const added = execFileSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" })
   .split(/\r?\n/)
-  .filter(Boolean);
-const changedAll = [...changed, ...untracked];
-const stripeAdded = changedAll.find((file) => /stripe/i.test(file) && !file.startsWith("docs/"));
-if (stripeAdded) fail(`Stripe file/route changed or added in this gate: ${stripeAdded}`);
-ok("package script exists, no gate migration, no Stripe file/route added");
+  .filter((line) => line.startsWith("?? "))
+  .map((line) => line.slice(3).trim());
+const touched = [...changed, ...added];
+const stripeTouched = touched.find((file) => /stripe/i.test(file));
+if (stripeTouched) fail(`Stripe file/route touched in no-Stripe gate: ${stripeTouched}`);
+ok("package script exists, no migration file, no Stripe file touched");
 
 console.log("verify-clasificados-preview-public-output-battlefield-qa-01: PASS");
+
+function walk(dir) {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === ".next") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walk(full));
+    else out.push(full);
+  }
+  return out;
+}

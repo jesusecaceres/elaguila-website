@@ -2,6 +2,151 @@
 
 Gate: `CLASIFICADOS-PREVIEW-PUBLIC-OUTPUT-BATTLEFIELD-QA-01`
 
+Use this checklist after the battlefield audit and hierarchy contract. Test on desktop and at 390px mobile width. Use safe test listings only.
+
+## 1. Global Preview Parity QA
+
+1. Open each available category publish flow.
+2. Fill title/business/listing name, price/rate/status if applicable, location, images, contact, and category-specific fields.
+3. Select at least one `Other/Otro` option and provide custom text where the application allows it.
+4. Open preview.
+5. Expected result: preview shows title, price/rate/status, location, image/media, key facts, CTAs, and custom Other/Otro text without raw JSON or blank sections.
+
+## 2. Global Results Card QA
+
+1. Publish or locate a safe test listing for each category.
+2. Open each category `results` and `resultados` route where both exist.
+3. Inspect the listing card.
+4. Expected result: card order follows image/logo, title, price/status, category, location, top chips, trust badges, primary CTA, secondary CTAs, and no `undefined`.
+
+## 3. Global Public Detail QA
+
+1. Open the public detail page from the results card.
+2. Compare preview versus public detail.
+3. Check long title, long description, gallery, video, website/social links, phone, WhatsApp, and contact card.
+4. Expected result: public detail uses the same core listing data as preview/published output and hides empty sections.
+
+## 4. Owner Dashboard QA
+
+1. Log in as the listing owner.
+2. Open `/dashboard/mis-anuncios?lang=en`.
+3. Filter each category.
+4. Expected result: cards show title/business, category/status/Leonix Ad ID when available, real analytics only, primary `Edit listing` or `Manage ad`, secondary `View public` / `View in results`, and separated destructive actions.
+
+## 5. Admin Listing QA
+
+1. Open `/admin/workspace/clasificados`.
+2. Search for the test listing by title, UUID, owner, and `Leonix Ad ID`.
+3. Open category admin pages for Servicios, Autos, Restaurantes, Rentas, Bienes Raices, Empleos, Clases, Comunidad, Viajes/Travel, Mascotas y Perdidos, Busco, and Comida Local.
+4. Expected result: admin rows/cards show identity, source/status, owner, risk/report/payment/verification context, safe lifecycle actions, and dangerous actions separated.
+
+## 6. Mobile 390px QA
+
+1. Set browser width to 390px.
+2. Open preview, results, public detail, owner dashboard, and admin card/table surfaces.
+3. Expand accordions/action explainers where present.
+4. Expected result: no horizontal overflow from cards/action bars; CTAs are tappable; long IDs/custom text wrap; tables scroll only when unavoidable.
+
+## 7. English UX QA
+
+1. Review owner dashboard and admin management labels.
+2. Confirm shell/actions use English: `View public`, `Edit listing`, `Manage ad`, `View in results`, `Archive`, `Republish`, `Pause`, `Delete`.
+3. Expected result: user-created listing content can remain Spanish, but dashboard/admin UX chrome remains English.
+
+## 8. Category-by-category QA
+
+### En Venta
+1. Create or edit a test item with title, price, condition, category/subcategory/item type, city, images, and seller contact.
+2. Confirm preview, results card, public detail, owner dashboard, and admin all show the key data.
+3. Expected result: no duplicate listing on edit; `Leonix Ad ID` stays visible in dashboard/admin.
+
+### Servicios
+1. Edit a published Servicios listing from `/dashboard/mis-anuncios?lang=en&cat=servicios`.
+2. Confirm business name, services, service areas, phone, WhatsApp, website, payments, hours, gallery/video, offers, credentials, languages, and description carry through where saved.
+3. Expected result: edit form is not blank; slug/listing ID/Leonix Ad ID are preserved.
+
+### Autos
+1. Test private and business/dealer previews.
+2. Confirm year, make, model, trim, price, mileage, city, seller/dealer, images, VIN/decoded fields if saved, and inventory links.
+3. Expected result: public vehicle page and results card match saved inventory without duplicate dealer rows.
+
+### Restaurantes
+1. Test business name, specialties, hours, address, phone, website, social, amenities, gallery/video, offers/coupons, and languages.
+2. Expected result: public detail and results card hide missing optional links and keep paid-only category messaging clear.
+
+### Rentas
+1. Test rent price, beds/baths, location, availability, requirements, images, and contact.
+2. Expected result: detail page and results card show rent and availability prominently.
+
+### Bienes Raices
+1. Test price, beds/baths, property type, location, agent/business/private seller, images, and contact.
+2. Expected result: parent/child inventory identity and `Leonix Ad ID` remain stable.
+
+### Empleos
+1. Test job title, company, pay, schedule, location, and apply/contact CTA.
+2. Expected result: result card and detail page show pay/schedule when saved and do not show fake application counts.
+
+### Clases
+1. Test class title, free/paid, price if paid, schedule, location/online, and instructor/contact.
+2. Expected result: paid/free state is clear; unsupported paid lanes remain honestly blocked if applicable.
+
+### Comunidad
+1. Test event/community title, date/time, location, and contact.
+2. Expected result: no empty event date/contact sections render.
+
+### Viajes
+1. Test trip/offer title, price/affiliate status, destination, partner/contact, and staged approval flow.
+2. Expected result: affiliate revenue is not presented as fully real unless backing exists; staged status is clear.
+
+### Mascotas y Perdidos
+1. Test pet type, lost/found status, location, contact, and image.
+2. Expected result: urgent/lost/found status is visible without clutter.
+
+### Busco / Se busca
+1. Test request title, category, location, and contact.
+2. Expected result: request card makes it obvious the user is looking for something, not selling it.
+
+### Comida Local
+1. Test food/business title, menu/offer summary, location, hours/contact if provided, and image.
+2. Expected result: route stays truthful if category is partial and does not show missing fields as blank blocks.
+
+## 9. CTA QA
+
+1. Click primary and secondary CTAs on preview, results card, public detail, dashboard card, and admin card.
+2. Test phone, WhatsApp, website, save, share, report, view public, edit listing, manage ad, view in results.
+3. Expected result: no hidden broken buttons; optional CTAs only render when data exists; dangerous actions ask for confirmation where implemented.
+
+## 10. Edit Identity QA
+
+1. From owner dashboard, edit a published listing.
+2. Save/update and return to preview/public.
+3. Expected result: existing `id`, `slug`, `listingId`, `listingSlug`, `leonixAdId`, and source table identity remain preserved; no duplicate listing appears.
+
+## 11. Other/Otro Custom Text QA
+
+1. In each category with Other/Otro options, select Other/Otro and type a custom value.
+2. Check preview, public detail, results card, owner dashboard, and admin.
+3. Expected result: custom text displays instead of generic `Other` or `Otro`.
+
+## 12. Analytics Visibility QA
+
+1. Open owner dashboard analytics areas.
+2. Confirm counts come from real analytics/read models.
+3. Expected result: unavailable analytics are labeled unavailable/partial; no fake counts appear.
+
+## 13. Ready to Commit Checklist
+
+1. Run `npm run verify:clasificados-preview-public-output-battlefield-qa-01`.
+2. Run `npm run build`.
+3. Confirm no Stripe routes/files were added.
+4. Confirm no migration was added.
+5. Confirm no public redesign outside Clasificados output surfaces.
+6. Confirm known `ofertasLocalesPdfPageImages.ts` warning is the only warning if it appears.
+7. Expected result: ready to commit only when verifier and build pass and dirty tree belongs to this gate.
+# Clasificados Preview/Public Output Final QA 01
+
+Gate: `CLASIFICADOS-PREVIEW-PUBLIC-OUTPUT-BATTLEFIELD-QA-01`
+
 Use real test listings where possible. Do not use Stripe/payment flows in this QA gate. Owner dashboard and admin management labels should be English. User-entered ad content may remain in Spanish or the language the client entered.
 
 ## 1. Global Preview Parity QA
