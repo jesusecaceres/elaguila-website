@@ -32,6 +32,7 @@ import { RecentAutosSection } from "./RecentAutosSection";
 import { AutosLandingPublishCTA } from "./AutosLandingPublishCTA";
 import { autosLandingSectionClass } from "./autosLandingLayout";
 import { AutosPublicInventoryNotice } from "../components/public/AutosPublicInventoryNotice";
+import { AutosLaneCrossNav } from "../components/public/AutosLaneCrossNav";
 
 const RESULTADOS_PATH = "/clasificados/autos/results";
 
@@ -113,6 +114,34 @@ export function AutosLandingPage() {
   );
 
   const publishAutosHref = replaceLangInHref("/publicar/autos", routeLang);
+  const publishPrivadoHref = replaceLangInHref("/publicar/autos/privado", routeLang);
+  const publishDealerHref = replaceLangInHref("/publicar/autos/negocios", routeLang);
+
+  const privateResultsHref = useMemo(
+    () =>
+      resultsHref({
+        filters: { ...emptyAutosPublicFilters(), sellerType: "private" },
+        q: "",
+        sort: "newest",
+        page: 1,
+        lang,
+        routeLang,
+      }),
+    [lang, routeLang, resultsHref],
+  );
+
+  const dealerResultsHref = useMemo(
+    () =>
+      resultsHref({
+        filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
+        q: "",
+        sort: "newest",
+        page: 1,
+        lang,
+        routeLang,
+      }),
+    [lang, routeLang, resultsHref],
+  );
 
   const quickChipItems = useMemo(() => {
     const c = copy;
@@ -217,6 +246,15 @@ export function AutosLandingPage() {
             />
           }
           searchChips={<AutosQuickChips copy={copy} items={quickChipItems} />}
+        />
+
+        <AutosLaneCrossNav
+          copy={copy}
+          privateResultsHref={privateResultsHref}
+          dealerResultsHref={dealerResultsHref}
+          privatePublishHref={publishPrivadoHref}
+          dealerPublishHref={publishDealerHref}
+          mode="landing"
         />
 
         <AutosPrimaryDiscoveryCta copy={copy} browseAllHref={browseAllHref} />

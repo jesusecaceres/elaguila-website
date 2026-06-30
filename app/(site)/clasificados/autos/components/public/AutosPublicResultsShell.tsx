@@ -24,6 +24,7 @@ import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilte
 import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
 import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
+import { AutosLaneCrossNav } from "./AutosLaneCrossNav";
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
 import {
@@ -123,6 +124,8 @@ export function AutosPublicResultsShell() {
   const L = lang as Lang;
   const autosHome = appendLangToPath("/clasificados/autos", L);
   const publicar = appendLangToPath("/publicar/autos", L);
+  const publicarPrivado = appendLangToPath("/publicar/autos/privado", L);
+  const publicarDealer = appendLangToPath("/publicar/autos/negocios", L);
 
   const patchDraft = (patch: Partial<typeof draftFilters>) => setDraftFilters((f) => ({ ...f, ...patch }));
 
@@ -237,6 +240,31 @@ export function AutosPublicResultsShell() {
     routeLang: applied.routeLang,
   })}`;
 
+  const privateResultsHref = `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
+    filters: { ...emptyAutosPublicFilters(), sellerType: "private" },
+    q: "",
+    sort: "newest",
+    page: 1,
+    lang,
+    routeLang: applied.routeLang,
+  })}`;
+
+  const dealerResultsHref = `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
+    filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
+    q: "",
+    sort: "newest",
+    page: 1,
+    lang,
+    routeLang: applied.routeLang,
+  })}`;
+
+  const crossNavMode =
+    applied.filters.sellerType === "private"
+      ? "results-private"
+      : applied.filters.sellerType === "dealer"
+        ? "results-dealer"
+        : "results-neutral";
+
   return (
     <CategoryStandardResultsPageShell>
       <div className="pb-[calc(6rem+env(safe-area-inset-bottom,0px))] text-[#1A1A1A]">
@@ -348,6 +376,17 @@ export function AutosPublicResultsShell() {
               {copy.resultsResetShort}
             </button>
           </div>
+        </div>
+
+        <div className="mb-4">
+          <AutosLaneCrossNav
+            copy={copy}
+            privateResultsHref={privateResultsHref}
+            dealerResultsHref={dealerResultsHref}
+            privatePublishHref={publicarPrivado}
+            dealerPublishHref={publicarDealer}
+            mode={crossNavMode}
+          />
         </div>
 
         <div className="mb-5">

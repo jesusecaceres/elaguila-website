@@ -138,6 +138,7 @@
     "autos:negocios-final-battlefield-audit": "tsx scripts/autos-negocios-final-battlefield-audit.ts",
     "autos:application-war-room-audit": "tsx scripts/autos-application-war-room-audit.ts",
     "autos:final-war-room-closeout-audit": "tsx scripts/autos-final-war-room-closeout-audit.ts",
+    "autos:landing-results-cross-nav-audit": "tsx scripts/autos-landing-results-cross-nav-audit.ts",
     "autos:a5-recovery-10-field-parity-audit": "tsx scripts/autos-a5-recovery-10-field-parity-audit.ts",
     "autos:a5-recovery-11-drawer-uses-original-app-ux-audit": "tsx scripts/autos-a5-recovery-11-drawer-uses-original-app-ux-audit.ts",
     "autos:a5-recovery-13-drawer-select-dropdown-live-fix-audit": "tsx scripts/autos-a5-recovery-13-drawer-select-dropdown-live-fix-audit.ts",

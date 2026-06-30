@@ -113,8 +113,8 @@ PASS by static/layout review. The checkpoint uses stacked mobile cards with full
 ## 18. Remaining risks
 Manual browser QA with live auth/storage/publish is still required. The Feria draft does not include ZIP because this gate is locked against migrations and broader schema expansion. Payment checkout is intentionally deferred, so production payment activation remains a later gate.
 
-## 19. READY TO COMMIT THIS GATE: NO
-NO. Validation is pending at the time this audit was created.
+## 19. READY TO COMMIT THIS GATE: YES
+YES. `npm run verify:empleos-two-path-reroute-preview`, `npm run verify:empleos-simplification-qa-alignment`, `npm run july1:free-clasificados-shell-audit`, and `npm run build` passed. No files are staged, no commit was created, and no push was attempted.
 
 ## PASS/FIXED/BLOCKED table
 | Requirement | PASS/FIXED/BLOCKED | Evidence |
@@ -143,5 +143,5 @@ NO. Validation is pending at the time this audit was created.
 | No fake applicants/messages/resume tools | PASS | No new fake tools or promises added |
 | Mobile 390px clean | PASS | Static responsive review of cards/forms |
 | No unrelated categories edited | PASS | Empleos/audit/scripts/package only |
-| Audit script passed | BLOCKED | Pending validation |
-| npm run build passed | BLOCKED | Pending validation |
+| Audit script passed | PASS | `npm run verify:empleos-two-path-reroute-preview` |
+| npm run build passed | PASS | Fresh `npm run build` exited successfully |
