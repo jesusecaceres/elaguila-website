@@ -358,7 +358,8 @@
     "smoke:dashboard": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-health",
     "smoke:admin": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-admin",
     "smoke:clasificados": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-public",
-    "smoke:all": "npx playwright test -c playwright.leonix-smoke.config.mjs"
+    "smoke:all": "npx playwright test -c playwright.leonix-smoke.config.mjs",
+    "verify:responsive-rendering-launch-gate-01": "node scripts/verify-responsive-rendering-launch-gate-01.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
