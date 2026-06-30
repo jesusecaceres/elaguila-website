@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "server-only": ["./smoke-empty-server-only.ts"]
+    }
+  },
+  "include": ["./ofertas-locales-local-pdf-smoke.ts", "./smoke-empty-server-only.ts"]
+}
