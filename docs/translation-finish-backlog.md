@@ -5,7 +5,7 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** MAGAZINE-DEEPL-PT-REAL-SMOKE1
+**Last verified:** MAGAZINE-DEEPL-PT-REAL-SMOKE2
 
 ---
 
@@ -81,6 +81,7 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - `MAGAZINE-PROVIDER-SETUP-AND-PT-SMOKE1` locked the next document/visual provider retry to Portuguese (`pt`) and updated safe dry-run proof scripts.
 - The PT provider smoke still stopped before paid APIs because DeepL/Google document translation credentials are not present and document dependencies are not installed.
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE1` attempted the real DeepL readiness gate, but stopped before installing or calling DeepL because `DEEPL_AUTH_KEY` was not present locally.
+- `MAGAZINE-DEEPL-PT-REAL-SMOKE2` repeated the real DeepL readiness gate, but stopped before installing or calling DeepL because `DEEPL_AUTH_KEY` is still not present in the local Cursor environment.
 - Next provider retry must use target language `pt` only and keep generated outputs under ignored local proof folders.
 
 ---
@@ -153,7 +154,7 @@ See `docs/translation-env-setup.md`.
 | Gate | Purpose |
 |------|---------|
 | `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
-| `MAGAZINE-DEEPL-PT-REAL-SMOKE1-RETRY` | Add local `DEEPL_AUTH_KEY`, install only DeepL if still missing, and rerun one-language (`pt`) magazine document smoke |
+| `MAGAZINE-DEEPL-PT-REAL-SMOKE2-RETRY` | Add local `DEEPL_AUTH_KEY`, install only DeepL if still missing, and rerun one-language (`pt`) magazine document smoke |
 | `MAGAZINE-ASSET-CACHE1` | Done: static asset registry helpers; future storage/QA integration still required before serving translated visuals |
 | `MAGAZINE-VISUAL-ASSET-QA1` | Manual QA for any real local provider output before public asset registration |
 | `MAGAZINE-AD-ASSET-LIBRARY1` | Reusable advertiser ad asset library with source-hash reuse rules |

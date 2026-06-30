@@ -1,6 +1,6 @@
 # Magazine Provider Proof Scripts
 
-Status: `MAGAZINE-PROVIDER-SETUP-AND-PT-SMOKE1`
+Status: `MAGAZINE-DEEPL-PT-REAL-SMOKE2`
 
 These scripts prepare a backend/provider smoke path for the digital magazine without publishing assets or forcing paid API calls. They default to dry-run behavior and must not print secret values.
 
@@ -39,6 +39,8 @@ Blocked until both are true:
 
 - Install dependency: `npm install @deepl/deepl-node`
 - Set `DEEPL_AUTH_KEY` locally or in the execution environment
+
+`MAGAZINE-DEEPL-PT-REAL-SMOKE2` stopped before installing DeepL or calling the provider because `DEEPL_AUTH_KEY` is still missing in the local Cursor environment. No translated PDF or proof manifest exists from this gate.
 
 Safe preflight:
 
