@@ -14,6 +14,7 @@ import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPre
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
+import { RentasVideoLinksSection } from "@/app/clasificados/rentas/components/RentasVideoLinksSection";
 import { buildRentasResultCardPreviewListingFromPrivadoVm, rentasPreviewResultCardFlowOverlay } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
 import {
@@ -38,6 +39,18 @@ type Phase = "loading" | "ready" | "recovery";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
+
+function draftVideoUrls(draft: RentasPrivadoFormState): string[] {
+  const raw = draft.media.videoUrls?.length ? draft.media.videoUrls : [draft.media.videoUrl];
+  const out: string[] = [];
+  for (const item of raw) {
+    const url = String(item ?? "").trim();
+    if (!url || out.includes(url) || !/^https?:\/\//i.test(url)) continue;
+    out.push(url);
+    if (out.length >= 4) break;
+  }
+  return out;
+}
 
 export default function RentasPrivadoPreviewClient() {
   const router = useRouter();
@@ -234,6 +247,7 @@ export default function RentasPrivadoPreviewClient() {
         </h2>
       </section>
       <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
+      <RentasVideoLinksSection urls={draftVideoUrls(draft)} lang={lang} />
     </LeonixPreviewPageShell>
   );
 }

@@ -43,9 +43,13 @@ export function gateBienesRaicesPrivadoPreview(state: BienesRaicesPrivadoFormSta
 export function gateRentasPrivadoPreview(state: RentasPrivadoFormState): LeonixPreviewGateResult {
   if (!trim(state.titulo)) return { ok: false, message: "Agrega un título del anuncio." };
   if (!trim(state.rentaMensual)) return { ok: false, message: "Indica la renta mensual." };
-  const locLine = buildRentasStreetLine(state) || trim(state.ubicacionLinea);
-  if (!trim(state.ciudad) && !locLine) {
-    return { ok: false, message: "Indica la ciudad y/o la dirección de referencia." };
+  if (!trim(state.tipoDeRenta)) return { ok: false, message: "Elige el tipo de renta." };
+  if (!trim(state.ciudad)) return { ok: false, message: "Indica la ciudad." };
+  if (!trim(state.direccionEstado)) return { ok: false, message: "Indica el estado." };
+  if (!trim(state.direccionCodigoPostal)) return { ok: false, message: "Indica el código postal." };
+  const locLine = buildRentasStreetLine(state) || trim(state.ubicacionLinea) || trim(state.direccionCruceCercano);
+  if (!locLine) {
+    return { ok: false, message: "Indica una dirección, cruce cercano o referencia de ubicación." };
   }
   if (!state.media.photoDataUrls.length) return { ok: false, message: "Sube al menos una foto (portada)." };
   if (!trim(state.seller.nombre)) return { ok: false, message: "Indica tu nombre o cómo aparecerás como particular." };

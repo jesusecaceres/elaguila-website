@@ -202,7 +202,7 @@ export function mapRentasPrivadoStateToPreviewVm(
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
   const addressLine = exact
     ? buildRentasAssembledAddressLine(s)
-    : [line1, trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(", ");
+    : [cityStateZip || trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(" · ");
 
   const lead: BienesRaicesPreviewFact[] = [];
   const rm = buildRentasRentaMensualRow(s);
@@ -217,10 +217,6 @@ export function mapRentasPrivadoStateToPreviewVm(
     ? [{ label: lang === "en" ? "Posted by" : "Publica", value: postedBy }]
     : [];
   const propertyBody: BienesRaicesPreviewFact[] = buildRentasFlowPropertyBodyRows(s);
-  const videoRows: BienesRaicesPreviewFact[] = validVideoUrls(s).map((url, i) => ({
-    label: i === 0 ? (lang === "en" ? "Video" : "Video") : lang === "en" ? `Video ${i + 1}` : `Video ${i + 1}`,
-    value: url,
-  }));
 
   const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
   const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto);
@@ -253,7 +249,7 @@ export function mapRentasPrivadoStateToPreviewVm(
     listingStatusLabel: ESTADO_RENTAS[s.estadoAnuncio],
     operationSummary: rentOperationSummary(s.categoriaPropiedad),
     quickFacts,
-    propertyDetailsRows: [...postedByRows, ...rentRows, ...propertyBody, ...videoRows],
+    propertyDetailsRows: [...postedByRows, ...rentRows, ...propertyBody],
     highlightsRows,
     highlightsSectionTitle: "Destacados",
     seller: {

@@ -78,8 +78,7 @@ type MediaOverlaysProps = {
 };
 
 function MediaOverlays({ listing, copy, lang }: MediaOverlaysProps) {
-  const branch =
-    listing.branch === "privado" ? copy.card.sellerPrivado.toUpperCase() : copy.card.sellerNegocio.toUpperCase();
+  const branch = lang === "es" ? "ANUNCIANTE" : "ADVERTISER";
   const n = photoCount(listing);
   const photoLabel = lang === "es" ? `${n} ${n === 1 ? "foto" : "fotos"}` : `${n} ${n === 1 ? "photo" : "photos"}`;
   const statusRaw = availabilityLabel(listing.rentasListingAvailability, lang);
