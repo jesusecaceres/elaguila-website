@@ -49,6 +49,8 @@ import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/list
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
 import { BrLiveDetailAnalyticsMount } from "@/app/clasificados/bienes-raices/listing/BrLiveDetailAnalyticsMount";
 import { BrRelatedAgentPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrRelatedAgentPropertiesSection";
+import { BrSimilarOtherClientPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrSimilarOtherClientPropertiesSection";
+import { extractBrFacetsFromDetailPairs } from "@/app/clasificados/bienes-raices/resultados/lib/brFacetFromDetailPairs";
 import {
   trackBrContactClickGlobal,
   type BrGlobalAnalyticsContext,
@@ -275,6 +277,17 @@ export function EnVentaAnuncioLayout({
     [surface, rows, lang]
   );
   const premiumBr = surface === "bienes-raices";
+  const brFacets = useMemo(
+    () => (premiumBr ? extractBrFacetsFromDetailPairs(rows) : null),
+    [premiumBr, rows],
+  );
+
+  const brListingPriceNumber = useMemo(() => {
+    if (!premiumBr) return null;
+    const raw = listing.priceLabel?.[lang] ?? "";
+    const n = Number(String(raw).replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [premiumBr, listing.priceLabel, lang]);
 
   const brLocationBlock = useMemo(() => {
     if (!premiumBr) return null;
@@ -1359,6 +1372,17 @@ export function EnVentaAnuncioLayout({
                 brInventoryParentListingId={listing.br_inventory_parent_listing_id}
                 currentInventoryRole={listing.inventory_role}
                 sellerType={listing.sellerType}
+                lang={lang}
+              />
+            ) : null}
+            {premiumBr ? (
+              <BrSimilarOtherClientPropertiesSection
+                listingId={listing.id}
+                excludeGroupId={listing.br_inventory_group_id}
+                excludeOwnerId={listing.owner_id}
+                city={listing.city}
+                price={brListingPriceNumber}
+                propertyType={brFacets?.categoriaPropiedad ?? null}
                 lang={lang}
               />
             ) : null}

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import {
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
 } from "../../../lib/ownerListingsLifecycleClient";
@@ -374,6 +376,11 @@ async function uploadImages() {
 
   const status = String(listing?.status || "active").toLowerCase();
   const isSold = status === "sold";
+  const listingId = String(id ?? "");
+  const publicListingHref =
+    listing && String(listing.category ?? "").toLowerCase() === "rentas"
+      ? withRentasLandingLang(rentasListingPublicPath(listingId), lang)
+      : `/clasificados/anuncio/${listingId}?lang=${lang}`;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -387,7 +394,7 @@ async function uploadImages() {
 
           <div className="flex gap-2 flex-wrap">
             <Link
-              href={`/clasificados/anuncio/${id}?lang=${lang}`}
+              href={publicListingHref}
               className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition"
             >
               {L.view}

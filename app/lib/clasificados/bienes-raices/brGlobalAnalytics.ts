@@ -101,6 +101,17 @@ export function trackBrResultCardClickGlobal(ctx: BrGlobalAnalyticsContext): voi
   void trackBrGlobalEvent(ctx, "result_card_click", "results_card", { cooldownMs: 1000 });
 }
 
+/** Similar / substitute listing click from BR detail (other-client section). */
+export function trackBrSimilarListingClickGlobal(
+  ctx: BrGlobalAnalyticsContext,
+  sourceListingUuid: string,
+): void {
+  void trackBrGlobalEvent(ctx, "result_card_click", "detail_similar", {
+    cooldownMs: 1000,
+    metadata: { source_listing_id: sourceListingUuid, section: "similar_other_client" },
+  });
+}
+
 export function trackBrListingShareGlobal(ctx: BrGlobalAnalyticsContext, shareMethod?: string): void {
   void trackBrGlobalEvent(ctx, "listing_share", "detail", {
     metadata: shareMethod ? { shareMethod } : undefined,

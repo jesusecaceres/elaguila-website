@@ -8,6 +8,12 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { publishLeonixListingFromAgenteResidencialDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
+  brPublishBlockedMissingStripe,
+  brPublishPaymentBlockedMessage,
+  brPublishPaymentRequired,
+} from "@/app/lib/clasificados/bienes-raices/brPublishPaymentPolicy";
+import { startBrNegocioCheckout } from "@/app/lib/clasificados/bienes-raices/brPublishCheckoutClient";
+import {
   computeBrPropertyInventoryCounts,
   isBrInventoryUpgradeActive,
   type BrNegocioPublishInventoryContext,
@@ -123,9 +129,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
 
   const publishLabel = inventoryCtx
     ? brPropertyInventoryAddToInventoryCtaLabel(lang)
-    : lang === "es"
-      ? "Publicar anuncio"
-      : "Publish listing";
+    : brPublishPaymentRequired("negocio")
+      ? lang === "es"
+        ? "Continuar al pago"
+        : "Continue to payment"
+      : lang === "es"
+        ? "Publicar anuncio"
+        : "Publish listing";
 
   const onPublishLive = useCallback(async () => {
     const st = (await loadAgenteResPreviewDraftResolved()) ?? data;
@@ -158,11 +168,39 @@ export default function AgenteIndividualResidencialPreviewClient() {
         }
       }
 
-      const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory);
+      const isInventoryAdd = publishInventory.mode === "add";
+      if (!isInventoryAdd && brPublishBlockedMissingStripe("negocio")) {
+        setPublishErr(brPublishPaymentBlockedMessage(lang));
+        setPublishBusy(false);
+        return;
+      }
+
+      const needsPayment = !isInventoryAdd && brPublishPaymentRequired("negocio");
+      const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory, {
+        activationMode: needsPayment ? "pending_payment" : "immediate",
+      });
       setPublishBusy(false);
 
       if (!r.ok) {
         setPublishErr(r.error);
+        return;
+      }
+
+      if (r.pendingPayment && needsPayment) {
+        const checkout = await startBrNegocioCheckout({
+          listingId: r.listingId,
+          lang,
+          returnToListingId: inventoryCtx?.parentListingId,
+        });
+        if (!checkout.ok) {
+          setPublishErr(checkout.message ?? checkout.error);
+          return;
+        }
+        if (checkout.internalBypass || checkout.testPublishBypass) {
+          window.location.href = checkout.url;
+          return;
+        }
+        window.location.href = checkout.url;
         return;
       }
 

@@ -339,14 +339,25 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
   };
 }
 
+export type BrPublishDraftOptions = {
+  activationMode?: "immediate" | "pending_payment";
+};
+
 export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   state: BienesRaicesNegocioFormState,
   lang: "es" | "en",
   inventory?: BrNegocioPublishInventoryContext | null,
+  opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const built = buildPublishParamsFromBienesRaicesNegocioDraft(state, lang, inventory);
   if (!built.ok) return built;
-  if ("params" in built) return publishLeonixRealEstateListingCore(built.params);
+  if ("params" in built) {
+    return publishLeonixRealEstateListingCore({
+      ...built.params,
+      activationMode: opts?.activationMode,
+      brPaymentLane: "negocio",
+    });
+  }
   return built;
 }
 
@@ -355,6 +366,7 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
   state: AgenteIndividualResidencialFormState,
   lang: "es" | "en",
   inventory?: BrNegocioPublishInventoryContext | null,
+  opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const photos = (Array.isArray(state.fotosDataUrls) ? state.fotosDataUrls : []).filter((u) => String(u ?? "").trim());
   if (!photos.length) {
@@ -367,7 +379,7 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
     };
   }
   const negocio = mapAgenteResidencialFormStateToNegocioForPublish(state);
-  return publishLeonixListingFromBienesRaicesNegocioDraft(negocio, lang, inventory);
+  return publishLeonixListingFromBienesRaicesNegocioDraft(negocio, lang, inventory, opts);
 }
 
 export async function publishLeonixListingFromRentasNegocioDraft(

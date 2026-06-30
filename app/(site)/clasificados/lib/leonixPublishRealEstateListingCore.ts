@@ -28,6 +28,9 @@ import {
   type BrPropertyInventoryRole,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
+  mergeBrListingPaymentMeta,
+} from "@/app/lib/clasificados/bienes-raices/brListingPaymentMetadata";
+import {
   buildRentasPublishFinalPayloadDebug,
   rentasPublishFinalBoundaryPreflight,
   rentasPublishGalleryUrlsPreflight,
@@ -119,8 +122,8 @@ export function buildListingsInsertRowForLeonixPublish(
     is_free: isFree,
     contact_phone: phone,
     contact_email: email,
-    status: "active",
-    is_published: true,
+    status: params.activationMode === "pending_payment" ? "pending" : "active",
+    is_published: params.activationMode !== "pending_payment",
     seller_type: sellerType,
     detail_pairs: detailPairs.length ? detailPairs : null,
   };
@@ -141,7 +144,7 @@ export function buildListingsInsertRowForLeonixPublish(
     insertPayload.zip = zipTrim.replace(/\D/g, "").slice(0, 12);
   }
 
-  const listingJson =
+  const listingJsonBase =
     compactLeonixJsonRecord(params.listingJson ?? {}) ??
     buildLeonixListingJsonPayload({
       category,
@@ -150,7 +153,14 @@ export function buildListingsInsertRowForLeonixPublish(
       state: stateTrim || null,
       zip: zipTrim || null,
     });
-  if (listingJson) insertPayload.listing_json = listingJson;
+  if (params.activationMode === "pending_payment" && category === "bienes-raices") {
+    insertPayload.listing_json = mergeBrListingPaymentMeta(listingJsonBase, {
+      payment_status: "pending",
+      lane: params.brPaymentLane ?? (sellerType === "business" ? "negocio" : "privado"),
+    });
+  } else if (listingJsonBase) {
+    insertPayload.listing_json = listingJsonBase;
+  }
 
   const profileJson =
     compactLeonixJsonRecord(params.profileJson ?? {}) ??
@@ -178,7 +188,9 @@ export function buildListingsInsertRowForLeonixPublish(
     insertPayload.business_meta = businessMetaJson.trim();
   }
   const clock = new Date().toISOString();
-  insertPayload.published_at = clock;
+  if (params.activationMode !== "pending_payment") {
+    insertPayload.published_at = clock;
+  }
   insertPayload.updated_at = clock;
 
   const muxPid = String(params.muxPlaybackId ?? "").trim();
@@ -262,10 +274,13 @@ export type PublishLeonixRealEstateListingCoreParams = {
   brInventoryGroupId?: string | null;
   brInventoryParentListingId?: string | null;
   brInventoryRole?: BrPropertyInventoryRole | null;
+  /** BR publish: immediate live row vs pending until Stripe (negocio/privado paid lane). */
+  activationMode?: "immediate" | "pending_payment";
+  brPaymentLane?: "negocio" | "privado";
 };
 
 export type PublishLeonixRealEstateListingCoreResult =
-  | { ok: true; listingId: string; warnings: string[] }
+  | { ok: true; listingId: string; warnings: string[]; pendingPayment?: boolean }
   | { ok: false; error: string };
 
 export async function publishLeonixRealEstateListingCore(
@@ -585,5 +600,10 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   devLog("publish ok", listingId, "warnings", warnings.length);
-  return { ok: true, listingId, warnings };
+  return {
+    ok: true,
+    listingId,
+    warnings,
+    pendingPayment: params.activationMode === "pending_payment",
+  };
 }

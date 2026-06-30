@@ -184,14 +184,32 @@ export function brRelatedAgentPropertiesCopy(
   return lang === "es"
     ? {
         title: brokerage ? "Más propiedades de esta inmobiliaria" : "Más propiedades de este agente",
-        subtitle: "Explora otras propiedades activas de este inventario.",
+        subtitle: "Otras propiedades activas del mismo inventario.",
         viewAll: "Ver todas las propiedades",
         viewProperty: "Ver propiedad",
       }
     : {
-        title: brokerage ? "More properties from this brokerage" : "More properties from this agent",
-        subtitle: "Explore other active properties from this inventory.",
+        title: brokerage ? "More properties from this brokerage" : "More from this agent",
+        subtitle: "Other active listings from the same inventory group.",
         viewAll: "View all properties",
         viewProperty: "View property",
+      };
+}
+
+export function brSimilarOtherClientPropertiesCopy(lang: BrPropertyInventoryLang) {
+  return lang === "es"
+    ? {
+        title: "Propiedades similares en Leonix",
+        subtitle: "Otros anuncios de Bienes Raíces de clientes Leonix — no del mismo inventario.",
+        viewProperty: "Ver propiedad",
+        browseAll: "Ver más en resultados",
+        loading: "Buscando propiedades similares…",
+      }
+    : {
+        title: "Similar properties on Leonix",
+        subtitle: "Other Bienes Raíces listings from Leonix clients — outside this inventory group.",
+        viewProperty: "View property",
+        browseAll: "Browse more results",
+        loading: "Finding similar properties…",
       };
 }
