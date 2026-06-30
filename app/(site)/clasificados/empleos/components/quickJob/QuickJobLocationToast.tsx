@@ -22,7 +22,9 @@ export function QuickJobLocationToast({
   mapsLabel,
   closeLabel,
 }: Props) {
-  const fullLine = `${location.city}, ${location.state} ${location.zip}`.trim();
+  const locality = [location.city, location.state, location.country].filter((x) => (x ?? "").trim()).join(", ");
+  const fullLine = [locality, location.zip].filter((x) => (x ?? "").trim()).join(" · ");
+  const mapsQuery = [location.addressLine1, location.addressLine2, locality, location.zip].filter((x) => (x ?? "").trim()).join(", ");
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
@@ -66,7 +68,8 @@ export function QuickJobLocationToast({
         </h3>
         <div className="mt-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
           <p className="font-semibold text-[color:var(--lx-text)]">{location.businessLine}</p>
-          <p className="mt-1">{location.addressLine1}</p>
+          {location.addressLine1 ? <p className="mt-1">{location.addressLine1}</p> : null}
+          {location.addressLine2 ? <p className="mt-0.5">{location.addressLine2}</p> : null}
           <p className="mt-0.5">{fullLine}</p>
         </div>
         <p className="mt-4 text-xs text-[color:var(--lx-muted)]">{hint}</p>
@@ -78,12 +81,16 @@ export function QuickJobLocationToast({
           >
             {closeLabel}
           </button>
-          <button
-            type="button"
+          {mapsQuery ? (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="min-h-11 rounded-lg bg-[#2563EB] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#1D4ED8]"
           >
             {mapsLabel}
-          </button>
+          </a>
+          ) : null}
         </div>
       </div>
     </div>

@@ -29,8 +29,11 @@ export type EmpleosJobRecord = {
   company: string;
   city: string;
   state: string;
-  /** US ZIP (5 digits). Optional for adapter rows without geocoding yet. */
+  /** State/province/region for global listings; `state` remains the DB/search compatibility value. */
+  stateRegion?: string;
+  /** International postal code. Optional for adapter rows without geocoding yet. */
   postalCode?: string;
+  country?: string;
   category: string;
   /** When category slug is `otro`, human label from the employer. */
   categoryCustomLabel?: string;
@@ -84,6 +87,7 @@ export type EmpleosJobRecord = {
   employerEmail?: string;
   employerWebsite?: string;
   employerAddressLine?: string;
+  employerAddressLine2?: string;
   /** External video links published by the employer. */
   videoUrls?: readonly string[];
   /** Google JobPosting validThrough (ISO). */

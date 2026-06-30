@@ -42,9 +42,13 @@ export type EmpleosQuickPublishSnapshot = {
   website: string;
   primaryCta: "phone" | "whatsapp" | "email";
   addressLine1: string;
+  addressLine2?: string;
   addressCity: string;
   addressState: string;
   addressZip: string;
+  stateRegion?: string;
+  postalCode?: string;
+  country?: string;
   /** External video URL only; draft file handles omitted. */
   videoUrl: string | null;
   /** External video URLs only; max 4 in quick free/simple flow. */
@@ -91,8 +95,13 @@ export type EmpleosFeriaPublishSnapshot = {
   dateLine: string;
   timeLine: string;
   venue: string;
+  addressLine1?: string;
+  addressLine2?: string;
   city: string;
   state: string;
+  stateRegion?: string;
+  postalCode?: string;
+  country?: string;
   organizer: string;
   organizerUrl: string;
   modality: string;

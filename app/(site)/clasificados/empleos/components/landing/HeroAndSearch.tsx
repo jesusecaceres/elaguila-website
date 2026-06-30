@@ -12,11 +12,10 @@ import {
   sampleCategorySelectOptions,
   sampleJobTypeSelectOptions,
   samplePopularSearches,
-  sampleUsStateSelectOptions,
 } from "../../data/empleosLandingSampleData";
 import { EmpleosUseLocationButton } from "../EmpleosUseLocationButton";
 import { EMPLEOS_CTA_PRIMARY, EMPLEOS_FIELD } from "../../lib/empleosPremiumUi";
-import { normalizeZip5, parseEmpleosResultsQuery } from "../../lib/empleosResultsQuery";
+import { normalizePostalCode, parseEmpleosResultsQuery } from "../../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl } from "../../shared/utils/empleosListaUrl";
 
 /** Wide workplace photo — hero atmosphere (distinct from En Venta property imagery). */
@@ -52,13 +51,13 @@ export function HeroAndSearch({ lang }: Props) {
   }, [parsed]);
 
   const submit = useCallback(() => {
-    const z = normalizeZip5(zip);
+    const z = normalizePostalCode(zip);
     router.push(
       buildEmpleosResultadosUrl(lang, {
         q: q.trim() || undefined,
         city: city.trim() || undefined,
         state: state.trim() || undefined,
-        zip: z.length === 5 ? z : undefined,
+        zip: z || undefined,
         category: category || undefined,
         jobType: jobType || undefined,
       }),
@@ -188,24 +187,24 @@ export function HeroAndSearch({ lang }: Props) {
             </label>
 
             <label className="min-w-0 sm:col-span-1 xl:col-span-2">
-              <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Estado" : "State"}</span>
-              <select value={state} onChange={(e) => setState(e.target.value)} className={fieldClass}>
-                {sampleUsStateSelectOptions.map((o) => (
-                  <option key={o.value || "all"} value={o.value}>
-                    {lang === "es" ? o.labelEs : o.labelEn}
-                  </option>
-                ))}
-              </select>
+              <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">
+                {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
+              </span>
+              <input
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder={lang === "es" ? "Ej: Jalisco, Ontario" : "e.g. Jalisco, Ontario"}
+                className={`${fieldClass} placeholder:text-[#7A756E]`}
+                autoComplete="address-level1"
+              />
             </label>
 
             <label className="min-w-0 sm:col-span-1 xl:col-span-2">
-              <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "CP (ZIP)" : "ZIP code"}</span>
+              <span className="mb-1.5 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Código postal" : "Postal code"}</span>
               <input
                 value={zip}
-                inputMode="numeric"
-                onChange={(e) => setZip(normalizeZip5(e.target.value))}
-                placeholder={lang === "es" ? "Ej: 90241" : "e.g. 90241"}
-                maxLength={5}
+                onChange={(e) => setZip(e.target.value)}
+                placeholder={lang === "es" ? "Ej: K1A 0B1" : "e.g. K1A 0B1"}
                 className={`${fieldClass} placeholder:text-[#7A756E]`}
                 autoComplete="postal-code"
               />

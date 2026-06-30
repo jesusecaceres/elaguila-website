@@ -18,7 +18,8 @@ export function gateEmpleosQuickPreview(d: EmpleosQuickDraft, lang: Lang = "es")
   if (!st(d.title)) issues.push(L.title);
   if (!st(d.businessName)) issues.push(L.businessName);
   if (!st(d.city)) issues.push(L.city);
-  if (!st(d.state)) issues.push(L.state);
+  if (!st(d.stateRegion || d.state)) issues.push(L.state);
+  if (!st(d.country)) issues.push(L.country);
   if (!st(d.jobType)) issues.push(L.jobType);
   const hasSchedule = d.scheduleRows.some((r) => st(r.day) || st(r.shift)) || st(d.schedule);
   if (!hasSchedule) issues.push(L.schedule);
@@ -62,7 +63,8 @@ export function gateEmpleosFeriaPreview(d: EmpleosFeriaDraft, lang: Lang = "es")
   if (!st(d.dateLine)) issues.push(L.date);
   if (!st(d.venue)) issues.push(L.venue);
   if (!st(d.city)) issues.push(L.city);
-  if (!st(d.state)) issues.push(L.state);
+  if (!st(d.stateRegion || d.state)) issues.push(L.state);
+  if (!st(d.country)) issues.push(L.country);
   if (!st(d.organizer)) issues.push(L.organizer);
   const hasContact = st(d.contactPhone) || st(d.contactEmail) || st(d.contactLink) || st(d.organizerUrl);
   if (!hasContact) issues.push(L.contact);

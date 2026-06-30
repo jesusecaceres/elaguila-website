@@ -85,10 +85,10 @@ export async function reverseGeocodeLatLng(lat: number, lng: number): Promise<Re
     state = iso.slice(3);
   } else if (a.state) {
     const s = a.state;
-    state = s.length === 2 ? s.toUpperCase() : US_STATE_NAME_TO_CODE[s] ?? "";
+    state = s.length === 2 ? s.toUpperCase() : US_STATE_NAME_TO_CODE[s] ?? s;
   }
   const rawZip = a.postcode ?? "";
-  const zip = rawZip.replace(/\D/g, "").slice(0, 5);
+  const zip = rawZip.trim();
 
   if (!city && !zip) return null;
 

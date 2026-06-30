@@ -24,16 +24,17 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
     const d = env.payload.data;
     const loc = empleosQuickPublicCityState({
       city: d.city,
-      state: d.state,
+      state: d.stateRegion ?? d.state,
       addressCity: d.addressCity,
-      addressState: d.addressState,
-      addressZip: d.addressZip,
+      addressState: d.addressState || d.stateRegion || d.state,
+      addressZip: d.postalCode ?? d.addressZip,
+      country: d.country,
     });
     const imgs = d.images.filter((x) => String(x.url ?? "").trim());
     const main = imgs.find((x) => x.isMain) ?? imgs[0];
     const mainSrc = main?.url && !main.url.startsWith("blob:") ? main.url : job.imageSrc;
     const mainAlt = main?.alt || job.imageAlt;
-    const hasAddr = Boolean(d.addressLine1.trim() || d.addressZip.trim());
+    const hasAddr = Boolean(d.addressLine1.trim() || d.addressLine2?.trim() || d.addressZip.trim() || d.postalCode?.trim() || d.country?.trim());
     const web = sanitizeHttpUrl(d.website);
     return {
       title: d.title || job.title,
@@ -61,9 +62,11 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
         ? {
             businessLine: d.businessName.trim() || job.company,
             addressLine1: d.addressLine1.trim() || "—",
+            addressLine2: d.addressLine2?.trim() || undefined,
             city: d.addressCity.trim() || loc.city,
-            state: d.addressState.trim() || loc.state,
-            zip: d.addressZip.trim() || "—",
+            state: d.addressState.trim() || d.stateRegion?.trim() || loc.state,
+            zip: d.postalCode?.trim() || d.addressZip.trim() || "",
+            country: d.country?.trim() || undefined,
           }
         : undefined,
       relatedJobs: [],
@@ -74,8 +77,9 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
     city: job.city,
     state: job.state,
     addressCity: "",
-    addressState: "",
+    addressState: job.stateRegion ?? "",
     addressZip: job.postalCode ?? "",
+    country: job.country,
   });
   return {
     title: job.title,
@@ -101,9 +105,11 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
       ? {
           businessLine: job.company,
           addressLine1: job.employerAddressLine,
+          addressLine2: job.employerAddressLine2,
           city: loc.city,
-          state: loc.state,
-          zip: job.postalCode ?? "—",
+          state: job.stateRegion ?? loc.state,
+          zip: job.postalCode ?? "",
+          country: job.country,
         }
       : undefined,
     relatedJobs: [],
@@ -194,7 +200,14 @@ export function mapPublishedFeriaToShell(job: EmpleosJobRecord, env: EmpleosPubl
   if (env?.payload.lane === "feria") {
     const d = env.payload.data;
     const flyer = d.flyerImageUrl?.trim() || job.imageSrc;
-    const loc = empleosFeriaPublicCityState({ city: d.city, state: d.state, venue: d.venue });
+    const loc = empleosFeriaPublicCityState({
+      city: d.city,
+      state: d.state,
+      stateRegion: d.stateRegion,
+      postalCode: d.postalCode,
+      country: d.country,
+      venue: d.venue,
+    });
     const baseDetails = d.detailsBullets.map((x) => x.trim()).filter(Boolean);
     const modality = modalityLabelEs(String(d.modality));
     const entry = d.freeEntry ? "Entrada gratuita" : "Entrada con costo";
@@ -217,8 +230,13 @@ export function mapPublishedFeriaToShell(job: EmpleosJobRecord, env: EmpleosPubl
       dateLine: d.dateLine,
       timeLine: d.timeLine || undefined,
       venue: d.venue,
+      addressLine1: d.addressLine1?.trim() || undefined,
+      addressLine2: d.addressLine2?.trim() || undefined,
       city: d.city,
-      state: d.state,
+      state: d.stateRegion ?? d.state,
+      stateRegion: d.stateRegion?.trim() || undefined,
+      postalCode: d.postalCode?.trim() || undefined,
+      country: d.country?.trim() || undefined,
       displayCityState: loc.cityLine,
       filterRegionFootnote: loc.filterRegionFootnote,
       organizer: d.organizer,
@@ -249,8 +267,13 @@ export function mapPublishedFeriaToShell(job: EmpleosJobRecord, env: EmpleosPubl
     dateLine: job.feriaDateLine || "—",
     timeLine: job.feriaTimeLine,
     venue: job.feriaVenue || "—",
+    addressLine1: job.employerAddressLine,
+    addressLine2: job.employerAddressLine2,
     city: job.city,
     state: job.state,
+    stateRegion: job.stateRegion,
+    postalCode: job.postalCode,
+    country: job.country,
     displayCityState: loc.cityLine,
     filterRegionFootnote: loc.filterRegionFootnote,
     organizer: job.company,

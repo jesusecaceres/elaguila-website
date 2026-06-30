@@ -175,7 +175,7 @@ export default function EmpleosEmployerManagePage() {
         <p className="mt-2 text-xs">
           <span className="font-semibold">{t.status}:</span> {row.lifecycle_status}
         </p>
-        {typeof row.apply_count === "number" ? (
+        {row.lane !== "feria" && typeof row.apply_count === "number" ? (
           <p className="mt-1 text-xs">
             <span className="font-semibold">{t.applyCount}:</span> {row.apply_count}
           </p>
@@ -210,36 +210,51 @@ export default function EmpleosEmployerManagePage() {
       </div>
 
       <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-5">
-        <h2 className="text-sm font-bold uppercase text-[#7A7164]">{t.applications}</h2>
-        {apps.length === 0 ? (
-          <p className="mt-2 text-sm text-[#5C5346]">{t.noApps}</p>
+        {row.lane === "feria" ? (
+          <>
+            <h2 className="text-sm font-bold uppercase text-[#7A7164]">
+              {lang === "es" ? "Feria de empleo" : "Job fair"}
+            </h2>
+            <p className="mt-2 text-sm text-[#5C5346]">
+              {lang === "es"
+                ? "Esta publicación usa contacto del organizador en la página pública. Leonix no recopila solicitudes internas para ferias."
+                : "This post uses organizer contact on the public page. Leonix does not collect internal applications for job fairs."}
+            </p>
+          </>
         ) : (
-          <ul className="mt-3 space-y-3 text-sm">
-            {apps.map((a) => (
-              <li key={a.id} className="rounded-lg border border-[#E8DFD0]/80 bg-white p-3">
-                <p className="font-semibold text-[#1E1810]">{a.applicant_name}</p>
-                <p className="text-xs text-[#7A7164]">{a.applicant_email}</p>
-                <p className="mt-2 text-[#4A4744]">{a.message}</p>
-                {a.answers_json && typeof a.answers_json === "object" && Object.keys(a.answers_json as object).length ? (
-                  <pre className="mt-2 max-h-32 overflow-auto rounded bg-[#FAF7F2] p-2 text-[11px] text-[#4A4744]">
-                    {JSON.stringify(a.answers_json, null, 2)}
-                  </pre>
-                ) : null}
-                <p className="mt-1 text-[10px] uppercase text-[#9A9084]">{a.status}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "viewed")}>
-                    {t.setViewed}
-                  </button>
-                  <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "shortlisted")}>
-                    {t.setShort}
-                  </button>
-                  <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "rejected")}>
-                    {t.setReject}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <h2 className="text-sm font-bold uppercase text-[#7A7164]">{t.applications}</h2>
+            {apps.length === 0 ? (
+              <p className="mt-2 text-sm text-[#5C5346]">{t.noApps}</p>
+            ) : (
+              <ul className="mt-3 space-y-3 text-sm">
+                {apps.map((a) => (
+                  <li key={a.id} className="rounded-lg border border-[#E8DFD0]/80 bg-white p-3">
+                    <p className="font-semibold text-[#1E1810]">{a.applicant_name}</p>
+                    <p className="text-xs text-[#7A7164]">{a.applicant_email}</p>
+                    <p className="mt-2 text-[#4A4744]">{a.message}</p>
+                    {a.answers_json && typeof a.answers_json === "object" && Object.keys(a.answers_json as object).length ? (
+                      <pre className="mt-2 max-h-32 overflow-auto rounded bg-[#FAF7F2] p-2 text-[11px] text-[#4A4744]">
+                        {JSON.stringify(a.answers_json, null, 2)}
+                      </pre>
+                    ) : null}
+                    <p className="mt-1 text-[10px] uppercase text-[#9A9084]">{a.status}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "viewed")}>
+                        {t.setViewed}
+                      </button>
+                      <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "shortlisted")}>
+                        {t.setShort}
+                      </button>
+                      <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "rejected")}>
+                        {t.setReject}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </section>
 

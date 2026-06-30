@@ -1,6 +1,7 @@
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { isEmpleosInternalFilterRegion } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
 import { empleosQuickPublicCityState } from "@/app/publicar/empleos/shared/lib/empleosPublicLocation";
+import { normalizeEmpleosGlobalLocation } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 import type {
   CompanyTypeSlug,
   EmpleosJobRecord,
@@ -15,10 +16,10 @@ import type { EmpleosCanonicalListing, EmpleosStagedPublicStatus } from "./emple
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80";
 
-/** Best-effort US ZIP from a freeform address line (Premium has no dedicated zip field). */
+/** Best-effort postal code from a freeform address line (Premium has no dedicated postal field). */
 function postalCodeFromEmployerAddressLine(raw: string | undefined): string | undefined {
   if (!raw?.trim()) return undefined;
-  const m = raw.match(/\b(\d{5})(?:-\d{4})?\b/);
+  const m = raw.match(/\b([A-Z]\d[A-Z][ -]?\d[A-Z]\d|\d{4,10}(?:-\d{3,4})?)\b/i);
   return m?.[1];
 }
 
@@ -103,10 +104,19 @@ export function empleosEnvelopeToJobRecord(
     const modality: JobModalitySlug = d.workModality ?? mapModalityFromText(d.schedule);
     const loc = empleosQuickPublicCityState({
       city: d.city,
-      state: d.state,
+      state: d.stateRegion ?? d.state,
       addressCity: d.addressCity,
-      addressState: d.addressState,
-      addressZip: d.addressZip,
+      addressState: d.addressState || d.stateRegion || d.state,
+      addressZip: d.postalCode ?? d.addressZip,
+      country: d.country,
+    });
+    const globalLoc = normalizeEmpleosGlobalLocation({
+      addressLine1: d.addressLine1,
+      addressLine2: d.addressLine2,
+      city: d.addressCity || d.city,
+      stateRegion: d.addressState || d.stateRegion || d.state,
+      postalCode: d.postalCode ?? d.addressZip,
+      country: d.country,
     });
     const description = d.description.trim();
     const screeners = screenerFromStrings(d.screenerQuestions ?? []);
@@ -118,7 +128,9 @@ export function empleosEnvelopeToJobRecord(
       company: d.businessName,
       city: loc.city,
       state: loc.state,
-      postalCode: d.addressZip?.trim() || undefined,
+      stateRegion: globalLoc.stateRegion || loc.state,
+      postalCode: globalLoc.postalCode || undefined,
+      country: globalLoc.country || undefined,
       category,
       categoryCustomLabel,
       modality,
@@ -151,7 +163,8 @@ export function empleosEnvelopeToJobRecord(
       employerWhatsapp: d.whatsapp || undefined,
       employerEmail: d.email || undefined,
       employerWebsite: d.website || undefined,
-      employerAddressLine: d.addressLine1 || undefined,
+      employerAddressLine: globalLoc.addressLine1 || undefined,
+      employerAddressLine2: globalLoc.addressLine2 || undefined,
       videoUrls: d.videoUrls?.length ? d.videoUrls : d.videoUrl ? [d.videoUrl] : undefined,
     };
   }
@@ -263,6 +276,14 @@ export function empleosEnvelopeToJobRecord(
   const description = descParts.join("\n\n");
   const modality = mapModalityFromText(String(d.modality));
   const venue = d.venue.trim();
+  const feriaLoc = normalizeEmpleosGlobalLocation({
+    addressLine1: d.addressLine1,
+    addressLine2: d.addressLine2,
+    city: d.city,
+    stateRegion: d.stateRegion || d.state,
+    postalCode: d.postalCode,
+    country: d.country,
+  });
   const feriaCity =
     isEmpleosInternalFilterRegion(d.city) && venue ? venue.split(",")[0]?.trim() || d.city : d.city.trim() || d.city;
 
@@ -271,8 +292,11 @@ export function empleosEnvelopeToJobRecord(
     slug: opts.slug,
     title: d.title,
     company: d.organizer,
-    city: feriaCity,
-    state: d.state,
+    city: feriaLoc.city || feriaCity,
+    state: feriaLoc.stateRegion || d.state,
+    stateRegion: feriaLoc.stateRegion || undefined,
+    postalCode: feriaLoc.postalCode || undefined,
+    country: feriaLoc.country || undefined,
     category: "feria",
     modality,
     jobType: "tiempo-completo",
@@ -303,6 +327,8 @@ export function empleosEnvelopeToJobRecord(
     feriaDateLine: d.dateLine || undefined,
     feriaTimeLine: d.timeLine || undefined,
     feriaVenue: d.venue || undefined,
+    employerAddressLine: feriaLoc.addressLine1 || undefined,
+    employerAddressLine2: feriaLoc.addressLine2 || undefined,
     organizerUrl: d.organizerUrl || undefined,
     freeEntry: d.freeEntry,
     scheduleLabel: [d.dateLine, d.timeLine].filter(Boolean).join(" · ") || undefined,

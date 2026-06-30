@@ -5,6 +5,8 @@ type Props = {
   dateLine: string;
   timeLine?: string;
   venue: string;
+  addressLine1?: string;
+  addressLine2?: string;
   cityStateLine: string;
   organizer?: string;
   organizerUrl?: string;
@@ -18,6 +20,8 @@ export function JobFairInfoSection({
   dateLine,
   timeLine,
   venue,
+  addressLine1,
+  addressLine2,
   cityStateLine,
   organizer,
   organizerUrl,
@@ -42,7 +46,11 @@ export function JobFairInfoSection({
         </div>
         <div className="flex gap-3">
           <FaMapMarkerAlt className="mt-0.5 h-5 w-5 shrink-0 text-[#B8943F]" aria-hidden />
-          <span className="font-medium">{venue}</span>
+          <div>
+            <span className="font-medium">{venue}</span>
+            {addressLine1 ? <p className="mt-1 text-sm text-[#5C564E]">{addressLine1}</p> : null}
+            {addressLine2 ? <p className="mt-0.5 text-sm text-[#5C564E]">{addressLine2}</p> : null}
+          </div>
         </div>
         <div className="flex gap-3">
           <FaMapMarkerAlt className="mt-0.5 h-5 w-5 shrink-0 text-[#7A8899]" aria-hidden />

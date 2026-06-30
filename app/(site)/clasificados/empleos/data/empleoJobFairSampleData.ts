@@ -12,8 +12,13 @@ export type EmpleoJobFairSample = {
   dateLine: string;
   timeLine?: string;
   venue: string;
+  addressLine1?: string;
+  addressLine2?: string;
   city: string;
   state: string;
+  stateRegion?: string;
+  postalCode?: string;
+  country?: string;
   organizer?: string;
   /** Optional link for organizer name */
   organizerUrl?: string;

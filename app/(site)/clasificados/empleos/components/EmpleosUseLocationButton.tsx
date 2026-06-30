@@ -67,8 +67,8 @@ export function EmpleosUseLocationButton({ lang, onFilled, className }: Props) {
       {error ? <p className="mt-1.5 text-xs text-[#8B4513]">{error}</p> : null}
       <p id={helpId} className="mt-1 text-[11px] leading-relaxed text-[#7A756E]">
         {lang === "es"
-          ? "Solo al hacer clic pedimos permiso. Aproximamos ciudad y CP; no vendemos tu ubicación."
-          : "We only ask permission when you tap. We approximate city and ZIP; we do not sell your location."}
+          ? "Solo al hacer clic pedimos permiso. Aproximamos ciudad y código postal; no vendemos tu ubicación."
+          : "We only ask permission when you tap. We approximate city and postal code; we do not sell your location."}
       </p>
     </div>
   );

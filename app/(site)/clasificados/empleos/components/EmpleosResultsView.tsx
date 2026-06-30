@@ -25,7 +25,7 @@ import {
   type EmpleosSortKey,
   empleosParamsFromSearchParams,
   filterEmpleosJobs,
-  normalizeZip5,
+  normalizePostalCode,
   parseEmpleosResultsQuery,
   sortEmpleosJobs,
 } from "../lib/empleosResultsQuery";
@@ -82,7 +82,7 @@ const COPY = {
     recoverDropQ: "Quitar palabra clave",
     recoverDropZip: "Quitar código postal",
     recoverDropCity: "Quitar ciudad",
-    recoverBroaderCA: "Ampliar a todo California",
+    recoverBroaderCA: "Ampliar ubicación",
     recoverRecent: "Últimos 7 días (todos los filtros)",
     exploreMore: "Explora también",
     lowResultsHint: "Pocas coincidencias — abre una categoría cercana:",
@@ -105,7 +105,7 @@ const COPY = {
     emptySupport: "This is normal: results follow your filters. Try a recovery action below or return to Jobs home.",
     emptyExplore: "Back to Jobs home",
     keywordHint: "Type and press Search, or Enter, to apply your keyword.",
-    fieldBlurHint: "City and ZIP update when you leave the field.",
+    fieldBlurHint: "City and postal code update when you leave the field.",
     listIntroRecent: "Last 7 days only, in chronological order.",
     featuredBlock: "Featured & promoted",
     allBlock: "All openings",
@@ -120,9 +120,9 @@ const COPY = {
     listIntro: "Matches for your filters; change sort without losing criteria.",
     emptyRecoveryTitle: "Get results back quickly",
     recoverDropQ: "Remove keyword",
-    recoverDropZip: "Remove ZIP",
+    recoverDropZip: "Remove postal code",
     recoverDropCity: "Remove city",
-    recoverBroaderCA: "Broaden to all of California",
+    recoverBroaderCA: "Broaden location",
     recoverRecent: "Last 7 days (keep other filters)",
     exploreMore: "Explore more",
     lowResultsHint: "Few matches — try a nearby category:",
@@ -181,12 +181,12 @@ type EmpleosFormFields = {
 
 function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): EmpleosResultadosParams {
   const band = sampleSalaryBandOptions.find((b) => b.value === f.salaryBand);
-  const z = normalizeZip5(f.zipInput);
+  const z = normalizePostalCode(f.zipInput);
   return {
     q: f.q.trim() || undefined,
     city: f.city.trim() || undefined,
     state: f.stateCode.trim() || undefined,
-    zip: z.length === 5 ? z : undefined,
+    zip: z || undefined,
     category: f.category || undefined,
     jobType: f.jobType || undefined,
     modality: f.modality || undefined,
@@ -245,7 +245,7 @@ function chipLabel(lang: Lang, key: string, val: string): string {
     const o = sampleUsStateSelectOptions.find((x) => x.value === val);
     return lang === "es" ? `Estado: ${o?.labelEs ?? val}` : `State: ${o?.labelEn ?? val}`;
   }
-  if (key === "zip") return lang === "es" ? `CP: ${val}` : `ZIP: ${val}`;
+  if (key === "zip") return lang === "es" ? `Código postal: ${val}` : `Postal code: ${val}`;
   if (key === "verified" && val === "1") return lang === "es" ? "Solo verificados" : "Verified only";
   if (key === "industry" && val) return lang === "es" ? `Industria: ${val}` : `Industry: ${val}`;
   return `${key}: ${val}`;
@@ -450,7 +450,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   };
 
   const onCityZipBlur = () => {
-    const z = normalizeZip5(zipInput);
+    const z = normalizePostalCode(zipInput);
     const ct = city.trim();
     if (ct === parsed.city && z === parsed.zip) return;
     pushFromFields({});
@@ -492,7 +492,6 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     if (parsed.city || parsed.zip) {
       const wider: EmpleosResultadosParams = { ...empleosParamsFromSearchParams(urlSp, "city") };
       delete wider.zip;
-      wider.state = "CA";
       actions.push({ label: t.recoverBroaderCA, href: buildEmpleosResultadosUrl(lang, wider) });
     }
     if (!parsed.recentOnly) {
@@ -579,8 +578,10 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                   />
                 </label>
                 <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Estado" : "State"}</span>
-                  <select
+                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">
+                    {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
+                  </span>
+                  <input
                     value={stateCode}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -588,25 +589,19 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                       pushFromFields({ stateCode: v });
                     }}
                     className={EMPLEOS_FIELD}
-                  >
-                    {sampleUsStateSelectOptions.map((o) => (
-                      <option key={o.value || "all"} value={o.value}>
-                        {lang === "es" ? o.labelEs : o.labelEn}
-                      </option>
-                    ))}
-                  </select>
+                    autoComplete="address-level1"
+                    placeholder={lang === "es" ? "Ej. Jalisco, Ontario" : "e.g. Jalisco, Ontario"}
+                  />
                 </label>
                 <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "CP (ZIP)" : "ZIP"}</span>
+                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Código postal" : "Postal code"}</span>
                   <input
                     value={zipInput}
-                    inputMode="numeric"
-                    maxLength={5}
-                    onChange={(e) => setZipInput(normalizeZip5(e.target.value))}
+                    onChange={(e) => setZipInput(e.target.value)}
                     onBlur={onCityZipBlur}
                     className={EMPLEOS_FIELD}
                     autoComplete="postal-code"
-                    placeholder={lang === "es" ? "5 dígitos" : "5 digits"}
+                    placeholder={lang === "es" ? "K1A 0B1, 28013" : "K1A 0B1, 28013"}
                   />
                 </label>
               </div>
