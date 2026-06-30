@@ -81,11 +81,11 @@ function emptyNegocioHighlightPresets(): Record<string, boolean> {
  */
 export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormState): BienesRaicesNegocioFormState {
   const pub = publicationForCategory(s.categoriaPropiedad);
-  const local = trim(s.media.videoLocalDataUrl);
-  const vu = trim(s.media.videoUrl);
+  const videos = Array.from(new Set([...(s.media.videoUrls ?? []), s.media.videoUrl].map(trim).filter((u) => /^https?:\/\//i.test(u)))).slice(0, 4);
   const slot0 = createEmptyBienesRaicesMuxVideoSlot(0);
-  if (local) slot0.fallbackUrl = local;
-  else if (vu) slot0.fallbackUrl = vu;
+  const slot1 = createEmptyBienesRaicesMuxVideoSlot(1);
+  if (videos[0]) slot0.fallbackUrl = videos[0];
+  if (videos[1]) slot1.fallbackUrl = videos[1];
 
   const basePartial: Parameters<typeof mergePartialBienesRaicesNegocioState>[0] = {
     advertiserType: "agente_individual",
@@ -106,7 +106,8 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     media: {
       photoUrls: [...s.media.photoDataUrls],
       primaryImageIndex: s.media.primaryImageIndex,
-      listingVideoSlots: [slot0, createEmptyBienesRaicesMuxVideoSlot(1)],
+      listingVideoSlots: [slot0, slot1],
+      externalVideoUrls: videos,
       virtualTourUrl: "",
       floorPlanUrls: [],
       sitePlanUrl: "",

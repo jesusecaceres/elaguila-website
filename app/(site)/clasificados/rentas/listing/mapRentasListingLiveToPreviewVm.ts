@@ -140,34 +140,53 @@ function buildLiveMediaVm(
   gallery: string[],
   videoUrl: string | null | undefined,
   videoPosterUrl?: string | null | undefined,
+  videoUrls?: readonly string[] | null,
+  lang: "es" | "en" = "es",
 ): BienesRaicesPreviewMediaVm {
   const urls = filterRentasPhotoUrlList(gallery.map((u) => trim(u)).filter(Boolean));
   const n = urls.length;
   const pi = n === 0 ? 0 : 0;
   const heroUrl = n > 0 ? urls[pi]! : null;
-  const v = trim(videoUrl ?? "");
+  const allVideos = Array.from(new Set([...(videoUrls ?? []), videoUrl ?? ""].map((u) => trim(u)).filter((u) => /^https?:\/\//i.test(u)))).slice(0, 4);
+  const v = allVideos[0] ?? "";
   const exposeVideo = rentasPublishedVideoShouldAppearInGallery(v);
   const yt = exposeVideo ? parseYoutubeId(v) : null;
   const isMuxHls = exposeVideo && /\.m3u8(\?|$)/i.test(v);
+  const v1 = allVideos[1] ?? "";
+  const exposeVideo1 = rentasPublishedVideoShouldAppearInGallery(v1);
+  const yt1 = exposeVideo1 ? parseYoutubeId(v1) : null;
   const poster = trim(videoPosterUrl ?? "");
   const hasVid = exposeVideo;
+  const hasVid1 = exposeVideo1;
   const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : isMuxHls && poster ? poster : null;
+  const thumb1 = yt1 ? `https://img.youtube.com/vi/${yt1}/hqdefault.jpg` : null;
   const playback0 = exposeVideo ? v : null;
-  const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : hasVid ? "Video en el anuncio" : "";
+  const metaLine = n > 0 ? `${n} foto${n === 1 ? "" : "s"} en la galería` : allVideos.length ? `${allVideos.length} video${allVideos.length === 1 ? "" : "s"} en el anuncio` : "";
 
   return {
     heroUrl,
     secondaryPhotoUrls: [],
-    videoThumbUrls: [thumb0, null],
-    videoPlaybackUrls: [playback0, null],
-    youtubeIds: [yt, null],
+    videoThumbUrls: [thumb0, thumb1],
+    videoPlaybackUrls: [yt ? null : playback0, yt1 ? null : hasVid1 ? v1 : null],
+    youtubeIds: [yt, yt1],
+    externalVideoLinks: allVideos.map((href, index) => ({
+      href,
+      label:
+        index === 0
+          ? lang === "es"
+            ? "Ver video"
+            : "View video"
+          : lang === "es"
+            ? `Ver video ${index + 1}`
+            : `View video ${index + 1}`,
+    })),
     virtualTourUrl: null,
     floorPlanUrls: [],
     sitePlanUrl: null,
     metaLine,
     hasPhotos: n > 0,
     hasVideo1: hasVid,
-    hasVideo2: false,
+    hasVideo2: hasVid1,
     hasVirtualTour: false,
     hasFloorPlans: false,
     hasSitePlan: false,
@@ -313,9 +332,7 @@ function rentasLiveLocationLines(listing: RentasPublicListing): {
   const crossOrPublic = trim(listing.addressLine);
   const approxBrowse = trim(listing.resultBrowseLocation) || [cityZip, zona].filter(Boolean).join(" · ");
   const line1 = exact ? crossOrPublic : zona || trim(listing.city) || approxBrowse;
-  const addressLine = exact
-    ? crossOrPublic
-    : [zona, trim(listing.city), trim(listing.postalCode)].filter(Boolean).join(", ") || approxBrowse;
+  const addressLine = exact ? [crossOrPublic, cityZip].filter(Boolean).join(", ") : [cityZip, zona].filter(Boolean).join(" · ") || approxBrowse;
   return { line1, cityStateZip: cityZip, addressLine, exact };
 }
 
@@ -403,7 +420,7 @@ export function mapRentasListingToPrivadoPreviewVm(
   lang: "es" | "en",
 ): BienesRaicesPrivadoPreviewVm {
   const gallery = extra.gallery.length ? extra.gallery : [listing.imageUrl].filter(Boolean);
-  const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl);
+  const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl, listing.videoUrls, lang);
   const contract = buildContractRows(listing, lang);
   const property = buildPropertyRows(listing, lang);
   const highlightsRows = highlightsRowsFromListing(listing).map((r) => ({ ...r, value: trim(r.value) === "✓" ? "Sí" : r.value }));
@@ -530,7 +547,7 @@ export function mapRentasListingToNegocioPreviewVm(
   lang: "es" | "en",
 ): BienesRaicesNegocioPreviewVm {
   const gallery = extra.gallery.length ? extra.gallery : [listing.imageUrl].filter(Boolean);
-  const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl);
+  const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl, listing.videoUrls, lang);
   const contract = buildContractRows(listing, lang);
   const property = buildPropertyRows(listing, lang);
   const highlightsRows = highlightsRowsFromListing(listing).map((r) => ({ ...r, value: "Sí" }));

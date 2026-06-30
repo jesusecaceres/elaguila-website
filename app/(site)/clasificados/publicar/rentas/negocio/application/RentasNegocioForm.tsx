@@ -14,7 +14,6 @@ import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixR
 import {
   RENTAS_PREVIEW_NEGOCIO,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
-  RENTAS_PUBLICAR_PRIVADO,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
@@ -40,12 +39,6 @@ import {
 import {
   compressImageFileToJpegDataUrl,
 } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/brPrivadoMediaCompress";
-import {
-  createRentasDraftVideoId,
-  deleteRentasDraftVideo,
-  putRentasDraftVideo,
-  readRentasDraftVideo,
-} from "@/app/clasificados/rentas/shared/rentasDraftVideoStore";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import { RentasShowingTourSection } from "@/app/clasificados/publicar/rentas/shared/RentasShowingTourSection";
@@ -74,7 +67,7 @@ import {
 import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 
 const MAX_PHOTOS = 8;
-const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
+const MAX_VIDEO_URLS = 4;
 
 function RentasSqftPreview({ value }: { value: string }) {
   const shown = formatRentasSqftPreview(value);
@@ -140,14 +133,11 @@ export function RentasNegocioForm() {
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
-  const [localVideoFileName, setLocalVideoFileName] = useState("");
-  const videoObjectUrlRef = useRef<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
   const photosInputRef = useRef<HTMLInputElement>(null);
-  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const negocioLogoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -177,55 +167,6 @@ export function RentasNegocioForm() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    if (state.media.videoLocalFileName && !localVideoFileName) {
-      setLocalVideoFileName(state.media.videoLocalFileName);
-      return;
-    }
-    if (state.media.videoLocalDataUrl && !localVideoFileName) {
-      setLocalVideoFileName("Video local (sesión)");
-    }
-  }, [hydrated, state.media.videoLocalDataUrl, state.media.videoLocalFileName, localVideoFileName]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const id = String(state.media.videoLocalDraftId || "").trim();
-    if (!id || state.media.videoLocalDataUrl) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const rec = await readRentasDraftVideo(id);
-        if (!rec || cancelled) return;
-        const objectUrl = URL.createObjectURL(rec.blob);
-        if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
-        videoObjectUrlRef.current = objectUrl;
-        setState((prev) => ({
-          ...prev,
-          media: {
-            ...prev.media,
-            videoLocalDataUrl: objectUrl,
-            videoLocalFileName: prev.media.videoLocalFileName || rec.fileName || "",
-            videoLocalMimeType: prev.media.videoLocalMimeType || rec.mimeType || "",
-            videoLocalSizeBytes: prev.media.videoLocalSizeBytes || rec.sizeBytes || 0,
-            videoLocalUpdatedAt: prev.media.videoLocalUpdatedAt || rec.updatedAt || Date.now(),
-          },
-        }));
-      } catch {
-        /* keep metadata; blob may be gone */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [hydrated, state.media.videoLocalDraftId, state.media.videoLocalDataUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
-    };
-  }, []);
 
   const flushSave = useCallback(() => {
     saveRentasNegocioDraft(stateRef.current);
@@ -259,118 +200,36 @@ export function RentasNegocioForm() {
     if (photosInputRef.current) photosInputRef.current.value = "";
   };
 
-  const onVideoFile = async (files: FileList | null) => {
-    const f = files?.[0];
-    if (!f) return;
-    setMediaNotice(null);
-    try {
-      if (!/^video\//.test(f.type)) throw new Error("not_video");
-      if (f.size > MAX_VIDEO_BYTES) throw new Error("video_too_large");
-      const nextId = createRentasDraftVideoId("negocio");
-      const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
-      const meta = await putRentasDraftVideo(nextId, f);
-      if (prevId) await deleteRentasDraftVideo(prevId);
-      if (videoObjectUrlRef.current) URL.revokeObjectURL(videoObjectUrlRef.current);
-      const objectUrl = URL.createObjectURL(f);
-      videoObjectUrlRef.current = objectUrl;
-      setLocalVideoFileName(meta.videoLocalFileName || f.name);
-      setState((s) => {
-        const out: RentasNegocioFormState = {
-          ...s,
-          media: {
-            ...s.media,
-            videoUrl: "",
-            videoLocalDataUrl: objectUrl,
-            videoLocalDraftId: meta.videoLocalDraftId,
-            videoLocalFileName: meta.videoLocalFileName,
-            videoLocalMimeType: meta.videoLocalMimeType,
-            videoLocalSizeBytes: meta.videoLocalSizeBytes,
-            videoLocalUpdatedAt: meta.videoLocalUpdatedAt,
-          },
-        };
-        queueMicrotask(() => saveRentasNegocioDraft(out));
-        return out;
-      });
-    } catch (e) {
-      const code = e instanceof Error ? e.message : "";
-      if (code === "video_too_large") {
-        setMediaNotice(`El video supera ${Math.round(MAX_VIDEO_BYTES / (1024 * 1024))} MB (límite para vista previa).`);
-      } else if (code === "not_video") {
-        setMediaNotice("Elige un archivo de video válido.");
-      } else {
-        setMediaNotice("No se pudo leer el video.");
-      }
+  const normalizeVideoUrls = (urls: readonly string[]): string[] => {
+    const out: string[] = [];
+    for (const raw of urls) {
+      const v = String(raw ?? "").trim();
+      if (!v || out.includes(v)) continue;
+      out.push(v);
+      if (out.length >= MAX_VIDEO_URLS) break;
     }
-    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+    return out;
   };
 
-  const clearLocalVideo = async () => {
-    const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
-    if (prevId) {
-      try {
-        await deleteRentasDraftVideo(prevId);
-      } catch {
-        /* ignore */
-      }
-    }
-    if (videoObjectUrlRef.current) {
-      URL.revokeObjectURL(videoObjectUrlRef.current);
-      videoObjectUrlRef.current = null;
-    }
-    setLocalVideoFileName("");
+  const onVideoUrlChange = (index: number, raw: string) => {
     setMediaNotice(null);
     setState((s) => {
+      const current = normalizeVideoUrls(s.media.videoUrls?.length ? s.media.videoUrls : [s.media.videoUrl]);
+      const nextInput = Array.from({ length: MAX_VIDEO_URLS }, (_, i) => current[i] ?? "");
+      nextInput[index] = raw;
+      const nextUrls = normalizeVideoUrls(nextInput);
       const out: RentasNegocioFormState = {
         ...s,
         media: {
           ...s.media,
+          videoUrl: nextUrls[0] ?? "",
+          videoUrls: nextUrls,
           videoLocalDataUrl: "",
           videoLocalDraftId: "",
           videoLocalFileName: "",
           videoLocalMimeType: "",
           videoLocalSizeBytes: 0,
           videoLocalUpdatedAt: 0,
-        },
-      };
-      queueMicrotask(() => saveRentasNegocioDraft(out));
-      return out;
-    });
-  };
-
-  const onVideoUrlChange = async (raw: string) => {
-    setMediaNotice(null);
-    const t = raw.trim();
-    if (t) {
-      const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
-      if (prevId) {
-        try {
-          await deleteRentasDraftVideo(prevId);
-        } catch {
-          /* ignore */
-        }
-      }
-      if (videoObjectUrlRef.current) {
-        URL.revokeObjectURL(videoObjectUrlRef.current);
-        videoObjectUrlRef.current = null;
-      }
-      setLocalVideoFileName("");
-    }
-    setState((s) => {
-      const out: RentasNegocioFormState = {
-        ...s,
-        media: {
-          ...s.media,
-          videoUrl: raw,
-          ...(t
-            ? {
-                videoLocalDataUrl: "",
-                videoLocalDraftId: "",
-                videoLocalFileName: "",
-                videoLocalMimeType: "",
-                videoLocalSizeBytes: 0,
-                videoLocalUpdatedAt: 0,
-              }
-            : {}),
         },
       };
       queueMicrotask(() => saveRentasNegocioDraft(out));
@@ -402,18 +261,6 @@ export function RentasNegocioForm() {
     validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
     labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
     onDeleteApplication: async () => {
-      const prevId = String(stateRef.current.media.videoLocalDraftId || "").trim();
-      if (prevId) {
-        try {
-          await deleteRentasDraftVideo(prevId);
-        } catch {
-          /* ignore */
-        }
-      }
-      if (videoObjectUrlRef.current) {
-        URL.revokeObjectURL(videoObjectUrlRef.current);
-        videoObjectUrlRef.current = null;
-      }
       clearRentasNegocioDraft();
       const empty = createEmptyRentasNegocioFormState();
       try {
@@ -460,12 +307,6 @@ export function RentasNegocioForm() {
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
-          </Link>
-          <Link
-            href={`${RENTAS_PUBLICAR_PRIVADO}?lang=${lang}`}
-            className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#E8DFD0] px-6 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FFFCF7] sm:w-auto"
-          >
-            {lang === "en" ? "Private branch" : "Rama Privado"}
           </Link>
         </div>
 
@@ -514,8 +355,8 @@ export function RentasNegocioForm() {
               {" "}
               *
             </span>
-            . Un solo video: por archivo <strong className="font-semibold text-[#1E1810]">o</strong> por enlace (no ambos).
-            Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
+            . Los videos se agregan como enlaces externos (hasta {MAX_VIDEO_URLS}); no se suben archivos de video en esta
+            versión pública de Rentas. Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
@@ -589,66 +430,45 @@ export function RentasNegocioForm() {
             ) : null}
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
-            <span className={aiLabelClass}>Video (opcional)</span>
+            <span className={aiLabelClass}>Videos por enlace (opcional)</span>
             <p className={aiHintClass}>
-              Elige <strong className="font-semibold text-[#1E1810]">un solo origen</strong>: archivo en tu equipo (borrador
-              local, sin Mux) o enlace (YouTube, mp4, etc.). Al elegir archivo se borra el enlace; al pegar un enlace se borra
-              el archivo.
+              Puedes agregar hasta {MAX_VIDEO_URLS} enlaces externos. Recomendado: YouTube, TikTok, Instagram, Facebook,
+              Vimeo o un MP4 público. Leonix mostrará estos enlaces como tarjetas de video en el área multimedia.
             </p>
-            <input
-              ref={videoFileInputRef}
-              type="file"
-              accept="video/*"
-              className="sr-only"
-              onChange={(e) => onVideoFile(e.target.files)}
-            />
-            {state.media.videoLocalDataUrl ? (
-              <div className="mt-3 space-y-2 rounded-xl border border-[#B8954A]/35 bg-[#FFF6E7] p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6E5418]">Video activo: archivo local</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex max-w-full min-w-0 items-center rounded-full border border-[#C9B46A]/60 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810]">
-                    <span className="min-w-0 truncate">{localVideoFileName || "Video local (sesión)"}</span>
-                  </span>
-                  <button type="button" className="text-xs font-bold text-[#B8954A] underline" onClick={clearLocalVideo}>
-                    Quitar archivo
-                  </button>
-                </div>
-                <p className="text-xs leading-relaxed text-[#5C5346]">
-                  Para usar un enlace, quita primero el archivo. La vista previa reproduce este video solo en tu navegador.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-white px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
-                    onClick={() => videoFileInputRef.current?.click()}
-                  >
-                    Subir video del dispositivo
-                  </button>
-                </div>
-                <div className="mt-4">
+            <div className="mt-4 grid gap-3">
+              {Array.from({ length: MAX_VIDEO_URLS }, (_, i) => {
+                const current = normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]);
+                const value = current[i] ?? "";
+                const invalid = value.trim() && !/^https?:\/\//i.test(value.trim());
+                return (
                   <AiField
-                    label="O video por enlace"
-                    hint="Pega la URL completa (YouTube, Vimeo, mp4…). Si empiezas a escribir aquí, cualquier archivo de video anterior se descarta."
+                    key={i}
+                    label={`Video ${i + 1}`}
+                    hint={i === 0 ? "El primer enlace es el principal para la vista previa y la salida publicada." : undefined}
                   >
                     <input
                       className={fieldClass}
-                      type="text"
+                      type="url"
                       inputMode="url"
                       autoComplete="off"
-                      placeholder="https://"
-                      value={state.media.videoUrl}
-                      onChange={(e) => onVideoUrlChange(e.target.value)}
+                      placeholder="https://youtube.com/..."
+                      value={value}
+                      onChange={(e) => onVideoUrlChange(i, e.target.value)}
                     />
+                    {invalid ? (
+                      <p className="mt-2 text-xs font-medium text-amber-800">
+                        Usa una URL completa que empiece con http:// o https://.
+                      </p>
+                    ) : null}
                   </AiField>
-                </div>
-                {state.media.videoUrl.trim() ? (
-                  <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
-                ) : null}
-              </>
-            )}
+                );
+              })}
+            </div>
+            {normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]).length ? (
+              <p className="mt-3 text-xs font-medium text-[#2C7A4E]">
+                Enlaces listos: se guardarán en el borrador y se mostrarán como tarjetas en el área multimedia.
+              </p>
+            ) : null}
           </div>
         </section>
 

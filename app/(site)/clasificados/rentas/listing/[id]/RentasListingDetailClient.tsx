@@ -8,7 +8,6 @@ import { LeonixSaveButton } from "@/app/components/clasificados/analytics/Leonix
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
-import { RentasVideoLinksSection } from "@/app/clasificados/rentas/components/RentasVideoLinksSection";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRentasListingTranslation";
 import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
@@ -164,8 +163,6 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
             lang={lang}
           />
         )}
-        <RentasVideoLinksSection urls={proseListing.videoUrls?.length ? proseListing.videoUrls : proseListing.videoUrl ? [proseListing.videoUrl] : []} lang={lang} />
-
         {listingUuid ? (
           <div className="mx-auto mt-8 max-w-[1240px] px-4 sm:px-6 lg:px-8">
             <div className="border-t border-[#C9D4E0]/55 pt-6">

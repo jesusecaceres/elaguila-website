@@ -79,6 +79,26 @@ function validVideoUrls(s: RentasPrivadoFormState): string[] {
   return out;
 }
 
+function parseYoutubeId(url: string): string | null {
+  const u = trim(url);
+  const m = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.exec(u);
+  return m?.[1] ?? null;
+}
+
+function videoCards(urls: string[], lang: "es" | "en"): Array<{ label: string; href: string }> {
+  return urls.map((href, index) => ({
+    href,
+    label:
+      index === 0
+        ? lang === "es"
+          ? "Ver video"
+          : "View video"
+        : lang === "es"
+          ? `Ver video ${index + 1}`
+          : `View video ${index + 1}`,
+  }));
+}
+
 const ESTADO_RENTAS: Record<RentasPrivadoFormState["estadoAnuncio"], string> = {
   disponible: "Disponible",
   pendiente: "Pendiente",
@@ -211,6 +231,11 @@ export function mapRentasPrivadoStateToPreviewVm(
   const rentRows = [...lead, ...buildRentasFlowContractRows(s)];
   const rentFacts = rentalQuickFacts(s);
   const quickFacts = dedupeQuickFactsByLabel([...rentFacts, ...base.quickFacts]);
+  const videos = validVideoUrls(s);
+  const video0 = videos[0] ?? "";
+  const video1 = videos[1] ?? "";
+  const yt0 = video0 ? parseYoutubeId(video0) : null;
+  const yt1 = video1 ? parseYoutubeId(video1) : null;
 
   const postedBy = posterTypeDisplay(s.posterType, lang);
   const postedByRows: BienesRaicesPreviewFact[] = postedBy
@@ -286,6 +311,15 @@ export function mapRentasPrivadoStateToPreviewVm(
     openHouseCard: showingCard ? { title: showingCard.title, rows: showingCard.rows } : null,
     media: {
       ...base.media,
+      videoThumbUrls: [
+        yt0 ? `https://img.youtube.com/vi/${yt0}/hqdefault.jpg` : base.media.videoThumbUrls[0],
+        yt1 ? `https://img.youtube.com/vi/${yt1}/hqdefault.jpg` : base.media.videoThumbUrls[1],
+      ],
+      videoPlaybackUrls: [yt0 ? null : video0 || base.media.videoPlaybackUrls[0], yt1 ? null : video1 || base.media.videoPlaybackUrls[1]],
+      youtubeIds: [yt0 ?? base.media.youtubeIds[0], yt1 ?? base.media.youtubeIds[1]],
+      hasVideo1: Boolean(video0 || base.media.hasVideo1),
+      hasVideo2: Boolean(video1 || base.media.hasVideo2),
+      externalVideoLinks: videoCards(videos, lang),
       virtualTourUrl: tourUrl ?? base.media?.virtualTourUrl ?? null,
     },
   };

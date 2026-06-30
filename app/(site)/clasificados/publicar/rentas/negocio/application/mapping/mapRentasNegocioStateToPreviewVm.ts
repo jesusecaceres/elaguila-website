@@ -157,7 +157,7 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   const cross = trim(s.direccionCruceCercano);
   const line1 = exact ? buildRentasStreetLine(s) : cross;
   const cityStateZip = buildRentasCityStateZipLine(s);
-  const assembled = exact ? buildRentasAssembledAddressLine(s) : [line1, trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(", ");
+  const assembled = exact ? buildRentasAssembledAddressLine(s) : [cityStateZip || trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(" · ");
   const mapsUrl = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(s));
   const zona = trim(s.zonaVecindario);
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);

@@ -92,6 +92,7 @@ export type RentasNegocioFormState = {
     photoDataUrls: string[];
     primaryImageIndex: number;
     videoUrl: string;
+    videoUrls: string[];
     /** Transient object/data URL used by preview runtime (never persisted as giant JSON). */
     videoLocalDataUrl: string;
     videoLocalDraftId: string;
@@ -182,7 +183,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     enlaceMapa: "",
     descripcion: "",
     estadoAnuncio: "disponible",
-    media: { ...p.media },
+    media: { ...p.media, videoUrls: [...p.media.videoUrls] },
     negocioNombre: "",
     negocioMarca: "",
     negocioLogoDataUrl: "",

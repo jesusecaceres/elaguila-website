@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  publishLeonixListingFromRentasNegocioDraft,
-  type RentasListingPublishMuxFields,
-} from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import { publishLeonixListingFromRentasNegocioDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
@@ -21,13 +18,10 @@ import {
   loadRentasNegocioDraft,
 } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 import { resolveRentasNegocioDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
-import { hydrateRentasNegocioDraftVideoFromIdb } from "@/app/clasificados/rentas/shared/rentasDraftVideoHydrate";
-import { rentasDraftVideoFileForMuxUpload, rentasMediaHasLocalMuxableVideo } from "@/app/clasificados/rentas/shared/rentasDraftVideoMuxSource";
 import {
   rentasPublishStepTracePatch,
   rentasPublishStepTraceReset,
 } from "@/app/clasificados/rentas/lib/rentasPublishStepTrace";
-import { uploadRentasDraftVideoFileToMux } from "@/app/clasificados/rentas/shared/rentasMuxVideoClient";
 import {
   createEmptyRentasNegocioFormState,
   mergePartialRentasNegocioState,
@@ -104,42 +98,8 @@ export default function RentasNegocioPreviewClient() {
     ).length;
     rentasPublishStepTracePatch({ imagesUploadFinished: true, imagesDurableCount });
 
-    let muxFields: RentasListingPublishMuxFields | undefined;
-    if (rentasMediaHasLocalMuxableVideo(toPublish.media)) {
-      rentasPublishStepTracePatch({ videoSelected: true });
-      const file = await rentasDraftVideoFileForMuxUpload(toPublish.media);
-      if (!file) {
-        rentasPublishStepTracePatch({
-          muxDirectUploadStarted: false,
-          muxDirectUploadSucceeded: false,
-          muxUploadStatusSucceeded: false,
-        });
-      } else {
-        rentasPublishStepTracePatch({ muxDirectUploadStarted: true });
-        const muxRes = await uploadRentasDraftVideoFileToMux(file, lang);
-        if (!muxRes.ok) {
-          rentasPublishStepTracePatch({
-            muxDirectUploadSucceeded: false,
-            muxUploadStatusSucceeded: false,
-          });
-        } else {
-          rentasPublishStepTracePatch({
-            muxDirectUploadSucceeded: true,
-            muxUploadStatusSucceeded: true,
-            muxAssetId: muxRes.assetId,
-            muxPlaybackId: muxRes.playbackId,
-          });
-          muxFields = {
-            muxAssetId: muxRes.assetId,
-            muxPlaybackId: muxRes.playbackId,
-            muxThumbnailUrl: muxRes.thumbnailUrl,
-          };
-        }
-      }
-    }
-
     rentasPublishStepTracePatch({ finalPayloadBuildStarted: true });
-    const r = await publishLeonixListingFromRentasNegocioDraft(toPublish, lang, muxFields);
+    const r = await publishLeonixListingFromRentasNegocioDraft(toPublish, lang);
     rentasPublishStepTracePatch({
       finalPayloadBuildFinished: true,
       redirectStarted: r.ok,
@@ -155,30 +115,14 @@ export default function RentasNegocioPreviewClient() {
   }, [lang, router, publishErr]);
 
   useEffect(() => {
-    let cancelled = false;
-    let revokeUrl: string | null = null;
-    void (async () => {
-      const raw = loadRentasNegocioDraft();
-      if (!raw) {
-        if (!cancelled) {
-          setDraft(null);
-          setPhase("recovery");
-        }
-        return;
-      }
-      const { state, revokeObjectUrl } = await hydrateRentasNegocioDraftVideoFromIdb(raw);
-      if (cancelled) {
-        if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl);
-        return;
-      }
-      revokeUrl = revokeObjectUrl;
-      setDraft(state);
-      setPhase("ready");
-    })();
-    return () => {
-      cancelled = true;
-      if (revokeUrl) URL.revokeObjectURL(revokeUrl);
-    };
+    const raw = loadRentasNegocioDraft();
+    if (!raw) {
+      setDraft(null);
+      setPhase("recovery");
+      return;
+    }
+    setDraft(raw);
+    setPhase("ready");
   }, []);
 
   useEffect(() => {

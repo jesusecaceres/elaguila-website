@@ -179,8 +179,11 @@ export function mergeRentasNegocioMachinePairs(
   if (state.estadoAnuncio) push(out, RENTAS_DP_LISTING_STATUS, state.estadoAnuncio);
   const mapAuto = rentasGoogleMapsUrlFromQuery(buildRentasGoogleMapsSearchQuery(state));
   if (mapAuto) push(out, RENTAS_DP_MAP_URL, mapAuto);
-  const vid = String(state.media.videoUrl ?? "").trim();
-  if (vid && /^https?:\/\//i.test(vid)) push(out, RENTAS_DP_VIDEO_URL, vid);
+  const vids = rentasVideoUrls(state.media);
+  if (vids[0]) push(out, RENTAS_DP_VIDEO_URL, vids[0]);
+  if (vids[1]) push(out, RENTAS_DP_VIDEO_URL_2, vids[1]);
+  if (vids[2]) push(out, RENTAS_DP_VIDEO_URL_3, vids[2]);
+  if (vids[3]) push(out, RENTAS_DP_VIDEO_URL_4, vids[3]);
   const half = parseInt(String(state.residencial.mediosBanos ?? "").replace(/\D/g, ""), 10);
   if (Number.isFinite(half) && half > 0) push(out, RENTAS_DP_HALF_BATHS_COUNT, String(half));
   push(out, RENTAS_DP_BUSINESS_LICENSE, state.negocioLicencia);
