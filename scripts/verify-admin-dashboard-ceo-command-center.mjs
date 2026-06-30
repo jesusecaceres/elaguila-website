@@ -56,20 +56,20 @@ ok("LEONIX COMMAND CENTER hero exists");
 if (!dash.includes("admin-ceo-priority-strip")) fail("CEO priority strip missing");
 ok("CEO priority strip exists");
 
-if (!dash.includes("Today's Command")) fail("Today's Command section missing");
-ok("Today's Command section exists");
+if (!/Today['’]?s (Command|Attention)/.test(dash)) fail("Today command/attention section missing");
+ok("Today command/attention section exists");
 
-if (!dash.includes("Revenue Pipeline")) fail("Revenue Pipeline section missing");
-ok("Revenue Pipeline section exists");
+if (!/Revenue (Pipeline|Pulse)/.test(dash)) fail("Revenue section missing");
+ok("Revenue section exists");
 
-if (!dash.includes("Marketplace Operations")) fail("Marketplace Operations section missing");
-ok("Marketplace Operations section exists");
+if (!/Marketplace (Operations|Ops)/.test(dash)) fail("Marketplace section missing");
+ok("Marketplace section exists");
 
-if (!dash.includes("Website & Content Control")) fail("Website & Content Control section missing");
-ok("Website & Content Control section exists");
+if (!/Website (& Content )?Control/.test(dash)) fail("Website control section missing");
+ok("Website control section exists");
 
-if (!dash.includes("Admin Team & System")) fail("Admin Team & System section missing");
-ok("Admin Team & System section exists");
+if (!dash.includes("People + Support") || !dash.includes("System Health / Bug Finder")) fail("people/support or system section missing");
+ok("People/support and system sections exist");
 
 // 9–10 workbenches
 if (!dash.includes("Review workbench preview")) fail("review workbench missing");
@@ -81,7 +81,7 @@ if (!dash.includes('id: "expiration"')) fail('expiration section id missing');
 ok("Expiration workbench preview exists");
 
 // 11 anchors
-for (const id of ["today", "revenue", "marketplace", "website", "system", "review", "expiration"]) {
+for (const id of ["today", "revenue", "marketplace", "website", "people", "system", "review", "expiration"]) {
   if (!dash.includes(`id: "${id}"`)) fail(`section anchor ${id} missing`);
 }
 ok("section nav anchors exist");
@@ -148,9 +148,11 @@ ok("rectangular CTA style mapping exists");
 if (/AI-generated|artificial intelligence/i.test(dash) && !/not AI/i.test(dash)) {
   fail("dashboard must not fake AI review");
 }
-if (!data.includes("Reason unavailable — inspect review source")) fail("reason fallback must stay in data layer");
+if (!data.includes("adminDashboardReviewSourceLabel") || !dash.includes("classifyDashboardReviewRowFlagTruth")) {
+  fail("review source truth helper must stay wired");
+}
 if (!dash.includes("not AI")) fail("review AI disclaimer missing");
-ok("review copy does not fake AI; reason fallback preserved");
+ok("review copy does not fake AI; source truth helper preserved");
 
 // 29 no fake counts
 if (!dash.includes("No fake counts") && !dash.includes("Real data only")) fail("honest count language missing");

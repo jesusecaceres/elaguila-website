@@ -78,7 +78,7 @@ assert(
   "Helper must distinguish from Cupones CMS.",
 );
 assert("page has create form", /createPromoCodeAction/.test(pageSrc) && /name="code"/.test(pageSrc), "Create form.");
-assert("page has list", /Códigos recientes|recientes/i.test(pageSrc) && /rows\.map/.test(pageSrc), "List UI.");
+assert("page has list", /Recent codes|recent/i.test(pageSrc) && /rows\.map/.test(pageSrc), "List UI.");
 assert("page has revoke", /revokePromoCodeAction/.test(pageSrc), "Revoke action.");
 assert(
   "page has search/filter",

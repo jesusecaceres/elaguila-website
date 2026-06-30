@@ -30,6 +30,7 @@ const rowPanel = "app/admin/(dashboard)/workspace/clasificados/_components/Class
 const actionChrome = "app/admin/(dashboard)/workspace/clasificados/_components/ClasificadosQueueActionChrome.tsx";
 const theme = "app/admin/_components/adminTheme.ts";
 const cta = "app/admin/_components/AdminDashboardCta.tsx";
+const registry = "app/admin/_lib/adminOsActionRegistry.ts";
 const editPage = "app/admin/(dashboard)/workspace/clasificados/listings/[id]/edit/page.tsx";
 const pkg = "package.json";
 
@@ -45,6 +46,7 @@ const panelSrc = read(rowPanel);
 const chromeSrc = read(actionChrome);
 const themeSrc = read(theme);
 const ctaSrc = read(cta);
+const registrySrc = read(registry);
 const pageSrc = read(queuePage);
 const pkgSrc = read(pkg);
 
@@ -55,11 +57,11 @@ assert("mobile cards use action panel", tableSrc.includes("ClassifiedAdminQueueR
 assert("zebra row readability", tableSrc.includes("adminQueueRowClass"), table);
 assert("queue summary bar", tableSrc.includes('data-testid="clasificados-queue-summary"'), table);
 
-assert("archive action", rowSrc.includes('"Archive"') && rowSrc.includes('run("archive")'), rowActions);
-assert("restore action", rowSrc.includes('"Restore"') && rowSrc.includes('run("unsuspend")'), rowActions);
-assert("republish action", rowSrc.includes("republish") && rowSrc.includes('run("republish"'), rowActions);
-assert("feature action", rowSrc.includes('"Feature"') && rowSrc.includes('run("promote_on")'), rowActions);
-assert("verify leonix action", rowSrc.includes('"Verify Leonix"') && rowSrc.includes('run("verify_on")'), rowActions);
+assert("archive action", rowSrc.includes("runArchive") && rowSrc.includes('"archive"') && registrySrc.includes('label: "Archive"'), rowActions);
+assert("restore action", rowSrc.includes("runConfirmed") && rowSrc.includes('"unsuspend"') && registrySrc.includes('label: "Restore"'), rowActions);
+assert("republish action", rowSrc.includes("runConfirmed") && rowSrc.includes('"republish"') && registrySrc.includes('label: "Republish"'), rowActions);
+assert("feature action", rowSrc.includes("runConfirmed") && rowSrc.includes('"promote_on"') && registrySrc.includes('label: "Feature"'), rowActions);
+assert("verify leonix action", rowSrc.includes("runConfirmed") && rowSrc.includes('"verify_on"') && registrySrc.includes('label: "Verify Leonix"'), rowActions);
 assert("view public cta", panelSrc.includes("viewPublic") || panelSrc.includes("viewRentas"), rowPanel);
 assert("seller profile cta", panelSrc.includes("listings.ownerCard") && panelSrc.includes("/admin/usuarios/"), rowPanel);
 assert("edit listing cta", panelSrc.includes("/admin/workspace/clasificados/listings/") && panelSrc.includes('variant="primary"'), rowPanel);

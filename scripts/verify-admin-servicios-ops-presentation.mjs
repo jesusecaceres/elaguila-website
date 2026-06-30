@@ -28,6 +28,7 @@ const card = "app/admin/(dashboard)/workspace/clasificados/servicios/_components
 const monetization = "app/admin/(dashboard)/workspace/clasificados/servicios/_components/ServiciosAdminMonetizationPanel.tsx";
 const chrome = "app/admin/(dashboard)/workspace/clasificados/servicios/_components/ServiciosAdminOpsChrome.tsx";
 const rowActions = "app/admin/(dashboard)/workspace/clasificados/_components/ClassifiedAdminRowActions.tsx";
+const registry = "app/admin/_lib/adminOsActionRegistry.ts";
 const server = "app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer.ts";
 const audit = "app/admin/(dashboard)/workspace/clasificados/servicios/SERVICIOS_OPS_PRESENTATION_AUDIT.md";
 const pkg = "package.json";
@@ -37,6 +38,7 @@ const cardSrc = read(card);
 const monetSrc = read(monetization);
 const chromeSrc = read(chrome);
 const actionsSrc = read(rowActions);
+const registrySrc = read(registry);
 const pkgSrc = read(pkg);
 
 assert("servicios route exists", exists(page), page);
@@ -50,9 +52,24 @@ assert("listing card component", cardSrc.includes("servicios-admin-listing-card"
 assert("advanced table collapsible", pageSrc.includes("servicios-advanced-table") && pageSrc.includes("<details"), page);
 assert("not default wide 13-col", !pageSrc.includes("<th className=\"p-3\">Monetization</th>"), page);
 assert("monetization panel", monetSrc.includes("servicios-admin-monetization-panel") && monetSrc.includes("rounded-lg"), monetization);
-assert("lifecycle move suspend archive", actionsSrc.includes('"Suspend"') && actionsSrc.includes('"Archive"') && cardSrc.includes('layout="card"'), card);
-assert("verify leonix", actionsSrc.includes('"Verify Leonix"') && cardSrc.includes("setServiciosListingLeonixVerifiedAction"), card);
-assert("feature action", actionsSrc.includes('"Feature"'), actionsSrc);
+assert(
+  "lifecycle move suspend archive",
+  actionsSrc.includes("runConfirmed") &&
+    actionsSrc.includes('"suspend"') &&
+    actionsSrc.includes('"archive"') &&
+    registrySrc.includes('label: "Suspend"') &&
+    registrySrc.includes('label: "Archive"') &&
+    cardSrc.includes('layout="card"'),
+  card,
+);
+assert(
+  "verify leonix",
+  registrySrc.includes('label: "Verify Leonix"') &&
+    actionsSrc.includes('"verify_on"') &&
+    cardSrc.includes("setServiciosListingLeonixVerifiedAction"),
+  card,
+);
+assert("feature action", registrySrc.includes('label: "Feature"') && actionsSrc.includes('"promote_on"'), rowActions);
 assert("public view", cardSrc.includes("/clasificados/servicios/"), card);
 assert("publish link", chromeSrc.includes("Publish") && pageSrc.includes("publishHref"), chrome);
 assert("queue live links", chromeSrc.includes("Ad queue") && chromeSrc.includes("Live listings"), chrome);

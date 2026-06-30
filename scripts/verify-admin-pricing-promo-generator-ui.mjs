@@ -151,7 +151,11 @@ assert(
   !fs.readdirSync(path.join(root, "supabase/migrations")).some((f) => /pricing_table|commission_payout/i.test(f)),
   "No new pricing/commission tables.",
 );
-assert("no public redemption", !/public redemption|customer checkout/i.test(gateCodeOnly), "No public redemption.");
+assert(
+  "no public redemption",
+  !/redeemPromo|publicRedemption|customerCheckout|createCheckoutSession/i.test(gateCodeOnly),
+  "No public redemption or checkout action in this gate.",
+);
 assert("no public sorting", !/sortOrder|servicios.*rank|publicSort/i.test(gateCodeOnly), "No public sorting.");
 assert("no sales rep dashboard", !/sales-rep-dashboard|sales_rep_dashboard/i.test(gateCodeOnly), "No rep dashboard.");
 

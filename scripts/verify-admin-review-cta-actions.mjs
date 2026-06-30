@@ -43,9 +43,9 @@ const pkgSrc = read(pkg);
 
 assert("review actions component", exists(reviewActions), reviewActions);
 assert("review actions lib", exists(reviewLib), reviewLib);
-assert("pending review section", dashSrc.includes("dashboard.pendingReviewTitle"), dashboard);
+assert("pending review section", dashSrc.includes("Review workbench preview") && dashSrc.includes("pendingReviewQueueItems"), dashboard);
 assert("review section anchor id", clientSrc.includes('id={section.id}') && libSrc.includes('ADMIN_DASHBOARD_REVIEW_SECTION_ID = "review"'), client);
-assert("flagged items render", dataSrc.includes('"flagged"') && dashSrc.includes("pendingReviewQueueItems.map"), dashboard);
+assert("flagged items render", dataSrc.includes('"flagged"') && dashSrc.includes("reviewPreview.map"), dashboard);
 assert("review in queue CTA", actionsSrc.includes("Review in queue"), reviewActions);
 assert("seller profile preserved", actionsSrc.includes("Seller profile"), reviewActions);
 assert("view public when href", actionsSrc.includes("View public") && actionsSrc.includes("row.publicHref"), reviewActions);
@@ -56,7 +56,11 @@ assert("email seller mailto", actionsSrc.includes("Email seller") && libSrc.incl
 assert("archive queue fallback", actionsSrc.includes("Archive in queue"), reviewActions);
 assert("delete queue fallback", actionsSrc.includes("Delete in queue") && actionsSrc.includes("variant=\"danger\""), reviewActions);
 assert("mark reviewed queue fallback", actionsSrc.includes("Mark reviewed in queue"), reviewActions);
-assert("reason fallback", dataSrc.includes("Reason unavailable — inspect review source"), data);
+assert(
+  "reason/source fallback",
+  dataSrc.includes("adminDashboardReviewSourceLabel") && dashSrc.includes("classifyDashboardReviewRowFlagTruth"),
+  data,
+);
 assert("red exclamation", dashSrc.includes("adminDashboardUrgentBadge"), dashboard);
 assert("owner email enrichment", dataSrc.includes("enrichPendingReviewOwnerContacts"), data);
 assert("back to users preserved", userSrc.includes("backToUsers") && userSrc.includes("/admin/usuarios"), userDetail);

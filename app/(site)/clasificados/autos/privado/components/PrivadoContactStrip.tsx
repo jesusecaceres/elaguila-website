@@ -114,7 +114,7 @@ export function PrivadoContactStrip({
           lang={lang}
           className={`${BTN_SECONDARY} gap-2`}
           {...sheetProps}
-          onClick={() => {
+          onOpen={() => {
             if (contactMeta) trackAutosListingContactCta("message", contactMeta);
           }}
         >

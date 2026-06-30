@@ -51,8 +51,8 @@ assert(
 
 assert(
   "component does not activate legacy boost expiration",
-  !/boost_expires/.test(componentCodeOnly),
-  "Admin visibility component should not treat legacy boost_expires as active monetization.",
+  /legacy_boost_expires/.test(componentCodeOnly) && !/boost_expires[\s\S]{0,120}available/i.test(componentCodeOnly),
+  "Admin visibility may warn about legacy boost_expires but must not treat it as active monetization.",
 );
 
 assert(
@@ -83,9 +83,15 @@ for (const [name, rel, source] of [
   ["Viajes", "app/admin/(dashboard)/workspace/clasificados/travel/page.tsx", "viajes_staged_listings"],
 ]) {
   const text = read(rel);
+  const serviciosSpecificReadonly =
+    name === "Servicios" &&
+    /ServiciosAdminOpsListingCard/.test(text) &&
+    /ServiciosAdminMonetizationPanel/.test(
+      read("app/admin/(dashboard)/workspace/clasificados/servicios/_components/ServiciosAdminOpsListingCard.tsx"),
+    );
   assert(
     `${name} Admin page references component`,
-    /AdminListingMonetizationSummary/.test(text) && text.includes(`source="${source}"`),
+    serviciosSpecificReadonly || (/AdminListingMonetizationSummary/.test(text) && text.includes(`source="${source}"`)),
     `${name} should show safe read-only monetization metadata or be explicitly documented as a gap.`,
   );
 }

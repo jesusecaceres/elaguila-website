@@ -57,9 +57,9 @@ const pkgSrc = read(pkg);
 const pageSrc = read(page);
 
 assert("uses command center dashboard", pageSrc.includes("AdminCommandCenterDashboard"), page);
-assert("Today's Command or legacy Attention section", /Today['']s Command/.test(dashSrc) || /Today['']s Attention/.test(dashSrc), dashboard);
-assert("Revenue Pipeline or legacy Money Pipeline", /Revenue Pipeline/.test(dashSrc) || /Money Pipeline/.test(dashSrc), dashboard);
-assert("Marketplace or legacy Operations section", /Marketplace Operations/.test(dashSrc) || /Operations/.test(dashSrc), dashboard);
+assert("Today's command/attention section", /Today['’]?s (Command|Attention)/.test(dashSrc), dashboard);
+assert("Revenue pulse/pipeline section", /Revenue (Pulse|Pipeline)/.test(dashSrc), dashboard);
+assert("Marketplace ops section", /Marketplace (Ops|Operations)/.test(dashSrc), dashboard);
 assert("Command center hero or legacy subtitle", /Leonix Command Center/i.test(dashSrc) || dashSrc.includes("live Supabase counts"), dashboard);
 assert("Launch Leads CTA", routesSrc.includes('launchLeads: "/admin/leads/inbox"'), routes);
 assert("Promocionales CTA", routesSrc.includes("view=promo"), routes);
@@ -75,7 +75,11 @@ assert("semantic CTA mapping burgundy", themeSrc.includes("adminDashboardCtaPrim
 assert("semantic CTA mapping army green", themeSrc.includes("adminDashboardCtaActive") && themeSrc.includes("#2A4536"), theme);
 assert("semantic CTA mapping royal blue", themeSrc.includes("adminDashboardCtaView") && themeSrc.includes("#1E4A7A"), theme);
 assert("semantic CTA mapping orange", themeSrc.includes("adminDashboardCtaWarning"), theme);
-assert("review reason fallback", dataSrc.includes("Reason unavailable — inspect review source"), data);
+assert(
+  "review truth fallback",
+  dataSrc.includes("adminDashboardReviewSourceLabel") && dashSrc.includes("classifyDashboardReviewRowFlagTruth"),
+  data,
+);
 assert("expiring soon 3 day window", dataSrc.includes("ADMIN_DASHBOARD_EXPIRING_SOON_DAYS = 3"), data);
 assert("expired separate section", dashSrc.includes("Expired") && dashSrc.includes("Expiring soon"), dashboard);
 assert("real lead counts", dataSrc.includes("getAdminDashboardLeadsCounts"), data);

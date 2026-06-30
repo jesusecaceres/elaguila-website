@@ -46,12 +46,12 @@ const pkg = read(packageJson);
 function routeHasActions(src, routeName) {
   return (
     /AdminLaunchLeadRowActions/.test(src) &&
-    />\s*View\s*</.test(actionsSrc) &&
+    /label="View"/.test(actionsSrc) &&
     />\s*Reply\s*</.test(actionsSrc) &&
-    />\s*Email\s*</.test(actionsSrc) &&
-    />\s*Archive\s*</.test(actionsSrc) &&
-    />\s*Delete\s*</.test(actionsSrc) &&
-    />\s*Restore\s*</.test(actionsSrc) &&
+    /label="Email"/.test(actionsSrc) &&
+    /label="Archive"/.test(actionsSrc) &&
+    /label="Delete"/.test(actionsSrc) &&
+    /label="Restore"/.test(actionsSrc) &&
     src.includes("AdminLaunchLeadRowActions")
   );
 }
@@ -61,13 +61,13 @@ assert("inbox uses shared row actions", /AdminLaunchLeadRowActions/.test(inboxSr
 assert("newsletter uses shared row actions", /AdminLaunchLeadRowActions/.test(newsletterSrc), newsletterClient);
 assert("media-kit uses shared row actions", /AdminLaunchLeadRowActions/.test(mediaKitSrc), mediaKitClient);
 
-assert("actions: View button", />\s*View\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render View");
+assert("actions: View button", /label="View"/.test(actionsSrc), "AdminLaunchLeadRowActions must render View");
 assert("actions: Reply link", />\s*Reply\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Reply");
-assert("actions: Email button", />\s*Email\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Email");
+assert("actions: Email button", /label="Email"/.test(actionsSrc), "AdminLaunchLeadRowActions must render Email");
 assert("actions: Phone when tel", />\s*Phone\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Phone");
-assert("actions: Archive", />\s*Archive\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Archive");
-assert("actions: Restore", />\s*Restore\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Restore");
-assert("actions: Delete", />\s*Delete\s*</.test(actionsSrc), "AdminLaunchLeadRowActions must render Delete");
+assert("actions: Archive", /label="Archive"/.test(actionsSrc), "AdminLaunchLeadRowActions must render Archive");
+assert("actions: Restore", /label="Restore"/.test(actionsSrc), "AdminLaunchLeadRowActions must render Restore");
+assert("actions: Delete", /label="Delete"/.test(actionsSrc), "AdminLaunchLeadRowActions must render Delete");
 assert("actions: Copy reply preserved", /Copy reply/.test(actionsSrc), "Copy reply secondary action");
 
 assert("inbox detail drawer", exists(inboxDrawer) && /Full message/.test(inboxDrawerSrc), inboxDrawer);

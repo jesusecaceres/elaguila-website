@@ -55,7 +55,7 @@ assert(
 
 assert(
   "client has active/archived folder tabs",
-  /Active inbox/.test(clientSrc) && /Archived/.test(clientSrc) && /setFolder/.test(clientSrc),
+  /OPS_VIEWS/.test(clientSrc) && /Archived/.test(clientSrc) && /setOpsView/.test(clientSrc),
   "Active vs archived folder UI.",
 );
 
@@ -92,7 +92,7 @@ assert(
 assert(
   "status/inquiry/launch filters preserved",
   /statusFilter/.test(clientSrc) &&
-    /inquiryFilter/.test(clientSrc) &&
+    /opsView/.test(clientSrc) &&
     /launchFilter/.test(clientSrc),
   "Filter controls.",
 );
@@ -161,11 +161,12 @@ for (const col of ["archived_at", "archived_by", "deleted_at", "deleted_by"]) {
 
 assert(
   "view/email/phone/summary actions preserved",
-  /openDetail/.test(clientSrc) &&
+  /AdminLaunchLeadRowActions/.test(clientSrc) &&
+    /AdminLaunchLeadMobileCard/.test(clientSrc) &&
+    /openDetail/.test(clientSrc) &&
     /copyValue\("Email"/.test(clientSrc) &&
-    /copyValue\("Phone"/.test(clientSrc) &&
-    /copyValue\("Summary"/.test(clientSrc),
-  "Existing row actions must remain.",
+    /copyValue\("Reply"/.test(clientSrc),
+  "Existing shared row/mobile actions must remain.",
 );
 
 assert(

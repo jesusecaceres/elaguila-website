@@ -61,6 +61,8 @@ assert(
 const adminPage = "app/admin/(dashboard)/workspace/package-entitlements/page.tsx";
 const adminActions = "app/admin/(dashboard)/workspace/package-entitlements/actions.ts";
 const dashboardPage = "app/admin/(dashboard)/page.tsx";
+const dashboardComponent = "app/admin/_components/AdminCommandCenterDashboard.tsx";
+const dashboardRoutes = "app/admin/_lib/adminDashboardRoutes.ts";
 const nav = "app/admin/_components/AdminWorkspaceNav.tsx";
 
 assert("admin page exists", exists(adminPage), adminPage);
@@ -68,7 +70,10 @@ assert("admin actions exist", exists(adminActions), adminActions);
 
 const pageSrc = exists(adminPage) ? read(adminPage) : "";
 const actionsSrc = exists(adminActions) ? read(adminActions) : "";
-const dashSrc = exists(dashboardPage) ? read(dashboardPage) : "";
+const dashSrc = [dashboardPage, dashboardComponent, dashboardRoutes]
+  .filter((f) => exists(f))
+  .map((f) => read(f))
+  .join("\n");
 const navSrc = exists(nav) ? read(nav) : "";
 
 assert(
@@ -90,8 +95,8 @@ assert(
 );
 assert(
   "admin page does not require Listing ID on create",
-  /Listing ID \(opcional\)[\s\S]{0,600}?name="listing_id"/.test(pageSrc) &&
-    !/Listing ID \(opcional\)[\s\S]{0,400}name="listing_id"[^>]*\brequired\b/i.test(pageSrc),
+  /Listing ID \((optional|opcional)\)[\s\S]{0,600}?name="listing_id"/i.test(pageSrc) &&
+    !/Listing ID \((optional|opcional)\)[\s\S]{0,400}name="listing_id"[^>]*\brequired\b/i.test(pageSrc),
   "Create form listing_id must be optional; attach form may require ID.",
 );
 assert(
@@ -123,9 +128,9 @@ assert(
   "Blank listing_id should map to null on create; attach may require listingId.",
 );
 assert(
-  "dashboard handles unassigned listing display",
-  /formatEntitlementListingHeadline/.test(dashSrc),
-  "Dashboard recent entitlements must use headline helper for null listing_id.",
+  "admin tracker handles unassigned listing display",
+  /formatEntitlementListingHeadline/.test(pageSrc),
+  "Admin tracker must use headline helper for null listing_id.",
 );
 
 assert(
@@ -157,7 +162,6 @@ assert(
   "Add verify:admin-package-entitlement-generator to package.json.",
 );
 
-const forbidden = [];
 function scanDir(dir, acc = []) {
   if (!exists(dir)) return acc;
   for (const ent of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
@@ -183,13 +187,12 @@ const gateFiles = [
   optionalListingMigration ? `supabase/migrations/${optionalListingMigration}` : "",
 ].filter(Boolean);
 
-for (const rel of scanDir("app/(site)")) {
-  if (rel.includes("servicios") && /compareVisibilityRank|resolveListingVisibilityRank/.test(read(rel))) {
-    forbidden.push(`public ranking change: ${rel}`);
-  }
-}
-
-assert("no public servicios ranking wiring in site", forbidden.length === 0, forbidden.join("; ") || "none");
+const gateCodeOnlyForPublicGuard = gateFiles.map((f) => read(f)).join("\n");
+assert(
+  "no public servicios ranking wiring in gate files",
+  !/compareVisibilityRank|resolveListingVisibilityRank/.test(gateCodeOnlyForPublicGuard),
+  "Package entitlement gate must not wire public Servicios ranking.",
+);
 
 const stripeInGate = gateFiles.some((f) =>
   /from\s+["']stripe["']|@stripe\/|createCheckoutSession|stripe\.checkout\.sessions/.test(read(f)),

@@ -40,11 +40,11 @@ if (!dash.includes("/admin/workspace/clasificados")) {
 if (dash.includes("dashboard.recentEntitlementsTitle")) {
   fail("/admin still renders recent entitlements deep section");
 }
-if (!dash.includes("dashboard.pendingReviewTitle")) {
-  fail("/admin missing pending review queue");
+if (!dash.includes("pendingReviewQueueItems") || !dash.includes("Review workbench preview")) {
+  fail("/admin missing current review workbench queue");
 }
-if (!dash.includes("dashboard.expiringTitle")) {
-  fail("/admin missing expiring queue");
+if (!dash.includes("splitAdminDashboardExpiringQueue") || !dash.includes("Expiration workbench preview")) {
+  fail("/admin missing current expiration workbench queue");
 }
 ok("Executive dashboard — category registry clutter removed; queues preserved");
 
@@ -61,7 +61,11 @@ for (const [label, href] of [
 ok("Left nav — Categories, Tienda, Site sections, Users present");
 
 // --- Categories hub ---
-const hub = read("app/admin/(dashboard)/workspace/clasificados/ClasificadosCategoryHub.tsx");
+const hub = [
+  read("app/admin/(dashboard)/workspace/clasificados/ClasificadosCategoryHub.tsx"),
+  read("app/admin/(dashboard)/workspace/clasificados/ClasificadosCategoryCommandCenter.tsx"),
+  read("app/admin/(dashboard)/workspace/clasificados/_components/ClasificadosCategoryPanelShared.tsx"),
+].join("\n");
 if (!hub.includes("hub.scaffoldBadge")) {
   fail("ClasificadosCategoryHub missing scaffold honesty badge");
 }

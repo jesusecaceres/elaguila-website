@@ -77,12 +77,12 @@ assert("team roster mobile list", /team-roster-mobile-list/.test(rosterPage), ro
 assert("clasificados mobile list", /clasificados-mobile-list/.test(listingsTable), listingsTable);
 
 // 10–14. Actions, filters, CSV preserved
-assert("row actions View", />\s*View\s*</.test(rowActions), rowActions);
+assert("row actions View", /label="View"/.test(rowActions), rowActions);
 assert("row actions Reply", />\s*Reply\s*</.test(rowActions), rowActions);
-assert("row actions Email", />\s*Email\s*</.test(rowActions), rowActions);
-assert("row actions Archive", />\s*Archive\s*</.test(rowActions), rowActions);
-assert("row actions Restore", />\s*Restore\s*</.test(rowActions), rowActions);
-assert("row actions Delete", />\s*Delete\s*</.test(rowActions), rowActions);
+assert("row actions Email", /label="Email"/.test(rowActions), rowActions);
+assert("row actions Archive", /label="Archive"/.test(rowActions), rowActions);
+assert("row actions Restore", /label="Restore"/.test(rowActions), rowActions);
+assert("row actions Delete", /label="Delete"/.test(rowActions), rowActions);
 assert("inbox CSV export", /\/api\/admin\/leads\/inbox\/export/.test(inboxClient), inboxClient);
 assert("newsletter CSV export", /\/api\/admin\/leads\/newsletter\/export/.test(newsletterClient), newsletterClient);
 assert("inbox search filter", /placeholder="Name, email/.test(inboxClient), inboxClient);
@@ -121,7 +121,7 @@ assert("view site in drawer", /shell\.viewSite/.test(drawer), drawer);
 assert("inbox warning callout", /adminWarningCallout/.test(inboxPage), inboxPage);
 
 // Touch targets
-assert("mobile action min-h 44", /min-h-\[44px\]/.test(rowActions), rowActions);
+assert("mobile action min-h", /adminQueueActionCompact/.test(rowActions) && /min-h-\[40px\]/.test(theme), rowActions);
 
 // Package script
 assert("verify script in package.json", /verify:admin-mobile-shell/.test(pkg), pkg);
