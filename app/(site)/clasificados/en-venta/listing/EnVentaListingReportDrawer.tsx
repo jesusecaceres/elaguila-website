@@ -6,6 +6,7 @@ import {
   trackEnVentaReportSubmitGlobal,
   type EnVentaGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
+import { trackBrReportSubmitGlobal } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import {
   EN_VENTA_REPORT_DISCLAIMER,
   EN_VENTA_REPORT_REASONS,
@@ -45,10 +46,13 @@ export function EnVentaListingReportDrawer({
   listingId,
   lang,
   analyticsCtx,
+  analyticsCategory = "en-venta",
 }: {
   listingId: string;
   lang: Lang;
   analyticsCtx?: EnVentaGlobalAnalyticsContext;
+  /** When `bienes-raices`, records BR global analytics on successful submit. */
+  analyticsCategory?: "en-venta" | "bienes-raices";
 }) {
   const t = COPY[lang];
   const disclaimer = EN_VENTA_REPORT_DISCLAIMER[lang];
@@ -102,7 +106,14 @@ export function EnVentaListingReportDrawer({
         return;
       }
       if (analyticsCtx?.listingUuid.trim()) {
-        trackEnVentaReportSubmitGlobal(analyticsCtx);
+        if (analyticsCategory === "bienes-raices") {
+          trackBrReportSubmitGlobal({
+            listingUuid: analyticsCtx.listingUuid,
+            leonixAdId: analyticsCtx.leonixAdId,
+          });
+        } else {
+          trackEnVentaReportSubmitGlobal(analyticsCtx);
+        }
       }
       setDone(true);
     } catch {

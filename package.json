@@ -17,6 +17,7 @@
     "verify:br:auth-smoke:cleanup": "npx tsx scripts/br-smoke-cleanup.ts",
     "verify:br:e2e": "npx playwright test -c playwright.br-runtime.config.mjs e2e/bienes-raices/br-runtime-qa.spec.ts",
     "verify:br:launch-gate": "npm run typecheck && npm run lint:br && npm run verify:br",
+    "bienes:br-july1-inventory-analytics-os-01": "tsx scripts/bienes-br-july1-inventory-analytics-os-01-audit.ts",
     "prebuild": "node scripts/dup-guard.js",
     "audit:admin-language": "node scripts/audit-admin-language.mjs",
     "audit:leonix-ad-ids": "npx tsx scripts/audit-leonix-ad-ids.mts",

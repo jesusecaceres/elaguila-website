@@ -47,7 +47,12 @@ import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
+import { BrLiveDetailAnalyticsMount } from "@/app/clasificados/bienes-raices/listing/BrLiveDetailAnalyticsMount";
 import { BrRelatedAgentPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrRelatedAgentPropertiesSection";
+import {
+  trackBrContactClickGlobal,
+  type BrGlobalAnalyticsContext,
+} from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import { EnVentaListingReportDrawer } from "./EnVentaListingReportDrawer";
 import { EnVentaEngagementRow } from "../shared/components/EnVentaEngagementRow";
 import { enVentaEngagementListingKey } from "../shared/styles/enVentaTypography";
@@ -459,12 +464,30 @@ export function EnVentaAnuncioLayout({
     return { listingUuid, leonixAdId };
   }, [listing.id, listing.leonix_ad_id]);
 
+  const brAnalyticsCtx = useMemo((): BrGlobalAnalyticsContext => {
+    const listingUuid = listing.id.trim();
+    const leonixAdId = (listing.leonix_ad_id ?? "").trim() || undefined;
+    return { listingUuid, leonixAdId };
+  }, [listing.id, listing.leonix_ad_id]);
+
+  const trackBrContact = useCallback(
+    (kind: "call" | "whatsapp" | "email" | "sms" | "website" | "directions") => {
+      if (!premiumBr) return;
+      trackBrContactClickGlobal(brAnalyticsCtx, kind);
+    },
+    [brAnalyticsCtx, premiumBr],
+  );
+
   const trackEvContactClick = useCallback(
     (action: EnVentaContactAction) => {
-      if (surface !== "en-venta" || premiumBr) return;
+      if (premiumBr) {
+        trackBrContactClickGlobal(brAnalyticsCtx, action.id);
+        return;
+      }
+      if (surface !== "en-venta") return;
       trackEnVentaContactClickGlobal(enVentaAnalyticsCtx, action.id);
     },
-    [enVentaAnalyticsCtx, premiumBr, surface],
+    [brAnalyticsCtx, enVentaAnalyticsCtx, premiumBr, surface],
   );
 
   const onToggleSave = useCallback(async () => {
@@ -569,18 +592,29 @@ export function EnVentaAnuncioLayout({
   const openSheet = (intent: CtaSheetIntent | null) => {
     if (intent) setCtaIntent(intent);
   };
-  const openCallSheet = () => openSheet(buildCallIntent({ phone: phoneTel, contactShareExtras }));
-  const openSmsSheet = () => openSheet(buildSendMessageIntent({ message: contactMessage, phone: phoneTel, contactShareExtras }));
-  const openWhatsAppSheet = () =>
+  const openCallSheet = () => {
+    trackBrContact("call");
+    openSheet(buildCallIntent({ phone: phoneTel, contactShareExtras }));
+  };
+  const openSmsSheet = () => {
+    trackBrContact("sms");
+    openSheet(buildSendMessageIntent({ message: contactMessage, phone: phoneTel, contactShareExtras }));
+  };
+  const openWhatsAppSheet = () => {
+    trackBrContact("whatsapp");
     openSheet(
       buildWhatsAppMessageIntent({
         message: contactMessage,
         phone: whatsappTelRaw || phoneTel,
         whatsappDigits: waDigits,
         contactShareExtras,
-      })
+      }),
     );
-  const openEmailSheet = () => openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
+  };
+  const openEmailSheet = () => {
+    trackBrContact("email");
+    openSheet(buildSendEmailIntent({ email, subject: emailSubject, body: contactMessage, contactShareExtras }));
+  };
 
   const evLiveContactActions = useMemo(
     () =>
@@ -625,6 +659,7 @@ export function EnVentaAnuncioLayout({
   const openDirectionsSheet = () => {
     const href = brLocationBlock?.mapsHref;
     if (!href) return;
+    trackBrContact("directions");
     openSheet(
       buildDirectionsIntent({
         addressOrUrl: href,
@@ -687,6 +722,7 @@ export function EnVentaAnuncioLayout({
       }
       style={surface === "en-venta" && !premiumBr ? EN_VENTA_SURFACE.pageBgStyle : undefined}
     >
+      {premiumBr ? <BrLiveDetailAnalyticsMount {...brAnalyticsCtx} /> : null}
       <Navbar />
       <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
@@ -955,7 +991,12 @@ export function EnVentaAnuncioLayout({
                   }
                 />
                 {showListingReport ? (
-                  <EnVentaListingReportDrawer listingId={listing.id} lang={lang} analyticsCtx={enVentaAnalyticsCtx} />
+                  <EnVentaListingReportDrawer
+                    listingId={listing.id}
+                    lang={lang}
+                    analyticsCtx={premiumBr ? brAnalyticsCtx : enVentaAnalyticsCtx}
+                    analyticsCategory={premiumBr ? "bienes-raices" : "en-venta"}
+                  />
                 ) : null}
               </div>
             ) : (
@@ -1058,7 +1099,10 @@ export function EnVentaAnuncioLayout({
                           {websiteHref ? (
                             <button
                               type="button"
-                              onClick={() => openSheet(buildWebsiteIntent({ url: websiteHref, kind: "website" }))}
+                              onClick={() => {
+                                trackBrContact("website");
+                                openSheet(buildWebsiteIntent({ url: websiteHref, kind: "website" }));
+                              }}
                               className={`${BtnBase} ${secondary} w-full min-h-[44px] sm:w-auto`}
                             >
                               {lang === "es" ? "Más información" : "Website / more information"}
@@ -1185,7 +1229,12 @@ export function EnVentaAnuncioLayout({
                   </p>
                 ) : null}
                 {showListingReport ? (
-                  <EnVentaListingReportDrawer listingId={listing.id} lang={lang} analyticsCtx={enVentaAnalyticsCtx} />
+                  <EnVentaListingReportDrawer
+                    listingId={listing.id}
+                    lang={lang}
+                    analyticsCtx={premiumBr ? brAnalyticsCtx : enVentaAnalyticsCtx}
+                    analyticsCategory={premiumBr ? "bienes-raices" : "en-venta"}
+                  />
                 ) : null}
               </div>
               </>

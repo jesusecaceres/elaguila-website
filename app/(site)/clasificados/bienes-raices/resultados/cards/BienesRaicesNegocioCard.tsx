@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import {
+  brAnalyticsContextFromListing,
+  trackBrResultCardClickGlobal,
+} from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
-import { IconBath, IconBed, IconCalendar, IconHeart, IconMapPin, IconRuler } from "./cardIcons";
+import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
 
 function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
   if (listing.sellerKind) return listing.sellerKind;
@@ -141,10 +144,13 @@ export function BienesRaicesNegocioCard({
   const eg = ENGAGEMENT_LABELS[lang === "en" ? "en" : "es"];
   const horizontal = listing.layout === "horizontal";
   const href = listingDetailHref(listing.id, lang);
-  const [fav, setFav] = useState(false);
   const op = operationKind(listing);
   const lane = sellerKindUi(listing);
   const articleClass = className ? `${cardShell} ${className}` : cardShell;
+
+  const trackResultOpen = () => {
+    trackBrResultCardClickGlobal(brAnalyticsContextFromListing(listing));
+  };
 
   const imageBlock = (
     <div className="relative overflow-hidden bg-[#F5F0E8]">
@@ -155,19 +161,6 @@ export function BienesRaicesNegocioCard({
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1A1A1A]/15 via-transparent to-[#1A1A1A]/5 opacity-60 transition group-hover:opacity-80" />
       <BadgeStack badges={listing.badges} operation={op} lane={lane} />
-      <button
-        type="button"
-        aria-pressed={fav}
-        aria-label={lang === "en" ? "Save listing" : "Guardar anuncio"}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setFav((v) => !v);
-        }}
-        className="pointer-events-auto absolute right-3 top-3 z-[3] flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-[#FFFAF0]/90 text-[#D4A574] shadow-md backdrop-blur-sm transition hover:bg-white hover:text-[#C19A6B]"
-      >
-        <IconHeart className="h-[1.15rem] w-[1.15rem]" filled={fav} />
-      </button>
     </div>
   );
 
@@ -183,10 +176,10 @@ export function BienesRaicesNegocioCard({
       ) : null}
       <IdentityRow listing={listing} sellerKindLabels={sellerKindLabels} />
       <div className="mt-4 flex flex-wrap gap-3">
-        <Link href={href} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]">
+        <Link href={href} onClick={trackResultOpen} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]">
           {lang === "en" ? "View property" : "Ver propiedad"}
         </Link>
-        <Link href={href} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574]">
+        <Link href={href} onClick={trackResultOpen} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-white text-[#1A1A1A] border-[#E5E5E5] hover:bg-[#FFFAF0] hover:border-[#D4A574]">
           {lang === "en" ? "Contact" : "Contactar"}
         </Link>
       </div>

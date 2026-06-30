@@ -7,6 +7,10 @@ import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { brRelatedAgentPropertiesCopy } from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
 import type { BrPropertyInventoryLang } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import {
+  brAnalyticsContextFromListing,
+  trackBrResultCardClickGlobal,
+} from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 
 const SECTION =
   "rounded-[20px] border border-[#E8DFD0] bg-[#FFFCF7] p-4 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.08)] sm:p-5";
@@ -65,6 +69,7 @@ export function RelatedBrAgentProperties({
               )}
               <Link
                 href={`${leonixLiveAnuncioPath(item.id)}?lang=${lang}`}
+                onClick={() => trackBrResultCardClickGlobal(brAnalyticsContextFromListing(item))}
                 className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FAF7F2]"
               >
                 {copy.viewProperty}
