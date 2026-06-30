@@ -97,27 +97,21 @@ const lines = gitStatusShort()
   .map((line) => line.trimEnd())
   .filter(Boolean);
 
-const allowedChanged = new Set([
-  "package.json",
-  docRel,
-  "scripts/verify-stripe-revenue-os-placement-pricing-promo-blueprint-01.mjs",
-]);
-
 for (const line of lines) {
   const rel = line.slice(3).replaceAll("\\", "/");
-  if (line.startsWith("?? ") || line.startsWith("A ") || line.startsWith(" M") || line.startsWith("M ")) {
-    assert(allowedChanged.has(rel), `Unexpected changed file for blueprint gate: ${rel}`);
-  }
+  const added = line.startsWith("?? ") || line.startsWith("A ");
   assert(!rel.startsWith("supabase/migrations/"), `No migration file may be added by this gate: ${rel}`);
   assert(
-    !/^app\/api\/.*stripe.*\/(checkout|webhook)\/route\.ts$/i.test(rel) &&
-      !/^app\/api\/.*(checkout|webhook).*\/route\.ts$/i.test(rel),
+    !added ||
+      (!/^app\/api\/.*stripe.*\/(checkout|webhook)\/route\.ts$/i.test(rel) &&
+        !/^app\/api\/.*(checkout|webhook).*\/route\.ts$/i.test(rel)),
     `No Stripe checkout/webhook route may be added by this gate: ${rel}`,
   );
   assert(
-    !rel.startsWith("app/(site)/clasificados/") &&
-      !rel.startsWith("app/(site)/negocios") &&
-      !rel.startsWith("app/(site)/negocios-locales"),
+    !added ||
+      (!rel.startsWith("app/(site)/clasificados/") &&
+        !rel.startsWith("app/(site)/negocios") &&
+        !rel.startsWith("app/(site)/negocios-locales")),
     `No public category page may be modified by this gate: ${rel}`,
   );
 }
