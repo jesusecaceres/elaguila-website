@@ -2,15 +2,36 @@
  * Shared Empleos job shapes — adapter-ready for live listings later.
  */
 
-export type JobModalitySlug = "presencial" | "hibrido" | "remoto";
+export type JobModalitySlug =
+  | "presencial"
+  | "hibrido"
+  | "remoto"
+  | "campo"
+  | "varias-ubicaciones"
+  | "otro";
 
 export type JobTypeSlug =
   | "tiempo-completo"
   | "medio-tiempo"
   | "temporal"
-  | "por-contrato";
+  | "por-contrato"
+  | "por-temporada"
+  | "por-horas"
+  | "fin-de-semana"
+  | "turno-nocturno"
+  | "practicas"
+  | "voluntariado"
+  | "otro";
 
-export type ExperienceSlug = "entry" | "mid" | "senior";
+export type ExperienceSlug =
+  | "entry"
+  | "mid"
+  | "senior"
+  | "sin-experiencia"
+  | "supervisor"
+  | "gerencia"
+  | "certificacion"
+  | "licencia";
 
 export type CompanyTypeSlug = "small" | "mid" | "enterprise";
 

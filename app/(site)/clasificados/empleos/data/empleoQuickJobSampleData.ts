@@ -47,12 +47,30 @@ export type QuickJobDetailSample = {
   workModalityLabel?: string;
   description: string;
   benefits: string[];
+  /** External application link — primary Apply CTA when present. */
+  applyLink?: string;
   phone: string;
   whatsapp: string;
+  /** SMS/text phone separate from call. */
+  smsPhone?: string;
   email: string;
   websiteUrl?: string;
+  /** Recruiter / contact person shown on apply card. */
+  contactPerson?: string;
+  /** Preferred apply method. */
+  preferredApplyMethod?: string;
   primaryCta?: "phone" | "whatsapp" | "email";
   videoUrls?: string[];
+  /** Workplace name / branch / work area. */
+  workspaceName?: string;
+  /** Service area or location notes. */
+  locationNotes?: string;
+  /** Optional company links for "Conoce al empleador" section. */
+  companyLinkedIn?: string;
+  companyFacebook?: string;
+  companyInstagram?: string;
+  companyOtherLinkLabel?: string;
+  companyOtherLinkUrl?: string;
   /** Omit when the ad has no address; location UI hides. */
   location?: QuickJobLocationBlock;
   relatedJobs: QuickJobRelatedCard[];

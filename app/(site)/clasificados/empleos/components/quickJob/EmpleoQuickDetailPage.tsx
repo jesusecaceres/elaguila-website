@@ -192,10 +192,13 @@ export function EmpleoQuickDetailPage({
               schedule={data.schedule}
               workModalityLabel={data.workModalityLabel}
               description={data.description}
+              applyLink={data.applyLink?.trim() || undefined}
               phone={data.phone?.trim() || undefined}
               whatsapp={data.whatsapp?.trim() || undefined}
+              smsPhone={data.smsPhone?.trim() || undefined}
               email={data.email?.trim() || undefined}
               websiteUrl={data.websiteUrl?.trim() || undefined}
+              contactPerson={data.contactPerson?.trim() || undefined}
               primaryCta={data.primaryCta}
               emailLabel={t.ctaEmail}
               websiteLabel={t.websiteRow}
@@ -203,6 +206,11 @@ export function EmpleoQuickDetailPage({
               showContactRow={hasAnyContact}
               contactAnalyticsMeta={contactAnalyticsMeta}
               lang={lang}
+              companyLinkedIn={data.companyLinkedIn?.trim() || undefined}
+              companyFacebook={data.companyFacebook?.trim() || undefined}
+              companyInstagram={data.companyInstagram?.trim() || undefined}
+              companyOtherLinkLabel={data.companyOtherLinkLabel?.trim() || undefined}
+              companyOtherLinkUrl={data.companyOtherLinkUrl?.trim() || undefined}
             />
           </div>
         </div>

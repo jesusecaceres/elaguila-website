@@ -9,7 +9,6 @@ import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlo
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
-import { EmpleosCtaFieldGroup } from "@/app/publicar/empleos/shared/components/EmpleosCtaFieldGroup";
 import { EMPLEOS_PUBLISH_SHARED_COPY } from "@/app/publicar/empleos/shared/copy/empleosPublishSharedCopy";
 import { useEmpleosDraftSession } from "@/app/publicar/empleos/shared/hooks/useEmpleosDraftSession";
 import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/EmpleosImageGalleryEditor";
@@ -25,17 +24,19 @@ import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/fl
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
-import { emptyEmpleosQuickDraft, type EmpleosQuickDraft } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
+import { emptyEmpleosQuickDraft, type EmpleosQuickDraft, type EmpleosQuickPreferredApplyMethod } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 import {
   sampleCategorySelectOptions,
   sampleExperienceOptions,
+  sampleJobTypeSelectOptions,
   sampleModalityOptions,
 } from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
-const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
+const INPUT = "mt-1 w-full min-h-[44px] rounded-lg border border-black/10 px-3 py-2 text-sm";
+const SELECT = `${INPUT} bg-white`;
 
 function joinScheduleRows(rows: EmpleosQuickDraft["scheduleRows"]): string {
   return rows
@@ -48,6 +49,22 @@ function joinScheduleRows(rows: EmpleosQuickDraft["scheduleRows"]): string {
     })
     .join("\n");
 }
+
+const PREFERRED_APPLY_OPTIONS_ES: { value: EmpleosQuickPreferredApplyMethod; label: string }[] = [
+  { value: "apply-link", label: "Aplicar en línea" },
+  { value: "email", label: "Correo" },
+  { value: "phone", label: "Teléfono" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "message", label: "Mensaje" },
+];
+
+const PREFERRED_APPLY_OPTIONS_EN: { value: EmpleosQuickPreferredApplyMethod; label: string }[] = [
+  { value: "apply-link", label: "Apply online" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "message", label: "Message" },
+];
 
 export default function EmpleoQuickApplicationClient() {
   const router = useRouter();
@@ -114,27 +131,7 @@ export default function EmpleoQuickApplicationClient() {
     if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
   }, []);
 
-  const labelsCta =
-    lang === "es"
-      ? {
-          phone: "Teléfono de reclutamiento",
-          whatsapp: "WhatsApp",
-          email: "Correo de reclutamiento",
-          website: "Sitio web (opcional)",
-          primary: "Acción principal preferida *",
-        }
-      : {
-          phone: "Recruiting phone",
-          whatsapp: "WhatsApp",
-          email: "Recruiting email",
-          website: "Website (optional)",
-          primary: "Preferred primary action *",
-        };
-
-  const ctaPrimaryHint =
-    lang === "es"
-      ? "La acción principal es la que destacamos primero; el resto de datos que completes seguirá visible para los candidatos."
-      : "We highlight one primary action first; any other contact details you add stay visible to candidates.";
+  const preferredApplyOptions = lang === "es" ? PREFERRED_APPLY_OPTIONS_ES : PREFERRED_APPLY_OPTIONS_EN;
 
   const mediaCopy =
     lang === "es"
@@ -168,7 +165,7 @@ export default function EmpleoQuickApplicationClient() {
           videoLocalRemoved: "Los archivos locales de video ya no se publican aquí. Agrega un enlace público.",
           benefitAdd: "+ Añadir beneficio",
           benefitRemove: "Quitar",
-          benefitPh: "Beneficio",
+          benefitPh: "Ej. Seguro médico, pago semanal, bonos",
           altImage: "Texto alternativo (imagen)",
         }
       : {
@@ -201,225 +198,174 @@ export default function EmpleoQuickApplicationClient() {
           videoLocalRemoved: "Local video files are no longer publishable here. Add a public video link instead.",
           benefitAdd: "+ Add benefit",
           benefitRemove: "Remove",
-          benefitPh: "Benefit",
+          benefitPh: "e.g. Health insurance, weekly pay, bonuses",
           altImage: "Image alt text",
         };
 
   if (!hydrated) {
-    return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+    return <div className="min-h-[50vh] bg-[#FCF9F2]" aria-busy="true" />;
   }
 
+  const es = lang === "es";
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-24 pt-24 text-[color:var(--lx-text)] sm:px-5">
+    <main className="min-h-screen overflow-x-hidden bg-[#FCF9F2] px-4 pb-24 pt-24 text-[#2A2826] sm:px-5">
       <div className="mx-auto min-w-0 max-w-3xl">
+
+        {/* Header */}
         <header className="mb-6">
-          <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Publicar empleo" : "Post a job"}</h1>
-          <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{copy.applicationPage.quickSubtitle}</p>
-          <p className="mt-3 rounded-xl border border-[#C9B46A]/35 bg-[#FFFCF7] px-3 py-2 text-sm font-semibold text-[#6B5320]">
-            {lang === "es"
-              ? "$24.99 por 30 días. Tu anuncio se publica por 30 días; el pago se activará en el flujo final de lanzamiento."
-              : "$24.99 for 30 days. Your ad runs for 30 days; payment will be activated in the final launch checkout flow."}
-          </p>
+          <h1 className="font-serif text-2xl font-bold text-[#2A2826] sm:text-3xl">
+            {es ? "Publicar empleo" : "Post a job"}
+          </h1>
+          <p className="mt-2 text-sm text-[#5C564E]">{copy.applicationPage.quickSubtitle}</p>
+          <div className="mt-3 flex items-start gap-3 rounded-xl border border-[#C9B46A]/40 bg-[#FFFDF5] px-4 py-3">
+            <span className="mt-0.5 text-[#C9B46A]" aria-hidden>★</span>
+            <p className="text-sm font-semibold text-[#6B5320]">
+              {es
+                ? "$24.99 por 30 días. La publicación se activa después de la revisión final."
+                : "$24.99 for 30 days. Your listing activates after final review."}
+            </p>
+          </div>
         </header>
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 
         <div className="space-y-6">
-          <EmpleosSectionCard title={lang === "es" ? "1. Información principal" : "1. Main details"}>
+
+          {/* ── SECTION 1: Puesto y empleador ─────────────────────────────────── */}
+          <EmpleosSectionCard title={es ? "1. Puesto y empleador" : "1. Job and employer"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Título del puesto" : "Job title"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.title} onChange={(e) => patch({ title: e.target.value })} />
+              <EmpleosFieldLabel lang={lang} required>{es ? "Título del puesto" : "Job title"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.title} onChange={(e) => patch({ title: e.target.value })}
+                placeholder={es ? "Ej. Cocinero, Técnico HVAC, Cajero" : "e.g. Cook, HVAC Tech, Cashier"} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Nombre del negocio" : "Business name"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{es ? "Nombre del negocio / empleador" : "Business or employer name"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.businessName} onChange={(e) => patch({ businessName: e.target.value })} />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Categoría (resultados)" : "Category (search)"}</EmpleosFieldLabel>
-                <select
-                  className={INPUT}
-                  value={state.categorySlug}
-                  onChange={(e) => patch({ categorySlug: e.target.value })}
-                >
-                  {sampleCategorySelectOptions
-                    .filter((o) => o.value)
-                    .map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
+                <EmpleosFieldLabel lang={lang} required>{es ? "Categoría" : "Job category"}</EmpleosFieldLabel>
+                <select className={SELECT} value={state.categorySlug} onChange={(e) => patch({ categorySlug: e.target.value })}>
+                  {sampleCategorySelectOptions.filter((o) => o.value).map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang}>{lang === "es" ? "Nivel de experiencia" : "Experience level"}</EmpleosFieldLabel>
-                <select
-                  className={INPUT}
-                  value={state.experienceLevel}
-                  onChange={(e) => patch({ experienceLevel: e.target.value as EmpleosQuickDraft["experienceLevel"] })}
-                >
-                  {sampleExperienceOptions
-                    .filter((o) => o.value)
-                    .map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
+                <EmpleosFieldLabel lang={lang}>{es ? "Nivel de experiencia" : "Experience level"}</EmpleosFieldLabel>
+                <select className={SELECT} value={state.experienceLevel}
+                  onChange={(e) => patch({ experienceLevel: e.target.value as EmpleosQuickDraft["experienceLevel"] })}>
+                  {sampleExperienceOptions.filter((o) => o.value).map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </label>
             </div>
             {state.categorySlug === "otro" ? (
-              <label className="mt-3 block text-sm">
-                <EmpleosFieldLabel lang={lang} required>
-                  {lang === "es" ? "Describe la categoría" : "Describe the category"}
-                </EmpleosFieldLabel>
-                <input
-                  className={INPUT}
-                  value={state.categoryCustom}
-                  onChange={(e) => patch({ categoryCustom: e.target.value })}
-                  placeholder={lang === "es" ? "Ej. Manufactura ligera" : "e.g. Light manufacturing"}
-                />
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Describe la categoría" : "Describe the category"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.categoryCustom} onChange={(e) => patch({ categoryCustom: e.target.value })}
+                  placeholder={es ? "Ej. Manufactura ligera" : "e.g. Light manufacturing"} />
               </label>
             ) : null}
+          </EmpleosSectionCard>
+
+          {/* ── SECTION 2: Detalles del empleo ───────────────────────────────── */}
+          <EmpleosSectionCard title={es ? "2. Detalles del empleo" : "2. Job details"}>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
-                <input
-                  className={INPUT}
-                  value={state.city}
-                  onChange={(e) => patch({ city: e.target.value })}
-                  placeholder={lang === "es" ? "Ej. Modesto" : "e.g. Modesto"}
-                />
+                <EmpleosFieldLabel lang={lang} required>{es ? "Tipo de empleo" : "Employment type"}</EmpleosFieldLabel>
+                <select className={SELECT} value={state.jobType} onChange={(e) => patch({ jobType: e.target.value })}>
+                  <option value="">{es ? "Seleccionar…" : "Select…"}</option>
+                  {sampleJobTypeSelectOptions.filter((o) => o.value).map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} required>
-                  {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
-                </EmpleosFieldLabel>
-                <input
-                  className={INPUT}
-                  value={state.stateRegion || state.state}
-                  onChange={(e) => patch({ state: e.target.value, stateRegion: e.target.value })}
-                  placeholder={lang === "es" ? "Ej. Jalisco, Ontario, Cataluña" : "e.g. Jalisco, Ontario, Catalonia"}
-                />
+                <EmpleosFieldLabel lang={lang} required>{es ? "Modalidad" : "Workplace type"}</EmpleosFieldLabel>
+                <select className={SELECT} value={state.workModality}
+                  onChange={(e) => patch({ workModality: e.target.value as JobModalitySlug })}>
+                  {sampleModalityOptions.filter((o) => o.value).map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </label>
             </div>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "País" : "Country"}</EmpleosFieldLabel>
-              <input
-                className={INPUT}
-                value={state.country}
-                onChange={(e) => patch({ country: e.target.value })}
-                placeholder={lang === "es" ? "Ej. México, Canadá, Estados Unidos" : "e.g. Mexico, Canada, United States"}
-              />
-              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                {lang === "es"
-                  ? "Puedes publicar oportunidades en cualquier ciudad o país. Leonix usará esta ubicación para búsqueda y filtros."
-                  : "You can post opportunities in any city or country. Leonix will use this location for search and filters."}
+              <EmpleosFieldLabel lang={lang} required>{es ? "Descripción, requisitos y cómo aplicar" : "Description, requirements and how to apply"}</EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[120px]`} value={state.description}
+                onChange={(e) => patch({ description: e.target.value })} />
+              <p className="mt-1 text-xs text-[#7A756E]">
+                {es ? "Incluye responsabilidades, requisitos, inicio y cómo contactar." : "Include responsibilities, requirements, start date, and how to apply."}
               </p>
             </label>
+          </EmpleosSectionCard>
+
+          {/* ── SECTION 3: Pago, horario y beneficios ───────────────────────── */}
+          <EmpleosSectionCard title={es ? "3. Pago, horario y beneficios" : "3. Pay, schedule and benefits"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Tipo de empleo" : "Job type"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.jobType} onChange={(e) => patch({ jobType: e.target.value })} />
+              <EmpleosFieldLabel lang={lang} required>{es ? "Pago" : "Pay"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.pay} onChange={(e) => patch({ pay: e.target.value })}
+                placeholder={es ? "Ej. $18/hora, $800 por semana, A convenir" : "e.g. $18/hr, $800/week, DOE"} />
+              <p className="mt-1 text-xs text-[#7A756E]">
+                {es ? "Los valores numéricos se formatean automáticamente con $." : "Numeric values are automatically formatted with $."}
+              </p>
             </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Modalidad" : "Modality"}</EmpleosFieldLabel>
-              <select
-                className={INPUT}
-                value={state.workModality}
-                onChange={(e) => patch({ workModality: e.target.value as JobModalitySlug })}
-              >
-                {sampleModalityOptions
-                  .filter((o) => o.value)
-                  .map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <div className="block text-sm sm:col-span-2">
-              <EmpleosFieldLabel lang={lang} required>
-                {lang === "es" ? "Horario / turnos" : "Schedule / shifts"}
-              </EmpleosFieldLabel>
-              <p className="mt-0.5 text-xs text-[color:var(--lx-muted)]">
-                {lang === "es"
-                  ? "Añade filas (día o bloque + horario). La imagen principal del carrusel será el hero del anuncio."
-                  : "Add rows (day or block + hours). The primary gallery image becomes the listing hero."}
+            <div>
+              <EmpleosFieldLabel lang={lang} required>{es ? "Horario / turnos" : "Schedule / shifts"}</EmpleosFieldLabel>
+              <p className="mt-0.5 text-xs text-[#7A756E]">
+                {es ? "Añade una fila por turno. Ejemplo: Lun–Vie / 8:00 AM – 5:00 PM" : "Add one row per shift. Example: Mon–Fri / 8:00 AM – 5:00 PM"}
               </p>
               <div className="mt-2 space-y-2">
                 {state.scheduleRows.map((row, idx) => (
                   <div key={idx} className="grid gap-2 sm:grid-cols-2">
-                    <input
-                      className={INPUT}
-                      value={row.day}
-                      placeholder={lang === "es" ? "Día o bloque (ej. Lun–Vie)" : "Day or block (e.g. Mon–Fri)"}
+                    <input className={INPUT} value={row.day}
+                      placeholder={es ? "Día o bloque (ej. Lun–Vie)" : "Day or block (e.g. Mon–Fri)"}
                       onChange={(e) => {
                         const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, day: e.target.value } : r));
                         patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                      }}
-                    />
-                    <input
-                      className={INPUT}
-                      value={row.shift}
-                      placeholder={lang === "es" ? "Turno / horas" : "Shift / hours"}
+                      }} />
+                    <input className={INPUT} value={row.shift}
+                      placeholder={es ? "Turno / horas (ej. 8:00 AM – 5:00 PM)" : "Shift / hours (e.g. 8:00 AM – 5:00 PM)"}
                       onChange={(e) => {
                         const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, shift: e.target.value } : r));
                         patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                      }}
-                    />
+                      }} />
                   </div>
                 ))}
               </div>
-              <button
-                type="button"
-                className="mt-2 text-xs font-semibold text-[#2563EB] underline"
+              <button type="button"
+                className="mt-2 min-h-[36px] rounded-lg border border-[#C9B46A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#6B5320] transition hover:bg-[#FFF8E0]"
                 onClick={() => {
                   const next = [...state.scheduleRows, { day: "", shift: "" }];
                   patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                }}
-              >
-                {lang === "es" ? "+ Añadir turno" : "+ Add shift row"}
+                }}>
+                {es ? "+ Añadir turno" : "+ Add shift row"}
               </button>
             </div>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Pago" : "Pay"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.pay} onChange={(e) => patch({ pay: e.target.value })} />
-            </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Descripción, requisitos y cómo aplicar" : "Description, requirements, and how to apply"}</EmpleosFieldLabel>
-              <textarea
-                className={`${INPUT} min-h-[100px]`}
-                value={state.description}
-                onChange={(e) => patch({ description: e.target.value })}
-              />
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                {lang === "es"
-                  ? "Incluye lo esencial: responsabilidades, requisitos, inicio y cómo prefieres recibir contacto."
-                  : "Include the essentials: responsibilities, requirements, start timing, and your preferred contact path."}
-              </p>
-            </label>
-          </EmpleosSectionCard>
-
-          <EmpleosSectionCard title={lang === "es" ? "2. Beneficios (opcional)" : "2. Benefits (optional)"}>
-            <p className="text-xs text-[color:var(--lx-muted)]">
-              {lang === "es" ? "Añade viñetas; solo las líneas con texto aparecen en el anuncio." : "Add bullets; only non-empty lines appear on the listing."}
-            </p>
-            <EmpleosStringLinesEditor
-              items={state.benefits.length ? state.benefits : [""]}
-              onChange={(benefits) => patch({ benefits })}
-              addLabel={mediaCopy.benefitAdd}
-              removeLabel={mediaCopy.benefitRemove}
-              placeholder={mediaCopy.benefitPh}
-            />
-          </EmpleosSectionCard>
-
-          <EmpleosSectionCard title={lang === "es" ? "3. Multimedia" : "3. Media"}>
             <div>
-              <div className="text-sm font-semibold text-[color:var(--lx-text)]">
-                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Imágenes" : "Images"}</EmpleosFieldLabel>
-              </div>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                {lang === "es" ? "Incluye la imagen principal; puedes reordenar y marcar cuál es principal." : "Include the main image; reorder and set which is primary."}
+              <EmpleosFieldLabel lang={lang}>{es ? "Beneficios (opcional)" : "Benefits (optional)"}</EmpleosFieldLabel>
+              <p className="mt-0.5 text-xs text-[#7A756E]">
+                {es ? "Añade viñetas. Ejemplos: Seguro médico, Pago semanal, Horario flexible" : "Add bullets. Examples: Health insurance, Weekly pay, Flexible schedule"}
+              </p>
+              <EmpleosStringLinesEditor
+                items={state.benefits.length ? state.benefits : [""]}
+                onChange={(benefits) => patch({ benefits })}
+                addLabel={mediaCopy.benefitAdd}
+                removeLabel={mediaCopy.benefitRemove}
+                placeholder={mediaCopy.benefitPh}
+              />
+            </div>
+          </EmpleosSectionCard>
+
+          {/* ── SECTION 4: Multimedia ─────────────────────────────────────────── */}
+          <EmpleosSectionCard title={es ? "4. Multimedia" : "4. Media"}>
+            <div>
+              <EmpleosFieldLabel lang={lang} required>{es ? "Imágenes" : "Images"}</EmpleosFieldLabel>
+              <p className="mt-1 text-xs text-[#7A756E]">
+                {es ? "Incluye al menos una imagen; puedes marcar cuál es la principal." : "Include at least one image; mark which is primary."}
               </p>
               <div className="mt-3">
                 <EmpleosImageGalleryEditor
@@ -436,9 +382,8 @@ export default function EmpleoQuickApplicationClient() {
                 />
               </div>
             </div>
-
             <div>
-              <p className="text-sm font-semibold text-[color:var(--lx-text)]">{mediaCopy.logo}</p>
+              <p className="text-sm font-semibold text-[#2A2826]">{mediaCopy.logo}</p>
               <div className="mt-2">
                 <EmpleosSingleImageField
                   url={state.logoUrl}
@@ -453,7 +398,6 @@ export default function EmpleoQuickApplicationClient() {
                 />
               </div>
             </div>
-
             <EmpleosVideoDraftField
               objectUrl={state.videoObjectUrl}
               fileName={state.videoFileName}
@@ -480,61 +424,169 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "4. Contacto / CTA" : "4. Contact / CTA"}>
-            <EmpleosCtaFieldGroup
-              phone={state.phone}
-              whatsapp={state.whatsapp}
-              email={state.email}
-              website={state.website}
-              primaryCta={state.primaryCta}
-              onChange={(p) => patch(p)}
-              labels={labelsCta}
-              primaryHint={ctaPrimaryHint}
-            />
-          </EmpleosSectionCard>
-
-          <EmpleosSectionCard title={lang === "es" ? "5. Ubicación global (opcional)" : "5. Global location (optional)"}>
-            <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">
-              {lang === "es"
-                ? "Si el empleo es remoto, agrega la ciudad/país principal o deja la dirección exacta opcional."
-                : "If the job is remote, add the main city/country or keep the exact address optional."}
-            </p>
+          {/* ── SECTION 5: Cómo aplicar / Contacto ──────────────────────────── */}
+          <EmpleosSectionCard title={es ? "5. Cómo aplicar / Contacto" : "5. How to apply / Contact"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
+              <EmpleosFieldLabel lang={lang}>{es ? "Enlace para aplicar" : "Application link"}</EmpleosFieldLabel>
+              <input className={INPUT} type="url" value={state.applyLink}
+                onChange={(e) => patch({ applyLink: e.target.value })}
+                placeholder="https://" />
+              <p className="mt-1 text-xs text-[#7A756E]">
+                {es ? "Si tienes un sitio de aplicaciones, pega el enlace. Aparecerá como el botón \"Aplicar ahora\"."
+                    : "If you have an application portal, paste the link. It becomes the \"Apply now\" button."}
+              </p>
             </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 2" : "Address line 2"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.addressLine2} onChange={(e) => patch({ addressLine2: e.target.value })} />
-            </label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
-                <input className={INPUT} value={state.addressCity} onChange={(e) => patch({ addressCity: e.target.value })} />
+                <EmpleosFieldLabel lang={lang}>{es ? "Teléfono de reclutamiento" : "Recruiting phone"}</EmpleosFieldLabel>
+                <input className={INPUT} type="tel" value={state.phone}
+                  onChange={(e) => patch({ phone: e.target.value })} placeholder="+1 (555) 000-0000" />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>
-                  {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
-                </EmpleosFieldLabel>
-                <input className={INPUT} value={state.addressState} onChange={(e) => patch({ addressState: e.target.value })} />
+                <EmpleosFieldLabel lang={lang}>WhatsApp</EmpleosFieldLabel>
+                <input className={INPUT} type="tel" value={state.whatsapp}
+                  onChange={(e) => patch({ whatsapp: e.target.value })} placeholder="15551234567" />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Código postal" : "Postal code"}</EmpleosFieldLabel>
-                <input
-                  className={INPUT}
-                  value={state.postalCode || state.addressZip}
-                  onChange={(e) => patch({ addressZip: e.target.value, postalCode: e.target.value })}
-                  placeholder={lang === "es" ? "Ej. K1A 0B1, 28013, 90210" : "e.g. K1A 0B1, 28013, 90210"}
-                />
+                <EmpleosFieldLabel lang={lang}>{es ? "Mensaje de texto / SMS" : "Text message / SMS"}</EmpleosFieldLabel>
+                <input className={INPUT} type="tel" value={state.smsPhone}
+                  onChange={(e) => patch({ smsPhone: e.target.value })} placeholder="+1 (555) 000-0000" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "Correo de reclutamiento" : "Recruiting email"}</EmpleosFieldLabel>
+                <input className={INPUT} type="email" value={state.email}
+                  onChange={(e) => patch({ email: e.target.value })} />
               </label>
             </div>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "País" : "Country"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.country} onChange={(e) => patch({ country: e.target.value })} />
+              <EmpleosFieldLabel lang={lang}>{es ? "Nombre de contacto / reclutador" : "Contact person / recruiter"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.contactPerson}
+                onChange={(e) => patch({ contactPerson: e.target.value })}
+                placeholder={es ? "Ej. Ana García, Recursos Humanos" : "e.g. Ana García, HR"} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang}>{es ? "Método preferido de contacto" : "Preferred contact method"}</EmpleosFieldLabel>
+              <select className={SELECT} value={state.preferredApplyMethod}
+                onChange={(e) => patch({ preferredApplyMethod: e.target.value as EmpleosQuickPreferredApplyMethod })}>
+                {preferredApplyOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            <p className="text-xs text-[#7A756E]">
+              {es
+                ? "Al menos teléfono, WhatsApp o correo es necesario para que los candidatos te contacten."
+                : "At least phone, WhatsApp, or email is required for candidates to reach you."}
+            </p>
+          </EmpleosSectionCard>
+
+          {/* ── SECTION 6: Ubicación del empleo ─────────────────────────────── */}
+          <EmpleosSectionCard title={es ? "6. Ubicación del empleo" : "6. Job location"}>
+            <p className="text-xs leading-relaxed text-[#7A756E]">
+              {es
+                ? "Si el empleo es remoto, puedes dejar la dirección exacta en blanco. Ciudad y país se usan para búsqueda y filtros."
+                : "For remote jobs, you may leave the exact address blank. City and country are used for search and filters."}
+            </p>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang}>{es ? "Lugar / sucursal / zona de trabajo" : "Workplace / branch / work area"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.workspaceName}
+                onChange={(e) => patch({ workspaceName: e.target.value })}
+                placeholder={es ? "Ej. Planta Norte, Sucursal Centro" : "e.g. North Plant, Downtown Branch"} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang}>{es ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang}>{es ? "Dirección línea 2" : "Address line 2"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.addressLine2} onChange={(e) => patch({ addressLine2: e.target.value })} />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Ciudad" : "City"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.city}
+                  onChange={(e) => patch({ city: e.target.value, addressCity: e.target.value })}
+                  placeholder={es ? "Ej. Modesto, Ciudad de México" : "e.g. Modesto, Mexico City"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Estado / Región" : "State / Region"}</EmpleosFieldLabel>
+                <input className={INPUT}
+                  value={state.stateRegion || state.state}
+                  onChange={(e) => patch({ state: e.target.value, stateRegion: e.target.value, addressState: e.target.value })}
+                  placeholder={es ? "Ej. CA, Jalisco, Ontario" : "e.g. CA, Jalisco, Ontario"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "País" : "Country"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.country}
+                  onChange={(e) => patch({ country: e.target.value })}
+                  placeholder={es ? "Ej. Estados Unidos, México, Canadá" : "e.g. United States, Mexico, Canada"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "Código postal" : "ZIP / Postal code"}</EmpleosFieldLabel>
+                <input className={INPUT}
+                  value={state.postalCode || state.addressZip}
+                  onChange={(e) => patch({ addressZip: e.target.value, postalCode: e.target.value })}
+                  placeholder={es ? "Ej. 95350, 28013, K1A 0B1" : "e.g. 95350, 28013, K1A 0B1"} />
+              </label>
+            </div>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang}>{es ? "Área de servicio / notas de ubicación" : "Service area / location notes"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.locationNotes}
+                onChange={(e) => patch({ locationNotes: e.target.value })}
+                placeholder={es ? "Ej. Zona metropolitana, Valle Central, servicio a domicilio" : "e.g. Metro area, Central Valley, door-to-door"} />
             </label>
           </EmpleosSectionCard>
+
+          {/* ── SECTION 7: Empresa (opcional) ───────────────────────────────── */}
+          <EmpleosSectionCard title={es ? "7. Empresa (opcional)" : "7. Company links (optional)"}>
+            <p className="text-xs text-[#7A756E]">
+              {es
+                ? "Solo se mostrarán los enlaces que completes. Úsalos para que los candidatos conozcan más tu empresa."
+                : "Only filled links will be shown. Use them to help candidates learn about your company."}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "Sitio web de la empresa" : "Company website"}</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.website}
+                  onChange={(e) => patch({ website: e.target.value })} placeholder="https://" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "LinkedIn de la empresa" : "Company LinkedIn"}</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyLinkedIn}
+                  onChange={(e) => patch({ companyLinkedIn: e.target.value })}
+                  placeholder="https://linkedin.com/company/…" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>Facebook</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyFacebook}
+                  onChange={(e) => patch({ companyFacebook: e.target.value })}
+                  placeholder="https://facebook.com/…" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>Instagram</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyInstagram}
+                  onChange={(e) => patch({ companyInstagram: e.target.value })}
+                  placeholder="https://instagram.com/…" />
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "Etiqueta del otro enlace" : "Other link label"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.companyOtherLinkLabel}
+                  onChange={(e) => patch({ companyOtherLinkLabel: e.target.value })}
+                  placeholder={es ? "Ej. Portal de empleos, Telegram" : "e.g. Job portal, Telegram"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "URL del otro enlace" : "Other link URL"}</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyOtherLinkUrl}
+                  onChange={(e) => patch({ companyOtherLinkUrl: e.target.value })} placeholder="https://" />
+              </label>
+            </div>
+          </EmpleosSectionCard>
+
         </div>
 
+        {/* ── Final review step ─────────────────────────────────────────────── */}
         <EmpleosApplicationFinalStep
           copy={copy.finalStep}
           previewDisabled={previewDisabled}
@@ -554,22 +606,19 @@ export default function EmpleoQuickApplicationClient() {
               const sb = createSupabaseBrowserClient();
               const { data } = await sb.auth.getSession();
               if (!data.session?.access_token) {
-                window.alert(lang === "es" ? "Inicia sesión para guardar el borrador." : "Sign in to save a draft.");
+                window.alert(es ? "Inicia sesión para guardar el borrador." : "Sign in to save a draft.");
                 return;
               }
               const base = buildEmpleosPublishEnvelopeFromQuick(state, lang);
               const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
               const res = await fetch("/api/clasificados/empleos/listings", {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${data.session.access_token}`,
-                },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
                 body: JSON.stringify({ envelope, mode: "draft" }),
               });
               const json = (await res.json()) as { ok?: boolean; error?: string; id?: string };
               if (!json.ok) {
-                window.alert(json.error ?? (lang === "es" ? "No se pudo guardar" : "Could not save"));
+                window.alert(json.error ?? (es ? "No se pudo guardar" : "Could not save"));
                 return;
               }
               if (json.id) setServerListingId(json.id);
@@ -590,22 +639,19 @@ export default function EmpleoQuickApplicationClient() {
             const sb = createSupabaseBrowserClient();
             const { data } = await sb.auth.getSession();
             if (!data.session?.access_token) {
-              window.alert(lang === "es" ? "Inicia sesión para publicar." : "Sign in to publish.");
+              window.alert(es ? "Inicia sesión para publicar." : "Sign in to publish.");
               return;
             }
             const base = buildEmpleosPublishEnvelopeFromQuick(state, lang);
             const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
             const res = await fetch("/api/clasificados/empleos/listings", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${data.session.access_token}`,
-              },
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
               body: JSON.stringify({ envelope, mode: "publish" }),
             });
             const json = (await res.json()) as { ok?: boolean; error?: string; id?: string; slug?: string };
             if (!json.ok || !json.slug) {
-              window.alert(json.error ?? (lang === "es" ? "No se pudo publicar" : "Could not publish"));
+              window.alert(json.error ?? (es ? "No se pudo publicar" : "Could not publish"));
               return;
             }
             if (json.id) setServerListingId(json.id);
