@@ -46,6 +46,7 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
     addressState: d.addressState,
     addressZip: d.addressZip,
     videoUrl: d.videoUrl ?? "",
+    videoUrls: d.videoUrls ?? (d.videoUrl ? [d.videoUrl] : []),
   });
 }
 

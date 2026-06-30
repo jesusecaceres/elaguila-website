@@ -146,11 +146,11 @@ export default function EmpleoPremiumApplicationClient() {
           altLogo: "Alt",
           altImage: "Texto alternativo (imagen)",
           videoSection: "Video de empresa o lugar de trabajo (opcional)",
-          videoHint: "Solo si quieres compartir un video público. Archivo local o URL; en borrador no se sube a Mux.",
+          videoHint: "Solo si quieres compartir videos públicos. Agrega enlaces de YouTube, TikTok, Instagram u otra plataforma compatible.",
           videoUrlField: "URL del video",
           videoUrlPh: "https://…",
-          videoApplyUrl: "Usar URL",
-          videoPickFile: "Elegir archivo de video",
+          videoApplyUrl: "Añadir video",
+          videoPickFile: "",
           videoClear: "Quitar video",
         }
       : {
@@ -169,11 +169,11 @@ export default function EmpleoPremiumApplicationClient() {
           altLogo: "Alt",
           altImage: "Image alt text",
           videoSection: "Video (optional)",
-          videoHint: "Local file or URL. No Mux upload in draft.",
+          videoHint: "Add public links from YouTube, TikTok, Instagram, or another supported platform.",
           videoUrlField: "Video URL",
           videoUrlPh: "https://…",
-          videoApplyUrl: "Apply URL",
-          videoPickFile: "Choose video file",
+          videoApplyUrl: "Add video",
+          videoPickFile: "",
           videoClear: "Remove video",
         };
 
@@ -350,6 +350,7 @@ export default function EmpleoPremiumApplicationClient() {
               objectUrl={state.videoObjectUrl}
               fileName={state.videoFileName}
               externalUrl={state.videoUrl}
+              maxUrls={1}
               revokeIfBlob={revokeIfBlob}
               onPatch={(p) => patch((prev) => ({ ...prev, ...p }))}
               labels={{

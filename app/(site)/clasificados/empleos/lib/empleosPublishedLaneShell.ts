@@ -56,6 +56,7 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
       email: d.email || job.employerEmail || "",
       websiteUrl: web ?? job.employerWebsite,
       primaryCta: d.primaryCta,
+      videoUrls: d.videoUrls?.length ? d.videoUrls : d.videoUrl ? [d.videoUrl] : job.videoUrls ? [...job.videoUrls] : [],
       location: hasAddr
         ? {
             businessLine: d.businessName.trim() || job.company,
@@ -95,6 +96,7 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
     email: job.employerEmail ?? "",
     websiteUrl: job.employerWebsite,
     primaryCta: job.quickApply ? "email" : "phone",
+    videoUrls: job.videoUrls ? [...job.videoUrls] : [],
     location: job.employerAddressLine
       ? {
           businessLine: job.company,

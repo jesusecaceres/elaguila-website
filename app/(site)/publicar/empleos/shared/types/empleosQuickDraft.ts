@@ -46,6 +46,8 @@ export type EmpleosQuickDraft = {
   videoFileName: string;
   /** External video URL for draft preview only (no Mux). */
   videoUrl: string;
+  /** External video URLs for public preview/publish. Legacy `videoUrl` is mirrored as the first item. */
+  videoUrls: string[];
 };
 
 /** Migrates legacy `benefitsText` and partial sessions. */
@@ -69,6 +71,17 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
   const categoryCustom =
     typeof rest.categoryCustom === "string" ? rest.categoryCustom.trim() : e.categoryCustom;
   const cityRaw = typeof rest.city === "string" && rest.city.trim() ? rest.city.trim() : e.city;
+  const legacyVideoUrl = typeof rest.videoUrl === "string" ? rest.videoUrl.trim() : "";
+  const videoUrls = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(rest.videoUrls) ? rest.videoUrls : []),
+        legacyVideoUrl,
+      ]
+        .map((u) => String(u ?? "").trim())
+        .filter((u) => /^https?:\/\//i.test(u)),
+    ),
+  ).slice(0, 4);
   const modalityRaw = rest.workModality;
   const workModality: JobModalitySlug =
     modalityRaw === "presencial" || modalityRaw === "hibrido" || modalityRaw === "remoto" ? modalityRaw : e.workModality;
@@ -93,7 +106,8 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     categoryCustom,
     experienceLevel,
     screenerQuestions,
-    videoUrl: typeof rest.videoUrl === "string" ? rest.videoUrl : e.videoUrl,
+    videoUrl: videoUrls[0] ?? "",
+    videoUrls,
     city: cityRaw || EMPLEOS_INTERNAL_FILTER_REGION,
     workModality,
     scheduleRows,
@@ -131,5 +145,6 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     videoObjectUrl: null,
     videoFileName: "",
     videoUrl: "",
+    videoUrls: [],
   };
 }

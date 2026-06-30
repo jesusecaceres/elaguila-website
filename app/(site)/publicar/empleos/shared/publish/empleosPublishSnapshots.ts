@@ -47,6 +47,8 @@ export type EmpleosQuickPublishSnapshot = {
   addressZip: string;
   /** External video URL only; draft file handles omitted. */
   videoUrl: string | null;
+  /** External video URLs only; max 4 in quick free/simple flow. */
+  videoUrls?: string[];
 };
 
 export type EmpleosPremiumPublishSnapshot = {

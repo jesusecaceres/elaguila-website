@@ -37,10 +37,25 @@ function mapImagesForPublish(items: { url: string; alt: string; isMain?: boolean
   return refs;
 }
 
+function mapVideoUrlsForPublish(items: unknown, legacyUrl?: string): string[] {
+  return Array.from(
+    new Set(
+      [
+        ...(Array.isArray(items) ? items : []),
+        legacyUrl,
+      ]
+        .map((u) => String(u ?? "").trim())
+        .map((u) => sanitizeHttpUrl(u))
+        .filter((u): u is string => Boolean(u)),
+    ),
+  ).slice(0, 4);
+}
+
 export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPublishSnapshot {
   const refs = mapImagesForPublish(d.images);
   const logo = sanitizeHttpUrl(d.logoUrl);
-  const vid = sanitizeHttpUrl(d.videoUrl);
+  const vids = mapVideoUrlsForPublish(d.videoUrls, d.videoUrl);
+  const vid = vids[0] ?? null;
   const scheduleJoined = joinQuickScheduleForPublish(d);
   const schedRows = d.scheduleRows
     .filter((r) => String(r.day ?? "").trim() || String(r.shift ?? "").trim())
@@ -75,6 +90,7 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     addressState: d.addressState.trim(),
     addressZip: d.addressZip.trim(),
     videoUrl: vid,
+    videoUrls: vids,
   };
 }
 
@@ -193,7 +209,9 @@ export function buildEmpleosPublishEnvelopeFromQuick(d: EmpleosQuickDraft, lang:
       primaryImageUrl: primary,
       imageUrls: data.images.map((r) => r.url),
       hasDraftOnlyVideo:
-        Boolean(d.videoObjectUrl) || skippedBlob || Boolean(String(d.videoUrl ?? "").trim() && !sanitizeHttpUrl(d.videoUrl)),
+        Boolean(d.videoObjectUrl) ||
+        skippedBlob ||
+        [d.videoUrl, ...(d.videoUrls ?? [])].some((u) => Boolean(String(u ?? "").trim() && !sanitizeHttpUrl(String(u ?? "")))),
     }
   );
 }

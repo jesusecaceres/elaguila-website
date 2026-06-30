@@ -50,6 +50,7 @@ export type QuickJobDetailSample = {
   email: string;
   websiteUrl?: string;
   primaryCta?: "phone" | "whatsapp" | "email";
+  videoUrls?: string[];
   /** Omit when the ad has no address; location UI hides. */
   location?: QuickJobLocationBlock;
   relatedJobs: QuickJobRelatedCard[];

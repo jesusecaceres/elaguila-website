@@ -84,6 +84,8 @@ export type EmpleosJobRecord = {
   employerEmail?: string;
   employerWebsite?: string;
   employerAddressLine?: string;
+  /** External video links published by the employer. */
+  videoUrls?: readonly string[];
   /** Google JobPosting validThrough (ISO). */
   validThroughIso?: string;
   /** Screener prompts for internal apply — answers stored per id in applications.answers_json */

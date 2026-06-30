@@ -5,7 +5,10 @@ import path from "node:path";
 const root = process.cwd();
 const auditPath = path.join(root, "app/lib/clasificados/JULY1_FREE_CLASIFICADOS_APPLICATION_PUBLIC_SHELL_AUDIT.md");
 const sidebarPath = path.join(root, "app/(site)/clasificados/community/CommunityQuickPublicDetailSidebar.tsx");
+const jobsQuickDraftPath = path.join(root, "app/(site)/publicar/empleos/shared/types/empleosQuickDraft.ts");
 const jobsVideoPath = path.join(root, "app/(site)/publicar/empleos/shared/media/EmpleosVideoDraftField.tsx");
+const jobsPublishPath = path.join(root, "app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope.ts");
+const jobsQuickDetailPath = path.join(root, "app/(site)/clasificados/empleos/components/quickJob/EmpleoQuickDetailPage.tsx");
 
 function fail(message: string): never {
   console.error(`JULY1 FREE CLASIFICADOS AUDIT FAILED: ${message}`);
@@ -19,7 +22,10 @@ function readRequired(filePath: string): string {
 
 const audit = readRequired(auditPath);
 const sidebar = readRequired(sidebarPath);
+const jobsQuickDraft = readRequired(jobsQuickDraftPath);
 const jobsVideo = readRequired(jobsVideoPath);
+const jobsPublish = readRequired(jobsPublishPath);
+const jobsQuickDetail = readRequired(jobsQuickDetailPath);
 
 for (const category of ["Empleos", "Mascotas y Perdidos", "Clases", "Busco", "Comunidad/Eventos"]) {
   if (!audit.includes(category)) fail(`Audit file does not mention ${category}`);
@@ -27,6 +33,10 @@ for (const category of ["Empleos", "Mascotas y Perdidos", "Clases", "Busco", "Co
 
 if (!audit.includes("| Requirement | PASS/FIXED/BLOCKED | Evidence |")) {
   fail("Audit PASS/FIXED/BLOCKED table missing");
+}
+
+if (!/READY TO COMMIT THIS GATE:\s*(YES|NO)/.test(audit)) {
+  fail("READY TO COMMIT value missing from audit");
 }
 
 for (const label of ["Share", "Copy link", "Copy info", "Compartir", "Copiar enlace", "Copiar info"]) {
@@ -37,11 +47,36 @@ if (/Guardar|Guardado|Save|Saved/.test(sidebar)) {
   fail("Scoped sidebar still renders Save/Guardar text");
 }
 
+for (const publicShell of [
+  ["community sidebar", sidebar],
+  ["jobs quick detail", jobsQuickDetail],
+] as const) {
+  if (/Guardar|Guardado|Save|Saved/.test(publicShell[1])) {
+    fail(`${publicShell[0]} still renders Save/Guardar text`);
+  }
+}
+
+if (!jobsQuickDraft.includes("videoUrls: string[]") || !jobsQuickDraft.includes("videoUrl: videoUrls[0]")) {
+  fail("Jobs quick draft does not expose canonical videoUrls with legacy videoUrl mirroring");
+}
+
+if (!jobsPublish.includes("videoUrls: vids") || !jobsPublish.includes("slice(0, 4)")) {
+  fail("Jobs publish snapshot does not persist up to 4 videoUrls");
+}
+
+if (!jobsVideo.includes("maxUrls = 4") || !jobsVideo.includes("duplicateUrl") || !jobsVideo.includes("videoUrls")) {
+  fail("Jobs video field does not support up to 4 URLs with duplicate handling");
+}
+
 if (!jobsVideo.includes("External video URL only") || jobsVideo.includes('type="file"')) {
   fail("Jobs video field is not external-URL-only");
 }
 
-if (!audit.includes("Community/Event Hub") || !audit.includes("Comunidad/Eventos")) {
+if (/Mux|direct-upload|direct upload|videoUpload|accept="video/.test(jobsVideo)) {
+  fail("Jobs video field references Mux/direct/local video upload");
+}
+
+if (!audit.includes("Community/Event Hub") || !audit.includes("Community/Event Hub applied only to Comunidad/Eventos")) {
   fail("Community/Event Hub decision missing from audit");
 }
 

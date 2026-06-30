@@ -152,6 +152,7 @@ export function empleosEnvelopeToJobRecord(
       employerEmail: d.email || undefined,
       employerWebsite: d.website || undefined,
       employerAddressLine: d.addressLine1 || undefined,
+      videoUrls: d.videoUrls?.length ? d.videoUrls : d.videoUrl ? [d.videoUrl] : undefined,
     };
   }
 

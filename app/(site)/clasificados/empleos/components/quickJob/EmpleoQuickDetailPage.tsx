@@ -39,6 +39,8 @@ const COPY = {
     verMas: "Ver más",
     ctaEmail: "Enviar Email",
     websiteRow: "Sitio web",
+    videos: "Videos",
+    openVideo: "Abrir video",
     labels: { jobType: "Tipo", schedule: "Horario", modality: "Modalidad" },
   },
   en: {
@@ -56,9 +58,20 @@ const COPY = {
     verMas: "View more",
     ctaEmail: "Send email",
     websiteRow: "Website",
+    videos: "Videos",
+    openVideo: "Open video",
     labels: { jobType: "Type", schedule: "Schedule", modality: "Modality" },
   },
 } as const;
+
+function videoHostLabel(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host || "Video";
+  } catch {
+    return "Video";
+  }
+}
 
 type Props = {
   data?: QuickJobDetailSample;
@@ -87,6 +100,11 @@ export function EmpleoQuickDetailPage({
   const showLocation = hasQuickJobLocation(data.location);
   const showRelated = data.relatedJobs.length > 0;
   const hasBenefits = data.benefits.length > 0;
+  const videoUrls = useMemo(
+    () =>
+      Array.from(new Set((data.videoUrls ?? []).map((u) => String(u ?? "").trim()).filter((u) => /^https?:\/\//i.test(u)))).slice(0, 4),
+    [data.videoUrls],
+  );
   const hasAnyContact = Boolean(
     data.phone?.trim() || data.whatsapp?.trim() || data.email?.trim() || data.websiteUrl?.trim(),
   );
@@ -143,6 +161,25 @@ export function EmpleoQuickDetailPage({
                 />
               </div>
             </div>
+            {videoUrls.length ? (
+              <div className="mt-5 rounded-[18px] border border-[#E8DFD0] bg-[#FFFBF7] p-5 shadow-[0_8px_28px_rgba(42,40,38,0.06)]">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8A5A18]">{t.videos}</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {videoUrls.map((url, index) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-[#C9A85A]/45 bg-[#FFF7EA] px-3 py-2 text-sm font-semibold text-[#6B5320] transition hover:bg-[#FFF0D8]"
+                    >
+                      <span>{t.openVideo} {index + 1}</span>
+                      <span className="truncate text-xs font-medium text-[#5C564E]">{videoHostLabel(url)}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {hasBenefits ? (
               <QuickJobBenefitsCard title={t.benefits} items={data.benefits} />
             ) : null}
