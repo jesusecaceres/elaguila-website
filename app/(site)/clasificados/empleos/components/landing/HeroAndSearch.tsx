@@ -119,7 +119,7 @@ export function HeroAndSearch({ lang }: Props) {
                 >
                   +
                 </span>
-                <span>{lang === "es" ? "2,450+ vacantes nuevas esta semana" : "2,450+ new openings this week"}</span>
+                <span>{lang === "es" ? "Vacantes publicadas por empleadores locales" : "Listings posted by local employers"}</span>
               </div>
               <span className="hidden h-4 w-px shrink-0 bg-[#E8DFD0] sm:block" aria-hidden />
               <p className="text-sm text-[#4A4744]/95">
@@ -140,8 +140,8 @@ export function HeroAndSearch({ lang }: Props) {
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#2A2826]/35 via-transparent to-transparent" />
               <div className="absolute left-3 top-3 max-w-[min(100%,220px)] rounded-xl border border-white/85 bg-white/95 px-3 py-2 text-xs font-medium text-[#2A2826] shadow-lg backdrop-blur-sm sm:left-4 sm:top-4">
-                <span className="font-bold text-[#B8892C]">+2,450</span>{" "}
-                {lang === "es" ? "Nuevos empleos esta semana" : "New jobs this week"}
+                <span className="font-bold text-[#B8892C]">{lang === "es" ? "Empleos" : "Jobs"}</span>{" "}
+                {lang === "es" ? "locales publicados" : "posted locally"}
               </div>
               <div className="absolute bottom-3 right-3 max-w-[180px] rounded-xl border border-[#E8DFD0] bg-[#FFFBF5]/95 px-3 py-2 text-center text-xs font-semibold text-[#2A2826] shadow-md backdrop-blur-sm">
                 {lang === "es" ? "Aplicación rápida" : "Quick apply"}
