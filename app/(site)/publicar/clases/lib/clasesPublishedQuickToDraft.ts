@@ -16,6 +16,7 @@ import { normalizeWeeklyScheduleArray } from "@/app/(site)/publicar/community/sh
 import { extractCommunityQuickUserDescriptionFromPublishedBlurb } from "@/app/(site)/publicar/community/shared/lib/communityPublishedBlurbExtract";
 import {
   emptyClasesQuickDraft,
+  type ClasesClassLinks,
   type ClasesQuickDraft,
   type CommunityPrimaryCta,
 } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
@@ -114,6 +115,28 @@ export function clasesPublishedQuickToDraft(
   d.socialLinks.youtube = (pairs["Leonix:socialYoutube"] ?? "").trim();
   d.socialLinks.xTwitter = (pairs["Leonix:socialXTwitter"] ?? "").trim();
   d.socialLinks.linkedin = (pairs["Leonix:socialLinkedin"] ?? "").trim();
+  d.socialLinks.snapchat = (pairs["Leonix:socialSnapchat"] ?? "").trim();
+  d.socialLinks.pinterest = (pairs["Leonix:socialPinterest"] ?? "").trim();
+
+  const cl: ClasesClassLinks = {
+    registrationUrl: (pairs["Leonix:clsRegistrationUrl"] ?? "").trim(),
+    paymentUrl: (pairs["Leonix:clsPaymentUrl"] ?? "").trim(),
+    ticketsUrl: (pairs["Leonix:clsTicketsUrl"] ?? "").trim(),
+    donationUrl: (pairs["Leonix:clsDonationUrl"] ?? "").trim(),
+    classMaterialsUrl: (pairs["Leonix:clsMaterialsUrl"] ?? "").trim(),
+    syllabusUrl: (pairs["Leonix:clsSyllabusUrl"] ?? "").trim(),
+    classGuideUrl: (pairs["Leonix:clsGuideUrl"] ?? "").trim(),
+    instructorPageUrl: (pairs["Leonix:clsInstructorUrl"] ?? "").trim(),
+    studentPortalUrl: (pairs["Leonix:clsStudentPortalUrl"] ?? "").trim(),
+    vendorsResourcesUrl: (pairs["Leonix:clsVendorsUrl"] ?? "").trim(),
+    foodVendorsUrl: (pairs["Leonix:clsFoodVendorsUrl"] ?? "").trim(),
+    sponsorsUrl: (pairs["Leonix:clsSponsorsUrl"] ?? "").trim(),
+    customLink1Label: (pairs["Leonix:clsCustom1Label"] ?? "").trim(),
+    customLink1Url: (pairs["Leonix:clsCustom1Url"] ?? "").trim(),
+    customLink2Label: (pairs["Leonix:clsCustom2Label"] ?? "").trim(),
+    customLink2Url: (pairs["Leonix:clsCustom2Url"] ?? "").trim(),
+  };
+  d.classLinks = cl;
 
   d.primaryCta = pickPrimaryCta(pairs["Leonix:primaryCta"]);
   d.description = extractCommunityQuickUserDescriptionFromPublishedBlurb(listing.blurb[lang] ?? listing.blurb.es ?? "");

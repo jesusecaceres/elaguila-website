@@ -29,6 +29,26 @@ export type CommunitySocialLinks = {
   pinterest: string;
 };
 
+/** Optional class-specific useful links for Clases. */
+export type ClasesClassLinks = {
+  registrationUrl: string;
+  paymentUrl: string;
+  ticketsUrl: string;
+  donationUrl: string;
+  classMaterialsUrl: string;
+  syllabusUrl: string;
+  classGuideUrl: string;
+  instructorPageUrl: string;
+  studentPortalUrl: string;
+  vendorsResourcesUrl: string;
+  foodVendorsUrl: string;
+  sponsorsUrl: string;
+  customLink1Label: string;
+  customLink1Url: string;
+  customLink2Label: string;
+  customLink2Url: string;
+};
+
 /** Optional event-specific useful links for Comunidad/Eventos. */
 export type ComunidadEventLinks = {
   /** Registration link (separate from registrationRequired flag). */
@@ -116,6 +136,8 @@ export type ClasesQuickDraft = CommunityCommonDraft & {
   weeklySchedule: DayHoursRow[];
   /** principiante | intermedio | avanzado | todos */
   skillLevel: string;
+  /** Optional class-specific useful links. */
+  classLinks: ClasesClassLinks;
 };
 
 export type ComunidadQuickDraft = CommunityCommonDraft & {
@@ -150,6 +172,27 @@ function emptySocialLinks(): CommunitySocialLinks {
     linkedin: "",
     snapchat: "",
     pinterest: "",
+  };
+}
+
+function emptyClassLinks(): ClasesClassLinks {
+  return {
+    registrationUrl: "",
+    paymentUrl: "",
+    ticketsUrl: "",
+    donationUrl: "",
+    classMaterialsUrl: "",
+    syllabusUrl: "",
+    classGuideUrl: "",
+    instructorPageUrl: "",
+    studentPortalUrl: "",
+    vendorsResourcesUrl: "",
+    foodVendorsUrl: "",
+    sponsorsUrl: "",
+    customLink1Label: "",
+    customLink1Url: "",
+    customLink2Label: "",
+    customLink2Url: "",
   };
 }
 
@@ -214,6 +257,7 @@ export function emptyClasesQuickDraft(): ClasesQuickDraft {
     mode: "presencial",
     weeklySchedule: emptyCommunityWeeklySchedule(),
     skillLevel: "",
+    classLinks: emptyClassLinks(),
   };
 }
 
@@ -318,6 +362,31 @@ function normalizeSocialLinks(raw: unknown): CommunitySocialLinks {
     linkedin: String(r.linkedin ?? e.linkedin).trim(),
     snapchat: String(r.snapchat ?? e.snapchat).trim(),
     pinterest: String(r.pinterest ?? e.pinterest).trim(),
+  };
+}
+
+function normalizeClassLinks(raw: unknown): ClasesClassLinks {
+  const e = emptyClassLinks();
+  if (!raw || typeof raw !== "object") return e;
+  const r = raw as Partial<ClasesClassLinks>;
+  const s = (k: keyof ClasesClassLinks) => String(r[k] ?? e[k]).trim();
+  return {
+    registrationUrl: s("registrationUrl"),
+    paymentUrl: s("paymentUrl"),
+    ticketsUrl: s("ticketsUrl"),
+    donationUrl: s("donationUrl"),
+    classMaterialsUrl: s("classMaterialsUrl"),
+    syllabusUrl: s("syllabusUrl"),
+    classGuideUrl: s("classGuideUrl"),
+    instructorPageUrl: s("instructorPageUrl"),
+    studentPortalUrl: s("studentPortalUrl"),
+    vendorsResourcesUrl: s("vendorsResourcesUrl"),
+    foodVendorsUrl: s("foodVendorsUrl"),
+    sponsorsUrl: s("sponsorsUrl"),
+    customLink1Label: s("customLink1Label"),
+    customLink1Url: s("customLink1Url"),
+    customLink2Label: s("customLink2Label"),
+    customLink2Url: s("customLink2Url"),
   };
 }
 
@@ -426,6 +495,7 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
     mode,
     weeklySchedule,
     skillLevel,
+    classLinks: normalizeClassLinks(p.classLinks),
   };
 }
 

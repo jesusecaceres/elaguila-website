@@ -3,6 +3,7 @@ import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clas
 
 import type {
   ClasesCostType,
+  ClasesClassLinks,
   ClasesMode,
   ClasesPriceFrequency,
   ComunidadCostType,
@@ -43,9 +44,11 @@ export type ClasesQuickPublishSnapshot = {
   primaryCta: CommunityPrimaryCta;
   venue: string;
   addressLine1: string;
+  addressLine2: string;
   /** Public city — never replaced with NorCal. */
   publicCity: string;
   state: string;
+  country: string;
   zip: string;
   /** Internal discovery region (always NorCal). */
   discoveryRegion: "NorCal";
@@ -54,6 +57,8 @@ export type ClasesQuickPublishSnapshot = {
   registrationRequired: string;
   bringNote: string;
   skillLevel: string;
+  /** Optional class-specific useful links. */
+  classLinks: ClasesClassLinks;
 };
 
 export type ComunidadQuickPublishSnapshot = {

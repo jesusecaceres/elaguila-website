@@ -5,6 +5,7 @@ import { sanitizeHttpUrl } from "@/app/publicar/empleos/shared/publish/empleosPu
 
 import { COMMUNITY_DISCOVERY_REGION } from "../constants/communityRegion";
 import type {
+  ClasesClassLinks,
   ClasesQuickDraft,
   ComunidadQuickDraft,
   CommunityCommonDraft,
@@ -121,6 +122,28 @@ function draftSkippedBlobImages(d: { images: { url: string }[] }): boolean {
   });
 }
 
+function snapshotClassLinks(cl: ClasesClassLinks): ClasesClassLinks {
+  const u = (raw: string) => normalizeWebsiteForOpen(raw) ?? "";
+  return {
+    registrationUrl: u(cl.registrationUrl),
+    paymentUrl: u(cl.paymentUrl),
+    ticketsUrl: u(cl.ticketsUrl),
+    donationUrl: u(cl.donationUrl),
+    classMaterialsUrl: u(cl.classMaterialsUrl),
+    syllabusUrl: u(cl.syllabusUrl),
+    classGuideUrl: u(cl.classGuideUrl),
+    instructorPageUrl: u(cl.instructorPageUrl),
+    studentPortalUrl: u(cl.studentPortalUrl),
+    vendorsResourcesUrl: u(cl.vendorsResourcesUrl),
+    foodVendorsUrl: u(cl.foodVendorsUrl),
+    sponsorsUrl: u(cl.sponsorsUrl),
+    customLink1Label: cl.customLink1Label.trim(),
+    customLink1Url: u(cl.customLink1Url),
+    customLink2Label: cl.customLink2Label.trim(),
+    customLink2Url: u(cl.customLink2Url),
+  };
+}
+
 export function buildClasesQuickPublishSnapshot(d: ClasesQuickDraft): ClasesQuickPublishSnapshot {
   const base = commonSnapshot(d);
   const isPaid = d.classCostType === "pagada";
@@ -139,6 +162,7 @@ export function buildClasesQuickPublishSnapshot(d: ClasesQuickDraft): ClasesQuic
       close: r.close.trim(),
     })),
     skillLevel: d.skillLevel.trim(),
+    classLinks: snapshotClassLinks(d.classLinks),
   };
 }
 

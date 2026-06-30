@@ -25,7 +25,7 @@ import {
   whatsAppUri,
 } from "../lib/communityContactCtas";
 import { normalizeWebsiteForOpen, normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
-import type { ClasesQuickDraft, ComunidadEventLinks, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import type { ClasesClassLinks, ClasesQuickDraft, ComunidadEventLinks, ComunidadQuickDraft } from "../types/communityQuickDraft";
 
 const GH = {
   cream: "#FCF9F2",
@@ -62,7 +62,7 @@ const MAIL_SUBJECT = {
   },
 } as const;
 
-const UI = {
+const UI_COMUNIDAD = {
   es: {
     contactTitle: "Contacto del organizador",
     socialTitle: "Síguenos",
@@ -101,6 +101,61 @@ const UI = {
     eventProgram: "Event program",
     eventGuide: "Event guide",
     vendors: "Vendors",
+    foodVendors: "Food / vendors",
+    sponsors: "Sponsors",
+    map: "View on map",
+    copyEmail: "Copy email",
+    copyPhone: "Copy phone",
+  },
+} as const;
+
+const UI_CLASES = {
+  es: {
+    contactTitle: "Contacto del instructor",
+    socialTitle: "Síguenos",
+    locationTitle: "Lugar de la clase",
+    moreTitle: "Más información de la clase",
+    trustLabel: "Publicado en Leonix",
+    call: "Llamar",
+    text: "Enviar texto",
+    email: "Escribir correo",
+    website: "Sitio web de la clase",
+    register: "Registrarse",
+    pay: "Pagar",
+    tickets: "Boletos",
+    donate: "Donar",
+    materials: "Materiales",
+    syllabus: "Programa / temario",
+    classGuide: "Guía de la clase",
+    instructorPage: "Página del instructor",
+    studentPortal: "Portal del estudiante",
+    vendors: "Vendedores / recursos",
+    foodVendors: "Comida / puestos",
+    sponsors: "Patrocinadores",
+    map: "Ver en el mapa",
+    copyEmail: "Copiar correo",
+    copyPhone: "Copiar teléfono",
+  },
+  en: {
+    contactTitle: "Instructor contact",
+    socialTitle: "Follow us",
+    locationTitle: "Class location",
+    moreTitle: "More class information",
+    trustLabel: "Published on Leonix",
+    call: "Call",
+    text: "Text message",
+    email: "Email",
+    website: "Class website",
+    register: "Register",
+    pay: "Pay",
+    tickets: "Tickets",
+    donate: "Donate",
+    materials: "Materials",
+    syllabus: "Program / syllabus",
+    classGuide: "Class guide",
+    instructorPage: "Instructor page",
+    studentPortal: "Student portal",
+    vendors: "Vendors / resources",
     foodVendors: "Food / vendors",
     sponsors: "Sponsors",
     map: "View on map",
@@ -155,8 +210,8 @@ export function CommunityContactCanvas({
   /** Optional DOM id for scroll targets (e.g. published anuncio “Ver contacto”). */
   sectionHtmlId?: string;
 }) {
-  const t = UI[lang];
   const k = kindOf(draft);
+  const t = k === "clases" ? UI_CLASES[lang] : UI_COMUNIDAD[lang];
   const [emailOpen, setEmailOpen] = useState(false);
   const phone10 = usPhoneDigits10(draft.phone);
   const wa10 = usPhoneDigits10(draft.whatsapp);
@@ -166,6 +221,8 @@ export function CommunityContactCanvas({
   const web = websiteHref(draft.website);
   const eventLinks: ComunidadEventLinks | null =
     draft.kind === "comunidad" ? (draft as ComunidadQuickDraft).eventLinks : null;
+  const classLinks: ClasesClassLinks | null =
+    draft.kind === "clases" ? (draft as ClasesQuickDraft).classLinks : null;
 
   const mapQ = buildCommunityMapQuery({
     addressLine1: draft.addressLine1,
@@ -217,14 +274,15 @@ export function CommunityContactCanvas({
       const href = normalizeWebsiteForOpen(raw);
       if (href) eventLinkItems.push({ key, href, label });
     };
-    push("reg", el.registrationUrl, t.register);
-    push("tix", el.ticketsUrl, t.tickets);
-    push("don", el.donationUrl, t.donate);
-    push("prg", el.eventProgramUrl, t.eventProgram);
-    push("gui", el.eventGuideUrl, t.eventGuide);
-    push("vnd", el.vendorListUrl, t.vendors);
-    push("fvd", el.foodVendorsUrl, t.foodVendors);
-    push("spo", el.sponsorsUrl, t.sponsors);
+    const tc = UI_COMUNIDAD[lang];
+    push("reg", el.registrationUrl, tc.register);
+    push("tix", el.ticketsUrl, tc.tickets);
+    push("don", el.donationUrl, tc.donate);
+    push("prg", el.eventProgramUrl, tc.eventProgram);
+    push("gui", el.eventGuideUrl, tc.eventGuide);
+    push("vnd", el.vendorListUrl, tc.vendors);
+    push("fvd", el.foodVendorsUrl, tc.foodVendors);
+    push("spo", el.sponsorsUrl, tc.sponsors);
     if (el.customLink1Label.trim() && normalizeWebsiteForOpen(el.customLink1Url)) {
       push("c1", el.customLink1Url, el.customLink1Label.trim());
     }
@@ -233,9 +291,40 @@ export function CommunityContactCanvas({
     }
   }
 
+  /** Build the ordered list of class-specific useful link CTAs (Clases only). */
+  const classLinkItems: { key: string; href: string; label: string }[] = [];
+  if (classLinks) {
+    const cl = classLinks;
+    const tc = UI_CLASES[lang];
+    const push = (key: string, raw: string, label: string) => {
+      const href = normalizeWebsiteForOpen(raw);
+      if (href) classLinkItems.push({ key, href, label });
+    };
+    push("reg", cl.registrationUrl, tc.register);
+    push("pay", cl.paymentUrl, tc.pay);
+    push("tix", cl.ticketsUrl, tc.tickets);
+    push("don", cl.donationUrl, tc.donate);
+    push("mat", cl.classMaterialsUrl, tc.materials);
+    push("syl", cl.syllabusUrl, tc.syllabus);
+    push("gui", cl.classGuideUrl, tc.classGuide);
+    push("ins", cl.instructorPageUrl, tc.instructorPage);
+    push("stu", cl.studentPortalUrl, tc.studentPortal);
+    push("vnd", cl.vendorsResourcesUrl, tc.vendors);
+    push("fvd", cl.foodVendorsUrl, tc.foodVendors);
+    push("spo", cl.sponsorsUrl, tc.sponsors);
+    if (cl.customLink1Label.trim() && normalizeWebsiteForOpen(cl.customLink1Url)) {
+      push("c1", cl.customLink1Url, cl.customLink1Label.trim());
+    }
+    if (cl.customLink2Label.trim() && normalizeWebsiteForOpen(cl.customLink2Url)) {
+      push("c2", cl.customLink2Url, cl.customLink2Label.trim());
+    }
+  }
+
+  const allLinkItems = k === "clases" ? classLinkItems : eventLinkItems;
+
   const hasContactActions = !!(phone10 || wa10 || sms10 || email);
   const hasLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
-  const hasMoreInfo = !!(web || eventLinkItems.length);
+  const hasMoreInfo = !!(web || allLinkItems.length);
 
   return (
     <section
@@ -368,7 +457,7 @@ export function CommunityContactCanvas({
                   {t.website}
                 </a>
               ) : null}
-              {eventLinkItems.map(({ key, href, label }) => (
+              {allLinkItems.map(({ key, href, label }) => (
                 <a
                   key={key}
                   href={href}

@@ -9,6 +9,7 @@ import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaSnapchat, FaTiktok,
 import { FaXTwitter } from "react-icons/fa6";
 import { normalizeWebsiteForOpen, normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
 import type {
+  ClasesClassLinks,
   ComunidadEventLinks,
   CommunityCommonDraft,
   CommunitySocialLinks,
@@ -49,9 +50,9 @@ const SOCIAL_COPY: Record<Lang, SocialCopy> = {
   en: {
     smsPhone: "Text message number",
     smsPhoneHelper: "You can use the same phone number if you receive texts there.",
-    socialTitle: "Organizer social media (optional)",
+    socialTitle: "Instructor social media (optional)",
     socialIntro:
-      "We only show the icons you complete on the public event page.",
+      "We only show the icons you complete on the public class page.",
     gentleInvalid: "This link doesn't match that network; it won't show publicly until corrected.",
     fields: {
       facebook: { label: "Facebook", example: "facebook.com/yourpage", placeholder: "facebook.com/yourpage" },
@@ -266,6 +267,245 @@ function UrlField({
         </p>
       ) : null}
     </label>
+  );
+}
+
+const CLASS_LINKS_COPY: Record<Lang, {
+  sectionTitle: string;
+  sectionIntro: string;
+  registrationUrl: string;
+  registrationUrlPlaceholder: string;
+  registrationUrlConfirm: string;
+  paymentUrl: string;
+  ticketsUrl: string;
+  donationUrl: string;
+  classMaterialsUrl: string;
+  syllabusUrl: string;
+  classGuideUrl: string;
+  instructorPageUrl: string;
+  studentPortalUrl: string;
+  vendorsResourcesUrl: string;
+  foodVendorsUrl: string;
+  sponsorsUrl: string;
+  customLink1Label: string;
+  customLink1Url: string;
+  customLink2Label: string;
+  customLink2Url: string;
+  customLabelPlaceholder: string;
+  customUrlPlaceholder: string;
+  urlExample: string;
+  registrationRevealedBecause: string;
+  opt: string;
+}> = {
+  es: {
+    sectionTitle: "7. Enlaces útiles de la clase",
+    sectionIntro: "Agrega solo los enlaces que aplican. En la página pública mostraremos botones claros, no URLs largas.",
+    registrationUrl: "Enlace de registro",
+    registrationUrlPlaceholder: "https://ejemplo.com/registro",
+    registrationUrlConfirm: "✓ Enlace de registro agregado",
+    paymentUrl: "Enlace de pago",
+    ticketsUrl: "Boletos",
+    donationUrl: "Donación / beca",
+    classMaterialsUrl: "Materiales de la clase",
+    syllabusUrl: "Programa / temario",
+    classGuideUrl: "Guía de la clase",
+    instructorPageUrl: "Página del instructor",
+    studentPortalUrl: "Portal del estudiante",
+    vendorsResourcesUrl: "Vendedores / recursos",
+    foodVendorsUrl: "Comida / puestos",
+    sponsorsUrl: "Patrocinadores",
+    customLink1Label: "Enlace adicional 1 — etiqueta",
+    customLink1Url: "Enlace adicional 1 — URL",
+    customLink2Label: "Enlace adicional 2 — etiqueta",
+    customLink2Url: "Enlace adicional 2 — URL",
+    customLabelPlaceholder: "Ej. Mapa de la clase",
+    customUrlPlaceholder: "https://ejemplo.com",
+    urlExample: "Ej. https://ejemplo.com",
+    registrationRevealedBecause: "Seleccionaste \"Se requiere registro\" — agrega el enlace aquí.",
+    opt: "opcional",
+  },
+  en: {
+    sectionTitle: "7. Useful class links",
+    sectionIntro: "Add only the links that apply. On the public page we show clean buttons, not long URLs.",
+    registrationUrl: "Registration link",
+    registrationUrlPlaceholder: "https://example.com/register",
+    registrationUrlConfirm: "✓ Registration link added",
+    paymentUrl: "Payment link",
+    ticketsUrl: "Tickets",
+    donationUrl: "Donation / scholarship",
+    classMaterialsUrl: "Class materials",
+    syllabusUrl: "Program / syllabus",
+    classGuideUrl: "Class guide",
+    instructorPageUrl: "Instructor page",
+    studentPortalUrl: "Student portal",
+    vendorsResourcesUrl: "Vendors / resources",
+    foodVendorsUrl: "Food / vendors",
+    sponsorsUrl: "Sponsors",
+    customLink1Label: "Additional link 1 — label",
+    customLink1Url: "Additional link 1 — URL",
+    customLink2Label: "Additional link 2 — label",
+    customLink2Url: "Additional link 2 — URL",
+    customLabelPlaceholder: "e.g. Class map",
+    customUrlPlaceholder: "https://example.com",
+    urlExample: "e.g. https://example.com",
+    registrationRevealedBecause: "You selected \"Registration required\" — add the link here.",
+    opt: "optional",
+  },
+};
+
+type ClassLinksProps = {
+  lang: Lang;
+  registrationRequired: string;
+  classLinks: ClasesClassLinks;
+  onChangeLinks: (p: Partial<ClasesClassLinks>) => void;
+};
+
+export function ClasesClassLinksSection({ lang, registrationRequired, classLinks, onChangeLinks }: ClassLinksProps) {
+  const t = CLASS_LINKS_COPY[lang];
+  const registrationIsRequired = registrationRequired === "si";
+  const opt = `(${t.opt})`;
+
+  return (
+    <fieldset
+      className="space-y-4 rounded-xl border border-[#C9B46A]/35 bg-[#FCF9F2]/40 px-4 py-4 ring-1 ring-[#C9B46A]/15"
+      data-testid="clases-class-links-section"
+    >
+      <legend className="px-1 text-sm font-semibold text-[color:var(--lx-text)]">{t.sectionTitle}</legend>
+      <p className="text-xs leading-relaxed text-[color:var(--lx-text-2)]">{t.sectionIntro}</p>
+
+      {registrationIsRequired ? (
+        <div className="rounded-lg border border-emerald-300/60 bg-emerald-50/70 px-3 py-2.5 text-xs text-emerald-900">
+          {t.registrationRevealedBecause}
+        </div>
+      ) : null}
+
+      {registrationIsRequired || classLinks.registrationUrl.trim() ? (
+        <UrlField
+          label={t.registrationUrl}
+          value={classLinks.registrationUrl}
+          onChange={(v) => onChangeLinks({ registrationUrl: v })}
+          placeholder={t.registrationUrlPlaceholder}
+          confirmText={t.registrationUrlConfirm}
+        />
+      ) : (
+        <UrlField
+          label={`${t.registrationUrl} ${opt}`}
+          value={classLinks.registrationUrl}
+          onChange={(v) => onChangeLinks({ registrationUrl: v })}
+          placeholder={t.registrationUrlPlaceholder}
+          confirmText={t.registrationUrlConfirm}
+        />
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <UrlField
+          label={`${t.paymentUrl} ${opt}`}
+          value={classLinks.paymentUrl}
+          onChange={(v) => onChangeLinks({ paymentUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.ticketsUrl} ${opt}`}
+          value={classLinks.ticketsUrl}
+          onChange={(v) => onChangeLinks({ ticketsUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.donationUrl} ${opt}`}
+          value={classLinks.donationUrl}
+          onChange={(v) => onChangeLinks({ donationUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.classMaterialsUrl} ${opt}`}
+          value={classLinks.classMaterialsUrl}
+          onChange={(v) => onChangeLinks({ classMaterialsUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.syllabusUrl} ${opt}`}
+          value={classLinks.syllabusUrl}
+          onChange={(v) => onChangeLinks({ syllabusUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.classGuideUrl} ${opt}`}
+          value={classLinks.classGuideUrl}
+          onChange={(v) => onChangeLinks({ classGuideUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.instructorPageUrl} ${opt}`}
+          value={classLinks.instructorPageUrl}
+          onChange={(v) => onChangeLinks({ instructorPageUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.studentPortalUrl} ${opt}`}
+          value={classLinks.studentPortalUrl}
+          onChange={(v) => onChangeLinks({ studentPortalUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.vendorsResourcesUrl} ${opt}`}
+          value={classLinks.vendorsResourcesUrl}
+          onChange={(v) => onChangeLinks({ vendorsResourcesUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.foodVendorsUrl} ${opt}`}
+          value={classLinks.foodVendorsUrl}
+          onChange={(v) => onChangeLinks({ foodVendorsUrl: v })}
+          placeholder={t.urlExample}
+        />
+        <UrlField
+          label={`${t.sponsorsUrl} ${opt}`}
+          value={classLinks.sponsorsUrl}
+          onChange={(v) => onChangeLinks({ sponsorsUrl: v })}
+          placeholder={t.urlExample}
+        />
+      </div>
+
+      {/* Custom links */}
+      <div className="space-y-3 border-t border-[#C9B46A]/25 pt-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block min-w-0 text-sm">
+            <span className="text-xs font-semibold text-[color:var(--lx-text)]">{t.customLink1Label}</span>
+            <input
+              value={classLinks.customLink1Label}
+              onChange={(e) => onChangeLinks({ customLink1Label: e.target.value })}
+              className={INPUT}
+              type="text"
+              placeholder={t.customLabelPlaceholder}
+            />
+          </label>
+          <UrlField
+            label={t.customLink1Url}
+            value={classLinks.customLink1Url}
+            onChange={(v) => onChangeLinks({ customLink1Url: v })}
+            placeholder={t.customUrlPlaceholder}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block min-w-0 text-sm">
+            <span className="text-xs font-semibold text-[color:var(--lx-text)]">{t.customLink2Label}</span>
+            <input
+              value={classLinks.customLink2Label}
+              onChange={(e) => onChangeLinks({ customLink2Label: e.target.value })}
+              className={INPUT}
+              type="text"
+              placeholder={t.customLabelPlaceholder}
+            />
+          </label>
+          <UrlField
+            label={t.customLink2Url}
+            value={classLinks.customLink2Url}
+            onChange={(v) => onChangeLinks({ customLink2Url: v })}
+            placeholder={t.customUrlPlaceholder}
+          />
+        </div>
+      </div>
+    </fieldset>
   );
 }
 

@@ -301,6 +301,35 @@ function buildDetailPairs(
       value: JSON.stringify(c.weeklySchedule),
     });
     pairs.push({ label: "Leonix:skillLevel", value: c.skillLevel.trim() });
+    const cl = c.classLinks;
+    const pushUrl = (label: string, raw: string) => {
+      const v = normalizeWebsiteForOpen(raw);
+      if (v) pairs.push({ label, value: v });
+    };
+    pushUrl("Leonix:clsRegistrationUrl", cl.registrationUrl);
+    pushUrl("Leonix:clsPaymentUrl", cl.paymentUrl);
+    pushUrl("Leonix:clsTicketsUrl", cl.ticketsUrl);
+    pushUrl("Leonix:clsDonationUrl", cl.donationUrl);
+    pushUrl("Leonix:clsMaterialsUrl", cl.classMaterialsUrl);
+    pushUrl("Leonix:clsSyllabusUrl", cl.syllabusUrl);
+    pushUrl("Leonix:clsGuideUrl", cl.classGuideUrl);
+    pushUrl("Leonix:clsInstructorUrl", cl.instructorPageUrl);
+    pushUrl("Leonix:clsStudentPortalUrl", cl.studentPortalUrl);
+    pushUrl("Leonix:clsVendorsUrl", cl.vendorsResourcesUrl);
+    pushUrl("Leonix:clsFoodVendorsUrl", cl.foodVendorsUrl);
+    pushUrl("Leonix:clsSponsorsUrl", cl.sponsorsUrl);
+    const cl1l = cl.customLink1Label.trim();
+    const cl1u = normalizeWebsiteForOpen(cl.customLink1Url);
+    if (cl1l && cl1u) {
+      pairs.push({ label: "Leonix:clsCustom1Label", value: cl1l });
+      pairs.push({ label: "Leonix:clsCustom1Url", value: cl1u });
+    }
+    const cl2l = cl.customLink2Label.trim();
+    const cl2u = normalizeWebsiteForOpen(cl.customLink2Url);
+    if (cl2l && cl2u) {
+      pairs.push({ label: "Leonix:clsCustom2Label", value: cl2l });
+      pairs.push({ label: "Leonix:clsCustom2Url", value: cl2u });
+    }
   } else {
     const c = d as ComunidadQuickDraft;
     pairs.push({ label: "Leonix:eventCategory", value: c.category.trim() });
