@@ -534,6 +534,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
             publishLabel={lang === "es" ? "Publicar vacante" : "Post a job"}
             clearHref={clearResultsHref}
             resultCount={filtered.length}
+            category="empleos"
           />
         </div>
 

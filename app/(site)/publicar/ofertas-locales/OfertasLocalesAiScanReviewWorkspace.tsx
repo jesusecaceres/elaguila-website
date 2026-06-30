@@ -147,8 +147,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
         </div>
       ) : null}
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,62fr)_minmax(0,38fr)] xl:items-start">
-        <div className="min-w-0 xl:sticky xl:top-20 xl:max-h-[calc(100vh-5.5rem)] xl:self-start">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,54fr)_minmax(0,46fr)] xl:items-start">
+        <div className="order-2 min-w-0 xl:order-1 xl:sticky xl:top-20 xl:max-h-[calc(100vh-5.5rem)] xl:self-start">
           <OfertasLocalesProductClipPanel
             lang={lang}
             draft={draft}
@@ -159,7 +159,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
           />
         </div>
 
-        <div className="min-w-0 xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden">
+        <div className="order-1 min-w-0 xl:order-2 xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden">
           <OfertasLocalesAiItemReviewPanel
             lang={lang}
             ofertaLocalId={ofertaLocalId}

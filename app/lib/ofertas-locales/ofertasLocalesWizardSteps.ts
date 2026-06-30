@@ -128,8 +128,8 @@ export function getOfertasLocalesWizardStepHints(
       if (!draft.city.trim()) {
         hints.push(es ? "Agrega una ciudad." : "Add a city.");
       }
-      if (normalizeOfertaLocalZipInput(draft.zipCode).length !== 5) {
-        hints.push(es ? "Agrega un ZIP de 5 dígitos." : "Add a 5-digit ZIP.");
+      if (normalizeOfertaLocalZipInput(draft.zipCode).length < 2) {
+        hints.push(es ? "Agrega un código postal." : "Add a postal code.");
       }
       const phoneDigits = normalizeOfertaLocalPhoneInput(draft.phone);
       const whatsappDigits = normalizeOfertaLocalPhoneInput(draft.whatsapp);

@@ -56,6 +56,38 @@ const heroAccentClass: Record<HeroAccent, string> = {
 const heroLineClass =
   "text-[1rem] font-semibold leading-snug tracking-tight text-[#3D3428] sm:text-xl sm:leading-snug";
 
+const PROMOTIONAL_PRODUCTS_LABEL: Record<SupportedLang, string> = {
+  es: "Productos promocionales",
+  en: "Promotional products",
+  vi: "Sản phẩm quảng bá",
+  pt: "Produtos promocionais",
+  tl: "Promotional products",
+  km: "ផលិតផលផ្សព្វផ្សាយ",
+  zh: "促销产品",
+  ja: "販促商品",
+  ko: "프로모션 제품",
+  hi: "प्रचार उत्पाद",
+  hy: "Գովազդային ապրանքներ",
+  ru: "Промо-продукция",
+  pa: "ਪ੍ਰਚਾਰਕ ਉਤਪਾਦ",
+};
+
+const CATALOG_ARIA_LABEL: Record<SupportedLang, string> = {
+  es: "Abrir catálogo visual de Clasificados Leonix en una nueva pestaña",
+  en: "Open Leonix classifieds visual catalog in a new tab",
+  vi: "Mở catalog hình ảnh Rao vặt Leonix trong tab mới",
+  pt: "Abrir catálogo visual de Classificados Leonix em uma nova aba",
+  tl: "Buksan ang visual catalog ng Leonix Classifieds sa bagong tab",
+  km: "បើកកាតាឡុករូបភាព Clasificados Leonix ក្នុងផ្ទាំងថ្មី",
+  zh: "在新标签页打开 Leonix 分类信息视觉目录",
+  ja: "Leonixクラシファイドのビジュアルカタログを新しいタブで開く",
+  ko: "새 탭에서 Leonix 분류 광고 비주얼 카탈로그 열기",
+  hi: "नई टैब में Leonix क्लासिफ़ाइड दृश्य कैटलॉग खोलें",
+  hy: "Բացել Leonix դասակարգվածների տեսողական կատալոգը նոր ներդիրում",
+  ru: "Открыть визуальный каталог объявлений Leonix в новой вкладке",
+  pa: "ਨਵੀਂ ਟੈਬ ਵਿੱਚ Leonix Classifieds ਵਿਜ਼ੂਅਲ ਕੈਟਾਲਾਗ ਖੋਲ੍ਹੋ",
+};
+
 /** Sticky header clearance — taller on mobile where nav pills stack below the bar. */
 const ANCHOR_SCROLL = "scroll-mt-32 lg:scroll-mt-28";
 
@@ -95,7 +127,7 @@ function isExternalHref(href: string): boolean {
 
 function heroPromoProductsCta(lang: LeonixSiteLang): HeroCta {
   return {
-    label: lang === "en" ? "Promotional products" : "Productos promocionales",
+    label: PROMOTIONAL_PRODUCTS_LABEL[lang],
     href: withLeonixLang("/productos-promocion", lang),
     variant: "secondary",
   };
@@ -1498,11 +1530,7 @@ function ComingSoonV2ShellContent() {
           cardsAria={mp.cardsAria}
           closing={mp.closing}
           exploreCta={mp.exploreCta}
-          exploreCtaAriaLabel={
-            routeLang === "en"
-              ? "Open Leonix classifieds visual catalog in a new tab"
-              : "Abrir catálogo visual de Clasificados Leonix en una nueva pestaña"
-          }
+          exploreCtaAriaLabel={CATALOG_ARIA_LABEL[routeLang]}
         />
 
         <WhatYouGetSection

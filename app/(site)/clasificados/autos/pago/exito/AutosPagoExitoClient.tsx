@@ -18,6 +18,18 @@ import {
   autosQaPublishSuccessLabel,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 
+const AUTOS_SUCCESS_VERIFY_TIMEOUT_MS = 15_000;
+
+async function fetchAutosSuccess(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), AUTOS_SUCCESS_VERIFY_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function laneFromParam(raw: string | null): AutosClassifiedsLane {
   return raw === "negocios" ? "negocios" : "privado";
 }
@@ -49,6 +61,8 @@ export function AutosPagoExitoClient() {
   const c = getAutosPublishFlowCopy(lang, lane);
   const [liveUrl, setLiveUrl] = useState<string | null>(null);
   const [err, setErr] = useState(false);
+  const [leonixAdId, setLeonixAdId] = useState<string | null>(null);
+  const [verifiedListingId, setVerifiedListingId] = useState<string | null>(null);
   const [bundleResult, setBundleResult] = useState<AutosBundlePublishSessionResult | null>(null);
 
   useEffect(() => {
@@ -69,20 +83,36 @@ export function AutosPagoExitoClient() {
           if (!cancelled) setErr(true);
           return;
         }
-        const r = await fetch(
-          `/api/clasificados/autos/checkout/verify-internal?listing_id=${encodeURIComponent(internalListingId)}&lang=${lang}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const j = (await r.json()) as { ok?: boolean; liveUrl?: string; lane?: string };
-        if (cancelled) return;
-        if (j.lane === "negocios" || j.lane === "privado") {
-          setLaneOverride(j.lane);
+        try {
+          const r = await fetchAutosSuccess(
+            `/api/clasificados/autos/checkout/verify-internal?listing_id=${encodeURIComponent(internalListingId)}&lang=${lang}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          const j = (await r.json().catch(() => ({}))) as { ok?: boolean; liveUrl?: string; lane?: string; listingId?: string };
+          if (cancelled) return;
+          if (j.lane === "negocios" || j.lane === "privado") {
+            setLaneOverride(j.lane);
+          }
+          if (r.ok && j.liveUrl) {
+            setLiveUrl(j.liveUrl);
+            setVerifiedListingId(j.listingId ?? internalListingId);
+            try {
+              const ownerRes = await fetchAutosSuccess(`/api/clasificados/autos/listings/${encodeURIComponent(internalListingId)}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const ownerJson = (await ownerRes.json().catch(() => ({}))) as { leonix_ad_id?: string | null };
+              if (!cancelled && ownerRes.ok && ownerJson.leonix_ad_id?.trim()) {
+                setLeonixAdId(ownerJson.leonix_ad_id.trim());
+              }
+            } catch {
+              /* ID display is helpful, not required for success confirmation. */
+            }
+            return;
+          }
+          setErr(true);
+        } catch {
+          if (!cancelled) setErr(true);
         }
-        if (r.ok && j.liveUrl) {
-          setLiveUrl(j.liveUrl);
-          return;
-        }
-        setErr(true);
       })();
       return () => {
         cancelled = true;
@@ -100,19 +130,25 @@ export function AutosPagoExitoClient() {
     }
     let cancelled = false;
     void (async () => {
-      const r = await fetch(
-        `/api/clasificados/autos/checkout/verify?session_id=${encodeURIComponent(sessionId)}&lang=${lang}`,
-      );
-      const j = (await r.json()) as { ok?: boolean; liveUrl?: string; lane?: string };
-      if (cancelled) return;
-      if (j.lane === "negocios" || j.lane === "privado") {
-        setLaneOverride(j.lane);
+      try {
+        const r = await fetchAutosSuccess(
+          `/api/clasificados/autos/checkout/verify?session_id=${encodeURIComponent(sessionId)}&lang=${lang}`,
+        );
+        const j = (await r.json().catch(() => ({}))) as { ok?: boolean; liveUrl?: string; lane?: string; listingId?: string; leonixAdId?: string | null };
+        if (cancelled) return;
+        if (j.lane === "negocios" || j.lane === "privado") {
+          setLaneOverride(j.lane);
+        }
+        if (r.ok && j.liveUrl) {
+          setLiveUrl(j.liveUrl);
+          setVerifiedListingId(j.listingId ?? null);
+          setLeonixAdId(j.leonixAdId?.trim() || null);
+          return;
+        }
+        setErr(true);
+      } catch {
+        if (!cancelled) setErr(true);
       }
-      if (r.ok && j.liveUrl) {
-        setLiveUrl(j.liveUrl);
-        return;
-      }
-      setErr(true);
     })();
     return () => {
       cancelled = true;
@@ -197,6 +233,22 @@ export function AutosPagoExitoClient() {
         <p className="mt-3 inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950">
           {autosQaPublishSuccessLabel(lang)}
         </p>
+      ) : null}
+      {(leonixAdId || verifiedListingId) ? (
+        <div className="mt-5 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-3 text-left text-sm">
+          {leonixAdId ? (
+            <p>
+              <span className="font-bold">{lang === "es" ? "ID Leonix:" : "Leonix ID:"}</span>{" "}
+              <span className="font-mono">{leonixAdId}</span>
+            </p>
+          ) : null}
+          {verifiedListingId ? (
+            <p className={leonixAdId ? "mt-1 text-xs text-[color:var(--lx-muted)]" : ""}>
+              <span className="font-bold">{lang === "es" ? "ID interno:" : "Internal ID:"}</span>{" "}
+              <span className="font-mono">{verifiedListingId}</span>
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {bundleResult && publishedList.length > 1 ? (
         <p className="mt-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">

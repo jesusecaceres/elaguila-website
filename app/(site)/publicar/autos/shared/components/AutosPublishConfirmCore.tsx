@@ -29,8 +29,68 @@ import {
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { autosQaPaymentBypassLabel } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 
+const AUTOS_CONFIRM_PREPARE_TIMEOUT_MS = 15_000;
+
 function sessionKey(lane: AutosClassifiedsLane) {
   return `lx-autos-publish-listing-${lane}`;
+}
+
+function autosHomeHref(lang: AutosPublishFlowLang): string {
+  return `/clasificados/autos?lang=${lang}`;
+}
+
+function prepareErrorTitle(lang: AutosPublishFlowLang): string {
+  return lang === "es" ? "No pudimos preparar tu anuncio" : "We could not prepare your ad";
+}
+
+function prepareErrorBody(lang: AutosPublishFlowLang): string {
+  return lang === "es"
+    ? "No se pudo cargar o guardar la información necesaria para continuar. Vuelve a editar tu anuncio e inténtalo de nuevo. Si el problema continúa, guarda una captura y avísanos."
+    : "We could not load or save the information needed to continue. Go back to edit your ad and try again. If the problem continues, save a screenshot and let us know.";
+}
+
+function retryLabel(lang: AutosPublishFlowLang): string {
+  return lang === "es" ? "Intentar de nuevo" : "Try again";
+}
+
+function goAutosLabel(lang: AutosPublishFlowLang): string {
+  return lang === "es" ? "Ir a Autos" : "Go to Autos";
+}
+
+function hasConfirmableAutosDraft(listing: AutoDealerListing): boolean {
+  const textSeed = [
+    listing.vehicleTitle,
+    listing.make,
+    listing.model,
+    listing.trim,
+    listing.city,
+    listing.state,
+    listing.dealerName,
+    listing.dealerPhoneOffice,
+    listing.dealerWhatsapp,
+    listing.dealerEmail,
+  ].some((v) => typeof v === "string" && v.trim().length > 0);
+  const numericSeed =
+    (typeof listing.year === "number" && Number.isFinite(listing.year)) ||
+    (typeof listing.price === "number" && Number.isFinite(listing.price)) ||
+    (typeof listing.mileage === "number" && Number.isFinite(listing.mileage));
+  const mediaSeed = Boolean(
+    listing.mediaImages?.length ||
+      listing.heroImages?.length ||
+      listing.videoUrls?.length ||
+      listing.videoUrl?.trim(),
+  );
+  return textSeed || numericSeed || mediaSeed;
+}
+
+async function fetchAutosConfirm(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), AUTOS_CONFIRM_PREPARE_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function formatUsd(n: number | undefined, lang: AutosPublishFlowLang) {
@@ -98,105 +158,128 @@ export function AutosPublishConfirmCore({
   const [sessionMissing, setSessionMissing] = useState(false);
   const [muxPublishWarnings, setMuxPublishWarnings] = useState<string[]>([]);
   const [persistWarnings, setPersistWarnings] = useState<string[]>([]);
+  const [prepareTimedOut, setPrepareTimedOut] = useState(false);
   const listingRef = useRef(listing);
   listingRef.current = listing;
+
+  useEffect(() => {
+    if (hydrated && phase !== "preparing" && phase !== "idle") {
+      setPrepareTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setPrepareTimedOut(true), AUTOS_CONFIRM_PREPARE_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [hydrated, phase]);
 
   useEffect(() => {
     if (!hydrated) return;
     let cancelled = false;
     setPhase("preparing");
     void (async () => {
-      setErrorDetail(null);
-      let confirmMode: AutosPublishConfirmMode = "stripe";
-
-      const supabase = createSupabaseBrowserClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
       try {
-        const optRes = await fetch("/api/clasificados/autos/publish-options", {
+        setErrorDetail(null);
+        setPrepareTimedOut(false);
+        let confirmMode: AutosPublishConfirmMode = "stripe";
+
+        if (!hasConfirmableAutosDraft(listingRef.current)) {
+          setErrorDetail(prepareErrorBody(lang));
+          setPhase("error");
+          return;
+        }
+
+        const supabase = createSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+
+        try {
+          const optRes = await fetchAutosConfirm("/api/clasificados/autos/publish-options", {
           cache: "no-store",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (optRes.ok) {
-          const opts = (await optRes.json()) as {
-            internalBypass?: boolean;
-            testPublishBypass?: boolean;
-            negociosQaAllowlistBypass?: boolean;
-          };
-          if (opts.internalBypass) confirmMode = "internal_bypass";
-          else if (opts.testPublishBypass) confirmMode = "test_bypass";
-          else if (opts.negociosQaAllowlistBypass) confirmMode = "test_bypass";
+          });
+          if (optRes.ok) {
+            const opts = (await optRes.json()) as {
+              internalBypass?: boolean;
+              testPublishBypass?: boolean;
+              negociosQaAllowlistBypass?: boolean;
+            };
+            if (opts.internalBypass) confirmMode = "internal_bypass";
+            else if (opts.testPublishBypass) confirmMode = "test_bypass";
+            else if (opts.negociosQaAllowlistBypass) confirmMode = "test_bypass";
+          }
+        } catch {
+          /* keep stripe copy */
         }
-      } catch {
-        /* keep stripe copy */
-      }
-      if (!cancelled) setPublishConfirmMode(confirmMode);
-      if (!cancelled) setPersistWarnings([]);
+        if (!cancelled) setPublishConfirmMode(confirmMode);
+        if (!cancelled) setPersistWarnings([]);
 
-      if (cancelled) return;
-      if (!token) {
-        setSessionMissing(true);
-        setPhase("ready");
-        return;
-      }
-      setSessionMissing(false);
-      const sk = sessionKey(lane);
-      const cached = typeof window !== "undefined" ? window.sessionStorage.getItem(sk) : null;
-      if (cached) {
-        const r = await fetch(`/api/clasificados/autos/listings/${cached}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         if (cancelled) return;
-        if (r.ok) {
-          const j = (await r.json()) as { status?: string };
-          if (j.status === "draft" || j.status === "pending_payment" || j.status === "payment_failed") {
-            const sync = await fetch(`/api/clasificados/autos/listings/${cached}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
-            });
-            const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
-            if (cancelled) return;
-            if (!sync.ok) {
-              window.sessionStorage.removeItem(sk);
-            } else {
-              setPersistWarnings(syncJson.persistWarnings ?? []);
-              setListingId(cached);
-              setPhase("ready");
-              return;
+        if (!token) {
+          setSessionMissing(true);
+          setPhase("ready");
+          return;
+        }
+        setSessionMissing(false);
+        const sk = sessionKey(lane);
+        const cached = typeof window !== "undefined" ? window.sessionStorage.getItem(sk) : null;
+        if (cached) {
+          const r = await fetchAutosConfirm(`/api/clasificados/autos/listings/${cached}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (cancelled) return;
+          if (r.ok) {
+            const j = (await r.json()) as { status?: string };
+            if (j.status === "draft" || j.status === "pending_payment" || j.status === "payment_failed") {
+              const sync = await fetchAutosConfirm(`/api/clasificados/autos/listings/${cached}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
+              });
+              const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
+              if (cancelled) return;
+              if (!sync.ok) {
+                window.sessionStorage.removeItem(sk);
+              } else {
+                setPersistWarnings(syncJson.persistWarnings ?? []);
+                setListingId(cached);
+                setPhase("ready");
+                return;
+              }
             }
           }
+          window.sessionStorage.removeItem(sk);
         }
-        window.sessionStorage.removeItem(sk);
-      }
-      await flushDraft();
-      if (cancelled) return;
-      const createBody: Record<string, unknown> = {
-        listing: omitAutosInlineVideoForApiPayload(listingRef.current),
-        lane,
-        lang,
-      };
-      if (inventoryCtx?.parentListingId) {
-        createBody.parentListingId = inventoryCtx.parentListingId;
-        if (inventoryCtx.dealerInventoryGroupId) createBody.dealerInventoryGroupId = inventoryCtx.dealerInventoryGroupId;
-      }
-      const res = await fetch("/api/clasificados/autos/listings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(createBody),
-      });
-      const j = (await res.json()) as { ok?: boolean; id?: string; persistWarnings?: string[] };
-      if (cancelled) return;
-      if (!res.ok || !j.id) {
-        setErrorDetail(c.createError);
+        await flushDraft();
+        if (cancelled) return;
+        const createBody: Record<string, unknown> = {
+          listing: omitAutosInlineVideoForApiPayload(listingRef.current),
+          lane,
+          lang,
+        };
+        if (inventoryCtx?.parentListingId) {
+          createBody.parentListingId = inventoryCtx.parentListingId;
+          if (inventoryCtx.dealerInventoryGroupId) createBody.dealerInventoryGroupId = inventoryCtx.dealerInventoryGroupId;
+        }
+        const res = await fetchAutosConfirm("/api/clasificados/autos/listings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(createBody),
+        });
+        const j = (await res.json().catch(() => ({}))) as { ok?: boolean; id?: string; persistWarnings?: string[] };
+        if (cancelled) return;
+        if (!res.ok || !j.id) {
+          setErrorDetail(c.createError);
+          setPhase("error");
+          return;
+        }
+        window.sessionStorage.setItem(sk, j.id);
+        setPersistWarnings(j.persistWarnings ?? []);
+        setListingId(j.id);
+        setPhase("ready");
+      } catch {
+        if (cancelled) return;
+        setErrorDetail(prepareErrorBody(lang));
         setPhase("error");
-        return;
       }
-      window.sessionStorage.setItem(sk, j.id);
-      setPersistWarnings(j.persistWarnings ?? []);
-      setListingId(j.id);
-      setPhase("ready");
     })();
     return () => {
       cancelled = true;
@@ -229,6 +312,38 @@ export function AutosPublishConfirmCore({
       ? `/clasificados/login?lang=${lang}&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
       : `/clasificados/login?lang=${lang}`;
 
+  const renderPrepareError = (message?: string) => (
+    <div className="mx-auto max-w-lg px-4 py-16 text-center text-[color:var(--lx-text)]">
+      <h1 className="text-2xl font-bold">{prepareErrorTitle(lang)}</h1>
+      <p className="mt-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{message ?? prepareErrorBody(lang)}</p>
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <Link
+          href={editHref}
+          className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7]"
+        >
+          {c.backEdit}
+        </Link>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
+        >
+          {retryLabel(lang)}
+        </button>
+        <Link
+          href={autosHomeHref(lang)}
+          className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
+        >
+          {goAutosLabel(lang)}
+        </Link>
+      </div>
+    </div>
+  );
+
+  if (prepareTimedOut && (!hydrated || phase === "preparing" || phase === "idle")) {
+    return renderPrepareError();
+  }
+
   if (!hydrated || phase === "preparing" || phase === "idle") {
     const detail =
       publishConfirmMode === "stripe"
@@ -243,14 +358,7 @@ export function AutosPublishConfirmCore({
   }
 
   if (phase === "error") {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center text-[color:var(--lx-text)]">
-        <p className="font-semibold">{errorDetail ?? c.createError}</p>
-        <Link href={editHref} className="mt-6 inline-block text-sm font-bold text-[color:var(--lx-gold)]">
-          {c.backEdit}
-        </Link>
-      </div>
-    );
+    return renderPrepareError(errorDetail ?? c.createError);
   }
 
   if (sessionMissing) {
@@ -278,7 +386,10 @@ export function AutosPublishConfirmCore({
     const supabase = createSupabaseBrowserClient();
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
-    if (!token) return;
+    if (!token) {
+      setSessionMissing(true);
+      return;
+    }
     setPayBusy(true);
     setMuxPublishWarnings([]);
     setPersistWarnings([]);
@@ -287,7 +398,8 @@ export function AutosPublishConfirmCore({
     listingRef.current = prepared.listing;
     if (prepared.publishWarnings.length) setMuxPublishWarnings(prepared.publishWarnings);
 
-    const sync = await fetch(`/api/clasificados/autos/listings/${listingId}`, {
+    try {
+    const sync = await fetchAutosConfirm(`/api/clasificados/autos/listings/${listingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
@@ -300,7 +412,7 @@ export function AutosPublishConfirmCore({
       return;
     }
     setPersistWarnings(syncJson.persistWarnings ?? []);
-    const res = await fetch("/api/clasificados/autos/checkout", {
+    const res = await fetchAutosConfirm("/api/clasificados/autos/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
@@ -384,6 +496,11 @@ export function AutosPublishConfirmCore({
           : c.checkoutErrorGeneric;
     setErrorDetail(msg);
     setPhase("error");
+    } catch {
+      setPayBusy(false);
+      setErrorDetail(prepareErrorBody(lang));
+      setPhase("error");
+    }
   }
 
   const vehicleLine =

@@ -18,6 +18,7 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     address: "",
     city: "",
     state: "",
+    country: "",
     zipCode: "",
     serviceZipCodes: [],
     phone: "",

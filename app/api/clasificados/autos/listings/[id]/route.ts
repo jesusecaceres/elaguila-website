@@ -62,6 +62,7 @@ export async function GET(request: Request, { params }: Props) {
   return NextResponse.json({
     ok: true,
     id: row.id,
+    leonix_ad_id: row.leonix_ad_id,
     status: row.status,
     lane: row.lane,
     lang: row.lang,

@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createRequire } from "module";
 import { PDFDocument } from "pdf-lib";
 
 import {
@@ -144,9 +143,6 @@ export type OfertaLocalPdfPageRasterForCrop = {
   renderMethod: "pdfjs_canvas_png";
 };
 
-let pdfjsWorkerLoadPromise: Promise<void> | null = null;
-const requirePdfjsWorker = createRequire(`${process.cwd()}/package.json`);
-
 function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
   const logger = level === "warn" ? console.warn : console.info;
   logger(`[ofertas-locales-ai] ${stage}`, payload);
@@ -208,16 +204,19 @@ async function tryRenderPdfPageToPng(
 
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const canvasMod = await import("@napi-rs/canvas");
-    await ensurePdfjsWorkerLoaded();
 
-    const loadingTask = pdfjs.getDocument({
+    const pdfDocumentParams: Record<string, unknown> = {
       data: new Uint8Array(singlePagePdfBytes),
+      disableWorker: true,
       useSystemFonts: true,
       disableFontFace: true,
       useWorkerFetch: false,
       isOffscreenCanvasSupported: false,
       isImageDecoderSupported: false,
-    });
+    };
+    const loadingTask = pdfjs.getDocument(
+      pdfDocumentParams as Parameters<typeof pdfjs.getDocument>[0]
+    );
     const doc = await loadingTask.promise;
 
     try {
@@ -280,9 +279,3 @@ async function tryRenderPdfPageToPng(
   }
 }
 
-async function ensurePdfjsWorkerLoaded(): Promise<void> {
-  pdfjsWorkerLoadPromise ??= Promise.resolve().then(() => {
-    requirePdfjsWorker("pdfjs-dist/legacy/build/pdf.worker.mjs");
-  });
-  await pdfjsWorkerLoadPromise;
-}

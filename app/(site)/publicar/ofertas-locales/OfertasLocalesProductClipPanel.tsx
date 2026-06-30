@@ -72,13 +72,12 @@ export function OfertasLocalesProductClipPanel({
   focusedItem,
   selectedAssetId,
   eligibleAssets,
-  scanActiveForAsset = false,
 }: Props) {
   const scanCopy = getOfertaLocalActiveScanCopy(lang);
   const cropUrl = focusedItem?.sourceCropUrl?.trim();
   const hasBbox = Boolean(focusedItem?.sourceBbox);
-  const cropPending = hasBbox && !cropUrl && scanActiveForAsset;
-  const cropFinalNone = !cropUrl && !scanActiveForAsset && Boolean(focusedItem);
+  const cropPending = hasBbox && !cropUrl;
+  const cropFinalNone = !cropUrl && Boolean(focusedItem);
   const showPdfFallback = cropFinalNone;
 
   const selectedAsset = eligibleAssets.find((a) => a.assetId === selectedAssetId);

@@ -1125,7 +1125,7 @@ export function OfertasLocalesAiItemReviewPanel({
     <div
       className={
         isWorkspace
-          ? "flex min-h-0 flex-col rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm xl:h-full xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden"
+          ? "flex min-h-0 flex-col rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm xl:h-full xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden"
           : "space-y-4 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4"
       }
     >
@@ -1204,12 +1204,12 @@ export function OfertasLocalesAiItemReviewPanel({
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
                     {lang === "en" ? "Guided page review" : "Revisión guiada por página"}
                   </p>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-2 grid gap-2 sm:grid-cols-3 xl:grid-cols-4">
                     {pageSummaries.map((page) => (
                       <button
                         key={page.page}
                         type="button"
-                        className={`min-h-20 rounded-xl border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                        className={`min-h-14 rounded-lg border px-2.5 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
                           currentPageSummary?.page === page.page
                             ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#1E1814] ring-1 ring-[#7A1E2C]/20"
                             : "border-[#D4C4A8] bg-white text-[#1E1814]/70 hover:border-[#7A1E2C]/35"
@@ -1224,9 +1224,7 @@ export function OfertasLocalesAiItemReviewPanel({
                           {pageStatusLabel(page)}
                         </span>
                         <span className="mt-1 block text-[10px] text-[#1E1814]/60">
-                          {page.total} {lang === "en" ? "items" : "productos"} · {page.approved}{" "}
-                          {lang === "en" ? "approved" : "aprobados"} · {page.rejected}{" "}
-                          {lang === "en" ? "rejected" : "rechazados"} · {page.needsReview}{" "}
+                          {page.total} {lang === "en" ? "items" : "productos"} · {page.needsReview}{" "}
                           {lang === "en" ? "remaining" : "pendientes"}
                         </span>
                       </button>
@@ -1292,6 +1290,31 @@ export function OfertasLocalesAiItemReviewPanel({
                 {scanCopy.currentScan}
               </p>
             ) : null}
+            <div ref={formPanelRef} className="rounded-xl border border-[#D4C4A8]/70 bg-white p-3 shadow-sm">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
+                {lang === "en" ? "Selected product editor" : "Editor del producto seleccionado"}
+              </p>
+              {focusedItem ? (
+                <ItemReviewCard
+                  key={focusedItem.id}
+                  item={focusedItem}
+                  draft={draft}
+                  draftFields={drafts[focusedItem.id] ?? toDraft(focusedItem)}
+                  lang={lang}
+                  isCouponMode={isCouponMode}
+                  busy={savingId === focusedItem.id}
+                  compact
+                  onFieldChange={(field, value) => updateDraftField(focusedItem.id, field, value)}
+                  onSave={() => void handleSave(focusedItem.id)}
+                  onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
+                  onGoNext={focusIndex < displayItems.length - 1 ? goNextItem : undefined}
+                />
+              ) : (
+                <p className="text-xs text-[#1E1814]/60">
+                  {lang === "en" ? "Select an item below to edit it." : "Selecciona un producto abajo para editarlo."}
+                </p>
+              )}
+            </div>
             <div className="flex flex-col gap-3 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold text-[#1E1814]">
                 {focusedItem?.sourcePage
@@ -1321,7 +1344,7 @@ export function OfertasLocalesAiItemReviewPanel({
                 </button>
               </div>
             </div>
-            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
+            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
               {displayItems.map((item) => {
                 const active = item.id === selectedItemId;
                 const cropStatus = resolveItemCropListStatus(item, scanActiveForAsset || shouldPollCrops);
@@ -1388,26 +1411,9 @@ export function OfertasLocalesAiItemReviewPanel({
       </div>
 
       {isWorkspace && displayItems.length > 0 ? (
-        <div ref={formPanelRef} className="p-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
-          {focusedItem ? (
-            <ItemReviewCard
-              key={focusedItem.id}
-              item={focusedItem}
-              draft={draft}
-              draftFields={drafts[focusedItem.id] ?? toDraft(focusedItem)}
-              lang={lang}
-              isCouponMode={isCouponMode}
-              busy={savingId === focusedItem.id}
-              compact
-              onFieldChange={(field, value) => updateDraftField(focusedItem.id, field, value)}
-              onSave={() => void handleSave(focusedItem.id)}
-              onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
-              onGoNext={focusIndex < displayItems.length - 1 ? goNextItem : undefined}
-            />
-          ) : null}
-
+        <div className="px-3 pb-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
           {activeScanJobId && previousScanItems.length > 0 ? (
-            <div className="mt-4 border-t border-[#D4C4A8]/50 pt-3">
+            <div className="border-t border-[#D4C4A8]/50 pt-3">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-left text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55"

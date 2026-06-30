@@ -172,14 +172,14 @@ export function validateOfertaLocalDraftForFuturePublish(
     pushIssue(issues, "city", "La ciudad es obligatoria.", "error");
   }
   const zip = normalizeOfertaLocalZipInput(draft.zipCode);
-  if (zip.length !== LIMITS.zipCodeLen) {
-    pushIssue(issues, "zipCode", "El código postal (ZIP) de 5 dígitos es obligatorio.", "error");
+  if (zip.length < 2) {
+    pushIssue(issues, "zipCode", "El código postal es obligatorio.", "error");
   }
-  if (draft.state.trim() && normalizeOfertaLocalStateInput(draft.state).length !== 2) {
+  if (draft.state.trim() && !normalizeOfertaLocalStateInput(draft.state)) {
     pushIssue(
       issues,
       "state",
-      "El estado debe ser un código de 2 letras (ej. TX, FL).",
+      "Agrega un estado, provincia o región válido.",
       "error"
     );
   }

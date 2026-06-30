@@ -266,7 +266,11 @@ export function useAutoDealerDraft() {
       if (!cancelled) setHydrated(true);
     };
 
-    void bootstrap();
+    void bootstrap().catch(() => {
+      if (cancelled) return;
+      emptyListing();
+      setHydrated(true);
+    });
 
     const {
       data: { subscription },

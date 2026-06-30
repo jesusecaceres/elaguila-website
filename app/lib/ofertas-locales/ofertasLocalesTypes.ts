@@ -295,6 +295,7 @@ export type OfertaLocalDraft = {
   address: string;
   city: string;
   state: string;
+  country: string;
   zipCode: string;
   serviceZipCodes: string[];
   phone: string;

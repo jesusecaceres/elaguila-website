@@ -28,9 +28,8 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesTwoLaneProductModel";
 import {
   formatOfertaLocalPhoneDisplay,
-  normalizeOfertaLocalStateInput,
   normalizeOfertaLocalUrlInput,
-  normalizeOfertaLocalZipInput,
+  normalizeOfertaLocalPostalCodeInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
 import {
   buildBusinessCategoryChangePatch,
@@ -192,6 +191,7 @@ export default function OfertasLocalesApplicationClient() {
     needsReviewCount: 0,
   });
   const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
+  const [optionalFilesOpen, setOptionalFilesOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
@@ -262,6 +262,7 @@ export default function OfertasLocalesApplicationClient() {
       needsReviewCount: 0,
     });
     setUploadEditorOpen(false);
+    setOptionalFilesOpen(false);
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [lang, resetDraft]);
@@ -703,6 +704,11 @@ export default function OfertasLocalesApplicationClient() {
       case 4:
         return (
           <div className="space-y-4">
+            <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
+              {lang === "en"
+                ? "Enter the city, state/province, country, and postal code customers should use to find this offer."
+                : "Ingresa la ciudad, estado/provincia, país y código postal que los clientes deben usar para encontrar esta oferta."}
+            </div>
             <FieldBlock
               label={lang === "en" ? "Address" : "Dirección"}
               optional
@@ -717,40 +723,52 @@ export default function OfertasLocalesApplicationClient() {
                 autoComplete="street-address"
               />
             </FieldBlock>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FieldBlock label={lang === "en" ? "City" : "Ciudad"} helper={c.cityHelper}>
                 <input
                   className={INPUT}
                   value={draft.city}
                   onChange={(e) => updateDraft({ city: e.target.value })}
                   autoComplete="address-level2"
+                  placeholder={lang === "en" ? "Example: San Jose, Toronto, Guadalajara" : "Ej. San José, Toronto, Guadalajara"}
                 />
               </FieldBlock>
-              <FieldBlock label={lang === "en" ? "State" : "Estado"} optional optionalLabel={c.optional}>
+              <FieldBlock
+                label={lang === "en" ? "State / Province / Region" : "Estado / provincia / región"}
+                optional
+                optionalLabel={c.optional}
+              >
                 <input
                   className={INPUT}
                   value={draft.state}
-                  onChange={(e) =>
-                    updateDraft({ state: normalizeOfertaLocalStateInput(e.target.value) })
-                  }
-                  maxLength={2}
-                  placeholder={lang === "en" ? "State" : "Estado"}
+                  onChange={(e) => updateDraft({ state: e.target.value })}
+                  maxLength={80}
+                  placeholder={lang === "en" ? "Example: CA, Ontario, Jalisco" : "Ej. CA, Ontario, Jalisco"}
                   autoComplete="address-level1"
                 />
               </FieldBlock>
-              <FieldBlock label="ZIP" helper={c.zipHelper}>
+              <FieldBlock label={lang === "en" ? "Country" : "País"}>
+                <input
+                  className={INPUT}
+                  value={draft.country}
+                  onChange={(e) => updateDraft({ country: e.target.value })}
+                  maxLength={80}
+                  autoComplete="country-name"
+                  placeholder={lang === "en" ? "Example: United States, Mexico, Canada" : "Ej. Estados Unidos, México, Canadá"}
+                />
+              </FieldBlock>
+              <FieldBlock label={lang === "en" ? "ZIP / Postal code" : "ZIP / código postal"} helper={c.zipHelper}>
                 <input
                   className={INPUT}
                   type="text"
                   value={draft.zipCode}
                   onChange={(e) =>
-                    updateDraft({ zipCode: normalizeOfertaLocalZipInput(e.target.value) })
+                    updateDraft({ zipCode: normalizeOfertaLocalPostalCodeInput(e.target.value) })
                   }
                   inputMode="text"
-                  pattern="[0-9]*"
-                  maxLength={5}
+                  maxLength={20}
                   autoComplete="postal-code"
-                  placeholder="12345"
+                  placeholder={lang === "en" ? "12345, K1A 0B1, 44100" : "12345, K1A 0B1, 44100"}
                 />
               </FieldBlock>
             </div>
@@ -806,38 +824,72 @@ export default function OfertasLocalesApplicationClient() {
                   updateDraft={updateDraft}
                   lang={lang}
                   sectionMode="primaryMainFlyer"
-                  sectionTitleOverride={c.laneShoppingMainFlyerAsset}
-                  sectionHelper={c.laneShoppingMainFlyerAssetHelper}
+                  sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
+                  sectionHelper={
+                    lang === "en"
+                      ? "Upload your full weekly flyer first. You can add coupons or extra files after the main flyer is ready."
+                      : "Sube primero tu volante semanal completo. Puedes agregar cupones o archivos extra después de que el volante principal esté listo."
+                  }
                   primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
                   showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
                   onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
                 />
-                {supportingFlyerAssets.length > 0 ? (
-                  <OfertasLocalesDraftAssetSection
-                    bucket="flyerAssets"
-                    draft={draft}
-                    updateDraft={updateDraft}
-                    lang={lang}
-                    sectionMode="supportingFlyerExtras"
-                    sectionTitleOverride={c.laneShoppingSupportingFlyerExtras}
-                    sectionHelper={c.laneShoppingSupportingFlyerExtrasHelper}
-                    onPendingUploadsChange={(count) =>
-                      reportStep5SectionPending("supporting-flyer", count)
-                    }
-                  />
-                ) : null}
-                <div className="border-t border-[#D4C4A8]/50 pt-4">
-                  <OfertasLocalesDraftAssetSection
-                    bucket="couponAssets"
-                    draft={draft}
-                    updateDraft={updateDraft}
-                    lang={lang}
-                    sectionMode="additionalCoupons"
-                    sectionTitleOverride={c.laneShoppingAdditionalCoupons}
-                    sectionHelper={c.laneShoppingAdditionalCouponsHelper}
-                    showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
-                    onPendingUploadsChange={(count) => reportStep5SectionPending("add-coupons", count)}
-                  />
+                <div className="rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    aria-expanded={optionalFilesOpen}
+                    onClick={() => setOptionalFilesOpen((open) => !open)}
+                  >
+                    <span>
+                      <span className="block text-sm font-semibold text-[#1E1814]">
+                        {lang === "en"
+                          ? "Want to add coupons or extra files?"
+                          : "¿Quieres agregar cupones o archivos adicionales?"}
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-[#1E1814]/60">
+                        {lang === "en"
+                          ? "Optional — use this only if you have separate coupons, images, or extra PDFs."
+                          : "Opcional — usa esto solo si tienes cupones separados, imágenes o PDFs extra."}
+                      </span>
+                    </span>
+                    <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-1.5 text-xs font-semibold text-[#7A1E2C]">
+                      {optionalFilesOpen
+                        ? lang === "en"
+                          ? "Hide"
+                          : "Ocultar"
+                        : lang === "en"
+                          ? "Open"
+                          : "Abrir"}
+                    </span>
+                  </button>
+                  <div className={optionalFilesOpen ? "space-y-4 border-t border-[#D4C4A8]/60 p-4" : "hidden"}>
+                    {supportingFlyerAssets.length > 0 ? (
+                      <OfertasLocalesDraftAssetSection
+                        bucket="flyerAssets"
+                        draft={draft}
+                        updateDraft={updateDraft}
+                        lang={lang}
+                        sectionMode="supportingFlyerExtras"
+                        sectionTitleOverride={c.laneShoppingSupportingFlyerExtras}
+                        sectionHelper={c.laneShoppingSupportingFlyerExtrasHelper}
+                        onPendingUploadsChange={(count) =>
+                          reportStep5SectionPending("supporting-flyer", count)
+                        }
+                      />
+                    ) : null}
+                    <OfertasLocalesDraftAssetSection
+                      bucket="couponAssets"
+                      draft={draft}
+                      updateDraft={updateDraft}
+                      lang={lang}
+                      sectionMode="additionalCoupons"
+                      sectionTitleOverride={c.laneShoppingAdditionalCoupons}
+                      sectionHelper={c.laneShoppingAdditionalCouponsHelper}
+                      showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                      onPendingUploadsChange={(count) => reportStep5SectionPending("add-coupons", count)}
+                    />
+                  </div>
                 </div>
               </>
             ) : null}

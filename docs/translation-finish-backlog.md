@@ -5,7 +5,7 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** MAGAZINE-DEEPL-PT-REAL-SMOKE2
+**Last verified:** SITE-TRANSLATION-WORD-BY-WORD-SMOKE1
 
 ---
 
@@ -68,6 +68,8 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 | **QR translator long-form blocks** | Some community langs inherit EN card steps via `g()` spread | `app/lib/magazine/qrGuideCopy/community.ts`, `qrGuideCopy/index.ts` (`TRANSLATOR_BY_LANG`) | `QR-GUIDE-LONGFORM-LANG1` |
 | **Cookie consent partial community strings** | Some community langs use `fromEn` partials | `app/lib/leonix/publicChromeCopy/index.ts` | Low priority polish |
 | **Legal pages** | ES/EN via `navCopyLang` | `app/(site)/legal/page.tsx` | `LEGAL-13LANG1` |
+
+`SITE-TRANSLATION-WORD-BY-WORD-SMOKE1` added a UI/source-content smoke checklist in `docs/site-translation-word-by-word-smoke.md` and fixed priority Coming Soon V2 UI chrome where PT/VI routes still had ES/EN-only local form labels or CTA aria labels. It did not translate seller-created content, change dynamic translation behavior, add schema, or call providers.
 
 **Visual assets (not UI copy):**
 
@@ -163,6 +165,7 @@ See `docs/translation-env-setup.md`.
 | `DYNAMIC-CONTENT-TRANSLATION-CACHE1` | End-to-end cache-first dynamic content |
 | `ADS-HTML1` | Public ad page HTML render + translation cache |
 | `CLASIFICADOS-CATEGORY-LANG1` | Category landing/results shell 13-lang native UI |
+| `CLASIFICADOS-SOURCE-LANGUAGE-AUDIT1` | Separate UI language from seller source-language display across results/detail/dashboard chrome |
 | `PUBLISH-LANG1` | Publish/application operational copy 13-lang |
 | `NEGOCIOS-LOCALES-LANG1` | Business profile public pages + directory |
 | `QR-GUIDE-LONGFORM-LANG1` | QR translator long-form instruction blocks all langs |

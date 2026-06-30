@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import { leonixPromotedFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app/clasificados/components/savedListings";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
@@ -686,6 +687,10 @@ export function EnVentaResultsClient() {
             </p>
           ) : null}
         </header>
+
+        <div className="mt-2">
+          <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
+        </div>
 
         <form
           id="ev-results-form"
