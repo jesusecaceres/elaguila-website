@@ -43,6 +43,13 @@ const BTN_FILTER =
 
 type ReviewFilter = "all" | OfertaLocalItemReviewStatus;
 type PageFilter = "all" | number;
+type PageReviewSummary = {
+  page: number;
+  total: number;
+  approved: number;
+  rejected: number;
+  needsReview: number;
+};
 
 export type OfertaLocalAiReviewGateState = {
   activeSourceAssetId: string | null;
@@ -414,6 +421,7 @@ export function OfertasLocalesAiItemReviewPanel({
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [pageBlockMessage, setPageBlockMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ReviewFilter>("all");
   const [selectedPageFilter, setSelectedPageFilter] = useState<PageFilter>("all");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -456,6 +464,7 @@ export function OfertasLocalesAiItemReviewPanel({
     setScanCompletedAt(null);
     setError(null);
     setActionMessage(null);
+    setPageBlockMessage(null);
     setAutoRefreshing(false);
     setLoading(false);
     setSelectedPageFilter("all");
@@ -690,13 +699,51 @@ export function OfertasLocalesAiItemReviewPanel({
     return partitionItemsByActiveScanJob(assetScopedItems, activeScanJobId);
   }, [activeScanJobId, assetScopedItems, isWorkspace, selectedSourceAssetId]);
 
+  const pageSummaries = useMemo(() => {
+    const pages = new Map<number, PageReviewSummary>();
+    const summaryItems = isWorkspace ? allCurrentScanItems : assetScopedItems;
+    for (const item of summaryItems) {
+      const page = item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1;
+      const current = pages.get(page) ?? {
+        page,
+        total: 0,
+        approved: 0,
+        rejected: 0,
+        needsReview: 0,
+      };
+      current.total += 1;
+      if (item.reviewStatus === "approved") current.approved += 1;
+      if (item.reviewStatus === "rejected") current.rejected += 1;
+      if (!isReviewTerminal(item.reviewStatus)) current.needsReview += 1;
+      pages.set(page, current);
+    }
+    return [...pages.values()].sort((a, b) => a.page - b.page);
+  }, [allCurrentScanItems, assetScopedItems, isWorkspace]);
+
+  const firstPageNumber = pageSummaries[0]?.page ?? null;
+  const currentPageNumber =
+    selectedPageFilter === "all" ? firstPageNumber : selectedPageFilter;
+  const currentPageSummary =
+    currentPageNumber != null
+      ? pageSummaries.find((page) => page.page === currentPageNumber) ?? null
+      : null;
+  const currentPageIndex = currentPageSummary
+    ? Math.max(0, pageSummaries.findIndex((page) => page.page === currentPageSummary.page))
+    : -1;
+  const nextPageSummary =
+    currentPageIndex >= 0 && currentPageIndex < pageSummaries.length - 1
+      ? pageSummaries[currentPageIndex + 1]
+      : null;
+  const firstIncompletePage = pageSummaries.find((page) => page.needsReview > 0) ?? null;
+  const allPagesComplete = pageSummaries.length > 0 && pageSummaries.every((page) => page.needsReview === 0);
+
   const pageFilteredItems = useMemo(() => {
     let list = isWorkspace ? allCurrentScanItems : assetScopedItems;
-    if (isWorkspace && selectedPageFilter !== "all") {
-      list = list.filter((item) => (item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1) === selectedPageFilter);
+    if (isWorkspace && currentPageNumber != null) {
+      list = list.filter((item) => (item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1) === currentPageNumber);
     }
     return list;
-  }, [allCurrentScanItems, assetScopedItems, isWorkspace, selectedPageFilter]);
+  }, [allCurrentScanItems, assetScopedItems, currentPageNumber, isWorkspace]);
 
   const filteredItems = useMemo(() => {
     let list = pageFilteredItems;
@@ -844,40 +891,27 @@ export function OfertasLocalesAiItemReviewPanel({
     [displayItems, selectedItemId]
   );
 
-  const pageSummaries = useMemo(() => {
-    const pages = new Map<
-      number,
-      { page: number; total: number; approved: number; rejected: number; needsReview: number }
-    >();
-    const summaryItems = isWorkspace ? allCurrentScanItems : displayItems;
-    for (const item of summaryItems) {
-      const page = item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1;
-      const current = pages.get(page) ?? {
-        page,
-        total: 0,
-        approved: 0,
-        rejected: 0,
-        needsReview: 0,
-      };
-      current.total += 1;
-      if (item.reviewStatus === "approved") current.approved += 1;
-      if (item.reviewStatus === "rejected") current.rejected += 1;
-      if (!isReviewTerminal(item.reviewStatus)) current.needsReview += 1;
-      pages.set(page, current);
-    }
-    return [...pages.values()].sort((a, b) => a.page - b.page);
-  }, [allCurrentScanItems, displayItems, isWorkspace]);
-
   useEffect(() => {
     setSelectedPageFilter("all");
+    setPageBlockMessage(null);
   }, [activeScanJobId, selectedSourceAssetId]);
 
   useEffect(() => {
-    if (selectedPageFilter === "all") return;
-    if (!pageSummaries.some((page) => page.page === selectedPageFilter)) {
-      setSelectedPageFilter("all");
+    if (!isWorkspace || pageSummaries.length === 0) return;
+    if (selectedPageFilter === "all") {
+      setSelectedPageFilter(pageSummaries[0].page);
+      return;
     }
-  }, [pageSummaries, selectedPageFilter]);
+    if (!pageSummaries.some((page) => page.page === selectedPageFilter)) {
+      setSelectedPageFilter(pageSummaries[0].page);
+    }
+  }, [isWorkspace, pageSummaries, selectedPageFilter]);
+
+  useEffect(() => {
+    if (!currentPageSummary || currentPageSummary.needsReview === 0) {
+      setPageBlockMessage(null);
+    }
+  }, [currentPageSummary?.needsReview, currentPageSummary?.page]);
 
   const focusedPageItems = useMemo(() => {
     if (!focusedItem?.sourcePage) return displayItems;
@@ -970,6 +1004,56 @@ export function OfertasLocalesAiItemReviewPanel({
   const goNextItem = () => {
     if (focusIndex >= displayItems.length - 1) return;
     selectItem(displayItems[focusIndex + 1].id);
+  };
+
+  const pageIncompleteMessage = (page: PageReviewSummary) =>
+    lang === "en"
+      ? `You still have ${page.needsReview} product(s) to review on Page ${page.page}. Approve or reject every item before continuing.`
+      : `Todavía tienes ${page.needsReview} producto(s) por revisar en la Página ${page.page}. Aprueba o rechaza cada producto antes de continuar.`;
+
+  const pageStatusLabel = (page: PageReviewSummary) => {
+    if (page.needsReview === 0) return lang === "en" ? "Complete" : "Completa";
+    if (page.approved > 0 || page.rejected > 0) return lang === "en" ? "Needs review" : "Pendiente";
+    return lang === "en" ? "Not started" : "Sin empezar";
+  };
+
+  const pageStatusClass = (page: PageReviewSummary) => {
+    if (page.needsReview === 0) return "border-emerald-300/80 bg-emerald-50 text-emerald-900";
+    if (page.approved > 0 || page.rejected > 0) return "border-amber-300/80 bg-amber-50 text-amber-900";
+    return "border-[#D4C4A8] bg-white text-[#1E1814]/65";
+  };
+
+  const pageIsLocked = (page: PageReviewSummary) =>
+    Boolean(firstIncompletePage && page.page > firstIncompletePage.page);
+
+  const selectReviewPage = (page: PageReviewSummary) => {
+    if (pageIsLocked(page)) {
+      const blocker = firstIncompletePage ?? currentPageSummary;
+      if (blocker) setPageBlockMessage(pageIncompleteMessage(blocker));
+      return;
+    }
+    setPageBlockMessage(null);
+    setStatusFilter("all");
+    setSelectedPageFilter(page.page);
+  };
+
+  const proceedToNextPage = () => {
+    if (!currentPageSummary) return;
+    if (currentPageSummary.needsReview > 0) {
+      setPageBlockMessage(pageIncompleteMessage(currentPageSummary));
+      return;
+    }
+    setPageBlockMessage(null);
+    setStatusFilter("all");
+    if (nextPageSummary) {
+      setSelectedPageFilter(nextPageSummary.page);
+      return;
+    }
+    setActionMessage(
+      lang === "en"
+        ? "All pages are reviewed. You can continue to preview."
+        : "Todas las páginas están revisadas. Puedes continuar a la vista previa."
+    );
   };
 
   const summaryBar = countLabels ? (
@@ -1116,51 +1200,89 @@ export function OfertasLocalesAiItemReviewPanel({
                 {selectedAssetFileLabel ? ` — ${selectedAssetFileLabel}` : ""}
               </p>
               {pageSummaries.length > 0 ? (
-                <div className="mt-2 space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
-                    {lang === "en" ? "Pages found" : "Páginas encontradas"}
-                  </p>
-                  {pageSummaries.map((page) => (
-                    <p key={page.page} className="text-[10px] text-[#1E1814]/65">
-                      {lang === "en" ? "Page" : "Página"} {page.page}: {page.total}{" "}
-                      {lang === "en" ? "items" : "productos"} · {page.approved}{" "}
-                      {lang === "en" ? "approved" : "aprobados"} · {page.needsReview}{" "}
-                      {lang === "en" ? "need review" : "pendientes"}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-              {pageSummaries.length > 1 ? (
                 <div className="mt-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
-                    {lang === "en" ? "Review by page" : "Revisar por página"}
+                    {lang === "en" ? "Guided page review" : "Revisión guiada por página"}
                   </p>
-                  <div className="mt-1 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                    <button
-                      type="button"
-                      className={`${BTN_FILTER} ${
-                        selectedPageFilter === "all"
-                          ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#7A1E2C]"
-                          : "border-[#D4C4A8] bg-white text-[#1E1814]/60"
-                      }`}
-                      onClick={() => setSelectedPageFilter("all")}
-                    >
-                      {lang === "en" ? "All pages" : "Todas"}
-                    </button>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {pageSummaries.map((page) => (
                       <button
                         key={page.page}
                         type="button"
-                        className={`${BTN_FILTER} ${
-                          selectedPageFilter === page.page
-                            ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#7A1E2C]"
-                            : "border-[#D4C4A8] bg-white text-[#1E1814]/60"
+                        className={`min-h-20 rounded-xl border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                          currentPageSummary?.page === page.page
+                            ? "border-[#7A1E2C] bg-[#7A1E2C]/10 text-[#1E1814] ring-1 ring-[#7A1E2C]/20"
+                            : "border-[#D4C4A8] bg-white text-[#1E1814]/70 hover:border-[#7A1E2C]/35"
                         }`}
-                        onClick={() => setSelectedPageFilter(page.page)}
+                        disabled={pageIsLocked(page)}
+                        onClick={() => selectReviewPage(page)}
                       >
-                        {lang === "en" ? "Page" : "Página"} {page.page}
+                        <span className="block font-semibold text-[#1E1814]">
+                          {lang === "en" ? "Page" : "Página"} {page.page}
+                        </span>
+                        <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${pageStatusClass(page)}`}>
+                          {pageStatusLabel(page)}
+                        </span>
+                        <span className="mt-1 block text-[10px] text-[#1E1814]/60">
+                          {page.total} {lang === "en" ? "items" : "productos"} · {page.approved}{" "}
+                          {lang === "en" ? "approved" : "aprobados"} · {page.rejected}{" "}
+                          {lang === "en" ? "rejected" : "rechazados"} · {page.needsReview}{" "}
+                          {lang === "en" ? "remaining" : "pendientes"}
+                        </span>
                       </button>
                     ))}
+                  </div>
+                </div>
+              ) : null}
+              {currentPageSummary ? (
+                <div className="mt-3 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-2">
+                  <p className="text-sm font-semibold text-[#1E1814]">
+                    {lang === "en" ? "Reviewing Page" : "Revisando Página"} {currentPageSummary.page}{" "}
+                    {lang === "en" ? "of" : "de"} {pageSummaries.length}
+                  </p>
+                  <p className="mt-1 text-xs text-[#1E1814]/65">
+                    {currentPageSummary.needsReview > 0
+                      ? lang === "en"
+                        ? `You still have ${currentPageSummary.needsReview} product(s) to review on this page.`
+                        : `Todavía tienes ${currentPageSummary.needsReview} producto(s) por revisar en esta página.`
+                      : lang === "en"
+                        ? "This page is complete."
+                        : "Esta página está completa."}
+                  </p>
+                  {pageBlockMessage ? (
+                    <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+                      {pageBlockMessage}
+                    </p>
+                  ) : null}
+                  {allPagesComplete ? (
+                    <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
+                      {lang === "en"
+                        ? "All pages are reviewed. Continue to preview when you are ready."
+                        : "Todas las páginas están revisadas. Continúa a la vista previa cuando estés listo."}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      className={BTN_PRIMARY}
+                      disabled={currentPageSummary.needsReview > 0 || !nextPageSummary}
+                      onClick={proceedToNextPage}
+                    >
+                      {nextPageSummary
+                        ? lang === "en"
+                          ? `Proceed to Page ${nextPageSummary.page}`
+                          : `Continuar a Página ${nextPageSummary.page}`
+                        : lang === "en"
+                          ? "All pages reviewed"
+                          : "Todas las páginas revisadas"}
+                    </button>
+                    {currentPageSummary.needsReview > 0 ? (
+                      <p className="text-xs font-medium text-red-800">
+                        {lang === "en"
+                          ? "Approve or reject every item on this page to continue."
+                          : "Aprueba o rechaza cada producto de esta página para continuar."}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
@@ -1203,6 +1325,18 @@ export function OfertasLocalesAiItemReviewPanel({
               {displayItems.map((item) => {
                 const active = item.id === selectedItemId;
                 const cropStatus = resolveItemCropListStatus(item, scanActiveForAsset || shouldPollCrops);
+                const cropStatusLabel =
+                  cropStatus === "crop"
+                    ? lang === "en"
+                      ? "Clip ready"
+                      : "Recorte listo"
+                    : cropStatus === "pending"
+                      ? lang === "en"
+                        ? "Clip pending"
+                        : "Recorte pendiente"
+                      : lang === "en"
+                        ? "No clip yet"
+                        : "Sin recorte todavía";
                 return (
                   <button
                     key={item.id}
@@ -1237,6 +1371,7 @@ export function OfertasLocalesAiItemReviewPanel({
                       <span className="block truncate text-[10px] text-[#1E1814]/55">
                         {item.priceText || "—"}
                         {item.sourcePage != null ? ` · p${item.sourcePage}` : ""}
+                        {` · ${cropStatusLabel}`}
                       </span>
                     </span>
                     <span
