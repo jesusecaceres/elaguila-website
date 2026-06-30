@@ -10,7 +10,7 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
     },
     applicationPage: {
       quickSubtitle:
-        "Completa cada sección. La vista previa y la publicación están al final, en el paso de revisión.",
+        "Crea un anuncio local claro para encontrar trabajadores en tu comunidad.",
       premiumSubtitle:
         "Completa cada sección. La vista previa y la publicación están al final, en el paso de revisión.",
       feriaSubtitle:
@@ -21,8 +21,8 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
     finalStep: {
       title: "Revisión final",
       intro:
-        "Cuando hayas revisado el contenido, usa los botones de abajo para ver el anuncio en la vista previa real o iniciar la publicación (confirmación y casillas en el siguiente paso).",
-      sessionDraftLine: "Inicia sesión para guardar o publicar en tu cuenta Leonix (Supabase).",
+        "Cuando hayas revisado el contenido, usa los botones de abajo para ver el anuncio en la vista previa real o iniciar la publicación.",
+      sessionDraftLine: "$24.99 por 30 días. El pago se activará en el flujo final de lanzamiento y no bloquea esta prueba QA.",
       previewCta: "Vista previa",
       publishCta: "Publicar",
       saveDraftCta: "Guardar borrador",
@@ -33,13 +33,13 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       "Publicación guardada en Leonix. Si activaste revisión manual (EMPLEOS_REQUIRE_LISTING_REVIEW), un administrador debe aprobar antes de aparecer en resultados.",
     publishModal: {
       title: "Confirmar publicación",
-      intro: "El pago y la publicación en vivo llegarán en una fase posterior. Por ahora confirma que revisaste tu anuncio.",
+      intro: "$24.99 por 30 días. El pago se activará en el flujo final de lanzamiento; por ahora confirma que revisaste tu anuncio.",
       checks: [
         "Confirmo que la información es verídica y la puedo respaldar.",
         "Confirmo que las fotos y medios representan el empleo o evento anunciado.",
         "Acepto las reglas de la comunidad Leonix Clasificados para este anuncio.",
       ] as [string, string, string],
-      confirmCta: "Continuar (sin pago aún)",
+      confirmCta: "Publicar para QA (pago después)",
       cancelCta: "Cancelar",
       blockedHint: "Marca las tres casillas para continuar.",
       closeOverlayAria: "Cerrar",
@@ -58,7 +58,7 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       ariaGroup: "Listing actions",
     },
     applicationPage: {
-      quickSubtitle: "Complete each section. Preview and publish are at the bottom, in the final review step.",
+      quickSubtitle: "Create a clear local job ad to find workers in your community.",
       premiumSubtitle: "Complete each section. Preview and publish are at the bottom, in the final review step.",
       feriaSubtitle: "Complete each section. Preview and publish are at the bottom, in the final review step.",
     },
@@ -67,8 +67,8 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
     finalStep: {
       title: "Final review",
       intro:
-        "When your content is ready, use the buttons below to open the real preview or start publishing (confirmation and checkboxes in the next step).",
-      sessionDraftLine: "Sign in to save or publish to your Leonix account (Supabase).",
+        "When your content is ready, use the buttons below to open the real preview or start publishing.",
+      sessionDraftLine: "$24.99 for 30 days. Payment will be activated in the final launch checkout flow and does not block this QA pass.",
       previewCta: "Preview",
       publishCta: "Publish",
       saveDraftCta: "Save draft",
@@ -79,13 +79,13 @@ export const EMPLEOS_PUBLISH_SHARED_COPY = {
       "Saved to Leonix. If manual review is enabled (EMPLEOS_REQUIRE_LISTING_REVIEW), an admin must approve before it appears in results.",
     publishModal: {
       title: "Confirm publish",
-      intro: "Payment and live listing will arrive in a later phase. For now confirm you reviewed your listing.",
+      intro: "$24.99 for 30 days. Payment will be activated in the final launch checkout flow; for now confirm you reviewed your listing.",
       checks: [
         "I confirm the information is truthful and I can stand behind it.",
         "I confirm photos and media represent the job or event.",
         "I accept Leonix Clasificados community rules for this listing.",
       ] as [string, string, string],
-      confirmCta: "Continue (no payment yet)",
+      confirmCta: "Publish for QA (payment later)",
       cancelCta: "Cancel",
       blockedHint: "Check all three boxes to continue.",
       closeOverlayAria: "Close",

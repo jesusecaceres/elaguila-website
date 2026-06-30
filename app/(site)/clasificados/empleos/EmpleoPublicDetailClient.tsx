@@ -14,8 +14,6 @@ import { EmpleosApplyForm, isLiveListingId } from "./components/EmpleosApplyForm
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EmpleosJobResultCard } from "./components/EmpleosJobResultCard";
 import {
-  EMPLEOS_BADGE_PREMIUM,
-  EMPLEOS_BADGE_QUICK,
   EMPLEOS_BADGE_VERIFIED,
   EMPLEOS_CTA_PRIMARY,
   EMPLEOS_LINK_MUTED,
@@ -200,11 +198,6 @@ export function EmpleoPublicDetailClient({
                         : "Featured"}
                   </span>
                 ) : null}
-                {job.quickApply ? (
-                  <span className={`${EMPLEOS_BADGE_QUICK} bg-white/90 backdrop-blur-sm`}>
-                    {lang === "es" ? "Aplicación rápida" : "Quick apply"}
-                  </span>
-                ) : null}
               </div>
             </div>
           </div>
@@ -224,9 +217,6 @@ export function EmpleoPublicDetailClient({
                     <div className="mt-2 flex flex-wrap gap-2">
                       {job.verifiedEmployer ? (
                         <span className={EMPLEOS_BADGE_VERIFIED}>{lang === "es" ? "Empleador verificado" : "Verified employer"}</span>
-                      ) : null}
-                      {job.premiumEmployer ? (
-                        <span className={EMPLEOS_BADGE_PREMIUM}>{lang === "es" ? "Negocio premium" : "Premium business"}</span>
                       ) : null}
                     </div>
                   </div>
@@ -316,19 +306,11 @@ export function EmpleoPublicDetailClient({
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6F82]">
                   {lang === "es" ? "Tu siguiente paso" : "Your next step"}
                 </p>
-                {job.quickApply ? (
-                  <p className="mt-1 text-xs font-medium leading-relaxed text-[#4A4744]">
-                    {lang === "es"
-                      ? "Esta vacante admite aplicación rápida: Leonix canaliza tu mensaje al equipo correspondiente."
-                      : "Quick apply is enabled — Leonix routes your message to the right team for this listing."}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs font-medium leading-relaxed text-[#4A4744]">
-                    {lang === "es"
-                      ? "Envía tu interés por Leonix; un asesor o el empleador te contactará con los siguientes pasos."
-                      : "Send your interest through Leonix — an advisor or the employer will follow up with next steps."}
-                  </p>
-                )}
+                <p className="mt-1 text-xs font-medium leading-relaxed text-[#4A4744]">
+                  {lang === "es"
+                    ? "Usa el contacto disponible o envía tu interés por Leonix para seguir los próximos pasos."
+                    : "Use the available contact method or send your interest through Leonix for next steps."}
+                </p>
               </div>
               {job.externalApplyUrl ? (
                 <a

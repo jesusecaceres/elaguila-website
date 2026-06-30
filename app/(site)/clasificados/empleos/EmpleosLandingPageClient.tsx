@@ -14,7 +14,6 @@ import {
 import { FeaturedJobsLandingSection } from "./components/landing/FeaturedJobsLandingSection";
 import { HeroAndSearch } from "./components/landing/HeroAndSearch";
 import { JobCategoryGrid } from "./components/landing/JobCategoryGrid";
-import { JobFairLandingBanner } from "./components/landing/JobFairLandingBanner";
 import { LatestJobsAndEmployer } from "./components/landing/LatestJobsAndEmployer";
 import { QuickSearchTiles } from "./components/landing/QuickSearchTiles";
 import { RefineSearchBand } from "./components/landing/RefineSearchBand";
@@ -70,7 +69,6 @@ export function EmpleosLandingPage({
           jobs={liveInventory ? recentOverride : undefined}
           liveInventory={liveInventory}
         />
-        <JobFairLandingBanner lang={lang} />
         <TrustSignalsRow lang={lang} />
       </div>
     </>

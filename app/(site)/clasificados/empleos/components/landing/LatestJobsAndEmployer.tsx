@@ -7,7 +7,6 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import {
-  EMPLEOS_BUSINESS_PLANS_PATH,
   EMPLEOS_PUBLISH_HUB_PATH,
 } from "../../empleosLandingRoutes";
 import { sampleRecentJobs, type SampleRecentJob } from "../../data/empleosLandingSampleData";
@@ -31,7 +30,6 @@ function modalityShort(job: SampleRecentJob, lang: Lang) {
 
 export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Props) {
   const publishHref = appendLangToPath(EMPLEOS_PUBLISH_HUB_PATH, lang);
-  const plansHref = appendLangToPath(EMPLEOS_BUSINESS_PLANS_PATH, lang);
   const rows = liveInventory ? (jobs ?? []) : (jobs ?? sampleRecentJobs);
   const recentCap = EMPLEOS_LANDING_RECENT_MAX;
   const subtitle = liveInventory
@@ -119,8 +117,8 @@ export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Pro
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#4A4744]/95">
                 {lang === "es"
-                  ? "Publica con el plan que te convenga: formatos amplios para contar tu historia, o anuncios rápidos para cubrir turno. Renueva o vuelve a publicar cuando quieras refrescar visibilidad."
-                  : "Choose the format that fits: richer layouts to tell your story, or quick posts to fill a shift. Renew or republish when you want to refresh visibility."}
+                  ? "Publica un anuncio local de empleo por $24.99 durante 30 días. Un formulario claro, vista previa real y contacto directo para encontrar trabajadores en tu comunidad."
+                  : "Post one local job ad for $24.99 for 30 days. A clear form, real preview, and direct contact to find workers in your community."}
               </p>
             </div>
           </div>
@@ -128,8 +126,8 @@ export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Pro
           <ul className="mt-5 space-y-2.5 text-sm text-[#2A2826]">
             {(
               lang === "es"
-                ? ["Publica en minutos", "Recibe candidatos interesados", "Planes para todo tipo de negocio"]
-                : ["Publish in minutes", "Receive interested applicants", "Plans for every business size"]
+                ? ["Un anuncio por 30 días", "Contacto directo con personas interesadas", "Fotos y hasta 4 enlaces de video"]
+                : ["One ad for 30 days", "Direct contact from interested people", "Photos and up to 4 video links"]
             ).map((line) => (
               <li key={line} className="flex gap-2">
                 <FaCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2E7D4A]" aria-hidden />
@@ -140,13 +138,7 @@ export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Pro
 
           <div className="mt-6 flex flex-col gap-3">
             <Link href={publishHref} className={`${EMPLEOS_CTA_PRIMARY} w-full justify-center px-4 text-center`}>
-              {lang === "es" ? "Publicar vacante" : "Post a job"}
-            </Link>
-            <Link
-              href={plansHref}
-              className="text-center text-sm font-semibold text-[#4F6B82] underline-offset-4 transition hover:text-[#2A2826] hover:underline"
-            >
-              {lang === "es" ? "Conoce planes para negocios" : "Business posting options"}
+              {lang === "es" ? "Publicar empleo — $24.99" : "Post a job — $24.99"}
             </Link>
           </div>
         </aside>

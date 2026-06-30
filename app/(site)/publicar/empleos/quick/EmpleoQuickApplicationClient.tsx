@@ -23,7 +23,6 @@ import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/
 import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
-import { EMPLEOS_STANDARD_CITY } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { emptyEmpleosQuickDraft, type EmpleosQuickDraft } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
@@ -37,7 +36,6 @@ import {
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
-const INPUT_CITY_LOCKED = `${INPUT} cursor-not-allowed bg-black/[0.04]`;
 
 function joinScheduleRows(rows: EmpleosQuickDraft["scheduleRows"]): string {
   return rows
@@ -215,8 +213,13 @@ export default function EmpleoQuickApplicationClient() {
     <main className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-24 pt-24 text-[color:var(--lx-text)] sm:px-5">
       <div className="mx-auto min-w-0 max-w-3xl">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Trabajo rápido" : "Quick job"}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Publicar empleo" : "Post a job"}</h1>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{copy.applicationPage.quickSubtitle}</p>
+          <p className="mt-3 rounded-xl border border-[#C9B46A]/35 bg-[#FFFCF7] px-3 py-2 text-sm font-semibold text-[#6B5320]">
+            {lang === "es"
+              ? "$24.99 por 30 días. Tu anuncio se publica por 30 días; el pago se activará en el flujo final de lanzamiento."
+              : "$24.99 for 30 days. Your ad runs for 30 days; payment will be activated in the final launch checkout flow."}
+          </p>
         </header>
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
@@ -282,11 +285,10 @@ export default function EmpleoQuickApplicationClient() {
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
                 <input
-                  readOnly
-                  className={INPUT_CITY_LOCKED}
-                  value={EMPLEOS_STANDARD_CITY}
-                  aria-readonly="true"
-                  title={lang === "es" ? "Región estandarizada" : "Standardized region"}
+                  className={INPUT}
+                  value={state.city}
+                  onChange={(e) => patch({ city: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. Modesto" : "e.g. Modesto"}
                 />
               </label>
               <label className="block text-sm">
@@ -363,31 +365,21 @@ export default function EmpleoQuickApplicationClient() {
               <input className={INPUT} value={state.pay} onChange={(e) => patch({ pay: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Descripción corta" : "Short description"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Descripción, requisitos y cómo aplicar" : "Description, requirements, and how to apply"}</EmpleosFieldLabel>
               <textarea
                 className={`${INPUT} min-h-[100px]`}
                 value={state.description}
                 onChange={(e) => patch({ description: e.target.value })}
               />
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Incluye lo esencial: responsabilidades, requisitos, inicio y cómo prefieres recibir contacto."
+                  : "Include the essentials: responsibilities, requirements, start timing, and your preferred contact path."}
+              </p>
             </label>
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "2. Preguntas filtro (opcional, máx. 5)" : "2. Screener questions (optional, max 5)"}>
-            <p className="text-xs text-[color:var(--lx-muted)]">
-              {lang === "es"
-                ? "Aparecen en el formulario de aplicación interna de Leonix."
-                : "Shown on Leonix’s internal apply form."}
-            </p>
-            <EmpleosStringLinesEditor
-              items={state.screenerQuestions.length ? state.screenerQuestions : [""]}
-              onChange={(screenerQuestions) => patch({ screenerQuestions: screenerQuestions.slice(0, 5) })}
-              addLabel={lang === "es" ? "+ Pregunta" : "+ Question"}
-              removeLabel={lang === "es" ? "Quitar" : "Remove"}
-              placeholder={lang === "es" ? "Ej. ¿Disponibilidad inmediata?" : "e.g. Immediate availability?"}
-            />
-          </EmpleosSectionCard>
-
-          <EmpleosSectionCard title={lang === "es" ? "3. Beneficios (opcional)" : "3. Benefits (optional)"}>
+          <EmpleosSectionCard title={lang === "es" ? "2. Beneficios (opcional)" : "2. Benefits (optional)"}>
             <p className="text-xs text-[color:var(--lx-muted)]">
               {lang === "es" ? "Añade viñetas; solo las líneas con texto aparecen en el anuncio." : "Add bullets; only non-empty lines appear on the listing."}
             </p>
@@ -400,7 +392,7 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "4. Multimedia" : "4. Media"}>
+          <EmpleosSectionCard title={lang === "es" ? "3. Multimedia" : "3. Media"}>
             <div>
               <div className="text-sm font-semibold text-[color:var(--lx-text)]">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Imágenes" : "Images"}</EmpleosFieldLabel>
@@ -467,7 +459,7 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "5. Contacto / CTA" : "5. Contact / CTA"}>
+          <EmpleosSectionCard title={lang === "es" ? "4. Contacto / CTA" : "4. Contact / CTA"}>
             <EmpleosCtaFieldGroup
               phone={state.phone}
               whatsapp={state.whatsapp}
@@ -480,7 +472,7 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "6. Ubicación (opcional)" : "6. Location (optional)"}>
+          <EmpleosSectionCard title={lang === "es" ? "5. Ubicación (opcional)" : "5. Location (optional)"}>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
@@ -513,7 +505,7 @@ export default function EmpleoQuickApplicationClient() {
           onDelete={handleDeleteApplication}
           stagedSuccessText={stagedNotice ? copy.stagedSuccess : null}
           publishGateBlockedHint={previewDisabled ? copy.publishBlocked : null}
-          saveDraftCta={copy.finalStep.saveDraftCta ?? null}
+          saveDraftCta={null}
           onSaveDraft={() => {
             void (async () => {
               const g = gateEmpleosQuickPreview(state, lang);

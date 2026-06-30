@@ -11,8 +11,6 @@ import { empleosJobRecordListLocationLine } from "../lib/empleosJobRecordListLoc
 import { isLiveListingId } from "./EmpleosApplyForm";
 import { trackEmpleosResultCardClick } from "../lib/empleosCtaTracking";
 import {
-  EMPLEOS_BADGE_PREMIUM,
-  EMPLEOS_BADGE_QUICK,
   EMPLEOS_BADGE_VERIFIED,
   EMPLEOS_CARD_FEATURED,
   EMPLEOS_CARD_PROMOTED,
@@ -94,9 +92,6 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
           <Link href={detailHref} onClick={onResultNavigate} className="min-w-0 flex-1">
             <h2 className={`font-bold leading-snug text-[#2A2826] group-hover:underline ${isWide ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"}`}>{job.title}</h2>
           </Link>
-          {job.quickApply ? (
-            <span className={`shrink-0 ${EMPLEOS_BADGE_QUICK}`}>{lang === "es" ? "Aplicación rápida" : "Quick apply"}</span>
-          ) : null}
         </div>
         <p className="mt-1 text-sm font-semibold text-[#4F6B82]">{job.company}</p>
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#4A4744]">
@@ -110,9 +105,6 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
         <div className="mt-2 flex flex-wrap gap-1.5">
           {job.verifiedEmployer ? (
             <span className={EMPLEOS_BADGE_VERIFIED}>{lang === "es" ? "Empleador verificado" : "Verified employer"}</span>
-          ) : null}
-          {job.premiumEmployer ? (
-            <span className={EMPLEOS_BADGE_PREMIUM}>{lang === "es" ? "Negocio premium" : "Premium business"}</span>
           ) : null}
         </div>
         <p className="mt-2 line-clamp-2 text-sm text-[#5C564E]">{job.summary}</p>

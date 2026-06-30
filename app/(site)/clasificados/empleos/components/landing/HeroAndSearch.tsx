@@ -123,7 +123,7 @@ export function HeroAndSearch({ lang }: Props) {
               </div>
               <span className="hidden h-4 w-px shrink-0 bg-[#E8DFD0] sm:block" aria-hidden />
               <p className="text-sm text-[#4A4744]/95">
-                {lang === "es" ? "Aplicación rápida disponible en muchas ofertas." : "Quick apply on many listings."}
+                {lang === "es" ? "Anuncios claros con contacto directo." : "Clear listings with direct contact."}
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export function HeroAndSearch({ lang }: Props) {
                 {lang === "es" ? "locales publicados" : "posted locally"}
               </div>
               <div className="absolute bottom-3 right-3 max-w-[180px] rounded-xl border border-[#E8DFD0] bg-[#FFFBF5]/95 px-3 py-2 text-center text-xs font-semibold text-[#2A2826] shadow-md backdrop-blur-sm">
-                {lang === "es" ? "Aplicación rápida" : "Quick apply"}
+                {lang === "es" ? "Contacto directo" : "Direct contact"}
               </div>
             </div>
           </div>

@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import EmpleosPublicarHubClient from "./EmpleosPublicarHubClient";
 
 export const metadata: Metadata = {
-  title: "Publicar — Empleos — LEONIX",
-  description: "Elige trabajo rápido, premium o feria de empleo y prepara tu anuncio en Leonix Clasificados.",
+  title: "Publicar empleo — $24.99 por 30 días — LEONIX",
+  description: "Publica un anuncio local de empleo en Leonix: $24.99 por 30 días, vista previa clara y contacto directo.",
   alternates: {
     canonical: "/publicar/empleos",
   },

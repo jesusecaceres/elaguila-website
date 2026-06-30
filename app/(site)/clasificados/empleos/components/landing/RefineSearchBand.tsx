@@ -31,7 +31,6 @@ export function RefineSearchBand({ lang }: Props) {
   const [experience, setExperience] = useState("");
   const [companyType, setCompanyType] = useState("");
   const [recent, setRecent] = useState(false);
-  const [quickApply, setQuickApply] = useState(false);
 
   useEffect(() => {
     const p = parsed;
@@ -40,7 +39,6 @@ export function RefineSearchBand({ lang }: Props) {
     setExperience(p.experience);
     setCompanyType(p.companyType);
     setRecent(p.recentOnly);
-    setQuickApply(p.quickApplyOnly);
     const smin = p.salaryMin;
     const smax = p.salaryMax;
     const hit = sampleSalaryBandOptions.find((b) => b.min === smin && (b.max === smax || (!b.max && !smax)));
@@ -59,10 +57,9 @@ export function RefineSearchBand({ lang }: Props) {
       salaryMin: band?.min || undefined,
       salaryMax: band?.max || undefined,
       recent: recent ? "1" : undefined,
-      quickApply: quickApply ? "1" : undefined,
     };
     router.push(buildEmpleosResultadosUrl(lang, params));
-  }, [router, lang, sp, salaryBand, modality, jobType, experience, companyType, recent, quickApply]);
+  }, [router, lang, sp, salaryBand, modality, jobType, experience, companyType, recent]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -179,15 +176,6 @@ export function RefineSearchBand({ lang }: Props) {
                 className="h-4 w-4 rounded border-[#C9B89A] text-[#D9A23A] focus:ring-[#D9A23A]"
               />
               {lang === "es" ? "Publicados recientemente" : "Recently posted"}
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#2A2826]">
-              <input
-                type="checkbox"
-                checked={quickApply}
-                onChange={(e) => setQuickApply(e.target.checked)}
-                className="h-4 w-4 rounded border-[#C9B89A] text-[#D9A23A] focus:ring-[#D9A23A]"
-              />
-              {lang === "es" ? "Aplicación rápida" : "Quick apply"}
             </label>
           </div>
         </div>

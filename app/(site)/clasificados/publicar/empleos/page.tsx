@@ -4,12 +4,12 @@ import { Suspense } from "react";
 import EmpleosPublicarHubClient from "@/app/publicar/empleos/EmpleosPublicarHubClient";
 
 /**
- * Category-owned Empleos publish entry (chooser → hub → `/publicar/empleos/*` lanes).
- * Static route overrides `publicar/[category]` so Empleos is not the shared Coming Soon terminal.
+ * Category-owned Empleos publish entry for the July 1 single job-ad launch path.
+ * Premium/Feria routes remain preserved internally, but this public entry points to one local job ad.
  */
 export const metadata: Metadata = {
-  title: "Publicar — Empleos — Clasificados — LEONIX",
-  description: "Elige trabajo rápido, premium o feria de empleo desde Leonix Clasificados.",
+  title: "Publicar empleo — $24.99 por 30 días — Clasificados — LEONIX",
+  description: "Publica un anuncio local de empleo en Leonix Clasificados: $24.99 por 30 días.",
   alternates: {
     canonical: "/clasificados/publicar/empleos",
   },

@@ -215,7 +215,6 @@ function sortChipLabel(lang: Lang, sort: EmpleosSortKey): string {
 function chipLabel(lang: Lang, key: string, val: string): string {
   if (key === "featured" && val === "1") return lang === "es" ? "Solo destacados" : "Featured only";
   if (key === "recent" && val === "1") return lang === "es" ? "Publicados recientes" : "Recently posted";
-  if (key === "quickApply" && val === "1") return lang === "es" ? "Aplicación rápida" : "Quick apply";
   if (key === "category") {
     const o = sampleCategorySelectOptions.find((x) => x.value === val);
     return o?.label ?? val;
@@ -248,11 +247,7 @@ function chipLabel(lang: Lang, key: string, val: string): string {
   }
   if (key === "zip") return lang === "es" ? `CP: ${val}` : `ZIP: ${val}`;
   if (key === "verified" && val === "1") return lang === "es" ? "Solo verificados" : "Verified only";
-  if (key === "premium" && val === "1") return lang === "es" ? "Negocio premium" : "Premium business";
-  if (key === "lane" && val)
-    return lang === "es" ? `Flujo: ${val}` : `Lane: ${val}`;
   if (key === "industry" && val) return lang === "es" ? `Industria: ${val}` : `Industry: ${val}`;
-  if (key === "bilingual" && val === "1") return lang === "es" ? "Bilingüe" : "Bilingual";
   return `${key}: ${val}`;
 }
 
@@ -260,30 +255,18 @@ function EmpleosFilterToggles({
   lang,
   featured,
   recent,
-  quickApply,
   verifiedBox,
-  premiumBox,
-  bilingual,
   onFeaturedChange,
   onRecentChange,
-  onQuickApplyChange,
   onVerifiedChange,
-  onPremiumChange,
-  onBilingualChange,
 }: {
   lang: Lang;
   featured: boolean;
   recent: boolean;
-  quickApply: boolean;
   verifiedBox: boolean;
-  premiumBox: boolean;
-  bilingual: boolean;
   onFeaturedChange: (v: boolean) => void;
   onRecentChange: (v: boolean) => void;
-  onQuickApplyChange: (v: boolean) => void;
   onVerifiedChange: (v: boolean) => void;
-  onPremiumChange: (v: boolean) => void;
-  onBilingualChange: (v: boolean) => void;
 }) {
   const cb =
     "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-sm font-medium text-[#2A2826] transition hover:border-[#E8DFD0]/80";
@@ -299,21 +282,9 @@ function EmpleosFilterToggles({
         <input type="checkbox" checked={recent} onChange={(e) => onRecentChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Últimos 7 días" : "Last 7 days"}
       </label>
-      <label className={`${cb} ${quickApply ? cbOn : ""}`}>
-        <input type="checkbox" checked={quickApply} onChange={(e) => onQuickApplyChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Aplicación rápida" : "Quick apply"}
-      </label>
       <label className={`${cb} ${verifiedBox ? cbOn : ""}`}>
         <input type="checkbox" checked={verifiedBox} onChange={(e) => onVerifiedChange(e.target.checked)} className="h-4 w-4 rounded" />
         {lang === "es" ? "Empleador verificado" : "Verified employer"}
-      </label>
-      <label className={`${cb} ${premiumBox ? cbOn : ""}`}>
-        <input type="checkbox" checked={premiumBox} onChange={(e) => onPremiumChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Negocio premium" : "Premium business"}
-      </label>
-      <label className={`${cb} ${bilingual ? cbOn : ""}`}>
-        <input type="checkbox" checked={bilingual} onChange={(e) => onBilingualChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Bilingüe / feria bilingüe" : "Bilingual event"}
       </label>
     </>
   );
@@ -707,23 +678,6 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                     ))}
                   </select>
                 </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Flujo de publicación" : "Publish lane"}</span>
-                  <select
-                    value={lane}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setLane(v);
-                      pushFromFields({ lane: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    <option value="">{lang === "es" ? "Todos" : "All"}</option>
-                    <option value="quick">{lang === "es" ? "Rápido" : "Quick"}</option>
-                    <option value="premium">Premium</option>
-                    <option value="feria">{lang === "es" ? "Feria" : "Job fair"}</option>
-                  </select>
-                </label>
                 <label className="sm:col-span-2 lg:col-span-1">
                   <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Industria / enfoque" : "Industry / focus"}</span>
                   <input
@@ -870,10 +824,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                   lang={lang}
                   featured={featured}
                   recent={recent}
-                  quickApply={quickApply}
                   verifiedBox={verifiedBox}
-                  premiumBox={premiumBox}
-                  bilingual={bilingualBox}
                   onFeaturedChange={(v) => {
                     setFeatured(v);
                     pushFromFields({ featured: v });
@@ -882,21 +833,9 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                     setRecent(v);
                     pushFromFields({ recent: v });
                   }}
-                  onQuickApplyChange={(v) => {
-                    setQuickApply(v);
-                    pushFromFields({ quickApply: v });
-                  }}
                   onVerifiedChange={(v) => {
                     setVerifiedBox(v);
                     pushFromFields({ verifiedBox: v });
-                  }}
-                  onPremiumChange={(v) => {
-                    setPremiumBox(v);
-                    pushFromFields({ premiumBox: v });
-                  }}
-                  onBilingualChange={(v) => {
-                    setBilingualBox(v);
-                    pushFromFields({ bilingual: v });
                   }}
                 />
               </div>
@@ -907,10 +846,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 lang={lang}
                 featured={featured}
                 recent={recent}
-                quickApply={quickApply}
                 verifiedBox={verifiedBox}
-                premiumBox={premiumBox}
-                bilingual={bilingualBox}
                 onFeaturedChange={(v) => {
                   setFeatured(v);
                   pushFromFields({ featured: v });
@@ -919,21 +855,9 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                   setRecent(v);
                   pushFromFields({ recent: v });
                 }}
-                onQuickApplyChange={(v) => {
-                  setQuickApply(v);
-                  pushFromFields({ quickApply: v });
-                }}
                 onVerifiedChange={(v) => {
                   setVerifiedBox(v);
                   pushFromFields({ verifiedBox: v });
-                }}
-                onPremiumChange={(v) => {
-                  setPremiumBox(v);
-                  pushFromFields({ premiumBox: v });
-                }}
-                onBilingualChange={(v) => {
-                  setBilingualBox(v);
-                  pushFromFields({ bilingual: v });
                 }}
               />
             </div>

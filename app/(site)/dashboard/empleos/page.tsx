@@ -33,7 +33,7 @@ export default function EmpleosEmployerDashboardPage() {
       lang === "es"
         ? {
             title: "Mis vacantes — Empleos",
-            subtitle: "Listados guardados en Leonix (Supabase). Debes iniciar sesión.",
+            subtitle: "Tus anuncios de empleo publicados o en revisión en Leonix. Debes iniciar sesión.",
             loading: "Cargando…",
             login: "Inicia sesión para ver tus vacantes.",
             empty: "Aún no tienes vacantes en esta cuenta.",
@@ -43,11 +43,11 @@ export default function EmpleosEmployerDashboardPage() {
             public: "Ver público",
             colTitle: "Título",
             colStatus: "Estado",
-            colLane: "Formato",
+            colLane: "Producto",
           }
         : {
             title: "My job listings — Empleos",
-            subtitle: "Listings stored in Leonix (Supabase). You must be signed in.",
+            subtitle: "Your job ads published or under review on Leonix. You must be signed in.",
             loading: "Loading…",
             login: "Sign in to view your job listings.",
             empty: "No job listings for this account yet.",
@@ -57,10 +57,17 @@ export default function EmpleosEmployerDashboardPage() {
             public: "Public view",
             colTitle: "Title",
             colStatus: "Status",
-            colLane: "Lane",
+            colLane: "Product",
           },
     [lang],
   );
+
+  const laneLabel = (lane: string) => {
+    if (lane === "quick") return lang === "es" ? "Empleo local" : "Local job ad";
+    if (lane === "premium") return lang === "es" ? "Preservado (premium)" : "Preserved (premium)";
+    if (lane === "feria") return lang === "es" ? "Preservado (feria)" : "Preserved (fair)";
+    return lane;
+  };
 
   const [authLoading, setAuthLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
@@ -123,7 +130,7 @@ export default function EmpleosEmployerDashboardPage() {
                 <p className="text-base font-bold text-[#1E1810]">{r.title}</p>
                 <p className="mt-1 text-xs text-[#7A7164]">{r.company_name}</p>
                 <p className="mt-2 text-xs text-[#5C5346]">
-                  {t.colLane}: {r.lane} · {t.colStatus}: {r.lifecycle_status}
+                  {t.colLane}: {laneLabel(r.lane)} · {t.colStatus}: {r.lifecycle_status}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link href={`/dashboard/empleos/${r.id}?${q}`} className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
@@ -170,7 +177,7 @@ export default function EmpleosEmployerDashboardPage() {
                     <div className="max-w-[220px] truncate">{r.title}</div>
                     <div className="text-xs font-normal text-[#7A7164]">{r.company_name}</div>
                   </td>
-                  <td className="px-4 py-3 capitalize">{r.lane}</td>
+                  <td className="px-4 py-3">{laneLabel(r.lane)}</td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-[#E8DFD0]/90 px-2 py-0.5 text-xs font-bold">{r.lifecycle_status}</span>
                   </td>
