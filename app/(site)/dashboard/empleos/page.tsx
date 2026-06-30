@@ -65,7 +65,7 @@ export default function EmpleosEmployerDashboardPage() {
   const laneLabel = (lane: string) => {
     if (lane === "quick") return lang === "es" ? "Empleo local" : "Local job ad";
     if (lane === "premium") return lang === "es" ? "Preservado (premium)" : "Preserved (premium)";
-    if (lane === "feria") return lang === "es" ? "Preservado (feria)" : "Preserved (fair)";
+    if (lane === "feria") return lang === "es" ? "Feria de empleo" : "Job fair";
     return lane;
   };
 

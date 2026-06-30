@@ -97,6 +97,13 @@ export default function AdminEmpleosListingsPage() {
     setRows(json.rows ?? []);
   }, [scope]);
 
+  const laneDisplay = useCallback((lane: string) => {
+    if (lane === "quick") return "Local job ad";
+    if (lane === "feria") return "Job fair";
+    if (lane === "premium") return "Preserved premium";
+    return lane;
+  }, []);
+
   useEffect(() => {
     const ac = new AbortController();
     const t = window.setTimeout(() => {
@@ -215,7 +222,10 @@ export default function AdminEmpleosListingsPage() {
                 </td>
                 <td className="px-4 py-3 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id ?? "—"}</td>
                 <td className="px-4 py-3 capitalize">{r.lifecycle_status}</td>
-                <td className="px-4 py-3 capitalize">{r.lane}</td>
+                <td className="px-4 py-3">
+                  <span className="font-semibold">{laneDisplay(r.lane)}</span>
+                  <div className="text-[10px] text-[#7A7164]">{r.lane}</div>
+                </td>
                 <td className="px-4 py-3">
                   <code className="break-all text-[10px] text-[#6B645C]">{r.owner_user_id ?? "—"}</code>
                   {r.owner_user_id ? (

@@ -1,6 +1,5 @@
 import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
-import { EMPLEOS_INTERNAL_FILTER_REGION } from "../constants/empleosStandardRegion";
 import type { EmpleosImageItem } from "../media/empleosMediaTypes";
 
 export type EmpleosQuickPrimaryCta = "phone" | "whatsapp" | "email";
@@ -108,7 +107,7 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     screenerQuestions,
     videoUrl: videoUrls[0] ?? "",
     videoUrls,
-    city: cityRaw || EMPLEOS_INTERNAL_FILTER_REGION,
+    city: cityRaw,
     workModality,
     scheduleRows,
   };
@@ -121,7 +120,7 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     categorySlug: "oficina",
     categoryCustom: "",
     experienceLevel: "mid",
-    city: EMPLEOS_INTERNAL_FILTER_REGION,
+    city: "",
     state: "",
     workModality: "presencial",
     jobType: "",

@@ -71,7 +71,7 @@ if (!publicarHub.includes("$24.99 por 30 días") || !publicarHub.includes("$24.9
   fail("Public Empleos entry does not show bilingual $24.99 / 30 days copy");
 }
 
-for (const forbidden of ["Trabajo premium", "Feria de empleo", "Quick job", "Premium job", "Job fair"]) {
+for (const forbidden of ["Trabajo premium", "Trabajo rápido", "Quick job", "Premium job"]) {
   if (publicarHub.includes(forbidden)) fail(`Public Empleos entry still exposes lane chooser copy: ${forbidden}`);
 }
 
@@ -83,7 +83,7 @@ if (!landingEmployer.includes("Post a job — $24.99") || !landingEmployer.inclu
   fail("Empleos landing employer CTA is not aligned to one $24.99 job ad");
 }
 
-for (const forbiddenResultsCopy of ["Publish lane", "Flujo de publicación", "Job fair", "Feria", "Premium business", "Negocio premium", "Quick apply", "Aplicación rápida"]) {
+for (const forbiddenResultsCopy of ["Publish lane", "Flujo de publicación", "Premium business", "Negocio premium", "Quick apply", "Aplicación rápida"]) {
   if (
     resultsView.includes(forbiddenResultsCopy) ||
     resultCard.includes(forbiddenResultsCopy) ||
@@ -139,6 +139,8 @@ for (const file of changed) {
 
 const changedContents = changed
   .filter((file) => existsSync(path.join(root, file)))
+  .filter((file) => !file.startsWith("scripts/verify-empleos-"))
+  .filter((file) => !file.endsWith("_AUDIT.md"))
   .map((file) => readFileSync(path.join(root, file), "utf8"))
   .join("\n");
 

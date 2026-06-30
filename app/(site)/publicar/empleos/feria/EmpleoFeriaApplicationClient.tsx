@@ -21,7 +21,6 @@ import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/
 import { hydrateFeriaDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosFeriaPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
-import { EMPLEOS_STANDARD_CITY } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { emptyEmpleosFeriaDraft, type EmpleosFeriaDraft } from "@/app/publicar/empleos/shared/types/empleosFeriaDraft";
@@ -29,7 +28,6 @@ import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/sh
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
-const INPUT_CITY_LOCKED = `${INPUT} cursor-not-allowed bg-black/[0.04]`;
 
 const MODALITIES: { value: JobFairModality; es: string; en: string }[] = [
   { value: "presencial", es: "Presencial", en: "In person" },
@@ -115,6 +113,52 @@ export default function EmpleoFeriaApplicationClient() {
           alt: "Flyer alt text",
         };
 
+  const finalStepCopy =
+    lang === "es"
+      ? {
+          ...copy.finalStep,
+          title: "Revisión final",
+          intro: "Revisa tu feria antes de publicar. La publicación de ferias de empleo es gratis en este flujo.",
+          sessionDraftLine: "Gratis. No se requiere Stripe ni pago para publicar una feria de empleo.",
+          publishCta: "Publicar feria gratis",
+        }
+      : {
+          ...copy.finalStep,
+          title: "Final review",
+          intro: "Review your fair before publishing. Job fairs are free to post in this flow.",
+          sessionDraftLine: "Free. No Stripe or payment is required to post a job fair.",
+          publishCta: "Post free job fair",
+        };
+
+  const publishModalCopy =
+    lang === "es"
+      ? {
+          title: "Confirmar feria de empleo",
+          intro: "Esta publicación de feria es gratis. Confirma que la información del evento es real y está lista para revisión QA.",
+          checks: [
+            "Confirmo que la información del evento es verídica.",
+            "Confirmo que el flyer o imagen representa la feria de empleo.",
+            "Acepto las reglas de la comunidad Leonix Clasificados para este anuncio.",
+          ] as [string, string, string],
+          confirmCta: "Publicar feria gratis",
+          cancelCta: "Cancelar",
+          blockedHint: "Marca las tres casillas para continuar.",
+          closeOverlayAria: "Cerrar",
+        }
+      : {
+          title: "Confirm job fair",
+          intro: "This job fair post is free. Confirm the event information is real and ready for QA review.",
+          checks: [
+            "I confirm the event information is truthful.",
+            "I confirm the flyer or image represents the job fair.",
+            "I accept Leonix Clasificados community rules for this listing.",
+          ] as [string, string, string],
+          confirmCta: "Post free job fair",
+          cancelCta: "Cancel",
+          blockedHint: "Check all three boxes to continue.",
+          closeOverlayAria: "Close",
+        };
+
   if (!hydrated) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
@@ -123,8 +167,13 @@ export default function EmpleoFeriaApplicationClient() {
     <main className="min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-24 pt-24 text-[color:var(--lx-text)] sm:px-5">
       <div className="mx-auto min-w-0 max-w-3xl">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Feria de empleo" : "Job fair"}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Publicar feria de empleo" : "Post a job fair"}</h1>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{copy.applicationPage.feriaSubtitle}</p>
+          <p className="mt-3 rounded-xl border border-[#2E7D4A]/25 bg-[#E8F5EE] px-3 py-2 text-sm font-semibold text-[#1E4D33]">
+            {lang === "es"
+              ? "Gratis. Comparte una feria, reclutamiento comunitario o evento de contratación."
+              : "Free. Share a hiring fair, community recruiting event, or hiring event."}
+          </p>
         </header>
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
@@ -151,14 +200,13 @@ export default function EmpleoFeriaApplicationClient() {
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
                 <input
-                  readOnly
-                  className={INPUT_CITY_LOCKED}
-                  value={EMPLEOS_STANDARD_CITY}
-                  aria-readonly="true"
-                  title={lang === "es" ? "Región estandarizada" : "Standardized region"}
+                  className={INPUT}
+                  value={state.city}
+                  onChange={(e) => patch({ city: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. Modesto" : "e.g. Modesto"}
                 />
                 <p className="mt-0.5 text-[11px] leading-snug text-[color:var(--lx-muted)]">
-                  {lang === "es" ? "NorCal — región fija para filtros Leonix." : "NorCal — fixed region for Leonix filters."}
+                  {lang === "es" ? "Ciudad pública del evento; las sugerencias regionales no limitan tu entrada." : "Public event city; regional suggestions do not limit your entry."}
                 </p>
               </label>
               <label className="block text-sm">
@@ -193,7 +241,7 @@ export default function EmpleoFeriaApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "3. Detalles (filtros)" : "3. Details (filters)"}>
+          <EmpleosSectionCard title={lang === "es" ? "3. Detalles del evento" : "3. Event details"}>
             <label className="block text-sm">
               <span className="font-semibold">{lang === "es" ? "Modalidad" : "Modality"}</span>
               <select
@@ -222,7 +270,7 @@ export default function EmpleoFeriaApplicationClient() {
               <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Enfoque de industria" : "Industry focus"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.industryFocus} onChange={(e) => patch({ industryFocus: e.target.value })} />
             </label>
-            <p className="text-xs text-[color:var(--lx-muted)]">{lang === "es" ? "Tipo de evento: feria de empleo (fijo en el anuncio)." : "Event type: job fair (fixed)."}</p>
+            <p className="text-xs text-[color:var(--lx-muted)]">{lang === "es" ? "Tipo de publicación: feria de empleo gratuita." : "Post type: free job fair."}</p>
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={lang === "es" ? "4. Contacto / CTA" : "4. Contact / CTA"}>
@@ -243,7 +291,7 @@ export default function EmpleoFeriaApplicationClient() {
               <input className={INPUT} type="email" value={state.contactEmail} onChange={(e) => patch({ contactEmail: e.target.value })} />
             </label>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Etiqueta CTA (reservado)" : "CTA label (reserved)"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Etiqueta del botón de registro" : "Registration button label"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.ctaLabel} onChange={(e) => patch({ ctaLabel: e.target.value })} />
             </label>
           </EmpleosSectionCard>
@@ -273,7 +321,7 @@ export default function EmpleoFeriaApplicationClient() {
         </div>
 
         <EmpleosApplicationFinalStep
-          copy={copy.finalStep}
+          copy={finalStepCopy}
           previewDisabled={previewDisabled}
           onVistaPrevia={goPreview}
           onPublicar={() => {
@@ -283,7 +331,7 @@ export default function EmpleoFeriaApplicationClient() {
           onDelete={handleDeleteApplication}
           stagedSuccessText={stagedNotice ? copy.stagedSuccess : null}
           publishGateBlockedHint={previewDisabled ? copy.publishBlocked : null}
-          saveDraftCta={copy.finalStep.saveDraftCta ?? null}
+          saveDraftCta={null}
           onSaveDraft={() => {
             void (async () => {
               const g = gateEmpleosFeriaPreview(state, lang);
@@ -353,13 +401,13 @@ export default function EmpleoFeriaApplicationClient() {
             router.refresh();
           })();
         }}
-        title={copy.publishModal.title}
-        intro={copy.publishModal.intro}
-        checks={copy.publishModal.checks}
-        confirmCta={copy.publishModal.confirmCta}
-        cancelCta={copy.publishModal.cancelCta}
-        blockedHint={copy.publishModal.blockedHint}
-        closeOverlayAria={copy.publishModal.closeOverlayAria}
+        title={publishModalCopy.title}
+        intro={publishModalCopy.intro}
+        checks={publishModalCopy.checks}
+        confirmCta={publishModalCopy.confirmCta}
+        cancelCta={publishModalCopy.cancelCta}
+        blockedHint={publishModalCopy.blockedHint}
+        closeOverlayAria={publishModalCopy.closeOverlayAria}
       />
     </main>
   );

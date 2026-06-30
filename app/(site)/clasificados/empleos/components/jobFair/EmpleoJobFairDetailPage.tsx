@@ -42,6 +42,7 @@ const COPY = {
     verFlyer: "Ver flyer",
     contactOrganizer: "Sitio del organizador",
     registerCta: "Registro / reserva",
+    freeBadge: "Gratis",
   },
   en: {
     breadcrumbHub: "Classifieds",
@@ -53,6 +54,7 @@ const COPY = {
     verFlyer: "View flyer",
     contactOrganizer: "Organizer website",
     registerCta: "Register / reserve",
+    freeBadge: "Free",
   },
 } as const;
 
@@ -149,6 +151,7 @@ export function EmpleoJobFairDetailPage({
               organizerUrl={data.organizerUrl?.trim() || undefined}
               organizedByLabel={t.organizedBy}
               filterRegionFootnote={data.filterRegionFootnote}
+              freeLabel={data.freeEntry ? t.freeBadge : undefined}
             />
           </div>
           <div className="lg:col-span-5">

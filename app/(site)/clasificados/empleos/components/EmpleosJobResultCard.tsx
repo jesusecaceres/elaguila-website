@@ -43,6 +43,8 @@ function jobTypeEs(t: EmpleosJobRecord["jobType"]) {
 export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRibbon = false }: Props) {
   const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
   const locationLine = empleosJobRecordListLocationLine(job);
+  const isJobFair = job.publicationLane === "feria";
+  const fairDateLine = [job.feriaDateLine, job.feriaTimeLine].filter(Boolean).join(" · ");
   const onResultNavigate = () => {
     if (!isLiveListingId(job.id)) return;
     trackEmpleosResultCardClick({ id: job.id, slug: job.slug });
@@ -85,6 +87,11 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
             {lang === "es" ? "Reciente" : "Recent"}
           </span>
         ) : null}
+        {isJobFair ? (
+          <span className="absolute right-2 top-2 rounded-full border border-emerald-200/90 bg-[#E8F5EE]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534] shadow-sm">
+            {lang === "es" ? "Feria gratis" : "Free fair"}
+          </span>
+        ) : null}
       </Link>
 
       <div className={`flex min-w-0 flex-1 flex-col p-4 sm:p-5 ${isWide ? "" : "sm:py-5 sm:pr-5"}`}>
@@ -93,15 +100,28 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
             <h2 className={`font-bold leading-snug text-[#2A2826] group-hover:underline ${isWide ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"}`}>{job.title}</h2>
           </Link>
         </div>
-        <p className="mt-1 text-sm font-semibold text-[#4F6B82]">{job.company}</p>
+        <p className="mt-1 text-sm font-semibold text-[#4F6B82]">
+          {isJobFair ? (lang === "es" ? `Organiza: ${job.company}` : `Organizer: ${job.company}`) : job.company}
+        </p>
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#4A4744]">
           <span>{locationLine}</span>
-          <span aria-hidden>·</span>
-          <span>{lang === "es" ? modalityEs(job.modality) : job.modality}</span>
-          <span aria-hidden>·</span>
-          <span>{lang === "es" ? jobTypeEs(job.jobType) : job.jobType}</span>
+          {isJobFair && fairDateLine ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>{fairDateLine}</span>
+            </>
+          ) : (
+            <>
+              <span aria-hidden>·</span>
+              <span>{lang === "es" ? modalityEs(job.modality) : job.modality}</span>
+              <span aria-hidden>·</span>
+              <span>{lang === "es" ? jobTypeEs(job.jobType) : job.jobType}</span>
+            </>
+          )}
         </div>
-        <p className="mt-2 text-base font-bold text-[#8A5A18]">{job.salaryLabel}</p>
+        <p className={`mt-2 text-base font-bold ${isJobFair ? "text-[#1E4D33]" : "text-[#8A5A18]"}`}>
+          {isJobFair ? (job.freeEntry ? (lang === "es" ? "Entrada gratuita" : "Free entry") : job.salaryLabel) : job.salaryLabel}
+        </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {job.verifiedEmployer ? (
             <span className={EMPLEOS_BADGE_VERIFIED}>{lang === "es" ? "Empleador verificado" : "Verified employer"}</span>
@@ -110,7 +130,7 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
         <p className="mt-2 line-clamp-2 text-sm text-[#5C564E]">{job.summary}</p>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <Link href={detailHref} onClick={onResultNavigate} className={`${EMPLEOS_CTA_PRIMARY} min-w-[7.5rem] px-4`}>
-            {lang === "es" ? "Ver vacante" : "View job"}
+            {isJobFair ? (lang === "es" ? "Ver feria" : "View fair") : lang === "es" ? "Ver vacante" : "View job"}
           </Link>
         </div>
       </div>
