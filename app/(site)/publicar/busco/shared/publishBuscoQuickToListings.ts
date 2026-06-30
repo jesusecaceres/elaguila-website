@@ -25,22 +25,60 @@ function resolveContactPhone(d: BuscoQuickDraft): string | null {
 
 function buildBuscoDetailPairs(d: BuscoQuickDraft): { label: string; value: string }[] {
   const phoneDig = digitsOnly(d.phone);
+  const whatsappDig = digitsOnly(d.whatsapp);
+  const smsDig = digitsOnly(d.smsPhone);
   const pairs: { label: string; value: string }[] = [
     { label: "Leonix:buscoLane", value: "quick" },
     { label: "Leonix:buscoType", value: d.buscoType.trim() },
   ];
   const custom = d.buscoTypeCustom.trim();
   if (custom) pairs.push({ label: "Leonix:buscoTypeCustom", value: custom });
+  // Location
+  const state = d.state.trim();
+  if (state) pairs.push({ label: "Leonix:state", value: state });
+  const country = d.country.trim();
+  if (country) pairs.push({ label: "Leonix:buscoCountry", value: country });
+  const zip = d.zip.trim();
+  if (zip) pairs.push({ label: "Leonix:zip", value: zip });
   const zone = d.zone.trim();
   if (zone) pairs.push({ label: "Leonix:buscoZone", value: zone });
+  // Budget + urgency
   const budget = d.budget.trim();
   if (budget) pairs.push({ label: "Leonix:buscoBudget", value: budget });
+  if (d.urgency && d.urgency !== "normal") {
+    pairs.push({ label: "Leonix:buscoUrgency", value: d.urgency });
+  }
+  // Phone / WhatsApp / SMS
   if (phoneDig.length >= 10) {
     pairs.push({ label: "Leonix:buscoContactPhoneAvailable", value: "1" });
     pairs.push({ label: "Leonix:phoneDigits", value: phoneDig });
-    pairs.push({ label: "Leonix:whatsappDigits", value: phoneDig });
+  }
+  // WhatsApp: use explicit whatsapp field if filled, else fall back to phone
+  const effectiveWaDig = whatsappDig.length >= 10 ? whatsappDig : phoneDig;
+  if (effectiveWaDig.length >= 10) {
+    pairs.push({ label: "Leonix:whatsappDigits", value: effectiveWaDig });
+  }
+  if (smsDig.length >= 10) {
+    pairs.push({ label: "Leonix:smsPhone", value: smsDig });
   }
   if (d.email.trim()) pairs.push({ label: "Leonix:buscoContactEmailAvailable", value: "1" });
+  // Preferred contact
+  if (d.preferredContact) {
+    pairs.push({ label: "Leonix:buscoPreferredContact", value: d.preferredContact });
+  }
+  // Optional socials
+  const fb = d.facebook.trim();
+  if (fb) pairs.push({ label: "Leonix:buscoFacebook", value: fb });
+  const ig = d.instagram.trim();
+  if (ig) pairs.push({ label: "Leonix:buscoInstagram", value: ig });
+  const tt = d.tiktok.trim();
+  if (tt) pairs.push({ label: "Leonix:buscoTiktok", value: tt });
+  const ocLabel = d.otherContactLabel.trim();
+  const ocUrl = d.otherContactUrl.trim();
+  if (ocUrl) {
+    if (ocLabel) pairs.push({ label: "Leonix:buscoOtherContactLabel", value: ocLabel });
+    pairs.push({ label: "Leonix:buscoOtherContactUrl", value: ocUrl });
+  }
   return pairs;
 }
 

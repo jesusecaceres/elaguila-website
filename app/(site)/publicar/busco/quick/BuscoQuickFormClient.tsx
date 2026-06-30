@@ -16,6 +16,7 @@ import {
   flushCommunityDraftToSession,
   useCommunityDraftSession,
 } from "@/app/publicar/community/shared/hooks/useCommunityDraftSession";
+import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 import { buscoFormCopy } from "../shared/buscoFormCopy";
 import { buscoHandoffPreviewUrl } from "../shared/buscoPublishRoutes";
@@ -25,9 +26,9 @@ import { BUSCO_QUICK_DRAFT_KEY } from "../shared/buscoSessionKeys";
 import { BUSCO_TYPE_OPTIONS } from "../shared/buscoTaxonomy";
 
 const INPUT =
-  "mt-1 min-h-[44px] w-full rounded-lg border border-[#B8C8EA]/40 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#6E8EB8]/70 focus:ring-2 focus:ring-[#B8C8EA]/30";
+  "mt-1 min-h-[44px] w-full rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm text-[#2A2826] outline-none focus:border-[#7B2D42]/50 focus:ring-2 focus:ring-[#C9B46A]/20";
 const TEXTAREA =
-  "mt-1 min-h-[96px] w-full rounded-lg border border-[#B8C8EA]/40 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#6E8EB8]/70 focus:ring-2 focus:ring-[#B8C8EA]/30";
+  "mt-1 min-h-[96px] w-full rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm text-[#2A2826] outline-none focus:border-[#7B2D42]/50 focus:ring-2 focus:ring-[#C9B46A]/20";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
@@ -64,9 +65,7 @@ export default function BuscoQuickFormClient() {
         return;
       }
       if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
-        setImageError(
-          lang === "es" ? "Usa JPG, PNG o WebP." : "Use JPG, PNG, or WebP.",
-        );
+        setImageError(lang === "es" ? "Usa JPG, PNG o WebP." : "Use JPG, PNG, or WebP.");
         return;
       }
       if (file.size > MAX_IMAGE_BYTES) {
@@ -89,14 +88,14 @@ export default function BuscoQuickFormClient() {
   if (!hydrated) {
     return (
       <BuscoShellLayout lang={lang}>
-        <div className="min-h-[40vh] animate-pulse rounded-xl bg-[#EDE8DF]/60" aria-busy="true" />
+        <div className="min-h-[40vh] animate-pulse rounded-xl bg-[#FCF9F2]" aria-busy="true" />
       </BuscoShellLayout>
     );
   }
 
   return (
     <BuscoShellLayout lang={lang}>
-      <p className="text-sm text-[#5C5346]/90">{copy.pageSubtitle}</p>
+      <p className="text-sm text-[#6B5E4E]/90">{copy.pageSubtitle}</p>
 
       <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 
@@ -107,6 +106,7 @@ export default function BuscoQuickFormClient() {
           goPreview();
         }}
       >
+        {/* ── 1. Tu solicitud ────────────────────────────────── */}
         <EmpleosSectionCard title={copy.sections.main}>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
@@ -171,7 +171,11 @@ export default function BuscoQuickFormClient() {
           </label>
         </EmpleosSectionCard>
 
+        {/* ── 2. Ubicación aproximada ────────────────────────── */}
         <EmpleosSectionCard title={copy.sections.location}>
+          <p className="rounded-lg border border-[#C9B46A]/30 bg-[#FFFDF5] px-3 py-2 text-xs text-[#6B5E4E]">
+            {copy.locationPrivacyWarning}
+          </p>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
               {copy.fields.city}
@@ -185,17 +189,62 @@ export default function BuscoQuickFormClient() {
               className={INPUT}
             />
           </label>
-          <label className="block text-sm">
-            <EmpleosFieldLabel lang={lang} optional>
-              {copy.fields.zone}
-            </EmpleosFieldLabel>
-            <input
-              className={INPUT}
-              value={state.zone}
-              onChange={(e) => patch({ zone: e.target.value })}
-              maxLength={120}
-            />
-          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.state}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                value={state.state}
+                onChange={(e) => patch({ state: e.target.value })}
+                maxLength={80}
+                placeholder={lang === "es" ? "Ej. California" : "e.g. California"}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.country}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                value={state.country}
+                onChange={(e) => patch({ country: e.target.value })}
+                maxLength={80}
+                placeholder={lang === "es" ? "Ej. Estados Unidos" : "e.g. United States"}
+              />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.zip}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                value={state.zip}
+                onChange={(e) => patch({ zip: e.target.value })}
+                maxLength={20}
+                placeholder="95382"
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.zone}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                value={state.zone}
+                onChange={(e) => patch({ zone: e.target.value })}
+                maxLength={120}
+                placeholder={lang === "es" ? "Ej. Barrio norte" : "e.g. North side"}
+              />
+            </label>
+          </div>
+        </EmpleosSectionCard>
+
+        {/* ── 3. Presupuesto y urgencia ──────────────────────── */}
+        <EmpleosSectionCard title={copy.sections.budgetUrgency}>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} optional>
               {copy.fields.budget}
@@ -205,43 +254,184 @@ export default function BuscoQuickFormClient() {
               value={state.budget}
               onChange={(e) => patch({ budget: e.target.value })}
               maxLength={80}
-              placeholder={lang === "es" ? "Ej. $50–100" : "E.g. $50–100"}
+              placeholder={lang === "es" ? "Ej. $50–100, Gratis, Intercambio" : "e.g. $50–100, Free, Trade"}
             />
+          </label>
+          <label className="block text-sm">
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.urgency}
+            </EmpleosFieldLabel>
+            <select
+              className={INPUT}
+              value={state.urgency}
+              onChange={(e) => patch({ urgency: e.target.value as typeof state.urgency })}
+            >
+              <option value="normal">{copy.urgencyOptions.normal}</option>
+              <option value="pronto">{copy.urgencyOptions.pronto}</option>
+              <option value="urgente">{copy.urgencyOptions.urgente}</option>
+            </select>
           </label>
         </EmpleosSectionCard>
 
+        {/* ── 4. Contacto ───────────────────────────────────── */}
         <EmpleosSectionCard title={copy.sections.contact}>
-          <p className="text-xs text-[#5C5346]/85">{copy.contactHint}</p>
+          <p className="text-xs text-[#6B5E4E]/85">{copy.contactHint}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.phone}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={state.phone}
+                onChange={(e) => patch({ phone: formatPhoneInputDisplay(e.target.value) })}
+                maxLength={14}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.whatsapp}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="tel"
+                inputMode="tel"
+                value={state.whatsapp}
+                onChange={(e) => patch({ whatsapp: formatPhoneInputDisplay(e.target.value) })}
+                maxLength={14}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.smsPhone}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="tel"
+                inputMode="tel"
+                value={state.smsPhone}
+                onChange={(e) => patch({ smsPhone: formatPhoneInputDisplay(e.target.value) })}
+                maxLength={14}
+                placeholder={lang === "es" ? "Si es diferente al teléfono" : "If different from call phone"}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.email}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={state.email}
+                onChange={(e) => patch({ email: e.target.value })}
+              />
+            </label>
+          </div>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} optional>
-              {copy.fields.phone}
+              {copy.fields.preferredContact}
             </EmpleosFieldLabel>
-            <input
+            <select
               className={INPUT}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={state.phone}
-              onChange={(e) => patch({ phone: e.target.value })}
-            />
-          </label>
-          <label className="block text-sm">
-            <EmpleosFieldLabel lang={lang} optional>
-              {copy.fields.email}
-            </EmpleosFieldLabel>
-            <input
-              className={INPUT}
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={state.email}
-              onChange={(e) => patch({ email: e.target.value })}
-            />
+              value={state.preferredContact}
+              onChange={(e) => patch({ preferredContact: e.target.value as typeof state.preferredContact })}
+            >
+              <option value="telefono">{copy.preferredContactOptions.telefono}</option>
+              <option value="whatsapp">{copy.preferredContactOptions.whatsapp}</option>
+              <option value="mensaje">{copy.preferredContactOptions.mensaje}</option>
+              <option value="correo">{copy.preferredContactOptions.correo}</option>
+            </select>
           </label>
         </EmpleosSectionCard>
 
+        {/* ── 5. Redes o enlace opcional ─────────────────────── */}
+        <EmpleosSectionCard title={copy.sections.socials}>
+          <p className="text-xs text-[#6B5E4E]/85">{copy.socialsIntro}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.facebook}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="text"
+                inputMode="url"
+                value={state.facebook}
+                onChange={(e) => patch({ facebook: e.target.value })}
+                placeholder="facebook.com/tupagina"
+                autoComplete="off"
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.instagram}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="text"
+                inputMode="url"
+                value={state.instagram}
+                onChange={(e) => patch({ instagram: e.target.value })}
+                placeholder="instagram.com/tuperfil"
+                autoComplete="off"
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.tiktok}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="text"
+                inputMode="url"
+                value={state.tiktok}
+                onChange={(e) => patch({ tiktok: e.target.value })}
+                placeholder="tiktok.com/@tuusuario"
+                autoComplete="off"
+              />
+            </label>
+          </div>
+          <p className="text-xs text-[#6B5E4E]/70">{copy.otherLinkHint}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.otherContactLabel}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="text"
+                value={state.otherContactLabel}
+                onChange={(e) => patch({ otherContactLabel: e.target.value })}
+                maxLength={60}
+                placeholder={lang === "es" ? "Ej. Telegram" : "e.g. Telegram"}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.otherContactUrl}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="text"
+                inputMode="url"
+                value={state.otherContactUrl}
+                onChange={(e) => patch({ otherContactUrl: e.target.value })}
+                placeholder="https://..."
+                autoComplete="off"
+              />
+            </label>
+          </div>
+        </EmpleosSectionCard>
+
+        {/* ── 6. Imagen de referencia ────────────────────────── */}
         <EmpleosSectionCard title={copy.sections.media}>
-          <p className="text-xs text-[#5C5346]/85">{copy.imageHint}</p>
+          <p className="text-xs text-[#6B5E4E]/85">{copy.imageHelperText}</p>
+          <p className="text-xs text-[#6B5E4E]/70">{copy.imageHint}</p>
           <input
             ref={fileRef}
             type="file"
@@ -258,7 +448,7 @@ export default function BuscoQuickFormClient() {
               <img
                 src={state.imageDataUrl}
                 alt=""
-                className="max-h-48 w-full rounded-xl border border-[#B8C8EA]/35 object-cover"
+                className="max-h-48 w-full rounded-xl border border-[#C9B46A]/35 object-cover"
               />
               <button
                 type="button"
@@ -266,7 +456,7 @@ export default function BuscoQuickFormClient() {
                   patch({ imageDataUrl: "", imageFileName: "" });
                   setImageError(null);
                 }}
-                className="mt-2 min-h-[40px] rounded-lg border border-[#B8C8EA]/45 px-3 py-2 text-sm font-semibold text-[#3d5a73]"
+                className="mt-2 min-h-[40px] rounded-lg border border-[#C9B46A]/40 px-3 py-2 text-sm font-semibold text-[#7B2D42]"
               >
                 {copy.imageRemove}
               </button>
@@ -275,18 +465,18 @@ export default function BuscoQuickFormClient() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-dashed border-[#B8C8EA]/55 bg-[#F8FAFF] px-4 py-3 text-sm font-semibold text-[#3d5a73]"
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-dashed border-[#C9B46A]/50 bg-[#FCF9F2] px-4 py-3 text-sm font-semibold text-[#7B2D42]"
             >
               {copy.fields.image}
             </button>
           )}
-          {imageError ? <p className="text-sm text-red-700">{imageError}</p> : null}
+          {imageError ? <p className="mt-1 text-sm text-red-700">{imageError}</p> : null}
         </EmpleosSectionCard>
 
         <button
           type="submit"
           disabled={previewDisabled}
-          className="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-bold text-[#F5F5F5] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
+          className="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-[#7B2D42] px-5 py-3 text-sm font-bold text-[#FCF9F2] shadow-sm transition hover:bg-[#9B3A52] disabled:cursor-not-allowed disabled:opacity-45"
         >
           {copy.previewCta}
         </button>
@@ -294,4 +484,3 @@ export default function BuscoQuickFormClient() {
     </BuscoShellLayout>
   );
 }
-

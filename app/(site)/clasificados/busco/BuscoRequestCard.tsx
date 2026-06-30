@@ -11,6 +11,11 @@ const LISTING_IMAGE_FALLBACK = "/logo.png";
 
 const CTA = { es: "Ver solicitud", en: "View request" } as const;
 
+const URGENCY_LABEL: Record<string, { es: string; en: string }> = {
+  pronto: { es: "Pronto", en: "Soon" },
+  urgente: { es: "Urgente", en: "Urgent" },
+};
+
 type Props = {
   model: BuscoRequestCardModel;
   lang: Lang;
@@ -88,11 +93,18 @@ function BuscoCardLayout({
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-4 sm:pl-3">
         <div className="flex flex-wrap items-start gap-2">
-          <span className="inline-flex max-w-full truncate rounded-full bg-[#D7E3F7] px-2.5 py-0.5 text-[11px] font-semibold text-[#1E3A5F]">
+          <span className="inline-flex max-w-full truncate rounded-full bg-[#F0EBE0] px-2.5 py-0.5 text-[11px] font-semibold text-[#5C3D2E]">
             {model.typeBadge}
           </span>
+          {model.urgency && URGENCY_LABEL[model.urgency] ? (
+            <span className={`inline-flex max-w-full truncate rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+              model.urgency === "urgente" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+            }`}>
+              {lang === "es" ? URGENCY_LABEL[model.urgency].es : URGENCY_LABEL[model.urgency].en}
+            </span>
+          ) : null}
           {model.contactChip ? (
-            <span className="inline-flex max-w-full truncate rounded-full border border-[#B8C8EA]/45 bg-[#F8FAFF] px-2.5 py-0.5 text-[10px] font-semibold text-[#3d5a73]">
+            <span className="inline-flex max-w-full truncate rounded-full border border-[#C9B46A]/35 bg-[#FCF9F2] px-2.5 py-0.5 text-[10px] font-semibold text-[#6B5E4E]">
               {model.contactChip}
             </span>
           ) : null}
