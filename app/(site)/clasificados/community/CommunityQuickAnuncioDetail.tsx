@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -27,6 +25,29 @@ import {
   parseAccessibilityKeysCsv,
   parseWeeklyScheduleJson,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
+import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
+
+/**
+ * Gate C: Format an admission/price string with a $ prefix when it starts with
+ * a numeric amount and does not already have a $. Preserves free/donation text.
+ *
+ * Examples:
+ *   "5"           → "$5"
+ *   "5.00"        → "$5.00"
+ *   "5.00 por persona" → "$5.00 por persona"
+ *   "$5.00"       → "$5.00"   (no double-prefix)
+ *   "Gratis"      → "Gratis"
+ *   "Free"        → "Free"
+ */
+export function formatAdmissionWithDollar(raw: string): string {
+  const s = raw.trim();
+  if (!s) return s;
+  if (s.startsWith("$")) return s;
+  const FREE_WORDS = /^(gratis|free|donaci[oó]n|donation|tbd|por confirmar)/i;
+  if (FREE_WORDS.test(s)) return s;
+  if (/^\d/.test(s)) return `$${s}`;
+  return s;
+}
 
 type Props = {
   lang: Lang;
@@ -38,6 +59,8 @@ type Props = {
   priceLabel: string;
   listingId?: string;
   ownerUserId?: string | null;
+  /** contact_email from DB row (not stored in detail pairs). */
+  contactEmail?: string | null;
 };
 
 function chip(text: string) {
@@ -58,6 +81,7 @@ export function CommunityQuickAnuncioDetail({
   priceLabel,
   listingId,
   ownerUserId,
+  contactEmail,
 }: Props) {
   const L = lang === "es";
   const pairs = detailPairsToMap(detailPairs);
@@ -130,7 +154,7 @@ export function CommunityQuickAnuncioDetail({
       });
     }
     const adm = pairs["Leonix:admissionNote"] ?? "";
-    if (adm.trim()) rows.push({ label: L ? "Admisión" : "Admission", value: adm });
+    if (adm.trim()) rows.push({ label: L ? "Admisión" : "Admission", value: formatAdmissionWithDollar(adm) });
     const accRaw = pairs["Leonix:accessibility"] ?? "";
     const accKeys = parseAccessibilityKeysCsv(accRaw);
     if (accKeys.length) {
@@ -158,30 +182,36 @@ export function CommunityQuickAnuncioDetail({
   }
 
   rows.push({ label: L ? "Ciudad" : "City", value: city || "—" });
-  if (state || zip) {
-    rows.push({
-      label: L ? "Estado / CP" : "State / ZIP",
-      value: [state, zip].filter(Boolean).join(" ") || "—",
-    });
-  }
-  if (country.trim()) rows.push({ label: L ? "País" : "Country", value: country });
-  if (venue.trim()) rows.push({ label: L ? "Lugar" : "Venue", value: venue });
-  if (addr.trim()) rows.push({ label: L ? "Dirección" : "Address", value: addr });
-  if (addr2.trim()) rows.push({ label: L ? "Dirección 2" : "Address 2", value: addr2 });
 
-  const socials: { label: string; href: string }[] = [];
-  const fb = pairs["Leonix:socialFacebook"];
-  if (fb) socials.push({ label: "Facebook", href: fb });
-  const ig = pairs["Leonix:socialInstagram"];
-  if (ig) socials.push({ label: "Instagram", href: ig });
-  const tt = pairs["Leonix:socialTiktok"];
-  if (tt) socials.push({ label: "TikTok", href: tt });
-  const yt = pairs["Leonix:socialYoutube"];
-  if (yt) socials.push({ label: "YouTube", href: yt });
-  const xt = pairs["Leonix:socialXTwitter"];
-  if (xt) socials.push({ label: "X", href: xt });
-  const li = pairs["Leonix:socialLinkedin"];
-  if (li) socials.push({ label: "LinkedIn", href: li });
+  /**
+   * Build a minimal Draft-compatible object for CommunityContactCanvas.
+   * Phone/WA/SMS are stored as 10-digit strings in detail pairs — pass through
+   * directly since usPhoneDigits10 inside the canvas validates length.
+   */
+  const contactDraft = {
+    kind: category as "clases" | "comunidad",
+    organizer: org,
+    phone: pairs["Leonix:phoneDigits"] ?? "",
+    whatsapp: pairs["Leonix:whatsappDigits"] ?? "",
+    smsPhone: pairs["Leonix:smsPhone"] ?? "",
+    email: contactEmail?.trim() ?? "",
+    website: web,
+    socialLinks: {
+      facebook: pairs["Leonix:socialFacebook"] ?? "",
+      instagram: pairs["Leonix:socialInstagram"] ?? "",
+      tiktok: pairs["Leonix:socialTiktok"] ?? "",
+      youtube: pairs["Leonix:socialYoutube"] ?? "",
+      xTwitter: pairs["Leonix:socialXTwitter"] ?? "",
+      linkedin: pairs["Leonix:socialLinkedin"] ?? "",
+    },
+    venue: venue,
+    addressLine1: addr,
+    addressLine2: addr2,
+    publicCity: city,
+    state: state,
+    zip: zip,
+    country: country,
+  } as const;
 
   const shareUrl =
     typeof window !== "undefined" && listingId
@@ -210,6 +240,10 @@ export function CommunityQuickAnuncioDetail({
       /* ignore */
     }
   };
+
+  /** Cast to satisfy CommunityContactCanvas Draft union — shape is compatible. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const canvasDraft = contactDraft as any;
 
   return (
     <div className="mx-auto mt-6 w-full max-w-4xl rounded-2xl border border-[#C9B46A]/55 bg-[#FCF9F2] p-6 ring-1 ring-[#C9B46A]/25 sm:p-8">
@@ -284,28 +318,13 @@ export function CommunityQuickAnuncioDetail({
           </div>
         ))}
       </dl>
-      {web ? (
-        <p className="mt-4 text-sm">
-          <span className="font-semibold text-[#111111]">{L ? "Sitio web" : "Website"}: </span>
-          <Link href={web} className="text-[#2563EB] underline break-all" target="_blank" rel="noopener noreferrer">
-            {web}
-          </Link>
-        </p>
-      ) : null}
-      {socials.length ? (
-        <div className="mt-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5C564E]">{L ? "Redes" : "Social"}</p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {socials.map((s) => (
-              <li key={s.label}>
-                <Link href={s.href} className="text-sm font-semibold text-[#2563EB] underline" target="_blank" rel="noopener noreferrer">
-                  {s.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+
+      {/* Organizer Business Hub — contact, social, location, trust cue */}
+      <CommunityContactCanvas
+        draft={canvasDraft}
+        lang={lang}
+        sectionHtmlId="community-legacy-contact-hub"
+      />
     </div>
   );
 }
