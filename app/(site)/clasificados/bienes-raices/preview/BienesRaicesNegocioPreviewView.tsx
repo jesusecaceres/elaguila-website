@@ -12,6 +12,7 @@ import {
   leonixSlideIndexForVideoSlot,
 } from "@/app/clasificados/lib/leonixGallerySlides";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
+import { BrPreviewVideoModal } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/BrPreviewVideoModal";
 import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
 import { LeonixPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
@@ -715,6 +716,8 @@ export function BienesRaicesNegocioPreviewView({
   });
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [videoModalIndex, setVideoModalIndex] = useState(0);
 
   const openGallery = (index: number) => {
     setGalleryIndex(index);
@@ -852,17 +855,19 @@ export function BienesRaicesNegocioPreviewView({
           </div>
           {(vm.media?.externalVideoLinks?.length ?? 0) > 0 ? (
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {(vm.media.externalVideoLinks ?? []).map((link) => (
-                <a
+              {(vm.media.externalVideoLinks ?? []).map((link, index) => (
+                <button
                   key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl border p-3 text-sm font-bold transition hover:bg-[#FFF6E7]"
+                  type="button"
+                  onClick={() => {
+                    setVideoModalIndex(index);
+                    setVideoModalOpen(true);
+                  }}
+                  className="rounded-xl border p-3 text-left text-sm font-bold transition hover:bg-[#FFF6E7]"
                   style={{ borderColor: BORDER, background: CREAM_CARD, color: CHARCOAL_DEEP }}
                 >
                   {link.label}
-                </a>
+                </button>
               ))}
             </div>
           ) : null}
@@ -1249,6 +1254,25 @@ export function BienesRaicesNegocioPreviewView({
         initialIndex={galleryIndex}
         onClose={() => setGalleryOpen(false)}
         lang={locale}
+      />
+      <BrPreviewVideoModal
+        open={videoModalOpen}
+        initialIndex={videoModalIndex}
+        onClose={() => setVideoModalOpen(false)}
+        videos={(vm.media?.externalVideoLinks ?? []).map((l) => l.href)}
+        lang={locale}
+        labels={{
+          close: locale === "en" ? "Close" : "Cerrar",
+          prev: locale === "en" ? "Previous" : "Anterior",
+          next: locale === "en" ? "Next" : "Siguiente",
+          video: locale === "en" ? "Video" : "Video",
+          count: (cur, total) => (locale === "en" ? `Video · ${cur} / ${total}` : `Video · ${cur} / ${total}`),
+          fallbackBody:
+            locale === "en"
+              ? "This video opens on the original platform."
+              : "Este video se abre en la plataforma original.",
+          openInNewTab: locale === "en" ? "Open video in a new tab" : "Abrir video en una pestaña nueva",
+        }}
       />
       {identityCta.sheet}
     </div>

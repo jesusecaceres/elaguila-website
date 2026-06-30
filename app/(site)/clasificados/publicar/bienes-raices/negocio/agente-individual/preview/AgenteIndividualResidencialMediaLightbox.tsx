@@ -6,25 +6,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FiExternalLink, FiVideo } from "react-icons/fi";
+import {
+  extractVimeoId,
+  extractYoutubeId,
+  getVideoPlatformLabel,
+  vimeoEmbedSrc,
+  youtubeEmbedSrc,
+} from "@/app/lib/clasificados/bienes-raices/brPreviewVideoEmbed";
 
 type Slide = { kind: "photo"; index: number; url: string } | { kind: "video" };
-
-function extractYoutubeId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) {
-      const id = u.pathname.replace(/^\//, "").split("/")[0];
-      return id && id.length >= 11 ? id.slice(0, 11) : null;
-    }
-    if (u.hostname.includes("youtube.com")) {
-      const v = u.searchParams.get("v");
-      return v && v.length >= 11 ? v.slice(0, 11) : null;
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
 
 function ZoomablePhoto({
   url,
@@ -79,13 +70,15 @@ function VideoSlideContent({
   videoDataUrl,
   videoExternalHref,
   openVideoTabLabel,
+  fallbackBody,
 }: {
   videoDataUrl: string | null;
   videoExternalHref: string | null;
   openVideoTabLabel: string;
+  fallbackBody: string;
 }) {
-  const playback = videoDataUrl || videoExternalHref || "";
-  if (!playback.trim()) {
+  const playback = (videoDataUrl || videoExternalHref || "").trim();
+  if (!playback) {
     return <p className="p-8 text-center text-sm text-white/70">—</p>;
   }
 
@@ -98,29 +91,63 @@ function VideoSlideContent({
     return (
       <iframe
         title="Video"
-        className="h-full min-h-[240px] w-full max-w-5xl"
-        src={`https://www.youtube-nocookie.com/embed/${yt}`}
+        className="aspect-video h-full min-h-[240px] w-full max-w-5xl"
+        src={youtubeEmbedSrc(yt)}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
       />
     );
   }
 
-  if (/\.m3u8|\.mp4(\?|$)|\.webm(\?|$)/i.test(playback) || playback.startsWith("data:video")) {
+  const vimeo = extractVimeoId(playback);
+  if (vimeo) {
+    return (
+      <iframe
+        title="Video"
+        className="aspect-video h-full min-h-[240px] w-full max-w-5xl"
+        src={vimeoEmbedSrc(vimeo)}
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+
+  if (/\.m3u8|\.mp4(\?|$)|\.webm(\?|$)/i.test(playback)) {
     return <video controls playsInline className="max-h-[78vh] w-full max-w-5xl object-contain" src={playback} />;
   }
 
+  const platform = getVideoPlatformLabel(playback);
   return (
-    <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
-      <p className="text-sm text-white/85">{openVideoTabLabel}</p>
-      <a
-        href={playback}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15"
+    <div className="flex flex-col items-center justify-center gap-4 p-6 sm:p-8">
+      <div
+        className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border px-6 py-8 text-center"
+        style={{ borderColor: "rgba(201,180,106,0.35)", background: "linear-gradient(180deg, #FFFCF7 0%, #FAF7F2 100%)" }}
       >
-        {openVideoTabLabel}
-      </a>
+        <span
+          className="flex h-14 w-14 items-center justify-center rounded-full border"
+          style={{ borderColor: "rgba(184,149,74,0.4)", background: "rgba(255,246,231,0.95)", color: "#6E5418" }}
+        >
+          <FiVideo className="h-7 w-7" aria-hidden />
+        </span>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: "#8A6F3A" }}>
+            {platform}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: "#5C5346" }}>
+            {fallbackBody}
+          </p>
+        </div>
+        <a
+          href={playback}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-sm"
+          style={{ background: "linear-gradient(180deg, #6E2B2B 0%, #5A2222 100%)" }}
+        >
+          {openVideoTabLabel}
+          <FiExternalLink className="h-4 w-4 opacity-90" aria-hidden />
+        </a>
+      </div>
     </div>
   );
 }
@@ -132,6 +159,7 @@ export function AgenteIndividualResidencialMediaLightbox({
   photoUrls,
   videoDataUrl,
   videoExternalHref,
+  photosOnly = false,
   labels,
 }: {
   open: boolean;
@@ -140,6 +168,8 @@ export function AgenteIndividualResidencialMediaLightbox({
   photoUrls: string[];
   videoDataUrl: string | null;
   videoExternalHref: string | null;
+  /** When true, gallery shows photos only (View all photos / photo tiles). */
+  photosOnly?: boolean;
   labels: {
     close: string;
     prev: string;
@@ -149,14 +179,16 @@ export function AgenteIndividualResidencialMediaLightbox({
     zoomHint: string;
     resetZoom: string;
     openVideoTab: string;
+    videoFallbackBody: string;
   };
 }) {
   const slides: Slide[] = useMemo(() => {
     const out: Slide[] = photoUrls.map((url, index) => ({ kind: "photo" as const, index, url }));
+    if (photosOnly) return out;
     const hasVideo = Boolean((videoDataUrl && videoDataUrl.trim()) || (videoExternalHref && videoExternalHref.trim()));
     if (hasVideo) out.push({ kind: "video" });
     return out;
-  }, [photoUrls, videoDataUrl, videoExternalHref]);
+  }, [photoUrls, videoDataUrl, videoExternalHref, photosOnly]);
 
   const [active, setActive] = useState(0);
 
@@ -194,7 +226,7 @@ export function AgenteIndividualResidencialMediaLightbox({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/15"
+            className="min-h-[44px] rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/15 sm:min-h-0"
           >
             {labels.close}
           </button>
@@ -210,6 +242,7 @@ export function AgenteIndividualResidencialMediaLightbox({
                   videoDataUrl={videoDataUrl}
                   videoExternalHref={videoExternalHref}
                   openVideoTabLabel={labels.openVideoTab}
+                  fallbackBody={labels.videoFallbackBody}
                 />
               </div>
             ) : null}
@@ -219,7 +252,7 @@ export function AgenteIndividualResidencialMediaLightbox({
                 <button
                   type="button"
                   onClick={() => setActive((i) => (i <= 0 ? slides.length - 1 : i - 1))}
-                  className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:left-4"
+                  className="absolute left-2 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:left-4"
                   aria-label={labels.prev}
                 >
                   ‹
@@ -227,7 +260,7 @@ export function AgenteIndividualResidencialMediaLightbox({
                 <button
                   type="button"
                   onClick={() => setActive((i) => (i >= slides.length - 1 ? 0 : i + 1))}
-                  className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:right-4"
+                  className="absolute right-2 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/15 bg-black/50 px-3 py-2 text-lg font-bold text-white hover:bg-black/70 sm:right-4"
                   aria-label={labels.next}
                 >
                   ›

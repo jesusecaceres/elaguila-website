@@ -30,6 +30,7 @@ import {
   buildPropertyDetailRows,
   buildQuickFacts,
   externalVideoUrls,
+  videoPlayableUrl,
   formatEstadoAnuncioLabel,
   formatPrecioUsd,
   formatPreviewPhoneDisplay,
@@ -43,6 +44,7 @@ import { digitsOnly } from "../application/utils/phoneMask";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { BrAgenteResContactSidebar } from "./BrAgenteResContactSidebar";
 import { AgenteIndividualResidencialMediaLightbox } from "./AgenteIndividualResidencialMediaLightbox";
+import { BrPreviewVideoModal } from "./BrPreviewVideoModal";
 import {
   hasDescription,
   hasFeatures,
@@ -97,10 +99,7 @@ const QUICK_FACT_ICON: Record<
   niveles: BiLayer,
 };
 
-function anchorPropsForHref(href: string, downloadFallback?: string | null) {
-  if (href.startsWith("data:")) {
-    return { download: downloadFallback || "file.pdf" } as const;
-  }
+function openInNewTabAnchorProps(href: string) {
   return { target: "_blank" as const, rel: "noopener noreferrer" };
 }
 
@@ -181,20 +180,47 @@ export function AgenteIndividualResidencialPreviewPage({
 
   const [mediaLightboxOpen, setMediaLightboxOpen] = useState(false);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(0);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [videoModalIndex, setVideoModalIndex] = useState(0);
 
   const photoUrlsOrdered = useMemo(() => galleryPhotoUrlsOrdered(data), [data]);
   const restPhotoIdx = useMemo(() => restPhotoIndicesAfterCover(data), [data]);
   const idxSecondaryA = restPhotoIdx[0];
   const idxSecondaryB = restPhotoIdx[1];
 
-  const openMediaAt = useCallback((idx: number) => {
+  const externalVideos = useMemo(() => {
+    const ext = externalVideoUrls(data);
+    if (ext.length) return ext;
+    const playable = videoPlayableUrl(data);
+    return playable ? [playable] : [];
+  }, [data]);
+
+  const openPhotoGallery = useCallback((idx: number) => {
     setMediaLightboxIndex(idx);
     setMediaLightboxOpen(true);
   }, []);
 
-  const hasVideoInLightbox = Boolean(g.videoDataUrl || g.videoExternalHref);
-  const videoSlideIndex = photoUrlsOrdered.length;
-  const externalVideos = externalVideoUrls(data);
+  const openVideoModalAt = useCallback((idx: number) => {
+    setVideoModalIndex(idx);
+    setVideoModalOpen(true);
+  }, []);
+
+  const videoModalLabels = useMemo(
+    () => ({
+      close: p.lightboxClose,
+      prev: p.lightboxPrev,
+      next: p.lightboxNext,
+      video: p.lightboxVideo,
+      count: (cur: number, total: number) =>
+        locale === "en" ? `Video · ${cur} / ${total}` : `Video · ${cur} / ${total}`,
+      fallbackBody:
+        locale === "en"
+          ? "This video opens on the original platform."
+          : "Este video se abre en la plataforma original.",
+      openInNewTab: p.lightboxOpenVideoTab,
+    }),
+    [locale, p],
+  );
 
   return (
     <div className="min-h-screen antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
@@ -340,7 +366,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         type="button"
                         className="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border bg-transparent p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
-                        onClick={() => openMediaAt(data.fotoPortadaIndex)}
+                        onClick={() => openPhotoGallery(data.fotoPortadaIndex)}
                         aria-label={p.galeria}
                       >
                         { }
@@ -367,7 +393,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         type="button"
                         className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg border bg-transparent p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
-                        onClick={() => openMediaAt(idxSecondaryA)}
+                        onClick={() => openPhotoGallery(idxSecondaryA)}
                         aria-label={p.foto2}
                       >
                         { }
@@ -392,7 +418,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         type="button"
                         className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg border bg-transparent p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: "0 2px 14px rgba(44,36,22,0.06)" }}
-                        onClick={() => openMediaAt(idxSecondaryB)}
+                        onClick={() => openPhotoGallery(idxSecondaryB)}
                         aria-label={p.foto3}
                       >
                         { }
@@ -417,7 +443,9 @@ export function AgenteIndividualResidencialPreviewPage({
                         type="button"
                         className="group relative block w-full overflow-hidden rounded-lg border bg-[#0f172a] p-0 text-left"
                         style={{ borderColor: BORDER, boxShadow: MEDIA_SHADOW }}
-                        onClick={() => hasVideoInLightbox && openMediaAt(videoSlideIndex)}
+                        onClick={() => {
+                          if (externalVideos.length) openVideoModalAt(0);
+                        }}
                         aria-label={p.reproducirVideo}
                       >
                         <video
@@ -439,7 +467,9 @@ export function AgenteIndividualResidencialPreviewPage({
                         type="button"
                         className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-[11px] font-bold tracking-wide transition hover:opacity-95"
                         style={{ borderColor: BORDER, background: "#1a2744", color: "#fff", boxShadow: MEDIA_SHADOW }}
-                        onClick={() => hasVideoInLightbox && openMediaAt(videoSlideIndex)}
+                        onClick={() => {
+                          if (externalVideos.length) openVideoModalAt(0);
+                        }}
                         aria-label={p.reproducirVideo}
                       >
                         <FiVideo className="h-6 w-6 opacity-90" aria-hidden />
@@ -464,10 +494,7 @@ export function AgenteIndividualResidencialPreviewPage({
                         href={g.tourOrPlan.href}
                         className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-center text-[11px] font-bold tracking-wide"
                         style={{ borderColor: BORDER, background: "#243a5e", color: "#fff", boxShadow: MEDIA_SHADOW }}
-                        {...anchorPropsForHref(
-                          g.tourOrPlan.href,
-                          g.tourOrPlan.variant === "brochure" ? "folleto.pdf" : "tour.pdf",
-                        )}
+                        {...openInNewTabAnchorProps(g.tourOrPlan.href)}
                       >
                         {g.tourOrPlan.variant === "tour" ? p.abrirTour : p.abrirPlano}
                       </a>
@@ -485,11 +512,10 @@ export function AgenteIndividualResidencialPreviewPage({
               {externalVideos.length ? (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {externalVideos.map((href, index) => (
-                    <a
+                    <button
                       key={href}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      type="button"
+                      onClick={() => openVideoModalAt(index)}
                       className="group rounded-xl border p-3 text-left transition hover:bg-[#FFF6E7]"
                       style={{ borderColor: BORDER, background: CREAM, boxShadow: "0 2px 14px rgba(44,36,22,0.05)" }}
                     >
@@ -506,28 +532,26 @@ export function AgenteIndividualResidencialPreviewPage({
                             ? "Ver video"
                             : `Ver video ${index + 1}`}
                       </span>
-                    </a>
+                    </button>
                   ))}
                 </div>
               ) : null}
 
               {g.showAllPhotosPill ? (
-                <div
-                  className="mt-1.5 flex justify-center"
-                  role="note"
-                  title={p.notaVerTodasFotos}
-                >
-                  <span
-                    className={`inline-flex items-center justify-center rounded-full border px-4 py-2 ${typo.kicker}`}
+                <div className="mt-1.5 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => openPhotoGallery(0)}
+                    className={`inline-flex min-h-[44px] items-center justify-center rounded-full border px-4 py-2 ${typo.kicker} transition hover:brightness-[0.98]`}
                     style={{
                       borderColor: `${BRONZE}55`,
                       color: BRONZE,
                       background: "rgba(197, 160, 89, 0.08)",
-                      cursor: "default",
                     }}
+                    aria-label={p.verTodasFotos(g.totalPhotos)}
                   >
                     {p.verTodasFotos(g.totalPhotos)}
-                  </span>
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -767,6 +791,7 @@ export function AgenteIndividualResidencialPreviewPage({
           photoUrls={photoUrlsOrdered}
           videoDataUrl={g.videoDataUrl}
           videoExternalHref={g.videoExternalHref}
+          photosOnly
           labels={{
             close: p.lightboxClose,
             prev: p.lightboxPrev,
@@ -776,7 +801,20 @@ export function AgenteIndividualResidencialPreviewPage({
             zoomHint: p.lightboxZoomHint,
             resetZoom: p.lightboxResetZoom,
             openVideoTab: p.lightboxOpenVideoTab,
+            videoFallbackBody:
+              locale === "en"
+                ? "This video opens on the original platform."
+                : "Este video se abre en la plataforma original.",
           }}
+        />
+
+        <BrPreviewVideoModal
+          open={videoModalOpen}
+          initialIndex={videoModalIndex}
+          onClose={() => setVideoModalOpen(false)}
+          videos={externalVideos}
+          lang={locale}
+          labels={videoModalLabels}
         />
       </main>
     </div>

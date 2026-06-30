@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FiExternalLink } from "react-icons/fi";
+import { FiCopy, FiExternalLink } from "react-icons/fi";
 import {
   SiFacebook,
   SiInstagram,
@@ -131,11 +131,31 @@ type PreviewUi = {
   quickActionsLabel: string;
 };
 
-function anchorPropsForHref(href: string, downloadFallback?: string | null) {
-  if (href.startsWith("data:")) {
-    return { download: downloadFallback || "file.pdf" } as const;
-  }
+function openInNewTabAnchorProps() {
   return { target: "_blank" as const, rel: "noopener noreferrer" };
+}
+
+function EmailRow({ email, copyLabel }: { email: string; copyLabel: string }) {
+  const trimmed = email.trim();
+  if (!trimmed) return null;
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <a href={`mailto:${trimmed}`} className="truncate text-[12px] font-semibold" style={{ color: BRONZE }}>
+        {trimmed}
+      </a>
+      <button
+        type="button"
+        aria-label={copyLabel}
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition hover:bg-white"
+        style={{ borderColor: BORDER, color: MUTED }}
+        onClick={() => {
+          void navigator.clipboard?.writeText(trimmed).catch(() => {});
+        }}
+      >
+        <FiCopy className="h-3.5 w-3.5" aria-hidden />
+      </button>
+    </div>
+  );
 }
 
 export function BrAgenteResContactSidebar({
@@ -277,9 +297,10 @@ export function BrAgenteResContactSidebar({
               </p>
             ) : null}
             {trim(data.correoPrincipal) ? (
-              <a href={`mailto:${trim(data.correoPrincipal)}`} className="block truncate text-[12px] font-semibold" style={{ color: BRONZE }}>
-                {trim(data.correoPrincipal)}
-              </a>
+              <EmailRow
+                email={trim(data.correoPrincipal)}
+                copyLabel={locale === "en" ? "Copy email" : "Copiar correo"}
+              />
             ) : null}
             {agenteCardSiteHref ? (
               <a
@@ -397,7 +418,7 @@ export function BrAgenteResContactSidebar({
                 </p>
               ) : null}
               {trim(data.agente2Correo) ? (
-                <p className="truncate text-[11px] opacity-90">{trim(data.agente2Correo)}</p>
+                <EmailRow email={trim(data.agente2Correo)} copyLabel={locale === "en" ? "Copy email" : "Copiar correo"} />
               ) : null}
             </div>
           ) : null}
@@ -499,7 +520,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.verListadoHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.06)] lg:min-h-0"
                 style={{ borderColor: `${BRONZE}99`, color: BRONZE }}
-                {...anchorPropsForHref(cr.verListadoHref, cr.listadoDownloadName)}
+                {...openInNewTabAnchorProps()}
               >
                 {p.verListado}
               </a>
@@ -509,7 +530,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.verMlsHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
-                {...anchorPropsForHref(cr.verMlsHref, cr.listadoDownloadName)}
+                {...openInNewTabAnchorProps()}
               >
                 {p.verMls}
               </a>
@@ -519,7 +540,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.verTourHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
-                {...anchorPropsForHref(cr.verTourHref, "tour.pdf")}
+                {...openInNewTabAnchorProps()}
               >
                 {p.verTour}
               </a>
@@ -529,7 +550,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.verFolletoHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
-                {...anchorPropsForHref(cr.verFolletoHref, "folleto.pdf")}
+                {...openInNewTabAnchorProps()}
               >
                 {p.verFolleto}
               </a>

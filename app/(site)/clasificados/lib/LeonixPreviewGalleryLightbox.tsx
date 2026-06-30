@@ -145,16 +145,24 @@ function VideoSlide({ vm, slot, ui }: { vm: Vm; slot: 0 | 1; ui: GalleryLightbox
   }
   if (watchUrl) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
-        <p className="text-sm text-white/85">{ui.openVideoNewTab}</p>
-        <a
-          href={watchUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/15"
+      <div className="flex flex-col items-center justify-center gap-4 p-6 sm:p-8">
+        <div
+          className="flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border px-6 py-8 text-center"
+          style={{ borderColor: "rgba(201,180,106,0.35)", background: "linear-gradient(180deg, #FFFCF7 0%, #FAF7F2 100%)" }}
         >
-          {ui.watchVideo}
-        </a>
+          <p className="text-sm leading-relaxed" style={{ color: "#5C5346" }}>
+            {ui.openVideoNewTab}
+          </p>
+          <a
+            href={watchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-sm"
+            style={{ background: "linear-gradient(180deg, #6E2B2B 0%, #5A2222 100%)" }}
+          >
+            {ui.watchVideo}
+          </a>
+        </div>
       </div>
     );
   }
