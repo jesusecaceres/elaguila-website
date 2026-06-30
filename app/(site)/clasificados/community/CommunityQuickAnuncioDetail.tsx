@@ -66,8 +66,10 @@ export function CommunityQuickAnuncioDetail({
   const org = pairs["Leonix:organizer"] ?? "";
   const state = pairs["Leonix:state"] ?? "";
   const zip = pairs["Leonix:zip"] ?? "";
+  const country = pairs["Leonix:country"] ?? "";
   const venue = pairs["Leonix:venue"] ?? "";
   const addr = pairs["Leonix:addressLine1"] ?? "";
+  const addr2 = pairs["Leonix:addressLine2"] ?? "";
   const web = pairs["Leonix:website"] ?? "";
   const schedRows = parseWeeklyScheduleJson(pairs["Leonix:weeklyScheduleJson"] ?? "");
   const lg = lang === "en" ? "en" : "es";
@@ -162,8 +164,10 @@ export function CommunityQuickAnuncioDetail({
       value: [state, zip].filter(Boolean).join(" ") || "—",
     });
   }
+  if (country.trim()) rows.push({ label: L ? "País" : "Country", value: country });
   if (venue.trim()) rows.push({ label: L ? "Lugar" : "Venue", value: venue });
   if (addr.trim()) rows.push({ label: L ? "Dirección" : "Address", value: addr });
+  if (addr2.trim()) rows.push({ label: L ? "Dirección 2" : "Address 2", value: addr2 });
 
   const socials: { label: string; href: string }[] = [];
   const fb = pairs["Leonix:socialFacebook"];

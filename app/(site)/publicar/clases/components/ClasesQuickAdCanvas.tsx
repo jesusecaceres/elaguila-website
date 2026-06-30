@@ -77,7 +77,7 @@ export function ClasesQuickAdCanvas({
         .join(" ")
     : t.free;
 
-  const cityZipLine = cityStateZipLine(draft);
+  const cityZipLine = cityStateZipLine({ ...draft, country: draft.country });
 
   const articleClass =
     shell === "standalone"

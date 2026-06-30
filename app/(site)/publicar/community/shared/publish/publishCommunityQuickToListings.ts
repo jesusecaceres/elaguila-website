@@ -223,6 +223,8 @@ function buildDetailPairs(
   pairs.push({ label: "Leonix:state", value: d.state.trim() });
   if (d.venue.trim()) pairs.push({ label: "Leonix:venue", value: d.venue.trim() });
   if (d.addressLine1.trim()) pairs.push({ label: "Leonix:addressLine1", value: d.addressLine1.trim() });
+  if (d.addressLine2.trim()) pairs.push({ label: "Leonix:addressLine2", value: d.addressLine2.trim() });
+  if (d.country.trim()) pairs.push({ label: "Leonix:country", value: d.country.trim() });
   const web = normalizeWebsiteForOpen(d.website);
   if (web) pairs.push({ label: "Leonix:website", value: web });
   const sl = d.socialLinks;

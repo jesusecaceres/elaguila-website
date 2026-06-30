@@ -138,9 +138,16 @@ export function CommunityContactCanvas({
 
   const cityDisplay =
     getCanonicalCityName(draft.publicCity.trim()) || draft.publicCity.trim() || "";
-  const st = draft.state.trim() || "CA";
+  const st = draft.state.trim();
   const zip = draft.zip.trim();
-  const cityStateZip = zip ? `${cityDisplay}, ${st} ${zip}` : cityDisplay ? `${cityDisplay}, ${st}` : "";
+  const country = draft.country?.trim() ?? "";
+  const locationParts: string[] = [];
+  if (cityDisplay) locationParts.push(cityDisplay);
+  if (st && zip) locationParts.push(`${st} ${zip}`);
+  else if (st) locationParts.push(st);
+  else if (zip) locationParts.push(zip);
+  if (country) locationParts.push(country);
+  const cityStateZip = locationParts.join(", ");
 
   const smsBody = SMS_BODY[k][lang];
   const mailSub = MAIL_SUBJECT[k][lang];
@@ -305,7 +312,8 @@ export function CommunityContactCanvas({
           </h3>
           {draft.venue.trim() ? <p className="text-sm font-semibold">{draft.venue.trim()}</p> : null}
           {draft.addressLine1.trim() ? <p className="text-sm">{draft.addressLine1.trim()}</p> : null}
-          {cityDisplay ? <p className="text-sm font-semibold">{cityStateZip}</p> : null}
+          {draft.addressLine2?.trim() ? <p className="text-sm">{draft.addressLine2.trim()}</p> : null}
+          {cityStateZip ? <p className="text-sm font-semibold">{cityStateZip}</p> : null}
           {mapsUrl ? (
             <a
               href={mapsUrl}

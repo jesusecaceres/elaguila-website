@@ -61,9 +61,12 @@ export type CommunityCommonDraft = {
   /** Public city where the class/event happens — never replaced by NorCal. */
   publicCity: string;
   state: string;
+  /** Country — defaults to empty (US implied) but user-editable for global events. */
+  country: string;
   zip: string;
   venue: string;
   addressLine1: string;
+  addressLine2: string;
   phone: string;
   whatsapp: string;
   /** Optional SMS number; preview/output falls back to `phone` when blank. */
@@ -141,9 +144,11 @@ function emptyCommon(): CommunityCommonDraft {
     images: [],
     publicCity: "",
     state: COMMUNITY_DEFAULT_STATE,
+    country: "",
     zip: "",
     venue: "",
     addressLine1: "",
+    addressLine2: "",
     phone: "",
     whatsapp: "",
     smsPhone: "",
@@ -297,10 +302,12 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
     description: String(p.description ?? e.description),
     images: normalizeImages(p.images),
     publicCity,
-    state: COMMUNITY_DEFAULT_STATE,
+    state: String(p.state ?? e.state).trim() || COMMUNITY_DEFAULT_STATE,
+    country: String(p.country ?? e.country).trim(),
     zip: String(p.zip ?? e.zip),
     venue: String(p.venue ?? e.venue),
     addressLine1: String(p.addressLine1 ?? e.addressLine1),
+    addressLine2: String((p as Partial<CommunityCommonDraft>).addressLine2 ?? e.addressLine2),
     phone: String(p.phone ?? e.phone),
     whatsapp: String(p.whatsapp ?? e.whatsapp),
     smsPhone: String(p.smsPhone ?? e.smsPhone),

@@ -55,8 +55,10 @@ function communityLocationSearchBlob(row: CommunityListingBrowseRow, pairs: Reco
     row.city,
     pairs["Leonix:state"],
     pairs["Leonix:zip"],
+    pairs["Leonix:country"],
     pairs["Leonix:venue"],
     pairs["Leonix:addressLine1"],
+    pairs["Leonix:addressLine2"],
   ]
     .filter(Boolean)
     .join(" ")

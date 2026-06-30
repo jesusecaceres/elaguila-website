@@ -67,8 +67,10 @@ function commonSnapshot(d: CommunityCommonDraft): {
   primaryCta: CommunityCommonDraft["primaryCta"];
   venue: string;
   addressLine1: string;
+  addressLine2: string;
   publicCity: string;
   state: string;
+  country: string;
   zip: string;
   discoveryRegion: "NorCal";
   publishConfirmations: CommunityPublishConfirmations;
@@ -94,11 +96,13 @@ function commonSnapshot(d: CommunityCommonDraft): {
     primaryCta: d.primaryCta,
     venue: d.venue.trim(),
     addressLine1: d.addressLine1.trim(),
+    addressLine2: d.addressLine2.trim(),
     publicCity: (() => {
       const t = d.publicCity.trim();
       return t ? getCanonicalCityName(t) || t : "";
     })(),
     state: d.state.trim(),
+    country: d.country.trim(),
     zip: d.zip.trim(),
     discoveryRegion: COMMUNITY_DISCOVERY_REGION,
     publishConfirmations: { ...d.publishConfirmations },

@@ -32,6 +32,7 @@ import {
   clasesCostLabel,
 } from "./copy/communityPublishCopy";
 import { WeeklyScheduleEditor } from "./components/WeeklyScheduleEditor";
+import { ComunidadSmartScheduleSection } from "./components/ComunidadSmartScheduleSection";
 import {
   flushCommunityDraftToSession,
   useCommunityDraftSession,
@@ -553,16 +554,21 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
             discoveryLine={sharedCopy.discoveryRegionLine}
             cityHint={sharedCopy.cityAutocompleteHint}
             publicCity={state.publicCity}
+            publicCityLabel={copy.fields.publicCity}
             stateLabel={copy.fields.stateLabel}
+            countryLabel={copy.fields.countryLabel}
             zipLabel={copy.fields.zipLabel}
             venueLabel={copy.fields.venue}
             addressLabel={copy.fields.addressLine1}
+            addressLine2Label={copy.fields.addressLine2}
             addressHelperText={copy.fields.addressLine1Helper}
             addressPlaceholder={copy.fields.addressLine1Placeholder}
-            publicCityLabel={copy.fields.publicCity}
             zipValue={state.zip}
             venueValue={state.venue}
             addressValue={state.addressLine1}
+            addressLine2Value={state.addressLine2}
+            stateValue={state.state}
+            countryValue={state.country}
             sectionTitle={copy.sections.location}
             onChange={(p) => patch(p)}
           />
@@ -877,73 +883,24 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={copy.sections.schedule}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} required>
-                  {copy.fields.date}
-                </EmpleosFieldLabel>
-                <input
-                  type="date"
-                  className={INPUT}
-                  value={state.date}
-                  onChange={(e) => patch({ date: e.target.value })}
-                />
-              </label>
-              <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>
-                  {copy.fields.eventEndDate}
-                </EmpleosFieldLabel>
-                <input
-                  type="date"
-                  className={INPUT}
-                  value={state.eventEndDate}
-                  min={state.date || undefined}
-                  onChange={(e) => patch({ eventEndDate: e.target.value })}
-                />
-              </label>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>
-                  {copy.fields.eventSessionStart}
-                </EmpleosFieldLabel>
-                <input
-                  type="time"
-                  className={INPUT}
-                  value={state.eventSessionStart}
-                  onChange={(e) => patch({ eventSessionStart: e.target.value })}
-                />
-              </label>
-              <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>
-                  {copy.fields.eventSessionEnd}
-                </EmpleosFieldLabel>
-                <input
-                  type="time"
-                  className={INPUT}
-                  value={state.eventSessionEnd}
-                  onChange={(e) => patch({ eventSessionEnd: e.target.value })}
-                />
-              </label>
-            </div>
-            <div className="mt-4">
-              <EmpleosFieldLabel lang={lang} optional>
-                {copy.fields.weeklySchedule}
-              </EmpleosFieldLabel>
-              <WeeklyScheduleEditor
-                lang={lang}
-                rows={state.weeklySchedule}
-                closedLabel={copy.fields.weeklyClosed}
-                helperText={copy.fields.weeklyHelper}
-                onPatchDay={(day: DayKey, pr) =>
-                  patch({
-                    weeklySchedule: state.weeklySchedule.map((r) =>
-                      r.day === day ? { ...r, ...pr } : r,
-                    ),
-                  })
-                }
-              />
-            </div>
+            <ComunidadSmartScheduleSection
+              lang={lang}
+              date={state.date}
+              eventEndDate={state.eventEndDate}
+              eventSessionStart={state.eventSessionStart}
+              eventSessionEnd={state.eventSessionEnd}
+              weeklySchedule={state.weeklySchedule}
+              copyFields={{
+                date: copy.fields.date,
+                eventEndDate: copy.fields.eventEndDate,
+                eventSessionStart: copy.fields.eventSessionStart,
+                eventSessionEnd: copy.fields.eventSessionEnd,
+                weeklySchedule: copy.fields.weeklySchedule,
+                weeklyClosed: copy.fields.weeklyClosed,
+                weeklyHelper: copy.fields.weeklyHelper,
+              }}
+              onChange={(p) => patch(p)}
+            />
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={copy.sections.media}>
@@ -998,14 +955,19 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
             publicCity={state.publicCity}
             publicCityLabel={copy.fields.publicCity}
             stateLabel={copy.fields.stateLabel}
+            countryLabel={copy.fields.countryLabel}
             zipLabel={copy.fields.zipLabel}
             venueLabel={copy.fields.venue}
             addressLabel={copy.fields.addressLine1}
+            addressLine2Label={copy.fields.addressLine2}
             addressHelperText={copy.fields.addressLine1Helper}
             addressPlaceholder={copy.fields.addressLine1Placeholder}
             zipValue={state.zip}
             venueValue={state.venue}
             addressValue={state.addressLine1}
+            addressLine2Value={state.addressLine2}
+            stateValue={state.state}
+            countryValue={state.country}
             sectionTitle={copy.sections.location}
             onChange={(p) => patch(p)}
           />
@@ -1058,11 +1020,16 @@ type LocationProps = {
   zipLabel: string;
   venueLabel: string;
   addressLabel: string;
+  addressLine2Label: string;
   addressHelperText: string;
   addressPlaceholder: string;
+  countryLabel: string;
   zipValue: string;
   venueValue: string;
   addressValue: string;
+  addressLine2Value: string;
+  stateValue: string;
+  countryValue: string;
   sectionTitle: string;
   onChange: (p: Partial<CommunityCommonDraft>) => void;
 };
@@ -1077,17 +1044,60 @@ function LocationSection({
   zipLabel,
   venueLabel,
   addressLabel,
+  addressLine2Label,
   addressHelperText,
   addressPlaceholder,
+  countryLabel,
   zipValue,
   venueValue,
   addressValue,
+  addressLine2Value,
+  stateValue,
+  countryValue,
   sectionTitle,
   onChange,
 }: LocationProps) {
   return (
     <EmpleosSectionCard title={sectionTitle}>
       <p className="text-xs text-[color:var(--lx-muted)]">{discoveryLine}</p>
+
+      <label className="block text-sm">
+        <EmpleosFieldLabel lang={lang} optional>
+          {venueLabel}
+        </EmpleosFieldLabel>
+        <input
+          className={INPUT}
+          value={venueValue}
+          onChange={(e) => onChange({ venue: e.target.value })}
+          placeholder={lang === "es" ? "Ej. Centro Comunitario" : "e.g. Community Center"}
+        />
+      </label>
+
+      <label className="block text-sm">
+        <EmpleosFieldLabel lang={lang} optional>
+          {addressLabel}
+        </EmpleosFieldLabel>
+        <input
+          className={INPUT}
+          value={addressValue}
+          onChange={(e) => onChange({ addressLine1: e.target.value })}
+          placeholder={addressPlaceholder}
+        />
+        <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{addressHelperText}</p>
+      </label>
+
+      <label className="block text-sm">
+        <EmpleosFieldLabel lang={lang} optional>
+          {addressLine2Label}
+        </EmpleosFieldLabel>
+        <input
+          className={INPUT}
+          value={addressLine2Value}
+          onChange={(e) => onChange({ addressLine2: e.target.value })}
+          placeholder={lang === "es" ? "Apto, Suite, Unidad…" : "Apt, Suite, Unit…"}
+        />
+      </label>
+
       <div className="block text-sm">
         <EmpleosFieldLabel lang={lang} required>
           {publicCityLabel}
@@ -1100,53 +1110,48 @@ function LocationSection({
           variant="light"
           stripInvalidOnBlur
           placeholder={
-            lang === "es" ? "Ej. San José, Alameda, Stockton…" : "e.g. San José, Alameda, Stockton…"
+            lang === "es" ? "Ej. San José, Stockton, Ciudad de México…" : "e.g. San José, Stockton, Mexico City…"
           }
         />
         <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{cityHint}</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <EmpleosFieldLabel lang={lang} optional>
             {stateLabel}
           </EmpleosFieldLabel>
-          <input className={`${INPUT} bg-black/[0.03]`} value="CA" readOnly aria-readonly="true" />
-        </label>
-        <label className="block text-sm">
-          <EmpleosFieldLabel lang={lang} optional>
-            {zipLabel}
-          </EmpleosFieldLabel>
           <input
             className={INPUT}
-            value={zipValue}
-            onChange={(e) => onChange({ zip: e.target.value })}
-            placeholder="95110"
-            inputMode="numeric"
+            value={stateValue}
+            onChange={(e) => onChange({ state: e.target.value })}
+            placeholder={lang === "es" ? "CA, TX, CDMX…" : "CA, TX, NY…"}
           />
         </label>
         <label className="block text-sm">
           <EmpleosFieldLabel lang={lang} optional>
-            {venueLabel}
+            {countryLabel}
           </EmpleosFieldLabel>
           <input
             className={INPUT}
-            value={venueValue}
-            onChange={(e) => onChange({ venue: e.target.value })}
-            placeholder={lang === "es" ? "Ej. Centro Comunitario" : "e.g. Community Center"}
+            value={countryValue}
+            onChange={(e) => onChange({ country: e.target.value })}
+            placeholder={lang === "es" ? "Ej. Estados Unidos, México…" : "e.g. United States, Mexico…"}
           />
         </label>
       </div>
+
       <label className="block text-sm">
         <EmpleosFieldLabel lang={lang} optional>
-          {addressLabel}
+          {zipLabel}
         </EmpleosFieldLabel>
         <input
           className={INPUT}
-          value={addressValue}
-          onChange={(e) => onChange({ addressLine1: e.target.value })}
-          placeholder={addressPlaceholder}
+          value={zipValue}
+          onChange={(e) => onChange({ zip: e.target.value })}
+          placeholder={lang === "es" ? "95110, C.P. 06600…" : "95110, M5V 3A8…"}
+          inputMode="numeric"
         />
-        <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{addressHelperText}</p>
       </label>
     </EmpleosSectionCard>
   );

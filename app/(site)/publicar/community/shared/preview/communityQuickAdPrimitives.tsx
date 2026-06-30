@@ -21,12 +21,18 @@ export function OrganizerByline({ label, name }: { label: string; name: string }
   );
 }
 
-export function cityStateZipLine(d: { publicCity: string; state: string; zip: string }): string {
+export function cityStateZipLine(d: { publicCity: string; state: string; zip: string; country?: string }): string {
   const city = getCanonicalCityName(d.publicCity.trim()) || d.publicCity.trim();
-  if (!city) return "";
-  const st = d.state.trim() || "CA";
+  const st = d.state.trim();
   const z = d.zip.trim();
-  return z ? `${city}, ${st} ${z}` : `${city}, ${st}`;
+  const co = d.country?.trim() ?? "";
+  const locationParts: string[] = [];
+  if (city) locationParts.push(city);
+  if (st && z) locationParts.push(`${st} ${z}`);
+  else if (st) locationParts.push(st);
+  else if (z) locationParts.push(z);
+  if (co) locationParts.push(co);
+  return locationParts.join(", ");
 }
 
 export const COMMUNITY_QUICK_FALLBACK_IMG =
