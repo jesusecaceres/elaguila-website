@@ -77,7 +77,7 @@ export function ComunidadQuickAdCanvas({
   const t = COPY[lang];
   const main = pickMainHeroImage(draft.images);
   const isPdf = main.kind === "pdf";
-  const cityZipLine = cityStateZipLine(draft);
+  const cityZipLine = cityStateZipLine({ ...draft, country: draft.country });
   const sessStart = draft.eventSessionStart.trim();
   const sessEnd = draft.eventSessionEnd.trim();
   const schedLang = lang === "en" ? "en" : "es";

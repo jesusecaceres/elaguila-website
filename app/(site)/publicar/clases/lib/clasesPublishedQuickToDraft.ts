@@ -88,10 +88,12 @@ export function clasesPublishedQuickToDraft(
   d.bringNote = (pairs["Leonix:bringNote"] ?? "").trim();
 
   d.publicCity = (listing.city ?? "").trim();
-  d.state = (pairs["Leonix:state"] ?? "").trim() || "CA";
+  d.state = (pairs["Leonix:state"] ?? "").trim();
+  d.country = (pairs["Leonix:country"] ?? "").trim();
   d.zip = (pairs["Leonix:zip"] ?? "").trim();
   d.venue = (pairs["Leonix:venue"] ?? "").trim();
   d.addressLine1 = (pairs["Leonix:addressLine1"] ?? "").trim();
+  d.addressLine2 = (pairs["Leonix:addressLine2"] ?? "").trim();
   d.website = (pairs["Leonix:website"] ?? "").trim();
 
   const pDig = (pairs["Leonix:phoneDigits"] ?? "").replace(/\D/g, "").slice(0, 10);

@@ -91,12 +91,14 @@ function formatLocationLine(city: string | null, pairs: CommunityListingPairMap)
   const c = String(city ?? "").trim();
   const st = (pairs["Leonix:state"] ?? "").trim();
   const zip = (pairs["Leonix:zip"] ?? "").trim();
+  const country = (pairs["Leonix:country"] ?? "").trim();
   const venue = (pairs["Leonix:venue"] ?? "").trim();
   const parts: string[] = [];
   if (c) parts.push(c);
   if (st && zip) parts.push(`${st} ${zip}`);
   else if (st) parts.push(st);
   else if (zip) parts.push(zip);
+  if (country) parts.push(country);
   const line = parts.join(", ");
   if (venue && line) return `${venue} · ${line}`;
   if (venue) return venue;
@@ -136,9 +138,11 @@ export function buildCommunityDiscoverySearchBlob(
   }
   const venue = pairs["Leonix:venue"] ?? "";
   const addr = pairs["Leonix:addressLine1"] ?? "";
+  const addr2 = pairs["Leonix:addressLine2"] ?? "";
   const city = String(row.city ?? "");
   const zip = pairs["Leonix:zip"] ?? "";
   const state = pairs["Leonix:state"] ?? "";
+  const country = pairs["Leonix:country"] ?? "";
   const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
   const mode =
     category === "clases" && modeRaw ? clasesModeLabel(modeRaw, lang) : category === "comunidad" && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
@@ -149,7 +153,7 @@ export function buildCommunityDiscoverySearchBlob(
   const dateBits = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"], pairs["Leonix:eventSessionStart"], pairs["Leonix:eventSessionEnd"]]
     .filter(Boolean)
     .join(" ");
-  return `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""} ${pairs["Leonix:bringNote"] ?? ""} ${typeLine} ${venue} ${addr} ${city} ${zip} ${state} ${mode} ${aud} ${lvl} ${sched} ${dateBits}`.toLowerCase();
+  return `${title} ${desc} ${pairs["Leonix:organizer"] ?? ""} ${pairs["Leonix:bringNote"] ?? ""} ${typeLine} ${venue} ${addr} ${addr2} ${city} ${zip} ${state} ${country} ${mode} ${aud} ${lvl} ${sched} ${dateBits}`.toLowerCase();
 }
 
 export function buildCommunityDiscoveryCardModel(
