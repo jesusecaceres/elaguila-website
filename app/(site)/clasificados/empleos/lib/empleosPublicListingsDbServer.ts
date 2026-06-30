@@ -336,7 +336,7 @@ export async function fetchAllEmpleosListingsForAdmin(opts?: {
   let q = supabase
     .from("empleos_public_listings")
     .select(
-      "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state",
+      "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state, postal_code, listing_snapshot",
     )
     .order("republish_sort_at", { ascending: false, nullsFirst: true })
     .limit(cap);

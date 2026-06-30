@@ -1,4 +1,5 @@
 import { isEmpleosInternalFilterRegion } from "../constants/empleosStandardRegion";
+import { formatEmpleosLocationLine } from "./empleosGlobalLocation";
 
 export type EmpleosQuickAddressFields = {
   city: string;
@@ -6,6 +7,11 @@ export type EmpleosQuickAddressFields = {
   addressCity: string;
   addressState: string;
   addressZip: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  stateRegion?: string;
+  postalCode?: string;
+  country?: string;
 };
 
 /**
@@ -26,7 +32,7 @@ export function empleosQuickPublicCityState(input: EmpleosQuickAddressFields): {
   if (addrCity) {
     return {
       city: addrCity,
-      state: addrState || filterState,
+      state: addrState || input.stateRegion?.trim() || filterState,
       filterRegionFootnote: isEmpleosInternalFilterRegion(filterCity) ? filterCity : undefined,
     };
   }
@@ -71,20 +77,29 @@ export function empleosPremiumPublicCityState(input: {
 export function empleosFeriaPublicCityState(input: {
   city: string;
   state: string;
+  stateRegion?: string;
+  postalCode?: string;
+  country?: string;
   venue: string;
 }): { cityLine: string; filterRegionFootnote?: string } {
   const venue = input.venue.trim();
   const c = input.city.trim();
-  const s = input.state.trim();
+  const s = input.stateRegion?.trim() || input.state.trim();
+  const country = input.country?.trim() ?? "";
   if (venue) {
-    const tail = c && !isEmpleosInternalFilterRegion(c) ? ` · ${c}${s ? `, ${s}` : ""}` : "";
+    const tail =
+      c && !isEmpleosInternalFilterRegion(c)
+        ? ` · ${formatEmpleosLocationLine({ city: c, stateRegion: s, postalCode: input.postalCode, country }, { compact: true })}`
+        : country
+          ? ` · ${country}`
+          : "";
     return {
       cityLine: `${venue}${tail}`,
       filterRegionFootnote: isEmpleosInternalFilterRegion(c) ? c : undefined,
     };
   }
   if (c && !isEmpleosInternalFilterRegion(c)) {
-    return { cityLine: `${c}${s ? `, ${s}` : ""}` };
+    return { cityLine: formatEmpleosLocationLine({ city: c, stateRegion: s, postalCode: input.postalCode, country }, { compact: true }) };
   }
   return {
     cityLine: c && s ? `${c}, ${s}` : c || s || "—",

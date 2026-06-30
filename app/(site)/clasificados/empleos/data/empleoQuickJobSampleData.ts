@@ -16,14 +16,16 @@ export type QuickJobRelatedCard = {
 export type QuickJobLocationBlock = {
   businessLine: string;
   addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
   zip: string;
+  country?: string;
 };
 
 export function hasQuickJobLocation(loc?: QuickJobLocationBlock | null): loc is QuickJobLocationBlock {
   if (!loc) return false;
-  const parts = [loc.businessLine, loc.addressLine1, loc.city, loc.state, loc.zip].map((s) => (s ?? "").trim());
+  const parts = [loc.businessLine, loc.addressLine1, loc.addressLine2, loc.city, loc.state, loc.zip, loc.country].map((s) => (s ?? "").trim());
   return parts.some(Boolean);
 }
 

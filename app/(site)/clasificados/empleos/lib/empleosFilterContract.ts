@@ -5,9 +5,9 @@
  *
  * ## URL query keys (stable)
  * - q → keyword across title, company, summary, description
- * - city → substring match on `city` + `state` (and optional ZIP in same blob for legacy text)
- * - state → exact match on `state` (US 2-letter)
- * - zip → 5-digit match on `postalCode` when present on listing
+ * - city → substring match on city/state/region/postal/country/address/venue text
+ * - state → substring match on open state/province/region and country text
+ * - zip → international postal-code match on `postalCode` when present on listing
  * - category, jobType, modality, experience, companyType → exact slug match on record fields
  * - salaryMin / salaryMax → numeric band overlap with job salary range
  * - featured=1 → only promoted/featured inventory (`listingTier` !== standard)

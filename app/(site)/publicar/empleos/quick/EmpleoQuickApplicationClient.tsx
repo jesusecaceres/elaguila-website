@@ -292,10 +292,31 @@ export default function EmpleoQuickApplicationClient() {
                 />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Estado" : "State"}</EmpleosFieldLabel>
-                <input className={INPUT} value={state.state} onChange={(e) => patch({ state: e.target.value })} />
+                <EmpleosFieldLabel lang={lang} required>
+                  {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
+                </EmpleosFieldLabel>
+                <input
+                  className={INPUT}
+                  value={state.stateRegion || state.state}
+                  onChange={(e) => patch({ state: e.target.value, stateRegion: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. Jalisco, Ontario, Cataluña" : "e.g. Jalisco, Ontario, Catalonia"}
+                />
               </label>
             </div>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "País" : "Country"}</EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                value={state.country}
+                onChange={(e) => patch({ country: e.target.value })}
+                placeholder={lang === "es" ? "Ej. México, Canadá, Estados Unidos" : "e.g. Mexico, Canada, United States"}
+              />
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Puedes publicar oportunidades en cualquier ciudad o país. Leonix usará esta ubicación para búsqueda y filtros."
+                  : "You can post opportunities in any city or country. Leonix will use this location for search and filters."}
+              </p>
+            </label>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} required>{lang === "es" ? "Tipo de empleo" : "Job type"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.jobType} onChange={(e) => patch({ jobType: e.target.value })} />
@@ -472,25 +493,45 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          <EmpleosSectionCard title={lang === "es" ? "5. Ubicación (opcional)" : "5. Location (optional)"}>
+          <EmpleosSectionCard title={lang === "es" ? "5. Ubicación global (opcional)" : "5. Global location (optional)"}>
+            <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">
+              {lang === "es"
+                ? "Si el empleo es remoto, agrega la ciudad/país principal o deja la dirección exacta opcional."
+                : "If the job is remote, add the main city/country or keep the exact address optional."}
+            </p>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
             </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 2" : "Address line 2"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.addressLine2} onChange={(e) => patch({ addressLine2: e.target.value })} />
+            </label>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Ciudad (detalle)" : "City (detail)"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Ciudad" : "City"}</EmpleosFieldLabel>
                 <input className={INPUT} value={state.addressCity} onChange={(e) => patch({ addressCity: e.target.value })} />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Estado (detalle)" : "State (detail)"}</EmpleosFieldLabel>
+                <EmpleosFieldLabel lang={lang} optional>
+                  {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
+                </EmpleosFieldLabel>
                 <input className={INPUT} value={state.addressState} onChange={(e) => patch({ addressState: e.target.value })} />
               </label>
               <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "CP" : "ZIP"}</EmpleosFieldLabel>
-                <input className={INPUT} value={state.addressZip} onChange={(e) => patch({ addressZip: e.target.value })} />
+                <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Código postal" : "Postal code"}</EmpleosFieldLabel>
+                <input
+                  className={INPUT}
+                  value={state.postalCode || state.addressZip}
+                  onChange={(e) => patch({ addressZip: e.target.value, postalCode: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. K1A 0B1, 28013, 90210" : "e.g. K1A 0B1, 28013, 90210"}
+                />
               </label>
             </div>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "País" : "Country"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.country} onChange={(e) => patch({ country: e.target.value })} />
+            </label>
           </EmpleosSectionCard>
         </div>
 

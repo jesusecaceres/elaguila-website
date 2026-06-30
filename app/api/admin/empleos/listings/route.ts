@@ -10,6 +10,8 @@ import {
 } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { rowToJobRecord } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
+import { empleosJobRecordListLocationLine } from "@/app/clasificados/empleos/lib/empleosJobRecordListLocation";
 
 export const runtime = "nodejs";
 
@@ -32,8 +34,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const supabase = getAdminSupabase();
     const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, q);
     const profileSet = new Set(profileIds);
-    rows = rows.filter((r) =>
-      empleosRowMatchesAdminQueueSearch(
+    rows = rows.filter((r) => {
+      const job = rowToJobRecord(r);
+      return empleosRowMatchesAdminQueueSearch(
         {
           id: r.id,
           slug: r.slug,
@@ -42,19 +45,22 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           owner_user_id: r.owner_user_id,
           city: r.city,
           state: r.state,
+          location_line: empleosJobRecordListLocationLine(job),
           leonix_ad_id: r.leonix_ad_id ?? null,
         },
         q,
         profileSet,
-      ),
-    );
+      );
+    });
   }
   if (scope === "live") {
     rows = rows.filter((r) => empleosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
   const ids = rows.map((r) => r.id);
   const health = await fetchEmpleosApplicationHealthByListingIds(ids);
-  const enriched = rows.map((r) => ({
+  const enriched = rows.map((r) => {
+    const job = rowToJobRecord(r);
+    return {
     id: r.id,
     slug: r.slug,
     leonix_ad_id: r.leonix_ad_id ?? null,
@@ -62,6 +68,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     company_name: r.company_name,
     lifecycle_status: r.lifecycle_status,
     lane: r.lane,
+    location_line: empleosJobRecordListLocationLine(job),
     owner_user_id: r.owner_user_id,
     moderation_reason: r.moderation_reason,
     leonix_verified: Boolean((r as { leonix_verified?: boolean }).leonix_verified),
@@ -77,6 +84,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       rejected: 0,
       hired: 0,
     },
-  }));
+  };
+  });
   return NextResponse.json({ ok: true, rows: enriched });
 }

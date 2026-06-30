@@ -88,11 +88,15 @@ function PublicApplyFooter({
         {lang === "es" ? "Siguiente paso" : "Next step"}
       </p>
       <p className="mt-2 text-sm text-[#4A4744]">
-        {lang === "es"
-          ? "Envía tu interés o aplica según las opciones del anuncio."
-          : "Send your interest or apply using the options on this listing."}
+        {job.publicationLane === "feria"
+          ? lang === "es"
+            ? "Usa el contacto del organizador arriba para registrar interés o confirmar detalles del evento."
+            : "Use the organizer contact above to register interest or confirm event details."
+          : lang === "es"
+            ? "Usa el contacto disponible o envía tu interés por Leonix."
+            : "Use the available contact method or send your interest through Leonix."}
       </p>
-      {job.externalApplyUrl ? (
+      {job.publicationLane !== "feria" && job.externalApplyUrl ? (
         <a
           href={job.externalApplyUrl}
           target="_blank"
@@ -116,7 +120,7 @@ function PublicApplyFooter({
           {lang === "es" ? "Abrir página para postular" : "Open apply page"}
         </a>
       ) : null}
-      {isLiveListingId(job.id) ? (
+      {job.publicationLane !== "feria" && isLiveListingId(job.id) ? (
         <div className="mt-4">
           <EmpleosApplyForm
             listingId={job.id}
@@ -125,7 +129,7 @@ function PublicApplyFooter({
             analyticsListing={globalListing}
           />
         </div>
-      ) : (
+      ) : job.publicationLane === "feria" ? null : (
         <Link href={appendLangToPath("/contacto", lang)} className={`${EMPLEOS_CTA_PRIMARY} mt-4 inline-flex w-full justify-center px-4 text-center`}>
           {lang === "es" ? "Contactar a Leonix" : "Contact Leonix"}
         </Link>

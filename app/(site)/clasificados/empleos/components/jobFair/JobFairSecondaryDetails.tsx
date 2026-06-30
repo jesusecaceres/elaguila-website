@@ -13,7 +13,7 @@ export function JobFairSecondaryDetails({ title, items }: Props) {
       <ul className="mt-4 space-y-2.5">
         {items.map((line) => (
           <li key={line} className="flex items-start gap-2 text-sm text-[color:var(--lx-text-2)]">
-            <FaCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2563EB]" aria-hidden />
+            <FaCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2E7D4A]" aria-hidden />
             <span>{line}</span>
           </li>
         ))}

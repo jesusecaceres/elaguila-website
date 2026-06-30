@@ -14,9 +14,9 @@ export function buildEmpleosListaUrl(cat: string, lang: Lang, q?: string, city?:
 export type EmpleosResultadosParams = {
   q?: string;
   city?: string;
-  /** US state (2-letter), matches `EmpleosJobRecord.state`. */
+  /** Open state/province/region text, matched against `state` / `stateRegion`. */
   state?: string;
-  /** 5-digit US ZIP, matches `EmpleosJobRecord.postalCode` when present. */
+  /** International postal code, matched against `EmpleosJobRecord.postalCode` when present. */
   zip?: string;
   category?: string;
   jobType?: string;

@@ -5,6 +5,7 @@
 
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import type { EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
+import { buildEmpleosLocationSearchText } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
 /** @deprecated Prefer server-fed `serverNowMs` for “recent” windows on live results. */
 export const EMPLEOS_SAMPLE_NOW_MS = Date.parse("2026-04-10T18:00:00.000Z");
@@ -72,9 +73,9 @@ function num(v: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-/** Normalize user ZIP input to 5 digits (US). */
-export function normalizeZip5(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, 5);
+/** Normalize postal input globally: keep letters/digits and compare case-insensitively. */
+export function normalizePostalCode(raw: string): string {
+  return raw.replace(/[^a-z0-9]/gi, "").toUpperCase();
 }
 
 const RECENT_MS = 7 * 24 * 3600 * 1000;
@@ -82,8 +83,8 @@ const RECENT_MS = 7 * 24 * 3600 * 1000;
 export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResultsQuery, nowMs: number): EmpleosJobRecord[] {
   const qLower = p.q.toLowerCase();
   const cityLower = p.city.toLowerCase();
-  const stateUpper = p.state.trim().toUpperCase();
-  const zip5 = normalizeZip5(p.zip);
+  const stateLower = p.state.trim().toLowerCase();
+  const postalNeedle = normalizePostalCode(p.zip);
   const laneLower = p.lane.toLowerCase();
   const industryLower = p.industry.toLowerCase();
 
@@ -102,11 +103,14 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
     if (p.experience && j.experience !== p.experience) return false;
     if (p.companyType && j.companyType !== p.companyType) return false;
 
-    if (stateUpper && j.state.toUpperCase() !== stateUpper) return false;
+    if (stateLower) {
+      const stateText = `${j.state} ${j.stateRegion ?? ""} ${j.country ?? ""}`.toLowerCase();
+      if (!stateText.includes(stateLower)) return false;
+    }
 
-    if (zip5.length === 5) {
-      const jobZip = j.postalCode ? normalizeZip5(j.postalCode) : "";
-      if (!jobZip || jobZip !== zip5) return false;
+    if (postalNeedle) {
+      const jobPostal = j.postalCode ? normalizePostalCode(j.postalCode) : "";
+      if (!jobPostal || !jobPostal.includes(postalNeedle)) return false;
     }
 
     const smin = num(p.salaryMin);
@@ -129,7 +133,9 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
           j.companyType,
           j.city,
           j.state,
+          j.stateRegion ?? "",
           j.postalCode ?? "",
+          j.country ?? "",
           j.salaryLabel,
           String(j.salaryMin),
           String(j.salaryMax),
@@ -151,7 +157,15 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
     }
 
     if (cityLower) {
-      const loc = `${j.city} ${j.state} ${j.postalCode ?? ""} ${j.feriaVenue ?? ""} ${j.employerAddressLine ?? ""}`.toLowerCase();
+      const loc = buildEmpleosLocationSearchText({
+        city: j.city,
+        stateRegion: j.stateRegion ?? j.state,
+        postalCode: j.postalCode,
+        country: j.country,
+        addressLine1: j.employerAddressLine,
+        addressLine2: j.employerAddressLine2,
+        venue: j.feriaVenue,
+      });
       if (!loc.includes(cityLower)) return false;
     }
 

@@ -146,6 +146,8 @@ export function EmpleoJobFairDetailPage({
               dateLine={data.dateLine}
               timeLine={data.timeLine?.trim() || undefined}
               venue={data.venue}
+              addressLine1={data.addressLine1?.trim() || undefined}
+              addressLine2={data.addressLine2?.trim() || undefined}
               cityStateLine={cityStateLine}
               organizer={data.organizer?.trim() || undefined}
               organizerUrl={data.organizerUrl?.trim() || undefined}

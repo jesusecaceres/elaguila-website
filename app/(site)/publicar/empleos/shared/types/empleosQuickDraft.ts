@@ -14,7 +14,7 @@ export type EmpleosQuickDraft = {
   /** When `categorySlug === "otro"`, public-facing custom label. */
   categoryCustom: string;
   experienceLevel: ExperienceSlug;
-  /** Internal filter region (default NorCal). Prefer address fields for public display. */
+  /** Open public city used for search; legacy sessions may still contain old regional labels. */
   city: string;
   state: string;
   workModality: JobModalitySlug;
@@ -37,9 +37,13 @@ export type EmpleosQuickDraft = {
   website: string;
   primaryCta: EmpleosQuickPrimaryCta;
   addressLine1: string;
+  addressLine2: string;
   addressCity: string;
   addressState: string;
   addressZip: string;
+  stateRegion: string;
+  postalCode: string;
+  country: string;
   /** Local object URL for draft preview only — not uploaded to Mux */
   videoObjectUrl: string | null;
   videoFileName: string;
@@ -70,6 +74,20 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
   const categoryCustom =
     typeof rest.categoryCustom === "string" ? rest.categoryCustom.trim() : e.categoryCustom;
   const cityRaw = typeof rest.city === "string" && rest.city.trim() ? rest.city.trim() : e.city;
+  const stateRegion =
+    typeof rest.stateRegion === "string" && rest.stateRegion.trim()
+      ? rest.stateRegion.trim()
+      : typeof rest.addressState === "string" && rest.addressState.trim()
+        ? rest.addressState.trim()
+        : typeof rest.state === "string"
+          ? rest.state.trim()
+          : e.stateRegion;
+  const postalCode =
+    typeof rest.postalCode === "string" && rest.postalCode.trim()
+      ? rest.postalCode.trim()
+      : typeof rest.addressZip === "string"
+        ? rest.addressZip.trim()
+        : e.postalCode;
   const legacyVideoUrl = typeof rest.videoUrl === "string" ? rest.videoUrl.trim() : "";
   const videoUrls = Array.from(
     new Set(
@@ -108,6 +126,13 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     videoUrl: videoUrls[0] ?? "",
     videoUrls,
     city: cityRaw,
+    state: typeof rest.state === "string" && rest.state.trim() ? rest.state.trim() : stateRegion,
+    addressCity: typeof rest.addressCity === "string" && rest.addressCity.trim() ? rest.addressCity.trim() : cityRaw,
+    addressState: typeof rest.addressState === "string" && rest.addressState.trim() ? rest.addressState.trim() : stateRegion,
+    addressZip: typeof rest.addressZip === "string" && rest.addressZip.trim() ? rest.addressZip.trim() : postalCode,
+    stateRegion,
+    postalCode,
+    country: typeof rest.country === "string" ? rest.country.trim() : e.country,
     workModality,
     scheduleRows,
   };
@@ -138,9 +163,13 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     website: "",
     primaryCta: "phone",
     addressLine1: "",
+    addressLine2: "",
     addressCity: "",
     addressState: "",
     addressZip: "",
+    stateRegion: "",
+    postalCode: "",
+    country: "",
     videoObjectUrl: null,
     videoFileName: "",
     videoUrl: "",

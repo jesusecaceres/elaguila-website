@@ -65,6 +65,7 @@ export type EmpleosAdminQueueRowLite = {
   owner_user_id: string | null;
   city?: string | null;
   state?: string | null;
+  location_line?: string | null;
   /** Present when `empleos_public_listings.leonix_ad_id` exists in DB. */
   leonix_ad_id?: string | null;
 };
@@ -87,6 +88,7 @@ export function empleosRowMatchesAdminQueueSearch(
   if (row.company_name.toLowerCase().includes(n)) return true;
   if (row.city && row.city.toLowerCase().includes(n)) return true;
   if (row.state && row.state.toLowerCase().includes(n)) return true;
+  if (row.location_line && row.location_line.toLowerCase().includes(n)) return true;
   const slugFromUrl = adminQueueExtractEmpleosSlugFromUrl(q);
   if (slugFromUrl && row.slug.toLowerCase() === slugFromUrl.toLowerCase()) return true;
   if (adminQueueIsUuid(q) && row.id === q) return true;

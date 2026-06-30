@@ -1,5 +1,6 @@
 import { isEmpleosInternalFilterRegion } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
 import { empleosFeriaPublicCityState } from "@/app/publicar/empleos/shared/lib/empleosPublicLocation";
+import { formatEmpleosLocationLine } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 
@@ -12,6 +13,9 @@ export function empleosJobRecordListLocationLine(job: EmpleosJobRecord): string 
     return empleosFeriaPublicCityState({
       city: job.city,
       state: job.state,
+      stateRegion: job.stateRegion,
+      postalCode: job.postalCode,
+      country: job.country,
       venue: job.feriaVenue ?? "",
     }).cityLine;
   }
@@ -33,9 +37,10 @@ export function empleosJobRecordListLocationLine(job: EmpleosJobRecord): string 
   }
 
   if (!isEmpleosInternalFilterRegion(job.city)) {
-    const zip = job.postalCode?.trim();
-    const base = `${job.city}, ${job.state}`.trim();
-    return zip ? `${base} · ${zip}` : base;
+    return formatEmpleosLocationLine(
+      { city: job.city, stateRegion: job.stateRegion ?? job.state, postalCode: job.postalCode, country: job.country, modality: job.modality },
+      { compact: true, includePostal: Boolean(job.postalCode && !job.country) },
+    );
   }
 
   if (addr) return addr;

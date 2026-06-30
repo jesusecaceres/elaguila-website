@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { formatEmpleosLocationLine } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 
@@ -18,6 +19,17 @@ type Row = {
   company_name: string;
   lifecycle_status: string;
   lane: string;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  listing_snapshot?: {
+    jobRecord?: {
+      stateRegion?: string | null;
+      country?: string | null;
+      employerAddressLine?: string | null;
+      employerAddressLine2?: string | null;
+    };
+  } | null;
   updated_at: string;
 };
 
@@ -42,6 +54,7 @@ export default function EmpleosEmployerDashboardPage() {
             edit: "Editar en formulario",
             public: "Ver público",
             colTitle: "Título",
+            colLocation: "Ubicación",
             colStatus: "Estado",
             colLane: "Producto",
           }
@@ -56,6 +69,7 @@ export default function EmpleosEmployerDashboardPage() {
             edit: "Edit in form",
             public: "Public view",
             colTitle: "Title",
+            colLocation: "Location",
             colStatus: "Status",
             colLane: "Product",
           },
@@ -84,7 +98,7 @@ export default function EmpleosEmployerDashboardPage() {
       }
       const { data, error } = await supabase
         .from("empleos_public_listings")
-        .select("id, slug, title, company_name, lifecycle_status, lane, updated_at")
+        .select("id, slug, title, company_name, lifecycle_status, lane, city, state, postal_code, listing_snapshot, updated_at")
         .eq("owner_user_id", userData.user.id)
         .order("updated_at", { ascending: false });
       if (!cancelled) {
@@ -104,6 +118,19 @@ export default function EmpleosEmployerDashboardPage() {
       </LeonixDashboardShell>
     );
   }
+
+  const rowLocationLine = (r: Row) =>
+    formatEmpleosLocationLine(
+      {
+        city: r.city,
+        stateRegion: r.listing_snapshot?.jobRecord?.stateRegion ?? r.state,
+        postalCode: r.postal_code,
+        country: r.listing_snapshot?.jobRecord?.country,
+        addressLine1: r.listing_snapshot?.jobRecord?.employerAddressLine,
+        addressLine2: r.listing_snapshot?.jobRecord?.employerAddressLine2,
+      },
+      { compact: true, includePostal: true },
+    );
 
   return (
     <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
@@ -125,10 +152,13 @@ export default function EmpleosEmployerDashboardPage() {
       ) : (
         <>
           <ul className="mt-8 space-y-3 md:hidden">
-            {rows.map((r) => (
+            {rows.map((r) => {
+              const locationLine = rowLocationLine(r);
+              return (
               <li key={r.id} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
                 <p className="text-base font-bold text-[#1E1810]">{r.title}</p>
                 <p className="mt-1 text-xs text-[#7A7164]">{r.company_name}</p>
+                <p className="mt-1 text-xs text-[#5C5346]">{locationLine}</p>
                 <p className="mt-2 text-xs text-[#5C5346]">
                   {t.colLane}: {laneLabel(r.lane)} · {t.colStatus}: {r.lifecycle_status}
                 </p>
@@ -158,25 +188,30 @@ export default function EmpleosEmployerDashboardPage() {
                   ) : null}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
           <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 md:block">
             <table className="min-w-full text-left text-sm">
             <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
               <tr>
                 <th className="px-4 py-3">{t.colTitle}</th>
+                <th className="px-4 py-3">{t.colLocation}</th>
                 <th className="px-4 py-3">{t.colLane}</th>
                 <th className="px-4 py-3">{t.colStatus}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r) => {
+                const locationLine = rowLocationLine(r);
+                return (
                 <tr key={r.id} className="border-b border-[#E8DFD0]/80 last:border-0">
                   <td className="px-4 py-3 font-semibold text-[#1E1810]">
                     <div className="max-w-[220px] truncate">{r.title}</div>
                     <div className="text-xs font-normal text-[#7A7164]">{r.company_name}</div>
                   </td>
+                  <td className="px-4 py-3 text-xs text-[#5C5346]">{locationLine}</td>
                   <td className="px-4 py-3">{laneLabel(r.lane)}</td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-[#E8DFD0]/90 px-2 py-0.5 text-xs font-bold">{r.lifecycle_status}</span>
@@ -209,7 +244,8 @@ export default function EmpleosEmployerDashboardPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             </table>
           </div>

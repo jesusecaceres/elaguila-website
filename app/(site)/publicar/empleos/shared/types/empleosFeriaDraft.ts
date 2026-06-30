@@ -7,8 +7,13 @@ export type EmpleosFeriaDraft = {
   dateLine: string;
   timeLine: string;
   venue: string;
+  addressLine1: string;
+  addressLine2: string;
   city: string;
   state: string;
+  stateRegion: string;
+  postalCode: string;
+  country: string;
   organizer: string;
   organizerUrl: string;
   modality: JobFairModality;
@@ -28,7 +33,21 @@ export function normalizeEmpleosFeriaDraft(p: Partial<EmpleosFeriaDraft>): Emple
   const e = emptyEmpleosFeriaDraft();
   const raw = p as Partial<EmpleosFeriaDraft>;
   const cityRaw = typeof raw.city === "string" && raw.city.trim() ? raw.city.trim() : e.city;
-  return { ...e, ...raw, city: cityRaw };
+  const stateRegion =
+    typeof raw.stateRegion === "string" && raw.stateRegion.trim()
+      ? raw.stateRegion.trim()
+      : typeof raw.state === "string"
+        ? raw.state.trim()
+        : e.stateRegion;
+  return {
+    ...e,
+    ...raw,
+    city: cityRaw,
+    state: typeof raw.state === "string" && raw.state.trim() ? raw.state.trim() : stateRegion,
+    stateRegion,
+    postalCode: typeof raw.postalCode === "string" ? raw.postalCode.trim() : e.postalCode,
+    country: typeof raw.country === "string" ? raw.country.trim() : e.country,
+  };
 }
 
 export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
@@ -39,8 +58,13 @@ export function emptyEmpleosFeriaDraft(): EmpleosFeriaDraft {
     dateLine: "",
     timeLine: "",
     venue: "",
+    addressLine1: "",
+    addressLine2: "",
     city: "",
     state: "",
+    stateRegion: "",
+    postalCode: "",
+    country: "",
     organizer: "",
     organizerUrl: "",
     modality: "presencial",

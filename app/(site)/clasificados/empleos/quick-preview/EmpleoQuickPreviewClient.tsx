@@ -54,7 +54,7 @@ export function EmpleoQuickPreviewClient() {
     return (
       <div className="min-h-screen bg-[#ECEAE7] px-4 py-10 text-center text-sm text-[color:var(--lx-text-2)]">
         <p>{prevCopy.message}</p>
-        <Link href={editHref} className="mt-4 inline-block font-semibold text-[#2563EB] underline">
+        <Link href={editHref} className="mt-4 inline-block font-semibold text-[#6B5320] underline underline-offset-2">
           {prevCopy.backLink}
         </Link>
       </div>

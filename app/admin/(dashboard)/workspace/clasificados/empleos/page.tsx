@@ -38,6 +38,7 @@ type Row = {
   company_name: string;
   lifecycle_status: string;
   lane: string;
+  location_line?: string | null;
   owner_user_id: string | null;
   moderation_reason: string | null;
   leonix_verified?: boolean;
@@ -181,7 +182,7 @@ export default function AdminEmpleosListingsPage() {
         <label className="text-xs font-bold uppercase text-[#7A7164]">Search</label>
         <p className="mt-1 max-w-3xl text-[10px] leading-snug text-[#7A7164]">
           Leonix Ad ID (if column exists), internal UUID, slug or URL /clasificados/empleos/…, owner user ID, title or company,
-          city/state, and match by profile name / email / phone.
+          city/state/region/postal/country, and match by profile name / email / phone.
         </p>
         <input className={`${adminInputClass} mt-1 max-w-md`} value={needle} onChange={(e) => setNeedle(e.target.value)} />
       </div>
@@ -215,6 +216,7 @@ export default function AdminEmpleosListingsPage() {
                 <td className="px-4 py-3">
                   <div className="max-w-[200px] truncate font-semibold">{r.title}</div>
                   <div className="text-xs text-[#7A7164]">{r.company_name}</div>
+                  {r.location_line ? <div className="mt-0.5 text-xs text-[#5C5346]">{r.location_line}</div> : null}
                   <code className="text-[11px] text-[#9A9084]">{r.slug}</code>
                   {r.moderation_reason ? (
                     <div className="mt-1 max-w-[220px] text-[11px] text-amber-900">Moderation: {r.moderation_reason}</div>
