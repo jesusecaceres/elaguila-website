@@ -22,7 +22,7 @@ type Props = {
   job: EmpleosJobRecord;
   lang: Lang;
   variant?: "grid" | "list";
-  /** Fair “fresh posting” signal — uses same 7‑day window as results `recent` filter. */
+  /** Fair "fresh posting" signal — uses same 7-day window as results `recent` filter. */
   showRecentRibbon?: boolean;
 };
 
@@ -52,6 +52,25 @@ function jobTypeEs(t: EmpleosJobRecord["jobType"]) {
   return map[t] ?? t;
 }
 
+/** Compact company logo / initial avatar for result cards. */
+function CompanyAvatar({ logoSrc, logoAlt, company }: { logoSrc?: string; logoAlt?: string; company: string }) {
+  if (logoSrc) {
+    return (
+      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[#D6C7AD]/70 bg-[#F3EDE1] shadow-sm">
+        <Image src={logoSrc} alt={logoAlt ?? company} fill className="object-cover" sizes="40px" />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-sm font-bold text-[#7A6B4A] shadow-sm"
+      aria-hidden
+    >
+      {company.slice(0, 1).toUpperCase()}
+    </div>
+  );
+}
+
 export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRibbon = false }: Props) {
   const detailHref = appendLangToPath(`/clasificados/empleos/${job.slug}`, lang);
   const locationLine = empleosJobRecordListLocationLine(job);
@@ -73,76 +92,133 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
 
   const tierRibbon =
     job.listingTier === "promoted"
-      ? "bg-gradient-to-r from-amber-200/95 via-amber-300/90 to-[#C9942E]/95 text-[#3D2A0C] shadow-[0_6px_16px_rgba(180,130,40,0.25)]"
-      : "bg-gradient-to-r from-[#F6E0A8] to-[#E8C56A] text-[#3A3220] shadow-[0_4px_14px_rgba(42,40,38,0.12)]";
+      ? "bg-gradient-to-r from-[#C9A84A]/90 to-[#A8862A]/90 text-[#FFFCF7] shadow-[0_4px_12px_rgba(122,30,44,0.2)]"
+      : "bg-gradient-to-r from-[#F0E4C4] to-[#E4D0A0] text-[#5C4A18] shadow-[0_4px_12px_rgba(42,40,38,0.1)]";
+
+  const payColor = isJobFair ? "text-[#1E4D33]" : "text-[#7A1E2C]";
+  const payLabel = isJobFair
+    ? job.freeEntry
+      ? lang === "es" ? "Entrada gratuita" : "Free entry"
+      : job.salaryLabel
+    : job.salaryLabel;
+
+  const ctaLabel = isJobFair
+    ? lang === "es" ? "Ver feria" : "View fair"
+    : lang === "es" ? "Ver empleo" : "View job";
 
   return (
     <article
       className={`group overflow-hidden ${tierShell} ${
-        isWide ? "flex h-full flex-col" : "flex flex-col gap-4 sm:flex-row sm:items-stretch"
+        isWide ? "flex h-full flex-col" : "flex flex-col sm:flex-row sm:items-stretch"
       }`}
     >
+      {/* Image area */}
       <Link
         href={detailHref}
         onClick={onResultNavigate}
-        className={`relative shrink-0 bg-[#EDE8E0] ${isWide ? "aspect-[16/9] w-full" : "aspect-[16/10] w-full sm:aspect-auto sm:h-auto sm:w-52 lg:w-60"}`}
+        className={`relative shrink-0 overflow-hidden bg-[#EDE8DF] ${
+          isWide ? "aspect-[16/9] w-full" : "aspect-[16/9] w-full sm:aspect-auto sm:h-auto sm:w-44 lg:w-52"
+        }`}
+        tabIndex={-1}
+        aria-hidden
       >
-        <Image src={job.imageSrc} alt={job.imageAlt} fill className="object-cover" sizes={isWide ? "(max-width:768px)100vw,33vw" : "200px"} />
+        <Image
+          src={job.imageSrc}
+          alt=""
+          fill
+          className="object-cover transition group-hover:scale-[1.02]"
+          sizes={isWide ? "(max-width:768px)100vw,33vw" : "208px"}
+        />
+        {/* Tier ribbon */}
         {job.listingTier !== "standard" ? (
-          <span
-            className={`absolute left-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${tierRibbon}`}
-          >
-            {job.listingTier === "promoted" ? (lang === "es" ? "Promocionado" : "Promoted") : lang === "es" ? "Destacado" : "Featured"}
+          <span className={`absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tierRibbon}`}>
+            {job.listingTier === "promoted"
+              ? lang === "es" ? "Promocionado" : "Promoted"
+              : lang === "es" ? "Destacado" : "Featured"}
           </span>
         ) : showRecentRibbon ? (
-          <span className="absolute left-2 top-2 rounded-full border border-emerald-200/90 bg-[#F0FAF3]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534] shadow-sm">
+          <span className="absolute left-2 top-2 rounded-full border border-emerald-200/90 bg-[#F0FAF3]/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#166534]">
             {lang === "es" ? "Reciente" : "Recent"}
           </span>
         ) : null}
         {isJobFair ? (
-          <span className="absolute right-2 top-2 rounded-full border border-emerald-200/90 bg-[#E8F5EE]/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534] shadow-sm">
-            {lang === "es" ? "Feria gratis" : "Free fair"}
+          <span className="absolute right-2 top-2 rounded-full border border-emerald-200/90 bg-[#E8F5EE]/95 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#166534]">
+            {lang === "es" ? "Feria" : "Fair"}
           </span>
         ) : null}
       </Link>
 
-      <div className={`flex min-w-0 flex-1 flex-col p-4 sm:p-5 ${isWide ? "" : "sm:py-5 sm:pr-5"}`}>
-        <div className="flex flex-wrap items-start gap-2">
-          <Link href={detailHref} onClick={onResultNavigate} className="min-w-0 flex-1">
-            <h2 className={`font-bold leading-snug text-[#2A2826] group-hover:underline ${isWide ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"}`}>{job.title}</h2>
-          </Link>
+      {/* Content area */}
+      <div className={`flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-5 ${isWide ? "" : ""}`}>
+
+        {/* Employer identity row */}
+        <div className="flex items-center gap-2.5">
+          <CompanyAvatar
+            logoSrc={(job as Record<string, unknown>).logoSrc as string | undefined}
+            logoAlt={(job as Record<string, unknown>).logoAlt as string | undefined}
+            company={job.company}
+          />
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold text-[#7A7164]">
+              {isJobFair
+                ? lang === "es" ? `Organiza: ${job.company}` : `Organizer: ${job.company}`
+                : job.company}
+            </p>
+            {locationLine ? (
+              <p className="truncate text-[11px] text-[#9A928A]">{locationLine}</p>
+            ) : null}
+          </div>
         </div>
-        <p className="mt-1 text-sm font-semibold text-[#4F6B82]">
-          {isJobFair ? (lang === "es" ? `Organiza: ${job.company}` : `Organizer: ${job.company}`) : job.company}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#4A4744]">
-          <span>{locationLine}</span>
+
+        {/* Title */}
+        <Link href={detailHref} onClick={onResultNavigate} className="min-w-0">
+          <h2 className={`font-bold leading-snug text-[#3D3428] decoration-[#C9A84A]/60 underline-offset-2 group-hover:underline ${
+            isWide ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
+          }`}>
+            {job.title}
+          </h2>
+        </Link>
+
+        {/* Pay */}
+        {payLabel ? (
+          <p className={`text-sm font-bold ${payColor}`}>{payLabel}</p>
+        ) : null}
+
+        {/* Meta chips row */}
+        <div className="flex flex-wrap gap-1.5">
           {isJobFair && fairDateLine ? (
-            <>
-              <span aria-hidden>·</span>
-              <span>{fairDateLine}</span>
-            </>
+            <span className="rounded-md border border-[#D6C7AD]/70 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-medium text-[#5C5346]">
+              {fairDateLine}
+            </span>
           ) : (
             <>
-              <span aria-hidden>·</span>
-              <span>{lang === "es" ? modalityEs(job.modality) : job.modality}</span>
-              <span aria-hidden>·</span>
-              <span>{lang === "es" ? jobTypeEs(job.jobType) : job.jobType}</span>
+              <span className="rounded-md border border-[#D6C7AD]/70 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-medium text-[#5C5346]">
+                {lang === "es" ? modalityEs(job.modality) : job.modality}
+              </span>
+              <span className="rounded-md border border-[#D6C7AD]/70 bg-[#FBF7EF] px-2 py-0.5 text-[11px] font-medium text-[#5C5346]">
+                {lang === "es" ? jobTypeEs(job.jobType) : job.jobType}
+              </span>
+              {job.category ? (
+                <span className="rounded-md border border-[#D6C7AD]/60 bg-[#F8F4EC] px-2 py-0.5 text-[11px] font-medium text-[#7A7164]">
+                  {job.category}
+                </span>
+              ) : null}
             </>
           )}
-        </div>
-        <p className={`mt-2 text-base font-bold ${isJobFair ? "text-[#1E4D33]" : "text-[#8A5A18]"}`}>
-          {isJobFair ? (job.freeEntry ? (lang === "es" ? "Entrada gratuita" : "Free entry") : job.salaryLabel) : job.salaryLabel}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
           {job.verifiedEmployer ? (
-            <span className={EMPLEOS_BADGE_VERIFIED}>{lang === "es" ? "Empleador verificado" : "Verified employer"}</span>
+            <span className={EMPLEOS_BADGE_VERIFIED}>{lang === "es" ? "Verificado" : "Verified"}</span>
           ) : null}
         </div>
-        <p className="mt-2 line-clamp-2 text-sm text-[#5C564E]">{job.summary}</p>
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <Link href={detailHref} onClick={onResultNavigate} className={`${EMPLEOS_CTA_PRIMARY} min-w-[7.5rem] px-4`}>
-            {isJobFair ? (lang === "es" ? "Ver feria" : "View fair") : lang === "es" ? "Ver vacante" : "View job"}
+
+        {/* Summary excerpt */}
+        {job.summary ? (
+          <p className="line-clamp-2 text-[13px] leading-relaxed text-[#5C564E]">{job.summary}</p>
+        ) : null}
+
+        {/* CTA row */}
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+          <Link href={detailHref} onClick={onResultNavigate} className={`${EMPLEOS_CTA_PRIMARY} min-w-[8rem] px-4 text-xs sm:text-sm`}>
+            {ctaLabel}
           </Link>
         </div>
       </div>

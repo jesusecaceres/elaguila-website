@@ -7,9 +7,9 @@
 export const EMPLEOS_FIELD =
   "min-h-[44px] w-full rounded-xl border border-[#E5DCCD] bg-[#FFFBF7] px-3 text-sm text-[#2A2826] outline-none transition focus:border-[#D9A23A]/75 focus:ring-4 focus:ring-[#D9A23A]/14";
 
-/** Primary gold CTA — single hierarchy for conversion actions. */
+/** Primary CTA — burgundy, matches detail page apply button. */
 export const EMPLEOS_CTA_PRIMARY =
-  "inline-flex min-h-[44px] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8A54B] via-[#D9A23A] to-[#C9942E] px-5 text-sm font-bold text-[#2A2826] shadow-[0_10px_28px_rgba(201,148,46,0.28)] transition hover:brightness-[1.04] active:scale-[0.99]";
+  "inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.38)] transition hover:bg-[#5e1721] active:scale-[0.99]";
 
 /** Secondary / charcoal action (filters, clear). */
 export const EMPLEOS_CTA_SECONDARY =
@@ -20,15 +20,15 @@ export const EMPLEOS_LINK_MUTED = "text-sm font-semibold text-[#4F6B82] underlin
 
 /** Standard job card shell. */
 export const EMPLEOS_CARD_STANDARD =
-  "rounded-2xl border border-[#E8DFD0] bg-white shadow-[0_10px_34px_rgba(42,40,38,0.06)] transition hover:border-[#D9A23A]/35 hover:shadow-[0_14px_42px_rgba(42,40,38,0.09)]";
+  "rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] shadow-[0_10px_34px_-14px_rgba(31,36,28,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-[0_14px_42px_-12px_rgba(31,36,28,0.22)]";
 
-/** Featured tier — subtle gold ring, no loud borders. */
+/** Featured tier — subtle gold ring, cream surface. */
 export const EMPLEOS_CARD_FEATURED =
-  "rounded-2xl border border-[#E8DFD0] bg-white ring-1 ring-[#E8C56A]/45 shadow-[0_14px_42px_rgba(42,40,38,0.085)] transition hover:ring-[#D9A23A]/55 hover:shadow-[0_18px_48px_rgba(42,40,38,0.1)]";
+  "rounded-xl border border-[#C9A84A]/55 bg-[#FFFDF7] ring-1 ring-[#C9A84A]/25 shadow-[0_14px_42px_-12px_rgba(31,36,28,0.2)] transition hover:ring-[#C9A84A]/55 hover:shadow-[0_18px_48px_-10px_rgba(31,36,28,0.24)]";
 
-/** Promoted / plus visibility — slightly richer emphasis than featured. */
+/** Promoted / plus visibility — gold ring emphasis, cream surface. */
 export const EMPLEOS_CARD_PROMOTED =
-  "rounded-2xl border border-[#E5D4B8] bg-white ring-1 ring-amber-300/55 shadow-[0_16px_46px_rgba(180,130,40,0.11)] transition hover:ring-amber-400/45 hover:shadow-[0_20px_52px_rgba(180,130,40,0.13)]";
+  "rounded-xl border border-[#C9A84A]/70 bg-[#FFFDF7] ring-2 ring-[#C9A84A]/30 shadow-[0_16px_46px_-12px_rgba(122,30,44,0.12)] transition hover:ring-[#C9A84A]/55 hover:shadow-[0_20px_52px_-10px_rgba(122,30,44,0.15)]";
 
 /** Trust: verified employer (restrained green). */
 export const EMPLEOS_BADGE_VERIFIED =
