@@ -118,6 +118,7 @@ export function OfertasClipReviewViewer({
 
   useEffect(() => {
     if (!fileUrl || !isPdf) return;
+    const sourceUrl = fileUrl;
     let cancelled = false;
 
     async function renderPdfPage() {
@@ -129,13 +130,10 @@ export function OfertasClipReviewViewer({
       try {
         const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
         if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            "pdfjs-dist/build/pdf.worker.min.mjs",
-            import.meta.url
-          ).toString();
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
         }
 
-        const loadingTask = pdfjs.getDocument({ url: fileUrl, withCredentials: false });
+        const loadingTask = pdfjs.getDocument({ url: sourceUrl, withCredentials: false });
         const pdf = await loadingTask.promise;
         if (cancelled) return;
 
