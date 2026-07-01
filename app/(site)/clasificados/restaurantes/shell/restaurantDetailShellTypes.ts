@@ -52,6 +52,12 @@ export type ShellCoupon = {
   couponCode?: string;
   expirationDate?: string;
   redemptionNote?: string;
+  /** Optional flyer/image for coupon display */
+  imageUrl?: string;
+  /** External coupon/menu/order URL */
+  url?: string;
+  /** Custom CTA label (defaults to "Ver cupón" / "View coupon") */
+  ctaLabel?: string;
 };
 
 /** Full week grid for “Ver horarios” target section */

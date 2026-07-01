@@ -647,13 +647,16 @@ export function mapRestauranteDraftToShellData(
   const coupons =
     d.coupons
       ?.filter((x) => nonEmpty(x.title) && nonEmpty(x.description))
-      .slice(0, 3)
+      .slice(0, 4)
       .map((x) => ({
         title: x.title.trim(),
         description: x.description.trim(),
         couponCode: nonEmpty(x.couponCode) ? x.couponCode!.trim() : undefined,
         expirationDate: nonEmpty(x.expirationDate) ? x.expirationDate!.trim() : undefined,
         redemptionNote: nonEmpty(x.redemptionNote) ? x.redemptionNote!.trim() : undefined,
+        imageUrl: nonEmpty(x.imageUrl) ? x.imageUrl!.trim() : undefined,
+        url: nonEmpty(x.url) ? normalizeUrl(x.url!) ?? x.url!.trim() : undefined,
+        ctaLabel: nonEmpty(x.ctaLabel) ? x.ctaLabel!.trim() : undefined,
       })) ?? [];
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);

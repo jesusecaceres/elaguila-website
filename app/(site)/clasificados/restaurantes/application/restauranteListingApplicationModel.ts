@@ -104,7 +104,7 @@ export type RestauranteFeaturedDish = {
 };
 
 // ---------------------------------------------------------------------------
-// G. Coupons/offers (optional, max 3 in UI)
+// G. Coupons/offers (optional, max 4 with upgrade)
 // ---------------------------------------------------------------------------
 
 export type RestauranteCoupon = {
@@ -113,6 +113,14 @@ export type RestauranteCoupon = {
   couponCode?: string;
   expirationDate?: string;
   redemptionNote?: string;
+  /** Optional flyer/image for coupon display */
+  imageUrl?: string;
+  /** External coupon/menu/order URL */
+  url?: string;
+  /** Custom CTA label (defaults to "Ver cupón" / "View coupon") */
+  ctaLabel?: string;
+  /** Default true for first 4 coupons */
+  isFeatured?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -335,6 +343,8 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
     highlights?: RestauranteHighlightKey[];
     /** Optional coupons/offers */
     coupons?: RestauranteCoupon[];
+    /** Coupon upgrade enabled (+$99/month) */
+    couponUpgradeEnabled?: boolean;
     /** Drafts may omit keys until the conditional stack is filled */
     movingVendorStack?: Partial<RestauranteMovingVendorStack>;
     homeBasedStack?: Partial<RestauranteHomeBasedStack>;
