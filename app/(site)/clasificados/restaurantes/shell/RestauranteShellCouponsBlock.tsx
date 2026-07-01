@@ -46,12 +46,11 @@ export function RestauranteShellCouponsBlock({
   return (
     <section aria-labelledby="cupones-destacados-heading" className="scroll-mt-24">
       <div className="max-w-2xl">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Ofertas</p>
-        <h2 id="cupones-destacados-heading" className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-          Cupones destacados
+        <h2 id="cupones-destacados-heading" className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
+          Cupones y ofertas
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-          Presenta este cupón en el restaurante o úsalo desde tu teléfono.
+          Guarda o comparte estas ofertas antes de visitar.
         </p>
       </div>
       <div className={gridClass}>
@@ -97,7 +96,7 @@ export function RestauranteShellCouponsBlock({
                 <div className="mt-4">
                   <RestauranteShellInlineDataAssetButton
                     href={coupon.url}
-                    label={`${coupon.ctaLabel || "Ver cupón"} →`}
+                    label={`${coupon.ctaLabel || "Ver oferta"} →`}
                     className="flex w-full min-h-[44px] items-center justify-center rounded-full border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
                   />
                 </div>
