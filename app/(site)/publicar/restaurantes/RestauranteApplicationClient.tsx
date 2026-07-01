@@ -460,6 +460,41 @@ export default function RestauranteApplicationClient() {
         </p>
       </div>
 
+      {/* Final coupon upsell reminder */}
+      {(!draft.couponUpgradeEnabled && minPreviewOk) ? (
+        <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
+          <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
+            {lang === "en" ? "Want to attract more customers with coupons?" : "¿Quieres atraer más clientes con cupones?"}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+            {lang === "en"
+              ? "$99/month to show featured offers inside your restaurant ad. You can publish up to 4 main coupons and add a flyer or external link for more promotions."
+              : "$99/mes para mostrar ofertas destacadas dentro de tu anuncio. Puedes publicar hasta 4 cupones principales y agregar un flyer o enlace externo para más promociones."}
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSectionId("restaurantes-section-i");
+                setDraftPatch({ couponUpgradeEnabled: true });
+              }}
+              className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
+            >
+              {lang === "en" ? "Add coupons" : "Agregar cupones"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraftPatch({ couponUpgradeEnabled: false });
+              }}
+              className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+            >
+              {lang === "en" ? "Continue without coupons" : "Continuar sin cupones"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <ClasificadosApplicationTopActions
         onPreviewValidated={goPreview}
         openPreviewHref={previewHrefWithPlan}
@@ -1358,19 +1393,14 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Estado</FieldLabel>
-              <HelperText>Estado de EE. UU. donde opera el restaurante.</HelperText>
-              <select
+              <FieldLabel optional>Estado / Región</FieldLabel>
+              <HelperText>Estado, provincia o región donde opera el restaurante.</HelperText>
+              <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.state?.trim() || "CA"}
-                onChange={(e) => setDraftPatch({ state: e.target.value || "CA" })}
-              >
-                {RESTAURANTE_US_STATE_OPTIONS.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
+                value={draft.state ?? ""}
+                onChange={(e) => setDraftPatch({ state: e.target.value || undefined })}
+                placeholder="Ej. California, Jalisco, Madrid…"
+              />
             </div>
             <div>
               <FieldLabel optional>Código postal</FieldLabel>
@@ -1384,7 +1414,7 @@ export default function RestauranteApplicationClient() {
             </div>
             <div>
               <FieldLabel optional>País</FieldLabel>
-              <HelperText>País donde opera el restaurante (opcional).</HelperText>
+              <HelperText>País donde opera el restaurante. Se usa para búsqueda y claridad para los clientes.</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.country ?? ""}
@@ -1509,6 +1539,151 @@ export default function RestauranteApplicationClient() {
                 + Añadir plato
               </button>
             ) : null}
+          </div>
+        </section>
+        ) : null}
+
+        {/* I */}
+        {activeSectionId === "restaurantes-section-i" ? (
+        <section id="restaurantes-section-i" className={stepPanel}>
+          <SectionTitle>I · Cupones destacados</SectionTitle>
+          <HelperText>
+            Agrega hasta <strong className="text-[color:var(--lx-text-2)]">4</strong> ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.
+          </HelperText>
+          <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
+            Upgrade de cupones: <strong className="text-[color:var(--lx-text)]">+$99/mes</strong>
+          </p>
+          <div className="mt-4 grid gap-4">
+            {(draft.coupons ?? []).map((coupon, i) => (
+              <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">Cupón {i + 1}</span>
+                  <button type="button" className="text-sm text-red-700 underline" onClick={() => removeCoupon(i)}>
+                    Quitar
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3">
+                  <div>
+                    <FieldLabel>Título</FieldLabel>
+                    <HelperText>Ej. "10% de descuento en tu primera orden"</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.title}
+                      onChange={(e) => patchCoupon(i, { title: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Descripción</FieldLabel>
+                    <HelperText>Detalles de la oferta, condiciones o restricciones.</HelperText>
+                    <textarea
+                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.description}
+                      onChange={(e) => patchCoupon(i, { description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Imagen del cupón (flyer)</FieldLabel>
+                    <HelperText>URL de imagen o sube un flyer para mostrar el cupón visualmente.</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.imageUrl ?? ""}
+                      onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
+                      placeholder="https://ejemplo.com/cupon.jpg"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Enlace del cupón</FieldLabel>
+                    <HelperText>URL externa del cupón, menú, pedido o reservación.</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.url ?? ""}
+                      onChange={(e) => patchCoupon(i, { url: e.target.value || undefined })}
+                      placeholder="https://ejemplo.com/menu"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Código de cupón</FieldLabel>
+                    <HelperText>Código que el cliente debe mencionar o ingresar (si aplica).</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.couponCode ?? ""}
+                      onChange={(e) => patchCoupon(i, { couponCode: e.target.value || undefined })}
+                      placeholder="Ej. LEONIX10"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Fecha de expiración</FieldLabel>
+                    <HelperText>Fecha límite de vigencia (si aplica).</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      type="date"
+                      value={coupon.expirationDate ?? ""}
+                      onChange={(e) => patchCoupon(i, { expirationDate: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Nota de canje</FieldLabel>
+                    <HelperText>Instrucciones adicionales para redimir la oferta.</HelperText>
+                    <textarea
+                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.redemptionNote ?? ""}
+                      onChange={(e) => patchCoupon(i, { redemptionNote: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Etiqueta del botón (CTA)</FieldLabel>
+                    <HelperText>Texto personalizado para el botón (por defecto: "Ver cupón").</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.ctaLabel ?? ""}
+                      onChange={(e) => patchCoupon(i, { ctaLabel: e.target.value || undefined })}
+                      placeholder="Ej. Ver oferta"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(draft.coupons ?? []).length < 4 ? (
+              <button
+                type="button"
+                onClick={addCoupon}
+                className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                + Añadir cupón
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-6 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
+            <FieldLabel optional>Flyer de cupones o promociones</FieldLabel>
+            <HelperText>Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales.</HelperText>
+            <input
+              className="mt-2 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+              value={draft.couponFlyer?.imageUrl ?? ""}
+              onChange={(e) => setDraftPatch({ couponFlyer: { imageUrl: e.target.value || undefined } })}
+              placeholder="https://ejemplo.com/flyer-cupones.jpg"
+            />
+          </div>
+
+          <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
+            <FieldLabel optional>Enlace para ver más ofertas</FieldLabel>
+            <HelperText>URL externa donde los clientes pueden ver más cupones o promociones.</HelperText>
+            <input
+              className="mt-2 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+              value={draft.couponMoreOffers?.url ?? ""}
+              onChange={(e) => setDraftPatch({ couponMoreOffers: { ...draft.couponMoreOffers, url: e.target.value || undefined } })}
+              placeholder="https://ejemplo.com/mas-cupones"
+            />
+            <div className="mt-3">
+              <FieldLabel optional>Texto del botón</FieldLabel>
+              <HelperText>Texto personalizado para el botón (por defecto: "Ver más cupones").</HelperText>
+              <input
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                value={draft.couponMoreOffers?.buttonLabel ?? ""}
+                onChange={(e) => setDraftPatch({ couponMoreOffers: { ...draft.couponMoreOffers, buttonLabel: e.target.value || undefined } })}
+                placeholder="Ej. Ver menú con especiales"
+              />
+            </div>
           </div>
         </section>
         ) : null}
@@ -1812,119 +1987,6 @@ export default function RestauranteApplicationClient() {
                 </label>
               );
             })}
-          </div>
-        </section>
-        ) : null}
-
-        {/* I */}
-        {activeSectionId === "restaurantes-section-i" ? (
-        <section id="restaurantes-section-i" className={stepPanel}>
-          <SectionTitle>I · Cupones destacados</SectionTitle>
-          <HelperText>
-            Agrega hasta <strong className="text-[color:var(--lx-text-2)]">4</strong> ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.
-          </HelperText>
-          <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
-            Upgrade de cupones: <strong className="text-[color:var(--lx-text)]">+$99/mes</strong>
-          </p>
-          <div className="mt-4 grid gap-4">
-            {(draft.coupons ?? []).map((coupon, i) => (
-              <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold">Cupón {i + 1}</span>
-                  <button type="button" className="text-sm text-red-700 underline" onClick={() => removeCoupon(i)}>
-                    Quitar
-                  </button>
-                </div>
-                <div className="mt-3 grid gap-3">
-                  <div>
-                    <FieldLabel>Título</FieldLabel>
-                    <HelperText>Ej. "10% de descuento en tu primera orden"</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.title}
-                      onChange={(e) => patchCoupon(i, { title: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Descripción</FieldLabel>
-                    <HelperText>Detalles de la oferta, condiciones o restricciones.</HelperText>
-                    <textarea
-                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.description}
-                      onChange={(e) => patchCoupon(i, { description: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Imagen del cupón (flyer)</FieldLabel>
-                    <HelperText>URL de imagen o sube un flyer para mostrar el cupón visualmente.</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.imageUrl ?? ""}
-                      onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
-                      placeholder="https://ejemplo.com/cupon.jpg"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Enlace del cupón</FieldLabel>
-                    <HelperText>URL externa del cupón, menú, pedido o reservación.</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.url ?? ""}
-                      onChange={(e) => patchCoupon(i, { url: e.target.value || undefined })}
-                      placeholder="https://ejemplo.com/menu"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Código de cupón</FieldLabel>
-                    <HelperText>Código que el cliente debe mencionar o ingresar (si aplica).</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.couponCode ?? ""}
-                      onChange={(e) => patchCoupon(i, { couponCode: e.target.value || undefined })}
-                      placeholder="Ej. LEONIX10"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Fecha de expiración</FieldLabel>
-                    <HelperText>Fecha límite de vigencia (si aplica).</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      type="date"
-                      value={coupon.expirationDate ?? ""}
-                      onChange={(e) => patchCoupon(i, { expirationDate: e.target.value || undefined })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Nota de canje</FieldLabel>
-                    <HelperText>Instrucciones adicionales para redimir la oferta.</HelperText>
-                    <textarea
-                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.redemptionNote ?? ""}
-                      onChange={(e) => patchCoupon(i, { redemptionNote: e.target.value || undefined })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Etiqueta del botón (CTA)</FieldLabel>
-                    <HelperText>Texto personalizado para el botón (por defecto: "Ver cupón").</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.ctaLabel ?? ""}
-                      onChange={(e) => patchCoupon(i, { ctaLabel: e.target.value || undefined })}
-                      placeholder="Ej. Ver oferta"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            {(draft.coupons ?? []).length < 4 ? (
-              <button
-                type="button"
-                onClick={addCoupon}
-                className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-              >
-                + Añadir cupón
-              </button>
-            ) : null}
           </div>
         </section>
         ) : null}

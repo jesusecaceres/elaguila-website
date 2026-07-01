@@ -60,6 +60,17 @@ export type ShellCoupon = {
   ctaLabel?: string;
 };
 
+/** Section-level flyer for additional promotions */
+export type ShellCouponFlyer = {
+  imageUrl?: string;
+};
+
+/** Section-level "more offers" external link */
+export type ShellCouponMoreOffers = {
+  url?: string;
+  buttonLabel?: string;
+};
+
 /** Full week grid for “Ver horarios” target section */
 export type ShellHoursDetail = {
   rows: { dayLabel: string; line: string }[];
@@ -183,6 +194,10 @@ export type RestaurantDetailShellData = {
   fullMenuCta?: { label: string; href: string };
   highlightTags?: ShellHighlightTag[];
   coupons?: ShellCoupon[];
+  /** Section-level flyer for additional promotions */
+  couponFlyer?: ShellCouponFlyer;
+  /** Section-level "more offers" external link */
+  couponMoreOffers?: ShellCouponMoreOffers;
   /** Grouped venue gallery (preview default). */
   venueGallery?: ShellVenueGalleryBundle;
   /** Legacy flat gallery (demo / fallback). */

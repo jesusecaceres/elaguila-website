@@ -658,6 +658,15 @@ export function mapRestauranteDraftToShellData(
         url: nonEmpty(x.url) ? normalizeUrl(x.url!) ?? x.url!.trim() : undefined,
         ctaLabel: nonEmpty(x.ctaLabel) ? x.ctaLabel!.trim() : undefined,
       })) ?? [];
+  const couponFlyer = d.couponFlyer && nonEmpty(d.couponFlyer.imageUrl)
+    ? { imageUrl: d.couponFlyer.imageUrl!.trim() }
+    : undefined;
+  const couponMoreOffers = d.couponMoreOffers && nonEmpty(d.couponMoreOffers.url)
+    ? {
+        url: normalizeUrl(d.couponMoreOffers.url!) ?? d.couponMoreOffers.url!.trim(),
+        buttonLabel: d.couponMoreOffers.buttonLabel && nonEmpty(d.couponMoreOffers.buttonLabel) ? d.couponMoreOffers.buttonLabel!.trim() : undefined,
+      }
+    : undefined;
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
   const menuHref = hasMenuUrl ? normalizeUrl(d.menuUrl!) : hasMenuFile ? d.menuFile! : "";
@@ -698,6 +707,8 @@ export function mapRestauranteDraftToShellData(
       ? { label: hasMenuUrl ? "Ver menú completo" : "Ver carta completa", href: menuHref }
       : undefined,
     highlightTags: highlights.length ? highlights : undefined,
+    couponFlyer,
+    couponMoreOffers,
     venueGallery,
     galleryCta: venueGallery
       ? { label: "Explorar fotos y videos", href: "#galeria-lugar" }

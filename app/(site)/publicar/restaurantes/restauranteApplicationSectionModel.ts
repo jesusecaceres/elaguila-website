@@ -15,9 +15,9 @@ export function buildRestauranteApplicationSectionNavItems(draft: RestauranteLis
     { id: "restaurantes-section-d", letter: "D", shortTitle: "Contacto y CTAs" },
     { id: "restaurantes-section-e", letter: "E", shortTitle: "Ubicación del establecimiento" },
     { id: "restaurantes-section-f", letter: "F", shortTitle: "Platos destacados" },
+    { id: "restaurantes-section-i", letter: "I", shortTitle: "Cupones y ofertas" },
     { id: "restaurantes-section-g", letter: "G", shortTitle: "Galería y medios" },
     { id: "restaurantes-section-h", letter: "H", shortTitle: "Destacados del lugar" },
-    { id: "restaurantes-section-i", letter: "I", shortTitle: "Cupones y ofertas" },
     { id: "restaurantes-section-amenities", letter: "L", shortTitle: "Amenidades y más" },
   ];
   if (draft.cateringAvailable || draft.eventFoodService) {
