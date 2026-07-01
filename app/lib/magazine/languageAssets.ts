@@ -1,4 +1,8 @@
 import { normalizeLang, type SupportedLang } from "@/app/lib/language";
+import {
+  describeMagazineVisualAssetState,
+  JUNE_2026_ISSUE_ID,
+} from "@/app/lib/magazine/magazineVisualAssetsPlatform";
 
 export type MagazineVisualAssetStatus = "available" | "planned" | "missing";
 
@@ -54,7 +58,7 @@ export type MagazineVisualAssetResult = {
   requestedLang: SupportedLang;
   /** Language of the visual asset actually served (always es until separate assets exist). */
   visualLang: "es";
-  isTranslatedVisualAvailable: false;
+  isTranslatedVisualAvailable: boolean;
   pdfUrl: string;
   coverUrl: string;
   flipbookUrl: string;
@@ -73,21 +77,22 @@ export function getMagazineVisualAsset(
   const entry = issue.byLanguage[requestedLang];
   const spanish = issue.spanishOriginal;
 
-  const isSpanishVisualFallback = requestedLang !== "es";
-  const hasDedicatedVisual = requestedLang === "es" && entry?.status === "available";
+  const platformState = describeMagazineVisualAssetState(
+    null,
+    requestedLang,
+    issueId === MAGAZINE_ISSUE_IDS.june2026 ? JUNE_2026_ISSUE_ID : issueId,
+    "translated_pdf",
+  );
 
-  let fallbackReason: string | null = null;
-  if (isSpanishVisualFallback) {
-    fallbackReason =
-      entry?.notes ??
-      "The original visual magazine is in Spanish. A fully translated PDF or flipbook requires separate production assets.";
-  }
+  const isSpanishVisualFallback = requestedLang !== "es";
+  const hasDedicatedVisual = platformState.canServe && platformState.state === "available";
+  const fallbackReason = platformState.fallbackReason;
 
   return {
     issueId: issue.issueId,
     requestedLang,
     visualLang: "es",
-    isTranslatedVisualAvailable: false,
+    isTranslatedVisualAvailable: hasDedicatedVisual,
     pdfUrl: spanish.pdfUrl,
     coverUrl: spanish.coverUrl,
     flipbookUrl: spanish.flipbookUrl,

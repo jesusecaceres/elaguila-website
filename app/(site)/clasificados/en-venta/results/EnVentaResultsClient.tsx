@@ -55,7 +55,12 @@ import { enVentaQueryMatchesListing } from "./utils/buildEnVentaSearchText";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility";
 import { queryEnVentaBrowseListings } from "../lib/enVentaListingPublicSelect";
-import { EN_VENTA_HUB_CITY_PRESETS } from "../enVentaHubCityPresets";
+import { EnVentaCompactSearchCanvas } from "../shared/components/EnVentaCompactSearchCanvas";
+import {
+  EV_BTN_SECONDARY,
+  EV_PUBLIC_SHELL,
+  enVentaBrowseSearchPlaceholder,
+} from "../shared/styles/enVentaLeonixPublicUi";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
@@ -669,8 +674,8 @@ export function EnVentaResultsClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className="relative mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-3 pb-12 pt-0 sm:px-6 sm:pt-4 lg:px-8">
-        <header className="space-y-0 border-b border-[#D6C7AD]/50 pb-1 sm:space-y-1 sm:pb-3">
+      <main className={`${EV_PUBLIC_SHELL} overflow-x-hidden pb-12 pt-0 sm:pt-3`}>
+        <header className="space-y-0 border-b border-[#D6C7AD]/50 pb-2 sm:space-y-1 sm:pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
             className="inline-flex text-[11px] font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
@@ -692,76 +697,27 @@ export function EnVentaResultsClient() {
           <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
         </div>
 
-        <form
-          id="ev-results-form"
+        <EnVentaCompactSearchCanvas
+          lang={lang}
+          routeLang={lang}
+          action={EN_VENTA_RESULTS_PATH}
+          formId="ev-results-form"
           onSubmit={onSubmitSearch}
-          role="search"
-          className="mt-1 w-full rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-1 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)] sm:mt-2 sm:p-3"
-        >
-          <input type="hidden" name="lang" value={lang} />
-          <input type="hidden" name="view" value={view} readOnly />
+          defaultQ={q}
+          defaultCity={city}
+          defaultZip={zip}
+          searchLabel={enVentaBrowseSearchPlaceholder(lang)}
+          cityLabel={t.cityPh}
+          zipLabel={t.zip}
+          searchButtonLabel={t.go}
+        />
+        <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
 
-          <div className="flex flex-col gap-0 overflow-hidden rounded-lg border border-[#D6C7AD] bg-white sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 px-3 sm:col-span-5 sm:min-h-[2.5rem]">
-              <span className="shrink-0 text-[#556B3E]" aria-hidden>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3-3" strokeLinecap="round" />
-                </svg>
-              </span>
-              <input
-                name="q"
-                type="search"
-                defaultValue={q}
-                placeholder={t.searchPh}
-                aria-label={t.searchPh}
-                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[#1E1810] outline-none"
-              />
-            </label>
-            <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
-              <input
-                name="city"
-                type="text"
-                list="en-venta-results-city-presets"
-                defaultValue={city}
-                placeholder={t.cityPh}
-                aria-label={t.cityPh}
-                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
-              />
-              <datalist id="en-venta-results-city-presets">
-                {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </label>
-            <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
-              <span className="text-[#4A6678]" aria-hidden>#</span>
-              <input
-                name="zip"
-                defaultValue={zip}
-                placeholder={t.zip}
-                inputMode="numeric"
-                maxLength={5}
-                aria-label={t.zip}
-                className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
-              />
-            </label>
-            <div className="border-t border-[#D6C7AD] p-1.5 sm:col-span-2 sm:border-l sm:border-t-0">
-              <button
-                type="submit"
-                className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
-              >
-                {t.go}
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:mt-2 sm:gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setFiltersPanelOpen(true)}
-            className="inline-flex min-h-[34px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-1.5 text-xs font-semibold text-[#2F4A65] shadow-sm hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[36px] sm:px-3.5 sm:py-2"
+            className={EV_BTN_SECONDARY}
             aria-haspopup="dialog"
             aria-expanded={filtersPanelOpen}
           >
@@ -772,7 +728,7 @@ export function EnVentaResultsClient() {
             <select
               value={sort}
               onChange={(e) => applySort(e.target.value as SortId)}
-              className="min-h-[34px] max-w-[11rem] rounded-full border border-[#E8DFD0] bg-white px-3 py-1 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[36px] sm:py-1.5"
+              className="min-h-[2.625rem] max-w-[11rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/35"
               aria-label={t.sort}
             >
               {EN_VENTA_SORT_OPTIONS.map((o) => (
@@ -787,7 +743,7 @@ export function EnVentaResultsClient() {
             <select
               value={perPage}
               onChange={(e) => applyPerPage(Number(e.target.value))}
-              className="min-h-[34px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1 text-xs font-medium text-[#2C2416] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[36px] sm:py-1.5"
+              className="min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/35"
               aria-label={`${t.perPage} ${t.perPageSuffix}`}
             >
               {EN_VENTA_PER_PAGE_OPTIONS.map((n) => (
@@ -797,14 +753,14 @@ export function EnVentaResultsClient() {
               ))}
             </select>
           </label>
-          <div className="flex items-center gap-0.5 rounded-full border border-[#E8DFD0] bg-[#FAF7F2] p-0.5" role="group" aria-label={t.viewLabel}>
+          <div className="flex items-center gap-0.5 rounded-lg border border-[#C9A84A]/45 bg-[#FBF7EF] p-0.5" role="group" aria-label={t.viewLabel}>
             <button
               type="button"
               onClick={() => applyViewPreference("grid")}
-              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 ${
+              className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 ${
                 view === "grid"
-                  ? "bg-white text-[#1E1810] shadow-sm ring-1 ring-[#C9A84A]/30"
-                  : "text-[#5C5346]"
+                  ? "bg-[#7A1E2C] text-[#FFFDF7]"
+                  : "text-[#3D3428]"
               }`}
               aria-pressed={view === "grid"}
             >
@@ -813,10 +769,10 @@ export function EnVentaResultsClient() {
             <button
               type="button"
               onClick={() => applyViewPreference("list")}
-              className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 ${
+              className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 ${
                 view === "list"
-                  ? "bg-white text-[#1E1810] shadow-sm ring-1 ring-[#C9A84A]/30"
-                  : "text-[#5C5346]"
+                  ? "bg-[#7A1E2C] text-[#FFFDF7]"
+                  : "text-[#3D3428]"
               }`}
               aria-pressed={view === "list"}
             >
@@ -860,6 +816,7 @@ export function EnVentaResultsClient() {
             featuredMode: t.featuredMode,
             useLocation: t.useLocation,
             applyFilters: t.applyFilters,
+            clearFilters: t.clearAll,
           }}
           evDept={evDept}
           evSub={evSub}
@@ -880,6 +837,10 @@ export function EnVentaResultsClient() {
           geoHint={geoHint}
           onClose={() => setFiltersPanelOpen(false)}
           onApply={applyFiltersFromDrawer}
+          onClear={() => {
+            setFiltersPanelOpen(false);
+            resetFilters();
+          }}
           onUseMyLocation={onUseMyLocation}
         />
 

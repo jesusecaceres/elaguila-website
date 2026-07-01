@@ -1,10 +1,10 @@
 # Magazine Storage And Asset Cache
 
-Status: `MAGAZINE-VISUAL-TRANSLATION-PROOF1`
+Status: `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1`
 
 Provider backend status: `MAGAZINE-DEEPL-PT-REAL-SMOKE2` is blocked before paid DeepL execution. The June 2026 source PDF can be hashed locally and Portuguese (`pt`) is the locked first smoke target, but DeepL document translation is not executable until `DEEPL_AUTH_KEY` is present in the local Cursor environment.
 
-Leonix magazine translation uses three separate savings layers. This proof does not create storage buckets, database tables, migrations, paid provider calls, or generated assets.
+Platform registry status: `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added `public.magazine_visual_assets` (migration `20260630140000`), TypeScript platform helpers in `app/lib/magazine/magazineVisualAssetsPlatform.ts`, and a server lookup in `app/lib/magazine/getApprovedMagazineVisualAsset.ts`. No translated visual edition is public yet. Storage bucket creation is held — see `docs/magazine-translation-platform-runbook.md`.
 
 ## 1. Translation Memory For HTML Text
 
@@ -40,21 +40,21 @@ Use for produced visual assets:
 - translated page images
 - QA status and fallback reason
 
-Recommended identity:
+Recommended identity (now backed by `public.magazine_visual_assets`):
 
-- `sourcePdfHash`
-- `pageHash` when caching page-level renders
-- `targetLang`
-- provider
-- source version
-- translated PDF URL
-- rendered page image URLs
-- `qaApproved`
+- `source_pdf_hash`
+- `source_page_hash` when caching page-level renders
+- `ad_asset_hash` for reusable ad pages
+- `target_locale`
+- `provider`
+- `source_version`
+- `storage_path` / `public_url`
+- `qa_approved`, `qa_status`, `publicly_available`
 - fallback reason
 
-Visual assets are cached at asset level, not word level. If the source PDF hash and target language match a QA-approved translated PDF or page image, reuse that asset. If the source hash changes, mark the translated track stale or pending QA until rebuilt.
+Visual assets are cached at asset level, not word level. If the source PDF hash and target language match a QA-approved translated PDF or page image with `publicly_available = true`, reuse that asset. If the source hash changes, mark the translated track stale or pending QA until rebuilt.
 
-The Spanish source PDF and FlipHTML5 edition remain source assets. A non-Spanish visual edition is unavailable until a real translated asset exists and QA approves it.
+The Spanish source PDF and FlipHTML5 edition remain source assets. A non-Spanish visual edition is unavailable until a real translated asset exists, is registered, and QA approves it.
 
 ## 3. Reusable Ad Asset Library
 
@@ -107,3 +107,4 @@ Current blocker:
 - Any local proof manifest must remain `qaApproved: false` and must not set a public `assetPath` until manual visual QA approves real output.
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE1` did not install DeepL or call the provider because `DEEPL_AUTH_KEY` was missing. No translated output exists from this gate.
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE2` repeated the real-smoke readiness check and also stopped because `DEEPL_AUTH_KEY` is missing. No translated output exists from this gate.
+- `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added the durable registry table and platform helpers. No storage bucket migration yet. No translated asset is QA-approved or publicly available.

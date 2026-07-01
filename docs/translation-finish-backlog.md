@@ -5,7 +5,7 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** SITE-TRANSLATION-WORD-BY-WORD-SMOKE1
+**Last verified:** MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1
 
 ---
 
@@ -85,6 +85,7 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE1` attempted the real DeepL readiness gate, but stopped before installing or calling DeepL because `DEEPL_AUTH_KEY` was not present locally.
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE2` repeated the real DeepL readiness gate, but stopped before installing or calling DeepL because `DEEPL_AUTH_KEY` is still not present in the local Cursor environment.
 - Next provider retry must use target language `pt` only and keep generated outputs under ignored local proof folders.
+- `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added `public.magazine_visual_assets`, platform helpers, server lookup, and runbook. No translated visual asset is QA-approved or publicly available. Storage bucket is a documented hold.
 
 ---
 
@@ -109,7 +110,7 @@ These content types are **user-generated or database-sourced**. They must **not*
 Digital magazine translation uses three separate systems:
 
 1. **Text Translation Memory** — use existing `translation_records` first for HTML companion copy, article summaries, recurring sections, recipes, advertiser descriptions, CTA phrases, and reusable business blurbs.
-2. **Magazine Visual Asset Cache** — separate from text memory; future cache keys should combine `sourcePdfHash`, `pageHash`, or `adAssetHash` with target language, provider, source version, and QA status.
+2. **Magazine Visual Asset Cache** — `public.magazine_visual_assets` registry (migration `20260630140000`); keys combine `source_pdf_hash`, `source_page_hash`, or `ad_asset_hash` with target locale, provider, source version, QA status, and `publicly_available`.
 3. **Reusable Ad Asset Library** — separate from both text memory and visual page cache; stable advertiser ads should be translated and QA-approved once, then reused across issues when the source hash has not changed.
 
 The original PDF and FlipHTML5 magazine remain the Spanish visual edition. The HTML companion is an explanation and summary layer, not a claim that the visual magazine has been translated.
@@ -155,10 +156,10 @@ See `docs/translation-env-setup.md`.
 
 | Gate | Purpose |
 |------|---------|
-| `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
-| `MAGAZINE-DEEPL-PT-REAL-SMOKE2-RETRY` | Add local `DEEPL_AUTH_KEY`, install only DeepL if still missing, and rerun one-language (`pt`) magazine document smoke |
-| `MAGAZINE-ASSET-CACHE1` | Done: static asset registry helpers; future storage/QA integration still required before serving translated visuals |
+| `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | Add local `DEEPL_AUTH_KEY`, install only DeepL if still missing, and rerun one-language (`pt`) magazine document smoke |
 | `MAGAZINE-VISUAL-ASSET-QA1` | Manual QA for any real local provider output before public asset registration |
+| `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` | Storage bucket, signed URLs, and reader wiring for approved magazine visual assets |
+| `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1` | Env preflight + live cache write/read smoke |
 | `MAGAZINE-AD-ASSET-LIBRARY1` | Reusable advertiser ad asset library with source-hash reuse rules |
 | `MAG-COMPANION-BODY-LANG1` | Stronger magazine companion body copy across active public languages |
 | `TRANSLATE-AD-ALL-LANG-SMOKE1` | `/api/translate-ad` all 13 active langs + cache repeat |
@@ -176,6 +177,7 @@ See `docs/translation-env-setup.md`.
 
 - `docs/leonix-translation-architecture.md`
 - `docs/magazine-visual-translation-proof.md`
+- `docs/magazine-translation-platform-runbook.md`
 - `docs/translation-env-setup.md`
 - `docs/translation-safety-guardrails.md`
 - `docs/translate-ad-gates.md`

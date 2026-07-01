@@ -4,7 +4,7 @@ const COPY = {
   es: {
     pageTitle: "Ofertas Locales",
     pageSubtitle: "Encuentra volantes, cupones y especiales de negocios locales.",
-    pageHeroBody: "Busca ofertas aprobadas cerca de ti.",
+    searchPlaceholderCompact: "Buscar título, descripción, categoría…",
     mobileSearchLabel: "Buscar ofertas",
     filtersButton: "Filtros",
     filtersToggleShow: "Mostrar filtros",
@@ -77,7 +77,7 @@ const COPY = {
   en: {
     pageTitle: "Local Deals",
     pageSubtitle: "Find flyers, coupons, and specials from local businesses.",
-    pageHeroBody: "Search approved deals near you.",
+    searchPlaceholderCompact: "Search title, description, category…",
     mobileSearchLabel: "Search deals",
     filtersButton: "Filters",
     filtersToggleShow: "Show filters",

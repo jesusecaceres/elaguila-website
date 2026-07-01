@@ -10,7 +10,6 @@ import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import { enVentaPublicLabel } from "./shared/constants/enVentaPublicLabels";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
 import type { EnVentaPublicBrowseListing } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
-import { EN_VENTA_HUB_CITY_PRESETS } from "./enVentaHubCityPresets";
 import { DEFAULT_CITY } from "@/app/data/locations/norcal";
 import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
 import {
@@ -22,6 +21,14 @@ import {
 import { EnVentaHubRecentListings } from "./hub/EnVentaHubRecentListings";
 import { EnVentaHubHorizontalScroll, enVentaSwipeHintLabel } from "./hub/EnVentaHubHorizontalScroll";
 import { EnVentaHubMoreFilters } from "./hub/EnVentaHubMoreFilters";
+import { EnVentaCompactSearchCanvas } from "./shared/components/EnVentaCompactSearchCanvas";
+import {
+  EV_BTN_PRIMARY,
+  EV_BTN_SECONDARY,
+  EV_CHIP,
+  EV_CHIP_FEATURED,
+  EV_PUBLIC_SHELL,
+} from "./shared/styles/enVentaLeonixPublicUi";
 
 /** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
 const DEFAULT_HERO_BACKDROP =
@@ -141,28 +148,10 @@ export function EnVentaHubPageClient({
   const t = hub;
   const backdropSrc = t.heroImageUrl?.trim() ? t.heroImageUrl.trim() : DEFAULT_HERO_BACKDROP;
 
-  const goldBtn =
-    "inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold text-[#1E1810] " +
-    "bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] shadow-[0_10px_28px_-8px_rgba(196,140,50,0.55),inset_0_1px_0_rgba(255,255,255,0.45)] " +
-    "transition hover:brightness-[1.04] active:scale-[0.99]";
-
-  const ivoryBtn =
-    "inline-flex min-h-[48px] min-w-[44px] items-center justify-center rounded-full border border-white/80 bg-[#FFFCF7] px-6 text-[15px] font-semibold text-[#2C2416] " +
-    "shadow-[0_8px_24px_-10px_rgba(42,36,22,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] transition hover:bg-white active:scale-[0.99]";
-
-  const mobileStickyGoldBtn =
-    "inline-flex min-h-[38px] min-w-[44px] flex-1 items-center justify-center rounded-full px-3 text-[13px] font-semibold text-[#1E1810] " +
-    "bg-gradient-to-br from-[#F0D78C] via-[#D4A03E] to-[#C18A2E] shadow-[0_6px_18px_-8px_rgba(196,140,50,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] " +
-    "transition hover:brightness-[1.04] active:scale-[0.99]";
-
-  const mobileStickyIvoryBtn =
-    "inline-flex min-h-[38px] min-w-[44px] flex-1 items-center justify-center rounded-full border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-[13px] font-semibold text-[#2C2416] " +
-    "shadow-[0_4px_14px_-8px_rgba(42,36,22,0.12)] transition hover:bg-white active:scale-[0.99]";
-
-  const chipNeutral =
-    "inline-flex min-h-[36px] max-w-full items-center justify-center text-balance rounded-full border border-[#E8DFD0] bg-white/95 px-2.5 py-1.5 text-center text-[11px] font-semibold leading-snug text-[#2C2416] shadow-[0_1px_6px_-2px_rgba(47,74,101,0.08)] transition hover:border-[#C9B46A]/45 hover:bg-white hover:shadow-[0_3px_12px_-4px_rgba(47,74,101,0.12)] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[40px] sm:px-3 sm:py-2 sm:text-[12px]";
-  const chipFeaturedCls =
-    "inline-flex min-h-[36px] max-w-full items-center gap-1 justify-center text-balance rounded-full border border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFBF0] via-[#F5F8FB] to-[#E8EEF3] px-2.5 py-1.5 text-center text-[11px] font-semibold leading-tight text-[#2F4A65] shadow-[0_2px_12px_-6px_rgba(201,168,74,0.28)] ring-1 ring-[#C9A84A]/20 transition hover:ring-[#C9A84A]/35 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[40px] sm:px-3.5 sm:py-2 sm:text-[12px]";
+  const primaryCta = `${EV_BTN_PRIMARY} min-h-[2.75rem] px-5 text-[15px]`;
+  const secondaryCta = `${EV_BTN_SECONDARY} min-h-[2.75rem] px-5 text-[15px]`;
+  const mobileStickyPrimary = `${EV_BTN_PRIMARY} min-h-[2.625rem] flex-1 px-3 text-[13px]`;
+  const mobileStickySecondary = `${EV_BTN_SECONDARY} min-h-[2.625rem] flex-1 px-3 text-[13px]`;
 
   const popularCategoryChips: Array<{ key: string; label: string; href: string }> = [
     {
@@ -204,86 +193,31 @@ export function EnVentaHubPageClient({
   const swipeHint = enVentaSwipeHintLabel(lang);
 
   const enVentaSearchForm = (
-    <div className="w-full min-w-0 space-y-1 text-left sm:space-y-2">
-      <form action="/clasificados/en-venta/results" method="get" role="search">
-        <input type="hidden" name="lang" value={routeLang} />
-        <div
-          className={cx(
-            "flex flex-col gap-0 overflow-hidden rounded-xl border border-[#D6C7AD] bg-white shadow-[0_4px_18px_-14px_rgba(31,36,28,0.12)]",
-            "sm:grid sm:grid-cols-12 sm:items-stretch",
-          )}
-        >
-          <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 px-3 sm:col-span-5 sm:min-h-[2.5rem]">
-            <span className="shrink-0 text-[#556B3E]" aria-hidden>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3-3" strokeLinecap="round" />
-              </svg>
-            </span>
-            <input
-              name="q"
-              type="search"
-              autoComplete="off"
-              placeholder={categoryStandardSearchPlaceholder("en-venta", lang)}
-              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
-            />
-          </label>
-          <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-3 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
-            <input
-              name="city"
-              type="text"
-              list="en-venta-hub-city-presets"
-              placeholder={t.cityPh}
-              aria-label={t.cityPh}
-              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
-            />
-            <datalist id="en-venta-hub-city-presets">
-              {EN_VENTA_HUB_CITY_PRESETS.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </label>
-          <label className="flex min-h-[2.25rem] min-w-0 items-center gap-2 border-t border-[#D6C7AD] px-3 sm:col-span-2 sm:min-h-[2.5rem] sm:border-l sm:border-t-0">
-            <span className="text-[#4A6678]" aria-hidden>
-              #
-            </span>
-            <input
-              name="zip"
-              type="text"
-              inputMode="numeric"
-              maxLength={5}
-              placeholder={lang === "es" ? "CP / ZIP" : "ZIP"}
-              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none"
-            />
-          </label>
-          <div className="border-t border-[#D6C7AD] p-1.5 sm:col-span-2 sm:border-l sm:border-t-0">
-            <button
-              type="submit"
-              className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
-            >
-              {t.search}
-            </button>
+    <EnVentaCompactSearchCanvas
+      lang={lang}
+      routeLang={routeLang}
+      action="/clasificados/en-venta/results"
+      cityLabel={t.cityPh}
+      searchButtonLabel={t.search}
+      footer={
+        <div className="space-y-2 pt-1">
+          <EnVentaHubHorizontalScroll
+            label={lang === "es" ? "Categorías populares" : "Popular categories"}
+            swipeHint={swipeHint}
+            lang={lang}
+          >
+            {popularCategoryChips.map((chip) => (
+              <Link key={chip.key} href={chip.href} className={EV_CHIP}>
+                {chip.label}
+              </Link>
+            ))}
+          </EnVentaHubHorizontalScroll>
+          <div className="flex flex-wrap items-center gap-2">
+            <EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />
           </div>
         </div>
-      </form>
-      <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
-        <EnVentaHubHorizontalScroll
-          label={lang === "es" ? "Categorías populares" : "Popular categories"}
-          swipeHint={swipeHint}
-          lang={lang}
-        >
-          {popularCategoryChips.map((chip) => (
-            <Link key={chip.key} href={chip.href} className={`${chipNeutral} shrink-0 snap-start`}>
-              {chip.label}
-            </Link>
-          ))}
-        </EnVentaHubHorizontalScroll>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />
-        </div>
-      </div>
-    </div>
+      }
+    />
   );
 
   return (
@@ -296,7 +230,7 @@ export function EnVentaHubPageClient({
         aria-hidden
       />
 
-      <main className="relative mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-6 sm:pb-20 sm:pt-3 md:px-6 lg:px-10 lg:pt-4 xl:px-14">
+      <main className={`${EV_PUBLIC_SHELL} pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:pb-20`}>
         <div
           className="max-sm:[&>div]:space-y-1 max-sm:[&_section]:rounded-lg max-sm:[&_section]:border-0 max-sm:[&_section]:bg-transparent max-sm:[&_section]:shadow-none max-sm:[&_section>div]:gap-1 max-sm:[&_section>div]:px-2 max-sm:[&_section>div]:py-1.5 max-sm:[&_section_span.inline-flex.h-14]:hidden max-sm:[&_section>div>div>p:first-child]:hidden max-sm:[&_section_h1]:mt-0 max-sm:[&_section_h1]:text-lg max-sm:[&_section_p.max-w-2xl]:hidden max-sm:[&_section_div.mt-4]:mt-1.5 max-sm:[&_section_div.mt-4>div.mt-3]:hidden"
         >
@@ -333,7 +267,7 @@ export function EnVentaHubPageClient({
               <Link
                 key={chip.key}
                 href={chip.href}
-                className={chip.featured ? `${chipFeaturedCls} shrink-0 snap-start` : `${chipNeutral} shrink-0 snap-start`}
+                className={chip.featured ? EV_CHIP_FEATURED : EV_CHIP}
               >
                 {chip.featured ? (
                   <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0 text-[#B8891A]" aria-hidden fill="currentColor">
@@ -369,7 +303,7 @@ export function EnVentaHubPageClient({
                     href={href}
                     className="flex w-[min(36vw,132px)] shrink-0 snap-start flex-col items-center rounded-[16px] border border-white/70 bg-[#FFFCF7]/95 p-2.5 text-center shadow-sm transition hover:border-[#C9B46A]/38"
                   >
-                    <span className="text-2xl" aria-hidden>{vis.icon}</span>
+                    <span className="text-xl leading-none" aria-hidden>{vis.icon}</span>
                     <span className="mt-2 text-[12px] font-bold leading-tight text-[#1E1810]">{title}</span>
                   </Link>
                 );
@@ -395,7 +329,7 @@ export function EnVentaHubPageClient({
                   >
                     <span
                       className={cx(
-                        "mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shadow-inner transition group-hover:scale-[1.04]",
+                        "mb-2 flex h-11 w-11 items-center justify-center rounded-lg text-2xl shadow-inner transition group-hover:scale-[1.02]",
                         cool
                           ? "border border-[#D4E0EA]/90 bg-gradient-to-br from-[#EEF3F7] to-[#E2EBF2] text-[#2F4A65]"
                           : "border border-[#F0E8D8] bg-gradient-to-br from-[#FFF9EE] to-[#F3E9D4]"
@@ -480,13 +414,13 @@ export function EnVentaHubPageClient({
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={hrefSellerIndividual}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+                className={`${EV_BTN_SECONDARY} min-h-[2.75rem] px-4 text-[13px]`}
               >
                 {t.sellerLinkInd}
               </Link>
               <Link
                 href={hrefSellerBusiness}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-5 text-[13px] font-semibold text-[#2F4A65] transition hover:bg-[#E8EEF3] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+                className={`${EV_BTN_SECONDARY} min-h-[2.75rem] px-4 text-[13px]`}
               >
                 {t.sellerLinkBiz}
               </Link>
@@ -504,7 +438,7 @@ export function EnVentaHubPageClient({
             </div>
             <Link
               href={publishHref}
-              className={cx(goldBtn, "w-full shrink-0 px-8 shadow-[0_12px_32px_-10px_rgba(196,140,50,0.45)] sm:w-auto")}
+              className={cx(primaryCta, "w-full shrink-0 sm:w-auto")}
             >
               {t.bottomSellCta}
             </Link>
@@ -527,11 +461,11 @@ export function EnVentaHubPageClient({
         role="navigation"
         aria-label={lang === "es" ? "Acciones rápidas" : "Quick actions"}
       >
-        <div className="mx-auto flex max-w-[min(100%,90rem)] gap-1.5 px-2.5 py-1">
-          <Link href={publishHref} className={mobileStickyGoldBtn}>
+        <div className="mx-auto flex max-w-[1080px] gap-1.5 px-2.5 py-1">
+          <Link href={publishHref} className={mobileStickyPrimary}>
             {t.mobileStickyPublish}
           </Link>
-          <Link href={allListingsHref} className={mobileStickyIvoryBtn}>
+          <Link href={allListingsHref} className={mobileStickySecondary}>
             {t.mobileStickyBrowse}
           </Link>
         </div>

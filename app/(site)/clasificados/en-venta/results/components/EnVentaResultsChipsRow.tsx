@@ -8,7 +8,7 @@ import {
 type Chip = { key: string; label: string; onRemove: () => void };
 
 const chipClass =
-  "inline-flex max-w-full shrink-0 snap-start items-center gap-1 rounded-full border border-[#C9A84A]/30 bg-gradient-to-br from-[#FFFBF0] to-[#FFFDF7] px-2.5 py-1 text-left text-[11px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9A84A]/50 hover:bg-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3 sm:py-1.5 sm:text-xs";
+  "inline-flex h-[30px] max-w-full shrink-0 snap-start items-center gap-1 rounded-md border border-[#C9A84A]/40 bg-[#FBF7EF] px-2.5 text-left text-[11px] font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/60 focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:text-xs";
 
 export function EnVentaResultsChipsRow({
   label,
@@ -59,7 +59,7 @@ export function EnVentaResultsChipsRow({
           <button
             type="button"
             onClick={onClearAll}
-            className="shrink-0 rounded-full border border-[#E8DFD0] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#2C2416] shadow-sm transition hover:border-[#C9A84A]/40 hover:bg-[#FAF7F2] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-3 sm:py-1.5 sm:text-xs"
+            className="shrink-0 rounded-md border border-[#C9A84A]/45 bg-[#FFFDF7] px-2.5 py-1 text-[11px] font-semibold text-[#3D3428] transition hover:bg-[#FBF7EF] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:text-xs"
           >
             {clearLabel}
           </button>
