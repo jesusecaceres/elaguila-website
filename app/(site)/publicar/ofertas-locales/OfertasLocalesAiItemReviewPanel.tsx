@@ -742,6 +742,15 @@ export function OfertasLocalesAiItemReviewPanel({
   const firstPageNumber = pageSummaries[0]?.page ?? null;
   const currentPageNumber =
     selectedPageFilter === "all" ? firstPageNumber : selectedPageFilter;
+
+  const pageFilteredItems = useMemo(() => {
+    let list = isWorkspace ? allCurrentScanItems : assetScopedItems;
+    if (isWorkspace && currentPageNumber != null) {
+      list = list.filter((item) => (item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1) === currentPageNumber);
+    }
+    return list;
+  }, [allCurrentScanItems, assetScopedItems, currentPageNumber, isWorkspace]);
+
   const currentPageSummary = useMemo(() => {
     if (currentPageNumber == null) return null;
     const activeCount = pageFilteredItems.filter((item) =>
@@ -766,14 +775,6 @@ export function OfertasLocalesAiItemReviewPanel({
       : null;
   const firstIncompletePage = pageSummaries.find((page) => page.needsReview > 0) ?? null;
   const allPagesComplete = pageSummaries.length > 0 && pageSummaries.every((page) => page.needsReview === 0);
-
-  const pageFilteredItems = useMemo(() => {
-    let list = isWorkspace ? allCurrentScanItems : assetScopedItems;
-    if (isWorkspace && currentPageNumber != null) {
-      list = list.filter((item) => (item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1) === currentPageNumber);
-    }
-    return list;
-  }, [allCurrentScanItems, assetScopedItems, currentPageNumber, isWorkspace]);
 
   const { activeReviewItems, reviewedItems } = useMemo(
     () => partitionOfertaLocalPageReviewItems(pageFilteredItems),
