@@ -251,6 +251,7 @@ export function AutosLandingPage() {
 
         <AutosLaneCrossNav
           copy={copy}
+          lang={lang}
           privateResultsHref={privateResultsHref}
           dealerResultsHref={dealerResultsHref}
           privatePublishHref={publishPrivadoHref}

@@ -97,7 +97,21 @@ const preExistingUnrelatedParallelWork = new Set([
   "app/lib/ofertas-locales/ofertasLocalesWizardSteps.ts",
   "docs/site-translation-word-by-word-smoke.md",
   "docs/translation-finish-backlog.md",
+  "docs/stripe-revenue-os-live-supabase-proof-01.md",
   "scripts/verify-ofertas-step5-global-address-review-workspace.mjs",
+  "scripts/verify-stripe-revenue-os-live-supabase-proof-01.mjs",
+  "scripts/autos-price-disclosure-audit.ts",
+  "app/lib/clasificados/autos/AUTOS_PRICE_DISCLOSURE_AUDIT.md",
+  "app/lib/clasificados/autos/autosPricingCopy.ts",
+  "app/(site)/clasificados/autos/components/public/AutosLaneCrossNav.tsx",
+  "app/(site)/clasificados/autos/landing/AutosLandingPage.tsx",
+  "app/(site)/publicar/autos/PublicarAutosBranchClient.tsx",
+  "app/(site)/publicar/autos/autosBranchCopy.ts",
+  "app/(site)/publicar/autos/shared/components/AutosPublishApplicationHeader.tsx",
+  "app/(site)/publicar/autos/shared/components/AutosPricingBadge.tsx",
+  "app/(site)/publicar/autos/shared/components/AutosPricingPlanBanner.tsx",
+  "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
+  "app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx",
 ]);
 
 const allowedExact = new Set([

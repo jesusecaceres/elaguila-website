@@ -25,9 +25,9 @@ export function ServiciosCompactSearchCanvas({ lang }: { lang: Lang }) {
     const q = String(fd.get("q") ?? "").trim();
     const city = String(fd.get("city") ?? "").trim();
     const zip = String(fd.get("zip") ?? "").trim();
+    const location = city || zip;
     if (q) params.set("q", q);
-    if (city) params.set("city", city);
-    if (zip) params.set("zip", zip);
+    if (location) params.set("city", location);
     window.location.href = `${resultsHref}?${params.toString()}`;
   };
 
@@ -54,14 +54,11 @@ export function ServiciosCompactSearchCanvas({ lang }: { lang: Lang }) {
           <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
             <input name="city" type="text" placeholder={lang === "es" ? "Ciudad" : "City"} aria-label={lang === "es" ? "Ciudad" : "City"} className={INPUT} />
           </label>
-          <label className="hidden min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:flex sm:col-span-1 sm:border-b-0 sm:border-r">
-            <input name="state" type="text" placeholder={lang === "es" ? "Estado" : "State"} aria-label={lang === "es" ? "Estado" : "State"} className={INPUT} />
-          </label>
           <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
             <input name="zip" type="text" inputMode="numeric" placeholder="ZIP" aria-label="ZIP" className={INPUT} />
           </label>
-          <div className="flex gap-1.5 p-1.5 sm:col-span-2">
-            <Link href={`${resultsHref}?lang=${lang}#filtros`} className={`${BTN_SECONDARY} flex-1 text-center`}>
+          <div className="flex gap-1.5 p-1.5 sm:col-span-3">
+            <Link href={`${resultsHref}?lang=${lang}`} className={`${BTN_SECONDARY} flex-1 text-center`}>
               {lang === "es" ? "Filtros" : "Filters"}
             </Link>
             <button type="submit" className={`${BTN_PRIMARY} flex-[1.2]`}>

@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
+import { AutosPricingBadge } from "@/app/(site)/publicar/autos/shared/components/AutosPricingBadge";
+import {
+  getAutosLandingPublishCardCopy,
+  getAutosPlanDisplayCopy,
+} from "@/app/lib/clasificados/autos/autosPricingCopy";
+import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 
 type AutosLaneCrossNavMode = "landing" | "results-neutral" | "results-private" | "results-dealer";
 
@@ -12,6 +18,7 @@ type Props = {
   privatePublishHref: string;
   dealerPublishHref: string;
   mode: AutosLaneCrossNavMode;
+  lang: AutosPublicLang;
 };
 
 type Card = {
@@ -21,6 +28,8 @@ type Card = {
   cta: string;
   href: string;
   tone: "private" | "dealer" | "sell" | "dealerPublish";
+  laneLabel?: string;
+  priceDisplay?: string;
 };
 
 const toneClass: Record<Card["tone"], string> = {
@@ -37,8 +46,11 @@ function cardsForMode({
   privatePublishHref,
   dealerPublishHref,
   mode,
-}: Props): Card[] {
+  lang,
+}: Props & { lang: AutosPublicLang }): Card[] {
   const c = copy.crossNav;
+  const privadoPublish = getAutosLandingPublishCardCopy(lang, "privado");
+  const negociosPublish = getAutosLandingPublishCardCopy(lang, "negocios");
   const all: Card[] = [
     {
       key: "private-results",
@@ -47,6 +59,7 @@ function cardsForMode({
       cta: c.privateCta,
       href: privateResultsHref,
       tone: "private",
+      laneLabel: getAutosPlanDisplayCopy(lang, "privado").label,
     },
     {
       key: "dealer-results",
@@ -55,22 +68,27 @@ function cardsForMode({
       cta: c.dealerCta,
       href: dealerResultsHref,
       tone: "dealer",
+      laneLabel: getAutosPlanDisplayCopy(lang, "negocios").label,
     },
     {
       key: "private-publish",
-      title: c.sellTitle,
-      body: c.sellBody,
-      cta: c.sellCta,
+      title: privadoPublish.title,
+      body: privadoPublish.body,
+      cta: privadoPublish.cta,
       href: privatePublishHref,
       tone: "sell",
+      laneLabel: privadoPublish.laneLabel,
+      priceDisplay: privadoPublish.priceDisplay,
     },
     {
       key: "dealer-publish",
-      title: c.dealerPublishTitle,
-      body: c.dealerPublishBody,
-      cta: c.dealerPublishCta,
+      title: negociosPublish.title,
+      body: negociosPublish.body,
+      cta: negociosPublish.cta,
       href: dealerPublishHref,
       tone: "dealerPublish",
+      laneLabel: negociosPublish.laneLabel,
+      priceDisplay: negociosPublish.priceDisplay,
     },
   ];
 
@@ -109,11 +127,17 @@ export function AutosLaneCrossNav(props: Props) {
             }`}
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] opacity-75">
-              {card.tone === "dealer" || card.tone === "dealerPublish" ? "Dealer de Autos" : "Autos Privado"}
+              {card.laneLabel ??
+                (card.tone === "dealer" || card.tone === "dealerPublish" ? "Dealer de Autos" : "Autos Privado")}
             </p>
             <h2 className={`${landing ? "mt-2 text-lg" : "mt-1.5 text-base"} font-extrabold leading-tight tracking-tight text-[#1E1810]`}>
               {card.title}
             </h2>
+            {card.priceDisplay ? (
+              <p className={`${landing ? "mt-2" : "mt-1.5"}`}>
+                <AutosPricingBadge priceDisplay={card.priceDisplay} className="text-[11px] sm:text-xs" />
+              </p>
+            ) : null}
             <p className={`${landing ? "mt-2" : "mt-1.5"} text-sm leading-relaxed text-[#5C5346]`}>{card.body}</p>
             <span className="mt-4 inline-flex min-h-[40px] items-center rounded-full bg-[#2A2620] px-4 text-xs font-bold text-[#FFFCF7] transition group-hover:bg-[#7A1E2C]">
               {card.cta}

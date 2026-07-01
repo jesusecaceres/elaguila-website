@@ -559,6 +559,17 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 autoComplete="address-level2"
               />
             </label>
+            <label className="hidden min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:flex sm:col-span-1 sm:border-b-0 sm:border-r">
+              <input
+                value={stateCode}
+                onChange={(e) => setStateCode(e.target.value)}
+                placeholder={lang === "es" ? "Estado" : "State"}
+                aria-label={lang === "es" ? "Estado" : "State"}
+                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                autoComplete="address-level1"
+                maxLength={2}
+              />
+            </label>
             <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
               <input
                 value={zipInput}
@@ -571,7 +582,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 inputMode="numeric"
               />
             </label>
-            <div className="flex gap-1.5 p-1.5 sm:col-span-3">
+            <div className="flex gap-1.5 p-1.5 sm:col-span-2">
               <button
                 type="button"
                 onClick={() => setFiltersDrawerOpen(true)}
@@ -639,8 +650,8 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-4">
                 <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "Estado / regiÃ³n" : "State / region"}
-                  <input value={stateCode} onChange={(e) => setStateCode(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`} />
+                  {lang === "es" ? "Estado" : "State"}
+                  <input value={stateCode} onChange={(e) => setStateCode(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`} maxLength={2} />
                 </label>
                 <label className="block text-xs font-semibold text-[#3D3428]">
                   {lang === "es" ? "CategorÃ­a" : "Category"}
@@ -733,7 +744,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 <Link
                   key={c.key}
                   href={c.href}
-                  className="inline-flex min-h-10 shrink-0 snap-start items-center gap-1.5 rounded-full border border-[#E8DFD0] bg-white px-3.5 py-2 text-xs font-semibold text-[#2A2826] shadow-[0_4px_14px_rgba(42,40,38,0.05)] transition hover:border-[#D9A23A]/45 hover:shadow-[0_6px_18px_rgba(42,40,38,0.08)] sm:min-h-9"
+                  className="inline-flex min-h-[30px] shrink-0 snap-start items-center gap-1.5 rounded-md border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#2A2826] shadow-[0_4px_14px_rgba(42,40,38,0.05)] transition hover:border-[#D9A23A]/45 hover:shadow-[0_6px_18px_rgba(42,40,38,0.08)]"
                 >
                   {c.label}
                   <span className="text-[#9A948C]" aria-hidden>

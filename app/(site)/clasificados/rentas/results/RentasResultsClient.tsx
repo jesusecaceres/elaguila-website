@@ -48,6 +48,7 @@ import {
   RENTAS_QUERY_RENT_MAX,
   RENTAS_QUERY_RENT_MIN,
   RENTAS_QUERY_SORT,
+  RENTAS_QUERY_STATE,
   RENTAS_QUERY_TIPO,
   RENTAS_QUERY_ZIP,
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
@@ -83,6 +84,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
   const [cityDraft, setCityDraft] = useState("");
+  const [stateDraft, setStateDraft] = useState("");
   const [zipDraft, setZipDraft] = useState("");
   const [bathsMinDraft, setBathsMinDraft] = useState("");
   const [halfBathsMinDraft, setHalfBathsMinDraft] = useState("");
@@ -115,6 +117,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setPriceBand(p.precio);
     setBeds(p.recs);
     setCityDraft(p.city);
+    setStateDraft(p.state);
     setZipDraft(p.zip);
     setBathsMinDraft(p.bathsMin != null ? String(p.bathsMin) : "");
     setHalfBathsMinDraft(p.halfBathsMin != null ? String(p.halfBathsMin) : "");
@@ -200,6 +203,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       const cityNorm = normalizeCityForBrowse(cityDraft);
       if (!cityNorm) sp.delete(RENTAS_QUERY_CITY);
       else sp.set(RENTAS_QUERY_CITY, cityNorm);
+      const stateNorm = stateDraft.trim().toUpperCase().slice(0, 2);
+      if (!stateNorm) sp.delete(RENTAS_QUERY_STATE);
+      else sp.set(RENTAS_QUERY_STATE, stateNorm);
       const zipNorm = normalizeZipForBrowse(zipDraft);
       if (!zipNorm) sp.delete(RENTAS_QUERY_ZIP);
       else sp.set(RENTAS_QUERY_ZIP, zipNorm);
@@ -265,6 +271,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     halfBathsMinDraft,
     beds,
     cityDraft,
+    stateDraft,
     depositMaxDraft,
     depositMinDraft,
     highlightKeysDraft,
@@ -346,9 +353,11 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           lang={lang}
           query={query}
           city={cityDraft}
+          state={stateDraft}
           zip={zipDraft}
           onQuery={setQuery}
           onCity={setCityDraft}
+          onState={setStateDraft}
           onZip={setZipDraft}
           onSearch={applySearchAndRefine}
           onOpenFilters={() => setFiltersOpen(true)}

@@ -12,9 +12,11 @@ type Props = {
   lang: "es" | "en";
   query: string;
   city: string;
+  state: string;
   zip: string;
   onQuery: (v: string) => void;
   onCity: (v: string) => void;
+  onState: (v: string) => void;
   onZip: (v: string) => void;
   onSearch: () => void;
   onOpenFilters: () => void;
@@ -27,9 +29,11 @@ export function RentasCompactSearchCanvas({
   lang,
   query,
   city,
+  state,
   zip,
   onQuery,
   onCity,
+  onState,
   onZip,
   onSearch,
   onOpenFilters,
@@ -39,7 +43,8 @@ export function RentasCompactSearchCanvas({
 }: Props) {
   const ph = searchLabel ?? rentasBrowseSearchPlaceholder(lang);
   const cityPh = lang === "es" ? "Ciudad" : "City";
-  const zipPh = lang === "es" ? "CP / ZIP" : "ZIP";
+  const statePh = lang === "es" ? "Estado" : "State";
+  const zipPh = "ZIP";
 
   return (
     <div className={RENTAS_SEARCH_CANVAS}>
@@ -72,6 +77,18 @@ export function RentasCompactSearchCanvas({
             autoComplete="address-level2"
           />
         </label>
+        <label className="hidden min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:flex sm:col-span-1 sm:border-b-0 sm:border-r">
+          <input
+            type="text"
+            value={state}
+            onChange={(e) => onState(e.target.value)}
+            placeholder={statePh}
+            aria-label={statePh}
+            className={RENTAS_SEARCH_INPUT}
+            autoComplete="address-level1"
+            maxLength={2}
+          />
+        </label>
         <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
           <input
             type="text"
@@ -85,7 +102,7 @@ export function RentasCompactSearchCanvas({
             autoComplete="postal-code"
           />
         </label>
-        <div className="flex gap-1.5 p-1.5 sm:col-span-3">
+        <div className="flex gap-1.5 p-1.5 sm:col-span-2">
           <button type="button" className={`${RENTAS_BTN_SECONDARY} flex-1`} onClick={onOpenFilters}>
             {filtersButtonLabel}
           </button>

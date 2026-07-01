@@ -382,6 +382,7 @@ export function AutosPublicResultsShell() {
         <div className="mb-4">
           <AutosLaneCrossNav
             copy={copy}
+            lang={lang}
             privateResultsHref={privateResultsHref}
             dealerResultsHref={dealerResultsHref}
             privatePublishHref={publicarPrivado}

@@ -44,7 +44,7 @@ export function EnVentaCompactSearchCanvas({
 }: Props) {
   const ph = searchLabel ?? enVentaBrowseSearchPlaceholder(lang);
   const cityPh = cityLabel ?? (lang === "es" ? "Ciudad" : "City");
-  const zipPh = zipLabel ?? (lang === "es" ? "CP / ZIP" : "ZIP");
+  const zipPh = zipLabel ?? "ZIP";
 
   return (
     <div className="w-full min-w-0 space-y-2">

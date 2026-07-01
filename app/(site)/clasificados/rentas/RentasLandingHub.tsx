@@ -29,6 +29,7 @@ import {
   RENTAS_QUERY_PRECIO,
   RENTAS_QUERY_Q,
   RENTAS_QUERY_RECS,
+  RENTAS_QUERY_STATE,
   RENTAS_QUERY_TIPO,
   RENTAS_QUERY_ZIP,
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
@@ -47,6 +48,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
   const { lang, routeLang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [zip, setZip] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [priceBand, setPriceBand] = useState("");
@@ -62,12 +64,13 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
     if (priceBand) extra[RENTAS_QUERY_PRECIO] = priceBand;
     if (beds) extra[RENTAS_QUERY_RECS] = beds;
     if (city.trim()) extra[RENTAS_QUERY_CITY] = city.trim();
+    if (state.trim()) extra[RENTAS_QUERY_STATE] = state.trim();
     if (zip.trim()) extra[RENTAS_QUERY_ZIP] = zip.trim();
     if (amuebladoDraft) extra[RENTAS_QUERY_AMUEBLADO] = "1";
     if (mascotasDraft) extra[RENTAS_QUERY_MASCOTAS] = "1";
     extra.lang = routeLang;
     router.push(buildRentasResultsUrl(extra));
-  }, [amuebladoDraft, beds, city, mascotasDraft, priceBand, propertyType, query, routeLang, router, zip]);
+  }, [amuebladoDraft, beds, city, mascotasDraft, priceBand, propertyType, query, routeLang, router, state, zip]);
 
   const clearLandingFilters = useCallback(() => {
     setPropertyType("");
@@ -149,9 +152,11 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
               lang={lang}
               query={query}
               city={city}
+              state={state}
               zip={zip}
               onQuery={setQuery}
               onCity={setCity}
+              onState={setState}
               onZip={setZip}
               onSearch={runSearch}
               onOpenFilters={() => setFiltersOpen(true)}
