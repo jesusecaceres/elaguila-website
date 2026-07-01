@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { trackEvent } from "@/app/lib/listingAnalytics";
+import {
+  trackCommunityListingView,
+  type CommunityGlobalAnalyticsCtx,
+} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -86,21 +89,9 @@ export function BuscoPublishedDetailPage({
 
   useEffect(() => {
     if (skipAnalytics) return;
-    let cancelled = false;
-    void (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled) return;
-      const uid = user?.id ?? null;
-      void trackEvent(listing.id, "listing_view", uid);
-      void trackEvent(listing.id, "listing_open", uid);
-    })();
+    const ctx: CommunityGlobalAnalyticsCtx = { listingUuid: listing.id, category: "busco" };
+    trackCommunityListingView(ctx);
     addListingView(listing.id);
-    return () => {
-      cancelled = true;
-    };
   }, [listing.id, skipAnalytics]);
 
   useEffect(() => {

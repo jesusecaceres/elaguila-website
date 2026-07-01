@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { trackEvent } from "@/app/lib/listingAnalytics";
+import {
+  trackCommunityListingView,
+  trackCommunityListingShare,
+  type CommunityAnalyticsCategory,
+} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -105,21 +109,8 @@ export function CommunityQuickPublishedDetailPage({
 
   useEffect(() => {
     if (skipAnalytics) return;
-    let cancelled = false;
-    void (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled) return;
-      const uid = user?.id ?? null;
-      void trackEvent(listing.id, "listing_view", uid);
-      void trackEvent(listing.id, "listing_open", uid);
-    })();
+    trackCommunityListingView({ listingUuid: listing.id, category: listing.category as CommunityAnalyticsCategory });
     addListingView(listing.id);
-    return () => {
-      cancelled = true;
-    };
   }, [listing.id, skipAnalytics]);
 
   useEffect(() => {
@@ -180,7 +171,7 @@ export function CommunityQuickPublishedDetailPage({
     try {
       if (shareFn) {
         await shareFn({ title, text, url });
-        if (!skipAnalytics) void trackEvent(listing.id, "listing_share", uid);
+        if (!skipAnalytics) trackCommunityListingShare({ listingUuid: listing.id, category: listing.category as CommunityAnalyticsCategory }, "native_share");
         return;
       }
     } catch {
@@ -188,7 +179,7 @@ export function CommunityQuickPublishedDetailPage({
     }
 
     await copyText(url || buildShareMessage());
-    if (!skipAnalytics) void trackEvent(listing.id, "listing_share", uid);
+    if (!skipAnalytics) trackCommunityListingShare({ listingUuid: listing.id, category: listing.category as CommunityAnalyticsCategory }, "copy_link");
   };
 
   const handleReportSubmit = async () => {

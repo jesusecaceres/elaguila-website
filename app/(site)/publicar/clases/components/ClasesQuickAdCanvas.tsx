@@ -12,6 +12,7 @@ import {
 import { clasesCostLabel, clasesFrequencyLabel, clasesModeLabel } from "@/app/(site)/publicar/community/shared/copy/communityPublishCopy";
 import type { ClasesQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
+import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { CommunityWeeklyScheduleAligned } from "@/app/(site)/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
 import {
   cityStateZipLine,
@@ -60,12 +61,14 @@ export function ClasesQuickAdCanvas({
   shell = "standalone",
   contactSectionId,
   heroTestId,
+  analyticsCtx,
 }: {
   draft: ClasesQuickDraft;
   lang: Lang;
   shell?: ClasesQuickAdShell;
   contactSectionId?: string;
   heroTestId?: string;
+  analyticsCtx?: CommunityGlobalAnalyticsCtx;
 }) {
   const t = COPY[lang];
   const main = pickMainHeroImage(draft.images);
@@ -194,7 +197,7 @@ export function ClasesQuickAdCanvas({
           </div>
         </dl>
 
-        <CommunityContactCanvas draft={draft} lang={lang} sectionHtmlId={contactSectionId} />
+        <CommunityContactCanvas draft={draft} lang={lang} sectionHtmlId={contactSectionId} analyticsCtx={analyticsCtx} />
 
         {isPaid ? (
           <p className="rounded-xl border border-amber-300/70 bg-amber-50/85 px-3 py-2 text-xs font-medium text-amber-950">

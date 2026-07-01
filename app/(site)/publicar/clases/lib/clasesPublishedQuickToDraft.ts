@@ -23,6 +23,8 @@ import {
 import { CLASES_CATEGORY_LEGACY_MAP } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 
 export type ClasesPublishedListingLike = {
+  id: string;
+  leonix_ad_id?: string | null;
   title: { es: string; en: string };
   blurb: { es: string; en: string };
   city: string;
