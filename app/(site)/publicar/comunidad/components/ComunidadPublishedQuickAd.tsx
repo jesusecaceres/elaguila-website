@@ -6,6 +6,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 import { comunidadPublishedQuickToDraft, type ComunidadPublishedListingLike } from "../lib/comunidadPublishedQuickToDraft";
 import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import { ComunidadQuickAdCanvas } from "./ComunidadQuickAdCanvas";
 
 type Props = {
@@ -19,6 +20,7 @@ export function ComunidadPublishedQuickAd({ listing, lang }: Props) {
   const analyticsCtx: CommunityGlobalAnalyticsCtx | undefined = listing.id
     ? { listingUuid: listing.id, category: "comunidad", leonixAdId: listing.leonix_ad_id }
     : undefined;
+  const leonixAdId = listing.leonix_ad_id ?? formatLeonixAdId(listing.id);
   return (
     <ComunidadQuickAdCanvas
       draft={draft}
@@ -27,6 +29,7 @@ export function ComunidadPublishedQuickAd({ listing, lang }: Props) {
       contactSectionId="contact-actions"
       heroTestId="community-anuncio-hero"
       analyticsCtx={analyticsCtx}
+      leonixAdId={leonixAdId}
     />
   );
 }

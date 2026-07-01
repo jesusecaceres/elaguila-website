@@ -17,12 +17,18 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
   const rows =
     d.scheduleRows?.map((r) => ({
       day: String(r.day ?? "").trim(),
+      dayCustom: String((r as { dayCustom?: string }).dayCustom ?? "").trim(),
       shift: String(r.shift ?? "").trim(),
       startTime: String((r as { startTime?: string }).startTime ?? "").trim(),
       endTime: String((r as { endTime?: string }).endTime ?? "").trim(),
+      note: String((r as { note?: string }).note ?? "").trim(),
     })) ?? [];
   const scheduleRows =
-    rows.some((r) => r.day || r.shift || r.startTime) ? rows : d.schedule.trim() ? [{ day: "", shift: d.schedule.trim(), startTime: "", endTime: "" }] : undefined;
+    rows.some((r) => r.day || r.shift || r.startTime || r.endTime || r.note)
+      ? rows
+      : d.schedule.trim()
+        ? [{ day: "", dayCustom: "", shift: d.schedule.trim(), startTime: "", endTime: "", note: "" }]
+        : undefined;
   return normalizeEmpleosQuickDraft({
     title: d.title,
     businessName: d.businessName,
@@ -36,6 +42,10 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
     schedule: d.schedule,
     scheduleRows,
     pay: d.pay,
+    payAmount: d.payAmount ?? "",
+    payUnit: d.payUnit ?? "",
+    payUnitCustom: d.payUnitCustom ?? "",
+    payNote: d.payNote ?? "",
     description: d.description,
     benefits: d.benefits,
     screenerQuestions: d.screenerQuestions,
@@ -51,6 +61,7 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
     contactTitle: d.contactTitle ?? "",
     preferredApplyMethod: (d.preferredApplyMethod as EmpleosQuickDraft["preferredApplyMethod"]) ?? "phone",
     primaryCta: d.primaryCta,
+    jobTypeCustom: "",
     addressLine1: d.addressLine1,
     addressLine2: d.addressLine2 ?? "",
     workspaceName: d.workspaceName ?? "",

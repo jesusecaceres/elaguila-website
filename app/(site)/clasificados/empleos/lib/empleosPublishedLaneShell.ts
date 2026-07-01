@@ -10,6 +10,16 @@ import {
 } from "@/app/publicar/empleos/shared/lib/empleosPublicLocation";
 import { FALLBACK_IMG } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { sanitizeHttpUrl } from "@/app/publicar/empleos/shared/publish/empleosPublishSanitize";
+import { normalizePayDisplay } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
+import {
+  normalizeScheduleRows,
+  scheduleMainDisplay,
+  scheduleSidebarSummary,
+} from "@/app/publicar/empleos/shared/lib/empleosScheduleDisplay";
+import {
+  sampleExperienceOptions,
+  sampleJobTypeSelectOptions,
+} from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 
 function modalityLabelEs(m: string): string {
   const v = m.toLowerCase();
@@ -36,6 +46,17 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
     const mainAlt = main?.alt || job.imageAlt;
     const hasAddr = Boolean(d.addressLine1.trim() || d.addressLine2?.trim() || d.addressZip.trim() || d.postalCode?.trim() || d.country?.trim());
     const web = sanitizeHttpUrl(d.website);
+    const payDisplay = normalizePayDisplay({
+      pay: d.pay,
+      payAmount: d.payAmount,
+      payUnit: d.payUnit,
+      payUnitCustom: d.payUnitCustom,
+      payNote: d.payNote,
+    });
+    const scheduleRows = normalizeScheduleRows(d.scheduleRows, d.schedule);
+    const scheduleFull = scheduleMainDisplay(d.scheduleRows, d.schedule);
+    const scheduleSummary = scheduleSidebarSummary(d.scheduleRows, d.schedule);
+    const isRemote = d.workModality === "remoto";
     return {
       title: d.title || job.title,
       businessName: d.businessName || job.company,
@@ -43,12 +64,24 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
       logoAlt: d.businessName || job.company,
       city: loc.city,
       state: loc.state,
+      stateRegion: d.stateRegion?.trim() || d.addressState?.trim() || loc.state,
+      country: d.country?.trim() || undefined,
       filterRegionFootnote: loc.filterRegionFootnote,
       mainImageSrc: mainSrc || FALLBACK_IMG,
       mainImageAlt: mainAlt,
-      pay: d.pay || job.salaryLabel,
+      pay: payDisplay || job.salaryLabel,
+      payAmount: d.payAmount,
+      payUnit: d.payUnit,
+      payUnitCustom: d.payUnitCustom,
+      payNote: d.payNote,
       jobType: d.jobType || job.jobType,
-      schedule: (d.schedule || job.scheduleLabel || "—").trim(),
+      jobTypeLabel:
+        (sampleJobTypeSelectOptions.find((o) => o.value === d.jobType)?.label ??
+          d.jobType) ||
+        job.jobType,
+      schedule: scheduleFull || (d.schedule || job.scheduleLabel || "—").trim(),
+      scheduleSummary: scheduleSummary || scheduleFull,
+      scheduleRows,
       workModalityLabel: d.workModality ? modalityLabelEs(d.workModality) : modalityLabelEs(job.modality),
       description: d.description || job.description,
       benefits: [...d.benefits],
@@ -74,15 +107,17 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
       companyOtherLinkLabel: d.companyOtherLinkLabel || undefined,
       companyOtherLinkUrl: d.companyOtherLinkUrl ? (sanitizeHttpUrl(d.companyOtherLinkUrl) ?? undefined) : undefined,
       videoUrls: d.videoUrls?.length ? d.videoUrls : d.videoUrl ? [d.videoUrl] : job.videoUrls ? [...job.videoUrls] : [],
-      location: hasAddr
+      location: hasAddr || d.locationNotes?.trim() || isRemote
         ? {
-            businessLine: d.businessName.trim() || job.company,
-            addressLine1: d.addressLine1.trim() || "—",
+            businessLine: d.workspaceName?.trim() || d.businessName.trim() || job.company,
+            addressLine1: isRemote ? "Remoto" : d.addressLine1.trim() || "—",
             addressLine2: d.addressLine2?.trim() || undefined,
             city: d.addressCity.trim() || loc.city,
             state: d.addressState.trim() || d.stateRegion?.trim() || loc.state,
             zip: d.postalCode?.trim() || d.addressZip.trim() || "",
             country: d.country?.trim() || undefined,
+            locationNotes: d.locationNotes?.trim() || undefined,
+            isRemote,
           }
         : undefined,
       relatedJobs: [],

@@ -24,8 +24,13 @@ import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/fl
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import { EmpleosShiftScheduleEditor } from "@/app/publicar/empleos/shared/components/EmpleosShiftScheduleEditor";
+import {
+  EMPLEOS_PAY_UNIT_OPTIONS_EN,
+  EMPLEOS_PAY_UNIT_OPTIONS_ES,
+  syncLegacyPayField,
+} from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import { emptyEmpleosQuickDraft, type EmpleosQuickDraft, type EmpleosQuickPreferredApplyMethod } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
-import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 import {
   sampleCategorySelectOptions,
@@ -35,23 +40,10 @@ import {
 } from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
+import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
+
 const INPUT = "mt-1 w-full min-h-[44px] rounded-lg border border-black/10 px-3 py-2 text-sm";
 const SELECT = `${INPUT} bg-white`;
-
-function joinScheduleRows(rows: EmpleosQuickDraft["scheduleRows"]): string {
-  return rows
-    .filter((r) => r.day.trim() || r.startTime.trim() || r.shift.trim())
-    .map((r) => {
-      const day = r.day.trim();
-      const start = r.startTime.trim();
-      const end = r.endTime.trim();
-      const shift = r.shift.trim();
-      const timePart = start && end ? `${start} – ${end}` : start || shift;
-      if (day && timePart) return `${day} · ${timePart}`;
-      return day || timePart;
-    })
-    .join("\n");
-}
 
 const PREFERRED_APPLY_OPTIONS_ES: { value: EmpleosQuickPreferredApplyMethod; label: string }[] = [
   { value: "apply-link", label: "Aplicar en línea" },
@@ -135,6 +127,23 @@ export default function EmpleoQuickApplicationClient() {
   }, []);
 
   const preferredApplyOptions = lang === "es" ? PREFERRED_APPLY_OPTIONS_ES : PREFERRED_APPLY_OPTIONS_EN;
+  const payUnitOptions = lang === "es" ? EMPLEOS_PAY_UNIT_OPTIONS_ES : EMPLEOS_PAY_UNIT_OPTIONS_EN;
+
+  const patchPay = (partial: Partial<Pick<EmpleosQuickDraft, "payAmount" | "payUnit" | "payUnitCustom" | "payNote">>) => {
+    patch((prev) => {
+      const next = { ...prev, ...partial };
+      return {
+        ...next,
+        pay: syncLegacyPayField({
+          pay: prev.pay,
+          payAmount: next.payAmount,
+          payUnit: next.payUnit,
+          payUnitCustom: next.payUnitCustom,
+          payNote: next.payNote,
+        }, lang),
+      };
+    });
+  };
 
   const mediaCopy =
     lang === "es"
@@ -277,10 +286,6 @@ export default function EmpleoQuickApplicationClient() {
                   placeholder={es ? "Ej. Manufactura ligera" : "e.g. Light manufacturing"} />
               </label>
             ) : null}
-          </EmpleosSectionCard>
-
-          {/* ── SECTION 2: Detalles del empleo ───────────────────────────────── */}
-          <EmpleosSectionCard title={es ? "2. Detalles del empleo" : "2. Job details"}>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{es ? "Tipo de empleo" : "Employment type"}</EmpleosFieldLabel>
@@ -301,74 +306,85 @@ export default function EmpleoQuickApplicationClient() {
                 </select>
               </label>
             </div>
+            {state.jobType === "otro" ? (
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Describe el tipo de empleo" : "Describe employment type"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.jobTypeCustom} onChange={(e) => patch({ jobTypeCustom: e.target.value })}
+                  placeholder={es ? "Ej. Turno rotativo especial" : "e.g. Special rotating shift"} />
+              </label>
+            ) : null}
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={es ? "2. Descripción y requisitos" : "2. Description and requirements"}>
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{es ? "Descripción, requisitos y cómo aplicar" : "Description, requirements and how to apply"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{es ? "Descripción del puesto" : "Job description"}</EmpleosFieldLabel>
               <textarea className={`${INPUT} min-h-[120px]`} value={state.description}
                 onChange={(e) => patch({ description: e.target.value })} />
               <p className="mt-1 text-xs text-[#7A756E]">
                 {es
-                  ? "Incluye responsabilidades, requisitos, experiencia necesaria, documentos requeridos y cómo prefieres que se comuniquen los candidatos."
-                  : "Include responsibilities, requirements, needed experience, required documents, and how candidates should contact you."}
+                  ? "Incluye responsabilidades, requisitos, experiencia necesaria, documentos o certificaciones, e instrucciones de cómo aplicar."
+                  : "Include responsibilities, requirements, experience, documents or certifications, and how candidates should apply."}
               </p>
             </label>
           </EmpleosSectionCard>
 
-          {/* ── SECTION 3: Pago, horario y beneficios ───────────────────────── */}
           <EmpleosSectionCard title={es ? "3. Pago, horario y beneficios" : "3. Pay, schedule and benefits"}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Pago (monto o rango)" : "Pay (amount or range)"}</EmpleosFieldLabel>
+                <input
+                  className={INPUT}
+                  value={state.payAmount}
+                  onChange={(e) => patchPay({ payAmount: e.target.value })}
+                  placeholder={es ? "Ej. 18, 18 - 25" : "e.g. 18, 18 - 25"}
+                  disabled={state.payUnit === "a-convenir" && !state.payAmount}
+                />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Tipo de pago" : "Pay type"}</EmpleosFieldLabel>
+                <select
+                  className={SELECT}
+                  value={state.payUnit}
+                  onChange={(e) => patchPay({ payUnit: e.target.value, payAmount: e.target.value === "a-convenir" ? "" : state.payAmount })}
+                >
+                  {payUnitOptions.map((o) => (
+                    <option key={o.value || "empty"} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {state.payUnit === "otro" ? (
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Etiqueta de pago personalizada" : "Custom pay label"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.payUnitCustom} onChange={(e) => patchPay({ payUnitCustom: e.target.value })}
+                  placeholder={es ? "Ej. Por entrega" : "e.g. Per delivery"} />
+              </label>
+            ) : null}
             <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>{es ? "Pago" : "Pay"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.pay} onChange={(e) => patch({ pay: e.target.value })}
-                placeholder={es ? "Ej. $18/hora, $800 por semana, A convenir" : "e.g. $18/hr, $800/week, DOE"} />
-              <p className="mt-1 text-xs text-[#7A756E]">
-                {es ? "Los valores numéricos se formatean automáticamente con $." : "Numeric values are automatically formatted with $."}
-              </p>
+              <EmpleosFieldLabel lang={lang}>{es ? "Nota de pago (opcional)" : "Pay note (optional)"}</EmpleosFieldLabel>
+              <input className={INPUT} value={state.payNote} onChange={(e) => patchPay({ payNote: e.target.value })}
+                placeholder={es ? "Ej. más bonos, propinas incluidas" : "e.g. plus bonuses, tips included"} />
             </label>
+            {state.pay ? (
+              <p className="rounded-lg border border-[#C9B46A]/35 bg-[#FBF7EF] px-3 py-2 text-xs text-[#5C5346]">
+                {es ? "Vista previa:" : "Preview:"}{" "}
+                <span className="font-semibold text-[#7A1E2C]">{state.pay}</span>
+              </p>
+            ) : null}
             <div>
               <EmpleosFieldLabel lang={lang} required>{es ? "Horario / turnos" : "Schedule / shifts"}</EmpleosFieldLabel>
               <p className="mt-0.5 text-xs text-[#7A756E]">
-                {es ? "Añade una fila por turno. Ejemplo: Lun–Vie / 8:00 AM – 5:00 PM" : "Add one row per shift. Example: Mon–Fri / 8:00 AM – 5:00 PM"}
+                {es
+                  ? "Añade una fila por turno. Usa «Flexible» para empleos con horario abierto."
+                  : "Add one row per shift. Use «Flexible» for open-schedule jobs."}
               </p>
-              <div className="mt-2 space-y-2">
-                {state.scheduleRows.map((row, idx) => (
-                  <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-                    <input className={INPUT} value={row.day}
-                      placeholder={es ? "Día o bloque (ej. Lun–Vie)" : "Day or block (e.g. Mon–Fri)"}
-                      onChange={(e) => {
-                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, day: e.target.value } : r));
-                        patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                      }} />
-                    <input className={INPUT} value={row.startTime}
-                      placeholder={es ? "Hora de inicio (ej. 8:00 AM)" : "Start time (e.g. 8:00 AM)"}
-                      onChange={(e) => {
-                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, startTime: e.target.value } : r));
-                        patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                      }} />
-                    <input className={INPUT} value={row.endTime}
-                      placeholder={es ? "Hora de fin (ej. 5:00 PM)" : "End time (e.g. 5:00 PM)"}
-                      onChange={(e) => {
-                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, endTime: e.target.value } : r));
-                        patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                      }} />
-                    {state.scheduleRows.length > 1 ? (
-                      <button type="button"
-                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-black/10 bg-white text-sm text-[#9A3A3A] transition hover:bg-red-50"
-                        aria-label={es ? "Quitar turno" : "Remove shift"}
-                        onClick={() => {
-                          const next = state.scheduleRows.filter((_, j) => j !== idx);
-                          patch({ scheduleRows: next.length ? next : [{ day: "", shift: "", startTime: "", endTime: "" }], schedule: joinScheduleRows(next) });
-                        }}>×</button>
-                    ) : <div />}
-                  </div>
-                ))}
+              <div className="mt-2">
+                <EmpleosShiftScheduleEditor
+                  lang={lang}
+                  rows={state.scheduleRows}
+                  onChange={(scheduleRows, schedule) => patch({ scheduleRows, schedule })}
+                />
               </div>
-              <button type="button"
-                className="mt-2 min-h-[36px] rounded-lg border border-[#C9B46A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#6B5320] transition hover:bg-[#FFF8E0]"
-                onClick={() => {
-                  const next = [...state.scheduleRows, { day: "", shift: "", startTime: "", endTime: "" }];
-                  patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
-                }}>
-                {es ? "+ Añadir turno" : "+ Add shift"}
-              </button>
             </div>
             <div>
               <EmpleosFieldLabel lang={lang}>{es ? "Beneficios (opcional)" : "Benefits (optional)"}</EmpleosFieldLabel>
@@ -388,11 +404,11 @@ export default function EmpleoQuickApplicationClient() {
           {/* ── SECTION 4: Multimedia ─────────────────────────────────────────── */}
           <EmpleosSectionCard title={es ? "4. Multimedia" : "4. Media"}>
             <div>
-              <EmpleosFieldLabel lang={lang} required>{es ? "Imágenes" : "Images"}</EmpleosFieldLabel>
+              <EmpleosFieldLabel lang={lang} required>{es ? "Imagen principal / flyer" : "Main image / flyer"}</EmpleosFieldLabel>
               <p className="mt-1 text-xs text-[#7A756E]">
                 {es
-                  ? "Las imágenes muestran el trabajo, el lugar o el equipo. Incluye al menos una imagen."
-                  : "Images show the job, workplace, or team. Include at least one image."}
+                  ? "Puede ser un flyer de contratación, foto del lugar de trabajo, del equipo o un gráfico de hiring. Los flyers se muestran completos cuando es posible."
+                  : "This can be a hiring flyer, workplace photo, team photo, or hiring graphic. Flyers are shown uncropped when possible."}
               </p>
               <div className="mt-3">
                 <EmpleosImageGalleryEditor
@@ -413,8 +429,8 @@ export default function EmpleoQuickApplicationClient() {
               <p className="text-sm font-semibold text-[#2A2826]">{mediaCopy.logo}</p>
               <p className="mt-1 text-xs text-[#7A756E]">
                 {es
-                  ? "El logo aparece junto al nombre del empleador en el encabezado del aviso."
-                  : "The logo appears next to the employer name in the job listing header."}
+                  ? "El logo aparece junto al nombre del empleador en el encabezado y en la tarjeta de contacto."
+                  : "The logo appears next to the employer name in the header and contact card."}
               </p>
               <div className="mt-2">
                 <EmpleosSingleImageField
@@ -578,7 +594,7 @@ export default function EmpleoQuickApplicationClient() {
           </EmpleosSectionCard>
 
           {/* ── SECTION 7: Empresa y enlaces ─────────────────────────────── */}
-          <EmpleosSectionCard title={es ? "7. Empresa y enlaces" : "7. Company and links"}>
+          <EmpleosSectionCard title={es ? "7. Redes y enlaces del empleador" : "7. Employer links and social"}>
             <p className="text-xs text-[#7A756E]">
               {es
                 ? "Solo se mostrarán los enlaces que completes. Úsalos para que los candidatos conozcan más tu empresa."

@@ -20,11 +20,14 @@ export function gateEmpleosQuickPreview(d: EmpleosQuickDraft, lang: Lang = "es")
   if (!st(d.city)) issues.push(L.city);
   if (!st(d.stateRegion || d.state)) issues.push(L.state);
   if (!st(d.country)) issues.push(L.country);
-  if (!st(d.jobType)) issues.push(L.jobType);
-  const hasSchedule = d.scheduleRows.some((r) => st(r.day) || st(r.shift)) || st(d.schedule);
+  if (!st(d.jobType) || (d.jobType === "otro" && !st(d.jobTypeCustom))) issues.push(L.jobType);
+  const hasSchedule =
+    d.scheduleRows.some((r) => st(r.day) || st(r.shift) || st(r.startTime) || st(r.endTime) || st(r.note)) ||
+    st(d.schedule);
   if (!hasSchedule) issues.push(L.schedule);
   if (d.categorySlug === "otro" && !st(d.categoryCustom)) issues.push(L.categoryOther);
-  if (!st(d.pay)) issues.push(L.pay);
+  const hasPay = st(d.payAmount) || st(d.pay) || d.payUnit === "a-convenir";
+  if (!hasPay) issues.push(L.pay);
   if (!st(d.description)) issues.push(L.description);
   const hasImg = d.images.some((x) => st(x.url));
   if (!hasImg) issues.push(L.image);

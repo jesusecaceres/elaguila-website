@@ -1,6 +1,7 @@
 import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 import type { EmpleosImageItem } from "../media/empleosMediaTypes";
+import { normalizePayUnit, parseLegacyPayString, syncLegacyPayField } from "../lib/empleosPayDisplay";
 
 export type EmpleosQuickPrimaryCta = "phone" | "whatsapp" | "email";
 
@@ -13,12 +14,16 @@ export type EmpleosQuickPreferredApplyMethod =
 
 export type EmpleosQuickScheduleRow = {
   day: string;
+  /** Custom day/block label when `day === "otro"`. */
+  dayCustom?: string;
   /** Legacy freeform shift text — preserved for old sessions. */
   shift: string;
   /** Structured start time (e.g. "8:00 AM"). Preferred over freeform shift. */
   startTime: string;
   /** Structured end time (e.g. "5:00 PM"). */
   endTime: string;
+  /** Optional note per shift row. */
+  note?: string;
 };
 
 export type EmpleosQuickDraft = {
@@ -34,10 +39,21 @@ export type EmpleosQuickDraft = {
   state: string;
   workModality: JobModalitySlug;
   jobType: string;
+  /** Custom job type label when `jobType === "otro"`. */
+  jobTypeCustom: string;
   /** Legacy single line; combined with `scheduleRows` at publish. */
   schedule: string;
   /** Structured shifts; rendered as clean lines in preview and public output. */
   scheduleRows: EmpleosQuickScheduleRow[];
+  /** Pay amount or range (e.g. "18", "18 - 25", "$18 - $25"). */
+  payAmount: string;
+  /** Pay unit slug — see `empleosPayDisplay`. */
+  payUnit: string;
+  /** Custom pay unit label when `payUnit === "otro"`. */
+  payUnitCustom: string;
+  /** Optional pay note (e.g. "más bonos"). */
+  payNote: string;
+  /** Legacy composed pay line — kept in sync for publish compatibility. */
   pay: string;
   description: string;
   /** Repeatable benefit lines → shell bullets. */
@@ -146,16 +162,38 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
   let scheduleRows: EmpleosQuickScheduleRow[] = Array.isArray(rest.scheduleRows)
     ? rest.scheduleRows.map((r) => ({
         day: String((r as EmpleosQuickScheduleRow).day ?? "").trim(),
+        dayCustom: String((r as EmpleosQuickScheduleRow).dayCustom ?? "").trim(),
         shift: String((r as EmpleosQuickScheduleRow).shift ?? "").trim(),
         startTime: String((r as EmpleosQuickScheduleRow).startTime ?? "").trim(),
         endTime: String((r as EmpleosQuickScheduleRow).endTime ?? "").trim(),
+        note: String((r as EmpleosQuickScheduleRow).note ?? "").trim(),
       }))
     : [];
   const schedStr = typeof rest.schedule === "string" ? rest.schedule.trim() : "";
-  if (!scheduleRows.some((r) => r.day || r.shift || r.startTime || r.endTime) && schedStr) {
-    scheduleRows = [{ day: "", shift: schedStr, startTime: "", endTime: "" }];
+  if (!scheduleRows.some((r) => r.day || r.shift || r.startTime || r.endTime || r.note) && schedStr) {
+    scheduleRows = [{ day: "", dayCustom: "", shift: schedStr, startTime: "", endTime: "", note: "" }];
   }
-  if (!scheduleRows.length) scheduleRows = [{ day: "", shift: "", startTime: "", endTime: "" }];
+  if (!scheduleRows.length) scheduleRows = [{ day: "", dayCustom: "", shift: "", startTime: "", endTime: "", note: "" }];
+
+  const legacyPay = typeof rest.pay === "string" ? rest.pay.trim() : e.pay;
+  const parsedPay = parseLegacyPayString(legacyPay);
+  const payAmount =
+    typeof rest.payAmount === "string" && rest.payAmount.trim()
+      ? rest.payAmount.trim()
+      : parsedPay.payAmount || legacyPay;
+  const payUnit =
+    typeof rest.payUnit === "string" && rest.payUnit.trim()
+      ? normalizePayUnit(rest.payUnit)
+      : parsedPay.payUnit;
+  const payUnitCustom =
+    typeof rest.payUnitCustom === "string" && rest.payUnitCustom.trim()
+      ? rest.payUnitCustom.trim()
+      : parsedPay.payUnitCustom;
+  const payNote =
+    typeof rest.payNote === "string" && rest.payNote.trim()
+      ? rest.payNote.trim()
+      : parsedPay.payNote;
+  const pay = syncLegacyPayField({ pay: legacyPay, payAmount, payUnit, payUnitCustom, payNote });
 
   const PREFERRED_METHODS: EmpleosQuickPreferredApplyMethod[] = ["apply-link", "email", "phone", "whatsapp", "message"];
   const prefRaw = rest.preferredApplyMethod as string | undefined;
@@ -184,6 +222,11 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     country: typeof rest.country === "string" ? rest.country.trim() : e.country,
     workModality,
     scheduleRows,
+    payAmount,
+    payUnit,
+    payUnitCustom,
+    payNote,
+    pay,
     applyLink: typeof rest.applyLink === "string" ? rest.applyLink.trim() : e.applyLink,
     smsPhone: typeof rest.smsPhone === "string" ? rest.smsPhone.trim() : e.smsPhone,
     contactPerson: typeof rest.contactPerson === "string" ? rest.contactPerson.trim() : e.contactPerson,
@@ -200,6 +243,8 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     companySnapchat: typeof rest.companySnapchat === "string" ? rest.companySnapchat.trim() : e.companySnapchat,
     companyOtherLinkLabel: typeof rest.companyOtherLinkLabel === "string" ? rest.companyOtherLinkLabel.trim() : e.companyOtherLinkLabel,
     companyOtherLinkUrl: typeof rest.companyOtherLinkUrl === "string" ? rest.companyOtherLinkUrl.trim() : e.companyOtherLinkUrl,
+    jobType: typeof rest.jobType === "string" ? rest.jobType.trim() : e.jobType,
+    jobTypeCustom: typeof rest.jobTypeCustom === "string" ? rest.jobTypeCustom.trim() : e.jobTypeCustom,
   };
 }
 
@@ -214,8 +259,13 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     state: "",
     workModality: "presencial",
     jobType: "",
+    jobTypeCustom: "",
     schedule: "",
-    scheduleRows: [{ day: "", shift: "", startTime: "", endTime: "" }],
+    scheduleRows: [{ day: "", dayCustom: "", shift: "", startTime: "", endTime: "", note: "" }],
+    payAmount: "",
+    payUnit: "",
+    payUnitCustom: "",
+    payNote: "",
     pay: "",
     description: "",
     benefits: [],
