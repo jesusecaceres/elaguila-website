@@ -14,6 +14,7 @@ import { comunidadCostLabel } from "@/app/(site)/publicar/community/shared/copy/
 import { formatAdmissionWithDollar } from "@/app/(site)/clasificados/community/CommunityQuickAnuncioDetail";
 import type { ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
+import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { CommunityWeeklyScheduleAligned } from "@/app/(site)/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
 import {
   cityStateZipLine,
@@ -68,12 +69,14 @@ export function ComunidadQuickAdCanvas({
   shell = "standalone",
   contactSectionId,
   heroTestId,
+  analyticsCtx,
 }: {
   draft: ComunidadQuickDraft;
   lang: Lang;
   shell?: ComunidadQuickAdShell;
   contactSectionId?: string;
   heroTestId?: string;
+  analyticsCtx?: CommunityGlobalAnalyticsCtx;
 }) {
   const t = COPY[lang];
   const main = pickMainHeroImage(draft.images);
@@ -215,7 +218,7 @@ export function ComunidadQuickAdCanvas({
           </div>
         </dl>
 
-        <CommunityContactCanvas draft={draft} lang={lang} sectionHtmlId={contactSectionId} />
+        <CommunityContactCanvas draft={draft} lang={lang} sectionHtmlId={contactSectionId} analyticsCtx={analyticsCtx} />
       </div>
     </article>
   );

@@ -23,6 +23,8 @@ import {
 } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 
 export type ComunidadPublishedListingLike = {
+  id: string;
+  leonix_ad_id?: string | null;
   title: { es: string; en: string };
   blurb: { es: string; en: string };
   city: string;

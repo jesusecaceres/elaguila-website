@@ -26,6 +26,14 @@ import {
 } from "../lib/communityContactCtas";
 import { normalizeWebsiteForOpen, normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
 import type { ClasesClassLinks, ClasesQuickDraft, ComunidadEventLinks, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import {
+  trackCommunityPhoneClick,
+  trackCommunityWhatsAppClick,
+  trackCommunityMessageClick,
+  trackCommunityEmailClick,
+  trackCommunityWebsiteClick,
+  type CommunityGlobalAnalyticsCtx,
+} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 
 const GH = {
   cream: "#FCF9F2",
@@ -204,11 +212,14 @@ export function CommunityContactCanvas({
   draft,
   lang,
   sectionHtmlId,
+  analyticsCtx,
 }: {
   draft: Draft;
   lang: Lang;
   /** Optional DOM id for scroll targets (e.g. published anuncio “Ver contacto”). */
   sectionHtmlId?: string;
+  /** When provided, real analytics events fire on every CTA click. Omit in preview mode. */
+  analyticsCtx?: CommunityGlobalAnalyticsCtx;
 }) {
   const k = kindOf(draft);
   const t = k === "clases" ? UI_CLASES[lang] : UI_COMUNIDAD[lang];
@@ -362,6 +373,7 @@ export function CommunityContactCanvas({
                   href={telUriFromUs10(phone10)}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
+                  onClick={() => analyticsCtx && trackCommunityPhoneClick(analyticsCtx)}
                 >
                   <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
                   {t.call}{" "}
@@ -375,6 +387,7 @@ export function CommunityContactCanvas({
                   rel="noopener noreferrer"
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: "#25D366", color: "#FFFCF7" }}
+                  onClick={() => analyticsCtx && trackCommunityWhatsAppClick(analyticsCtx)}
                 >
                   <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
                   WhatsApp
@@ -385,6 +398,7 @@ export function CommunityContactCanvas({
                   href={smsUri(sms10, smsBody)}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                  onClick={() => analyticsCtx && trackCommunityMessageClick(analyticsCtx)}
                 >
                   <FiMessageSquare className="h-4 w-4 shrink-0" aria-hidden />
                   {t.text}
@@ -395,7 +409,7 @@ export function CommunityContactCanvas({
                   type="button"
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.goldBorder}` }}
-                  onClick={() => setEmailOpen(true)}
+                  onClick={() => { setEmailOpen(true); analyticsCtx && trackCommunityEmailClick(analyticsCtx); }}
                 >
                   <FiMail className="h-4 w-4 shrink-0" aria-hidden />
                   {t.email}
@@ -452,6 +466,7 @@ export function CommunityContactCanvas({
                   rel="noopener noreferrer"
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                  onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
                 >
                   <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
                   {t.website}
@@ -465,6 +480,7 @@ export function CommunityContactCanvas({
                   rel="noopener noreferrer"
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                  onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
                 >
                   <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
                   {label}
