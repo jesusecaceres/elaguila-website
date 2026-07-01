@@ -17,7 +17,6 @@ import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPan
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
 const BTN_PRIMARY =
   "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
 const BTN_SECONDARY =
@@ -209,6 +208,17 @@ export function OfertasLocalesPublicSearchClient() {
           <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
             {c.publishCta}
           </Link>
+          <Link
+            href={`/clasificados/ofertas-locales?lang=${lang}`}
+            className={`${BTN_SECONDARY} w-full sm:w-auto`}
+          >
+            {c.viewAllDeals}
+          </Link>
+          {hasFilters ? (
+            <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={clearFilters}>
+              {c.clearFiltersLink}
+            </button>
+          ) : null}
           {listHasItems ? (
             <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
               {c.listButton}

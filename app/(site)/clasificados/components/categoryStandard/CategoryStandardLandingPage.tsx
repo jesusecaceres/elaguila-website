@@ -31,6 +31,7 @@ export type CategoryStandardLandingPageProps = {
   belowHero?: ReactNode;
   searchSlot?: ReactNode;
   children?: ReactNode;
+  suppressVisibilityCta?: boolean;
 };
 
 /**
@@ -48,6 +49,7 @@ export function CategoryStandardLandingPage({
   searchChips,
   belowHero,
   searchSlot,
+  suppressVisibilityCta,
   children,
 }: CategoryStandardLandingPageProps) {
   const searchAction = searchActionProp ?? buildCategoryResultsUrl(category, lang);
@@ -75,6 +77,7 @@ export function CategoryStandardLandingPage({
         searchChips={searchChips ?? <CategoryStandardQuickFilterChips category={category} lang={lang} />}
         searchSlot={searchSlot}
         belowHero={belowHero}
+        suppressVisibilityCta={suppressVisibilityCta}
       >
         {children}
       </CategoryStandardLandingBlock>

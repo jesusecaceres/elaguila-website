@@ -1,17 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { useSearchParams } from "next/navigation";
 import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes";
-import type { EnVentaDepartmentKey } from "./taxonomy/categories";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
-import { enVentaPublicLabel } from "./shared/constants/enVentaPublicLabels";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
 import type { EnVentaPublicBrowseListing } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
-import { DEFAULT_CITY } from "@/app/data/locations/norcal";
 import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
   categoryStandardSearchPlaceholder,
   categoryStandardTitle,
@@ -26,58 +23,14 @@ import {
   EV_BTN_PRIMARY,
   EV_BTN_SECONDARY,
   EV_CHIP,
-  EV_CHIP_FEATURED,
   EV_PUBLIC_SHELL,
 } from "./shared/styles/enVentaLeonixPublicUi";
-
-/** Default hero: welcoming outdoor marketplace / promenade (no lion). Muted blues in scene; Unsplash license. */
-const DEFAULT_HERO_BACKDROP =
-  "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=2400&q=82";
-
-/** Emoji + optional cool (muted blue) icon plate for category balance. */
-const DEPT_VISUAL: Record<EnVentaDepartmentKey, { icon: string; cool?: boolean }> = {
-  electronicos: { icon: "📱" },
-  hogar: { icon: "🏠" },
-  muebles: { icon: "🛋️" },
-  "ropa-accesorios": { icon: "👕" },
-  "bebes-ninos": { icon: "🧸" },
-  herramientas: { icon: "🔧" },
-  "vehiculos-partes": { icon: "🚗", cool: true },
-  deportes: { icon: "⚽", cool: true },
-  "juguetes-juegos": { icon: "🎲" },
-  coleccionables: { icon: "🏺" },
-  "musica-foto-video": { icon: "🎸" },
-  otros: { icon: "⭐" },
-};
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
 type Lang = "es" | "en";
-
-function HeroBackdrop({ src }: { src: string }) {
-  const useNextImage = src.startsWith("/") || src.includes("images.unsplash.com");
-  /** Responsive focal point: slightly higher on phones, centered on desktop — reduces awkward crops. */
-  const objectPos =
-    "pointer-events-none select-none object-cover object-[center_35%] min-[400px]:object-[center_38%] md:object-[center_40%] xl:object-[center_42%]";
-  if (useNextImage) {
-    return (
-      <Image
-        src={src}
-        alt=""
-        fill
-        priority
-        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 100vw, 1152px"
-        className={objectPos}
-      />
-    );
-  }
-  return (
-     
-    <img src={src} alt="" className={`absolute inset-0 h-full w-full ${objectPos}`} />
-  );
-}
 
 function TrustIconGift({ className }: { className?: string }) {
   return (
@@ -135,18 +88,10 @@ export function EnVentaHubPageClient({
 
   const publishHref = replaceLangInHref("/clasificados/publicar/en-venta", routeLang);
   const allListingsHref = buildEnVentaResultsUrl(routeLang as Lang);
-  const hrefBrowseNewest = buildEnVentaResultsUrl(routeLang as Lang, { sort: "newest" });
-  const hrefBrowseNear = buildEnVentaResultsUrl(routeLang as Lang, { city: DEFAULT_CITY });
-  const hrefBrowseShip = buildEnVentaResultsUrl(routeLang as Lang, { ship: "1" });
-  const hrefBrowsePickup = buildEnVentaResultsUrl(routeLang as Lang, { pickup: "1" });
-  /** Featured-only browse: `featured=1` matches Pro listings inside an active post-republish visibility window (`republished_at`). */
-  /** `featured=1` = listings whose visibility window from `republished_at` is still open (Pro renewed visibility), not mock inventory. */
-  const hrefBrowseFeatured = buildEnVentaResultsUrl(routeLang as Lang, { featured: "1" });
   const hrefSellerIndividual = buildEnVentaResultsUrl(routeLang as Lang, { seller: "individual" });
   const hrefSellerBusiness = buildEnVentaResultsUrl(routeLang as Lang, { seller: "business" });
 
   const t = hub;
-  const backdropSrc = t.heroImageUrl?.trim() ? t.heroImageUrl.trim() : DEFAULT_HERO_BACKDROP;
 
   const primaryCta = `${EV_BTN_PRIMARY} min-h-[2.75rem] px-5 text-[15px]`;
   const secondaryCta = `${EV_BTN_SECONDARY} min-h-[2.75rem] px-5 text-[15px]`;
@@ -156,12 +101,12 @@ export function EnVentaHubPageClient({
   const popularCategoryChips: Array<{ key: string; label: string; href: string }> = [
     {
       key: "electronicos",
-      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "electronicos")!.label[lang],
+      label: lang === "es" ? "Electrónica y tech" : "Electronics & tech",
       href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "electronicos" }),
     },
     {
       key: "hogar",
-      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "hogar")!.label[lang],
+      label: lang === "es" ? "Hogar y electrodomésticos" : "Home & appliances",
       href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "hogar" }),
     },
     {
@@ -171,7 +116,7 @@ export function EnVentaHubPageClient({
     },
     {
       key: "ropa",
-      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "ropa-accesorios")!.label[lang],
+      label: lang === "es" ? "Ropa" : "Clothing",
       href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "ropa-accesorios" }),
     },
     {
@@ -179,15 +124,21 @@ export function EnVentaHubPageClient({
       label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "deportes")!.label[lang],
       href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "deportes" }),
     },
-  ];
-
-  const quickFilterChips: Array<{ key: string; label: string; href: string; featured?: boolean }> = [
-    { key: "newest", label: t.browseChipNewest, href: hrefBrowseNewest },
-    { key: "near", label: t.browseChipNear, href: hrefBrowseNear },
-    { key: "free", label: lang === "es" ? "Gratis / regalo" : "Free / gift", href: buildEnVentaResultsUrl(routeLang as Lang, { free: "1" }) },
-    { key: "pickup", label: t.browseChipPickup, href: hrefBrowsePickup },
-    { key: "ship", label: t.browseChipShip, href: hrefBrowseShip },
-    { key: "featured", label: t.browseChipFeatured, href: hrefBrowseFeatured, featured: true },
+    {
+      key: "bebes",
+      label: lang === "es" ? "Bebés y niños" : "Baby & kids",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "bebes-ninos" }),
+    },
+    {
+      key: "herramientas",
+      label: EN_VENTA_DEPARTMENTS.find((d) => d.key === "herramientas")!.label[lang],
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "herramientas" }),
+    },
+    {
+      key: "otros",
+      label: lang === "es" ? "Otro" : "Other",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: "otros" }),
+    },
   ];
 
   const swipeHint = enVentaSwipeHintLabel(lang);
@@ -200,21 +151,8 @@ export function EnVentaHubPageClient({
       cityLabel={t.cityPh}
       searchButtonLabel={t.search}
       footer={
-        <div className="space-y-2 pt-1">
-          <EnVentaHubHorizontalScroll
-            label={lang === "es" ? "Categorías populares" : "Popular categories"}
-            swipeHint={swipeHint}
-            lang={lang}
-          >
-            {popularCategoryChips.map((chip) => (
-              <Link key={chip.key} href={chip.href} className={EV_CHIP}>
-                {chip.label}
-              </Link>
-            ))}
-          </EnVentaHubHorizontalScroll>
-          <div className="flex flex-wrap items-center gap-2">
-            <EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />
-          </div>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />
         </div>
       }
     />
@@ -247,8 +185,31 @@ export function EnVentaHubPageClient({
           publishLabel={t.publish}
           browseLabel={t.lista}
           searchSlot={enVentaSearchForm}
+          suppressVisibilityCta
         />
         </div>
+
+        <section className="mt-3 sm:mt-4" aria-label={lang === "es" ? "Categorías" : "Categories"}>
+          <EnVentaHubHorizontalScroll
+            label={lang === "es" ? "Explorar por categoría" : "Browse by category"}
+            swipeHint={swipeHint}
+            lang={lang}
+          >
+            {popularCategoryChips.map((chip) => (
+              <Link key={chip.key} href={chip.href} className={EV_CHIP}>
+                {chip.label}
+              </Link>
+            ))}
+          </EnVentaHubHorizontalScroll>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link href={publishHref} className={`${primaryCta} w-full sm:w-auto`}>
+              {t.publish}
+            </Link>
+            <Link href={allListingsHref} className={`${secondaryCta} w-full sm:w-auto`}>
+              {t.lista}
+            </Link>
+          </div>
+        </section>
 
         <EnVentaHubRecentListings
           listings={initialLiveListings}
@@ -257,95 +218,9 @@ export function EnVentaHubPageClient({
           allListingsLabel={t.lista}
         />
 
-        <section className="mt-3 sm:mt-6" aria-label={lang === "es" ? "Filtros rápidos" : "Quick filters"}>
-          <EnVentaHubHorizontalScroll
-            label={lang === "es" ? "Filtros rápidos" : "Quick filters"}
-            swipeHint={swipeHint}
-            lang={lang}
-          >
-            {quickFilterChips.map((chip) => (
-              <Link
-                key={chip.key}
-                href={chip.href}
-                className={chip.featured ? EV_CHIP_FEATURED : EV_CHIP}
-              >
-                {chip.featured ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0 text-[#B8891A]" aria-hidden fill="currentColor">
-                    <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z" />
-                  </svg>
-                ) : null}
-                {chip.label}
-              </Link>
-            ))}
-          </EnVentaHubHorizontalScroll>
-          <p className="mt-2 text-center text-[11px] leading-relaxed text-[#5C5346] sm:text-[12px]">{t.exposureHint}</p>
-        </section>
-
-        {/* Categories — compact horizontal on mobile */}
-        <section className="mt-3 sm:mt-8">
-          <h2 className="text-center font-serif text-[1.1rem] font-bold tracking-tight text-[#1E1810] sm:text-2xl">
-            {t.categoriesTitle}
-          </h2>
-          <div className="mt-2 sm:mt-6">
-            <EnVentaHubHorizontalScroll
-              label={lang === "es" ? "Todas las categorías" : "All categories"}
-              swipeHint={swipeHint}
-              lang={lang}
-              className="sm:hidden"
-            >
-              {EN_VENTA_DEPARTMENTS.map((d) => {
-                const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
-                const title = d.label[lang];
-                const vis = DEPT_VISUAL[d.key];
-                return (
-                  <Link
-                    key={d.key}
-                    href={href}
-                    className="flex w-[min(36vw,132px)] shrink-0 snap-start flex-col items-center rounded-[16px] border border-white/70 bg-[#FFFCF7]/95 p-2.5 text-center shadow-sm transition hover:border-[#C9B46A]/38"
-                  >
-                    <span className="text-xl leading-none" aria-hidden>{vis.icon}</span>
-                    <span className="mt-2 text-[12px] font-bold leading-tight text-[#1E1810]">{title}</span>
-                  </Link>
-                );
-              })}
-            </EnVentaHubHorizontalScroll>
-            <div className="hidden sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
-              {EN_VENTA_DEPARTMENTS.map((d) => {
-                const href = buildEnVentaResultsUrl(routeLang as Lang, { evDept: d.key });
-                const title = d.label[lang];
-                const hint = d.browseHint[lang];
-                const vis = DEPT_VISUAL[d.key];
-                const cool = vis.cool;
-
-                return (
-                  <Link
-                    key={d.key}
-                    href={href}
-                    className={cx(
-                      "group flex min-h-[136px] flex-col items-center rounded-[20px] border border-white/70 bg-[#FFFCF7]/95 p-3.5 text-center shadow-[0_12px_36px_-16px_rgba(47,74,101,0.2)] ring-1 ring-transparent transition sm:min-h-[140px] sm:p-4",
-                      "hover:-translate-y-0.5 hover:border-[#C9B46A]/38 hover:shadow-[0_20px_48px_-14px_rgba(201,180,106,0.26)] hover:ring-[#C9B46A]/22",
-                      "focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
-                    )}
-                  >
-                    <span
-                      className={cx(
-                        "mb-2 flex h-11 w-11 items-center justify-center rounded-lg text-2xl shadow-inner transition group-hover:scale-[1.02]",
-                        cool
-                          ? "border border-[#D4E0EA]/90 bg-gradient-to-br from-[#EEF3F7] to-[#E2EBF2] text-[#2F4A65]"
-                          : "border border-[#F0E8D8] bg-gradient-to-br from-[#FFF9EE] to-[#F3E9D4]"
-                      )}
-                      aria-hidden
-                    >
-                      {vis.icon}
-                    </span>
-                    <span className="text-[14px] font-bold leading-tight text-[#1E1810] min-[420px]:text-[15px]">{title}</span>
-                    <span className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-[#5C5346] min-[420px]:text-[12px] sm:text-[13px]">{hint}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+        <div className="mt-6 sm:mt-8">
+          <CategoryVisibilityCta lang={lang} category="en-venta" surface="landing" compact />
+        </div>
 
         {/* Trust — horizontal strip on mobile */}
         <section className="mt-4 sm:mt-8" aria-label={lang === "es" ? "Confianza y seguridad" : "Trust and safety"}>

@@ -694,23 +694,21 @@ export function EnVentaResultsClient() {
         </header>
 
         <div className="mt-2">
-          <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
+          <EnVentaCompactSearchCanvas
+            lang={lang}
+            routeLang={lang}
+            action={EN_VENTA_RESULTS_PATH}
+            formId="ev-results-form"
+            onSubmit={onSubmitSearch}
+            defaultQ={q}
+            defaultCity={city}
+            defaultZip={zip}
+            searchLabel={enVentaBrowseSearchPlaceholder(lang)}
+            cityLabel={t.cityPh}
+            zipLabel={t.zip}
+            searchButtonLabel={t.go}
+          />
         </div>
-
-        <EnVentaCompactSearchCanvas
-          lang={lang}
-          routeLang={lang}
-          action={EN_VENTA_RESULTS_PATH}
-          formId="ev-results-form"
-          onSubmit={onSubmitSearch}
-          defaultQ={q}
-          defaultCity={city}
-          defaultZip={zip}
-          searchLabel={enVentaBrowseSearchPlaceholder(lang)}
-          cityLabel={t.cityPh}
-          zipLabel={t.zip}
-          searchButtonLabel={t.go}
-        />
         <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -843,6 +841,10 @@ export function EnVentaResultsClient() {
           }}
           onUseMyLocation={onUseMyLocation}
         />
+
+        <div className="mt-4 sm:mt-5">
+          <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
+        </div>
 
         {loadErr ? <p className="mt-4 text-center text-sm text-red-700">{t.err}</p> : null}
 
