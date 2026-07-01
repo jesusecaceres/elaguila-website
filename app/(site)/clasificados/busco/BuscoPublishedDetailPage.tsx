@@ -148,20 +148,20 @@ export function BuscoPublishedDetailPage({
             <div className="flex flex-wrap items-center justify-between gap-4">
               <a
                 href={`/clasificados?lang=${lang}`}
-                className="px-5 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
+                className="inline-flex min-h-[40px] items-center rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-2 text-sm font-semibold text-[#5C564E] shadow-sm transition hover:bg-[#F5EDD8]"
               >
                 ← {t.back}
               </a>
               <div className="flex flex-wrap gap-3">
                 <a
                   href={`/publicar/busco/quick?lang=${lang}`}
-                  className="px-6 py-2.5 rounded-full bg-[#111111] text-[#F5F5F5] font-semibold hover:opacity-95 transition"
+                  className="inline-flex min-h-[40px] items-center rounded-xl bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-[#FFFDF7] shadow-sm transition hover:opacity-90"
                 >
                   {t.post}
                 </a>
                 <a
                   href={`/clasificados/login?lang=${lang}`}
-                  className="px-6 py-2.5 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-2 text-sm font-semibold text-[#5C564E] shadow-sm transition hover:bg-[#F5EDD8]"
                 >
                   {t.signIn}
                 </a>

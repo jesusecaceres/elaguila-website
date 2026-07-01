@@ -238,7 +238,7 @@ export function EmpleoQuickDetailPage({
             {/* Description card */}
             <section className="rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-6">
               <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#8A6B1F]">{t.descripcion}</p>
-              <p className="mt-3 text-sm leading-relaxed text-[#4A4744] whitespace-pre-line">{data.description}</p>
+              <p className="mt-3 text-sm leading-relaxed text-[#4A4744] whitespace-pre-line break-words">{data.description}</p>
             </section>
 
             {/* Videos */}
@@ -269,7 +269,7 @@ export function EmpleoQuickDetailPage({
           </div>
 
           {/* ── Right column — contact/apply card ────────────────────────── */}
-          <div className="lg:col-span-5">
+          <div className="min-w-0 lg:col-span-5">
             <div className="lg:sticky lg:top-24">
               <QuickJobCTACard
                 pay={data.pay}

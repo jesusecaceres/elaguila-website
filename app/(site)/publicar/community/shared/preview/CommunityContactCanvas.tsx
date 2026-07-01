@@ -266,15 +266,16 @@ export function CommunityContactCanvas({
     href: string | null;
     Icon: ComponentType<{ className?: string }>;
     ariaLabel: string;
+    label: string;
   }[] = [
-    { key: "fb", href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"), Icon: FaFacebook, ariaLabel: sAria.facebook },
-    { key: "ig", href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"), Icon: FaInstagram, ariaLabel: sAria.instagram },
-    { key: "tt", href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"), Icon: FaTiktok, ariaLabel: sAria.tiktok },
-    { key: "yt", href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"), Icon: FaYoutube, ariaLabel: sAria.youtube },
-    { key: "x", href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"), Icon: FaXTwitter, ariaLabel: sAria.x },
-    { key: "li", href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"), Icon: FaLinkedin, ariaLabel: sAria.linkedin },
-    { key: "sc", href: normalizeSocialUrlForOpen(draft.socialLinks.snapchat ?? "", "snapchat"), Icon: FaSnapchat, ariaLabel: sAria.snapchat },
-    { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest },
+    { key: "fb", href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"), Icon: FaFacebook, ariaLabel: sAria.facebook, label: "Facebook" },
+    { key: "ig", href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"), Icon: FaInstagram, ariaLabel: sAria.instagram, label: "Instagram" },
+    { key: "tt", href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"), Icon: FaTiktok, ariaLabel: sAria.tiktok, label: "TikTok" },
+    { key: "yt", href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"), Icon: FaYoutube, ariaLabel: sAria.youtube, label: "YouTube" },
+    { key: "x", href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"), Icon: FaXTwitter, ariaLabel: sAria.x, label: "X" },
+    { key: "li", href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"), Icon: FaLinkedin, ariaLabel: sAria.linkedin, label: "LinkedIn" },
+    { key: "sc", href: normalizeSocialUrlForOpen(draft.socialLinks.snapchat ?? "", "snapchat"), Icon: FaSnapchat, ariaLabel: sAria.snapchat, label: "Snapchat" },
+    { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest, label: "Pinterest" },
   ].filter((x) => x.href);
 
   /** Build the ordered list of event-specific useful link CTAs (Comunidad only). */
@@ -432,17 +433,17 @@ export function CommunityContactCanvas({
               {t.socialTitle}
             </div>
             <div className="flex flex-wrap gap-2">
-              {socialItems.map(({ key, href, Icon, ariaLabel }) => (
+              {socialItems.map(({ key, href, Icon, ariaLabel, label }) => (
                 <a
                   key={key}
                   href={href!}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={ariaLabel}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#C9B46A]/50 bg-[#FFFDF8] text-lg transition hover:border-[#C9B46A] hover:bg-[#FCF9F2]"
-                  style={{ color: GH.burgundy }}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/45 bg-[#FFFDF8] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9B46A] hover:bg-[#FCF9F2]"
                 >
-                  <Icon className="h-5 w-5" aria-hidden />
+                  <Icon className="h-4 w-4 shrink-0 text-[#7B2D42]" aria-hidden />
+                  {label}
                 </a>
               ))}
             </div>

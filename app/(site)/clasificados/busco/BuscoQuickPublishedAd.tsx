@@ -2,6 +2,9 @@
 
 import { useMemo } from "react";
 
+import { FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa";
+import { FiExternalLink } from "react-icons/fi";
+
 import ContactActions from "@/app/(site)/clasificados/components/ContactActions";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
@@ -121,11 +124,11 @@ export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublish
 
   return (
     <article
-      className="overflow-hidden rounded-2xl border border-[#C9B46A]/40 bg-[#FCF9F2] shadow-md"
+      className="min-w-0 overflow-hidden rounded-2xl border border-[#D6C7AD]/80 bg-[#FFFDF7] shadow-[0_16px_44px_-18px_rgba(31,36,28,0.18)]"
       data-testid="busco-published-ad"
     >
       {/* Hero image */}
-      <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EDE8DF]">
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-t-2xl bg-[#EDE8E0]">
         {heroIsFallback ? (
           <img src={heroSrc} alt="" className="h-full w-full object-contain object-center p-8 opacity-90" />
         ) : (
@@ -168,7 +171,7 @@ export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublish
         {/* ── Contact card ───────────────────────────────────── */}
         {hasAnyContact ? (
           <section
-            className="rounded-xl border border-[#C9B46A]/35 bg-[#FFFDF5] p-4"
+            className="rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-4 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.14)]"
             id="busco-contact-actions"
             data-testid="busco-contact-card"
           >
@@ -190,46 +193,34 @@ export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublish
 
         {/* ── Optional socials ───────────────────────────────── */}
         {hasSocials ? (
-          <section className="rounded-xl border border-[#C9B46A]/25 bg-[#FCF9F2] p-3" data-testid="busco-socials-section">
+          <section className="rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7] p-3" data-testid="busco-socials-section">
             <p className="mb-2.5 text-xs font-bold uppercase tracking-wide text-[#7B2D42]">{t.socialsTitle}</p>
             <div className="flex flex-wrap gap-2">
               {fbHref ? (
-                <a
-                  href={fbHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2 text-xs font-semibold text-[#2A2826] shadow-sm transition hover:bg-[#FCF9F2]"
-                >
+                <a href={fbHref} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/45 bg-[#FFFDF8] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:bg-[#FCF9F2]">
+                  <FaFacebook className="h-4 w-4 shrink-0 text-[#7B2D42]" aria-hidden />
                   Facebook
                 </a>
               ) : null}
               {igHref ? (
-                <a
-                  href={igHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2 text-xs font-semibold text-[#2A2826] shadow-sm transition hover:bg-[#FCF9F2]"
-                >
+                <a href={igHref} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/45 bg-[#FFFDF8] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:bg-[#FCF9F2]">
+                  <FaInstagram className="h-4 w-4 shrink-0 text-[#7B2D42]" aria-hidden />
                   Instagram
                 </a>
               ) : null}
               {ttHref ? (
-                <a
-                  href={ttHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2 text-xs font-semibold text-[#2A2826] shadow-sm transition hover:bg-[#FCF9F2]"
-                >
+                <a href={ttHref} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/45 bg-[#FFFDF8] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:bg-[#FCF9F2]">
+                  <FaTiktok className="h-4 w-4 shrink-0 text-[#7B2D42]" aria-hidden />
                   TikTok
                 </a>
               ) : null}
               {ocHref ? (
-                <a
-                  href={ocHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2 text-xs font-semibold text-[#2A2826] shadow-sm transition hover:bg-[#FCF9F2]"
-                >
+                <a href={ocHref} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/45 bg-[#FFFDF8] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:bg-[#FCF9F2]">
+                  <FiExternalLink className="h-4 w-4 shrink-0 text-[#7B2D42]" aria-hidden />
                   {ocLabel}
                 </a>
               ) : null}
@@ -239,14 +230,14 @@ export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublish
 
         {/* ── Approximate location ───────────────────────────── */}
         {fullLocationLine ? (
-          <section className="rounded-xl border border-[#C9B46A]/25 bg-[#FFFDF5] px-3 py-3" data-testid="busco-location-section">
+          <section className="rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7] px-4 py-3" data-testid="busco-location-section">
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#7B2D42]">{t.locationTitle}</p>
             <p className="break-words text-sm text-[#2a241c]/85">{fullLocationLine}</p>
           </section>
         ) : null}
 
         {/* ── Trust cue ──────────────────────────────────────── */}
-        <p className="text-center text-[10px] text-[#8B7355]/80">{t.trustCue}</p>
+        <p className="border-l-[3px] border-[#2A4536]/40 pl-3 text-[11px] leading-snug text-[#7A7164]/90">{t.trustCue}</p>
       </div>
     </article>
   );

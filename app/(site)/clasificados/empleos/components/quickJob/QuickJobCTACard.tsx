@@ -185,7 +185,7 @@ export function QuickJobCTACard({
       : `flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${GOLD_BTN}`;
 
   return (
-    <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-6">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-6">
       <p className="text-2xl font-bold text-[#7A1E2C]">{displayPay}</p>
 
       <div className="mt-4 space-y-2.5 text-sm text-[#4A4744]">
@@ -207,7 +207,7 @@ export function QuickJobCTACard({
         ) : null}
         <div className="flex gap-3">
           <FaClock className="mt-0.5 h-4 w-4 shrink-0 text-[#7A8899]" aria-hidden />
-          <span className="whitespace-pre-line">
+          <span className="whitespace-pre-line break-words min-w-0">
             <span className="sr-only">{labels.schedule}: </span>
             {schedule}
           </span>
