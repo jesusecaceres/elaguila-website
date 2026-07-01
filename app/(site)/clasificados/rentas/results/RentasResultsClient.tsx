@@ -4,15 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
-import { RentasLocationButton } from "@/app/clasificados/rentas/components/RentasLocationButton";
-import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
+import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/RentasCompactSearchCanvas";
+import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
-import {
-  rentasCtaPrimaryClass,
-  rentasResultsFilterCardClass,
-} from "@/app/clasificados/rentas/rentasLandingTheme";
+import { rentasCtaPrimaryClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import { RENTAS_BTN_PRIMARY } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import {
   normalizeRentasBrowseHighlightToken,
@@ -68,8 +65,6 @@ import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 
-const RENTAS_HIGHLIGHT_FACET_DEFS = BR_HIGHLIGHT_PRESET_DEFS.slice(0, 12);
-
 export type RentasResultsClientProps = {
   /** Server-fetched live catalog (`listings`); never demo. */
   initialLiveListings: RentasPublicListing[];
@@ -107,6 +102,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [subtypeDraft, setSubtypeDraft] = useState("");
   const [kindDraft, setKindDraft] = useState("");
   const [view, setView] = useState<"grid" | "list">("list");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const resultsQueryString = searchParams?.toString() ?? "";
 
@@ -290,6 +286,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     zipDraft,
   ]);
 
+  const clearFilters = useCallback(() => {
+    router.replace(withRentasLandingLang(RENTAS_RESULTS, routeLang));
+  }, [routeLang, router]);
+
   const priceBandLabel = useCallback(
     (value: string) => copy.priceOptions.find((o) => o.value === value)?.label ?? null,
     [copy.priceOptions]
@@ -306,12 +306,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     [pushUrl]
   );
 
-  const featuredListing = useMemo((): RentasPublicListing | null => {
-    if (safePage !== 1 || !filteredSorted.length) return null;
-    const promoted = filteredSorted.find((l) => l.promoted);
-    return promoted ?? filteredSorted[0];
-  }, [filteredSorted, safePage]);
-
   const displayedListings = useMemo(() => {
     if (view === "list") return pageSlice.map((l) => ({ ...l, layout: "horizontal" as const }));
     return pageSlice.map((l) => ({ ...l, layout: l.layout ?? ("vertical" as const) }));
@@ -321,394 +315,52 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const showingFrom = totalCount === 0 ? 0 : (safePage - 1) * RENTAS_RESULTS_PAGE_SIZE + 1;
   const showingTo = totalCount === 0 ? 0 : Math.min(safePage * RENTAS_RESULTS_PAGE_SIZE, totalCount);
 
-  const propiedadLabel =
-    propiedadFilter === "residencial"
-      ? copy.quickExplore.chipResidencial
-      : propiedadFilter === "comercial"
-        ? copy.quickExplore.chipComercial
-        : propiedadFilter === "terreno_lote"
-          ? copy.quickExplore.chipTerreno
-          : null;
-
   const sortValue = parsed.sort || "reciente";
+  const filtersLabel = lang === "es" ? "Filtros" : "Filters";
+  const searchLabel = lang === "es" ? "Buscar" : "Search";
+  const countLine =
+    totalCount === 0
+      ? lang === "es"
+        ? "0 resultados"
+        : "0 results"
+      : lang === "es"
+        ? `${showingFrom}–${showingTo} de ${totalLabel}`
+        : `${showingFrom}–${showingTo} of ${totalLabel}`;
 
   return (
     <RentasResultsShell>
       <RentasResultsTopBar copy={copy} lang={lang} routeLang={routeLang} />
 
-      <div className="space-y-4 border-b border-[#D6C7AD]/50 pb-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
-          <div className="min-w-0 max-w-3xl">
-            <h1 className="font-serif text-xl font-bold leading-tight text-[#2A4536] sm:text-2xl">
-              {copy.title}
-            </h1>
-            <p className="mt-2 text-sm text-[#3D3428]/90">
-              {copy.results.introPart1}
-            </p>
-            {includeDemoPool ? (
-              <p className="mt-3 text-sm text-[#5C5346]/90">{copy.results.dataSourceNote}</p>
-            ) : (
-              <p className="mt-3 text-sm text-[#5C5346]/90">
-                {lang === "es"
-                  ? "Inventario en vivo: solo anuncios publicados en la base de datos (sin ejemplos de demostración)."
-                  : "Live inventory: published database listings only (no demo fixtures)."}
-              </p>
-            )}
-            {stagedFromDb.length > 0 ? (
-              <p className="mt-1 text-sm font-semibold text-[#2C5F2D]">
-                {lang === "es"
-                  ? `${stagedFromDb.length} anuncio(s) en el catálogo activo.`
-                  : `${stagedFromDb.length} listing(s) in the active catalog.`}
-              </p>
-            ) : (
-              <p className="mt-1 text-sm text-[#5C5346]/90">
-                {lang === "es"
-                  ? "Aún no hay rentas publicadas visibles en catálogo (o no cumplen filtros de URL)."
-                  : "No published rentals are visible in the catalog yet (or URL filters exclude them)."}
-              </p>
-            )}
-            {inventoryError ? (
-              <p className="mt-1 text-xs text-amber-900" role="status">
-                {lang === "es" ? "Aviso: no se pudo sincronizar el catálogo (" : "Note: could not sync catalog ("}
-                {inventoryError}
-                {includeDemoPool
-                  ? lang === "es"
-                    ? ")."
-                    : ")."
-                  : lang === "es"
-                    ? "). Revisa políticas RLS y variables Supabase."
-                    : "). Check RLS policies and Supabase env."}
-              </p>
-            ) : null}
-            {inventoryLoading ? (
-              <p className="mt-1 text-xs text-[#5B7C99]">{lang === "es" ? "Sincronizando inventario…" : "Syncing inventory…"}</p>
-            ) : null}
-            <div className="mt-3">
-              <CategoryVisibilityCta lang={lang} category="rentas" surface="results" compact />
-            </div>
+      <div className="space-y-3 pb-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{copy.title}</h1>
+            <p className="mt-0.5 text-xs text-[#3D3428]/80">{countLine}</p>
           </div>
-          <aside
-            className="flex w-full min-w-0 flex-shrink-0 flex-col gap-2 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 sm:p-4 lg:max-w-[min(100%,22rem)]"
-            aria-label={copy.publishEyebrow}
-          >
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{copy.publishEyebrow}</p>
-            <p className="text-xs leading-snug text-[#3D3428]/85">{copy.publishHint}</p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${rentasCtaPrimaryClass} w-full min-w-0 flex-1 text-center`}>
-                {lang === "es" ? "Publicar renta" : "Post a rental"}
-              </Link>
-            </div>
-          </aside>
+          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${rentasCtaPrimaryClass} shrink-0`}>
+            {lang === "es" ? "Publicar renta" : "Post a rental"}
+          </Link>
         </div>
-      </div>
 
-      <div className="relative z-[2] mx-auto mt-2 w-full max-w-[min(100%,1200px)] space-y-5 sm:-mt-6 lg:-mt-8 xl:max-w-[min(100%,1280px)]">
-        <div className={rentasResultsFilterCardClass}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/92">{copy.results.filterZoneTitle}</p>
-          <div className="mt-4 border-b border-dashed border-[#D4C4A8]/55 pb-6">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5C5346]/75">{copy.search.moduleHeadline}</p>
-            <RentasSearchBar
-              query={query}
-              onQuery={setQuery}
-              propertyType={propertyType}
-              onPropertyType={setPropertyType}
-              priceBand={priceBand}
-              onPriceBand={setPriceBand}
-              beds={beds}
-              onBeds={setBeds}
-              onSearch={applySearchAndRefine}
-              showModuleHeadline={false}
-              copy={copy.search}
-              priceOptions={copy.priceOptions}
-            />
-          </div>
-
-          <details className="pt-4">
-            <summary className="flex min-h-[42px] cursor-pointer list-none items-center justify-between rounded-xl border border-[#D4C4A8]/70 bg-[#FFFCF7] px-3 text-sm font-bold text-[#1E1810] [&::-webkit-details-marker]:hidden">
-              <span>{lang === "es" ? "Filtros" : "Filters"}</span>
-              <span className="text-[#5B7C99]" aria-hidden>▾</span>
-            </summary>
-          <div className="pt-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.results.filterRefine}</p>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <label className="min-w-0">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.cityLabel}</span>
-                <input
-                  value={cityDraft}
-                  onChange={(e) => setCityDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  autoComplete="address-level2"
-                />
-              </label>
-              <label className="min-w-0">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.zipLabel}</span>
-                <input
-                  value={zipDraft}
-                  onChange={(e) => setZipDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  autoComplete="postal-code"
-                />
-              </label>
-              <label className="min-w-0">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.bathsMinLabel}</span>
-                <select
-                  value={bathsMinDraft}
-                  onChange={(e) => setBathsMinDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                >
-                  <option value="">{copy.results.bathsAny}</option>
-                  <option value="1">1+</option>
-                  <option value="2">2+</option>
-                  <option value="3">3+</option>
-                </select>
-              </label>
-              <label className="min-w-0">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.halfBathsMinLabel}</span>
-                <select
-                  value={halfBathsMinDraft}
-                  onChange={(e) => setHalfBathsMinDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                >
-                  <option value="">{copy.results.bathsAny}</option>
-                  <option value="1">1+</option>
-                  <option value="2">2+</option>
-                  <option value="3">3+</option>
-                </select>
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.rentMinLabel}</span>
-                <input
-                  value={rentMinDraft}
-                  onChange={(e) => setRentMinDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="0"
-                />
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.rentMaxLabel}</span>
-                <input
-                  value={rentMaxDraft}
-                  onChange={(e) => setRentMaxDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="—"
-                />
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.depositMinLabel}</span>
-                <input
-                  value={depositMinDraft}
-                  onChange={(e) => setDepositMinDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="0"
-                />
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.depositMaxLabel}</span>
-                <input
-                  value={depositMaxDraft}
-                  onChange={(e) => setDepositMaxDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="—"
-                />
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.leaseLabel}</span>
-                <select
-                  value={leaseDraft}
-                  onChange={(e) => setLeaseDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                >
-                  <option value="">{copy.results.leaseAny}</option>
-                  <option value="mes-a-mes">mes-a-mes</option>
-                  <option value="6-meses">6-meses</option>
-                  <option value="12-meses">12-meses</option>
-                  <option value="1-ano">1-ano</option>
-                  <option value="2-anos">2-anos</option>
-                </select>
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
-                  {lang === "es" ? "Estado del anuncio" : "Listing status"}
-                </span>
-                <select
-                  value={estadoDraft}
-                  onChange={(e) => setEstadoDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                >
-                  <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
-                  <option value="disponible">{lang === "es" ? "Disponible" : "Available"}</option>
-                  <option value="pendiente">{lang === "es" ? "Pendiente" : "Pending"}</option>
-                  <option value="bajo_contrato">{lang === "es" ? "Bajo contrato" : "Under contract"}</option>
-                  <option value="rentado">{lang === "es" ? "Rentado" : "Rented"}</option>
-                </select>
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.parkingMinLabel}</span>
-                <input
-                  value={parkingMinDraft}
-                  onChange={(e) => setParkingMinDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="0"
-                />
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.sqftMinLabel}</span>
-                <input
-                  value={sqftMinDraft}
-                  onChange={(e) => setSqftMinDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="0"
-                />
-              </label>
-              <label className="min-w-0 sm:col-span-2 xl:col-span-1">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.sqftMaxLabel}</span>
-                <input
-                  value={sqftMaxDraft}
-                  onChange={(e) => setSqftMaxDraft(e.target.value)}
-                  inputMode="numeric"
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="—"
-                />
-              </label>
-            </div>
-
-            <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.results.filterAmenities}</p>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <button
-                type="button"
-                aria-pressed={amuebladoDraft}
-                onClick={() => setAmuebladoDraft((v) => !v)}
-                className={
-                  "inline-flex min-h-[48px] w-full items-center justify-center rounded-full border px-5 text-sm font-semibold transition sm:w-auto " +
-                  (amuebladoDraft
-                    ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7] shadow-[0_6px_18px_-8px_rgba(196,92,38,0.45)]"
-                    : "border-[#C9D4E0]/85 bg-white text-[#3D3630] hover:border-[#5B7C99]/35")
-                }
-              >
-                {copy.results.furnishedToggle}
-              </button>
-              <button
-                type="button"
-                aria-pressed={mascotasDraft}
-                onClick={() => setMascotasDraft((v) => !v)}
-                className={
-                  "inline-flex min-h-[48px] w-full items-center justify-center rounded-full border px-5 text-sm font-semibold transition sm:w-auto " +
-                  (mascotasDraft
-                    ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7] shadow-[0_6px_18px_-8px_rgba(196,92,38,0.45)]"
-                    : "border-[#C9D4E0]/85 bg-white text-[#3D3630] hover:border-[#5B7C99]/35")
-                }
-              >
-                {copy.results.petsToggle}
-              </button>
-            </div>
-
-            <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.results.highlightsHelp}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {RENTAS_HIGHLIGHT_FACET_DEFS.map((d) => {
-                const k = normalizeRentasBrowseHighlightToken(d.key);
-                const on = highlightKeysDraft.includes(k);
-                return (
-                  <button
-                    key={d.key}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => {
-                      setHighlightKeysDraft((prev) => {
-                        const set = new Set(prev.map((x) => normalizeRentasBrowseHighlightToken(x)).filter(Boolean));
-                        if (set.has(k)) set.delete(k);
-                        else set.add(k);
-                        return [...set].sort();
-                      });
-                    }}
-                    className={
-                      "inline-flex min-h-[40px] items-center rounded-full border px-3 text-xs font-semibold transition " +
-                      (on
-                        ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7]"
-                        : "border-[#C9D4E0]/85 bg-white text-[#3D3630] hover:border-[#5B7C99]/35")
-                    }
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-              <button
-                type="button"
-                aria-pressed={poolDraft}
-                onClick={() => setPoolDraft((v) => !v)}
-                className={
-                  "inline-flex min-h-[48px] w-full items-center justify-center rounded-full border px-5 text-sm font-semibold transition sm:w-auto " +
-                  (poolDraft
-                    ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7]"
-                    : "border-[#C9D4E0]/85 bg-white text-[#3D3630] hover:border-[#5B7C99]/35")
-                }
-              >
-                {copy.results.poolToggle}
-              </button>
-              <label className="min-w-0 flex-1 sm:max-w-[12rem]">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.kindLabel}</span>
-                <select
-                  value={kindDraft}
-                  onChange={(e) => setKindDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                >
-                  <option value="">{copy.results.kindAny}</option>
-                  <option value="casa">casa</option>
-                  <option value="departamento">departamento</option>
-                  <option value="terreno">terreno</option>
-                  <option value="comercial">comercial</option>
-                </select>
-              </label>
-              <label className="min-w-0 flex-1 sm:max-w-[16rem]">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">{copy.results.subtypeLabel}</span>
-                <input
-                  value={subtypeDraft}
-                  onChange={(e) => setSubtypeDraft(e.target.value)}
-                  className="min-h-[48px] w-full rounded-xl border border-[#D4CBC0] bg-white px-3 py-2 text-sm text-[#1E1810] outline-none focus:border-[#5B7C99]/45 focus:ring-2 focus:ring-[#5B7C99]/18"
-                  placeholder="casa · apartamento · oficina"
-                  autoComplete="off"
-                />
-              </label>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-4 border-t border-[#E8DFD0]/80 pt-5 sm:flex-row sm:items-end sm:justify-between">
-              <button
-                type="button"
-                onClick={applySearchAndRefine}
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border-2 border-[#C45C26]/40 bg-[#C45C26] px-6 text-sm font-semibold text-[#FFFBF7] shadow-[0_8px_22px_-10px_rgba(196,92,38,0.5)] transition hover:border-[#C45C26]/55 sm:w-auto sm:min-w-[12rem]"
-              >
-                {copy.results.applyFilters}
-              </button>
-              <div className="min-w-0 sm:max-w-md sm:flex-1">
-                <RentasLocationButton
-                  lang={lang}
-                  copy={{
-                    geoSearchDisabledTitle: copy.results.geoSearchDisabledTitle,
-                    geoSearchDisabledBody: copy.results.geoSearchDisabledBody,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-          </details>
-        </div>
+        <RentasCompactSearchCanvas
+          lang={lang}
+          query={query}
+          city={cityDraft}
+          zip={zipDraft}
+          onQuery={setQuery}
+          onCity={setCityDraft}
+          onZip={setZipDraft}
+          onSearch={applySearchAndRefine}
+          onOpenFilters={() => setFiltersOpen(true)}
+          searchButtonLabel={searchLabel}
+          filtersButtonLabel={filtersLabel}
+        />
 
         <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} />
 
         <RentasPropiedadFilterChips active={propiedadFilter} lang={lang} copy={copy} queryString={resultsQueryString} />
-        <div className="mt-5 flex flex-wrap gap-2">
-          <span className="w-full text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">
-            {copy.results.branchLabel}
-          </span>
+
+        <div className="flex flex-wrap gap-2">
           {(
             [
               { id: "all" as const, label: copy.results.branchAll },
@@ -728,10 +380,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                 href={href}
                 scroll={false}
                 className={
-                  "inline-flex min-h-[44px] items-center rounded-full border px-4 py-2 text-xs font-semibold transition sm:min-h-0 sm:text-sm " +
+                  "inline-flex h-[30px] items-center rounded-md border px-2.5 text-[11px] font-semibold transition sm:text-xs " +
                   (isOn
-                    ? "border-[#C45C26]/45 bg-[#C45C26] text-[#FFFBF7] shadow-[0_6px_18px_-8px_rgba(196,92,38,0.5)]"
-                    : "border-[#C9D4E0]/85 bg-gradient-to-b from-[#FBFCFE] to-[#F4F7FA] text-[#3D3630] hover:border-[#5B7C99]/35")
+                    ? "border-[#7A1E2C]/50 bg-[#7A1E2C] text-[#FFFDF7]"
+                    : "border-[#C9A84A]/45 bg-[#FBF7EF] text-[#3D3428] hover:border-[#C9A84A]/70")
                 }
               >
                 {opt.label}
@@ -739,6 +391,8 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             );
           })}
         </div>
+
+        <CategoryVisibilityCta lang={lang} category="rentas" surface="results" compact />
       </div>
 
       <RentasResultsToolbar
@@ -753,20 +407,8 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         onView={setView}
       />
 
-      {safePage === 1 && featuredListing ? (
-        <section className="mt-6" aria-labelledby="rentas-feat-heading">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[#E4D9C8]/80 pb-3">
-            <h2 id="rentas-feat-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
-              {copy.featured.title}
-            </h2>
-            {propiedadFilter ? <p className="text-xs text-[#5C5346]/75">{propiedadLabel}</p> : null}
-          </div>
-          <RentasResultCard listing={{ ...featuredListing, layout: "horizontal" }} copy={copy} lang={lang} />
-        </section>
-      ) : null}
-
-      <section className="mt-8 border-t border-[#E8DFD0]/90 pt-6" aria-labelledby="rentas-grid-heading">
-        <h2 id="rentas-grid-heading" className="font-serif text-xl font-semibold tracking-tight text-[#1E1810] sm:text-2xl">
+      <section className="mt-4" aria-labelledby="rentas-grid-heading">
+        <h2 id="rentas-grid-heading" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">
           {copy.results.moreRentals}
         </h2>
         {displayedListings.length === 0 ? (
@@ -783,7 +425,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             ))}
           </div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {displayedListings.map((l) => (
               <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
@@ -808,12 +450,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                     return `${RENTAS_RESULTS}?${sp.toString()}`;
                   })()}
                   scroll={false}
-                  className="inline-flex min-h-[44px] items-center rounded-full border border-[#C9D4E0]/85 bg-white px-5 text-sm font-semibold text-[#1E1810] hover:border-[#5B7C99]/35"
+                  className="inline-flex min-h-[2.625rem] items-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-4 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF] disabled:opacity-40"
                 >
                   {copy.results.paginationPrev}
                 </Link>
               ) : (
-                <span className="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-full border border-[#E8DFD0] px-5 text-sm font-semibold text-[#A89888]">
+                <span className="inline-flex min-h-[2.625rem] cursor-not-allowed items-center rounded-lg border border-[#E8DFD0] px-4 text-sm font-semibold text-[#A89888]">
                   {copy.results.paginationPrev}
                 </span>
               )}
@@ -826,12 +468,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                     return `${RENTAS_RESULTS}?${sp.toString()}`;
                   })()}
                   scroll={false}
-                  className="inline-flex min-h-[44px] items-center rounded-full border border-[#C45C26]/40 bg-[#C45C26] px-5 text-sm font-semibold text-[#FFFBF7] shadow-sm hover:border-[#C45C26]/55"
+                  className={`${RENTAS_BTN_PRIMARY} px-4 disabled:opacity-40`}
                 >
                   {copy.results.paginationNext}
                 </Link>
               ) : (
-                <span className="inline-flex min-h-[44px] cursor-not-allowed items-center rounded-full border border-[#E8DFD0] px-5 text-sm font-semibold text-[#A89888]">
+                <span className="inline-flex min-h-[2.625rem] cursor-not-allowed items-center rounded-lg border border-[#E8DFD0] px-4 text-sm font-semibold text-[#A89888]">
                   {copy.results.paginationNext}
                 </span>
               )}
@@ -841,10 +483,65 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       </section>
 
       <footer className="mt-14 border-t border-[#D4C4A8]/50 pt-8 text-center text-sm text-[#4A4338]/88">
-        <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="font-semibold text-[#C45C26] underline decoration-[#C45C26]/35">
+        <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/35">
           {copy.results.backToHub}
         </Link>
       </footer>
+
+      <RentasFiltersDrawer
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onApply={applySearchAndRefine}
+        onClear={clearFilters}
+        lang={lang}
+        copy={copy}
+        variant="results"
+        propertyType={propertyType}
+        onPropertyType={setPropertyType}
+        priceBand={priceBand}
+        onPriceBand={setPriceBand}
+        beds={beds}
+        onBeds={setBeds}
+        cityDraft={cityDraft}
+        onCityDraft={setCityDraft}
+        zipDraft={zipDraft}
+        onZipDraft={setZipDraft}
+        bathsMinDraft={bathsMinDraft}
+        onBathsMinDraft={setBathsMinDraft}
+        halfBathsMinDraft={halfBathsMinDraft}
+        onHalfBathsMinDraft={setHalfBathsMinDraft}
+        rentMinDraft={rentMinDraft}
+        onRentMinDraft={setRentMinDraft}
+        rentMaxDraft={rentMaxDraft}
+        onRentMaxDraft={setRentMaxDraft}
+        depositMinDraft={depositMinDraft}
+        onDepositMinDraft={setDepositMinDraft}
+        depositMaxDraft={depositMaxDraft}
+        onDepositMaxDraft={setDepositMaxDraft}
+        leaseDraft={leaseDraft}
+        onLeaseDraft={setLeaseDraft}
+        estadoDraft={estadoDraft}
+        onEstadoDraft={setEstadoDraft}
+        parkingMinDraft={parkingMinDraft}
+        onParkingMinDraft={setParkingMinDraft}
+        sqftMinDraft={sqftMinDraft}
+        onSqftMinDraft={setSqftMinDraft}
+        sqftMaxDraft={sqftMaxDraft}
+        onSqftMaxDraft={setSqftMaxDraft}
+        amuebladoDraft={amuebladoDraft}
+        onAmuebladoDraft={setAmuebladoDraft}
+        mascotasDraft={mascotasDraft}
+        onMascotasDraft={setMascotasDraft}
+        highlightKeysDraft={highlightKeysDraft}
+        onHighlightKeysDraft={setHighlightKeysDraft}
+        poolDraft={poolDraft}
+        onPoolDraft={setPoolDraft}
+        kindDraft={kindDraft}
+        onKindDraft={setKindDraft}
+        subtypeDraft={subtypeDraft}
+        onSubtypeDraft={setSubtypeDraft}
+        priceOptions={copy.priceOptions}
+      />
     </RentasResultsShell>
   );
 }

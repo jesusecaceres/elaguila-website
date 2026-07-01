@@ -9,6 +9,7 @@ import type {
   OfertaLocalPublicSearchItem,
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { OfertasLocalesFiltersDrawer } from "./OfertasLocalesFiltersDrawer";
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
@@ -16,19 +17,30 @@ import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPan
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 
-const INPUT =
-  "w-full min-h-[2.75rem] rounded-lg border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/20";
-const BTN =
-  "inline-flex min-h-[2.75rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-50";
-const BTN_OUTLINE =
-  "inline-flex min-h-[2.75rem] items-center justify-center rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/35 disabled:cursor-not-allowed disabled:opacity-50";
-const BTN_LIST_EMPTY =
-  "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-lg border border-[#D4C4A8]/90 bg-[#FAF6F0] px-2.5 py-2 text-xs font-medium text-[#1E1814]/75 hover:border-[#7A1E2C]/25";
-const BTN_LIST_ACTIVE =
-  "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-full border border-[#7A1E2C]/35 bg-white px-3 py-2 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#7A1E2C]/5";
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
+const BTN_PRIMARY =
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
+const BTN_SECONDARY =
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF] disabled:cursor-not-allowed disabled:opacity-50";
+const SEARCH_CANVAS =
+  "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
 
 function parseLang(raw: string | null): OfertasLocalesAppLang {
   return raw === "en" ? "en" : "es";
+}
+
+function TagIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M20 12l-8.5 8.5a2 2 0 01-2.83 0L3 14.5V4h10.5L20 12z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+    </svg>
+  );
 }
 
 export function OfertasLocalesPublicSearchClient() {
@@ -44,7 +56,7 @@ export function OfertasLocalesPublicSearchClient() {
   const [marketType, setMarketType] = useState(() => searchParams?.get("marketType") ?? "");
   const [offerType, setOfferType] = useState(() => searchParams?.get("offerType") ?? "");
   const [sort, setSort] = useState(() => searchParams?.get("sort") ?? "newest");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [offers, setOffers] = useState<OfertaLocalPublicOfferCard[]>([]);
   const [items, setItems] = useState<OfertaLocalPublicSearchItem[]>([]);
@@ -106,281 +118,188 @@ export function OfertasLocalesPublicSearchClient() {
     void loadResults();
   }, [loadResults]);
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [filtersOpen]);
+
+  const pushSearch = useCallback(
+    (overrides?: Partial<{
+      q: string;
+      city: string;
+      zip: string;
+      category: string;
+      marketType: string;
+      offerType: string;
+      sort: string;
+    }>) => {
+      const params = new URLSearchParams();
+      params.set("lang", lang);
+      const next = {
+        q: overrides?.q ?? q,
+        city: overrides?.city ?? city,
+        zip: overrides?.zip ?? zip,
+        category: overrides?.category ?? category,
+        marketType: overrides?.marketType ?? marketType,
+        offerType: overrides?.offerType ?? offerType,
+        sort: overrides?.sort ?? sort,
+      };
+      if (next.q.trim()) params.set("q", next.q.trim());
+      if (next.city.trim()) params.set("city", next.city.trim());
+      if (next.zip.trim()) params.set("zip", next.zip.trim());
+      if (next.category.trim()) params.set("category", next.category.trim());
+      if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
+      if (next.offerType.trim()) params.set("offerType", next.offerType.trim());
+      if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
+      router.push(`/clasificados/ofertas-locales?${params.toString()}`);
+    },
+    [router, lang, q, city, zip, category, marketType, offerType, sort]
+  );
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    params.set("lang", lang);
-    if (q.trim()) params.set("q", q.trim());
-    if (city.trim()) params.set("city", city.trim());
-    if (zip.trim()) params.set("zip", zip.trim());
-    if (category.trim()) params.set("category", category.trim());
-    if (marketType.trim()) params.set("marketType", marketType.trim());
-    if (offerType.trim()) params.set("offerType", offerType.trim());
-    if (sort && sort !== "newest") params.set("sort", sort);
-    router.push(`/clasificados/ofertas-locales?${params.toString()}`);
+    pushSearch();
   };
 
   const publishHref = `/publicar/ofertas-locales?lang=${lang}`;
   const hasFilters = Boolean(q || city || zip || category || marketType || offerType);
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
   const listHasItems = shoppingList.counts.itemCount > 0;
-  const mobileFiltersLabel = mobileFiltersOpen ? c.filtersToggleHide : c.filtersToggleShow;
+  const resultCount = offers.length + items.length;
+
+  const clearFilters = () => {
+    setFiltersOpen(false);
+    setCategory("");
+    setMarketType("");
+    setOfferType("");
+    setSort("newest");
+    router.push(`/clasificados/ofertas-locales?lang=${lang}`);
+  };
+
+  const applyDrawerFilters = () => {
+    setFiltersOpen(false);
+    pushSearch();
+  };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="mx-auto max-w-6xl px-4 pb-8 pt-14 sm:px-6 sm:pt-16 lg:px-8">
-        <header className="mb-4 sm:mb-6">
-          <h1 className="text-xl font-bold leading-tight text-[#1E1814] sm:text-3xl">{c.pageTitle}</h1>
-          <p className="mt-1 text-sm text-[#1E1814]/75 sm:mt-2 sm:text-base">{c.pageSubtitle}</p>
-          <p className="mt-1 text-sm text-[#1E1814]/60 sm:mt-2">{c.pageHeroBody}</p>
+    <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
+      <div className="mx-auto max-w-[1080px] px-3.5 pb-10 pt-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-4 lg:px-5">
+        <header className="mb-3 sm:mb-4">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
+              <TagIcon />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">
+                {lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}
+              </p>
+              <h1 className="font-serif text-[1.35rem] font-bold leading-tight text-[#2A4536] sm:text-[1.65rem]">
+                {c.pageTitle}
+              </h1>
+              <p className="mt-1 text-sm text-[#3D3428]/80">{c.pageSubtitle}</p>
+            </div>
+          </div>
         </header>
 
-        <form
-          onSubmit={onSubmit}
-          className="mb-4 rounded-2xl border border-[#D4C4A8]/80 bg-white p-3 shadow-sm sm:mb-6 sm:p-5"
-        >
-          {/* Mobile primary action row */}
-          <div className="flex flex-wrap items-center gap-2 md:hidden">
-            <label className="min-w-0 flex-1">
-              <span className="sr-only">{c.mobileSearchLabel}</span>
+        <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap">
+          <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
+            {c.publishCta}
+          </Link>
+          {listHasItems ? (
+            <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
+              {c.listButton}
+              <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
+                {shoppingList.counts.itemCount}
+              </span>
+            </button>
+          ) : null}
+        </div>
+
+        <form onSubmit={onSubmit} className={SEARCH_CANVAS}>
+          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
+            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
+              <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3-3" strokeLinecap="round" />
+                </svg>
+              </span>
               <input
-                className={INPUT}
+                className="min-h-[2.625rem] min-w-0 flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={c.searchPlaceholder}
+                placeholder={c.searchPlaceholderCompact}
+                aria-label={c.mobileSearchLabel}
               />
             </label>
-            <button
-              type="button"
-              className={BTN_OUTLINE}
-              aria-expanded={mobileFiltersOpen}
-              aria-controls="ofertas-locales-mobile-filters"
-              onClick={() => setMobileFiltersOpen((open) => !open)}
-            >
-              {c.filtersButton}
-            </button>
-            <button
-              type="button"
-              className={listHasItems ? BTN_LIST_ACTIVE : BTN_LIST_EMPTY}
-              onClick={() => setListOpen(true)}
-            >
-              {c.listButton}
-              {listHasItems ? (
-                <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-white">
-                  {shoppingList.counts.itemCount}
-                </span>
-              ) : null}
-            </button>
-            <button type="submit" className={`${BTN} w-full sm:w-auto`} disabled={loading}>
-              {loading ? c.searching : c.searchButton}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="mt-2 text-xs font-medium text-[#7A1E2C] underline md:hidden"
-            aria-expanded={mobileFiltersOpen}
-            aria-controls="ofertas-locales-mobile-filters"
-            onClick={() => setMobileFiltersOpen((open) => !open)}
-          >
-            {mobileFiltersLabel}
-          </button>
-
-          {/* Mobile collapsible advanced filters */}
-          <div
-            id="ofertas-locales-mobile-filters"
-            className={`md:hidden ${mobileFiltersOpen ? "mt-3 block" : "hidden"}`}
-          >
-            <div className="grid gap-3 border-t border-[#D4C4A8]/50 pt-3">
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.cityLabel}</span>
-                <input
-                  className={INPUT}
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder={c.cityPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.zipLabel}</span>
-                <input
-                  className={INPUT}
-                  value={zip}
-                  onChange={(e) => setZip(e.target.value)}
-                  placeholder={c.zipPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.categoryLabel}</span>
-                <input
-                  className={INPUT}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder={c.categoryPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.marketTypeLabel}</span>
-                <input
-                  className={INPUT}
-                  value={marketType}
-                  onChange={(e) => setMarketType(e.target.value)}
-                  placeholder={c.marketTypePlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.offerTypeLabel}</span>
-                <input
-                  className={INPUT}
-                  value={offerType}
-                  onChange={(e) => setOfferType(e.target.value)}
-                  placeholder={c.offerTypePlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.sortLabel}</span>
-                <select className={INPUT} value={sort} onChange={(e) => setSort(e.target.value)}>
-                  <option value="newest">{c.sortNewest}</option>
-                  <option value="price_low">{c.sortPriceLow}</option>
-                  <option value="expiring_soon">{c.sortExpiringSoon}</option>
-                </select>
-              </label>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button type="submit" className={BTN} disabled={loading}>
-                {loading ? c.searching : c.searchButton}
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+              <input
+                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder={c.cityPlaceholder}
+                aria-label={c.cityLabel}
+              />
+            </label>
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+              <input
+                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                placeholder={c.zipPlaceholder}
+                aria-label={c.zipLabel}
+                inputMode="numeric"
+                maxLength={10}
+              />
+            </label>
+            <div className="flex gap-1.5 p-1.5 sm:col-span-3">
+              <button type="button" className={`${BTN_SECONDARY} flex-1`} onClick={() => setFiltersOpen(true)}>
+                {c.filtersButton}
               </button>
-              {!loading ? (
-                <p className="text-sm text-[#1E1814]/65">
-                  {c.resultsCount(offers.length + items.length)}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Desktop / tablet full filter grid */}
-          <div className="hidden md:block">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <label className="sm:col-span-2 lg:col-span-3">
-                <span className="sr-only">{c.pageTitle}</span>
-                <input
-                  className={INPUT}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder={c.searchPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.cityLabel}</span>
-                <input
-                  className={INPUT}
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder={c.cityPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.zipLabel}</span>
-                <input
-                  className={INPUT}
-                  value={zip}
-                  onChange={(e) => setZip(e.target.value)}
-                  placeholder={c.zipPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.categoryLabel}</span>
-                <input
-                  className={INPUT}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder={c.categoryPlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.marketTypeLabel}</span>
-                <input
-                  className={INPUT}
-                  value={marketType}
-                  onChange={(e) => setMarketType(e.target.value)}
-                  placeholder={c.marketTypePlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.offerTypeLabel}</span>
-                <input
-                  className={INPUT}
-                  value={offerType}
-                  onChange={(e) => setOfferType(e.target.value)}
-                  placeholder={c.offerTypePlaceholder}
-                />
-              </label>
-              <label>
-                <span className="mb-1 block text-xs font-medium text-[#1E1814]/70">{c.sortLabel}</span>
-                <select className={INPUT} value={sort} onChange={(e) => setSort(e.target.value)}>
-                  <option value="newest">{c.sortNewest}</option>
-                  <option value="price_low">{c.sortPriceLow}</option>
-                  <option value="expiring_soon">{c.sortExpiringSoon}</option>
-                </select>
-              </label>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button type="submit" className={BTN} disabled={loading}>
+              <button type="submit" className={`${BTN_PRIMARY} flex-[1.2]`} disabled={loading}>
                 {loading ? c.searching : c.searchButton}
-              </button>
-              {!loading ? (
-                <p className="text-sm text-[#1E1814]/65">
-                  {c.resultsCount(offers.length + items.length)}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                className={listHasItems ? BTN_LIST_ACTIVE : BTN_OUTLINE}
-                onClick={() => setListOpen(true)}
-              >
-                {c.listButton}
-                {listHasItems ? (
-                  <span className="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-white">
-                    {shoppingList.counts.itemCount}
-                  </span>
-                ) : null}
               </button>
             </div>
           </div>
         </form>
 
+        {!loading && resultCount > 0 ? (
+          <p className="mt-2 text-xs font-semibold text-[#556B3E]">{c.resultsCount(resultCount)}</p>
+        ) : null}
+
         {error ? (
-          <p className="mb-3 text-sm text-red-700" role="alert">
+          <p className="mt-3 text-sm text-red-700" role="alert">
             {error}
           </p>
         ) : null}
 
-        {loading ? <p className="text-sm text-[#1E1814]/65">{c.searching}</p> : null}
+        {loading ? <p className="mt-3 text-sm text-[#3D3428]/65">{c.searching}</p> : null}
 
         {!loading && showPipelineEmpty ? (
-          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-5 text-center sm:rounded-2xl sm:px-6 sm:py-8">
-            <p className="text-base font-semibold text-[#1E1814]">{c.pipelineEmptyTitle}</p>
-            <p className="mt-2 text-sm text-[#1E1814]/65">{c.pipelineEmptyBody}</p>
-            <Link
-              href={publishHref}
-              className="mt-4 inline-flex min-h-[2.75rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6a1926]"
-            >
+          <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
+            <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
+            <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
+            <Link href={publishHref} className={`${BTN_PRIMARY} mt-3 inline-flex`}>
               {c.publishCta}
             </Link>
           </div>
         ) : null}
 
         {!loading && !showPipelineEmpty && offers.length === 0 && items.length === 0 ? (
-          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-5 text-center sm:rounded-2xl sm:px-6 sm:py-8">
-            <p className="text-base font-semibold text-[#1E1814]">{c.emptyTitle}</p>
-            <p className="mt-2 text-sm text-[#1E1814]/65">{c.emptyHint}</p>
+          <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
+            <p className="text-sm font-semibold text-[#3D3428]">{c.emptyTitle}</p>
+            <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
           </div>
         ) : null}
 
         {!loading && offers.length > 0 ? (
-          <section className="mb-6 sm:mb-10">
-            <h2 className="mb-3 text-lg font-semibold text-[#1E1814] sm:mb-4">{c.offersSectionTitle}</h2>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="mt-4 sm:mt-5">
+            <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
               {offers.map((offer) => (
                 <li key={offer.id}>
                   <OfertasLocalesPublicOfferCard lang={lang} offer={offer} />
@@ -391,9 +310,9 @@ export function OfertasLocalesPublicSearchClient() {
         ) : null}
 
         {!loading && items.length > 0 ? (
-          <section>
-            <h2 className="mb-3 text-lg font-semibold text-[#1E1814] sm:mb-4">{c.itemsSectionTitle}</h2>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <section className="mt-5 sm:mt-6">
+            <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
               {items.map((item) => (
                 <li key={item.id}>
                   <OfertasLocalesPublicItemCard
@@ -412,14 +331,31 @@ export function OfertasLocalesPublicSearchClient() {
         ) : null}
 
         {!showPipelineEmpty ? (
-          <div className="mt-6 rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3 sm:mt-10 sm:py-4">
-            <p className="text-sm font-medium text-[#1E1814]">{c.publishCtaHint}</p>
-            <Link href={publishHref} className="mt-2 inline-block text-sm font-semibold text-[#7A1E2C] underline">
+          <div className="mt-5 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 sm:mt-6">
+            <p className="text-xs font-medium text-[#3D3428]">{c.publishCtaHint}</p>
+            <Link href={publishHref} className="mt-1 inline-block text-xs font-bold text-[#7A1E2C] underline">
               {c.publishCta}
             </Link>
           </div>
         ) : null}
       </div>
+
+      <OfertasLocalesFiltersDrawer
+        open={filtersOpen}
+        lang={lang}
+        c={c}
+        category={category}
+        marketType={marketType}
+        offerType={offerType}
+        sort={sort}
+        onCategoryChange={setCategory}
+        onMarketTypeChange={setMarketType}
+        onOfferTypeChange={setOfferType}
+        onSortChange={setSort}
+        onClose={() => setFiltersOpen(false)}
+        onApply={applyDrawerFilters}
+        onClear={clearFilters}
+      />
 
       {selectedItem ? (
         <OfertasLocalesPublicItemDetailDrawer

@@ -1,8 +1,10 @@
 # Magazine Visual Translation Proof
 
-Status: `MAGAZINE-VISUAL-TRANSLATION-PROOF1`
+Status: `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1`
 
 Provider backend status: `MAGAZINE-DEEPL-PT-REAL-SMOKE2` reached `STOP_HOLD_FOR_DEEPL_ENV`. The June 2026 Spanish source PDF exists and hashes locally to `8fa5ec5a9faa1c0cb689451b79477f60b2fc2e644048a9176bcc68d8be112986`. Portuguese (`pt`) remains the locked first document/visual smoke target, but the real DeepL smoke was not run because `DEEPL_AUTH_KEY` is still not present in the local Cursor environment.
+
+Platform registry status: `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added `public.magazine_visual_assets`, RLS public-read-only-for-approved-rows, platform TypeScript helpers, and `docs/magazine-translation-platform-runbook.md`. No translated visual edition is public yet.
 
 Leonix Media's digital and printed magazine is now the flagship multilingual product. Clasificados and Negocios Locales dynamic translation are postponed while magazine visual editions, HTML companions, QR bridge flows, and reusable advertiser assets move first.
 
@@ -51,6 +53,8 @@ DeepL and Google document translation must each be tested with one real magazine
 `MAGAZINE-DEEPL-PT-REAL-SMOKE1` checked for `DEEPL_AUTH_KEY` without printing its value and stopped before installing DeepL or calling any paid API. No translated PDF was produced, no proof manifest was written, and no public route or visual asset registry was changed.
 
 `MAGAZINE-DEEPL-PT-REAL-SMOKE2` rechecked `DEEPL_AUTH_KEY`, reran the source hash and Portuguese dry-run guards, and stopped again before dependency install or provider execution. No translated PDF was produced, no proof manifest was written, and no public route or visual asset registry was changed.
+
+`MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added the real platform registry (`public.magazine_visual_assets`), RLS, platform helpers (`magazineVisualAssetsPlatform.ts`, `getApprovedMagazineVisualAsset.ts`), honest fallback wiring in `languageAssets.ts`, and the operational runbook. No provider was called, no translated PDF was generated, no asset was QA-approved, and no translated visual edition is public.
 
 This gate must not:
 
@@ -130,7 +134,16 @@ Visual PDFs and rendered page images use asset-level caching, not word-level cac
 
 ## Asset Registry Helpers
 
-`app/lib/magazine/magazineVisualTranslationManifest.ts` now exposes a static registry and helper functions:
+**Database registry (platform):**
+
+- Table: `public.magazine_visual_assets` (migration `20260630140000`)
+- Helpers: `app/lib/magazine/magazineVisualAssetsPlatform.ts`
+- Server lookup: `app/lib/magazine/getApprovedMagazineVisualAsset.ts`
+- Runbook: `docs/magazine-translation-platform-runbook.md`
+
+**Static manifest (proof layer, not DB-backed):**
+
+`app/lib/magazine/magazineVisualTranslationManifest.ts` exposes a static registry and helper functions:
 
 - `getMagazineVisualAssetStatus(issueId, targetLocale, assetKind)`
 - `hasQaApprovedMagazineVisualAsset(issueId, targetLocale, assetKind)`
@@ -228,10 +241,11 @@ The private proof route at `/magazine/poc-view` may use mock data to show the fu
 
 ## Future Gates
 
+- `MAGAZINE-DEEPL-PT-REAL-SMOKE3`: real DeepL Portuguese document smoke when `DEEPL_AUTH_KEY` is available.
+- `MAGAZINE-VISUAL-ASSET-QA1`: manual QA workflow for first real provider output before registry approval.
+- `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1`: storage bucket, signed URLs, and reader wiring for approved assets.
 - `GOOGLE-TRANSLATION-PREFLIGHT-AND-SMOKE1`: verify Google env and cache read/write smoke when credentials are ready.
-- `MAGAZINE-DEEPL-PT-REAL-SMOKE2`: blocked on local Cursor `DEEPL_AUTH_KEY`; retry with one target language (`pt`) only after adding the env value outside chat.
 - `MAGAZINE-PROVIDER-SMOKE1`: compare one real magazine PDF through DeepL and Google document translation without public serving after backend smoke is ready.
 - `MAG-COMPANION-BODY-LANG1`: improve companion body copy for active public languages.
 - `QR-GUIDE-LONGFORM-LANG1`: polish QR translation instructions in all active public languages.
-- `MAGAZINE-ASSET-CACHE1`: static registry helpers added; future work must still add real storage/QA integration before serving translated assets.
 - `MAGAZINE-AD-ASSET-LIBRARY1`: add reusable advertiser ad asset tracking after product rules are approved.

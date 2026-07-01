@@ -1,7 +1,6 @@
 "use client";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { BienesRaicesMapToggle } from "../map/BienesRaicesMapToggle";
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 
 type Props = {
@@ -12,10 +11,11 @@ type Props = {
   onSort: (v: string) => void;
   view: "grid" | "list";
   onView: (v: "grid" | "list") => void;
-  mapOn: boolean;
-  onMapOn: (v: boolean) => void;
   copy: BrResultsCopy;
   lang: Lang;
+  showMapToggle?: boolean;
+  mapOn?: boolean;
+  onMapOn?: (v: boolean) => void;
 };
 
 function IconGrid({ className }: { className?: string }) {
@@ -48,44 +48,44 @@ export function BienesRaicesResultsHeader({
   onSort,
   view,
   onView,
-  mapOn,
-  onMapOn,
   copy,
   lang,
+  showMapToggle = false,
+  mapOn = false,
+  onMapOn,
 }: Props) {
   const loc = lang === "en" ? "en-US" : "es-MX";
   return (
-    <div className="mt-8 flex flex-col gap-4 rounded-[20px] border border-[#E8DFD0]/75 bg-[#FDFBF7]/90 px-4 py-4 shadow-[0_14px_44px_-28px_rgba(42,36,22,0.18)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <p className="text-sm text-[#5C5346]">
+    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-xs text-[#5C5346]">
         {copy.resultsCountLine}{" "}
-        <span className="font-semibold text-[#1E1810]">
+        <span className="font-semibold text-[#1F241C]">
           {showingFrom} – {showingTo}
         </span>{" "}
-        {copy.resultsCountOf} <span className="font-semibold text-[#1E1810]">{total.toLocaleString(loc)}</span>{" "}
+        {copy.resultsCountOf} <span className="font-semibold text-[#1F241C]">{total.toLocaleString(loc)}</span>{" "}
         {copy.resultsWord}
       </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex min-w-0 items-center gap-2 text-sm text-[#5C5346]">
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex min-w-0 items-center gap-2 text-xs text-[#5C5346]">
           <span className="sr-only">{copy.sortLabel}</span>
-          <span className="hidden sm:inline">{copy.sortLabel}</span>
           <select
             value={sort}
             onChange={(e) => onSort(e.target.value)}
-            className="max-w-[min(100vw-2rem,220px)] rounded-xl border border-[#E8DFD0]/90 bg-white/95 px-3 py-2 text-sm font-medium text-[#1E1810] shadow-sm outline-none focus:border-[#C9B46A]/65"
+            className="max-w-[min(100vw-2rem,200px)] rounded-lg border border-[#D6C7AD]/90 bg-white px-2 py-1.5 text-xs font-medium text-[#1F241C] outline-none focus:border-[#C9A84A]/65"
           >
             <option value="reciente">{copy.sortRecent}</option>
             <option value="precio_asc">{copy.sortPriceAsc}</option>
             <option value="precio_desc">{copy.sortPriceDesc}</option>
           </select>
         </label>
-        <div className="flex rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-1 shadow-inner">
+        <div className="flex rounded-lg border border-[#D6C7AD]/90 bg-[#FBF7EF] p-0.5">
           <button
             type="button"
             aria-pressed={view === "grid"}
             onClick={() => onView("grid")}
             className={
-              "rounded-lg p-2 transition " +
-              (view === "grid" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
+              "rounded-md p-1.5 transition " +
+              (view === "grid" ? "bg-white text-[#1F241C] shadow-sm" : "text-[#5C5346] hover:text-[#1F241C]")
             }
             aria-label={copy.viewGridAria}
           >
@@ -96,15 +96,24 @@ export function BienesRaicesResultsHeader({
             aria-pressed={view === "list"}
             onClick={() => onView("list")}
             className={
-              "rounded-lg p-2 transition " +
-              (view === "list" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
+              "rounded-md p-1.5 transition " +
+              (view === "list" ? "bg-white text-[#1F241C] shadow-sm" : "text-[#5C5346] hover:text-[#1F241C]")
             }
             aria-label={copy.viewListAria}
           >
             <IconList />
           </button>
         </div>
-        <BienesRaicesMapToggle active={mapOn} onChange={onMapOn} label={copy.mapToggle} />
+        {showMapToggle && onMapOn ? (
+          <button
+            type="button"
+            aria-pressed={mapOn}
+            onClick={() => onMapOn(!mapOn)}
+            className="rounded-lg border border-[#D6C7AD]/90 px-2 py-1 text-xs font-semibold text-[#3D3428]"
+          >
+            {copy.mapToggle}
+          </button>
+        ) : null}
       </div>
     </div>
   );

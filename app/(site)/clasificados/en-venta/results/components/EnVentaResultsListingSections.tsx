@@ -58,7 +58,7 @@ export function EnVentaResultsListingSections({
 }) {
   const gridClass =
     view === "grid"
-      ? "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3"
+      ? "grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4"
       : "flex flex-col gap-2 sm:gap-2.5";
 
   return (

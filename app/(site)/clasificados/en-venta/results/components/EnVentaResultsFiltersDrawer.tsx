@@ -25,6 +25,7 @@ type DrawerCopy = {
   featuredMode: string;
   useLocation: string;
   applyFilters: string;
+  clearFilters: string;
 };
 
 type Props = {
@@ -50,6 +51,7 @@ type Props = {
   geoHint: string | null;
   onClose: () => void;
   onApply: () => void;
+  onClear: () => void;
   onUseMyLocation: () => void;
 };
 
@@ -76,6 +78,7 @@ export function EnVentaResultsFiltersDrawer({
   geoHint,
   onClose,
   onApply,
+  onClear,
   onUseMyLocation,
 }: Props) {
   if (!open) return null;
@@ -90,16 +93,16 @@ export function EnVentaResultsFiltersDrawer({
       />
       <div
         className={
-          "fixed z-[61] flex flex-col overflow-hidden border border-[#D6C7AD] bg-[#FFFCF7] shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] " +
-          "inset-x-0 bottom-0 top-[10vh] rounded-t-[20px] max-lg:top-[8vh] " +
-          "lg:inset-x-auto lg:left-1/2 lg:top-[12vh] lg:max-h-[min(80vh,720px)] lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-2xl"
+          "fixed z-[61] flex flex-col overflow-hidden border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] " +
+          "inset-x-0 bottom-0 top-[12vh] rounded-t-2xl max-lg:max-h-[88vh] " +
+          "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[400px] lg:rounded-none lg:rounded-l-2xl"
         }
         role="dialog"
         aria-modal="true"
         aria-labelledby="enventa-results-filters-title"
       >
         <div className="flex items-center justify-between border-b border-[#E8DFD0]/80 px-4 py-3">
-          <h2 id="enventa-results-filters-title" className="text-sm font-bold text-[#1E1810]">
+          <h2 id="enventa-results-filters-title" className="font-serif text-sm font-bold text-[#2A4536]">
             {t.filters}
           </h2>
           <button
@@ -238,17 +241,24 @@ export function EnVentaResultsFiltersDrawer({
             <button
               type="button"
               onClick={onUseMyLocation}
-              className="rounded-full border border-[#D4E0EA] bg-[#F5F8FB] px-3 py-2 text-xs font-semibold text-[#2F4A65] hover:bg-[#E8EEF3]"
+              className="rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 py-2 text-xs font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
             >
               {t.useLocation}
             </button>
             {geoHint ? <span className="text-xs text-[#8B4513]">{geoHint}</span> : null}
           </div>
         </div>
-        <div className="border-t border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        <div className="flex gap-2 border-t border-[#D6C7AD]/60 bg-[#FFFDF7] p-4">
           <button
             type="button"
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-6 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
+            onClick={onClear}
+            className="inline-flex min-h-[2.625rem] flex-1 items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
+          >
+            {t.clearFilters}
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-h-[2.625rem] flex-[1.2] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45"
             onClick={onApply}
           >
             {t.applyFilters}

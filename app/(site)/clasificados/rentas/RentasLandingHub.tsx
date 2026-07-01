@@ -5,31 +5,21 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiHeart, FiHome, FiLayers, FiMap, FiUsers } from "react-icons/fi";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import { RentasSearchBar } from "@/app/clasificados/rentas/components/RentasSearchBar";
-import { rentasLandingFeaturedListing } from "@/app/clasificados/rentas/data/rentasLandingSampleData";
-import {
-  selectRentasLandingDestacadas,
-  selectRentasLandingNegocios,
-  selectRentasLandingPrivado,
-  selectRentasLandingRecientes,
-} from "@/app/clasificados/rentas/data/rentasSectionSelectors";
+import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/RentasCompactSearchCanvas";
+import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
+import { selectRentasLandingRecientes } from "@/app/clasificados/rentas/data/rentasSectionSelectors";
 import { useRentasLandingLang } from "@/app/(site)/clasificados/rentas/hooks/useRentasLandingLang";
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasLandingCard } from "@/app/clasificados/rentas/landing/RentasLandingCard";
-import { RentasLandingFeatured } from "@/app/clasificados/rentas/landing/RentasLandingFeatured";
 import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
-import { CategoryStandardQuickFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardQuickFilterChips";
 import {
   categoryStandardDescription,
-  categoryStandardSearchPlaceholder,
   categoryStandardTitle,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { RentasLandingQuickChips } from "@/app/clasificados/rentas/landing/RentasLandingQuickChips";
-import { RentasLandingSectionBand } from "@/app/clasificados/rentas/landing/RentasLandingSectionBand";
 import { RentasLandingShell } from "@/app/clasificados/rentas/landing/RentasLandingShell";
-import { RentasLandingTrustFooter } from "@/app/clasificados/rentas/landing/RentasLandingTrustFooter";
 import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_BRANCH,
@@ -41,11 +31,10 @@ import {
   RENTAS_QUERY_TIPO,
   RENTAS_QUERY_ZIP,
 } from "@/app/clasificados/rentas/shared/rentasResultsQueryKeys";
-import { splitLocationIntent } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import { RENTAS_PUBLICAR_PRIVADO, RENTAS_RESULTS } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 import { withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
-import { rentasLandingHeroPanelClass, rentasSectionHeaderActionClass } from "@/app/clasificados/rentas/rentasLandingTheme";
+import { rentasSectionHeaderActionClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
 export type RentasLandingHubProps = {
   initialLiveListings: RentasPublicListing[];
@@ -56,10 +45,14 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
   const router = useRouter();
   const { lang, routeLang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");
-  const [locationLine, setLocationLine] = useState("");
+  const [city, setCity] = useState("");
+  const [zip, setZip] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
+  const [amuebladoDraft, setAmuebladoDraft] = useState(false);
+  const [mascotasDraft, setMascotasDraft] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const runSearch = useCallback(() => {
     const extra: Record<string, string | undefined> = {};
@@ -67,12 +60,21 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
     if (propertyType) extra[RENTAS_QUERY_TIPO] = propertyType;
     if (priceBand) extra[RENTAS_QUERY_PRECIO] = priceBand;
     if (beds) extra[RENTAS_QUERY_RECS] = beds;
-    const loc = splitLocationIntent(locationLine);
-    if (loc.city) extra[RENTAS_QUERY_CITY] = loc.city;
-    if (loc.zip) extra[RENTAS_QUERY_ZIP] = loc.zip;
+    if (city.trim()) extra[RENTAS_QUERY_CITY] = city.trim();
+    if (zip.trim()) extra[RENTAS_QUERY_ZIP] = zip.trim();
+    if (amuebladoDraft) extra[RENTAS_QUERY_AMUEBLADO] = "1";
+    if (mascotasDraft) extra[RENTAS_QUERY_MASCOTAS] = "1";
     extra.lang = routeLang;
     router.push(buildRentasResultsUrl(extra));
-  }, [beds, routeLang, locationLine, priceBand, propertyType, query, router]);
+  }, [amuebladoDraft, beds, city, mascotasDraft, priceBand, propertyType, query, routeLang, router, zip]);
+
+  const clearLandingFilters = useCallback(() => {
+    setPropertyType("");
+    setPriceBand("");
+    setBeds("");
+    setAmuebladoDraft(false);
+    setMascotasDraft(false);
+  }, []);
 
   const { mergedPool, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } = useRentasPublicBrowseInventory({
     initialLiveListings,
@@ -80,17 +82,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
     includeDemoPool,
   });
 
-  const destacadas = useMemo(() => selectRentasLandingDestacadas(mergedPool), [mergedPool]);
-  const recientes = useMemo(() => selectRentasLandingRecientes(mergedPool), [mergedPool]);
-  const negocios = useMemo(() => selectRentasLandingNegocios(mergedPool), [mergedPool]);
-  const privadoRows = useMemo(() => selectRentasLandingPrivado(mergedPool), [mergedPool]);
-
-  const primaryFeatured = useMemo(() => {
-    if (destacadas[0]) return destacadas[0];
-    if (includeDemoPool) return rentasLandingFeaturedListing;
-    return null;
-  }, [destacadas, includeDemoPool]);
-  const supportingListing = useMemo(() => privadoRows[0] ?? null, [privadoRows]);
+  const recientes = useMemo(() => selectRentasLandingRecientes(mergedPool).slice(0, 6), [mergedPool]);
 
   const { chipsProperty, chipsSeller, chipsDetails } = useMemo(() => {
     const b = (extra: Record<string, string>) => buildRentasResultsUrl({ ...extra, lang: routeLang });
@@ -114,22 +106,26 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
   }, [copy.quickExplore, routeLang]);
 
   const resultsBase = useMemo(() => withRentasLandingLang(RENTAS_RESULTS, routeLang), [routeLang]);
-
-  const destacadasDescription = useMemo(() => {
-    if (includeDemoPool) return copy.sections.destacadas.description;
-    return lang === "es"
-      ? "Anuncios con mayor visibilidad: ventana de visibilidad destacada activa, plan promocional en datos, o señales orgánicas elegibles — sin pagar por un ranking oculto fuera del producto."
-      : "Higher-visibility listings: an active featured-visibility window, a promotional plan in data, or eligible organic signals — no hidden pay-to-rank outside the product.";
-  }, [copy.sections.destacadas.description, includeDemoPool, lang]);
-
-  const recientesDescription = useMemo(() => {
-    if (includeDemoPool) return copy.sections.recientes.description;
-    return lang === "es"
-      ? "Orden por fecha de publicación, alternando particulares y negocios para equilibrio en portada."
-      : "Ordered by publish time, interleaving private and business listings for a balanced homepage.";
-  }, [copy.sections.recientes.description, includeDemoPool, lang]);
-
   const publishHref = withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang);
+
+  const catalogLine = useMemo(() => {
+    if (inventoryLoading) return lang === "es" ? "Cargando inventario…" : "Loading inventory…";
+    if (inventoryError) return lang === "es" ? "Inventario no disponible" : "Inventory unavailable";
+    if (includeDemoPool && stagedFromDb.length > 0) {
+      return lang === "es"
+        ? `Demo: ${stagedFromDb.length} en vivo + ejemplos`
+        : `Demo: ${stagedFromDb.length} live + samples`;
+    }
+    if (stagedFromDb.length > 0) {
+      return lang === "es"
+        ? `${stagedFromDb.length} renta(s) publicada(s)`
+        : `${stagedFromDb.length} published rental(s)`;
+    }
+    return lang === "es" ? "Sin rentas publicadas aún" : "No published rentals yet";
+  }, [includeDemoPool, inventoryError, inventoryLoading, lang, stagedFromDb.length]);
+
+  const filtersLabel = lang === "es" ? "Filtros" : "Filters";
+  const searchLabel = lang === "es" ? "Buscar" : "Search";
 
   return (
     <RentasLandingShell>
@@ -139,151 +135,110 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         title={categoryStandardTitle("rentas", lang)}
         description={categoryStandardDescription("rentas", lang)}
         searchAction={buildCategoryResultsUrl("rentas", routeLang as "es" | "en")}
-        searchPlaceholder={categoryStandardSearchPlaceholder("rentas", lang)}
+        searchPlaceholder=""
         publishHref={publishHref}
         browseHref={resultsBase}
         publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
         browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
-        searchChips={<CategoryStandardQuickFilterChips category="rentas" lang={lang} />}
+        searchChips={null}
         searchSlot={
-          <div className="w-full min-w-0">
-          {includeDemoPool ? (
-            stagedFromDb.length > 0 ? (
-              <p className="mb-3 rounded-xl border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-center text-xs font-medium text-amber-950 sm:text-left">
-                {lang === "es"
-                  ? `Modo demostración (solo no producción): ${stagedFromDb.length} anuncio(s) en vivo + ejemplos (RENTAS_INCLUDE_DEMO_POOL=1).`
-                  : `Non-production demo mode: ${stagedFromDb.length} live listing(s) plus samples (RENTAS_INCLUDE_DEMO_POOL=1).`}
-              </p>
-            ) : null
-          ) : stagedFromDb.length > 0 ? (
-            <p className="mb-3 rounded-xl border border-[#2C5F2D]/25 bg-[#F4FAF2]/95 px-3 py-2 text-center text-xs font-medium text-[#1E3D1F] sm:text-left">
-              {lang === "es"
-                ? `Catálogo en vivo: ${stagedFromDb.length} anuncio(s) publicado(s).`
-                : `Live catalog: ${stagedFromDb.length} published listing(s).`}
-            </p>
-          ) : (
-            <p className="mb-3 text-center text-xs text-[#5C5346] sm:text-left">
-              {lang === "es"
-                ? "Aún no hay rentas publicadas en catálogo. Empieza un anuncio de renta cuando estés listo."
-                : "No published rentals in the catalog yet. Start a rental listing when you are ready."}
-            </p>
-          )}
-          {inventoryError ? (
-            <p className="mb-3 text-center text-xs text-amber-900 sm:text-left" role="status">
-              {lang === "es" ? "Aviso: inventario publicado no disponible (" : "Note: published inventory unavailable ("}
-              {inventoryError}
-              {lang === "es" ? ")." : ")."}
-            </p>
-          ) : null}
-          {inventoryLoading ? (
-            <p className="mb-3 text-center text-[11px] text-[#5B7C99] sm:text-left">
-              {lang === "es" ? "Cargando inventario publicado…" : "Loading published inventory…"}
-            </p>
-          ) : null}
-          <RentasSearchBar
-            query={query}
-            onQuery={setQuery}
-            location={locationLine}
-            onLocation={setLocationLine}
-            propertyType={propertyType}
-            onPropertyType={setPropertyType}
-            priceBand={priceBand}
-            onPriceBand={setPriceBand}
-            beds={beds}
-            onBeds={setBeds}
-            onSearch={runSearch}
-            copy={copy.search}
-            priceOptions={copy.priceOptions}
-          />
-          <p className="mt-4 flex justify-center sm:justify-start">
-            <Link href={resultsBase} className={rentasSectionHeaderActionClass}>
-              {copy.searchHelperLink}
-            </Link>
-          </p>
+          <div className="w-full min-w-0 space-y-2">
+            <p className="text-[11px] font-medium text-[#556B3E]">{catalogLine}</p>
+            <RentasCompactSearchCanvas
+              lang={lang}
+              query={query}
+              city={city}
+              zip={zip}
+              onQuery={setQuery}
+              onCity={setCity}
+              onZip={setZip}
+              onSearch={runSearch}
+              onOpenFilters={() => setFiltersOpen(true)}
+              searchButtonLabel={searchLabel}
+              filtersButtonLabel={filtersLabel}
+            />
+            <RentasLandingQuickChips
+              copy={copy.quickExplore}
+              chipsProperty={chipsProperty}
+              chipsSeller={chipsSeller}
+              chipsDetails={chipsDetails}
+            />
           </div>
         }
       />
 
-      <RentasLandingQuickChips
-        copy={copy.quickExplore}
-        chipsProperty={chipsProperty}
-        chipsSeller={chipsSeller}
-        chipsDetails={chipsDetails}
-      />
-
-      {primaryFeatured ? (
-        <RentasLandingFeatured copy={copy} lang={lang} primary={primaryFeatured} supporting={supportingListing} />
+      {recientes.length > 0 ? (
+        <section className="mt-8" aria-labelledby="rentas-latest-heading">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="rentas-latest-heading" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">
+              {copy.sections.recientes.title}
+            </h2>
+            <Link href={resultsBase} className={rentasSectionHeaderActionClass}>
+              {copy.sections.recientes.action}
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recientes.map((l) => (
+              <RentasLandingCard key={`rec-${l.id}`} listing={l} copy={copy} lang={lang} />
+            ))}
+          </div>
+        </section>
       ) : null}
 
-      <RentasLandingSectionBand
-        id="rentas-landing-destacadas"
-        title={copy.sections.destacadas.title}
-        description={destacadasDescription}
-        action={
-          <Link href={resultsBase} className={rentasSectionHeaderActionClass}>
-            {copy.sections.destacadas.action}
-          </Link>
-        }
-      >
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-8">
-          {destacadas.map((l) => (
-            <RentasLandingCard key={l.id} listing={l} copy={copy} lang={lang} />
-          ))}
-        </div>
-      </RentasLandingSectionBand>
-
-      <RentasLandingSectionBand
-        id="rentas-landing-recientes"
-        title={copy.sections.recientes.title}
-        description={recientesDescription}
-        action={
-          <Link href={buildRentasResultsUrl({ lang: routeLang })} className={rentasSectionHeaderActionClass}>
-            {copy.sections.recientes.action}
-          </Link>
-        }
-      >
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-8">
-          {recientes.map((l) => (
-            <RentasLandingCard key={`rec-${l.id}`} listing={l} copy={copy} lang={lang} />
-          ))}
-        </div>
-      </RentasLandingSectionBand>
-
-      <RentasLandingSectionBand
-        id="rentas-landing-negocios"
-        title={copy.sections.negocios.title}
-        description={copy.sections.negocios.description}
-        action={
-          <Link href={buildRentasResultsUrl({ branch: "negocio", lang: routeLang })} className={rentasSectionHeaderActionClass}>
-            {copy.sections.negocios.action}
-          </Link>
-        }
-      >
-        <div className="grid grid-cols-1 gap-7 lg:grid-cols-2 lg:gap-8">
-          {negocios.map((l) => (
-            <RentasLandingCard key={`neg-${l.id}`} listing={l} layout="horizontal" copy={copy} lang={lang} />
-          ))}
-        </div>
-      </RentasLandingSectionBand>
-
-      <RentasLandingSectionBand
-        id="rentas-landing-privado"
-        title={copy.sections.privado.title}
-        description={copy.sections.privado.description}
-        action={
-          <Link href={buildRentasResultsUrl({ branch: "privado", lang: routeLang })} className={rentasSectionHeaderActionClass}>
-            {copy.sections.privado.action}
-          </Link>
-        }
-      >
-        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 sm:gap-8">
-          {privadoRows.map((l) => (
-            <RentasLandingCard key={`pv-${l.id}`} listing={l} layout="horizontal" copy={copy} lang={lang} />
-          ))}
-        </div>
-      </RentasLandingSectionBand>
-
-      <RentasLandingTrustFooter copy={copy} lang={lang} />
+      <RentasFiltersDrawer
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onApply={runSearch}
+        onClear={clearLandingFilters}
+        lang={lang}
+        copy={copy}
+        variant="landing"
+        propertyType={propertyType}
+        onPropertyType={setPropertyType}
+        priceBand={priceBand}
+        onPriceBand={setPriceBand}
+        beds={beds}
+        onBeds={setBeds}
+        cityDraft={city}
+        onCityDraft={setCity}
+        zipDraft={zip}
+        onZipDraft={setZip}
+        bathsMinDraft=""
+        onBathsMinDraft={() => {}}
+        halfBathsMinDraft=""
+        onHalfBathsMinDraft={() => {}}
+        rentMinDraft=""
+        onRentMinDraft={() => {}}
+        rentMaxDraft=""
+        onRentMaxDraft={() => {}}
+        depositMinDraft=""
+        onDepositMinDraft={() => {}}
+        depositMaxDraft=""
+        onDepositMaxDraft={() => {}}
+        leaseDraft=""
+        onLeaseDraft={() => {}}
+        estadoDraft=""
+        onEstadoDraft={() => {}}
+        parkingMinDraft=""
+        onParkingMinDraft={() => {}}
+        sqftMinDraft=""
+        onSqftMinDraft={() => {}}
+        sqftMaxDraft=""
+        onSqftMaxDraft={() => {}}
+        amuebladoDraft={amuebladoDraft}
+        onAmuebladoDraft={setAmuebladoDraft}
+        mascotasDraft={mascotasDraft}
+        onMascotasDraft={setMascotasDraft}
+        highlightKeysDraft={[]}
+        onHighlightKeysDraft={() => {}}
+        poolDraft={false}
+        onPoolDraft={() => {}}
+        kindDraft=""
+        onKindDraft={() => {}}
+        subtypeDraft=""
+        onSubtypeDraft={() => {}}
+        priceOptions={copy.priceOptions}
+      />
     </RentasLandingShell>
   );
 }

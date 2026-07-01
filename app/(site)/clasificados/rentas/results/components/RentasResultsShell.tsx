@@ -3,5 +3,5 @@ import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/comp
 
 /** Rentas results — listings-first shell (no scenic hero band). */
 export function RentasResultsShell({ children }: { children: ReactNode }) {
-  return <CategoryStandardResultsPageShell>{children}</CategoryStandardResultsPageShell>;
+  return <CategoryStandardResultsPageShell maxWidthClass="max-w-[1080px]">{children}</CategoryStandardResultsPageShell>;
 }
