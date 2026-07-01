@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
-import { FaChevronDown } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -31,18 +30,28 @@ import {
 } from "../lib/empleosResultsQuery";
 import { buildEmpleosResultadosUrl, type EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
 import {
-  EMPLEOS_CTA_PRIMARY,
   EMPLEOS_CTA_SECONDARY,
-  EMPLEOS_FIELD,
   EMPLEOS_LINK_MUTED,
-  EMPLEOS_RESULTS_FILTER_PANEL,
-  EMPLEOS_RESULTS_GROUP,
 } from "../lib/empleosPremiumUi";
 import { EMPLEOS_RESULTS_FEATURED_STRIP_MAX } from "../lib/empleosPublicRankingPolicy";
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
+import { CategoryStandardFiltersDrawerShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardFiltersDrawerShell";
 import { categoryStandardTitle } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import {
+  LEONIX_LB_DEFAULT_COUNTRY,
+  LEONIX_LB_DEFAULT_STATE,
+  US_STATE_OPTIONS,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
+  LX_LB_BTN_PRIMARY,
+  LX_LB_BTN_SECONDARY,
+  LX_LB_SEARCH_CANVAS,
+  LX_LB_SEARCH_CELL,
+  LX_LB_SEARCH_INPUT,
+} from "@/app/(site)/clasificados/shared/components/LeonixLocalBusinessCompactSearchCanvas";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
+import { EmpleosBrowseDrawerFields, type EmpleosDrawerValues } from "./EmpleosBrowseDrawerFields";
 
 const COPY = {
   es: {
@@ -54,36 +63,36 @@ const COPY = {
     clear: "Limpiar filtros",
     sortLabel: "Ordenar lista por",
     sortRelevance: "Relevancia",
-    sortDate: "MÃ¡s recientes",
+    sortDate: "Más recientes",
     sortSalary: "Salario mayor",
     sortHint: "Se aplica a los resultados ya filtrados.",
     activeFilters: "Filtros activos",
-    emptyTitle: "No encontramos vacantes con esta combinaciÃ³n",
-    emptyHint: "AmplÃ­a ciudad o palabra clave, o restablece filtros para volver a explorar.",
-    emptySupport: "No es un error tuyo: los listados viven de tus filtros. Prueba una acciÃ³n de abajo o vuelve al inicio de Empleos.",
+    emptyTitle: "No encontramos vacantes con esta combinación",
+    emptyHint: "Amplía ciudad o palabra clave, o restablece filtros para volver a explorar.",
+    emptySupport: "No es un error tuyo: los listados viven de tus filtros. Prueba una acción de abajo o vuelve al inicio de Empleos.",
     emptyExplore: "Volver a Empleos",
     keywordHint: "Escribe y pulsa Buscar, o Enter, para aplicar la palabra clave.",
-    fieldBlurHint: "Ciudad y CP se actualizan al salir del campo.",
-    listIntroRecent: "Solo publicaciones de los Ãºltimos 7 dÃ­as, en orden cronolÃ³gico.",
+    fieldBlurHint: "Ciudad y ZIP se actualizan al salir del campo.",
+    listIntroRecent: "Solo publicaciones de los últimos 7 días, en orden cronológico.",
     featuredBlock: "Destacados y promocionados",
     allBlock: "Todas las vacantes",
-    formAria: "Filtros de bÃºsqueda de empleos",
+    formAria: "Filtros de búsqueda de empleos",
     rememberPrefs: "Recordar ciudad y estado en este dispositivo",
-    filtersToggle: "MÃ¡s filtros y seÃ±ales de confianza",
+    filtersToggle: "Filtros",
     clearAll: "Restablecer todo",
-    locationGroup: "UbicaciÃ³n",
-    roleGroup: "Puesto y categorÃ­a",
+    locationGroup: "Ubicación",
+    roleGroup: "Puesto y categoría",
     conditionsGroup: "Condiciones",
-    featuredIntro: "Mayor visibilidad dentro de tu bÃºsqueda â€” el listado completo sigue debajo.",
+    featuredIntro: "Mayor visibilidad dentro de tu búsqueda — el listado completo sigue debajo.",
     listIntro: "Coincidencias con tus filtros; cambia el orden sin perder criterios.",
-    emptyRecoveryTitle: "Recupera resultados rÃ¡pido",
+    emptyRecoveryTitle: "Recupera resultados rápido",
     recoverDropQ: "Quitar palabra clave",
-    recoverDropZip: "Quitar cÃ³digo postal",
+    recoverDropZip: "Quitar código postal",
     recoverDropCity: "Quitar ciudad",
-    recoverBroaderCA: "Ampliar ubicaciÃ³n",
-    recoverRecent: "Ãšltimos 7 dÃ­as (todos los filtros)",
-    exploreMore: "Explora tambiÃ©n",
-    lowResultsHint: "Pocas coincidencias â€” abre una categorÃ­a cercana:",
+    recoverBroaderCA: "Ampliar ubicación",
+    recoverRecent: "Últimos 7 días (todos los filtros)",
+    exploreMore: "Explora también",
+    lowResultsHint: "Pocas coincidencias — abre una categoría cercana:",
   },
   en: {
     hub: "Classifieds",
@@ -114,7 +123,7 @@ const COPY = {
     locationGroup: "Location",
     roleGroup: "Role & category",
     conditionsGroup: "Conditions",
-    featuredIntro: "Higher visibility within your search â€” the full list still follows.",
+    featuredIntro: "Higher visibility within your search — the full list still follows.",
     listIntro: "Matches for your filters; change sort without losing criteria.",
     emptyRecoveryTitle: "Get results back quickly",
     recoverDropQ: "Remove keyword",
@@ -123,7 +132,7 @@ const COPY = {
     recoverBroaderCA: "Broaden location",
     recoverRecent: "Last 7 days (keep other filters)",
     exploreMore: "Explore more",
-    lowResultsHint: "Few matches â€” try a nearby category:",
+    lowResultsHint: "Few matches — try a nearby category:",
   },
 } as const;
 
@@ -139,6 +148,7 @@ const CHIP_KEYS: (keyof EmpleosResultadosParams)[] = [
   "city",
   "state",
   "zip",
+  "country",
   "category",
   "jobType",
   "modality",
@@ -161,6 +171,7 @@ type EmpleosFormFields = {
   city: string;
   stateCode: string;
   zipInput: string;
+  country: string;
   category: string;
   jobType: string;
   modality: string;
@@ -185,6 +196,7 @@ function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): Empleos
     city: f.city.trim() || undefined,
     state: f.stateCode.trim() || undefined,
     zip: z || undefined,
+    country: f.country.trim() || undefined,
     category: f.category || undefined,
     jobType: f.jobType || undefined,
     modality: f.modality || undefined,
@@ -205,7 +217,7 @@ function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): Empleos
 }
 
 function sortChipLabel(lang: Lang, sort: EmpleosSortKey): string {
-  if (sort === "date_desc") return lang === "es" ? "Orden: mÃ¡s recientes" : "Sort: newest first";
+  if (sort === "date_desc") return lang === "es" ? "Orden: más recientes" : "Sort: newest first";
   if (sort === "salary_desc") return lang === "es" ? "Orden: salario mayor" : "Sort: highest salary";
   return lang === "es" ? "Orden: relevancia" : "Sort: relevance";
 }
@@ -243,49 +255,11 @@ function chipLabel(lang: Lang, key: string, val: string): string {
     const o = sampleUsStateSelectOptions.find((x) => x.value === val);
     return lang === "es" ? `Estado: ${o?.labelEs ?? val}` : `State: ${o?.labelEn ?? val}`;
   }
-  if (key === "zip") return lang === "es" ? `CÃ³digo postal: ${val}` : `Postal code: ${val}`;
+  if (key === "zip") return lang === "es" ? `Código postal: ${val}` : `Postal code: ${val}`;
+  if (key === "country") return lang === "es" ? `País: ${val}` : `Country: ${val}`;
   if (key === "verified" && val === "1") return lang === "es" ? "Solo verificados" : "Verified only";
   if (key === "industry" && val) return lang === "es" ? `Industria: ${val}` : `Industry: ${val}`;
   return `${key}: ${val}`;
-}
-
-function EmpleosFilterToggles({
-  lang,
-  featured,
-  recent,
-  verifiedBox,
-  onFeaturedChange,
-  onRecentChange,
-  onVerifiedChange,
-}: {
-  lang: Lang;
-  featured: boolean;
-  recent: boolean;
-  verifiedBox: boolean;
-  onFeaturedChange: (v: boolean) => void;
-  onRecentChange: (v: boolean) => void;
-  onVerifiedChange: (v: boolean) => void;
-}) {
-  const cb =
-    "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-sm font-medium text-[#2A2826] transition hover:border-[#E8DFD0]/80";
-  const cbOn =
-    "border-[#E8DFD0]/90 bg-[#FFF8EC]/90 ring-1 ring-[#D9A23A]/20 hover:border-[#D9A23A]/35";
-  return (
-    <>
-      <label className={`${cb} ${featured ? cbOn : ""}`}>
-        <input type="checkbox" checked={featured} onChange={(e) => onFeaturedChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Solo destacados / promocionados" : "Featured / promoted only"}
-      </label>
-      <label className={`${cb} ${recent ? cbOn : ""}`}>
-        <input type="checkbox" checked={recent} onChange={(e) => onRecentChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Ãšltimos 7 dÃ­as" : "Last 7 days"}
-      </label>
-      <label className={`${cb} ${verifiedBox ? cbOn : ""}`}>
-        <input type="checkbox" checked={verifiedBox} onChange={(e) => onVerifiedChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Empleador verificado" : "Verified employer"}
-      </label>
-    </>
-  );
 }
 
 type EmpleosResultsViewProps = {
@@ -358,8 +332,9 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   );
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
-  const [stateCode, setStateCode] = useState(parsed.state);
+  const [stateCode, setStateCode] = useState(parsed.state || LEONIX_LB_DEFAULT_STATE);
   const [zipInput, setZipInput] = useState(parsed.zip);
+  const [country, setCountry] = useState(parsed.country || LEONIX_LB_DEFAULT_COUNTRY);
   const [category, setCategory] = useState(parsed.category);
   const [jobType, setJobType] = useState(parsed.jobType);
   const [modality, setModality] = useState(parsed.modality);
@@ -385,8 +360,9 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   useEffect(() => {
     setQ(parsed.q);
     setCity(parsed.city);
-    setStateCode(parsed.state);
+    setStateCode(parsed.state || LEONIX_LB_DEFAULT_STATE);
     setZipInput(parsed.zip);
+    setCountry(parsed.country || LEONIX_LB_DEFAULT_COUNTRY);
     setCategory(parsed.category);
     setJobType(parsed.jobType);
     setModality(parsed.modality);
@@ -411,6 +387,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     city,
     stateCode,
     zipInput,
+    country,
     category,
     jobType,
     modality,
@@ -537,195 +514,159 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
         </div>
 
       <main className="mx-auto max-w-[1080px] px-3.5 sm:px-4 lg:px-5">
-        <form aria-label={t.formAria} onSubmit={submitSearch} className="mt-3 overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]">
-          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
+        <form aria-label={t.formAria} onSubmit={submitSearch} className={LX_LB_SEARCH_CANVAS}>
+          <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
+            <label className={`${LX_LB_SEARCH_CELL} sm:col-span-4`}>
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder={lang === "es" ? "Palabra clave, puesto o empresaâ€¦" : "Keyword, job, or companyâ€¦"}
+                placeholder={lang === "es" ? "Palabra clave, puesto o empresa…" : "Keyword, job, or company…"}
                 aria-label={lang === "es" ? "Palabra clave" : "Keyword"}
-                className="min-h-[2.625rem] min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                className={`${LX_LB_SEARCH_INPUT} px-3`}
               />
             </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+            <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
               <input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 onBlur={onCityZipBlur}
                 placeholder={lang === "es" ? "Ciudad" : "City"}
                 aria-label={lang === "es" ? "Ciudad" : "City"}
-                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                className={LX_LB_SEARCH_INPUT}
                 autoComplete="address-level2"
               />
             </label>
-            <label className="hidden min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:flex sm:col-span-1 sm:border-b-0 sm:border-r">
-              <input
+            <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
+              <select
                 value={stateCode}
                 onChange={(e) => setStateCode(e.target.value)}
-                placeholder={lang === "es" ? "Estado" : "State"}
                 aria-label={lang === "es" ? "Estado" : "State"}
-                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
-                autoComplete="address-level1"
-                maxLength={2}
-              />
+                className={`${LX_LB_SEARCH_INPUT} appearance-none`}
+              >
+                {US_STATE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.code}
+                  </option>
+                ))}
+              </select>
             </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+            <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
               <input
                 value={zipInput}
                 onChange={(e) => setZipInput(e.target.value)}
                 onBlur={onCityZipBlur}
-                placeholder={lang === "es" ? "ZIP" : "ZIP"}
-                aria-label={lang === "es" ? "CÃ³digo postal" : "ZIP code"}
-                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                placeholder="ZIP"
+                aria-label={lang === "es" ? "Código postal" : "ZIP code"}
+                className={LX_LB_SEARCH_INPUT}
                 autoComplete="postal-code"
                 inputMode="numeric"
               />
             </label>
-            <div className="flex gap-1.5 p-1.5 sm:col-span-2">
-              <button
-                type="button"
-                onClick={() => setFiltersDrawerOpen(true)}
-                className={`${EMPLEOS_CTA_SECONDARY} flex-1`}
-              >
-                {lang === "es" ? "Filtros" : "Filters"}
-              </button>
-              <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} flex-[1.2]`}>
+            <div className="hidden p-1.5 sm:col-span-2 sm:block">
+              <button type="submit" className={`${LX_LB_BTN_PRIMARY} w-full`}>
                 {t.search}
               </button>
             </div>
           </div>
-        </form>
-
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="inline-flex min-w-0 items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.sortLabel}</span>
-            <select
-              value={parsed.sort}
-              onChange={(e) => onSortChange(e.target.value)}
-              className="min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]"
-            >
-              <option value="relevance">{t.sortRelevance}</option>
-              <option value="date_desc">{t.sortDate}</option>
-              <option value="salary_desc">{t.sortSalary}</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
-            className={EMPLEOS_CTA_SECONDARY}
-          >
-            {t.clearAll}
-          </button>
-        </div>
-
-        {filtersDrawerOpen ? (
-          <>
+          <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-center">
+            <label className={`${LX_LB_SEARCH_CELL} order-1 border-b-0 sm:order-none sm:col-span-3 sm:border-r-0`}>
+              <input
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder={lang === "es" ? "País" : "Country"}
+                aria-label={lang === "es" ? "País" : "Country"}
+                className={LX_LB_SEARCH_INPUT}
+                autoComplete="country-name"
+              />
+            </label>
+            <div className="order-2 flex flex-wrap items-center gap-1.5 sm:order-none sm:col-span-4">
+              <button type="button" onClick={() => setFiltersDrawerOpen(true)} className={`${LX_LB_BTN_SECONDARY} min-w-[5rem]`}>
+                {lang === "es" ? "Filtros" : "Filters"}
+              </button>
+              <label className="inline-flex min-w-0 items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.sortLabel}</span>
+                <select
+                  value={parsed.sort}
+                  onChange={(e) => onSortChange(e.target.value)}
+                  className="min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]"
+                >
+                  <option value="relevance">{t.sortRelevance}</option>
+                  <option value="date_desc">{t.sortDate}</option>
+                  <option value="salary_desc">{t.sortSalary}</option>
+                </select>
+              </label>
+            </div>
             <button
               type="button"
-              className="fixed inset-0 z-[70] bg-black/40"
-              aria-label={lang === "es" ? "Cerrar" : "Close"}
-              onClick={() => setFiltersDrawerOpen(false)}
-            />
-            <div
-              className={
-                "fixed z-[71] flex flex-col overflow-hidden border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-xl " +
-                "inset-x-0 bottom-0 top-[12vh] rounded-t-2xl max-lg:max-h-[88vh] " +
-                "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[420px] lg:rounded-none lg:rounded-l-2xl"
-              }
-              role="dialog"
-              aria-modal="true"
+              onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
+              className={`${LX_LB_BTN_SECONDARY} order-4 hidden sm:order-none sm:col-span-2 sm:inline-flex`}
             >
-              <div className="flex items-center justify-between border-b border-[#D6C7AD]/60 px-4 py-3">
-                <h2 className="font-serif text-base font-bold text-[#2A4536]">
-                  {lang === "es" ? "Filtros" : "Filters"}
-                </h2>
-                <button
-                  type="button"
-                  className="rounded-lg border border-[#C9A84A]/45 px-3 py-1 text-xs font-semibold"
-                  onClick={() => setFiltersDrawerOpen(false)}
-                >
-                  {lang === "es" ? "Cerrar" : "Close"}
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-4">
-                <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "Estado" : "State"}
-                  <input value={stateCode} onChange={(e) => setStateCode(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`} maxLength={2} />
-                </label>
-                <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "CategorÃ­a" : "Category"}
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
-                    {sampleCategorySelectOptions.map((o) => (
-                      <option key={o.value || "all"} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "Tipo de empleo" : "Employment type"}
-                  <select value={jobType} onChange={(e) => setJobType(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
-                    {sampleJobTypeSelectOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "Modalidad" : "Modality"}
-                  <select value={modality} onChange={(e) => setModality(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
-                    {sampleModalityOptions.map((o) => (
-                      <option key={o.value || "all"} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "Salario (rango)" : "Salary band"}
-                  <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
-                    {sampleSalaryBandOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-xs font-semibold text-[#3D3428]">
-                  {lang === "es" ? "Experiencia" : "Experience"}
-                  <select value={experience} onChange={(e) => setExperience(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
-                    {sampleExperienceOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="flex gap-2 border-t border-[#D6C7AD]/60 p-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFiltersDrawerOpen(false);
-                    router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }));
-                  }}
-                  className={`${EMPLEOS_CTA_SECONDARY} flex-1`}
-                >
-                  {t.clearAll}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFiltersDrawerOpen(false);
-                    pushFromFields({
-                      stateCode,
-                      category,
-                      jobType,
-                      modality,
-                      salaryBand,
-                      experience,
-                    });
-                  }}
-                  className={`${EMPLEOS_CTA_PRIMARY} flex-[1.2]`}
-                >
-                  {lang === "es" ? "Aplicar" : "Apply"}
-                </button>
-              </div>
-            </div>
-          </>
-        ) : null}
+              {t.clearAll}
+            </button>
+            <button type="submit" className={`${LX_LB_BTN_PRIMARY} order-3 w-full sm:hidden`}>
+              {t.search}
+            </button>
+          </div>
+        </form>
+
+        <CategoryStandardFiltersDrawerShell
+          open={filtersDrawerOpen}
+          onClose={() => setFiltersDrawerOpen(false)}
+          onApply={() => {
+            setFiltersDrawerOpen(false);
+            pushFromFields({
+              stateCode,
+              category,
+              jobType,
+              modality,
+              salaryBand,
+              experience,
+              companyType,
+              recent,
+              featured,
+              verifiedBox,
+              bilingual: bilingualBox,
+              quickApply,
+            });
+          }}
+          onClear={() => {
+            setFiltersDrawerOpen(false);
+            router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }));
+          }}
+          lang={lang}
+        >
+          <EmpleosBrowseDrawerFields
+            lang={lang}
+            values={{
+              stateCode,
+              category,
+              jobType,
+              modality,
+              salaryBand,
+              experience,
+              companyType,
+              recent,
+              featured,
+              verifiedBox,
+              bilingual: bilingualBox,
+              quickApply,
+            }}
+            onChange={(key, value) => {
+              if (key === "stateCode") setStateCode(String(value));
+              else if (key === "category") setCategory(String(value));
+              else if (key === "jobType") setJobType(String(value));
+              else if (key === "modality") setModality(String(value));
+              else if (key === "salaryBand") setSalaryBand(String(value));
+              else if (key === "experience") setExperience(String(value));
+              else if (key === "companyType") setCompanyType(String(value));
+              else if (key === "recent") setRecent(Boolean(value));
+              else if (key === "featured") setFeatured(Boolean(value));
+              else if (key === "verifiedBox") setVerifiedBox(Boolean(value));
+              else if (key === "bilingual") setBilingualBox(Boolean(value));
+              else if (key === "quickApply") setQuickApply(Boolean(value));
+            }}
+          />
+        </CategoryStandardFiltersDrawerShell>
 
         {activeChips.length > 0 ? (
           <div className="mt-8">
@@ -748,7 +689,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 >
                   {c.label}
                   <span className="text-[#9A948C]" aria-hidden>
-                    Ã—
+                    ×
                   </span>
                 </Link>
               ))}

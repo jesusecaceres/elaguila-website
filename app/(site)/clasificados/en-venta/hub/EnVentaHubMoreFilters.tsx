@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
-import { enVentaConditionFilterOptions } from "../filters/enVentaFilterGroups";
+import { enVentaConditionFilterOptions, EN_VENTA_SORT_OPTIONS } from "../filters/enVentaFilterGroups";
+import { US_STATE_OPTIONS } from "../shared/constants/enVentaLocationContract";
 import { EV_BTN_SECONDARY } from "../shared/styles/enVentaLeonixPublicUi";
 
 type Lang = "es" | "en";
@@ -14,7 +15,9 @@ const COPY = {
     close: "Cerrar",
     apply: "Aplicar filtros",
     clear: "Limpiar filtros",
-    dept: "Categoría",
+    dept: "Departamento",
+    sub: "Subcategoría",
+    itemType: "Tipo de artículo",
     cond: "Condición",
     priceMin: "Precio mín.",
     priceMax: "Precio máx.",
@@ -22,8 +25,8 @@ const COPY = {
     sellerAny: "Cualquiera",
     sellerInd: "Particular",
     sellerBiz: "Negocio",
-    pickup: "Recogida",
-    ship: "Envío",
+    pickup: "Recogida local",
+    ship: "Envío disponible",
     delivery: "Entrega local",
     meetup: "Encuentro",
     free: "Gratis / regalo",
@@ -31,12 +34,17 @@ const COPY = {
     any: "Todas",
     groupLocation: "Ubicación",
     city: "Ciudad",
+    state: "Estado",
     zip: "ZIP",
-    locationHelp:
-      "Estado, condado y país no se guardan en anuncios Varios todavía; ciudad y ZIP sí filtran cuando existen.",
+    country: "País",
     groupCategory: "Categoría",
     groupPrice: "Precio",
-    groupDetails: "Detalles",
+    groupCondition: "Condición",
+    groupSeller: "Vendedor y entrega",
+    groupMedia: "Medios",
+    hasPhoto: "Con foto",
+    hasVideo: "Con video",
+    sort: "Ordenar",
   },
   en: {
     open: "Filters",
@@ -44,7 +52,9 @@ const COPY = {
     close: "Close",
     apply: "Apply filters",
     clear: "Clear filters",
-    dept: "Category",
+    dept: "Department",
+    sub: "Subcategory",
+    itemType: "Item type",
     cond: "Condition",
     priceMin: "Min price",
     priceMax: "Max price",
@@ -52,8 +62,8 @@ const COPY = {
     sellerAny: "Any",
     sellerInd: "Individual",
     sellerBiz: "Business",
-    pickup: "Pickup",
-    ship: "Shipping",
+    pickup: "Local pickup",
+    ship: "Shipping available",
     delivery: "Local delivery",
     meetup: "Meetup",
     free: "Free / gift",
@@ -61,12 +71,17 @@ const COPY = {
     any: "All",
     groupLocation: "Location",
     city: "City",
+    state: "State",
     zip: "ZIP",
-    locationHelp:
-      "State, county, and country are not stored on Varios listings yet; city and ZIP filter when present.",
+    country: "Country",
     groupCategory: "Category",
     groupPrice: "Price",
-    groupDetails: "Details",
+    groupCondition: "Condition",
+    groupSeller: "Seller & fulfillment",
+    groupMedia: "Media",
+    hasPhoto: "Has photo",
+    hasVideo: "Has video",
+    sort: "Sort",
   },
 } as const;
 
@@ -140,23 +155,45 @@ export function EnVentaHubMoreFilters({ lang, routeLang }: Props) {
               </button>
             </div>
 
-            <form
-              action="/clasificados/en-venta/results"
-              method="get"
-              className="flex min-h-0 flex-1 flex-col"
-            >
+            <form action="/clasificados/en-venta/results" method="get" className="flex min-h-0 flex-1 flex-col">
               <input type="hidden" name="lang" value={routeLang} />
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupLocation}</p>
-                <p className="mt-1 text-[11px] text-[#3D3428]/70">{t.locationHelp}</p>
                 <div className="mt-3 grid grid-cols-2 gap-3">
-                  <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-1">
+                  <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
                     {t.city}
                     <input name="city" type="text" className={fieldClass} autoComplete="address-level2" />
                   </label>
-                  <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-1">
+                  <label className="block text-xs font-semibold text-[#3D3428]">
+                    {t.state}
+                    <select name="state" defaultValue="CA" className={fieldClass}>
+                      {US_STATE_OPTIONS.map((opt) => (
+                        <option key={opt.code} value={opt.code}>
+                          {opt.code}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-xs font-semibold text-[#3D3428]">
                     {t.zip}
-                    <input name="zip" type="text" inputMode="numeric" maxLength={5} className={fieldClass} autoComplete="postal-code" />
+                    <input
+                      name="zip"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      className={fieldClass}
+                      autoComplete="postal-code"
+                    />
+                  </label>
+                  <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
+                    {t.country}
+                    <input
+                      name="country"
+                      type="text"
+                      defaultValue="United States"
+                      className={fieldClass}
+                      autoComplete="country-name"
+                    />
                   </label>
                 </div>
 
@@ -167,18 +204,15 @@ export function EnVentaHubMoreFilters({ lang, routeLang }: Props) {
                     <select name="evDept" className={fieldClass} defaultValue="">
                       <option value="">{t.any}</option>
                       {EN_VENTA_DEPARTMENTS.map((d) => (
-                        <option key={d.key} value={d.key}>{d.label[lang]}</option>
+                        <option key={d.key} value={d.key}>
+                          {d.label[lang]}
+                        </option>
                       ))}
                     </select>
                   </label>
                   <label className="block text-xs font-semibold text-[#3D3428]">
-                    {t.cond}
-                    <select name="cond" className={fieldClass} defaultValue="">
-                      <option value="">{t.any}</option>
-                      {condOptions.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
+                    {t.itemType}
+                    <input name="itemType" type="text" className={fieldClass} />
                   </label>
                 </div>
 
@@ -194,7 +228,20 @@ export function EnVentaHubMoreFilters({ lang, routeLang }: Props) {
                   </label>
                 </div>
 
-                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupDetails}</p>
+                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupCondition}</p>
+                <label className="mt-3 block text-xs font-semibold text-[#3D3428]">
+                  {t.cond}
+                  <select name="cond" className={fieldClass} defaultValue="">
+                    <option value="">{t.any}</option>
+                    {condOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupSeller}</p>
                 <div className="mt-3 space-y-3">
                   <label className="block text-xs font-semibold text-[#3D3428]">
                     {t.seller}
@@ -220,10 +267,35 @@ export function EnVentaHubMoreFilters({ lang, routeLang }: Props) {
                     ))}
                   </fieldset>
                 </div>
+
+                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupMedia}</p>
+                <fieldset className="mt-3 flex flex-wrap gap-3 text-sm text-[#3D3428]">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" name="hasPhoto" value="1" className="rounded border-[#D6C7AD]" />
+                    {t.hasPhoto}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" name="hasVideo" value="1" className="rounded border-[#D6C7AD]" />
+                    {t.hasVideo}
+                  </label>
+                </fieldset>
+
+                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.sort}</p>
+                <select name="sort" defaultValue="newest" className={`${fieldClass} mt-3`}>
+                  {EN_VENTA_SORT_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label[lang]}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-2 border-t border-[#D6C7AD]/60 bg-[#FFFDF7] p-4">
-                <LinkClear href={`/clasificados/en-venta/results?lang=${routeLang}`} label={t.clear} onNavigate={() => setOpen(false)} />
+                <LinkClear
+                  href={`/clasificados/en-venta/results?lang=${routeLang}`}
+                  label={t.clear}
+                  onNavigate={() => setOpen(false)}
+                />
                 <button
                   type="submit"
                   className="inline-flex min-h-[2.625rem] flex-[1.2] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"

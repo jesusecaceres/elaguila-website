@@ -60,6 +60,10 @@ import { EnVentaEngagementRow } from "../shared/components/EnVentaEngagementRow"
 import { enVentaEngagementListingKey } from "../shared/styles/enVentaTypography";
 import { EN_VENTA_PLATFORM_RESPONSIBILITY } from "../moderation/enVentaPolicyCopy";
 import { enVentaPublicLabel } from "../shared/constants/enVentaPublicLabels";
+import {
+  formatEnVentaPublicLocationLine,
+  readEnVentaLocationFromRow,
+} from "../shared/constants/enVentaLocationContract";
 import { buildLeonixBusinessLiveDisplay, parseLeonixBusinessMetaForLive } from "@/app/clasificados/lib/leonixBusinessLiveDisplay";
 import { resolveLeonixLiveListingContact } from "@/app/clasificados/lib/leonixListingContactResolve";
 import {
@@ -393,9 +397,13 @@ export function EnVentaAnuncioLayout({
   );
 
   const evLocationLine = useMemo(() => {
-    const zip = String(listing.zip ?? "").trim();
-    return [listing.city, zip].filter(Boolean).join(zip && listing.city ? ", " : "");
-  }, [listing.city, listing.zip]);
+    const loc = readEnVentaLocationFromRow({
+      city: listing.city,
+      zip: listing.zip ?? null,
+      detail_pairs: listing.detailPairs,
+    });
+    return formatEnVentaPublicLocationLine(loc);
+  }, [listing.city, listing.zip, listing.detailPairs]);
 
   const evNegotiable = useMemo(() => {
     if (surface !== "en-venta") return false;

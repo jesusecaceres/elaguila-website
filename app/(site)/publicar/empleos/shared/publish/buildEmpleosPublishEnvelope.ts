@@ -11,7 +11,7 @@ import type {
   EmpleosQuickPublishSnapshot,
 } from "./empleosPublishSnapshots";
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
-import { syncLegacyPayField } from "../lib/empleosPayDisplay";
+import { syncLegacyPayField, syncPublishPayField } from "../lib/empleosPayDisplay";
 import { joinScheduleRowsForPublish } from "../lib/empleosScheduleDisplay";
 
 function joinQuickScheduleForPublish(d: EmpleosQuickDraft): string {
@@ -62,7 +62,7 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
       endTime: String(r.endTime ?? "").trim() || undefined,
       note: String(r.note ?? "").trim() || undefined,
     }));
-  const payComposed = syncLegacyPayField({
+  const payComposed = syncPublishPayField({
     pay: d.pay,
     payAmount: d.payAmount,
     payUnit: d.payUnit,

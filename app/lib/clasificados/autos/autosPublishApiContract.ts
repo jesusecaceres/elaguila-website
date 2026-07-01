@@ -10,6 +10,8 @@ export type AutosPublishApiErrorCode =
   | "INVALID_AUTOS_PAYLOAD"
   | "PAYLOAD_TOO_LARGE"
   | "HEAVY_MEDIA_DETECTED"
+  | "LOCAL_VIDEO_URL_REQUIRED"
+  | "PHOTO_UPLOAD_REQUIRED"
   | "DB_NOT_CONFIGURED"
   | "AUTOS_SUPABASE_INSERT_FAILED"
   | "AUTOS_SUPABASE_UPDATE_FAILED"
@@ -101,8 +103,18 @@ export function autosConfirmErrorMessage(
     case "HEAVY_MEDIA_DETECTED":
     case "heavy_media_detected":
       return es
-        ? "El borrador incluye archivos locales no publicables. Usa enlaces https para fotos y video antes de continuar."
-        : "The draft includes non-publishable local files. Use https links for photos and video before continuing.";
+        ? "Algunas fotos no se prepararon correctamente. Vuelve a intentar o elimina las fotos problemáticas."
+        : "Some photos were not prepared correctly. Try again or remove problematic photos.";
+    case "LOCAL_VIDEO_URL_REQUIRED":
+    case "local_video_url_required":
+      return es
+        ? "Los videos deben ser enlaces externos. Agrega un enlace de YouTube, TikTok, Facebook, Instagram o sitio web."
+        : "Videos must be external links. Add a YouTube, TikTok, Facebook, Instagram, or website video link.";
+    case "PHOTO_UPLOAD_REQUIRED":
+    case "photo_upload_required":
+      return es
+        ? "No pudimos preparar tus fotos. Inténtalo de nuevo o elimina las fotos que no se puedan subir."
+        : "We could not prepare your photos. Try again or remove photos that cannot be uploaded.";
     case "AUTOS_SUPABASE_INSERT_FAILED":
     case "AUTOS_SUPABASE_UPDATE_FAILED":
     case "create_failed":
@@ -126,6 +138,43 @@ export function autosConfirmErrorMessage(
     default:
       return fallbackMessage ?? (es ? "No pudimos preparar tu anuncio." : "We could not prepare your ad.");
   }
+}
+
+/** Server safety net: local/blob video refs that must never reach persistence. */
+export function detectAutosLocalVideoTransport(value: unknown, path = ""): string[] {
+  const out: string[] = [];
+  if (typeof value === "string") {
+    const t = value;
+    if (t.startsWith("data:video/") || /^data:application\/.*video/i.test(t)) {
+      out.push(`data_video_url:${path}`);
+    }
+    if (t.startsWith("blob:") && /video|blob:/i.test(path)) {
+      out.push(`blob_video_url:${path}`);
+    }
+    if (
+      t.startsWith("blob:") &&
+      (path.includes("videoUrl") || path.includes("videoUrls") || path.includes("videoFileDataUrl"))
+    ) {
+      out.push(`blob_video_url:${path}`);
+    }
+    return out;
+  }
+  if (Array.isArray(value)) {
+    const cap = Math.min(value.length, 120);
+    for (let i = 0; i < cap; i++) {
+      out.push(...detectAutosLocalVideoTransport(value[i], `${path}[${i}]`));
+    }
+    return out;
+  }
+  if (typeof value === "object" && value !== null) {
+    const keys = Object.keys(value as object);
+    const cap = Math.min(keys.length, 180);
+    for (let i = 0; i < cap; i++) {
+      const k = keys[i]!;
+      out.push(...detectAutosLocalVideoTransport((value as Record<string, unknown>)[k], path ? `${path}.${k}` : k));
+    }
+  }
+  return out;
 }
 
 /** Detect transport payloads that will hang or exceed serverless limits (Servicios-style). */

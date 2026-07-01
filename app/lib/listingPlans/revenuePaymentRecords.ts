@@ -115,3 +115,162 @@ export async function attachPromoRedemptionToPaymentRecord(input: {
     .eq("id", input.paymentRecordId);
   return !error;
 }
+
+export type LeonixPaymentRecordRow = {
+  id: string;
+  category: string;
+  package_key: string | null;
+  listing_id: string | null;
+  owner_user_id: string | null;
+  leonix_ad_id: string | null;
+  billing_mode: string | null;
+  placement_tier: string | null;
+  amount_cents: number | null;
+  amount_total_cents: number | null;
+  currency: string | null;
+  payment_status: string;
+  source: string | null;
+  promo_code_id: string | null;
+  promo_redemption_id: string | null;
+  package_entitlement_id: string | null;
+  placement_entitlement_id: string | null;
+  stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  paid_at: string | null;
+  canceled_at: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+const PAYMENT_RECORD_SELECT =
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, metadata";
+
+export async function loadPaymentRecordById(
+  paymentRecordId: string,
+): Promise<LeonixPaymentRecordRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_payment_records")
+    .select(PAYMENT_RECORD_SELECT)
+    .eq("id", paymentRecordId)
+    .maybeSingle();
+  return (data as LeonixPaymentRecordRow | null) ?? null;
+}
+
+export async function loadPaymentRecordByStripeSessionId(
+  stripeCheckoutSessionId: string,
+): Promise<LeonixPaymentRecordRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_payment_records")
+    .select(PAYMENT_RECORD_SELECT)
+    .eq("stripe_checkout_session_id", stripeCheckoutSessionId)
+    .maybeSingle();
+  return (data as LeonixPaymentRecordRow | null) ?? null;
+}
+
+export async function markPaymentRecordPaid(input: {
+  paymentRecordId: string;
+  stripePaymentIntentId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  amountPaidCents?: number | null;
+  webhookMeta: Record<string, unknown>;
+  existingMetadata?: Record<string, unknown> | null;
+}): Promise<{ ok: boolean; idempotent?: boolean; code?: string; message?: string }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
+  }
+
+  const row = await loadPaymentRecordById(input.paymentRecordId);
+  if (!row) {
+    return { ok: false, code: "payment_record_not_found", message: "Payment record not found." };
+  }
+
+  if (row.payment_status === "paid" || row.payment_status === "succeeded") {
+    return { ok: true, idempotent: true };
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("leonix_payment_records")
+    .update({
+      payment_status: "paid",
+      source: "stripe_webhook",
+      stripe_payment_intent_id: input.stripePaymentIntentId ?? row.stripe_payment_intent_id,
+      stripe_customer_id: input.stripeCustomerId ?? row.stripe_customer_id,
+      stripe_subscription_id: input.stripeSubscriptionId ?? row.stripe_subscription_id,
+      amount_paid_cents: input.amountPaidCents ?? row.amount_total_cents ?? row.amount_cents,
+      paid_at: now,
+      updated_at: now,
+      metadata: {
+        ...(row.metadata ?? {}),
+        ...(input.existingMetadata ?? {}),
+        ...input.webhookMeta,
+        gate: "STRIPE-REVENUE-OS-WEBHOOK-FULFILLMENT-01",
+      },
+    })
+    .eq("id", input.paymentRecordId)
+    .in("payment_status", ["pending", "unpaid", "requires_action"]);
+
+  if (error) {
+    return { ok: false, code: "payment_record_update_failed", message: error.message };
+  }
+
+  return { ok: true };
+}
+
+export async function markPaymentRecordExpiredOrCanceled(input: {
+  paymentRecordId: string;
+  webhookMeta: Record<string, unknown>;
+  existingMetadata?: Record<string, unknown> | null;
+}): Promise<{ ok: boolean; idempotent?: boolean; code?: string; message?: string }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
+  }
+
+  const row = await loadPaymentRecordById(input.paymentRecordId);
+  if (!row) {
+    return { ok: false, code: "payment_record_not_found", message: "Payment record not found." };
+  }
+
+  if (row.payment_status === "canceled" || row.payment_status === "failed") {
+    return { ok: true, idempotent: true };
+  }
+
+  if (row.payment_status === "paid" || row.payment_status === "succeeded") {
+    return {
+      ok: false,
+      code: "payment_already_paid",
+      message: "Cannot expire a paid payment record.",
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("leonix_payment_records")
+    .update({
+      payment_status: "canceled",
+      canceled_at: now,
+      updated_at: now,
+      metadata: {
+        ...(row.metadata ?? {}),
+        ...(input.existingMetadata ?? {}),
+        ...input.webhookMeta,
+        gate: "STRIPE-REVENUE-OS-WEBHOOK-FULFILLMENT-01",
+      },
+    })
+    .eq("id", input.paymentRecordId)
+    .eq("payment_status", "pending");
+
+  if (error) {
+    return { ok: false, code: "payment_record_update_failed", message: error.message };
+  }
+
+  return { ok: true };
+}

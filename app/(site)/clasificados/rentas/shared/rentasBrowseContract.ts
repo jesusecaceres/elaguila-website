@@ -55,6 +55,8 @@ export const RENTAS_QUERY_CITY = "city";
 export const RENTAS_QUERY_ZIP = "zip";
 /** State / entity (e.g. NL, Jal.) — optional until backend normalizes. */
 export const RENTAS_QUERY_STATE = "state";
+/** Country filter (URL + UI; stored on publish via `Leonix:country`). */
+export const RENTAS_QUERY_COUNTRY = "country";
 /** Minimum bathrooms (numeric string, demo filters `baths` string). */
 export const RENTAS_QUERY_BATHS_MIN = "baths_min";
 /** Minimum half-baths from `Leonix:rent:half_baths_count`. */
@@ -115,6 +117,7 @@ export type RentasBrowseParamsParsed = {
   city: string;
   zip: string;
   state: string;
+  country: string;
   bathsMin: number | null;
   halfBathsMin: number | null;
   sort: string;
@@ -202,6 +205,7 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     city: normalizeCityForBrowse(g(RENTAS_QUERY_CITY)),
     zip: normalizeZipForBrowse(g(RENTAS_QUERY_ZIP)),
     state: g(RENTAS_QUERY_STATE).trim(),
+    country: g(RENTAS_QUERY_COUNTRY).trim(),
     bathsMin: bathsRaw !== "" && Number.isFinite(Number(bathsRaw)) ? Number(bathsRaw) : null,
     halfBathsMin: halfBathsRaw !== "" && Number.isFinite(Number(halfBathsRaw)) ? Number(halfBathsRaw) : null,
     sort: g(RENTAS_QUERY_SORT) || "reciente",
@@ -253,6 +257,7 @@ export function rentasBrowseHasActiveFilters(p: RentasBrowseParamsParsed): boole
     p.city ||
     p.zip ||
     p.state ||
+    p.country ||
     p.bathsMin != null ||
     p.halfBathsMin != null ||
     p.highlightsAll.length > 0 ||

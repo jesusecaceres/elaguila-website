@@ -44,7 +44,11 @@ export type EnVentaFreeApplicationState = {
   primaryImageIndex: number;
   /** Trimmed city text; known CA cities may normalize to canonical names on blur. */
   city: string;
+  /** US state code (e.g. CA). Defaults to CA for new listings. */
+  state: string;
   zip: string;
+  /** Free-text country; defaults to United States. */
+  country: string;
   pickup: boolean;
   meetup: boolean;
   localDelivery: boolean;
@@ -110,7 +114,9 @@ export function createEmptyEnVentaFreeState(): EnVentaFreeApplicationState {
     images: [],
     primaryImageIndex: 0,
     city: "",
+    state: "CA",
     zip: "",
+    country: "United States",
     pickup: false,
     meetup: false,
     localDelivery: false,

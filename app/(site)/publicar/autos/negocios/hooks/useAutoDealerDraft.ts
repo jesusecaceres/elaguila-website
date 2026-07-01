@@ -367,10 +367,23 @@ export function useAutoDealerDraft() {
     setRestoredFromSession(false);
   }, []);
 
-  const flushDraft = useCallback(async (opts?: { editorStep?: number; editorMaxReached?: number }) => {
+  const flushDraft = useCallback(async (opts?: {
+    editorStep?: number;
+    editorMaxReached?: number;
+    listing?: AutoDealerListing;
+    additionalInventoryVehicles?: AutosAdditionalInventoryVehicleDraft[];
+  }) => {
     const ns = namespaceRef.current;
     if (!ns) return;
     rememberAutosDraftNamespaceHint("negocios", ns);
+    if (opts?.listing) {
+      listingRef.current = normalizeLoadedListing(opts.listing);
+      setListing(listingRef.current);
+    }
+    if (opts?.additionalInventoryVehicles) {
+      additionalInventoryRef.current = opts.additionalInventoryVehicles;
+      setAdditionalInventoryVehicles(opts.additionalInventoryVehicles);
+    }
     const merged = normalizeLoadedListing(listingRef.current);
     const withTitle = applyAutoTitle(merged, overrideRef.current);
     const normalized = normalizeLoadedListing(withTitle);

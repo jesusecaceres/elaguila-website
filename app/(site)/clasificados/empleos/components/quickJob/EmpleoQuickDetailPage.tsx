@@ -23,6 +23,7 @@ import { QuickJobLocationToast } from "./QuickJobLocationToast";
 import { QuickJobMoreJobsSection } from "./QuickJobMoreJobsSection";
 import { QuickJobScheduleCard } from "./QuickJobScheduleCard";
 import { EmpleosClasificadosEngagementRow } from "../EmpleosClasificadosEngagementRow";
+import { LeonixTrustFooter } from "@/app/(site)/clasificados/components/leonixShell/LeonixTrustFooter";
 import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 
 const COPY = {
@@ -94,9 +95,11 @@ type EngagementProps = {
 type Props = {
   data?: QuickJobDetailSample;
   withSiteChrome?: boolean;
+  hideResultsNav?: boolean;
   publicFooterSlot?: ReactNode;
   contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
   engagement?: EngagementProps | null;
+  leonixAdId?: string | null;
 };
 
 function ctaCardProps(
@@ -147,9 +150,11 @@ function ctaCardProps(
 export function EmpleoQuickDetailPage({
   data = EMPLEO_QUICK_JOB_SAMPLE,
   withSiteChrome = true,
+  hideResultsNav = false,
   publicFooterSlot = null,
   contactAnalyticsMeta,
   engagement = null,
+  leonixAdId = null,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -215,9 +220,11 @@ export function EmpleoQuickDetailPage({
             <Link href={empleosLandingHref} className="hover:underline">{t.breadcrumbCat}</Link>
           </nav>
           <div className="flex shrink-0 items-center gap-4">
-            <Link href={resultadosHref} className="hidden text-xs font-medium text-[#5C564E] hover:underline sm:inline">
-              ← {lang === "es" ? "Resultados" : "Results"}
-            </Link>
+            {!hideResultsNav ? (
+              <Link href={resultadosHref} className="hidden text-xs font-medium text-[#5C564E] hover:underline sm:inline">
+                ← {lang === "es" ? "Resultados" : "Results"}
+              </Link>
+            ) : null}
             <Link
               href={publicarHref}
               className="shrink-0 rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#8A6B1F] transition hover:bg-[#FBF7EF]"
@@ -344,6 +351,16 @@ export function EmpleoQuickDetailPage({
         ) : null}
 
         {publicFooterSlot ? <div className="mt-8">{publicFooterSlot}</div> : null}
+
+        <LeonixTrustFooter
+          lang={lang}
+          leonixAdId={leonixAdId ?? engagement?.leonixAdId}
+          verifyNote={
+            lang === "es"
+              ? "Verifica la oferta antes de aplicar."
+              : "Verify the offer before applying."
+          }
+        />
 
         {showRelated ? (
           <QuickJobMoreJobsSection title={t.masEmpleos} jobs={data.relatedJobs} ctaLabel={t.verMas} />

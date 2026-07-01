@@ -1,6 +1,6 @@
 /** Leonix public browse UI — Rentas landing + results only. */
 export const RENTAS_PUBLIC_SHELL =
-  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 sm:px-4 sm:pt-3 lg:px-5";
+  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-4 sm:pt-4 lg:px-5";
 
 export const RENTAS_SEARCH_CANVAS =
   "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";

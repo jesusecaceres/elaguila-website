@@ -17,6 +17,7 @@ export type ParsedEmpleosResultsQuery = {
   city: string;
   state: string;
   zip: string;
+  country: string;
   category: string;
   jobType: string;
   modality: string;
@@ -47,6 +48,7 @@ export function parseEmpleosResultsQuery(sp: URLSearchParams): ParsedEmpleosResu
     city: (sp.get("city") ?? "").trim(),
     state: (sp.get("state") ?? "").trim(),
     zip: (sp.get("zip") ?? "").trim(),
+    country: (sp.get("country") ?? "").trim(),
     category: (sp.get("category") ?? "").trim(),
     jobType: (sp.get("jobType") ?? "").trim(),
     modality: (sp.get("modality") ?? "").trim(),
@@ -85,6 +87,7 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
   const cityLower = p.city.toLowerCase();
   const stateLower = p.state.trim().toLowerCase();
   const postalNeedle = normalizePostalCode(p.zip);
+  const countryLower = p.country.toLowerCase();
   const laneLower = p.lane.toLowerCase();
   const industryLower = p.industry.toLowerCase();
 
@@ -111,6 +114,11 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
     if (postalNeedle) {
       const jobPostal = j.postalCode ? normalizePostalCode(j.postalCode) : "";
       if (!jobPostal || !jobPostal.includes(postalNeedle)) return false;
+    }
+
+    if (countryLower) {
+      const jobCountry = (j.country ?? "").toLowerCase();
+      if (!jobCountry.includes(countryLower)) return false;
     }
 
     const smin = num(p.salaryMin);

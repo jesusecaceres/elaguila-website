@@ -12,21 +12,23 @@ import {
 import { normalizeServiciosDiscoveryLocationInput } from "./lib/serviciosLocationNormalize";
 import { ServiciosResultsAdvancedFilterFields } from "./resultados/ServiciosResultsAdvancedFilterFields";
 import { CAT_STD_PER_PAGE_OPTIONS } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
+import {
+  LeonixLocalBusinessCompactSearchCanvas,
+  LX_LB_BTN_PRIMARY,
+  LX_LB_BTN_SECONDARY,
+  LX_LB_SEARCH_CANVAS,
+} from "@/app/(site)/clasificados/shared/components/LeonixLocalBusinessCompactSearchCanvas";
+import {
+  LEONIX_LB_DEFAULT_COUNTRY,
+  LEONIX_LB_DEFAULT_STATE,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
 
 const RESULTS_PATH = "/clasificados/servicios/results";
 
 const RESULTS_FORM_ID_MOBILE = "servicios-results-filter-form-mobile";
 
-const BTN_PRIMARY =
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]";
-const BTN_SECONDARY =
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
 const CONTROL_SELECT =
   "min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]";
-const SEARCH_INPUT =
-  "min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45";
-const SEARCH_CANVAS =
-  "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
 
 const sortSelectDefault = (current: ServiciosResultsFilterQuery) =>
   current.sort === "name"
@@ -44,6 +46,9 @@ const sortSelectDefault = (current: ServiciosResultsFilterQuery) =>
 /** Drawer-only refinements (excludes q, city, sort) — badge when advanced filters URL params are active. */
 function serviciosResultsHasAdvancedDrawerFilters(current: ServiciosResultsFilterQuery): boolean {
   return Boolean(
+    current.state?.trim() ||
+      current.zip?.trim() ||
+      (current.country?.trim() && current.country.trim() !== LEONIX_LB_DEFAULT_COUNTRY) ||
     current.group?.trim() ||
       (current.seller && current.seller !== "all") ||
       current.whatsapp === "1" ||
@@ -68,6 +73,8 @@ function serviciosResultsHasAdvancedDrawerFilters(current: ServiciosResultsFilte
       current.openNow === "1" ||
       current.licensed === "1" ||
       current.insured === "1" ||
+      current.sameDay === "1" ||
+      current.appointment === "1" ||
       current.freeEstimate === "1" ||
       current.freeConsultation === "1" ||
       current.hasPhotos === "1" ||
@@ -149,57 +156,37 @@ function ServiciosResultsFiltersCompact({
 
   return (
     <div className="mb-3 border-b border-[#D6C7AD]/50 pb-3">
-      <form
-        id={RESULTS_FORM_ID_MOBILE}
-        method="get"
-        action={RESULTS_PATH}
-        aria-label={lang === "en" ? "Search and filter Servicios results" : "Buscar y filtrar resultados de Servicios"}
-        className="space-y-2.5"
-        onSubmitCapture={onSubmitCapture}
-      >
-        <input type="hidden" name="lang" value={lang} />
-
-        <div className={SEARCH_CANVAS}>
-          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
-              <input
-                name="q"
-                type="search"
-                defaultValue={current.q ?? ""}
-                autoComplete="off"
-                placeholder={lang === "en" ? "Service, trade, business…" : "Servicio, giro, negocio…"}
-                aria-label={lang === "en" ? "Keywords" : "Palabras clave"}
-                className={`${SEARCH_INPUT} min-w-0 flex-1`}
-              />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-3 sm:border-b-0 sm:border-r">
-              <input
-                name="city"
-                type="text"
-                defaultValue={current.city ?? ""}
-                placeholder={lang === "en" ? "City" : "Ciudad"}
-                aria-label={lang === "en" ? "City" : "Ciudad"}
-                className={SEARCH_INPUT}
-              />
-            </label>
-            <div className="flex gap-1.5 p-1.5 sm:col-span-4">
-              <button
-                type="button"
-                data-testid="servicios-open-filters-drawer"
-                onClick={() => setDrawerOpen(true)}
-                className={`${BTN_SECONDARY} relative flex-1`}
-              >
-                {lang === "en" ? "Filters" : "Filtros"}
-                {hasAdvancedFilters ? (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-[#7A1E2C]" aria-hidden />
-                ) : null}
-              </button>
-              <button type="submit" className={`${BTN_PRIMARY} flex-[1.2]`}>
-                {lang === "en" ? "Search" : "Buscar"}
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="space-y-2.5">
+        <LeonixLocalBusinessCompactSearchCanvas
+          lang={lang}
+          routeLang={lang}
+          action={RESULTS_PATH}
+          method="get"
+          formId={RESULTS_FORM_ID_MOBILE}
+          onSubmitCapture={onSubmitCapture}
+          defaultQ={current.q ?? ""}
+          defaultCity={current.city ?? ""}
+          defaultState={current.state ?? LEONIX_LB_DEFAULT_STATE}
+          defaultZip={current.zip ?? ""}
+          defaultCountry={current.country ?? LEONIX_LB_DEFAULT_COUNTRY}
+          keywordPlaceholder={lang === "en" ? "Service, trade, business…" : "Servicio, giro, negocio…"}
+          searchButtonLabel={lang === "en" ? "Search" : "Buscar"}
+          showFiltersButton={false}
+          cityDatalistId="servicios-results-city-presets"
+          secondRow={
+            <button
+              type="button"
+              data-testid="servicios-open-filters-drawer"
+              onClick={() => setDrawerOpen(true)}
+              className={`${LX_LB_BTN_SECONDARY} relative min-w-[5rem]`}
+            >
+              {lang === "en" ? "Filters" : "Filtros"}
+              {hasAdvancedFilters ? (
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-[#7A1E2C]" aria-hidden />
+              ) : null}
+            </button>
+          }
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">
@@ -207,7 +194,7 @@ function ServiciosResultsFiltersCompact({
           </span>
           <label className="min-w-0">
             <span className="sr-only">{lang === "en" ? "Sort" : "Ordenar"}</span>
-            <select name="sort" defaultValue={sortSelectDefault(current)} className={CONTROL_SELECT}>
+            <select name="sort" form={RESULTS_FORM_ID_MOBILE} defaultValue={sortSelectDefault(current)} className={CONTROL_SELECT}>
               <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
               <option value="most_liked">{lang === "en" ? "Most liked" : "Más gustados"}</option>
               <option value="most_saved">{lang === "en" ? "Most saved" : "Más guardados"}</option>
@@ -218,7 +205,7 @@ function ServiciosResultsFiltersCompact({
           </label>
           <label className="min-w-0">
             <span className="sr-only">{lang === "en" ? "Per page" : "Por página"}</span>
-            <select name="perPage" defaultValue={String(perPage)} className={CONTROL_SELECT}>
+            <select name="perPage" form={RESULTS_FORM_ID_MOBILE} defaultValue={String(perPage)} className={CONTROL_SELECT}>
               {CAT_STD_PER_PAGE_OPTIONS.map((n) => (
                 <option key={n} value={n}>
                   {n}
@@ -227,7 +214,7 @@ function ServiciosResultsFiltersCompact({
             </select>
           </label>
           {hasFilters ? (
-            <Link href={resetHref} className={BTN_SECONDARY}>
+            <Link href={resetHref} className={LX_LB_BTN_SECONDARY}>
               {lang === "en" ? "Clear filters" : "Limpiar filtros"}
             </Link>
           ) : null}
@@ -255,7 +242,7 @@ function ServiciosResultsFiltersCompact({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className={`${BTN_SECONDARY} min-w-[4.5rem]`}
+                className={`${LX_LB_BTN_SECONDARY} min-w-[4.5rem]`}
               >
                 {lang === "en" ? "Close" : "Cerrar"}
               </button>
@@ -274,26 +261,27 @@ function ServiciosResultsFiltersCompact({
                 </div>
               ) : null}
 
-              <ServiciosResultsAdvancedFilterFields lang={lang} current={current} />
+              <ServiciosResultsAdvancedFilterFields lang={lang} current={current} formId={RESULTS_FORM_ID_MOBILE} />
             </div>
 
             <div className="shrink-0 flex gap-2 border-t border-[#D6C7AD]/60 bg-[#FFFDF7] px-4 py-3">
               {hasFilters ? (
-                <Link href={resetHref} onClick={() => setDrawerOpen(false)} className={`${BTN_SECONDARY} flex-1 text-center`}>
+                <Link href={resetHref} onClick={() => setDrawerOpen(false)} className={`${LX_LB_BTN_SECONDARY} flex-1 text-center`}>
                   {lang === "en" ? "Clear" : "Limpiar"}
                 </Link>
               ) : null}
               <button
                 type="submit"
+                form={RESULTS_FORM_ID_MOBILE}
                 onClick={() => setDrawerOpen(false)}
-                className={`${BTN_PRIMARY} ${hasFilters ? "flex-[1.2]" : "w-full"}`}
+                className={`${LX_LB_BTN_PRIMARY} ${hasFilters ? "flex-[1.2]" : "w-full"}`}
               >
                 {lang === "en" ? "Apply" : "Aplicar"}
               </button>
             </div>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

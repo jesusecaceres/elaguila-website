@@ -180,6 +180,7 @@ export function mapRestaurantesPublicListingDbRowToShellInventoryRow(row: Restau
     secondaryCuisineKey: pr.secondaryCuisineKey,
     cuisineLine: summaryLine,
     city: pr.cityCanonical,
+    state: (draft.state ?? "").trim() || undefined,
     zip: pr.zipCode,
     rating,
     priceLevel,

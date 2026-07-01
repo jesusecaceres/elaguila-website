@@ -10,7 +10,7 @@ import {
 } from "@/app/publicar/empleos/shared/lib/empleosPublicLocation";
 import { FALLBACK_IMG } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { sanitizeHttpUrl } from "@/app/publicar/empleos/shared/publish/empleosPublishSanitize";
-import { normalizePayDisplay } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
+import { ensurePublicPayString, normalizePayDisplayParts } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import {
   normalizeScheduleRows,
   scheduleMainDisplay,
@@ -46,7 +46,7 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
     const mainAlt = main?.alt || job.imageAlt;
     const hasAddr = Boolean(d.addressLine1.trim() || d.addressLine2?.trim() || d.addressZip.trim() || d.postalCode?.trim() || d.country?.trim());
     const web = sanitizeHttpUrl(d.website);
-    const payDisplay = normalizePayDisplay({
+    const payParts = normalizePayDisplayParts({
       pay: d.pay,
       payAmount: d.payAmount,
       payUnit: d.payUnit,
@@ -69,7 +69,7 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
       filterRegionFootnote: loc.filterRegionFootnote,
       mainImageSrc: mainSrc || FALLBACK_IMG,
       mainImageAlt: mainAlt,
-      pay: payDisplay || job.salaryLabel,
+      pay: payParts.headline || job.salaryLabel,
       payAmount: d.payAmount,
       payUnit: d.payUnit,
       payUnitCustom: d.payUnitCustom,
@@ -140,7 +140,7 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
     filterRegionFootnote: loc.filterRegionFootnote,
     mainImageSrc: job.imageSrc,
     mainImageAlt: job.imageAlt,
-    pay: job.salaryLabel,
+    pay: ensurePublicPayString(job.salaryLabel),
     jobType: job.jobType,
     schedule: job.scheduleLabel || "—",
     workModalityLabel: modalityLabelEs(job.modality),

@@ -18,6 +18,8 @@ import type { BrResultsQueryKey } from "./constants/brResultsRoutes";
 export const BR_CANONICAL_QUERY_KEYS: readonly BrCanonicalQueryKey[] = [
   "q",
   "city",
+  "state",
+  "country",
   "operationType",
   "propertyType",
   "sellerType",
@@ -36,6 +38,8 @@ export type BrCanonicalQueryKey = Extract<
   BrResultsQueryKey,
   | "q"
   | "city"
+  | "state"
+  | "country"
   | "operationType"
   | "propertyType"
   | "sellerType"
@@ -63,7 +67,7 @@ export const BR_AUX_QUERY_KEYS = ["primary", "secondary", "propiedad", "precio",
  * - Main search: `q`, `operationType`, `propertyType`, `city` + submit → resultados.
  * - Quick chips: shortcuts into resultados using the same canonical keys (no duplicate filter panel on landing).
  */
-export const BR_LANDING_DOMINANT_KEYS = ["q", "operationType", "propertyType", "city"] as const;
+export const BR_LANDING_DOMINANT_KEYS = ["q", "operationType", "propertyType", "city", "state", "zip", "country"] as const;
 
 /**
  * **Resultados** (`/clasificados/bienes-raices/resultados`): full narrowing UX.
@@ -76,6 +80,8 @@ export const BR_RESULTS_FULL_FILTER_KEYS = [...BR_CANONICAL_QUERY_KEYS, ...BR_AU
 export const BR_KEY_PUBLISH_FIELD_HINTS: Record<BrCanonicalQueryKey, string> = {
   q: "searchable title/address/keywords",
   city: "location.city or normalized city string",
+  state: "Leonix:state in detail_pairs",
+  country: "Leonix:country in detail_pairs",
   operationType: "listing.operation (venta | renta)",
   propertyType: "property.kind / categoria (casa, departamento, terreno, comercial, …)",
   sellerType: "seller.kind (privado | negocio)",
@@ -150,6 +156,8 @@ export const BR_MOBILE_FILTER_STRATEGY_SUMMARY =
 export const BR_FILTER_PUBLISH_READINESS: Record<
   | "q"
   | "city"
+  | "state"
+  | "country"
   | "zip"
   | "operationType"
   | "propertyType"
@@ -168,6 +176,8 @@ export const BR_FILTER_PUBLISH_READINESS: Record<
 > = {
   q: "ready",
   city: "ready",
+  state: "ready",
+  country: "ready",
   zip: "ready",
   operationType: "ready",
   propertyType: "ready",

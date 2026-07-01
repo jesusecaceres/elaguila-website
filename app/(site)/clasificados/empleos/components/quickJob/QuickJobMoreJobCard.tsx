@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ensurePublicPayString } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import type { QuickJobRelatedCard } from "../../data/empleoQuickJobSampleData";
 
 type Props = {
@@ -23,7 +24,7 @@ export function QuickJobMoreJobCard({ job, ctaLabel }: Props) {
         <p className="mt-1 text-xs font-semibold text-[#2563EB]">{job.businessName}</p>
         <p className="mt-0.5 text-[11px] text-[color:var(--lx-muted)]">{job.location}</p>
         <p className="mt-2 text-xs font-semibold text-[#B91C1C]">
-          {job.pay}
+          {ensurePublicPayString(job.pay)}
           <span className="font-normal text-[color:var(--lx-muted)]"> · {job.jobType}</span>
         </p>
         <div className="mt-3 flex justify-end">

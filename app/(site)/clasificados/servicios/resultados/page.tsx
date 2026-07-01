@@ -34,6 +34,9 @@ type PageProps = {
   searchParams?: Promise<{
     lang?: string;
     city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
     group?: string;
     whatsapp?: string;
     promo?: string;
@@ -65,6 +68,8 @@ type PageProps = {
     has_photos?: string;
     has_videos?: string;
     has_offers?: string;
+    same_day?: string;
+    appointment?: string;
     page?: string;
     perPage?: string;
   }>;
@@ -98,6 +103,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
 
   const filterQuery: ServiciosResultsFilterQuery = {
     city: sp.city,
+    state: sp.state,
+    zip: sp.zip,
+    country: sp.country,
     group: sp.group,
     whatsapp: sp.whatsapp === "1" ? "1" : undefined,
     promo: sp.promo === "1" ? "1" : undefined,
@@ -129,6 +137,8 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     hasPhotos: parseTruthyResultsFlag(sp.has_photos),
     hasVideos: parseTruthyResultsFlag(sp.has_videos),
     hasOffers: parseTruthyResultsFlag(sp.has_offers),
+    sameDay: parseTruthyResultsFlag(sp.same_day),
+    appointment: parseTruthyResultsFlag(sp.appointment),
   };
 
   // Pipeline: raw fetch → filter → entitlement overlay → visibility ranking

@@ -66,7 +66,9 @@ export function BienesRaicesResultsClient() {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [searchCity, setSearchCity] = useState("");
+  const [searchState, setSearchState] = useState("CA");
   const [searchZip, setSearchZip] = useState("");
+  const [searchCountry, setSearchCountry] = useState("United States");
 
   const propiedadFilter: BrNegocioCategoriaPropiedad | null = useMemo(
     () => parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD)),
@@ -154,8 +156,10 @@ export function BienesRaicesResultsClient() {
   useEffect(() => {
     setSearchQ(parsed.q);
     setSearchCity(parsed.city);
+    setSearchState(parsed.state || "CA");
     setSearchZip(parsed.zip);
-  }, [parsed.q, parsed.city, parsed.zip]);
+    setSearchCountry(parsed.country || "United States");
+  }, [parsed.q, parsed.city, parsed.state, parsed.zip, parsed.country]);
 
   const patchUrl = useCallback(
     (patch: Record<string, string | null>) => {
@@ -170,9 +174,14 @@ export function BienesRaicesResultsClient() {
     patchUrl({
       q: searchQ.trim() || null,
       city: searchCity.trim() || null,
+      state: searchState.trim() || null,
       zip: searchZip.trim() || null,
+      country:
+        searchCountry.trim() && searchCountry.trim().toLowerCase() !== "united states"
+          ? searchCountry.trim()
+          : null,
     });
-  }, [patchUrl, searchCity, searchQ, searchZip]);
+  }, [patchUrl, searchCity, searchCountry, searchQ, searchState, searchZip]);
 
   const patchPageOnly = useCallback(
     (patch: Record<string, string | null>) => {
@@ -247,12 +256,17 @@ export function BienesRaicesResultsClient() {
           lang={lang}
           query={searchQ}
           city={searchCity}
+          state={searchState}
           zip={searchZip}
+          country={searchCountry}
           onQuery={setSearchQ}
           onCity={setSearchCity}
+          onState={setSearchState}
           onZip={setSearchZip}
+          onCountry={setSearchCountry}
           onSearch={applySearch}
           onOpenFilters={() => setFilterDrawerOpen(true)}
+          browseAllHref={appendLangToPath(BR_RESULTS, lang)}
           searchButtonLabel={searchLabel}
           filtersButtonLabel={filtersLabel}
         />

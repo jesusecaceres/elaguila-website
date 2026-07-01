@@ -48,6 +48,7 @@ import {
   RENTAS_QUERY_RENT_MAX,
   RENTAS_QUERY_RENT_MIN,
   RENTAS_QUERY_SORT,
+  RENTAS_QUERY_COUNTRY,
   RENTAS_QUERY_STATE,
   RENTAS_QUERY_TIPO,
   RENTAS_QUERY_ZIP,
@@ -84,8 +85,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
   const [cityDraft, setCityDraft] = useState("");
-  const [stateDraft, setStateDraft] = useState("");
+  const [stateDraft, setStateDraft] = useState("CA");
   const [zipDraft, setZipDraft] = useState("");
+  const [countryDraft, setCountryDraft] = useState("United States");
   const [bathsMinDraft, setBathsMinDraft] = useState("");
   const [halfBathsMinDraft, setHalfBathsMinDraft] = useState("");
   const [rentMinDraft, setRentMinDraft] = useState("");
@@ -117,8 +119,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setPriceBand(p.precio);
     setBeds(p.recs);
     setCityDraft(p.city);
-    setStateDraft(p.state);
+    setStateDraft(p.state || "CA");
     setZipDraft(p.zip);
+    setCountryDraft(p.country || "United States");
     setBathsMinDraft(p.bathsMin != null ? String(p.bathsMin) : "");
     setHalfBathsMinDraft(p.halfBathsMin != null ? String(p.halfBathsMin) : "");
     setRentMinDraft(p.rentMin != null ? String(Math.round(p.rentMin)) : "");
@@ -209,6 +212,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       const zipNorm = normalizeZipForBrowse(zipDraft);
       if (!zipNorm) sp.delete(RENTAS_QUERY_ZIP);
       else sp.set(RENTAS_QUERY_ZIP, zipNorm);
+      const countryNorm = countryDraft.trim();
+      if (!countryNorm || countryNorm.toLowerCase() === "united states") sp.delete(RENTAS_QUERY_COUNTRY);
+      else sp.set(RENTAS_QUERY_COUNTRY, countryNorm);
       const bm = bathsMinDraft.trim();
       if (!bm) sp.delete(RENTAS_QUERY_BATHS_MIN);
       else if (Number.isFinite(Number(bm))) sp.set(RENTAS_QUERY_BATHS_MIN, bm);
@@ -291,6 +297,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     sqftMinDraft,
     subtypeDraft,
     zipDraft,
+    countryDraft,
   ]);
 
   const clearFilters = useCallback(() => {
@@ -355,12 +362,15 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           city={cityDraft}
           state={stateDraft}
           zip={zipDraft}
+          country={countryDraft}
           onQuery={setQuery}
           onCity={setCityDraft}
           onState={setStateDraft}
           onZip={setZipDraft}
+          onCountry={setCountryDraft}
           onSearch={applySearchAndRefine}
           onOpenFilters={() => setFiltersOpen(true)}
+          browseAllHref={withRentasLandingLang(RENTAS_RESULTS, routeLang)}
           searchButtonLabel={searchLabel}
           filtersButtonLabel={filtersLabel}
         />
@@ -513,8 +523,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         onBeds={setBeds}
         cityDraft={cityDraft}
         onCityDraft={setCityDraft}
+        stateDraft={stateDraft}
+        onStateDraft={setStateDraft}
         zipDraft={zipDraft}
         onZipDraft={setZipDraft}
+        countryDraft={countryDraft}
+        onCountryDraft={setCountryDraft}
         bathsMinDraft={bathsMinDraft}
         onBathsMinDraft={setBathsMinDraft}
         halfBathsMinDraft={halfBathsMinDraft}

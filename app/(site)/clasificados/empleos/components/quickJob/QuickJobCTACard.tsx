@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
 import { SiTiktok, SiWhatsapp, SiX } from "react-icons/si";
-import { normalizePayDisplay } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
+import { normalizePayDisplayParts } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
+import { empleosPhoneDigits, formatEmpleosPhoneDisplay } from "@/app/publicar/empleos/shared/lib/empleosPhoneDisplay";
 import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 import { trackEmpleosSidebarContactCta } from "../../lib/empleosCtaTracking";
 import {
@@ -64,14 +65,11 @@ const GOLD_BTN = "border border-[#C9A84A]/55 bg-[#FFFDF7] text-[#3D3428] hover:b
 const SOFT_BTN = "border border-[#D6C7AD]/80 bg-[#FFFDF7] text-[#5C5346] hover:border-[#C9A84A]/40 hover:bg-[#FBF7EF]";
 
 function digits(raw: string): string {
-  return raw.replace(/\D/g, "");
+  return empleosPhoneDigits(raw);
 }
 
 function formatPhone(raw: string): string {
-  const d = digits(raw);
-  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-  if (d.length === 11 && d[0] === "1") return `+1 (${d.slice(1, 4)}) ${d.slice(4, 7)}-${d.slice(7)}`;
-  return raw.trim();
+  return formatEmpleosPhoneDisplay(raw);
 }
 
 function looksLikeEmail(val: string): boolean {
@@ -127,7 +125,9 @@ export function QuickJobCTACard({
     companyTikTok || companyYouTube || companyX || companySnapchat ||
     (companyOtherLinkLabel && companyOtherLinkUrl)
   );
-  const displayPay = normalizePayDisplay({ pay, payAmount, payUnit, payUnitCustom, payNote }, lang);
+  const payParts = normalizePayDisplayParts({ pay, payAmount, payUnit, payUnitCustom, payNote }, lang);
+  const displayPay = payParts.headline;
+  const payNoteDisplay = payParts.note;
   const typeLine = jobTypeLabel?.trim() || jobType;
   const contactShareExtras = { email: validEmail, websiteUrl: websiteUrl?.trim() || undefined };
 
@@ -180,6 +180,9 @@ export function QuickJobCTACard({
   return (
     <div className="min-w-0 overflow-hidden rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-6">
       <p className="text-2xl font-bold leading-tight text-[#7A1E2C] sm:text-[1.65rem]">{displayPay}</p>
+      {payNoteDisplay ? (
+        <p className="mt-1 text-sm leading-snug text-[#7A7164]">{payNoteDisplay}</p>
+      ) : null}
 
       <div className="mt-4 space-y-2.5 text-sm text-[#4A4744]">
         {typeLine && typeLine !== "—" ? (
@@ -355,10 +358,6 @@ export function QuickJobCTACard({
           </div>
         </div>
       ) : null}
-
-      <p className="mt-5 border-t border-[#D6C7AD]/70 pt-4 text-[11px] leading-snug text-[#7A7164]/95">
-        {lang === "es" ? "Publicado en Leonix · Verifica la oferta antes de aplicar." : "Published on Leonix · Verify the offer before applying."}
-      </p>
 
       <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </div>

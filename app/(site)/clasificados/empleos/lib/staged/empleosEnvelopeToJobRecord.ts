@@ -2,6 +2,7 @@ import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publi
 import { isEmpleosInternalFilterRegion } from "@/app/publicar/empleos/shared/constants/empleosStandardRegion";
 import { empleosQuickPublicCityState } from "@/app/publicar/empleos/shared/lib/empleosPublicLocation";
 import { normalizeEmpleosGlobalLocation } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
+import { normalizePayDisplay } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import type {
   CompanyTypeSlug,
   EmpleosJobRecord,
@@ -137,7 +138,13 @@ export function empleosEnvelopeToJobRecord(
       jobType: mapJobType(d.jobType),
       salaryMin: min,
       salaryMax: max,
-      salaryLabel: d.pay || (min && max ? `$${min.toLocaleString()} – $${max.toLocaleString()}` : "—"),
+      salaryLabel: normalizePayDisplay({
+        pay: d.pay,
+        payAmount: d.payAmount,
+        payUnit: d.payUnit,
+        payUnitCustom: d.payUnitCustom,
+        payNote: d.payNote,
+      }) || (min && max ? `$${min.toLocaleString()} – $${max.toLocaleString()}` : "—"),
       experience: asExperience(d.experienceLevel),
       companyType: "small" as CompanyTypeSlug,
       quickApply: d.primaryCta === "email",

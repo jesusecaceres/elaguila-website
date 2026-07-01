@@ -6,16 +6,9 @@ import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
-
 import { MascotasPerdidosNoticeCard } from "./MascotasPerdidosNoticeCard";
-import {
-  CAT_STD_BTN_PRIMARY,
-  CAT_STD_FILTER_INPUT,
-  CAT_STD_FILTER_LABEL,
-  CAT_STD_FILTER_SELECT,
-  CategoryStandardResultsFilterPanel,
-} from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsFilterPanel";
+import { MascotasResultsSearchPanel } from "./MascotasResultsSearchPanel";
+import { CAT_STD_BTN_PRIMARY } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { MascotasPerdidosShellLayout } from "./shared/MascotasPerdidosShellLayout";
 import { buildMascotasPerdidosNoticeCardModel } from "./shared/mascotasPerdidosCardModel";
 import { detailPairsToMap } from "./shared/mascotasPerdidosListingDetailPairs";
@@ -25,7 +18,6 @@ import {
 } from "./shared/loadMascotasPerdidosListings";
 import { mascotasPerdidosCityMatches } from "./shared/mascotasPerdidosCityMatch";
 import { buildMascotasPerdidosSearchBlob } from "./shared/mascotasPerdidosSearchText";
-import { MascotasResultsCityFilter } from "./MascotasResultsCityFilter";
 
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
@@ -75,6 +67,11 @@ export function MascotasPerdidosResultsClient() {
   const q = (sp?.get("q") ?? "").trim();
   const tipo = (sp?.get("tipo") ?? "all").trim().toLowerCase();
   const city = (sp?.get("city") ?? "").trim();
+  const state = (sp?.get("state") ?? "").trim();
+  const zip = (sp?.get("zip") ?? "").trim();
+  const country = (sp?.get("country") ?? "").trim();
+  const lastSeenArea = (sp?.get("lastSeenArea") ?? "").trim();
+  const hasPhoto = (sp?.get("hasPhoto") ?? "").trim() === "1";
 
   const [rows, setRows] = useState<MascotasPerdidosListingBrowseRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -104,53 +101,28 @@ export function MascotasPerdidosResultsClient() {
       const blob = buildMascotasPerdidosSearchBlob(row, pairs, lang);
       if (!textMatch(blob, q)) return false;
       if (city && !mascotasPerdidosCityMatches(row.city, city)) return false;
+      if (lastSeenArea && !textMatch(pairs["Leonix:lastSeenLocation"] ?? "", lastSeenArea)) return false;
+      if (hasPhoto) {
+        const imgs = row.images;
+        const hasImg = Array.isArray(imgs) && imgs.length > 0;
+        if (!hasImg) return false;
+      }
       if (tipo !== "all") {
         const slug = (pairs["Leonix:noticeType"] ?? "").trim().toLowerCase();
         if (slug !== tipo) return false;
       }
       return true;
     });
-  }, [rows, q, city, tipo, lang]);
+  }, [rows, q, city, state, zip, country, tipo, lastSeenArea, hasPhoto, lang]);
 
   return (
     <MascotasPerdidosShellLayout lang={lang} backHref={landingHref} backLabel={backLabel}>
       <div className="space-y-5">
         <p className="text-sm text-[#5C5346]">{t.subtitle}</p>
 
-        <CategoryStandardResultsFilterPanel
+        <MascotasResultsSearchPanel
           lang={lang}
-          action="/clasificados/mascotas-y-perdidos/results"
           clearHref={appendLangToPath("/clasificados/mascotas-y-perdidos/results", lang)}
-          applyLabel={t.apply}
-          primaryRow={
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-              <label className="min-w-0 flex-1">
-                <span className="sr-only">{t.search}</span>
-                <input
-                  className={CAT_STD_FILTER_INPUT}
-                  name="q"
-                  defaultValue={q}
-                  placeholder={lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…"}
-                />
-              </label>
-              <div className="min-w-0 lg:w-48">
-                <MascotasResultsCityFilter lang={lang} label={t.city} defaultValue={city} />
-              </div>
-            </div>
-          }
-          advancedFilters={
-            <label className={CAT_STD_FILTER_LABEL}>
-              {t.type}
-              <select className={CAT_STD_FILTER_SELECT} name="tipo" defaultValue={tipo}>
-                <option value="all">{t.allTypes}</option>
-                {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {lang === "es" ? o.labelEs : o.labelEn}
-                  </option>
-                ))}
-              </select>
-            </label>
-          }
         />
 
         {loading ? (

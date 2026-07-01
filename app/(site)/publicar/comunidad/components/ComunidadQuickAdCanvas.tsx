@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
+import { formatTimeForDisplay, getGroupedWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 import {
   labelComunidadAccessibilityKey,
   labelCommunityAudience,
@@ -12,6 +12,7 @@ import {
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { comunidadCostLabel } from "@/app/(site)/publicar/community/shared/copy/communityPublishCopy";
 import { formatAdmissionWithDollar } from "@/app/(site)/clasificados/community/CommunityQuickAnuncioDetail";
+import { formatComunidadCostSummary } from "@/app/lib/clasificados/comunidad/comunidadCostDisplay";
 import type { ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
 import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
@@ -89,29 +90,41 @@ export function ComunidadQuickAdCanvas({
   const sessStart = draft.eventSessionStart.trim();
   const sessEnd = draft.eventSessionEnd.trim();
   const schedLang = lang === "en" ? "en" : "es";
-  const scheduleRows = getActiveWeeklyScheduleGridItems(draft.weeklySchedule, schedLang);
+  const scheduleRows = getGroupedWeeklyScheduleGridItems(draft.weeklySchedule, schedLang);
   const dateRange = formatComunidadEventDateRange(draft, lang);
-  const costLabel = comunidadCostLabel(draft.eventCost, lang);
+  const costSummary = formatComunidadCostSummary(draft.eventCost, draft.admissionNote, lang);
   const registrationLabel = draft.registrationRequired
     ? labelCommunityRegistration(draft.registrationRequired, lang)
     : "";
 
   const chips: string[] = [];
   if (draft.category) {
-    chips.push(resolveComunidadEventTypePublicLabel(draft.category, draft.categoryCustom, lang));
+    chips.push(
+      `${lang === "es" ? "Tipo" : "Type"}: ${resolveComunidadEventTypePublicLabel(draft.category, draft.categoryCustom, lang)}`,
+    );
   }
-  if (draft.audience) chips.push(labelCommunityAudience(draft.audience, lang));
-  if (dateRange) chips.push(dateRange);
-  if (cityZipLine) chips.push(cityZipLine);
-  chips.push(costLabel);
-  if (registrationLabel) chips.push(registrationLabel);
-  if (draft.accessibilityKeys.length) {
-    chips.push(draft.accessibilityKeys.map((k) => labelComunidadAccessibilityKey(k, lang)).join(" · "));
+  if (draft.audience) {
+    chips.push(`${lang === "es" ? "Para" : "For"}: ${labelCommunityAudience(draft.audience, lang)}`);
+  }
+  chips.push(`${lang === "es" ? "Costo" : "Cost"}: ${comunidadCostLabel(draft.eventCost, lang)}`);
+  if (draft.registrationRequired === "si") {
+    chips.push(lang === "es" ? "Registro requerido" : "Registration required");
+  }
+  for (const k of draft.accessibilityKeys) {
+    chips.push(labelComunidadAccessibilityKey(k, lang));
   }
 
   const infoItems = [
     { key: "city", label: t.publicCity, value: cityZipLine },
-    { key: "cost", label: t.eventCost, value: costLabel, subValue: draft.admissionNote.trim() ? formatAdmissionWithDollar(draft.admissionNote.trim()) : undefined },
+    {
+      key: "cost",
+      label: t.eventCost,
+      value: costSummary,
+      subValue:
+        draft.admissionNote.trim() && draft.eventCost !== "pagado" && draft.eventCost !== "donacion"
+          ? formatAdmissionWithDollar(draft.admissionNote.trim())
+          : undefined,
+    },
     { key: "reg", label: t.registration, value: registrationLabel },
     { key: "date", label: t.eventDate, value: dateRange },
   ];
@@ -168,7 +181,7 @@ export function ComunidadQuickAdCanvas({
                 : "border-amber-800/35 bg-[#FFF3E0] text-[#5D4037]"
             }`}
           >
-            {costLabel}
+            {comunidadCostLabel(draft.eventCost, lang)}
           </span>
         </div>
         {isPdf ? (
@@ -183,6 +196,7 @@ export function ComunidadQuickAdCanvas({
           title={draft.title}
           organizerLabel={t.organizer}
           organizerName={draft.organizer}
+          organizerLogoUrl={draft.organizerLogoUrl}
           chips={chips}
         />
 

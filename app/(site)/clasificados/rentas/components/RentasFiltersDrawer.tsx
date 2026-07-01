@@ -5,6 +5,7 @@ import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-rai
 import { normalizeRentasBrowseHighlightToken } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import { RentasLocationButton } from "./RentasLocationButton";
+import { US_STATE_OPTIONS } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import {
   RENTAS_BTN_PRIMARY,
   RENTAS_BTN_SECONDARY,
@@ -29,8 +30,12 @@ export type RentasFiltersDrawerProps = {
   onBeds: (v: string) => void;
   cityDraft: string;
   onCityDraft: (v: string) => void;
+  stateDraft: string;
+  onStateDraft: (v: string) => void;
   zipDraft: string;
   onZipDraft: (v: string) => void;
+  countryDraft: string;
+  onCountryDraft: (v: string) => void;
   bathsMinDraft: string;
   onBathsMinDraft: (v: string) => void;
   halfBathsMinDraft: string;
@@ -116,8 +121,12 @@ export function RentasFiltersDrawer({
   onBeds,
   cityDraft,
   onCityDraft,
+  stateDraft,
+  onStateDraft,
   zipDraft,
   onZipDraft,
+  countryDraft,
+  onCountryDraft,
   bathsMinDraft,
   onBathsMinDraft,
   halfBathsMinDraft,
@@ -198,21 +207,31 @@ export function RentasFiltersDrawer({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          {!isLanding ? (
-            <>
-              <GroupLabel>{lang === "es" ? "Ubicación" : "Location"}</GroupLabel>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
-                  {copy.results.cityLabel}
-                  <input value={cityDraft} onChange={(e) => onCityDraft(e.target.value)} className={RENTAS_FIELD} autoComplete="address-level2" />
-                </label>
-                <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
-                  {copy.results.zipLabel}
-                  <input value={zipDraft} onChange={(e) => onZipDraft(e.target.value)} inputMode="numeric" className={RENTAS_FIELD} autoComplete="postal-code" />
-                </label>
-              </div>
-            </>
-          ) : null}
+          <GroupLabel>{lang === "es" ? "Ubicación" : "Location"}</GroupLabel>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
+              {copy.results.cityLabel}
+              <input value={cityDraft} onChange={(e) => onCityDraft(e.target.value)} className={RENTAS_FIELD} autoComplete="address-level2" />
+            </label>
+            <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
+              {copy.results.stateLabel}
+              <select value={stateDraft || "CA"} onChange={(e) => onStateDraft(e.target.value)} className={RENTAS_FIELD}>
+                {US_STATE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.code} — {opt.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
+              {copy.results.zipLabel}
+              <input value={zipDraft} onChange={(e) => onZipDraft(e.target.value)} inputMode="numeric" className={RENTAS_FIELD} autoComplete="postal-code" />
+            </label>
+            <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
+              {copy.results.countryLabel}
+              <input value={countryDraft} onChange={(e) => onCountryDraft(e.target.value)} className={RENTAS_FIELD} autoComplete="country-name" />
+            </label>
+          </div>
 
           <GroupLabel>{lang === "es" ? "Propiedad" : "Property"}</GroupLabel>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">

@@ -16,7 +16,7 @@ export function RestaurantesLandingShell({ children }: { children: ReactNode }) 
         <div className="absolute inset-0 bg-gradient-to-b from-[#2D241E]/[0.52] via-[#fdfbf7]/[0.88] to-[#FDFBF7] sm:from-[#2D241E]/50 sm:via-[#fdfbf7]/90" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.12),transparent_60%)] sm:bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.14),transparent_58%)]" />
       </div>
-      <div className="relative z-[1] min-w-0">{children}</div>
+      <div className="relative z-[1] min-w-0 pt-[calc(3.75rem+env(safe-area-inset-top,0px))] sm:pt-8 lg:pt-10">{children}</div>
     </div>
   );
 }

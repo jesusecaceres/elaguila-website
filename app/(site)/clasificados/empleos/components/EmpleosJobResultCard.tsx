@@ -10,6 +10,7 @@ import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import { empleosJobRecordListLocationLine } from "../lib/empleosJobRecordListLocation";
 import { isLiveListingId } from "./EmpleosApplyForm";
 import { trackEmpleosResultCardClick } from "../lib/empleosCtaTracking";
+import { ensurePublicPayString } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import {
   EMPLEOS_BADGE_VERIFIED,
   EMPLEOS_CARD_FEATURED,
@@ -99,8 +100,8 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
   const payLabel = isJobFair
     ? job.freeEntry
       ? lang === "es" ? "Entrada gratuita" : "Free entry"
-      : job.salaryLabel
-    : job.salaryLabel;
+      : ensurePublicPayString(job.salaryLabel, lang)
+    : ensurePublicPayString(job.salaryLabel, lang);
 
   const ctaLabel = isJobFair
     ? lang === "es" ? "Ver feria" : "View fair"

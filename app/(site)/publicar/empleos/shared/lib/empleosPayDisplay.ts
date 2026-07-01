@@ -81,6 +81,19 @@ const UNIT_ALIASES: Record<string, EmpleosPayUnit> = {
   doe: "a-convenir",
 };
 
+export type PayDisplayInput = {
+  pay?: string;
+  payAmount?: string;
+  payUnit?: string;
+  payUnitCustom?: string;
+  payNote?: string;
+};
+
+export type PayDisplayParts = {
+  headline: string;
+  note?: string;
+};
+
 function st(v: unknown): string {
   return String(v ?? "").trim();
 }
@@ -99,26 +112,45 @@ export function normalizePayUnit(raw: unknown): EmpleosPayUnit {
   return "";
 }
 
+function isNegotiablePhrase(raw: string): boolean {
+  const lower = raw.toLowerCase();
+  return lower === "a convenir" || lower === "negotiable" || lower === "doe" || lower.includes("negociable");
+}
+
 /** Format bare numeric amount or range with $ — skip for non-numeric phrases. */
 export function formatPayAmount(raw: string): string {
   const s = raw.trim();
   if (!s) return "";
-  const lower = s.toLowerCase();
-  if (lower === "a convenir" || lower === "negotiable" || lower === "doe") return "A convenir";
+  if (isNegotiablePhrase(s)) return s.toLowerCase() === "negotiable" ? "Negotiable" : "A convenir";
+
   const fixed = s.replace(/\$\s+/g, "$");
-  if (/^\$/.test(fixed)) return fixed.replace(/\$\s+/g, "$");
+  if (/^\$/.test(fixed)) return fixed;
+
   if (/^\d+(\.\d+)?$/.test(fixed)) return `$${fixed}`;
+
   const rangeMatch = fixed.match(/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)(.*)$/);
   if (rangeMatch) {
     const [, lo, hi, rest] = rangeMatch;
     return `$${lo}–$${hi}${rest ?? ""}`;
   }
-  const rangeWithDollar = fixed.match(/^\$(\d+(?:\.\d+)?)\s*[-–]\s*\$?(\d+(?:\.\d+)?)(.*)$/);
-  if (rangeWithDollar) {
-    const [, lo, hi, rest] = rangeWithDollar;
-    return `$${lo}–$${hi}${rest ?? ""}`;
-  }
+
+  const leadingNum = fixed.match(/^(\d+(?:\.\d+)?)(\s+.*)$/);
+  if (leadingNum) return `$${leadingNum[1]}${leadingNum[2]}`;
+
   return fixed;
+}
+
+/** Final guard — no public Empleos surface may show a naked numeric pay. */
+export function ensurePublicPayString(display: string, lang: "es" | "en" = "es"): string {
+  const t = st(display);
+  if (!t || t === "—") return t || "—";
+  if (isNegotiablePhrase(t)) return lang === "es" ? "A convenir" : "Negotiable";
+  if (/^\d+(\.\d+)?$/.test(t)) return `$${t}`;
+  if (/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$/.test(t)) {
+    const m = t.match(/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$/);
+    if (m) return `$${m[1]}–$${m[2]}`;
+  }
+  return formatPayAmount(t);
 }
 
 function payUnitLabel(unit: EmpleosPayUnit, custom: string, lang: "es" | "en"): string {
@@ -143,43 +175,40 @@ function payUnitLabel(unit: EmpleosPayUnit, custom: string, lang: "es" | "en"): 
   return es;
 }
 
-export function composePayFromFields(
+/** Headline only — never includes pay note. */
+export function composePayHeadline(
   amount: string,
   unit: EmpleosPayUnit,
   unitCustom: string,
-  note: string,
   lang: "es" | "en" = "es",
 ): string {
   const amtRaw = st(amount);
-  const noteStr = st(note);
   const unitLabel = payUnitLabel(unit, unitCustom, lang);
 
   if (unit === "a-convenir" && !amtRaw) return lang === "es" ? "A convenir" : "Negotiable";
-  if (amtRaw.toLowerCase() === "a convenir" || amtRaw.toLowerCase() === "negotiable") {
-    return lang === "es" ? "A convenir" : "Negotiable";
-  }
+  if (isNegotiablePhrase(amtRaw)) return lang === "es" ? "A convenir" : "Negotiable";
 
   const formattedAmt = formatPayAmount(amtRaw);
   const skipDollarUnits = unit === "a-comision" || unit === "propinas";
 
-  let base = "";
-  if (formattedAmt === "A convenir") {
-    base = formattedAmt;
-  } else if (formattedAmt && unitLabel && !skipDollarUnits) {
-    base = `${formattedAmt} ${unitLabel}`;
-  } else if (formattedAmt && unitLabel && skipDollarUnits) {
-    base = unit === "propinas" && formattedAmt.startsWith("$")
+  if (formattedAmt === "A convenir" || formattedAmt === "Negotiable") return formattedAmt;
+  if (formattedAmt && unitLabel && !skipDollarUnits) return `${formattedAmt} ${unitLabel}`;
+  if (formattedAmt && unitLabel && skipDollarUnits) {
+    return unit === "propinas" && formattedAmt.startsWith("$")
       ? `${formattedAmt} · ${unitLabel}`
       : `${formattedAmt} ${unitLabel}`;
-  } else if (formattedAmt) {
-    base = formattedAmt;
-  } else if (unitLabel) {
-    base = unitLabel.charAt(0).toUpperCase() + unitLabel.slice(1);
   }
+  if (formattedAmt) return formattedAmt;
+  if (unitLabel) return unitLabel.charAt(0).toUpperCase() + unitLabel.slice(1);
+  return "—";
+}
 
-  if (!base) return "—";
-  if (noteStr) return `${base}${noteStr.startsWith("(") ? ` ${noteStr}` : ` (${noteStr})`}`;
-  return base;
+/** Application form preview line — headline + note in parentheses. */
+export function composePayApplicationPreview(input: PayDisplayInput, lang: "es" | "en" = "es"): string {
+  const parts = normalizePayDisplayParts(input, lang);
+  if (parts.headline === "—") return "—";
+  if (parts.note) return `${parts.headline} (${parts.note})`;
+  return parts.headline;
 }
 
 /** Parse legacy pay strings like "$20/hora", "$18 - $25 por hora". */
@@ -192,14 +221,14 @@ export function parseLegacyPayString(pay: string): {
   const raw = st(pay);
   if (!raw || raw === "—") return { payAmount: "", payUnit: "", payUnitCustom: "", payNote: "" };
 
-  const lower = raw.toLowerCase();
-  if (lower === "a convenir" || lower.includes("negotiable") || lower === "doe") {
+  if (isNegotiablePhrase(raw)) {
     return { payAmount: "", payUnit: "a-convenir", payUnitCustom: "", payNote: "" };
   }
 
   let unit: EmpleosPayUnit = "";
   let unitCustom = "";
   let amountPart = raw;
+  const lower = raw.toLowerCase();
 
   for (const [key, slug] of Object.entries(UNIT_ALIASES)) {
     const re = new RegExp(`\\b(por\\s+)?${key}\\b`, "i");
@@ -242,45 +271,47 @@ export function parseLegacyPayString(pay: string): {
   };
 }
 
-export type PayDisplayInput = {
-  pay?: string;
-  payAmount?: string;
-  payUnit?: string;
-  payUnitCustom?: string;
-  payNote?: string;
-};
-
-/** Primary display helper — prefers structured fields, falls back to legacy pay string. */
-export function normalizePayDisplay(input: PayDisplayInput, lang: "es" | "en" = "es"): string {
+export function normalizePayDisplayParts(input: PayDisplayInput, lang: "es" | "en" = "es"): PayDisplayParts {
   const amount = st(input.payAmount);
   const unit = normalizePayUnit(input.payUnit);
   const unitCustom = st(input.payUnitCustom);
-  const note = st(input.payNote);
+  const noteFromField = st(input.payNote);
   const legacy = st(input.pay);
 
+  let note = noteFromField;
+  let headline = "—";
+
   if (amount || unit) {
-    return composePayFromFields(amount, unit, unitCustom, note, lang);
+    headline = composePayHeadline(amount, unit, unitCustom, lang);
+  } else if (legacy && legacy !== "—") {
+    const parsed = parseLegacyPayString(legacy);
+    note = note || parsed.payNote;
+    if (parsed.payUnit || parsed.payAmount) {
+      headline = composePayHeadline(parsed.payAmount || legacy, parsed.payUnit, parsed.payUnitCustom, lang);
+    } else {
+      headline = formatPayAmount(legacy);
+    }
   }
 
-  if (!legacy || legacy === "—") return "—";
-
-  const parsed = parseLegacyPayString(legacy);
-  if (parsed.payUnit || parsed.payAmount) {
-    const composed = composePayFromFields(
-      parsed.payAmount || legacy,
-      parsed.payUnit,
-      parsed.payUnitCustom,
-      parsed.payNote,
-      lang,
-    );
-    if (composed !== "—") return composed;
-  }
-
-  return formatPayAmount(legacy);
+  return {
+    headline: ensurePublicPayString(headline, lang),
+    note: note || undefined,
+  };
 }
 
-/** Sync legacy `pay` field from structured inputs for publish compatibility. */
+/** Primary display helper — headline only, no note. */
+export function normalizePayDisplay(input: PayDisplayInput, lang: "es" | "en" = "es"): string {
+  return normalizePayDisplayParts(input, lang).headline;
+}
+
+/** Sync legacy `pay` field — application preview includes note in parentheses. */
 export function syncLegacyPayField(input: PayDisplayInput, lang: "es" | "en" = "es"): string {
-  const composed = normalizePayDisplay(input, lang);
-  return composed === "—" ? st(input.pay) : composed;
+  const preview = composePayApplicationPreview(input, lang);
+  return preview === "—" ? st(input.pay) : preview;
+}
+
+/** Publish/storage — headline only; note lives in payNote. */
+export function syncPublishPayField(input: PayDisplayInput, lang: "es" | "en" = "es"): string {
+  const headline = normalizePayDisplay(input, lang);
+  return headline === "—" ? st(input.pay) : headline;
 }

@@ -30,7 +30,7 @@ import {
 } from "../filters/enVentaFilterGroups";
 import { buildEnVentaResultsUrl, EN_VENTA_RESULTS_PATH } from "../shared/constants/enVentaResultsRoutes";
 import { getCityZips } from "@/app/data/locations/californiaLocationHelpers";
-import { listingMatchesCityFilter, listingMatchesZipFilter } from "./utils/enVentaLocationMatch";
+import { listingMatchesCityFilter, listingMatchesCountryFilter, listingMatchesStateFilter, listingMatchesZipFilter } from "./utils/enVentaLocationMatch";
 import { nearestCanonicalCityFromLatLng } from "./utils/enVentaNearestCity";
 import { EV_RESULTS_PARAM } from "./contracts/enVentaResultsUrlParams";
 import { EnVentaResultsEmpty } from "./EnVentaResultsEmpty";
@@ -111,7 +111,12 @@ export function EnVentaResultsClient() {
   const evDept = (sp?.get("evDept") ?? "").trim();
   const evSub = (sp?.get("evSub") ?? "").trim();
   const city = (sp?.get("city") ?? "").trim();
+  const state = (sp?.get("state") ?? "").trim();
   const zip = (sp?.get("zip") ?? "").trim();
+  const country = (sp?.get("country") ?? "").trim();
+  const itemType = (sp?.get("itemType") ?? "").trim();
+  const hasPhotoOnly = sp?.get(EV_RESULTS_PARAM.hasPhoto) === "1";
+  const hasVideoOnly = sp?.get(EV_RESULTS_PARAM.hasVideo) === "1";
   const featuredOnly = sp?.get(EV_RESULTS_PARAM.featured) === "1";
   const cond = (sp?.get("cond") ?? "").trim();
   const priceMin = sp?.get("priceMin") ?? "";
@@ -214,9 +219,12 @@ export function EnVentaResultsClient() {
       if (meetupOnly && !dto.meetupOffered) return false;
       if (evDept && effectiveDept !== evDept) return false;
       if (evSub && (dto.subKey ?? "").trim() !== evSub) return false;
+      if (itemType && (dto.articleKey ?? "").trim() !== itemType) return false;
       const cityOk = listingMatchesCityFilter(dto.city, city);
       if (cityFilterOn && !cityOk) return false;
       if (!listingMatchesZipFilter(dto.zip, zip, cityFilterOn, cityOk)) return false;
+      if (!listingMatchesStateFilter(dto.state, state)) return false;
+      if (!listingMatchesCountryFilter(dto.country, country)) return false;
       if (cond && (dto.conditionKey ?? "").trim().toLowerCase() !== cond.toLowerCase()) return false;
       if (pickup && !dto.fulfillment.pickup) return false;
       if (ship && !dto.fulfillment.shipping) return false;
@@ -228,6 +236,8 @@ export function EnVentaResultsClient() {
       const pMax = priceMax.trim() ? Number(priceMax.replace(/[^0-9.]/g, "")) : null;
       if (pMin != null && Number.isFinite(pMin) && priceNum < pMin) return false;
       if (pMax != null && Number.isFinite(pMax) && priceNum > pMax) return false;
+      if (hasPhotoOnly && dto.images.length === 0) return false;
+      if (hasVideoOnly && !dto.hasListingVideo) return false;
 
       return true;
     });
@@ -251,7 +261,12 @@ export function EnVentaResultsClient() {
     evDept,
     evSub,
     city,
+    state,
     zip,
+    country,
+    itemType,
+    hasPhotoOnly,
+    hasVideoOnly,
     featuredOnly,
     cond,
     pickup,
@@ -312,7 +327,7 @@ export function EnVentaResultsClient() {
       ind: "Particular",
       biz: "Negocio",
       trust: "Comunidad Leonix · anuncios moderados · contacto directo",
-      zip: "CP / ZIP",
+      zip: "ZIP",
       featuredMode: "Solo recién refrescados",
       clearAll: "Limpiar filtros",
       useLocation: "Usar mi ubicación",
@@ -408,7 +423,10 @@ export function EnVentaResultsClient() {
         evDept: evDept || undefined,
         evSub: evSub || undefined,
         city: city || undefined,
+        state: state || undefined,
         zip: zip || undefined,
+        country: country || undefined,
+        itemType: itemType || undefined,
         cond: cond || undefined,
         priceMin: priceMin || undefined,
         priceMax: priceMax || undefined,
@@ -419,6 +437,8 @@ export function EnVentaResultsClient() {
         free: freeOnly ? "1" : undefined,
         nego: negotiableOnly ? "1" : undefined,
         meetup: meetupOnly ? "1" : undefined,
+        hasPhoto: hasPhotoOnly ? "1" : undefined,
+        hasVideo: hasVideoOnly ? "1" : undefined,
         sort,
         view,
         page: String(safePage),
@@ -438,7 +458,12 @@ export function EnVentaResultsClient() {
       evDept,
       evSub,
       city,
+      state,
       zip,
+      country,
+      itemType,
+      hasPhotoOnly,
+      hasVideoOnly,
       featuredOnly,
       cond,
       priceMin,
@@ -468,11 +493,17 @@ export function EnVentaResultsClient() {
     const negoOn = (el.elements.namedItem("nego") as HTMLInputElement | null)?.checked ?? false;
     const meetupOn = (el.elements.namedItem("meetupFilter") as HTMLInputElement | null)?.checked ?? false;
     const featuredOn = fd.get("featured") === "on" || fd.get("featured") === "1";
+    const photoOn = fd.get("hasPhoto") === "1";
+    const videoOn = fd.get("hasVideo") === "1";
+    const nextSort = String(fd.get("sort") ?? sort).trim() as SortId;
     pushParams({
       q: String(fd.get("q") ?? "").trim() || undefined,
       city: String(fd.get("city") ?? "").trim() || undefined,
+      state: String(fd.get("state") ?? "").trim() || undefined,
       zip: String(fd.get("zip") ?? "").trim() || undefined,
-      sort,
+      country: String(fd.get("country") ?? "").trim() || undefined,
+      itemType: String(fd.get("itemType") ?? "").trim() || undefined,
+      sort: nextSort,
       view: String(fd.get("view") ?? view),
       perPage: enVentaPerPageToParam(perPage),
       evDept: String(fd.get("evDept") ?? "").trim() || undefined,
@@ -488,6 +519,8 @@ export function EnVentaResultsClient() {
       nego: negoOn ? "1" : undefined,
       meetup: meetupOn ? "1" : undefined,
       featured: featuredOn ? "1" : undefined,
+      hasPhoto: photoOn ? "1" : undefined,
+      hasVideo: videoOn ? "1" : undefined,
       page: "1",
     });
   };
@@ -541,7 +574,7 @@ export function EnVentaResultsClient() {
         }
         const zips = getCityZips(cityGuess);
         const zipGuess = zips[0];
-        pushParams({ city: cityGuess, zip: zipGuess || undefined, page: "1" });
+        pushParams({ city: cityGuess, state: "CA", zip: zipGuess || undefined, country: undefined, page: "1" });
       },
       () =>
         setGeoHint(
@@ -567,7 +600,11 @@ export function EnVentaResultsClient() {
         label: `${lang === "es" ? "Ciudad" : "City"}: ${city}`,
         onRemove: () => rm({ city: undefined }),
       });
+    if (state.trim()) out.push({ key: "state", label: state.toUpperCase(), onRemove: () => rm({ state: undefined }) });
     if (zip.trim()) out.push({ key: "zip", label: `ZIP: ${zip}`, onRemove: () => rm({ zip: undefined }) });
+    if (country.trim() && !/^(united states|estados unidos|us|usa)$/i.test(country.trim()))
+      out.push({ key: "country", label: country, onRemove: () => rm({ country: undefined }) });
+    if (itemType) out.push({ key: "itemType", label: itemType, onRemove: () => rm({ itemType: undefined }) });
     if (evDept) {
       const dn = EN_VENTA_DEPARTMENTS.find((d) => d.key === evDept)?.label[lang] ?? evDept;
       out.push({
@@ -605,11 +642,26 @@ export function EnVentaResultsClient() {
         label: lang === "es" ? "Solo visibilidad Pro renovada" : "Renewed Pro visibility only",
         onRemove: () => rm({ featured: undefined }),
       });
+    if (hasPhotoOnly)
+      out.push({
+        key: "hasPhoto",
+        label: lang === "es" ? "Con foto" : "Has photo",
+        onRemove: () => rm({ hasPhoto: undefined }),
+      });
+    if (hasVideoOnly)
+      out.push({
+        key: "hasVideo",
+        label: lang === "es" ? "Con video" : "Has video",
+        onRemove: () => rm({ hasVideo: undefined }),
+      });
     return out;
   }, [
     q,
     city,
+    state,
     zip,
+    country,
+    itemType,
     evDept,
     evSub,
     cond,
@@ -623,6 +675,8 @@ export function EnVentaResultsClient() {
     priceMin,
     priceMax,
     featuredOnly,
+    hasPhotoOnly,
+    hasVideoOnly,
     lang,
     pushParams,
     condOptions,
@@ -657,7 +711,7 @@ export function EnVentaResultsClient() {
   };
 
   const searchSummaryLine = buildSearchSummaryLine(q, lang);
-  const locationSummaryLine = buildLocationSummaryLine(city, zip, lang);
+  const locationSummaryLine = buildLocationSummaryLine(city, state, zip, country, lang);
 
   const listingHref = useCallback(
     (listingId: string) =>
@@ -702,11 +756,14 @@ export function EnVentaResultsClient() {
             onSubmit={onSubmitSearch}
             defaultQ={q}
             defaultCity={city}
+            defaultState={state || "CA"}
             defaultZip={zip}
+            defaultCountry={country || "United States"}
             searchLabel={enVentaBrowseSearchPlaceholder(lang)}
             cityLabel={t.cityPh}
             zipLabel={t.zip}
             searchButtonLabel={t.go}
+            browseAllHref={buildEnVentaResultsUrl(lang)}
             secondRow={
               <button
                 type="button"
@@ -798,7 +855,13 @@ export function EnVentaResultsClient() {
           open={filtersPanelOpen}
           lang={lang}
           city={city}
+          state={state}
           zip={zip}
+          country={country}
+          itemType={itemType}
+          sort={sort}
+          hasPhotoOnly={hasPhotoOnly}
+          hasVideoOnly={hasVideoOnly}
           t={{
             filters: t.filters,
             close: t.close,

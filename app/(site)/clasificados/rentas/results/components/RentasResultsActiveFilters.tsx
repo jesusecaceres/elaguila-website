@@ -17,7 +17,8 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel }: Pro
   if (parsed.q.trim()) items.push(`“${parsed.q.trim()}”`);
   if (parsed.city) items.push(`${copy.results.cityLabel}: ${parsed.city}`);
   if (parsed.zip) items.push(`${copy.results.zipLabel}: ${parsed.zip}`);
-  if (parsed.state) items.push(parsed.state);
+  if (parsed.state) items.push(`${copy.results.stateLabel}: ${parsed.state}`);
+  if (parsed.country) items.push(`${copy.results.countryLabel}: ${parsed.country}`);
 
   if (parsed.propiedad === "residencial") items.push(qe.chipResidencial);
   else if (parsed.propiedad === "comercial") items.push(qe.chipComercial);

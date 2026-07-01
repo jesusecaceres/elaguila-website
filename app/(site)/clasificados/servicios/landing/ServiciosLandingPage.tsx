@@ -19,14 +19,16 @@ import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } f
 type Lang = "es" | "en";
 
 const LANDING_QUICK_CHIP_IDS = new Set([
-  "web",
   "limpieza",
-  "plomeria",
-  "electricista",
   "jardineria",
+  "construccion",
   "mecanica",
-  "reparaciones",
-  "consultoria",
+  "belleza",
+  "eventos",
+  "emergency",
+  "lang_es",
+  "licensed",
+  "same_day",
 ]);
 
 const sectionShell =

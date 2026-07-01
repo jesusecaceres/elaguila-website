@@ -7,6 +7,10 @@ import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelper
 import type { BrNegocioListing } from "../cards/listingTypes";
 import { extractBrFacetsFromDetailPairs } from "./brFacetFromDetailPairs";
 import { buildBrPublicLocationForLiveDetail } from "@/app/clasificados/lib/leonixBrGate12d";
+import {
+  formatLeonixLbPublicLocationLine,
+  readLeonixPropertyLocationFromRow,
+} from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import { augmentLeonixDetailPairsFromStructuredColumns } from "@/app/clasificados/lib/leonixListingStructuredPayload";
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 
@@ -43,15 +47,23 @@ function pairRows(detailPairs: unknown): Array<{ label: string; value: string }>
 
 /** Result card line: reuse Gate 12D composed privacy helper when possible. */
 function brBrowseAddressLineFromRow(row: BrListingDbRow, facets: ReturnType<typeof extractBrFacetsFromDetailPairs>): string {
+  const loc = readLeonixPropertyLocationFromRow(row as Record<string, unknown>);
+  const formatted = formatLeonixLbPublicLocationLine({
+    city: loc.city,
+    state: loc.state,
+    zip: loc.zip,
+    country: loc.country,
+  });
+  if (formatted.trim()) return formatted;
   const city = String(row.city ?? "").trim();
   const detailPairs = augmentLeonixDetailPairsFromStructuredColumns(row.detail_pairs, row.listing_json, row.contact_json);
   const rows = pairRows(detailPairs);
-  const loc = buildBrPublicLocationForLiveDetail({
+  const legacy = buildBrPublicLocationForLiveDetail({
     detailPairs,
     humanRows: rows,
     listingCity: city,
   });
-  if (loc.display.trim()) return loc.display;
+  if (legacy.display.trim()) return legacy.display;
   return city || "—";
 }
 
@@ -130,6 +142,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
   const cat = facets.categoriaPropiedad ?? "residencial";
   const title = String(row.title ?? "").trim() || (lang === "es" ? "Anuncio" : "Listing");
   const addressLine = brBrowseAddressLineFromRow({ ...row, detail_pairs: detailPairs }, facets);
+  const locRow = readLeonixPropertyLocationFromRow({ ...row, detail_pairs: detailPairs } as Record<string, unknown>);
 
   const recencyMs = brListingRecencySortMs(row);
 
@@ -167,7 +180,9 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     operationLabel: facets.operation === "renta" ? "Renta" : facets.operation === "venta" ? "Venta" : undefined,
     metaLines,
     demoPublishedAtMs: Number.isFinite(recencyMs) ? recencyMs : undefined,
-    zipCode: zipNorm || undefined,
+    zipCode: zipNorm || locRow.zip || undefined,
+    stateCode: locRow.state || undefined,
+    country: locRow.country || undefined,
     resultsPropertyKind: m?.resultsPropertyKind ?? null,
     facetPool: m?.pool ?? null,
     facetPets: m?.petsAllowed ?? null,

@@ -7,18 +7,26 @@ export function buildSearchSummaryLine(q: string, lang: "es" | "en"): string | n
   return lang === "es" ? `Búsqueda: “${s}”` : `Search: “${s}”`;
 }
 
-/** City + optional ZIP for hero (matches URL state). */
+/** City + state + ZIP + country for hero (matches URL state). */
 export function buildLocationSummaryLine(
   city: string,
+  state: string,
   zip: string,
+  country: string,
   lang: "es" | "en"
 ): string | null {
   const c = city.trim();
+  const st = state.trim();
   const z = zip.trim();
-  if (!c && !z) return null;
-  if (c && z) return lang === "es" ? `Ubicación: ${c} · CP ${z}` : `Location: ${c} · ZIP ${z}`;
-  if (z) return lang === "es" ? `CP: ${z}` : `ZIP: ${z}`;
-  return lang === "es" ? `Ciudad: ${c}` : `City: ${c}`;
+  const co = country.trim();
+  if (!c && !st && !z && !co) return null;
+  const parts: string[] = [];
+  if (c) parts.push(c);
+  if (st) parts.push(st);
+  if (z) parts.push(`ZIP ${z}`);
+  if (co && !/^(united states|estados unidos|us|usa)$/i.test(co)) parts.push(co);
+  if (!parts.length) return null;
+  return lang === "es" ? `Ubicación: ${parts.join(" · ")}` : `Location: ${parts.join(" · ")}`;
 }
 
 /** Explains how the main grid is ordered (honest; URL-driven). */

@@ -4,6 +4,10 @@ import {
   normalizeDiscoveryLocationText,
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import {
+  isLeonixLbUsCountry,
+  leonixLbStateMatchesFilter,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
 
 /** Fold case, strip combining marks (accents), and drop apostrophe-like chars so `San Jose` matches `San José` and `Chuys` matches `Chuy's`. */
 export function foldRestaurantesDiscoverySearchText(raw: string): string {
@@ -100,6 +104,11 @@ export function filterRestaurantesBlueprintRows(
       if (needle && !hay.includes(needle)) return false;
     }
     if (s.zip && (row.zip ?? "").trim() !== s.zip.trim()) return false;
+    if (s.state?.trim() && !leonixLbStateMatchesFilter(row.state, s.state)) return false;
+    if (s.country?.trim() && !isLeonixLbUsCountry(s.country)) {
+      /* Country not stored on listings yet — non-US filter yields no matches until publish field ships. */
+      return false;
+    }
     if (s.neighborhoodQuery.trim()) {
       const nb = s.neighborhoodQuery.trim().toLowerCase();
       if (!(row.neighborhood ?? "").toLowerCase().includes(nb)) return false;

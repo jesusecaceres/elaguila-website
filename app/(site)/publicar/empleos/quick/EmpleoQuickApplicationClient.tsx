@@ -24,14 +24,15 @@ import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/fl
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import { EmpleosBenefitsPicker } from "@/app/publicar/empleos/shared/components/EmpleosBenefitsPicker";
 import { EmpleosShiftScheduleEditor } from "@/app/publicar/empleos/shared/components/EmpleosShiftScheduleEditor";
 import {
   EMPLEOS_PAY_UNIT_OPTIONS_EN,
   EMPLEOS_PAY_UNIT_OPTIONS_ES,
+  composePayApplicationPreview,
   syncLegacyPayField,
 } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import { emptyEmpleosQuickDraft, type EmpleosQuickDraft, type EmpleosQuickPreferredApplyMethod } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
-import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 import {
   sampleCategorySelectOptions,
   sampleExperienceOptions,
@@ -365,10 +366,18 @@ export default function EmpleoQuickApplicationClient() {
               <input className={INPUT} value={state.payNote} onChange={(e) => patchPay({ payNote: e.target.value })}
                 placeholder={es ? "Ej. más bonos, propinas incluidas" : "e.g. plus bonuses, tips included"} />
             </label>
-            {state.pay ? (
+            {state.payAmount || state.payUnit || state.pay ? (
               <p className="rounded-lg border border-[#C9B46A]/35 bg-[#FBF7EF] px-3 py-2 text-xs text-[#5C5346]">
                 {es ? "Vista previa:" : "Preview:"}{" "}
-                <span className="font-semibold text-[#7A1E2C]">{state.pay}</span>
+                <span className="font-semibold text-[#7A1E2C]">
+                  {composePayApplicationPreview({
+                    pay: state.pay,
+                    payAmount: state.payAmount,
+                    payUnit: state.payUnit,
+                    payUnitCustom: state.payUnitCustom,
+                    payNote: state.payNote,
+                  }, lang)}
+                </span>
               </p>
             ) : null}
             <div>
@@ -388,16 +397,13 @@ export default function EmpleoQuickApplicationClient() {
             </div>
             <div>
               <EmpleosFieldLabel lang={lang}>{es ? "Beneficios (opcional)" : "Benefits (optional)"}</EmpleosFieldLabel>
-              <p className="mt-0.5 text-xs text-[#7A756E]">
-                {es ? "Añade viñetas. Ejemplos: Seguro médico, Pago semanal, Horario flexible" : "Add bullets. Examples: Health insurance, Weekly pay, Flexible schedule"}
-              </p>
-              <EmpleosStringLinesEditor
-                items={state.benefits.length ? state.benefits : [""]}
-                onChange={(benefits) => patch({ benefits })}
-                addLabel={mediaCopy.benefitAdd}
-                removeLabel={mediaCopy.benefitRemove}
-                placeholder={mediaCopy.benefitPh}
-              />
+              <div className="mt-2">
+                <EmpleosBenefitsPicker
+                  lang={lang}
+                  selected={state.benefits}
+                  onChange={(benefits) => patch({ benefits })}
+                />
+              </div>
             </div>
           </EmpleosSectionCard>
 

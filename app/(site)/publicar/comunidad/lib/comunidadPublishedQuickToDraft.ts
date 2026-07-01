@@ -67,6 +67,7 @@ export function comunidadPublishedQuickToDraft(
   const d = emptyComunidadQuickDraft();
   d.title = (listing.title[lang] ?? listing.title.es ?? "").trim();
   d.organizer = (pairs["Leonix:organizer"] ?? "").trim();
+  d.organizerLogoUrl = (pairs["Leonix:organizerLogoUrl"] ?? "").trim();
   d.category = (pairs["Leonix:eventCategory"] ?? "").trim();
   d.categoryCustom = (pairs["Leonix:eventCategoryCustom"] ?? "").trim();
 

@@ -111,6 +111,8 @@ export type RentasPrivadoFormState = {
   direccionCalle: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
+  /** Free-text country; defaults to United States. */
+  direccionPais: string;
   /** Legacy single-line location; used if structured street fields are empty */
   ubicacionLinea: string;
   /** Deprecated: manual map URL removed from UI; kept for draft merge only */
@@ -312,6 +314,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     direccionCalle: "",
     direccionEstado: "CA",
     direccionCodigoPostal: "",
+    direccionPais: "United States",
     ubicacionLinea: "",
     enlaceMapa: "",
     descripcion: "",
@@ -502,6 +505,10 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     direccionCodigoPostal: coerceRentasPostalDigits5(
       typeof partial.direccionCodigoPostal === "string" ? partial.direccionCodigoPostal : base.direccionCodigoPostal,
     ),
+    direccionPais:
+      typeof partial.direccionPais === "string" && partial.direccionPais.trim()
+        ? partial.direccionPais.trim()
+        : base.direccionPais,
     ubicacionLinea: br.ubicacionLinea,
     enlaceMapa: typeof partial.enlaceMapa === "string" ? partial.enlaceMapa : br.enlaceMapa,
     descripcion: br.descripcion,

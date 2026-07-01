@@ -11,6 +11,7 @@ import {
   buildEnVentaPrimaryContactHref,
 } from "@/app/clasificados/en-venta/shared/utils/enVentaContactActions";
 import { collectEnVentaVideoUrlsFromState } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoUrls";
+import { formatEnVentaPublicLocationLine } from "@/app/clasificados/en-venta/shared/constants/enVentaLocationContract";
 
 function initialsFromName(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -191,11 +192,16 @@ export function buildEnVentaPreviewModel(
   const classificationLine =
     enVentaCategoryLine({ departmentKey: dept, subKey: sub, articleKey: itemType }, lang) ?? "";
 
-  const loc = t.location(state.city.trim(), state.zip.trim());
+  const loc = formatEnVentaPublicLocationLine({
+    city: state.city.trim(),
+    state: state.state,
+    zip: state.zip.trim(),
+    country: state.country,
+  });
   const locationLine = loc ? loc : "";
   const locationMapHref = locationLine
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        [state.city.trim(), state.zip.trim()].filter(Boolean).join(" ")
+        [state.city.trim(), state.state, state.zip.trim(), state.country.trim()].filter(Boolean).join(" ")
       )}`
     : null;
 

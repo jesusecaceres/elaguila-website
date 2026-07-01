@@ -68,7 +68,7 @@ export function collectEnVentaCoreBlockers(
     reasons.push(t.blockerPrice);
   }
 
-  const loc = validateEnVentaLocation(state.city, state.zip);
+  const loc = validateEnVentaLocation(state.city, state.zip, state.state, state.country);
   if (!loc.ok) reasons.push(lang === "es" ? loc.messageEs : loc.messageEn);
 
   const safety = evaluateEnVentaFamilySafetyFromState(state, lang);

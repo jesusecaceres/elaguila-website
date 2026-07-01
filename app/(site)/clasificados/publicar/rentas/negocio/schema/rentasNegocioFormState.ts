@@ -84,6 +84,7 @@ export type RentasNegocioFormState = {
   direccionCalle: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
+  direccionPais: string;
   ubicacionLinea: string;
   enlaceMapa: string;
   descripcion: string;
@@ -178,6 +179,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: p.direccionEstado,
+    direccionPais: p.direccionPais,
     direccionCodigoPostal: "",
     ubicacionLinea: "",
     enlaceMapa: "",
@@ -299,6 +301,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     direccionNumero: asPrivado.direccionNumero,
     direccionCalle: asPrivado.direccionCalle,
     direccionEstado: asPrivado.direccionEstado,
+    direccionPais: asPrivado.direccionPais,
     direccionCodigoPostal: asPrivado.direccionCodigoPostal,
     ubicacionLinea: asPrivado.ubicacionLinea,
     enlaceMapa: asPrivado.enlaceMapa,

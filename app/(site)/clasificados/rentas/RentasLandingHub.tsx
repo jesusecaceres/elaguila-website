@@ -25,6 +25,7 @@ import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_BRANCH,
   RENTAS_QUERY_CITY,
+  RENTAS_QUERY_COUNTRY,
   RENTAS_QUERY_MASCOTAS,
   RENTAS_QUERY_PRECIO,
   RENTAS_QUERY_Q,
@@ -48,8 +49,9 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
   const { lang, routeLang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
-  const [state, setState] = useState("");
+  const [state, setState] = useState("CA");
   const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("United States");
   const [propertyType, setPropertyType] = useState("");
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
@@ -64,13 +66,15 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
     if (priceBand) extra[RENTAS_QUERY_PRECIO] = priceBand;
     if (beds) extra[RENTAS_QUERY_RECS] = beds;
     if (city.trim()) extra[RENTAS_QUERY_CITY] = city.trim();
-    if (state.trim()) extra[RENTAS_QUERY_STATE] = state.trim();
+    if (state.trim() && state.trim() !== "CA") extra[RENTAS_QUERY_STATE] = state.trim();
+    else if (state.trim()) extra[RENTAS_QUERY_STATE] = state.trim();
     if (zip.trim()) extra[RENTAS_QUERY_ZIP] = zip.trim();
+    if (country.trim() && country.trim().toLowerCase() !== "united states") extra[RENTAS_QUERY_COUNTRY] = country.trim();
     if (amuebladoDraft) extra[RENTAS_QUERY_AMUEBLADO] = "1";
     if (mascotasDraft) extra[RENTAS_QUERY_MASCOTAS] = "1";
     extra.lang = routeLang;
     router.push(buildRentasResultsUrl(extra));
-  }, [amuebladoDraft, beds, city, mascotasDraft, priceBand, propertyType, query, routeLang, router, state, zip]);
+  }, [amuebladoDraft, beds, city, country, mascotasDraft, priceBand, propertyType, query, routeLang, router, state, zip]);
 
   const clearLandingFilters = useCallback(() => {
     setPropertyType("");
@@ -154,12 +158,15 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
               city={city}
               state={state}
               zip={zip}
+              country={country}
               onQuery={setQuery}
               onCity={setCity}
               onState={setState}
               onZip={setZip}
+              onCountry={setCountry}
               onSearch={runSearch}
               onOpenFilters={() => setFiltersOpen(true)}
+              browseAllHref={resultsBase}
               searchButtonLabel={searchLabel}
               filtersButtonLabel={filtersLabel}
             />
@@ -211,8 +218,12 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         onBeds={setBeds}
         cityDraft={city}
         onCityDraft={setCity}
+        stateDraft={state}
+        onStateDraft={setState}
         zipDraft={zip}
         onZipDraft={setZip}
+        countryDraft={country}
+        onCountryDraft={setCountry}
         bathsMinDraft=""
         onBathsMinDraft={() => {}}
         halfBathsMinDraft=""

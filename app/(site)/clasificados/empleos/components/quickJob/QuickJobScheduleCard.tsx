@@ -18,10 +18,12 @@ export function QuickJobScheduleCard({ title, rows, fallbackText }: Props) {
           <li key={`${row.line}-${i}`} className="flex gap-3 text-sm leading-relaxed text-[#4A4744]">
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C9A84A]" aria-hidden />
             <div className="min-w-0">
-              {row.dayLabel && row.timeLabel ? (
+              {row.dayLabel ? (
                 <>
                   <span className="font-semibold text-[#3D3428]">{row.dayLabel}</span>
-                  <span className="text-[#5C564E]"> · {row.timeLabel}</span>
+                  {row.timeLabel ? (
+                    <span className="text-[#5C564E]"> · {row.timeLabel}</span>
+                  ) : null}
                   {row.note ? <p className="mt-0.5 text-xs text-[#7A7164]">{row.note}</p> : null}
                 </>
               ) : (

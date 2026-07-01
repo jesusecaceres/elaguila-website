@@ -150,9 +150,38 @@ export function EnVentaHubPageClient({
       action="/clasificados/en-venta/results"
       cityLabel={t.cityPh}
       searchButtonLabel={t.search}
+      browseAllHref={allListingsHref}
       secondRow={<EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />}
     />
   );
+
+  const buyerShortcutChips: Array<{ key: string; label: string; href: string }> = [
+    {
+      key: "free",
+      label: lang === "es" ? "Gratis" : "Free",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { free: "1" }),
+    },
+    {
+      key: "under50",
+      label: lang === "es" ? "Menos de $50" : "Under $50",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { priceMax: "50" }),
+    },
+    {
+      key: "pickup",
+      label: lang === "es" ? "Recogida" : "Pickup",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { pickup: "1" }),
+    },
+    {
+      key: "ship",
+      label: lang === "es" ? "Envío" : "Shipping",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { ship: "1" }),
+    },
+    {
+      key: "newest",
+      label: lang === "es" ? "Más recientes" : "Newest",
+      href: buildEnVentaResultsUrl(routeLang as Lang, { sort: "newest" }),
+    },
+  ];
 
   return (
     <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
@@ -192,6 +221,17 @@ export function EnVentaHubPageClient({
             lang={lang}
           >
             {popularCategoryChips.map((chip) => (
+              <Link key={chip.key} href={chip.href} className={EV_CHIP}>
+                {chip.label}
+              </Link>
+            ))}
+          </EnVentaHubHorizontalScroll>
+          <EnVentaHubHorizontalScroll
+            label={lang === "es" ? "Atajos para compradores" : "Buyer shortcuts"}
+            swipeHint={swipeHint}
+            lang={lang}
+          >
+            {buyerShortcutChips.map((chip) => (
               <Link key={chip.key} href={chip.href} className={EV_CHIP}>
                 {chip.label}
               </Link>

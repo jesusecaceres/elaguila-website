@@ -82,8 +82,12 @@ function resolveDayLabel(row: EmpleosScheduleRowInput, lang: "es" | "en"): strin
 
 function rowHasContent(row: EmpleosScheduleRowInput): boolean {
   return Boolean(
-    st(row.day) || st(row.dayCustom) || st(row.shift) || st(row.startTime) || st(row.endTime) || st(row.note),
+    st(row.day) || st(row.dayCustom) || st(row.shift) || st(row.startTime) || st(row.endTime),
   );
+}
+
+function scheduleTbdLabel(lang: "es" | "en"): string {
+  return lang === "es" ? "Horario por confirmar" : "Schedule TBD";
 }
 
 export function formatScheduleRowLine(row: EmpleosScheduleRowInput, lang: "es" | "en" = "es"): string {
@@ -91,21 +95,15 @@ export function formatScheduleRowLine(row: EmpleosScheduleRowInput, lang: "es" |
   const start = formatScheduleTimeDisplay(st(row.startTime));
   const end = formatScheduleTimeDisplay(st(row.endTime));
   const shift = st(row.shift);
-  const note = st(row.note);
 
   let timePart = "";
   if (start && end) timePart = `${start} – ${end}`;
   else if (start) timePart = start;
   else if (shift) timePart = shift;
+  else if (dayLabel) timePart = scheduleTbdLabel(lang);
 
-  let line = "";
-  if (dayLabel && timePart) line = `${dayLabel} · ${timePart}`;
-  else line = dayLabel || timePart;
-
-  if (note && line) line = `${line} (${note})`;
-  else if (note) line = note;
-
-  return line;
+  if (dayLabel && timePart) return `${dayLabel} · ${timePart}`;
+  return dayLabel || timePart;
 }
 
 export function joinScheduleRowsForPublish(rows: EmpleosScheduleRowInput[]): string {
@@ -128,6 +126,7 @@ export function normalizeScheduleRows(
       if (start && end) timeLabel = `${start} – ${end}`;
       else if (start) timeLabel = start;
       else if (shift) timeLabel = shift;
+      else if (dayLabel) timeLabel = scheduleTbdLabel(lang);
       const note = st(row.note) || undefined;
       return {
         dayLabel,

@@ -40,6 +40,8 @@ export type ServiciosQuickChip = {
   resultsQueryEn: string;
   /** Optional trade `group=` when keyword search is not the best fit */
   resultsGroup?: string;
+  /** Extra URL params (e.g. licensed=1, langEs=1) */
+  resultsParams?: Record<string, string>;
 };
 
 export type ServiciosLandingExploreCategory = {
@@ -72,79 +74,18 @@ export type ServiciosLandingRecentListing = {
   };
 };
 
-/** Popular shortcuts → `/resultados` with real `q=` keyword search (no counts, no fake rows). */
+/** Landing quick chips — compact shortcuts wired to real filters / taxonomy. */
 export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
-  {
-    id: "abogado",
-    labelEs: "Abogados",
-    labelEn: "Lawyers",
-    resultsQueryEs: "abogado",
-    resultsQueryEn: "lawyer",
-  },
-  {
-    id: "contador",
-    labelEs: "Contadores",
-    labelEn: "Accountants",
-    resultsQueryEs: "contador",
-    resultsQueryEn: "accountant",
-  },
-  {
-    id: "plomeria",
-    labelEs: "Plomería",
-    labelEn: "Plumbing",
-    resultsQueryEs: "plomería",
-    resultsQueryEn: "plumbing",
-  },
-  {
-    id: "electricista",
-    labelEs: "Electricista",
-    labelEn: "Electrician",
-    resultsQueryEs: "electricista",
-    resultsQueryEn: "electrician",
-  },
-  {
-    id: "limpieza",
-    labelEs: "Limpieza",
-    labelEn: "Cleaning",
-    resultsQueryEs: "limpieza",
-    resultsQueryEn: "cleaning",
-  },
-  {
-    id: "mecanica",
-    labelEs: "Mecánica",
-    labelEn: "Mechanics",
-    resultsQueryEs: "mecánica",
-    resultsQueryEn: "mechanics",
-  },
-  {
-    id: "jardineria",
-    labelEs: "Jardinería",
-    labelEn: "Landscaping",
-    resultsQueryEs: "jardinería",
-    resultsQueryEn: "landscaping",
-  },
-  {
-    id: "dentista",
-    labelEs: "Dentistas",
-    labelEn: "Dentists",
-    resultsQueryEs: "dentista",
-    resultsQueryEn: "dentist",
-  },
-  {
-    id: "entretenimiento-musica",
-    labelEs: "Entretenimiento y música",
-    labelEn: "Entertainment & music",
-    resultsQueryEs: "",
-    resultsQueryEn: "",
-    resultsGroup: "events_entertainment",
-  },
-  {
-    id: "more",
-    labelEs: "Ver más",
-    labelEn: "See more",
-    resultsQueryEs: "",
-    resultsQueryEn: "",
-  },
+  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", resultsQueryEs: "limpieza", resultsQueryEn: "cleaning" },
+  { id: "jardineria", labelEs: "Jardinería", labelEn: "Landscaping", resultsQueryEs: "jardinería", resultsQueryEn: "landscaping" },
+  { id: "construccion", labelEs: "Construcción", labelEn: "Construction", resultsGroup: "home_trade", resultsQueryEs: "construcción", resultsQueryEn: "construction" },
+  { id: "mecanica", labelEs: "Mecánica", labelEn: "Auto repair", resultsGroup: "automotive", resultsQueryEs: "mecánica", resultsQueryEn: "auto repair" },
+  { id: "belleza", labelEs: "Belleza", labelEn: "Beauty", resultsGroup: "health_beauty", resultsQueryEs: "belleza", resultsQueryEn: "beauty" },
+  { id: "eventos", labelEs: "Eventos", labelEn: "Events", resultsGroup: "events_entertainment", resultsQueryEs: "", resultsQueryEn: "" },
+  { id: "emergency", labelEs: "Emergencia", labelEn: "Emergency", resultsQueryEs: "", resultsQueryEn: "", resultsParams: { emergency: "1" } },
+  { id: "lang_es", labelEs: "Habla español", labelEn: "Spanish-speaking", resultsQueryEs: "", resultsQueryEn: "", resultsParams: { langEs: "1" } },
+  { id: "licensed", labelEs: "Licenciado", labelEn: "Licensed", resultsQueryEs: "", resultsQueryEn: "", resultsParams: { licensed: "1" } },
+  { id: "same_day", labelEs: "Mismo día", labelEn: "Same day", resultsQueryEs: "", resultsQueryEn: "", resultsParams: { same_day: "1" } },
 ];
 
 export const SERVICIOS_LANDING_EXPLORE_CATEGORIES: ServiciosLandingExploreCategory[] = [

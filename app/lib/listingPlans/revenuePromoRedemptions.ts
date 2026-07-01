@@ -232,3 +232,144 @@ export async function attachStripeSessionToPromoRedemption(input: {
     .eq("id", input.redemptionId);
   return !error;
 }
+
+export type PromoRedemptionRow = {
+  id: string;
+  promo_code_id: string;
+  payment_record_id: string | null;
+  status: string;
+  stripe_checkout_session_id: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+export async function loadPromoRedemptionById(
+  redemptionId: string,
+): Promise<PromoRedemptionRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_promo_code_redemptions")
+    .select("id, promo_code_id, payment_record_id, status, stripe_checkout_session_id, metadata")
+    .eq("id", redemptionId)
+    .maybeSingle();
+  return (data as PromoRedemptionRow | null) ?? null;
+}
+
+export async function markPromoRedemptionRedeemed(input: {
+  redemptionId: string;
+  stripeCheckoutSessionId: string;
+  paymentRecordId: string;
+  webhookMeta: Record<string, unknown>;
+}): Promise<{ ok: boolean; idempotent?: boolean; code?: string; message?: string }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
+  }
+
+  const row = await loadPromoRedemptionById(input.redemptionId);
+  if (!row) {
+    return { ok: false, code: "promo_redemption_not_found", message: "Promo redemption not found." };
+  }
+
+  if (row.status === "redeemed") {
+    return { ok: true, idempotent: true };
+  }
+
+  if (
+    row.stripe_checkout_session_id &&
+    row.stripe_checkout_session_id !== input.stripeCheckoutSessionId
+  ) {
+    return {
+      ok: false,
+      code: "session_mismatch",
+      message: "Promo redemption session does not match webhook session.",
+    };
+  }
+
+  if (row.payment_record_id && row.payment_record_id !== input.paymentRecordId) {
+    return {
+      ok: false,
+      code: "payment_record_mismatch",
+      message: "Promo redemption payment record mismatch.",
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("leonix_promo_code_redemptions")
+    .update({
+      status: "redeemed",
+      redeemed_at: now,
+      updated_at: now,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      metadata: {
+        ...(row.metadata ?? {}),
+        ...input.webhookMeta,
+        gate: "STRIPE-REVENUE-OS-WEBHOOK-FULFILLMENT-01",
+      },
+    })
+    .eq("id", input.redemptionId)
+    .in("status", ["pending", "validated"]);
+
+  if (error) {
+    return { ok: false, code: "promo_redemption_update_failed", message: error.message };
+  }
+
+  return { ok: true };
+}
+
+export async function markPromoRedemptionExpiredOrCancelled(input: {
+  redemptionId: string;
+  stripeCheckoutSessionId: string;
+  webhookMeta: Record<string, unknown>;
+}): Promise<{ ok: boolean; idempotent?: boolean; code?: string; message?: string }> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
+  }
+
+  const row = await loadPromoRedemptionById(input.redemptionId);
+  if (!row) {
+    return { ok: false, code: "promo_redemption_not_found", message: "Promo redemption not found." };
+  }
+
+  if (row.status === "expired" || row.status === "cancelled") {
+    return { ok: true, idempotent: true };
+  }
+
+  if (row.status === "redeemed") {
+    return {
+      ok: false,
+      code: "promo_already_redeemed",
+      message: "Cannot cancel an already redeemed promo.",
+    };
+  }
+
+  if (
+    row.stripe_checkout_session_id &&
+    row.stripe_checkout_session_id !== input.stripeCheckoutSessionId
+  ) {
+    return { ok: true, idempotent: true };
+  }
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("leonix_promo_code_redemptions")
+    .update({
+      status: "expired",
+      updated_at: now,
+      metadata: {
+        ...(row.metadata ?? {}),
+        ...input.webhookMeta,
+        gate: "STRIPE-REVENUE-OS-WEBHOOK-FULFILLMENT-01",
+      },
+    })
+    .eq("id", input.redemptionId)
+    .eq("status", "pending");
+
+  if (error) {
+    return { ok: false, code: "promo_redemption_update_failed", message: error.message };
+  }
+
+  return { ok: true };
+}

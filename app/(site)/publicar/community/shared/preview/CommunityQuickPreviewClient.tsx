@@ -21,6 +21,7 @@ import {
 import { communityQuickEditUrl } from "../constants/communityPublishRoutes";
 import { COMMUNITY_PUBLISH_COPY } from "../copy/communityPublishCopy";
 import { CommunityQuickPreviewPublishBar } from "./CommunityQuickPreviewPublishBar";
+import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import {
   normalizeClasesQuickDraft,
   normalizeComunidadQuickDraft,
@@ -96,12 +97,12 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
   };
 
   if (!ready) {
-    return <div className="min-h-screen bg-[#D9D9D9]" aria-busy="true" data-testid="leonix-public-detail-shell" />;
+    return <div className="min-h-screen bg-[#F8F4EA]" aria-busy="true" data-testid="leonix-public-detail-shell" />;
   }
 
   if (!draft) {
     return (
-      <div className="min-h-screen bg-[#D9D9D9] px-4 py-10 text-center text-sm text-[#5C564E]">
+      <div className="min-h-screen bg-[#F8F4EA] px-4 py-10 text-center text-sm text-[#5C564E]">
         <p>{noDraft.message}</p>
         <Link href={editHref} className="mt-4 inline-block font-semibold text-[#2563EB] underline">
           {noDraft.backLink}
@@ -113,6 +114,7 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
   void fromPublicar;
 
   const organizerName = draft.organizer.trim() || "—";
+  const previewLeonixAdId = formatLeonixAdId(draft.previewListingId);
 
   const adBody =
     kind === "clases" ? (
@@ -122,6 +124,7 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
         shell="embedded"
         contactSectionId="contact-actions"
         heroTestId="community-anuncio-hero"
+        leonixAdId={previewLeonixAdId}
       />
     ) : (
       <ComunidadQuickAdCanvas
@@ -130,6 +133,7 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
         shell="embedded"
         contactSectionId="contact-actions"
         heroTestId="community-anuncio-hero"
+        leonixAdId={previewLeonixAdId}
       />
     );
 

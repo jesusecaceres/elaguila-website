@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { FaMapMarkerAlt, FaSearch, FaStar } from "react-icons/fa";
+import { useSearchParams } from "next/navigation";
+import { FaStar } from "react-icons/fa";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -13,20 +12,17 @@ import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLan
 
 import {
   buildRestaurantesResultsHref,
-  defaultRestaurantesDiscoveryState,
-  restaurantesDiscoveryStateToParams,
-  splitLocationInput,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
-import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import {
   type RestaurantesBlueprintCard,
   RESTAURANTES_BLUEPRINT_CATEGORY_TILES,
-  RESTAURANTES_BLUEPRINT_CUISINE_CHIPS,
   RESTAURANTES_BLUEPRINT_QUICK_FILTERS,
 } from "./restaurantesBlueprintSampleData";
 import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
 import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
+import { RestaurantesCompactSearchCanvas } from "./RestaurantesCompactSearchCanvas";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
 import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
@@ -57,20 +53,27 @@ function RestaurantesLandingPageInner({
   landingNote?: string;
   discoveryLookupRows: RestaurantesPublicBlueprintRow[];
 }) {
-  const router = useRouter();
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
   const lang: Lang = useMemo(() => (new URLSearchParams(spStr).get("lang") === "en" ? "en" : "es"), [spStr]);
 
   const [searchQ, setSearchQ] = useState("");
-  const [location, setLocation] = useState("");
+  const [searchCity, setSearchCity] = useState("");
+  const [searchState, setSearchState] = useState("CA");
+  const [searchZip, setSearchZip] = useState("");
+  const [searchCountry, setSearchCountry] = useState("United States");
 
   useEffect(() => {
     const q = sp?.get("q") ?? "";
     const city = sp?.get("city") ?? "";
+    const state = sp?.get("state") ?? "CA";
     const zip = sp?.get("zip") ?? "";
+    const country = sp?.get("country") ?? "United States";
     if (q) setSearchQ(q);
-    if (city || zip) setLocation(zip || city);
+    setSearchCity(city);
+    setSearchState(state);
+    setSearchZip(zip);
+    setSearchCountry(country);
   }, [sp]);
 
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
@@ -143,74 +146,14 @@ function RestaurantesLandingPageInner({
   }, [lang]);
 
   const landingSearchForm = (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const loc = splitLocationInput(location);
-              const next = {
-                ...defaultRestaurantesDiscoveryState(lang),
-                lang,
-                q: searchQ.trim(),
-                city: loc.city ?? "",
-                zip: loc.zip ?? "",
-              };
-              rememberRestaurantesDiscoveryFromState(next);
-              router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(next)));
-            }}
-            className="flex flex-col gap-3.5 sm:gap-4 xl:flex-row xl:items-start"
-          >
-            <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-3 sm:gap-3.5 md:grid-cols-2 xl:contents">
-              <div className="min-w-0 md:min-w-0 xl:flex-1">
-                <label className="sr-only" htmlFor="rx-landing-q">
-                  {copy.searchPh}
-                </label>
-                <div className="relative">
-                  <FaSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
-                  <input
-                    id="rx-landing-q"
-                    value={searchQ}
-                    onChange={(e) => setSearchQ(e.target.value)}
-                    placeholder={copy.searchPh}
-                    autoComplete="off"
-                    aria-describedby="rx-landing-q-hint"
-                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-11 pr-3 text-sm text-[color:var(--lx-text)] outline-none ring-[var(--brand-color-1)]/25 transition-shadow focus:ring-2"
-                  />
-                </div>
-                <p id="rx-landing-q-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[color:var(--lx-muted)] sm:text-xs">
-                {copy.searchHelper}
-                </p>
-              </div>
-              <div className="min-w-0 md:min-w-0 xl:flex-1">
-                <label className="sr-only" htmlFor="rx-landing-loc">
-                  {copy.locationPh}
-                </label>
-                <div className="relative">
-                  <FaMapMarkerAlt className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
-                  <input
-                    id="rx-landing-loc"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder={copy.locationPh}
-                    autoComplete="address-level2"
-                    aria-describedby="rx-landing-loc-hint"
-                    className="min-h-[50px] w-full min-w-0 rounded-[14px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] py-3 pl-11 pr-3 text-sm text-[color:var(--lx-text)] outline-none ring-[#D97706]/25 transition-shadow focus:ring-2"
-                  />
-                </div>
-                <p id="rx-landing-loc-hint" className="mt-1.5 text-left text-[11px] leading-snug text-[color:var(--lx-muted)] sm:text-xs">
-                {copy.locationHelper}
-                </p>
-              </div>
-            </div>
-            <div className="w-full shrink-0 xl:w-[min(100%,188px)] xl:self-center">
-              <button
-                type="submit"
-                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-[14px] px-6 text-sm font-bold text-white shadow-[0_10px_32px_-12px_rgba(180,83,9,0.5)] transition hover:brightness-[1.04] hover:shadow-[0_12px_36px_-12px_rgba(180,83,9,0.52)] active:scale-[0.99] active:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 touch-manipulation"
-                style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-              >
-                {copy.searchCta}
-              </button>
-            </div>
-          </form>
+    <RestaurantesCompactSearchCanvas
+      lang={lang}
+      defaultQ={searchQ}
+      defaultCity={searchCity}
+      defaultState={searchState}
+      defaultZip={searchZip}
+      defaultCountry={searchCountry}
+    />
   );
 
   const restaurantesLandingChips = (
@@ -227,22 +170,13 @@ function RestaurantesLandingPageInner({
         className="mt-2"
         label={lang === "en" ? "Quick restaurant filters" : "Filtros rápidos de restaurantes"}
       >
-        {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.map((f) => (
+        {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.slice(0, 8).map((f) => (
           <Link
             key={f.id}
             href={buildRestaurantesResultsHref(lang, f.resultParams)}
-            className="inline-flex min-h-[36px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#2A4536] hover:border-[#7A1E2C]/40"
+            className="inline-flex h-[30px] shrink-0 snap-start items-center whitespace-nowrap rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold text-[#3D3428] hover:border-[#C9A84A]/70 sm:text-xs"
           >
             {lang === "es" ? f.labelEs : f.labelEn}
-          </Link>
-        ))}
-        {RESTAURANTES_BLUEPRINT_CUISINE_CHIPS.map((c) => (
-          <Link
-            key={c.id}
-            href={buildRestaurantesResultsHref(lang, { cuisine: c.cuisineKey })}
-            className="inline-flex min-h-[36px] shrink-0 snap-start items-center whitespace-nowrap rounded-full border border-[#D6C7AD]/70 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#2A4536] hover:border-[#7A1E2C]/40"
-          >
-            {lang === "es" ? c.labelEs : c.labelEn}
           </Link>
         ))}
       </CategoryLandingChipsRail>

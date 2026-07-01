@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Image from "next/image";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { LeonixTrustFooter } from "@/app/(site)/clasificados/components/leonixShell/LeonixTrustFooter";
 import type { WeeklyScheduleGridItem } from "../lib/communityWeeklySchedule";
 
 /** Leonix cream/ivory canvas surfaces — aligned with En Venta / Varios detail shells. */
@@ -15,7 +17,7 @@ export const COMMUNITY_PREMIUM_SURFACE = {
   infoTileLabel: "text-[10px] font-semibold uppercase tracking-wide text-[#9A948C]",
   infoTileValue: "mt-1 text-sm font-bold leading-snug text-[#2A2826]",
   chip:
-    "inline-flex max-w-full items-center rounded-full border border-[#C9A84A]/55 bg-[#FBF7EF] px-3 py-1 text-xs font-semibold text-[#3D3428] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
+    "inline-flex max-w-full items-center rounded-lg border border-[#C9A84A]/55 bg-[#FBF7EF] px-3 py-1.5 text-xs font-semibold text-[#3D3428] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]",
   scheduleRow: "flex items-center justify-between gap-3 border-b border-[#D6C7AD]/45 py-2.5 last:border-b-0",
 } as const;
 
@@ -38,21 +40,30 @@ export function CommunityPremiumCanvasCard({
 export function CommunityPremiumOrganizerCard({
   label,
   name,
+  logoSrc,
 }: {
   label: string;
   name: string;
+  logoSrc?: string;
 }) {
   const display = name.trim() || "—";
   const initial = display !== "—" ? display.slice(0, 1).toUpperCase() : "?";
+  const logo = logoSrc?.trim();
 
   return (
-    <div className="mx-auto mt-4 flex max-w-xs items-center gap-3 rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF]/80 px-4 py-3 shadow-sm">
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#C9B46A]/45 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-sm font-bold text-[#7A6B4A]"
-        aria-hidden
-      >
-        {initial}
-      </div>
+    <div className="mx-auto mt-4 flex max-w-sm items-center gap-3 rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF]/80 px-4 py-3 shadow-sm">
+      {logo ? (
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#C9B46A]/45 bg-white shadow-sm">
+          <Image src={logo} alt="" fill className="object-cover" sizes="48px" unoptimized />
+        </div>
+      ) : (
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#C9B46A]/45 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-sm font-bold text-[#7A6B4A]"
+          aria-hidden
+        >
+          {initial}
+        </div>
+      )}
       <div className="min-w-0 text-left">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#8A6B1F]">{label}</p>
         <p className="mt-0.5 truncate text-base font-bold leading-snug text-[#2A2826]">{display}</p>
@@ -65,11 +76,13 @@ export function CommunityPremiumIdentitySection({
   title,
   organizerLabel,
   organizerName,
+  organizerLogoUrl,
   chips,
 }: {
   title: string;
   organizerLabel: string;
   organizerName: string;
+  organizerLogoUrl?: string;
   chips: string[];
 }) {
   const visibleChips = chips.filter((c) => c.trim() && c !== "—");
@@ -79,7 +92,7 @@ export function CommunityPremiumIdentitySection({
       <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[#2A2826] sm:text-3xl lg:text-[2rem] lg:leading-tight">
         {title.trim() || "—"}
       </h1>
-      <CommunityPremiumOrganizerCard label={organizerLabel} name={organizerName} />
+      <CommunityPremiumOrganizerCard label={organizerLabel} name={organizerName} logoSrc={organizerLogoUrl} />
       {visibleChips.length ? (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {visibleChips.map((chip) => (
@@ -206,28 +219,9 @@ export function CommunityPremiumTrustFooter({
   lang: Lang;
   leonixAdId?: string | null;
 }) {
-  const trustLabel = lang === "es" ? "Publicado en Leonix" : "Published on Leonix";
-  const idLabel = lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID";
-
   return (
-    <div
-      className="flex flex-wrap items-center justify-center gap-3 pt-2 text-center"
-      data-testid="community-premium-trust-footer"
-    >
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C9B46A]/45 bg-[#E8F3EA] px-3 py-1 text-[11px] font-semibold text-[#1B4332]">
-        {trustLabel}
-      </span>
-      {leonixAdId?.trim() ? (
-        <span
-          className="select-all rounded-lg border border-[#D6C7AD]/60 bg-[#FBF7EF]/90 px-3 py-1 font-mono text-[11px] text-[#5C564E]"
-          data-testid="community-canvas-ad-id"
-        >
-          <span className="font-sans text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">
-            {idLabel}:{" "}
-          </span>
-          {leonixAdId.trim()}
-        </span>
-      ) : null}
+    <div data-testid="community-premium-trust-footer">
+      <LeonixTrustFooter lang={lang} leonixAdId={leonixAdId} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaSnapchat, FaTiktok,
 import { FaXTwitter } from "react-icons/fa6";
 import { FiExternalLink, FiGlobe, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 
+import { CommunityLeonixMapVisual } from "./CommunityLeonixMapVisual";
 import {
   buildCommunityMapQuery,
   googleMapsSearchUrl,
@@ -526,16 +527,21 @@ export function CommunityContactCanvas({
                   <p className="text-sm font-medium" style={{ color: GH.charcoal }}>{cityStateZip}</p>
                 ) : null}
                 {mapsUrl ? (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`${btnPrimaryClass()} mt-1`}
-                    style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
-                  >
-                    <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                    {t.map}
-                  </a>
+                  <>
+                    <CommunityLeonixMapVisual
+                      label={lang === "es" ? "Mapa del lugar del evento" : "Event location map"}
+                    />
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${btnPrimaryClass()} mt-1`}
+                      style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
+                    >
+                      <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                      {t.map}
+                    </a>
+                  </>
                 ) : null}
               </>
             )}

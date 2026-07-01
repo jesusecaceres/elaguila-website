@@ -12,6 +12,8 @@ export type BrResultsCopy = {
   searchPlaceholder: string;
   cityLabel: string;
   cityPlaceholder: string;
+  stateLabel: string;
+  countryLabel: string;
   zipLabel: string;
   zipPlaceholder: string;
   operationLabel: string;
@@ -75,6 +77,8 @@ export type BrResultsCopy = {
   filterLabels: {
     q: string;
     city: string;
+    state: string;
+    country: string;
     operationType: string;
     propertyType: string;
     sellerType: string;
@@ -120,8 +124,10 @@ const ES: BrResultsCopy = {
   searchPlaceholder: "Palabras clave en título o dirección…",
   cityLabel: "Ciudad o zona",
   cityPlaceholder: "Ej. Monterrey, Polanco…",
-  zipLabel: "Código postal (US)",
-  zipPlaceholder: "Ej. 91101",
+  stateLabel: "Estado",
+  countryLabel: "País",
+  zipLabel: "ZIP",
+  zipPlaceholder: "Ej. 95116",
   operationLabel: "Operación",
   operationAny: "Todas",
   operationSale: "Venta",
@@ -188,6 +194,8 @@ const ES: BrResultsCopy = {
   filterLabels: {
     q: "Búsqueda",
     city: "Ciudad",
+    state: "Estado",
+    country: "País",
     operationType: "Operación",
     propertyType: "Tipo",
     sellerType: "Vendedor",
@@ -202,7 +210,7 @@ const ES: BrResultsCopy = {
     secondary: "Detalles",
     propiedad: "Categoría",
     precio: "Rango precio",
-    zip: "CP",
+    zip: "ZIP",
   },
   spotlightTitle: "Negocios en primer plano",
   spotlightSubtitle:
@@ -234,9 +242,11 @@ const EN: BrResultsCopy = {
   searchLabel: "Search",
   searchPlaceholder: "Keywords in title or address…",
   cityLabel: "City or area",
-  cityPlaceholder: "e.g. Monterrey, Polanco…",
-  zipLabel: "ZIP code (US)",
-  zipPlaceholder: "e.g. 91101",
+  cityPlaceholder: "e.g. San José, Oakland…",
+  stateLabel: "State",
+  countryLabel: "Country",
+  zipLabel: "ZIP",
+  zipPlaceholder: "e.g. 95116",
   operationLabel: "Transaction",
   operationAny: "All",
   operationSale: "Sale",
@@ -303,6 +313,8 @@ const EN: BrResultsCopy = {
   filterLabels: {
     q: "Search",
     city: "City",
+    state: "State",
+    country: "Country",
     operationType: "Transaction",
     propertyType: "Type",
     sellerType: "Seller",

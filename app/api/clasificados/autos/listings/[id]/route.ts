@@ -12,6 +12,7 @@ import {
   buildAutosListingApiErrorPayload,
   buildAutosListingApiSuccessPayload,
   detectAutosHeavyTransport,
+  detectAutosLocalVideoTransport,
 } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 
 export const runtime = "nodejs";
@@ -70,12 +71,25 @@ export async function PATCH(request: Request, { params }: Props) {
     );
   }
 
+  const localVideo = detectAutosLocalVideoTransport(rawBody);
+  if (localVideo.length) {
+    return NextResponse.json(
+      buildAutosListingApiErrorPayload({
+        errorCode: "LOCAL_VIDEO_URL_REQUIRED",
+        message: "Publish body must not contain local video files or blob/data video URLs.",
+        details: localVideo.slice(0, 12).join("; "),
+        legacyError: "local_video_url_required",
+      }),
+      { status: 400 },
+    );
+  }
+
   const heavy = detectAutosHeavyTransport(rawBody);
   if (heavy.length) {
     return NextResponse.json(
       buildAutosListingApiErrorPayload({
         errorCode: "HEAVY_MEDIA_DETECTED",
-        message: "Publish body must not contain data: URLs or blob: URLs.",
+        message: "Publish body must not contain unpublished local photos (data: URLs or blob: URLs).",
         details: heavy.slice(0, 12).join("; "),
         legacyError: "heavy_media_detected",
       }),

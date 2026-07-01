@@ -1,9 +1,8 @@
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
-import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import {
-  LEONIX_DP_POSTAL_CODE,
-  readLeonixDetailPairValue,
-} from "@/app/clasificados/lib/leonixRealEstateListingContract";
+  formatEnVentaPublicLocationLine,
+  readEnVentaLocationFromRow,
+} from "../shared/constants/enVentaLocationContract";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 import { resolveEnVentaListingImageUrls } from "../shared/utils/resolveEnVentaListingImageUrls";
 import { resolveEnVentaVideoUrl } from "../shared/utils/enVentaVideoEmbed";
@@ -156,12 +155,8 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
 
   let zipResolved: string | null =
     row.zip != null && String(row.zip).trim() ? String(row.zip).trim() : null;
-  if (!zipResolved) {
-    const fromMachine = readLeonixDetailPairValue(row.detail_pairs, LEONIX_DP_POSTAL_CODE);
-    const fromPairs = pairs.find((p) => /c[oó]digo\s*postal|zip/i.test(p.label))?.value;
-    const z = normalizeZipInput(fromMachine ?? fromPairs ?? "");
-    if (z) zipResolved = z;
-  }
+  const locFromRow = readEnVentaLocationFromRow(row);
+  if (!zipResolved && locFromRow.zip) zipResolved = locFromRow.zip;
 
   const { pickup, shipping, delivery, meetup } = signals.fulfillment;
   const brand = signals.brand ?? null;
@@ -173,8 +168,10 @@ export function mapDbRowToEnVentaAnuncioDTO(row: Record<string, unknown>): EnVen
     title: { es: titleStr, en: titleStr },
     description,
     priceLabel,
-    city: String(row.city ?? "").trim(),
+    city: locFromRow.city || String(row.city ?? "").trim(),
+    state: locFromRow.state,
     zip: zipResolved,
+    country: locFromRow.country,
     postedAgo: postedAgoOut,
     images,
     conditionKey: condKey || null,

@@ -114,7 +114,9 @@ export type RentasLandingCopy = {
     filterRefine: string;
     applyFilters: string;
     cityLabel: string;
+    stateLabel: string;
     zipLabel: string;
+    countryLabel: string;
     bathsMinLabel: string;
     halfBathsMinLabel: string;
     bathsAny: string;
@@ -315,7 +317,9 @@ const ES: RentasLandingCopy = {
     filterRefine: "Ubicación y baños",
     applyFilters: "Aplicar filtros",
     cityLabel: "Ciudad",
-    zipLabel: "CP",
+    stateLabel: "Estado",
+    zipLabel: "ZIP",
+    countryLabel: "País",
     bathsMinLabel: "Baños mín.",
     halfBathsMinLabel: "Medios baños mín.",
     bathsAny: "Cualquiera",
@@ -515,7 +519,9 @@ const EN: RentasLandingCopy = {
     filterRefine: "Location & baths",
     applyFilters: "Apply filters",
     cityLabel: "City",
+    stateLabel: "State",
     zipLabel: "ZIP",
+    countryLabel: "Country",
     bathsMinLabel: "Min baths",
     halfBathsMinLabel: "Min half-baths",
     bathsAny: "Any",

@@ -7,7 +7,7 @@ import {
 } from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 
 import { empleosQuickPublicCityState } from "../lib/empleosPublicLocation";
-import { normalizePayDisplay } from "../lib/empleosPayDisplay";
+import { ensurePublicPayString, normalizePayDisplayParts } from "../lib/empleosPayDisplay";
 import {
   normalizeScheduleRows,
   scheduleMainDisplay,
@@ -75,7 +75,7 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     : undefined;
 
   const web = sanitizeHttpUrl(d.website);
-  const payDisplay = normalizePayDisplay({
+  const payParts = normalizePayDisplayParts({
     pay: d.pay,
     payAmount: d.payAmount,
     payUnit: d.payUnit,
@@ -102,7 +102,7 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     filterRegionFootnote: loc.filterRegionFootnote,
     mainImageSrc: main.src,
     mainImageAlt: main.alt,
-    pay: payDisplay,
+    pay: ensurePublicPayString(payParts.headline),
     payAmount: d.payAmount.trim() || undefined,
     payUnit: d.payUnit.trim() || undefined,
     payUnitCustom: d.payUnitCustom.trim() || undefined,
