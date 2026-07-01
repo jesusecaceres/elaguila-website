@@ -112,6 +112,16 @@ const preExistingUnrelatedParallelWork = new Set([
   "app/(site)/publicar/autos/shared/components/AutosPricingPlanBanner.tsx",
   "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
   "app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx",
+  "scripts/autos-working-category-publish-pattern-rescue-audit.ts",
+  "app/lib/clasificados/autos/AUTOS_WORKING_CATEGORY_PUBLISH_PATTERN_RESCUE_AUDIT.md",
+  "app/lib/clasificados/autos/autosPublishApiContract.ts",
+  "app/lib/clasificados/autos/autosClassifiedsListingService.ts",
+  "app/lib/clasificados/autos/autosListingPayloadPersistence.ts",
+  "app/api/clasificados/autos/listings/route.ts",
+  "app/api/clasificados/autos/listings/[id]/route.ts",
+  "app/api/clasificados/autos/checkout/route.ts",
+  "app/api/clasificados/autos/publish-options/route.ts",
+  "app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare.ts",
 ]);
 
 const allowedExact = new Set([

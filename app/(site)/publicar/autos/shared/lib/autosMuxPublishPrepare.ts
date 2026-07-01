@@ -1,6 +1,7 @@
 "use client";
 
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { sanitizeAutosListingPayloadForPersistence } from "@/app/lib/clasificados/autos/autosListingPayloadPersistence";
 
 /** Drop inline draft video bytes from API payloads (confirm sync / create) so PATCH/POST stay small. */
 export function omitAutosInlineVideoForApiPayload(listing: AutoDealerListing): AutoDealerListing {
@@ -9,6 +10,11 @@ export function omitAutosInlineVideoForApiPayload(listing: AutoDealerListing): A
     next.videoFileDataUrl = undefined;
   }
   return next;
+}
+
+/** Client-side transport shaping before Autos listing API calls (strip non-durable media). */
+export function prepareAutosListingForApiTransport(listing: AutoDealerListing): AutoDealerListing {
+  return sanitizeAutosListingPayloadForPersistence(omitAutosInlineVideoForApiPayload(listing)).listing;
 }
 
 export type AutosMuxPublishPrepareResult = {

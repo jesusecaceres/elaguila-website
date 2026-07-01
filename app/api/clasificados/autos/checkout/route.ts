@@ -28,9 +28,11 @@ import {
   promoteNegociosMainInventoryListing,
   publishNegociosBundleAdditionalVehicles,
 } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
-import { isAutosNegociosQaPublishAllowlisted } from "@/app/lib/clasificados/autos/autosNegociosQaPublishAllowlist";
+import { isAutosNegociosQaPublishAllowlisted, parseAutosNegociosQaPublishAllowlist } from "@/app/lib/clasificados/autos/autosNegociosQaPublishAllowlist";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { buildAutosListingApiErrorPayload } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Body = {
@@ -148,9 +150,6 @@ export async function POST(request: Request) {
   }
   const userId = user.id;
   const userOnNegociosQaAllowlist = isAutosNegociosQaPublishAllowlisted(userId, user.email);
-  if (!internalBypass && !testPublishBypass && !userOnNegociosQaAllowlist && !isStripeAutosConfigured()) {
-    return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
-  }
   let body: Body;
   try {
     body = (await request.json()) as Body;
@@ -244,6 +243,23 @@ export async function POST(request: Request) {
       },
       { status: 409 },
     );
+  }
+
+  if (!internalBypass && !testPublishBypass && !negociosQaAllowlistBypass && !isStripeAutosConfigured()) {
+    if (row.lane === "negocios" && parseAutosNegociosQaPublishAllowlist().length === 0) {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "AUTOS_NEGOCIOS_QA_ALLOWLIST_MISSING",
+          message:
+            lang === "es"
+              ? "Tu cuenta todavía no está habilitada para publicar este anuncio de prueba. Revisa la configuración de QA de Autos Negocios."
+              : "Your account is not enabled for this QA publish yet. Check Autos Negocios QA configuration.",
+          legacyError: "autos_negocios_qa_allowlist_missing",
+        }),
+        { status: 503 },
+      );
+    }
+    return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
   }
 
   const priceId = getStripePriceIdForAutosLane(row.lane);
