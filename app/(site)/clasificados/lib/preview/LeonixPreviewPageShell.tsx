@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { ClasificadosUiLang } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
+import { previewBackToEditLabel } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
 
 const IVORY = "#F9F6F1";
 const BORDER = "rgba(61, 54, 48, 0.12)";
@@ -14,7 +16,8 @@ const BRONZE_SOFT = "#B8954A";
 export function LeonixPreviewPageShell({
   editHref,
   onBeforeNavigateToEdit,
-  backLabel = "Volver a editar",
+  lang,
+  backLabel,
   /** Optional primary action (e.g. publish to live) rendered before “Volver a editar”. */
   publishSlot,
   children,
@@ -22,11 +25,14 @@ export function LeonixPreviewPageShell({
   editHref?: string;
   /** BR Negocio: session handoff so leave-guards do not fire when returning from preview. */
   onBeforeNavigateToEdit?: () => void;
-  /** Defaults to Spanish; pass `Back to edit` for EN flows. */
+  /** When set, derives `backLabel` from shared ES/EN chrome copy. */
+  lang?: ClasificadosUiLang;
+  /** Override back label; defaults from `lang` or Spanish. */
   backLabel?: string;
   publishSlot?: ReactNode;
   children: React.ReactNode;
 }) {
+  const resolvedBackLabel = backLabel ?? (lang ? previewBackToEditLabel(lang) : "Volver a editar");
   return (
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden antialiased" style={{ backgroundColor: IVORY }}>
       <div
@@ -47,7 +53,7 @@ export function LeonixPreviewPageShell({
               className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full border px-4 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide sm:min-h-[40px] sm:w-auto sm:shrink-0 sm:py-2"
               style={{ borderColor: BORDER, color: BRONZE_SOFT }}
             >
-              {backLabel}
+              {resolvedBackLabel}
             </Link>
           ) : null}
         </div>

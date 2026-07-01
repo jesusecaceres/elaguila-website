@@ -5,13 +5,13 @@ Lock document separating **static/native public UI translation** from **dynamic/
 **Active Leonix UI languages:** es, en, vi, pt, tl, km, zh, ja, ko, hi, hy, ru, pa  
 **Held RTL (inactive):** ar, fa
 
-**Last verified:** MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1
+**Last verified:** GLOBAL-ES-EN-TRANSLATION-FOUNDATION1
 
 ---
 
 ## 0. Digital Magazine Multilingual Visual Edition Priority
 
-Digital magazine is now the top multilingual priority for Leonix Media.
+Digital magazine platform registry is established; **website ES/EN UI foundation is now launch-critical** (see `docs/global-es-en-translation-foundation.md`).
 
 - Magazine visual translation proof comes first.
 - Clasificados and Negocios Locales dynamic content translation are postponed.
@@ -156,6 +156,9 @@ See `docs/translation-env-setup.md`.
 
 | Gate | Purpose |
 |------|---------|
+| `PUBLIC-WEBSITE-13LANG-EXPANSION1` | Expand ES/EN copy registry pattern to remaining category/publish surfaces |
+| `SOURCE-LANGUAGE-ADS-FOUNDATION1` | Source-language display + future translated ad view architecture |
+| `PUBLISH-LANG1` | Publish/application operational copy ES/EN + 13-lang |
 | `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | Add local `DEEPL_AUTH_KEY`, install only DeepL if still missing, and rerun one-language (`pt`) magazine document smoke |
 | `MAGAZINE-VISUAL-ASSET-QA1` | Manual QA for any real local provider output before public asset registration |
 | `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` | Storage bucket, signed URLs, and reader wiring for approved magazine visual assets |
@@ -177,7 +180,7 @@ See `docs/translation-env-setup.md`.
 
 - `docs/leonix-translation-architecture.md`
 - `docs/magazine-visual-translation-proof.md`
-- `docs/magazine-translation-platform-runbook.md`
+- `docs/global-es-en-translation-foundation.md`
 - `docs/translation-env-setup.md`
 - `docs/translation-safety-guardrails.md`
 - `docs/translate-ad-gates.md`

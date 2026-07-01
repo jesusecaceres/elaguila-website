@@ -28,12 +28,7 @@ import { DashboardCategoryListingCard } from "../components/DashboardCategoryLis
 import { DashboardCompactMetricStrip } from "../components/DashboardCompactMetricStrip";
 import { DashboardMisAnunciosCategorySelector } from "../components/DashboardMisAnunciosCategorySelector";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
-import {
-  dashboardCountLabelActivos,
-  dashboardCountLabelCompartidos,
-  dashboardCountLabelTotalGestionados,
-  dashboardCountLabelVistas,
-} from "../lib/dashboardCountDefinitions";
+import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import {
   MIS_ANUNCIOS_CATEGORY_DEFS,
   isMisAnunciosCategoryKey,
@@ -43,10 +38,8 @@ import {
 import {
   buildCategoryPanelActions,
   buildInventoryListingActions,
-  categoryToolsTrustCopy,
   listingAnalyticsIsProven,
 } from "../lib/dashboardMisAnunciosCategoryTools";
-import { aggregateListingAnalyticsEvents, type ListingAnalyticsBucket } from "../lib/listingAnalyticsAggregate";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   buildAutosClassifiedsInventoryItems,
@@ -110,8 +103,8 @@ import {
   mapComidaLocalRowToDashboardVm,
   type ComidaLocalDashboardListingVm,
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
-
-type Lang = "es" | "en";
+import { misAnunciosListCopy } from "../lib/dashboardI18n";
+import type { Lang } from "../lib/dashboardI18n";
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -299,79 +292,7 @@ export default function MyListingsPage() {
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const q = `lang=${lang}`;
 
-  const t = useMemo(
-    () =>
-      lang === "es"
-        ? {
-            title: "My listings",
-            subtitle: "Pick a category and manage only those listings.",
-            searchPh: "Search by title…",
-            tabAll: "All",
-            tabActive: "Active",
-            tabExpired: "Ended",
-            tabMod: "Moderation",
-            statActive: dashboardCountLabelActivos("en"),
-            statTotalManaged: dashboardCountLabelTotalGestionados("en"),
-            statViews: dashboardCountLabelVistas("en"),
-            statShares: dashboardCountLabelCompartidos("en"),
-            loading: "Loading…",
-            empty: "No listings in this view.",
-            emptyCategory: "You don't have listings in this category yet.",
-            emptyCategoryBody: "Publish one when you're ready.",
-            publishInCategory: "Publish in",
-            emptyAll: "You don't have any listings yet.",
-            restaurantSectionTitle: "Restaurants",
-            restaurantSectionHint: "Manage your published restaurants from dashboard.",
-            cta: "Publish listing",
-            yourListings: "Listings",
-            categoryPanel: "Categories",
-            workspaceLabel: "Management area",
-            publish: "Publish",
-            results: "View results",
-            toolsTrust: categoryToolsTrustCopy("en"),
-            errorTitle: "We couldn't load your listings",
-            back: "Back to overview",
-            analyticsNotice:
-              "Analytics update when your listings receive real activity.",
-            countFootnote:
-              "Category totals include manageable records (active, paused, archived). Overview Active = visible today only.",
-          }
-        : {
-            title: "My listings",
-            subtitle: "Pick a category and manage only those listings.",
-            searchPh: "Search by title…",
-            tabAll: "All",
-            tabActive: "Active",
-            tabExpired: "Ended",
-            tabMod: "Moderation",
-            statActive: dashboardCountLabelActivos("en"),
-            statTotalManaged: dashboardCountLabelTotalGestionados("en"),
-            statViews: dashboardCountLabelVistas("en"),
-            statShares: dashboardCountLabelCompartidos("en"),
-            loading: "Loading…",
-            empty: "No listings in this view.",
-            emptyCategory: "You don't have listings in this category yet.",
-            emptyCategoryBody: "Publish one when you're ready.",
-            publishInCategory: "Publish in",
-            emptyAll: "You don't have any listings yet.",
-            restaurantSectionTitle: "Restaurants",
-            restaurantSectionHint: "Manage your published restaurants from dashboard.",
-            cta: "Publish listing",
-            yourListings: "Listings",
-            categoryPanel: "Categories",
-            workspaceLabel: "Management area",
-            publish: "Publish",
-            results: "View results",
-            toolsTrust: categoryToolsTrustCopy("en"),
-            errorTitle: "We couldn't load your listings",
-            back: "Back to overview",
-            analyticsNotice:
-              "Analytics update when your listings receive real activity.",
-            countFootnote:
-              "Category totals include manageable records (active, paused, archived). Overview Active = visible today only.",
-          },
-    [lang]
-  );
+  const t = useMemo(() => misAnunciosListCopy(lang), [lang]);
 
   const [authLoading, setAuthLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -1609,13 +1530,13 @@ export default function MyListingsPage() {
                           }
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
-                          View public
+                          {t.viewPublic}
                         </Link>
                         <Link
                           href={`/dashboard/mis-anuncios/${x.id}?${q}`}
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
-                          Manage listing
+                          {t.manageListing}
                         </Link>
                         {listingAnalyticsIsProven(catLower) ? (
                           <Link
@@ -1646,7 +1567,7 @@ export default function MyListingsPage() {
                             href={appendLangToPath("/clasificados/busco/resultados", lang)}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
-                            View requests
+                            {t.viewRequests}
                           </Link>
                         ) : null}
                         <button
@@ -1655,7 +1576,7 @@ export default function MyListingsPage() {
                           onClick={() => softArchiveListing(x.id)}
                           className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
                         >
-                          Archive ad
+                          {t.archiveAd}
                         </button>
                       </div>
                     </div>

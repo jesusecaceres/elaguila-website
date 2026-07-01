@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
+  archiveListingLabel,
+  editListingLabel,
+  pauseListingLabel,
+  publicViewLabel,
+  resumeListingLabel,
+} from "../lib/dashboardMisAnunciosCategoryTools";
+import {
   leonixLiveAnuncioPath,
   parseLeonixListingContract,
   type LeonixClasificadosBranch,
@@ -25,8 +32,7 @@ import {
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
-
-type Lang = "es" | "en";
+import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
 
 type Row = {
   id: string;
@@ -258,46 +264,52 @@ export function LeonixRealEstateListingManageCard({
             href={publicViewHref}
             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
           >
-            View public
+            {publicViewLabel(lang)}
           </Link>
           <Link
             href={scaffoldEditHref(effectiveBranch, lx.categoriaPropiedad)}
             className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
           >
-            Edit listing
+            {editListingLabel(lang)}
           </Link>
           <button
             type="button"
             disabled={busy || !canPause}
             onClick={onPause}
             title={
-              "Pause: hides the listing from the public. Not archive or republish."
+              lang === "es"
+                ? "Pausar: oculta el anuncio del público. No es archivar ni republicar."
+                : "Pause: hides the listing from the public. Not archive or republish."
             }
             className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
           >
-            Pause ad
+            {pauseListingLabel(lang)}
           </button>
           <button
             type="button"
             disabled={busy || !canResume}
             onClick={onResume}
             title={
-              "Restore: publish again after a pause. Not the same as Republish or Move to top."
+              lang === "es"
+                ? "Restaurar: publicar de nuevo tras una pausa. No es lo mismo que Republicar."
+                : "Restore: publish again after a pause. Not the same as Republish or Move to top."
             }
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
           >
-            Restore
+            {resumeListingLabel(lang)}
           </button>
           <button
             type="button"
             disabled={busy || st === "removed"}
             onClick={onArchive}
             title={
-              "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
+              lang === "es"
+                ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix)."
+                : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
             }
             className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
           >
-            Archive ad
+            {archiveListingLabel(lang)}
           </button>
         </div>
       </div>

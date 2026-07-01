@@ -1,5 +1,10 @@
 /** Leonix platform language config — server/client safe, no provider secrets. */
 
+/**
+ * UI language (`viewerLanguage`) follows route `?lang=` for platform chrome.
+ * Seller-entered listing content (`sourceContentLanguage`) is not translated here.
+ */
+
 export type LanguageDirection = "ltr" | "rtl";
 
 /** Routable active non-RTL site languages (URL ?lang=, header selector). */

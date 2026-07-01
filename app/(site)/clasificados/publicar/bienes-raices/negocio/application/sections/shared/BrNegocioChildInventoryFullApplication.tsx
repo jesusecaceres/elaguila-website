@@ -11,7 +11,6 @@ import {
   Step04DetallesEsenciales,
   Step05Caracteristicas,
   Step06Descripcion,
-  Step08CtaEnlaces,
   Step09ExtrasOpcionales,
 } from "../../../agente-individual/sections/steps04-09";
 import { useBrAgenteResidencialCopy } from "../../../agente-individual/application/BrAgenteResidencialLocaleContext";
@@ -28,6 +27,7 @@ import {
   validateAgenteChildInventoryForSave,
 } from "../../brNegocioChildInventoryFormMapping";
 import { BrNegocioChildInventoryInheritedHubPanel } from "./BrNegocioChildInventoryInheritedHubPanel";
+import { BrNegocioChildInventoryInheritedContactPanel } from "./BrNegocioChildInventoryInheritedContactPanel";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
 import { mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
@@ -298,7 +298,32 @@ export function BrNegocioChildInventoryFullApplication({
           <div className="mb-4 rounded-xl border border-[#C9B46A]/35 bg-[#FFF6E7] px-3 py-3 text-sm text-[#5C5346]">
             {copy.inheritedNotice}
           </div>
-          <div className="mb-4 rounded-xl border border-[#E8DFD0]/80 bg-white/60 px-3 py-3 text-sm text-[#5C5346]">
+          <div className="mb-4 lg:hidden">
+            <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-2 shadow-sm">
+              <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{t.app.navPasos}</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+                {stepLabels.map((label, i) => (
+                  <button
+                    key={`child-m-${i}-${label}`}
+                    type="button"
+                    onClick={() => setStep(i)}
+                    className={
+                      "min-h-[52px] w-[min(100%,9.5rem)] shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-snug transition touch-manipulation " +
+                      (i === step
+                        ? "border-[#C9B46A] bg-[#FFF0D4] text-[#6E5418] shadow-sm"
+                        : "border-[#E8DFD0]/80 bg-white/90 text-[#5C5346] active:bg-white")
+                    }
+                  >
+                    <span className="block text-[10px] font-bold tabular-nums opacity-70">
+                      {i + 1}/{total}
+                    </span>
+                    <span className="line-clamp-2">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="mb-4 rounded-xl border border-[#E8DFD0]/80 bg-white/60 px-3 py-3 text-sm text-[#5C5346] hidden sm:block">
             {t.app.pasoDe}{" "}
             <span className="font-bold text-[#1E1810]">{step + 1}</span> {t.app.de} {total}
             <span className="mx-2 text-[#C9B46A]">·</span>
@@ -312,7 +337,7 @@ export function BrNegocioChildInventoryFullApplication({
           {step === 4 ? <Step05Caracteristicas state={state} setState={setState} /> : null}
           {step === 5 ? <Step06Descripcion state={state} setState={setState} /> : null}
           {step === 6 ? <BrNegocioChildInventoryInheritedHubPanel state={state} /> : null}
-          {step === 7 ? <Step08CtaEnlaces state={state} setState={setState} /> : null}
+          {step === 7 ? <BrNegocioChildInventoryInheritedContactPanel state={state} /> : null}
           {step === 8 ? <Step09ExtrasOpcionales state={state} setState={setState} /> : null}
           {step === 9 ? (
             <section className="space-y-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-sm">
@@ -372,15 +397,13 @@ export function BrNegocioChildInventoryFullApplication({
                 >
                   {copy.saveAndAddAnother}
                 </button>
-                {onGoToParentPreview ? (
-                  <button
-                    type="button"
-                    onClick={() => attemptSave("goToParentPreview")}
-                    className="min-h-[48px] rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
-                  >
-                    {copy.saveAndGoToParentPreview}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => attemptSave("goToParentPreview")}
+                  className="min-h-[48px] w-full touch-manipulation rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0 sm:w-auto"
+                >
+                  {copy.saveAndGoToParentPreview}
+                </button>
               </>
             ) : (
               <button

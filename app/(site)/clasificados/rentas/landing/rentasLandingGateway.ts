@@ -43,6 +43,8 @@ export type RentasGatewayLink = {
 export type RentasGatewayTile = RentasGatewayLink & {
   Icon: IconType;
   accent: "burgundy" | "green" | "gold";
+  hintEs?: string;
+  hintEn?: string;
 };
 
 export type RentasDrawerSpaceType = {
@@ -56,6 +58,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Cuarto",
     labelEn: "Room",
+    hintEs: "Para una persona o pareja",
+    hintEn: "For one person or a couple",
     Icon: FiHome,
     accent: "burgundy",
     params: { [RENTAS_QUERY_SUBTYPE]: "cuarto-privado" },
@@ -64,6 +68,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Garage",
     labelEn: "Garage",
+    hintEs: "Espacio convertido o privado",
+    hintEn: "Converted or private space",
     Icon: FiGrid,
     accent: "gold",
     params: { [RENTAS_QUERY_Q]: "garage" },
@@ -72,6 +78,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Sala / espacio",
     labelEn: "Living space",
+    hintEs: "Algo sencillo y económico",
+    hintEn: "Simple and affordable",
     Icon: FiMaximize2,
     accent: "green",
     params: { [RENTAS_QUERY_Q]: "sala" },
@@ -80,6 +88,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Estudio",
     labelEn: "Studio",
+    hintEs: "Todo en un solo espacio",
+    hintEn: "All in one space",
     Icon: FiLayers,
     accent: "burgundy",
     params: { [RENTAS_QUERY_SUBTYPE]: "estudio" },
@@ -88,6 +98,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Apartamento",
     labelEn: "Apartment",
+    hintEs: "Más privacidad",
+    hintEn: "More privacy",
     Icon: FiHome,
     accent: "green",
     params: { [RENTAS_QUERY_SUBTYPE]: "apartamento" },
@@ -96,6 +108,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "ADU / Casita",
     labelEn: "ADU / Casita",
+    hintEs: "Entrada independiente si aplica",
+    hintEn: "Separate entry when available",
     Icon: FiHome,
     accent: "gold",
     params: { [RENTAS_QUERY_SUBTYPE]: "tiny-home" },
@@ -104,6 +118,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Casa móvil",
     labelEn: "Mobile home",
+    hintEs: "Opción práctica",
+    hintEn: "A practical option",
     Icon: FiTruck,
     accent: "green",
     params: { [RENTAS_QUERY_SUBTYPE]: "casa-movil-renta" },
@@ -112,6 +128,8 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
     labelEs: "Para familia",
     labelEn: "For family",
+    hintEs: "Más espacio para vivir",
+    hintEn: "More room to live",
     Icon: FiUsers,
     accent: "burgundy",
     params: { [RENTAS_QUERY_RECS]: "2" },
