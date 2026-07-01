@@ -210,14 +210,18 @@ Live DB now backs Admin payment tracker and promo workspace reads once UI routes
 
 ## 11. Empleos Two-Pipeline Proof
 
-Empleos monetization has **two distinct pipelines** (owner rule):
+Empleos monetization has **two distinct pipelines** (owner rule — **ALIGNED** in `revenuePricingMatrix.ts`):
 
-| Pipeline | Package key (owner target) | Price | Stripe | Promo |
+| Pipeline | Package key | Price | Stripe | Promo |
 |---|---|---:|---|---|
-| Regular job post | `empleos_job_post_paid` | $24.99 / 30d | Yes | Yes |
-| Job fair | `empleos_job_fair_free` | Free | No | No |
+| Publicar empleo (regular job post) | `empleos_job_post_paid` | $24.99 / 30d | Yes | Yes |
+| Publicar feria de empleos (job fair) | `empleos_job_fair_free` | Free | No | No |
 
-**Current helper state (`revenuePricingMatrix.ts`):** uses legacy keys `empleos_job_30d` and `empleos_job_fair` with correct pricing intent ($24.99 paid vs free fair). **NEEDS OWNER ALIGNMENT GATE** to rename keys to `empleos_job_post_paid` and `empleos_job_fair_free` without breaking publish flows.
+**Legacy keys removed from Revenue OS source of truth:** `empleos_job_30d`, `empleos_job_fair` (deprecated; do not use in payment records or Checkout).
+
+**Stripe metadata:** `buildStripeCheckoutMetadataPayload()` returns eligible payload only for `empleos_job_post_paid`; job fair returns `{ eligible: false }`.
+
+**Promo rules:** `validatePromoEligibility()` rejects `empleos_job_fair_free` — promo not required.
 
 **Live proof:** No Empleos payment or placement rows were created. Empleos listings table exists live separately; not mutated.
 

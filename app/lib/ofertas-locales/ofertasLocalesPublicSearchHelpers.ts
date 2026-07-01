@@ -29,6 +29,7 @@ import type { OfertasLocalesAppLang } from "./useOfertasLocalesAppLang";
 import {
   OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT,
   parseOfertaLocalDraftSnapshot,
+  readDraftSnapshotLocationFields,
   readDraftSnapshotMembershipFields,
 } from "./ofertasLocalesDbSchema";
 
@@ -38,7 +39,9 @@ const PUBLIC_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set(["
 export type OfertaLocalPublicSearchQuery = {
   q?: string;
   city?: string;
+  state?: string;
   zip?: string;
+  country?: string;
   category?: string;
   marketType?: string;
   offerType?: string;
@@ -203,7 +206,9 @@ export function mapOfertaLocalPublicSearchRowToItem(
   lang: OfertasLocalesAppLang = "es"
 ): OfertaLocalPublicSearchItem {
   const parent = row.ofertas_locales;
-  const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(parent.draft_snapshot));
+  const snapshot = parseOfertaLocalDraftSnapshot(parent.draft_snapshot);
+  const snapshotFields = readDraftSnapshotMembershipFields(snapshot);
+  const locationFields = readDraftSnapshotLocationFields(snapshot);
   const source = resolveOfertaLocalPublicSourceAsset(row, parent);
   const itemFrom = row.valid_from?.trim() || parent.valid_from;
   const itemUntil = row.valid_until?.trim() || parent.valid_until;
@@ -251,6 +256,7 @@ export function mapOfertaLocalPublicSearchRowToItem(
     city,
     state,
     zipCode,
+    country: locationFields.country ?? "",
     phoneDisplay: phoneRaw,
     phoneHref: phoneHref || null,
     whatsappHref: whatsappHref || null,
@@ -295,6 +301,19 @@ function matchesZip(item: OfertaLocalPublicSearchItem, zip: string): boolean {
   return normalizeOfertaLocalSearchText(item.zipCode).replace(/\s+/g, "").startsWith(needle);
 }
 
+function matchesState(item: Pick<OfertaLocalPublicSearchItem, "state">, state: string): boolean {
+  const needle = normalizeOfertaLocalSearchText(state);
+  if (!needle) return true;
+  return normalizeOfertaLocalSearchText(item.state).includes(needle);
+}
+
+function matchesCountry(item: Pick<OfertaLocalPublicSearchItem, "country">, country: string): boolean {
+  const needle = normalizeOfertaLocalSearchText(country);
+  if (!needle) return true;
+  if (!item.country?.trim()) return false;
+  return normalizeOfertaLocalSearchText(item.country).includes(needle);
+}
+
 export function filterAndSortOfertaLocalPublicSearchItems(
   items: OfertaLocalPublicSearchItem[],
   query: OfertaLocalPublicSearchQuery
@@ -311,7 +330,9 @@ export function filterAndSortOfertaLocalPublicSearchItems(
     }
     if (!matchesKeyword(item, query.q ?? "")) return false;
     if (!matchesCity(item, query.city ?? "")) return false;
+    if (!matchesState(item, query.state ?? "")) return false;
     if (!matchesZip(item, query.zip ?? "")) return false;
+    if (!matchesCountry(item, query.country ?? "")) return false;
     return true;
   });
 
@@ -369,7 +390,9 @@ export function parseOfertaLocalPublicSearchQuery(
   return {
     q: params.get("q")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
+    state: params.get("state")?.trim() ?? "",
     zip: params.get("zip")?.trim() ?? "",
+    country: params.get("country")?.trim() ?? "",
     category: params.get("category")?.trim() ?? "",
     marketType: params.get("marketType")?.trim() ?? "",
     offerType: params.get("offerType")?.trim() ?? "",

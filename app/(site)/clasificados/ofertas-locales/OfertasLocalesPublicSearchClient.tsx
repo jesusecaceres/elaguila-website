@@ -24,6 +24,10 @@ const BTN_SECONDARY =
   "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF] disabled:cursor-not-allowed disabled:opacity-50";
 const SEARCH_CANVAS =
   "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
+const INPUT =
+  "min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45";
+const CHIP =
+  "inline-flex h-[30px] max-w-full shrink-0 snap-start items-center rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold leading-none text-[#3D3428] hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7]";
 
 function parseLang(raw: string | null): OfertasLocalesAppLang {
   return raw === "en" ? "en" : "es";
@@ -51,7 +55,9 @@ export function OfertasLocalesPublicSearchClient() {
 
   const [q, setQ] = useState(() => searchParams?.get("q") ?? "");
   const [city, setCity] = useState(() => searchParams?.get("city") ?? "");
+  const [state, setState] = useState(() => searchParams?.get("state") ?? "");
   const [zip, setZip] = useState(() => searchParams?.get("zip") ?? "");
+  const [country, setCountry] = useState(() => searchParams?.get("country") ?? "");
   const [category, setCategory] = useState(() => searchParams?.get("category") ?? "");
   const [marketType, setMarketType] = useState(() => searchParams?.get("marketType") ?? "");
   const [offerType, setOfferType] = useState(() => searchParams?.get("offerType") ?? "");
@@ -107,7 +113,9 @@ export function OfertasLocalesPublicSearchClient() {
   useEffect(() => {
     setQ(searchParams?.get("q") ?? "");
     setCity(searchParams?.get("city") ?? "");
+    setState(searchParams?.get("state") ?? "");
     setZip(searchParams?.get("zip") ?? "");
+    setCountry(searchParams?.get("country") ?? "");
     setCategory(searchParams?.get("category") ?? "");
     setMarketType(searchParams?.get("marketType") ?? "");
     setOfferType(searchParams?.get("offerType") ?? "");
@@ -131,7 +139,9 @@ export function OfertasLocalesPublicSearchClient() {
     (overrides?: Partial<{
       q: string;
       city: string;
+      state: string;
       zip: string;
+      country: string;
       category: string;
       marketType: string;
       offerType: string;
@@ -142,7 +152,9 @@ export function OfertasLocalesPublicSearchClient() {
       const next = {
         q: overrides?.q ?? q,
         city: overrides?.city ?? city,
+        state: overrides?.state ?? state,
         zip: overrides?.zip ?? zip,
+        country: overrides?.country ?? country,
         category: overrides?.category ?? category,
         marketType: overrides?.marketType ?? marketType,
         offerType: overrides?.offerType ?? offerType,
@@ -150,15 +162,33 @@ export function OfertasLocalesPublicSearchClient() {
       };
       if (next.q.trim()) params.set("q", next.q.trim());
       if (next.city.trim()) params.set("city", next.city.trim());
+      if (next.state.trim()) params.set("state", next.state.trim());
       if (next.zip.trim()) params.set("zip", next.zip.trim());
+      if (next.country.trim()) params.set("country", next.country.trim());
       if (next.category.trim()) params.set("category", next.category.trim());
       if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
       if (next.offerType.trim()) params.set("offerType", next.offerType.trim());
       if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
       router.push(`/clasificados/ofertas-locales?${params.toString()}`);
     },
-    [router, lang, q, city, zip, category, marketType, offerType, sort]
+    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort]
   );
+
+  const browseAllDeals = useCallback(() => {
+    setQ("");
+    setCity("");
+    setState("");
+    setZip("");
+    setCountry("");
+    setCategory("");
+    setMarketType("");
+    setOfferType("");
+    setSort("newest");
+    router.push(`/clasificados/ofertas-locales?lang=${lang}`);
+    requestAnimationFrame(() => {
+      document.getElementById("ofertas-browse")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [lang, router]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -166,13 +196,18 @@ export function OfertasLocalesPublicSearchClient() {
   };
 
   const publishHref = `/publicar/ofertas-locales?lang=${lang}`;
-  const hasFilters = Boolean(q || city || zip || category || marketType || offerType);
+  const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
   const listHasItems = shoppingList.counts.itemCount > 0;
   const resultCount = offers.length + items.length;
 
   const clearFilters = () => {
     setFiltersOpen(false);
+    setQ("");
+    setCity("");
+    setState("");
+    setZip("");
+    setCountry("");
     setCategory("");
     setMarketType("");
     setOfferType("");
@@ -209,12 +244,9 @@ export function OfertasLocalesPublicSearchClient() {
           <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
             {c.publishCta}
           </Link>
-          <Link
-            href={`/clasificados/ofertas-locales?lang=${lang}`}
-            className={`${BTN_SECONDARY} w-full sm:w-auto`}
-          >
-            {c.viewAllDeals}
-          </Link>
+          <button type="button" onClick={browseAllDeals} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
+            {c.browseAllDeals}
+          </button>
           {hasFilters ? (
             <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={clearFilters}>
               {c.clearFiltersLink}
@@ -230,8 +262,8 @@ export function OfertasLocalesPublicSearchClient() {
           ) : null}
         </div>
 
-        <form onSubmit={onSubmit} className={SEARCH_CANVAS}>
-          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
+        <form onSubmit={onSubmit} className={SEARCH_CANVAS} role="search">
+          <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
             <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
               <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -240,7 +272,7 @@ export function OfertasLocalesPublicSearchClient() {
                 </svg>
               </span>
               <input
-                className="min-h-[2.625rem] min-w-0 flex-1 bg-transparent px-2 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                className={`${INPUT} min-w-0 flex-1 px-2`}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={c.searchPlaceholderCompact}
@@ -249,34 +281,92 @@ export function OfertasLocalesPublicSearchClient() {
             </label>
             <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
               <input
-                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                className={INPUT}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder={c.cityPlaceholder}
                 aria-label={c.cityLabel}
+                autoComplete="address-level2"
               />
             </label>
             <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
               <input
-                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                className={INPUT}
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder={c.statePlaceholder}
+                aria-label={c.stateLabel}
+                autoComplete="address-level1"
+                maxLength={40}
+              />
+            </label>
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-3 sm:border-b-0">
+              <input
+                className={INPUT}
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
                 placeholder={c.zipPlaceholder}
                 aria-label={c.zipLabel}
                 inputMode="numeric"
                 maxLength={10}
+                autoComplete="postal-code"
               />
             </label>
-            <div className="flex gap-1.5 p-1.5 sm:col-span-3">
-              <button type="button" className={`${BTN_SECONDARY} flex-1`} onClick={() => setFiltersOpen(true)}>
+          </div>
+          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-3 sm:border-b-0 sm:border-r">
+              <input
+                className={INPUT}
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder={c.countryPlaceholder}
+                aria-label={c.countryLabel}
+                autoComplete="country-name"
+              />
+            </label>
+            <div className="flex gap-1.5 p-1.5 sm:col-span-9 sm:justify-end">
+              <button type="button" className={`${BTN_SECONDARY} flex-1 sm:max-w-[9rem]`} onClick={() => setFiltersOpen(true)}>
                 {c.filtersButton}
               </button>
-              <button type="submit" className={`${BTN_PRIMARY} flex-[1.2]`} disabled={loading}>
+              <button type="submit" className={`${BTN_PRIMARY} flex-[1.2] sm:max-w-[9rem]`} disabled={loading}>
                 {loading ? c.searching : c.searchButton}
               </button>
             </div>
           </div>
         </form>
+
+        {hasFilters ? (
+          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+            {q ? (
+              <button type="button" className={CHIP} onClick={() => pushSearch({ q: "" })}>
+                {lang === "es" ? "Quitar palabra clave" : "Remove keyword"} ×
+              </button>
+            ) : null}
+            {city ? (
+              <button type="button" className={CHIP} onClick={() => pushSearch({ city: "" })}>
+                {city} ×
+              </button>
+            ) : null}
+            {state ? (
+              <button type="button" className={CHIP} onClick={() => pushSearch({ state: "" })}>
+                {state} ×
+              </button>
+            ) : null}
+            {zip ? (
+              <button type="button" className={CHIP} onClick={() => pushSearch({ zip: "" })}>
+                {zip} ×
+              </button>
+            ) : null}
+            {country ? (
+              <button type="button" className={CHIP} onClick={() => pushSearch({ country: "" })}>
+                {country} ×
+              </button>
+            ) : null}
+            <button type="button" className={CHIP} onClick={clearFilters}>
+              {c.clearFiltersLink}
+            </button>
+          </div>
+        ) : null}
 
         {!loading && resultCount > 0 ? (
           <p className="mt-2 text-xs font-semibold text-[#556B3E]">{c.resultsCount(resultCount)}</p>
@@ -291,7 +381,7 @@ export function OfertasLocalesPublicSearchClient() {
         {loading ? <p className="mt-3 text-sm text-[#3D3428]/65">{c.searching}</p> : null}
 
         {!loading && showPipelineEmpty ? (
-          <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
+          <div id="ofertas-browse" className="mt-4 scroll-mt-24 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
             <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
             <Link href={publishHref} className={`${BTN_PRIMARY} mt-3 inline-flex`}>
@@ -304,9 +394,18 @@ export function OfertasLocalesPublicSearchClient() {
           <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
             <p className="text-sm font-semibold text-[#3D3428]">{c.emptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <button type="button" className={BTN_SECONDARY} onClick={clearFilters}>
+                {c.clearFiltersLink}
+              </button>
+              <button type="button" className={BTN_SECONDARY} onClick={browseAllDeals}>
+                {c.browseAllDeals}
+              </button>
+            </div>
           </div>
         ) : null}
 
+        <div id="ofertas-browse" className="scroll-mt-24">
         {!loading && offers.length > 0 ? (
           <section className="mt-4 sm:mt-5">
             <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
@@ -340,6 +439,7 @@ export function OfertasLocalesPublicSearchClient() {
             </ul>
           </section>
         ) : null}
+        </div>
 
         {!showPipelineEmpty ? (
           <div className="mt-5 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 sm:mt-6">
@@ -355,10 +455,18 @@ export function OfertasLocalesPublicSearchClient() {
         open={filtersOpen}
         lang={lang}
         c={c}
+        city={city}
+        state={state}
+        zip={zip}
+        country={country}
         category={category}
         marketType={marketType}
         offerType={offerType}
         sort={sort}
+        onCityChange={setCity}
+        onStateChange={setState}
+        onZipChange={setZip}
+        onCountryChange={setCountry}
         onCategoryChange={setCategory}
         onMarketTypeChange={setMarketType}
         onOfferTypeChange={setOfferType}

@@ -142,6 +142,15 @@ Future Checkout sessions should carry metadata from `buildStripeCheckoutMetadata
 
 Webhook fulfillment gate must write payment record, redemption, package/placement entitlements, and audit log from this metadata.
 
+**Empleos two pipelines (aligned gate `STRIPE-REVENUE-OS-PACKAGE-KEY-ALIGNMENT-01`):**
+
+| Pipeline | `package_key` | Stripe Checkout |
+|---|---|---|
+| Publicar empleo (regular job post) | `empleos_job_post_paid` | Yes — $24.99 / 30 days |
+| Publicar feria de empleos (job fair) | `empleos_job_fair_free` | No — always free |
+
+Legacy keys `empleos_job_30d` and `empleos_job_fair` are deprecated and must not appear in new payment records or Checkout metadata.
+
 ## 11. Admin OS Readiness
 
 | Surface | Status | Notes |

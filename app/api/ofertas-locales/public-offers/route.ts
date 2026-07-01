@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       whatsapp,
       website_url,
       directions_url,
+      draft_snapshot,
       flyer_assets,
       coupon_assets,
       submitted_at,

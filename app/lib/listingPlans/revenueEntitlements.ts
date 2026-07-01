@@ -1,7 +1,13 @@
 /**
  * Revenue OS entitlement/payment read model types and pure helpers.
- * Gate STRIPE-REVENUE-OS-SCHEMA-AND-ENTITLEMENT-CONTRACT-01 — no DB, Stripe, or env.
+ * Gate STRIPE-REVENUE-OS-PACKAGE-KEY-ALIGNMENT-01 — no DB, Stripe SDK, or env.
  */
+
+import {
+  EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY,
+  EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
+  isStripeEligiblePackageKey,
+} from "./revenuePricingMatrix";
 
 import {
   formatPaymentStatusLabel,
@@ -122,13 +128,41 @@ export type StripeCheckoutMetadataInput = {
   salesRepId?: string | null;
 };
 
+export type StripeCheckoutMetadataResult = {
+  eligible: boolean;
+  payload: Record<string, string>;
+  warnings: string[];
+};
+
+/** Re-export canonical Empleos Checkout package keys for downstream gates. */
+export { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY };
+
+/** Future Checkout gate must only create Stripe sessions for stripe-eligible package keys. */
+export function isStripeCheckoutMetadataEligible(packageKey: string | null | undefined): boolean {
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  if (key === EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY) return false;
+  return isStripeEligiblePackageKey(key);
+}
+
 /** Pure metadata payload for future Stripe Checkout session creation. */
 export function buildStripeCheckoutMetadataPayload(
   input: StripeCheckoutMetadataInput,
-): Record<string, string> {
+): StripeCheckoutMetadataResult {
+  const warnings: string[] = [];
+  const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
+
+  if (!isStripeCheckoutMetadataEligible(packageKey)) {
+    warnings.push(
+      packageKey === EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY
+        ? "Empleos job fair is free — do not create Stripe Checkout metadata."
+        : "Package key is not Stripe Checkout eligible.",
+    );
+    return { eligible: false, payload: {}, warnings };
+  }
+
   const payload: Record<string, string> = {
     leonix_category: String(input.category),
-    leonix_package_key: String(input.packageKey),
+    leonix_package_key: packageKey,
     leonix_billing_mode: String(input.billingMode),
   };
 
@@ -149,7 +183,11 @@ export function buildStripeCheckoutMetadataPayload(
     if (v) payload[key] = v;
   }
 
-  return payload;
+  if (packageKey === EMPLEOS_JOB_POST_PAID_PACKAGE_KEY) {
+    warnings.push("Empleos regular job post — Stripe Checkout metadata ready.");
+  }
+
+  return { eligible: true, payload, warnings };
 }
 
 export type OwnerDashboardBadgeInput = {

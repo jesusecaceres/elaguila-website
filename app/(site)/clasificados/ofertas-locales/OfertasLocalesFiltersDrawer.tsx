@@ -6,10 +6,18 @@ type Props = {
   open: boolean;
   lang: "es" | "en";
   c: OfertasLocalesPublicSearchCopy;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
   category: string;
   marketType: string;
   offerType: string;
   sort: string;
+  onCityChange: (v: string) => void;
+  onStateChange: (v: string) => void;
+  onZipChange: (v: string) => void;
+  onCountryChange: (v: string) => void;
   onCategoryChange: (v: string) => void;
   onMarketTypeChange: (v: string) => void;
   onOfferTypeChange: (v: string) => void;
@@ -22,14 +30,25 @@ type Props = {
 const INPUT =
   "mt-1 w-full min-h-[2.625rem] rounded-lg border border-[#D6C7AD]/90 bg-white px-3 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/70 focus:ring-2 focus:ring-[#C9A84A]/20";
 
+const GROUP =
+  "text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]";
+
 export function OfertasLocalesFiltersDrawer({
   open,
   lang,
   c,
+  city,
+  state,
+  zip,
+  country,
   category,
   marketType,
   offerType,
   sort,
+  onCityChange,
+  onStateChange,
+  onZipChange,
+  onCountryChange,
   onCategoryChange,
   onMarketTypeChange,
   onOfferTypeChange,
@@ -72,9 +91,54 @@ export function OfertasLocalesFiltersDrawer({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">
-            {lang === "es" ? "Categoría de oferta" : "Deal category"}
-          </p>
+          <p className={GROUP}>{c.locationGroup}</p>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
+              {c.cityLabel}
+              <input
+                className={INPUT}
+                value={city}
+                onChange={(e) => onCityChange(e.target.value)}
+                placeholder={c.cityPlaceholder}
+                autoComplete="address-level2"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#3D3428]">
+              {c.stateLabel}
+              <input
+                className={INPUT}
+                value={state}
+                onChange={(e) => onStateChange(e.target.value)}
+                placeholder={c.statePlaceholder}
+                autoComplete="address-level1"
+                maxLength={40}
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#3D3428]">
+              {c.zipLabel}
+              <input
+                className={INPUT}
+                value={zip}
+                onChange={(e) => onZipChange(e.target.value)}
+                placeholder={c.zipPlaceholder}
+                inputMode="numeric"
+                maxLength={10}
+                autoComplete="postal-code"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
+              {c.countryLabel}
+              <input
+                className={INPUT}
+                value={country}
+                onChange={(e) => onCountryChange(e.target.value)}
+                placeholder={c.countryPlaceholder}
+                autoComplete="country-name"
+              />
+            </label>
+          </div>
+
+          <p className={`${GROUP} mt-5`}>{lang === "es" ? "Categoría de oferta" : "Deal category"}</p>
           <div className="mt-3 space-y-3">
             <label className="block text-xs font-semibold text-[#3D3428]">
               {c.categoryLabel}
@@ -105,7 +169,7 @@ export function OfertasLocalesFiltersDrawer({
             </label>
           </div>
 
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{c.sortLabel}</p>
+          <p className={`${GROUP} mt-5`}>{c.sortLabel}</p>
           <label className="mt-3 block text-xs font-semibold text-[#3D3428]">
             {c.sortLabel}
             <select className={INPUT} value={sort} onChange={(e) => onSortChange(e.target.value)}>
@@ -122,7 +186,7 @@ export function OfertasLocalesFiltersDrawer({
             onClick={onClear}
             className="inline-flex min-h-[2.625rem] flex-1 items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
           >
-            {lang === "es" ? "Limpiar filtros" : "Clear filters"}
+            {c.clearFiltersLink}
           </button>
           <button
             type="button"

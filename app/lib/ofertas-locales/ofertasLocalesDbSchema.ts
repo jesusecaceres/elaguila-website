@@ -101,6 +101,18 @@ export function parseOfertaLocalDraftSnapshot(raw: unknown): OfertaLocalDraftSna
   return raw as OfertaLocalDraftSnapshot;
 }
 
+/** Public-safe location fields stored in `draft_snapshot.location` (country not on parent columns). */
+export function readDraftSnapshotLocationFields(snapshot: OfertaLocalDraftSnapshot): {
+  country: string | null;
+} {
+  const loc = snapshot.location;
+  if (!loc || typeof loc !== "object" || Array.isArray(loc)) return { country: null };
+  const o = loc as Record<string, unknown>;
+  const country =
+    typeof o.country === "string" && o.country.trim() ? o.country.trim().slice(0, 80) : null;
+  return { country };
+}
+
 export function readDraftSnapshotMembershipFields(snapshot: OfertaLocalDraftSnapshot): {
   membershipCtaLabel: string | null;
   requiresMembershipForDeals: boolean;
