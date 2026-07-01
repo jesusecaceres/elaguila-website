@@ -7,6 +7,7 @@ import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/c
 import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
+import { CATEGORY_STANDARD_CHIP } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { appendLangToPath, resolveHubCopyLang, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
 import { buildClasesListaUrl } from "./shared/utils/clasesListaUrl";
 
@@ -32,8 +33,7 @@ const COPY = {
   },
 } as const;
 
-const CHIP_CLASS =
-  "inline-flex min-h-[2.75rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF] sm:shrink";
+const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
 
 export default function Page() {
   const sp = useSearchParams();

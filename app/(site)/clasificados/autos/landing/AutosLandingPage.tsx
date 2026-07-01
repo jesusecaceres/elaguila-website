@@ -246,6 +246,7 @@ export function AutosLandingPage() {
             />
           }
           searchChips={<AutosQuickChips copy={copy} items={quickChipItems} />}
+          suppressVisibilityCta
         />
 
         <AutosLaneCrossNav

@@ -12,8 +12,10 @@ export const metadata: Metadata = {
 
 export default function ClasificadosOfertasLocalesPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7]" aria-busy="true" />}>
-      <OfertasLocalesPublicSearchClient />
-    </Suspense>
+    <div className="pt-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:pt-0">
+      <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7]" aria-busy="true" />}>
+        <OfertasLocalesPublicSearchClient />
+      </Suspense>
+    </div>
   );
 }

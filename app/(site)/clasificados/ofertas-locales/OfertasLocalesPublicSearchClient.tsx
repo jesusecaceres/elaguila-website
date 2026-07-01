@@ -16,6 +16,7 @@ import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
+import { CATEGORY_STANDARD_MAIN } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
 const BTN_PRIMARY =
   "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
@@ -186,7 +187,7 @@ export function OfertasLocalesPublicSearchClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <div className="mx-auto max-w-[1080px] px-3.5 pb-10 pt-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-4 lg:px-5">
+      <div className={CATEGORY_STANDARD_MAIN}>
         <header className="mb-3 sm:mb-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
