@@ -171,6 +171,10 @@ function flatFieldsFromChildSlice(
     const u = raw.trim();
     return u.startsWith("http://") || u.startsWith("https://") ? u : "";
   };
+  const primaryVideoUrl =
+    (Array.isArray(slice.videoUrls) ? slice.videoUrls : [])
+      .map((u) => durableUrl(String(u ?? "")))
+      .find(Boolean) ?? durableUrl(slice.videoUrl);
 
   return {
     title: slice.titulo.trim(),
@@ -192,7 +196,7 @@ function flatFieldsFromChildSlice(
     mainPhotoUrl: cover,
     photoUrls: photos,
     primaryPhotoIndex: coverIdx,
-    videoUrl: durableUrl(slice.videoUrl),
+    videoUrl: primaryVideoUrl,
     tourUrl: durableUrl(slice.tourUrl),
     brochureUrl: durableUrl(slice.brochureUrl),
     mlsUrl: durableUrl(""),

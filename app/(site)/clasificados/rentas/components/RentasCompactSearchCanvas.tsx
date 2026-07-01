@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { LEONIX_LB_CITY_PRESETS } from "@/app/clasificados/shared/constants/leonixLocalBusinessCityPresets";
 import {
-  LEONIX_LB_DEFAULT_COUNTRY,
   LEONIX_LB_DEFAULT_STATE,
   US_STATE_OPTIONS,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import {
   RENTAS_BTN_PRIMARY,
   RENTAS_BTN_SECONDARY,
+  RENTAS_LANDING_FIELD,
+  RENTAS_LANDING_SEARCH_CANVAS,
   RENTAS_SEARCH_CANVAS,
   RENTAS_SEARCH_INPUT,
   rentasBrowseSearchPlaceholder,
@@ -32,6 +33,8 @@ type Props = {
   browseAllHref?: string;
   searchButtonLabel: string;
   filtersButtonLabel: string;
+  /** Landing uses wider keyword + field boxes; results keep compact grid. */
+  layout?: "default" | "landing";
 };
 
 export function RentasCompactSearchCanvas({
@@ -51,6 +54,7 @@ export function RentasCompactSearchCanvas({
   browseAllHref,
   searchButtonLabel,
   filtersButtonLabel,
+  layout = "default",
 }: Props) {
   const ph = rentasBrowseSearchPlaceholder(lang);
   const cityPh = lang === "es" ? "Ciudad" : "City";
@@ -58,6 +62,111 @@ export function RentasCompactSearchCanvas({
   const zipPh = "ZIP";
   const countryPh = lang === "es" ? "País" : "Country";
   const browseLabel = lang === "es" ? "Ver todos los anuncios" : "View all listings";
+  const isLanding = layout === "landing";
+
+  if (isLanding) {
+    return (
+      <div className={RENTAS_LANDING_SEARCH_CANVAS}>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:gap-2">
+          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-5`}>
+            <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3-3" strokeLinecap="round" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => onQuery(e.target.value)}
+              placeholder={ph}
+              aria-label={ph}
+              className={`${RENTAS_SEARCH_INPUT} px-2`}
+              autoComplete="off"
+            />
+          </label>
+          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-2`}>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => onCity(e.target.value)}
+              list="rentas-city-presets-landing"
+              placeholder={cityPh}
+              aria-label={cityPh}
+              className={RENTAS_SEARCH_INPUT}
+              autoComplete="address-level2"
+            />
+            <datalist id="rentas-city-presets-landing">
+              {LEONIX_LB_CITY_PRESETS.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </label>
+          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-2`}>
+            <select
+              value={state || LEONIX_LB_DEFAULT_STATE}
+              onChange={(e) => onState(e.target.value)}
+              aria-label={statePh}
+              className={`${RENTAS_SEARCH_INPUT} appearance-none`}
+            >
+              {US_STATE_OPTIONS.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.code}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-1`}>
+            <input
+              type="text"
+              value={zip}
+              onChange={(e) => onZip(e.target.value)}
+              placeholder={zipPh}
+              aria-label={zipPh}
+              inputMode="numeric"
+              maxLength={5}
+              className={`${RENTAS_SEARCH_INPUT} px-2 text-center sm:px-2`}
+              autoComplete="postal-code"
+            />
+          </label>
+          <div className="hidden sm:col-span-2 sm:block">
+            <button type="button" className={`${RENTAS_BTN_PRIMARY} w-full`} onClick={onSearch}>
+              {searchButtonLabel}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch sm:gap-2">
+          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-4`}>
+            <input
+              type="text"
+              value={country}
+              onChange={(e) => onCountry(e.target.value)}
+              placeholder={countryPh}
+              aria-label={countryPh}
+              className={RENTAS_SEARCH_INPUT}
+              autoComplete="country-name"
+            />
+          </label>
+          <div className="flex flex-col gap-2 sm:col-span-3 sm:flex-row sm:items-stretch">
+            <button type="button" className={`${RENTAS_BTN_SECONDARY} w-full`} onClick={onOpenFilters}>
+              {filtersButtonLabel}
+            </button>
+          </div>
+          {browseAllHref ? (
+            <Link href={browseAllHref} className={`${RENTAS_BTN_SECONDARY} sm:col-span-5 inline-flex w-full items-center justify-center`}>
+              {browseLabel}
+            </Link>
+          ) : (
+            <div className="hidden sm:col-span-5 sm:block" aria-hidden />
+          )}
+          <button type="button" className={`${RENTAS_BTN_PRIMARY} w-full sm:hidden`} onClick={onSearch}>
+            {searchButtonLabel}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={RENTAS_SEARCH_CANVAS}>

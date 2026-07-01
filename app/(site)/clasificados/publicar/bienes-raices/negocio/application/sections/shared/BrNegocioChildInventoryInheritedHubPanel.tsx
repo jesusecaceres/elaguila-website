@@ -1,15 +1,26 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { AgenteIndividualResidencialFormState } from "../../../agente-individual/schema/agenteIndividualResidencialFormState";
 import { aiCardClass, aiSubClass, aiTitleClass } from "../../../agente-individual/application/formPrimitives";
 import { useBrAgenteResidencialCopy } from "../../../agente-individual/application/BrAgenteResidencialLocaleContext";
 import { additionalBusinessLinks } from "../../../agente-individual/lib/agenteResidencialPreviewFormat";
-import { detectAgenteResBuyerActions } from "../../../agente-individual/lib/agenteResidencialDetectedActions";
 import { formatUsPhoneDisplay, digitsOnly } from "../../../agente-individual/application/utils/phoneMask";
+import { copyToClipboard } from "@/app/components/cta";
 
 function trim(v: string | undefined | null): string {
   return (v ?? "").trim();
+}
+
+function friendlyLinkLabel(url: string, fallback: string): string {
+  const raw = url.trim();
+  if (!raw) return fallback;
+  try {
+    const parsed = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+    return parsed.hostname.replace(/^www\./i, "") || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function HubRow({ label, value }: { label: string; value: string }) {
@@ -17,6 +28,54 @@ function HubRow({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2.5">
       <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</dt>
       <dd className="mt-0.5 break-words text-sm font-semibold text-[#1E1810]">{value}</dd>
+    </div>
+  );
+}
+
+function HubEmailRow({ label, email, copyLabel }: { label: string; email: string; copyLabel: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = useCallback(async () => {
+    const ok = await copyToClipboard(email);
+    if (ok) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+  }, [email]);
+
+  return (
+    <div className="rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2.5">
+      <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</dt>
+      <dd className="mt-0.5 flex flex-wrap items-center gap-2">
+        <a href={`mailto:${email}`} className="break-all text-sm font-semibold text-[#1E1810] underline-offset-2 hover:underline">
+          {email}
+        </a>
+        <button
+          type="button"
+          onClick={() => void onCopy()}
+          className="min-h-[44px] shrink-0 touch-manipulation rounded-lg border border-[#C9B46A]/50 bg-[#FFF6E7] px-3 py-1.5 text-xs font-bold text-[#6E5418] hover:bg-[#FFEFD8] sm:min-h-0"
+        >
+          {copied ? "✓" : copyLabel}
+        </button>
+      </dd>
+    </div>
+  );
+}
+
+function HubLinkRow({ label, href, linkLabel }: { label: string; href: string; linkLabel: string }) {
+  const safeHref = href.startsWith("http") ? href : `https://${href}`;
+  return (
+    <div className="rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2.5">
+      <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</dt>
+      <dd className="mt-0.5">
+        <a
+          href={safeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-[44px] items-center text-sm font-semibold text-[#6E5418] underline-offset-2 hover:underline sm:min-h-0"
+        >
+          {linkLabel}
+        </a>
+      </dd>
     </div>
   );
 }
@@ -58,10 +117,7 @@ export function BrNegocioChildInventoryInheritedHubPanel({
       ? "Esta información se hereda de la aplicación principal y se usará para esta propiedad."
       : "This information is inherited from the main application and will be used for this property.";
 
-  const detectedCtas = useMemo(
-    () => detectAgenteResBuyerActions(state, locale).filter((d) => d.active),
-    [state, locale],
-  );
+  const copyEmailLabel = lang === "es" ? "Copiar" : "Copy";
 
   const businessLinks = useMemo(() => additionalBusinessLinks(state, locale), [state, locale]);
 
@@ -152,14 +208,22 @@ export function BrNegocioChildInventoryInheritedHubPanel({
           {trim(state.agenteLicencia) ? <HubRow label={s7.licencia} value={state.agenteLicencia} /> : null}
           {trim(state.agenteAreaServicio) ? <HubRow label={s7.areaServicio} value={state.agenteAreaServicio} /> : null}
           {trim(state.agenteIdiomas) ? <HubRow label={s7.idiomas} value={state.agenteIdiomas} /> : null}
-          {trim(state.correoPrincipal) ? <HubRow label={s7.correoAgente} value={state.correoPrincipal} /> : null}
+          {trim(state.correoPrincipal) ? (
+            <HubEmailRow label={s7.correoAgente} email={state.correoPrincipal.trim()} copyLabel={copyEmailLabel} />
+          ) : null}
           {personalPhone ? <HubRow label={s7.telefonoPersonal} value={personalPhone} /> : null}
           {officePhone ? <HubRow label={s7.telefonoOficina} value={officePhone} /> : null}
           {whatsapp ? <HubRow label={s7.whatsapp} value={whatsapp} /> : null}
           {personalPhone && officePhone ? (
             <HubRow label={s7.numeroPrincipalLlamadas} value={primaryCallLabel} />
           ) : null}
-          {trim(state.agenteSitioWeb) ? <HubRow label={s7.sitioWebAgente} value={state.agenteSitioWeb} /> : null}
+          {trim(state.agenteSitioWeb) ? (
+            <HubLinkRow
+              label={s7.sitioWebAgente}
+              href={state.agenteSitioWeb.trim()}
+              linkLabel={friendlyLinkLabel(state.agenteSitioWeb, lang === "es" ? "Sitio web" : "Website")}
+            />
+          ) : null}
         </HubSection>
       ) : null}
 
@@ -168,14 +232,25 @@ export function BrNegocioChildInventoryInheritedHubPanel({
           <HubImage label={s7.logo} src={state.marcaLogoDataUrl} />
           {trim(state.marcaNombre) ? <HubRow label={s7.nombreMarca} value={state.marcaNombre} /> : null}
           {trim(state.marcaLicencia) ? <HubRow label={s7.licenciaMarca} value={state.marcaLicencia} /> : null}
-          {trim(state.marcaSitioWeb) ? <HubRow label={s7.sitioMarca} value={state.marcaSitioWeb} /> : null}
+          {trim(state.marcaSitioWeb) ? (
+            <HubLinkRow
+              label={s7.sitioMarca}
+              href={state.marcaSitioWeb.trim()}
+              linkLabel={friendlyLinkLabel(state.marcaSitioWeb, lang === "es" ? "Sitio de la oficina" : "Office website")}
+            />
+          ) : null}
         </HubSection>
       ) : null}
 
       {socialRows.length ? (
         <HubSection title={s7.redes}>
           {socialRows.map((row) => (
-            <HubRow key={row.label} label={row.label} value={row.value} />
+            <HubLinkRow
+              key={row.label}
+              label={row.label}
+              href={row.value}
+              linkLabel={friendlyLinkLabel(row.value, row.label)}
+            />
           ))}
         </HubSection>
       ) : null}
@@ -183,31 +258,19 @@ export function BrNegocioChildInventoryInheritedHubPanel({
       {businessLinks.length ? (
         <HubSection title={s7.enlacesNegocio}>
           {businessLinks.map((link) => (
-            <HubRow key={link.href} label={link.label} value={link.href} />
+            <HubLinkRow key={link.href} label={link.label} href={link.href} linkLabel={link.label} />
           ))}
         </HubSection>
       ) : null}
 
       {trim(state.ctaEnlaceProgramarVisita) ? (
         <HubSection title={s7.enlaceProgramarVisita}>
-          <HubRow label={s7.enlaceProgramarVisita} value={state.ctaEnlaceProgramarVisita} />
+          <HubLinkRow
+            label={s7.enlaceProgramarVisita}
+            href={state.ctaEnlaceProgramarVisita.trim()}
+            linkLabel={lang === "es" ? "Abrir enlace de visitas" : "Open scheduling link"}
+          />
         </HubSection>
-      ) : null}
-
-      {detectedCtas.length ? (
-        <div className="mt-6">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{t.step08.detectedTitle}</p>
-          <ul className="mt-3 space-y-2">
-            {detectedCtas.map((item) => (
-              <li
-                key={item.id}
-                className="rounded-lg border border-[#C9B46A]/35 bg-white px-3 py-2.5 text-sm font-semibold text-[#2C2416]"
-              >
-                {item.label}
-              </li>
-            ))}
-          </ul>
-        </div>
       ) : null}
 
       {hasBrokerBlock ? (
@@ -216,11 +279,19 @@ export function BrNegocioChildInventoryInheritedHubPanel({
           {trim(state.brokerNombre) ? <HubRow label={s7.brokerNombre} value={state.brokerNombre} /> : null}
           {trim(state.brokerTitulo) ? <HubRow label={s7.brokerTitulo} value={state.brokerTitulo} /> : null}
           {trim(state.brokerLicencia) ? <HubRow label={s7.brokerLicencia} value={state.brokerLicencia} /> : null}
-          {trim(state.brokerEmail) ? <HubRow label={s7.brokerEmail} value={state.brokerEmail} /> : null}
+          {trim(state.brokerEmail) ? (
+            <HubEmailRow label={s7.brokerEmail} email={state.brokerEmail.trim()} copyLabel={copyEmailLabel} />
+          ) : null}
           {brokerPhonePersonal ? <HubRow label={s7.telefonoPersonal} value={brokerPhonePersonal} /> : null}
           {brokerPhoneOffice ? <HubRow label={s7.telefonoOficina} value={brokerPhoneOffice} /> : null}
           {brokerWhatsapp ? <HubRow label={s7.whatsapp} value={brokerWhatsapp} /> : null}
-          {trim(state.brokerSitioWeb) ? <HubRow label={s7.brokerSitioWeb} value={state.brokerSitioWeb} /> : null}
+          {trim(state.brokerSitioWeb) ? (
+            <HubLinkRow
+              label={s7.brokerSitioWeb}
+              href={state.brokerSitioWeb.trim()}
+              linkLabel={friendlyLinkLabel(state.brokerSitioWeb, lang === "es" ? "Sitio web" : "Website")}
+            />
+          ) : null}
         </HubSection>
       ) : null}
 
@@ -230,7 +301,9 @@ export function BrNegocioChildInventoryInheritedHubPanel({
           {trim(state.agente2Nombre) ? <HubRow label={s7.agente2Nombre} value={state.agente2Nombre} /> : null}
           {trim(state.agente2Titulo) ? <HubRow label={s7.agente2Titulo} value={state.agente2Titulo} /> : null}
           {trim(state.agente2Licencia) ? <HubRow label={s7.agente2Licencia} value={state.agente2Licencia} /> : null}
-          {trim(state.agente2Correo) ? <HubRow label={s7.agente2Correo} value={state.agente2Correo} /> : null}
+          {trim(state.agente2Correo) ? (
+            <HubEmailRow label={s7.agente2Correo} email={state.agente2Correo.trim()} copyLabel={copyEmailLabel} />
+          ) : null}
           {trim(state.agente2TelefonoPersonal) ? (
             <HubRow
               label={s7.telefonoPersonal}

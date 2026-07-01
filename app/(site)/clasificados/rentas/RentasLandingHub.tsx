@@ -6,12 +6,11 @@ import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/
 import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
 import { useRentasLandingLang } from "@/app/(site)/clasificados/rentas/hooks/useRentasLandingLang";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
-import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
-import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
+import { RentasLandingHeroGateway } from "@/app/clasificados/rentas/landing/RentasLandingHeroGateway";
 import { RentasLandingIntentTiles } from "@/app/clasificados/rentas/landing/RentasLandingIntentTiles";
 import { RentasLandingShortcutSections } from "@/app/clasificados/rentas/landing/RentasLandingShortcutSections";
 import { RentasLandingShell } from "@/app/clasificados/rentas/landing/RentasLandingShell";
-import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
+import { RentasLandingVisibilityStrip } from "@/app/clasificados/rentas/landing/RentasLandingVisibilityStrip";
 import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_BRANCH,
@@ -117,64 +116,59 @@ export function RentasLandingHub(_props: RentasLandingHubProps) {
 
   const filtersLabel = lang === "es" ? "Filtros" : "Filters";
   const searchLabel = lang === "es" ? "Buscar" : "Search";
-  const title = copy.title;
-  const description = copy.intro;
 
   return (
     <RentasLandingShell>
-      <CategoryStandardLandingBlock
-        category="rentas"
-        lang={lang}
-        title={title}
-        description={description}
-        searchAction={buildCategoryResultsUrl("rentas", routeLang as "es" | "en")}
-        searchPlaceholder=""
-        publishHref={publishHref}
-        browseHref={resultsBase}
-        publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
-        browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
-        suppressVisibilityCta
-        hideBrowseCta
-        searchSlot={
-          <RentasCompactSearchCanvas
-            lang={lang}
-            query={query}
-            city={city}
-            state={state}
-            zip={zip}
-            country={country}
-            onQuery={setQuery}
-            onCity={setCity}
-            onState={setState}
-            onZip={setZip}
-            onCountry={setCountry}
-            onSearch={runSearch}
-            onOpenFilters={() => setFiltersOpen(true)}
-            browseAllHref={resultsBase}
-            searchButtonLabel={searchLabel}
-            filtersButtonLabel={filtersLabel}
-          />
-        }
-      />
+      <div className="flex flex-col gap-0">
+        <RentasLandingHeroGateway
+          lang={lang}
+          title={copy.title}
+          intro={copy.intro}
+          introSecondary={copy.introSecondary}
+          publishHref={publishHref}
+          publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
+          searchSlot={
+            <RentasCompactSearchCanvas
+              layout="landing"
+              lang={lang}
+              query={query}
+              city={city}
+              state={state}
+              zip={zip}
+              country={country}
+              onQuery={setQuery}
+              onCity={setCity}
+              onState={setState}
+              onZip={setZip}
+              onCountry={setCountry}
+              onSearch={runSearch}
+              onOpenFilters={() => setFiltersOpen(true)}
+              browseAllHref={resultsBase}
+              searchButtonLabel={searchLabel}
+              filtersButtonLabel={filtersLabel}
+            />
+          }
+        />
 
-      <RentasLandingIntentTiles
-        lang={lang}
-        routeLang={routeLang}
-        headingEs={copy.gateway.spaceTypeHeadingEs}
-        headingEn={copy.gateway.spaceTypeHeadingEn}
-      />
+        <RentasLandingIntentTiles
+          lang={lang}
+          routeLang={routeLang}
+          headingEs={copy.gateway.spaceTypeHeadingEs}
+          headingEn={copy.gateway.spaceTypeHeadingEn}
+        />
 
-      <RentasLandingShortcutSections
-        lang={lang}
-        routeLang={routeLang}
-        budgetHeadingEs={copy.gateway.budgetHeadingEs}
-        budgetHeadingEn={copy.gateway.budgetHeadingEn}
-        practicalHeadingEs={copy.gateway.practicalHeadingEs}
-        practicalHeadingEn={copy.gateway.practicalHeadingEn}
-      />
+        <RentasLandingShortcutSections
+          lang={lang}
+          routeLang={routeLang}
+          budgetHeadingEs={copy.gateway.budgetHeadingEs}
+          budgetHeadingEn={copy.gateway.budgetHeadingEn}
+          practicalHeadingEs={copy.gateway.practicalHeadingEs}
+          practicalHeadingEn={copy.gateway.practicalHeadingEn}
+        />
 
-      <div className="mt-6 sm:mt-8">
-        <CategoryVisibilityCta lang={lang} category="rentas" surface="landing" compact />
+        <div className="mt-5 sm:mt-6">
+          <RentasLandingVisibilityStrip lang={lang} />
+        </div>
       </div>
 
       <RentasFiltersDrawer

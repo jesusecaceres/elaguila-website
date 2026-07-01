@@ -5,6 +5,7 @@ export type RentasLandingCopy = {
   breadcrumbRentas: string;
   title: string;
   intro: string;
+  introSecondary: string;
   /** Latino-first landing gateway section headings. */
   gateway: {
     spaceTypeHeadingEs: string;
@@ -200,7 +201,8 @@ const ES: RentasLandingCopy = {
   breadcrumbRentas: "Rentas",
   title: "Rentas",
   intro:
-    "Encuentra cuarto, garage, estudio, ADU o apartamento cerca de ti.",
+    "Encuentra un cuarto, garage, estudio, ADU o apartamento cerca de ti.",
+  introSecondary: "Busca por ciudad, presupuesto y lo que realmente necesitas.",
   gateway: {
     spaceTypeHeadingEs: "¿Qué tipo de espacio buscas?",
     spaceTypeHeadingEn: "What kind of space are you looking for?",
@@ -412,6 +414,7 @@ const EN: RentasLandingCopy = {
   title: "Rentals",
   intro:
     "Find a room, garage, studio, ADU, or apartment near you.",
+  introSecondary: "Search by city, budget, and what you actually need.",
   gateway: {
     spaceTypeHeadingEs: "¿Qué tipo de espacio buscas?",
     spaceTypeHeadingEn: "What kind of space are you looking for?",

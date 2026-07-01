@@ -12,7 +12,11 @@ import {
   DASHBOARD_SAVED_LISTINGS_READY,
 } from "../lib/dashboardProductTruth";
 
-type Lang = "es" | "en";
+import {
+  dashboardShellCopy,
+  type Lang,
+} from "../lib/dashboardI18n";
+
 type Plan = "free" | "pro";
 
 /** Primary dashboard sections (sidebar). */
@@ -112,56 +116,7 @@ export function LeonixDashboardShell({
     };
   }, []);
 
-  const L =
-    lang === "es"
-      ? {
-          accountStatus: "Account status",
-          accountMetadata: "Account",
-          home: "Overview",
-          profile: "Profile & account",
-          security: "Security",
-          listings: "My listings",
-          restaurants: "My restaurants",
-          messages: "Messages",
-          drafts: "Drafts",
-          analytics: "Account analytics",
-          notifications: "Notifications",
-          businessTools: "Business tools",
-          saved: "Saved",
-          recent: "Recently viewed",
-          servicios: "Servicios (test)",
-          viajesStaged: "Viajes (review)",
-          activity: "Activity",
-          publish: "Publish listing",
-          signOut: "Sign out",
-          badgeInbox: "Inquiries in inbox",
-          badgeDrafts: "Unpublished drafts",
-          badgeExpiring: "Visibility expiring soon",
-        }
-      : {
-          accountStatus: "Account status",
-          accountMetadata: "Account",
-          home: "Overview",
-          profile: "Profile & account",
-          security: "Security",
-          listings: "My listings",
-          restaurants: "My restaurants",
-          messages: "Messages",
-          drafts: "Drafts",
-          analytics: "Account analytics",
-          notifications: "Notifications",
-          businessTools: "Business tools",
-          saved: "Saved",
-          recent: "Recently viewed",
-          servicios: "Servicios (test)",
-          viajesStaged: "Viajes (review)",
-          activity: "Activity",
-          publish: "Publish listing",
-          signOut: "Sign out",
-          badgeInbox: "Inquiries in inbox",
-          badgeDrafts: "Unpublished drafts",
-          badgeExpiring: "Visibility expiring soon",
-        };
+  const L = dashboardShellCopy(lang);
 
   // `plan` is kept for backwards compatibility with existing dashboard pages, but the shell must not
   // present profile membership as an account-wide ad/listing capability. Listing plans live on rows.
@@ -238,7 +193,7 @@ export function LeonixDashboardShell({
             className="h-auto w-[min(88px,22vw)] drop-shadow-[0_6px_24px_rgba(42,36,22,0.12)]"
             priority
           />
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">Dashboard</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">{L.dashboardLabel}</p>
         </div>
 
         <div
@@ -284,7 +239,7 @@ export function LeonixDashboardShell({
               ) : null}
               {accountType?.trim() ? (
                 <p className="mt-0.5 text-[10px] text-[color:var(--lx-muted)]/90">
-                  {lang === "es" ? "Tipo" : "Type"}: {accountType.trim()}
+                  {L.accountType}: {accountType.trim()}
                 </p>
               ) : null}
             </div>

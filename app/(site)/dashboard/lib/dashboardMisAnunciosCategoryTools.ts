@@ -149,48 +149,53 @@ export function listingToolIsReady(category: MisAnunciosCategoryKey | string, to
 }
 
 export function categoryToolsTrustCopy(lang: Lang): string {
-  void lang;
-  return "We only show tools available for this category.";
+  return lang === "es"
+    ? "Solo mostramos herramientas disponibles para esta categoría."
+    : "We only show tools available for this category.";
 }
 
 export function openPanelLabel(lang: Lang): string {
-  void lang;
-  return "Manage ad";
+  return lang === "es" ? "Administrar anuncio" : "Manage ad";
 }
 
 export function editListingLabel(lang: Lang): string {
-  void lang;
-  return "Edit listing";
+  return lang === "es" ? "Editar anuncio" : "Edit listing";
 }
 
 export function publishLabel(lang: Lang): string {
-  void lang;
-  return "Publish";
+  return lang === "es" ? "Publicar" : "Publish";
 }
 
 export function publicResultsLabel(lang: Lang): string {
-  void lang;
-  return "View results";
+  return lang === "es" ? "Ver resultados" : "View results";
 }
 
 export function publicViewLabel(lang: Lang): string {
-  void lang;
-  return "View public";
+  return lang === "es" ? "Ver público" : "View public";
 }
 
 export function previewLabel(lang: Lang): string {
-  void lang;
-  return "Preview";
+  return lang === "es" ? "Vista previa" : "Preview";
 }
 
 export function analyticsLabel(lang: Lang): string {
-  void lang;
-  return "Analytics";
+  return lang === "es" ? "Analíticas" : "Analytics";
 }
 
 export function publicResultsListingLabel(lang: Lang): string {
-  void lang;
-  return "View in public results";
+  return lang === "es" ? "Ver en resultados públicos" : "View in public results";
+}
+
+export function archiveListingLabel(lang: Lang): string {
+  return lang === "es" ? "Archivar anuncio" : "Archive ad";
+}
+
+export function pauseListingLabel(lang: Lang): string {
+  return lang === "es" ? "Pausar anuncio" : "Pause ad";
+}
+
+export function resumeListingLabel(lang: Lang): string {
+  return lang === "es" ? "Restaurar" : "Restore";
 }
 
 /** Dedicated dashboard hub — not the Mis anuncios self-ref workspace. */

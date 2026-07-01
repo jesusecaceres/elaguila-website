@@ -66,7 +66,7 @@ export function EmpleoQuickPreviewClient() {
     return (
       <LeonixPreviewPageShell
         editHref={editHref}
-        backLabel={backLabel}
+        lang={lang}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       >
         <EmpleoQuickDetailPage data={data} withSiteChrome={false} hideResultsNav />
