@@ -46,6 +46,14 @@ export type ShellMenuHighlight = {
   badge?: string;
 };
 
+export type ShellCoupon = {
+  title: string;
+  description: string;
+  couponCode?: string;
+  expirationDate?: string;
+  redemptionNote?: string;
+};
+
 /** Full week grid for “Ver horarios” target section */
 export type ShellHoursDetail = {
   rows: { dayLabel: string; line: string }[];
@@ -168,6 +176,7 @@ export type RestaurantDetailShellData = {
   menuHighlights?: ShellMenuHighlight[];
   fullMenuCta?: { label: string; href: string };
   highlightTags?: ShellHighlightTag[];
+  coupons?: ShellCoupon[];
   /** Grouped venue gallery (preview default). */
   venueGallery?: ShellVenueGalleryBundle;
   /** Legacy flat gallery (demo / fallback). */

@@ -6,6 +6,7 @@ import { computeShellHoursPreview } from "./restauranteHoursPreview";
 import {
   buildCateringInquiryPrefill,
   formatRestauranteCityStateZipLine,
+  formatTime24to12,
   isValidExternalHttpUrl,
   nonEmpty,
   normalizeRestaurantUrl,
@@ -131,7 +132,7 @@ function buildHubHours(d: RestauranteListingDraft, lang: "es" | "en"): Restauran
         ? "Closed"
         : "Cerrado"
       : s.openTime?.trim() && s.closeTime?.trim()
-        ? `${s.openTime} – ${s.closeTime}`
+        ? `${formatTime24to12(s.openTime)} – ${formatTime24to12(s.closeTime)}`
         : lang === "en"
           ? "Hours TBD"
           : "Horario por confirmar";

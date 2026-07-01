@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
-import type { RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   labelForLanguage,
   RESTAURANTE_CONTACT_PLACEHOLDERS,
@@ -300,6 +300,31 @@ export default function RestauranteApplicationClient() {
       setDraftPatch({ featuredDishes: list });
     },
     [draft.featuredDishes, setDraftPatch]
+  );
+
+  const addCoupon = useCallback(() => {
+    const list = [...(draft.coupons ?? [])];
+    if (list.length >= 3) return;
+    list.push({ title: "", description: "" });
+    setDraftPatch({ coupons: list });
+  }, [draft.coupons, setDraftPatch]);
+
+  const patchCoupon = useCallback(
+    (index: number, patch: Partial<RestauranteCoupon>) => {
+      const list = [...(draft.coupons ?? [])];
+      list[index] = { ...list[index], ...patch };
+      setDraftPatch({ coupons: list });
+    },
+    [draft.coupons, setDraftPatch]
+  );
+
+  const removeCoupon = useCallback(
+    (index: number) => {
+      const list = [...(draft.coupons ?? [])];
+      list.splice(index, 1);
+      setDraftPatch({ coupons: list });
+    },
+    [draft.coupons, setDraftPatch]
   );
 
   const formatPhoneNumber = useCallback((phone: string): string => {
@@ -1316,6 +1341,16 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
               />
             </div>
+            <div>
+              <FieldLabel optional>País</FieldLabel>
+              <HelperText>País donde opera el restaurante (opcional).</HelperText>
+              <input
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                value={draft.country ?? ""}
+                onChange={(e) => setDraftPatch({ country: e.target.value || undefined })}
+                placeholder="Ej. Estados Unidos, México, España…"
+              />
+            </div>
           </div>
         </section>
         ) : null}
@@ -1736,6 +1771,86 @@ export default function RestauranteApplicationClient() {
                 </label>
               );
             })}
+          </div>
+        </section>
+        ) : null}
+
+        {/* I */}
+        {activeSectionId === "restaurantes-section-i" ? (
+        <section id="restaurantes-section-i" className={stepPanel}>
+          <SectionTitle>I · Cupones y ofertas</SectionTitle>
+          <HelperText>
+            Opcional. Agrega hasta <strong className="text-[color:var(--lx-text-2)]">3</strong> cupones u ofertas especiales que aparecerán en la ficha pública.
+          </HelperText>
+          <div className="mt-4 grid gap-4">
+            {(draft.coupons ?? []).map((coupon, i) => (
+              <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">Cupón {i + 1}</span>
+                  <button type="button" className="text-sm text-red-700 underline" onClick={() => removeCoupon(i)}>
+                    Quitar
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3">
+                  <div>
+                    <FieldLabel>Título</FieldLabel>
+                    <HelperText>Ej. "2x1 en entradas", "Descuento del 10%".</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.title}
+                      onChange={(e) => patchCoupon(i, { title: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Descripción</FieldLabel>
+                    <HelperText>Detalles de la oferta, condiciones o restricciones.</HelperText>
+                    <textarea
+                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.description}
+                      onChange={(e) => patchCoupon(i, { description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Código de cupón</FieldLabel>
+                    <HelperText>Código que el cliente debe mencionar o ingresar (si aplica).</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.couponCode ?? ""}
+                      onChange={(e) => patchCoupon(i, { couponCode: e.target.value || undefined })}
+                      placeholder="Ej. LEONIX10"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Fecha de expiración</FieldLabel>
+                    <HelperText>Fecha límite de vigencia (si aplica).</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      type="date"
+                      value={coupon.expirationDate ?? ""}
+                      onChange={(e) => patchCoupon(i, { expirationDate: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Nota de canje</FieldLabel>
+                    <HelperText>Instrucciones adicionales para redimir la oferta.</HelperText>
+                    <textarea
+                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.redemptionNote ?? ""}
+                      onChange={(e) => patchCoupon(i, { redemptionNote: e.target.value || undefined })}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(draft.coupons ?? []).length < 3 ? (
+              <button
+                type="button"
+                onClick={addCoupon}
+                className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                + Añadir cupón
+              </button>
+            ) : null}
           </div>
         </section>
         ) : null}
