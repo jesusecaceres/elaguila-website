@@ -57,8 +57,9 @@ type Props = {
   companyOtherLinkUrl?: string;
 };
 
-const GOLD_BTN = "bg-[#B8943F] hover:bg-[#9A7A32]";
-const SOFT_BTN = "border border-[#C9A85A] bg-[#FFFBF7] text-[#6B5320] hover:bg-[#FFF5E6]";
+const BURGUNDY_BTN = "border border-[#7A1E2C]/15 bg-[#7A1E2C] text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.4)] hover:bg-[#5e1721]";
+const GOLD_BTN = "border border-[#C9A84A]/55 bg-[#FFFDF7] text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+const SOFT_BTN = "border border-[#D6C7AD]/80 bg-[#FFFDF7] text-[#5C5346] hover:border-[#C9A84A]/40 hover:bg-[#FBF7EF]";
 
 function digits(raw: string): string {
   return raw.replace(/\D/g, "");
@@ -180,12 +181,12 @@ export function QuickJobCTACard({
 
   const ctaClass = (role: "phone" | "whatsapp" | "email") =>
     primary === role
-      ? `flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] px-4 text-sm font-bold text-white shadow-sm transition ${GOLD_BTN}`
-      : `flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] px-4 text-sm font-semibold shadow-sm transition ${SOFT_BTN}`;
+      ? `flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition ${BURGUNDY_BTN}`
+      : `flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${GOLD_BTN}`;
 
   return (
-    <div className="rounded-[18px] border border-[#E8DFD0] bg-[#FFFBF7] p-5 shadow-[0_8px_28px_rgba(42,40,38,0.06)] sm:p-6">
-      <p className="text-2xl font-bold text-[#8A5A18]">{displayPay}</p>
+    <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-6">
+      <p className="text-2xl font-bold text-[#7A1E2C]">{displayPay}</p>
 
       <div className="mt-4 space-y-2.5 text-sm text-[#4A4744]">
         <div className="flex gap-3">
@@ -224,8 +225,6 @@ export function QuickJobCTACard({
         ) : null}
       </div>
 
-      <p className="mt-4 text-sm leading-relaxed text-[#4A4744]">{description}</p>
-
       {/* Apply section header */}
       {hasApplyLink || showContactRow ? (
         <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.1em] text-[#8A5A18]">
@@ -241,7 +240,7 @@ export function QuickJobCTACard({
           href={applyLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[#7B1C3B] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#641530]"
+          className={`mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition ${BURGUNDY_BTN}`}
           onClick={() => trackEmpleosSidebarContactCta("phone", contactAnalyticsMeta)}
         >
           {lang === "es" ? "Aplicar ahora" : "Apply now"}
@@ -275,7 +274,7 @@ export function QuickJobCTACard({
           {hasSms ? (
             <a
               href={`sms:${digits(smsPhone!)}`}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] border border-[#C9A85A] bg-[#FFFBF7] px-3 text-sm font-semibold text-[#6B5320] transition hover:bg-[#FFF5E6]"
+              className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${SOFT_BTN}`}
             >
               <FaSms className="h-4 w-4 shrink-0" aria-hidden />
               {lang === "es" ? "Enviar SMS" : "Send SMS"}
@@ -286,7 +285,7 @@ export function QuickJobCTACard({
             <button
               type="button"
               onClick={openWebsiteSheet}
-              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[14px] border border-[#C9A85A]/50 bg-[#FFFBF7] px-3 text-sm font-semibold text-[#6B5320] transition hover:bg-[#FFF5E6]"
+              className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${SOFT_BTN}`}
             >
               <FaGlobe className="h-4 w-4 shrink-0" aria-hidden />
               {websiteLabel}
@@ -296,62 +295,62 @@ export function QuickJobCTACard({
       ) : null}
 
       {/* Publicado en Leonix trust cue */}
-      <p className="mt-5 border-t border-[#F0E8DC] pt-4 text-center text-[10px] font-medium tracking-wide text-[#9A948C]">
-        {lang === "es" ? "Publicado en Leonix" : "Published on Leonix"}
+      <p className="mt-5 border-l-[3px] border-[#2A4536]/45 border-t border-[#D6C7AD]/70 pl-3 pt-4 text-[11px] leading-snug text-[#7A7164]/95">
+        {lang === "es" ? "Publicado en Leonix · Verifica la oferta antes de aplicar." : "Published on Leonix · Verify the offer before applying."}
       </p>
 
       {/* Conoce al empleador — company social/web links */}
       {hasCompanyLinks ? (
-        <div className="mt-4 border-t border-[#E8DFD0] pt-5">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8A5A18]">
+        <div className="mt-4 border-t border-[#D6C7AD]/70 pt-5">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8A6B1F]">
             {lang === "es" ? "Conoce al empleador" : "Learn about the employer"}
           </p>
           <div className="flex flex-wrap gap-2">
             {companyLinkedIn ? (
               <a href={companyLinkedIn} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#0A66C2] transition hover:bg-[#EEF5FF]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#0A66C2] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaLinkedin className="h-3.5 w-3.5" aria-hidden /> LinkedIn
               </a>
             ) : null}
             {companyFacebook ? (
               <a href={companyFacebook} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#1877F2] transition hover:bg-[#EEF4FF]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#1877F2] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaFacebook className="h-3.5 w-3.5" aria-hidden /> Facebook
               </a>
             ) : null}
             {companyInstagram ? (
               <a href={companyInstagram} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#C13584] transition hover:bg-[#FFF0F7]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#C13584] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaInstagram className="h-3.5 w-3.5" aria-hidden /> Instagram
               </a>
             ) : null}
             {companyTikTok ? (
               <a href={companyTikTok} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#2A2826] transition hover:bg-[#F0EFED]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <SiTiktok className="h-3.5 w-3.5" aria-hidden /> TikTok
               </a>
             ) : null}
             {companyYouTube ? (
               <a href={companyYouTube} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#FF0000] transition hover:bg-[#FFF5F5]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#CC0000] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaYoutube className="h-3.5 w-3.5" aria-hidden /> YouTube
               </a>
             ) : null}
             {companyX ? (
               <a href={companyX} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#2A2826] transition hover:bg-[#F0EFED]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <SiX className="h-3.5 w-3.5" aria-hidden /> X
               </a>
             ) : null}
             {companySnapchat ? (
               <a href={companySnapchat} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#FFFC00] transition hover:bg-[#FFFFCC]" style={{color: '#A89300'}}>
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#8A7300] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaSnapchat className="h-3.5 w-3.5" aria-hidden /> Snapchat
               </a>
             ) : null}
             {companyOtherLinkLabel && companyOtherLinkUrl ? (
               <a href={companyOtherLinkUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#6B5320] transition hover:bg-[#FFF8E0]">
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#5C5346] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaGlobe className="h-3.5 w-3.5" aria-hidden /> {companyOtherLinkLabel}
               </a>
             ) : null}

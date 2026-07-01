@@ -52,11 +52,13 @@ function PublicApplyFooter({
   lang,
   engagement,
   publicAnalytics,
+  suppressEngagement = false,
 }: {
   job: EmpleosJobRecord;
   lang: Lang;
   engagement?: { listingId: string; ownerUserId?: string | null; persist: boolean; shareUrl: string } | null;
   publicAnalytics?: EmpleosPublicListingAnalyticsProps;
+  suppressEngagement?: boolean;
 }) {
   const globalListing = publicAnalytics?.listingSourceId?.trim()
     ? empleosGlobalListingFromRow({
@@ -68,8 +70,8 @@ function PublicApplyFooter({
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
   const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
   return (
-    <div className="rounded-[18px] border border-[#E8DFD0] bg-[#FFFBF7] p-6 shadow-[0_10px_32px_rgba(42,40,38,0.06)]">
-      {engagement?.listingId ? (
+    <div className="rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)]">
+      {!suppressEngagement && engagement?.listingId ? (
         <div className="mb-4">
           <EmpleosClasificadosEngagementRow
             lang={lang}
@@ -214,7 +216,8 @@ export function EmpleosPublicLaneDetailClient({
         source: "detail_contact",
       })
     : undefined;
-  const footer = <PublicApplyFooter job={job} lang={lang} engagement={engagement} publicAnalytics={publicAnalytics} />;
+  const isQuickLane = lane === "quick";
+  const footer = <PublicApplyFooter job={job} lang={lang} engagement={engagement} publicAnalytics={publicAnalytics} suppressEngagement={isQuickLane} />;
   const leonixBanner = leonixAdId?.trim() ? (
     <div className="border-b border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-center text-xs text-[#5C5346]">
       {lang === "es" ? "Leonix Ad ID" : "Leonix Ad ID"} # {leonixAdId.trim()}
@@ -281,6 +284,17 @@ export function EmpleosPublicLaneDetailClient({
         }
 
         const quickData = mapPublishedQuickToShell(displayJob, envelope);
+        const quickEngagement = engagement
+          ? {
+              listingId: engagement.listingId,
+              ownerUserId: engagement.ownerUserId,
+              shareUrl: engagement.shareUrl,
+              persistEngagement: engagement.persist,
+              listingSourceId: publicAnalytics?.listingSourceId,
+              slug: publicAnalytics?.slug,
+              leonixAdId: publicAnalytics?.leonixAdId,
+            }
+          : null;
         return (
           <>
             {profileAnalytics}
@@ -293,6 +307,7 @@ export function EmpleosPublicLaneDetailClient({
               withSiteChrome={false}
               publicFooterSlot={footer}
               contactAnalyticsMeta={contactAnalyticsMeta}
+              engagement={quickEngagement}
             />
             {relatedSection}
           </>
