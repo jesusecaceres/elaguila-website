@@ -123,6 +123,20 @@ export type RestauranteCoupon = {
   isFeatured?: boolean;
 };
 
+/** Section-level flyer image for additional promotions */
+export type RestauranteCouponFlyer = {
+  /** Flyer image URL showing multiple coupons/promotions */
+  imageUrl?: string;
+};
+
+/** Section-level "more offers" external link */
+export type RestauranteCouponMoreOffers = {
+  /** External URL to view more coupons/offers */
+  url?: string;
+  /** Custom button text (defaults to "Ver más cupones") */
+  buttonLabel?: string;
+};
+
 // ---------------------------------------------------------------------------
 // H. Gallery / media
 // ---------------------------------------------------------------------------
@@ -345,6 +359,10 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
     coupons?: RestauranteCoupon[];
     /** Coupon upgrade enabled (+$99/month) */
     couponUpgradeEnabled?: boolean;
+    /** Section-level flyer for additional promotions */
+    couponFlyer?: RestauranteCouponFlyer;
+    /** Section-level "more offers" external link */
+    couponMoreOffers?: RestauranteCouponMoreOffers;
     /** Drafts may omit keys until the conditional stack is filled */
     movingVendorStack?: Partial<RestauranteMovingVendorStack>;
     homeBasedStack?: Partial<RestauranteHomeBasedStack>;

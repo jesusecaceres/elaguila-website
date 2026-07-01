@@ -3,18 +3,12 @@
 import Image from "next/image";
 import { FiClock, FiMapPin, FiStar } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import {
   restaurantesGlobalLikeRecorder,
   restaurantesGlobalListingFromRow,
-  restaurantesGlobalSaveRecorder,
   restaurantesGlobalShareRecorder,
 } from "../lib/recordRestaurantesGlobalAnalytics";
-import {
-  restaurantesSavedListingExtras,
-  restaurantesSavedListingExtrasFromClient,
-} from "@/app/lib/restaurantesSavedListingIdentity";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
 const HEADER_SHELL =
@@ -53,17 +47,6 @@ export function RestauranteProfileHeader({
   const sourceId = (listingSourceId ?? "").trim();
   const allowEngagement = persistListingEngagement && Boolean(sourceId);
   const slug = (listingSlug ?? "").trim();
-  const saveExtras = sourceId
-    ? restaurantesSavedListingExtras({
-        slug: slug || data.id,
-        id: sourceId,
-        leonix_ad_id: /^REST-/i.test(listingKey) ? listingKey : null,
-      })
-    : restaurantesSavedListingExtrasFromClient({
-        slug: slug || data.id,
-        engagementListingId: listingKey,
-        listingSourceId: sourceId || null,
-      });
   const globalListing =
     sourceId && restaurantesGlobalListingFromRow({
       id: sourceId,
@@ -211,20 +194,6 @@ export function RestauranteProfileHeader({
                 persistEngagement={allowEngagement}
                 recordLikeEvent={
                   globalListing ? restaurantesGlobalLikeRecorder(globalListing) : undefined
-                }
-                className="!border-[#C9A84A]/40 !bg-[#FFFCF7]/95 !text-[#1E1814]"
-              />
-              <LeonixSaveButton
-                listingId={listingKey}
-                savedListingKey={sourceId || listingKey}
-                ownerUserId={ownerUid}
-                variant="small"
-                lang={lang}
-                category="restaurantes"
-                persistEngagement={allowEngagement}
-                saveExtras={saveExtras}
-                recordSaveEvent={
-                  globalListing ? restaurantesGlobalSaveRecorder(globalListing) : undefined
                 }
                 className="!border-[#C9A84A]/40 !bg-[#FFFCF7]/95 !text-[#1E1814]"
               />

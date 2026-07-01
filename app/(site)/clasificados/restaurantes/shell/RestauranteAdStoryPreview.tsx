@@ -16,6 +16,7 @@ import { normalizeActionableUrl } from "../lib/urlNormalization";
 import { RestaurantContactHub } from "./RestaurantContactHub";
 import { RestauranteProfileHeader } from "./RestauranteProfileHeader";
 import { RestauranteOffersPreviewStrip } from "./RestauranteOffersPreviewStrip";
+import { RestauranteShellCouponsBlock } from "./RestauranteShellCouponsBlock";
 import type { RestauranteLinkedOfferPreview } from "@/app/lib/clasificados/restaurantes/restaurantesLinkedOffersTypes";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
@@ -319,6 +320,19 @@ export function RestauranteAdStoryPreview({
           </div>
         </section>
       )}
+
+      {/* Cupones destacados */}
+      {(data.coupons && data.coupons.length > 0) || data.couponFlyer || data.couponMoreOffers ? (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <RestauranteShellCouponsBlock
+              coupons={data.coupons ?? []}
+              couponFlyer={data.couponFlyer}
+              couponMoreOffers={data.couponMoreOffers}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* 2. Galería y Videos */}
       <RestauranteLockedGallerySection galleryBundle={data.venueGallery} lang={lang} />

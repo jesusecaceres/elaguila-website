@@ -219,9 +219,13 @@ export function RestauranteDetailShell({
         ) : null}
 
         {/* Coupons Section - Under Featured Dishes */}
-        {data.coupons && data.coupons.length > 0 ? (
+        {(data.coupons && data.coupons.length > 0) || data.couponFlyer || data.couponMoreOffers ? (
           <section className="mb-16">
-            <RestauranteShellCouponsBlock coupons={data.coupons} />
+            <RestauranteShellCouponsBlock
+              coupons={data.coupons ?? []}
+              couponFlyer={data.couponFlyer}
+              couponMoreOffers={data.couponMoreOffers}
+            />
           </section>
         ) : null}
       </div>

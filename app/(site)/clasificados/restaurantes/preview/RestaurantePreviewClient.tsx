@@ -54,7 +54,7 @@ export default function RestaurantePreviewClient() {
   const [confirmBusinessInfo, setConfirmBusinessInfo] = useState(false);
   const [confirmPhotosRepresent, setConfirmPhotosRepresent] = useState(false);
   const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
-  const confirmationsOk = confirmBusinessInfo && confirmPhotosRepresent && confirmCommunityRules;
+  const [confirmCouponTerms, setConfirmCouponTerms] = useState(false);
 
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
@@ -66,6 +66,9 @@ export default function RestaurantePreviewClient() {
   const readiness = useMemo(() => auditRestaurantePublishReadiness(normalizedDraft), [normalizedDraft]);
   const minOk = readiness.readyToPublish;
 
+  const hasCoupons = (normalizedDraft.coupons ?? []).length > 0 || Boolean(normalizedDraft.couponFlyer || normalizedDraft.couponMoreOffers);
+  const confirmationsOk = confirmBusinessInfo && confirmPhotosRepresent && confirmCommunityRules && (!hasCoupons || confirmCouponTerms);
+
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     console.debug("[restaurantes/preview] publish readiness audit", readiness, {
@@ -74,11 +77,11 @@ export default function RestaurantePreviewClient() {
   }, [readiness, normalizedDraft]);
 
   const onPublish = useCallback(async () => {
-    if (!confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules) {
+    if (!confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (hasCoupons && !confirmCouponTerms)) {
       setPub({
         busy: false,
         err: "confirmations_required",
-        errDetail: "Marca las tres confirmaciones antes de publicar.",
+        errDetail: hasCoupons ? "Marca las cuatro confirmaciones antes de publicar." : "Marca las tres confirmaciones antes de publicar.",
       });
       return;
     }
@@ -300,15 +303,28 @@ export default function RestaurantePreviewClient() {
                     />
                     <span>Confirmo que el anuncio respeta las reglas de la comunidad y del marketplace.</span>
                   </label>
+                  {hasCoupons ? (
+                    <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                        checked={confirmCouponTerms}
+                        onChange={(e) => setConfirmCouponTerms(e.target.checked)}
+                      />
+                      <span>Confirmo que los cupones y promociones son válidos, con fechas de expiración correctas y términos claros.</span>
+                    </label>
+                  ) : null}
                   {!confirmationsOk ? (
-                    <p className="text-[11px] text-amber-900/90">Marca las tres casillas para habilitar «Publicar listado».</p>
+                    <p className="text-[11px] text-amber-900/90">
+                      {hasCoupons ? "Marca las cuatro casillas para habilitar «Publicar listado»." : "Marca las tres casillas para habilitar «Publicar listado»."}
+                    </p>
                   ) : null}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     disabled={pub.busy || !confirmationsOk}
-                    title={!confirmationsOk ? "Marca las tres confirmaciones para publicar." : undefined}
+                    title={!confirmationsOk ? (hasCoupons ? "Marca las cuatro confirmaciones para publicar." : "Marca las tres confirmaciones para publicar.") : undefined}
                     onClick={() => void onPublish()}
                     className="min-h-[44px] rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
