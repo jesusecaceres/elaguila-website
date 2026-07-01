@@ -41,6 +41,7 @@ import {
   buildRestaurantPublicAddressQuery,
   isValidExternalHttpUrl,
   formatRestauranteCityStateZipLine,
+  formatTime24to12,
   resolveRestaurantMapsHref,
   shouldShowRestaurantStreetAddress,
 } from "./restauranteContactHref";
@@ -207,7 +208,7 @@ function buildHoursDetail(d: RestauranteListingDraft): ShellHoursDetail | undefi
     const line = s.closed
       ? "Cerrado"
       : s.openTime?.trim() && s.closeTime?.trim()
-        ? `${s.openTime} – ${s.closeTime}`
+        ? `${formatTime24to12(s.openTime)} – ${formatTime24to12(s.closeTime)}`
         : "Horario por confirmar";
     rows.push({ dayLabel: label, line });
   }
@@ -586,6 +587,8 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
   if (nonEmpty(d.primaryCuisine) || nonEmpty(d.businessType)) return false;
   const anyDish = d.featuredDishes?.some((x) => nonEmpty(x.title) || nonEmpty(x.image));
   if (anyDish) return false;
+  const anyCoupon = d.coupons?.some((x) => nonEmpty(x.title) && nonEmpty(x.description));
+  if (anyCoupon) return false;
   const anyImg =
     (d.galleryImages?.some(nonEmpty) ?? false) ||
     (d.foodImages?.some(nonEmpty) ?? false) ||
@@ -641,6 +644,20 @@ export function mapRestauranteDraftToShellData(
         imageUrl: nonEmpty(x.image) ? x.image!.trim() : undefined,
         badge: formatPlatilloPriceBadge(x.priceLabel),
       })) ?? [];
+  const coupons =
+    d.coupons
+      ?.filter((x) => nonEmpty(x.title) && nonEmpty(x.description))
+      .slice(0, 4)
+      .map((x) => ({
+        title: x.title.trim(),
+        description: x.description.trim(),
+        couponCode: nonEmpty(x.couponCode) ? x.couponCode!.trim() : undefined,
+        expirationDate: nonEmpty(x.expirationDate) ? x.expirationDate!.trim() : undefined,
+        redemptionNote: nonEmpty(x.redemptionNote) ? x.redemptionNote!.trim() : undefined,
+        imageUrl: nonEmpty(x.imageUrl) ? x.imageUrl!.trim() : undefined,
+        url: nonEmpty(x.url) ? normalizeUrl(x.url!) ?? x.url!.trim() : undefined,
+        ctaLabel: nonEmpty(x.ctaLabel) ? x.ctaLabel!.trim() : undefined,
+      })) ?? [];
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
   const menuHref = hasMenuUrl ? normalizeUrl(d.menuUrl!) : hasMenuFile ? d.menuFile! : "";
@@ -667,6 +684,7 @@ export function mapRestauranteDraftToShellData(
     businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
     taxonomyChips: buildTaxonomyChips(d),
+    coupons: coupons.length ? coupons : undefined,
     summaryShort: undefined,
     trustRating,
     hoursPreview: hp,

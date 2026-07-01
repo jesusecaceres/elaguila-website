@@ -7,6 +7,31 @@ export function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
+/** Convert 24h time (HH:mm) to 12h format (h:mm AM/PM). Returns original if invalid. */
+export function formatTime24to12(time24: string | undefined): string {
+  if (!time24 || typeof time24 !== "string") return "";
+  const trimmed = time24.trim();
+  if (!trimmed) return "";
+  
+  const parts = trimmed.split(":");
+  if (parts.length !== 2) return trimmed;
+  
+  const hourStr = parts[0];
+  const minuteStr = parts[1];
+  const hour = parseInt(hourStr, 10);
+  const minutes = parseInt(minuteStr, 10);
+  
+  if (isNaN(hour) || isNaN(minutes) || hour < 0 || hour > 23 || minutes < 0 || minutes > 59) {
+    return trimmed;
+  }
+  
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const minutesFormatted = minutes.toString().padStart(2, "0");
+  
+  return `${hour12}:${minutesFormatted} ${period}`;
+}
+
 export function normalizeRestaurantUrl(raw: string): string {
   const v = raw.trim();
   if (!v) return "";
@@ -80,20 +105,24 @@ export function shouldShowRestaurantStreetAddress(d: RestauranteListingDraft): b
   return true;
 }
 
-/** City, state, ZIP line — e.g. "San José, CA 95112". */
+/** City, state, ZIP, country line — e.g. "San José, CA 95112, USA". */
 export function formatRestauranteCityStateZipLine(d: {
   cityCanonical?: string;
   state?: string;
   zipCode?: string;
+  country?: string;
 }): string {
   const city = d.cityCanonical?.trim();
   const state = d.state?.trim();
   const zip = d.zipCode?.trim();
-  if (!city && !state && !zip) return "";
-  if (city && state && zip) return `${city}, ${state} ${zip}`;
-  if (city && state) return `${city}, ${state}`;
-  if (city && zip) return `${city} ${zip}`;
-  return [city, state, zip].filter(nonEmpty).join(", ");
+  const country = d.country?.trim();
+  if (!city && !state && !zip && !country) return "";
+  const parts: string[] = [];
+  if (city) parts.push(city);
+  if (state) parts.push(state);
+  if (zip) parts.push(zip);
+  if (country) parts.push(country);
+  return parts.join(", ");
 }
 
 /** Public address string for maps search (street when allowed, else city/area). */

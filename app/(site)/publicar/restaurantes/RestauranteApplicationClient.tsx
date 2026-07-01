@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
-import type { RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   labelForLanguage,
   RESTAURANTE_CONTACT_PLACEHOLDERS,
@@ -302,6 +302,31 @@ export default function RestauranteApplicationClient() {
     [draft.featuredDishes, setDraftPatch]
   );
 
+  const addCoupon = useCallback(() => {
+    const list = [...(draft.coupons ?? [])];
+    if (list.length >= 4) return;
+    list.push({ title: "", description: "" });
+    setDraftPatch({ coupons: list });
+  }, [draft.coupons, setDraftPatch]);
+
+  const patchCoupon = useCallback(
+    (index: number, patch: Partial<RestauranteCoupon>) => {
+      const list = [...(draft.coupons ?? [])];
+      list[index] = { ...list[index], ...patch };
+      setDraftPatch({ coupons: list });
+    },
+    [draft.coupons, setDraftPatch]
+  );
+
+  const removeCoupon = useCallback(
+    (index: number) => {
+      const list = [...(draft.coupons ?? [])];
+      list.splice(index, 1);
+      setDraftPatch({ coupons: list });
+    },
+    [draft.coupons, setDraftPatch]
+  );
+
   const formatPhoneNumber = useCallback((phone: string): string => {
     if (!phone) return "";
     // Remove all non-numeric characters
@@ -469,6 +494,47 @@ export default function RestauranteApplicationClient() {
           señal de horario.
         </p>
       ) : null}
+
+      {/* Coupon Upgrade Upsell Card */}
+      <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
+              {lang === "en" ? "Add featured coupons to your profile" : "Agrega cupones destacados a tu perfil"}
+            </h3>
+            <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+              {lang === "en"
+                ? "Show up to 4 featured coupons directly on your restaurant profile. Great for specials, combos, seasonal offers, lunch deals, catering, events, and first-time customer promotions."
+                : "Muestra hasta 4 cupones destacados directamente en tu perfil de restaurante. Ideal para atraer nuevos clientes, promocionar combos, ofertas de temporada, descuentos para familias, especiales de almuerzo, catering o eventos."}
+            </p>
+            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+              {lang === "en"
+                ? "Coupons appear on your restaurant profile and can be shared by link, message, or compatible apps."
+                : "Los cupones aparecen dentro de tu perfil de restaurante y pueden compartirse por enlace, mensaje o apps compatibles."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDraftPatch({ couponUpgradeEnabled: !draft.couponUpgradeEnabled });
+            }}
+            className={`min-h-[44px] shrink-0 rounded-full px-6 py-2.5 text-sm font-semibold transition ${
+              draft.couponUpgradeEnabled
+                ? "bg-[color:var(--lx-text)] text-white"
+                : "border-2 border-[color:var(--lx-gold-border)] bg-white text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+            }`}
+          >
+            {draft.couponUpgradeEnabled
+              ? lang === "en"
+                ? "Coupons enabled"
+                : "Cupones activados"
+              : lang === "en"
+                ? "Add coupons for $99/month"
+                : "Agregar cupones por $99/mes"}
+          </button>
+        </div>
+      </div>
 
       <div className="lg:hidden sticky top-14 z-30 -mx-4 mb-4 border-b border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-page)]/95 px-4 py-2.5 backdrop-blur-md">
         <RestauranteApplicationSectionNav
@@ -1316,6 +1382,16 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
               />
             </div>
+            <div>
+              <FieldLabel optional>País</FieldLabel>
+              <HelperText>País donde opera el restaurante (opcional).</HelperText>
+              <input
+                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                value={draft.country ?? ""}
+                onChange={(e) => setDraftPatch({ country: e.target.value || undefined })}
+                placeholder="Ej. Estados Unidos, México, España…"
+              />
+            </div>
           </div>
         </section>
         ) : null}
@@ -1736,6 +1812,119 @@ export default function RestauranteApplicationClient() {
                 </label>
               );
             })}
+          </div>
+        </section>
+        ) : null}
+
+        {/* I */}
+        {activeSectionId === "restaurantes-section-i" ? (
+        <section id="restaurantes-section-i" className={stepPanel}>
+          <SectionTitle>I · Cupones destacados</SectionTitle>
+          <HelperText>
+            Agrega hasta <strong className="text-[color:var(--lx-text-2)]">4</strong> ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.
+          </HelperText>
+          <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
+            Upgrade de cupones: <strong className="text-[color:var(--lx-text)]">+$99/mes</strong>
+          </p>
+          <div className="mt-4 grid gap-4">
+            {(draft.coupons ?? []).map((coupon, i) => (
+              <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">Cupón {i + 1}</span>
+                  <button type="button" className="text-sm text-red-700 underline" onClick={() => removeCoupon(i)}>
+                    Quitar
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3">
+                  <div>
+                    <FieldLabel>Título</FieldLabel>
+                    <HelperText>Ej. "10% de descuento en tu primera orden"</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.title}
+                      onChange={(e) => patchCoupon(i, { title: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Descripción</FieldLabel>
+                    <HelperText>Detalles de la oferta, condiciones o restricciones.</HelperText>
+                    <textarea
+                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.description}
+                      onChange={(e) => patchCoupon(i, { description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Imagen del cupón (flyer)</FieldLabel>
+                    <HelperText>URL de imagen o sube un flyer para mostrar el cupón visualmente.</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.imageUrl ?? ""}
+                      onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
+                      placeholder="https://ejemplo.com/cupon.jpg"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Enlace del cupón</FieldLabel>
+                    <HelperText>URL externa del cupón, menú, pedido o reservación.</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.url ?? ""}
+                      onChange={(e) => patchCoupon(i, { url: e.target.value || undefined })}
+                      placeholder="https://ejemplo.com/menu"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Código de cupón</FieldLabel>
+                    <HelperText>Código que el cliente debe mencionar o ingresar (si aplica).</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.couponCode ?? ""}
+                      onChange={(e) => patchCoupon(i, { couponCode: e.target.value || undefined })}
+                      placeholder="Ej. LEONIX10"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Fecha de expiración</FieldLabel>
+                    <HelperText>Fecha límite de vigencia (si aplica).</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      type="date"
+                      value={coupon.expirationDate ?? ""}
+                      onChange={(e) => patchCoupon(i, { expirationDate: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Nota de canje</FieldLabel>
+                    <HelperText>Instrucciones adicionales para redimir la oferta.</HelperText>
+                    <textarea
+                      className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.redemptionNote ?? ""}
+                      onChange={(e) => patchCoupon(i, { redemptionNote: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Etiqueta del botón (CTA)</FieldLabel>
+                    <HelperText>Texto personalizado para el botón (por defecto: "Ver cupón").</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.ctaLabel ?? ""}
+                      onChange={(e) => patchCoupon(i, { ctaLabel: e.target.value || undefined })}
+                      placeholder="Ej. Ver oferta"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(draft.coupons ?? []).length < 4 ? (
+              <button
+                type="button"
+                onClick={addCoupon}
+                className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                + Añadir cupón
+              </button>
+            ) : null}
           </div>
         </section>
         ) : null}

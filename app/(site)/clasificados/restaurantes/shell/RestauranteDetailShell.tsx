@@ -8,6 +8,7 @@ import { RestauranteShellInlineDataAssetButton } from "./RestauranteShellInlineD
 import { RestauranteShellInteractiveCtas } from "./RestauranteShellInteractiveCtas";
 import { RestauranteShellGalleryBlock } from "./RestauranteShellGalleryBlock";
 import { RestauranteShellPlatillosBlock } from "./RestauranteShellPlatillosBlock";
+import { RestauranteShellCouponsBlock } from "./RestauranteShellCouponsBlock";
 import { RestauranteShellVenueGalleryBlock } from "./RestauranteShellVenueGalleryBlock";
 import { RestauranteShellDestacadosSection } from "./RestauranteShellDestacadosSection";
 import { RestauranteGroupedFeaturesSection } from "./RestauranteGroupedFeaturesSection";
@@ -214,6 +215,13 @@ export function RestauranteDetailShell({
               label={`${data.fullMenuCta!.label} →`}
               className="flex w-full min-h-[64px] items-center justify-center rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-6 py-4 text-lg font-semibold text-[color:var(--lx-text)] transition-all hover:bg-[color:var(--lx-nav-hover)] hover:border-[color:var(--lx-gold)]"
             />
+          </section>
+        ) : null}
+
+        {/* Coupons Section - Under Featured Dishes */}
+        {data.coupons && data.coupons.length > 0 ? (
+          <section className="mb-16">
+            <RestauranteShellCouponsBlock coupons={data.coupons} />
           </section>
         ) : null}
       </div>
