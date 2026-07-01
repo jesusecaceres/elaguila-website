@@ -4,6 +4,7 @@ import { isAutosAllowTestPublishBypassEnabled } from "@/app/lib/clasificados/aut
 import { getAutosPublishUserFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import { isAutosNegociosQaPublishAllowlisted } from "@/app/lib/clasificados/autos/autosNegociosQaPublishAllowlist";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Public read of publish-mode flags (no secrets). Client confirm step uses this for copy + CTA. */

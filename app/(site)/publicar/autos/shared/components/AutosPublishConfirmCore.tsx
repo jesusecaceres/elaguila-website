@@ -11,8 +11,10 @@ import type { AutosPublishConfirmMode, AutosPublishFlowLang } from "@/app/clasif
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import {
   omitAutosInlineVideoForApiPayload,
+  prepareAutosListingForApiTransport,
   prepareAutosListingOptionalMuxUpload,
 } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
+import { autosConfirmErrorMessage } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import {
   clearInventoryAddContextFromSession,
@@ -233,7 +235,10 @@ export function AutosPublishConfirmCore({
               const sync = await fetchAutosConfirm(`/api/clasificados/autos/listings/${cached}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
+                body: JSON.stringify({
+                  listing: prepareAutosListingForApiTransport(listingRef.current),
+                  lang,
+                }),
               });
               const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
               if (cancelled) return;
@@ -252,7 +257,7 @@ export function AutosPublishConfirmCore({
         await flushDraft();
         if (cancelled) return;
         const createBody: Record<string, unknown> = {
-          listing: omitAutosInlineVideoForApiPayload(listingRef.current),
+          listing: prepareAutosListingForApiTransport(listingRef.current),
           lane,
           lang,
         };
@@ -265,10 +270,19 @@ export function AutosPublishConfirmCore({
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(createBody),
         });
-        const j = (await res.json().catch(() => ({}))) as { ok?: boolean; id?: string; persistWarnings?: string[] };
+        const j = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          id?: string;
+          errorCode?: string;
+          message?: string;
+          error?: string;
+          persistWarnings?: string[];
+        };
         if (cancelled) return;
         if (!res.ok || !j.id) {
-          setErrorDetail(c.createError);
+          setErrorDetail(
+            autosConfirmErrorMessage(lang, j.errorCode ?? j.error, j.message ?? c.createError),
+          );
           setPhase("error");
           return;
         }
@@ -342,7 +356,7 @@ export function AutosPublishConfirmCore({
   );
 
   if (prepareTimedOut && (!hydrated || phase === "preparing" || phase === "idle")) {
-    return renderPrepareError();
+    return renderPrepareError(autosConfirmErrorMessage(lang, "REQUEST_TIMEOUT"));
   }
 
   if (!hydrated || phase === "preparing" || phase === "idle") {
@@ -403,12 +417,19 @@ export function AutosPublishConfirmCore({
     const sync = await fetchAutosConfirm(`/api/clasificados/autos/listings/${listingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listing: omitAutosInlineVideoForApiPayload(listingRef.current), lang }),
+      body: JSON.stringify({ listing: prepareAutosListingForApiTransport(listingRef.current), lang }),
     });
-    const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
+    const syncJson = (await sync.json().catch(() => ({}))) as {
+      persistWarnings?: string[];
+      errorCode?: string;
+      message?: string;
+      error?: string;
+    };
     if (!sync.ok) {
       setPayBusy(false);
-      setErrorDetail(c.createError);
+      setErrorDetail(
+        autosConfirmErrorMessage(lang, syncJson.errorCode ?? syncJson.error, syncJson.message ?? c.createError),
+      );
       setPhase("error");
       return;
     }
@@ -433,6 +454,7 @@ export function AutosPublishConfirmCore({
       negociosQaAllowlistBypass?: boolean;
       successUrl?: string;
       error?: string;
+      errorCode?: string;
       message?: string;
       bundlePublish?: {
         mainListingId: string;
@@ -451,6 +473,14 @@ export function AutosPublishConfirmCore({
     }
     if (!res.ok && j.error === "bundle_requires_qa_bypass") {
       setErrorDetail(j.message ?? c.checkoutErrorGeneric);
+      setPhase("error");
+      return;
+    }
+    if (
+      !res.ok &&
+      (j.error === "autos_negocios_qa_allowlist_missing" || j.errorCode === "AUTOS_NEGOCIOS_QA_ALLOWLIST_MISSING")
+    ) {
+      setErrorDetail(autosConfirmErrorMessage(lang, "AUTOS_NEGOCIOS_QA_ALLOWLIST_MISSING", j.message));
       setPhase("error");
       return;
     }
@@ -490,11 +520,13 @@ export function AutosPublishConfirmCore({
     }
     const code = j.error ?? "";
     const msg =
-      code === "stripe_not_configured"
+      j.errorCode
+        ? autosConfirmErrorMessage(lang, j.errorCode, j.message)
+        : code === "stripe_not_configured"
         ? c.checkoutErrorStripe
         : code === "stripe_price_missing"
           ? c.checkoutErrorPrice
-          : c.checkoutErrorGeneric;
+          : j.message ?? c.checkoutErrorGeneric;
     setErrorDetail(msg);
     setPhase("error");
     } catch {

@@ -66,6 +66,8 @@ export function isAutosClassifiedsDbConfigured(): boolean {
 export type AutosListingPersistResult = {
   row: AutosClassifiedsListingRow | null;
   persistWarnings: string[];
+  errorCode?: string;
+  errorDetails?: string;
 };
 
 export const AUTOS_DEALER_ACTIVE_LIMIT_ERROR = "dealer_active_limit_reached" as const;
@@ -126,15 +128,15 @@ export async function createAutosClassifiedsListing(input: CreateAutosListingInp
     .select()
     .single();
   if (error || !data) {
-    console.error("createAutosClassifiedsListing", error);
-    return { row: null, persistWarnings };
+    console.error("createAutosClassifiedsListing", error?.code, error?.message);
+    return {
+      row: null,
+      persistWarnings,
+      errorCode: "AUTOS_SUPABASE_INSERT_FAILED",
+      errorDetails: [error?.code, error?.message].filter(Boolean).join(": ") || "insert_failed",
+    };
   }
   const row = rowFromDb(data as Record<string, unknown>);
-  const verify = await getAutosClassifiedsListingById(row.id);
-  if (!verify || verify.status !== "draft" || verify.owner_user_id !== input.ownerUserId) {
-    console.error("createAutosClassifiedsListing verify_failed", row.id);
-    return { row: null, persistWarnings };
-  }
   return { row, persistWarnings };
 }
 
@@ -225,15 +227,15 @@ export async function updateAutosClassifiedsListingDraft(
     .select()
     .single();
   if (error || !data) {
-    console.error("updateAutosClassifiedsListingDraft", error);
-    return { row: null, persistWarnings };
+    console.error("updateAutosClassifiedsListingDraft", error?.code, error?.message);
+    return {
+      row: null,
+      persistWarnings,
+      errorCode: "AUTOS_SUPABASE_UPDATE_FAILED",
+      errorDetails: [error?.code, error?.message].filter(Boolean).join(": ") || "update_failed",
+    };
   }
   const updated = rowFromDb(data as Record<string, unknown>);
-  const verify = await getAutosClassifiedsListingById(listingId);
-  if (!verify) {
-    console.error("updateAutosClassifiedsListingDraft verify_failed", listingId);
-    return { row: null, persistWarnings };
-  }
   return { row: updated, persistWarnings };
 }
 

@@ -9,10 +9,33 @@ function isOversizedDataUrl(value: string | null | undefined): boolean {
   return v.startsWith("data:") && v.length > MAX_INLINE_DATA_URL_CHARS;
 }
 
+function isNonDurableMediaUrl(value: string | null | undefined): boolean {
+  const v = value?.trim() ?? "";
+  return v.startsWith("blob:") || v.startsWith("data:");
+}
+
+function pruneHeroImages(images: string[] | undefined, warnings: string[]): string[] | undefined {
+  if (!images?.length) return images;
+  const next = images.filter((u) => {
+    const v = u?.trim() ?? "";
+    if (!v) return false;
+    if (isNonDurableMediaUrl(v)) {
+      warnings.push("hero_image_non_durable_stripped");
+      return false;
+    }
+    return true;
+  });
+  return next.length === images.length ? images : next;
+}
+
 function pruneMediaImages(images: MediaImageEntry[] | undefined, warnings: string[]): MediaImageEntry[] | undefined {
   if (!images?.length) return images;
   const next = images.filter((img) => {
     const u = img.url ?? "";
+    if (isNonDurableMediaUrl(u)) {
+      warnings.push("media_image_non_durable_stripped");
+      return false;
+    }
     if (isOversizedDataUrl(u)) {
       warnings.push("media_image_oversized_data_url_dropped");
       return false;
@@ -69,6 +92,11 @@ export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerLis
   const prunedMedia = pruneMediaImages(L.mediaImages, persistWarnings);
   if (prunedMedia !== undefined && prunedMedia !== L.mediaImages) {
     L = { ...L, mediaImages: prunedMedia };
+  }
+
+  const prunedHero = pruneHeroImages(L.heroImages, persistWarnings);
+  if (prunedHero !== undefined && prunedHero !== L.heroImages) {
+    L = { ...L, heroImages: prunedHero };
   }
 
   return { listing: L, persistWarnings };

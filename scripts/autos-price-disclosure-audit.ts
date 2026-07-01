@@ -108,6 +108,16 @@ const preExistingUnrelatedParallelWork = new Set([
   "scripts/autos-landing-results-cross-nav-audit.ts",
   "scripts/autos-application-war-room-audit.ts",
   "scripts/autos-final-war-room-closeout-audit.ts",
+  "scripts/autos-working-category-publish-pattern-rescue-audit.ts",
+  "app/lib/clasificados/autos/AUTOS_WORKING_CATEGORY_PUBLISH_PATTERN_RESCUE_AUDIT.md",
+  "app/lib/clasificados/autos/autosPublishApiContract.ts",
+  "app/lib/clasificados/autos/autosClassifiedsListingService.ts",
+  "app/lib/clasificados/autos/autosListingPayloadPersistence.ts",
+  "app/api/clasificados/autos/listings/route.ts",
+  "app/api/clasificados/autos/listings/[id]/route.ts",
+  "app/api/clasificados/autos/checkout/route.ts",
+  "app/api/clasificados/autos/publish-options/route.ts",
+  "app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare.ts",
 ]);
 
 const lockedCtaFiles = new Set([

@@ -5,6 +5,7 @@
 import { isOfertaLocalExpired, normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import { buildOfertaLocalTelHref } from "./ofertasLocalesPreviewHelpers";
+import { parseOfertaLocalDraftSnapshot, readDraftSnapshotLocationFields } from "./ofertasLocalesDbSchema";
 import type { OfertaLocalPublicOfferCard, OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
 export type OfertaLocalPublicOfferRow = {
@@ -26,6 +27,7 @@ export type OfertaLocalPublicOfferRow = {
   whatsapp: string | null;
   website_url: string | null;
   directions_url: string | null;
+  draft_snapshot: unknown;
   flyer_assets: unknown;
   coupon_assets: unknown;
   submitted_at: string;
@@ -35,7 +37,9 @@ export type OfertaLocalPublicOfferRow = {
 export type OfertaLocalPublicOfferSearchQuery = {
   q?: string;
   city?: string;
+  state?: string;
   zip?: string;
+  country?: string;
   category?: string;
   marketType?: string;
   offerType?: string;
@@ -83,6 +87,8 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
   const city = sanitizeText(row.city, 80);
   const state = sanitizeText(row.state, 40);
   const zipCode = sanitizeText(row.zip_code, 10);
+  const country =
+    readDraftSnapshotLocationFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot)).country ?? "";
   const directionsRaw = sanitizeText(row.directions_url, 500);
   const directionsHref =
     directionsRaw && directionsRaw.startsWith("http")
@@ -103,6 +109,7 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
     city,
     state,
     zipCode,
+    country,
     address,
     validFrom: sanitizeText(row.valid_from, 32),
     validUntil: sanitizeText(row.valid_until, 32),
@@ -135,8 +142,15 @@ export function filterAndSortOfertaLocalPublicOffers(
     }
     const city = normalizeOfertaLocalSearchText(query.city ?? "");
     if (city && !normalizeOfertaLocalSearchText(offer.city).includes(city)) return false;
+    const state = normalizeOfertaLocalSearchText(query.state ?? "");
+    if (state && !normalizeOfertaLocalSearchText(offer.state).includes(state)) return false;
     const zip = (query.zip ?? "").replace(/\D/g, "").slice(0, 5);
     if (zip && !offer.zipCode.replace(/\D/g, "").startsWith(zip)) return false;
+    const country = normalizeOfertaLocalSearchText(query.country ?? "");
+    if (country) {
+      if (!offer.country?.trim()) return false;
+      if (!normalizeOfertaLocalSearchText(offer.country).includes(country)) return false;
+    }
     if (
       query.category?.trim() &&
       normalizeOfertaLocalSearchText(offer.businessCategory) !==
@@ -176,7 +190,9 @@ export function parseOfertaLocalPublicOfferSearchQuery(
   return {
     q: params.get("q")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
+    state: params.get("state")?.trim() ?? "",
     zip: params.get("zip")?.trim() ?? "",
+    country: params.get("country")?.trim() ?? "",
     category: params.get("category")?.trim() ?? "",
     marketType: params.get("marketType")?.trim() ?? "",
     offerType: params.get("offerType")?.trim() ?? "",

@@ -4,6 +4,7 @@
 
 import type { AgenteIndividualResidencialFormState } from "../../agente-individual/schema/agenteIndividualResidencialFormState";
 import { formatTipoPropiedadLine } from "../../agente-individual/lib/agenteResidencialPreviewFormat";
+import { normalizeBrListingCountry, resolveBrListingCity } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 import type {
   BienesRaicesNegocioFormState,
   BienesRaicesListingStatus,
@@ -105,9 +106,11 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     listingStatus: listingStatusFromAgente(s),
     titulo: s.titulo,
     precio: s.precio,
-    ciudad: s.ciudad,
+    ciudad: resolveBrListingCity(s.ciudad),
     estado: s.direccionEstado,
     codigoPostal: s.direccionCodigoPostal,
+    colonia: trim(s.areaCiudad),
+    pais: normalizeBrListingCountry(s.direccionPais),
     direccion: trim(s.direccionLinea1) || trim(s.direccion),
     direccionLinea2: s.direccionLinea2,
     mostrarDireccionExacta: s.mostrarDireccionExacta,

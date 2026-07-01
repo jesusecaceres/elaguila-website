@@ -1,7 +1,13 @@
 /**
  * Revenue OS V1 category/package pricing matrix (pure read model).
- * Gate STRIPE-REVENUE-OS-SCHEMA-AND-ENTITLEMENT-CONTRACT-01 — no DB, Stripe, or env.
+ * Gate STRIPE-REVENUE-OS-PACKAGE-KEY-ALIGNMENT-01 — canonical package keys; no DB, Stripe, or env.
  */
+
+/** Publicar empleo — regular paid job post (Stripe + promo eligible). */
+export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
+
+/** Publicar feria de empleos — always free (no Stripe, no promo). */
+export const EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY = "empleos_job_fair_free";
 
 export type RevenueBillingMode =
   | "one_time"
@@ -24,6 +30,8 @@ export type RevenuePackageDefinition = {
   category: string;
   packageKey: string;
   customerType: RevenueCustomerType;
+  /** Category-specific pipeline slug (e.g. empleos job_post vs job_fair). */
+  pipeline?: string | null;
   label: string;
   priceCents: number;
   billingMode: RevenueBillingMode;
@@ -33,6 +41,10 @@ export type RevenuePackageDefinition = {
   promoEligible: boolean;
   printCompEligible: boolean;
   placementEligible: boolean;
+  /** Future Stripe Checkout session eligibility. */
+  stripeEligible: boolean;
+  /** Revenue OS placement tier key when placement applies. */
+  placementTierKey?: string | null;
   /** Owner decision not yet locked in repo. */
   unresolvedOwnerDecision: string | null;
 };
@@ -62,6 +74,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: false,
     placementEligible: false,
+    stripeEligible: true,
     unresolvedOwnerDecision: null,
   },
   {
@@ -77,6 +90,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[0],
   },
   {
@@ -92,6 +106,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
   },
   {
@@ -107,6 +122,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: false,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[1],
   },
   {
@@ -122,6 +138,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: false,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[6],
   },
   {
@@ -137,6 +154,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: null,
   },
   {
@@ -152,6 +170,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[3],
   },
   {
@@ -167,6 +186,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: null,
   },
   {
@@ -182,13 +202,15 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[4],
   },
   {
     category: "empleos",
-    packageKey: "empleos_job_30d",
+    packageKey: EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
     customerType: "employer",
-    label: "Empleos job post 30-day",
+    pipeline: "job_post",
+    label: "Empleos job post (Publicar empleo)",
     priceCents: 2499,
     billingMode: "one_time",
     durationDays: 30,
@@ -197,13 +219,16 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: false,
     placementEligible: true,
+    stripeEligible: true,
+    placementTierKey: "paid_private",
     unresolvedOwnerDecision: null,
   },
   {
     category: "empleos",
-    packageKey: "empleos_job_fair",
+    packageKey: EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY,
     customerType: "employer",
-    label: "Empleos job fair",
+    pipeline: "job_fair",
+    label: "Empleos job fair (Publicar feria de empleos)",
     priceCents: 0,
     billingMode: "free",
     durationDays: null,
@@ -212,7 +237,9 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: false,
     printCompEligible: false,
     placementEligible: false,
-    unresolvedOwnerDecision: "Define event proof for job fair comp",
+    stripeEligible: false,
+    placementTierKey: "free",
+    unresolvedOwnerDecision: "Job fair is always free — no Stripe or promo required",
   },
   {
     category: "en-venta",
@@ -227,6 +254,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: false,
     printCompEligible: false,
     placementEligible: false,
+    stripeEligible: false,
     unresolvedOwnerDecision: "Legacy Pro fields documented but inactive in V1",
   },
   {
@@ -242,7 +270,77 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: false,
     placementEligible: true,
+    stripeEligible: true,
+    placementTierKey: "paid_private",
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[7],
+  },
+  {
+    category: "clases",
+    packageKey: "clases_free",
+    customerType: "community",
+    label: "Clases free",
+    priceCents: 0,
+    billingMode: "free",
+    durationDays: null,
+    includedInventory: "1 class",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: false,
+    placementTierKey: "free",
+    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[7],
+  },
+  {
+    category: "comunidad",
+    packageKey: "comunidad_free",
+    customerType: "community",
+    label: "Comunidad free",
+    priceCents: 0,
+    billingMode: "free",
+    durationDays: null,
+    includedInventory: "1 post",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: false,
+    placementTierKey: "free",
+    unresolvedOwnerDecision: null,
+  },
+  {
+    category: "mascotas-y-perdidos",
+    packageKey: "mascotas_free",
+    customerType: "community",
+    label: "Mascotas y perdidos free",
+    priceCents: 0,
+    billingMode: "free",
+    durationDays: null,
+    includedInventory: "1 listing",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: false,
+    placementTierKey: "free",
+    unresolvedOwnerDecision: null,
+  },
+  {
+    category: "busco",
+    packageKey: "busco_free",
+    customerType: "community",
+    label: "Busco / Se Busca free",
+    priceCents: 0,
+    billingMode: "free",
+    durationDays: null,
+    includedInventory: "1 request",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: false,
+    placementTierKey: "free",
+    unresolvedOwnerDecision: null,
   },
   {
     category: "viajes",
@@ -257,6 +355,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
+    stripeEligible: true,
     unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[5],
   },
   {
@@ -272,6 +371,8 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     promoEligible: false,
     printCompEligible: false,
     placementEligible: true,
+    stripeEligible: false,
+    placementTierKey: "affiliate",
     unresolvedOwnerDecision: "Commission tracking model separate from paid placement",
   },
 ];
@@ -279,6 +380,25 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
 export function listRevenuePackagesForCategory(category: string): RevenuePackageDefinition[] {
   const slug = String(category ?? "").trim().toLowerCase();
   return REVENUE_V1_PACKAGE_MATRIX.filter((p) => p.category === slug);
+}
+
+export function getRevenuePackageDefinition(
+  packageKey: string,
+): RevenuePackageDefinition | null {
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  return REVENUE_V1_PACKAGE_MATRIX.find((p) => p.packageKey === key) ?? null;
+}
+
+export function isStripeEligiblePackageKey(packageKey: string | null | undefined): boolean {
+  const def = getRevenuePackageDefinition(String(packageKey ?? ""));
+  if (!def) return false;
+  return def.stripeEligible === true;
+}
+
+export function isPromoEligiblePackageKey(packageKey: string | null | undefined): boolean {
+  const def = getRevenuePackageDefinition(String(packageKey ?? ""));
+  if (!def) return false;
+  return def.promoEligible === true;
 }
 
 export function getRevenuePackagePriceCents(input: {

@@ -115,13 +115,15 @@ export default function CityAutocomplete({
     blurTimerRef.current = window.setTimeout(() => {
       blurTimerRef.current = null;
       const v = valueRef.current;
-      const canon = normalizeToCanonical(v);
-      if (canon) onChange(canon);
-      else if (stripInvalidOnBlur && v.trim()) onChange("");
+      if (!freeText) {
+        const canon = normalizeToCanonical(v);
+        if (canon) onChange(canon);
+        else if (stripInvalidOnBlur && v.trim()) onChange("");
+      }
       setOpen(false);
       setHighlightedIndex(-1);
     }, BLUR_DELAY_MS);
-  }, [onChange, stripInvalidOnBlur]);
+  }, [onChange, stripInvalidOnBlur, freeText]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {

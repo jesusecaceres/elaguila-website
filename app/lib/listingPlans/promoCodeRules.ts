@@ -1,7 +1,12 @@
 /**
  * Revenue OS promo code validation rules (pure read model).
- * Gate STRIPE-REVENUE-OS-SCHEMA-AND-ENTITLEMENT-CONTRACT-01 — no DB, Stripe, or env.
+ * Gate STRIPE-REVENUE-OS-PACKAGE-KEY-ALIGNMENT-01 — no DB, Stripe, or env.
  */
+
+import {
+  EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY,
+  isPromoEligiblePackageKey,
+} from "./revenuePricingMatrix";
 
 export type RevenuePromoType =
   | "percent_off"
@@ -58,6 +63,24 @@ function scopeMatches(scope: string[] | null | undefined, value: string | null |
 export function validatePromoEligibility(input: PromoEligibilityInput): PromoValidationResult {
   const warnings: string[] = [];
   const now = input.now ?? new Date();
+  const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
+
+  if (packageKey === EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY) {
+    return {
+      eligible: false,
+      reason: "Empleos job fair is always free — promo not required or accepted.",
+      warnings: ["Publicar feria de empleos does not use promo codes."],
+    };
+  }
+
+  if (packageKey && !isPromoEligiblePackageKey(packageKey)) {
+    return {
+      eligible: false,
+      reason: "Package is not promo-eligible.",
+      warnings: ["Free and non-monetized packages do not require promo redemption."],
+    };
+  }
+
   const promoType = String(input.promoType ?? "").trim().toLowerCase() as RevenuePromoType;
 
   if (!REVENUE_PROMO_TYPES.includes(promoType)) {

@@ -28,11 +28,9 @@ import {
   socialLinksFromChannelsPayload,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import {
-  buildRealEstateMapQuery,
   formatApproxAddressDisplay,
   formatBrOptionalCurrencyDisplay,
   formatBrSizeFieldDisplay,
-  formatCityStateZip,
   formatDetailCountDisplay,
   formatFullAddress,
   formatSqftDisplay,
@@ -59,6 +57,12 @@ import type {
 } from "./bienesRaicesNegocioPreviewVm";
 import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/lib/leonixPublishPublicDescription";
 import { hydrateBrNegocioContactChannelsFromIdentity } from "@/app/clasificados/lib/brNegocioContactChannelsHydrate";
+import {
+  buildBrListingMapQuery,
+  formatBrCityStatePostalLine,
+  isBrUsCountry,
+  normalizeBrListingCountry,
+} from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 
 const LISTING_STATUS_LABEL: Record<BienesRaicesListingStatus, string> = {
   en_venta: "En venta",
@@ -200,6 +204,7 @@ function bathLine(complete: string, half: string): string {
 }
 
 function buildAddress(s: BienesRaicesNegocioFormState): string {
+  const country = normalizeBrListingCountry(s.pais);
   const full = formatFullAddress({
     street: trim(s.direccion),
     unit: trim(s.direccionLinea2),
@@ -207,17 +212,28 @@ function buildAddress(s: BienesRaicesNegocioFormState): string {
     state: trim(s.estado),
     zip: trim(s.codigoPostal),
   });
-  return full || "—";
+  if (!full) return "—";
+  if (country && !isBrUsCountry(country)) return `${full}, ${country}`;
+  return full;
 }
 
 function buildNegocioApproxAddressLine(s: BienesRaicesNegocioFormState): string {
-  const line = formatApproxAddressDisplay({
-    neighborhood: trim(s.colonia),
+  const country = normalizeBrListingCountry(s.pais);
+  const cityLine = formatBrCityStatePostalLine(
+    trim(s.ciudad),
+    trim(s.estado),
+    trim(s.codigoPostal),
+    country,
+  );
+  const colonia = trim(s.colonia);
+  const parts = [cityLine, colonia].filter(Boolean);
+  if (parts.length) return parts.join(" · ");
+  return formatApproxAddressDisplay({
+    neighborhood: colonia,
     city: trim(s.ciudad),
     state: trim(s.estado),
     zip: trim(s.codigoPostal),
-  });
-  return line || "—";
+  }) || "—";
 }
 
 function publicationOperationSummary(s: BienesRaicesNegocioFormState): string {
@@ -520,18 +536,20 @@ function buildLocationVm(s: BienesRaicesNegocioFormState): BienesRaicesPreviewLo
   const city = trim(s.ciudad);
   const st = trim(s.estado);
   const zip = trim(s.codigoPostal);
+  const country = normalizeBrListingCountry(s.pais);
   const streetLine = formatStreetUnitLine(street, unit);
-  const cityPart = formatCityStateZip(city, st, zip);
+  const cityPart = formatBrCityStatePostalLine(city, st, zip, country);
   const showExact = s.mostrarDireccionExacta;
   const fullAddress = showExact ? buildAddress(s) : buildNegocioApproxAddressLine(s);
-  const mapsQuery = buildRealEstateMapQuery({
+  const mapsQuery = buildBrListingMapQuery({
     exact: showExact,
     street,
     unit,
     neighborhood: colonia,
     city,
     state: st,
-    zip,
+    postal: zip,
+    country,
   });
   const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : null;
   const hasMeaningfulAddress = Boolean((showExact && streetLine) || colonia || cityPart || mapsUrl);

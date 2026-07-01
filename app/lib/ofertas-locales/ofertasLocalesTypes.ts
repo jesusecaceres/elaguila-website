@@ -774,6 +774,7 @@ export type OfertaLocalPublicSearchItem = {
   city: string;
   state: string;
   zipCode: string;
+  country: string;
   phoneDisplay: string;
   phoneHref: string | null;
   whatsappHref: string | null;
@@ -822,6 +823,7 @@ export type OfertaLocalPublicOfferCard = {
   city: string;
   state: string;
   zipCode: string;
+  country: string;
   address: string;
   validFrom: string;
   validUntil: string;

@@ -76,8 +76,8 @@ This gate does not wire money. It locks the implementation blueprint before Chec
 | Restaurantes | `restaurantes_offers_addon` | Restaurant/business | `$99/mo` | monthly_subscription | monthly | coupons/offers module | n/a | yes | yes | yes | NEEDS OWNER FINAL LOCK | No checkout/add-on table yet. |
 | Servicios | `servicios_base_monthly` | Service business | `$399/mo` | monthly_subscription | monthly | 1 profile/listing | future multi-location | yes | yes | yes | none | Strong entitlement/ranking foundation; no checkout. |
 | Servicios | `servicios_offers_addon` | Service business | `$99/mo` | monthly_subscription | monthly | coupons/offers module | n/a | yes | yes | yes | NEEDS OWNER FINAL LOCK | Add-on needs schema/product path. |
-| Empleos | `empleos_job_30d` | Employer | `$24.99` | one_time | 30 days | 1 job post | none | yes | no | paid_private | none | Needs new checkout path. |
-| Empleos | `empleos_job_fair` | Job fair | free | free | event/campaign | event participation | n/a | no | no | no | Define event proof | Keep separate from paid job post. |
+| Empleos | `empleos_job_post_paid` | Employer (Publicar empleo) | `$24.99` | one_time | 30 days | 1 job post | none | yes | no | paid_private | none | Stripe Checkout gate wires regular job post only. |
+| Empleos | `empleos_job_fair_free` | Job fair (Publicar feria) | free | free | event/campaign | event participation | n/a | no | no | free | none | Always free — no Stripe, no promo. Legacy keys `empleos_job_30d` / `empleos_job_fair` deprecated. |
 | En Venta | `en_venta_free_v1` | Seller | free | free | V1 free | 1 listing | none | no | no | free | Legacy Pro fields documented but inactive | Do not activate Pro in V1. |
 | Clases | `clases_free` | Free class | free | free | listing window TBD | 1 class | none | no | no | free | Duration final lock | Needs no checkout. |
 | Clases | `clases_paid_30d` | Paid class | `$24.99` | one_time | 30 days | 1 class | none | yes | no | paid_private | none | Needs new checkout path. |
