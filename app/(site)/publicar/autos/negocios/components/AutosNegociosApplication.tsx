@@ -36,6 +36,7 @@ import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/sha
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
+import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { writeAutosNegociosEditorReturnContext } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
 import { stripAutosNegociosEditorResumeQueryParams } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 
@@ -161,6 +162,7 @@ export function AutosNegociosApplication() {
           draftLabel={t.app.badgeLocal}
           banner={
             <>
+              <AutosPricingPlanBanner lang={lang} lane="negocios" />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
               {inventoryBanner ? (
                 <p className="rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">

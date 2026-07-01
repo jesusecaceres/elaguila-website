@@ -28,6 +28,7 @@ import {
 } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { autosQaPaymentBypassLabel } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import { getAutosConfirmPlanSummaryCopy } from "@/app/lib/clasificados/autos/autosPricingCopy";
 
 const AUTOS_CONFIRM_PREPARE_TIMEOUT_MS = 15_000;
 
@@ -509,6 +510,7 @@ export function AutosPublishConfirmCore({
     "—";
   const locLine = [listing.city, listing.state, listing.zip].filter((x) => (x ?? "").trim()).join(", ") || "—";
   const qaBypassActive = publishConfirmMode !== "stripe";
+  const planSummary = getAutosConfirmPlanSummaryCopy(lang, lane, qaBypassActive);
   const bundleCount =
     lane === "negocios" && !inventoryCtx ? countApplicationInventoryVehicles(additionalInventoryVehicles.length) : 0;
 
@@ -541,6 +543,9 @@ export function AutosPublishConfirmCore({
         </p>
       ) : null}
       <dl className="mt-8 divide-y divide-[color:var(--lx-nav-border)]/80 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-2 text-sm shadow-sm sm:px-5 sm:py-3">
+        {summaryRow(planSummary.planLabel, planSummary.planValue)}
+        {summaryRow(planSummary.priceLabel, planSummary.priceValue)}
+        {summaryRow(planSummary.statusLabel, planSummary.statusValue, "font-medium text-[color:var(--lx-text-2)]")}
         {summaryRow(c.laneLine, c.laneValue)}
         {summaryRow(c.summaryVehicle, vehicleLine)}
         {summaryRow(c.summaryPrice, formatUsd(listing.price, lang))}
@@ -549,6 +554,7 @@ export function AutosPublishConfirmCore({
           : null}
         {summaryRow(c.summaryLocation, locLine, "font-medium text-[color:var(--lx-text-2)]")}
       </dl>
+      <p className="mt-4 text-xs leading-relaxed text-[color:var(--lx-muted)]">{planSummary.summaryFootnote}</p>
       {muxPublishWarnings.length > 0 ? (
         <div
           className="mt-6 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"

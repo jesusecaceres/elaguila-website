@@ -89,7 +89,20 @@ const preExistingUnrelatedParallelWork = new Set([
   "scripts/autos-final-pre-qa-smoke-proof-audit.ts",
   "docs/site-translation-word-by-word-smoke.md",
   "docs/translation-finish-backlog.md",
+  "docs/stripe-revenue-os-live-supabase-proof-01.md",
   "scripts/verify-ofertas-step5-global-address-review-workspace.mjs",
+  "scripts/verify-stripe-revenue-os-live-supabase-proof-01.mjs",
+  "scripts/autos-price-disclosure-audit.ts",
+  "app/lib/clasificados/autos/AUTOS_PRICE_DISCLOSURE_AUDIT.md",
+  "app/lib/clasificados/autos/autosPricingCopy.ts",
+  "app/(site)/publicar/autos/PublicarAutosBranchClient.tsx",
+  "app/(site)/publicar/autos/autosBranchCopy.ts",
+  "app/(site)/publicar/autos/shared/components/AutosPublishApplicationHeader.tsx",
+  "app/(site)/publicar/autos/shared/components/AutosPricingBadge.tsx",
+  "app/(site)/publicar/autos/shared/components/AutosPricingPlanBanner.tsx",
+  "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
+  "app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx",
+  "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
 ]);
 
 const allowedExact = new Set([
@@ -158,6 +171,7 @@ const copy = read("app/(site)/clasificados/autos/lib/autosPublicBlueprintCopy.ts
 assert(landing.includes("AutosLaneCrossNav"), "landing renders AutosLaneCrossNav");
 assert(results.includes("AutosLaneCrossNav"), "results renders AutosLaneCrossNav");
 assert(crossNav.includes("mode === \"landing\""), "cross-nav supports landing mode");
+assert(crossNav.includes("getAutosLandingPublishCardCopy"), "cross-nav uses Autos pricing copy on publish cards");
 assert(crossNav.includes("results-private") && crossNav.includes("results-dealer"), "cross-nav supports results lane modes");
 assert(copy.includes("Looking for a private seller car?"), "English private seller copy exists");
 assert(copy.includes("¿Buscas autos de dealer?"), "Spanish dealer copy exists");

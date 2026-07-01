@@ -38,7 +38,7 @@ export function AutosPublishApplicationHeader({ lang, lane, title, helper, draft
           </span>
         </div>
         <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">{helper}</p>
-        {banner ? <div className="mt-3">{banner}</div> : null}
+        {banner ? <div className="mt-3 space-y-3">{banner}</div> : null}
       </div>
     </header>
   );

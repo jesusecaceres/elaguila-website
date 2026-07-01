@@ -39,7 +39,7 @@ export function BienesRaicesCompactSearchCanvas({
 }: Props) {
   const ph = searchLabel ?? brBrowseSearchPlaceholder(lang);
   const cityPh = lang === "es" ? "Ciudad" : "City";
-  const zipPh = lang === "es" ? "CP / ZIP" : "ZIP";
+  const zipPh = "ZIP";
 
   return (
     <div className={BR_SEARCH_CANVAS}>

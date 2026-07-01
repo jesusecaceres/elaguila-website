@@ -179,7 +179,7 @@ export function HeroAndSearch({ lang }: Props) {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
               <label className="block text-xs font-semibold text-[#3D3428]">
-                {lang === "es" ? "Estado / región" : "State / region"}
+                {lang === "es" ? "Estado" : "State"}
                 <input value={state} onChange={(e) => setState(e.target.value)} className={`${fieldClass} mt-1`} />
               </label>
               <label className="mt-3 block text-xs font-semibold text-[#3D3428]">
