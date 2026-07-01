@@ -1,3 +1,4 @@
+import { ensureCommunityPreviewListingId } from "@/app/lib/clasificados/comunidad/communityPreviewListingId";
 import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { EmpleosImageItem } from "@/app/publicar/empleos/shared/media/empleosMediaTypes";
@@ -89,8 +90,12 @@ export type ComunidadCostType = "gratis" | "pagado" | "donacion" | "noConfirmado
 
 /** Fields shared across Clases + Comunidad quick drafts. */
 export type CommunityCommonDraft = {
+  /** Stable UUID for preview Leonix Ad ID before publish. */
+  previewListingId: string;
   title: string;
   organizer: string;
+  /** Optional logo/photo URL for organizer card. */
+  organizerLogoUrl: string;
   /** Class type/category for clases, event type/category for comunidad. */
   category: string;
   /** Free-form custom label when category === "otro". */
@@ -219,8 +224,10 @@ function emptyPublishConfirmations(): CommunityPublishConfirmations {
 
 function emptyCommon(): CommunityCommonDraft {
   return {
+    previewListingId: ensureCommunityPreviewListingId(""),
     title: "",
     organizer: "",
+    organizerLogoUrl: "",
     category: "",
     categoryCustom: "",
     description: "",
@@ -428,8 +435,10 @@ function normalizeCommon(p: Partial<CommunityCommonDraft>): CommunityCommonDraft
   /** Prefer canonical when input resolves; keep non-canonical text only while editing (gate blocks publish). */
   const publicCity = rawCity ? getCanonicalCityName(rawCity) || rawCity : "";
   return {
+    previewListingId: ensureCommunityPreviewListingId(p.previewListingId),
     title: String(p.title ?? e.title),
     organizer: String(p.organizer ?? e.organizer),
+    organizerLogoUrl: String((p as Partial<CommunityCommonDraft>).organizerLogoUrl ?? e.organizerLogoUrl).trim(),
     category: String(p.category ?? e.category).trim(),
     categoryCustom: String(p.categoryCustom ?? e.categoryCustom),
     description: String(p.description ?? e.description),

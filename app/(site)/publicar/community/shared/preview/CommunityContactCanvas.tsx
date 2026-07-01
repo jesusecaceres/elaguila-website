@@ -14,6 +14,7 @@ import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaSnapchat, FaTiktok,
 import { FaXTwitter } from "react-icons/fa6";
 import { FiExternalLink, FiGlobe, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 
+import { CommunityLeonixMapVisual } from "./CommunityLeonixMapVisual";
 import {
   buildCommunityMapQuery,
   googleMapsSearchUrl,
@@ -119,7 +120,7 @@ const UI_COMUNIDAD = {
 
 const UI_CLASES = {
   es: {
-    contactTitle: "Contacto del instructor",
+    contactTitle: "Contacto del instructor / organizador",
     socialTitle: "Síguenos",
     locationTitle: "Lugar de la clase",
     moreTitle: "Más información de la clase",
@@ -145,7 +146,7 @@ const UI_CLASES = {
     copyPhone: "Copiar teléfono",
   },
   en: {
-    contactTitle: "Instructor contact",
+    contactTitle: "Instructor / organizer contact",
     socialTitle: "Follow us",
     locationTitle: "Class location",
     moreTitle: "More class information",
@@ -213,6 +214,7 @@ export function CommunityContactCanvas({
   lang,
   sectionHtmlId,
   analyticsCtx,
+  locationOnlineLabel,
 }: {
   draft: Draft;
   lang: Lang;
@@ -220,6 +222,8 @@ export function CommunityContactCanvas({
   sectionHtmlId?: string;
   /** When provided, real analytics events fire on every CTA click. Omit in preview mode. */
   analyticsCtx?: CommunityGlobalAnalyticsCtx;
+  /** When class/event is online-only, show this instead of a physical map. */
+  locationOnlineLabel?: string;
 }) {
   const k = kindOf(draft);
   const t = k === "clases" ? UI_CLASES[lang] : UI_COMUNIDAD[lang];
@@ -335,7 +339,9 @@ export function CommunityContactCanvas({
   const allLinkItems = k === "clases" ? classLinkItems : eventLinkItems;
 
   const hasContactActions = !!(phone10 || wa10 || sms10 || email);
-  const hasLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
+  const hasPhysicalLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
+  const hasOnlineLocation = Boolean(locationOnlineLabel?.trim()) && !hasPhysicalLocation;
+  const hasLocation = hasPhysicalLocation || hasOnlineLocation;
   const hasMoreInfo = !!(web || allLinkItems.length);
 
   return (
@@ -491,53 +497,56 @@ export function CommunityContactCanvas({
           </div>
         ) : null}
 
-        {/* ── Section 4: Event location card ──────────────────────────────── */}
+        {/* ── Section 4: Event / class location card ─────────────────────── */}
         {hasLocation ? (
-          <div className="rounded-xl border border-[#C9B46A]/35 bg-white/70 p-3 sm:p-4 space-y-2">
+          <div className="space-y-2 rounded-xl border border-[#C9B46A]/35 bg-white/70 p-3 sm:p-4">
             <h3
               className="text-[11px] font-bold uppercase tracking-widest"
               style={{ color: GH.burgundy }}
             >
               {t.locationTitle}
             </h3>
-            {draft.venue.trim() ? (
-              <p className="text-sm font-semibold" style={{ color: GH.charcoal }}>
-                {draft.venue.trim()}
+            {hasOnlineLocation ? (
+              <p className="text-sm font-bold" style={{ color: GH.charcoal }}>
+                {locationOnlineLabel}
               </p>
-            ) : null}
-            {draft.addressLine1.trim() ? (
-              <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine1.trim()}</p>
-            ) : null}
-            {draft.addressLine2?.trim() ? (
-              <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine2.trim()}</p>
-            ) : null}
-            {cityStateZip ? (
-              <p className="text-sm font-medium" style={{ color: GH.charcoal }}>{cityStateZip}</p>
-            ) : null}
-            {mapsUrl ? (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${btnPrimaryClass()} mt-1`}
-                style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
-              >
-                <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                {t.map}
-              </a>
-            ) : null}
+            ) : (
+              <>
+                {draft.venue.trim() ? (
+                  <p className="text-sm font-semibold" style={{ color: GH.charcoal }}>
+                    {draft.venue.trim()}
+                  </p>
+                ) : null}
+                {draft.addressLine1.trim() ? (
+                  <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine1.trim()}</p>
+                ) : null}
+                {draft.addressLine2?.trim() ? (
+                  <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine2.trim()}</p>
+                ) : null}
+                {cityStateZip ? (
+                  <p className="text-sm font-medium" style={{ color: GH.charcoal }}>{cityStateZip}</p>
+                ) : null}
+                {mapsUrl ? (
+                  <>
+                    <CommunityLeonixMapVisual
+                      label={lang === "es" ? "Mapa del lugar del evento" : "Event location map"}
+                    />
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${btnPrimaryClass()} mt-1`}
+                      style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
+                    >
+                      <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                      {t.map}
+                    </a>
+                  </>
+                ) : null}
+              </>
+            )}
           </div>
         ) : null}
-
-        {/* ── Section 6: Trust cue ────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 pt-1">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold"
-            style={{ borderColor: GH.goldBorder, color: GH.green, backgroundColor: GH.greenBg }}
-          >
-            {t.trustLabel}
-          </span>
-        </div>
 
       </div>
 

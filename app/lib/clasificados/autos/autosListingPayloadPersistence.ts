@@ -1,5 +1,6 @@
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { dedupeAutosVideoUrls } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
+import { isAutosIdbPlaceholderRef } from "@/app/lib/clasificados/autos/autosPublishMediaTransport";
 
 /** Keep JSON payload under typical serverless body limits; inline data URLs belong in blob/Mux flows. */
 const MAX_INLINE_DATA_URL_CHARS = 100_000;
@@ -11,7 +12,7 @@ function isOversizedDataUrl(value: string | null | undefined): boolean {
 
 function isNonDurableMediaUrl(value: string | null | undefined): boolean {
   const v = value?.trim() ?? "";
-  return v.startsWith("blob:") || v.startsWith("data:");
+  return v.startsWith("blob:") || v.startsWith("data:") || isAutosIdbPlaceholderRef(v);
 }
 
 function pruneHeroImages(images: string[] | undefined, warnings: string[]): string[] | undefined {
@@ -87,6 +88,18 @@ export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerLis
   if (isOversizedDataUrl(L.dealerLogo ?? undefined)) {
     persistWarnings.push("dealer_logo_oversized_data_url_dropped");
     L = { ...L, dealerLogo: undefined };
+  } else {
+    const dl = L.dealerLogo?.trim() ?? "";
+    if (dl && isNonDurableMediaUrl(dl)) {
+      persistWarnings.push("dealer_logo_non_durable_stripped");
+      L = { ...L, dealerLogo: undefined };
+    }
+  }
+
+  const fc = L.financeContactImageUrl?.trim() ?? "";
+  if (fc && isNonDurableMediaUrl(fc)) {
+    persistWarnings.push("finance_image_non_durable_stripped");
+    L = { ...L, financeContactImageUrl: undefined };
   }
 
   const prunedMedia = pruneMediaImages(L.mediaImages, persistWarnings);

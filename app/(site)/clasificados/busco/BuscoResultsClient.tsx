@@ -6,16 +6,9 @@ import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { BUSCO_TYPE_OPTIONS } from "@/app/(site)/publicar/busco/shared/buscoTaxonomy";
-import {
-  CAT_STD_BTN_PRIMARY,
-  CAT_STD_FILTER_INPUT,
-  CAT_STD_FILTER_LABEL,
-  CAT_STD_FILTER_SELECT,
-  CategoryStandardResultsFilterPanel,
-} from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsFilterPanel";
 import { BuscoShellLayout } from "./shared/BuscoShellLayout";
 import { BuscoRequestCard } from "./BuscoRequestCard";
+import { BuscoResultsSearchPanel } from "./BuscoResultsSearchPanel";
 import { buildBuscoRequestCardModel } from "./shared/buscoCardModel";
 import { detailPairsToMap } from "./shared/buscoListingDetailPairs";
 import { fetchPublishedBuscoListings, type BuscoListingBrowseRow } from "./shared/loadBuscoListings";
@@ -24,22 +17,21 @@ import {
   buscoRowHasEmail,
   buscoRowHasPhone,
 } from "./shared/buscoSearchText";
+import { lightweightLocationMatchesFilter } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
+import { CAT_STD_BTN_PRIMARY } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
   return hay.toLowerCase().includes(needle.trim().toLowerCase());
 }
 
-function buscoLocationSearchBlob(row: BuscoListingBrowseRow, pairs: Record<string, string>): string {
-  return [
-    row.city,
-    pairs["Leonix:state"],
-    pairs["Leonix:zip"],
-    pairs["Leonix:buscoZone"],
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+function buscoLocationRow(row: BuscoListingBrowseRow, pairs: Record<string, string>) {
+  return {
+    city: row.city,
+    state: pairs["Leonix:state"],
+    zip: pairs["Leonix:zip"],
+    country: pairs["Leonix:buscoCountry"] ?? pairs["Leonix:country"],
+  };
 }
 
 const COPY = {
@@ -99,6 +91,9 @@ export function BuscoResultsClient() {
   const q = (sp?.get("q") ?? "").trim();
   const tipo = (sp?.get("tipo") ?? "all").trim().toLowerCase();
   const city = (sp?.get("city") ?? "").trim();
+  const state = (sp?.get("state") ?? "").trim();
+  const zip = (sp?.get("zip") ?? "").trim();
+  const country = (sp?.get("country") ?? "").trim();
   const zone = (sp?.get("zone") ?? "").trim();
   const budget = (sp?.get("budget") ?? "").trim();
   const contact = (sp?.get("contact") ?? "all").trim().toLowerCase();
@@ -129,7 +124,11 @@ export function BuscoResultsClient() {
       const pairs = detailPairsToMap(row.detail_pairs);
       const blob = buildBuscoSearchBlob(row, pairs, lang);
       if (!textMatch(blob, q)) return false;
-      if (city && !textMatch(buscoLocationSearchBlob(row, pairs), city)) return false;
+      if (
+        !lightweightLocationMatchesFilter(buscoLocationRow(row, pairs), { city, state, zip, country })
+      ) {
+        return false;
+      }
       if (zone && !textMatch(pairs["Leonix:buscoZone"] ?? "", zone)) return false;
       if (budget && !textMatch(pairs["Leonix:buscoBudget"] ?? "", budget)) return false;
 
@@ -144,7 +143,7 @@ export function BuscoResultsClient() {
 
       return true;
     });
-  }, [rows, q, city, zone, budget, tipo, contact, lang]);
+  }, [rows, q, city, state, zip, country, zone, budget, tipo, contact, lang]);
 
   return (
     <BuscoShellLayout lang={lang} backHref={landingHref} backLabel={backLabel}>
@@ -180,56 +179,15 @@ function BuscoResultsInner(props: {
   contact: string;
   postHref: string;
 }) {
-  const { t, lang, loading, loadErr, filtered, q, tipo, city, zone, budget, contact, postHref } = props;
+  const { t, lang, loading, loadErr, filtered, postHref } = props;
 
   const clearHref = appendLangToPath("/clasificados/busco/results", lang);
-  const searchPh = lang === "es" ? "Título, descripción, tipo…" : "Title, description, type…";
 
   return (
     <div className="space-y-5">
       <p className="text-sm text-[#5C5346]">{t.subtitle}</p>
 
-      <CategoryStandardResultsFilterPanel
-        lang={lang}
-        action="/clasificados/busco/results"
-        defaultQ={q}
-        defaultCity={city}
-        searchPlaceholder={searchPh}
-        clearHref={clearHref}
-        applyLabel={t.apply}
-        advancedFilters={
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className={CAT_STD_FILTER_LABEL}>
-              {t.type}
-              <select className={CAT_STD_FILTER_SELECT} name="tipo" defaultValue={tipo}>
-                <option value="all">{t.allTypes}</option>
-                {BUSCO_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {lang === "es" ? o.labelEs : o.labelEn}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={CAT_STD_FILTER_LABEL}>
-              {t.contact}
-              <select className={CAT_STD_FILTER_SELECT} name="contact" defaultValue={contact}>
-                <option value="all">{t.contactAll}</option>
-                <option value="phone">{t.contactPhone}</option>
-                <option value="email">{t.contactEmail}</option>
-                <option value="any">{t.contactAny}</option>
-              </select>
-            </label>
-            <label className={CAT_STD_FILTER_LABEL}>
-              {t.zone}
-              <input className={CAT_STD_FILTER_INPUT} name="zone" defaultValue={zone} />
-            </label>
-            <label className={CAT_STD_FILTER_LABEL}>
-              {t.budget}
-              <input className={CAT_STD_FILTER_INPUT} name="budget" defaultValue={budget} />
-            </label>
-          </div>
-        }
-      />
+      <BuscoResultsSearchPanel lang={lang} clearHref={clearHref} />
 
       {loading ? (
         <p className="text-sm text-[#5C5346]" aria-busy="true">

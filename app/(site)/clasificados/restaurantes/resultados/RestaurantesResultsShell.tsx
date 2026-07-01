@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
@@ -23,7 +22,6 @@ import {
   clearRestaurantesDiscoveryFilters,
   parseRestaurantesResultsSearchParams,
   restaurantesDiscoveryStateToParams,
-  splitLocationInput,
   type RestaurantesDiscoveryLang,
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
@@ -37,8 +35,18 @@ import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { RestaurantesResultsInventorySource } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
+import { RestaurantesCompactSearchCanvas } from "@/app/clasificados/restaurantes/landing/RestaurantesCompactSearchCanvas";
+import {
+  LEONIX_LB_DEFAULT_COUNTRY,
+  LEONIX_LB_DEFAULT_STATE,
+  US_STATE_OPTIONS,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
+  LX_LB_BTN_PRIMARY,
+  LX_LB_BTN_SECONDARY,
+} from "@/app/(site)/clasificados/shared/components/LeonixLocalBusinessCompactSearchCanvas";
 
-const ACCENT = "#D4A574";
+const RX_RESULTS_FORM_ID = "restaurantes-results-search-form";
 
 function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string {
   switch (svc) {
@@ -102,14 +110,6 @@ export function RestaurantesResultsShell({
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [dismissPublishFlash, setDismissPublishFlash] = useState(false);
 
-  const [qInput, setQInput] = useState(parsed.q);
-  const [locInput, setLocInput] = useState(parsed.zip || parsed.city || "");
-
-  useEffect(() => {
-    setQInput(parsed.q);
-    setLocInput(parsed.zip || parsed.city || "");
-  }, [parsed.q, parsed.city, parsed.zip]);
-
   useEffect(() => {
     let cancelled = false;
     void loadRestaurantesBuyerSavedIdSet().then((ids) => {
@@ -161,13 +161,14 @@ export function RestaurantesResultsShell({
     [lang, router],
   );
 
-  const onSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const loc = splitLocationInput(locInput);
+  const onSearchCapture = (e: FormEvent<HTMLFormElement>) => {
+    const fd = new FormData(e.currentTarget);
     const next = mergeDiscovery(parsed, {
-      q: qInput.trim(),
-      city: loc.city ?? "",
-      zip: loc.zip ?? "",
+      q: String(fd.get("q") ?? "").trim(),
+      city: String(fd.get("city") ?? "").trim(),
+      state: String(fd.get("state") ?? "").trim() || LEONIX_LB_DEFAULT_STATE,
+      zip: String(fd.get("zip") ?? "").trim(),
+      country: String(fd.get("country") ?? "").trim() || LEONIX_LB_DEFAULT_COUNTRY,
       page: 1,
     });
     rememberRestaurantesDiscoveryFromState(next);
@@ -433,6 +434,35 @@ export function RestaurantesResultsShell({
               onBlur={(e) =>
                 pushState(mergeDiscovery(parsed, { zip: e.target.value.replace(/\D/g, "").slice(0, 5), page: 1 }))
               }
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-state">
+              {lang === "es" ? "Estado" : "State"}
+            </label>
+            <select
+              id="rx-filter-state"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#7A1E2C]/40 focus:ring-2 focus:ring-[#7A1E2C]/20"
+              value={parsed.state || LEONIX_LB_DEFAULT_STATE}
+              onChange={(e) => pushState(mergeDiscovery(parsed, { state: e.target.value, page: 1 }))}
+            >
+              {US_STATE_OPTIONS.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.code}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-country">
+              {lang === "es" ? "País" : "Country"}
+            </label>
+            <input
+              id="rx-filter-country"
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#7A1E2C]/40 focus:ring-2 focus:ring-[#7A1E2C]/20"
+              defaultValue={parsed.country || LEONIX_LB_DEFAULT_COUNTRY}
+              key={`country-${parsed.country}`}
+              onBlur={(e) => pushState(mergeDiscovery(parsed, { country: e.target.value.trim(), page: 1 }))}
             />
           </div>
           <div>
@@ -909,6 +939,10 @@ export function RestaurantesResultsShell({
     if (parsed.q) chips.push({ id: "q", label: `“${parsed.q}”`, clear: () => pushState(mergeDiscovery(parsed, { q: "", page: 1 })) });
     if (parsed.city) chips.push({ id: "city", label: parsed.city, clear: () => pushState(mergeDiscovery(parsed, { city: "", page: 1 })) });
     if (parsed.zip) chips.push({ id: "zip", label: parsed.zip, clear: () => pushState(mergeDiscovery(parsed, { zip: "", page: 1 })) });
+    if (parsed.state?.trim() && parsed.state !== LEONIX_LB_DEFAULT_STATE)
+      chips.push({ id: "state", label: parsed.state, clear: () => pushState(mergeDiscovery(parsed, { state: LEONIX_LB_DEFAULT_STATE, page: 1 })) });
+    if (parsed.country?.trim() && parsed.country !== LEONIX_LB_DEFAULT_COUNTRY)
+      chips.push({ id: "country", label: parsed.country, clear: () => pushState(mergeDiscovery(parsed, { country: LEONIX_LB_DEFAULT_COUNTRY, page: 1 })) });
     if (parsed.neighborhoodQuery.trim())
       chips.push({
         id: "nbh",
@@ -1138,39 +1172,27 @@ export function RestaurantesResultsShell({
           category="restaurantes"
         />
 
-          <form
-            onSubmit={onSearchSubmit}
-            className="mt-3 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)]"
-          >
-          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch">
-              <div className="relative min-w-0 sm:col-span-5">
-                <FaSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
-                <input
-                  value={qInput}
-                  onChange={(e) => setQInput(e.target.value)}
-                  placeholder={t.searchPh}
-                  className="min-h-[2.5rem] w-full min-w-0 rounded-lg border border-[#D6C7AD] bg-white py-2 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#D97706]/30"
-                  autoComplete="off"
-                />
-              </div>
-              <div className="relative min-w-0 sm:col-span-3">
-                <FaMapMarkerAlt className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--lx-muted)]" aria-hidden />
-                <input
-                  value={locInput}
-                  onChange={(e) => setLocInput(e.target.value)}
-                  placeholder={t.locationPh}
-                  className="min-h-[2.5rem] w-full min-w-0 rounded-lg border border-[#D6C7AD] bg-white py-2 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#D97706]/30"
-                />
-              </div>
-            <button
-              type="submit"
-              className="min-h-[2.5rem] rounded-lg px-6 text-sm font-bold text-white shadow-sm sm:col-span-4"
-              style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-            >
-              {t.search}
-            </button>
+          <div className="mt-3">
+            <RestaurantesCompactSearchCanvas
+              lang={lang}
+              defaultQ={parsed.q}
+              defaultCity={parsed.city}
+              defaultState={parsed.state || LEONIX_LB_DEFAULT_STATE}
+              defaultZip={parsed.zip}
+              defaultCountry={parsed.country || LEONIX_LB_DEFAULT_COUNTRY}
+              showBrowseAll={false}
+              onSubmitCapture={onSearchCapture}
+              secondRow={
+                <button
+                  type="button"
+                  className={`${LX_LB_BTN_SECONDARY} min-w-[5rem]`}
+                  onClick={() => setFiltersPanelOpen(true)}
+                >
+                  {t.filters}
+                </button>
+              }
+            />
           </div>
-        </form>
 
         <div className="mt-2 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="min-w-0 shrink text-sm leading-snug text-[color:var(--lx-text)]/80">

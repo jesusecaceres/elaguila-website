@@ -13,43 +13,50 @@ import { clasesCostLabel, clasesFrequencyLabel, clasesModeLabel } from "@/app/(s
 import type { ClasesQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
 import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
-import { CommunityWeeklyScheduleAligned } from "@/app/(site)/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
+import { getActiveWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 import {
   cityStateZipLine,
-  OrganizerByline,
   pickMainHeroImage,
-  COMMUNITY_QUICK_WARM_CHIP,
   COMMUNITY_QUICK_HERO_OUTER,
   COMMUNITY_QUICK_HERO_INNER,
 } from "@/app/(site)/publicar/community/shared/preview/communityQuickAdPrimitives";
+import {
+  CommunityPremiumIdentitySection,
+  CommunityPremiumInfoGrid,
+  CommunityPremiumScheduleCard,
+  CommunityPremiumTextCard,
+  CommunityPremiumTrustFooter,
+} from "@/app/(site)/publicar/community/shared/preview/communityQuickPremiumShell";
 
 const COPY = {
   es: {
-    organizer: "Organizado por",
-    publicCity: "Ciudad",
-    schedule: "Horario",
-    cost: "Costo",
+    organizer: "Instructor / organizador",
+    publicCity: "Ciudad / ubicación",
+    cost: "Costo de la clase",
     free: "Gratis",
-    priceNote: "Nota de precio",
-    contact: "Contacto",
+    modality: "Modalidad",
+    level: "Nivel / audiencia",
+    registration: "Registro",
+    schedule: "Horario de la clase",
     description: "Descripción",
+    bring: "Qué deben saber los alumnos / materiales",
     paidNotice:
       "Esta clase es de pago. La activación de publicación pagada está en preparación.",
-    registration: "Registro",
-    bring: "Qué llevar o saber",
+    online: "En línea",
   },
   en: {
-    organizer: "Organized by",
-    publicCity: "City",
-    schedule: "Schedule",
-    cost: "Cost",
+    organizer: "Instructor / organizer",
+    publicCity: "City / location",
+    cost: "Class cost",
     free: "Free",
-    priceNote: "Price note",
-    contact: "Contact",
-    description: "Description",
-    paidNotice: "This is a paid class. Paid publishing activation is in preparation.",
+    modality: "Mode",
+    level: "Level / audience",
     registration: "Registration",
-    bring: "What to bring or know",
+    schedule: "Class schedule",
+    description: "Description",
+    bring: "What students should know / materials",
+    paidNotice: "This is a paid class. Paid publishing activation is in preparation.",
+    online: "Online",
   },
 } as const;
 
@@ -62,6 +69,7 @@ export function ClasesQuickAdCanvas({
   contactSectionId,
   heroTestId,
   analyticsCtx,
+  leonixAdId,
 }: {
   draft: ClasesQuickDraft;
   lang: Lang;
@@ -69,6 +77,7 @@ export function ClasesQuickAdCanvas({
   contactSectionId?: string;
   heroTestId?: string;
   analyticsCtx?: CommunityGlobalAnalyticsCtx;
+  leonixAdId?: string | null;
 }) {
   const t = COPY[lang];
   const main = pickMainHeroImage(draft.images);
@@ -77,17 +86,55 @@ export function ClasesQuickAdCanvas({
   const rawPrice = draft.priceAmount.trim();
   const formattedPrice = rawPrice && /^\d/.test(rawPrice) && !rawPrice.startsWith("$") ? `$${rawPrice}` : rawPrice;
   const priceSummary = isPaid
-    ? [formattedPrice, draft.priceFrequency ? `· ${clasesFrequencyLabel(draft.priceFrequency, lang)}` : ""]
+    ? [formattedPrice, draft.priceFrequency ? clasesFrequencyLabel(draft.priceFrequency, lang) : ""]
         .filter(Boolean)
-        .join(" ")
+        .join(" · ")
     : t.free;
 
   const cityZipLine = cityStateZipLine({ ...draft, country: draft.country });
+  const modeLabel = clasesModeLabel(draft.mode, lang);
+  const isOnline = draft.mode === "enLinea";
+  const locationDisplay = isOnline && !cityZipLine ? t.online : cityZipLine;
+  const registrationLabel = draft.registrationRequired
+    ? labelCommunityRegistration(draft.registrationRequired, lang)
+    : "";
+
+  const schedLang = lang === "en" ? "en" : "es";
+  const scheduleRows = getActiveWeeklyScheduleGridItems(draft.weeklySchedule, schedLang);
+
+  const levelParts: string[] = [];
+  if (draft.skillLevel) levelParts.push(labelClasesSkillLevel(draft.skillLevel, lang));
+  if (draft.audience) levelParts.push(labelCommunityAudience(draft.audience, lang));
+  const levelSummary = levelParts.join(" · ");
+
+  const chips: string[] = [];
+  if (draft.category) {
+    chips.push(resolveClasesCategoryPublicLabel(draft.category, draft.categoryCustom, lang));
+  }
+  chips.push(modeLabel);
+  if (draft.audience) chips.push(labelCommunityAudience(draft.audience, lang));
+  if (draft.skillLevel) chips.push(labelClasesSkillLevel(draft.skillLevel, lang));
+  if (locationDisplay) chips.push(locationDisplay);
+  chips.push(clasesCostLabel(draft.classCostType, lang));
+  if (registrationLabel) chips.push(registrationLabel);
+
+  const infoItems = [
+    { key: "city", label: t.publicCity, value: locationDisplay },
+    {
+      key: "cost",
+      label: t.cost,
+      value: priceSummary,
+      subValue: isPaid && draft.priceNote.trim() ? draft.priceNote.trim() : undefined,
+    },
+    { key: "level", label: t.level, value: levelSummary },
+    { key: "mode", label: t.modality, value: modeLabel },
+    { key: "reg", label: t.registration, value: registrationLabel },
+  ];
 
   const articleClass =
     shell === "standalone"
       ? "mx-auto my-6 w-full max-w-4xl overflow-hidden rounded-2xl border border-[#C9B46A]/45 bg-[#FCF9F2] text-[#2A2826] shadow-md"
-      : "mx-auto w-full max-w-4xl overflow-hidden rounded-xl text-[#2A2826]";
+      : "mx-auto w-full max-w-4xl min-w-0 overflow-hidden rounded-xl text-[#2A2826]";
 
   return (
     <article className={articleClass}>
@@ -114,7 +161,7 @@ export function ClasesQuickAdCanvas({
               src={main.url}
               alt={main.alt}
               fill
-              className="object-contain object-top"
+              className="object-contain object-center"
               sizes="(max-width: 768px) 100vw, 960px"
               unoptimized
             />
@@ -131,7 +178,7 @@ export function ClasesQuickAdCanvas({
             {clasesCostLabel(draft.classCostType, lang)}
           </span>
           <span className="rounded-full border border-[#5C4A2A]/45 bg-[#3D3428]/92 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FFFCF7]">
-            {clasesModeLabel(draft.mode, lang)}
+            {modeLabel}
           </span>
         </div>
         {isPdf ? (
@@ -140,70 +187,42 @@ export function ClasesQuickAdCanvas({
           </div>
         ) : null}
       </div>
+
       <div className="space-y-4 p-5 sm:p-7">
-        <header>
-          <h1 className="text-2xl font-extrabold leading-tight sm:text-3xl lg:text-4xl">
-            {draft.title.trim() || "—"}
-          </h1>
-          <OrganizerByline label={t.organizer} name={draft.organizer.trim() || "—"} />
-          <div className="mt-3 flex flex-wrap gap-2">
-            {draft.category ? (
-              <span className={COMMUNITY_QUICK_WARM_CHIP}>
-                {resolveClasesCategoryPublicLabel(draft.category, draft.categoryCustom, lang)}
-              </span>
-            ) : null}
-            <span className={COMMUNITY_QUICK_WARM_CHIP}>{clasesModeLabel(draft.mode, lang)}</span>
-            {draft.audience ? <span className={COMMUNITY_QUICK_WARM_CHIP}>{labelCommunityAudience(draft.audience, lang)}</span> : null}
-            {draft.skillLevel ? <span className={COMMUNITY_QUICK_WARM_CHIP}>{labelClasesSkillLevel(draft.skillLevel, lang)}</span> : null}
-            {cityZipLine ? <span className={COMMUNITY_QUICK_WARM_CHIP}>{cityZipLine}</span> : null}
-          </div>
-        </header>
+        <CommunityPremiumIdentitySection
+          title={draft.title}
+          organizerLabel={t.organizer}
+          organizerName={draft.organizer}
+          chips={chips}
+        />
 
-        <dl className="grid gap-4 text-[15px] sm:grid-cols-2">
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.publicCity}</dt>
-            <dd className="mt-0.5 font-semibold">{cityZipLine || "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.cost}</dt>
-            <dd className="mt-0.5 font-semibold">{priceSummary}</dd>
-            {isPaid && draft.priceNote.trim() ? (
-              <p className="text-[11px] text-[#5C564E]">
-                {t.priceNote}: {draft.priceNote.trim()}
-              </p>
-            ) : null}
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.registration}</dt>
-            <dd className="mt-0.5 font-semibold">
-              {draft.registrationRequired ? labelCommunityRegistration(draft.registrationRequired, lang) : "—"}
-            </dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.schedule}</dt>
-            <dd className="mt-0.5 min-w-0">
-              <CommunityWeeklyScheduleAligned rows={draft.weeklySchedule} lang={lang} />
-            </dd>
-          </div>
-          {draft.bringNote.trim() ? (
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.bring}</dt>
-              <dd className="mt-0.5 whitespace-pre-line">{draft.bringNote.trim()}</dd>
-            </div>
-          ) : null}
-          <div className="sm:col-span-2">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#9A948C]">{t.description}</dt>
-            <dd className="mt-0.5 whitespace-pre-line">{draft.description.trim() || "—"}</dd>
-          </div>
-        </dl>
+        <CommunityPremiumInfoGrid items={infoItems} />
 
-        <CommunityContactCanvas draft={draft} lang={lang} sectionHtmlId={contactSectionId} analyticsCtx={analyticsCtx} />
+        <CommunityPremiumScheduleCard title={t.schedule} rows={scheduleRows} lang={lang} />
+
+        <CommunityPremiumTextCard title={t.bring} body={draft.bringNote} testId="community-premium-bring" />
+
+        <CommunityPremiumTextCard
+          title={t.description}
+          body={draft.description}
+          testId="community-premium-description"
+        />
+
+        <CommunityContactCanvas
+          draft={draft}
+          lang={lang}
+          sectionHtmlId={contactSectionId}
+          analyticsCtx={analyticsCtx}
+          locationOnlineLabel={isOnline ? t.online : undefined}
+        />
 
         {isPaid ? (
           <p className="rounded-xl border border-amber-300/70 bg-amber-50/85 px-3 py-2 text-xs font-medium text-amber-950">
             {t.paidNotice}
           </p>
         ) : null}
+
+        <CommunityPremiumTrustFooter lang={lang} leonixAdId={leonixAdId ?? analyticsCtx?.leonixAdId} />
       </div>
     </article>
   );

@@ -44,6 +44,10 @@ export type BrNegocioListing = {
   layout?: "vertical" | "horizontal";
   /** US ZIP when publish captures it — URL `zip` filter when present. */
   zipCode?: string;
+  /** State code from `Leonix:state` when publish-backed. */
+  stateCode?: string;
+  /** Country from `Leonix:country` when publish-backed. */
+  country?: string;
   /** Canonical `propertyType` URL slug when publish wrote `Leonix:results_property_kind`. */
   resultsPropertyKind?: BrResultsPropertyKind | null;
   /** Structured amenity signals from `Leonix:*` machine rows (`null` = unknown / not asserted). */

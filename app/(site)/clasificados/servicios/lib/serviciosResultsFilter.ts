@@ -15,9 +15,19 @@ import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNew
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
 import { expandServiciosSearchTerms, normalizeServiciosSearchText } from "./serviciosSearchSynonyms";
+import {
+  isLeonixLbUsCountry,
+  leonixLbStateMatchesFilter,
+  normalizeLeonixLbCountry,
+  normalizeLeonixLbStateCode,
+  normalizeLeonixLbZip,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
 
 export type ServiciosResultsFilterQuery = {
   city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
   group?: string;
   whatsapp?: "1" | "0";
   promo?: "1" | "0";
@@ -75,6 +85,10 @@ export type ServiciosResultsFilterQuery = {
   hasVideos?: "1";
   /** URL: has_offers=1 — resolved promotions/offers (same gate as public shell, not blank-only) */
   hasOffers?: "1";
+  /** URL: same_day=1 — quick fact kind `same_day` or amenity `service_same_day` */
+  sameDay?: "1";
+  /** URL: appointment=1 — quick fact / amenity appointment signal */
+  appointment?: "1";
 };
 
 function normalize(s: string | undefined): string {
@@ -89,6 +103,9 @@ function includesAnyNormalized(haystack: string | undefined, terms: string[]): b
 export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery): boolean {
   return Boolean(
     normalize(q.city) ||
+      normalize(q.state) ||
+      normalize(q.zip) ||
+      (q.country?.trim() && !isLeonixLbUsCountry(q.country)) ||
       normalize(q.group) ||
       normalize(q.q) ||
       q.whatsapp === "1" ||
@@ -118,6 +135,8 @@ export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery)
       q.hasPhotos === "1" ||
       q.hasVideos === "1" ||
       q.hasOffers === "1" ||
+      q.sameDay === "1" ||
+      q.appointment === "1" ||
       (q.sort && q.sort !== "newest") ||
       (q.seller && q.seller !== "all"),
   );
@@ -314,6 +333,14 @@ function rowPhysDiscovery(pj: ServiciosBusinessProfile): boolean {
   return wireHasPhysicalAddress(pj);
 }
 
+function serviciosRowState(row: ServiciosPublicListingRow): string {
+  return row.profile_json.contact?.physicalRegion?.trim() ?? "";
+}
+
+function serviciosRowZip(row: ServiciosPublicListingRow): string {
+  return normalizeLeonixLbZip(row.profile_json.contact?.physicalPostalCode ?? "");
+}
+
 /** City/ZIP/area filter: row city + published contact/hero/service-area text (substring match). */
 export function rowMatchesLocationQuery(row: ServiciosPublicListingRow, cityQ: string): boolean {
   const q = normalize(cityQ);
@@ -328,6 +355,47 @@ export function rowMatchesLocationQuery(row: ServiciosPublicListingRow, cityQ: s
     if (normalize(item.label).includes(q)) return true;
   }
   return false;
+}
+
+export function rowMatchesServiciosLocationFilters(
+  row: ServiciosPublicListingRow,
+  q: Pick<ServiciosResultsFilterQuery, "city" | "state" | "zip" | "country">,
+): boolean {
+  const cityQ = normalize(q.city);
+  if (cityQ && !rowMatchesLocationQuery(row, cityQ)) return false;
+
+  const stateQ = q.state?.trim();
+  if (stateQ && !leonixLbStateMatchesFilter(serviciosRowState(row), stateQ)) return false;
+
+  const zipQ = normalizeLeonixLbZip(q.zip ?? "");
+  if (zipQ) {
+    const rowZip = serviciosRowZip(row);
+    const rowCityHay = normalize(row.city);
+    const physZip = normalize(row.profile_json.contact?.physicalPostalCode ?? "");
+    if (rowZip !== zipQ && !physZip.includes(zipQ) && !rowCityHay.includes(zipQ)) return false;
+  }
+
+  const countryRaw = q.country?.trim();
+  if (countryRaw && !isLeonixLbUsCountry(countryRaw)) {
+    const stored = normalizeLeonixLbCountry(
+      (row.profile_json.opsMeta as { discovery?: { country?: string } } | undefined)?.discovery?.country ?? "",
+    );
+    if (!stored || !stored.toLowerCase().includes(countryRaw.toLowerCase())) return false;
+  }
+
+  return true;
+}
+
+function rowMatchesSameDay(pj: ServiciosBusinessProfile): boolean {
+  if (wireHasQuickFactKind(pj, "same_day")) return true;
+  return wireHasAmenityOptionId(pj, "service_same_day");
+}
+
+function rowMatchesAppointment(pj: ServiciosBusinessProfile): boolean {
+  return (
+    wireHasAmenityOptionId(pj, "service_online_appointments") ||
+    wireHasAmenityOptionId(pj, "availability_advance_appointments")
+  );
 }
 
 function resolvedProfile(row: ServiciosPublicListingRow, lang: ServiciosLang) {
@@ -431,6 +499,12 @@ export function filterServiciosPublicListingRows(
 ): ServiciosPublicListingRow[] {
   const cityQ = normalize(q.city);
   const groupQ = normalize(q.group);
+  const hasLocationFilters = Boolean(
+    cityQ ||
+      q.state?.trim() ||
+      q.zip?.trim() ||
+      (q.country?.trim() && !isLeonixLbUsCountry(q.country)),
+  );
   const wantWa = q.whatsapp === "1";
   const wantPromo = q.promo === "1";
   const wantCall = q.call === "1";
@@ -458,9 +532,11 @@ export function filterServiciosPublicListingRows(
   const wantHasPhotos = q.hasPhotos === "1";
   const wantHasVideos = q.hasVideos === "1";
   const wantHasOffers = q.hasOffers === "1";
+  const wantSameDay = q.sameDay === "1";
+  const wantAppointment = q.appointment === "1";
 
   if (
-    !cityQ &&
+    !hasLocationFilters &&
     !groupQ &&
     !wantWa &&
     !wantPromo &&
@@ -488,7 +564,9 @@ export function filterServiciosPublicListingRows(
     !wantFreeConsultation &&
     !wantHasPhotos &&
     !wantHasVideos &&
-    !wantHasOffers
+    !wantHasOffers &&
+    !wantSameDay &&
+    !wantAppointment
   ) {
     return rows;
   }
@@ -496,7 +574,7 @@ export function filterServiciosPublicListingRows(
   return rows.filter((row) => {
     const pj = row.profile_json;
     if (groupQ && normalize(row.internal_group ?? "") !== groupQ) return false;
-    if (cityQ && !rowMatchesLocationQuery(row, cityQ)) return false;
+    if (hasLocationFilters && !rowMatchesServiciosLocationFilters(row, q)) return false;
     if (wantVerified && row.leonix_verified !== true) return false;
     if (wantWeb && !wireHasPublicWebsite(pj)) return false;
     if (wantBilingual && !wireHasBilingualQuickFact(pj)) return false;
@@ -518,6 +596,8 @@ export function filterServiciosPublicListingRows(
     if (wantInsured && !rowMatchesInsured(pj)) return false;
     if (wantFreeEstimate && !rowMatchesFreeEstimate(pj)) return false;
     if (wantFreeConsultation && !rowMatchesFreeConsultation(pj)) return false;
+    if (wantSameDay && !rowMatchesSameDay(pj)) return false;
+    if (wantAppointment && !rowMatchesAppointment(pj)) return false;
 
     if (wantWa || wantPromo || wantCall || wantOpenNow || wantHasPhotos || wantHasVideos || wantHasOffers) {
       const profile = resolvedProfile(row, lang);

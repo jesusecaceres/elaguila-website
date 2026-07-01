@@ -10,9 +10,12 @@ export const EV_RESULTS_PARAM = {
   lang: "lang",
   q: "q",
   city: "city",
+  state: "state",
   zip: "zip",
+  country: "country",
   evDept: "evDept",
   evSub: "evSub",
+  itemType: "itemType",
   cond: "cond",
   priceMin: "priceMin",
   priceMax: "priceMax",
@@ -26,6 +29,10 @@ export const EV_RESULTS_PARAM = {
   nego: "nego",
   /** Seller offers meetup (`Leonix:meetup` / Encuentro pair). */
   meetup: "meetup",
+  /** Listings with at least one photo. */
+  hasPhoto: "hasPhoto",
+  /** Listings with video (Mux or external). */
+  hasVideo: "hasVideo",
   sort: "sort",
   view: "view",
   page: "page",

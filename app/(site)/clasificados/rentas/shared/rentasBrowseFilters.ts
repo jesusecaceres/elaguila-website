@@ -5,9 +5,15 @@
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import type { RentasBrowseParamsParsed } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import {
+  leonixLbStateMatchesFilter,
+  leonixPropertyCountryMatchesFilter,
+  normalizeLeonixLbStateCode,
+} from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import {
   canonicalRentasCityForPublish,
   normalizeCityForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
+
 function rentDemoMonthlyNumber(rentDisplay: string): number {
   const n = Number(String(rentDisplay).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
@@ -92,10 +98,11 @@ function zipMatches(l: RentasPublicListing, zip: string): boolean {
 }
 
 function stateMatches(l: RentasPublicListing, state: string): boolean {
-  if (!state.trim()) return true;
-  const st = state.trim().toLowerCase();
-  const lr = (l.stateRegion ?? "").toLowerCase();
-  return lr.includes(st) || lr === st;
+  return leonixLbStateMatchesFilter(l.stateRegion, state);
+}
+
+function countryMatches(l: RentasPublicListing, country: string): boolean {
+  return leonixPropertyCountryMatchesFilter(l.country, country);
 }
 
 export function filterRentasPublicListings(rows: RentasPublicListing[], p: RentasBrowseParamsParsed): RentasPublicListing[] {
@@ -136,6 +143,7 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
   if (p.city) out = out.filter((l) => cityMatches(l, p.city));
   if (p.zip) out = out.filter((l) => zipMatches(l, p.zip));
   if (p.state) out = out.filter((l) => stateMatches(l, p.state));
+  if (p.country) out = out.filter((l) => countryMatches(l, p.country));
 
   if (p.bathsMin !== null) {
     out = out.filter((l) => {
@@ -201,6 +209,16 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
   if (p.estado) {
     const want = p.estado.trim().toLowerCase();
     out = out.filter((l) => (l.rentasListingAvailability ?? "").toLowerCase() === want);
+  }
+
+  if (p.roomBath) {
+    const want = p.roomBath.trim().toLowerCase();
+    out = out.filter((l) => (l.rentasRoomBathLabel ?? "").trim().toLowerCase() === want);
+  }
+
+  if (p.roomKitchen) {
+    const want = p.roomKitchen.trim().toLowerCase();
+    out = out.filter((l) => (l.rentasRoomKitchenLabel ?? "").trim().toLowerCase() === want);
   }
 
   return out;

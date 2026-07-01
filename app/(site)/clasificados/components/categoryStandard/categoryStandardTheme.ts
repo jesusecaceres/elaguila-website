@@ -116,8 +116,8 @@ export type CategoryStandardCopyEntry = {
 
 export const CATEGORY_STANDARD_COPY: Record<CategoryStandardKey, CategoryStandardCopyEntry> = {
   "en-venta": {
-    titleEs: "Varios",
-    titleEn: "For Sale",
+    titleEs: "En Venta / Varios",
+    titleEn: "For Sale / Miscellaneous",
     descEs: "Compra, vende o regala artículos locales en tu comunidad.",
     descEn: "Buy, sell, or give local items in your community.",
     searchPhEs: "Buscar en En Venta…",
@@ -140,8 +140,8 @@ export const CATEGORY_STANDARD_COPY: Record<CategoryStandardKey, CategoryStandar
     titleEn: "Jobs",
     descEs: "Oportunidades de trabajo y negocios que están contratando.",
     descEn: "Job opportunities and businesses that are hiring.",
-    searchPhEs: "Buscar empleo, oficio o empresa…",
-    searchPhEn: "Search jobs, trade, or company…",
+    searchPhEs: "Palabra clave, puesto o empresa…",
+    searchPhEn: "Keyword, job, or company…",
     quickFiltersEs: ["Tiempo completo", "Medio tiempo", "Construcción", "Limpieza", "Cocina", "Ventas", "Oficio"],
     quickFiltersEn: ["Full-time", "Part-time", "Construction", "Cleaning", "Kitchen", "Sales", "Trade"],
   },
@@ -276,8 +276,13 @@ export function categoryStandardDescription(key: CategoryStandardKey, lang: Lang
 export const CATEGORY_STANDARD_UI = {
   es: {
     search: "Buscar",
-    cityZip: "Ciudad o ZIP",
-    moreFilters: "Más filtros",
+    city: "Ciudad",
+    state: "Estado",
+    zip: "ZIP",
+    country: "País",
+    filters: "Filtros",
+    cityZip: "Ciudad",
+    moreFilters: "Filtros",
     clearFilters: "Limpiar filtros",
     viewAll: "Ver todos los anuncios",
     postIn: (label: string) => `Publicar en ${label}`,
@@ -288,8 +293,13 @@ export const CATEGORY_STANDARD_UI = {
   },
   en: {
     search: "Search",
-    cityZip: "City or ZIP",
-    moreFilters: "More filters",
+    city: "City",
+    state: "State",
+    zip: "ZIP",
+    country: "Country",
+    filters: "Filters",
+    cityZip: "City",
+    moreFilters: "Filters",
     clearFilters: "Clear filters",
     viewAll: "View all listings",
     postIn: (label: string) => `Post in ${label}`,
@@ -310,7 +320,7 @@ export const CATEGORY_STANDARD_PAGE_BG =
 
 /** Below global site Navbar from `(site)/layout` — do not nest a second Navbar. */
 export const CATEGORY_STANDARD_MAIN =
-  "relative mx-auto w-full max-w-[1080px] min-w-0 px-3.5 pb-12 pt-[calc(3.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-8 lg:px-5 lg:pt-10";
+  "relative mx-auto w-full max-w-[1080px] min-w-0 px-3.5 pb-12 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-10 lg:px-5 lg:pt-12";
 
 /** Compact Leonix chip for category landing rails. */
 export const CATEGORY_STANDARD_CHIP =

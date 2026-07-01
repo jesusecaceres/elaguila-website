@@ -44,7 +44,9 @@ export function BienesRaicesLandingView() {
 
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("CA");
   const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("United States");
   const [operationType, setOperationType] = useState<"" | "venta" | "renta">("");
   const [propertyType, setPropertyType] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -91,17 +93,21 @@ export function BienesRaicesLandingView() {
       q: q.trim() || undefined,
       operationType: operationType || undefined,
       city: cityParam,
+      state: state.trim() && state.trim() !== "CA" ? state.trim() : state.trim() || undefined,
       zip: zip.trim() || undefined,
+      country: country.trim() && country.trim().toLowerCase() !== "united states" ? country.trim() : undefined,
       propertyType: propertyType || undefined,
     });
     router.push(withLang(path));
-  }, [city, operationType, propertyType, q, router, withLang, zip]);
+  }, [city, country, operationType, propertyType, q, router, state, withLang, zip]);
 
   const drawerParsed = useMemo(
     () => ({
       lang,
       q: q.trim(),
       city: city.trim(),
+      state: state.trim(),
+      country: country.trim(),
       zip: zip.trim(),
       operationType,
       propertyType,
@@ -119,13 +125,15 @@ export function BienesRaicesLandingView() {
       secondary: "",
       precio: "",
     }),
-    [city, lang, operationType, propertyType, q, zip]
+    [city, country, lang, operationType, propertyType, q, state, zip]
   );
 
   const onDrawerPatch = useCallback((patch: Record<string, string | null>) => {
     if ("operationType" in patch) setOperationType((patch.operationType as "" | "venta" | "renta") ?? "");
     if ("propertyType" in patch) setPropertyType(patch.propertyType ?? "");
     if ("city" in patch) setCity(patch.city ?? "");
+    if ("state" in patch) setState(patch.state ?? "CA");
+    if ("country" in patch) setCountry(patch.country ?? "United States");
     if ("zip" in patch) setZip(patch.zip ?? "");
     if ("q" in patch) setQ(patch.q ?? "");
   }, []);
@@ -192,12 +200,17 @@ export function BienesRaicesLandingView() {
                 lang={lang}
                 query={q}
                 city={city}
+                state={state}
                 zip={zip}
+                country={country}
                 onQuery={setQ}
                 onCity={setCity}
+                onState={setState}
                 onZip={setZip}
+                onCountry={setCountry}
                 onSearch={runSearch}
                 onOpenFilters={() => setFiltersOpen(true)}
+                browseAllHref={withLang(BR_RESULTS)}
                 searchButtonLabel={searchLabel}
                 filtersButtonLabel={filtersLabel}
               />
@@ -246,6 +259,10 @@ export function BienesRaicesLandingView() {
         onClear={() => {
           setOperationType("");
           setPropertyType("");
+          setCity("");
+          setState("CA");
+          setZip("");
+          setCountry("United States");
         }}
       />
     </BienesRaicesResultsShell>

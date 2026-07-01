@@ -1,4 +1,10 @@
 import { getCanonicalCityName, getZipRecord } from "@/app/data/locations/californiaLocationHelpers";
+import {
+  EN_VENTA_DEFAULT_COUNTRY,
+  EN_VENTA_DEFAULT_STATE,
+  normalizeEnVentaCountry,
+  normalizeEnVentaStateCode,
+} from "../constants/enVentaLocationContract";
 
 export type EnVentaLocationIssueCode = "missing_city" | "incomplete_zip";
 
@@ -7,6 +13,8 @@ export type EnVentaLocationValidation =
       ok: true;
       canonicalCity: string;
       zipNormalized: string;
+      stateNormalized: string;
+      countryNormalized: string;
       warningEs?: string;
       warningEn?: string;
     }
@@ -29,9 +37,14 @@ function resolveStoredCity(cityTrim: string): string {
 
 /**
  * En Venta location: city required; ZIP optional (5-digit US when provided).
- * Any city text is accepted; known California cities normalize to canonical names.
+ * State defaults to CA; country defaults to United States when empty.
  */
-export function validateEnVentaLocation(cityRaw: string, zipRaw: string): EnVentaLocationValidation {
+export function validateEnVentaLocation(
+  cityRaw: string,
+  zipRaw: string,
+  stateRaw?: string,
+  countryRaw?: string
+): EnVentaLocationValidation {
   const cityTrim = cityRaw.trim();
   const digits = digitsOnly(zipRaw);
   const zip5 = digits.length >= 5 ? digits.slice(0, 5) : "";
@@ -71,10 +84,15 @@ export function validateEnVentaLocation(cityRaw: string, zipRaw: string): EnVent
     }
   }
 
+  const stateNormalized = normalizeEnVentaStateCode(stateRaw || EN_VENTA_DEFAULT_STATE);
+  const countryNormalized = normalizeEnVentaCountry(countryRaw || EN_VENTA_DEFAULT_COUNTRY);
+
   return {
     ok: true,
     canonicalCity: storedCity,
     zipNormalized: zip5,
+    stateNormalized,
+    countryNormalized,
     ...(warningEs ? { warningEs, warningEn } : {}),
   };
 }

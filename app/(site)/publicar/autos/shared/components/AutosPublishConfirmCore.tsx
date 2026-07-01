@@ -31,6 +31,28 @@ import {
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { autosQaPaymentBypassLabel } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import { getAutosConfirmPlanSummaryCopy } from "@/app/lib/clasificados/autos/autosPricingCopy";
+import { resolveAutosPrivadoDraftNamespace } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftNamespace";
+import { resolveAutosNegociosDraftNamespace } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
+import {
+  autosDraftListingHasLocalPhotos,
+  autosInventoryDraftHasLocalPhotos,
+  resolveAutosDraftPhotosForPublish,
+} from "@/app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
+
+function photosUploadingMessage(lang: AutosPublishFlowLang): string {
+  return lang === "es"
+    ? "Estamos preparando tus fotos para publicar el anuncio."
+    : "We're preparing your photos for publishing.";
+}
+
+type AutosConfirmPhase =
+  | "idle"
+  | "preparing"
+  | "uploading_photos"
+  | "ready"
+  | "error"
+  | "upload_error"
+  | "local_video_error";
 
 const AUTOS_CONFIRM_PREPARE_TIMEOUT_MS = 15_000;
 
@@ -143,7 +165,12 @@ export function AutosPublishConfirmCore({
   lang: AutosPublishFlowLang;
   listing: AutoDealerListing;
   hydrated: boolean;
-  flushDraft: () => Promise<void>;
+  flushDraft: (opts?: {
+    editorStep?: number;
+    editorMaxReached?: number;
+    listing?: AutoDealerListing;
+    additionalInventoryVehicles?: AutosAdditionalInventoryVehicleDraft[];
+  }) => Promise<void>;
   editHref: string;
   inventoryAddMode?: boolean;
   inventoryAddContext?: AutosInventoryAddContext | null;
@@ -154,7 +181,7 @@ export function AutosPublishConfirmCore({
   const inventoryCtx = inventoryAddContext ?? (inventoryAddMode ? readInventoryAddContextFromSession() : null);
   const c = getAutosPublishFlowCopy(lang, lane, publishConfirmMode, Boolean(inventoryCtx));
   const [listingId, setListingId] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"idle" | "preparing" | "ready" | "error">("idle");
+  const [phase, setPhase] = useState<AutosConfirmPhase>("idle");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [checks, setChecks] = useState([false, false, false]);
   const [payBusy, setPayBusy] = useState(false);
@@ -164,9 +191,51 @@ export function AutosPublishConfirmCore({
   const [prepareTimedOut, setPrepareTimedOut] = useState(false);
   const listingRef = useRef(listing);
   listingRef.current = listing;
+  const additionalInventoryRef = useRef(additionalInventoryVehicles);
+  additionalInventoryRef.current = additionalInventoryVehicles;
+
+  async function uploadLocalPhotosIfNeeded(token: string): Promise<
+    | { ok: true }
+    | { ok: false; phase: "upload_error" | "local_video_error"; message: string }
+  > {
+    const needsUpload =
+      autosDraftListingHasLocalPhotos(listingRef.current) ||
+      autosInventoryDraftHasLocalPhotos(additionalInventoryRef.current);
+    if (!needsUpload) return { ok: true };
+
+    const draftNamespace =
+      lane === "privado" ? await resolveAutosPrivadoDraftNamespace() : await resolveAutosNegociosDraftNamespace();
+    const draftId = draftNamespace.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || lane;
+    const muxLang = lang === "en" ? "en" : "es";
+
+    const result = await resolveAutosDraftPhotosForPublish({
+      listing: listingRef.current,
+      additionalInventoryVehicles: additionalInventoryRef.current,
+      draftNamespace,
+      draftId,
+      authToken: token,
+      lang: muxLang,
+    });
+
+    if (!result.ok) {
+      return {
+        ok: false,
+        phase: result.kind === "local_video" ? "local_video_error" : "upload_error",
+        message: result.message,
+      };
+    }
+
+    listingRef.current = result.listing;
+    additionalInventoryRef.current = result.additionalInventoryVehicles;
+    await flushDraft({
+      listing: result.listing,
+      ...(lane === "negocios" ? { additionalInventoryVehicles: result.additionalInventoryVehicles } : {}),
+    });
+    return { ok: true };
+  }
 
   useEffect(() => {
-    if (hydrated && phase !== "preparing" && phase !== "idle") {
+    if (hydrated && phase !== "preparing" && phase !== "idle" && phase !== "uploading_photos") {
       setPrepareTimedOut(false);
       return;
     }
@@ -224,6 +293,17 @@ export function AutosPublishConfirmCore({
         setSessionMissing(false);
         const sk = sessionKey(lane);
         const cached = typeof window !== "undefined" ? window.sessionStorage.getItem(sk) : null;
+
+        setPhase("uploading_photos");
+        const photoPrep = await uploadLocalPhotosIfNeeded(token);
+        if (cancelled) return;
+        if (!photoPrep.ok) {
+          setErrorDetail(photoPrep.message);
+          setPhase(photoPrep.phase);
+          return;
+        }
+        setPhase("preparing");
+
         if (cached) {
           const r = await fetchAutosConfirm(`/api/clasificados/autos/listings/${cached}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -355,24 +435,26 @@ export function AutosPublishConfirmCore({
     </div>
   );
 
-  if (prepareTimedOut && (!hydrated || phase === "preparing" || phase === "idle")) {
+  if (prepareTimedOut && (!hydrated || phase === "preparing" || phase === "idle" || phase === "uploading_photos")) {
     return renderPrepareError(autosConfirmErrorMessage(lang, "REQUEST_TIMEOUT"));
   }
 
-  if (!hydrated || phase === "preparing" || phase === "idle") {
+  if (!hydrated || phase === "preparing" || phase === "idle" || phase === "uploading_photos") {
     const detail =
-      publishConfirmMode === "stripe"
-        ? c.preparingDetailStripe
-        : `${c.preparingDetailStripe} ${c.preparingDetailBypass}`.trim();
+      phase === "uploading_photos"
+        ? photosUploadingMessage(lang)
+        : publishConfirmMode === "stripe"
+          ? c.preparingDetailStripe
+          : `${c.preparingDetailStripe} ${c.preparingDetailBypass}`.trim();
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center text-[color:var(--lx-text)]">
-        <p className="text-sm font-semibold">{c.preparing}</p>
+        <p className="text-sm font-semibold">{phase === "uploading_photos" ? photosUploadingMessage(lang) : c.preparing}</p>
         {detail ? <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{detail}</p> : null}
       </div>
     );
   }
 
-  if (phase === "error") {
+  if (phase === "error" || phase === "upload_error" || phase === "local_video_error") {
     return renderPrepareError(errorDetail ?? c.createError);
   }
 
@@ -409,6 +491,17 @@ export function AutosPublishConfirmCore({
     setMuxPublishWarnings([]);
     setPersistWarnings([]);
     const muxLang = lang === "en" ? "en" : "es";
+
+    setPhase("uploading_photos");
+    const photoPrep = await uploadLocalPhotosIfNeeded(token);
+    if (!photoPrep.ok) {
+      setPayBusy(false);
+      setErrorDetail(photoPrep.message);
+      setPhase(photoPrep.phase);
+      return;
+    }
+    setPhase("ready");
+
     const prepared = await prepareAutosListingOptionalMuxUpload(listingRef.current, muxLang);
     listingRef.current = prepared.listing;
     if (prepared.publishWarnings.length) setMuxPublishWarnings(prepared.publishWarnings);
@@ -441,8 +534,8 @@ export function AutosPublishConfirmCore({
         listingId,
         lang,
         ...(inventoryCtx?.returnToListingId ? { returnToListingId: inventoryCtx.returnToListingId } : {}),
-        ...(lane === "negocios" && additionalInventoryVehicles.length > 0 && !inventoryCtx
-          ? { additionalInventoryVehicles }
+        ...(lane === "negocios" && additionalInventoryRef.current.length > 0 && !inventoryCtx
+          ? { additionalInventoryVehicles: additionalInventoryRef.current }
           : {}),
       }),
     });

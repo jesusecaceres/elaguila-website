@@ -18,6 +18,8 @@ export type EmpleosResultadosParams = {
   state?: string;
   /** International postal code, matched against `EmpleosJobRecord.postalCode` when present. */
   zip?: string;
+  /** Country name substring match against job `country`. */
+  country?: string;
   category?: string;
   jobType?: string;
   modality?: string;

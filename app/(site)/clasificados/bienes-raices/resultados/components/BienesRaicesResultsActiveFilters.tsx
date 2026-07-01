@@ -13,8 +13,16 @@ function buildChips(parsed: BrResultsParsedState, copy: BrResultsCopy): Chip[] {
     chips.push({ key: "q", patch: { q: null }, label: `${L.q}: ${parsed.q.trim()}` });
   if (parsed.city.trim())
     chips.push({ key: "city", patch: { city: null }, label: `${L.city}: ${parsed.city.trim()}` });
+  if (parsed.state.trim())
+    chips.push({ key: "state", patch: { state: null }, label: `${L.state}: ${parsed.state.trim()}` });
   if (parsed.zip.trim())
     chips.push({ key: "zip", patch: { zip: null }, label: `${L.zip}: ${parsed.zip.trim()}` });
+  if (parsed.country.trim())
+    chips.push({
+      key: "country",
+      patch: { country: null },
+      label: `${L.country}: ${parsed.country.trim()}`,
+    });
   if (parsed.operationType)
     chips.push({
       key: "operationType",

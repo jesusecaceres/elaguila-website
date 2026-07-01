@@ -41,7 +41,7 @@ const CATEGORIES_ES: Record<HubCategoryKey, ClasificadosCategoryCopy> = {
   },
   rentas: { label: "Rentas", desc: "Cuartos, apartamentos, espacios y oportunidades de vivienda." },
   empleos: { label: "Empleos", desc: "Oportunidades de trabajo y negocios que están contratando." },
-  autos: { label: "Autos", desc: "Autos privados, vehículos y oportunidades de compra local." },
+  autos: { label: "Autos", desc: "Autos de vendedores privados y oportunidades locales." },
   "bienes-raices": {
     label: "Bienes Raíces",
     desc: "Casas, propiedades, terrenos y oportunidades inmobiliarias.",
@@ -69,7 +69,7 @@ const CATEGORIES_EN: Record<HubCategoryKey, ClasificadosCategoryCopy> = {
   },
   rentas: { label: "Rentals", desc: "Rooms, apartments, spaces, and housing opportunities." },
   empleos: { label: "Jobs", desc: "Job opportunities and businesses that are hiring." },
-  autos: { label: "Autos", desc: "Private autos, vehicles, and local buying opportunities." },
+  autos: { label: "Autos", desc: "Private seller vehicles and local buying opportunities." },
   "bienes-raices": {
     label: "Real Estate",
     desc: "Homes, properties, land, and real estate opportunities.",

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function ClasificadosOfertasLocalesPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#FDFBF7]" aria-busy="true" />}>
-      <OfertasLocalesPublicSearchClient />
+      <OfertasLocalesPublicSearchClient mode="landing" />
     </Suspense>
   );
 }

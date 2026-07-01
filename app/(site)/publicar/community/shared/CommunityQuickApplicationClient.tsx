@@ -636,7 +636,6 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
     emptyComunidadQuickDraft(),
     (raw) => normalizeComunidadQuickDraft(raw),
   );
-
   const [sessionSaveNotice, setSessionSaveNotice] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -748,6 +747,23 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
                 value={state.organizer}
                 onChange={(e) => patch({ organizer: e.target.value })}
               />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {lang === "es" ? "Logo o foto del organizador" : "Organizer logo or photo"}
+              </EmpleosFieldLabel>
+              <input
+                className={INPUT}
+                type="url"
+                value={state.organizerLogoUrl}
+                onChange={(e) => patch({ organizerLogoUrl: e.target.value })}
+                placeholder={lang === "es" ? "https://… (URL de imagen)" : "https://… (image URL)"}
+              />
+              <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
+                {lang === "es"
+                  ? "Opcional. También puedes pegar la URL de una imagen que subiste en la galería del volante."
+                  : "Optional. You can also paste the URL of an image from your flyer gallery."}
+              </p>
             </label>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} required>

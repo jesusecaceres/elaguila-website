@@ -184,10 +184,18 @@ export function useAutoPrivadoDraft() {
     setRestoredFromSession(false);
   }, [applyEditorProgress]);
 
-  const flushDraft = useCallback(async (opts?: { editorStep?: number; editorMaxReached?: number }) => {
+  const flushDraft = useCallback(async (opts?: {
+    editorStep?: number;
+    editorMaxReached?: number;
+    listing?: AutoDealerListing;
+  }) => {
     const ns = namespaceRef.current;
     if (!ns) return;
     rememberAutosDraftNamespaceHint("privado", ns);
+    if (opts?.listing) {
+      listingRef.current = normalizeLoadedListing({ ...opts.listing, autosLane: "privado" });
+      setListing(listingRef.current);
+    }
     const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
     const withTitle = applyPrivadoCanonicalTitle(merged);
     const normalized = normalizeLoadedListing(withTitle);

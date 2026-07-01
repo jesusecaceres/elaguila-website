@@ -55,6 +55,8 @@ export const RENTAS_QUERY_CITY = "city";
 export const RENTAS_QUERY_ZIP = "zip";
 /** State / entity (e.g. NL, Jal.) — optional until backend normalizes. */
 export const RENTAS_QUERY_STATE = "state";
+/** Country filter (URL + UI; stored on publish via `Leonix:country`). */
+export const RENTAS_QUERY_COUNTRY = "country";
 /** Minimum bathrooms (numeric string, demo filters `baths` string). */
 export const RENTAS_QUERY_BATHS_MIN = "baths_min";
 /** Minimum half-baths from `Leonix:rent:half_baths_count`. */
@@ -82,6 +84,10 @@ export const RENTAS_QUERY_POOL = "pool";
 export const RENTAS_QUERY_SUBTYPE = "subtype";
 /** `Leonix:results_property_kind`: casa | departamento | terreno | comercial */
 export const RENTAS_QUERY_KIND = "kind";
+/** Room/shared bath: `privado` | `compartido` — matches `rentasRoomBathLabel`. */
+export const RENTAS_QUERY_ROOM_BATH = "room_bath";
+/** Room/shared kitchen: `privada` | `compartida` — matches `rentasRoomKitchenLabel`. */
+export const RENTAS_QUERY_ROOM_KITCHEN = "room_kitchen";
 
 export type RentasSellerBranchFilter = "all" | "privado" | "negocio";
 
@@ -115,6 +121,7 @@ export type RentasBrowseParamsParsed = {
   city: string;
   zip: string;
   state: string;
+  country: string;
   bathsMin: number | null;
   halfBathsMin: number | null;
   sort: string;
@@ -130,6 +137,10 @@ export type RentasBrowseParamsParsed = {
   kind: BrResultsPropertyKind | null;
   /** Availability lifecycle filter (`rentasListingAvailability`). */
   estado: string;
+  /** Room bath kind filter (`rentasRoomBathLabel`). */
+  roomBath: string;
+  /** Room kitchen kind filter (`rentasRoomKitchenLabel`). */
+  roomKitchen: string;
 };
 
 const LEGACY_TIPO_ALIASES: Record<string, BrNegocioCategoriaPropiedad> = {
@@ -182,6 +193,12 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
   const kind: BrResultsPropertyKind | null =
     kindRaw === "casa" || kindRaw === "departamento" || kindRaw === "terreno" || kindRaw === "comercial" ? kindRaw : null;
 
+  const roomBathRaw = g(RENTAS_QUERY_ROOM_BATH).trim().toLowerCase();
+  const roomBath = roomBathRaw === "privado" || roomBathRaw === "compartido" ? roomBathRaw : "";
+  const roomKitchenRaw = g(RENTAS_QUERY_ROOM_KITCHEN).trim().toLowerCase();
+  const roomKitchen =
+    roomKitchenRaw === "privada" || roomKitchenRaw === "compartida" ? roomKitchenRaw : "";
+
   return {
     q: g(RENTAS_QUERY_Q),
     tipo: g(RENTAS_QUERY_TIPO),
@@ -202,6 +219,7 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     city: normalizeCityForBrowse(g(RENTAS_QUERY_CITY)),
     zip: normalizeZipForBrowse(g(RENTAS_QUERY_ZIP)),
     state: g(RENTAS_QUERY_STATE).trim(),
+    country: g(RENTAS_QUERY_COUNTRY).trim(),
     bathsMin: bathsRaw !== "" && Number.isFinite(Number(bathsRaw)) ? Number(bathsRaw) : null,
     halfBathsMin: halfBathsRaw !== "" && Number.isFinite(Number(halfBathsRaw)) ? Number(halfBathsRaw) : null,
     sort: g(RENTAS_QUERY_SORT) || "reciente",
@@ -214,6 +232,8 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     subtype: subtypeNorm,
     kind,
     estado: g(RENTAS_QUERY_ESTADO).trim().toLowerCase(),
+    roomBath,
+    roomKitchen,
   };
 }
 
@@ -253,12 +273,15 @@ export function rentasBrowseHasActiveFilters(p: RentasBrowseParamsParsed): boole
     p.city ||
     p.zip ||
     p.state ||
+    p.country ||
     p.bathsMin != null ||
     p.halfBathsMin != null ||
     p.highlightsAll.length > 0 ||
     p.wantsPool ||
     !!p.subtype ||
     p.kind != null ||
+    p.roomBath ||
+    p.roomKitchen ||
     sortNonDefault ||
     pageNonDefault
   );

@@ -11,23 +11,13 @@ import type {
   EmpleosQuickPublishSnapshot,
 } from "./empleosPublishSnapshots";
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
+import { syncLegacyPayField, syncPublishPayField } from "../lib/empleosPayDisplay";
+import { joinScheduleRowsForPublish } from "../lib/empleosScheduleDisplay";
 
 function joinQuickScheduleForPublish(d: EmpleosQuickDraft): string {
-  const rows = d.scheduleRows.filter(
-    (r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim(),
-  );
-  if (!rows.length) return d.schedule.trim();
-  return rows
-    .map((r) => {
-      const day = String(r.day ?? "").trim();
-      const start = String(r.startTime ?? "").trim();
-      const end = String(r.endTime ?? "").trim();
-      const shift = String(r.shift ?? "").trim();
-      const timePart = start && end ? `${start} – ${end}` : start || shift;
-      if (day && timePart) return `${day} · ${timePart}`;
-      return day || timePart;
-    })
-    .join("\n");
+  const joined = joinScheduleRowsForPublish(d.scheduleRows);
+  if (joined) return joined;
+  return d.schedule.trim();
 }
 
 function mapImagesForPublish(items: { url: string; alt: string; isMain?: boolean }[]): EmpleosPublishImageRef[] {
@@ -63,13 +53,22 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
   const vid = vids[0] ?? null;
   const scheduleJoined = joinQuickScheduleForPublish(d);
   const schedRows = d.scheduleRows
-    .filter((r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim())
+    .filter((r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim() || String(r.note ?? "").trim())
     .map((r) => ({
       day: String(r.day ?? "").trim(),
+      dayCustom: String(r.dayCustom ?? "").trim() || undefined,
       shift: String(r.shift ?? "").trim(),
       startTime: String(r.startTime ?? "").trim() || undefined,
       endTime: String(r.endTime ?? "").trim() || undefined,
+      note: String(r.note ?? "").trim() || undefined,
     }));
+  const payComposed = syncPublishPayField({
+    pay: d.pay,
+    payAmount: d.payAmount,
+    payUnit: d.payUnit,
+    payUnitCustom: d.payUnitCustom,
+    payNote: d.payNote,
+  });
   const catSlug = d.categorySlug.trim();
   const catCustom = catSlug === "otro" ? d.categoryCustom.trim() : "";
   return {
@@ -81,10 +80,14 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     workModality: d.workModality,
     city: d.city.trim(),
     state: d.state.trim(),
-    jobType: d.jobType.trim(),
+    jobType: d.jobType === "otro" && d.jobTypeCustom.trim() ? d.jobTypeCustom.trim() : d.jobType.trim(),
     schedule: scheduleJoined,
     scheduleRows: schedRows.length ? schedRows : undefined,
-    pay: d.pay.trim(),
+    pay: payComposed.trim(),
+    payAmount: d.payAmount.trim() || undefined,
+    payUnit: d.payUnit.trim() || undefined,
+    payUnitCustom: d.payUnitCustom.trim() || undefined,
+    payNote: d.payNote.trim() || undefined,
     description: d.description.trim(),
     benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
     screenerQuestions: d.screenerQuestions.map((s) => s.trim()).filter(Boolean).slice(0, 5),

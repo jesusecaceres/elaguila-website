@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getCanonicalCityName, normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import { BienesRaicesUseLocationButton } from "@/app/clasificados/bienes-raices/components/BienesRaicesUseLocationButton";
+import { US_STATE_OPTIONS } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import { setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 import type { BrResultsParsedState } from "../lib/brResultsUrlState";
@@ -25,6 +26,8 @@ type Props = {
 export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPrefix = "br-f" }: Props) {
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
+  const [state, setState] = useState(parsed.state || "CA");
+  const [country, setCountry] = useState(parsed.country || "United States");
   const [zip, setZip] = useState(parsed.zip);
   const [priceMin, setPriceMin] = useState(parsed.priceMin);
   const [priceMax, setPriceMax] = useState(parsed.priceMax);
@@ -32,10 +35,12 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
   useEffect(() => {
     setQ(parsed.q);
     setCity(parsed.city);
+    setState(parsed.state || "CA");
+    setCountry(parsed.country || "United States");
     setZip(parsed.zip);
     setPriceMin(parsed.priceMin);
     setPriceMax(parsed.priceMax);
-  }, [parsed.q, parsed.city, parsed.zip, parsed.priceMin, parsed.priceMax]);
+  }, [parsed.q, parsed.city, parsed.state, parsed.country, parsed.zip, parsed.priceMin, parsed.priceMax]);
 
   const commitText = () => {
     const rawCity = city.trim();
@@ -45,6 +50,9 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
     onPatch({
       q: q.trim() || null,
       city: canon || null,
+      state: state.trim() || null,
+      country:
+        country.trim() && country.trim().toLowerCase() !== "united states" ? country.trim() : null,
       zip: zipNorm || null,
       priceMin: priceMin.trim() || null,
       priceMax: priceMax.trim() || null,
@@ -84,6 +92,24 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
               />
             </label>
             <label className="min-w-0">
+              <span className={LABEL}>{copy.stateLabel}</span>
+              <select
+                id={`${idPrefix}-state`}
+                value={state || "CA"}
+                onChange={(e) => {
+                  setState(e.target.value);
+                  onPatch({ state: e.target.value || null });
+                }}
+                className={INPUT}
+              >
+                {US_STATE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.code} — {opt.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0">
               <span className={LABEL}>{copy.zipLabel}</span>
               <input
                 id={`${idPrefix}-zip`}
@@ -94,6 +120,18 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
                 placeholder={copy.zipPlaceholder}
                 className={INPUT}
                 autoComplete="postal-code"
+              />
+            </label>
+            <label className="min-w-0">
+              <span className={LABEL}>{copy.countryLabel}</span>
+              <input
+                id={`${idPrefix}-country`}
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                onBlur={commitText}
+                placeholder={lang === "es" ? "Estados Unidos" : "United States"}
+                className={INPUT}
+                autoComplete="country-name"
               />
             </label>
             <label>

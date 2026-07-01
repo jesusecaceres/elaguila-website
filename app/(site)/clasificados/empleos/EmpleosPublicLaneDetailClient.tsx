@@ -308,6 +308,7 @@ export function EmpleosPublicLaneDetailClient({
               publicFooterSlot={footer}
               contactAnalyticsMeta={contactAnalyticsMeta}
               engagement={quickEngagement}
+              leonixAdId={leonixAdId}
             />
             {relatedSection}
           </>

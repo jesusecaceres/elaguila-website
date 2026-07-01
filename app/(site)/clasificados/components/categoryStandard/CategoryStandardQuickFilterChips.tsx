@@ -23,7 +23,7 @@ export function CategoryStandardQuickFilterChips({ category, lang, label }: Prop
         <Link
           key={chip}
           href={buildCategoryResultsUrl(category, lang, { q: chip })}
-          className="inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF] sm:shrink"
+          className="inline-flex h-[30px] max-w-full shrink-0 snap-start items-center rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold leading-none text-[#3D3428] transition hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:text-xs"
         >
           {chip}
         </Link>

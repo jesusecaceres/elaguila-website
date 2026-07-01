@@ -22,54 +22,18 @@ export type {
  */
 
 export const RESTAURANTES_BLUEPRINT_QUICK_FILTERS: RestaurantesQuickFilter[] = [
-  {
-    id: "open_now",
-    labelEs: "Abierto ahora",
-    labelEn: "Open now",
-    resultParams: { open: "1" },
-  },
-  {
-    id: "delivery",
-    labelEs: "Entrega",
-    labelEn: "Delivery",
-    resultParams: { svc: "delivery" },
-  },
-  {
-    id: "takeout",
-    labelEs: "Para llevar",
-    labelEn: "Takeout",
-    resultParams: { svc: "takeout" },
-  },
-  {
-    id: "family",
-    labelEs: "Familiar",
-    labelEn: "Family-friendly",
-    resultParams: { family: "1" },
-  },
-  {
-    id: "vegan",
-    labelEs: "Opciones veganas",
-    labelEn: "Vegan options",
-    resultParams: { diet: "vegan" },
-  },
-  {
-    id: "top_rated",
-    labelEs: "Mejor valorados",
-    labelEn: "Top rated",
-    resultParams: { top: "1", sort: "rating-desc" },
-  },
-  {
-    id: "price",
-    labelEs: "Precio",
-    labelEn: "Price",
-    resultParams: { price: "$$" },
-  },
-  {
-    id: "menu",
-    labelEs: "Menú disponible",
-    labelEn: "Menu available",
-    resultParams: { menu: "1" },
-  },
+  { id: "tacos", labelEs: "Tacos", labelEn: "Tacos", resultParams: { q: "tacos" } },
+  { id: "pupusas", labelEs: "Pupusas", labelEn: "Pupusas", resultParams: { q: "pupusas" } },
+  { id: "seafood", labelEs: "Mariscos", labelEn: "Seafood", resultParams: { cuisine: "seafood" } },
+  { id: "breakfast", labelEs: "Desayuno", labelEn: "Breakfast", resultParams: { cuisine: "breakfast_brunch" } },
+  { id: "food_trucks", labelEs: "Food trucks", labelEn: "Food trucks", resultParams: { ft: "1" } },
+  { id: "catering", labelEs: "Catering", labelEn: "Catering", resultParams: { svc: "catering" } },
+  { id: "open_now", labelEs: "Abierto ahora", labelEn: "Open now", resultParams: { open: "1" } },
+  { id: "delivery", labelEs: "Entrega", labelEn: "Delivery", resultParams: { svc: "delivery" } },
+  { id: "takeout", labelEs: "Para llevar", labelEn: "Takeout", resultParams: { svc: "takeout" } },
+  { id: "specials", labelEs: "Especiales", labelEn: "Specials", resultParams: { q: "specials" } },
+  { id: "desserts", labelEs: "Postres", labelEn: "Desserts", resultParams: { cuisine: "dessert" } },
+  { id: "family", labelEs: "Comidas familiares", labelEn: "Family meals", resultParams: { family: "1" } },
 ];
 
 export const RESTAURANTES_BLUEPRINT_CUISINE_CHIPS: RestaurantesCuisineChip[] = [

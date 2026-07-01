@@ -16,6 +16,14 @@ import {
   formatRentasServiciosIncluidosOutput,
   rentasGoogleMapsUrlFromQuery,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import {
+  LEONIX_DP_POSTAL_CODE,
+} from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  LEONIX_PROP_COUNTRY,
+  LEONIX_PROP_STATE,
+} from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { mergeRentasShowingMachinePairs } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 
 function digitsOnly15(raw: string): string {
@@ -87,6 +95,7 @@ type RentasMapQueryState = Pick<
   | "ciudad"
   | "direccionEstado"
   | "direccionCodigoPostal"
+  | "direccionPais"
 >;
 
 function push(out: Array<{ label: string; value: string }>, label: string, value: string) {
@@ -142,6 +151,12 @@ function mergeRentasCommonMachinePairs(
   if (state.rentasAlmacenSeguridad === "si" || state.rentasAlmacenSeguridad === "no") {
     push(out, RENTAS_DP_STORAGE_SECURITY, state.rentasAlmacenSeguridad);
   }
+  const zipNorm = normalizeZipForBrowse(String(state.direccionCodigoPostal ?? "").trim());
+  if (zipNorm) push(out, LEONIX_DP_POSTAL_CODE, zipNorm);
+  const st = String(state.direccionEstado ?? "").trim();
+  if (st) push(out, LEONIX_PROP_STATE, st);
+  const country = String(state.direccionPais ?? "").trim();
+  if (country) push(out, LEONIX_PROP_COUNTRY, country);
   return out;
 }
 

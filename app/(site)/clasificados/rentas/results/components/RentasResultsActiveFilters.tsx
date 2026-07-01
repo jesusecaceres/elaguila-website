@@ -1,30 +1,35 @@
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import type { RentasBrowseParamsParsed } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
-
+import { RENTAS_DRAWER_SPACE_TYPES } from "@/app/clasificados/rentas/landing/rentasLandingGateway";
 type Props = {
   parsed: RentasBrowseParamsParsed;
   copy: RentasLandingCopy;
   priceBandLabel: (value: string) => string | null;
+  lang?: "es" | "en";
 };
 
-/**
- * Read-only summary of URL-backed filters — makes the active browse state obvious after landing handoff.
- */
-export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel }: Props) {
+export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel, lang = "es" }: Props) {
   const qe = copy.quickExplore;
   const items: string[] = [];
 
   if (parsed.q.trim()) items.push(`“${parsed.q.trim()}”`);
   if (parsed.city) items.push(`${copy.results.cityLabel}: ${parsed.city}`);
   if (parsed.zip) items.push(`${copy.results.zipLabel}: ${parsed.zip}`);
-  if (parsed.state) items.push(parsed.state);
+  if (parsed.state) items.push(`${copy.results.stateLabel}: ${parsed.state}`);
+  if (parsed.country) items.push(`${copy.results.countryLabel}: ${parsed.country}`);
 
-  if (parsed.propiedad === "residencial") items.push(qe.chipResidencial);
-  else if (parsed.propiedad === "comercial") items.push(qe.chipComercial);
-  else if (parsed.propiedad === "terreno_lote") items.push(qe.chipTerreno);
+  if (parsed.subtype) {
+    const st = RENTAS_DRAWER_SPACE_TYPES.find((s) => s.value === parsed.subtype);
+    items.push(st ? (lang === "es" ? st.labelEs : st.labelEn) : parsed.subtype);
+  }
 
   if (parsed.branch === "privado") items.push(qe.chipPrivado);
   if (parsed.branch === "negocio") items.push(qe.chipNegocio);
+
+  if (parsed.roomBath === "privado") items.push(lang === "es" ? "Baño privado" : "Private bath");
+  if (parsed.roomBath === "compartido") items.push(lang === "es" ? "Baño compartido" : "Shared bath");
+  if (parsed.roomKitchen === "privada") items.push(lang === "es" ? "Cocina privada" : "Private kitchen");
+  if (parsed.roomKitchen === "compartida") items.push(lang === "es" ? "Cocina compartida" : "Shared kitchen");
 
   if (parsed.precio) {
     const pl = priceBandLabel(parsed.precio);
@@ -63,7 +68,6 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel }: Pro
     items.push(`${copy.results.highlightsChipLabel}: ${parsed.highlightsAll.join(", ")}`);
   }
   if (parsed.wantsPool) items.push(copy.results.poolToggle);
-  if (parsed.subtype) items.push(`${copy.results.subtypeLabel}: ${parsed.subtype}`);
   if (parsed.kind) items.push(`${copy.results.kindLabel}: ${parsed.kind}`);
 
   if (!items.length) return null;

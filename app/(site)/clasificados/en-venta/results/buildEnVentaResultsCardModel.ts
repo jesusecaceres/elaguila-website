@@ -13,6 +13,7 @@ import { collectEnVentaVideoUrlsFromState } from "../shared/utils/enVentaVideoUr
 import { buildEnVentaPublishedMediaRow } from "../shared/utils/enVentaPublishedMedia";
 import { normalizeEnVentaCardMedia } from "../shared/utils/normalizeEnVentaCardMedia";
 import { resolveEnVentaHeroImageUrl } from "../shared/utils/resolveEnVentaListingImageUrls";
+import { formatEnVentaPublicLocationLine } from "../shared/constants/enVentaLocationContract";
 import type { EnVentaAnuncioDTO } from "../shared/types/enVentaListing.types";
 
 export type EnVentaResultsCardModel = {
@@ -68,9 +69,13 @@ export function buildEnVentaResultsCardModel(
   const extraThumbOverflow = extras.length > stripCap ? extras.length - stripCap : 0;
   const extraImageUrls = extras.slice(0, stripCap);
 
-  const zip = dto.zip?.trim();
   const locationText =
-    zip && dto.city ? `${dto.city}, ${zip}` : dto.city.trim() || (lang === "es" ? "Ubicación por confirmar" : "Location TBD");
+    formatEnVentaPublicLocationLine({
+      city: dto.city,
+      state: dto.state,
+      zip: dto.zip,
+      country: dto.country,
+    }) || (lang === "es" ? "Ubicación por confirmar" : "Location TBD");
 
   const sellerKindLabel =
     dto.sellerKind === "business"
@@ -134,10 +139,13 @@ export function buildEnVentaResultsCardModelFromDraftState(
   const extraThumbOverflow = extras.length > stripCap ? extras.length - stripCap : 0;
   const extraImageUrls = extras.slice(0, stripCap);
 
-  const zip = state.zip?.trim();
-  const city = state.city?.trim() ?? "";
   const locationText =
-    zip && city ? `${city}, ${zip}` : city || (lang === "es" ? "Ubicación por confirmar" : "Location TBD");
+    formatEnVentaPublicLocationLine({
+      city: state.city?.trim() ?? "",
+      state: state.state,
+      zip: state.zip,
+      country: state.country,
+    }) || (lang === "es" ? "Ubicación por confirmar" : "Location TBD");
 
   let priceText = "";
   if (state.priceIsFree) {

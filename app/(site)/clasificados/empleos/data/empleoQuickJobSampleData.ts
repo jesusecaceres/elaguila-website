@@ -1,3 +1,5 @@
+import type { EmpleosScheduleRowDisplay } from "@/app/publicar/empleos/shared/lib/empleosScheduleDisplay";
+
 /**
  * Phase 2: Quick Job detail shell — template-ready shape for a future application mapping.
  */
@@ -21,11 +23,15 @@ export type QuickJobLocationBlock = {
   state: string;
   zip: string;
   country?: string;
+  /** Service area / location notes. */
+  locationNotes?: string;
+  /** When true, show remote context instead of map emphasis. */
+  isRemote?: boolean;
 };
 
 export function hasQuickJobLocation(loc?: QuickJobLocationBlock | null): loc is QuickJobLocationBlock {
   if (!loc) return false;
-  const parts = [loc.businessLine, loc.addressLine1, loc.addressLine2, loc.city, loc.state, loc.zip, loc.country].map((s) => (s ?? "").trim());
+  const parts = [loc.businessLine, loc.addressLine1, loc.addressLine2, loc.city, loc.state, loc.zip, loc.country, loc.locationNotes].map((s) => (s ?? "").trim());
   return parts.some(Boolean);
 }
 
@@ -40,9 +46,22 @@ export type QuickJobDetailSample = {
   filterRegionFootnote?: string;
   mainImageSrc: string;
   mainImageAlt: string;
+  /** Normalized pay display with unit when available. */
   pay: string;
+  payAmount?: string;
+  payUnit?: string;
+  payUnitCustom?: string;
+  payNote?: string;
   jobType: string;
+  /** Human-readable job type label for chips. */
+  jobTypeLabel?: string;
+  categoryLabel?: string;
+  experienceLabel?: string;
   schedule: string;
+  /** Compact summary for sidebar. */
+  scheduleSummary?: string;
+  /** Structured schedule rows for main content card. */
+  scheduleRows?: EmpleosScheduleRowDisplay[];
   /** Human-readable modality line (Quick lane). */
   workModalityLabel?: string;
   description: string;
@@ -98,9 +117,12 @@ export const EMPLEO_QUICK_JOB_SAMPLE: QuickJobDetailSample = {
   mainImageSrc:
     "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
   mainImageAlt: "Chef cocinando con sartén en llamas",
-  pay: "$20/hora",
-  jobType: "Tiempo completo",
-  schedule: "Lunes a Viernes",
+  pay: "$20 por hora",
+  jobType: "tiempo-completo",
+  jobTypeLabel: "Tiempo completo",
+  schedule: "Lunes a Viernes · 8:00 AM – 5:00 PM",
+  scheduleSummary: "Lunes a Viernes · 8:00 AM – 5:00 PM",
+  workModalityLabel: "Presencial",
   description:
     "Buscamos cocineros con experiencia en cocina mexicana y parrilla. Ambiente familiar, equipo compacto y horarios estables. Ideal para quien valora la consistencia y el buen ritmo de servicio.",
   benefits: ["Pago semanal en efectivo", "Comida incluida durante el turno"],
@@ -123,7 +145,7 @@ export const EMPLEO_QUICK_JOB_SAMPLE: QuickJobDetailSample = {
       title: "Lavaplatos",
       businessName: "Cantina El Jalapeño",
       location: "Phoenix, AZ",
-      pay: "$16/hora",
+      pay: "$16 por hora",
       jobType: "Tiempo completo",
     },
     {
@@ -134,7 +156,7 @@ export const EMPLEO_QUICK_JOB_SAMPLE: QuickJobDetailSample = {
       title: "Ayudante de Cocina",
       businessName: "Taquería El Sabor",
       location: "Tempe, AZ",
-      pay: "$17/hora",
+      pay: "$17 por hora",
       jobType: "Tiempo completo",
     },
     {
@@ -145,7 +167,7 @@ export const EMPLEO_QUICK_JOB_SAMPLE: QuickJobDetailSample = {
       title: "Cajero / Cajera",
       businessName: "Mercado La Esquina",
       location: "Mesa, AZ",
-      pay: "$15/hora",
+      pay: "$15 por hora",
       jobType: "Medio tiempo",
     },
   ],

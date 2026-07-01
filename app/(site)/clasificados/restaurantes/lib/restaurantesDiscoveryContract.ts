@@ -12,7 +12,9 @@
  * | ----- | -------------------------------- | ----- |
  * | `q` | `businessName`, cuisine labels/keys, dish text in indexed blob | Substring match on name, `cuisineLine`, primary/secondary keys, city, zip (see `filterRestaurantesBlueprintRows`). |
  * | `city` | `cityCanonical` | Substring match in demo. |
+ * | `state` | `state` | State code match when set. |
  * | `zip` | `zipCode` | Exact match. |
+ * | `country` | (UI/URL only until publish field ships) | Preserved in URL; US default does not filter. |
  * | `cuisine` | `primaryCuisine`, `secondaryCuisine`, `additionalCuisines` | Single taxonomy key. |
  * | `biz` | `businessType` | Taxonomy key (`RESTAURANTE_BUSINESS_TYPES`). |
  * | `svc` | `serviceModes` | Whitelisted modes in `filterRestaurantesBlueprintRows` (incl. catering, events, meal_prep, personal_chef, pop_up, food_truck, other); UI exposes a subset. |
@@ -58,6 +60,15 @@
 
 import type { RestauranteBusinessTypeKey } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
+  LEONIX_LB_DEFAULT_COUNTRY,
+  LEONIX_LB_DEFAULT_STATE,
+  isLeonixLbUsCountry,
+  leonixLbStateMatchesFilter,
+  normalizeLeonixLbCountry,
+  normalizeLeonixLbStateCode,
+  normalizeLeonixLbZip,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
   CAT_STD_DEFAULT_PER_PAGE,
   catStdPerPageToParam,
   parseCatStdPerPage,
@@ -72,7 +83,9 @@ export const RESTAURANTES_DISCOVERY_URL_KEYS = [
   "lang",
   "q",
   "city",
+  "state",
   "zip",
+  "country",
   "cuisine",
   "biz",
   "svc",
@@ -120,8 +133,12 @@ export type RestaurantesDiscoveryState = {
   q: string;
   /** `cityCanonical` */
   city: string;
+  /** US state code from application `state` */
+  state: string;
   /** `zipCode` US-style 5 digits when present */
   zip: string;
+  /** Country (URL preserved; filtering when non-US and stored on listing) */
+  country: string;
   /** Primary/secondary/additional cuisine filter (single key). */
   cuisine: string;
   /** `businessType` */
@@ -186,7 +203,9 @@ export function defaultRestaurantesDiscoveryState(lang: RestaurantesDiscoveryLan
     lang,
     q: "",
     city: "",
+    state: LEONIX_LB_DEFAULT_STATE,
     zip: "",
+    country: LEONIX_LB_DEFAULT_COUNTRY,
     cuisine: "",
     biz: "",
     svc: "",
@@ -263,7 +282,9 @@ export function parseRestaurantesResultsSearchParams(
     lang,
     q: (sp.get("q") ?? "").trim(),
     city: (sp.get("city") ?? "").trim(),
-    zip: (sp.get("zip") ?? "").trim(),
+    state: normalizeLeonixLbStateCode(sp.get("state")),
+    zip: normalizeLeonixLbZip(sp.get("zip")),
+    country: normalizeLeonixLbCountry(sp.get("country")),
     cuisine: (sp.get("cuisine") ?? "").trim(),
     biz: (sp.get("biz") ?? "").trim() as RestaurantesDiscoveryState["biz"],
     svc: (sp.get("svc") ?? "").trim(),
@@ -310,7 +331,10 @@ export function restaurantesDiscoveryStateToParams(
     lang: s.lang,
     q: s.q || undefined,
     city: s.city || undefined,
+    state: s.state?.trim() || undefined,
     zip: s.zip || undefined,
+    country:
+      s.country && !isLeonixLbUsCountry(s.country) ? s.country : s.country !== LEONIX_LB_DEFAULT_COUNTRY ? s.country : undefined,
     cuisine: s.cuisine || undefined,
     biz: s.biz || undefined,
     svc: s.svc || undefined,
@@ -378,6 +402,7 @@ export function normalizeDiscoveryLocationText(raw: string): string {
 export function restaurantesDiscoveryParamsForRowDeepLink(row: {
   name: string;
   city: string;
+  state?: string;
   zip?: string;
   primaryCuisineKey: string;
   neighborhood?: string;
@@ -385,6 +410,7 @@ export function restaurantesDiscoveryParamsForRowDeepLink(row: {
   return {
     q: row.name,
     city: row.city,
+    state: row.state?.trim() || undefined,
     zip: row.zip?.trim() || undefined,
     cuisine: row.primaryCuisineKey || undefined,
     nbh: row.neighborhood?.trim() || undefined,

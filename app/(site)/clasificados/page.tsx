@@ -7,6 +7,7 @@ import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constan
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { OfertasLocalesHubCategoryCard } from "./ofertas-locales/OfertasLocalesHubCategoryCard";
+import { DealersDeAutosHubCategoryCard } from "./autos/components/public/DealersDeAutosHubCategoryCard";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import {
   getClasificadosCategoryCopy,
@@ -320,7 +321,10 @@ export default function ClasificadosPage() {
             </li>
             {C1_CATEGORY_ORDER.map((k) => {
               const browseHref = buildHubCategoryPageUrl(k, routeLang);
-              const publishHref = buildCategoryPublishHref(k, routeLang);
+              const publishHref =
+                k === "autos"
+                  ? appendLangToPath("/publicar/autos/privado", routeLang)
+                  : buildCategoryPublishHref(k, routeLang);
               const priority = PRIORITY_KEYS.has(k);
 
               return (
@@ -336,6 +340,9 @@ export default function ClasificadosPage() {
                 </li>
               );
             })}
+            <li className="flex h-full">
+              <DealersDeAutosHubCategoryCard routeLang={routeLang} />
+            </li>
           </ul>
         </section>
 

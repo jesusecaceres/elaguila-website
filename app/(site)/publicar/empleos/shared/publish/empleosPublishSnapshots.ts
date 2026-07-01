@@ -7,11 +7,14 @@ import type { EmpleosPaymentHandoffPlaceholder } from "./empleosPaymentHandoff";
 
 export type EmpleosQuickScheduleRowSnapshot = {
   day: string;
+  dayCustom?: string;
   shift: string;
   /** Structured start time (e.g. "8:00 AM"). Preferred over freeform shift. */
   startTime?: string;
   /** Structured end time (e.g. "5:00 PM"). */
   endTime?: string;
+  /** Optional note per shift row. */
+  note?: string;
 };
 
 /** Serializable image ref for admin + future storage (no blob URLs). */
@@ -36,7 +39,13 @@ export type EmpleosQuickPublishSnapshot = {
   schedule: string;
   /** Structured schedule rows (optional on legacy snapshots). */
   scheduleRows?: EmpleosQuickScheduleRowSnapshot[];
+  /** Legacy composed pay line for browse/detail compatibility. */
   pay: string;
+  /** Structured pay fields (optional on legacy snapshots). */
+  payAmount?: string;
+  payUnit?: string;
+  payUnitCustom?: string;
+  payNote?: string;
   description: string;
   benefits: string[];
   /** Optional screener prompts (max 5 enforced at publish). */

@@ -26,7 +26,25 @@ export function ServiciosResultsActiveSummary({
   if (query.city?.trim()) {
     items.push({
       key: "city",
-      label: lang === "en" ? `Area: ${query.city.trim()}` : `Zona: ${query.city.trim()}`,
+      label: lang === "en" ? `City: ${query.city.trim()}` : `Ciudad: ${query.city.trim()}`,
+    });
+  }
+  if (query.state?.trim()) {
+    items.push({
+      key: "state",
+      label: lang === "en" ? `State: ${query.state.trim()}` : `Estado: ${query.state.trim()}`,
+    });
+  }
+  if (query.zip?.trim()) {
+    items.push({
+      key: "zip",
+      label: `ZIP: ${query.zip.trim()}`,
+    });
+  }
+  if (query.country?.trim()) {
+    items.push({
+      key: "country",
+      label: lang === "en" ? `Country: ${query.country.trim()}` : `País: ${query.country.trim()}`,
     });
   }
   if (query.group?.trim()) {

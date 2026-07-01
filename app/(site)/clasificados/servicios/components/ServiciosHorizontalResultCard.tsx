@@ -42,6 +42,7 @@ import {
   cleanProfessionalChipLabel,
   isWeakProfessionalChipLabel,
 } from "@/app/(site)/servicios/components/serviciosLeonixBrand";
+import { formatServiciosPublicLocationLine } from "../lib/formatServiciosPublicLocationLine";
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -239,10 +240,14 @@ export function ServiciosHorizontalResultCard({
   }
 
   const cityFallback = (row?.city || "").trim();
+  const structuredLocation = row ? formatServiciosPublicLocationLine(row) : "";
   const logoUrl = (profile.hero.logoUrl || "").trim();
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
   const categoryChip = cleanOtherLabel((profile.hero.categoryLine || "").trim());
-  const locationLine = (profile.hero.locationSummary || "").trim() || cityFallback;
+  const locationLine =
+    structuredLocation ||
+    (profile.hero.locationSummary || "").trim() ||
+    cityFallback;
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
 

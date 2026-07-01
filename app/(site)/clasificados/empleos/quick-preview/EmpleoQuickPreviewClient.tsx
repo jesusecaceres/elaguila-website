@@ -69,7 +69,7 @@ export function EmpleoQuickPreviewClient() {
         backLabel={backLabel}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       >
-        <EmpleoQuickDetailPage data={data} withSiteChrome={false} />
+        <EmpleoQuickDetailPage data={data} withSiteChrome={false} hideResultsNav />
       </LeonixPreviewPageShell>
     );
   }

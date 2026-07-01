@@ -3,6 +3,10 @@ import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEst
 import { normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import { selectSpotlightNegocios } from "@/app/clasificados/bienes-raices/shared/brLaunchListingPolicy";
 import { cityFilterMatchesListingAddress } from "@/app/clasificados/bienes-raices/shared/brCityMatch";
+import {
+  leonixLbStateMatchesFilter,
+  leonixPropertyCountryMatchesFilter,
+} from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "../search/filterTypes";
 import type { BrResultsParsedState } from "./brResultsUrlState";
@@ -206,6 +210,14 @@ export function filterBrListings(
 
   if (state.city.trim()) {
     rows = rows.filter((l) => cityFilterMatchesListingAddress(l.addressLine, state.city));
+  }
+
+  if (state.state.trim()) {
+    rows = rows.filter((l) => leonixLbStateMatchesFilter(l.stateCode ?? "", state.state));
+  }
+
+  if (state.country.trim()) {
+    rows = rows.filter((l) => leonixPropertyCountryMatchesFilter(l.country ?? null, state.country));
   }
 
   const zipNorm = normalizeZipInput(state.zip);

@@ -8,6 +8,11 @@ import { getOrderedEnVentaImageUrls } from "@/app/clasificados/en-venta/preview/
 import type { PublishLang } from "@/app/clasificados/lib/buildDetailsAppendix";
 import { validateEnVentaLocation } from "@/app/clasificados/en-venta/shared/utils/validateEnVentaLocation";
 import {
+  LEONIX_EV_COUNTRY,
+  LEONIX_EV_STATE,
+} from "@/app/(site)/clasificados/en-venta/shared/constants/enVentaLocationContract";
+import { LEONIX_DP_POSTAL_CODE } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
   evaluateEnVentaFamilySafetyFromState,
   formatEnVentaFamilySafetyPublishError,
 } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
@@ -149,6 +154,15 @@ function buildDetailPairs(
   }
   if (state.localDelivery && state.localDeliveryDetailNotes.trim()) {
     pairs.push({ label: "Leonix:localDeliveryDetailNotes", value: state.localDeliveryDetailNotes.trim() });
+  }
+
+  const loc = validateEnVentaLocation(state.city, state.zip, state.state, state.country);
+  if (loc.ok) {
+    pairs.push({ label: LEONIX_EV_STATE, value: loc.stateNormalized });
+    pairs.push({ label: LEONIX_EV_COUNTRY, value: loc.countryNormalized });
+    if (loc.zipNormalized) {
+      pairs.push({ label: LEONIX_DP_POSTAL_CODE, value: loc.zipNormalized });
+    }
   }
 
   return pairs;
@@ -311,7 +325,7 @@ export async function publishEnVentaFromDraft(
     return { ok: false, error: lang === "es" ? "Indica un precio o marca gratis." : "Set a price or mark as free." };
   }
 
-  const loc = validateEnVentaLocation(state.city, state.zip);
+  const loc = validateEnVentaLocation(state.city, state.zip, state.state, state.country);
   if (!loc.ok) {
     return { ok: false, error: lang === "es" ? loc.messageEs : loc.messageEn };
   }

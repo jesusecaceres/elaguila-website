@@ -45,6 +45,12 @@ import {
   LEONIX_DP_RESULTS_PROPERTY_KIND,
   LEONIX_DP_BR_SHOW_EXACT_ADDRESS,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  LEONIX_PROP_COUNTRY,
+  LEONIX_PROP_STATE,
+  normalizeLeonixLbCountry,
+  normalizeLeonixLbStateCode,
+} from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 
 function push(out: Array<{ label: string; value: string }>, label: string, value: string | number | boolean | null | undefined) {
   if (value === null || value === undefined) return;
@@ -149,9 +155,15 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
   });
   const base = buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(br);
   const zipRentas = normalizeZipForBrowse(`${state.direccionCodigoPostal} ${state.ubicacionLinea} ${state.ciudad}`.trim());
-  if (zipRentas.length < 5) return base;
-  const withoutZip = base.filter((p) => p.label !== LEONIX_DP_POSTAL_CODE);
-  return [...withoutZip, { label: LEONIX_DP_POSTAL_CODE, value: zipRentas }];
+  const stRentas = normalizeLeonixLbStateCode(String(state.direccionEstado ?? "").trim());
+  const countryRentas = normalizeLeonixLbCountry(String(state.direccionPais ?? "").trim() || "United States");
+  let merged = base;
+  if (zipRentas.length >= 5) {
+    merged = [...merged.filter((p) => p.label !== LEONIX_DP_POSTAL_CODE), { label: LEONIX_DP_POSTAL_CODE, value: zipRentas }];
+  }
+  if (stRentas) merged = [...merged.filter((p) => p.label !== LEONIX_PROP_STATE), { label: LEONIX_PROP_STATE, value: stRentas }];
+  merged = [...merged.filter((p) => p.label !== LEONIX_PROP_COUNTRY), { label: LEONIX_PROP_COUNTRY, value: countryRentas }];
+  return merged;
 }
 
 export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
@@ -193,6 +205,10 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
       ? zipFromStructured
       : normalizeZipForBrowse(`${state.ubicacionLinea} ${state.ciudad}`.trim());
   if (zipGuess.length >= 5) push(out, LEONIX_DP_POSTAL_CODE, zipGuess);
+
+  const st = normalizeLeonixLbStateCode(String(state.gate12d?.estado ?? "").trim());
+  if (st) push(out, LEONIX_PROP_STATE, st);
+  push(out, LEONIX_PROP_COUNTRY, normalizeLeonixLbCountry("United States"));
 
   pushHighlightSlugsForPrivado(state, out);
   if (state.mostrarDireccionExacta) push(out, LEONIX_DP_BR_SHOW_EXACT_ADDRESS, true);
@@ -251,6 +267,10 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
 
   const zip = String(state.codigoPostal ?? "").replace(/\D/g, "").slice(0, 10);
   if (zip.length >= 5) push(out, LEONIX_DP_POSTAL_CODE, zip);
+
+  const stNeg = normalizeLeonixLbStateCode(String(state.estado ?? "").trim());
+  if (stNeg) push(out, LEONIX_PROP_STATE, stNeg);
+  push(out, LEONIX_PROP_COUNTRY, normalizeLeonixLbCountry("United States"));
 
   const fur = parseAmuebladoNegocio(state.amueblado);
   if (fur != null) push(out, LEONIX_DP_FURNISHED, fur);

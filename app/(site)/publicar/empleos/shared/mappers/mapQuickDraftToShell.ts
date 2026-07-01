@@ -1,7 +1,18 @@
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 import type { QuickJobDetailSample } from "@/app/clasificados/empleos/data/empleoQuickJobSampleData";
+import {
+  sampleCategorySelectOptions,
+  sampleExperienceOptions,
+  sampleJobTypeSelectOptions,
+} from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 
 import { empleosQuickPublicCityState } from "../lib/empleosPublicLocation";
+import { ensurePublicPayString, normalizePayDisplayParts } from "../lib/empleosPayDisplay";
+import {
+  normalizeScheduleRows,
+  scheduleMainDisplay,
+  scheduleSidebarSummary,
+} from "../lib/empleosScheduleDisplay";
 import { FALLBACK_IMG } from "../required/empleosRequiredForPreview";
 import type { EmpleosQuickDraft } from "../types/empleosQuickDraft";
 import { sanitizeHttpUrl } from "../publish/empleosPublishSanitize";
@@ -22,46 +33,62 @@ function modalityLabelEs(m: JobModalitySlug): string {
   return "Presencial";
 }
 
-function scheduleDisplayFromDraft(d: EmpleosQuickDraft): string {
-  const rows = d.scheduleRows.filter(
-    (r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim(),
-  );
-  if (!rows.length) return d.schedule.trim() || "—";
-  return rows
-    .map((r) => {
-      const day = String(r.day ?? "").trim();
-      const start = String(r.startTime ?? "").trim();
-      const end = String(r.endTime ?? "").trim();
-      const shift = String(r.shift ?? "").trim();
-      // Prefer structured start/end times
-      const timePart = start && end ? `${start} – ${end}` : start || shift;
-      if (day && timePart) return `${day} · ${timePart}`;
-      return day || timePart;
-    })
-    .join("\n");
+function labelFromOptions(
+  value: string,
+  options: readonly { value: string; label: string }[],
+): string {
+  const v = value.trim();
+  if (!v) return "—";
+  return options.find((o) => o.value === v)?.label ?? v;
 }
 
 export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample {
   const main = pickMainImage(d);
-  const hasAddr = Boolean(d.addressLine1.trim() || d.addressZip.trim());
+  const hasAddr = Boolean(
+    d.addressLine1.trim() ||
+      d.addressLine2.trim() ||
+      d.addressZip.trim() ||
+      d.postalCode.trim() ||
+      d.workspaceName.trim(),
+  );
   const loc = empleosQuickPublicCityState({
     city: d.city,
     state: d.state,
     addressCity: d.addressCity,
     addressState: d.addressState,
     addressZip: d.addressZip,
+    country: d.country,
   });
-  const finalLoc = hasAddr
+  const isRemote = d.workModality === "remoto";
+  const finalLoc = hasAddr || d.locationNotes.trim() || isRemote
     ? {
-        businessLine: d.businessName.trim() || "Ubicación",
-        addressLine1: d.addressLine1.trim() || "—",
+        businessLine: d.workspaceName.trim() || d.businessName.trim() || "Ubicación del empleo",
+        addressLine1: d.addressLine1.trim() || (isRemote ? "Remoto" : "—"),
+        addressLine2: d.addressLine2.trim() || undefined,
         city: d.addressCity.trim() || loc.city,
-        state: d.addressState.trim() || loc.state,
-        zip: d.addressZip.trim() || "—",
+        state: d.addressState.trim() || d.stateRegion.trim() || loc.state,
+        zip: d.postalCode.trim() || d.addressZip.trim() || "",
+        country: d.country.trim() || undefined,
+        locationNotes: d.locationNotes.trim() || undefined,
+        isRemote,
       }
     : undefined;
 
   const web = sanitizeHttpUrl(d.website);
+  const payParts = normalizePayDisplayParts({
+    pay: d.pay,
+    payAmount: d.payAmount,
+    payUnit: d.payUnit,
+    payUnitCustom: d.payUnitCustom,
+    payNote: d.payNote,
+  });
+  const scheduleRows = normalizeScheduleRows(d.scheduleRows, d.schedule);
+  const scheduleFull = scheduleMainDisplay(d.scheduleRows, d.schedule);
+  const scheduleSummary = scheduleSidebarSummary(d.scheduleRows, d.schedule);
+  const categoryLabel =
+    d.categorySlug === "otro"
+      ? d.categoryCustom.trim() || "Otro"
+      : labelFromOptions(d.categorySlug, sampleCategorySelectOptions);
 
   return {
     title: d.title.trim() || "Empleo",
@@ -70,12 +97,26 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     logoAlt: d.businessName.trim() || undefined,
     city: loc.city,
     state: loc.state,
+    stateRegion: d.stateRegion.trim() || d.state.trim() || undefined,
+    country: d.country.trim() || undefined,
     filterRegionFootnote: loc.filterRegionFootnote,
     mainImageSrc: main.src,
     mainImageAlt: main.alt,
-    pay: d.pay.trim() || "—",
+    pay: ensurePublicPayString(payParts.headline),
+    payAmount: d.payAmount.trim() || undefined,
+    payUnit: d.payUnit.trim() || undefined,
+    payUnitCustom: d.payUnitCustom.trim() || undefined,
+    payNote: d.payNote.trim() || undefined,
     jobType: d.jobType.trim() || "—",
-    schedule: scheduleDisplayFromDraft(d),
+    jobTypeLabel:
+      d.jobType === "otro" && d.jobTypeCustom.trim()
+        ? d.jobTypeCustom.trim()
+        : labelFromOptions(d.jobType, sampleJobTypeSelectOptions),
+    categoryLabel,
+    experienceLabel: labelFromOptions(d.experienceLevel, sampleExperienceOptions),
+    schedule: scheduleFull,
+    scheduleSummary,
+    scheduleRows,
     workModalityLabel: modalityLabelEs(d.workModality),
     description: d.description.trim() || "—",
     benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
@@ -91,8 +132,6 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     primaryCta: d.primaryCta,
     workspaceName: d.workspaceName.trim() || undefined,
     locationNotes: d.locationNotes.trim() || undefined,
-    stateRegion: d.stateRegion.trim() || d.state.trim() || undefined,
-    country: d.country.trim() || undefined,
     companyLinkedIn: sanitizeHttpUrl(d.companyLinkedIn) ?? undefined,
     companyFacebook: sanitizeHttpUrl(d.companyFacebook) ?? undefined,
     companyInstagram: sanitizeHttpUrl(d.companyInstagram) ?? undefined,

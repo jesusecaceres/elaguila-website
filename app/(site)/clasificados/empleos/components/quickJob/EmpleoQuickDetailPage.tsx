@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -18,10 +17,13 @@ import {
 import { QuickJobBenefitsCard } from "./QuickJobBenefitsCard";
 import { QuickJobCTACard } from "./QuickJobCTACard";
 import { QuickJobHeaderCard } from "./QuickJobHeaderCard";
+import { QuickJobHeroMedia } from "./QuickJobHeroMedia";
 import { QuickJobLocationCard } from "./QuickJobLocationCard";
 import { QuickJobLocationToast } from "./QuickJobLocationToast";
 import { QuickJobMoreJobsSection } from "./QuickJobMoreJobsSection";
+import { QuickJobScheduleCard } from "./QuickJobScheduleCard";
 import { EmpleosClasificadosEngagementRow } from "../EmpleosClasificadosEngagementRow";
+import { LeonixTrustFooter } from "@/app/(site)/clasificados/components/leonixShell/LeonixTrustFooter";
 import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 
 const COPY = {
@@ -31,6 +33,8 @@ const COPY = {
     publicar: "Publicar empleo",
     benefits: "Beneficios",
     descripcion: "Descripción del puesto",
+    requisitos: "Requisitos / cómo aplicar",
+    horario: "Horario / turnos",
     ubicacion: "Ubicación del empleo",
     verUbicacion: "Ver en mapa",
     toastTitle: "Ubicación",
@@ -39,11 +43,10 @@ const COPY = {
     toastClose: "Cerrar",
     masEmpleos: "Más empleos",
     verMas: "Ver más",
-    ctaEmail: "Enviar Email",
+    ctaEmail: "Enviar correo",
     websiteRow: "Sitio web",
     videos: "Videos del empleo",
     openVideo: "Ver video",
-    reportar: "Reportar",
     labels: { jobType: "Tipo", schedule: "Horario", modality: "Modalidad" },
   },
   en: {
@@ -52,6 +55,8 @@ const COPY = {
     publicar: "Post a job",
     benefits: "Benefits",
     descripcion: "Job description",
+    requisitos: "Requirements / how to apply",
+    horario: "Schedule / shifts",
     ubicacion: "Job location",
     verUbicacion: "View on map",
     toastTitle: "Location",
@@ -64,7 +69,6 @@ const COPY = {
     websiteRow: "Website",
     videos: "Job videos",
     openVideo: "Watch video",
-    reportar: "Report",
     labels: { jobType: "Type", schedule: "Schedule", modality: "Modality" },
   },
 } as const;
@@ -91,19 +95,66 @@ type EngagementProps = {
 type Props = {
   data?: QuickJobDetailSample;
   withSiteChrome?: boolean;
-  /** Optional slot below main content (e.g. published apply form). */
+  hideResultsNav?: boolean;
   publicFooterSlot?: ReactNode;
   contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
-  /** When provided, renders like/share/report row. */
   engagement?: EngagementProps | null;
+  leonixAdId?: string | null;
 };
+
+function ctaCardProps(
+  data: QuickJobDetailSample,
+  t: (typeof COPY)["es"] | (typeof COPY)["en"],
+  lang: Lang,
+  hasAnyContact: boolean,
+  contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta,
+) {
+  return {
+    pay: data.pay,
+    payAmount: data.payAmount,
+    payUnit: data.payUnit,
+    payUnitCustom: data.payUnitCustom,
+    payNote: data.payNote,
+    jobType: data.jobType,
+    jobTypeLabel: data.jobTypeLabel,
+    scheduleSummary: data.scheduleSummary ?? data.schedule,
+    workModalityLabel: data.workModalityLabel,
+    applyLink: data.applyLink?.trim() || undefined,
+    phone: data.phone?.trim() || undefined,
+    whatsapp: data.whatsapp?.trim() || undefined,
+    smsPhone: data.smsPhone?.trim() || undefined,
+    email: data.email?.trim() || undefined,
+    websiteUrl: data.websiteUrl?.trim() || undefined,
+    contactPerson: data.contactPerson?.trim() || undefined,
+    contactTitle: data.contactTitle?.trim() || undefined,
+    preferredApplyMethod: data.preferredApplyMethod,
+    primaryCta: data.primaryCta,
+    emailLabel: t.ctaEmail,
+    websiteLabel: t.websiteRow,
+    labels: t.labels,
+    showContactRow: hasAnyContact,
+    contactAnalyticsMeta,
+    lang,
+    companyLinkedIn: data.companyLinkedIn?.trim() || undefined,
+    companyFacebook: data.companyFacebook?.trim() || undefined,
+    companyInstagram: data.companyInstagram?.trim() || undefined,
+    companyTikTok: data.companyTikTok?.trim() || undefined,
+    companyYouTube: data.companyYouTube?.trim() || undefined,
+    companyX: data.companyX?.trim() || undefined,
+    companySnapchat: data.companySnapchat?.trim() || undefined,
+    companyOtherLinkLabel: data.companyOtherLinkLabel?.trim() || undefined,
+    companyOtherLinkUrl: data.companyOtherLinkUrl?.trim() || undefined,
+  };
+}
 
 export function EmpleoQuickDetailPage({
   data = EMPLEO_QUICK_JOB_SAMPLE,
   withSiteChrome = true,
+  hideResultsNav = false,
   publicFooterSlot = null,
   contactAnalyticsMeta,
   engagement = null,
+  leonixAdId = null,
 }: Props) {
   const sp = useSearchParams();
   const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
@@ -124,15 +175,28 @@ export function EmpleoQuickDetailPage({
   const showLocation = hasQuickJobLocation(data.location);
   const showRelated = data.relatedJobs.length > 0;
   const hasBenefits = data.benefits.length > 0;
+  const hasSchedule = Boolean(
+    (data.scheduleRows && data.scheduleRows.length) ||
+      (data.schedule && data.schedule !== "—"),
+  );
   const videoUrls = useMemo(
     () =>
       Array.from(new Set((data.videoUrls ?? []).map((u) => String(u ?? "").trim()).filter((u) => /^https?:\/\//i.test(u)))).slice(0, 4),
     [data.videoUrls],
   );
   const hasAnyContact = Boolean(
-    data.phone?.trim() || data.whatsapp?.trim() || data.email?.trim() || data.websiteUrl?.trim(),
+    data.phone?.trim() || data.whatsapp?.trim() || data.email?.trim() || data.websiteUrl?.trim() || data.applyLink?.trim(),
   );
   const hasEngagement = Boolean(engagement?.listingId);
+
+  const headerChips = [
+    data.categoryLabel,
+    data.jobTypeLabel ?? data.jobType,
+    data.workModalityLabel,
+    data.experienceLabel,
+  ].filter((c): c is string => Boolean(c?.trim()) && c !== "—");
+
+  const ctaProps = ctaCardProps(data, t, lang, hasAnyContact, contactAnalyticsMeta);
 
   return (
     <div
@@ -148,25 +212,19 @@ export function EmpleoQuickDetailPage({
     >
       {withSiteChrome ? <Navbar /> : null}
 
-      {/* ── Breadcrumb bar ─────────────────────────────────────────────────── */}
       <header className="border-b border-[#D6C7AD]/85 bg-[#FFFDF7]/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[min(100%,90rem)] items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3 lg:px-10">
           <nav className="min-w-0 text-xs font-medium text-[#5C564E] sm:text-sm" aria-label="Breadcrumb">
-            <Link href={hubHref} className="hover:underline">
-              {t.breadcrumbHub}
-            </Link>
+            <Link href={hubHref} className="hover:underline">{t.breadcrumbHub}</Link>
             <span className="mx-1.5 text-[#9A948C]">/</span>
-            <Link href={empleosLandingHref} className="hover:underline">
-              {t.breadcrumbCat}
-            </Link>
+            <Link href={empleosLandingHref} className="hover:underline">{t.breadcrumbCat}</Link>
           </nav>
           <div className="flex shrink-0 items-center gap-4">
-            <Link
-              href={resultadosHref}
-              className="hidden text-xs font-medium text-[#5C564E] hover:underline sm:inline"
-            >
-              ← {lang === "es" ? "Resultados" : "Results"}
-            </Link>
+            {!hideResultsNav ? (
+              <Link href={resultadosHref} className="hidden text-xs font-medium text-[#5C564E] hover:underline sm:inline">
+                ← {lang === "es" ? "Resultados" : "Results"}
+              </Link>
+            ) : null}
             <Link
               href={publicarHref}
               className="shrink-0 rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-1.5 text-xs font-semibold text-[#8A6B1F] transition hover:bg-[#FBF7EF]"
@@ -177,10 +235,7 @@ export function EmpleoQuickDetailPage({
         </div>
       </header>
 
-      {/* ── Main canvas ────────────────────────────────────────────────────── */}
       <main className="mx-auto w-full min-w-0 max-w-[min(100%,90rem)] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 xl:px-14">
-
-        {/* Header card — employer identity */}
         <QuickJobHeaderCard
           title={data.title}
           businessName={data.businessName}
@@ -191,14 +246,10 @@ export function EmpleoQuickDetailPage({
           stateRegion={data.stateRegion}
           country={data.country}
           filterRegionFootnote={data.filterRegionFootnote}
-          chips={[
-            data.jobType,
-            data.workModalityLabel,
-          ].filter((c): c is string => Boolean(c?.trim()) && c !== "—")}
+          chips={headerChips}
           payHighlight={data.pay && data.pay !== "—" ? data.pay : undefined}
         />
 
-        {/* Engagement row (like / share / report) */}
         {hasEngagement ? (
           <div className="mt-4">
             <EmpleosClasificadosEngagementRow
@@ -215,33 +266,28 @@ export function EmpleoQuickDetailPage({
           </div>
         ) : null}
 
-        {/* Two-column grid */}
+        {/* Mobile: CTA near top */}
+        <div className="mt-5 lg:hidden">
+          <QuickJobCTACard {...ctaProps} />
+        </div>
+
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-
-          {/* ── Left column ──────────────────────────────────────────────── */}
           <div className="space-y-5 lg:col-span-7">
+            <QuickJobHeroMedia src={data.mainImageSrc} alt={data.mainImageAlt} title={data.title} />
 
-            {/* Main image */}
-            <div className="overflow-hidden rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] shadow-[0_16px_44px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10">
-              <div className="relative aspect-[16/9] max-h-[340px] w-full bg-[#EDE8E0] sm:aspect-[16/8]">
-                <Image
-                  src={data.mainImageSrc}
-                  alt={data.mainImageAlt}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 58vw"
-                  priority
-                />
-              </div>
-            </div>
-
-            {/* Description card */}
             <section className="rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-6">
               <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#8A6B1F]">{t.descripcion}</p>
-              <p className="mt-3 text-sm leading-relaxed text-[#4A4744] whitespace-pre-line break-words">{data.description}</p>
+              <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-[#4A4744]">{data.description}</p>
             </section>
 
-            {/* Videos */}
+            {hasSchedule ? (
+              <QuickJobScheduleCard
+                title={t.horario}
+                rows={data.scheduleRows ?? []}
+                fallbackText={data.schedule}
+              />
+            ) : null}
+
             {videoUrls.length ? (
               <section className="rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-5 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] sm:p-6">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8A6B1F]">{t.videos}</p>
@@ -262,77 +308,60 @@ export function EmpleoQuickDetailPage({
               </section>
             ) : null}
 
-            {/* Benefits */}
-            {hasBenefits ? (
-              <QuickJobBenefitsCard title={t.benefits} items={data.benefits} />
+            {hasBenefits ? <QuickJobBenefitsCard title={t.benefits} items={data.benefits} /> : null}
+
+            {showLocation && data.location ? (
+              <div className="lg:hidden">
+                <QuickJobLocationCard
+                  location={data.location}
+                  sectionTitle={t.ubicacion}
+                  ctaLabel={t.verUbicacion}
+                  onOpen={() => setLocationOpen(true)}
+                />
+              </div>
             ) : null}
           </div>
 
-          {/* ── Right column — contact/apply card ────────────────────────── */}
-          <div className="min-w-0 lg:col-span-5">
-            <div className="lg:sticky lg:top-24">
-              <QuickJobCTACard
-                pay={data.pay}
-                jobType={data.jobType}
-                schedule={data.schedule}
-                workModalityLabel={data.workModalityLabel}
-                description={data.description}
-                applyLink={data.applyLink?.trim() || undefined}
-                phone={data.phone?.trim() || undefined}
-                whatsapp={data.whatsapp?.trim() || undefined}
-                smsPhone={data.smsPhone?.trim() || undefined}
-                email={data.email?.trim() || undefined}
-                websiteUrl={data.websiteUrl?.trim() || undefined}
-                contactPerson={data.contactPerson?.trim() || undefined}
-                contactTitle={data.contactTitle?.trim() || undefined}
-                primaryCta={data.primaryCta}
-                emailLabel={t.ctaEmail}
-                websiteLabel={t.websiteRow}
-                labels={t.labels}
-                showContactRow={hasAnyContact}
-                contactAnalyticsMeta={contactAnalyticsMeta}
-                lang={lang}
-                companyLinkedIn={data.companyLinkedIn?.trim() || undefined}
-                companyFacebook={data.companyFacebook?.trim() || undefined}
-                companyInstagram={data.companyInstagram?.trim() || undefined}
-                companyTikTok={data.companyTikTok?.trim() || undefined}
-                companyYouTube={data.companyYouTube?.trim() || undefined}
-                companyX={data.companyX?.trim() || undefined}
-                companySnapchat={data.companySnapchat?.trim() || undefined}
-                companyOtherLinkLabel={data.companyOtherLinkLabel?.trim() || undefined}
-                companyOtherLinkUrl={data.companyOtherLinkUrl?.trim() || undefined}
-              />
+          <div className="hidden min-w-0 lg:col-span-5 lg:block">
+            <div className="space-y-5 lg:sticky lg:top-24">
+              <QuickJobCTACard {...ctaProps} />
+              {showLocation && data.location ? (
+                <QuickJobLocationCard
+                  location={data.location}
+                  sectionTitle={t.ubicacion}
+                  ctaLabel={t.verUbicacion}
+                  onOpen={() => setLocationOpen(true)}
+                  compact
+                />
+              ) : null}
             </div>
           </div>
         </div>
 
-        {/* Location card */}
         {showLocation && data.location ? (
-          <>
-            <div className="mt-6">
-              <QuickJobLocationCard
-                location={data.location}
-                sectionTitle={t.ubicacion}
-                ctaLabel={t.verUbicacion}
-                onOpen={() => setLocationOpen(true)}
-              />
-            </div>
-            <QuickJobLocationToast
-              open={locationOpen}
-              onClose={() => setLocationOpen(false)}
-              location={data.location}
-              title={t.toastTitle}
-              hint={t.toastHint}
-              mapsLabel={t.toastMaps}
-              closeLabel={t.toastClose}
-            />
-          </>
+          <QuickJobLocationToast
+            open={locationOpen}
+            onClose={() => setLocationOpen(false)}
+            location={data.location}
+            title={t.toastTitle}
+            hint={t.toastHint}
+            mapsLabel={t.toastMaps}
+            closeLabel={t.toastClose}
+          />
         ) : null}
 
-        {/* Public footer slot (apply form / links) */}
         {publicFooterSlot ? <div className="mt-8">{publicFooterSlot}</div> : null}
 
-        {/* Related jobs */}
+        <LeonixTrustFooter
+          lang={lang}
+          leonixAdId={leonixAdId ?? engagement?.leonixAdId}
+          verifyNote={
+            lang === "es"
+              ? "Verifica la oferta antes de aplicar."
+              : "Verify the offer before applying."
+          }
+        />
+
         {showRelated ? (
           <QuickJobMoreJobsSection title={t.masEmpleos} jobs={data.relatedJobs} ctaLabel={t.verMas} />
         ) : null}

@@ -25,7 +25,9 @@ export type EnVentaAnuncioDTO = {
   description: string;
   priceLabel: { es: string; en: string };
   city: string;
+  state?: string | null;
   zip?: string | null;
+  country?: string | null;
   postedAgo: { es: string; en: string };
   images: string[];
   conditionKey?: string | null;

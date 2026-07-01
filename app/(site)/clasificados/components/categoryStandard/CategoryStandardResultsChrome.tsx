@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { CategoryCompactHero } from "./CategoryCompactHero";
 import { CategoryStandardCtaRow } from "./CategoryStandardCtaRow";
+import { CategoryStandardLandingSearch } from "./CategoryStandardLandingSearch";
 import { CategoryStandardSearchRow } from "./CategoryStandardSearchRow";
 import { CategoryVisibilityCta, categorySupportsVisibilityCta } from "./CategoryVisibilityCta";
 import { CategoryStandardResultsPageShell } from "./CategoryStandardResultsPageShell";
@@ -113,6 +114,8 @@ export type CategoryStandardLandingBlockProps = {
   searchSlot?: ReactNode;
   /** Hide monetization strip from hero/search area (show lower on page instead). */
   suppressVisibilityCta?: boolean;
+  /** Hide browse CTA in hero row when browse lives in search canvas. */
+  hideBrowseCta?: boolean;
 };
 
 export function CategoryStandardLandingBlock({
@@ -132,6 +135,7 @@ export function CategoryStandardLandingBlock({
   belowHero,
   searchSlot,
   suppressVisibilityCta = false,
+  hideBrowseCta = false,
   children,
 }: CategoryStandardLandingBlockProps) {
   return (
@@ -144,15 +148,28 @@ export function CategoryStandardLandingBlock({
         description={description}
         imageSrc={imageSrc}
       >
-        {searchSlot ?? (
-          <CategoryStandardSearchRow
-            lang={lang}
-            action={searchAction}
-            searchPlaceholder={searchPlaceholder}
-            chips={searchChips}
-            className="!border-0 !bg-transparent !p-0 !shadow-none"
-          />
-        )}
+        {searchSlot ??
+          (category === "comunidad" ||
+          category === "clases" ||
+          category === "busco" ||
+          category === "mascotas-y-perdidos" ? (
+            <CategoryStandardLandingSearch
+              category={category}
+              lang={lang}
+              searchAction={searchAction}
+              browseHref={browseHref}
+              browseLabel={browseLabel}
+              searchChips={searchChips}
+            />
+          ) : (
+            <CategoryStandardSearchRow
+              lang={lang}
+              action={searchAction}
+              searchPlaceholder={searchPlaceholder}
+              chips={searchChips}
+              className="!border-0 !bg-transparent !p-0 !shadow-none"
+            />
+          ))}
         <div className="mt-3">
           <CategoryStandardCtaRow
             lang={lang}
@@ -160,6 +177,7 @@ export function CategoryStandardLandingBlock({
             browseHref={browseHref}
             publishLabel={publishLabel}
             browseLabel={browseLabel}
+            hideBrowse={hideBrowseCta}
           />
         </div>
         {categorySupportsVisibilityCta(category) && !suppressVisibilityCta ? (

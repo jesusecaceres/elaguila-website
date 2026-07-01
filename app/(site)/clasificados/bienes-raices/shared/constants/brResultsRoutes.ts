@@ -31,6 +31,8 @@ export type BrResultsQueryKey =
   | "q"
   | "operationType"
   | "city"
+  | "state"
+  | "country"
   | "zip"
   | "propertyType"
   | "sellerType"

@@ -6,6 +6,10 @@ export type BrResultsParsedState = {
   lang: Lang;
   q: string;
   city: string;
+  /** US state code (e.g. CA). */
+  state: string;
+  /** Country filter (defaults omitted when United States). */
+  country: string;
   operationType: "" | "venta" | "renta";
   /** URL `propertyType` (casa | departamento | terreno | comercial | …). */
   propertyType: string;
@@ -64,6 +68,8 @@ export function parseBrResultsUrl(searchParams: URLSearchParams): BrResultsParse
     lang,
     q: searchParams.get("q") ?? "",
     city: searchParams.get("city") ?? "",
+    state: searchParams.get("state") ?? "",
+    country: searchParams.get("country") ?? "",
     operationType,
     propertyType,
     sellerType,

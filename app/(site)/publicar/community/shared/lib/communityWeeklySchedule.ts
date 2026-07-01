@@ -195,3 +195,45 @@ export function getActiveWeeklyScheduleGridItems(rows: DayHoursRow[], lang: "es"
   }
   return out;
 }
+
+const MON_FRI: readonly DayKey[] = ["mon", "tue", "wed", "thu", "fri"];
+
+/** Group identical time ranges (e.g. Lunes a Domingo · 6:00 a.m. – 8:00 p.m.). */
+export function getGroupedWeeklyScheduleGridItems(rows: DayHoursRow[], lang: "es" | "en"): WeeklyScheduleGridItem[] {
+  const items = getActiveWeeklyScheduleGridItems(rows, lang);
+  if (items.length <= 1) return items;
+
+  const byTime = new Map<string, WeeklyScheduleGridItem[]>();
+  for (const it of items) {
+    const list = byTime.get(it.timeRange) ?? [];
+    list.push(it);
+    byTime.set(it.timeRange, list);
+  }
+
+  const grouped: WeeklyScheduleGridItem[] = [];
+  for (const [timeRange, group] of byTime) {
+    const keys = group.map((g) => g.dayKey);
+    if (keys.length === 7) {
+      grouped.push({
+        dayKey: "mon",
+        dayLabel: lang === "es" ? "Lunes a Domingo" : "Monday to Sunday",
+        timeRange,
+      });
+      continue;
+    }
+    const hasMonFri = MON_FRI.every((k) => keys.includes(k));
+    if (hasMonFri && keys.length === 5) {
+      grouped.push({
+        dayKey: "mon",
+        dayLabel: lang === "es" ? "Lunes a Viernes" : "Monday to Friday",
+        timeRange,
+      });
+      continue;
+    }
+    grouped.push(...group);
+  }
+
+  return grouped.sort(
+    (a, b) => COMMUNITY_WEEK_ORDER.indexOf(a.dayKey) - COMMUNITY_WEEK_ORDER.indexOf(b.dayKey),
+  );
+}

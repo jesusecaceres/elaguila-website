@@ -218,6 +218,10 @@ function buildDetailPairs(
   pairs.push({ label: "Leonix:communityLane", value: "quick" });
   pairs.push({ label: "Leonix:communityKind", value: kind });
   pairs.push({ label: "Leonix:organizer", value: d.organizer.trim() });
+  const logoUrl = normalizeWebsiteForOpen(d.organizerLogoUrl) ?? d.organizerLogoUrl.trim();
+  if (logoUrl && logoUrl.startsWith("http")) {
+    pairs.push({ label: "Leonix:organizerLogoUrl", value: logoUrl });
+  }
   pairs.push({ label: "Leonix:primaryCta", value: d.primaryCta });
   pairs.push({ label: "Leonix:zip", value: d.zip.trim() });
   pairs.push({ label: "Leonix:state", value: d.state.trim() });

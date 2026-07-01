@@ -43,8 +43,10 @@ export type RentasPublicListing = {
   resultBrowseLocation?: string;
   /** Normalized city/metro for browse filters (maps from publish `ciudad` + geocoding). */
   city?: string;
-  /** State or entity label (e.g. NL, Jal.) — optional until backend normalizes. */
+  /** State or entity label (e.g. CA) — from `Leonix:state` or legacy human row. */
   stateRegion?: string;
+  /** Country from `Leonix:country` when present. */
+  country?: string;
   /** Postal / ZIP (digits). Publish forms use free `ubicacionLinea`; structured ZIP comes from adapters. */
   postalCode?: string;
   /** ISO 8601 timestamp when the listing went live — drives "recientes" and fairness. */

@@ -1,5 +1,6 @@
 /** Leonix public browse UI — Bienes Raíces landing + results only. */
-export const BR_PUBLIC_SHELL = "mx-auto w-full min-w-0 max-w-[1080px]";
+export const BR_PUBLIC_SHELL =
+  "mx-auto w-full min-w-0 max-w-[1080px] pt-[calc(0.75rem+env(safe-area-inset-top))] sm:pt-4";
 
 export const BR_SEARCH_CANVAS =
   "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
