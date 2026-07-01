@@ -50,6 +50,7 @@ export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProp
         browseHref={browseAllHref}
         searchSlot={<ViajesSearchBar lang={lang} ui={ui} />}
         searchChips={<ViajesCategoryPillsPanel lang={lang} ui={ui} />}
+        suppressVisibilityCta
       />
 
       <main className="relative mx-auto max-w-7xl min-w-0 px-3 pb-10 pt-6 sm:px-5 sm:pt-9 lg:px-6 lg:pt-11">

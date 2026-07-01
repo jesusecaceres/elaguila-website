@@ -31,9 +31,8 @@ const COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 oferta encontrada" : `${n} ofertas encontradas`),
     emptyTitle: "No encontramos ofertas con esos filtros.",
     emptyHint: "Intenta buscar otro producto o ciudad.",
-    pipelineEmptyTitle: "Todavía estamos agregando ofertas locales.",
-    pipelineEmptyBody:
-      "Vuelve pronto o invita a tu negocio favorito a publicar sus especiales.",
+    pipelineEmptyTitle: "Aún no hay ofertas locales",
+    pipelineEmptyBody: "Publica la primera o vuelve pronto.",
     pipelineEmptyHint: "¿Tienes un negocio? Publica tus ofertas locales.",
     loadFailed: "No se pudieron cargar las ofertas.",
     viewDeal: "Ver oferta",
@@ -106,9 +105,8 @@ const COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 deal found" : `${n} deals found`),
     emptyTitle: "We didn't find deals with those filters.",
     emptyHint: "Try another product or city.",
-    pipelineEmptyTitle: "We're adding local deals soon.",
-    pipelineEmptyBody:
-      "Check back soon or invite your favorite business to post their specials.",
+    pipelineEmptyTitle: "No local deals yet",
+    pipelineEmptyBody: "Publish the first deal or check back soon.",
     pipelineEmptyHint: "Have a business? Publish your local deals.",
     loadFailed: "Could not load deals.",
     viewDeal: "View deal",

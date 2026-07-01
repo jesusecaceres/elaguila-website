@@ -311,3 +311,7 @@ export const CATEGORY_STANDARD_PAGE_BG =
 /** Below global site Navbar from `(site)/layout` — do not nest a second Navbar. */
 export const CATEGORY_STANDARD_MAIN =
   "relative mx-auto w-full max-w-[1080px] min-w-0 px-3.5 pb-12 pt-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-6 lg:px-5 lg:pt-8";
+
+/** Compact Leonix chip for category landing rails. */
+export const CATEGORY_STANDARD_CHIP =
+  "inline-flex h-[30px] max-w-full shrink-0 snap-start items-center rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold leading-none text-[#3D3428] transition hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7] focus-visible:ring-2 focus-visible:ring-[#C9A84A]/40 sm:text-xs";

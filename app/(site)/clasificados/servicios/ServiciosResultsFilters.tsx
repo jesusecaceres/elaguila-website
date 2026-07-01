@@ -4,8 +4,7 @@ import type { FormEventHandler } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
-import { ServiciosUseMyLocationButton } from "./ServiciosUseMyLocationButton";
-import { clearServiciosDiscoveryPrefs, writeServiciosDiscoveryPrefs } from "./lib/serviciosLocalPreferences";
+import { writeServiciosDiscoveryPrefs } from "./lib/serviciosLocalPreferences";
 import {
   serviciosResultsHasActiveFilters,
   type ServiciosResultsFilterQuery,
@@ -17,6 +16,17 @@ import { CAT_STD_PER_PAGE_OPTIONS } from "@/app/(site)/clasificados/components/c
 const RESULTS_PATH = "/clasificados/servicios/results";
 
 const RESULTS_FORM_ID_MOBILE = "servicios-results-filter-form-mobile";
+
+const BTN_PRIMARY =
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]";
+const BTN_SECONDARY =
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+const CONTROL_SELECT =
+  "min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]";
+const SEARCH_INPUT =
+  "min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45";
+const SEARCH_CANVAS =
+  "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
 
 const sortSelectDefault = (current: ServiciosResultsFilterQuery) =>
   current.sort === "name"
@@ -135,10 +145,10 @@ function ServiciosResultsFiltersCompact({
   }, [drawerOpen]);
 
   const inputClass =
-    "min-h-[40px] w-full rounded-xl border border-[#e5ddd2] bg-white px-3 py-2 text-sm text-[#142a42] outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+    "min-h-[2.625rem] w-full rounded-lg border border-[#D6C7AD]/90 bg-white px-3 py-2 text-sm text-[#1F241C] outline-none focus:border-[#C9A84A]/70 focus:ring-2 focus:ring-[#C9A84A]/20";
 
   return (
-    <div className="mb-3 border-b border-[#dcd3c7]/80 pb-3">
+    <div className="mb-3 border-b border-[#D6C7AD]/50 pb-3">
       <form
         id={RESULTS_FORM_ID_MOBILE}
         method="get"
@@ -149,66 +159,55 @@ function ServiciosResultsFiltersCompact({
       >
         <input type="hidden" name="lang" value={lang} />
 
-        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.72fr)_auto_auto] lg:items-end">
-          <label className="block min-w-0">
-            <span className="text-xs font-semibold text-[#3d4f62]">
-              {lang === "en" ? "Keywords" : "Palabras clave"}
-            </span>
-            <input
-              name="q"
-              type="search"
-              defaultValue={current.q ?? ""}
-              autoComplete="off"
-              placeholder={lang === "en" ? "Service, trade, business name…" : "Servicio, giro, nombre del negocio…"}
-              className={`mt-1 ${inputClass}`}
-            />
-          </label>
-          <label className="block min-w-0">
-            <span className="text-xs font-semibold text-[#3d4f62]">
-              {lang === "en" ? "City, ZIP, or service area" : "Ciudad, código postal o zona"}
-            </span>
-            <input
-              name="city"
-              type="text"
-              defaultValue={current.city ?? ""}
-              placeholder={lang === "en" ? "e.g. San José, 95112" : "ej. San José, 95112"}
-              aria-describedby="servicios-city-filter-hint-mobile"
-              className={`mt-1 ${inputClass}`}
-            />
-          </label>
-          <ServiciosUseMyLocationButton lang={lang} formId={RESULTS_FORM_ID_MOBILE} />
-          <button
-            type="submit"
-            className="inline-flex min-h-[40px] w-full items-center justify-center rounded-xl bg-gradient-to-br from-[#8A2433] to-[#5C1622] px-4 text-sm font-bold text-white shadow-md transition hover:brightness-[1.05] lg:w-auto"
-          >
-            {lang === "en" ? "Search" : "Buscar"}
-          </button>
-          <p id="servicios-city-filter-hint-mobile" className="sr-only">
-            {lang === "en"
-              ? "Matches city, ZIP, service areas, and location summary when published."
-              : "Coincide con ciudad, CP, zonas de servicio y resumen de ubicación publicados."}
-          </p>
+        <div className={SEARCH_CANVAS}>
+          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
+            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
+              <input
+                name="q"
+                type="search"
+                defaultValue={current.q ?? ""}
+                autoComplete="off"
+                placeholder={lang === "en" ? "Service, trade, business…" : "Servicio, giro, negocio…"}
+                aria-label={lang === "en" ? "Keywords" : "Palabras clave"}
+                className={`${SEARCH_INPUT} min-w-0 flex-1`}
+              />
+            </label>
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-3 sm:border-b-0 sm:border-r">
+              <input
+                name="city"
+                type="text"
+                defaultValue={current.city ?? ""}
+                placeholder={lang === "en" ? "City" : "Ciudad"}
+                aria-label={lang === "en" ? "City" : "Ciudad"}
+                className={SEARCH_INPUT}
+              />
+            </label>
+            <div className="flex gap-1.5 p-1.5 sm:col-span-4">
+              <button
+                type="button"
+                data-testid="servicios-open-filters-drawer"
+                onClick={() => setDrawerOpen(true)}
+                className={`${BTN_SECONDARY} relative flex-1`}
+              >
+                {lang === "en" ? "Filters" : "Filtros"}
+                {hasAdvancedFilters ? (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-[#7A1E2C]" aria-hidden />
+                ) : null}
+              </button>
+              <button type="submit" className={`${BTN_PRIMARY} flex-[1.2]`}>
+                {lang === "en" ? "Search" : "Buscar"}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className="relative inline-flex min-h-[36px] shrink-0 items-center justify-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold text-[#142a42] shadow-sm transition hover:bg-[#fafcff]"
-          >
-            {lang === "en" ? "Filters" : "Filtros"}
-            {hasAdvancedFilters ? (
-              <span
-                className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#3B66AD] px-1 text-[10px] font-bold leading-none text-white"
-                aria-hidden
-              >
-                •
-              </span>
-            ) : null}
-          </button>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">
+            {lang === "en" ? "Show" : "Mostrar"}
+          </span>
           <label className="min-w-0">
             <span className="sr-only">{lang === "en" ? "Sort" : "Ordenar"}</span>
-            <select name="sort" defaultValue={sortSelectDefault(current)} className="min-h-[36px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#142a42]">
+            <select name="sort" defaultValue={sortSelectDefault(current)} className={CONTROL_SELECT}>
               <option value="newest">{lang === "en" ? "Newest" : "Más recientes"}</option>
               <option value="most_liked">{lang === "en" ? "Most liked" : "Más gustados"}</option>
               <option value="most_saved">{lang === "en" ? "Most saved" : "Más guardados"}</option>
@@ -219,7 +218,7 @@ function ServiciosResultsFiltersCompact({
           </label>
           <label className="min-w-0">
             <span className="sr-only">{lang === "en" ? "Per page" : "Por página"}</span>
-            <select name="perPage" defaultValue={String(perPage)} className="min-h-[36px] rounded-full border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-medium text-[#142a42]">
+            <select name="perPage" defaultValue={String(perPage)} className={CONTROL_SELECT}>
               {CAT_STD_PER_PAGE_OPTIONS.map((n) => (
                 <option key={n} value={n}>
                   {n}
@@ -228,7 +227,7 @@ function ServiciosResultsFiltersCompact({
             </select>
           </label>
           {hasFilters ? (
-            <Link href={resetHref} className="inline-flex min-h-[36px] items-center rounded-full border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#142a42]">
+            <Link href={resetHref} className={BTN_SECONDARY}>
               {lang === "en" ? "Clear filters" : "Limpiar filtros"}
             </Link>
           ) : null}
@@ -256,60 +255,41 @@ function ServiciosResultsFiltersCompact({
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-[#1a3352]/15 bg-white px-4 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-[#fafcff]"
+                className={`${BTN_SECONDARY} min-w-[4.5rem]`}
               >
                 {lang === "en" ? "Close" : "Cerrar"}
               </button>
             </div>
 
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ebe4d9]/90 pb-3">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748b]">
-                  {lang === "en" ? "Refine" : "Afinar"}
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  {hasFilters ? (
-                    <Link
-                      href={resetHref}
-                      onClick={() => setDrawerOpen(false)}
-                      className="min-h-[44px] touch-manipulation text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
-                    >
-                      {lang === "en" ? "Clear all filters" : "Quitar todos los filtros"}
-                    </Link>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearServiciosDiscoveryPrefs();
-                    }}
-                    className="min-h-[44px] text-xs font-semibold text-[#64748b] underline underline-offset-2 hover:text-[#142a42]"
+              {hasFilters ? (
+                <div className="border-b border-[#D6C7AD]/60 pb-3">
+                  <Link
+                    href={resetHref}
+                    onClick={() => setDrawerOpen(false)}
+                    className="text-xs font-semibold text-[#7A1E2C] underline underline-offset-2"
                   >
-                    {lang === "en" ? "Clear saved device hints" : "Borrar sugerencias guardadas en el dispositivo"}
-                  </button>
+                    {lang === "en" ? "Clear all filters" : "Quitar todos los filtros"}
+                  </Link>
                 </div>
-              </div>
+              ) : null}
 
               <ServiciosResultsAdvancedFilterFields lang={lang} current={current} />
             </div>
 
-            <div className="shrink-0 space-y-3 border-t border-[#ebe4d9] bg-[#FFFCF7]/98 px-4 py-3 backdrop-blur-md">
+            <div className="shrink-0 flex gap-2 border-t border-[#D6C7AD]/60 bg-[#FFFDF7] px-4 py-3">
+              {hasFilters ? (
+                <Link href={resetHref} onClick={() => setDrawerOpen(false)} className={`${BTN_SECONDARY} flex-1 text-center`}>
+                  {lang === "en" ? "Clear" : "Limpiar"}
+                </Link>
+              ) : null}
               <button
                 type="submit"
                 onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[50px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-6 text-sm font-bold text-white shadow-[0_12px_32px_-14px_rgba(92,22,34,0.5)] transition hover:bg-[#651825]"
+                className={`${BTN_PRIMARY} ${hasFilters ? "flex-[1.2]" : "w-full"}`}
               >
-                {lang === "en" ? "View results" : "Ver resultados"}
+                {lang === "en" ? "Apply" : "Aplicar"}
               </button>
-              <p className="text-[11px] leading-relaxed text-neutral-500">
-                {lang === "en"
-                  ? "Provider type is inferred from published address/website fields. Keyword search includes services, trust lines, reviews, quick facts, and about. Submitting can save optional hints on this device — see Legal."
-                  : "El tipo de proveedor se infiere de dirección o web publicadas. La búsqueda incluye servicios, confianza, reseñas, datos rápidos y «Acerca». Al enviar se pueden guardar sugerencias opcionales en este dispositivo — ver Legal."}
-              </p>
-              <p className="text-[11px] leading-relaxed text-neutral-500">
-                <Link href={`/legal?lang=${lang}`} className="font-semibold text-[#3B66AD] underline-offset-2 hover:underline">
-                  {lang === "en" ? "Privacy & optional local preferences" : "Privacidad y preferencias locales opcionales"}
-                </Link>
-              </p>
             </div>
           </div>
         </div>

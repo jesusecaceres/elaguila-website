@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
+import { CATEGORY_STANDARD_CHIP } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import type { ServiciosQuickChip } from "./serviciosLandingSampleData";
 
 export function ServiciosQuickChips({
@@ -28,8 +29,7 @@ export function ServiciosQuickChips({
               ? `${base}?lang=${lang}&q=${encodeURIComponent(qRaw)}`
               : `${base}?lang=${lang}`;
 
-        const standardClass =
-          "inline-flex min-h-[2.25rem] shrink-0 snap-start items-center rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-3.5 py-1.5 text-xs font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 hover:bg-[#FBF7EF] sm:shrink";
+        const standardClass = CATEGORY_STANDARD_CHIP;
         const legacyMoreClass =
           "inline-flex min-h-[44px] shrink-0 snap-start items-center gap-2 rounded-full border border-[#1e3a5f]/22 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#1e3a5f] shadow-[0_4px_14px_-6px_rgba(30,58,95,0.35)] transition hover:border-[#1e3a5f]/35 hover:bg-[#fafcff] active:scale-[0.99] sm:px-4 sm:text-[13px]";
         const legacyChipClass =
