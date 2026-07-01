@@ -274,6 +274,44 @@ export default function RestaurantePreviewClient() {
                   se guardará nada.
                 </p>
                 <RestauranteOfertasLocalesUpsellCard lang={lang} />
+
+                {/* Pricing Summary */}
+                {(normalizedDraft.productType && normalizedDraft.baseMonthlyPrice) ? (
+                  <div className="mt-4 rounded-xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
+                    <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
+                      {lang === "en" ? "Monthly pricing:" : "Precios mensuales:"}
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-[color:var(--lx-text-2)]">
+                          {normalizedDraft.productType === "established_restaurant"
+                            ? lang === "en" ? "Established restaurant" : "Restaurante establecido"
+                            : lang === "en" ? "Mobile vendor" : "Puesto / pop-up / vendedor móvil"}
+                        </span>
+                        <span className="font-semibold text-[color:var(--lx-text)]">
+                          ${normalizedDraft.baseMonthlyPrice}/mes
+                        </span>
+                      </div>
+                      {normalizedDraft.couponUpgradeEnabled && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[color:var(--lx-text-2)]">
+                            {lang === "en" ? "Coupon add-on" : "Add-on de cupones"}
+                          </span>
+                          <span className="font-semibold text-[color:var(--lx-text)]">
+                            +$99/mes
+                          </span>
+                        </div>
+                      )}
+                      <div className="mt-2 flex items-center justify-between border-t border-[color:var(--lx-nav-border)]/50 pt-2 text-sm font-bold text-[color:var(--lx-text)]">
+                        <span>{lang === "en" ? "Total monthly" : "Total mensual"}</span>
+                        <span>
+                          ${(normalizedDraft.baseMonthlyPrice || 0) + (normalizedDraft.couponUpgradeEnabled ? 99 : 0)}/mes
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mt-3 space-y-2 border-t border-[color:var(--lx-nav-border)]/50 pt-3">
                   <p className="text-[11px] font-semibold text-[color:var(--lx-text)]">Confirmaciones antes de publicar</p>
                   <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
