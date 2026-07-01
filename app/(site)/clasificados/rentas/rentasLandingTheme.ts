@@ -78,21 +78,21 @@ export const rentasDiscoveryBandClass = [
   "px-4 py-8 sm:px-7 sm:py-10 lg:px-9",
 ].join(" ");
 
-/** Primary CTA — burnt orange (sparingly). */
+/** Primary CTA — Leonix burgundy rectangle. */
 export const rentasCtaPrimaryClass =
-  "min-h-[44px] rounded-full bg-[#C45C26] px-6 py-2.5 text-center text-sm font-semibold text-[#FFFBF7] shadow-[0_12px_32px_-12px_rgba(196,92,38,0.55)] transition hover:bg-[#A84E20] hover:shadow-[0_14px_36px_-12px_rgba(196,92,38,0.48)] active:scale-[0.98] sm:px-7";
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:px-5";
 
-/** Secondary CTA — soft panel + slate support tone. */
+/** Secondary CTA — cream panel + gold border. */
 export const rentasCtaSecondaryClass =
-  "min-h-[44px] rounded-full border-2 border-[#5B7C99]/38 bg-[#EEF3F7] px-5 py-2.5 text-center text-sm font-semibold text-[#2C3E4D] shadow-sm transition hover:border-[#5B7C99]/55 hover:bg-white hover:shadow-md active:scale-[0.98] sm:px-6";
+  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-4 text-sm font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/35 sm:px-5";
 
 /** Muted support link (slate blue). */
 export const rentasLinkSupportClass =
   "font-semibold text-[#4A6680] underline decoration-[#5B7C99]/40 underline-offset-4 hover:text-[#3D5569]";
 
-/** Section header secondary action — obvious tap/click target. */
+/** Section header secondary action — compact Leonix chip-link. */
 export const rentasSectionHeaderActionClass =
-  "inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#5B7C99]/32 bg-white/90 px-4 py-2 text-sm font-semibold text-[#2C3E4D] shadow-sm transition hover:border-[#C45C26]/35 hover:bg-[#FFFCF7] hover:text-[#1E1810] sm:min-h-0 sm:py-1.5";
+  "inline-flex h-[30px] items-center rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7]";
 
 /** Accent gold for price emphasis (not dominant). */
 export const rentasAccentGoldClass = "text-[#B8893C]";
@@ -119,52 +119,28 @@ export const rentasSearchShellClass = [
   "backdrop-blur-sm sm:p-5 xl:ring-offset-2 xl:ring-offset-[#F4EDE3]/90",
 ].join(" ");
 
-/** Search primary button — strong burnt orange, obvious action. */
+/** Search primary button — Leonix burgundy rectangle. */
 export const rentasSearchSubmitClass = [
-  "inline-flex w-full min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full",
-  "bg-[#C45C26] px-7 py-3 text-sm font-bold tracking-wide text-[#FFFBF7]",
-  "shadow-[0_12px_32px_-12px_rgba(196,92,38,0.65)] transition",
-  "hover:bg-[#A84E20] hover:shadow-[0_14px_36px_-12px_rgba(196,92,38,0.55)]",
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C45C26]/50",
-  "xl:w-auto xl:min-w-[10.5rem] xl:py-3",
+  "inline-flex w-full min-h-[2.625rem] shrink-0 items-center justify-center gap-2 rounded-lg",
+  "bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45",
+  "xl:w-auto xl:min-w-[8rem]",
 ].join(" ");
 
-/** Quick explore — primary browse paths (property + branch). */
-export const rentasChipPrimaryBrowseClass = [
-  "inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#5B7C99]/28",
-  "bg-gradient-to-b from-[#FBFDFF] to-[#EEF4F8]",
-  "px-4 py-2.5 text-sm font-semibold text-[#2C3E4D]",
-  "shadow-[0_4px_14px_-6px_rgba(44,36,28,0.18)] transition",
-  "hover:-translate-y-0.5 hover:border-[#C45C26]/35 hover:shadow-[0_8px_22px_-8px_rgba(44,36,28,0.2)] hover:text-[#1E1810]",
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C45C26]/40",
-  "active:scale-[0.99]",
-  "sm:px-5",
-].join(" ");
+/** Quick explore — compact Leonix chip (single row). */
+export const rentasChipPrimaryBrowseClass =
+  "inline-flex h-[30px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold leading-none text-[#3D3428] transition hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7] sm:text-xs";
 
-/** Quick explore — filters / refinements (still prominent, secondary tier). */
-export const rentasChipSecondaryBrowseClass = [
-  "inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#D4CBC0]/95",
-  "bg-gradient-to-b from-[#FFFCF7] to-[#F4EDE6]",
-  "px-3.5 py-2.5 text-sm font-semibold text-[#4A4338]",
-  "shadow-[0_2px_10px_-5px_rgba(44,36,28,0.14)] transition",
-  "hover:-translate-y-0.5 hover:border-[#5B7C99]/35 hover:shadow-md hover:text-[#1E1810]",
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C45C26]/35",
-  "active:scale-[0.99]",
-  "sm:px-4",
-].join(" ");
+/** @deprecated alias — same compact chip styling */
+export const rentasChipSecondaryBrowseClass = rentasChipPrimaryBrowseClass;
 
 /** @deprecated Use rentasChipPrimaryBrowseClass or rentasChipSecondaryBrowseClass */
 export const rentasChipInactiveClass = rentasChipPrimaryBrowseClass;
 
 export const rentasChipHoverClass = "";
 
-/** Panel wrapping quick filter chips for discoverability. */
-export const rentasQuickExplorePanelClass = [
-  "rounded-[1.35rem] border border-[#E0D4C8]/65",
-  "bg-gradient-to-br from-white/80 via-[#FFFCF7]/92 to-[#F0E8DC]/55",
-  "p-4 shadow-[0_16px_44px_-28px_rgba(44,36,28,0.16)] sm:p-6",
-  "ring-1 ring-white/70",
-].join(" ");
+/** Panel wrapping quick filter chips — minimal inline row. */
+export const rentasQuickExplorePanelClass = "mt-3 min-w-0";
 
 /** Section heading — editorial rail. */
 export const rentasSectionHeadingClass =

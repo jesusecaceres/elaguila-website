@@ -15,25 +15,22 @@ import type { BrNegocioListing } from "./cards/listingTypes";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
+import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
 import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
-import { BienesRaicesNegociosSpotlightBand } from "./components/BienesRaicesNegociosSpotlightBand";
 import { BienesRaicesPropiedadFilterChips } from "./components/BienesRaicesPropiedadFilterChips";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
-import { BienesRaicesResultsHero } from "./components/BienesRaicesResultsHero";
-import { BienesRaicesBrConsentStrip } from "@/app/clasificados/bienes-raices/components/BienesRaicesBrConsentStrip";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
 import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
-import { BienesRaicesMapPreview } from "./map/BienesRaicesMapPreview";
+import { BR_BTN_PRIMARY } from "../shared/bienesRaicesLeonixPublicUi";
 import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
   filterBrListings,
   paginateListings,
-  pickNegociosSpotlight,
 } from "./lib/brResultsFilters";
 import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
 
@@ -66,8 +63,10 @@ export function BienesRaicesResultsClient() {
   const copy = useMemo(() => getBrResultsCopy(lang, { useDevInventoryCopy: mergeDemo }), [lang, mergeDemo]);
 
   const [view, setView] = useState<"grid" | "list">("list");
-  const [showMap, setShowMap] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [searchCity, setSearchCity] = useState("");
+  const [searchZip, setSearchZip] = useState("");
 
   const propiedadFilter: BrNegocioCategoriaPropiedad | null = useMemo(
     () => parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD)),
@@ -118,17 +117,9 @@ export function BienesRaicesResultsClient() {
     [listingPool, parsed, propiedadFilter]
   );
 
-  const spotlight = useMemo(() => pickNegociosSpotlight(filtered, 3), [filtered]);
-  const spotlightIds = useMemo(() => new Set(spotlight.map((s) => s.id)), [spotlight]);
-
-  const mainList = useMemo(
-    () => filtered.filter((l) => !spotlightIds.has(l.id)),
-    [filtered, spotlightIds]
-  );
-
   const { page: pageNum, slice: pageSlice, total: mainTotal } = useMemo(
-    () => paginateListings(mainList, parsed.page, PAGE_SIZE),
-    [mainList, parsed.page]
+    () => paginateListings(filtered, parsed.page, PAGE_SIZE),
+    [filtered, parsed.page]
   );
 
   const displayedListings = useMemo(() => {
@@ -160,6 +151,12 @@ export function BienesRaicesResultsClient() {
     return next;
   }, [parsed.secondary]);
 
+  useEffect(() => {
+    setSearchQ(parsed.q);
+    setSearchCity(parsed.city);
+    setSearchZip(parsed.zip);
+  }, [parsed.q, parsed.city, parsed.zip]);
+
   const patchUrl = useCallback(
     (patch: Record<string, string | null>) => {
       const next: Record<string, string | null> = { ...patch };
@@ -168,6 +165,14 @@ export function BienesRaicesResultsClient() {
     },
     [router, sp, lang]
   );
+
+  const applySearch = useCallback(() => {
+    patchUrl({
+      q: searchQ.trim() || null,
+      city: searchCity.trim() || null,
+      zip: searchZip.trim() || null,
+    });
+  }, [patchUrl, searchCity, searchQ, searchZip]);
 
   const patchPageOnly = useCallback(
     (patch: Record<string, string | null>) => {
@@ -205,34 +210,52 @@ export function BienesRaicesResultsClient() {
   const showingTo = mainTotal === 0 ? 0 : Math.min(pageNum * PAGE_SIZE, mainTotal);
 
   const maxPage = Math.max(1, Math.ceil(mainTotal / PAGE_SIZE) || 1);
+  const filtersLabel = lang === "es" ? "Filtros" : "Filters";
+  const searchLabel = lang === "es" ? "Buscar" : "Search";
+  const countLine =
+    totalCount === 0
+      ? lang === "es"
+        ? "0 resultados"
+        : "0 results"
+      : lang === "es"
+        ? `${showingFrom}–${showingTo} de ${totalForHeader}`
+        : `${showingFrom}–${showingTo} of ${totalForHeader}`;
 
   return (
     <BienesRaicesResultsShell>
       <BienesRaicesResultsTopBar copy={copy} lang={lang} />
       <BienesRaicesCategoryNav lang={lang} />
 
-      <BienesRaicesResultsHero copy={copy} />
+      <div className="space-y-3 pb-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{copy.heroTitle}</h1>
+            <p className="mt-0.5 text-xs text-[#3D3428]/80">{countLine}</p>
+          </div>
+          <Link href={appendLangToPath(BR_PUBLICAR_HUB, lang)} className={BR_BTN_PRIMARY}>
+            {copy.footerPublish}
+          </Link>
+        </div>
 
-      <div className="mt-4 max-w-[1280px] space-y-4">
-        <BienesRaicesBrConsentStrip lang={lang} />
         {liveFetchErr ? (
-          <p className="rounded-2xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950" role="status">
-            {lang === "es" ? "Aviso — no se pudieron cargar anuncios publicados:" : "Notice — could not load published listings:"}{" "}
-            {liveFetchErr}
+          <p className="rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-xs text-amber-950" role="status">
+            {lang === "es" ? "Aviso — inventario no disponible:" : "Notice — inventory unavailable:"} {liveFetchErr}
           </p>
         ) : null}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <div className="w-full sm:mr-auto sm:max-w-2xl">
-            <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
-          </div>
-          <button
-            type="button"
-            onClick={() => setFilterDrawerOpen(true)}
-            className="inline-flex w-full items-center justify-center rounded-2xl border border-[#E8DFD0] bg-[#2A2620] px-4 py-3 text-sm font-bold text-[#FAF7F2] shadow-md sm:w-auto"
-          >
-            {copy.filterOpenMobile}
-          </button>
-        </div>
+
+        <BienesRaicesCompactSearchCanvas
+          lang={lang}
+          query={searchQ}
+          city={searchCity}
+          zip={searchZip}
+          onQuery={setSearchQ}
+          onCity={setSearchCity}
+          onZip={setSearchZip}
+          onSearch={applySearch}
+          onOpenFilters={() => setFilterDrawerOpen(true)}
+          searchButtonLabel={searchLabel}
+          filtersButtonLabel={filtersLabel}
+        />
 
         <BienesRaicesPropiedadFilterChips active={propiedadFilter} copy={copy} />
 
@@ -255,6 +278,8 @@ export function BienesRaicesResultsClient() {
           onClearAll={clearAllFilters}
           propiedadActive={propiedadLabelActive}
         />
+
+        <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
       </div>
 
       <BienesRaicesResultsHeader
@@ -265,47 +290,25 @@ export function BienesRaicesResultsClient() {
         onSort={(v) => patchUrl({ sort: v || null })}
         view={view}
         onView={setView}
-        mapOn={showMap}
-        onMapOn={setShowMap}
         copy={copy}
         lang={lang}
+        showMapToggle={false}
       />
 
-      {showMap ? (
-        <section
-          className="mt-6 overflow-hidden rounded-[22px] border border-[#E8DFD0]/85 bg-[#FDFBF7]/95 shadow-[0_20px_56px_-28px_rgba(42,36,22,0.22)]"
-          aria-label={copy.mapAsideTitle}
-        >
-          <div className="grid gap-0 lg:grid-cols-12 lg:items-stretch">
-            <div className="min-h-[240px] lg:col-span-7 xl:col-span-8">
-              <BienesRaicesMapPreview
-                clusterListingCount={listingPool.length > 0 ? listingPool.length : null}
-              />
-            </div>
-            <div className="border-t border-[#E8DFD0]/80 p-5 lg:col-span-5 lg:border-l lg:border-t-0 xl:col-span-4">
-              <p className="font-serif text-lg font-semibold text-[#1E1810]">{copy.mapAsideTitle}</p>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/88">{copy.mapAsideBody}</p>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <BienesRaicesNegociosSpotlightBand listings={spotlight} copy={copy} lang={lang} />
-
-      <section className="mt-8" aria-labelledby="br-more-heading">
-        <h2 id="br-more-heading" className="font-serif text-xl font-semibold text-[#1E1810] sm:text-2xl">
+      <section className="mt-4" aria-labelledby="br-more-heading">
+        <h2 id="br-more-heading" className="sr-only">
           {copy.moreResultsTitle}
         </h2>
 
         {displayedListings.length === 0 ? (
-          <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
+          <p className="rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-5 text-center text-sm text-[#5C5346]">
             {copy.emptyState}{" "}
-            <Link href={appendLangToPath(BR_RESULTS, lang)} className="font-semibold text-[#B8954A] underline">
+            <Link href={appendLangToPath(BR_RESULTS, lang)} className="font-semibold text-[#7A1E2C] underline">
               {copy.emptyCta}
             </Link>
           </p>
         ) : view === "list" ? (
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             {displayedListings.map((listing) => (
               <BienesRaicesNegocioCard
                 key={listing.id}
@@ -316,23 +319,16 @@ export function BienesRaicesResultsClient() {
             ))}
           </div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {displayedListings.map((listing) => (
-              <div
-                key={listing.id}
-                className={
-                  listing.layout === "horizontal" ? "sm:col-span-2 xl:col-span-3" : "sm:col-span-1 xl:col-span-2"
-                }
-              >
-                <BienesRaicesNegocioCard listing={listing} sellerKindLabels={copy.sellerKindLabels} lang={lang} />
-              </div>
+              <BienesRaicesNegocioCard listing={listing} sellerKindLabels={copy.sellerKindLabels} lang={lang} key={listing.id} />
             ))}
           </div>
         )}
 
         {mainTotal > PAGE_SIZE ? (
           <nav
-            className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/70 pt-6"
+            className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8DFD0]/70 pt-5"
             aria-label={copy.pageIndicator}
           >
             <p className="text-sm text-[#5C5346]">
@@ -343,7 +339,7 @@ export function BienesRaicesResultsClient() {
                 type="button"
                 disabled={pageNum <= 1}
                 onClick={() => patchPageOnly({ page: String(Math.max(1, pageNum - 1)) })}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#1E1810] disabled:opacity-40"
+                className="rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-4 py-2 text-sm font-semibold text-[#3D3428] disabled:opacity-40"
               >
                 {copy.paginationPrev}
               </button>
@@ -351,7 +347,7 @@ export function BienesRaicesResultsClient() {
                 type="button"
                 disabled={pageNum >= maxPage}
                 onClick={() => patchPageOnly({ page: String(Math.min(maxPage, pageNum + 1)) })}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#1E1810] disabled:opacity-40"
+                className={`${BR_BTN_PRIMARY} px-4 disabled:opacity-40`}
               >
                 {copy.paginationNext}
               </button>
@@ -359,18 +355,6 @@ export function BienesRaicesResultsClient() {
           </nav>
         ) : null}
       </section>
-
-      <footer className="mt-16 border-t border-[#E8DFD0]/70 pt-8 text-center">
-        <p className="text-sm text-[#5C5346]/85">{copy.footerLine}</p>
-        <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm font-semibold">
-          <Link
-            href={appendLangToPath(BR_PUBLICAR_HUB, lang)}
-            className="rounded-lg text-[#B8954A] underline decoration-[#C9B46A]/50 underline-offset-4 hover:text-[#8A6F3A]"
-          >
-            {copy.footerPublish}
-          </Link>
-        </div>
-      </footer>
 
       <BienesRaicesResultsFilterDrawer
         open={filterDrawerOpen}
@@ -381,6 +365,8 @@ export function BienesRaicesResultsClient() {
         onPatch={(patch) => {
           patchUrl(patch);
         }}
+        onApply={applySearch}
+        onClear={clearAllFilters}
       />
     </BienesRaicesResultsShell>
   );
