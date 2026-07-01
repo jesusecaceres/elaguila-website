@@ -30,6 +30,10 @@ const COPY = {
     nego: "Negociable",
     any: "Todas",
     groupLocation: "Ubicación",
+    city: "Ciudad",
+    zip: "ZIP",
+    locationHelp:
+      "Estado, condado y país no se guardan en anuncios Varios todavía; ciudad y ZIP sí filtran cuando existen.",
     groupCategory: "Categoría",
     groupPrice: "Precio",
     groupDetails: "Detalles",
@@ -56,6 +60,10 @@ const COPY = {
     nego: "Negotiable",
     any: "All",
     groupLocation: "Location",
+    city: "City",
+    zip: "ZIP",
+    locationHelp:
+      "State, county, and country are not stored on Varios listings yet; city and ZIP filter when present.",
     groupCategory: "Category",
     groupPrice: "Price",
     groupDetails: "Details",
@@ -139,7 +147,20 @@ export function EnVentaHubMoreFilters({ lang, routeLang }: Props) {
             >
               <input type="hidden" name="lang" value={routeLang} />
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupCategory}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupLocation}</p>
+                <p className="mt-1 text-[11px] text-[#3D3428]/70">{t.locationHelp}</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-1">
+                    {t.city}
+                    <input name="city" type="text" className={fieldClass} autoComplete="address-level2" />
+                  </label>
+                  <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-1">
+                    {t.zip}
+                    <input name="zip" type="text" inputMode="numeric" maxLength={5} className={fieldClass} autoComplete="postal-code" />
+                  </label>
+                </div>
+
+                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{t.groupCategory}</p>
                 <div className="mt-3 space-y-3">
                   <label className="block text-xs font-semibold text-[#3D3428]">
                     {t.dept}

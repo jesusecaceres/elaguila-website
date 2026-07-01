@@ -674,7 +674,7 @@ export function EnVentaResultsClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <main className={`${EV_PUBLIC_SHELL} overflow-x-hidden pb-12 pt-0 sm:pt-3`}>
+      <main className={`${EV_PUBLIC_SHELL} overflow-x-hidden`}>
         <header className="space-y-0 border-b border-[#D6C7AD]/50 pb-2 sm:space-y-1 sm:pb-3">
           <Link
             href={`/clasificados/en-venta?lang=${lang}`}
@@ -707,20 +707,22 @@ export function EnVentaResultsClient() {
             cityLabel={t.cityPh}
             zipLabel={t.zip}
             searchButtonLabel={t.go}
+            secondRow={
+              <button
+                type="button"
+                onClick={() => setFiltersPanelOpen(true)}
+                className={EV_BTN_SECONDARY}
+                aria-haspopup="dialog"
+                aria-expanded={filtersPanelOpen}
+              >
+                {t.filtersOpen}
+              </button>
+            }
           />
         </div>
         <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => setFiltersPanelOpen(true)}
-            className={EV_BTN_SECONDARY}
-            aria-haspopup="dialog"
-            aria-expanded={filtersPanelOpen}
-          >
-            {t.filtersOpen}
-          </button>
           <label className="inline-flex min-w-0 items-center gap-1.5">
             <span className="sr-only">{t.sort}</span>
             <select
@@ -795,6 +797,8 @@ export function EnVentaResultsClient() {
         <EnVentaResultsFiltersDrawer
           open={filtersPanelOpen}
           lang={lang}
+          city={city}
+          zip={zip}
           t={{
             filters: t.filters,
             close: t.close,

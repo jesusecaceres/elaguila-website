@@ -22,7 +22,9 @@ type Props = {
   cityLabel?: string;
   zipLabel?: string;
   searchButtonLabel: string;
-  /** Slot below canvas — e.g. chips + filters button */
+  /** Row 2 — Filters button and optional extras */
+  secondRow?: ReactNode;
+  /** @deprecated use secondRow */
   footer?: ReactNode;
 };
 
@@ -40,11 +42,13 @@ export function EnVentaCompactSearchCanvas({
   cityLabel,
   zipLabel,
   searchButtonLabel,
+  secondRow,
   footer,
 }: Props) {
   const ph = searchLabel ?? enVentaBrowseSearchPlaceholder(lang);
   const cityPh = cityLabel ?? (lang === "es" ? "Ciudad" : "City");
   const zipPh = zipLabel ?? "ZIP";
+  const row2 = secondRow ?? footer;
 
   return (
     <div className="w-full min-w-0 space-y-2">
@@ -57,7 +61,7 @@ export function EnVentaCompactSearchCanvas({
         className={EV_SEARCH_CANVAS}
       >
         <input type="hidden" name="lang" value={routeLang} />
-        <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
+        <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
           <label className={`${EV_SEARCH_CELL} sm:col-span-5 sm:border-r`}>
             <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -83,6 +87,7 @@ export function EnVentaCompactSearchCanvas({
               defaultValue={defaultCity}
               placeholder={cityPh}
               aria-label={cityPh}
+              autoComplete="address-level2"
               className={EV_SEARCH_INPUT}
             />
             <datalist id="en-venta-city-presets">
@@ -103,6 +108,7 @@ export function EnVentaCompactSearchCanvas({
               defaultValue={defaultZip}
               placeholder={zipPh}
               aria-label={zipPh}
+              autoComplete="postal-code"
               className={EV_SEARCH_INPUT}
             />
           </label>
@@ -112,8 +118,8 @@ export function EnVentaCompactSearchCanvas({
             </button>
           </div>
         </div>
+        {row2 ? <div className="flex flex-wrap items-center gap-1.5 p-1.5">{row2}</div> : null}
       </form>
-      {footer ? <div className="min-w-0">{footer}</div> : null}
     </div>
   );
 }

@@ -150,11 +150,7 @@ export function EnVentaHubPageClient({
       action="/clasificados/en-venta/results"
       cityLabel={t.cityPh}
       searchButtonLabel={t.search}
-      footer={
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />
-        </div>
-      }
+      secondRow={<EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />}
     />
   );
 

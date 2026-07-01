@@ -18,6 +18,11 @@ import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import { CATEGORY_STANDARD_MAIN } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
+const OFERTAS_LOCALES_LANDING_PATH = "/clasificados/ofertas-locales";
+const OFERTAS_LOCALES_RESULTS_PATH = "/clasificados/ofertas-locales/results";
+/** Extra clearance below fixed site nav + directory (category-local only). */
+const OFERTAS_LOCALES_SHELL = `${CATEGORY_STANDARD_MAIN} pt-[calc(4.75rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14`;
+
 const BTN_PRIMARY =
   "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
 const BTN_SECONDARY =
@@ -47,7 +52,16 @@ function TagIcon({ className }: { className?: string }) {
   );
 }
 
-export function OfertasLocalesPublicSearchClient() {
+type OfertasLocalesPublicSearchMode = "landing" | "results";
+
+export function OfertasLocalesPublicSearchClient({
+  mode = "landing",
+}: {
+  mode?: OfertasLocalesPublicSearchMode;
+}) {
+  const isResults = mode === "results";
+  const browsePath = OFERTAS_LOCALES_RESULTS_PATH;
+  const clearPath = isResults ? OFERTAS_LOCALES_RESULTS_PATH : OFERTAS_LOCALES_LANDING_PATH;
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = parseLang(searchParams?.get("lang") ?? null);
@@ -169,26 +183,12 @@ export function OfertasLocalesPublicSearchClient() {
       if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
       if (next.offerType.trim()) params.set("offerType", next.offerType.trim());
       if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
-      router.push(`/clasificados/ofertas-locales?${params.toString()}`);
+      router.push(`${OFERTAS_LOCALES_RESULTS_PATH}?${params.toString()}`);
     },
     [router, lang, q, city, state, zip, country, category, marketType, offerType, sort]
   );
 
-  const browseAllDeals = useCallback(() => {
-    setQ("");
-    setCity("");
-    setState("");
-    setZip("");
-    setCountry("");
-    setCategory("");
-    setMarketType("");
-    setOfferType("");
-    setSort("newest");
-    router.push(`/clasificados/ofertas-locales?lang=${lang}`);
-    requestAnimationFrame(() => {
-      document.getElementById("ofertas-browse")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }, [lang, router]);
+  const browseAllHref = `${browsePath}?lang=${lang}`;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -212,7 +212,7 @@ export function OfertasLocalesPublicSearchClient() {
     setMarketType("");
     setOfferType("");
     setSort("newest");
-    router.push(`/clasificados/ofertas-locales?lang=${lang}`);
+    router.push(`${clearPath}?lang=${lang}`);
   };
 
   const applyDrawerFilters = () => {
@@ -222,7 +222,15 @@ export function OfertasLocalesPublicSearchClient() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <div className={CATEGORY_STANDARD_MAIN}>
+      <div className={OFERTAS_LOCALES_SHELL}>
+        {isResults ? (
+          <Link
+            href={`${OFERTAS_LOCALES_LANDING_PATH}?lang=${lang}`}
+            className="mb-2 inline-flex text-[11px] font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
+          >
+            {lang === "es" ? "← Ofertas Locales" : "← Local Deals"}
+          </Link>
+        ) : null}
         <header className="mb-3 sm:mb-4">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
@@ -233,9 +241,15 @@ export function OfertasLocalesPublicSearchClient() {
                 {lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}
               </p>
               <h1 className="font-serif text-[1.35rem] font-bold leading-tight text-[#2A4536] sm:text-[1.65rem]">
-                {c.pageTitle}
+                {isResults ? (lang === "es" ? "Resultados" : "Results") : c.pageTitle}
               </h1>
-              <p className="mt-1 text-sm text-[#3D3428]/80">{c.pageSubtitle}</p>
+              <p className="mt-1 text-sm text-[#3D3428]/80">
+                {isResults
+                  ? lang === "es"
+                    ? "Explora volantes, cupones y especiales con filtros de ubicación."
+                    : "Browse flyers, coupons, and specials with location filters."
+                  : c.pageSubtitle}
+              </p>
             </div>
           </div>
         </header>
@@ -244,9 +258,9 @@ export function OfertasLocalesPublicSearchClient() {
           <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
             {c.publishCta}
           </Link>
-          <button type="button" onClick={browseAllDeals} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
+          <Link href={browseAllHref} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
             {c.browseAllDeals}
-          </button>
+          </Link>
           {hasFilters ? (
             <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={clearFilters}>
               {c.clearFiltersLink}
@@ -264,7 +278,7 @@ export function OfertasLocalesPublicSearchClient() {
 
         <form onSubmit={onSubmit} className={SEARCH_CANVAS} role="search">
           <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
+            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-4 sm:border-b-0 sm:border-r">
               <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="7" />
@@ -300,7 +314,7 @@ export function OfertasLocalesPublicSearchClient() {
                 maxLength={40}
               />
             </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-3 sm:border-b-0">
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
               <input
                 className={INPUT}
                 value={zip}
@@ -312,9 +326,28 @@ export function OfertasLocalesPublicSearchClient() {
                 autoComplete="postal-code"
               />
             </label>
+            <div className="hidden border-b border-[#D6C7AD]/80 p-1.5 sm:col-span-2 sm:block sm:border-b-0">
+              <button type="submit" className={`${BTN_PRIMARY} w-full`} disabled={loading}>
+                {loading ? c.searching : c.searchButton}
+              </button>
+            </div>
           </div>
-          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-3 sm:border-b-0 sm:border-r">
+          <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-stretch">
+            <button
+              type="button"
+              className={`${BTN_SECONDARY} order-1 w-full sm:order-none sm:col-span-2 sm:max-w-none`}
+              onClick={() => setFiltersOpen(true)}
+            >
+              {c.filtersButton}
+            </button>
+            <button
+              type="submit"
+              className={`${BTN_PRIMARY} order-2 w-full sm:hidden`}
+              disabled={loading}
+            >
+              {loading ? c.searching : c.searchButton}
+            </button>
+            <label className="order-3 flex min-h-[2.625rem] min-w-0 sm:order-none sm:col-span-3">
               <input
                 className={INPUT}
                 value={country}
@@ -324,14 +357,6 @@ export function OfertasLocalesPublicSearchClient() {
                 autoComplete="country-name"
               />
             </label>
-            <div className="flex gap-1.5 p-1.5 sm:col-span-9 sm:justify-end">
-              <button type="button" className={`${BTN_SECONDARY} flex-1 sm:max-w-[9rem]`} onClick={() => setFiltersOpen(true)}>
-                {c.filtersButton}
-              </button>
-              <button type="submit" className={`${BTN_PRIMARY} flex-[1.2] sm:max-w-[9rem]`} disabled={loading}>
-                {loading ? c.searching : c.searchButton}
-              </button>
-            </div>
           </div>
         </form>
 
@@ -384,9 +409,14 @@ export function OfertasLocalesPublicSearchClient() {
           <div id="ofertas-browse" className="mt-4 scroll-mt-24 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
             <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
-            <Link href={publishHref} className={`${BTN_PRIMARY} mt-3 inline-flex`}>
-              {c.publishCta}
-            </Link>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <Link href={publishHref} className={BTN_PRIMARY}>
+                {c.publishCta}
+              </Link>
+              <Link href={browseAllHref} className={BTN_SECONDARY}>
+                {c.browseAllDeals}
+              </Link>
+            </div>
           </div>
         ) : null}
 
@@ -395,12 +425,17 @@ export function OfertasLocalesPublicSearchClient() {
             <p className="text-sm font-semibold text-[#3D3428]">{c.emptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <button type="button" className={BTN_SECONDARY} onClick={clearFilters}>
-                {c.clearFiltersLink}
-              </button>
-              <button type="button" className={BTN_SECONDARY} onClick={browseAllDeals}>
+              {hasFilters ? (
+                <button type="button" className={BTN_SECONDARY} onClick={clearFilters}>
+                  {c.clearFiltersLink}
+                </button>
+              ) : null}
+              <Link href={publishHref} className={BTN_PRIMARY}>
+                {c.publishCta}
+              </Link>
+              <Link href={browseAllHref} className={BTN_SECONDARY}>
                 {c.browseAllDeals}
-              </button>
+              </Link>
             </div>
           </div>
         ) : null}

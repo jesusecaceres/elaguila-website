@@ -1,6 +1,6 @@
 /** Leonix public browse UI tokens — En Venta landing + results only. */
 export const EV_PUBLIC_SHELL =
-  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 sm:px-4 sm:pt-3 lg:px-5 lg:pt-4";
+  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 pt-[calc(4.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-12 lg:px-5 lg:pt-14";
 
 export const EV_SEARCH_CANVAS =
   "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";

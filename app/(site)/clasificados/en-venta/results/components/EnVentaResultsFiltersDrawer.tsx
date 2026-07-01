@@ -32,6 +32,8 @@ type Props = {
   open: boolean;
   lang: Lang;
   t: DrawerCopy;
+  city: string;
+  zip: string;
   evDept: string;
   evSub: string;
   cond: string;
@@ -59,6 +61,8 @@ export function EnVentaResultsFiltersDrawer({
   open,
   lang,
   t,
+  city,
+  zip,
   evDept,
   evSub,
   cond,
@@ -114,7 +118,40 @@ export function EnVentaResultsFiltersDrawer({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">{t.groupRefine}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
+            {lang === "es" ? "Ubicación" : "Location"}
+          </p>
+          <p className="mt-1 text-xs text-[#3D3428]/75">
+            {lang === "es"
+              ? "Estado, condado y país no se guardan en anuncios Varios todavía; ciudad y ZIP sí filtran cuando existen."
+              : "State, county, and country are not stored on Varios listings yet; city and ZIP filter when present."}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
+              {lang === "es" ? "Ciudad" : "City"}
+              <input
+                form="ev-results-form"
+                name="city"
+                defaultValue={city}
+                autoComplete="address-level2"
+                className="mt-1 w-full rounded-lg border border-[#DCCAA0] bg-white px-3 py-2 text-sm text-[#1E1810]"
+              />
+            </label>
+            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
+              ZIP
+              <input
+                form="ev-results-form"
+                name="zip"
+                defaultValue={zip}
+                inputMode="numeric"
+                maxLength={5}
+                autoComplete="postal-code"
+                className="mt-1 w-full rounded-lg border border-[#DCCAA0] bg-white px-3 py-2 text-sm text-[#1E1810]"
+              />
+            </label>
+          </div>
+
+          <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">{t.groupRefine}</p>
           <p className="mt-1 text-xs text-[#3D3428]">{t.refineIntro}</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">

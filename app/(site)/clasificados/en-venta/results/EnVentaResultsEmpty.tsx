@@ -16,11 +16,8 @@ export function EnVentaResultsEmpty({
 }) {
   const home = buildEnVentaResultsUrl(lang);
   return (
-    <div className="mx-auto max-w-lg rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/95 px-6 py-12 text-center shadow-[0_12px_40px_-12px_rgba(42,36,22,0.12)]">
-      <div className="text-4xl" aria-hidden>
-        🛒
-      </div>
-      <h2 className="mt-4 text-lg font-semibold text-[#1E1810]">
+    <div className="mx-auto max-w-lg rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-5 text-center">
+      <h2 className="text-sm font-semibold text-[#3D3428]">
         {featuredOnly
           ? lang === "es"
             ? "No hay anuncios recién refrescados"
@@ -29,33 +26,33 @@ export function EnVentaResultsEmpty({
             ? "No hay resultados que coincidan"
             : "No matching results"}
       </h2>
-      <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">
+      <p className="mt-1 text-xs text-[#3D3428]/70">
         {featuredOnly
           ? lang === "es"
-            ? "Ningún anuncio recién refrescado coincide con estos filtros. Quita el filtro de refrescados, amplía la zona o vuelve al listado general."
-            : "No recently refreshed listings match these filters. Turn off the refreshed-only filter, widen location, or browse all listings."
+            ? "Quita el filtro de refrescados o amplía ciudad/ZIP."
+            : "Turn off refreshed-only or widen city/ZIP."
           : lang === "es"
-            ? "Prueba otra búsqueda, ajusta filtros o amplía la ciudad. Si acabas de publicar, confirma que no queden filtros activos (chips arriba) y recarga."
-            : "Try another search, adjust filters, or widen your city. If you just published, clear active filter chips above and refresh."}
+            ? "Prueba otra búsqueda, ajusta filtros o publica el primer artículo."
+            : "Try another search, adjust filters, or post the first item."}
       </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
         <Link
           href={`/clasificados/publicar/en-venta?lang=${lang}`}
-          className="rounded-full bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
+          className="inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
         >
-          {lang === "es" ? "Publicar artículo" : "Post an item"}
+          {lang === "es" ? "Publicar artículo" : "Post item"}
         </Link>
         <Link
           href={home}
-          className="rounded-full border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+          className="inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
         >
-          {lang === "es" ? "Ver todo Varios" : "Browse all For Sale"}
+          {lang === "es" ? "Ver todos los anuncios" : "Browse all listings"}
         </Link>
         {onReset ? (
           <button
             type="button"
             onClick={onReset}
-            className="rounded-full border border-[#C9B46A]/40 bg-[#FAF4EA]/80 px-5 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#F5ECD8]"
+            className="inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
           >
             {lang === "es" ? "Limpiar filtros" : "Clear filters"}
           </button>
