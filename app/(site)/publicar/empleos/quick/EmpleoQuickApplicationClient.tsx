@@ -237,6 +237,11 @@ export default function EmpleoQuickApplicationClient() {
 
           {/* ── SECTION 1: Puesto y empleador ─────────────────────────────────── */}
           <EmpleosSectionCard title={es ? "1. Puesto y empleador" : "1. Job and employer"}>
+            <p className="text-xs text-[#7A756E]">
+              {es
+                ? "Esta información define cómo aparecerá el empleo en resultados y en la vista pública."
+                : "This information controls how the job appears in results and on the public listing."}
+            </p>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} required>{es ? "Título del puesto" : "Job title"}</EmpleosFieldLabel>
               <input className={INPUT} value={state.title} onChange={(e) => patch({ title: e.target.value })}
@@ -302,8 +307,8 @@ export default function EmpleoQuickApplicationClient() {
                 onChange={(e) => patch({ description: e.target.value })} />
               <p className="mt-1 text-xs text-[#7A756E]">
                 {es
-                  ? "Incluye responsabilidades, requisitos, experiencia necesaria y cómo prefieres que se comuniquen los candidatos."
-                  : "Include responsibilities, requirements, needed experience, and how candidates should contact you."}
+                  ? "Incluye responsabilidades, requisitos, experiencia necesaria, documentos requeridos y cómo prefieres que se comuniquen los candidatos."
+                  : "Include responsibilities, requirements, needed experience, required documents, and how candidates should contact you."}
               </p>
             </label>
           </EmpleosSectionCard>
@@ -385,7 +390,9 @@ export default function EmpleoQuickApplicationClient() {
             <div>
               <EmpleosFieldLabel lang={lang} required>{es ? "Imágenes" : "Images"}</EmpleosFieldLabel>
               <p className="mt-1 text-xs text-[#7A756E]">
-                {es ? "Incluye al menos una imagen; puedes marcar cuál es la principal." : "Include at least one image; mark which is primary."}
+                {es
+                  ? "Las imágenes muestran el trabajo, el lugar o el equipo. Incluye al menos una imagen."
+                  : "Images show the job, workplace, or team. Include at least one image."}
               </p>
               <div className="mt-3">
                 <EmpleosImageGalleryEditor
@@ -404,6 +411,11 @@ export default function EmpleoQuickApplicationClient() {
             </div>
             <div>
               <p className="text-sm font-semibold text-[#2A2826]">{mediaCopy.logo}</p>
+              <p className="mt-1 text-xs text-[#7A756E]">
+                {es
+                  ? "El logo aparece junto al nombre del empleador en el encabezado del aviso."
+                  : "The logo appears next to the employer name in the job listing header."}
+              </p>
               <div className="mt-2">
                 <EmpleosSingleImageField
                   url={state.logoUrl}
@@ -444,8 +456,8 @@ export default function EmpleoQuickApplicationClient() {
             />
           </EmpleosSectionCard>
 
-          {/* ── SECTION 5: Cómo aplicar / Contacto ──────────────────────────── */}
-          <EmpleosSectionCard title={es ? "5. Cómo aplicar / Contacto" : "5. How to apply / Contact"}>
+          {/* ── SECTION 5: Tarjeta del empleador / contacto de contratación ── */}
+          <EmpleosSectionCard title={es ? "5. Tarjeta del empleador / contacto de contratación" : "5. Employer card / hiring contact"}>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang}>{es ? "Enlace para aplicar" : "Application link"}</EmpleosFieldLabel>
               <input className={INPUT} type="url" value={state.applyLink}
@@ -565,8 +577,8 @@ export default function EmpleoQuickApplicationClient() {
             </label>
           </EmpleosSectionCard>
 
-          {/* ── SECTION 7: Empresa (opcional) ───────────────────────────────── */}
-          <EmpleosSectionCard title={es ? "7. Empresa (opcional)" : "7. Company links (optional)"}>
+          {/* ── SECTION 7: Empresa y enlaces ─────────────────────────────── */}
+          <EmpleosSectionCard title={es ? "7. Empresa y enlaces" : "7. Company and links"}>
             <p className="text-xs text-[#7A756E]">
               {es
                 ? "Solo se mostrarán los enlaces que completes. Úsalos para que los candidatos conozcan más tu empresa."
@@ -595,6 +607,30 @@ export default function EmpleoQuickApplicationClient() {
                 <input className={INPUT} type="url" value={state.companyInstagram}
                   onChange={(e) => patch({ companyInstagram: e.target.value })}
                   placeholder="https://instagram.com/…" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>TikTok</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyTikTok}
+                  onChange={(e) => patch({ companyTikTok: e.target.value })}
+                  placeholder="https://tiktok.com/@…" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>YouTube</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyYouTube}
+                  onChange={(e) => patch({ companyYouTube: e.target.value })}
+                  placeholder="https://youtube.com/@…" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>X / Twitter</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companyX}
+                  onChange={(e) => patch({ companyX: e.target.value })}
+                  placeholder="https://x.com/…" />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>Snapchat</EmpleosFieldLabel>
+                <input className={INPUT} type="url" value={state.companySnapchat}
+                  onChange={(e) => patch({ companySnapchat: e.target.value })}
+                  placeholder="https://snapchat.com/add/…" />
               </label>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

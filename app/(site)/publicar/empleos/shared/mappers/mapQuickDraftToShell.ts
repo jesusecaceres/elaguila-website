@@ -96,8 +96,13 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     companyLinkedIn: sanitizeHttpUrl(d.companyLinkedIn) ?? undefined,
     companyFacebook: sanitizeHttpUrl(d.companyFacebook) ?? undefined,
     companyInstagram: sanitizeHttpUrl(d.companyInstagram) ?? undefined,
+    companyTikTok: sanitizeHttpUrl(d.companyTikTok) ?? undefined,
+    companyYouTube: sanitizeHttpUrl(d.companyYouTube) ?? undefined,
+    companyX: sanitizeHttpUrl(d.companyX) ?? undefined,
+    companySnapchat: sanitizeHttpUrl(d.companySnapchat) ?? undefined,
     companyOtherLinkLabel: d.companyOtherLinkLabel.trim() || undefined,
     companyOtherLinkUrl: sanitizeHttpUrl(d.companyOtherLinkUrl) ?? undefined,
+    videoUrls: d.videoUrls.filter((u) => /^https?:\/\//i.test(u)).slice(0, 4),
     location: finalLoc,
     relatedJobs: [],
   };

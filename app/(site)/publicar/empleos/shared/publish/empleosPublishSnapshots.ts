@@ -5,7 +5,14 @@ import type { ExperienceSlug, JobModalitySlug } from "@/app/clasificados/empleos
 import type { EmpleosLane, EmpleosListingLifecycleStatus } from "./empleosListingLifecycle";
 import type { EmpleosPaymentHandoffPlaceholder } from "./empleosPaymentHandoff";
 
-export type EmpleosQuickScheduleRowSnapshot = { day: string; shift: string };
+export type EmpleosQuickScheduleRowSnapshot = {
+  day: string;
+  shift: string;
+  /** Structured start time (e.g. "8:00 AM"). Preferred over freeform shift. */
+  startTime?: string;
+  /** Structured end time (e.g. "5:00 PM"). */
+  endTime?: string;
+};
 
 /** Serializable image ref for admin + future storage (no blob URLs). */
 export type EmpleosPublishImageRef = {
@@ -46,6 +53,8 @@ export type EmpleosQuickPublishSnapshot = {
   website: string;
   /** Contact person / recruiter name shown on apply card. */
   contactPerson?: string;
+  /** Recruiter role / title (e.g. "Hiring Manager"). */
+  contactTitle?: string;
   /** Preferred apply method from employer. */
   preferredApplyMethod?: string;
   primaryCta: "phone" | "whatsapp" | "email";
@@ -65,6 +74,10 @@ export type EmpleosQuickPublishSnapshot = {
   companyLinkedIn?: string;
   companyFacebook?: string;
   companyInstagram?: string;
+  companyTikTok?: string;
+  companyYouTube?: string;
+  companyX?: string;
+  companySnapchat?: string;
   companyOtherLinkLabel?: string;
   companyOtherLinkUrl?: string;
   /** External video URL only; draft file handles omitted. */

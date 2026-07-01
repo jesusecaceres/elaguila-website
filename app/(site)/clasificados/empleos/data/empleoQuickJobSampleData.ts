@@ -71,6 +71,10 @@ export type QuickJobDetailSample = {
   companyLinkedIn?: string;
   companyFacebook?: string;
   companyInstagram?: string;
+  companyTikTok?: string;
+  companyYouTube?: string;
+  companyX?: string;
+  companySnapchat?: string;
   companyOtherLinkLabel?: string;
   companyOtherLinkUrl?: string;
   /** State / Region for header display. */
