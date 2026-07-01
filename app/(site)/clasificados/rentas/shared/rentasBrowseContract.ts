@@ -84,6 +84,10 @@ export const RENTAS_QUERY_POOL = "pool";
 export const RENTAS_QUERY_SUBTYPE = "subtype";
 /** `Leonix:results_property_kind`: casa | departamento | terreno | comercial */
 export const RENTAS_QUERY_KIND = "kind";
+/** Room/shared bath: `privado` | `compartido` — matches `rentasRoomBathLabel`. */
+export const RENTAS_QUERY_ROOM_BATH = "room_bath";
+/** Room/shared kitchen: `privada` | `compartida` — matches `rentasRoomKitchenLabel`. */
+export const RENTAS_QUERY_ROOM_KITCHEN = "room_kitchen";
 
 export type RentasSellerBranchFilter = "all" | "privado" | "negocio";
 
@@ -133,6 +137,10 @@ export type RentasBrowseParamsParsed = {
   kind: BrResultsPropertyKind | null;
   /** Availability lifecycle filter (`rentasListingAvailability`). */
   estado: string;
+  /** Room bath kind filter (`rentasRoomBathLabel`). */
+  roomBath: string;
+  /** Room kitchen kind filter (`rentasRoomKitchenLabel`). */
+  roomKitchen: string;
 };
 
 const LEGACY_TIPO_ALIASES: Record<string, BrNegocioCategoriaPropiedad> = {
@@ -185,6 +193,12 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
   const kind: BrResultsPropertyKind | null =
     kindRaw === "casa" || kindRaw === "departamento" || kindRaw === "terreno" || kindRaw === "comercial" ? kindRaw : null;
 
+  const roomBathRaw = g(RENTAS_QUERY_ROOM_BATH).trim().toLowerCase();
+  const roomBath = roomBathRaw === "privado" || roomBathRaw === "compartido" ? roomBathRaw : "";
+  const roomKitchenRaw = g(RENTAS_QUERY_ROOM_KITCHEN).trim().toLowerCase();
+  const roomKitchen =
+    roomKitchenRaw === "privada" || roomKitchenRaw === "compartida" ? roomKitchenRaw : "";
+
   return {
     q: g(RENTAS_QUERY_Q),
     tipo: g(RENTAS_QUERY_TIPO),
@@ -218,6 +232,8 @@ export function parseRentasBrowseParams(sp: URLSearchParams | null | undefined):
     subtype: subtypeNorm,
     kind,
     estado: g(RENTAS_QUERY_ESTADO).trim().toLowerCase(),
+    roomBath,
+    roomKitchen,
   };
 }
 
@@ -264,6 +280,8 @@ export function rentasBrowseHasActiveFilters(p: RentasBrowseParamsParsed): boole
     p.wantsPool ||
     !!p.subtype ||
     p.kind != null ||
+    p.roomBath ||
+    p.roomKitchen ||
     sortNonDefault ||
     pageNonDefault
   );

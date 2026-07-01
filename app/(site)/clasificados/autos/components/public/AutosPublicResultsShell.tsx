@@ -24,19 +24,22 @@ import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilte
 import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
 import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
-import { AutosLaneCrossNav } from "./AutosLaneCrossNav";
+import { AutosMarketPeerCrossLink } from "./AutosMarketPeerCrossLink";
+import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
+import {
+  autosMarketDefaultSellerType,
+  autosMarketLandingPath,
+  autosMarketPeerResultsPath,
+  autosMarketPublishPath,
+  autosMarketResultsPath,
+} from "@/app/lib/clasificados/autos/autosPublicMarket";
+import { getAutosPublicMarketCopy } from "@/app/lib/clasificados/autos/autosPublicMarketCopy";
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
-import {
-  categoryStandardDescription,
-  categoryStandardTitle,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import {
   CAT_STD_DEFAULT_PER_PAGE,
   CAT_STD_PER_PAGE_OPTIONS,
 } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
-
-const RESULTADOS_PATH = "/clasificados/autos/results";
 
 function uniqSort(values: string[]): string[] {
   return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
@@ -48,15 +51,31 @@ function pageWindow(current: number, total: number): number[] {
   return Array.from({ length: 5 }, (_, i) => start + i);
 }
 
-export function AutosPublicResultsShell() {
+export function AutosPublicResultsShell({ market = "private" }: { market?: AutosPublicMarket }) {
   const router = useRouter();
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
+  const RESULTADOS_PATH = autosMarketResultsPath(market);
+  const marketDefaultSeller = autosMarketDefaultSellerType(market);
 
   const applied = useMemo(() => parseAutosBrowseUrl(new URLSearchParams(spStr)), [spStr]);
 
   const lang: AutosPublicLang = applied.lang;
   const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang];
+  const marketCopy = getAutosPublicMarketCopy(market, lang);
+
+  useEffect(() => {
+    const seller = new URLSearchParams(spStr).get("seller");
+    if (seller === "dealer" || seller === "private") return;
+    const parsed = parseAutosBrowseUrl(new URLSearchParams(spStr));
+    router.replace(
+      `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
+        ...parsed,
+        filters: { ...parsed.filters, sellerType: marketDefaultSeller },
+        page: 1,
+      })}`,
+    );
+  }, [spStr, marketDefaultSeller, RESULTADOS_PATH, router]);
 
   const [draftFilters, setDraftFilters] = useState(applied.filters);
   const [qDraft, setQDraft] = useState(applied.q);
@@ -68,7 +87,7 @@ export function AutosPublicResultsShell() {
 
   const pushBundle = useCallback((b: AutosBrowseUrlBundle) => {
     router.push(`${RESULTADOS_PATH}?${serializeAutosBrowseUrl(b)}`);
-  }, [router]);
+  }, [router, RESULTADOS_PATH]);
 
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const perPage = applied.perPage ?? CAT_STD_DEFAULT_PER_PAGE;
@@ -122,10 +141,8 @@ export function AutosPublicResultsShell() {
 
   const resultCount = sorted.length;
   const L = lang as Lang;
-  const autosHome = appendLangToPath("/clasificados/autos", L);
-  const publicar = appendLangToPath("/publicar/autos", L);
-  const publicarPrivado = appendLangToPath("/publicar/autos/privado", L);
-  const publicarDealer = appendLangToPath("/publicar/autos/negocios", L);
+  const autosHome = appendLangToPath(autosMarketLandingPath(market), L);
+  const publicar = appendLangToPath(autosMarketPublishPath(market), L);
 
   const patchDraft = (patch: Partial<typeof draftFilters>) => setDraftFilters((f) => ({ ...f, ...patch }));
 
@@ -145,11 +162,12 @@ export function AutosPublicResultsShell() {
 
   const resetFiltersUrl = useCallback(() => {
     const empty = emptyAutosPublicFilters();
+    empty.sellerType = marketDefaultSeller;
     setDraftFilters(empty);
     setQDraft("");
     pushBundle({ ...applied, filters: empty, q: "", page: 1, perPage: CAT_STD_DEFAULT_PER_PAGE });
     setFiltersPanelOpen(false);
-  }, [applied, pushBundle]);
+  }, [applied, pushBundle, marketDefaultSeller]);
 
   const setSortUrl = useCallback(
     (sort: AutosPublicSortKey) => {
@@ -232,7 +250,7 @@ export function AutosPublicResultsShell() {
   );
 
   const clearResultsHref = `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
-    filters: emptyAutosPublicFilters(),
+    filters: { ...emptyAutosPublicFilters(), sellerType: marketDefaultSeller },
     q: "",
     sort: applied.sort,
     page: 1,
@@ -240,30 +258,14 @@ export function AutosPublicResultsShell() {
     routeLang: applied.routeLang,
   })}`;
 
-  const privateResultsHref = `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
-    filters: { ...emptyAutosPublicFilters(), sellerType: "private" },
+  const peerResultsHref = `${autosMarketPeerResultsPath(market)}?${serializeAutosBrowseUrl({
+    filters: { ...emptyAutosPublicFilters(), sellerType: autosMarketDefaultSellerType(market === "private" ? "dealer" : "private") },
     q: "",
     sort: "newest",
     page: 1,
     lang,
     routeLang: applied.routeLang,
   })}`;
-
-  const dealerResultsHref = `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
-    filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
-    q: "",
-    sort: "newest",
-    page: 1,
-    lang,
-    routeLang: applied.routeLang,
-  })}`;
-
-  const crossNavMode =
-    applied.filters.sellerType === "private"
-      ? "results-private"
-      : applied.filters.sellerType === "dealer"
-        ? "results-dealer"
-        : "results-neutral";
 
   return (
     <CategoryStandardResultsPageShell>
@@ -271,12 +273,12 @@ export function AutosPublicResultsShell() {
       <div className="mx-auto max-w-[min(100%,90rem)] px-[max(1rem,env(safe-area-inset-left))] py-4 pr-[max(1rem,env(safe-area-inset-right))] sm:px-6 sm:py-5">
         <CategoryStandardResultsHeader
           lang={L}
-          title={categoryStandardTitle("autos", L)}
-          subtitle={categoryStandardDescription("autos", L)}
+          title={marketCopy.resultsTitle}
+          subtitle={marketCopy.resultsSubtitle}
           backHref={autosHome}
-          backLabel={copy.title}
+          backLabel={marketCopy.title}
           publishHref={publicar}
-          publishLabel={copy.postAd}
+          publishLabel={marketCopy.postAd}
           clearHref={clearResultsHref}
           resultCount={loaded ? resultCount : undefined}
           category="autos"
@@ -380,15 +382,7 @@ export function AutosPublicResultsShell() {
         </div>
 
         <div className="mb-4">
-          <AutosLaneCrossNav
-            copy={copy}
-            lang={lang}
-            privateResultsHref={privateResultsHref}
-            dealerResultsHref={dealerResultsHref}
-            privatePublishHref={publicarPrivado}
-            dealerPublishHref={publicarDealer}
-            mode={crossNavMode}
-          />
+          <AutosMarketPeerCrossLink copy={marketCopy} href={peerResultsHref} compact />
         </div>
 
         <div className="mb-5">
@@ -401,7 +395,7 @@ export function AutosPublicResultsShell() {
         </div>
 
         <div className="mb-3 rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7] px-3 py-2">
-          <AutosPublicResultsQuickChips bundle={applied} copy={copy} />
+          <AutosPublicResultsQuickChips bundle={applied} copy={copy} market={market} resultsPath={RESULTADOS_PATH} />
         </div>
 
         <div className="mb-3">

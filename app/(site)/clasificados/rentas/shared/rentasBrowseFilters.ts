@@ -211,6 +211,16 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
     out = out.filter((l) => (l.rentasListingAvailability ?? "").toLowerCase() === want);
   }
 
+  if (p.roomBath) {
+    const want = p.roomBath.trim().toLowerCase();
+    out = out.filter((l) => (l.rentasRoomBathLabel ?? "").trim().toLowerCase() === want);
+  }
+
+  if (p.roomKitchen) {
+    const want = p.roomKitchen.trim().toLowerCase();
+    out = out.filter((l) => (l.rentasRoomKitchenLabel ?? "").trim().toLowerCase() === want);
+  }
+
   return out;
 }
 

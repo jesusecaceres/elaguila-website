@@ -22,6 +22,8 @@ export type CategoryStandardLandingPageProps = {
   category: CatStdAllSlug;
   lang: Lang;
   eyebrow?: string;
+  title?: string;
+  description?: string;
   publishHref?: string;
   browseHref?: string;
   searchAction?: string;
@@ -41,6 +43,8 @@ export function CategoryStandardLandingPage({
   category,
   lang,
   eyebrow,
+  title: titleProp,
+  description: descriptionProp,
   publishHref: publishHrefProp,
   browseHref: browseHrefProp,
   searchAction: searchActionProp,
@@ -66,8 +70,8 @@ export function CategoryStandardLandingPage({
         category={category}
         lang={lang}
         eyebrow={eyebrow}
-        title={categoryStandardTitle(category, lang)}
-        description={categoryStandardDescription(category, lang)}
+        title={titleProp ?? categoryStandardTitle(category, lang)}
+        description={descriptionProp ?? categoryStandardDescription(category, lang)}
         searchAction={searchAction}
         searchPlaceholder={categoryStandardSearchPlaceholder(category, lang)}
         publishHref={publishHref}

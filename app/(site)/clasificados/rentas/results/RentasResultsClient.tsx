@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/RentasCompactSearchCanvas";
 import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
@@ -47,6 +46,8 @@ import {
   RENTAS_QUERY_RECS,
   RENTAS_QUERY_RENT_MAX,
   RENTAS_QUERY_RENT_MIN,
+  RENTAS_QUERY_ROOM_BATH,
+  RENTAS_QUERY_ROOM_KITCHEN,
   RENTAS_QUERY_SORT,
   RENTAS_QUERY_COUNTRY,
   RENTAS_QUERY_STATE,
@@ -61,7 +62,6 @@ import {
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasResultCard } from "./cards/RentasResultCard";
 import { RentasResultsActiveFilters } from "./components/RentasResultsActiveFilters";
-import { RentasPropiedadFilterChips } from "./components/RentasPropiedadFilterChips";
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
@@ -81,7 +81,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState("");
-  const [propertyType, setPropertyType] = useState("");
+  const [spaceType, setSpaceType] = useState("");
   const [priceBand, setPriceBand] = useState("");
   const [beds, setBeds] = useState("");
   const [cityDraft, setCityDraft] = useState("");
@@ -92,6 +92,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [halfBathsMinDraft, setHalfBathsMinDraft] = useState("");
   const [rentMinDraft, setRentMinDraft] = useState("");
   const [rentMaxDraft, setRentMaxDraft] = useState("");
+  const [roomBathDraft, setRoomBathDraft] = useState("");
+  const [roomKitchenDraft, setRoomKitchenDraft] = useState("");
+  const [branchDraft, setBranchDraft] = useState("");
   const [amuebladoDraft, setAmuebladoDraft] = useState(false);
   const [mascotasDraft, setMascotasDraft] = useState(false);
   const [depositMinDraft, setDepositMinDraft] = useState("");
@@ -108,14 +111,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [view, setView] = useState<"grid" | "list">("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const resultsQueryString = searchParams?.toString() ?? "";
-
   const parsed = useMemo(() => parseRentasBrowseParams(searchParams), [searchParams]);
 
   useEffect(() => {
     const p = parseRentasBrowseParams(searchParams);
     setQuery(p.q);
-    setPropertyType(p.tipo);
+    setSpaceType(p.subtype || p.tipo);
     setPriceBand(p.precio);
     setBeds(p.recs);
     setCityDraft(p.city);
@@ -139,6 +140,9 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setPoolDraft(p.wantsPool);
     setSubtypeDraft(p.subtype);
     setKindDraft(p.kind ?? "");
+    setRoomBathDraft(p.roomBath);
+    setRoomKitchenDraft(p.roomKitchen);
+    setBranchDraft(p.branch === "all" ? "" : p.branch);
   }, [searchParams]);
 
   const { mergedPool: resultsGrid, staged: stagedFromDb, loading: inventoryLoading, error: inventoryError } =
@@ -159,7 +163,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   }, [filteredSorted, safePage]);
 
   const branchFilter = parsed.branch;
-  const propiedadFilter: BrNegocioCategoriaPropiedad | null = parsed.propiedad;
 
   const pushUrl = useCallback(
     (mutate: (sp: URLSearchParams) => void) => {
@@ -200,7 +203,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         else sp.set(k, v.trim());
       };
       setOrDel(RENTAS_QUERY_Q, query);
-      setOrDel(RENTAS_QUERY_TIPO, propertyType);
+      if (spaceType.trim()) {
+        sp.set(RENTAS_QUERY_SUBTYPE, spaceType.trim().toLowerCase());
+        sp.delete(RENTAS_QUERY_TIPO);
+      } else {
+        sp.delete(RENTAS_QUERY_SUBTYPE);
+        sp.delete(RENTAS_QUERY_TIPO);
+      }
       setOrDel(RENTAS_QUERY_PRECIO, priceBand);
       setOrDel(RENTAS_QUERY_RECS, beds);
       const cityNorm = normalizeCityForBrowse(cityDraft);
@@ -228,6 +237,14 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       else sp.set(RENTAS_QUERY_RENT_MIN, rMin);
       if (!rMax) sp.delete(RENTAS_QUERY_RENT_MAX);
       else sp.set(RENTAS_QUERY_RENT_MAX, rMax);
+
+      if (!roomBathDraft.trim()) sp.delete(RENTAS_QUERY_ROOM_BATH);
+      else sp.set(RENTAS_QUERY_ROOM_BATH, roomBathDraft.trim());
+      if (!roomKitchenDraft.trim()) sp.delete(RENTAS_QUERY_ROOM_KITCHEN);
+      else sp.set(RENTAS_QUERY_ROOM_KITCHEN, roomKitchenDraft.trim());
+
+      if (branchDraft === "privado" || branchDraft === "negocio") sp.set("branch", branchDraft);
+      else sp.delete("branch");
 
       if (amuebladoDraft) sp.set(RENTAS_QUERY_AMUEBLADO, "1");
       else sp.delete(RENTAS_QUERY_AMUEBLADO);
@@ -288,11 +305,14 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     parkingMinDraft,
     poolDraft,
     priceBand,
-    propertyType,
     pushUrl,
     query,
     rentMaxDraft,
     rentMinDraft,
+    roomBathDraft,
+    roomKitchenDraft,
+    branchDraft,
+    spaceType,
     sqftMaxDraft,
     sqftMinDraft,
     subtypeDraft,
@@ -370,14 +390,11 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           onCountry={setCountryDraft}
           onSearch={applySearchAndRefine}
           onOpenFilters={() => setFiltersOpen(true)}
-          browseAllHref={withRentasLandingLang(RENTAS_RESULTS, routeLang)}
           searchButtonLabel={searchLabel}
           filtersButtonLabel={filtersLabel}
         />
 
-        <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} />
-
-        <RentasPropiedadFilterChips active={propiedadFilter} lang={lang} copy={copy} queryString={resultsQueryString} />
+        <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} lang={lang} />
 
         <div className="flex flex-wrap gap-2">
           {(
@@ -431,12 +448,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           {copy.results.moreRentals}
         </h2>
         {displayedListings.length === 0 ? (
-          <p className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
-            {copy.results.noMatches}{" "}
-            <Link href={withRentasLandingLang(RENTAS_RESULTS, routeLang)} className="font-semibold text-[#B8954A] underline">
+          <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FDFBF7]/90 p-6 text-center text-sm text-[#5C5346]">
+            <p className="font-semibold text-[#2A4536]">{copy.results.noMatches}</p>
+            <p className="mt-2">{copy.results.noMatchesHint}</p>
+            <Link href={withRentasLandingLang(RENTAS_RESULTS, routeLang)} className="mt-3 inline-block font-semibold text-[#B8954A] underline">
               {copy.results.clearFiltersDemo}
             </Link>
-          </p>
+          </div>
         ) : view === "list" ? (
           <div className="mt-4 flex flex-col gap-3">
             {displayedListings.map((l) => (
@@ -515,8 +533,8 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         lang={lang}
         copy={copy}
         variant="results"
-        propertyType={propertyType}
-        onPropertyType={setPropertyType}
+        spaceType={spaceType}
+        onSpaceType={setSpaceType}
         priceBand={priceBand}
         onPriceBand={setPriceBand}
         beds={beds}
@@ -551,6 +569,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         onSqftMinDraft={setSqftMinDraft}
         sqftMaxDraft={sqftMaxDraft}
         onSqftMaxDraft={setSqftMaxDraft}
+        roomBathDraft={roomBathDraft}
+        onRoomBathDraft={setRoomBathDraft}
+        roomKitchenDraft={roomKitchenDraft}
+        onRoomKitchenDraft={setRoomKitchenDraft}
+        branchDraft={branchDraft}
+        onBranchDraft={setBranchDraft}
         amuebladoDraft={amuebladoDraft}
         onAmuebladoDraft={setAmuebladoDraft}
         mascotasDraft={mascotasDraft}

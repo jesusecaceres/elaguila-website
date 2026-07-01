@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { AutosLandingPage } from "./landing/AutosLandingPage";
+import { AutosLandingPage } from "../autos/landing/AutosLandingPage";
 
-export default function ClasificadosAutosPage() {
+export default function DealersDeAutosLandingPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[color:var(--lx-page)]" aria-busy="true" />}>
-      <AutosLandingPage market="private" />
+      <AutosLandingPage market="dealer" />
     </Suspense>
   );
 }

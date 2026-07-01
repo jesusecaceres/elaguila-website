@@ -22,6 +22,6 @@ export const RENTAS_FIELD =
 
 export function rentasBrowseSearchPlaceholder(lang: "es" | "en"): string {
   return lang === "es"
-    ? "Buscar título, dirección, colonia…"
-    : "Search title, address, neighborhood…";
+    ? "Buscar cuarto, garage, estudio, apartamento…"
+    : "Search room, garage, studio, apartment…";
 }

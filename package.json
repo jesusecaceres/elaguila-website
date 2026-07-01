@@ -153,6 +153,7 @@
     "autos:price-disclosure-audit": "tsx scripts/autos-price-disclosure-audit.ts",
     "autos:working-category-publish-pattern-rescue-audit": "tsx scripts/autos-working-category-publish-pattern-rescue-audit.ts",
     "autos:local-photo-publish-rescue-audit": "tsx scripts/autos-local-photo-publish-rescue-audit.ts",
+    "autos:privado-dealers-public-split-audit": "tsx scripts/autos-privado-dealers-public-split-audit.ts",
     "autos:final-pre-qa-smoke-proof-audit": "tsx scripts/autos-final-pre-qa-smoke-proof-audit.ts",
     "autos:a5-recovery-10-field-parity-audit": "tsx scripts/autos-a5-recovery-10-field-parity-audit.ts",
     "autos:a5-recovery-11-drawer-uses-original-app-ux-audit": "tsx scripts/autos-a5-recovery-11-drawer-uses-original-app-ux-audit.ts",

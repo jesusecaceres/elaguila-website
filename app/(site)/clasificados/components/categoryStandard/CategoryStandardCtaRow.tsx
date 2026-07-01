@@ -9,6 +9,8 @@ type Props = {
   publishLabel?: string;
   browseLabel?: string;
   className?: string;
+  /** When true, only show publish CTA (browse lives elsewhere, e.g. search row). */
+  hideBrowse?: boolean;
 };
 
 export function CategoryStandardCtaRow({
@@ -18,6 +20,7 @@ export function CategoryStandardCtaRow({
   publishLabel,
   browseLabel,
   className = "",
+  hideBrowse = false,
 }: Props) {
   const ui = categoryStandardUi(lang);
   return (
@@ -28,12 +31,14 @@ export function CategoryStandardCtaRow({
       >
         {publishLabel}
       </Link>
-      <Link
-        href={browseHref}
-        className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-lg border-2 border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:flex-none sm:min-w-[10rem]"
-      >
-        {browseLabel ?? ui.viewAll}
-      </Link>
+      {!hideBrowse ? (
+        <Link
+          href={browseHref}
+          className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-lg border-2 border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:flex-none sm:min-w-[10rem]"
+        >
+          {browseLabel ?? ui.viewAll}
+        </Link>
+      ) : null}
     </div>
   );
 }

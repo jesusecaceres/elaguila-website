@@ -114,6 +114,8 @@ export type CategoryStandardLandingBlockProps = {
   searchSlot?: ReactNode;
   /** Hide monetization strip from hero/search area (show lower on page instead). */
   suppressVisibilityCta?: boolean;
+  /** Hide browse CTA in hero row when browse lives in search canvas. */
+  hideBrowseCta?: boolean;
 };
 
 export function CategoryStandardLandingBlock({
@@ -133,6 +135,7 @@ export function CategoryStandardLandingBlock({
   belowHero,
   searchSlot,
   suppressVisibilityCta = false,
+  hideBrowseCta = false,
   children,
 }: CategoryStandardLandingBlockProps) {
   return (
@@ -174,6 +177,7 @@ export function CategoryStandardLandingBlock({
             browseHref={browseHref}
             publishLabel={publishLabel}
             browseLabel={browseLabel}
+            hideBrowse={hideBrowseCta}
           />
         </div>
         {categorySupportsVisibilityCta(category) && !suppressVisibilityCta ? (

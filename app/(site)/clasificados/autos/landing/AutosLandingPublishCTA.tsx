@@ -9,10 +9,14 @@ export function AutosLandingPublishCTA({
   copy,
   publishAutosHref,
   browseAllHref,
+  publishLabel,
+  browseLabel,
 }: {
   copy: AutosPublicBlueprintCopy;
   publishAutosHref: string;
   browseAllHref: string;
+  publishLabel?: string;
+  browseLabel?: string;
 }) {
   const bullets = [copy.publishTrust1, copy.publishTrust2, copy.publishTrust3];
 
@@ -37,14 +41,14 @@ export function AutosLandingPublishCTA({
               href={publishAutosHref}
               className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,rgba(201,168,74,0.98),rgba(184,149,74,0.94))] px-6 text-sm font-bold text-[#FFFCF7] shadow-[0_10px_32px_-10px_rgba(120,90,30,0.5)] transition hover:brightness-[1.03] active:opacity-95"
             >
-              {copy.publishNowCta}
+              {publishLabel ?? copy.publishNowCta}
               <FiArrowRight className="h-4 w-4" aria-hidden />
             </Link>
             <Link
               href={browseAllHref}
               className="inline-flex min-h-[48px] w-full items-center justify-center rounded-[14px] border-2 border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-6 text-sm font-bold text-[color:var(--lx-text)] transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)]"
             >
-              {copy.exploreAllAutosCta}
+              {browseLabel ?? copy.exploreAllAutosCta}
             </Link>
           </div>
         </div>

@@ -5,13 +5,13 @@ import { useMemo } from "react";
 import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCopy";
 import { serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
 import type { AutosPublicFilterState } from "../../filters/autosPublicFilterTypes";
-
-const RESULTADOS_PATH = "/clasificados/autos/results";
+import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
+import { autosMarketDefaultSellerType } from "@/app/lib/clasificados/autos/autosPublicMarket";
 
 type ChipDef = { key: string; label: string; patch: Partial<AutosPublicFilterState> };
 
-function chipHref(base: AutosBrowseUrlBundle, patch: Partial<AutosPublicFilterState>): string {
-  return `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({
+function chipHref(base: AutosBrowseUrlBundle, patch: Partial<AutosPublicFilterState>, resultsPath: string): string {
+  return `${resultsPath}?${serializeAutosBrowseUrl({
     ...base,
     filters: { ...base.filters, ...patch },
     page: 1,
@@ -31,24 +31,38 @@ function isChipActive(applied: AutosPublicFilterState, patch: Partial<AutosPubli
 export function AutosPublicResultsQuickChips({
   bundle,
   copy,
+  market = "private",
+  resultsPath = "/clasificados/autos/results",
 }: {
   bundle: AutosBrowseUrlBundle;
   copy: AutosPublicBlueprintCopy;
+  market?: AutosPublicMarket;
+  resultsPath?: string;
 }) {
+  const defaultSeller = autosMarketDefaultSellerType(market);
   const chips: ChipDef[] = useMemo(() => {
     const c = copy;
+    const seller = defaultSeller;
+    if (market === "private") {
+      return [
+        { key: "sedan", label: c.chips.sedan, patch: { bodyStyle: "Sedan", sellerType: seller } },
+        { key: "suv", label: c.chips.suv, patch: { bodyStyle: "SUV", sellerType: seller } },
+        { key: "truck", label: c.chips.truck, patch: { bodyStyle: "Truck", sellerType: seller } },
+        { key: "private", label: c.chipQuickPrivate, patch: { sellerType: "private" } },
+        { key: "used", label: c.conditionUsed, patch: { condition: "used", sellerType: seller } },
+        { key: "lowMiles", label: c.chipQuickLowMiles, patch: { mileageMax: "35000", sellerType: seller } },
+        { key: "econ", label: c.chipQuickEconomical, patch: { priceMax: "23000", sellerType: seller } },
+      ];
+    }
     return [
-      { key: "sedan", label: c.chips.sedan, patch: { bodyStyle: "Sedan" } },
-      { key: "suv", label: c.chips.suv, patch: { bodyStyle: "SUV" } },
-      { key: "truck", label: c.chips.truck, patch: { bodyStyle: "Truck" } },
-      { key: "private", label: c.chipQuickPrivate, patch: { sellerType: "private" } },
       { key: "dealer", label: c.chipQuickDealer, patch: { sellerType: "dealer" } },
-      { key: "new", label: c.conditionNew, patch: { condition: "new" } },
-      { key: "used", label: c.conditionUsed, patch: { condition: "used" } },
-      { key: "lowMiles", label: c.chipQuickLowMiles, patch: { mileageMax: "35000" } },
-      { key: "econ", label: c.chipQuickEconomical, patch: { priceMax: "23000" } },
+      { key: "used", label: c.conditionUsed, patch: { condition: "used", sellerType: seller } },
+      { key: "new", label: c.conditionNew, patch: { condition: "new", sellerType: seller } },
+      { key: "lowMiles", label: c.chipQuickLowMiles, patch: { mileageMax: "35000", sellerType: seller } },
+      { key: "truck", label: c.chips.truck, patch: { bodyStyle: "Truck", sellerType: seller } },
+      { key: "suv", label: c.chips.suv, patch: { bodyStyle: "SUV", sellerType: seller } },
     ];
-  }, [copy]);
+  }, [copy, defaultSeller, market]);
 
   return (
     <div className="min-w-0">
@@ -56,7 +70,7 @@ export function AutosPublicResultsQuickChips({
       <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pl-1 pr-2 pt-0.5 [scrollbar-width:thin]">
         {chips.map((ch) => {
           const active = isChipActive(bundle.filters, ch.patch);
-          const href = chipHref(bundle, ch.patch);
+          const href = chipHref(bundle, ch.patch, resultsPath);
           return (
             <Link
               key={ch.key}

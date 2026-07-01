@@ -5,6 +5,15 @@ export type RentasLandingCopy = {
   breadcrumbRentas: string;
   title: string;
   intro: string;
+  /** Latino-first landing gateway section headings. */
+  gateway: {
+    spaceTypeHeadingEs: string;
+    spaceTypeHeadingEn: string;
+    budgetHeadingEs: string;
+    budgetHeadingEn: string;
+    practicalHeadingEs: string;
+    practicalHeadingEn: string;
+  };
   /** Short line above publish CTAs (landlords / inventory). */
   publishEyebrow: string;
   publishHint: string;
@@ -97,6 +106,7 @@ export type RentasLandingCopy = {
     noFeatured: string;
     moreRentals: string;
     noMatches: string;
+    noMatchesHint: string;
     clearFiltersDemo: string;
     backToHub: string;
     /** Toolbar / listing chrome */
@@ -190,7 +200,15 @@ const ES: RentasLandingCopy = {
   breadcrumbRentas: "Rentas",
   title: "Rentas",
   intro:
-    "Rentas residenciales, comerciales y terrenos en un solo lugar. Navega con claridad y publica como particular o negocio cuando quieras listar.",
+    "Encuentra cuarto, garage, estudio, ADU o apartamento cerca de ti.",
+  gateway: {
+    spaceTypeHeadingEs: "¿Qué tipo de espacio buscas?",
+    spaceTypeHeadingEn: "What kind of space are you looking for?",
+    budgetHeadingEs: "Busca por presupuesto",
+    budgetHeadingEn: "Search by budget",
+    practicalHeadingEs: "Lo que más importa",
+    practicalHeadingEn: "What matters most",
+  },
   publishEyebrow: "Publicar",
   publishHint: "Listado claro para particulares y cuentas comerciales.",
   publishPrivado: "Publicar — Privado",
@@ -301,7 +319,8 @@ const ES: RentasLandingCopy = {
     noFeatured: "Sin destacado en esta vista.",
     moreRentals: "Más rentas",
     noMatches: "Sin coincidencias.",
-    clearFiltersDemo: "Limpiar filtros (demo)",
+    noMatchesHint: "Prueba limpiar filtros o ajustar presupuesto y ubicación.",
+    clearFiltersDemo: "Limpiar filtros",
     backToHub: "Volver al hub Rentas",
     categoryLabel: "Categoría",
     categoryAll: "Todas",
@@ -392,7 +411,15 @@ const EN: RentasLandingCopy = {
   breadcrumbRentas: "Rentals",
   title: "Rentals",
   intro:
-    "Residential, commercial, and land rentals in one place. Browse with clarity and publish as an individual or business when you are ready to list.",
+    "Find a room, garage, studio, ADU, or apartment near you.",
+  gateway: {
+    spaceTypeHeadingEs: "¿Qué tipo de espacio buscas?",
+    spaceTypeHeadingEn: "What kind of space are you looking for?",
+    budgetHeadingEs: "Busca por presupuesto",
+    budgetHeadingEn: "Search by budget",
+    practicalHeadingEs: "Lo que más importa",
+    practicalHeadingEn: "What matters most",
+  },
   publishEyebrow: "Publish",
   publishHint: "Clear listings for individuals and business accounts.",
   publishPrivado: "List — Private",
@@ -503,6 +530,7 @@ const EN: RentasLandingCopy = {
     noFeatured: "No featured listing in this view.",
     moreRentals: "More rentals",
     noMatches: "No matches.",
+    noMatchesHint: "Try clearing filters or adjusting your budget and location.",
     clearFiltersDemo: "Clear filters",
     backToHub: "Back to Rentals hub",
     categoryLabel: "Category",

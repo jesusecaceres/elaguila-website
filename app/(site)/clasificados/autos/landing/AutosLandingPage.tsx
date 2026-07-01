@@ -12,7 +12,6 @@ import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../filters/autosBr
 import { emptyAutosPublicFilters } from "../filters/autosPublicFilterTypes";
 import {
   getLandingDealerSpotlightListings,
-  getLandingMixedLatestListings,
   getLandingPrivateFreshListings,
 } from "../data/autosLandingArrangement";
 import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
@@ -25,24 +24,33 @@ import { AutosLandingLangSwitch } from "./AutosLandingLangSwitch";
 import { AutosQuickChips } from "./AutosQuickChips";
 import { AutosPrimaryDiscoveryCta } from "./AutosPrimaryDiscoveryCta";
 import { FeaturedCarsSection } from "./FeaturedCarsSection";
-import { BodyStyleBrowseSection } from "./BodyStyleBrowseSection";
-import { NeedBasedBrowseSection } from "./NeedBasedBrowseSection";
 import { FeaturedDealersSection } from "./FeaturedDealersSection";
 import { RecentAutosSection } from "./RecentAutosSection";
 import { AutosLandingPublishCTA } from "./AutosLandingPublishCTA";
 import { autosLandingSectionClass } from "./autosLandingLayout";
 import { AutosPublicInventoryNotice } from "../components/public/AutosPublicInventoryNotice";
-import { AutosLaneCrossNav } from "../components/public/AutosLaneCrossNav";
+import { AutosMarketPeerCrossLink } from "../components/public/AutosMarketPeerCrossLink";
+import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
+import {
+  autosMarketDefaultSellerType,
+  autosMarketPeerResultsPath,
+  autosMarketPublishPath,
+  autosMarketResultsPath,
+} from "@/app/lib/clasificados/autos/autosPublicMarket";
+import { getAutosPublicMarketCopy } from "@/app/lib/clasificados/autos/autosPublicMarketCopy";
 
-const RESULTADOS_PATH = "/clasificados/autos/results";
-
-export function AutosLandingPage() {
+export function AutosLandingPage({ market = "private" }: { market?: AutosPublicMarket }) {
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
   const browseState = useMemo(() => parseAutosBrowseUrl(new URLSearchParams(spStr)), [spStr]);
   const lang: AutosPublicLang = browseState.lang;
   const routeLang = browseState.routeLang;
   const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang];
+  const marketCopy = getAutosPublicMarketCopy(market, lang);
+  const isPrivateMarket = market === "private";
+  const isDealerMarket = market === "dealer";
+  const RESULTADOS_PATH = autosMarketResultsPath(market);
+  const defaultSeller = autosMarketDefaultSellerType(market);
 
   const [searchQ, setSearchQ] = useState("");
   const [city, setCity] = useState("San Jose");
@@ -58,12 +66,6 @@ export function AutosLandingPage() {
   const { listings: inventory, loaded, isDemoInventory } = useAutosPublicListingsFetch();
   const dealerSpotlight = useMemo(() => getLandingDealerSpotlightListings(inventory, 6), [inventory]);
   const privateFresh = useMemo(() => getLandingPrivateFreshListings(inventory, 6), [inventory]);
-  const mixedLatest = useMemo(() => {
-    const exclude = new Set<string>();
-    for (const l of dealerSpotlight) exclude.add(l.id);
-    for (const l of privateFresh) exclude.add(l.id);
-    return getLandingMixedLatestListings(inventory, exclude, 8);
-  }, [inventory, dealerSpotlight, privateFresh]);
 
   const landingDealers = useMemo(() => buildAutosLandingDealersFromInventory(inventory, 4), [inventory]);
 
@@ -86,7 +88,7 @@ export function AutosLandingPage() {
   );
 
   const searchHref = useMemo(() => {
-    const filters = emptyAutosPublicFilters();
+    const filters = { ...emptyAutosPublicFilters(), sellerType: defaultSeller };
     const rawCity = city.trim();
     filters.city = getCanonicalCityName(rawCity) || rawCity;
     filters.zip = zip.replace(/\D/g, "").slice(0, 5);
@@ -98,89 +100,55 @@ export function AutosLandingPage() {
       lang,
       routeLang,
     });
-  }, [lang, routeLang, searchQ, city, zip, resultsHref]);
+  }, [defaultSeller, lang, routeLang, searchQ, city, zip, resultsHref]);
 
   const browseAllHref = useMemo(
     () =>
       resultsHref({
-        filters: emptyAutosPublicFilters(),
+        filters: { ...emptyAutosPublicFilters(), sellerType: defaultSeller },
         q: "",
         sort: "newest",
         page: 1,
         lang,
         routeLang,
       }),
-    [lang, routeLang, resultsHref],
+    [defaultSeller, lang, routeLang, resultsHref],
   );
 
-  const publishAutosHref = replaceLangInHref("/publicar/autos", routeLang);
-  const publishPrivadoHref = replaceLangInHref("/publicar/autos/privado", routeLang);
-  const publishDealerHref = replaceLangInHref("/publicar/autos/negocios", routeLang);
-
-  const privateResultsHref = useMemo(
-    () =>
-      resultsHref({
-        filters: { ...emptyAutosPublicFilters(), sellerType: "private" },
-        q: "",
-        sort: "newest",
-        page: 1,
-        lang,
-        routeLang,
-      }),
-    [lang, routeLang, resultsHref],
-  );
-
-  const dealerResultsHref = useMemo(
-    () =>
-      resultsHref({
-        filters: { ...emptyAutosPublicFilters(), sellerType: "dealer" },
-        q: "",
-        sort: "newest",
-        page: 1,
-        lang,
-        routeLang,
-      }),
-    [lang, routeLang, resultsHref],
-  );
+  const publishAutosHref = replaceLangInHref(autosMarketPublishPath(market), routeLang);
+  const peerResultsHref = useMemo(() => {
+    const peerPath = autosMarketPeerResultsPath(market);
+    return `${peerPath}?${serializeAutosBrowseUrl({
+      filters: { ...emptyAutosPublicFilters(), sellerType: autosMarketDefaultSellerType(market === "private" ? "dealer" : "private") },
+      q: "",
+      sort: "newest",
+      page: 1,
+      lang,
+      routeLang,
+    })}`;
+  }, [lang, routeLang, market]);
 
   const quickChipItems = useMemo(() => {
     const c = copy;
+    if (isPrivateMarket) {
+      return [
+        { label: c.chips.sedan, href: chipHref({ bodyStyle: "Sedan", sellerType: "private" }) },
+        { label: c.chips.suv, href: chipHref({ bodyStyle: "SUV", sellerType: "private" }) },
+        { label: c.chips.truck, href: chipHref({ bodyStyle: "Truck", sellerType: "private" }) },
+        { label: lang === "es" ? "Menos de $10k" : "Under $10k", href: chipHref({ priceMax: "10000", sellerType: "private" }) },
+        { label: c.chipQuickLowMiles, href: chipHref({ mileageMax: "35000", sellerType: "private" }) },
+        { label: c.chipQuickPrivate, href: chipHref({ sellerType: "private" }) },
+      ];
+    }
     return [
-      { label: c.chips.sedan, href: chipHref({ bodyStyle: "Sedan" }) },
-      { label: c.chips.suv, href: chipHref({ bodyStyle: "SUV" }) },
-      { label: c.chips.truck, href: chipHref({ bodyStyle: "Truck" }) },
-      { label: c.chips.coupe, href: chipHref({ bodyStyle: "Coupe" }) },
-      { label: c.chips.hatchback, href: chipHref({ bodyStyle: "Hatchback" }) },
-      { label: c.chips.luxury, href: chipHref({ priceMin: "45000" }) },
-      { label: c.chips.economical, href: chipHref({ priceMax: "22000" }) },
-      { label: c.chips.family, href: chipHref({ bodyStyle: "Minivan" }) },
+      { label: c.chipQuickDealer, href: chipHref({ sellerType: "dealer" }) },
+      { label: c.conditionUsed, href: chipHref({ condition: "used", sellerType: "dealer" }) },
+      { label: c.conditionNew, href: chipHref({ condition: "new", sellerType: "dealer" }) },
+      { label: c.chipQuickLowMiles, href: chipHref({ mileageMax: "35000", sellerType: "dealer" }) },
+      { label: c.chips.truck, href: chipHref({ bodyStyle: "Truck", sellerType: "dealer" }) },
+      { label: c.chips.suv, href: chipHref({ bodyStyle: "SUV", sellerType: "dealer" }) },
     ];
-  }, [copy, chipHref]);
-
-  const bodyStyleTiles = useMemo(() => {
-    const b = copy.bodyStyleBrowse;
-    return [
-      { label: b.sedans, imageKey: "sedan" as const, href: chipHref({ bodyStyle: "Sedan" }) },
-      { label: b.suvs, imageKey: "suv" as const, href: chipHref({ bodyStyle: "SUV" }) },
-      { label: b.trucks, imageKey: "truck" as const, href: chipHref({ bodyStyle: "Truck" }) },
-      { label: b.coupes, imageKey: "coupe" as const, href: chipHref({ bodyStyle: "Coupe" }) },
-      { label: b.minivans, imageKey: "minivan" as const, href: chipHref({ bodyStyle: "Minivan" }) },
-      { label: b.hatchbacks, imageKey: "hatchback" as const, href: chipHref({ bodyStyle: "Hatchback" }) },
-    ];
-  }, [copy, chipHref]);
-
-  const needCards = useMemo(() => {
-    const n = copy.needBrowse;
-    const h = copy.needBrowseHint;
-    return [
-      { key: "firstCar", title: n.firstCar, hint: h.firstCar, href: chipHref({ priceMax: "22000", yearMax: "2019" }) },
-      { key: "lowMiles", title: n.lowMiles, hint: h.lowMiles, href: chipHref({ mileageMax: "35000" }) },
-      { key: "economical", title: n.economical, hint: h.economical, href: chipHref({ priceMax: "23000" }) },
-      { key: "family", title: n.family, hint: h.family, href: chipHref({ bodyStyle: "SUV", mileageMax: "60000" }) },
-      { key: "work", title: n.work, hint: h.work, href: chipHref({ bodyStyle: "Truck" }) },
-      { key: "luxury", title: n.luxury, hint: h.luxury, href: chipHref({ priceMin: "45000" }) },
-    ];
-  }, [copy, chipHref]);
+  }, [copy, chipHref, isPrivateMarket, lang]);
 
   const buildDealerInventoryHref = useCallback(
     (dealer: AutosLandingDealerSample) => {
@@ -211,7 +179,7 @@ export function AutosLandingPage() {
               {copy.breadcrumb}
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
-            <span className="text-[color:var(--lx-text)]">{copy.title}</span>
+            <span className="text-[color:var(--lx-text)]">{marketCopy.title}</span>
           </nav>
           <div className="flex flex-wrap items-center gap-2">
             <AutosLandingLangSwitch lang={lang} />
@@ -219,7 +187,7 @@ export function AutosLandingPage() {
               href={publishAutosHref}
               className="inline-flex min-h-[44px] items-center rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90"
             >
-              {copy.postAd}
+              {marketCopy.postAd}
             </Link>
           </div>
         </div>
@@ -229,8 +197,12 @@ export function AutosLandingPage() {
         <CategoryStandardLandingPage
           category="autos"
           lang={lang as Lang}
+          title={marketCopy.heroHeading}
+          description={marketCopy.heroSubhead}
           publishHref={publishAutosHref}
           browseHref={browseAllHref}
+          publishLabel={marketCopy.postAd}
+          browseLabel={marketCopy.browseAll}
           searchSlot={
             <AutosHeroSearch
               mode="fields"
@@ -249,17 +221,9 @@ export function AutosLandingPage() {
           suppressVisibilityCta
         />
 
-        <AutosLaneCrossNav
-          copy={copy}
-          lang={lang}
-          privateResultsHref={privateResultsHref}
-          dealerResultsHref={dealerResultsHref}
-          privatePublishHref={publishPrivadoHref}
-          dealerPublishHref={publishDealerHref}
-          mode="landing"
-        />
+        <AutosMarketPeerCrossLink copy={marketCopy} href={peerResultsHref} />
 
-        <AutosPrimaryDiscoveryCta copy={copy} browseAllHref={browseAllHref} />
+        <AutosPrimaryDiscoveryCta copy={copy} browseAllHref={browseAllHref} browseLabel={marketCopy.browseAll} />
 
         <div className={autosLandingSectionClass}>
           <AutosPublicInventoryNotice
@@ -270,42 +234,39 @@ export function AutosLandingPage() {
           />
         </div>
 
-        <FeaturedCarsSection
-          copy={copy}
-          lang={lang}
-          listings={dealerSpotlight}
-          heading={copy.landingDealerSpotlightTitle}
-          subheading={copy.landingDealerSpotlightSubtitle}
-          browseAllHref={browseAllHref}
-        />
+        {isDealerMarket ? (
+          <FeaturedCarsSection
+            copy={copy}
+            lang={lang}
+            listings={dealerSpotlight}
+            heading={copy.landingDealerSpotlightTitle}
+            subheading={copy.landingDealerSpotlightSubtitle}
+            browseAllHref={browseAllHref}
+          />
+        ) : null}
 
-        <BodyStyleBrowseSection copy={copy} tiles={bodyStyleTiles} />
+        {isPrivateMarket ? (
+          <RecentAutosSection
+            copy={copy}
+            lang={lang}
+            listings={privateFresh}
+            heading={copy.landingPrivateFreshTitle}
+            subheading={copy.landingPrivateFreshSubtitle}
+            browseAllHref={browseAllHref}
+          />
+        ) : null}
 
-        <NeedBasedBrowseSection copy={copy} cards={needCards} />
-
-        {landingDealers.length > 0 ? (
+        {isDealerMarket && landingDealers.length > 0 ? (
           <FeaturedDealersSection copy={copy} dealers={landingDealers} buildInventoryHref={buildDealerInventoryHref} />
         ) : null}
 
-        <RecentAutosSection
+        <AutosLandingPublishCTA
           copy={copy}
-          lang={lang}
-          listings={privateFresh}
-          heading={copy.landingPrivateFreshTitle}
-          subheading={copy.landingPrivateFreshSubtitle}
+          publishAutosHref={publishAutosHref}
           browseAllHref={browseAllHref}
+          publishLabel={marketCopy.postAd}
+          browseLabel={marketCopy.browseAll}
         />
-
-        <RecentAutosSection
-          copy={copy}
-          lang={lang}
-          listings={mixedLatest}
-          heading={copy.landingMixedLatestTitle}
-          subheading={copy.landingMixedLatestSubtitle}
-          browseAllHref={browseAllHref}
-        />
-
-        <AutosLandingPublishCTA copy={copy} publishAutosHref={publishAutosHref} browseAllHref={browseAllHref} />
       </main>
     </AutosLandingShell>
   );
