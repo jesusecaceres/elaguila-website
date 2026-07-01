@@ -116,7 +116,7 @@ export default function PublicarPageClient({
           : deepLinkCat === "servicios"
             ? `/clasificados/publicar/servicios?${p.toString()}`
             : deepLinkCat === "restaurantes"
-              ? `/publicar/restaurantes?${p.toString()}`
+              ? `/clasificados/publicar/restaurantes?${p.toString()}`
               : deepLinkCat === "travel"
                 ? `/publicar/viajes?${p.toString()}`
                 : deepLinkCat === "rentas"

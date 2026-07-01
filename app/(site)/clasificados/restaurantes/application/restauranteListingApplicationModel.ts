@@ -352,13 +352,12 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
   RestauranteGalleryMedia &
   RestauranteTrustFields &
   RestauranteTaxonomyOtherSupplements &
-  RestauranteInternalContract & {
+  RestauranteInternalContract &
+  RestaurantePricingState & {
     featuredDishes?: RestauranteFeaturedDish[];
     highlights?: RestauranteHighlightKey[];
     /** Optional coupons/offers */
     coupons?: RestauranteCoupon[];
-    /** Coupon upgrade enabled (+$99/month) */
-    couponUpgradeEnabled?: boolean;
     /** Section-level flyer for additional promotions */
     couponFlyer?: RestauranteCouponFlyer;
     /** Section-level "more offers" external link */
@@ -370,6 +369,23 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
     /** Optional structured amenities (payments, accessibility, etc.) */
     restaurantAmenities?: RestauranteAmenitiesSelection;
   };
+
+// ---------------------------------------------------------------------------
+// Pricing / product selection state
+// ---------------------------------------------------------------------------
+
+export type RestauranteProductType = "established_restaurant" | "mobile_food_vendor";
+
+export type RestaurantePricingState = {
+  /** Selected product type */
+  productType?: RestauranteProductType;
+  /** Base monthly price (399 for established, 199 for mobile) */
+  baseMonthlyPrice?: number;
+  /** Coupon add-on enabled (+$99/month) */
+  couponUpgradeEnabled?: boolean;
+  /** Coupon add-on monthly price */
+  couponMonthlyPrice?: number;
+};
 
 // ---------------------------------------------------------------------------
 // Minimum valid preview (publish gate / empty-state shell)

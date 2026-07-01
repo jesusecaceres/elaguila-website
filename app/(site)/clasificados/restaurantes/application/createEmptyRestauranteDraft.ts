@@ -113,7 +113,8 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     allowMessageCTA: false,
     addressLine1: undefined,
     addressLine2: undefined,
-    state: "CA",
+    state: undefined,
+    country: undefined,
     showExactAddress: true,
     serviceAreaText: undefined,
     deliveryRadiusMiles: undefined,
@@ -140,6 +141,13 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     testimonialSnippet: undefined,
     aiSummaryEnabled: false,
     restaurantAmenities: undefined,
+    coupons: [],
+    couponFlyer: undefined,
+    couponMoreOffers: undefined,
+    productType: undefined,
+    baseMonthlyPrice: undefined,
+    couponUpgradeEnabled: false,
+    couponMonthlyPrice: undefined,
   };
 }
 
