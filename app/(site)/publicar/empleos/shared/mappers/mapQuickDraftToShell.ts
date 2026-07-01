@@ -23,14 +23,20 @@ function modalityLabelEs(m: JobModalitySlug): string {
 }
 
 function scheduleDisplayFromDraft(d: EmpleosQuickDraft): string {
-  const rows = d.scheduleRows.filter((r) => String(r.day ?? "").trim() || String(r.shift ?? "").trim());
+  const rows = d.scheduleRows.filter(
+    (r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim(),
+  );
   if (!rows.length) return d.schedule.trim() || "—";
   return rows
     .map((r) => {
       const day = String(r.day ?? "").trim();
+      const start = String(r.startTime ?? "").trim();
+      const end = String(r.endTime ?? "").trim();
       const shift = String(r.shift ?? "").trim();
-      if (day && shift) return `${day}: ${shift}`;
-      return day || shift;
+      // Prefer structured start/end times
+      const timePart = start && end ? `${start} – ${end}` : start || shift;
+      if (day && timePart) return `${day} · ${timePart}`;
+      return day || timePart;
     })
     .join("\n");
 }
@@ -80,10 +86,13 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     email: d.email.trim(),
     websiteUrl: web ?? undefined,
     contactPerson: d.contactPerson.trim() || undefined,
+    contactTitle: d.contactTitle.trim() || undefined,
     preferredApplyMethod: d.preferredApplyMethod || undefined,
     primaryCta: d.primaryCta,
     workspaceName: d.workspaceName.trim() || undefined,
     locationNotes: d.locationNotes.trim() || undefined,
+    stateRegion: d.stateRegion.trim() || d.state.trim() || undefined,
+    country: d.country.trim() || undefined,
     companyLinkedIn: sanitizeHttpUrl(d.companyLinkedIn) ?? undefined,
     companyFacebook: sanitizeHttpUrl(d.companyFacebook) ?? undefined,
     companyInstagram: sanitizeHttpUrl(d.companyInstagram) ?? undefined,

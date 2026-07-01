@@ -144,7 +144,14 @@ export function EmpleoQuickDetailPage({
           logoAlt={data.logoAlt}
           city={data.city}
           state={data.state}
+          stateRegion={data.stateRegion}
+          country={data.country}
           filterRegionFootnote={data.filterRegionFootnote}
+          chips={[
+            data.jobType,
+            data.workModalityLabel,
+          ].filter((c): c is string => Boolean(c?.trim()) && c !== "—")}
+          payHighlight={data.pay && data.pay !== "—" ? data.pay : undefined}
         />
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
@@ -199,6 +206,7 @@ export function EmpleoQuickDetailPage({
               email={data.email?.trim() || undefined}
               websiteUrl={data.websiteUrl?.trim() || undefined}
               contactPerson={data.contactPerson?.trim() || undefined}
+              contactTitle={data.contactTitle?.trim() || undefined}
               primaryCta={data.primaryCta}
               emailLabel={t.ctaEmail}
               websiteLabel={t.websiteRow}
@@ -220,7 +228,7 @@ export function EmpleoQuickDetailPage({
             <div className="mt-8">
               <QuickJobLocationCard
                 location={data.location}
-                sectionTitle={t.ubicacion}
+                sectionTitle={lang === "es" ? "Ubicación del empleo" : "Job location"}
                 ctaLabel={t.verUbicacion}
                 onOpen={() => setLocationOpen(true)}
               />

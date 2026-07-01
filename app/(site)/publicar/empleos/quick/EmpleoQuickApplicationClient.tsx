@@ -40,12 +40,15 @@ const SELECT = `${INPUT} bg-white`;
 
 function joinScheduleRows(rows: EmpleosQuickDraft["scheduleRows"]): string {
   return rows
-    .filter((r) => r.day.trim() || r.shift.trim())
+    .filter((r) => r.day.trim() || r.startTime.trim() || r.shift.trim())
     .map((r) => {
       const day = r.day.trim();
+      const start = r.startTime.trim();
+      const end = r.endTime.trim();
       const shift = r.shift.trim();
-      if (day && shift) return `${day}: ${shift}`;
-      return day || shift;
+      const timePart = start && end ? `${start} – ${end}` : start || shift;
+      if (day && timePart) return `${day} · ${timePart}`;
+      return day || timePart;
     })
     .join("\n");
 }
@@ -298,7 +301,9 @@ export default function EmpleoQuickApplicationClient() {
               <textarea className={`${INPUT} min-h-[120px]`} value={state.description}
                 onChange={(e) => patch({ description: e.target.value })} />
               <p className="mt-1 text-xs text-[#7A756E]">
-                {es ? "Incluye responsabilidades, requisitos, inicio y cómo contactar." : "Include responsibilities, requirements, start date, and how to apply."}
+                {es
+                  ? "Incluye responsabilidades, requisitos, experiencia necesaria y cómo prefieres que se comuniquen los candidatos."
+                  : "Include responsibilities, requirements, needed experience, and how candidates should contact you."}
               </p>
             </label>
           </EmpleosSectionCard>
@@ -320,29 +325,44 @@ export default function EmpleoQuickApplicationClient() {
               </p>
               <div className="mt-2 space-y-2">
                 {state.scheduleRows.map((row, idx) => (
-                  <div key={idx} className="grid gap-2 sm:grid-cols-2">
+                  <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
                     <input className={INPUT} value={row.day}
                       placeholder={es ? "Día o bloque (ej. Lun–Vie)" : "Day or block (e.g. Mon–Fri)"}
                       onChange={(e) => {
                         const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, day: e.target.value } : r));
                         patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
                       }} />
-                    <input className={INPUT} value={row.shift}
-                      placeholder={es ? "Turno / horas (ej. 8:00 AM – 5:00 PM)" : "Shift / hours (e.g. 8:00 AM – 5:00 PM)"}
+                    <input className={INPUT} value={row.startTime}
+                      placeholder={es ? "Hora de inicio (ej. 8:00 AM)" : "Start time (e.g. 8:00 AM)"}
                       onChange={(e) => {
-                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, shift: e.target.value } : r));
+                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, startTime: e.target.value } : r));
                         patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
                       }} />
+                    <input className={INPUT} value={row.endTime}
+                      placeholder={es ? "Hora de fin (ej. 5:00 PM)" : "End time (e.g. 5:00 PM)"}
+                      onChange={(e) => {
+                        const next = state.scheduleRows.map((r, j) => (j === idx ? { ...r, endTime: e.target.value } : r));
+                        patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
+                      }} />
+                    {state.scheduleRows.length > 1 ? (
+                      <button type="button"
+                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-black/10 bg-white text-sm text-[#9A3A3A] transition hover:bg-red-50"
+                        aria-label={es ? "Quitar turno" : "Remove shift"}
+                        onClick={() => {
+                          const next = state.scheduleRows.filter((_, j) => j !== idx);
+                          patch({ scheduleRows: next.length ? next : [{ day: "", shift: "", startTime: "", endTime: "" }], schedule: joinScheduleRows(next) });
+                        }}>×</button>
+                    ) : <div />}
                   </div>
                 ))}
               </div>
               <button type="button"
                 className="mt-2 min-h-[36px] rounded-lg border border-[#C9B46A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#6B5320] transition hover:bg-[#FFF8E0]"
                 onClick={() => {
-                  const next = [...state.scheduleRows, { day: "", shift: "" }];
+                  const next = [...state.scheduleRows, { day: "", shift: "", startTime: "", endTime: "" }];
                   patch({ scheduleRows: next, schedule: joinScheduleRows(next) });
                 }}>
-                {es ? "+ Añadir turno" : "+ Add shift row"}
+                {es ? "+ Añadir turno" : "+ Add shift"}
               </button>
             </div>
             <div>
@@ -458,12 +478,20 @@ export default function EmpleoQuickApplicationClient() {
                   onChange={(e) => patch({ email: e.target.value })} />
               </label>
             </div>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang}>{es ? "Nombre de contacto / reclutador" : "Contact person / recruiter"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.contactPerson}
-                onChange={(e) => patch({ contactPerson: e.target.value })}
-                placeholder={es ? "Ej. Ana García, Recursos Humanos" : "e.g. Ana García, HR"} />
-            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "Nombre de contacto" : "Contact name"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.contactPerson}
+                  onChange={(e) => patch({ contactPerson: e.target.value })}
+                  placeholder={es ? "Ej. Ana García" : "e.g. Ana García"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang}>{es ? "Título / cargo del contacto" : "Contact title / role"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.contactTitle}
+                  onChange={(e) => patch({ contactTitle: e.target.value })}
+                  placeholder={es ? "Ej. Gerente de RRHH, Reclutadora" : "e.g. HR Manager, Recruiter"} />
+              </label>
+            </div>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang}>{es ? "Método preferido de contacto" : "Preferred contact method"}</EmpleosFieldLabel>
               <select className={SELECT} value={state.preferredApplyMethod}

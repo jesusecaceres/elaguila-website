@@ -57,6 +57,8 @@ export type QuickJobDetailSample = {
   websiteUrl?: string;
   /** Recruiter / contact person shown on apply card. */
   contactPerson?: string;
+  /** Recruiter role / title (e.g. "Hiring Manager"). */
+  contactTitle?: string;
   /** Preferred apply method. */
   preferredApplyMethod?: string;
   primaryCta?: "phone" | "whatsapp" | "email";
@@ -71,6 +73,10 @@ export type QuickJobDetailSample = {
   companyInstagram?: string;
   companyOtherLinkLabel?: string;
   companyOtherLinkUrl?: string;
+  /** State / Region for header display. */
+  stateRegion?: string;
+  /** Country for header display. */
+  country?: string;
   /** Omit when the ad has no address; location UI hides. */
   location?: QuickJobLocationBlock;
   relatedJobs: QuickJobRelatedCard[];

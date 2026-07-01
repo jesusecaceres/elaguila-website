@@ -11,7 +11,15 @@ export type EmpleosQuickPreferredApplyMethod =
   | "whatsapp"
   | "message";
 
-export type EmpleosQuickScheduleRow = { day: string; shift: string };
+export type EmpleosQuickScheduleRow = {
+  day: string;
+  /** Legacy freeform shift text — preserved for old sessions. */
+  shift: string;
+  /** Structured start time (e.g. "8:00 AM"). Preferred over freeform shift. */
+  startTime: string;
+  /** Structured end time (e.g. "5:00 PM"). */
+  endTime: string;
+};
 
 export type EmpleosQuickDraft = {
   title: string;
@@ -48,6 +56,8 @@ export type EmpleosQuickDraft = {
   website: string;
   /** Contact person or recruiter name shown on public apply card. */
   contactPerson: string;
+  /** Recruiter role / title shown alongside contact name (e.g. "Hiring Manager"). */
+  contactTitle: string;
   /** Preferred method for applicants to reach the employer. */
   preferredApplyMethod: EmpleosQuickPreferredApplyMethod;
   primaryCta: EmpleosQuickPrimaryCta;
@@ -133,13 +143,15 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     ? rest.scheduleRows.map((r) => ({
         day: String((r as EmpleosQuickScheduleRow).day ?? "").trim(),
         shift: String((r as EmpleosQuickScheduleRow).shift ?? "").trim(),
+        startTime: String((r as EmpleosQuickScheduleRow).startTime ?? "").trim(),
+        endTime: String((r as EmpleosQuickScheduleRow).endTime ?? "").trim(),
       }))
     : [];
   const schedStr = typeof rest.schedule === "string" ? rest.schedule.trim() : "";
-  if (!scheduleRows.some((r) => r.day || r.shift) && schedStr) {
-    scheduleRows = [{ day: "", shift: schedStr }];
+  if (!scheduleRows.some((r) => r.day || r.shift || r.startTime || r.endTime) && schedStr) {
+    scheduleRows = [{ day: "", shift: schedStr, startTime: "", endTime: "" }];
   }
-  if (!scheduleRows.length) scheduleRows = [{ day: "", shift: "" }];
+  if (!scheduleRows.length) scheduleRows = [{ day: "", shift: "", startTime: "", endTime: "" }];
 
   const PREFERRED_METHODS: EmpleosQuickPreferredApplyMethod[] = ["apply-link", "email", "phone", "whatsapp", "message"];
   const prefRaw = rest.preferredApplyMethod as string | undefined;
@@ -171,6 +183,7 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     applyLink: typeof rest.applyLink === "string" ? rest.applyLink.trim() : e.applyLink,
     smsPhone: typeof rest.smsPhone === "string" ? rest.smsPhone.trim() : e.smsPhone,
     contactPerson: typeof rest.contactPerson === "string" ? rest.contactPerson.trim() : e.contactPerson,
+    contactTitle: typeof rest.contactTitle === "string" ? rest.contactTitle.trim() : e.contactTitle,
     preferredApplyMethod,
     workspaceName: typeof rest.workspaceName === "string" ? rest.workspaceName.trim() : e.workspaceName,
     locationNotes: typeof rest.locationNotes === "string" ? rest.locationNotes.trim() : e.locationNotes,
@@ -194,7 +207,7 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     workModality: "presencial",
     jobType: "",
     schedule: "",
-    scheduleRows: [{ day: "", shift: "" }],
+    scheduleRows: [{ day: "", shift: "", startTime: "", endTime: "" }],
     pay: "",
     description: "",
     benefits: [],
@@ -208,6 +221,7 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     email: "",
     website: "",
     contactPerson: "",
+    contactTitle: "",
     preferredApplyMethod: "phone",
     primaryCta: "phone",
     addressLine1: "",

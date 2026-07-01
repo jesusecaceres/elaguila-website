@@ -15,9 +15,14 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
   if (e.payload.lane !== "quick") return null;
   const d = e.payload.data;
   const rows =
-    d.scheduleRows?.map((r) => ({ day: String(r.day ?? "").trim(), shift: String(r.shift ?? "").trim() })) ?? [];
+    d.scheduleRows?.map((r) => ({
+      day: String(r.day ?? "").trim(),
+      shift: String(r.shift ?? "").trim(),
+      startTime: String((r as { startTime?: string }).startTime ?? "").trim(),
+      endTime: String((r as { endTime?: string }).endTime ?? "").trim(),
+    })) ?? [];
   const scheduleRows =
-    rows.some((r) => r.day || r.shift) ? rows : d.schedule.trim() ? [{ day: "", shift: d.schedule.trim() }] : undefined;
+    rows.some((r) => r.day || r.shift || r.startTime) ? rows : d.schedule.trim() ? [{ day: "", shift: d.schedule.trim(), startTime: "", endTime: "" }] : undefined;
   return normalizeEmpleosQuickDraft({
     title: d.title,
     businessName: d.businessName,
