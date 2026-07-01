@@ -9,10 +9,10 @@ import {
 import {
   RENTAS_BTN_PRIMARY,
   RENTAS_BTN_SECONDARY,
-  RENTAS_LANDING_FIELD,
-  RENTAS_LANDING_SEARCH_CANVAS,
-  RENTAS_SEARCH_CANVAS,
+  RENTAS_SEARCH_FIELD,
   RENTAS_SEARCH_INPUT,
+  RENTAS_SEARCH_SHELL,
+  RENTAS_SEARCH_SHELL_GLOW,
   rentasBrowseSearchPlaceholder,
 } from "../shared/rentasLeonixPublicUi";
 
@@ -33,9 +33,19 @@ type Props = {
   browseAllHref?: string;
   searchButtonLabel: string;
   filtersButtonLabel: string;
-  /** Landing uses wider keyword + field boxes; results keep compact grid. */
   layout?: "default" | "landing";
 };
+
+function SearchIcon() {
+  return (
+    <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-3-3" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
 
 export function RentasCompactSearchCanvas({
   lang,
@@ -63,121 +73,15 @@ export function RentasCompactSearchCanvas({
   const countryPh = lang === "es" ? "País" : "Country";
   const browseLabel = lang === "es" ? "Ver todos los anuncios" : "View all listings";
   const isLanding = layout === "landing";
-
-  if (isLanding) {
-    return (
-      <div className={RENTAS_LANDING_SEARCH_CANVAS}>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:gap-2">
-          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-5`}>
-            <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3-3" strokeLinecap="round" />
-              </svg>
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => onQuery(e.target.value)}
-              placeholder={ph}
-              aria-label={ph}
-              className={`${RENTAS_SEARCH_INPUT} px-2`}
-              autoComplete="off"
-            />
-          </label>
-          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-2`}>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => onCity(e.target.value)}
-              list="rentas-city-presets-landing"
-              placeholder={cityPh}
-              aria-label={cityPh}
-              className={RENTAS_SEARCH_INPUT}
-              autoComplete="address-level2"
-            />
-            <datalist id="rentas-city-presets-landing">
-              {LEONIX_LB_CITY_PRESETS.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </label>
-          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-2`}>
-            <select
-              value={state || LEONIX_LB_DEFAULT_STATE}
-              onChange={(e) => onState(e.target.value)}
-              aria-label={statePh}
-              className={`${RENTAS_SEARCH_INPUT} appearance-none`}
-            >
-              {US_STATE_OPTIONS.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.code}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-1`}>
-            <input
-              type="text"
-              value={zip}
-              onChange={(e) => onZip(e.target.value)}
-              placeholder={zipPh}
-              aria-label={zipPh}
-              inputMode="numeric"
-              maxLength={5}
-              className={`${RENTAS_SEARCH_INPUT} px-2 text-center sm:px-2`}
-              autoComplete="postal-code"
-            />
-          </label>
-          <div className="hidden sm:col-span-2 sm:block">
-            <button type="button" className={`${RENTAS_BTN_PRIMARY} w-full`} onClick={onSearch}>
-              {searchButtonLabel}
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch sm:gap-2">
-          <label className={`${RENTAS_LANDING_FIELD} sm:col-span-4`}>
-            <input
-              type="text"
-              value={country}
-              onChange={(e) => onCountry(e.target.value)}
-              placeholder={countryPh}
-              aria-label={countryPh}
-              className={RENTAS_SEARCH_INPUT}
-              autoComplete="country-name"
-            />
-          </label>
-          <div className="flex flex-col gap-2 sm:col-span-3 sm:flex-row sm:items-stretch">
-            <button type="button" className={`${RENTAS_BTN_SECONDARY} w-full`} onClick={onOpenFilters}>
-              {filtersButtonLabel}
-            </button>
-          </div>
-          {browseAllHref ? (
-            <Link href={browseAllHref} className={`${RENTAS_BTN_SECONDARY} sm:col-span-5 inline-flex w-full items-center justify-center`}>
-              {browseLabel}
-            </Link>
-          ) : (
-            <div className="hidden sm:col-span-5 sm:block" aria-hidden />
-          )}
-          <button type="button" className={`${RENTAS_BTN_PRIMARY} w-full sm:hidden`} onClick={onSearch}>
-            {searchButtonLabel}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const datalistId = isLanding ? "rentas-city-presets-landing" : "rentas-city-presets";
 
   return (
-    <div className={RENTAS_SEARCH_CANVAS}>
-      <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
-        <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-4 sm:border-b-0 sm:border-r">
-          <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20l-3-3" strokeLinecap="round" />
-            </svg>
-          </span>
+    <div className={RENTAS_SEARCH_SHELL}>
+      <div className={RENTAS_SEARCH_SHELL_GLOW} aria-hidden />
+
+      <div className="relative grid grid-cols-1 gap-2 sm:grid-cols-12 sm:gap-2.5">
+        <label className={`${RENTAS_SEARCH_FIELD} ${isLanding ? "sm:col-span-5" : "sm:col-span-4"}`}>
+          <SearchIcon />
           <input
             type="search"
             value={query}
@@ -188,24 +92,24 @@ export function RentasCompactSearchCanvas({
             autoComplete="off"
           />
         </label>
-        <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+        <label className={`${RENTAS_SEARCH_FIELD} sm:col-span-2`}>
           <input
             type="text"
             value={city}
             onChange={(e) => onCity(e.target.value)}
-            list="rentas-city-presets"
+            list={datalistId}
             placeholder={cityPh}
             aria-label={cityPh}
             className={RENTAS_SEARCH_INPUT}
             autoComplete="address-level2"
           />
-          <datalist id="rentas-city-presets">
+          <datalist id={datalistId}>
             {LEONIX_LB_CITY_PRESETS.map((c) => (
               <option key={c} value={c} />
             ))}
           </datalist>
         </label>
-        <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+        <label className={`${RENTAS_SEARCH_FIELD} sm:col-span-2`}>
           <select
             value={state || LEONIX_LB_DEFAULT_STATE}
             onChange={(e) => onState(e.target.value)}
@@ -219,7 +123,7 @@ export function RentasCompactSearchCanvas({
             ))}
           </select>
         </label>
-        <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+        <label className={`${RENTAS_SEARCH_FIELD} sm:col-span-1`}>
           <input
             type="text"
             value={zip}
@@ -228,18 +132,19 @@ export function RentasCompactSearchCanvas({
             aria-label={zipPh}
             inputMode="numeric"
             maxLength={5}
-            className={RENTAS_SEARCH_INPUT}
+            className={`${RENTAS_SEARCH_INPUT} px-2 text-center`}
             autoComplete="postal-code"
           />
         </label>
-        <div className="hidden p-1.5 sm:col-span-2 sm:block">
+        <div className="hidden sm:col-span-2 sm:block">
           <button type="button" className={`${RENTAS_BTN_PRIMARY} w-full`} onClick={onSearch}>
             {searchButtonLabel}
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-center">
-        <label className="order-1 flex min-h-[2.625rem] min-w-0 items-center sm:order-none sm:col-span-3">
+
+      <div className="relative mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch sm:gap-2.5">
+        <label className={`${RENTAS_SEARCH_FIELD} sm:col-span-4`}>
           <input
             type="text"
             value={country}
@@ -250,20 +155,19 @@ export function RentasCompactSearchCanvas({
             autoComplete="country-name"
           />
         </label>
-        <div className="order-2 flex flex-wrap items-center gap-1.5 sm:order-none sm:col-span-4">
-          <button type="button" className={RENTAS_BTN_SECONDARY} onClick={onOpenFilters}>
+        <div className="sm:col-span-3">
+          <button type="button" className={`${RENTAS_BTN_SECONDARY} w-full`} onClick={onOpenFilters}>
             {filtersButtonLabel}
           </button>
         </div>
         {browseAllHref ? (
-          <Link
-            href={browseAllHref}
-            className={`${RENTAS_BTN_SECONDARY} order-4 inline-flex w-full items-center justify-center sm:order-none sm:col-span-3 sm:w-auto`}
-          >
+          <Link href={browseAllHref} className={`${RENTAS_BTN_SECONDARY} sm:col-span-5 inline-flex w-full items-center justify-center`}>
             {browseLabel}
           </Link>
-        ) : null}
-        <button type="button" className={`${RENTAS_BTN_PRIMARY} order-3 w-full sm:hidden`} onClick={onSearch}>
+        ) : (
+          <div className="hidden sm:col-span-5 sm:block" aria-hidden />
+        )}
+        <button type="button" className={`${RENTAS_BTN_PRIMARY} w-full sm:hidden`} onClick={onSearch}>
           {searchButtonLabel}
         </button>
       </div>
