@@ -111,6 +111,8 @@ export type CategoryStandardLandingBlockProps = {
   children?: ReactNode;
   /** Replaces default GET search row (e.g. Rentas client-side search bar). */
   searchSlot?: ReactNode;
+  /** Hide monetization strip from hero/search area (show lower on page instead). */
+  suppressVisibilityCta?: boolean;
 };
 
 export function CategoryStandardLandingBlock({
@@ -129,6 +131,7 @@ export function CategoryStandardLandingBlock({
   searchChips,
   belowHero,
   searchSlot,
+  suppressVisibilityCta = false,
   children,
 }: CategoryStandardLandingBlockProps) {
   return (
@@ -159,7 +162,7 @@ export function CategoryStandardLandingBlock({
             browseLabel={browseLabel}
           />
         </div>
-        {categorySupportsVisibilityCta(category) ? (
+        {categorySupportsVisibilityCta(category) && !suppressVisibilityCta ? (
           <div className="mt-3">
             <CategoryVisibilityCta lang={lang} category={category} surface="landing" compact />
           </div>

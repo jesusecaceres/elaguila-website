@@ -10,8 +10,9 @@ import { PublishServiceCTA } from "./PublishServiceCTA";
 import { RecentServicesSection } from "./RecentServicesSection";
 import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
-import { TrustValueStrip } from "./TrustValueStrip";
+import { ServiciosCompactSearchCanvas } from "./ServiciosCompactSearchCanvas";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } from "./serviciosLandingSampleData";
 
@@ -72,45 +73,47 @@ export function ServiciosLandingPage({
       browseLabel={copy.browse}
       searchAction={resultsHref}
       searchChips={quickChips}
+      searchSlot={<ServiciosCompactSearchCanvas lang={lang} />}
+      suppressVisibilityCta
     >
       <div className="space-y-5 sm:space-y-6">
         <div className="flex flex-col gap-5 sm:gap-6">
-          <div
-            className={`${sectionShell} p-3.5 sm:p-4 ${hasDestacados ? "order-1" : "order-3 lg:order-1"}`}
-          >
-            <ServiciosDestacadosSection
-              lang={lang}
-              rows={destacadosRows}
-              id="servicios-landing-destacados"
-              showEmptyState
-            />
-          </div>
-
-          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3.5 sm:p-4 order-2`}>
-            <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES} />
-          </div>
-
-          <div className={`${sectionShell} p-3.5 sm:p-4 ${hasDestacados ? "order-3" : "order-1 lg:order-3"}`}>
+          <div className={`${sectionShell} p-3.5 sm:p-4 order-2`}>
             <RecentServicesSection lang={lang} rows={recientesRows} />
           </div>
+
+          <div id="categorias" className={`scroll-mt-24 ${sectionShell} p-3.5 sm:p-4 order-3`}>
+            <ServiceCategoriesGrid lang={lang} categories={SERVICIOS_LANDING_EXPLORE_CATEGORIES.slice(0, 8)} />
+          </div>
+
+          {hasDestacados ? (
+            <div className={`${sectionShell} p-3.5 sm:p-4 order-4`}>
+              <ServiciosDestacadosSection
+                lang={lang}
+                rows={destacadosRows}
+                id="servicios-landing-destacados"
+                showEmptyState={false}
+              />
+            </div>
+          ) : null}
         </div>
 
-        <TrustValueStrip lang={lang} />
+        <CategoryVisibilityCta lang={lang} category="servicios" surface="landing" compact />
         <PublishServiceCTA lang={lang} />
 
         <nav
           className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#D6C7AD]/80 pt-8 text-[13px] text-[#5C5346] sm:pt-10"
           aria-label={lang === "en" ? "Legal and help" : "Legal y ayuda"}
         >
-            <Link href={replaceLangInHref("/about", routeLang)} className="transition hover:text-[#7A1E2C]">
-              {lang === "en" ? "About" : "Sobre Nosotros"}
-            </Link>
-            <Link href={replaceLangInHref("/contact", routeLang)} className="transition hover:text-[#7A1E2C]">
-              {lang === "en" ? "Contact" : "Contáctanos"}
-            </Link>
-            <Link href={replaceLangInHref("/clasificados/reglas", routeLang)} className="transition hover:text-[#7A1E2C]">
-              {lang === "en" ? "Terms" : "Términos y Condiciones"}
-            </Link>
+          <Link href={replaceLangInHref("/about", routeLang)} className="transition hover:text-[#7A1E2C]">
+            {lang === "en" ? "About" : "Sobre Nosotros"}
+          </Link>
+          <Link href={replaceLangInHref("/contact", routeLang)} className="transition hover:text-[#7A1E2C]">
+            {lang === "en" ? "Contact" : "Contáctanos"}
+          </Link>
+          <Link href={replaceLangInHref("/clasificados/reglas", routeLang)} className="transition hover:text-[#7A1E2C]">
+            {lang === "en" ? "Terms" : "Términos y Condiciones"}
+          </Link>
           <Link href={`${replaceLangInHref("/clasificados", routeLang)}#categorias`} className="transition hover:text-[#7A1E2C]">
             {lang === "en" ? "FAQ" : "Preguntas Frecuentes"}
           </Link>

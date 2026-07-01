@@ -20,6 +20,7 @@ import {
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { RentasLandingQuickChips } from "@/app/clasificados/rentas/landing/RentasLandingQuickChips";
 import { RentasLandingShell } from "@/app/clasificados/rentas/landing/RentasLandingShell";
+import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
   RENTAS_QUERY_AMUEBLADO,
   RENTAS_QUERY_BRANCH,
@@ -140,7 +141,7 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
         browseHref={resultsBase}
         publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
         browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
-        searchChips={null}
+        suppressVisibilityCta
         searchSlot={
           <div className="w-full min-w-0 space-y-2">
             <p className="text-[11px] font-medium text-[#556B3E]">{catalogLine}</p>
@@ -184,6 +185,10 @@ export function RentasLandingHub({ initialLiveListings, includeDemoPool }: Renta
           </div>
         </section>
       ) : null}
+
+      <div className="mt-6 sm:mt-8">
+        <CategoryVisibilityCta lang={lang} category="rentas" surface="landing" compact />
+      </div>
 
       <RentasFiltersDrawer
         open={filtersOpen}

@@ -16,17 +16,17 @@ export function ServiceCategoriesGrid({
         </p>
         <h2
           id="servicios-categorias-heading"
-          className="mt-1 text-xl font-bold leading-tight tracking-tight text-[#142a42] sm:text-2xl"
+          className="mt-1 font-serif text-base font-bold leading-tight text-[#2A4536] sm:text-lg"
         >
           {lang === "en" ? "Explore categories" : "Explora por giro"}
         </h2>
-        <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#4a5d6e] sm:text-sm">
+        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#3D3428]/75 sm:text-sm">
           {lang === "en"
             ? "Jump into results with the same trade families your listing will use when published."
             : "Entra a resultados con las mismas familias de giro que usará tu anuncio al publicarse."}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
         {categories.map((c) => (
           <ServiceCategoryCard key={c.id} lang={lang} cat={c} />
         ))}

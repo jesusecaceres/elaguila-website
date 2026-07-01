@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
@@ -42,9 +42,7 @@ import { EMPLEOS_RESULTS_FEATURED_STRIP_MAX } from "../lib/empleosPublicRankingP
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
 import { categoryStandardTitle } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
-import { EmpleosFunctionalPrefsNotice } from "./EmpleosFunctionalPrefsNotice";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
-import { EmpleosUseLocationButton } from "./EmpleosUseLocationButton";
 
 const COPY = {
   es: {
@@ -56,36 +54,36 @@ const COPY = {
     clear: "Limpiar filtros",
     sortLabel: "Ordenar lista por",
     sortRelevance: "Relevancia",
-    sortDate: "Más recientes",
+    sortDate: "MÃ¡s recientes",
     sortSalary: "Salario mayor",
     sortHint: "Se aplica a los resultados ya filtrados.",
     activeFilters: "Filtros activos",
-    emptyTitle: "No encontramos vacantes con esta combinación",
-    emptyHint: "Amplía ciudad o palabra clave, o restablece filtros para volver a explorar.",
-    emptySupport: "No es un error tuyo: los listados viven de tus filtros. Prueba una acción de abajo o vuelve al inicio de Empleos.",
+    emptyTitle: "No encontramos vacantes con esta combinaciÃ³n",
+    emptyHint: "AmplÃ­a ciudad o palabra clave, o restablece filtros para volver a explorar.",
+    emptySupport: "No es un error tuyo: los listados viven de tus filtros. Prueba una acciÃ³n de abajo o vuelve al inicio de Empleos.",
     emptyExplore: "Volver a Empleos",
     keywordHint: "Escribe y pulsa Buscar, o Enter, para aplicar la palabra clave.",
     fieldBlurHint: "Ciudad y CP se actualizan al salir del campo.",
-    listIntroRecent: "Solo publicaciones de los últimos 7 días, en orden cronológico.",
+    listIntroRecent: "Solo publicaciones de los Ãºltimos 7 dÃ­as, en orden cronolÃ³gico.",
     featuredBlock: "Destacados y promocionados",
     allBlock: "Todas las vacantes",
-    formAria: "Filtros de búsqueda de empleos",
+    formAria: "Filtros de bÃºsqueda de empleos",
     rememberPrefs: "Recordar ciudad y estado en este dispositivo",
-    filtersToggle: "Más filtros y señales de confianza",
+    filtersToggle: "MÃ¡s filtros y seÃ±ales de confianza",
     clearAll: "Restablecer todo",
-    locationGroup: "Ubicación",
-    roleGroup: "Puesto y categoría",
+    locationGroup: "UbicaciÃ³n",
+    roleGroup: "Puesto y categorÃ­a",
     conditionsGroup: "Condiciones",
-    featuredIntro: "Mayor visibilidad dentro de tu búsqueda — el listado completo sigue debajo.",
+    featuredIntro: "Mayor visibilidad dentro de tu bÃºsqueda â€” el listado completo sigue debajo.",
     listIntro: "Coincidencias con tus filtros; cambia el orden sin perder criterios.",
-    emptyRecoveryTitle: "Recupera resultados rápido",
+    emptyRecoveryTitle: "Recupera resultados rÃ¡pido",
     recoverDropQ: "Quitar palabra clave",
-    recoverDropZip: "Quitar código postal",
+    recoverDropZip: "Quitar cÃ³digo postal",
     recoverDropCity: "Quitar ciudad",
-    recoverBroaderCA: "Ampliar ubicación",
-    recoverRecent: "Últimos 7 días (todos los filtros)",
-    exploreMore: "Explora también",
-    lowResultsHint: "Pocas coincidencias — abre una categoría cercana:",
+    recoverBroaderCA: "Ampliar ubicaciÃ³n",
+    recoverRecent: "Ãšltimos 7 dÃ­as (todos los filtros)",
+    exploreMore: "Explora tambiÃ©n",
+    lowResultsHint: "Pocas coincidencias â€” abre una categorÃ­a cercana:",
   },
   en: {
     hub: "Classifieds",
@@ -116,7 +114,7 @@ const COPY = {
     locationGroup: "Location",
     roleGroup: "Role & category",
     conditionsGroup: "Conditions",
-    featuredIntro: "Higher visibility within your search — the full list still follows.",
+    featuredIntro: "Higher visibility within your search â€” the full list still follows.",
     listIntro: "Matches for your filters; change sort without losing criteria.",
     emptyRecoveryTitle: "Get results back quickly",
     recoverDropQ: "Remove keyword",
@@ -125,11 +123,11 @@ const COPY = {
     recoverBroaderCA: "Broaden location",
     recoverRecent: "Last 7 days (keep other filters)",
     exploreMore: "Explore more",
-    lowResultsHint: "Few matches — try a nearby category:",
+    lowResultsHint: "Few matches â€” try a nearby category:",
   },
 } as const;
 
-/** Same window as `filterEmpleosJobs` recent filter — for fair “Reciente” ribbon on cards. */
+/** Same window as `filterEmpleosJobs` recent filter â€” for fair â€œRecienteâ€ ribbon on cards. */
 const RESULTS_RECENT_MS = 7 * 24 * 3600 * 1000;
 
 function isRecentPosting(job: EmpleosJobRecord, nowMs: number): boolean {
@@ -207,7 +205,7 @@ function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): Empleos
 }
 
 function sortChipLabel(lang: Lang, sort: EmpleosSortKey): string {
-  if (sort === "date_desc") return lang === "es" ? "Orden: más recientes" : "Sort: newest first";
+  if (sort === "date_desc") return lang === "es" ? "Orden: mÃ¡s recientes" : "Sort: newest first";
   if (sort === "salary_desc") return lang === "es" ? "Orden: salario mayor" : "Sort: highest salary";
   return lang === "es" ? "Orden: relevancia" : "Sort: relevance";
 }
@@ -245,7 +243,7 @@ function chipLabel(lang: Lang, key: string, val: string): string {
     const o = sampleUsStateSelectOptions.find((x) => x.value === val);
     return lang === "es" ? `Estado: ${o?.labelEs ?? val}` : `State: ${o?.labelEn ?? val}`;
   }
-  if (key === "zip") return lang === "es" ? `Código postal: ${val}` : `Postal code: ${val}`;
+  if (key === "zip") return lang === "es" ? `CÃ³digo postal: ${val}` : `Postal code: ${val}`;
   if (key === "verified" && val === "1") return lang === "es" ? "Solo verificados" : "Verified only";
   if (key === "industry" && val) return lang === "es" ? `Industria: ${val}` : `Industry: ${val}`;
   return `${key}: ${val}`;
@@ -280,7 +278,7 @@ function EmpleosFilterToggles({
       </label>
       <label className={`${cb} ${recent ? cbOn : ""}`}>
         <input type="checkbox" checked={recent} onChange={(e) => onRecentChange(e.target.checked)} className="h-4 w-4 rounded" />
-        {lang === "es" ? "Últimos 7 días" : "Last 7 days"}
+        {lang === "es" ? "Ãšltimos 7 dÃ­as" : "Last 7 days"}
       </label>
       <label className={`${cb} ${verifiedBox ? cbOn : ""}`}>
         <input type="checkbox" checked={verifiedBox} onChange={(e) => onVerifiedChange(e.target.checked)} className="h-4 w-4 rounded" />
@@ -295,7 +293,7 @@ type EmpleosResultsViewProps = {
   initialJobs?: EmpleosJobRecord[];
   /** When true, empty `initialJobs` must not re-hydrate marketing seed on the client. */
   omitMarketingSeed?: boolean;
-  /** Server clock for “recent” filter and ribbons (live listings). */
+  /** Server clock for â€œrecentâ€ filter and ribbons (live listings). */
   serverNowMs?: number;
 };
 
@@ -316,7 +314,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
 
   useEffect(() => {
     // When the server sends an empty catalog, always hydrate from the public listings API so results stay
-    // DB-backed (omitMarketingSeed only controls seed merge — it must not block the fetch).
+    // DB-backed (omitMarketingSeed only controls seed merge â€” it must not block the fetch).
     if (initialJobs.length > 0) return;
     let cancelled = false;
     void (async () => {
@@ -382,6 +380,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   const [industry, setIndustry] = useState(parsed.industry);
   const [bilingualBox, setBilingualBox] = useState(parsed.bilingualOnly);
   const [rememberPrefs, setRememberPrefs] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
 
   useEffect(() => {
     setQ(parsed.q);
@@ -537,364 +536,185 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
           />
         </div>
 
-      <main className="mx-auto max-w-[min(100rem,calc(100%-1rem))] px-4 sm:px-6 lg:px-10">
-        <EmpleosFunctionalPrefsNotice lang={lang} />
-
-        <form aria-label={t.formAria} onSubmit={submitSearch} className={`${EMPLEOS_RESULTS_FILTER_PANEL} mt-3`}>
-          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <label className="block min-w-0">
-              <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#5B6F82]">{lang === "es" ? "Palabra clave" : "Keyword"}</span>
+      <main className="mx-auto max-w-[1080px] px-3.5 sm:px-4 lg:px-5">
+        <form aria-label={t.formAria} onSubmit={submitSearch} className="mt-3 overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]">
+          <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
+            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-5 sm:border-b-0 sm:border-r">
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className={EMPLEOS_FIELD}
-                placeholder={lang === "es" ? "Ej. enfermero, ventas, bodega…" : "e.g. nurse, sales, warehouse…"}
+                placeholder={lang === "es" ? "Palabra clave, puesto o empresaâ€¦" : "Keyword, job, or companyâ€¦"}
+                aria-label={lang === "es" ? "Palabra clave" : "Keyword"}
+                className="min-h-[2.625rem] min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
               />
             </label>
-            <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} min-h-[2.75rem] px-6 text-sm lg:min-w-[8rem]`}>
-              {t.search}
-            </button>
-            <p className="text-[11px] leading-relaxed text-[#7A756E] lg:col-span-2">{t.keywordHint}</p>
-          </div>
-
-          <details className="group mt-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7]/90 p-3">
-            <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 text-sm font-bold text-[#2A2826] [&::-webkit-details-marker]:hidden">
-              <span>{lang === "es" ? "Filtros" : "Filters"}</span>
-              <FaChevronDown className="h-4 w-4 shrink-0 text-[#5B6F82] transition group-open:rotate-180" aria-hidden />
-            </summary>
-            <div className="mt-4 space-y-6 border-t border-[#F0E8DC] pt-4">
-            <div className={EMPLEOS_RESULTS_GROUP}>
-              <h3 className="mb-4 text-sm font-bold text-[#2A2826]">{t.locationGroup}</h3>
-              <p className="mb-3 text-[11px] leading-relaxed text-[#7A756E]">{t.fieldBlurHint}</p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <label className="sm:col-span-1">
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Ciudad" : "City"}</span>
-                  <input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    onBlur={onCityZipBlur}
-                    className={EMPLEOS_FIELD}
-                    autoComplete="address-level2"
-                  />
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">
-                    {lang === "es" ? "Estado / provincia / región" : "State / province / region"}
-                  </span>
-                  <input
-                    value={stateCode}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setStateCode(v);
-                      pushFromFields({ stateCode: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                    autoComplete="address-level1"
-                    placeholder={lang === "es" ? "Ej. Jalisco, Ontario" : "e.g. Jalisco, Ontario"}
-                  />
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Código postal" : "Postal code"}</span>
-                  <input
-                    value={zipInput}
-                    onChange={(e) => setZipInput(e.target.value)}
-                    onBlur={onCityZipBlur}
-                    className={EMPLEOS_FIELD}
-                    autoComplete="postal-code"
-                    placeholder={lang === "es" ? "K1A 0B1, 28013" : "K1A 0B1, 28013"}
-                  />
-                </label>
-              </div>
-              <div className="mt-4 max-w-xl">
-                <EmpleosUseLocationButton
-                  lang={lang}
-                  onFilled={(p) => {
-                    setCity(p.city);
-                    setStateCode(p.state);
-                    setZipInput(p.zip);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className={EMPLEOS_RESULTS_GROUP}>
-              <h3 className="mb-4 text-sm font-bold text-[#2A2826]">{t.roleGroup}</h3>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <label className="lg:col-span-1">
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Categoría" : "Category"}</span>
-                  <select
-                    value={category}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setCategory(v);
-                      pushFromFields({ category: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleCategorySelectOptions.map((o) => (
-                      <option key={o.value || "all"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empleo" : "Job type"}</span>
-                  <select
-                    value={jobType}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setJobType(v);
-                      pushFromFields({ jobType: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleJobTypeSelectOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Modalidad" : "Modality"}</span>
-                  <select
-                    value={modality}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setModality(v);
-                      pushFromFields({ modality: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleModalityOptions.map((o) => (
-                      <option key={o.value || "all"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="sm:col-span-2 lg:col-span-1">
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Industria / enfoque" : "Industry / focus"}</span>
-                  <input
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    onBlur={() => pushFromFields({ industry })}
-                    className={EMPLEOS_FIELD}
-                    placeholder={lang === "es" ? "p. ej. logística" : "e.g. logistics"}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className={`${EMPLEOS_RESULTS_GROUP} hidden lg:block`}>
-              <h3 className="mb-4 text-sm font-bold text-[#2A2826]">{t.conditionsGroup}</h3>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Salario (rango)" : "Salary band"}</span>
-                  <select
-                    value={salaryBand}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setSalaryBand(v);
-                      pushFromFields({ salaryBand: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleSalaryBandOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Experiencia" : "Experience"}</span>
-                  <select
-                    value={experience}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setExperience(v);
-                      pushFromFields({ experience: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleExperienceOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="md:col-span-2 xl:col-span-1">
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empresa" : "Company type"}</span>
-                  <select
-                    value={companyType}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setCompanyType(v);
-                      pushFromFields({ companyType: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleCompanyTypeOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <details className="group rounded-2xl border border-[#F0E8DC] bg-[#FFFBF7]/90 p-4 lg:hidden">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 text-sm font-bold text-[#2A2826] [&::-webkit-details-marker]:hidden">
-                <span>{t.conditionsGroup}</span>
-                <FaChevronDown className="h-4 w-4 shrink-0 text-[#5B6F82] transition group-open:rotate-180" aria-hidden />
-              </summary>
-              <div className="mt-4 grid gap-4 border-t border-[#F0E8DC] pt-4">
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Salario (rango)" : "Salary band"}</span>
-                  <select
-                    value={salaryBand}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setSalaryBand(v);
-                      pushFromFields({ salaryBand: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleSalaryBandOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Experiencia" : "Experience"}</span>
-                  <select
-                    value={experience}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setExperience(v);
-                      pushFromFields({ experience: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleExperienceOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="mb-1 block text-xs font-semibold text-[#4A4744]">{lang === "es" ? "Tipo de empresa" : "Company type"}</span>
-                  <select
-                    value={companyType}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setCompanyType(v);
-                      pushFromFields({ companyType: v });
-                    }}
-                    className={EMPLEOS_FIELD}
-                  >
-                    {sampleCompanyTypeOptions.map((o) => (
-                      <option key={o.value || "any"} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </details>
-
-            <details className="group rounded-2xl border border-[#E8DFD0] bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] lg:hidden">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 text-sm font-bold text-[#2A2826] [&::-webkit-details-marker]:hidden">
-                <span>{t.filtersToggle}</span>
-                <FaChevronDown className="h-4 w-4 shrink-0 text-[#5B6F82] transition group-open:rotate-180" aria-hidden />
-              </summary>
-              <div className="mt-3 flex flex-col gap-3 border-t border-[#F0E8DC] pt-3">
-                <EmpleosFilterToggles
-                  lang={lang}
-                  featured={featured}
-                  recent={recent}
-                  verifiedBox={verifiedBox}
-                  onFeaturedChange={(v) => {
-                    setFeatured(v);
-                    pushFromFields({ featured: v });
-                  }}
-                  onRecentChange={(v) => {
-                    setRecent(v);
-                    pushFromFields({ recent: v });
-                  }}
-                  onVerifiedChange={(v) => {
-                    setVerifiedBox(v);
-                    pushFromFields({ verifiedBox: v });
-                  }}
-                />
-              </div>
-            </details>
-
-            <div className="hidden flex-wrap gap-x-6 gap-y-3 rounded-2xl border border-[#F0E8DC] bg-[#FFFBF7]/70 p-4 lg:flex">
-              <EmpleosFilterToggles
-                lang={lang}
-                featured={featured}
-                recent={recent}
-                verifiedBox={verifiedBox}
-                onFeaturedChange={(v) => {
-                  setFeatured(v);
-                  pushFromFields({ featured: v });
-                }}
-                onRecentChange={(v) => {
-                  setRecent(v);
-                  pushFromFields({ recent: v });
-                }}
-                onVerifiedChange={(v) => {
-                  setVerifiedBox(v);
-                  pushFromFields({ verifiedBox: v });
-                }}
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                onBlur={onCityZipBlur}
+                placeholder={lang === "es" ? "Ciudad" : "City"}
+                aria-label={lang === "es" ? "Ciudad" : "City"}
+                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                autoComplete="address-level2"
               />
-            </div>
-
-            <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug text-[#4A4744]">
-              <input type="checkbox" checked={rememberPrefs} onChange={(e) => setRememberPrefs(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded" />
-              <span>{t.rememberPrefs}</span>
             </label>
-
-          </div>
-
-          <div className="mt-10 flex flex-col gap-5 border-t border-[#F0E8DC] pt-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
-              <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} min-h-[48px] min-w-[12rem] px-8 text-[15px]`}>
-                {t.search}
-              </button>
+            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+              <input
+                value={zipInput}
+                onChange={(e) => setZipInput(e.target.value)}
+                onBlur={onCityZipBlur}
+                placeholder={lang === "es" ? "ZIP" : "ZIP"}
+                aria-label={lang === "es" ? "CÃ³digo postal" : "ZIP code"}
+                className="min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45"
+                autoComplete="postal-code"
+                inputMode="numeric"
+              />
+            </label>
+            <div className="flex gap-1.5 p-1.5 sm:col-span-3">
               <button
                 type="button"
-                onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
-                className={`${EMPLEOS_CTA_SECONDARY} min-h-[48px] min-w-[10rem] px-6`}
+                onClick={() => setFiltersDrawerOpen(true)}
+                className={`${EMPLEOS_CTA_SECONDARY} flex-1`}
               >
-                {t.clearAll}
+                {lang === "es" ? "Filtros" : "Filters"}
+              </button>
+              <button type="submit" className={`${EMPLEOS_CTA_PRIMARY} flex-[1.2]`}>
+                {t.search}
               </button>
             </div>
-            <div className="flex min-w-0 flex-col gap-1.5 lg:max-w-sm lg:items-end">
-              <label className="flex w-full flex-col gap-2 text-sm font-semibold text-[#2A2826] sm:flex-row sm:items-center sm:gap-3">
-                <span className="shrink-0">{t.sortLabel}</span>
-                <select value={parsed.sort} onChange={(e) => onSortChange(e.target.value)} className={`${EMPLEOS_FIELD} min-h-[48px] w-full sm:min-w-[14rem]`}>
-                  <option value="relevance">{t.sortRelevance}</option>
-                  <option value="date_desc">{t.sortDate}</option>
-                  <option value="salary_desc">{t.sortSalary}</option>
-                </select>
-              </label>
-              <p className="text-[11px] leading-relaxed text-[#7A756E] lg:text-right">{t.sortHint}</p>
-              <button type="button" onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))} className={`${EMPLEOS_LINK_MUTED} lg:self-end`}>
-                {t.clear}
-              </button>
-            </div>
-            </div>
-          </details>
+          </div>
         </form>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <label className="inline-flex min-w-0 items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.sortLabel}</span>
+            <select
+              value={parsed.sort}
+              onChange={(e) => onSortChange(e.target.value)}
+              className="min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]"
+            >
+              <option value="relevance">{t.sortRelevance}</option>
+              <option value="date_desc">{t.sortDate}</option>
+              <option value="salary_desc">{t.sortSalary}</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
+            className={EMPLEOS_CTA_SECONDARY}
+          >
+            {t.clearAll}
+          </button>
+        </div>
+
+        {filtersDrawerOpen ? (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-[70] bg-black/40"
+              aria-label={lang === "es" ? "Cerrar" : "Close"}
+              onClick={() => setFiltersDrawerOpen(false)}
+            />
+            <div
+              className={
+                "fixed z-[71] flex flex-col overflow-hidden border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-xl " +
+                "inset-x-0 bottom-0 top-[12vh] rounded-t-2xl max-lg:max-h-[88vh] " +
+                "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[420px] lg:rounded-none lg:rounded-l-2xl"
+              }
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex items-center justify-between border-b border-[#D6C7AD]/60 px-4 py-3">
+                <h2 className="font-serif text-base font-bold text-[#2A4536]">
+                  {lang === "es" ? "Filtros" : "Filters"}
+                </h2>
+                <button
+                  type="button"
+                  className="rounded-lg border border-[#C9A84A]/45 px-3 py-1 text-xs font-semibold"
+                  onClick={() => setFiltersDrawerOpen(false)}
+                >
+                  {lang === "es" ? "Cerrar" : "Close"}
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                <label className="block text-xs font-semibold text-[#3D3428]">
+                  {lang === "es" ? "Estado / regiÃ³n" : "State / region"}
+                  <input value={stateCode} onChange={(e) => setStateCode(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`} />
+                </label>
+                <label className="block text-xs font-semibold text-[#3D3428]">
+                  {lang === "es" ? "CategorÃ­a" : "Category"}
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
+                    {sampleCategorySelectOptions.map((o) => (
+                      <option key={o.value || "all"} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-[#3D3428]">
+                  {lang === "es" ? "Tipo de empleo" : "Employment type"}
+                  <select value={jobType} onChange={(e) => setJobType(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
+                    {sampleJobTypeSelectOptions.map((o) => (
+                      <option key={o.value || "any"} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-[#3D3428]">
+                  {lang === "es" ? "Modalidad" : "Modality"}
+                  <select value={modality} onChange={(e) => setModality(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
+                    {sampleModalityOptions.map((o) => (
+                      <option key={o.value || "all"} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-[#3D3428]">
+                  {lang === "es" ? "Salario (rango)" : "Salary band"}
+                  <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
+                    {sampleSalaryBandOptions.map((o) => (
+                      <option key={o.value || "any"} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-[#3D3428]">
+                  {lang === "es" ? "Experiencia" : "Experience"}
+                  <select value={experience} onChange={(e) => setExperience(e.target.value)} className={`${EMPLEOS_FIELD} mt-1`}>
+                    {sampleExperienceOptions.map((o) => (
+                      <option key={o.value || "any"} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="flex gap-2 border-t border-[#D6C7AD]/60 p-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltersDrawerOpen(false);
+                    router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }));
+                  }}
+                  className={`${EMPLEOS_CTA_SECONDARY} flex-1`}
+                >
+                  {t.clearAll}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltersDrawerOpen(false);
+                    pushFromFields({
+                      stateCode,
+                      category,
+                      jobType,
+                      modality,
+                      salaryBand,
+                      experience,
+                    });
+                  }}
+                  className={`${EMPLEOS_CTA_PRIMARY} flex-[1.2]`}
+                >
+                  {lang === "es" ? "Aplicar" : "Apply"}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
 
         {activeChips.length > 0 ? (
           <div className="mt-8">
@@ -917,7 +737,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 >
                   {c.label}
                   <span className="text-[#9A948C]" aria-hidden>
-                    ×
+                    Ã—
                   </span>
                 </Link>
               ))}

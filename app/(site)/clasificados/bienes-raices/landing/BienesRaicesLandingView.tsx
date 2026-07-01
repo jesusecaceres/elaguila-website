@@ -175,6 +175,7 @@ export function BienesRaicesLandingView() {
           browseHref={withLang(BR_RESULTS)}
           publishLabel={copy.publishNegocio}
           browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
+          suppressVisibilityCta
           searchChips={
             <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
               {BR_LANDING_QUICK_CHIPS.slice(0, 8).map((chip) => (

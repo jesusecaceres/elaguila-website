@@ -116,7 +116,7 @@ export type CategoryStandardCopyEntry = {
 
 export const CATEGORY_STANDARD_COPY: Record<CategoryStandardKey, CategoryStandardCopyEntry> = {
   "en-venta": {
-    titleEs: "En Venta",
+    titleEs: "Varios",
     titleEn: "For Sale",
     descEs: "Compra, vende o regala artículos locales en tu comunidad.",
     descEn: "Buy, sell, or give local items in your community.",
@@ -310,4 +310,4 @@ export const CATEGORY_STANDARD_PAGE_BG =
 
 /** Below global site Navbar from `(site)/layout` — do not nest a second Navbar. */
 export const CATEGORY_STANDARD_MAIN =
-  "relative mx-auto w-full max-w-6xl min-w-0 px-4 pt-6 pb-12 sm:px-6 sm:pt-8 lg:px-8";
+  "relative mx-auto w-full max-w-[1080px] min-w-0 px-3.5 pb-12 pt-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-6 lg:px-5 lg:pt-8";
