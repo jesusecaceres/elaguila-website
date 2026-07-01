@@ -27,17 +27,29 @@ type Props = {
 };
 
 function modalityEs(m: EmpleosJobRecord["modality"]) {
-  return m === "presencial" ? "Presencial" : m === "hibrido" ? "Híbrido" : "Remoto";
+  if (m === "presencial") return "Presencial";
+  if (m === "hibrido") return "Híbrido";
+  if (m === "remoto") return "Remoto";
+  if (m === "campo") return "En campo";
+  if (m === "varias-ubicaciones") return "Varias ubicaciones";
+  return "Presencial";
 }
 
 function jobTypeEs(t: EmpleosJobRecord["jobType"]) {
-  const map: Record<EmpleosJobRecord["jobType"], string> = {
+  const map: Partial<Record<EmpleosJobRecord["jobType"], string>> = {
     "tiempo-completo": "Tiempo completo",
     "medio-tiempo": "Medio tiempo",
     temporal: "Temporal",
     "por-contrato": "Por contrato",
+    "por-temporada": "Por temporada",
+    "por-horas": "Por horas",
+    "fin-de-semana": "Fin de semana",
+    "turno-nocturno": "Turno nocturno",
+    practicas: "Prácticas",
+    voluntariado: "Voluntariado",
+    otro: "Otro",
   };
-  return map[t];
+  return map[t] ?? t;
 }
 
 export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRibbon = false }: Props) {

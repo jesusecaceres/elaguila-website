@@ -7,6 +7,7 @@ import { resolveBuscoTypePublicLabel } from "@/app/(site)/clasificados/busco/sha
 import { detailPairsToMap, type BuscoListingPairMap } from "./buscoListingDetailPairs";
 import type { BuscoListingBrowseRow } from "./loadBuscoListings";
 import { buscoRowHasEmail, buscoRowHasPhone } from "./buscoSearchText";
+import { formatBuscoBudget } from "@/app/publicar/busco/shared/buscoFormatBudget";
 
 export type BuscoRequestCardModel = {
   id: string;
@@ -16,6 +17,7 @@ export type BuscoRequestCardModel = {
   imageUrl: string | null;
   excerpt: string | null;
   budget: string | null;
+  urgency: string | null;
   contactChip: string | null;
   leonixAdId: string | null;
   detailHref: string;
@@ -38,7 +40,8 @@ function formatLocationLine(city: string | null, pairs: BuscoListingPairMap): st
   const zone = (pairs["Leonix:buscoZone"] ?? "").trim();
   const st = (pairs["Leonix:state"] ?? "").trim();
   const zip = (pairs["Leonix:zip"] ?? "").trim();
-  const place = [c, st && zip ? `${st} ${zip}` : st || zip].filter(Boolean).join(", ");
+  const country = (pairs["Leonix:buscoCountry"] ?? "").trim();
+  const place = [c, st && zip ? `${st} ${zip}` : st || zip, country].filter(Boolean).join(", ");
   if (place && zone) return `${place} · ${zone}`;
   return place || zone || "";
 }
@@ -65,7 +68,10 @@ export function buildBuscoRequestCardModel(
     pairs["Leonix:buscoTypeCustom"] ?? "",
     lang,
   );
-  const budget = (pairs["Leonix:buscoBudget"] ?? "").trim() || null;
+  const budgetRaw = (pairs["Leonix:buscoBudget"] ?? "").trim();
+  const budget = budgetRaw ? formatBuscoBudget(budgetRaw) : null;
+  const urgencyRaw = (pairs["Leonix:buscoUrgency"] ?? "").trim();
+  const urgency = urgencyRaw || null;
   return {
     id: row.id,
     title,
@@ -74,6 +80,7 @@ export function buildBuscoRequestCardModel(
     imageUrl: pickListingCardImageUrl(row.images),
     excerpt: excerptFromDescription(row.description),
     budget,
+    urgency,
     contactChip: contactChipLabel(row, pairs, lang),
     leonixAdId: opts?.showLeonixAdId ? formatLeonixAdId(row.id) : null,
     detailHref,

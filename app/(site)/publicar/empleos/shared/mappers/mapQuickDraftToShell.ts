@@ -16,6 +16,9 @@ function pickMainImage(d: EmpleosQuickDraft): { src: string; alt: string } {
 function modalityLabelEs(m: JobModalitySlug): string {
   if (m === "remoto") return "Remoto";
   if (m === "hibrido") return "Híbrido";
+  if (m === "campo") return "Trabajo en campo";
+  if (m === "varias-ubicaciones") return "Varias ubicaciones";
+  if (m === "otro") return "Otro";
   return "Presencial";
 }
 
@@ -70,11 +73,22 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     workModalityLabel: modalityLabelEs(d.workModality),
     description: d.description.trim() || "—",
     benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
+    applyLink: sanitizeHttpUrl(d.applyLink) ?? undefined,
     phone: d.phone.trim(),
     whatsapp: d.whatsapp.trim(),
+    smsPhone: d.smsPhone.trim() || undefined,
     email: d.email.trim(),
     websiteUrl: web ?? undefined,
+    contactPerson: d.contactPerson.trim() || undefined,
+    preferredApplyMethod: d.preferredApplyMethod || undefined,
     primaryCta: d.primaryCta,
+    workspaceName: d.workspaceName.trim() || undefined,
+    locationNotes: d.locationNotes.trim() || undefined,
+    companyLinkedIn: sanitizeHttpUrl(d.companyLinkedIn) ?? undefined,
+    companyFacebook: sanitizeHttpUrl(d.companyFacebook) ?? undefined,
+    companyInstagram: sanitizeHttpUrl(d.companyInstagram) ?? undefined,
+    companyOtherLinkLabel: d.companyOtherLinkLabel.trim() || undefined,
+    companyOtherLinkUrl: sanitizeHttpUrl(d.companyOtherLinkUrl) ?? undefined,
     location: finalLoc,
     relatedJobs: [],
   };

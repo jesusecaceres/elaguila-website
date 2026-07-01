@@ -36,19 +36,37 @@ export type EmpleosQuickPublishSnapshot = {
   screenerQuestions: string[];
   images: EmpleosPublishImageRef[];
   logoUrl: string | null;
+  /** External application URL — creates primary Apply CTA on public detail. */
+  applyLink?: string;
   phone: string;
   whatsapp: string;
+  /** SMS/text phone separate from call phone. */
+  smsPhone?: string;
   email: string;
   website: string;
+  /** Contact person / recruiter name shown on apply card. */
+  contactPerson?: string;
+  /** Preferred apply method from employer. */
+  preferredApplyMethod?: string;
   primaryCta: "phone" | "whatsapp" | "email";
   addressLine1: string;
   addressLine2?: string;
+  /** Workplace name / branch / work area. */
+  workspaceName?: string;
+  /** Service area / location notes. */
+  locationNotes?: string;
   addressCity: string;
   addressState: string;
   addressZip: string;
   stateRegion?: string;
   postalCode?: string;
   country?: string;
+  /** Optional company social/web links for "Conoce al empleador" section. */
+  companyLinkedIn?: string;
+  companyFacebook?: string;
+  companyInstagram?: string;
+  companyOtherLinkLabel?: string;
+  companyOtherLinkUrl?: string;
   /** External video URL only; draft file handles omitted. */
   videoUrl: string | null;
   /** External video URLs only; max 4 in quick free/simple flow. */

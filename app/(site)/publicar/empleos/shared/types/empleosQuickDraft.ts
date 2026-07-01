@@ -4,6 +4,13 @@ import type { EmpleosImageItem } from "../media/empleosMediaTypes";
 
 export type EmpleosQuickPrimaryCta = "phone" | "whatsapp" | "email";
 
+export type EmpleosQuickPreferredApplyMethod =
+  | "apply-link"
+  | "email"
+  | "phone"
+  | "whatsapp"
+  | "message";
+
 export type EmpleosQuickScheduleRow = { day: string; shift: string };
 
 export type EmpleosQuickDraft = {
@@ -31,19 +38,37 @@ export type EmpleosQuickDraft = {
   screenerQuestions: string[];
   images: EmpleosImageItem[];
   logoUrl: string;
+  /** External application URL — creates primary Apply CTA on public detail. */
+  applyLink: string;
   phone: string;
   whatsapp: string;
+  /** SMS/text phone — separate from call phone. */
+  smsPhone: string;
   email: string;
   website: string;
+  /** Contact person or recruiter name shown on public apply card. */
+  contactPerson: string;
+  /** Preferred method for applicants to reach the employer. */
+  preferredApplyMethod: EmpleosQuickPreferredApplyMethod;
   primaryCta: EmpleosQuickPrimaryCta;
   addressLine1: string;
   addressLine2: string;
+  /** Workplace name / branch / work area (shown first in location section). */
+  workspaceName: string;
+  /** Service area or location notes for remote / multi-location jobs. */
+  locationNotes: string;
   addressCity: string;
   addressState: string;
   addressZip: string;
   stateRegion: string;
   postalCode: string;
   country: string;
+  /** Optional company links shown in "Conoce al empleador" section. */
+  companyLinkedIn: string;
+  companyFacebook: string;
+  companyInstagram: string;
+  companyOtherLinkLabel: string;
+  companyOtherLinkUrl: string;
   /** Local object URL for draft preview only — not uploaded to Mux */
   videoObjectUrl: string | null;
   videoFileName: string;
@@ -65,8 +90,8 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     benefits = legacyText.split("\n").map((s) => s.trim()).filter(Boolean);
   }
   const exp = rest.experienceLevel;
-  const experienceLevel: ExperienceSlug =
-    exp === "entry" || exp === "mid" || exp === "senior" ? exp : e.experienceLevel;
+  const EXP_SLUGS: ExperienceSlug[] = ["entry", "mid", "senior", "sin-experiencia", "supervisor", "gerencia", "certificacion", "licencia"];
+  const experienceLevel: ExperienceSlug = exp && EXP_SLUGS.includes(exp) ? exp : e.experienceLevel;
   const screenerQuestions = Array.isArray(rest.screenerQuestions)
     ? rest.screenerQuestions.map((s) => String(s ?? "").trim()).filter(Boolean).slice(0, 5)
     : e.screenerQuestions;
@@ -100,8 +125,9 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     ),
   ).slice(0, 4);
   const modalityRaw = rest.workModality;
+  const MODALITY_SLUGS: JobModalitySlug[] = ["presencial", "hibrido", "remoto", "campo", "varias-ubicaciones", "otro"];
   const workModality: JobModalitySlug =
-    modalityRaw === "presencial" || modalityRaw === "hibrido" || modalityRaw === "remoto" ? modalityRaw : e.workModality;
+    modalityRaw && MODALITY_SLUGS.includes(modalityRaw) ? modalityRaw : e.workModality;
 
   let scheduleRows: EmpleosQuickScheduleRow[] = Array.isArray(rest.scheduleRows)
     ? rest.scheduleRows.map((r) => ({
@@ -114,6 +140,13 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     scheduleRows = [{ day: "", shift: schedStr }];
   }
   if (!scheduleRows.length) scheduleRows = [{ day: "", shift: "" }];
+
+  const PREFERRED_METHODS: EmpleosQuickPreferredApplyMethod[] = ["apply-link", "email", "phone", "whatsapp", "message"];
+  const prefRaw = rest.preferredApplyMethod as string | undefined;
+  const preferredApplyMethod: EmpleosQuickPreferredApplyMethod =
+    prefRaw && PREFERRED_METHODS.includes(prefRaw as EmpleosQuickPreferredApplyMethod)
+      ? (prefRaw as EmpleosQuickPreferredApplyMethod)
+      : e.preferredApplyMethod;
 
   return {
     ...e,
@@ -135,6 +168,17 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     country: typeof rest.country === "string" ? rest.country.trim() : e.country,
     workModality,
     scheduleRows,
+    applyLink: typeof rest.applyLink === "string" ? rest.applyLink.trim() : e.applyLink,
+    smsPhone: typeof rest.smsPhone === "string" ? rest.smsPhone.trim() : e.smsPhone,
+    contactPerson: typeof rest.contactPerson === "string" ? rest.contactPerson.trim() : e.contactPerson,
+    preferredApplyMethod,
+    workspaceName: typeof rest.workspaceName === "string" ? rest.workspaceName.trim() : e.workspaceName,
+    locationNotes: typeof rest.locationNotes === "string" ? rest.locationNotes.trim() : e.locationNotes,
+    companyLinkedIn: typeof rest.companyLinkedIn === "string" ? rest.companyLinkedIn.trim() : e.companyLinkedIn,
+    companyFacebook: typeof rest.companyFacebook === "string" ? rest.companyFacebook.trim() : e.companyFacebook,
+    companyInstagram: typeof rest.companyInstagram === "string" ? rest.companyInstagram.trim() : e.companyInstagram,
+    companyOtherLinkLabel: typeof rest.companyOtherLinkLabel === "string" ? rest.companyOtherLinkLabel.trim() : e.companyOtherLinkLabel,
+    companyOtherLinkUrl: typeof rest.companyOtherLinkUrl === "string" ? rest.companyOtherLinkUrl.trim() : e.companyOtherLinkUrl,
   };
 }
 
@@ -157,19 +201,30 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     screenerQuestions: [],
     images: [],
     logoUrl: "",
+    applyLink: "",
     phone: "",
     whatsapp: "",
+    smsPhone: "",
     email: "",
     website: "",
+    contactPerson: "",
+    preferredApplyMethod: "phone",
     primaryCta: "phone",
     addressLine1: "",
     addressLine2: "",
+    workspaceName: "",
+    locationNotes: "",
     addressCity: "",
     addressState: "",
     addressZip: "",
     stateRegion: "",
     postalCode: "",
     country: "",
+    companyLinkedIn: "",
+    companyFacebook: "",
+    companyInstagram: "",
+    companyOtherLinkLabel: "",
+    companyOtherLinkUrl: "",
     videoObjectUrl: null,
     videoFileName: "",
     videoUrl: "",
