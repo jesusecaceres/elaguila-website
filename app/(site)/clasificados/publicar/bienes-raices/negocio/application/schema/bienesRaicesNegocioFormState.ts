@@ -111,6 +111,8 @@ export type BienesRaicesNegocioFormState = {
   estado: string;
   codigoPostal: string;
   colonia: string;
+  /** Country / territory for worldwide listings (form + detail_pairs via preview VM). */
+  pais: string;
   /** When false (default), public rows omit street-level `direccion` from persisted `Dirección` / map query. */
   mostrarDireccionExacta: boolean;
   descripcionCorta: string;
@@ -490,6 +492,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     estado: "",
     codigoPostal: "",
     colonia: "",
+    pais: "United States",
     mostrarDireccionExacta: false,
     descripcionCorta: "",
     listingStatus: "en_venta",

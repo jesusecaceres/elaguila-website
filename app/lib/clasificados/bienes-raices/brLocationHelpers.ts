@@ -75,6 +75,66 @@ export const BR_US_STATE_OPTIONS = [
   "DC",
 ] as const;
 
+/** Full U.S. state / territory names keyed by two-letter code (suggestions only). */
+export const BR_US_STATE_LABELS: Record<string, string> = {
+  AL: "Alabama",
+  AK: "Alaska",
+  AZ: "Arizona",
+  AR: "Arkansas",
+  CA: "California",
+  CO: "Colorado",
+  CT: "Connecticut",
+  DE: "Delaware",
+  FL: "Florida",
+  GA: "Georgia",
+  HI: "Hawaii",
+  ID: "Idaho",
+  IL: "Illinois",
+  IN: "Indiana",
+  IA: "Iowa",
+  KS: "Kansas",
+  KY: "Kentucky",
+  LA: "Louisiana",
+  ME: "Maine",
+  MD: "Maryland",
+  MA: "Massachusetts",
+  MI: "Michigan",
+  MN: "Minnesota",
+  MS: "Mississippi",
+  MO: "Missouri",
+  MT: "Montana",
+  NE: "Nebraska",
+  NV: "Nevada",
+  NH: "New Hampshire",
+  NJ: "New Jersey",
+  NM: "New Mexico",
+  NY: "New York",
+  NC: "North Carolina",
+  ND: "North Dakota",
+  OH: "Ohio",
+  OK: "Oklahoma",
+  OR: "Oregon",
+  PA: "Pennsylvania",
+  RI: "Rhode Island",
+  SC: "South Carolina",
+  SD: "South Dakota",
+  TN: "Tennessee",
+  TX: "Texas",
+  UT: "Utah",
+  VT: "Vermont",
+  VA: "Virginia",
+  WA: "Washington",
+  WV: "West Virginia",
+  WI: "Wisconsin",
+  WY: "Wyoming",
+  DC: "District of Columbia",
+};
+
+export const BR_US_STATE_DATALIST_OPTIONS = BR_US_STATE_OPTIONS.filter(Boolean).map((code) => ({
+  code,
+  label: BR_US_STATE_LABELS[code] ? `${code} — ${BR_US_STATE_LABELS[code]}` : code,
+}));
+
 function trim(raw: unknown): string {
   return typeof raw === "string" ? raw.trim() : raw == null ? "" : String(raw).trim();
 }
@@ -94,6 +154,20 @@ export function normalizeBrListingCountry(raw: string): string {
 export function isBrUsCountry(country: string): boolean {
   const c = trim(country).toLowerCase();
   return c === "us" || c === "usa" || c === "u.s." || c === "u.s.a." || c === "united states";
+}
+
+/** Accept U.S. state codes, full names, or preserve manual region text. */
+export function resolveBrUsStateInput(raw: string): string {
+  const t = trim(raw);
+  if (!t) return "";
+  const upper = t.toUpperCase();
+  if ((BR_US_STATE_OPTIONS as readonly string[]).includes(upper)) return upper;
+  const byName = Object.entries(BR_US_STATE_LABELS).find(
+    ([, name]) => name.toLowerCase() === t.toLowerCase(),
+  );
+  if (byName) return byName[0];
+  if (t.length === 2) return upper;
+  return t;
 }
 
 export function formatBrLocationPostal(postal: string, country: string): string {

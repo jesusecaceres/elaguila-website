@@ -4,8 +4,9 @@ import type { AgenteIndividualResidencialFormState } from "@/app/(site)/clasific
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import {
   BR_COUNTRY_SUGGESTIONS,
-  BR_US_STATE_OPTIONS,
+  BR_US_STATE_DATALIST_OPTIONS,
   isBrUsCountry,
+  resolveBrUsStateInput,
 } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
 import { AiField, aiInputClass } from "@/app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/formPrimitives";
 
@@ -34,6 +35,7 @@ type Props = {
 
 export function BrAgenteLocationFormFields({ state, setState, lang, copy }: Props) {
   const usCountry = isBrUsCountry(state.direccionPais);
+  const postalHint = copy.direccionCodigoPostalHint;
 
   return (
     <>
@@ -65,18 +67,29 @@ export function BrAgenteLocationFormFields({ state, setState, lang, copy }: Prop
       </AiField>
       <AiField label={copy.direccionEstado} hint={usCountry ? copy.direccionEstadoHint : copy.direccionEstadoHintIntl}>
         {usCountry ? (
-          <select
-            className={aiInputClass}
-            value={state.direccionEstado}
-            onChange={(ev) => setState((s) => ({ ...s, direccionEstado: ev.target.value }))}
-            autoComplete="address-level1"
-          >
-            {BR_US_STATE_OPTIONS.map((code) => (
-              <option key={code || "empty"} value={code}>
-                {code || (lang === "en" ? "Select state" : "Selecciona estado")}
-              </option>
-            ))}
-          </select>
+          <>
+            <input
+              className={aiInputClass}
+              list="br-agente-us-state-suggestions"
+              value={state.direccionEstado}
+              onChange={(ev) => setState((s) => ({ ...s, direccionEstado: ev.target.value }))}
+              onBlur={(ev) => {
+                const resolved = resolveBrUsStateInput(ev.target.value);
+                if (resolved !== ev.target.value) {
+                  setState((s) => ({ ...s, direccionEstado: resolved }));
+                }
+              }}
+              autoComplete="address-level1"
+              placeholder={lang === "en" ? "CA or California" : "CA o California"}
+            />
+            <datalist id="br-agente-us-state-suggestions">
+              {BR_US_STATE_DATALIST_OPTIONS.map(({ code, label }) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </datalist>
+          </>
         ) : (
           <input
             className={aiInputClass}
@@ -87,10 +100,7 @@ export function BrAgenteLocationFormFields({ state, setState, lang, copy }: Prop
           />
         )}
       </AiField>
-      <AiField
-        label={copy.direccionCodigoPostal}
-        hint={usCountry ? copy.direccionCodigoPostalHint : copy.direccionCodigoPostalHintIntl}
-      >
+      <AiField label={copy.direccionCodigoPostal} hint={postalHint}>
         <input
           className={aiInputClass}
           value={state.direccionCodigoPostal}

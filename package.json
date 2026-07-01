@@ -19,6 +19,7 @@
     "verify:br:launch-gate": "npm run typecheck && npm run lint:br && npm run verify:br",
     "bienes:br-july1-inventory-analytics-os-01": "tsx scripts/bienes-br-july1-inventory-analytics-os-01-audit.ts",
     "bienes:final-publish-stripe-rotation-05": "tsx scripts/bienes-final-publish-stripe-rotation-05-audit.ts",
+    "bienes:worldwide-location-visible-parent-child-06": "tsx scripts/bienes-worldwide-location-visible-parent-child-06-audit.ts",
     "prebuild": "node scripts/dup-guard.js",
     "audit:admin-language": "node scripts/audit-admin-language.mjs",
     "audit:leonix-ad-ids": "npx tsx scripts/audit-leonix-ad-ids.mts",
