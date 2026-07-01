@@ -33,7 +33,6 @@ import {
 } from "@/app/clasificados/restaurantes/application/compressRestauranteImage";
 import { RestauranteMediaPreviewImg } from "@/app/clasificados/restaurantes/application/RestauranteMediaPreviewImg";
 import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
-import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
 import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectionNav";
 import { RestauranteAmenitiesFormBlock } from "./RestauranteAmenitiesFormBlock";
@@ -512,17 +511,28 @@ export default function RestauranteApplicationClient() {
         </div>
       ) : null}
 
-      <ClasificadosApplicationTopActions
-        onPreviewValidated={goPreview}
-        openPreviewHref={previewHrefWithPlan}
-        onBeforeOpenUnvalidatedPreview={() => {
-          void saveRestauranteDraftToStorageResolved(draftRef.current);
-        }}
-        onDeleteApplication={() => {
-          void resetDraft();
-        }}
-        disableValidatedPreview={!minPreviewOk}
-      />
+      {/* Custom Restaurant Top Actions - only Vista previa and Eliminar solicitud */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <button
+          type="button"
+          onClick={goPreview}
+          disabled={!minPreviewOk}
+          className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Vista previa
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
+              void resetDraft();
+            }
+          }}
+          className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+        >
+          Eliminar solicitud
+        </button>
+      </div>
 
       {/* Pricing Summary */}
       {draft.productType && draft.baseMonthlyPrice ? (
@@ -575,47 +585,6 @@ export default function RestauranteApplicationClient() {
           señal de horario.
         </p>
       ) : null}
-
-      {/* Coupon Upgrade Upsell Card */}
-      <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-              {lang === "en" ? "Add featured coupons to your profile" : "Agrega cupones destacados a tu perfil"}
-            </h3>
-            <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
-            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-              {lang === "en"
-                ? "Show up to 4 featured coupons directly on your restaurant profile. Great for specials, combos, seasonal offers, lunch deals, catering, events, and first-time customer promotions."
-                : "Muestra hasta 4 cupones destacados directamente en tu perfil de restaurante. Ideal para atraer nuevos clientes, promocionar combos, ofertas de temporada, descuentos para familias, especiales de almuerzo, catering o eventos."}
-            </p>
-            <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-              {lang === "en"
-                ? "Coupons appear on your restaurant profile and can be shared by link, message, or compatible apps."
-                : "Los cupones aparecen dentro de tu perfil de restaurante y pueden compartirse por enlace, mensaje o apps compatibles."}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setDraftPatch({ couponUpgradeEnabled: !draft.couponUpgradeEnabled });
-            }}
-            className={`min-h-[44px] shrink-0 rounded-full px-6 py-2.5 text-sm font-semibold transition ${
-              draft.couponUpgradeEnabled
-                ? "bg-[color:var(--lx-text)] text-white"
-                : "border-2 border-[color:var(--lx-gold-border)] bg-white text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-            }`}
-          >
-            {draft.couponUpgradeEnabled
-              ? lang === "en"
-                ? "Coupons enabled"
-                : "Cupones activados"
-              : lang === "en"
-                ? "Add coupons for $99/month"
-                : "Agregar cupones por $99/mes"}
-          </button>
-        </div>
-      </div>
 
       <div className="lg:hidden sticky top-14 z-30 -mx-4 mb-4 border-b border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-page)]/95 px-4 py-2.5 backdrop-blur-md">
         <RestauranteApplicationSectionNav
@@ -1594,42 +1563,50 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-i" className={stepPanel}>
           {!draft.couponUpgradeEnabled ? (
             <>
-              <SectionTitle>I · Cupones destacados</SectionTitle>
+              <SectionTitle>I · Cupones y ofertas</SectionTitle>
               <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-                      {lang === "en" ? "Add featured coupons to your profile" : "Agrega cupones destacados a tu perfil"}
-                    </h3>
-                    <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                      {lang === "en"
-                        ? "Show up to 4 featured coupons directly on your restaurant profile. Great for specials, combos, seasonal offers, lunch deals, catering, events, and first-time customer promotions."
-                        : "Muestra hasta 4 cupones destacados directamente en tu perfil de restaurante. Ideal para atraer nuevos clientes con combos, descuentos, ofertas de temporada, almuerzos, catering o eventos."}
-                    </p>
-                    <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                      <span className="font-semibold text-[color:var(--lx-text)]">Precio especial para restaurantes</span>
-                      {lang === "en" ? " — was $199/month as standalone" : " — antes $199/mes como producto independiente"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 99 });
-                    }}
-                    className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
-                  >
-                    {lang === "en" ? "Add coupons for $99/month" : "Agregar cupones por $99/mes"}
-                  </button>
+                <div>
+                  <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
+                    {lang === "en" ? "Do you want to add featured coupons to your profile?" : "¿Quieres agregar cupones destacados a tu perfil?"}
+                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
+                  <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                    {lang === "en" ? "Special price for restaurants. Previously $199/month as a standalone product." : "Precio especial para restaurantes. Antes era $199/mes como producto independiente."}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                    {lang === "en"
+                      ? "Add up to 4 featured coupons within your profile. You can promote combos, seasonal discounts, lunch specials, catering, or events. Customers will be able to share the coupon by link, message, email, or compatible apps."
+                      : "Agrega hasta 4 cupones destacados dentro de tu perfil. Puedes promocionar combos, descuentos de temporada, especiales de almuerzo, catering o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles."}
+                  </p>
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={() => setCouponDetailDrawer(true)}
-                    className="text-sm font-semibold text-[color:var(--lx-text-2)] underline underline-offset-2 hover:text-[color:var(--lx-text)]"
+                    className="min-h-[44px] shrink-0 rounded-full border-2 border-[color:var(--lx-gold-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                   >
                     {lang === "en" ? "See more" : "Ver más"}
                   </button>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 99 });
+                      }}
+                      className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
+                    >
+                      {lang === "en" ? "Add coupons for $99/month" : "Agregar cupones por $99/mes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftPatch({ couponUpgradeEnabled: false, couponMonthlyPrice: undefined });
+                      }}
+                      className="min-h-[44px] shrink-0 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+                    >
+                      {lang === "en" ? "Continue without coupons" : "Continuar sin cupones"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </>
@@ -1666,8 +1643,8 @@ export default function RestauranteApplicationClient() {
                 </div>
                 <div className="mt-3 grid gap-3">
                   <div>
-                    <FieldLabel>Título</FieldLabel>
-                    <HelperText>Ej. "10% de descuento en tu primera orden"</HelperText>
+                    <FieldLabel>Título del cupón</FieldLabel>
+                    <HelperText>Ej. "2x1 en tacos", "10% de descuento", "Combo familiar"</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.title}
@@ -1676,31 +1653,11 @@ export default function RestauranteApplicationClient() {
                   </div>
                   <div>
                     <FieldLabel>Descripción</FieldLabel>
-                    <HelperText>Detalles de la oferta, condiciones o restricciones.</HelperText>
+                    <HelperText>Describe la oferta, condiciones o restricciones.</HelperText>
                     <textarea
                       className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.description}
                       onChange={(e) => patchCoupon(i, { description: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Imagen del cupón (flyer)</FieldLabel>
-                    <HelperText>URL de imagen o sube un flyer para mostrar el cupón visualmente.</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.imageUrl ?? ""}
-                      onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
-                      placeholder="https://ejemplo.com/cupon.jpg"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Enlace del cupón</FieldLabel>
-                    <HelperText>URL externa del cupón, menú, pedido o reservación.</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.url ?? ""}
-                      onChange={(e) => patchCoupon(i, { url: e.target.value || undefined })}
-                      placeholder="https://ejemplo.com/menu"
                     />
                   </div>
                   <div>
@@ -1725,7 +1682,7 @@ export default function RestauranteApplicationClient() {
                   </div>
                   <div>
                     <FieldLabel optional>Nota de canje</FieldLabel>
-                    <HelperText>Instrucciones adicionales para redimir la oferta.</HelperText>
+                    <HelperText>Ej. Menciona este cupón al ordenar.</HelperText>
                     <textarea
                       className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.redemptionNote ?? ""}
@@ -1733,13 +1690,33 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Etiqueta del botón (CTA)</FieldLabel>
-                    <HelperText>Texto personalizado para el botón (por defecto: "Ver cupón").</HelperText>
+                    <FieldLabel optional>Imagen/flyer del cupón</FieldLabel>
+                    <HelperText>URL de imagen o sube un flyer para mostrar el cupón visualmente.</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.imageUrl ?? ""}
+                      onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
+                      placeholder="https://"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>URL externa</FieldLabel>
+                    <HelperText>URL externa del cupón, menú, landing page o promoción.</HelperText>
+                    <input
+                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                      value={coupon.url ?? ""}
+                      onChange={(e) => patchCoupon(i, { url: e.target.value || undefined })}
+                      placeholder="https://"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel optional>Título del enlace</FieldLabel>
+                    <HelperText>Texto personalizado para el botón (por defecto: "Ver oferta").</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.ctaLabel ?? ""}
                       onChange={(e) => patchCoupon(i, { ctaLabel: e.target.value || undefined })}
-                      placeholder="Ej. Ver oferta"
+                      placeholder="Ver menú, Ordenar ahora, Cupón completo, Reservar"
                     />
                   </div>
                 </div>
@@ -2213,17 +2190,28 @@ export default function RestauranteApplicationClient() {
         </div>
 
         <div className="mt-4 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
-          <ClasificadosApplicationTopActions
-            onPreviewValidated={goPreview}
-            openPreviewHref={previewHrefWithPlan}
-            onBeforeOpenUnvalidatedPreview={() => {
-              void saveRestauranteDraftToStorageResolved(draftRef.current);
-            }}
-            onDeleteApplication={() => {
-              void resetDraft();
-            }}
-            disableValidatedPreview={!minPreviewOk}
-          />
+          {/* Custom Restaurant Top Actions - only Vista previa and Eliminar solicitud */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={goPreview}
+              disabled={!minPreviewOk}
+              className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Vista previa
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
+                  void resetDraft();
+                }
+              }}
+              className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            >
+              Eliminar solicitud
+            </button>
+          </div>
           <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">
             <span className="font-medium text-emerald-800">
               Sección B completada. Los modos de servicio son opcionales para mejorar el listado, pero no se requieren para la vista previa.
@@ -2238,41 +2226,40 @@ export default function RestauranteApplicationClient() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCouponDetailDrawer(false)}>
           <div className="max-w-lg rounded-2xl bg-[#FFFCF7] p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-[#1E1810]">
-              {lang === "en" ? "Featured Coupons — +$99/month" : "Cupones destacados — +$99/mes"}
+              {lang === "en" ? "What's included with Featured Coupons" : "Qué incluye Cupones Destacados"}
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
-              {lang === "en"
-                ? "Featured coupons are a way to turn visitors into customers. After viewing your dishes and restaurant, the customer can find a clear offer to visit, call, order, reserve, or share."
-                : "Los cupones destacados son una forma de convertir visitantes en clientes. Después de ver tus platos y tu restaurante, el cliente puede encontrar una oferta clara para visitar, llamar, ordenar, reservar o compartir."}
-            </p>
             <ul className="mt-4 space-y-2">
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "You can create up to 4 coupons" : "Puedes crear hasta 4 cupones"}</span>
+                <span>{lang === "en" ? "Up to 4 main coupons within the restaurant profile" : "Hasta 4 cupones principales dentro del perfil del restaurante"}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "You can use title, description, code, date, redemption note, flyer/image and link" : "Puedes usar título, descripción, código, fecha, nota de canje, flyer/imagen y enlace"}</span>
+                <span>{lang === "en" ? "Fields for title, description, code, expiration, and redemption note" : "Campos para título, descripción, código, vencimiento y nota de canje"}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "You can add a custom button to send the customer to your menu, online order, website, reservation or promotion" : "Puedes agregar un botón personalizado para enviar al cliente a tu menú, pedido en línea, sitio web, reserva o promoción"}</span>
+                <span>{lang === "en" ? "Option to add coupon flyer/image or promotion image" : "Opción para agregar flyer/imagen del cupón o promoción"}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Coupons are shown on your profile, not as a separate post" : "Los cupones se muestran en tu ficha, no como una publicación separada"}</span>
+                <span>{lang === "en" ? "Option to add external URL for coupon, menu, landing page, or promotion" : "Opción para agregar URL externa de cupón, menú, landing page o promoción"}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "The design maintains the Leonix brand and makes it clear the offer was seen on Leonix" : "El diseño mantiene la marca Leonix y deja claro que la oferta fue vista en Leonix"}</span>
+                <span>{lang === "en" ? "Customer can share coupon by link, SMS/email/app share when supported" : "El cliente puede compartir el cupón por enlace, SMS/email/app share cuando esté disponible"}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Ideal for lunch specials, family combos, 2x1, happy hour, catering, events and seasonal promotions" : "Ideal para lunch specials, combos familiares, 2x1, happy hour, catering, eventos y promociones de temporada"}</span>
+                <span>{lang === "en" ? "Coupons appear below \"House Specialties\" on the public profile" : "Los cupones aparecen debajo de \"Especialidades de la Casa\" en la ficha pública"}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Previously $199/month as a standalone product; for restaurants offered as an add-on for $99/month" : "Antes $199/mes como producto independiente; para restaurantes se ofrece como add-on por $99/mes"}</span>
+                <span>{lang === "en" ? "Coupons carry Leonix branding / \"Published on Leonix\" where appropriate" : "Los cupones llevan marca Leonix / \"Publicado en Leonix\" donde corresponda"}</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-[#5C5346]">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
+                <span>{lang === "en" ? "Final review before publication" : "Revisión final antes de publicación"}</span>
               </li>
             </ul>
             <button

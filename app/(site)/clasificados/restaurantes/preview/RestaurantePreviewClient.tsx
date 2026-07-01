@@ -321,7 +321,7 @@ export default function RestaurantePreviewClient() {
                       checked={confirmBusinessInfo}
                       onChange={(e) => setConfirmBusinessInfo(e.target.checked)}
                     />
-                    <span>Confirmo que la información del negocio es correcta y está actualizada.</span>
+                    <span>Confirmo que la información del restaurante es veraz y actualizada.</span>
                   </label>
                   <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
                     <input
@@ -330,7 +330,7 @@ export default function RestaurantePreviewClient() {
                       checked={confirmPhotosRepresent}
                       onChange={(e) => setConfirmPhotosRepresent(e.target.checked)}
                     />
-                    <span>Confirmo que las fotos y videos representan este restaurante o negocio.</span>
+                    <span>Confirmo que las fotos, platillos, horarios, precios/ofertas y datos de contacto representan mi negocio correctamente.</span>
                   </label>
                   <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
                     <input
@@ -339,7 +339,7 @@ export default function RestaurantePreviewClient() {
                       checked={confirmCommunityRules}
                       onChange={(e) => setConfirmCommunityRules(e.target.checked)}
                     />
-                    <span>Confirmo que el anuncio respeta las reglas de la comunidad y del marketplace.</span>
+                    <span>Confirmo que mi anuncio cumple con las reglas de Leonix y que soy responsable por la información publicada.</span>
                   </label>
                   {hasCoupons ? (
                     <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
