@@ -5,10 +5,11 @@ import { getOfertaLocalScanEligibleAssets } from "@/app/lib/ofertas-locales/ofer
 import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
-import { OfertasLocalesProductClipPanel } from "./OfertasLocalesProductClipPanel";
+import { OfertasLocalesProductClipPanel, OfertasLocalesClipInspectorSection } from "./OfertasLocalesProductClipPanel";
 import {
   OfertasLocalesAiItemReviewPanel,
   type OfertaLocalAiReviewGateState,
+  type OfertaLocalReviewViewerBridge,
 } from "./OfertasLocalesAiItemReviewPanel";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
@@ -44,6 +45,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
   const eligibleAssets = useMemo(() => getOfertaLocalScanEligibleAssets(draft), [draft]);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [focusedItem, setFocusedItem] = useState<OfertaLocalItemReviewViewModel | null>(null);
+  const [viewerBridge, setViewerBridge] = useState<OfertaLocalReviewViewerBridge | null>(null);
+  const [mobileViewerCollapsed, setMobileViewerCollapsed] = useState(true);
   const [reviewScope, setReviewScope] = useState<ReviewScope>({
     scanActiveForAsset: false,
     scanningAssetId: null,
@@ -75,10 +78,14 @@ export function OfertasLocalesAiScanReviewWorkspace({
     setAssetTabStatus(statuses);
   }, []);
 
+  const handleViewerBridge = useCallback((bridge: OfertaLocalReviewViewerBridge) => {
+    setViewerBridge(bridge);
+  }, []);
+
   if (!ofertaLocalId?.trim()) return null;
 
   return (
-    <div className="w-full min-w-0 space-y-5">
+    <div className="w-full min-w-0 space-y-5 overflow-x-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-base font-semibold text-[#7A1E2C] sm:text-lg">{c.aiReviewWorkspaceTitle}</p>
@@ -156,6 +163,15 @@ export function OfertasLocalesAiScanReviewWorkspace({
             selectedAssetId={selectedAssetId}
             eligibleAssets={eligibleAssets}
             scanActiveForAsset={reviewScope.scanActiveForAsset}
+            itemsOnPage={viewerBridge?.itemsOnPage}
+            currentPage={viewerBridge?.currentPage ?? focusedItem?.sourcePage ?? 1}
+            selectedItemId={viewerBridge?.selectedItemId ?? focusedItem?.id ?? null}
+            highlightFlyer={viewerBridge?.highlightFlyer ?? false}
+            onSelectItem={(itemId) => viewerBridge?.selectItem(itemId)}
+            onPageChange={(page) => viewerBridge?.onPageChange(page)}
+            onShowOnFlyer={() => viewerBridge?.onShowOnFlyer()}
+            mobileViewerCollapsed={mobileViewerCollapsed}
+            onMobileViewerCollapsedChange={setMobileViewerCollapsed}
           />
         </div>
 
@@ -175,6 +191,19 @@ export function OfertasLocalesAiScanReviewWorkspace({
             onReviewGateChange={onReviewGateChange}
             onScopeChange={handleScopeChange}
             onAssetTabStatuses={handleAssetStatuses}
+            onViewerBridge={handleViewerBridge}
+            clipInspectorSlot={
+              <OfertasLocalesClipInspectorSection
+                lang={lang}
+                draft={draft}
+                focusedItem={focusedItem}
+                viewerPage={viewerBridge?.currentPage ?? focusedItem?.sourcePage ?? 1}
+                onShowOnFlyer={() => {
+                  viewerBridge?.onShowOnFlyer();
+                  setMobileViewerCollapsed(false);
+                }}
+              />
+            }
           />
         </div>
       </div>

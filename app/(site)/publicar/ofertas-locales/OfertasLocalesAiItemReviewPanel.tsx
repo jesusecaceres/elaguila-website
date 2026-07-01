@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   fetchOfertaLocalReviewItems,
   patchOfertaLocalReviewItem,
@@ -8,6 +8,7 @@ import {
 import {
   getOfertaLocalActiveScanCopy,
   inferScanningAssetId,
+  isOfertaLocalActiveReviewStatus,
   isOfertaLocalScanJobActive,
   itemHasPendingCrop,
   logOfertaLocalScanUi,
@@ -15,12 +16,14 @@ import {
   OFERTA_LOCAL_SCAN_REVIEW_POLL_MS,
   OFERTA_LOCAL_SCAN_REVIEW_POLL_TIMEOUT_MS,
   partitionItemsByActiveScanJob,
+  partitionOfertaLocalPageReviewItems,
   pickDefaultOfertaLocalReviewItemId,
   resolveActiveScanJobIdForReviewSession,
   resolveAssetScanTabStatus,
   resolveItemCropListStatus,
   summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
+import type { ClipReviewViewerItem } from "./OfertasClipReviewViewer";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
   OfertaLocalDraft,
@@ -58,6 +61,16 @@ export type OfertaLocalAiReviewGateState = {
   needsReviewCount: number;
 };
 
+export type OfertaLocalReviewViewerBridge = {
+  itemsOnPage: ClipReviewViewerItem[];
+  currentPage: number;
+  selectedItemId: string | null;
+  highlightFlyer: boolean;
+  selectItem: (itemId: string) => void;
+  onPageChange: (page: number) => void;
+  onShowOnFlyer: () => void;
+};
+
 type Props = {
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
@@ -78,6 +91,8 @@ type Props = {
     activeScanJobId: string | null;
   }) => void;
   onAssetTabStatuses?: (statuses: Record<string, string>) => void;
+  onViewerBridge?: (bridge: OfertaLocalReviewViewerBridge) => void;
+  clipInspectorSlot?: ReactNode;
 };
 
 type ItemDraft = {
@@ -406,6 +421,8 @@ export function OfertasLocalesAiItemReviewPanel({
   onReviewGateChange,
   onScopeChange,
   onAssetTabStatuses,
+  onViewerBridge,
+  clipInspectorSlot,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const scanCopy = getOfertaLocalActiveScanCopy(lang);
@@ -426,6 +443,8 @@ export function OfertasLocalesAiItemReviewPanel({
   const [selectedPageFilter, setSelectedPageFilter] = useState<PageFilter>("all");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [previousScansOpen, setPreviousScansOpen] = useState(false);
+  const [reviewedTrayOpen, setReviewedTrayOpen] = useState(false);
+  const [highlightFlyer, setHighlightFlyer] = useState(false);
   const [scanCompletedAt, setScanCompletedAt] = useState<number | null>(null);
 
   const selectionContextRef = useRef("");
@@ -723,10 +742,21 @@ export function OfertasLocalesAiItemReviewPanel({
   const firstPageNumber = pageSummaries[0]?.page ?? null;
   const currentPageNumber =
     selectedPageFilter === "all" ? firstPageNumber : selectedPageFilter;
-  const currentPageSummary =
-    currentPageNumber != null
-      ? pageSummaries.find((page) => page.page === currentPageNumber) ?? null
-      : null;
+  const currentPageSummary = useMemo(() => {
+    if (currentPageNumber == null) return null;
+    const activeCount = pageFilteredItems.filter((item) =>
+      isOfertaLocalActiveReviewStatus(item.reviewStatus)
+    ).length;
+    const approved = pageFilteredItems.filter((item) => item.reviewStatus === "approved").length;
+    const rejected = pageFilteredItems.filter((item) => item.reviewStatus === "rejected").length;
+    return {
+      page: currentPageNumber,
+      total: pageFilteredItems.length,
+      approved,
+      rejected,
+      needsReview: activeCount,
+    } satisfies PageReviewSummary;
+  }, [currentPageNumber, pageFilteredItems]);
   const currentPageIndex = currentPageSummary
     ? Math.max(0, pageSummaries.findIndex((page) => page.page === currentPageSummary.page))
     : -1;
@@ -745,13 +775,20 @@ export function OfertasLocalesAiItemReviewPanel({
     return list;
   }, [allCurrentScanItems, assetScopedItems, currentPageNumber, isWorkspace]);
 
+  const { activeReviewItems, reviewedItems } = useMemo(
+    () => partitionOfertaLocalPageReviewItems(pageFilteredItems),
+    [pageFilteredItems]
+  );
+
+  const queueItems = isWorkspace ? activeReviewItems : pageFilteredItems;
+
   const filteredItems = useMemo(() => {
-    let list = pageFilteredItems;
+    let list = isWorkspace ? queueItems : pageFilteredItems;
     if (statusFilter !== "all") {
       list = list.filter((item) => item.reviewStatus === statusFilter);
     }
     return list;
-  }, [pageFilteredItems, statusFilter]);
+  }, [pageFilteredItems, queueItems, statusFilter, isWorkspace]);
 
   const displayItems = filteredItems;
 
@@ -864,32 +901,59 @@ export function OfertasLocalesAiItemReviewPanel({
   const selectItem = useCallback((itemId: string) => {
     logOfertaLocalScanUi("selected item changed", { itemId });
     setSelectedItemId(itemId);
+    setHighlightFlyer(false);
   }, []);
+
+  const handleShowOnFlyer = useCallback(() => {
+    setHighlightFlyer(true);
+  }, []);
+
+  const handleReviewPageChange = useCallback(
+    (page: number) => {
+      setPageBlockMessage(null);
+      setStatusFilter("all");
+      setSelectedPageFilter(page);
+    },
+    []
+  );
+
+  const handleStatusAndAdvance = useCallback(
+    async (itemId: string, reviewStatus: OfertaLocalItemReviewStatus) => {
+      const remaining = queueItems.filter((item) => item.id !== itemId);
+      const nextId = remaining[0]?.id ?? null;
+      await handleStatusAction(itemId, reviewStatus);
+      if (nextId) selectItem(nextId);
+    },
+    [handleStatusAction, queueItems, selectItem]
+  );
 
   useEffect(() => {
     if (selectionContextRef.current !== selectionContext) {
       selectionContextRef.current = selectionContext;
-      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(displayItems));
+      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
       setPreviousScansOpen(false);
+      setReviewedTrayOpen(false);
+      setHighlightFlyer(false);
       return;
     }
-    if (selectedItemId && !displayItems.some((item) => item.id === selectedItemId)) {
-      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(displayItems));
-    } else if (!selectedItemId && displayItems.length > 0) {
-      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(displayItems));
+    if (selectedItemId && !queueItems.some((item) => item.id === selectedItemId)) {
+      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
+    } else if (!selectedItemId && queueItems.length > 0) {
+      setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
     }
-  }, [selectionContext, displayItems, selectedItemId]);
+  }, [selectionContext, queueItems, selectedItemId]);
 
   const focusIndex = useMemo(() => {
     if (!selectedItemId) return 0;
-    const idx = displayItems.findIndex((item) => item.id === selectedItemId);
+    const idx = queueItems.findIndex((item) => item.id === selectedItemId);
     return idx >= 0 ? idx : 0;
-  }, [displayItems, selectedItemId]);
+  }, [queueItems, selectedItemId]);
 
-  const focusedItem = useMemo(
-    () => displayItems.find((item) => item.id === selectedItemId) ?? null,
-    [displayItems, selectedItemId]
-  );
+  const focusedItem = useMemo(() => {
+    const fromQueue = queueItems.find((item) => item.id === selectedItemId);
+    if (fromQueue) return fromQueue;
+    return pageFilteredItems.find((item) => item.id === selectedItemId) ?? null;
+  }, [queueItems, pageFilteredItems, selectedItemId]);
 
   useEffect(() => {
     setSelectedPageFilter("all");
@@ -913,14 +977,7 @@ export function OfertasLocalesAiItemReviewPanel({
     }
   }, [currentPageSummary?.needsReview, currentPageSummary?.page]);
 
-  const focusedPageItems = useMemo(() => {
-    if (!focusedItem?.sourcePage) return displayItems;
-    return displayItems.filter((item) => item.sourcePage === focusedItem.sourcePage);
-  }, [displayItems, focusedItem?.sourcePage]);
-
-  const focusedPageIndex = focusedItem
-    ? Math.max(0, focusedPageItems.findIndex((item) => item.id === focusedItem.id))
-    : 0;
+  const focusedPageItems = useMemo(() => queueItems, [queueItems]);
 
   const selectedAssetFileLabel = useMemo(() => {
     if (!selectedSourceAssetId || !draft) return "";
@@ -933,6 +990,42 @@ export function OfertasLocalesAiItemReviewPanel({
   useEffect(() => {
     onFocusedItemChange?.(focusedItem ?? null);
   }, [focusedItem, onFocusedItemChange]);
+
+  const viewerItemsOnPage = useMemo(
+    (): ClipReviewViewerItem[] =>
+      pageFilteredItems.map((item) => ({
+        id: item.id,
+        itemName: item.itemName,
+        reviewStatus: item.reviewStatus,
+        sourceBbox: item.sourceBbox,
+        sourceCropUrl: item.sourceCropUrl,
+        sourcePage: item.sourcePage,
+      })),
+    [pageFilteredItems]
+  );
+
+  useEffect(() => {
+    if (!isWorkspace || !onViewerBridge || currentPageNumber == null) return;
+    onViewerBridge({
+      itemsOnPage: viewerItemsOnPage,
+      currentPage: currentPageNumber,
+      selectedItemId,
+      highlightFlyer,
+      selectItem,
+      onPageChange: handleReviewPageChange,
+      onShowOnFlyer: handleShowOnFlyer,
+    });
+  }, [
+    isWorkspace,
+    onViewerBridge,
+    viewerItemsOnPage,
+    currentPageNumber,
+    selectedItemId,
+    highlightFlyer,
+    selectItem,
+    handleReviewPageChange,
+    handleShowOnFlyer,
+  ]);
 
   useEffect(() => {
     if (!hasActiveSourceAsset) return;
@@ -998,12 +1091,21 @@ export function OfertasLocalesAiItemReviewPanel({
 
   const goPreviousItem = () => {
     if (focusIndex <= 0) return;
-    selectItem(displayItems[focusIndex - 1].id);
+    selectItem(queueItems[focusIndex - 1].id);
   };
 
   const goNextItem = () => {
-    if (focusIndex >= displayItems.length - 1) return;
-    selectItem(displayItems[focusIndex + 1].id);
+    if (focusIndex >= queueItems.length - 1) return;
+    selectItem(queueItems[focusIndex + 1].id);
+  };
+
+  const goNextActiveReviewItem = () => {
+    if (queueItems.length === 0) return;
+    if (focusIndex < queueItems.length - 1) {
+      selectItem(queueItems[focusIndex + 1].id);
+      return;
+    }
+    selectItem(queueItems[0].id);
   };
 
   const pageIncompleteMessage = (page: PageReviewSummary) =>
@@ -1307,24 +1409,51 @@ export function OfertasLocalesAiItemReviewPanel({
                   onFieldChange={(field, value) => updateDraftField(focusedItem.id, field, value)}
                   onSave={() => void handleSave(focusedItem.id)}
                   onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
-                  onGoNext={focusIndex < displayItems.length - 1 ? goNextItem : undefined}
+                  onGoNext={focusIndex < queueItems.length - 1 ? goNextItem : undefined}
                 />
               ) : (
                 <p className="text-xs text-[#1E1814]/60">
                   {lang === "en" ? "Select an item below to edit it." : "Selecciona un producto abajo para editarlo."}
                 </p>
               )}
+              {focusedItem && isOfertaLocalActiveReviewStatus(focusedItem.reviewStatus) ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    className={BTN_PRIMARY}
+                    disabled={savingId === focusedItem.id}
+                    onClick={() => void handleStatusAndAdvance(focusedItem.id, "approved")}
+                  >
+                    {lang === "en" ? "Approve & next" : "Aprobar y siguiente"}
+                  </button>
+                  <button
+                    type="button"
+                    className={BTN_SECONDARY}
+                    disabled={savingId === focusedItem.id}
+                    onClick={() => void handleStatusAndAdvance(focusedItem.id, "rejected")}
+                  >
+                    {lang === "en" ? "Reject & next" : "Rechazar y siguiente"}
+                  </button>
+                </div>
+              ) : null}
             </div>
+            {clipInspectorSlot ? <div className="xl:hidden">{clipInspectorSlot}</div> : null}
             <div className="flex flex-col gap-3 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-[#1E1814]">
-                {focusedItem?.sourcePage
-                  ? `${c.aiReviewProductPosition} ${focusedPageIndex + 1} ${c.aiReviewProductOf} ${
-                      focusedPageItems.length
-                    } ${lang === "en" ? "on page" : "en página"} ${focusedItem.sourcePage}`
-                  : `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${
-                      displayItems.length
-                    }`}
-              </p>
+              <div>
+                <p className="text-xs font-semibold text-[#1E1814]">
+                  {focusedItem?.sourcePage
+                    ? `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${
+                        focusedPageItems.length
+                      } ${lang === "en" ? "active on page" : "activos en página"} ${focusedItem.sourcePage}`
+                    : `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${
+                        queueItems.length
+                      } ${lang === "en" ? "active" : "activos"}`}
+                </p>
+                <p className="mt-0.5 text-[10px] text-[#1E1814]/55">
+                  {queueItems.length}{" "}
+                  {lang === "en" ? "remaining on this page" : "pendientes en esta página"}
+                </p>
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1.5">
                 <button
                   type="button"
@@ -1337,15 +1466,31 @@ export function OfertasLocalesAiItemReviewPanel({
                 <button
                   type="button"
                   className={BTN_SECONDARY}
-                  disabled={focusIndex >= displayItems.length - 1}
+                  disabled={focusIndex >= queueItems.length - 1}
                   onClick={goNextItem}
                 >
                   {c.aiReviewNextItem}
                 </button>
               </div>
             </div>
+            {queueItems.length === 0 ? (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
+                {lang === "en"
+                  ? "No more items need review on this page."
+                  : "No hay más productos por revisar en esta página."}
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={BTN_SECONDARY} onClick={goNextActiveReviewItem}>
+                  {lang === "en" ? "Go to next item needing review" : "Ir al siguiente producto pendiente"}
+                </button>
+              </div>
+            )}
             <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
-              {displayItems.map((item) => {
+              <p className="px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
+                {lang === "en" ? "Active review queue" : "Cola de revisión activa"}
+              </p>
+              {queueItems.map((item) => {
                 const active = item.id === selectedItemId;
                 const cropStatus = resolveItemCropListStatus(item, scanActiveForAsset || shouldPollCrops);
                 const cropStatusLabel =
@@ -1406,6 +1551,41 @@ export function OfertasLocalesAiItemReviewPanel({
                 );
               })}
             </div>
+            {reviewedItems.length > 0 ? (
+              <div className="rounded-lg border border-[#D4C4A8]/50 bg-[#FDF8F0]">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/60"
+                  onClick={() => setReviewedTrayOpen((v) => !v)}
+                >
+                  <span>
+                    {lang === "en" ? "Reviewed on this page" : "Revisados en esta página"} ({reviewedItems.length})
+                  </span>
+                  <span>{reviewedTrayOpen ? "−" : "+"}</span>
+                </button>
+                {reviewedTrayOpen ? (
+                  <div className="max-h-36 space-y-1 overflow-y-auto border-t border-[#D4C4A8]/40 p-1.5">
+                    {reviewedItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => selectItem(item.id)}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-white"
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium text-[#1E1814]/75">
+                          {item.itemName}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}
+                        >
+                          {item.reviewStatus.replace("_", " ")}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>

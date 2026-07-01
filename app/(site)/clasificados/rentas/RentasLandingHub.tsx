@@ -8,6 +8,7 @@ import { useRentasLandingLang } from "@/app/(site)/clasificados/rentas/hooks/use
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasLandingHeroGateway } from "@/app/clasificados/rentas/landing/RentasLandingHeroGateway";
 import { RentasLandingIntentTiles } from "@/app/clasificados/rentas/landing/RentasLandingIntentTiles";
+import { RentasLandingSceneBand } from "@/app/clasificados/rentas/landing/RentasLandingSceneBand";
 import { RentasLandingShortcutSections } from "@/app/clasificados/rentas/landing/RentasLandingShortcutSections";
 import { RentasLandingShell } from "@/app/clasificados/rentas/landing/RentasLandingShell";
 import { RentasLandingVisibilityStrip } from "@/app/clasificados/rentas/landing/RentasLandingVisibilityStrip";
@@ -120,42 +121,46 @@ export function RentasLandingHub(_props: RentasLandingHubProps) {
   return (
     <RentasLandingShell>
       <div className="flex flex-col gap-0">
-        <RentasLandingHeroGateway
-          lang={lang}
-          title={copy.title}
-          intro={copy.intro}
-          introSecondary={copy.introSecondary}
-          publishHref={publishHref}
-          publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
-          searchSlot={
-            <RentasCompactSearchCanvas
-              layout="landing"
-              lang={lang}
-              query={query}
-              city={city}
-              state={state}
-              zip={zip}
-              country={country}
-              onQuery={setQuery}
-              onCity={setCity}
-              onState={setState}
-              onZip={setZip}
-              onCountry={setCountry}
-              onSearch={runSearch}
-              onOpenFilters={() => setFiltersOpen(true)}
-              browseAllHref={resultsBase}
-              searchButtonLabel={searchLabel}
-              filtersButtonLabel={filtersLabel}
-            />
-          }
-        />
+        <RentasLandingSceneBand>
+          <RentasLandingHeroGateway
+            lang={lang}
+            title={copy.title}
+            tagline={copy.tagline}
+            intro={copy.intro}
+            introSecondary={copy.introSecondary}
+            publishHref={publishHref}
+            publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
+            searchSlot={
+              <RentasCompactSearchCanvas
+                layout="landing"
+                lang={lang}
+                query={query}
+                city={city}
+                state={state}
+                zip={zip}
+                country={country}
+                onQuery={setQuery}
+                onCity={setCity}
+                onState={setState}
+                onZip={setZip}
+                onCountry={setCountry}
+                onSearch={runSearch}
+                onOpenFilters={() => setFiltersOpen(true)}
+                browseAllHref={resultsBase}
+                searchButtonLabel={searchLabel}
+                filtersButtonLabel={filtersLabel}
+              />
+            }
+          />
 
-        <RentasLandingIntentTiles
-          lang={lang}
-          routeLang={routeLang}
-          headingEs={copy.gateway.spaceTypeHeadingEs}
-          headingEn={copy.gateway.spaceTypeHeadingEn}
-        />
+          <RentasLandingIntentTiles
+            embedded
+            lang={lang}
+            routeLang={routeLang}
+            headingEs={copy.gateway.spaceTypeHeadingEs}
+            headingEn={copy.gateway.spaceTypeHeadingEn}
+          />
+        </RentasLandingSceneBand>
 
         <RentasLandingShortcutSections
           lang={lang}
