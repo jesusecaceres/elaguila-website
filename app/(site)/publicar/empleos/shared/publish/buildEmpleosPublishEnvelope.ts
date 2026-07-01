@@ -13,14 +13,19 @@ import type {
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
 
 function joinQuickScheduleForPublish(d: EmpleosQuickDraft): string {
-  const rows = d.scheduleRows.filter((r) => String(r.day ?? "").trim() || String(r.shift ?? "").trim());
+  const rows = d.scheduleRows.filter(
+    (r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim(),
+  );
   if (!rows.length) return d.schedule.trim();
   return rows
     .map((r) => {
       const day = String(r.day ?? "").trim();
+      const start = String(r.startTime ?? "").trim();
+      const end = String(r.endTime ?? "").trim();
       const shift = String(r.shift ?? "").trim();
-      if (day && shift) return `${day}: ${shift}`;
-      return day || shift;
+      const timePart = start && end ? `${start} – ${end}` : start || shift;
+      if (day && timePart) return `${day} · ${timePart}`;
+      return day || timePart;
     })
     .join("\n");
 }
@@ -58,8 +63,13 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
   const vid = vids[0] ?? null;
   const scheduleJoined = joinQuickScheduleForPublish(d);
   const schedRows = d.scheduleRows
-    .filter((r) => String(r.day ?? "").trim() || String(r.shift ?? "").trim())
-    .map((r) => ({ day: String(r.day ?? "").trim(), shift: String(r.shift ?? "").trim() }));
+    .filter((r) => String(r.day ?? "").trim() || String(r.startTime ?? "").trim() || String(r.shift ?? "").trim())
+    .map((r) => ({
+      day: String(r.day ?? "").trim(),
+      shift: String(r.shift ?? "").trim(),
+      startTime: String(r.startTime ?? "").trim() || undefined,
+      endTime: String(r.endTime ?? "").trim() || undefined,
+    }));
   const catSlug = d.categorySlug.trim();
   const catCustom = catSlug === "otro" ? d.categoryCustom.trim() : "";
   return {
@@ -87,6 +97,7 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     email: d.email.trim(),
     website: d.website.trim(),
     contactPerson: d.contactPerson.trim() || undefined,
+    contactTitle: d.contactTitle.trim() || undefined,
     preferredApplyMethod: d.preferredApplyMethod || undefined,
     primaryCta: d.primaryCta,
     addressLine1: d.addressLine1.trim(),
@@ -102,6 +113,10 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     companyLinkedIn: sanitizeHttpUrl(d.companyLinkedIn) || undefined,
     companyFacebook: sanitizeHttpUrl(d.companyFacebook) || undefined,
     companyInstagram: sanitizeHttpUrl(d.companyInstagram) || undefined,
+    companyTikTok: sanitizeHttpUrl(d.companyTikTok) || undefined,
+    companyYouTube: sanitizeHttpUrl(d.companyYouTube) || undefined,
+    companyX: sanitizeHttpUrl(d.companyX) || undefined,
+    companySnapchat: sanitizeHttpUrl(d.companySnapchat) || undefined,
     companyOtherLinkLabel: d.companyOtherLinkLabel.trim() || undefined,
     companyOtherLinkUrl: sanitizeHttpUrl(d.companyOtherLinkUrl) || undefined,
     videoUrl: vid,

@@ -77,6 +77,10 @@ export type EmpleosQuickDraft = {
   companyLinkedIn: string;
   companyFacebook: string;
   companyInstagram: string;
+  companyTikTok: string;
+  companyYouTube: string;
+  companyX: string;
+  companySnapchat: string;
   companyOtherLinkLabel: string;
   companyOtherLinkUrl: string;
   /** Local object URL for draft preview only — not uploaded to Mux */
@@ -190,6 +194,10 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     companyLinkedIn: typeof rest.companyLinkedIn === "string" ? rest.companyLinkedIn.trim() : e.companyLinkedIn,
     companyFacebook: typeof rest.companyFacebook === "string" ? rest.companyFacebook.trim() : e.companyFacebook,
     companyInstagram: typeof rest.companyInstagram === "string" ? rest.companyInstagram.trim() : e.companyInstagram,
+    companyTikTok: typeof rest.companyTikTok === "string" ? rest.companyTikTok.trim() : e.companyTikTok,
+    companyYouTube: typeof rest.companyYouTube === "string" ? rest.companyYouTube.trim() : e.companyYouTube,
+    companyX: typeof rest.companyX === "string" ? rest.companyX.trim() : e.companyX,
+    companySnapchat: typeof rest.companySnapchat === "string" ? rest.companySnapchat.trim() : e.companySnapchat,
     companyOtherLinkLabel: typeof rest.companyOtherLinkLabel === "string" ? rest.companyOtherLinkLabel.trim() : e.companyOtherLinkLabel,
     companyOtherLinkUrl: typeof rest.companyOtherLinkUrl === "string" ? rest.companyOtherLinkUrl.trim() : e.companyOtherLinkUrl,
   };
@@ -237,6 +245,10 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     companyLinkedIn: "",
     companyFacebook: "",
     companyInstagram: "",
+    companyTikTok: "",
+    companyYouTube: "",
+    companyX: "",
+    companySnapchat: "",
     companyOtherLinkLabel: "",
     companyOtherLinkUrl: "",
     videoObjectUrl: null,

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaUser } from "react-icons/fa";
-import { SiWhatsapp } from "react-icons/si";
+import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
+import { SiTiktok, SiWhatsapp, SiX } from "react-icons/si";
 import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 import { trackEmpleosSidebarContactCta } from "../../lib/empleosCtaTracking";
 import {
@@ -49,6 +49,10 @@ type Props = {
   companyLinkedIn?: string;
   companyFacebook?: string;
   companyInstagram?: string;
+  companyTikTok?: string;
+  companyYouTube?: string;
+  companyX?: string;
+  companySnapchat?: string;
   companyOtherLinkLabel?: string;
   companyOtherLinkUrl?: string;
 };
@@ -118,6 +122,10 @@ export function QuickJobCTACard({
   companyLinkedIn,
   companyFacebook,
   companyInstagram,
+  companyTikTok,
+  companyYouTube,
+  companyX,
+  companySnapchat,
   companyOtherLinkLabel,
   companyOtherLinkUrl,
 }: Props) {
@@ -127,7 +135,11 @@ export function QuickJobCTACard({
   const validEmail = email && looksLikeEmail(email) ? email : undefined;
   const hasApplyLink = Boolean(applyLink?.trim().startsWith("http"));
   const hasSms = Boolean(smsPhone?.trim());
-  const hasCompanyLinks = Boolean(companyLinkedIn || companyFacebook || companyInstagram || (companyOtherLinkLabel && companyOtherLinkUrl));
+  const hasCompanyLinks = Boolean(
+    companyLinkedIn || companyFacebook || companyInstagram ||
+    companyTikTok || companyYouTube || companyX || companySnapchat ||
+    (companyOtherLinkLabel && companyOtherLinkUrl)
+  );
   const displayPay = formatPay(pay);
   const contactShareExtras = { email: validEmail, websiteUrl: site || undefined };
 
@@ -311,6 +323,30 @@ export function QuickJobCTACard({
               <a href={companyInstagram} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#C13584] transition hover:bg-[#FFF0F7]">
                 <FaInstagram className="h-3.5 w-3.5" aria-hidden /> Instagram
+              </a>
+            ) : null}
+            {companyTikTok ? (
+              <a href={companyTikTok} target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#2A2826] transition hover:bg-[#F0EFED]">
+                <SiTiktok className="h-3.5 w-3.5" aria-hidden /> TikTok
+              </a>
+            ) : null}
+            {companyYouTube ? (
+              <a href={companyYouTube} target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#FF0000] transition hover:bg-[#FFF5F5]">
+                <FaYoutube className="h-3.5 w-3.5" aria-hidden /> YouTube
+              </a>
+            ) : null}
+            {companyX ? (
+              <a href={companyX} target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#2A2826] transition hover:bg-[#F0EFED]">
+                <SiX className="h-3.5 w-3.5" aria-hidden /> X
+              </a>
+            ) : null}
+            {companySnapchat ? (
+              <a href={companySnapchat} target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#C9A85A]/50 bg-[#FFFDF5] px-3 text-xs font-semibold text-[#FFFC00] transition hover:bg-[#FFFFCC]" style={{color: '#A89300'}}>
+                <FaSnapchat className="h-3.5 w-3.5" aria-hidden /> Snapchat
               </a>
             ) : null}
             {companyOtherLinkLabel && companyOtherLinkUrl ? (

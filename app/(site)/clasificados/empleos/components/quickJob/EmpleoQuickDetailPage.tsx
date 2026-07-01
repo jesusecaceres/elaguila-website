@@ -217,6 +217,10 @@ export function EmpleoQuickDetailPage({
               companyLinkedIn={data.companyLinkedIn?.trim() || undefined}
               companyFacebook={data.companyFacebook?.trim() || undefined}
               companyInstagram={data.companyInstagram?.trim() || undefined}
+              companyTikTok={data.companyTikTok?.trim() || undefined}
+              companyYouTube={data.companyYouTube?.trim() || undefined}
+              companyX={data.companyX?.trim() || undefined}
+              companySnapchat={data.companySnapchat?.trim() || undefined}
               companyOtherLinkLabel={data.companyOtherLinkLabel?.trim() || undefined}
               companyOtherLinkUrl={data.companyOtherLinkUrl?.trim() || undefined}
             />
