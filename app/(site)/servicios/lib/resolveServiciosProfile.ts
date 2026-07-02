@@ -161,6 +161,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const credentials = resolveServiciosCredentials(input.credentials);
 
   const promotions = resolveWirePromotions(input, lang);
+  const coupons = resolveWireCoupons(input, lang);
 
   /** Testimonials: quote + author only (no self-serve per-quote stars) */
   const reviews = meaningfulReviews(input.reviews).map((r) => ({
@@ -239,6 +240,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     amenityOptionIds: filterAmenityOptionIds(input.amenityOptionIds),
     customAmenityOptions: filterCustomAmenityOptions(input.customAmenityOptions),
     promotions,
+    coupons,
     ...(credentials ? { credentials } : {}),
   };
 }
@@ -261,6 +263,46 @@ function resolveWirePromotions(
     if (row) out.push(row);
   }
   return out;
+}
+
+function resolveWireCoupons(
+  input: ServiciosBusinessProfile,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["coupons"] {
+  const raw: ServiciosPromoOffer[] = [];
+  if (Array.isArray(input.coupons) && input.coupons.length > 0) {
+    for (const c of input.coupons.slice(0, 4)) {
+      if (c && typeof c === "object" && typeof c.id === "string") raw.push(c);
+    }
+  }
+  const out: ServiciosProfileResolved["coupons"] = [];
+  for (const offer of raw) {
+    const row = resolveOneCouponWire(offer, lang);
+    if (row) out.push(row);
+  }
+  return out;
+}
+
+function resolveOneCouponWire(
+  couponIn: ServiciosPromoOffer,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["coupons"][number] | null {
+  const description = trimText(couponIn.footnote) || undefined;
+  const titleRaw = trimText(couponIn.headline);
+  const hrefSafe = safePromoHref(couponIn.href) ?? undefined;
+  const imageUrl = safePromoAssetHref(couponIn.assetImageUrl) ?? undefined;
+  const hasWire = titleRaw || description || hrefSafe || imageUrl;
+  if (!hasWire) return null;
+  const title = titleRaw || (lang === "en" ? "Coupon" : "Cupón");
+  const id = trimText(couponIn.id) || "coupon";
+  const row: ServiciosProfileResolved["coupons"][number] = {
+    id,
+    title,
+  };
+  if (description) row.description = description;
+  if (hrefSafe) row.hrefSafe = hrefSafe;
+  if (imageUrl) row.imageUrl = imageUrl;
+  return row;
 }
 
 function resolveOnePromoWire(

@@ -2,22 +2,24 @@
 
 import { useCallback, useState } from "react";
 import { FaTag } from "react-icons/fa";
-import type { ClasificadosServiciosCouponRow } from "../clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 import { LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
+
+type CouponRow = ServiciosProfileResolved["coupons"][number];
 
 function CouponInnerCard({
   coupon,
   lang,
   onImageOpen,
 }: {
-  coupon: ClasificadosServiciosCouponRow;
+  coupon: CouponRow;
   lang: ServiciosLang;
   onImageOpen: (src: string) => void;
 }) {
   const hasImage = Boolean(coupon.imageUrl);
   const hasPricing = Boolean(coupon.regularPrice || coupon.specialPrice);
-  const hasLink = Boolean(coupon.url);
+  const hasLink = Boolean(coupon.hrefSafe);
 
   return (
     <article className="relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFDF7] p-5 shadow-sm transition hover:border-[#D4C4A8] hover:shadow-md">
@@ -26,7 +28,7 @@ function CouponInnerCard({
           <div className="w-full shrink-0 sm:max-w-[44%] sm:min-w-[10.5rem] lg:min-w-[12.5rem]">
             <button
               type="button"
-              onClick={() => onImageOpen(coupon.imageUrl)}
+              onClick={() => onImageOpen(coupon.imageUrl!)}
               className="group relative aspect-[5/4] w-full min-h-[140px] overflow-hidden rounded-lg border-2 border-[#D4C4A8] bg-[#F5F0E8] shadow-inner sm:min-h-[160px]"
               aria-label={lang === "en" ? "View coupon image" : "Ver imagen del cupón"}
             >
@@ -101,7 +103,7 @@ function CouponInnerCard({
           {hasLink ? (
             <div className="mt-4 border-t border-[#E8D9C4] pt-4">
               <a
-                href={coupon.url}
+                href={coupon.hrefSafe}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg border-0 px-4 py-2.5 text-sm font-bold text-[#FFFCF7] shadow-sm transition hover:brightness-[1.05]"
@@ -121,7 +123,7 @@ export function ServiciosCouponsCard({
   coupons,
   lang,
 }: {
-  coupons: ClasificadosServiciosCouponRow[];
+  coupons: CouponRow[];
   lang: ServiciosLang;
 }) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
