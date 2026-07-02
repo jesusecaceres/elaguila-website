@@ -1,8 +1,24 @@
-import type { ClasificadosServiciosApplicationState, DayHoursRow, DayKey } from "./clasificadosServiciosApplicationTypes";
+import type { ClasificadosServiciosApplicationState, DayHoursRow, DayKey, ClasificadosServiciosCouponRow } from "./clasificadosServiciosApplicationTypes";
 import {
   createEmptyClasificadosPromoRow,
   clasificadosPromoRowHasProgress,
 } from "./clasificadosServiciosPromo";
+
+function createEmptyCouponRow(): ClasificadosServiciosCouponRow {
+  return {
+    title: "",
+    description: "",
+    regularPrice: "",
+    specialPrice: "",
+    savings: "",
+    imageUrl: "",
+    url: "",
+    couponCode: "",
+    expirationDate: "",
+    redemptionNote: "",
+    ctaLabel: "",
+  };
+}
 
 const DAY_ORDER: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -31,6 +47,11 @@ function hoursDifferFromTemplate(rows: DayHoursRow[]): boolean {
 export function createDefaultClasificadosServiciosState(): ClasificadosServiciosApplicationState {
   return {
     applicationStepIndex: 0,
+    listingProduct: "",
+    baseMonthlyPrice: 0,
+    categoryPlan: "",
+    couponsAddOn: false,
+    couponsMonthlyPrice: 0,
     businessTypeId: "",
     businessName: "",
     city: "",
@@ -93,6 +114,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     hours: defaultHours(),
     testimonials: [],
     promotions: [createEmptyClasificadosPromoRow()],
+    coupons: [],
     confirmListingAccurate: false,
     confirmPhotosRepresentBusiness: false,
     confirmCommunityRules: false,

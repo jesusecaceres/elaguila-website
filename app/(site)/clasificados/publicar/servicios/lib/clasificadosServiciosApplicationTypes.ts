@@ -94,12 +94,37 @@ export type ClasificadosServiciosPromoRow = {
   qrLater: boolean;
 };
 
+/** Featured coupon row (paid add-on) */
+export type ClasificadosServiciosCouponRow = {
+  title: string;
+  description: string;
+  regularPrice: string;
+  specialPrice: string;
+  savings: string;
+  imageUrl: string;
+  url: string;
+  couponCode: string;
+  expirationDate: string;
+  redemptionNote: string;
+  ctaLabel: string;
+};
+
 export type ClasificadosServiciosApplicationState = {
   /**
    * Current stepped UI index (0-based), persisted for preview roundtrips.
    * Must stay in sync with `SERVICIOS_APPLICATION_STEP_COUNT`.
    */
   applicationStepIndex: number;
+  /** Selected product type from checkpoint */
+  listingProduct: string;
+  /** Base monthly price from checkpoint */
+  baseMonthlyPrice: number;
+  /** Category plan label for display */
+  categoryPlan: string;
+  /** Coupon add-on enabled flag */
+  couponsAddOn: boolean;
+  /** Coupon monthly price when active */
+  couponsMonthlyPrice: number;
   businessTypeId: string;
   businessName: string;
   /** Custom service description when "Otro servicio" is selected */
@@ -190,6 +215,8 @@ export type ClasificadosServiciosApplicationState = {
   testimonials: TestimonialRow[];
   /** Featured promotions — 1–4 rows; legacy single-promo fields migrate in normalize */
   promotions: ClasificadosServiciosPromoRow[];
+  /** Featured coupons (paid add-on) — up to 4 rows when couponsAddOn is true */
+  coupons: ClasificadosServiciosCouponRow[];
   /** Pre-publish attestations (same pattern as En Venta) */
   confirmListingAccurate: boolean;
   confirmPhotosRepresentBusiness: boolean;

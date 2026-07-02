@@ -203,6 +203,8 @@ export type ServiciosApplicationDraft = {
   promo?: ServiciosApplicationPromoDraft;
   /** Featured promotions (max 4) — classified Servicios Phase 7A */
   promotions?: ServiciosApplicationPromoDraft[];
+  /** Featured coupons (paid add-on, max 4) — classified Servicios coupon checkpoint */
+  coupons?: ServiciosApplicationPromoDraft[];
   /** Accepted payment methods (Leonix Servicios); sanitized on map/resolve */
   paymentMethodIds?: string[];
   /** Custom payment method labels; sanitized on map/resolve */

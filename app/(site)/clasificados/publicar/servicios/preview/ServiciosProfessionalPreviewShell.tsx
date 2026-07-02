@@ -32,6 +32,7 @@ import { ServiciosGalleryWithTabs } from "@/app/servicios/components/ServiciosGa
 import { ServiciosReviews } from "@/app/servicios/components/ServiciosReviews";
 import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/ServiciosBusinessHubContactCard";
 import { ServiciosPromocionesCard } from "@/app/servicios/components/ServiciosPromocionesCard";
+import { ServiciosCouponsCard } from "@/app/servicios/components/ServiciosCouponsCard";
 import { ServiciosHighlightsSection } from "@/app/servicios/components/ServiciosHighlightsSection";
 
 export function ServiciosProfessionalPreviewShell({
@@ -119,6 +120,10 @@ export function ServiciosProfessionalPreviewShell({
               <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
             </div>
 
+            {profile.coupons && profile.coupons.length > 0 ? (
+              <ServiciosCouponsCard coupons={profile.coupons} lang={lang} />
+            ) : null}
+
             {hasServicesSectionResolved(profile) ? (
               <ServiciosOfferedSection
                 services={profile.services}
@@ -150,6 +155,11 @@ export function ServiciosProfessionalPreviewShell({
             <div className="mt-5">
               <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
             </div>
+            {profile.coupons && profile.coupons.length > 0 ? (
+              <div className="mt-5">
+                <ServiciosCouponsCard coupons={profile.coupons} lang={lang} />
+              </div>
+            ) : null}
           </aside>
         </div>
 

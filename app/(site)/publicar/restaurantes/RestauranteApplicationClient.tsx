@@ -517,62 +517,6 @@ export default function RestauranteApplicationClient() {
         </div>
       ) : null}
 
-      {/* Custom Restaurant Top Actions - only Vista previa and Eliminar solicitud */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <button
-          type="button"
-          onClick={goPreview}
-          disabled={!minPreviewOk}
-          className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Vista previa
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
-              void resetDraft();
-            }
-          }}
-          className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-        >
-          Eliminar solicitud
-        </button>
-      </div>
-
-      {/* Pricing Summary */}
-      {draft.productType && draft.baseMonthlyPrice ? (
-        <div className="mt-4 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Selected plan:" : "Plan seleccionado:"}
-              </p>
-              <p className="mt-1 text-sm font-bold text-[color:var(--lx-text)]">
-                {draft.productType === "established_restaurant"
-                  ? lang === "en" ? "Established restaurant — $399/mes" : "Restaurante establecido — $399/mes"
-                  : lang === "en" ? "Mobile vendor — $199/mes" : "Puesto / pop-up / vendedor móvil — $199/mes"}
-              </p>
-              {draft.couponUpgradeEnabled && (
-                <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
-                  + {lang === "en" ? "Coupons — $99/mes" : "Cupones — $99/mes"}
-                </p>
-              )}
-            </div>
-            <Link
-              href="/clasificados/publicar/restaurantes"
-              className="text-xs font-semibold text-[color:var(--lx-text-2)] underline underline-offset-2 hover:text-[color:var(--lx-text)]"
-            >
-              {lang === "en" ? "Change type" : "Cambiar tipo"}
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
-      <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> valida los campos mínimos requeridos y te lleva al resultado. <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> abre la misma URL con el borrador de esta sesión <strong>sin</strong> exigir validación — útil para revisar fotos o texto.
-      </p>
-
       {serviceErr ? (
         <div
           className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
@@ -2172,6 +2116,43 @@ export default function RestauranteApplicationClient() {
 
         {/* Publish Confirmation Section */}
         <section id="restaurantes-publish-confirmation" className="mt-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/50 p-6">
+          {/* Pricing Summary */}
+          {draft.productType && draft.baseMonthlyPrice ? (
+            <div className="mb-6 rounded-xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
+              <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
+                {lang === "en" ? "Monthly pricing:" : "Precios mensuales:"}
+              </p>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[color:var(--lx-text-2)]">
+                    {draft.productType === "established_restaurant"
+                      ? lang === "en" ? "Established restaurant" : "Restaurante establecido"
+                      : lang === "en" ? "Mobile vendor" : "Puesto / pop-up / vendedor móvil"}
+                  </span>
+                  <span className="font-semibold text-[color:var(--lx-text)]">
+                    ${draft.baseMonthlyPrice}/mes
+                  </span>
+                </div>
+                {draft.couponUpgradeEnabled && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[color:var(--lx-text-2)]">
+                      {lang === "en" ? "Coupon add-on" : "Add-on de cupones"}
+                    </span>
+                    <span className="font-semibold text-[color:var(--lx-text)]">
+                      +$99/mes
+                    </span>
+                  </div>
+                )}
+                <div className="mt-2 flex items-center justify-between border-t border-[color:var(--lx-nav-border)]/50 pt-2 text-sm font-bold text-[color:var(--lx-text)]">
+                  <span>{lang === "en" ? "Total monthly" : "Total mensual"}</span>
+                  <span>
+                    ${(draft.baseMonthlyPrice || 0) + (draft.couponUpgradeEnabled ? 99 : 0)}/mes
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <h2 className="text-lg font-bold text-[color:var(--lx-text)]">
             {lang === "en" ? "Confirmation before publishing" : "Confirmación antes de publicar"}
           </h2>
@@ -2260,7 +2241,28 @@ export default function RestauranteApplicationClient() {
               </ul>
             </div>
           ) : null}
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={goPreview}
+                disabled={!minPreviewOk}
+                className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {lang === "en" ? "Preview" : "Vista previa"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
+                    void resetDraft();
+                  }
+                }}
+                className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+              >
+                {lang === "en" ? "Delete request" : "Eliminar solicitud"}
+              </button>
+            </div>
             <button
               type="button"
               onClick={goPreview}
