@@ -117,6 +117,8 @@ export function RentasLandingHub(_props: RentasLandingHubProps) {
 
   const filtersLabel = lang === "es" ? "Filtros" : "Filters";
   const searchLabel = lang === "es" ? "Buscar" : "Search";
+  const gatewayTagline =
+    lang === "es" ? copy.tagline : "Find a space to call home.";
 
   return (
     <RentasLandingShell>
@@ -125,7 +127,7 @@ export function RentasLandingHub(_props: RentasLandingHubProps) {
           <RentasLandingHeroGateway
             lang={lang}
             title={copy.title}
-            tagline={copy.tagline}
+            tagline={gatewayTagline}
             intro={copy.intro}
             introSecondary={copy.introSecondary}
             publishHref={publishHref}

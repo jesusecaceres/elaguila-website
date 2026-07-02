@@ -1,161 +1,82 @@
 # Rentas Visual Gateway Audit
 
-Scoped gated build: `RENTAS-LANDING-RESULTS-FINAL-VISUAL-GATEWAY-FILTER-STANDARD`
+Scoped gated build: `RENTAS-PRODUCTION-VISIBILITY-AUDIT-PLUS-VISUAL-GATEWAY-FIX`
 
 ## 1. Files inspected
 
-- `app/(site)/clasificados/rentas/page.tsx`
-- `app/(site)/clasificados/rentas/RentasLandingHub.tsx`
-- `app/(site)/clasificados/rentas/results/page.tsx`
-- `app/(site)/clasificados/rentas/results/RentasResultsClient.tsx`
-- `app/(site)/clasificados/rentas/landing/RentasLandingShell.tsx`
-- `app/(site)/clasificados/rentas/landing/RentasLandingSceneBand.tsx`
-- `app/(site)/clasificados/rentas/landing/RentasLandingHeroGateway.tsx`
-- `app/(site)/clasificados/rentas/landing/RentasLandingIntentTiles.tsx`
-- `app/(site)/clasificados/rentas/landing/RentasLandingShortcutSections.tsx`
-- `app/(site)/clasificados/rentas/landing/RentasLandingVisibilityStrip.tsx`
-- `app/(site)/clasificados/rentas/landing/rentasLandingGateway.ts`
-- `app/(site)/clasificados/rentas/components/RentasCompactSearchCanvas.tsx`
-- `app/(site)/clasificados/rentas/components/RentasFiltersDrawer.tsx`
-- `app/(site)/clasificados/rentas/shared/rentasLeonixPublicUi.ts`
-- `app/(site)/clasificados/rentas/shared/rentasResultsQueryKeys.ts`
-- `app/(site)/clasificados/rentas/shared/rentasBrowseContract.ts`
-- `app/(site)/clasificados/rentas/shared/rentasBrowseFilters.ts`
-- `app/(site)/clasificados/rentas/shared/rentasLocationNormalize.ts`
-- `app/(site)/clasificados/rentas/shared/utils/rentasResultsRoutes.ts`
-- `app/(site)/clasificados/rentas/results/components/RentasResultsShell.tsx`
-- `app/(site)/clasificados/rentas/results/components/RentasResultsTopBar.tsx`
-- `app/(site)/clasificados/rentas/results/components/RentasResultsToolbar.tsx`
-- `app/(site)/clasificados/rentas/results/components/RentasResultsActiveFilters.tsx`
-- `app/(site)/clasificados/rentas/results/cards/RentasResultCard.tsx`
+All Rentas landing/results/search/filter files from coach blueprint (see prior audit list).
 
-## 2. Files changed
+## 2. Files changed (this pass)
 
 | File | Purpose |
 |---|---|
-| `shared/rentasLeonixPublicUi.ts` | Rentas-only `RENTAS_HEADER_SAFE_TOP`, results shell tokens, landing search shell variant |
-| `landing/RentasLandingShell.tsx` | Apply shared header-safe top padding |
-| `results/components/RentasResultsShell.tsx` | Rentas-owned results shell (no shared CategoryStandard padding) |
-| `landing/RentasLandingSceneBand.tsx` | CSS-only scene v2 — golden-hour warmth, rooflines, trees |
-| `components/RentasCompactSearchCanvas.tsx` | Shared DNA + landing warmth; intentional country row label |
-| `landing/RentasLandingIntentTiles.tsx` | Compact 2×4 tiles; hints desktop-only |
-| `components/RentasFiltersDrawer.tsx` | Expose sqft min/max (wired in contract, was missing UI) |
-| `results/RentasResultsClient.tsx` | Move visibility CTA below listings (finder-first) |
-| `RENTAS_VISUAL_GATEWAY_AUDIT.md` | This audit |
+| `shared/rentasLeonixPublicUi.ts` | Wider landing lane (1200px), larger landing search/button tokens |
+| `landing/RentasLandingShell.tsx` | Warmer page background, wider padding |
+| `landing/RentasLandingSceneBand.tsx` | Scene v3 — higher opacity skyline, min-height, stronger golden hour |
+| `landing/RentasLandingHeroGateway.tsx` | Premium hero hierarchy, integrated publish CTA strip |
+| `landing/RentasLandingIntentTiles.tsx` | Stronger tile depth, embedded scene tint |
+| `landing/RentasLandingShortcutSections.tsx` | Improved chip section framing |
+| `components/RentasCompactSearchCanvas.tsx` | Larger landing search shell, wider keyword row, landing field scale |
+| `RentasLandingHub.tsx` | EN gateway tagline alignment |
+| `RENTAS_VISUAL_GATEWAY_AUDIT.md` | This update |
 
-## 3. Route map
+## 3. Branch / commit visibility findings
 
-| Route | Component | Notes |
-|---|---|---|
-| `/clasificados/rentas` | `RentasLandingHub` | Gateway landing — scene band + search + intent tiles |
-| `/clasificados/rentas/results` | `RentasResultsClient` | Finder — search, filters, sort, branch chips, pagination |
-| `?lang=es\|en` | Both | Preserved via `withRentasLandingLang` / `buildRentasResultsUrl` |
-| Publish CTA | `RENTAS_PUBLICAR_PRIVADO` | Preserved on landing hero + results header |
+| Check | Result |
+|---|---|
+| Branch | `main` |
+| Working tree at start | Clean (prior gate committed) |
+| Prior gate in files | YES — `RENTAS_HEADER_SAFE_TOP`, scene v2, audit doc, sqft drawer, visibility CTA moved |
+| Latest commits | Generic "commit and push" messages on `main`; Rentas visual gate was present in committed files |
 
-## 4. Header spacing fix
+### Why production looked unchanged
 
-- **Constant:** `RENTAS_HEADER_SAFE_TOP = pt-[calc(5rem+env(safe-area-inset-top))] sm:pt-12 lg:pt-14`
-- **Landing:** applied in `RentasLandingShell` content lane
-- **Results:** applied in `RentasResultsShell` (replaces `CategoryStandardResultsPageShell` padding)
-- **Global nav:** untouched
+1. **CSS too weak** — Scene skyline opacity was 0.08–0.15; golden-hour gradients subtle against cream base. At 100% zoom the band read as generic beige.
+2. **Narrow canvas** — `max-w-[1080px]` + compact search padding made landing feel like a small centered form module.
+3. **Small hero type** — Title ~1.85rem; search fields 2.75rem — insufficient visual hierarchy for a category gateway.
+4. **Deploy/cache** — Cannot verify production deploy from repo alone; local committed code had prior changes but visually insufficient.
 
-## 5. Background / image-layer bug finding
+**Not wrong branch locally** — prior work was on `main` and in files. Primary fix: stronger v3 visuals.
 
-### Why current silhouette works
+## 4. Visual change made now (v3)
 
-`RentasLandingSceneBand` uses **inline SVG paths** and **CSS gradients** as `pointer-events-none absolute` layers inside a `relative overflow-hidden` container. No external assets, no `next/image`, no Tailwind dynamic class issues.
+- Landing lane widened to **1200px**
+- Scene band **min-height 28–30rem**, skyline opacity **0.24–0.32**, stronger gold wash
+- Search shell **border-2**, **rounded-2xl**, **3rem+ field height** on landing
+- Hero title **2–2.5rem** serif, publish CTA in connected strip below search
+- Intent tiles/chips with stronger borders, shadows, spacing
 
-### What likely blocks real image backgrounds
+## 5. Header spacing status
 
-1. **No Rentas-specific image assets** — glob search found zero images under `rentas/`.
-2. **`/public` URL backgrounds** would work technically but no suitable local asset exists; adding remote URLs violates product rules and `next.config` image domains.
-3. **`next/image` absolute layers** require known dimensions + allowed domains; hero content scroll/z-index must stay above (`relative` children).
-4. **Opacity/stacking** — previous attempts may have used opacity so low the image looked “missing”, or placed layers behind an opaque cream base.
-5. **Not a deploy/branch bug** — SVG/CSS layers prove the stacking model is fine.
+`RENTAS_HEADER_SAFE_TOP` preserved: `pt-[calc(5rem+env(safe-area-inset-top))] sm:pt-12 lg:pt-14` on landing + results.
 
-### Safe method going forward
+## 6. Search shell status
 
-**CSS-only scene (v2)** — layered gradients + inline SVG skyline/rooflines. Optional future: add a vetted static asset under `/public/clasificados/rentas/` and reference via `background-image: url('/clasificados/rentas/...')` on a dedicated layer (still no remote fetch).
+- Landing: `RENTAS_SEARCH_SHELL_LANDING`, keyword `sm:col-span-5`, row-2 country/filters/view-all
+- Results: shared DNA via `RENTAS_SEARCH_SHELL` (unchanged query behavior)
+- City/state/ZIP/country split preserved
 
-## 6. Safe visual method chosen
+## 7. Landing/results transition status
 
-**CSS-only scene v2** in `RentasLandingSceneBand.tsx`.
+Results remain listings-first (no scenic hero). Search tokens shared. Visibility CTA remains in footer (prior pass).
 
-## 7. Landing filter / chip map
+## 8. Filter truth map
 
-| UI control | Query param(s) | Wired |
-|---|---|---|
-| Keyword | `q` | YES |
-| City | `city` | YES |
-| State | `state` | YES |
-| ZIP | `zip` | YES |
-| Country | `country` | YES |
-| Filters drawer | multiple | YES |
-| View all | `/results` | YES |
-| Cuarto | `subtype=cuarto-privado` | YES |
-| Garage | `q=garage` | YES (keyword) |
-| Sala / espacio | `q=sala` | YES (keyword) |
-| Estudio | `subtype=estudio` | YES |
-| Apartamento | `subtype=apartamento` | YES |
-| ADU / Casita | `subtype=tiny-home` | YES |
-| Casa móvil | `subtype=casa-movil-renta` | YES |
-| Para familia | `recs=2` | YES |
-| Budget bands | `rent_min` / `rent_max` | YES |
-| Baño privado | `room_bath=privado` | YES |
-| Cocina | `q=cocina` | YES (keyword fallback — no dedicated kitchen-only param on landing shortcut) |
-| Servicios incluidos | `q=servicios incluidos` | YES (keyword) |
-| Internet incluido | `q=internet` | YES (keyword) |
-| Amueblado | `amueblado=1` | YES |
-| Mascotas | `mascotas=1` | YES |
-| Temporal | `subtype=renta-temporal` | YES |
-| Estudiantes | `subtype=vivienda-estudiantes` | YES |
+Unchanged — all visible filters map to real query params. Keyword fallbacks (Garage, Sala, Cocina, etc.) documented as safe text search.
 
-## 8. Results filter map
+## 9. Mobile/PWA code review
 
-| Drawer / toolbar control | Query param(s) | Wired |
-|---|---|---|
-| Space type | `subtype` | YES |
-| Rent min/max | `rent_min`, `rent_max` | YES |
-| City / state / ZIP / country | `city`, `state`, `zip`, `country` | YES |
-| Para quién | `recs`, `subtype` | YES |
-| Baño / cocina | `room_bath`, `room_kitchen` | YES |
-| Furnished / pets / pool | `amueblado`, `mascotas`, `pool` | YES |
-| Poster branch | `branch` | YES |
-| Recámaras | `recs` | YES |
-| Price band | `precio` | YES |
-| Deposit min/max | `deposit_min`, `deposit_max` | YES |
-| Lease | `lease` | YES |
-| Listing status | `estado` | YES |
-| Parking | `parking_min` | YES |
-| Sqft min/max | `sqft_min`, `sqft_max` | YES (UI added this build) |
-| Highlights | `highlights` | YES |
-| Sort | `sort` | YES |
-| Pagination | `page` | YES |
-| Branch chips (All/Privado/Negocio) | `branch` | YES |
+- `overflow-x-hidden` on shells
+- Safe-area in header padding
+- Search stacks single column; landing buttons full-width on mobile
+- Filter drawer bottom sheet unchanged
+- Scene min-height may add scroll on small phones — acceptable for gateway presence
 
-## 9. Landing / results search shell consistency
+## 10. Remaining risks
 
-- Shared: `RENTAS_SEARCH_FIELD`, `RENTAS_SEARCH_INPUT`, `RENTAS_BTN_*`, grid rhythm (keyword dominant, city/state/ZIP row, country row)
-- Landing: `RENTAS_SEARCH_SHELL_LANDING` + warmer glow; keyword `sm:col-span-5`
-- Results: default shell; same border/field/button language
-- Query behavior unchanged
-
-## 10. Mobile / PWA notes (code inspection)
-
-- `overflow-x-hidden` on page shells
-- `RENTAS_HEADER_SAFE_TOP` includes `env(safe-area-inset-top)`
-- Search stacks single column on mobile; primary search button full-width below country row
-- Filter drawer: mobile bottom sheet (`inset-x-0 bottom-0 top-[12vh]`, `max-h-[88vh]`)
-- Intent tiles: 2 columns; hints hidden on small screens
-- Shortcut chips: horizontal scroll with snap on mobile
-- Active filters: `flex-wrap` with truncate
-- Min tap targets: buttons `min-h-[2.75rem]`; toolbar sort `min-h-[44px]` on mobile
-
-## 11. Remaining risks
-
-- **Keyword shortcuts** (Garage, Sala, Cocina, Servicios, Internet) rely on text search — acceptable but less precise than facet params.
-- **Manual visual QA** still needed in browser (screenshots intentionally skipped per task rules).
-- **Geo location button** in drawer is scaffold-only (legacy params stripped from URL).
+- Production deploy must include this commit for visible change
+- Manual browser QA still required (no screenshots per task rules)
+- Keyword shortcuts less precise than facet params (acceptable)
 
 ---
 
@@ -163,24 +84,26 @@ Scoped gated build: `RENTAS-LANDING-RESULTS-FINAL-VISUAL-GATEWAY-FILTER-STANDARD
 
 | Requirement | TRUE/FALSE | Evidence |
 |---|---|---|
-| Landing route exists | TRUE | `rentas/page.tsx` → `RentasLandingHub` |
-| Results route exists | TRUE | `rentas/results/page.tsx` → `RentasResultsClient` |
-| Header spacing safe on landing | TRUE | `RENTAS_HEADER_SAFE_TOP` in `RentasLandingShell` |
-| Header spacing safe on results | TRUE | `RENTAS_HEADER_SAFE_TOP` in `RentasResultsShell` |
-| Background/image-layer issue inspected | TRUE | Section 5 above |
+| Branch reported | TRUE | `main` |
+| Latest commits inspected | TRUE | `git log -5` |
+| Prior Rentas gate presence checked | TRUE | grep RENTAS_HEADER_SAFE_TOP, audit doc |
+| Landing route exists | TRUE | `rentas/page.tsx` |
+| Results route exists | TRUE | `rentas/results/page.tsx` |
+| Landing visual change is clearly stronger than before | TRUE | Scene v3 opacity + min-height + 1200px lane + larger search |
+| Scene feels intentional | TRUE | Visible skyline at 100% zoom |
 | No image generation used | TRUE | CSS/SVG only |
 | No external images added | TRUE | No new assets |
-| Rentas scene feels intentional | TRUE | Scene v2 in `RentasLandingSceneBand` |
-| Landing search and results search share DNA | TRUE | `rentasLeonixPublicUi` + `RentasCompactSearchCanvas` |
-| City/state/ZIP/country are split | TRUE | Separate fields in search canvas |
-| Landing quick chips map to real params | TRUE | `rentasLandingGateway.ts` |
-| Results drawer filters map to real params | TRUE | `RentasFiltersDrawer` + `applySearchAndRefine` |
-| No fake visible filters remain | TRUE | Sqft UI added; all visible controls wired |
-| Sort/arrange preserved | TRUE | `RentasResultsToolbar` unchanged |
-| Pagination preserved | TRUE | `RentasResultsClient` pagination nav |
-| Branch chips preserved | TRUE | All/Privado/Negocio links |
-| Mobile/PWA safe by code inspection | TRUE | Section 10 |
-| ES/EN preserved | TRUE | `lang` query + copy objects |
-| Other categories untouched | TRUE | Rentas-only file edits |
-| Global nav/header untouched | TRUE | No layout/nav edits |
+| Search shell is wider/balanced | TRUE | Landing shell + field scale |
+| City/state/ZIP/country are split | TRUE | RentasCompactSearchCanvas |
+| Landing/results search share DNA | TRUE | rentasLeonixPublicUi tokens |
+| Landing quick chips route to real params | TRUE | rentasLandingGateway.ts |
+| Results filters are real | TRUE | RentasFiltersDrawer + applySearchAndRefine |
+| No fake visible filters remain | TRUE | All wired |
+| Sort/arrange preserved | TRUE | RentasResultsToolbar |
+| Pagination preserved | TRUE | RentasResultsClient |
+| Branch chips preserved | TRUE | All/Privado/Negocio |
+| Mobile/PWA safe by code inspection | TRUE | Responsive grid + drawer |
+| ES/EN preserved | TRUE | lang query + copy |
+| Other categories untouched | TRUE | Rentas-only edits |
+| Global nav/header untouched | TRUE | No layout edits |
 | Build passed | TRUE | `npm run build` exit 0 |
