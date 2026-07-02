@@ -4,7 +4,6 @@ import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LeonixEmailContactBlock } from "@/app/components/contact/LeonixEmailContactBlock";
-import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import type { SupportedLang } from "@/app/lib/language";
 import { getProductosPromocionPageCopy, type ProductosPromocionPageCopy } from "@/app/lib/leonix/productosPromocionPageCopy";
 import {
@@ -457,9 +456,6 @@ export function ProductCatalog({ routeLang }: { routeLang: SupportedLang }) {
     <div lang={routeLang} style={{ background: "var(--lx-page)" }}>
       <section className="border-b border-[#D6C7AD] bg-[#FAF6EE] px-4 py-8 sm:px-8 sm:py-10">
         <div className="relative mx-auto max-w-3xl text-center">
-          <div className="mb-4 flex justify-end">
-            <LeonixHeaderLanguageSelector variant="full" pathnameOverride="/productos-promocion" />
-          </div>
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
             {pageCopy.heroEyebrow}
           </p>

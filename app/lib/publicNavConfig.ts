@@ -1,6 +1,6 @@
 /**
  * Gate HEADER-3 — Global header: primary tabs + Recursos Comunitarios dropdown.
- * No Cupones. Iglesias only under Recursos dropdown. Nosotros/Contacto not in header.
+ * Nosotros/Contacto in utility links (desktop xl+ and mobile drawer).
  */
 
 import type { SupportedLang } from "@/app/lib/language";
@@ -92,7 +92,13 @@ export const PUBLIC_NAV_COMPACT_OVERFLOW_LABEL = {
 
 export const PUBLIC_NAV_COMPACT_OVERFLOW: PublicNavItem[] = [...PUBLIC_NAV_PRIMARY_AFTER_RECURSOS];
 
-/** Mobile drawer — approved links only (no Cupones, Nosotros, Contacto, Noticias) */
+/** About + Contact — desktop xl+ inline; always in mobile drawer */
+export const PUBLIC_NAV_UTILITY_LINKS: PublicNavItem[] = [
+  { id: "about-us", href: "/about", labelEs: "Sobre nosotros", labelEn: "About us" },
+  { id: "contact-us", href: "/contacto", labelEs: "Contacto", labelEn: "Contact us" },
+];
+
+/** Mobile drawer — approved links only (no Cupones, Noticias) */
 export const PUBLIC_NAV_MOBILE: PublicNavItem[] = [
   ...PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS,
   PUBLIC_NAV_RECURSOS_TRIGGER,
@@ -103,6 +109,7 @@ export const PUBLIC_NAV_MOBILE: PublicNavItem[] = [
     labelEn: d.labelEn,
   })),
   ...PUBLIC_NAV_PRIMARY_AFTER_RECURSOS,
+  ...PUBLIC_NAV_UTILITY_LINKS,
 ];
 
 export const PUBLIC_NAV_ADVERTISE = {

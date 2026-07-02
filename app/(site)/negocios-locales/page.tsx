@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { resolveRouteLang, type SupportedLang } from "@/app/lib/language";
 
-type Lang = "es" | "en";
+type PageLang = "es" | "en";
 
 type BusinessLaneKey =
   | "ofertas-locales"
@@ -134,14 +135,18 @@ const PAGE_COPY = {
   },
 } as const;
 
-function appendLangToPath(path: string, lang: Lang): string {
+function pageLangFromRoute(routeLang: SupportedLang): PageLang {
+  return routeLang === "es" ? "es" : "en";
+}
+
+function appendLangToPath(path: string, lang: SupportedLang): string {
   const [base, hash] = path.split("#");
   const joiner = base.includes("?") ? "&" : "?";
   const withParam = `${base}${joiner}lang=${lang}`;
   return hash ? `${withParam}#${hash}` : withParam;
 }
 
-function buildExploreHref(lane: BusinessLaneKey, lang: Lang): string {
+function buildExploreHref(lane: BusinessLaneKey, lang: SupportedLang): string {
   if (lane === "autos-dealer") {
     const params = new URLSearchParams({ lang, seller: "dealer" });
     return `${LANE_EXPLORE_PATH[lane]}?${params.toString()}`;
@@ -149,11 +154,11 @@ function buildExploreHref(lane: BusinessLaneKey, lang: Lang): string {
   return appendLangToPath(LANE_EXPLORE_PATH[lane], lang);
 }
 
-function buildAdvertiseHref(lane: BusinessLaneKey, lang: Lang): string {
+function buildAdvertiseHref(lane: BusinessLaneKey, lang: SupportedLang): string {
   return appendLangToPath(LANE_ADVERTISE_PATH[lane], lang);
 }
 
-function buildBusinessAdvertiseEntryHref(lang: Lang): string {
+function buildBusinessAdvertiseEntryHref(lang: SupportedLang): string {
   const redirect = encodeURIComponent(`/clasificados/publicar?lang=${lang}`);
   return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
 }
@@ -237,7 +242,7 @@ function BusinessLaneCard({
   exploreLabel,
 }: {
   lane: BusinessLaneKey;
-  lang: Lang;
+  lang: PageLang;
   exploreHref: string;
   advertiseHref: string;
   exploreLabel: string;
@@ -273,9 +278,10 @@ function BusinessLaneCard({
 }
 
 function NegociosLocalesInner() {
-  const lang = (useSearchParams()?.get("lang") === "en" ? "en" : "es") as Lang;
-  const t = PAGE_COPY[lang];
-  const advertiseEntryHref = buildBusinessAdvertiseEntryHref(lang);
+  const routeLang = resolveRouteLang(useSearchParams()?.get("lang"));
+  const pageLang = pageLangFromRoute(routeLang);
+  const t = PAGE_COPY[pageLang];
+  const advertiseEntryHref = buildBusinessAdvertiseEntryHref(routeLang);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -333,9 +339,9 @@ function NegociosLocalesInner() {
               <li key={lane} className="flex h-full">
                 <BusinessLaneCard
                   lane={lane}
-                  lang={lang}
-                  exploreHref={buildExploreHref(lane, lang)}
-                  advertiseHref={buildAdvertiseHref(lane, lang)}
+                  lang={pageLang}
+                  exploreHref={buildExploreHref(lane, routeLang)}
+                  advertiseHref={buildAdvertiseHref(lane, routeLang)}
                   exploreLabel={t.explore}
                 />
               </li>

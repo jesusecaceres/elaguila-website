@@ -16,6 +16,8 @@ export type PublicNavItemLabels = {
   "productos-promocionalesShort"?: string;
   "compact-overflow": string;
   anunciate: string;
+  "about-us": string;
+  "contact-us": string;
 };
 
 export type NavbarChromeCopy = {
