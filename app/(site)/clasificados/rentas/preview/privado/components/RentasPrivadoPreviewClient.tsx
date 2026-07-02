@@ -23,13 +23,19 @@ import {
 import { resolveRentasPrivadoDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
 import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
+  redirectToRevenueCategoryCheckout,
+  revenueCategoryCheckoutLoadingMessage,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { RENTAS_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
   rentasPublishStepTracePatch,
   rentasPublishStepTraceReset,
 } from "@/app/clasificados/rentas/lib/rentasPublishStepTrace";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
-  rentasListingPublicPath,
   RENTAS_PREVIEW_PRIVADO,
   RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -118,20 +124,47 @@ export default function RentasPrivadoPreviewClient() {
     rentasPublishStepTracePatch({ imagesUploadFinished: true, imagesDurableCount });
 
     rentasPublishStepTracePatch({ finalPayloadBuildStarted: true });
-    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang);
+    const r = await publishLeonixListingFromRentasPrivadoDraft(toPublish, lang, null, {
+      activationMode: "pending_payment",
+    });
     rentasPublishStepTracePatch({
       finalPayloadBuildFinished: true,
       redirectStarted: r.ok,
       finalErrorSet: !r.ok,
     });
     setPublishBusy(false);
-    if (r.ok) {
-      clearRentasPrivadoDraft();
-      router.push(withRentasLandingLang(`${rentasListingPublicPath(r.listingId)}?published=1`, lang));
-    } else {
+    if (!r.ok) {
       setPublishErr(r.error);
+      return;
     }
-  }, [lang, router, publishErr]);
+
+    let leonixAdId: string | null = null;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: adRow } = await supabase
+        .from("listings")
+        .select("leonix_ad_id")
+        .eq("id", r.listingId)
+        .maybeSingle();
+      leonixAdId = (adRow as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+    } catch {
+      /* optional metadata */
+    }
+
+    const checkout = await startRevenueCategoryCheckout({
+      ...RENTAS_CATEGORY_CHECKOUT,
+      listingId: r.listingId,
+      leonixAdId,
+      locale: lang,
+    });
+    if (!checkout.ok) {
+      setPublishErr(checkout.userMessage);
+      return;
+    }
+
+    clearRentasPrivadoDraft();
+    redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+  }, [lang, publishErr]);
 
   useEffect(() => {
     let cancelled = false;
@@ -221,12 +254,10 @@ export default function RentasPrivadoPreviewClient() {
         <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
           <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
             {publishBusy
-              ? lang === "es"
-                ? "Publicando…"
-                : "Publishing…"
+              ? revenueCategoryCheckoutLoadingMessage(lang)
               : lang === "es"
-                ? "Publicar anuncio"
-                : "Publish listing"}
+                ? "Continuar al pago seguro"
+                : "Continue to secure payment"}
           </button>
           {publishErr ? (
             <p className="max-w-[280px] text-right text-[11px] text-red-700" role="alert">

@@ -244,6 +244,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   state: RentasPrivadoFormState,
   lang: "es" | "en",
   mux?: RentasListingPublishMuxFields | null,
+  opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
   if (!orderedGallery.length) {
@@ -285,6 +286,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     contactEmail: contact.email,
     imageSources: orderedGallery,
     lang,
+    activationMode: opts?.activationMode,
     ...(muxPid
       ? {
           muxAssetId: mux!.muxAssetId.trim(),

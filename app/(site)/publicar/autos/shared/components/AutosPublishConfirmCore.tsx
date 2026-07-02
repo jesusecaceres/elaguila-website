@@ -14,6 +14,13 @@ import {
   prepareAutosListingForApiTransport,
   prepareAutosListingOptionalMuxUpload,
 } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
+import {
+  redirectToRevenueCategoryCheckout,
+  revenueCategoryCheckoutErrorMessage,
+  revenueCategoryCheckoutLoadingMessage,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { AUTOS_PRIVADO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { autosConfirmErrorMessage } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import {
@@ -527,6 +534,37 @@ export function AutosPublishConfirmCore({
       return;
     }
     setPersistWarnings(syncJson.persistWarnings ?? []);
+
+    if (lane === "privado" && publishConfirmMode === "stripe") {
+      let leonixAdId: string | null = null;
+      try {
+        const ownerRes = await fetchAutosConfirm(`/api/clasificados/autos/listings/${listingId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (ownerRes.ok) {
+          const ownerJson = (await ownerRes.json()) as { leonixAdId?: string | null };
+          leonixAdId = ownerJson.leonixAdId?.trim() || null;
+        }
+      } catch {
+        /* optional metadata */
+      }
+
+      const revenueCheckout = await startRevenueCategoryCheckout({
+        ...AUTOS_PRIVADO_CHECKOUT,
+        listingId,
+        leonixAdId,
+        locale: lang,
+      });
+      setPayBusy(false);
+      if (!revenueCheckout.ok) {
+        setErrorDetail(revenueCheckout.userMessage);
+        setPhase("error");
+        return;
+      }
+      redirectToRevenueCategoryCheckout(revenueCheckout.checkoutUrl);
+      return;
+    }
+
     const res = await fetchAutosConfirm("/api/clasificados/autos/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -619,7 +657,9 @@ export function AutosPublishConfirmCore({
         ? c.checkoutErrorStripe
         : code === "stripe_price_missing"
           ? c.checkoutErrorPrice
-          : j.message ?? c.checkoutErrorGeneric;
+          : lane === "privado" && publishConfirmMode === "stripe"
+            ? revenueCategoryCheckoutErrorMessage(lang)
+            : j.message ?? c.checkoutErrorGeneric;
     setErrorDetail(msg);
     setPhase("error");
     } catch {
@@ -733,7 +773,15 @@ export function AutosPublishConfirmCore({
           onClick={() => void startCheckout()}
           className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90 disabled:opacity-50 sm:w-auto"
         >
-          {payBusy ? c.payBusy : c.payCta}
+          {payBusy
+            ? lane === "privado" && publishConfirmMode === "stripe"
+              ? revenueCategoryCheckoutLoadingMessage(lang)
+              : c.payBusy
+            : lane === "privado" && publishConfirmMode === "stripe"
+              ? lang === "es"
+                ? "Pagar y publicar auto"
+                : "Pay and publish auto listing"
+              : c.payCta}
         </button>
         <Link
           href={editHref}

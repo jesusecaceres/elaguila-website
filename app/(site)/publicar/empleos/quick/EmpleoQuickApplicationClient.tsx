@@ -17,6 +17,7 @@ import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/Empl
 import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
+import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
@@ -74,6 +75,7 @@ export default function EmpleoQuickApplicationClient() {
   );
 
   const [publishOpen, setPublishOpen] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
   const loadedEditRef = useRef<string | null>(null);
@@ -728,30 +730,35 @@ export default function EmpleoQuickApplicationClient() {
               window.alert(es ? "Inicia sesión para publicar." : "Sign in to publish.");
               return;
             }
+            setCheckoutBusy(true);
             const base = buildEmpleosPublishEnvelopeFromQuick(state, lang);
             const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
-            const res = await fetch("/api/clasificados/empleos/listings", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-              body: JSON.stringify({ envelope, mode: "publish" }),
+            const paid = await saveEmpleosDraftAndStartPaidJobCheckout({
+              envelope,
+              accessToken: data.session.access_token,
+              lang,
             });
-            const json = (await res.json()) as { ok?: boolean; error?: string; id?: string; slug?: string };
-            if (!json.ok || !json.slug) {
-              window.alert(json.error ?? (es ? "No se pudo publicar" : "Could not publish"));
+            setCheckoutBusy(false);
+            if (!paid.ok) {
+              window.alert(paid.message);
               return;
             }
-            if (json.id) setServerListingId(json.id);
             clearEmpleosStagedPublish();
             setPublishOpen(false);
-            setStagedNotice(true);
-            router.push(appendLangToPath(`/clasificados/empleos/${json.slug}`, lang));
-            router.refresh();
           })();
         }}
         title={copy.publishModal.title}
         intro={copy.publishModal.intro}
         checks={copy.publishModal.checks}
-        confirmCta={copy.publishModal.confirmCta}
+        confirmCta={
+          checkoutBusy
+            ? es
+              ? "Creando pago seguro…"
+              : "Creating secure checkout…"
+            : es
+              ? "Pagar y publicar empleo"
+              : "Pay and publish job post"
+        }
         cancelCta={copy.publishModal.cancelCta}
         blockedHint={copy.publishModal.blockedHint}
         closeOverlayAria={copy.publishModal.closeOverlayAria}
