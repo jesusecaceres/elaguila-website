@@ -114,7 +114,7 @@ export default function PublicarPageClient({
         : deepLinkCat === "autos"
           ? `/publicar/autos?${p.toString()}`
           : deepLinkCat === "servicios"
-            ? `/clasificados/publicar/servicios?${p.toString()}`
+            ? `/clasificados/publicar/servicios/checkpoint?${p.toString()}`
             : deepLinkCat === "restaurantes"
               ? `/clasificados/publicar/restaurantes?${p.toString()}`
               : deepLinkCat === "travel"
@@ -235,7 +235,7 @@ export default function PublicarPageClient({
                 key === "autos"
                   ? replaceLangInHref("/publicar/autos", routeLang)
                   : key === "servicios"
-                    ? `/clasificados/publicar/servicios?lang=${routeLang}`
+                    ? `/clasificados/publicar/servicios/checkpoint?lang=${routeLang}`
                     : key === "restaurantes"
                       ? replaceLangInHref("/publicar/restaurantes", routeLang)
                       : key === "travel"

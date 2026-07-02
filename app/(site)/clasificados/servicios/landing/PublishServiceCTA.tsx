@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
-  const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const publishHref = `/clasificados/publicar/servicios/checkpoint?lang=${lang}`;
 
   return (
     <section

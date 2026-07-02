@@ -13,19 +13,23 @@ const COPY = {
     cardTitle: "Servicios profesionales",
     cardPrice: "$399/mes",
     cardDescription:
-      "Para negocios y profesionales que ofrecen servicios locales: mecánicos, dentistas, contratistas, limpieza, belleza, reparación y más.",
+      "Para negocios y profesionales que ofrecen servicios locales: mecánicos, dentistas, contratistas, limpieza, belleza, reparación, impuestos, seguros, salud, asesorías y más.",
     cardCta: "Publicar servicio",
     cardMore: "Ver más",
     cardMoreTitle: "Qué incluye Servicios profesionales — $399/mes",
     cardMoreDetails:
       "Este plan crea una ficha profesional para que clientes encuentren tu negocio, entiendan tus servicios, vean tus fotos, revisen tus horarios y contacten directamente desde Leonix.",
     cardMoreBullets: [
-      "Ficha profesional con logo, foto principal y galería",
-      "Business Hub con teléfono, SMS, WhatsApp, email, sitio web y redes",
-      "Servicios, áreas de servicio, horarios y ubicación pública si aplica",
-      "Enlaces extra: formulario, portafolio, calendario, reserva o cotización",
+      "Perfil visual con logo, foto principal y galería",
+      "Servicios principales, especialidades y detalles rápidos",
+      "Business Hub con teléfono, SMS, WhatsApp, email, sitio web y redes sociales",
+      "Enlaces adicionales como formulario, portafolio, calendario, reserva o cotización",
+      "Áreas de servicio, ciudad, estado, ZIP y ubicación pública cuando aplique",
+      "Horarios semanales y nota especial de horario",
       "Hasta 4 promociones generales incluidas",
       "Preparado para móvil/PWA",
+      "Negocio en la red Leonix",
+      "Opción de agregar cupones destacados por +$99/mes",
     ],
     cardMoreCta: "Publicar servicio",
     cardMoreClose: "Cerrar",
@@ -50,7 +54,7 @@ const COPY = {
       "Cambio de aceite: antes $49.99, ahora $29.99",
       "Alineación: antes $120, ahora $79",
       "Limpieza dental: antes $180, ahora $99",
-      "Consulta inicial: antes $150, ahora $75",
+      "Preparación de taxes: antes $250, ahora $149",
     ],
     couponMoreCta: "Continuar con Servicios",
     couponMoreClose: "Cerrar",
@@ -64,19 +68,23 @@ const COPY = {
     cardTitle: "Professional services",
     cardPrice: "$399/mes",
     cardDescription:
-      "For businesses and professionals offering local services: mechanics, dentists, contractors, cleaning, beauty, repairs, and more.",
+      "For businesses and professionals offering local services: mechanics, dentists, contractors, cleaning, beauty, repairs, taxes, insurance, health, consulting, and more.",
     cardCta: "Publish service",
     cardMore: "See more",
     cardMoreTitle: "What's included with Professional services — $399/mes",
     cardMoreDetails:
       "This plan creates a professional profile so customers can find your business, understand your services, see your photos, review your hours, and contact you directly from Leonix.",
     cardMoreBullets: [
-      "Professional profile with logo, hero photo, and gallery",
+      "Visual profile with logo, hero photo, and gallery",
+      "Main services, specialties, and quick details",
       "Business Hub with phone, SMS, WhatsApp, email, website, and social media",
-      "Services, service areas, hours, and public location if applicable",
-      "Extra links: form, portfolio, calendar, booking, or quote",
+      "Extra links like form, portfolio, calendar, booking, or quote",
+      "Service areas, city, state, ZIP, and public location when applicable",
+      "Weekly hours and special hours note",
       "Up to 4 general promotions included",
       "Mobile/PWA ready",
+      "Business on the Leonix network",
+      "Option to add featured coupons for +$99/mes",
     ],
     cardMoreCta: "Publish service",
     cardMoreClose: "Close",
@@ -101,7 +109,7 @@ const COPY = {
       "Oil change: was $49.99, now $29.99",
       "Alignment: was $120, now $79",
       "Dental cleaning: was $180, now $99",
-      "Initial consultation: was $150, now $75",
+      "Tax preparation: was $250, now $149",
     ],
     couponMoreCta: "Continue with Services",
     couponMoreClose: "Close",
@@ -114,10 +122,10 @@ const CARD =
   "rounded-[20px] border border-[#D8C79A] bg-[#FFFDF7] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
 
 const PRIMARY_CARD =
-  "rounded-2xl border-2 border-[#C9782F]/70 bg-gradient-to-b from-[#FFFDF7] to-[#F6F0E2] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[#C9782F]/25";
+  "rounded-2xl border-2 border-[#C9782F]/70 bg-gradient-to-b from-[#FFFDF7] to-[#F6F0E2] p-6 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[#C9782F]/25 sm:p-7";
 
 const COUPON_CARD =
-  "rounded-2xl border border-[#D8C79A] bg-[#FFFDF7]/70 p-5";
+  "rounded-2xl border border-[#D8C79A] bg-[#FFFDF7]/80 p-5 sm:p-6";
 
 export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
   const t = COPY[lang];
@@ -126,16 +134,16 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
 
   return (
     <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12]">
-      <main className="mx-auto max-w-5xl px-4 py-8 pb-16 sm:py-12">
+      <main className="mx-auto max-w-4xl px-4 py-10 pb-16 sm:py-14">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href="/clasificados"
             className="inline-flex min-h-[40px] items-center text-sm font-medium text-[#5D4A25] underline underline-offset-2 hover:text-[#3D2C12]"
           >
             {t.backToClasificados}
           </Link>
-          <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-[#3D2C12] sm:text-3xl">
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-[#3D2C12] sm:text-3xl">
             {t.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">
@@ -144,7 +152,7 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
         </div>
 
         {/* Product Grid */}
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
           {/* Main Product Card */}
           <div className={PRIMARY_CARD}>
             <div className="flex items-start justify-between gap-4">
@@ -180,7 +188,7 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
             {/* CTA Buttons */}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Link
-                href={`/clasificados/publicar/servicios?lang=${lang}`}
+                href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
                 className="min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a1e0d]"
               >
                 {t.cardCta}
@@ -220,11 +228,11 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
               ))}
             </ul>
 
-            <div className="mt-5 flex items-center justify-between">
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={() => setCouponMoreOpen(true)}
-                className="min-h-[40px] inline-flex items-center text-sm font-semibold text-[#3B66AD] underline underline-offset-2 hover:text-[#2f5699]"
+                className="min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#D8C79A] bg-white px-6 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#FFFDF7]"
               >
                 {t.cardMore}
               </button>
@@ -272,7 +280,7 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
                   {t.cardMoreClose}
                 </button>
                 <Link
-                  href={`/clasificados/publicar/servicios?lang=${lang}`}
+                  href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
                   className="min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a1e0d]"
                 >
                   {t.cardMoreCta}
@@ -330,7 +338,7 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
                   {t.couponMoreClose}
                 </button>
                 <Link
-                  href={`/clasificados/publicar/servicios?lang=${lang}`}
+                  href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
                   className="min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a1e0d]"
                 >
                   {t.couponMoreCta}

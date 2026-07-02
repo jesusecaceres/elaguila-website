@@ -60,7 +60,7 @@ export function categoryPublishPath(slug: CatStdAllSlug): string {
     empleos: "/clasificados/publicar/empleos",
     autos: "/clasificados/publicar/autos",
     "bienes-raices": "/clasificados/publicar/bienes-raices",
-    servicios: "/clasificados/publicar/servicios",
+    servicios: "/clasificados/publicar/servicios/checkpoint",
     restaurantes: "/clasificados/restaurantes/publicar",
     viajes: "/clasificados/publicar/viajes",
     clases: "/clasificados/publicar/clases",

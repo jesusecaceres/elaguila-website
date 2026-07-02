@@ -142,7 +142,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const profileShellProps = {
     profile,
     lang,
-    editBackHref: justPublished ? `/clasificados/publicar/servicios?lang=${lang}` : undefined,
+    editBackHref: justPublished ? `/publicar/servicios?lang=${lang}` : undefined,
     justPublishedPanel,
     noticeBanner,
     analyticsListingSlug: slug,
