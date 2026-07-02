@@ -169,6 +169,12 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     languageOtherLines: "Portugués",
     logoUrl: IMG_LOGO,
     coverUrl: IMG_COVER,
+    listingProduct: "professional",
+    baseMonthlyPrice: 399,
+    categoryPlan: "Servicios Profesionales",
+    couponsAddOn: false,
+    couponsMonthlyPrice: 99,
+    coupons: [],
     gallery: [
       { id: g0, url: GALLERY_IMGS[0]!, source: "url" },
       { id: g1, url: GALLERY_IMGS[1]!, source: "url" },
