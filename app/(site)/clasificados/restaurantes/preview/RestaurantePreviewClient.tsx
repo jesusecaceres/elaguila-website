@@ -243,6 +243,25 @@ export default function RestaurantePreviewClient() {
   return (
     <RestaurantesShellChrome lang="es" previewEditHref={EDIT_HREF}>
       <div className="mx-auto max-w-[1280px] space-y-4 px-4 pb-16 pt-2 md:px-5 lg:px-6">
+        {/* Top CTAs */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link
+            href={EDIT_HREF}
+            className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+          >
+            {lang === "en" ? "Back to edit" : "Volver a editar"}
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("publish-confirmation")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
+          >
+            {lang === "en" ? "Publish" : "Publicar"}
+          </button>
+        </div>
+
         <details className="rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/50 px-4 py-3 text-sm text-[color:var(--lx-text-2)]">
           <summary className="cursor-pointer select-none font-semibold text-[color:var(--lx-text)]">
             Publicar y ayuda de sesión
@@ -312,7 +331,7 @@ export default function RestaurantePreviewClient() {
                   </div>
                 ) : null}
 
-                <div className="mt-3 space-y-2 border-t border-[color:var(--lx-nav-border)]/50 pt-3">
+                <div id="publish-confirmation" className="mt-3 space-y-2 border-t border-[color:var(--lx-nav-border)]/50 pt-3">
                   <p className="text-[11px] font-semibold text-[color:var(--lx-text)]">Confirmaciones antes de publicar</p>
                   <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
                     <input
