@@ -6,6 +6,7 @@ import type { BrNegocioAdditionalInventoryPropertyDraft } from "./brNegocioAddit
 import {
   normalizeChildInventoryDraft,
   sanitizeBrNegocioAdditionalInventoryPropertyDraft,
+  syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 
 let childInventoryMediaBridge: BrNegocioAdditionalInventoryPropertyDraft[] | null = null;
@@ -99,20 +100,34 @@ export function mergeChildInventoryWithMediaBridge(
         ...(sessionForm ?? {}),
         ...bridgeForm,
         fotosDataUrls: [...sessionFormPhotos, ...bridgeFormPhotos].filter(isDurablePhotoUrl).slice(0, 40),
+        fotoPortadaIndex: clampPrimaryIndex(
+          [...sessionFormPhotos, ...bridgeFormPhotos].filter(isDurablePhotoUrl).slice(0, 40),
+          bridged.primaryPhotoIndex,
+        ),
+        videoUrls:
+          Array.isArray(bridgeForm.videoUrls) && bridgeForm.videoUrls.length
+            ? bridgeForm.videoUrls
+            : sessionForm?.videoUrls,
+        videoUrl: sanitized.videoUrl || bridged.videoUrl || sessionForm?.videoUrl || "",
+        tourUrl: sanitized.tourUrl || bridged.tourUrl || sessionForm?.tourUrl || "",
+        brochureUrl: sanitized.brochureUrl || bridged.brochureUrl || sessionForm?.brochureUrl || "",
+        listadoUrl: sanitized.listadoUrl || bridged.listadoUrl || sessionForm?.listadoUrl || "",
       };
     }
-    return normalizeChildInventoryDraft({
-      ...sanitized,
-      photoUrls,
-      primaryPhotoIndex,
-      mainPhotoUrl: cover,
-      videoUrl: sanitized.videoUrl || bridged.videoUrl,
-      tourUrl: sanitized.tourUrl || bridged.tourUrl,
-      brochureUrl: sanitized.brochureUrl || bridged.brochureUrl,
-      mlsUrl: sanitized.mlsUrl || bridged.mlsUrl,
-      listadoUrl: sanitized.listadoUrl || bridged.listadoUrl,
-      propertyForm,
-    });
+    return syncChildInventoryDraftMedia(
+      normalizeChildInventoryDraft({
+        ...sanitized,
+        photoUrls,
+        primaryPhotoIndex,
+        mainPhotoUrl: cover,
+        videoUrl: sanitized.videoUrl || bridged.videoUrl,
+        tourUrl: sanitized.tourUrl || bridged.tourUrl,
+        brochureUrl: sanitized.brochureUrl || bridged.brochureUrl,
+        mlsUrl: sanitized.mlsUrl || bridged.mlsUrl,
+        listadoUrl: sanitized.listadoUrl || bridged.listadoUrl,
+        propertyForm,
+      }),
+    );
   });
 }
 

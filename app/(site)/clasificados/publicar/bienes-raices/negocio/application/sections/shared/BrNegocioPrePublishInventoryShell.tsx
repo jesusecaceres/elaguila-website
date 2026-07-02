@@ -5,7 +5,7 @@ import type { AgenteIndividualResidencialFormState } from "../../../agente-indiv
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
-import { normalizeChildInventoryList } from "../../brNegocioInventoryDraftPersistence";
+import { normalizeChildInventoryList, mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
 import { BrNegocioChildInventoryFullApplication } from "./BrNegocioChildInventoryFullApplication";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
@@ -42,10 +42,12 @@ export function BrNegocioPrePublishInventoryShell({
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
   const additionalCount = items.length;
 
-  const editingDraft = useMemo(
-    () => (editingId ? items.find((x) => x.id === editingId) ?? null : null),
-    [editingId, items],
-  );
+  const editingDraft = useMemo(() => {
+    if (!editingId) return null;
+    const hit = items.find((x) => x.id === editingId) ?? null;
+    if (!hit) return null;
+    return mergeChildInventoryWithMediaBridge([hit])[0] ?? hit;
+  }, [editingId, items]);
 
   const previewDraft = useMemo(
     () => (previewDraftId ? items.find((x) => x.id === previewDraftId) ?? null : null),

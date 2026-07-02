@@ -10,6 +10,7 @@ import {
   brInventoryPropertyTypeLabel,
   childInventoryCoverPhotoUrl,
   normalizeChildInventoryDraft,
+  syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 import { mergeParentHubWithChildProperty } from "./brNegocioChildInventoryFormMapping";
 
@@ -33,12 +34,26 @@ export function applyInventoryDraftToAgenteFormState(
   draft: BrNegocioAdditionalInventoryPropertyDraft,
   lang: "es" | "en" = "es",
 ): AgenteIndividualResidencialFormState {
-  const normalized = normalizeChildInventoryDraft(draft);
+  const normalized = syncChildInventoryDraftMedia(normalizeChildInventoryDraft(draft));
   if (normalized.propertyForm && typeof normalized.propertyForm === "object") {
-    return mergeParentHubWithChildProperty(
+    const merged = mergeParentHubWithChildProperty(
       base,
       normalized.propertyForm as Partial<AgenteIndividualResidencialFormState>,
     );
+    return {
+      ...merged,
+      fotosDataUrls: normalized.photoUrls,
+      fotoPortadaIndex: normalized.primaryPhotoIndex,
+      videoUrl: normalized.videoUrl || merged.videoUrl,
+      videoUrls: Array.isArray(normalized.propertyForm.videoUrls)
+        ? normalized.propertyForm.videoUrls
+        : normalized.videoUrl
+          ? [normalized.videoUrl]
+          : merged.videoUrls,
+      tourUrl: normalized.tourUrl || merged.tourUrl,
+      brochureUrl: normalized.brochureUrl || merged.brochureUrl,
+      listadoUrl: normalized.listadoUrl || merged.listadoUrl,
+    };
   }
   const photos = durablePhotoUrls(normalized);
   const cover = childInventoryCoverPhotoUrl(normalized);

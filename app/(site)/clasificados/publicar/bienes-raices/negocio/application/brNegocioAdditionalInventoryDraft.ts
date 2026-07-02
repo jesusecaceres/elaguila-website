@@ -127,7 +127,7 @@ function coercePropertyForm(raw: unknown): Partial<AgenteIndividualResidencialFo
   return raw as Partial<AgenteIndividualResidencialFormState>;
 }
 
-/** Migrate legacy mainPhotoUrl → photoUrls + primaryPhotoIndex. */
+/** Migrate legacy mainPhotoUrl → photoUrls + primaryPhotoIndex; sync propertyForm media. */
 export function normalizeChildInventoryDraft(
   raw: BrNegocioAdditionalInventoryPropertyDraft,
 ): BrNegocioAdditionalInventoryPropertyDraft {
@@ -144,7 +144,7 @@ export function normalizeChildInventoryDraft(
   const primaryPhotoIndex = clampPrimaryIndex(photoUrls, Number(raw.primaryPhotoIndex) || 0);
   const cover = photoUrls[primaryPhotoIndex] ?? photoUrls[0] ?? "";
 
-  return {
+  return syncChildInventoryDraftMedia({
     ...raw,
     photoUrls,
     primaryPhotoIndex,
@@ -154,6 +154,93 @@ export function normalizeChildInventoryDraft(
     brochureUrl: typeof raw.brochureUrl === "string" ? raw.brochureUrl.trim() : "",
     mlsUrl: typeof raw.mlsUrl === "string" ? raw.mlsUrl.trim() : "",
     listadoUrl: typeof raw.listadoUrl === "string" ? raw.listadoUrl.trim() : "",
+  });
+}
+
+function durableHttpUrl(raw: string): string {
+  const u = raw.trim();
+  return u.startsWith("http://") || u.startsWith("https://") ? u : "";
+}
+
+function durableVideoUrlList(urls: unknown, fallbackSingle: string): string[] {
+  const list = Array.isArray(urls)
+    ? urls.map((u) => durableHttpUrl(String(u ?? ""))).filter(Boolean)
+    : [];
+  if (list.length) return list.slice(0, 4);
+  const one = durableHttpUrl(fallbackSingle);
+  return one ? [one] : [];
+}
+
+/** Keep flat draft fields and propertyForm media in sync (save + edit rehydration). */
+export function syncChildInventoryDraftMedia(
+  raw: BrNegocioAdditionalInventoryPropertyDraft,
+): BrNegocioAdditionalInventoryPropertyDraft {
+  const form =
+    raw.propertyForm && typeof raw.propertyForm === "object"
+      ? ({ ...raw.propertyForm } as Partial<AgenteIndividualResidencialFormState>)
+      : ({} as Partial<AgenteIndividualResidencialFormState>);
+
+  const flatPhotos = (Array.isArray(raw.photoUrls) ? raw.photoUrls : [])
+    .map((u) => String(u ?? "").trim())
+    .filter(isDurablePhotoUrl)
+    .slice(0, MAX_CHILD_PHOTOS);
+
+  const legacyMain = typeof raw.mainPhotoUrl === "string" ? raw.mainPhotoUrl.trim() : "";
+  if (!flatPhotos.length && legacyMain && isDurablePhotoUrl(legacyMain)) {
+    flatPhotos.push(legacyMain);
+  }
+
+  const formPhotos = (Array.isArray(form.fotosDataUrls) ? form.fotosDataUrls : [])
+    .map((u) => String(u ?? "").trim())
+    .filter(isDurablePhotoUrl)
+    .slice(0, MAX_CHILD_PHOTOS);
+
+  const photos =
+    formPhotos.length >= flatPhotos.length && formPhotos.length > 0
+      ? formPhotos
+      : flatPhotos.length > 0
+        ? flatPhotos
+        : formPhotos;
+
+  const primaryFromForm = typeof form.fotoPortadaIndex === "number" ? form.fotoPortadaIndex : raw.primaryPhotoIndex;
+  const primaryPhotoIndex = clampPrimaryIndex(photos, Number(primaryFromForm) || 0);
+  const cover = photos[primaryPhotoIndex] ?? photos[0] ?? "";
+
+  const formVideoUrls = durableVideoUrlList(form.videoUrls, form.videoUrl ?? "");
+  const flatVideoUrls = durableVideoUrlList(null, raw.videoUrl ?? "");
+  const videoUrls =
+    formVideoUrls.length >= flatVideoUrls.length && formVideoUrls.length > 0
+      ? formVideoUrls
+      : flatVideoUrls.length > 0
+        ? flatVideoUrls
+        : formVideoUrls;
+  const videoUrl = videoUrls[0] ?? "";
+
+  const tourUrl = durableHttpUrl(String(form.tourUrl ?? "")) || durableHttpUrl(raw.tourUrl ?? "");
+  const brochureUrl = durableHttpUrl(String(form.brochureUrl ?? "")) || durableHttpUrl(raw.brochureUrl ?? "");
+  const listadoUrl = durableHttpUrl(String(form.listadoUrl ?? "")) || durableHttpUrl(raw.listadoUrl ?? "");
+
+  const propertyForm: Partial<AgenteIndividualResidencialFormState> = {
+    ...form,
+    fotosDataUrls: photos,
+    fotoPortadaIndex: primaryPhotoIndex,
+    videoUrls: videoUrls.length ? videoUrls : form.videoUrls,
+    videoUrl,
+    tourUrl: tourUrl || form.tourUrl || "",
+    brochureUrl: brochureUrl || form.brochureUrl || "",
+    listadoUrl: listadoUrl || form.listadoUrl || "",
+  };
+
+  return {
+    ...raw,
+    photoUrls: photos,
+    primaryPhotoIndex,
+    mainPhotoUrl: cover,
+    videoUrl,
+    tourUrl,
+    brochureUrl,
+    listadoUrl,
+    propertyForm,
   };
 }
 

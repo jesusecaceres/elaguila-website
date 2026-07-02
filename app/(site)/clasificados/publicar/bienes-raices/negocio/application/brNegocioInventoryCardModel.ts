@@ -13,6 +13,7 @@ import {
   brInventoryPropertySubtypeLabel,
   brInventoryPropertyTypeLabel,
   childInventoryCoverPhotoUrl,
+  syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 import {
   formatDetailCountDisplay,
@@ -133,26 +134,27 @@ export function mapAdditionalDraftToInventoryCard(
   draft: BrNegocioAdditionalInventoryPropertyDraft,
   lang: BrNegocioPrePublishInventoryLang,
 ): BrNegocioInventoryCardModel {
-  const typeLabel = brInventoryPropertyTypeLabel(draft.propertyType, lang);
-  const subLabel = brInventoryPropertySubtypeLabel(draft.propertyType, draft.propertySubtype, lang);
+  const normalized = syncChildInventoryDraftMedia(draft);
+  const typeLabel = brInventoryPropertyTypeLabel(normalized.propertyType, lang);
+  const subLabel = brInventoryPropertySubtypeLabel(normalized.propertyType, normalized.propertySubtype, lang);
   const typeLine = subLabel ? `${typeLabel} · ${subLabel}` : typeLabel;
   const copy = lang === "es"
     ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
     : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };
-  const photos = (draft.propertyForm?.fotosDataUrls ?? draft.photoUrls ?? []).filter((u) => trim(String(u)));
+  const photos = normalized.photoUrls.filter((u) => trim(String(u)));
 
   return {
     kind: "additional",
-    id: draft.id,
-    title: trim(draft.title) || titleFallback(lang),
-    priceDisplay: brInventoryDraftPriceDisplay(draft.price, lang),
+    id: normalized.id,
+    title: trim(normalized.title) || titleFallback(lang),
+    priceDisplay: brInventoryDraftPriceDisplay(normalized.price, lang),
     propertyTypeLine: typeLine,
-    cityState: brInventoryDraftLocationLine(draft),
-    bedrooms: trim(draft.bedrooms),
-    bathrooms: trim(draft.bathrooms),
-    interiorSqft: trim(draft.interiorSqft),
-    lotSqft: trim(draft.lotSqft),
-    photoUrl: safePhotoUrl(childInventoryCoverPhotoUrl(draft)),
+    cityState: brInventoryDraftLocationLine(normalized),
+    bedrooms: trim(normalized.bedrooms),
+    bathrooms: trim(normalized.bathrooms),
+    interiorSqft: trim(normalized.interiorSqft),
+    lotSqft: trim(normalized.lotSqft),
+    photoUrl: safePhotoUrl(childInventoryCoverPhotoUrl(normalized)),
     photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
