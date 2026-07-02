@@ -149,7 +149,7 @@ export function RentasCompactSearchCanvas({
             autoComplete="postal-code"
           />
         </label>
-        <div className={`hidden sm:block ${isLanding ? "sm:col-span-2" : "sm:col-span-2"}`}>
+        <div className="hidden sm:col-span-2 sm:block">
           <button type="button" className={`${btnPrimary} w-full`} onClick={onSearch}>
             {searchButtonLabel}
           </button>

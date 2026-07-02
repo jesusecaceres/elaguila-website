@@ -33,7 +33,7 @@ export function RentasLandingHeroGateway({
   const eyebrow = lang === "es" ? "Leonix Clasificados · Rentas" : "Leonix Classifieds · Rentals";
 
   return (
-    <section className="relative" aria-labelledby="rentas-landing-hero-title">
+    <section className="relative border-l-4 border-[#7A1E2C]/35" aria-labelledby="rentas-landing-hero-title">
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/70 to-transparent sm:inset-x-7" aria-hidden />
 
       <div className={`${RENTAS_LANDING_GATEWAY_PAD} relative`}>

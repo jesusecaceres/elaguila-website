@@ -70,7 +70,7 @@ export function RentasLandingIntentTiles({ lang, routeLang, headingEs, headingEn
                   {label}
                 </span>
                 {hint ? (
-                  <span className="mt-0.5 hidden line-clamp-2 text-[10px] leading-snug text-[#5C5346]/85 sm:block sm:text-[11px]">{hint}</span>
+                  <span className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-[#5C5346]/85 sm:text-[11px]">{hint}</span>
                 ) : null}
               </Link>
             );

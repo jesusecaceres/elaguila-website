@@ -6,10 +6,10 @@ export const RENTAS_HEADER_SAFE_TOP =
 
 /** Results / shared browse lane */
 export const RENTAS_PUBLIC_SHELL =
-  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 sm:px-4 lg:px-5";
+  "relative mx-auto w-full min-w-0 max-w-[1280px] px-3.5 pb-12 sm:px-4 lg:px-5";
 
-/** Landing gateway — wider premium canvas */
-export const RENTAS_LANDING_LANE = "mx-auto w-full min-w-0 max-w-[1200px]";
+/** Landing gateway — wide premium canvas (v4: 1280px) */
+export const RENTAS_LANDING_LANE = "mx-auto w-full min-w-0 max-w-[1280px]";
 
 /** Results page shell lane — matches landing top breathing room */
 export const RENTAS_RESULTS_SHELL =
@@ -24,7 +24,7 @@ export const RENTAS_SEARCH_SHELL =
 
 /** Landing variant — warmer, larger presence */
 export const RENTAS_SEARCH_SHELL_LANDING =
-  "relative overflow-hidden rounded-2xl border-2 border-[#C9A84A]/45 bg-[#FFFDF7] p-3 shadow-[0_16px_48px_-20px_rgba(42,36,22,0.28),0_0_0_1px_rgba(201,168,74,0.12),inset_0_1px_0_rgba(255,255,255,0.95)] sm:p-4";
+  "relative overflow-hidden rounded-2xl border-2 border-[#C9A84A]/50 bg-[#FFFDF7] p-3.5 shadow-[0_20px_56px_-22px_rgba(42,36,22,0.32),0_0_0_1px_rgba(201,168,74,0.18),inset_0_1px_0_rgba(255,255,255,0.98)] sm:p-5";
 
 export const RENTAS_SEARCH_SHELL_GLOW =
   "pointer-events-none absolute -inset-px rounded-xl bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(201,168,74,0.14),transparent_65%)]";
