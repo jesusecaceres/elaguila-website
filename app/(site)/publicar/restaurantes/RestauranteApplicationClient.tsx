@@ -163,6 +163,46 @@ export default function RestauranteApplicationClient() {
   }, [hydrated, draft.productType, setDraftPatch, searchParams]);
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumDraftForPreview(draft), [draft]);
+
+  /** Check if coupon/flyer/more-offers content meaningfully exists */
+  const hasCouponContent = useMemo(() => {
+    return (
+      Boolean(draft.couponUpgradeEnabled) ||
+      (draft.coupons ?? []).some((coupon) =>
+        Boolean(
+          coupon.title?.trim() ||
+          coupon.description?.trim() ||
+          coupon.couponCode?.trim() ||
+          coupon.expirationDate?.trim() ||
+          coupon.redemptionNote?.trim() ||
+          coupon.imageUrl?.trim()
+        )
+      ) ||
+      Boolean(draft.couponFlyer?.imageUrl?.trim()) ||
+      Boolean(draft.couponMoreOffers?.url?.trim()) ||
+      Boolean(draft.couponMoreOffers?.buttonLabel?.trim())
+    );
+  }, [
+    draft.couponUpgradeEnabled,
+    draft.coupons,
+    draft.couponFlyer?.imageUrl,
+    draft.couponMoreOffers?.url,
+    draft.couponMoreOffers?.buttonLabel,
+  ]);
+
+  /** Final preview confirmation gate */
+  const finalPreviewConfirmationsOk = useMemo(() => {
+    return (
+      confirmBusinessInfo &&
+      confirmPhotosRepresent &&
+      confirmCommunityRules &&
+      (!hasCouponContent || confirmCouponTerms)
+    );
+  }, [confirmBusinessInfo, confirmPhotosRepresent, confirmCommunityRules, hasCouponContent, confirmCouponTerms]);
+
+  /** Can continue to preview */
+  const canContinueToPreview = minPreviewOk && finalPreviewConfirmationsOk;
+
   const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
   const deliveryRelevant = useMemo(
     () =>
@@ -2232,50 +2272,13 @@ export default function RestauranteApplicationClient() {
 
         {/* Publish Confirmation Section */}
         <section id="restaurantes-publish-confirmation" className="mt-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/50 p-6">
-          {/* Pricing Summary */}
-          {draft.productType && draft.baseMonthlyPrice ? (
-            <div className="mb-6 rounded-xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
-              <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Monthly pricing:" : "Precios mensuales:"}
-              </p>
-              <div className="mt-2 space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[color:var(--lx-text-2)]">
-                    {draft.productType === "established_restaurant"
-                      ? lang === "en" ? "Established restaurant" : "Restaurante establecido"
-                      : lang === "en" ? "Mobile vendor" : "Puesto / pop-up / vendedor móvil"}
-                  </span>
-                  <span className="font-semibold text-[color:var(--lx-text)]">
-                    ${draft.baseMonthlyPrice}/mes
-                  </span>
-                </div>
-                {draft.couponUpgradeEnabled && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[color:var(--lx-text-2)]">
-                      {lang === "en" ? "Coupon add-on" : "Add-on de cupones"}
-                    </span>
-                    <span className="font-semibold text-[color:var(--lx-text)]">
-                      +$99/mes
-                    </span>
-                  </div>
-                )}
-                <div className="mt-2 flex items-center justify-between border-t border-[color:var(--lx-nav-border)]/50 pt-2 text-sm font-bold text-[color:var(--lx-text)]">
-                  <span>{lang === "en" ? "Total monthly" : "Total mensual"}</span>
-                  <span>
-                    ${(draft.baseMonthlyPrice || 0) + (draft.couponUpgradeEnabled ? 99 : 0)}/mes
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
           <h2 className="text-lg font-bold text-[color:var(--lx-text)]">
-            {lang === "en" ? "Confirmation before publishing" : "Confirmación antes de publicar"}
+            {lang === "en" ? "Confirmation before preview" : "Confirmación antes de la vista previa"}
           </h2>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
             {lang === "en"
-              ? "These checkboxes help keep Leonix clear and reliable for everyone."
-              : "Estas casillas ayudan a mantener Leonix claro y confiable para todos."}
+              ? "Check these boxes before reviewing your ad. Payment is completed after the preview."
+              : "Marca estas casillas antes de revisar tu anuncio. El pago se completa después de la vista previa."}
           </p>
           <div className="mt-4 space-y-3">
             <label className="flex cursor-pointer items-start gap-3">
@@ -2317,7 +2320,7 @@ export default function RestauranteApplicationClient() {
                   : "Confirmo que mi anuncio cumple con las reglas de Leonix y que soy responsable por la información publicada."}
               </span>
             </label>
-            {draft.couponUpgradeEnabled || (draft.coupons ?? []).length > 0 || draft.couponFlyer || draft.couponMoreOffers ? (
+            {hasCouponContent ? (
               <label className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
@@ -2333,7 +2336,7 @@ export default function RestauranteApplicationClient() {
               </label>
             ) : null}
           </div>
-          {!minPreviewOk || !confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (draft.couponUpgradeEnabled && !confirmCouponTerms) ? (
+          {!canContinueToPreview ? (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-semibold">
                 {lang === "en" ? "To enable Preview, complete the following:" : "Para habilitar Vista previa, completa lo siguiente:"}
@@ -2351,7 +2354,7 @@ export default function RestauranteApplicationClient() {
                 {!confirmCommunityRules && (
                   <li>• {lang === "en" ? "Confirm you comply with Leonix rules" : "Confirma que cumples las reglas de Leonix"}</li>
                 )}
-                {(draft.couponUpgradeEnabled || (draft.coupons ?? []).length > 0 || draft.couponFlyer || draft.couponMoreOffers) && !confirmCouponTerms && (
+                {hasCouponContent && !confirmCouponTerms && (
                   <li>• {lang === "en" ? "Confirm promotions are valid" : "Confirma que las promociones son válidas"}</li>
                 )}
               </ul>
@@ -2362,7 +2365,7 @@ export default function RestauranteApplicationClient() {
               <button
                 type="button"
                 onClick={goPreview}
-                disabled={!minPreviewOk}
+                disabled={!canContinueToPreview}
                 className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {lang === "en" ? "Preview" : "Vista previa"}
@@ -2382,10 +2385,10 @@ export default function RestauranteApplicationClient() {
             <button
               type="button"
               onClick={goPreview}
-              disabled={!minPreviewOk}
+              disabled={!canContinueToPreview}
               className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[200px]"
             >
-              {lang === "en" ? "Continue to preview & checkout" : "Continuar a vista previa y pago"}
+              {lang === "en" ? "Continue to preview" : "Continuar a vista previa"}
             </button>
           </div>
         </section>
