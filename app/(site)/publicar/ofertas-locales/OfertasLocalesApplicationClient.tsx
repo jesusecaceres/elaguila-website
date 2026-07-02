@@ -29,8 +29,15 @@ import {
 import {
   formatOfertaLocalPhoneDisplay,
   normalizeOfertaLocalUrlInput,
-  normalizeOfertaLocalPostalCodeInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import {
+  OfertaLocalPostalInput,
+  OfertaLocalRegionStateInput,
+} from "@/app/lib/ofertas-locales/ofertasLocalesLocationFieldControls";
+import {
+  OFERTA_LOCAL_COUNTRY_SUGGESTIONS,
+  OFERTA_LOCAL_DEFAULT_COUNTRY,
+} from "@/app/lib/ofertas-locales/ofertasLocalesLocationHelpers";
 import {
   buildBusinessCategoryChangePatch,
   businessCategoryShowsSubtypeDropdown,
@@ -705,9 +712,7 @@ export default function OfertasLocalesApplicationClient() {
         return (
           <div className="space-y-4">
             <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
-              {lang === "en"
-                ? "Enter the city, state/province, country, and postal code customers should use to find this offer."
-                : "Ingresa la ciudad, estado/provincia, país y código postal que los clientes deben usar para encontrar esta oferta."}
+              {c.locationStepIntro}
             </div>
             <FieldBlock
               label={lang === "en" ? "Address" : "Dirección"}
@@ -724,7 +729,7 @@ export default function OfertasLocalesApplicationClient() {
               />
             </FieldBlock>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FieldBlock label={lang === "en" ? "City" : "Ciudad"} helper={c.cityHelper}>
+              <FieldBlock label={c.locationCityLabel} helper={c.cityHelper}>
                 <input
                   className={INPUT}
                   value={draft.city}
@@ -734,40 +739,42 @@ export default function OfertasLocalesApplicationClient() {
                 />
               </FieldBlock>
               <FieldBlock
-                label={lang === "en" ? "State / Province / Region" : "Estado / provincia / región"}
-                optional
-                optionalLabel={c.optional}
+                label={c.locationCountryLabel}
               >
-                <input
-                  className={INPUT}
-                  value={draft.state}
-                  onChange={(e) => updateDraft({ state: e.target.value })}
-                  maxLength={80}
-                  placeholder={lang === "en" ? "Example: CA, Ontario, Jalisco" : "Ej. CA, Ontario, Jalisco"}
-                  autoComplete="address-level1"
-                />
-              </FieldBlock>
-              <FieldBlock label={lang === "en" ? "Country" : "País"}>
                 <input
                   className={INPUT}
                   value={draft.country}
                   onChange={(e) => updateDraft({ country: e.target.value })}
                   maxLength={80}
                   autoComplete="country-name"
-                  placeholder={lang === "en" ? "Example: United States, Mexico, Canada" : "Ej. Estados Unidos, México, Canadá"}
+                  list="oferta-local-country-suggestions"
+                  placeholder={c.locationCountryPlaceholder}
+                />
+                <datalist id="oferta-local-country-suggestions">
+                  {OFERTA_LOCAL_COUNTRY_SUGGESTIONS.map((countryName) => (
+                    <option key={countryName} value={countryName} />
+                  ))}
+                </datalist>
+              </FieldBlock>
+              <FieldBlock
+                label={c.locationStateLabel}
+                optional
+                optionalLabel={c.optional}
+              >
+                <OfertaLocalRegionStateInput
+                  country={draft.country || OFERTA_LOCAL_DEFAULT_COUNTRY}
+                  value={draft.state}
+                  onChange={(state) => updateDraft({ state })}
+                  inputClassName={INPUT}
+                  lang={lang}
+                  selectPlaceholder={c.selectPlaceholder}
                 />
               </FieldBlock>
-              <FieldBlock label={lang === "en" ? "ZIP / Postal code" : "ZIP / código postal"} helper={c.zipHelper}>
-                <input
-                  className={INPUT}
-                  type="text"
+              <FieldBlock label={c.locationPostalLabel} helper={c.zipHelper}>
+                <OfertaLocalPostalInput
                   value={draft.zipCode}
-                  onChange={(e) =>
-                    updateDraft({ zipCode: normalizeOfertaLocalPostalCodeInput(e.target.value) })
-                  }
-                  inputMode="text"
-                  maxLength={20}
-                  autoComplete="postal-code"
+                  onChange={(zipCode) => updateDraft({ zipCode })}
+                  inputClassName={INPUT}
                   placeholder={lang === "en" ? "12345, K1A 0B1, 44100" : "12345, K1A 0B1, 44100"}
                 />
               </FieldBlock>

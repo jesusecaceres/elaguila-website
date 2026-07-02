@@ -212,8 +212,8 @@ function CardContentBody({ listing, copy, lang }: BodyProps) {
 
   return (
     <>
-      <p className="text-xl font-bold leading-none tracking-tight text-[#2A7F3E] sm:text-[1.35rem]">{listing.rentDisplay}</p>
-      <h2 className="mt-2 line-clamp-2 text-base font-bold leading-snug text-[#1A1A1A] sm:text-[1.05rem]">{listing.title}</h2>
+      <p className="text-xl font-bold leading-none tracking-tight text-[#7A1E2C] sm:text-[1.35rem]">{listing.rentDisplay}</p>
+      <h2 className="mt-2 line-clamp-2 font-serif text-base font-bold leading-snug text-[#2A4536] sm:text-[1.05rem]">{listing.title}</h2>
       {loc && loc !== "—" ? (
         <p className="mt-1.5 line-clamp-1 text-sm font-medium text-[#4A4A4A]">
           <span className="inline-flex min-w-0 items-center gap-1">
@@ -272,7 +272,7 @@ function CardContentBody({ listing, copy, lang }: BodyProps) {
         </div>
       ) : null}
 
-      <p className="mt-2 text-sm font-semibold text-[#B8893C] underline-offset-2 group-hover:underline">{detailCue}</p>
+      <p className="mt-2 text-sm font-semibold text-[#7A1E2C] underline-offset-2 group-hover:underline">{detailCue}</p>
     </>
   );
 }
@@ -288,8 +288,8 @@ export function RentasResultCard({ listing, copy, lang }: Props) {
   const horizontal = listing.layout === "horizontal";
   const elevated = listing.promoted === true || listing.badges.includes("destacada");
   const cardRing = elevated
-    ? "rounded-2xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_10px_36px_-18px_rgba(212,165,116,0.22)]"
-    : "rounded-2xl border border-[#D4A574]/18 bg-[#FFFAF0] shadow-[0_6px_24px_-16px_rgba(44,36,28,0.12)]";
+    ? "rounded-2xl border border-[#C9A84A]/45 bg-[#FFFDF7] shadow-[0_10px_36px_-18px_rgba(201,168,74,0.25)]"
+    : "rounded-2xl border border-[#D6C7AD]/55 bg-[#FFFDF7] shadow-[0_6px_24px_-16px_rgba(42,36,22,0.14)]";
 
   const aria = `${listing.title}. ${listing.rentDisplay}. ${lang === "es" ? "Ver anuncio" : "View listing"}`;
   const trackOpen = () => trackRentasResultCardClick({ listingUuid: listing.id, leonixAdId: listing.leonixAdId });

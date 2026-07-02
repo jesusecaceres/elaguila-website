@@ -1,6 +1,11 @@
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import type { RentasBrowseParamsParsed } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
 import { RENTAS_DRAWER_SPACE_TYPES } from "@/app/clasificados/rentas/landing/rentasLandingGateway";
+import {
+  RENTAS_ACTIVE_FILTER_CHIP,
+  RENTAS_ACTIVE_FILTERS_PANEL,
+} from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
+
 type Props = {
   parsed: RentasBrowseParamsParsed;
   copy: RentasLandingCopy;
@@ -12,7 +17,7 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel, lang 
   const qe = copy.quickExplore;
   const items: string[] = [];
 
-  if (parsed.q.trim()) items.push(`“${parsed.q.trim()}”`);
+  if (parsed.q.trim()) items.push(`"${parsed.q.trim()}"`);
   if (parsed.city) items.push(`${copy.results.cityLabel}: ${parsed.city}`);
   if (parsed.zip) items.push(`${copy.results.zipLabel}: ${parsed.zip}`);
   if (parsed.state) items.push(`${copy.results.stateLabel}: ${parsed.state}`);
@@ -73,19 +78,13 @@ export function RentasResultsActiveFilters({ parsed, copy, priceBandLabel, lang 
   if (!items.length) return null;
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-[1.15rem] border border-[#5B7C99]/16 bg-[#F5F8FB]/55 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2 sm:px-5"
-      aria-label={copy.results.activeFiltersLabel}
-    >
-      <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B7C99]/88">
+    <div className={RENTAS_ACTIVE_FILTERS_PANEL} aria-label={copy.results.activeFiltersLabel}>
+      <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">
         {copy.results.activeFiltersLabel}
       </span>
       <ul className="flex min-w-0 flex-wrap gap-2">
         {items.map((t, i) => (
-          <li
-            key={`${i}-${t}`}
-            className="inline-flex max-w-full items-center rounded-full border border-[#C9D4E0]/75 bg-white/95 px-3 py-1 text-xs font-semibold text-[#2C3E4D] shadow-sm"
-          >
+          <li key={`${i}-${t}`} className={RENTAS_ACTIVE_FILTER_CHIP}>
             <span className="truncate">{t}</span>
           </li>
         ))}

@@ -185,18 +185,22 @@ export default function RestaurantePreviewClient() {
 
         <details className="rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/50 px-4 py-3 text-sm text-[color:var(--lx-text-2)]">
           <summary className="cursor-pointer select-none font-semibold text-[color:var(--lx-text)]">
-            Publicar y ayuda de sesión
+            {lang === "en" ? "Session help" : "Ayuda de sesión"}
           </summary>
           <div className="mt-3 space-y-3 border-t border-[color:var(--lx-nav-border)]/60 pt-3">
             {!minOk ? (
               <div className="text-xs text-[color:var(--lx-muted)] space-y-1">
-                <p>Borrador incompleto para publicar.</p>
+                <p>{lang === "en" ? "Draft incomplete for checkout." : "Borrador incompleto para pago."}</p>
                 {readiness.missingFields.length > 0 ? (
                   <p className="font-medium text-[color:var(--lx-text-2)]">
-                    Falta: {readiness.missingFields.join(", ")}.
+                    {lang === "en" ? "Missing:" : "Falta:"} {readiness.missingFields.join(", ")}.
                   </p>
                 ) : (
-                  <p>Revisa nombre, tipo, cocina, ciudad, imagen, contacto y horario.</p>
+                  <p>
+                    {lang === "en"
+                      ? "Check name, type, cuisine, city, image, contact, and hours."
+                      : "Revisa nombre, tipo, cocina, ciudad, imagen, contacto y horario."}
+                  </p>
                 )}
               </div>
             ) : (
@@ -205,31 +209,10 @@ export default function RestaurantePreviewClient() {
               </p>
             )}
             <p className="text-xs leading-relaxed">
-              El borrador vive en esta sesión del navegador: se mantiene al volver y al actualizar en la misma pestaña. Al cerrar
-              la pestaña se descarta.
+              {lang === "en"
+                ? "Your draft stays in this browser session until you close the tab. Scroll to the bottom for the final checkout section."
+                : "El borrador vive en esta sesión del navegador hasta que cierres la pestaña. Desplázate al final para el pago."}
             </p>
-            {minOk ? (
-              <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-3">
-                <p className="text-xs font-semibold text-[color:var(--lx-text)]">
-                  {lang === "en" ? "Final checkout" : "Pago final"}
-                </p>
-                <p className="mt-1 text-[11px] text-[color:var(--lx-text-2)]">
-                  {lang === "en"
-                    ? "Preview above does not require confirmations. Check the boxes below only when you are ready for secure payment."
-                    : "La vista previa no requiere confirmaciones. Marca las casillas abajo solo cuando estés listo para el pago seguro."}
-                </p>
-                <RestauranteOfertasLocalesUpsellCard lang={lang} />
-                <div className="mt-4">
-                  <PublishCheckoutCheckpoint
-                    config={checkpointConfig}
-                    lang={lang}
-                    busy={checkoutBusy}
-                    errorMessage={checkoutErr}
-                    onCheckout={(ctx) => void onCheckout(ctx)}
-                  />
-                </div>
-              </div>
-            ) : null}
           </div>
         </details>
 
@@ -291,6 +274,46 @@ export default function RestaurantePreviewClient() {
             </div>
           </div>
         </ClasificadosPreviewAdCanvas>
+
+        {/* Section 3: Final checkout — visible after preview, not inside collapsed panels */}
+        <div className="mt-12">
+          <div className="mb-6">
+            <h2
+              className="mb-3 text-2xl font-bold tracking-tight"
+              style={{ color: LEONIX_PRIMARY_TEXT }}
+            >
+              {lang === "en" ? "3. Final checkout" : "3. Pago final"}
+            </h2>
+            <p className="text-base font-medium leading-relaxed" style={{ color: LEONIX_SECONDARY_TEXT }}>
+              {lang === "en"
+                ? "Preview above does not require confirmations. Complete the plan summary and checkboxes below only when you are ready for secure payment."
+                : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
+            </p>
+          </div>
+          <div
+            className="rounded-3xl border p-4 sm:p-6 md:p-8"
+            style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
+          >
+            <RestauranteOfertasLocalesUpsellCard lang={lang} />
+            <div className="mt-4">
+              <PublishCheckoutCheckpoint
+                config={checkpointConfig}
+                lang={lang}
+                busy={checkoutBusy}
+                errorMessage={checkoutErr}
+                draftReady={minOk}
+                draftReadyMessage={
+                  minOk
+                    ? null
+                    : lang === "en"
+                      ? "Complete the required fields in the form before starting secure checkout."
+                      : "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
+                }
+                onCheckout={(ctx) => void onCheckout(ctx)}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </RestaurantesShellChrome>
   );

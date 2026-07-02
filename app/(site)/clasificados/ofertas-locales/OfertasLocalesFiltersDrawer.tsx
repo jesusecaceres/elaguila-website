@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  OfertaLocalPostalInput,
+  OfertaLocalRegionStateInput,
+} from "@/app/lib/ofertas-locales/ofertasLocalesLocationFieldControls";
+import { OFERTA_LOCAL_DEFAULT_COUNTRY } from "@/app/lib/ofertas-locales/ofertasLocalesLocationHelpers";
 import type { OfertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 
 type Props = {
@@ -103,29 +108,6 @@ export function OfertasLocalesFiltersDrawer({
                 autoComplete="address-level2"
               />
             </label>
-            <label className="block text-xs font-semibold text-[#3D3428]">
-              {c.stateLabel}
-              <input
-                className={INPUT}
-                value={state}
-                onChange={(e) => onStateChange(e.target.value)}
-                placeholder={c.statePlaceholder}
-                autoComplete="address-level1"
-                maxLength={40}
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#3D3428]">
-              {c.zipLabel}
-              <input
-                className={INPUT}
-                value={zip}
-                onChange={(e) => onZipChange(e.target.value)}
-                placeholder={c.zipPlaceholder}
-                inputMode="numeric"
-                maxLength={10}
-                autoComplete="postal-code"
-              />
-            </label>
             <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
               {c.countryLabel}
               <input
@@ -134,6 +116,28 @@ export function OfertasLocalesFiltersDrawer({
                 onChange={(e) => onCountryChange(e.target.value)}
                 placeholder={c.countryPlaceholder}
                 autoComplete="country-name"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
+              {c.stateLabel}
+              <OfertaLocalRegionStateInput
+                country={country || OFERTA_LOCAL_DEFAULT_COUNTRY}
+                value={state}
+                onChange={onStateChange}
+                inputClassName={INPUT}
+                lang={lang}
+                usPlaceholder={c.statePlaceholder}
+                intlPlaceholder={c.statePlaceholder}
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#3D3428] sm:col-span-2">
+              {c.zipLabel}
+              <OfertaLocalPostalInput
+                value={zip}
+                onChange={onZipChange}
+                inputClassName={INPUT}
+                placeholder={c.zipPlaceholder}
+                aria-label={c.zipLabel}
               />
             </label>
           </div>

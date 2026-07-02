@@ -109,8 +109,17 @@ const COPY = {
     customMarketLabel: "Escribe el tipo de mercado o negocio",
     customMarketHelper:
       "Ej. mercado brasileño, tienda orgánica, mercado africano, productos internacionales.",
-    cityHelper: "Usaremos la ciudad para filtros y búsquedas locales. Ejemplos como San José/NorCal son sugerencias, no límites.",
+    cityHelper: "Usaremos la ciudad para filtros y búsquedas locales. Los ejemplos son sugerencias, no límites.",
     zipHelper: "Agrega el ZIP o código postal donde los clientes encontrarán esta oferta.",
+    locationStepIntro:
+      "Ingresa la ciudad, estado/provincia, país y código postal que los clientes deben usar para encontrar esta oferta.",
+    locationCityLabel: "Ciudad",
+    locationStateLabel: "Estado / Provincia / Región",
+    locationCountryLabel: "País",
+    locationPostalLabel: "ZIP / Código postal",
+    locationCountryPlaceholder: "Estados Unidos",
+    locationSearchHint:
+      "Busca por ciudad, estado/provincia, país o código postal.",
     addressHelper:
       "Agrega la dirección si quieres mostrar ubicación. Generaremos \"Cómo llegar\" desde dirección, ciudad, estado/provincia, país y código postal.",
     serviceZipHelper:
@@ -426,8 +435,16 @@ const COPY = {
     customMarketLabel: "Enter the market or business type",
     customMarketHelper:
       "Example: Brazilian market, organic store, African market, international goods.",
-    cityHelper: "We'll use the city for local filters and search. San Jose/NorCal examples are suggestions, not limits.",
+    cityHelper: "We'll use the city for local filters and search. Examples are suggestions, not limits.",
     zipHelper: "Add the ZIP or postal code where customers can find this offer.",
+    locationStepIntro:
+      "Enter the city, state/province, country, and postal code customers should use to find this offer.",
+    locationCityLabel: "City",
+    locationStateLabel: "State / Province / Region",
+    locationCountryLabel: "Country",
+    locationPostalLabel: "ZIP / Postal code",
+    locationCountryPlaceholder: "United States",
+    locationSearchHint: "Search by city, state/province, country, or postal code.",
     addressHelper:
       "Add the address if you want to show a location. We will generate Directions from address, city, state/province, country, and postal code.",
     serviceZipHelper:

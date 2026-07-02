@@ -168,8 +168,8 @@ function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount:
 function restaurantOffersBlockReason(lang: PublishCheckpointLanguage): string | null {
   if (!REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
     return lang === "es"
-      ? "El add-on de cupones (+$99/mes) aún no está disponible en el pago seguro de Leonix. Desactiva cupones en el formulario o contacta a Leonix."
-      : "The coupon add-on (+$99/mo) is not yet available in Leonix secure checkout. Disable coupons in the form or contact Leonix.";
+      ? "Este complemento todavía no está listo para pago. Continúa con el plan base del restaurante o contacta a Leonix."
+      : "This add-on is not ready for checkout yet. Continue with the base restaurant plan or contact Leonix.";
   }
   return null;
 }

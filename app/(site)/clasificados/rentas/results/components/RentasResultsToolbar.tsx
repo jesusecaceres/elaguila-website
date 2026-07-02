@@ -2,7 +2,6 @@
 
 import type { RentasLandingCopy } from "@/app/clasificados/rentas/rentasLandingCopy";
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
-import { rentasResultsToolbarPanelClass } from "@/app/clasificados/rentas/rentasLandingTheme";
 
 type Props = {
   copy: RentasLandingCopy["results"];
@@ -38,7 +37,7 @@ function IconList({ className }: { className?: string }) {
   );
 }
 
-/** Rentas-only toolbar — sort & view; no map (out of scope for this category phase). */
+/** Rentas-only toolbar — sort & view; Leonix visual contract. */
 export function RentasResultsToolbar({
   copy,
   lang,
@@ -53,66 +52,66 @@ export function RentasResultsToolbar({
   const locale = lang === "en" ? "en-US" : "es-MX";
 
   return (
-    <div className="mt-10 border-t border-[#E4D9C8]/80 pt-2">
-      <div className={rentasResultsToolbarPanelClass}>
+    <div className="mt-6 border-t border-[#D6C7AD]/50 pt-4">
+      <div className="rounded-xl border border-[#D6C7AD]/45 bg-[#FFFDF7]/90 px-4 py-3 sm:px-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm leading-snug text-[#4A4338]/92">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#5B7C99]/85">{copy.topBarResults}</span>
-        <span className="mx-2 text-[#D4C4A8]" aria-hidden>
-          ·
-        </span>
-        {copy.countShowing}{" "}
-        <span className="font-semibold text-[#1E1810]">
-          {showingFrom} – {showingTo}
-        </span>{" "}
-        {copy.countOf} <span className="font-semibold text-[#1E1810]">{total.toLocaleString(locale)}</span>{" "}
-        {copy.countResults}
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#4A4338]/92 sm:min-h-0">
-          <span className="sr-only">{copy.sortLabel}</span>
-          <span className="hidden font-semibold sm:inline">{copy.sortLabel}</span>
-          <select
-            value={sort}
-            onChange={(e) => onSort(e.target.value)}
-            className="min-h-[44px] rounded-full border-2 border-[#C9D4E0]/85 bg-white px-4 py-2 text-sm font-semibold text-[#1E1810] shadow-sm outline-none focus:border-[#C45C26]/35 focus:ring-2 focus:ring-[#C45C26]/12 sm:min-h-0"
-          >
-            <option value="reciente">{copy.sortRecent}</option>
-            <option value="precio_asc">{copy.sortPriceAsc}</option>
-            <option value="precio_desc">{copy.sortPriceDesc}</option>
-          </select>
-        </label>
-        <div
-          className="flex rounded-full border-2 border-[#C9D4E0]/75 bg-[#FFFCF7]/95 p-1 shadow-sm"
-          role="group"
-          aria-label={`${copy.viewGridAria} / ${copy.viewListAria}`}
-        >
-          <button
-            type="button"
-            aria-pressed={view === "grid"}
-            onClick={() => onView("grid")}
-            className={
-              "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2 transition sm:min-h-0 sm:min-w-0 " +
-              (view === "grid" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
-            }
-            aria-label={copy.viewGridAria}
-          >
-            <IconGrid />
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === "list"}
-            onClick={() => onView("list")}
-            className={
-              "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2 transition sm:min-h-0 sm:min-w-0 " +
-              (view === "list" ? "bg-white text-[#1E1810] shadow-sm" : "text-[#5C5346] hover:text-[#1E1810]")
-            }
-            aria-label={copy.viewListAria}
-          >
-            <IconList />
-          </button>
-        </div>
-      </div>
+          <p className="text-sm leading-snug text-[#4A4338]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#556B3E]">{copy.topBarResults}</span>
+            <span className="mx-2 text-[#D6C7AD]" aria-hidden>
+              ·
+            </span>
+            {copy.countShowing}{" "}
+            <span className="font-semibold text-[#2A4536]">
+              {showingFrom} – {showingTo}
+            </span>{" "}
+            {copy.countOf} <span className="font-semibold text-[#2A4536]">{total.toLocaleString(locale)}</span>{" "}
+            {copy.countResults}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#4A4338] sm:min-h-0">
+              <span className="sr-only">{copy.sortLabel}</span>
+              <span className="hidden font-semibold sm:inline">{copy.sortLabel}</span>
+              <select
+                value={sort}
+                onChange={(e) => onSort(e.target.value)}
+                className="min-h-[44px] rounded-lg border border-[#C9A84A]/50 bg-white px-4 py-2 text-sm font-semibold text-[#2A4536] shadow-sm outline-none focus:border-[#7A1E2C]/35 focus:ring-2 focus:ring-[#C9A84A]/25 sm:min-h-0"
+              >
+                <option value="reciente">{copy.sortRecent}</option>
+                <option value="precio_asc">{copy.sortPriceAsc}</option>
+                <option value="precio_desc">{copy.sortPriceDesc}</option>
+              </select>
+            </label>
+            <div
+              className="flex rounded-lg border border-[#C9A84A]/45 bg-[#FAF6EE] p-1"
+              role="group"
+              aria-label={`${copy.viewGridAria} / ${copy.viewListAria}`}
+            >
+              <button
+                type="button"
+                aria-pressed={view === "grid"}
+                onClick={() => onView("grid")}
+                className={
+                  "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2 transition sm:min-h-0 sm:min-w-0 " +
+                  (view === "grid" ? "bg-white text-[#2A4536] shadow-sm" : "text-[#5C5346] hover:text-[#2A4536]")
+                }
+                aria-label={copy.viewGridAria}
+              >
+                <IconGrid />
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === "list"}
+                onClick={() => onView("list")}
+                className={
+                  "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2 transition sm:min-h-0 sm:min-w-0 " +
+                  (view === "list" ? "bg-white text-[#2A4536] shadow-sm" : "text-[#5C5346] hover:text-[#2A4536]")
+                }
+                aria-label={copy.viewListAria}
+              >
+                <IconList />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

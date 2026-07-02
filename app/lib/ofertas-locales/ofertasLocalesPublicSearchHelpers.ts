@@ -14,6 +14,14 @@ import {
   normalizeOfertaLocalUrlInput,
 } from "./ofertasLocalesFormatting";
 import {
+  effectiveOfertaLocalCountryForMatching,
+  locationTokensMatch,
+  normalizeOfertaLocalLocationToken,
+  normalizeOfertaLocalPostalCode,
+  readOfertaLocalPostalFromSearchParams,
+  resolveOfertaLocalUsStateInput,
+} from "./ofertasLocalesLocationHelpers";
+import {
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
 } from "./ofertasLocalesPreviewHelpers";
@@ -215,7 +223,7 @@ export function mapOfertaLocalPublicSearchRowToItem(
   const businessName = sanitizePublicText(row.business_name || parent.business_name, 200);
   const city = sanitizePublicText(row.business_city || parent.city, 80);
   const state = sanitizePublicText(row.business_state || parent.state, 40);
-  const zipCode = sanitizePublicText(row.business_zip_code || parent.zip_code, 10);
+  const zipCode = sanitizePublicText(row.business_zip_code || parent.zip_code, 20);
   const address = sanitizePublicText(row.business_address || parent.address, 200);
   const phoneRaw = sanitizePublicText(parent.phone || parent.whatsapp, 40);
   const phoneHref = buildOfertaLocalTelHref(phoneRaw);
@@ -226,7 +234,7 @@ export function mapOfertaLocalPublicSearchRowToItem(
     directionsDirect ||
     (address || city || zipCode
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          [address, city, state, zipCode].filter(Boolean).join(", ")
+          [address, city, state, locationFields.country, zipCode].filter(Boolean).join(", ")
         )}`
       : null);
 
@@ -284,34 +292,50 @@ function matchesKeyword(item: OfertaLocalPublicSearchItem, q: string): boolean {
     item.normalizedItemName,
     item.category,
     item.subcategory,
+    item.city,
+    item.state,
+    item.country,
+    item.zipCode,
     ...item.searchTags,
   ].map(normalizeOfertaLocalSearchText);
   return haystacks.some((h) => h.includes(needle));
 }
 
 function matchesCity(item: OfertaLocalPublicSearchItem, city: string): boolean {
-  const needle = normalizeOfertaLocalSearchText(city);
-  if (!needle) return true;
-  return normalizeOfertaLocalSearchText(item.city).includes(needle);
+  return locationTokensMatch(city, item.city);
 }
 
 function matchesZip(item: OfertaLocalPublicSearchItem, zip: string): boolean {
-  const needle = normalizeOfertaLocalSearchText(zip).replace(/\s+/g, "");
+  const needle = normalizeOfertaLocalPostalCode(zip);
   if (!needle) return true;
-  return normalizeOfertaLocalSearchText(item.zipCode).replace(/\s+/g, "").startsWith(needle);
+  const hay = normalizeOfertaLocalPostalCode(item.zipCode);
+  return hay.startsWith(needle) || hay.includes(needle);
 }
 
-function matchesState(item: Pick<OfertaLocalPublicSearchItem, "state">, state: string): boolean {
-  const needle = normalizeOfertaLocalSearchText(state);
+function matchesState(
+  item: Pick<OfertaLocalPublicSearchItem, "state" | "country">,
+  state: string
+): boolean {
+  const needle = normalizeOfertaLocalLocationToken(state);
   if (!needle) return true;
-  return normalizeOfertaLocalSearchText(item.state).includes(needle);
+  if (effectiveOfertaLocalCountryForMatching(item.country) === "united states") {
+    const resolvedNeedle = resolveOfertaLocalUsStateInput(state);
+    const resolvedHay = resolveOfertaLocalUsStateInput(item.state);
+    if (
+      normalizeOfertaLocalLocationToken(resolvedNeedle) ===
+      normalizeOfertaLocalLocationToken(resolvedHay)
+    ) {
+      return true;
+    }
+  }
+  return locationTokensMatch(state, item.state);
 }
 
 function matchesCountry(item: Pick<OfertaLocalPublicSearchItem, "country">, country: string): boolean {
-  const needle = normalizeOfertaLocalSearchText(country);
+  const needle = normalizeOfertaLocalLocationToken(country);
   if (!needle) return true;
-  if (!item.country?.trim()) return false;
-  return normalizeOfertaLocalSearchText(item.country).includes(needle);
+  const hay = effectiveOfertaLocalCountryForMatching(item.country);
+  return hay.includes(needle) || needle.includes(hay);
 }
 
 export function filterAndSortOfertaLocalPublicSearchItems(
@@ -365,9 +389,9 @@ export function formatOfertaLocalPublicItemPriceDisplay(
 }
 
 export function formatOfertaLocalPublicItemLocation(
-  item: Pick<OfertaLocalPublicSearchItem, "city" | "state" | "zipCode">
+  item: Pick<OfertaLocalPublicSearchItem, "city" | "state" | "zipCode" | "country">
 ): string {
-  return [item.city, item.state, item.zipCode].filter(Boolean).join(", ");
+  return [item.city, item.state, item.zipCode, item.country].filter(Boolean).join(", ");
 }
 
 export function formatOfertaLocalPublicItemValidDates(
@@ -391,7 +415,7 @@ export function parseOfertaLocalPublicSearchQuery(
     q: params.get("q")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
     state: params.get("state")?.trim() ?? "",
-    zip: params.get("zip")?.trim() ?? "",
+    zip: readOfertaLocalPostalFromSearchParams(params),
     country: params.get("country")?.trim() ?? "",
     category: params.get("category")?.trim() ?? "",
     marketType: params.get("marketType")?.trim() ?? "",

@@ -3,6 +3,14 @@
  */
 
 import { isOfertaLocalExpired, normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import {
+  effectiveOfertaLocalCountryForMatching,
+  locationTokensMatch,
+  normalizeOfertaLocalLocationToken,
+  normalizeOfertaLocalPostalCode,
+  readOfertaLocalPostalFromSearchParams,
+  resolveOfertaLocalUsStateInput,
+} from "./ofertasLocalesLocationHelpers";
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import { buildOfertaLocalTelHref } from "./ofertasLocalesPreviewHelpers";
 import { parseOfertaLocalDraftSnapshot, readDraftSnapshotLocationFields } from "./ofertasLocalesDbSchema";
@@ -86,7 +94,7 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
   const address = sanitizeText(row.address, 200);
   const city = sanitizeText(row.city, 80);
   const state = sanitizeText(row.state, 40);
-  const zipCode = sanitizeText(row.zip_code, 10);
+  const zipCode = sanitizeText(row.zip_code, 20);
   const country =
     readDraftSnapshotLocationFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot)).country ?? "";
   const directionsRaw = sanitizeText(row.directions_url, 500);
@@ -95,7 +103,7 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
       ? directionsRaw
       : address || city
         ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            [address, city, state, zipCode].filter(Boolean).join(", ")
+            [address, city, state, country, zipCode].filter(Boolean).join(", ")
           )}`
         : null;
 
@@ -135,22 +143,19 @@ export function filterAndSortOfertaLocalPublicOffers(
         offer.businessCategory,
         offer.marketType,
         offer.offerType,
+        offer.city,
+        offer.state,
+        offer.country,
+        offer.zipCode,
       ]
         .map(normalizeOfertaLocalSearchText)
         .some((h) => h.includes(q));
       if (!hay) return false;
     }
-    const city = normalizeOfertaLocalSearchText(query.city ?? "");
-    if (city && !normalizeOfertaLocalSearchText(offer.city).includes(city)) return false;
-    const state = normalizeOfertaLocalSearchText(query.state ?? "");
-    if (state && !normalizeOfertaLocalSearchText(offer.state).includes(state)) return false;
-    const zip = (query.zip ?? "").replace(/\D/g, "").slice(0, 5);
-    if (zip && !offer.zipCode.replace(/\D/g, "").startsWith(zip)) return false;
-    const country = normalizeOfertaLocalSearchText(query.country ?? "");
-    if (country) {
-      if (!offer.country?.trim()) return false;
-      if (!normalizeOfertaLocalSearchText(offer.country).includes(country)) return false;
-    }
+    if (!locationTokensMatch(query.city ?? "", offer.city)) return false;
+    if (!matchesOfferState(offer, query.state ?? "")) return false;
+    if (!matchesOfferZip(offer, query.zip ?? "")) return false;
+    if (!matchesOfferCountry(offer, query.country ?? "")) return false;
     if (
       query.category?.trim() &&
       normalizeOfertaLocalSearchText(offer.businessCategory) !==
@@ -182,6 +187,36 @@ export function filterAndSortOfertaLocalPublicOffers(
   return out;
 }
 
+function matchesOfferState(offer: OfertaLocalPublicOfferCard, state: string): boolean {
+  const needle = normalizeOfertaLocalLocationToken(state);
+  if (!needle) return true;
+  if (effectiveOfertaLocalCountryForMatching(offer.country) === "united states") {
+    const resolvedNeedle = resolveOfertaLocalUsStateInput(state);
+    const resolvedHay = resolveOfertaLocalUsStateInput(offer.state);
+    if (
+      normalizeOfertaLocalLocationToken(resolvedNeedle) ===
+      normalizeOfertaLocalLocationToken(resolvedHay)
+    ) {
+      return true;
+    }
+  }
+  return locationTokensMatch(state, offer.state);
+}
+
+function matchesOfferZip(offer: OfertaLocalPublicOfferCard, zip: string): boolean {
+  const needle = normalizeOfertaLocalPostalCode(zip);
+  if (!needle) return true;
+  const hay = normalizeOfertaLocalPostalCode(offer.zipCode);
+  return hay.startsWith(needle) || hay.includes(needle);
+}
+
+function matchesOfferCountry(offer: OfertaLocalPublicOfferCard, country: string): boolean {
+  const needle = normalizeOfertaLocalLocationToken(country);
+  if (!needle) return true;
+  const hay = effectiveOfertaLocalCountryForMatching(offer.country);
+  return hay.includes(needle) || needle.includes(hay);
+}
+
 export function parseOfertaLocalPublicOfferSearchQuery(
   params: URLSearchParams
 ): OfertaLocalPublicOfferSearchQuery {
@@ -191,7 +226,7 @@ export function parseOfertaLocalPublicOfferSearchQuery(
     q: params.get("q")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
     state: params.get("state")?.trim() ?? "",
-    zip: params.get("zip")?.trim() ?? "",
+    zip: readOfertaLocalPostalFromSearchParams(params),
     country: params.get("country")?.trim() ?? "",
     category: params.get("category")?.trim() ?? "",
     marketType: params.get("marketType")?.trim() ?? "",

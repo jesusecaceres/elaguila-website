@@ -17,6 +17,14 @@ import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPan
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import { CATEGORY_STANDARD_MAIN } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import {
+  OfertaLocalPostalInput,
+  OfertaLocalRegionStateInput,
+} from "@/app/lib/ofertas-locales/ofertasLocalesLocationFieldControls";
+import {
+  OFERTA_LOCAL_DEFAULT_COUNTRY,
+  readOfertaLocalPostalFromSearchParams,
+} from "@/app/lib/ofertas-locales/ofertasLocalesLocationHelpers";
 
 const OFERTAS_LOCALES_LANDING_PATH = "/clasificados/ofertas-locales";
 const OFERTAS_LOCALES_RESULTS_PATH = "/clasificados/ofertas-locales/results";
@@ -70,7 +78,9 @@ export function OfertasLocalesPublicSearchClient({
   const [q, setQ] = useState(() => searchParams?.get("q") ?? "");
   const [city, setCity] = useState(() => searchParams?.get("city") ?? "");
   const [state, setState] = useState(() => searchParams?.get("state") ?? "");
-  const [zip, setZip] = useState(() => searchParams?.get("zip") ?? "");
+  const [zip, setZip] = useState(() =>
+    searchParams ? readOfertaLocalPostalFromSearchParams(searchParams) : ""
+  );
   const [country, setCountry] = useState(() => searchParams?.get("country") ?? "");
   const [category, setCategory] = useState(() => searchParams?.get("category") ?? "");
   const [marketType, setMarketType] = useState(() => searchParams?.get("marketType") ?? "");
@@ -304,26 +314,23 @@ export function OfertasLocalesPublicSearchClient({
               />
             </label>
             <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <input
-                className={INPUT}
+              <OfertaLocalRegionStateInput
+                country={country || OFERTA_LOCAL_DEFAULT_COUNTRY}
                 value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder={c.statePlaceholder}
-                aria-label={c.stateLabel}
-                autoComplete="address-level1"
-                maxLength={40}
+                onChange={setState}
+                inputClassName={INPUT}
+                lang={lang}
+                usPlaceholder={c.statePlaceholder}
+                intlPlaceholder={c.statePlaceholder}
               />
             </label>
             <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <input
-                className={INPUT}
+              <OfertaLocalPostalInput
                 value={zip}
-                onChange={(e) => setZip(e.target.value)}
+                onChange={setZip}
+                inputClassName={INPUT}
                 placeholder={c.zipPlaceholder}
                 aria-label={c.zipLabel}
-                inputMode="numeric"
-                maxLength={10}
-                autoComplete="postal-code"
               />
             </label>
             <div className="hidden border-b border-[#D6C7AD]/80 p-1.5 sm:col-span-2 sm:block sm:border-b-0">

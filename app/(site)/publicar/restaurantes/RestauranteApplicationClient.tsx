@@ -2336,7 +2336,7 @@ export default function RestauranteApplicationClient() {
           {!minPreviewOk || !confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (draft.couponUpgradeEnabled && !confirmCouponTerms) ? (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-semibold">
-                {lang === "en" ? "To enable Publish, complete the following:" : "Para habilitar Publicar, completa lo siguiente:"}
+                {lang === "en" ? "To enable Preview, complete the following:" : "Para habilitar Vista previa, completa lo siguiente:"}
               </p>
               <ul className="mt-2 space-y-1 text-xs">
                 {!minPreviewOk && (
@@ -2382,10 +2382,10 @@ export default function RestauranteApplicationClient() {
             <button
               type="button"
               onClick={goPreview}
-              disabled={!minPreviewOk || !confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (draft.couponUpgradeEnabled && !confirmCouponTerms)}
-              className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto sm:min-w-[200px]"
+              disabled={!minPreviewOk}
+              className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[200px]"
             >
-              {lang === "en" ? "Publish restaurant" : "Publicar restaurante"}
+              {lang === "en" ? "Continue to preview & checkout" : "Continuar a vista previa y pago"}
             </button>
           </div>
         </section>

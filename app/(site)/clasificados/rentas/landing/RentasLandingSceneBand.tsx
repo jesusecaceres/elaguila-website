@@ -1,69 +1,91 @@
 import type { ReactNode } from "react";
 
 /**
- * Rentas landing neighborhood scene — CSS-only (v4: horizon band, stronger skyline, golden wash).
- * No external images. Visible at 100% browser zoom.
+ * Rentas landing neighborhood scene — CSS-only visual contract v5.
+ * Inline SVG + gradient layers (no remote assets, no image generation).
+ * Marker: data-rentas-gateway-scene="v5-visual-contract"
  */
 export function RentasLandingSceneBand({ children }: { children: ReactNode }) {
   return (
     <div
-      className="relative min-h-[30rem] overflow-hidden rounded-2xl border-2 border-[#C9A84A]/40 shadow-[0_24px_64px_-28px_rgba(42,36,22,0.42)] ring-1 ring-[#C9A84A]/15 sm:min-h-[32rem]"
-      data-rentas-gateway-scene="v4"
+      className="relative min-h-[32rem] overflow-hidden rounded-2xl border-2 border-[#C9A84A]/45 shadow-[0_28px_72px_-32px_rgba(42,36,22,0.48)] ring-1 ring-[#C9A84A]/20 sm:min-h-[34rem]"
+      data-rentas-gateway-scene="v5-visual-contract"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[#FFFDF7]" aria-hidden />
-
-      {/* Golden-hour sky */}
+      {/* Golden-hour sky — no opaque base; scene stays visible */}
       <div
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(201,168,74,0.45)_0%,rgba(255,228,175,0.62)_16%,rgba(250,246,238,0.82)_40%,rgba(255,253,247,0.97)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#E8C98A_0%,#F5D9A8_12%,#FAF0DC_28%,#F7F2E8_52%,#F3EBDD_78%,#EDE4D4_100%)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_65%_at_50%_-12%,rgba(255,210,130,0.72),transparent_55%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(255,200,120,0.85),transparent_58%)]"
         aria-hidden
       />
-
-      {/* Horizon accent */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-[36%] h-px bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_85%_15%,rgba(201,168,74,0.35),transparent_50%)]"
         aria-hidden
       />
 
-      {/* Neighborhood ground */}
+      {/* Top legibility wash — fades out so skyline shows below */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[50%] bg-[linear-gradient(180deg,transparent_0%,rgba(85,107,62,0.1)_28%,rgba(42,69,54,0.16)_100%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[55%] bg-[linear-gradient(180deg,rgba(255,253,247,0.88)_0%,rgba(255,253,247,0.55)_35%,transparent_100%)]"
         aria-hidden
       />
 
-      {/* Distant blocks */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] opacity-[0.28]" aria-hidden>
-        <svg className="h-full w-full" viewBox="0 0 1200 210" preserveAspectRatio="xMidYMax slice" fill="none">
+      {/* Horizon */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-[38%] h-px bg-gradient-to-r from-transparent via-[#C9A84A]/65 to-transparent"
+        aria-hidden
+      />
+
+      {/* Ground */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[52%] bg-[linear-gradient(180deg,transparent_0%,rgba(85,107,62,0.14)_32%,rgba(42,69,54,0.22)_100%)]"
+        aria-hidden
+      />
+
+      {/* Distant city blocks */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%] opacity-[0.34]" aria-hidden>
+        <svg className="h-full w-full" viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax slice" fill="none">
           <path
-            d="M0 170 L40 170 L40 120 L80 120 L80 90 L120 90 L120 135 L160 135 L160 100 L200 100 L200 150 L240 150 L240 110 L280 110 L280 170 L320 170 L320 80 L360 80 L360 170 L400 170 L400 130 L440 130 L440 175 L480 175 L480 95 L520 95 L520 175 L560 175 L560 140 L600 140 L600 180 L640 180 L640 105 L680 105 L680 180 L720 180 L720 135 L760 135 L760 185 L800 185 L800 110 L840 110 L840 185 L880 185 L880 150 L920 150 L920 190 L960 190 L960 120 L1000 120 L1000 190 L1040 190 L1040 160 L1080 160 L1080 190 L1120 190 L1120 175 L1200 175 L1200 210 L0 210 Z"
+            d="M0 175 L35 175 L35 125 L70 125 L70 95 L105 95 L105 140 L140 140 L140 105 L175 105 L175 155 L210 155 L210 115 L245 115 L245 175 L280 175 L280 85 L315 85 L315 175 L350 175 L350 135 L385 135 L385 180 L420 180 L420 100 L455 100 L455 180 L490 180 L490 145 L525 145 L525 185 L560 185 L560 110 L595 110 L595 185 L630 185 L630 150 L665 150 L665 190 L700 190 L700 120 L735 120 L735 190 L770 190 L770 155 L805 155 L805 195 L840 195 L840 125 L875 125 L875 195 L910 195 L910 160 L945 160 L945 200 L980 200 L980 130 L1015 130 L1015 200 L1050 200 L1050 170 L1085 170 L1085 200 L1120 200 L1120 185 L1200 185 L1200 220 L0 220 Z"
             fill="#556B3E"
           />
         </svg>
       </div>
 
-      {/* Foreground homes */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[40%] opacity-[0.36] sm:opacity-[0.32]" aria-hidden>
-        <svg className="h-full w-full" viewBox="0 0 1200 195" preserveAspectRatio="xMidYMax slice" fill="none">
+      {/* Foreground homes + rooflines */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] opacity-[0.42] sm:opacity-[0.38]" aria-hidden>
+        <svg className="h-full w-full" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" fill="none">
           <path
-            d="M0 150 L65 150 L65 95 L105 95 L105 58 L145 58 L145 105 L185 105 L185 75 L225 75 L225 125 L265 125 L265 85 L305 85 L305 135 L345 135 L345 65 L385 65 L385 135 L425 135 L425 100 L465 100 L465 150 L505 150 L505 80 L545 80 L545 150 L585 150 L585 115 L625 115 L625 155 L665 155 L665 90 L705 90 L705 155 L745 155 L745 115 L785 115 L785 160 L825 160 L825 92 L865 92 L865 160 L905 160 L905 125 L945 125 L945 165 L985 165 L985 100 L1025 100 L1025 165 L1065 165 L1065 135 L1105 135 L1105 165 L1200 165 L1200 195 L0 195 Z"
+            d="M0 155 L60 155 L60 98 L98 98 L98 62 L136 62 L136 108 L174 108 L174 78 L212 78 L212 128 L250 128 L250 88 L288 88 L288 138 L326 138 L326 68 L364 68 L364 138 L402 138 L402 103 L440 103 L440 153 L478 153 L478 83 L516 83 L516 153 L554 153 L554 118 L592 118 L592 158 L630 158 L630 93 L668 93 L668 158 L706 158 L706 118 L744 118 L744 163 L782 163 L782 95 L820 95 L820 163 L858 163 L858 128 L896 128 L896 168 L934 168 L934 103 L972 103 L972 168 L1010 168 L1010 138 L1048 138 L1048 168 L1086 168 L1086 148 L1124 148 L1124 168 L1200 168 L1200 200 L0 200 Z"
             fill="#2A4536"
           />
-          <rect x="115" y="112" width="10" height="12" rx="1" fill="#C9A84A" opacity="0.8" />
-          <rect x="128" y="112" width="10" height="12" rx="1" fill="#C9A84A" opacity="0.55" />
-          <rect x="395" y="88" width="10" height="12" rx="1" fill="#C9A84A" opacity="0.7" />
-          <rect x="555" y="98" width="10" height="12" rx="1" fill="#C9A84A" opacity="0.62" />
-          <rect x="715" y="112" width="10" height="12" rx="1" fill="#C9A84A" opacity="0.75" />
-          <path d="M145 58 L168 30 L191 58" stroke="#C9A84A" strokeWidth="2.25" opacity="0.7" />
-          <path d="M345 65 L368 35 L391 65" stroke="#C9A84A" strokeWidth="2.25" opacity="0.65" />
-          <path d="M505 80 L528 52 L551 80" stroke="#C9A84A" strokeWidth="2" opacity="0.62" />
+          <rect x="108" y="115" width="11" height="13" rx="1" fill="#C9A84A" opacity="0.85" />
+          <rect x="122" y="115" width="11" height="13" rx="1" fill="#C9A84A" opacity="0.6" />
+          <rect x="378" y="92" width="11" height="13" rx="1" fill="#C9A84A" opacity="0.75" />
+          <rect x="538" y="102" width="11" height="13" rx="1" fill="#C9A84A" opacity="0.68" />
+          <rect x="698" y="118" width="11" height="13" rx="1" fill="#C9A84A" opacity="0.8" />
+          <path d="M136 62 L160 32 L184 62" stroke="#C9A84A" strokeWidth="2.5" opacity="0.75" />
+          <path d="M326 68 L350 38 L374 68" stroke="#C9A84A" strokeWidth="2.5" opacity="0.7" />
+          <path d="M478 83 L502 54 L526 83" stroke="#C9A84A" strokeWidth="2.25" opacity="0.68" />
+          <path d="M668 93 L692 64 L716 93" stroke="#C9A84A" strokeWidth="2" opacity="0.65" />
         </svg>
       </div>
 
-      <div className="pointer-events-none absolute -left-28 top-6 h-56 w-56 rounded-full bg-[#C9A84A]/28 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -right-24 top-10 h-52 w-52 rounded-full bg-[#556B3E]/18 blur-3xl" aria-hidden />
+      {/* Tree silhouettes */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-[18%] h-[22%] opacity-[0.28]" aria-hidden>
+        <svg className="h-full w-full" viewBox="0 0 1200 80" preserveAspectRatio="xMidYMax slice" fill="none">
+          <ellipse cx="180" cy="55" rx="28" ry="22" fill="#556B3E" />
+          <rect x="176" y="55" width="8" height="18" fill="#2A4536" />
+          <ellipse cx="520" cy="58" rx="32" ry="24" fill="#556B3E" />
+          <rect x="516" y="58" width="8" height="16" fill="#2A4536" />
+          <ellipse cx="880" cy="52" rx="26" ry="20" fill="#556B3E" />
+          <rect x="876" y="52" width="8" height="18" fill="#2A4536" />
+        </svg>
+      </div>
+
+      <div className="pointer-events-none absolute -left-32 top-4 h-64 w-64 rounded-full bg-[#C9A84A]/32 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -right-28 top-8 h-56 w-56 rounded-full bg-[#556B3E]/20 blur-3xl" aria-hidden />
 
       <div className="relative">{children}</div>
     </div>

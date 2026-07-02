@@ -42,6 +42,9 @@ export type PublishCheckoutCheckpointProps = {
   lang: PublishCheckpointLanguage;
   busy?: boolean;
   errorMessage?: string | null;
+  /** When false, final checkout stays disabled (e.g. draft incomplete). Default true. */
+  draftReady?: boolean;
+  draftReadyMessage?: string | null;
   /** When omitted, promo field is hidden (deferred — no fake Apply). */
   onPromoApply?: (code: string) => Promise<{ ok: boolean; discountCents?: number; message?: string }>;
   onCheckout?: (ctx: {
@@ -62,6 +65,8 @@ export function PublishCheckoutCheckpoint({
   lang,
   busy = false,
   errorMessage,
+  draftReady = true,
+  draftReadyMessage,
   onPromoApply,
   onCheckout,
   onFreePublish,
@@ -90,7 +95,9 @@ export function PublishCheckoutCheckpoint({
 
   const requiredRemaining = resolved.confirmations.filter((c) => c.required && !checkedIds.has(c.id)).length;
   const blockReason = publishCheckpointBlockReason(resolved);
+  const draftBlockMessage = !draftReady ? draftReadyMessage?.trim() || null : null;
   const showPromoDeferred = resolved.promo.eligible && !onPromoApply;
+  const finalButtonEnabled = resolved.finalActionEnabled && draftReady && !busy;
 
   const toggleConfirmation = (id: string) => {
     setCheckedIds((prev) => {
@@ -126,7 +133,7 @@ export function PublishCheckoutCheckpoint({
   };
 
   const handleFinalAction = () => {
-    if (!resolved.finalActionEnabled || busy) return;
+    if (!finalButtonEnabled) return;
     const ctx = {
       newsletterOptIn,
       promoCode: appliedPromoCode,
@@ -316,6 +323,11 @@ export function PublishCheckoutCheckpoint({
       </div>
 
       {/* Block reason */}
+      {draftBlockMessage ? (
+        <p className="mt-3 text-xs leading-relaxed" style={{ color: "#8B6914" }} role="status">
+          {draftBlockMessage}
+        </p>
+      ) : null}
       {blockReason ? (
         <p className="mt-3 text-xs leading-relaxed" style={{ color: "#8B3A3A" }} role="alert">
           {blockReason}
@@ -333,12 +345,12 @@ export function PublishCheckoutCheckpoint({
       <div className="mt-4">
         <button
           type="button"
-          disabled={!resolved.finalActionEnabled || busy}
+          disabled={!finalButtonEnabled}
           onClick={handleFinalAction}
           className="min-h-[48px] w-full touch-manipulation rounded-full px-6 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           style={{ background: busy ? LEONIX_MUTED : LEONIX_BURGUNDY }}
           onMouseEnter={(e) => {
-            if (!busy && resolved.finalActionEnabled) {
+            if (!busy && finalButtonEnabled) {
               (e.currentTarget as HTMLButtonElement).style.background = LEONIX_BURGUNDY_HOVER;
             }
           }}

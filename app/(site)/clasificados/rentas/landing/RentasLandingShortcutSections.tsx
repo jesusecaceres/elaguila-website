@@ -94,7 +94,7 @@ export function RentasLandingShortcutSections({
           <p className="mt-1 text-xs text-[#5C5346]/85">
             {lang === "es" ? "Renta mensual aproximada en USD." : "Approximate monthly rent in USD."}
           </p>
-          <div className="mt-3.5 rounded-xl border border-[#C9A84A]/25 bg-[#FAF6EE]/70 p-3 sm:p-3.5">
+          <div className="mt-3.5">
             <BudgetRow items={RENTAS_BUDGET_SHORTCUTS} lang={lang} routeLang={routeLang} />
           </div>
         </div>
@@ -108,7 +108,7 @@ export function RentasLandingShortcutSections({
           <p className="mt-1 text-xs text-[#5C5346]/85">
             {lang === "es" ? "Atajos rápidos para lo esencial." : "Quick shortcuts for what matters."}
           </p>
-          <div className="mt-3.5 rounded-xl border border-[#556B3E]/20 bg-[#F8FAF6]/80 p-3 sm:p-3.5">
+          <div className="mt-3.5">
             <PracticalRow items={RENTAS_PRACTICAL_SHORTCUTS} lang={lang} routeLang={routeLang} />
           </div>
         </div>

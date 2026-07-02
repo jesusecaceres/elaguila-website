@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FiSliders } from "react-icons/fi";
 import { LEONIX_LB_CITY_PRESETS } from "@/app/clasificados/shared/constants/leonixLocalBusinessCityPresets";
 import {
   LEONIX_LB_DEFAULT_STATE,
@@ -86,13 +87,13 @@ export function RentasCompactSearchCanvas({
   const inputClass = isLanding ? RENTAS_SEARCH_INPUT_LANDING : RENTAS_SEARCH_INPUT;
   const btnPrimary = isLanding ? RENTAS_BTN_PRIMARY_LANDING : RENTAS_BTN_PRIMARY;
   const btnSecondary = isLanding ? RENTAS_BTN_SECONDARY_LANDING : RENTAS_BTN_SECONDARY;
-  const gridGap = isLanding ? "gap-3" : "gap-2 sm:gap-2.5";
+  const gridGap = "gap-2.5 sm:gap-3";
 
   return (
     <div className={shellClass}>
       <div className={glowClass} aria-hidden />
 
-      <div className={`relative grid grid-cols-1 ${gridGap} sm:grid-cols-12`}>
+      <div className={`relative grid grid-cols-1 ${gridGap} sm:grid-cols-12 sm:items-stretch`}>
         <label className={`${fieldClass} ${isLanding ? "sm:col-span-5" : "sm:col-span-4"}`}>
           <SearchIcon large={isLanding} />
           <input
@@ -101,7 +102,7 @@ export function RentasCompactSearchCanvas({
             onChange={(e) => onQuery(e.target.value)}
             placeholder={ph}
             aria-label={ph}
-            className={`${inputClass} ${isLanding ? "font-medium" : "px-2"}`}
+            className={`${inputClass} ${isLanding ? "font-medium" : ""}`}
             autoComplete="off"
           />
         </label>
@@ -174,6 +175,7 @@ export function RentasCompactSearchCanvas({
         </label>
         <div className="sm:col-span-3">
           <button type="button" className={`${btnSecondary} w-full`} onClick={onOpenFilters}>
+            <FiSliders className="h-4 w-4 shrink-0 text-[#556B3E]" aria-hidden />
             {filtersButtonLabel}
           </button>
         </div>

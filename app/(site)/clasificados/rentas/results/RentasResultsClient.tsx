@@ -7,8 +7,12 @@ import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/
 import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
-import { rentasCtaPrimaryClass } from "@/app/clasificados/rentas/rentasLandingTheme";
-import { RENTAS_BTN_PRIMARY } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
+import { RentasLandingVisibilityStrip } from "@/app/clasificados/rentas/landing/RentasLandingVisibilityStrip";
+import {
+  RENTAS_BRANCH_CHIP,
+  RENTAS_BRANCH_CHIP_ACTIVE,
+  RENTAS_BTN_PRIMARY,
+} from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import {
   normalizeRentasBrowseHighlightToken,
@@ -65,7 +69,6 @@ import { RentasResultsActiveFilters } from "./components/RentasResultsActiveFilt
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
-import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 
 export type RentasResultsClientProps = {
   /** Server-fetched live catalog (`listings`); never demo. */
@@ -366,12 +369,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       <RentasResultsTopBar copy={copy} lang={lang} routeLang={routeLang} />
 
       <div className="space-y-3 pb-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{copy.title}</h1>
-            <p className="mt-0.5 text-xs text-[#3D3428]/80">{countLine}</p>
+            <h1 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">{copy.title}</h1>
+            <p className="mt-0.5 text-sm text-[#5C5346]">{countLine}</p>
           </div>
-          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${rentasCtaPrimaryClass} shrink-0`}>
+          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${RENTAS_BTN_PRIMARY} shrink-0 px-5`}>
             {lang === "es" ? "Publicar renta" : "Post a rental"}
           </Link>
         </div>
@@ -415,12 +418,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
                 key={opt.id}
                 href={href}
                 scroll={false}
-                className={
-                  "inline-flex h-[30px] items-center rounded-md border px-2.5 text-[11px] font-semibold transition sm:text-xs " +
-                  (isOn
-                    ? "border-[#7A1E2C]/50 bg-[#7A1E2C] text-[#FFFDF7]"
-                    : "border-[#C9A84A]/45 bg-[#FBF7EF] text-[#3D3428] hover:border-[#C9A84A]/70")
-                }
+                className={isOn ? RENTAS_BRANCH_CHIP_ACTIVE : RENTAS_BRANCH_CHIP}
               >
                 {opt.label}
               </Link>
@@ -517,11 +515,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         ) : null}
       </section>
 
-      <footer className="mt-14 border-t border-[#D4C4A8]/50 pt-8 text-center text-sm text-[#4A4338]/88">
-        <CategoryVisibilityCta lang={lang} category="rentas" surface="results" compact />
-        <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="mt-6 inline-block font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/35">
-          {copy.results.backToHub}
-        </Link>
+      <footer className="mt-12 space-y-6 border-t border-[#D4C4A8]/50 pt-8">
+        <RentasLandingVisibilityStrip lang={lang} />
+        <p className="text-center text-sm text-[#4A4338]/88">
+          <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/35">
+            {copy.results.backToHub}
+          </Link>
+        </p>
       </footer>
 
       <RentasFiltersDrawer

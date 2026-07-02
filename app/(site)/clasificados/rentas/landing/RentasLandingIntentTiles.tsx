@@ -38,7 +38,7 @@ export function RentasLandingIntentTiles({ lang, routeLang, headingEs, headingEn
 
   return (
     <section
-      className={embedded ? "border-t border-[#D6C7AD]/40 bg-[#FFFDF7]/40 backdrop-blur-[2px]" : "mt-6 rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] sm:mt-7"}
+      className={embedded ? "border-t border-[#D6C7AD]/50 bg-[#FFFDF7]/55 backdrop-blur-[1px]" : "mt-6 rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] sm:mt-7"}
       aria-labelledby="rentas-intent-tiles-heading"
     >
       <div className={RENTAS_LANDING_SECTION_PAD}>

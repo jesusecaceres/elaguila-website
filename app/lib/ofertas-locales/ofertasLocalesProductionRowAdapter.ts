@@ -10,6 +10,7 @@ import {
 } from "./ofertasLocalesDbSchema";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import { normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
+import { normalizeOfertaLocalCountryDisplay } from "./ofertasLocalesLocationHelpers";
 import { mapOfertaLocalDraftToInsertPayload } from "./ofertasLocalesPublishMapper";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 
@@ -25,7 +26,7 @@ function buildDraftSnapshotFromDraft(
 ): Record<string, unknown> {
   const patch: OfertaLocalDraftSnapshot = {
     location: {
-      country: draft.country.trim() || null,
+      country: normalizeOfertaLocalCountryDisplay(draft.country) || null,
       stateProvinceRegion: draft.state.trim() || null,
       postalCode: draft.zipCode.trim() || null,
     },
