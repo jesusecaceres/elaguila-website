@@ -3,6 +3,9 @@ export type DashboardEntitlementBadgePayload = {
   grantsResultsPriority: boolean;
   includesNuestrosNegocios: boolean;
   tier: string;
+  /** Revenue OS listing/ad plan badge when webhook-backed entitlement exists. */
+  revenueAdPlanBadge?: string | null;
+  revenuePackageKey?: string | null;
 };
 
 export type DashboardEntitlementLookupItem = {
@@ -47,6 +50,18 @@ export function dashboardEntitlementBadgeForKey(
   for (const k of keys) {
     const t = k.trim();
     if (t && badges[t]) return badges[t];
+  }
+  return null;
+}
+
+export function dashboardRevenueAdPlanBadgeForKey(
+  badges: Record<string, DashboardEntitlementBadgePayload>,
+  keys: string[],
+): string | null {
+  for (const k of keys) {
+    const t = k.trim();
+    const badge = t ? badges[t] : null;
+    if (badge?.revenueAdPlanBadge?.trim()) return badge.revenueAdPlanBadge.trim();
   }
   return null;
 }

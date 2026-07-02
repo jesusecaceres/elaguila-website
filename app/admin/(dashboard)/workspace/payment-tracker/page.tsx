@@ -11,6 +11,7 @@ import { AdminI18nProvider } from "@/app/admin/_components/AdminI18nProvider";
 import { resolveAdminLangFromCookieJar } from "@/app/admin/_lib/adminI18nCookie";
 import { adminTr } from "@/app/admin/_lib/adminStrings";
 import { fetchPaymentTrackerSnapshot, type LeonixPaymentRecordRow } from "@/app/admin/_lib/paymentTrackerData";
+import { resolveRevenuePackageLabel, maskStripeReference } from "@/app/lib/listingPlans/revenueDisplay";
 
 function statusChip(status: string) {
   const s = status.toLowerCase();
@@ -66,11 +67,15 @@ export default async function AdminPaymentTrackerPage({
             Payment Tracker
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-[#5C5346]/95">
-            Global payment tracker for package entitlements, promo codes, sales reps, and future Stripe Checkout. This does not collect payments yet.
+            Listing/ad revenue from Stripe Checkout and verified webhooks. This is separate from user account plans.
           </p>
-          <div className="mt-3 rounded-xl border border-amber-200/90 bg-amber-50/80 p-3 text-sm text-amber-950">
-            <strong>Important:</strong>{" "}
-            No payment is collected here yet. Stripe Checkout will create and update these records later. Commission payout is a later gate.
+          <div className="mt-3 space-y-2 rounded-xl border border-emerald-200/90 bg-emerald-50/80 p-3 text-sm text-emerald-950">
+            <p>
+              <strong>Paid status</strong> is activated only by the verified Stripe webhook — not by success pages or client callbacks.
+            </p>
+            <p className="text-xs text-emerald-900/90">
+              This tracker shows real Revenue OS payment records and entitlement linkage. No secrets are displayed.
+            </p>
           </div>
         </header>
 
@@ -124,7 +129,7 @@ export default async function AdminPaymentTrackerPage({
                 className="mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm outline-none"
               >
                 <option value="">{t("common.allCategories")}</option>
-                {["servicios", "restaurantes", "autos", "bienes-raices", "rentas"].map((c) => (
+                {["servicios", "restaurantes", "autos", "bienes-raices", "rentas", "empleos"].map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -154,7 +159,7 @@ export default async function AdminPaymentTrackerPage({
             <p className="font-semibold">Table not available yet</p>
             <p className="mt-1 text-xs">{snapshot.note ?? "Apply the leonix_payment_records migration in Supabase."}</p>
             <p className="mt-2 text-xs text-amber-800">
-              This is expected before the migration is applied. Stripe Checkout will populate this table in a later gate.
+              Stripe Checkout and webhook fulfillment populate this table when payments are processed.
             </p>
           </div>
         ) : (
@@ -183,7 +188,9 @@ export default async function AdminPaymentTrackerPage({
                       <tr>
                         <th className="px-4 py-3">Customer</th>
                         <th className="px-4 py-3">Package</th>
+                        <th className="px-4 py-3">Listing</th>
                         <th className="px-4 py-3">Promo</th>
+                        <th className="px-4 py-3">Entitlement</th>
                         <th className="px-4 py-3">Sales rep</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Amount</th>
@@ -238,26 +245,44 @@ function SummaryCard({ label, value, tone }: { label: string; value: string | nu
 
 function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
   const customerLine = row.business_name?.trim() || row.customer_name?.trim() || row.customer_email?.trim() || "—";
+  const packageLine = row.package_key
+    ? resolveRevenuePackageLabel(row.package_key, "en")
+    : row.package_tier?.replace(/_/g, " ") || "—";
   const amountLine = row.amount_paid_cents != null ? formatMoneyCents(row.amount_paid_cents) : row.amount_total_cents != null ? `${formatMoneyCents(row.amount_total_cents)}` : "—";
   const repLine = row.sales_rep_name ? `${row.sales_rep_name}${row.sales_rep_id ? ` (${row.sales_rep_id})` : ""}` : row.sales_rep_id || "—";
-  const commissionLine = row.commission_eligible
-    ? row.estimated_commission_cents != null ? `≈ ${formatMoneyCents(row.estimated_commission_cents)}` : "Eligible"
-    : row.commission_status === "pending_payment" ? "Pending"
-    : "—";
   const stripeLine = row.stripe_checkout_session_id
-    ? row.stripe_checkout_session_id.slice(0, 16) + "…"
+    ? maskStripeReference(row.stripe_checkout_session_id)
     : row.stripe_payment_intent_id
-      ? row.stripe_payment_intent_id.slice(0, 16) + "…"
+      ? maskStripeReference(row.stripe_payment_intent_id)
+      : "—";
+  const listingLine = row.listing_id
+    ? `${row.listing_id}${row.leonix_ad_id ? ` · ${row.leonix_ad_id}` : ""}`
+    : row.leonix_ad_id || "—";
+  const promoLine = row.promo_code
+    ? `${row.promo_code}${row.promo_redemption_status ? ` (${row.promo_redemption_status})` : ""}`
+    : row.promo_redemption_status || "—";
+  const entitlementLine = row.entitlement_status ?? (row.package_entitlement_id ? "linked" : "—");
+  const commissionLine = row.commission_eligible
+    ? row.estimated_commission_cents != null
+      ? `≈ ${formatMoneyCents(row.estimated_commission_cents)}`
+      : "Eligible"
+    : row.commission_status === "pending_payment"
+      ? "Pending"
       : "—";
 
   return (
     <tr className="bg-white/80 hover:bg-[#FAF7F2]">
       <td className="px-4 py-3 text-[#1E1810]">{customerLine}</td>
       <td className="px-4 py-3 text-xs">
-        {row.package_tier?.replace(/_/g, " ") || "—"}
+        {packageLine}
         {row.category ? <span className="ml-1 text-[#7A7164]">({row.category})</span> : null}
+        {row.package_key ? (
+          <div className="mt-0.5 font-mono text-[10px] text-[#9A9084]">{row.package_key}</div>
+        ) : null}
       </td>
-      <td className="px-4 py-3 font-mono text-xs">{row.promo_code || "—"}</td>
+      <td className="px-4 py-3 text-xs text-[#5C5346]">{listingLine}</td>
+      <td className="px-4 py-3 font-mono text-xs">{promoLine}</td>
+      <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{entitlementLine}</td>
       <td className="px-4 py-3 text-xs text-[#5C5346]">{repLine}</td>
       <td className="px-4 py-3">
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusChip(row.payment_status)}`}>

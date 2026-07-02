@@ -26,7 +26,7 @@ import {
   pickParentHubSlice,
   validateAgenteChildInventoryForSave,
 } from "../../brNegocioChildInventoryFormMapping";
-import { BrNegocioChildInventoryInheritedHubPanel } from "./BrNegocioChildInventoryInheritedHubPanel";
+import { BrNegocioChildInventoryInheritedHubPanel, BrNegocioChildInventoryInheritedSummary } from "./BrNegocioChildInventoryInheritedHubPanel";
 import { BrNegocioChildInventoryInheritedContactPanel } from "./BrNegocioChildInventoryInheritedContactPanel";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
 import { mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
@@ -340,17 +340,52 @@ export function BrNegocioChildInventoryFullApplication({
           {step === 7 ? <BrNegocioChildInventoryInheritedContactPanel state={state} /> : null}
           {step === 8 ? <Step09ExtrasOpcionales state={state} setState={setState} /> : null}
           {step === 9 ? (
-            <section className="space-y-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-[#1E1810]">{copy.previewSaveTitle}</h3>
-              <p className="text-sm text-[#5C5346]/88">{copy.previewSaveBody}</p>
-              <BrNegocioPrePublishInventoryCard card={previewCard} lang={lang} />
+            <section className="space-y-4 rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-sm sm:p-6">
+              <div>
+                <h3 className="text-lg font-bold text-[#1E1810]">{copy.previewSaveTitle}</h3>
+                <p className="mt-1 text-sm text-[#5C5346]/88">{copy.previewSaveBody}</p>
+              </div>
+
+              <BrNegocioChildInventoryInheritedSummary state={state} lang={lang} />
+
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#B8954A]">
+                  {lang === "es" ? "Vista previa de la propiedad" : "Property preview"}
+                </p>
+                <BrNegocioPrePublishInventoryCard card={previewCard} lang={lang} />
+              </div>
+
               <button
                 type="button"
                 onClick={openFullPreview}
-                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-5 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8] sm:min-h-0 sm:w-auto"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-5 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8]"
               >
                 {copy.previewThisProperty}
               </button>
+
+              <div className="flex flex-col gap-2 border-t border-[#E8DFD0]/80 pt-4 sm:flex-row sm:flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => attemptSave("close")}
+                  className="min-h-[48px] w-full touch-manipulation rounded-2xl border border-[#C9B46A]/55 bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-sm hover:opacity-95 sm:min-h-0 sm:flex-1"
+                >
+                  {copy.saveProperty}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => attemptSave("addAnother")}
+                  className="min-h-[48px] w-full touch-manipulation rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0 sm:flex-1"
+                >
+                  {copy.saveAndAddAnother}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => attemptSave("goToParentPreview")}
+                  className="min-h-[48px] w-full touch-manipulation rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0 sm:flex-1"
+                >
+                  {copy.saveAndGoToParentPreview}
+                </button>
+              </div>
             </section>
           ) : null}
 
@@ -381,40 +416,16 @@ export function BrNegocioChildInventoryFullApplication({
             {t.app.anterior}
           </button>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-            {step === total - 1 ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => attemptSave("close")}
-                  className="min-h-[48px] rounded-2xl border border-[#C9B46A]/55 bg-[#FFF6E7] px-5 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8] sm:min-h-0"
-                >
-                  {copy.saveProperty}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => attemptSave("addAnother")}
-                  className="min-h-[48px] rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
-                >
-                  {copy.saveAndAddAnother}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => attemptSave("goToParentPreview")}
-                  className="min-h-[48px] w-full touch-manipulation rounded-2xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0 sm:w-auto"
-                >
-                  {copy.saveAndGoToParentPreview}
-                </button>
-              </>
-            ) : (
+            {step < total - 1 ? (
               <button
                 type="button"
                 disabled={step >= total - 1}
                 onClick={() => setStep((s) => Math.min(total - 1, s + 1))}
-                className="min-h-[48px] rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-5 py-3 text-sm font-semibold text-[#6E5418] disabled:opacity-40 sm:min-h-0 sm:py-2.5"
+                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-5 py-3 text-sm font-semibold text-[#6E5418] disabled:opacity-40 sm:min-h-0 sm:w-auto sm:py-2.5"
               >
                 {t.app.siguiente}
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </footer>
