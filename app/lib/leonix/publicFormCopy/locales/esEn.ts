@@ -6,9 +6,9 @@ export const ES_LOCALE: PublicLocaleCopy = {
     metaTitle: "Contacto",
     metaDescription:
       "Leonix Media conecta negocios locales con la comunidad latina y multicultural del Bay Area.",
-    h1: "Contáctanos",
+    h1: "Contacto",
     intro:
-      "Escríbenos sobre anuncios, tu negocio, productos promocionales, la revista o cualquier pregunta general de Leonix Media.",
+      "Hablemos de publicidad, clasificados, revista, productos promocionales, alianzas o recursos para tu comunidad.",
     business: "Leonix Media — datos de contacto",
     emailLabel: "Correo",
     hoursLabel: "Horario",
@@ -177,9 +177,9 @@ export const EN_LOCALE: PublicLocaleCopy = {
     metaTitle: "Contact",
     metaDescription:
       "Leonix Media connects local businesses with the Bay Area's Latino and multicultural community.",
-    h1: "Contact us",
+    h1: "Contact",
     intro:
-      "Reach out about ads, your business, promotional products, the magazine, or any general Leonix Media question.",
+      "Let's talk about advertising, classifieds, magazine placement, promotional products, partnerships, or resources for your community.",
     business: "Leonix Media — contact details",
     emailLabel: "Email",
     hoursLabel: "Hours",

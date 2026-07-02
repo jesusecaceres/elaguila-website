@@ -85,16 +85,16 @@ export function RentasLandingShortcutSections({
   practicalHeadingEn,
 }: Props) {
   return (
-    <div className="mt-5 space-y-4 sm:mt-6">
+    <div className="mt-6 space-y-5 sm:mt-7">
       <section className={RENTAS_LANDING_SECTION} aria-labelledby="rentas-budget-shortcuts">
         <div className={`${RENTAS_LANDING_SECTION_PAD} border-l-[3px] border-[#C9A84A]/55`}>
-          <h2 id="rentas-budget-shortcuts" className="font-serif text-sm font-bold text-[#2A4536] sm:text-base">
+          <h2 id="rentas-budget-shortcuts" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">
             {lang === "es" ? budgetHeadingEs : budgetHeadingEn}
           </h2>
           <p className="mt-1 text-xs text-[#5C5346]/85">
             {lang === "es" ? "Renta mensual aproximada en USD." : "Approximate monthly rent in USD."}
           </p>
-          <div className="mt-3 rounded-lg bg-[#FAF6EE]/60 p-2.5 sm:p-3">
+          <div className="mt-3.5 rounded-xl border border-[#C9A84A]/25 bg-[#FAF6EE]/70 p-3 sm:p-3.5">
             <BudgetRow items={RENTAS_BUDGET_SHORTCUTS} lang={lang} routeLang={routeLang} />
           </div>
         </div>
@@ -102,13 +102,13 @@ export function RentasLandingShortcutSections({
 
       <section className={RENTAS_LANDING_SECTION} aria-labelledby="rentas-practical-shortcuts">
         <div className={`${RENTAS_LANDING_SECTION_PAD} border-l-[3px] border-[#556B3E]/40`}>
-          <h2 id="rentas-practical-shortcuts" className="font-serif text-sm font-bold text-[#2A4536] sm:text-base">
+          <h2 id="rentas-practical-shortcuts" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">
             {lang === "es" ? practicalHeadingEs : practicalHeadingEn}
           </h2>
           <p className="mt-1 text-xs text-[#5C5346]/85">
             {lang === "es" ? "Atajos rápidos para lo esencial." : "Quick shortcuts for what matters."}
           </p>
-          <div className="mt-3 rounded-lg bg-[#F8FAF6]/70 p-2.5 sm:p-3">
+          <div className="mt-3.5 rounded-xl border border-[#556B3E]/20 bg-[#F8FAF6]/80 p-3 sm:p-3.5">
             <PracticalRow items={RENTAS_PRACTICAL_SHORTCUTS} lang={lang} routeLang={routeLang} />
           </div>
         </div>

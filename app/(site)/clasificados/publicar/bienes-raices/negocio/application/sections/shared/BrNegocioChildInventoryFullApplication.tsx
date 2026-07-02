@@ -21,6 +21,7 @@ import {
   buildChildInventoryEditorState,
   childInventoryDraftFromEditorState,
   childInventorySaveHasErrors,
+  mergeChildEditorSessionWithDraft,
   mergeParentHubWithChildPropertyForEditor,
   pickChildPropertySlice,
   pickParentHubSlice,
@@ -112,15 +113,15 @@ export function BrNegocioChildInventoryFullApplication({
     let cancelled = false;
     void loadChildInventoryEditorSessionResolved().then((session) => {
       if (cancelled) return;
+      const hydratedDraft = initialDraft
+        ? mergeChildInventoryWithMediaBridge([initialDraft])[0] ?? initialDraft
+        : null;
       let bootState: AgenteIndividualResidencialFormState;
       if (session && session.editingId === editingId) {
-        if (initialDraft) {
+        if (hydratedDraft) {
           bootState = buildChildInventoryEditorState(
             parentHubRef.current,
-            {
-              ...initialDraft,
-              propertyForm: session.propertyForm as Partial<AgenteIndividualResidencialFormState>,
-            },
+            mergeChildEditorSessionWithDraft(session.propertyForm, hydratedDraft),
             lang,
           );
         } else {
@@ -128,7 +129,7 @@ export function BrNegocioChildInventoryFullApplication({
         }
         setStep(Math.min(session.step, total - 1));
       } else {
-        bootState = buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang);
+        bootState = buildChildInventoryEditorState(parentHubRef.current, hydratedDraft, lang);
         setStep(0);
       }
       setStateRaw(bootState);

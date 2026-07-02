@@ -17,6 +17,7 @@ import {
   createEmptyBrNegocioAdditionalInventoryPropertyDraft,
   newBrLocalPropertyDraftId,
   normalizeChildInventoryDraft,
+  syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 import type { BienesRaicesNegocioFormState } from "./schema/bienesRaicesNegocioFormState";
 import { applyInventoryDraftToAgenteFormState } from "./brNegocioInventoryQueuePrefill";
@@ -219,12 +220,83 @@ export function childInventoryDraftFromEditorState(
   };
   const now = new Date().toISOString();
   const id = existing?.id ?? newBrLocalPropertyDraftId();
-  return normalizeChildInventoryDraft({
-    ...createEmptyBrNegocioAdditionalInventoryPropertyDraft(id),
-    ...flatFieldsFromChildSlice(slice),
-    propertyForm: slice,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
+  return syncChildInventoryDraftMedia(
+    normalizeChildInventoryDraft({
+      ...createEmptyBrNegocioAdditionalInventoryPropertyDraft(id),
+      ...flatFieldsFromChildSlice(slice),
+      propertyForm: slice,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    }),
+  );
+}
+
+function isDurablePhotoUrl(url: string): boolean {
+  const u = url.trim();
+  return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/");
+}
+
+function clampEditorPhotoIndex(photos: string[], index: number): number {
+  if (!photos.length) return 0;
+  return Math.min(Math.max(0, index), photos.length - 1);
+}
+
+function durableHttpUrl(raw: string): string {
+  const u = raw.trim();
+  return u.startsWith("http://") || u.startsWith("https://") ? u : "";
+}
+
+function durableVideoUrlList(urls: unknown, fallbackSingle: string): string[] {
+  const list = Array.isArray(urls)
+    ? urls.map((u) => durableHttpUrl(String(u ?? ""))).filter(Boolean)
+    : [];
+  if (list.length) return list.slice(0, 4);
+  const one = durableHttpUrl(fallbackSingle);
+  return one ? [one] : [];
+}
+
+/** Merge autosaved session slice with saved draft without wiping media. */
+export function mergeChildEditorSessionWithDraft(
+  sessionForm: AgenteChildPropertyFormSlice,
+  draft: BrNegocioAdditionalInventoryPropertyDraft,
+): BrNegocioAdditionalInventoryPropertyDraft {
+  const synced = syncChildInventoryDraftMedia(draft);
+  const draftSlice = (synced.propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
+
+  const sessionPhotos = (Array.isArray(sessionForm.fotosDataUrls) ? sessionForm.fotosDataUrls : [])
+    .map((u) => String(u ?? "").trim())
+    .filter(isDurablePhotoUrl);
+  const draftPhotos = synced.photoUrls;
+
+  const sessionVideos = durableVideoUrlList(sessionForm.videoUrls, sessionForm.videoUrl ?? "");
+  const draftVideos = durableVideoUrlList(draftSlice.videoUrls, synced.videoUrl);
+
+  const fotosDataUrls =
+    sessionPhotos.length >= draftPhotos.length && sessionPhotos.length > 0 ? sessionPhotos : draftPhotos;
+  const fotoPortadaIndex =
+    sessionPhotos.length > 0 && sessionPhotos.length >= draftPhotos.length
+      ? clampEditorPhotoIndex(fotosDataUrls, sessionForm.fotoPortadaIndex)
+      : synced.primaryPhotoIndex;
+
+  const videoUrls =
+    sessionVideos.length >= draftVideos.length && sessionVideos.length > 0 ? sessionVideos : draftVideos;
+  const videoUrl = videoUrls[0] ?? synced.videoUrl ?? "";
+
+  const mergedSlice: Partial<AgenteChildPropertyFormSlice> = {
+    ...draftSlice,
+    ...sessionForm,
+    fotosDataUrls,
+    fotoPortadaIndex,
+    videoUrls: videoUrls.length ? videoUrls : sessionForm.videoUrls,
+    videoUrl,
+    tourUrl: durableHttpUrl(sessionForm.tourUrl) || synced.tourUrl || draftSlice.tourUrl || "",
+    brochureUrl: durableHttpUrl(sessionForm.brochureUrl) || synced.brochureUrl || draftSlice.brochureUrl || "",
+    listadoUrl: durableHttpUrl(sessionForm.listadoUrl) || synced.listadoUrl || draftSlice.listadoUrl || "",
+  };
+
+  return syncChildInventoryDraftMedia({
+    ...synced,
+    propertyForm: mergedSlice,
   });
 }
 
@@ -241,7 +313,7 @@ export function buildChildInventoryEditorState(
       additionalInventoryProperties: [],
     });
   }
-  const normalized = normalizeChildInventoryDraft(draft);
+  const normalized = syncChildInventoryDraftMedia(normalizeChildInventoryDraft(draft));
   if (normalized.propertyForm && typeof normalized.propertyForm === "object") {
     const merged = mergeParentHubWithChildProperty(
       hub,
@@ -253,6 +325,13 @@ export function buildChildInventoryEditorState(
     );
     return {
       ...merged,
+      fotosDataUrls: normalized.photoUrls,
+      fotoPortadaIndex: normalized.primaryPhotoIndex,
+      videoUrls: durableVideoUrlList(normalized.propertyForm.videoUrls, normalized.videoUrl),
+      videoUrl: normalized.videoUrl,
+      tourUrl: normalized.tourUrl || merged.tourUrl,
+      brochureUrl: normalized.brochureUrl || merged.brochureUrl,
+      listadoUrl: normalized.listadoUrl || merged.listadoUrl,
       ciudad: savedCity || merged.ciudad,
       direccionPais: savedCountry,
     };

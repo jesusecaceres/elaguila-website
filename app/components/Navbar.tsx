@@ -13,7 +13,6 @@ import {
   PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS,
   PUBLIC_NAV_RECURSOS_DROPDOWN,
   PUBLIC_NAV_RECURSOS_TRIGGER,
-  PUBLIC_NAV_UTILITY_LINKS,
   publicNavCompactOverflowLabel,
   publicNavDropdownLabel,
   publicNavItemLabel,
@@ -497,17 +496,6 @@ function NavbarContent() {
                     </div>
                   ) : null}
                 </div>
-
-                {PUBLIC_NAV_UTILITY_LINKS.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={buildLink(item.href)}
-                    className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 xl:inline")}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                  >
-                    {publicNavLabel(item, navLang)}
-                  </Link>
-                ))}
               </div>
             </nav>
 
