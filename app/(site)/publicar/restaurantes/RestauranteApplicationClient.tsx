@@ -143,6 +143,10 @@ export default function RestauranteApplicationClient() {
   const [confirmPhotosRepresent, setConfirmPhotosRepresent] = useState(false);
   const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
   const [confirmCouponTerms, setConfirmCouponTerms] = useState(false);
+  /** Coupon image upload state */
+  const [couponImageUploading, setCouponImageUploading] = useState<Record<number, boolean>>({});
+  /** Flyer image upload state */
+  const [flyerImageUploading, setFlyerImageUploading] = useState(false);
 
   // Initialize pricing based on product query param
   useEffect(() => {
@@ -446,6 +450,58 @@ export default function RestauranteApplicationClient() {
     } finally {
       setHeroPreviewSrc(null);
       setMediaUploading((prev) => ({ ...prev, hero: false }));
+    }
+  }, [setDraftPatch]);
+
+  const uploadCouponImage = useCallback(async (index: number, file: File) => {
+    setCouponImageUploading((prev) => ({ ...prev, [index]: true }));
+    setUploadLabels((p) => ({ ...p, [`coupon-${index}`]: file.name }));
+
+    try {
+      const dataUrl = await readRestauranteImageAsDataUrl(file, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS);
+      if (!dataUrl?.trim().startsWith("data:image")) {
+        throw new Error("Invalid image format");
+      }
+      const coupons = [...(draft.coupons ?? [])];
+      if (coupons[index]) {
+        coupons[index] = { ...coupons[index], imageUrl: dataUrl };
+        setDraftPatch({ coupons });
+      }
+    } catch (error) {
+      console.error("Failed to upload coupon image:", error);
+      setUploadLabels((p) => {
+        const n = { ...p };
+        delete n[`coupon-${index}`];
+        return n;
+      });
+    } finally {
+      setCouponImageUploading((prev) => {
+        const n = { ...prev };
+        delete n[index];
+        return n;
+      });
+    }
+  }, [draft.coupons, setDraftPatch]);
+
+  const uploadFlyerImage = useCallback(async (file: File) => {
+    setFlyerImageUploading(true);
+    setUploadLabels((p) => ({ ...p, flyer: file.name }));
+
+    try {
+      const dataUrl = await readRestauranteImageAsDataUrl(file, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS);
+      if (!dataUrl?.trim().startsWith("data:image")) {
+        throw new Error("Invalid image format");
+      }
+      setDraftPatch({ couponFlyer: { imageUrl: dataUrl } });
+    } catch (error) {
+      console.error("Failed to upload flyer image:", error);
+      setUploadLabels((p) => {
+        const n = { ...p };
+        delete n.flyer;
+        return n;
+      });
+    } finally {
+      setFlyerImageUploading(false);
     }
   }, [setDraftPatch]);
 
@@ -1640,34 +1696,54 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Imagen/flyer del cupón</FieldLabel>
-                    <HelperText>URL de imagen o sube un flyer para mostrar el cupón visualmente.</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.imageUrl ?? ""}
-                      onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
-                      placeholder="https://"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>URL externa</FieldLabel>
-                    <HelperText>URL externa del cupón, menú, landing page o promoción.</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.url ?? ""}
-                      onChange={(e) => patchCoupon(i, { url: e.target.value || undefined })}
-                      placeholder="https://"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel optional>Título del enlace</FieldLabel>
-                    <HelperText>Texto personalizado para el botón (por defecto: "Ver oferta").</HelperText>
-                    <input
-                      className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                      value={coupon.ctaLabel ?? ""}
-                      onChange={(e) => patchCoupon(i, { ctaLabel: e.target.value || undefined })}
-                      placeholder="Ver menú, Ordenar ahora, Cupón completo, Reservar"
-                    />
+                    <FieldLabel optional>Imagen del cupón</FieldLabel>
+                    <HelperText>Sube una imagen del cupón o pega una URL.</HelperText>
+                    <div className="mt-1 space-y-2">
+                      <div
+                        className="rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "copy";
+                        }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          const f = e.dataTransfer.files?.[0];
+                          if (!f?.type.startsWith("image/")) return;
+                          await uploadCouponImage(i, f);
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="block w-full text-sm text-[color:var(--lx-text-2)] file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--lx-section)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[color:var(--lx-text)] hover:file:bg-[color:var(--lx-nav-hover)]"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (f) await uploadCouponImage(i, f);
+                          }}
+                        />
+                        <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                          {uploadLabels[`coupon-${i}`] ? `✅ ${uploadLabels[`coupon-${i}`]}` : lang === "en" ? "Or drag and drop an image" : "O arrastra y suelta una imagen"}
+                        </p>
+                      </div>
+                      <input
+                        className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                        value={coupon.imageUrl ?? ""}
+                        onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
+                        placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
+                      />
+                      {coupon.imageUrl && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <img src={coupon.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => patchCoupon(i, { imageUrl: undefined })}
+                            className="text-xs font-semibold text-red-600 hover:text-red-700"
+                          >
+                            {lang === "en" ? "Remove" : "Eliminar"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1686,12 +1762,52 @@ export default function RestauranteApplicationClient() {
           <div className="mt-6 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
             <FieldLabel optional>Flyer de cupones o promociones</FieldLabel>
             <HelperText>Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales.</HelperText>
-            <input
-              className="mt-2 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-              value={draft.couponFlyer?.imageUrl ?? ""}
-              onChange={(e) => setDraftPatch({ couponFlyer: { imageUrl: e.target.value || undefined } })}
-              placeholder="https://ejemplo.com/flyer-cupones.jpg"
-            />
+            <div className="mt-2 space-y-2">
+              <div
+                className="rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files?.[0];
+                  if (!f?.type.startsWith("image/")) return;
+                  await uploadFlyerImage(f);
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="block w-full text-sm text-[color:var(--lx-text-2)] file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--lx-section)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[color:var(--lx-text)] hover:file:bg-[color:var(--lx-nav-hover)]"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) await uploadFlyerImage(f);
+                  }}
+                />
+                <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
+                  {uploadLabels.flyer ? `✅ ${uploadLabels.flyer}` : lang === "en" ? "Or drag and drop an image" : "O arrastra y suelta una imagen"}
+                </p>
+              </div>
+              <input
+                className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                value={draft.couponFlyer?.imageUrl ?? ""}
+                onChange={(e) => setDraftPatch({ couponFlyer: { imageUrl: e.target.value || undefined } })}
+                placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
+              />
+              {draft.couponFlyer?.imageUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={draft.couponFlyer.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setDraftPatch({ couponFlyer: { imageUrl: undefined } })}
+                    className="text-xs font-semibold text-red-600 hover:text-red-700"
+                  >
+                    {lang === "en" ? "Remove" : "Eliminar"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
